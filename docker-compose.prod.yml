@@ -40,7 +40,7 @@ services:
           memory: 64M
 
   # =============================================================================
-  # APPLICATION - Nuxt OpenTracker
+  # APPLICATION - Nuxt Trackarr
   # =============================================================================
   app:
     image: trackarr:latest
@@ -412,7 +412,7 @@ services:
   #   volumes:
   #     - ./docker/redis/sentinel.conf:/etc/redis/sentinel.conf:ro
   #   networks:
-  #     - opentracker-internal
+  #     - trackarr-internal
   # 
 networks:
   trackarr-public:

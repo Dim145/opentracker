@@ -36,7 +36,7 @@ Best for production deployments. Handles dependencies, secrets, SSL, and systemd
 
 ```bash
 # Download and run the installer
-curl -fsSL https://raw.githubusercontent.com/florianjs/opentracker/main/scripts/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/florianjs/trackarr/main/scripts/install.sh -o install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
@@ -59,7 +59,7 @@ For local development or production deployment with guided setup:
 
 ```bash
 # Clone repository
-git clone https://github.com/florianjs/opentracker.git && cd opentracker
+git clone https://github.com/florianjs/trackarr.git && cd trackarr
 
 # Run interactive setup
 ./scripts/setup.sh
@@ -89,7 +89,7 @@ For full manual control over the installation:
 
 ```bash
 # Clone repository
-git clone https://github.com/florianjs/opentracker.git && cd opentracker
+git clone https://github.com/florianjs/trackarr.git && cd trackarr
 
 # Copy and configure environment
 cp .env.example .env
@@ -127,7 +127,7 @@ Open `https://your-domain.com` to access your tracker.
 To update your Trackarr installation to the latest version:
 
 ```bash
-cd /opt/opentracker
+cd /opt/trackarr
 git checkout main
 git pull origin main
 docker compose -f docker-compose.prod.yml down

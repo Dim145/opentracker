@@ -404,12 +404,12 @@
       },
       "targets": [
         {
-          "expr": "rate(pg_stat_database_xact_commit{datname=\"opentracker\"}[5m])",
+          "expr": "rate(pg_stat_database_xact_commit{datname=\"trackarr\"}[5m])",
           "legendFormat": "Commits/sec",
           "refId": "A"
         },
         {
-          "expr": "rate(pg_stat_database_xact_rollback{datname=\"opentracker\"}[5m])",
+          "expr": "rate(pg_stat_database_xact_rollback{datname=\"trackarr\"}[5m])",
           "legendFormat": "Rollbacks/sec",
           "refId": "B"
         }
@@ -540,7 +540,7 @@
   ],
   "refresh": "30s",
   "schemaVersion": 38,
-  "tags": ["opentracker", "overview"],
+  "tags": ["trackarr", "overview"],
   "templating": {
     "list": [
       {
@@ -566,7 +566,7 @@
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "OpenTracker Overview",
-  "uid": "opentracker-overview",
+  "title": "Trackarr Overview",
+  "uid": "trackarr-overview",
   "version": 1
 }

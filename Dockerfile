@@ -1,4 +1,4 @@
-# Production Dockerfile for OpenTracker
+# Production Dockerfile for Trackarr
 FROM node:20-alpine AS base
 
 # Install dependencies only when needed

@@ -7,12 +7,12 @@ export default defineEventHandler(async (event) => {
   // We return helpful commands for the admin
   return {
     success: true,
-    message: 'Run these commands on your server to update OpenTracker:',
+    message: 'Run these commands on your server to update Trackarr:',
     commands: [
       {
         step: 1,
         description: 'Navigate to the project directory',
-        command: 'cd /path/to/opentracker',
+        command: 'cd /path/to/trackarr',
       },
       {
         step: 2,

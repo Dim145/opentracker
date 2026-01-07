@@ -44,7 +44,7 @@
                 'font-medium': !siteNameBold,
               }"
               :style="{ color: siteNameColor || '' }"
-              v-html="siteName || 'OpenTracker'"
+              v-html="siteName || 'Trackarr'"
             ></span>
             <span class="text-[10px] text-text-muted font-mono">{{
               siteSubtitle || `v${useRuntimeConfig().public.appVersion}`
@@ -60,7 +60,7 @@
       >
         <WysiwygEditor
           v-model="siteName"
-          placeholder="OpenTracker"
+          placeholder="Trackarr"
           :maxLength="200"
         />
 
@@ -389,7 +389,7 @@
       >
         <WysiwygEditor
           v-model="footerText"
-          :placeholder="`© ${new Date().getFullYear()} ${(siteName || 'OpenTracker').toUpperCase()}`"
+          :placeholder="`© ${new Date().getFullYear()} ${(siteName || 'Trackarr').toUpperCase()}`"
           :maxLength="500"
         />
       </SettingsGroup>
@@ -405,11 +405,11 @@
             type="text"
             maxlength="100"
             class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-white/20"
-            :placeholder="`- ${siteName || 'OpenTracker'}`"
+            :placeholder="`- ${siteName || 'Trackarr'}`"
           />
           <p class="text-[10px] text-text-muted">
             Example: "Search Torrents{{
-              pageTitleSuffix || ` - ${siteName || 'OpenTracker'}`
+              pageTitleSuffix || ` - ${siteName || 'Trackarr'}`
             }}"
           </p>
         </div>
@@ -486,7 +486,7 @@
         >
           <WysiwygEditor
             v-model="heroTitle"
-            placeholder="OpenTracker"
+            placeholder="Trackarr"
             :maxLength="500"
           />
         </SettingsGroup>
@@ -587,7 +587,7 @@
 </template>
 
 <script setup lang="ts">
-const siteName = ref<string>('OpenTracker');
+const siteName = ref<string>('Trackarr');
 const siteLogo = ref('ph:broadcast-bold');
 const siteLogoImage = ref<string | null>(null);
 const siteSubtitle = ref<string>('');
@@ -617,7 +617,7 @@ const loadingText = ref(false);
 const savedText = ref(false);
 
 // Homepage content
-const heroTitle = ref('OpenTracker');
+const heroTitle = ref('Trackarr');
 const heroSubtitle = ref(
   'High-performance, minimalist P2P tracking engine. Search through our indexed database of verified torrents.'
 );
@@ -683,7 +683,7 @@ onMounted(async () => {
       feature3Title: string;
       feature3Desc: string;
     }>('/api/admin/settings');
-    siteName.value = settings.siteName || 'OpenTracker';
+    siteName.value = settings.siteName || 'Trackarr';
     siteLogo.value = settings.siteLogo;
     siteLogoImage.value = settings.siteLogoImage;
     siteFavicon.value = settings.siteFavicon;
@@ -699,7 +699,7 @@ onMounted(async () => {
     welcomeMessage.value = settings.welcomeMessage || '';
     siteRules.value = settings.siteRules || '';
     // Homepage content
-    heroTitle.value = settings.heroTitle || 'OpenTracker';
+    heroTitle.value = settings.heroTitle || 'Trackarr';
     heroSubtitle.value = settings.heroSubtitle || heroSubtitle.value;
     statusBadgeText.value =
       settings.statusBadgeText || 'Tracker Online & Operational';

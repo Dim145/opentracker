@@ -159,7 +159,7 @@ export async function getDefaultInvites(): Promise<number> {
  */
 export async function getSiteName(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.SITE_NAME);
-  return value || 'OpenTracker';
+  return value || 'Trackarr';
 }
 
 /**
@@ -295,7 +295,7 @@ export async function getAnnouncementType(): Promise<
  */
 export async function getHeroTitle(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.HERO_TITLE);
-  return value || 'OpenTracker';
+  return value || 'Trackarr';
 }
 
 /**

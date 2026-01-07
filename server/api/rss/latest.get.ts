@@ -37,9 +37,9 @@ export default defineEventHandler(async (event) => {
   // Build RSS XML
   const baseUrl = getRequestURL(event).origin;
   const rss = buildRSSFeed({
-    title: 'OpenTracker - Latest Torrents',
-    link: `${baseUrl}/torrents`,
-    description: 'Latest torrent uploads on OpenTracker',
+    title: 'Trackarr - Latest Torrents',
+    link: baseUrl,
+    description: 'Latest torrent uploads on Trackarr',
     items: enriched.map((t) => ({
       title: t.name,
       link: `${baseUrl}/torrents/${t.infoHash}`,

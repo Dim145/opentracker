@@ -18,8 +18,8 @@ It is **strongly recommended** to back up your PostgreSQL database to **multiple
 ### Creating a Database Backup
 
 ```bash
-cd /opt/opentracker
-docker compose exec db pg_dump -U opentracker opentracker | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
+cd /opt/trackarr
+docker compose exec db pg_dump -U tracker trackarr | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
 ```
 
 ### Backing Up Secrets
@@ -31,17 +31,17 @@ Your `.env` file contains critical secrets that **cannot be regenerated**. If yo
 Always back up your `.env` file alongside your database:
 
 ```bash
-cd /opt/opentracker
+cd /opt/trackarr
 cp .env .env.backup_$(date +%Y%m%d_%H%M%S)
 ```
 
 Key secrets to preserve:
 
-| Variable | Purpose |
-|----------|---------|
-| `TRACKER_SECRET` | Generates user passkeys — losing this invalidates all `.torrent` files |
-| `IP_HASH_SECRET` | Hashes peer IPs — losing this breaks peer tracking continuity |
-| `NUXT_SESSION_PASSWORD` | Encrypts sessions — losing this logs out all users |
+| Variable                | Purpose                                                                |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `TRACKER_SECRET`        | Generates user passkeys — losing this invalidates all `.torrent` files |
+| `IP_HASH_SECRET`        | Hashes peer IPs — losing this breaks peer tracking continuity          |
+| `NUXT_SESSION_PASSWORD` | Encrypts sessions — losing this logs out all users                     |
 
 Store a copy of your `.env` file in a secure location (password manager, encrypted storage) separate from your database backups.
 
@@ -54,7 +54,7 @@ To restore your database on a new VPS:
 Run the installer as usual:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/florianjs/opentracker/main/scripts/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/florianjs/trackarr/main/scripts/install.sh -o install.sh
 chmod +x install.sh
 sudo ./install.sh
 ```
@@ -62,7 +62,7 @@ sudo ./install.sh
 **2. Stop the application**
 
 ```bash
-cd /opt/opentracker
+cd /opt/trackarr
 docker compose -f docker-compose.prod.yml down
 ```
 
@@ -70,13 +70,13 @@ docker compose -f docker-compose.prod.yml down
 
 ```bash
 # From your old server or local machine
-scp backup_20260102_120000.sql.gz user@new-server:/opt/opentracker/
+scp backup_20260102_120000.sql.gz user@new-server:/opt/trackarr/
 ```
 
 **4. Start only the database container**
 
 ```bash
-cd /opt/opentracker
+cd /opt/trackarr
 docker compose -f docker-compose.prod.yml up -d db
 ```
 
@@ -84,11 +84,11 @@ docker compose -f docker-compose.prod.yml up -d db
 
 ```bash
 # Drop and recreate the database
-docker compose exec db dropdb -U opentracker opentracker
-docker compose exec db createdb -U opentracker opentracker
+docker compose exec db dropdb -U tracker trackarr
+docker compose exec db createdb -U tracker trackarr
 
 # Restore from backup
-gunzip -c backup_20260102_120000.sql.gz | docker compose exec -T db psql -U opentracker opentracker
+gunzip -c backup_20260102_120000.sql.gz | docker compose exec -T db psql -U tracker trackarr
 ```
 
 **6. Start all services**
@@ -109,18 +109,18 @@ If you're migrating to a new domain (e.g., `old-tracker.com` → `new-tracker.co
 
 Create A records for your new domain pointing to your server's IP:
 
-| Subdomain | Record Type | Value |
-|-----------|-------------|-------|
-| `tracker.new-domain.com` | A | Your VPS IP |
-| `announce.new-domain.com` | A | Your VPS IP |
-| `monitoring.new-domain.com` | A | Your VPS IP |
+| Subdomain                   | Record Type | Value       |
+| --------------------------- | ----------- | ----------- |
+| `tracker.new-domain.com`    | A           | Your VPS IP |
+| `announce.new-domain.com`   | A           | Your VPS IP |
+| `monitoring.new-domain.com` | A           | Your VPS IP |
 
 **2. Update environment variables**
 
 Edit your `.env` file:
 
 ```bash
-cd /opt/opentracker
+cd /opt/trackarr
 nano .env
 ```
 
@@ -138,7 +138,7 @@ Delete the old Caddy data to force new certificate generation:
 
 ```bash
 docker compose -f docker-compose.prod.yml down
-docker volume rm opentracker_caddy_data || true
+docker volume rm caddy_data || true
 docker compose -f docker-compose.prod.yml up -d
 ```
 

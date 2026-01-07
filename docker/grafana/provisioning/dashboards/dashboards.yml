@@ -3,10 +3,10 @@
 apiVersion: 1
 
 providers:
-  - name: 'OpenTracker Dashboards'
+  - name: 'Trackarr Dashboards'
     orgId: 1
-    folder: 'OpenTracker'
-    folderUid: 'opentracker'
+    folder: 'Trackarr'
+    folderUid: 'trackarr'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30

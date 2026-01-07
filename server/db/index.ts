@@ -9,7 +9,7 @@ import * as schema from './schema';
 
 const connectionString =
   process.env.DATABASE_URL ||
-  'postgres://tracker:tracker@localhost:5432/opentracker';
+  'postgres://tracker:tracker@localhost:5432/trackarr';
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Build secure connection options

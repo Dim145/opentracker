@@ -16,7 +16,7 @@ datasources:
   - name: PostgreSQL
     type: postgres
     url: postgres:5432
-    database: ${DB_NAME:-opentracker}
+    database: ${DB_NAME:-trackarr}
     user: ${DB_USER:-tracker}
     secureJsonData:
       password: ${DB_PASSWORD:-tracker}

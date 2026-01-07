@@ -25,7 +25,7 @@
         >
           <WysiwygEditor
             v-model="heroTitle"
-            placeholder="OpenTracker"
+            placeholder="Trackarr"
             :maxLength="500"
           />
         </SettingsGroup>
@@ -116,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-const heroTitle = ref('OpenTracker');
+const heroTitle = ref('Trackarr');
 const heroSubtitle = ref(
   'High-performance, minimalist P2P tracking engine. Search through our indexed database of verified torrents.'
 );

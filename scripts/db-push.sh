@@ -12,12 +12,12 @@ if [ -z "$DATABASE_URL" ]; then
 fi
 
 # Default URL if not set
-DATABASE_URL="${DATABASE_URL:-postgres://tracker:tracker@postgres:5432/opentracker}"
+DATABASE_URL="${DATABASE_URL:-postgres://tracker:tracker@postgres:5432/trackarr}"
 
 # Only replace docker hostnames with localhost if NOT running in Docker
 # Check if we're in Docker by looking for /.dockerenv or running hostname check
-if [ ! -f /.dockerenv ] && [ "$(hostname)" != "opentracker-app" ]; then
-  LOCAL_URL=$(echo "$DATABASE_URL" | sed -E 's/@(postgres|pgbouncer|db|opentracker-db):/@localhost:/g')
+if [ ! -f /.dockerenv ] && [ "$(hostname)" != "trackarr-app" ]; then
+  LOCAL_URL=$(echo "$DATABASE_URL" | sed -E 's/@(postgres|pgbouncer|db|trackarr-db):/@localhost:/g')
   echo "🔄 Pushing schema to database (local mode)..."
   echo "   Original: $DATABASE_URL"
   echo "   Local:    $LOCAL_URL"
