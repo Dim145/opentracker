@@ -8,7 +8,7 @@ This guide explains how to set up a **production-like environment** on your loca
 ## Prerequisites
 
 - **Docker** (or OrbStack) must be installed and running.
-- **OrbStack** is recommended for better performance and local domain names (e.g., `http://opentracker.orb.local`).
+- **OrbStack** is recommended for better performance and local domain names (e.g., `http://trackarr.orb.local`).
 
 ## Automated Setup
 
@@ -22,7 +22,7 @@ We provide a script to automate the entire process: generating secrets, creating
 
 1.  **Checks Prerequisites**: Verifies Docker/OrbStack availability.
 2.  **Generates Secrets**: Creates a `.env.local-prod` file with secure, random credentials for DB, Redis, and APIs.
-3.  **Clean Start**: Aggressively stops and removes any conflicting containers (`opentracker-*`).
+3.  **Clean Start**: Aggressively stops and removes any conflicting containers (`trackarr-*`).
 4.  **Builds & Starts**: Builds the production Docker image and starts the stack using `docker-compose.local.yml`.
 5.  **Health Checks**: Waits for PostgreSQL and Redis to be fully ready.
 6.  **Migrations**: Automatically pushes the latest database schema.
@@ -43,10 +43,10 @@ Once the script completes, you can access the services at the following URLs:
 
 If you are using OrbStack, you can also use these convenient local domains:
 
-| Service      | URL                                         |
-| :----------- | :------------------------------------------ |
-| **Frontend** | `http://opentracker.orb.local:3000`         |
-| **Grafana**  | `http://opentracker-grafana.orb.local:3000` |
+| Service      | URL                                      |
+| :----------- | :--------------------------------------- |
+| **Frontend** | `http://trackarr.orb.local:3000`         |
+| **Grafana**  | `http://trackarr-grafana.orb.local:3000` |
 
 ## Manage the Environment
 
@@ -75,7 +75,7 @@ docker compose -f docker-compose.local.yml --env-file .env.local-prod restart
 **Open Database (PSQL):**
 
 ```bash
-docker compose -f docker-compose.local.yml --env-file .env.local-prod exec postgres psql -U tracker -d opentracker
+docker compose -f docker-compose.local.yml --env-file .env.local-prod exec postgres psql -U tracker -d trackarr
 ```
 
 ## Troubleshooting

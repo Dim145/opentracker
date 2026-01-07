@@ -6,20 +6,20 @@ Trackarr is configured primarily through environment variables. This page covers
 
 ### Core Settings
 
-| Variable                | Description                        | Default       |
-| ----------------------- | ---------------------------------- | ------------- |
+| Variable                | Description                        | Default    |
+| ----------------------- | ---------------------------------- | ---------- |
 | `NUXT_PUBLIC_SITE_NAME` | Your tracker's display name        | `Trackarr` |
-| `NUXT_PUBLIC_SITE_URL`  | Public URL of your tracker         | —             |
-| `NUXT_SESSION_PASSWORD` | Session encryption key (32+ chars) | —             |
+| `NUXT_PUBLIC_SITE_URL`  | Public URL of your tracker         | —          |
+| `NUXT_SESSION_PASSWORD` | Session encryption key (32+ chars) | —          |
 
 ### Database
 
-| Variable            | Description                  | Default       |
-| ------------------- | ---------------------------- | ------------- |
-| `DATABASE_URL`      | PostgreSQL connection string | —             |
-| `POSTGRES_USER`     | Database username            | `opentracker` |
-| `POSTGRES_PASSWORD` | Database password            | —             |
-| `POSTGRES_DB`       | Database name                | `opentracker` |
+| Variable            | Description                  | Default    |
+| ------------------- | ---------------------------- | ---------- |
+| `DATABASE_URL`      | PostgreSQL connection string | —          |
+| `POSTGRES_USER`     | Database username            | `tracker`  |
+| `POSTGRES_PASSWORD` | Database password            | —          |
+| `POSTGRES_DB`       | Database name                | `trackarr` |
 
 ### Redis
 
@@ -84,7 +84,7 @@ services:
     ports:
       - '3000:3000'
     environment:
-      - DATABASE_URL=postgresql://opentracker:opentracker@db:5432/opentracker
+      - DATABASE_URL=postgresql://tracker:tracker@db:5432/trackarr
       - REDIS_URL=redis://redis:6379
     depends_on:
       - db
@@ -93,9 +93,9 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=opentracker
-      - POSTGRES_PASSWORD=opentracker
-      - POSTGRES_DB=opentracker
+      - POSTGRES_USER=tracker
+      - POSTGRES_PASSWORD=tracker
+      - POSTGRES_DB=trackarr
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

@@ -1,10 +1,10 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
-  title: 'OpenTracker',
+  title: 'Trackarr',
   description: 'A modern, high-performance private BitTorrent tracker',
 
-  base: '/opentracker/',
+  base: '/trackarr/',
 
   ignoreDeadLinks: [/^http:\/\/localhost/],
 
@@ -88,13 +88,13 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/florianjs/opentracker' },
+      { icon: 'github', link: 'https://github.com/florianjs/trackarr' },
       { icon: 'discord', link: 'https://discord.gg/GRFu35djvz' },
     ],
 
     footer: {
       message: 'Released under the MIT License.',
-      copyright: '2025-present OpenTracker',
+      copyright: '2025-present Trackarr',
     },
 
     search: {

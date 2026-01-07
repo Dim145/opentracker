@@ -90,12 +90,12 @@ Common issues and how to resolve them.
 3. Check database connectivity:
 
    ```bash
-   docker exec opentracker-db pg_isready
+   docker exec trackarr-db pg_isready
    ```
 
 4. Check Redis connectivity:
    ```bash
-   docker exec opentracker-redis redis-cli ping
+   docker exec trackarr-redis redis-cli ping
    ```
 
 ---
@@ -109,7 +109,7 @@ Common issues and how to resolve them.
 1. Verify database container is running:
 
    ```bash
-   docker ps | grep opentracker-db
+   docker ps | grep trackarr-db
    ```
 
 2. Check database logs:
@@ -144,7 +144,7 @@ The generated config shows something like:
 
 ```ini
 [databases]
-e21V5@postgres:5432/opentracker = host=postgres port=5432 auth_user=tracker
+e21V5@postgres:5432/trackarr = host=postgres port=5432 auth_user=tracker
 ```
 
 **Cause:** Your `DB_PASSWORD` contains special characters (`@`, `:`, `/`, `#`) that break the `DATABASE_URL` parsing in the PgBouncer image.
@@ -170,7 +170,7 @@ e21V5@postgres:5432/opentracker = host=postgres port=5432 auth_user=tracker
 3. **Update the PostgreSQL user password**:
 
    ```bash
-   docker exec -it opentracker-db psql -U postgres -c "ALTER USER tracker WITH PASSWORD 'NEW_PASSWORD_HERE';"
+   docker exec -it trackarr-db psql -U postgres -c "ALTER USER tracker WITH PASSWORD 'NEW_PASSWORD_HERE';"
    ```
 
 4. **Restart affected services**:
@@ -191,19 +191,19 @@ e21V5@postgres:5432/opentracker = host=postgres port=5432 auth_user=tracker
 1. Verify Redis container is running:
 
    ```bash
-   docker ps | grep opentracker-redis
+   docker ps | grep trackarr-redis
    ```
 
 2. Test Redis connection:
 
    ```bash
-   docker exec opentracker-redis redis-cli ping
+   docker exec trackarr-redis redis-cli ping
    # Should return: PONG
    ```
 
 3. Check Redis password matches `.env`:
    ```bash
-   docker exec opentracker-redis redis-cli -a YOUR_PASSWORD ping
+   docker exec trackarr-redis redis-cli -a YOUR_PASSWORD ping
    ```
 
 ---
@@ -340,7 +340,7 @@ e21V5@postgres:5432/opentracker = host=postgres port=5432 auth_user=tracker
 Reset the admin password:
 
 ```bash
-docker exec -it opentracker-grafana grafana-cli admin reset-admin-password <new-password>
+docker exec -it trackarr-grafana grafana-cli admin reset-admin-password <new-password>
 ```
 
 ---
@@ -362,7 +362,7 @@ docker exec -it opentracker-grafana grafana-cli admin reset-admin-password <new-
 
 3. Check for long-running database queries:
    ```bash
-   docker exec opentracker-db psql -U opentracker -c "SELECT * FROM pg_stat_activity WHERE state = 'active';"
+   docker exec trackarr-db psql -U tracker -c "SELECT * FROM pg_stat_activity WHERE state = 'active';"
    ```
 
 ---
@@ -394,7 +394,7 @@ docker exec -it opentracker-grafana grafana-cli admin reset-admin-password <new-
 ### Full Restart
 
 ```bash
-cd /opt/opentracker
+cd /opt/trackarr
 docker compose -f docker-compose.prod.yml down
 docker compose -f docker-compose.prod.yml up -d
 ```
@@ -402,7 +402,7 @@ docker compose -f docker-compose.prod.yml up -d
 ### Restart with Rebuild
 
 ```bash
-cd /opt/opentracker
+cd /opt/trackarr
 docker compose -f docker-compose.prod.yml down
 docker compose -f docker-compose.prod.yml up -d --build --force-recreate
 ```
@@ -432,20 +432,20 @@ docker compose -f docker-compose.prod.yml ps
 ### Database Backup
 
 ```bash
-docker exec opentracker-db pg_dump -U opentracker opentracker > backup.sql
+docker exec trackarr-db pg_dump -U tracker trackarr > backup.sql
 ```
 
 ### Database Restore
 
 ```bash
-cat backup.sql | docker exec -i opentracker-db psql -U opentracker opentracker
+cat backup.sql | docker exec -i trackarr-db psql -U tracker trackarr
 ```
 
 ## Still Need Help?
 
 If you're still experiencing issues:
 
-1. Check the [GitHub Issues](https://github.com/florianjs/opentracker/issues) for similar problems
+1. Check the [GitHub Issues](https://github.com/florianjs/trackarr/issues) for similar problems
 2. Open a new issue with:
    - Description of the problem
    - Relevant log output

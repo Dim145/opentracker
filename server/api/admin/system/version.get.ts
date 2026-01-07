@@ -19,11 +19,12 @@ export default defineEventHandler(async (event) => {
   try {
     // Check GitHub releases
     const response = await fetch(
-      'https://api.github.com/repos/flormusic/opentracker/releases/latest',
+      'https://api.github.com/repos/florianjs/trackarr/releases/latest',
       {
+        method: 'GET',
         headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'OpenTracker-Admin',
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'Trackarr-Admin',
         },
       }
     );

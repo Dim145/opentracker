@@ -251,7 +251,7 @@ watch(
 useHead({
   title: computed(
     () =>
-      `Search Torrents ${branding.value?.pageTitleSuffix || `- ${branding.value?.siteName || 'OpenTracker'}`}`
+      `Search Torrents ${branding.value?.pageTitleSuffix || `- ${branding.value?.siteName || 'Trackarr'}`}`
   ),
 });
 </script>

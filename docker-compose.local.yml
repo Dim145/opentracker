@@ -7,7 +7,7 @@
 
 services:
   # =============================================================================
-  # APPLICATION - Nuxt OpenTracker
+  # APPLICATION - Nuxt Trackarr
   # =============================================================================
   app:
     image: trackarr:latest

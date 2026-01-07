@@ -166,7 +166,7 @@ cd "$PROJECT_DIR"
 docker compose -f docker-compose.local.yml --env-file "$ENV_FILE" down 2>/dev/null || true
 docker compose -f docker-compose.prod.yml down 2>/dev/null || true
 
-# Also stop any containers with opentracker in the name
+# Also stop any containers with trackarr in the name
 docker stop $(docker ps -q --filter "name=trackarr") 2>/dev/null || true
 docker rm $(docker ps -aq --filter "name=trackarr") 2>/dev/null || true
 

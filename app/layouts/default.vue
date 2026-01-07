@@ -33,7 +33,7 @@
                 'font-medium': !(branding?.siteNameBold ?? true),
               }"
               :style="{ color: branding?.siteNameColor || '' }"
-              v-html="branding?.siteName || 'OpenTracker'"
+              v-html="branding?.siteName || 'Trackarr'"
             ></span>
             <span class="text-[10px] text-text-muted font-mono">{{
               branding?.siteSubtitle ||
@@ -294,7 +294,7 @@
         >
           <span>{{
             branding?.footerText ||
-            `© ${new Date().getFullYear()} ${(branding?.siteName || 'OPENTRACKER').toUpperCase()}`
+            `© ${new Date().getFullYear()} ${(branding?.siteName || 'Trackarr').toUpperCase()}`
           }}</span>
           <span class="w-1 h-1 bg-border rounded-full"></span>
           <span>P2P PROTOCOL</span>
@@ -308,7 +308,7 @@
             ><Icon name="ph:globe" class="text-xl"
           /></a>
           <a
-            href="https://github.com/florianjs/opentracker"
+            href="https://github.com/florianjs/trackarr"
             target="_blank"
             rel="noopener"
             class="text-text-muted hover:text-white transition-colors"

@@ -1,6 +1,6 @@
 /**
- * Load Test Runner for OpenTracker
- * 
+ * Load Test Runner for Trackarr
+ *
  * Stress tests the BitTorrent tracker with simulated peer announces.
  * Measures throughput, latency, and error rates.
  */
@@ -70,22 +70,26 @@ async function sendAnnounce(
 ): Promise<{ success: boolean; latencyMs: number; error?: string }> {
   const query = buildAnnounceQuery(peer, event);
   const url = `${trackerUrl}/announce?${query}`;
-  
+
   const start = performance.now();
-  
+
   try {
     const response = await fetch(url, {
       method: 'GET',
       signal: AbortSignal.timeout(10000), // 10s timeout
     });
-    
+
     const latencyMs = performance.now() - start;
-    
+
     if (response.ok) {
       return { success: true, latencyMs };
     } else {
       const text = await response.text();
-      return { success: false, latencyMs, error: `HTTP ${response.status}: ${text}` };
+      return {
+        success: false,
+        latencyMs,
+        error: `HTTP ${response.status}: ${text}`,
+      };
     }
   } catch (err) {
     const latencyMs = performance.now() - start;
@@ -98,29 +102,41 @@ async function sendAnnounce(
 // ============================================================================
 
 async function runLoadTest(config: LoadTestConfig): Promise<LoadTestResult> {
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('  OpenTracker Load Test');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(
+    '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+  );
+  console.log('  Trackarr Load Test');
+  console.log(
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+  );
   console.log(`  Tracker URL:     ${config.trackerUrl}`);
   console.log(`  Peers:           ${config.numPeers}`);
   console.log(`  Torrents:        ${config.numTorrents}`);
   console.log(`  Duration:        ${config.durationMs / 1000}s`);
-  console.log(`  Announce Rate:   ${1000 / config.announceIntervalMs}/s per peer`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+  console.log(
+    `  Announce Rate:   ${1000 / config.announceIntervalMs}/s per peer`
+  );
+  console.log(
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+  );
 
   // Generate test data
   console.log('Generating test data...');
   const passkey = generatePasskey();
-  const torrents = Array.from({ length: config.numTorrents }, () => generateInfoHash());
-  
+  const torrents = Array.from({ length: config.numTorrents }, () =>
+    generateInfoHash()
+  );
+
   const peers: SimulatedPeer[] = [];
   for (let i = 0; i < config.numPeers; i++) {
     const torrent = torrents[i % torrents.length];
     const isSeeder = Math.random() > 0.7; // 30% seeders
     peers.push(createPeer(torrent, passkey, isSeeder));
   }
-  
-  console.log(`  Created ${peers.length} peers across ${torrents.length} torrents\n`);
+
+  console.log(
+    `  Created ${peers.length} peers across ${torrents.length} torrents\n`
+  );
 
   // Stats
   let totalRequests = 0;
@@ -137,8 +153,10 @@ async function runLoadTest(config: LoadTestConfig): Promise<LoadTestResult> {
   console.log('Phase 1: Sending initial "started" announces...');
   const startedPromises = peers.map(async (peer, index) => {
     // Ramp up: stagger the initial announces
-    await new Promise(resolve => setTimeout(resolve, (index / peers.length) * config.rampUpMs));
-    
+    await new Promise((resolve) =>
+      setTimeout(resolve, (index / peers.length) * config.rampUpMs)
+    );
+
     const result = await sendAnnounce(config.trackerUrl, peer, 'started');
     totalRequests++;
     if (result.success) {
@@ -151,24 +169,26 @@ async function runLoadTest(config: LoadTestConfig): Promise<LoadTestResult> {
     }
     recordLatency(result.latencyMs);
   });
-  
+
   await Promise.all(startedPromises);
-  console.log(`  Completed: ${successfulRequests}/${totalRequests} successful\n`);
+  console.log(
+    `  Completed: ${successfulRequests}/${totalRequests} successful\n`
+  );
 
   // Main load test loop
   console.log('Phase 2: Sustained load test...');
-  
+
   const intervalId = setInterval(() => {
     const now = Date.now();
     const elapsed = now - startTime;
     const progress = Math.min(100, (elapsed / config.durationMs) * 100);
-    
+
     if (now - lastProgressUpdate > 2000) {
       const currentRps = totalRequests / (elapsed / 1000);
       console.log(
         `  [${progress.toFixed(0)}%] Requests: ${totalRequests} | ` +
-        `Success: ${successfulRequests} | Errors: ${failedRequests} | ` +
-        `RPS: ${currentRps.toFixed(0)}`
+          `Success: ${successfulRequests} | Errors: ${failedRequests} | ` +
+          `RPS: ${currentRps.toFixed(0)}`
       );
       lastProgressUpdate = now;
     }
@@ -179,22 +199,26 @@ async function runLoadTest(config: LoadTestConfig): Promise<LoadTestResult> {
     while (Date.now() < endTime) {
       // Select random peers for this batch
       const batchSize = Math.min(50, peers.length);
-      const batch = Array.from({ length: batchSize }, () => 
-        peers[Math.floor(Math.random() * peers.length)]
+      const batch = Array.from(
+        { length: batchSize },
+        () => peers[Math.floor(Math.random() * peers.length)]
       );
-      
+
       const batchPromises = batch.map(async (peer) => {
         // Simulate progress
         if (!peer.isSeeder) {
           peer.downloaded += Math.floor(Math.random() * 1000000);
-          peer.left = Math.max(0, peer.left - Math.floor(Math.random() * 1000000));
+          peer.left = Math.max(
+            0,
+            peer.left - Math.floor(Math.random() * 1000000)
+          );
           if (peer.left === 0) {
             peer.isSeeder = true;
           }
         } else {
           peer.uploaded += Math.floor(Math.random() * 1000000);
         }
-        
+
         const result = await sendAnnounce(config.trackerUrl, peer, '');
         totalRequests++;
         if (result.success) {
@@ -204,33 +228,37 @@ async function runLoadTest(config: LoadTestConfig): Promise<LoadTestResult> {
         }
         recordLatency(result.latencyMs);
       });
-      
+
       await Promise.all(batchPromises);
-      await new Promise(resolve => setTimeout(resolve, config.announceIntervalMs));
+      await new Promise((resolve) =>
+        setTimeout(resolve, config.announceIntervalMs)
+      );
     }
   };
-  
+
   await announceLoop();
   clearInterval(intervalId);
 
   // Send "stopped" announces
   console.log('\nPhase 3: Sending "stopped" announces...');
-  const stoppedPromises = peers.slice(0, Math.min(100, peers.length)).map(async (peer) => {
-    const result = await sendAnnounce(config.trackerUrl, peer, 'stopped');
-    totalRequests++;
-    if (result.success) {
-      successfulRequests++;
-    } else {
-      failedRequests++;
-    }
-    recordLatency(result.latencyMs);
-  });
-  
+  const stoppedPromises = peers
+    .slice(0, Math.min(100, peers.length))
+    .map(async (peer) => {
+      const result = await sendAnnounce(config.trackerUrl, peer, 'stopped');
+      totalRequests++;
+      if (result.success) {
+        successfulRequests++;
+      } else {
+        failedRequests++;
+      }
+      recordLatency(result.latencyMs);
+    });
+
   await Promise.all(stoppedPromises);
 
   // Calculate results
   const actualDuration = Date.now() - startTime;
-  
+
   const result: LoadTestResult = {
     totalRequests,
     successfulRequests,
@@ -254,17 +282,21 @@ async function runLoadTest(config: LoadTestConfig): Promise<LoadTestResult> {
 // ============================================================================
 
 function displayResults(result: LoadTestResult): void {
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(
+    '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+  );
   console.log('  LOAD TEST RESULTS');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  
+  console.log(
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+  );
+
   console.log('\n  Throughput:');
   console.log(`    Total Requests:     ${result.totalRequests}`);
   console.log(`    Successful:         ${result.successfulRequests}`);
   console.log(`    Failed:             ${result.failedRequests}`);
   console.log(`    Error Rate:         ${result.errorRate.toFixed(2)}%`);
   console.log(`    Requests/sec:       ${result.requestsPerSecond.toFixed(2)}`);
-  
+
   console.log('\n  Latency (ms):');
   console.log(`    Min:                ${result.latencyMin.toFixed(2)}`);
   console.log(`    Avg:                ${result.latencyAvg.toFixed(2)}`);
@@ -272,12 +304,16 @@ function displayResults(result: LoadTestResult): void {
   console.log(`    P95:                ${result.latencyP95.toFixed(2)}`);
   console.log(`    P99:                ${result.latencyP99.toFixed(2)}`);
   console.log(`    Max:                ${result.latencyMax.toFixed(2)}`);
-  
+
   console.log('\n  Duration:');
-  console.log(`    Actual:             ${(result.durationMs / 1000).toFixed(2)}s`);
-  
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  
+  console.log(
+    `    Actual:             ${(result.durationMs / 1000).toFixed(2)}s`
+  );
+
+  console.log(
+    '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+  );
+
   // Assessment
   const passed = result.errorRate < 1 && result.latencyP99 < 500;
   if (passed) {
@@ -285,13 +321,19 @@ function displayResults(result: LoadTestResult): void {
   } else {
     console.log('  ✗ FAILED - Performance issues detected');
     if (result.errorRate >= 1) {
-      console.log(`    - Error rate too high (${result.errorRate.toFixed(2)}% > 1%)`);
+      console.log(
+        `    - Error rate too high (${result.errorRate.toFixed(2)}% > 1%)`
+      );
     }
     if (result.latencyP99 >= 500) {
-      console.log(`    - P99 latency too high (${result.latencyP99.toFixed(2)}ms > 500ms)`);
+      console.log(
+        `    - P99 latency too high (${result.latencyP99.toFixed(2)}ms > 500ms)`
+      );
     }
   }
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+  console.log(
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+  );
 }
 
 // ============================================================================
@@ -301,13 +343,13 @@ function displayResults(result: LoadTestResult): void {
 export async function main(args: string[]): Promise<void> {
   // Parse arguments
   const getArg = (name: string, defaultValue: string): string => {
-    const index = args.findIndex(a => a === `--${name}`);
+    const index = args.findIndex((a) => a === `--${name}`);
     if (index !== -1 && args[index + 1]) {
       return args[index + 1];
     }
     return defaultValue;
   };
-  
+
   const config: LoadTestConfig = {
     trackerUrl: getArg('url', 'http://localhost:8080'),
     numPeers: parseInt(getArg('peers', '100'), 10),
@@ -316,11 +358,11 @@ export async function main(args: string[]): Promise<void> {
     announceIntervalMs: parseInt(getArg('interval', '100'), 10),
     rampUpMs: parseInt(getArg('rampup', '2000'), 10),
   };
-  
+
   // Help
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
-OpenTracker Load Test
+Trackarr Load Test
 
 Usage: tsx tests/load/load-test.ts [options]
 
@@ -335,11 +377,11 @@ Options:
 `);
     return;
   }
-  
+
   try {
     const result = await runLoadTest(config);
     displayResults(result);
-    
+
     // Exit with error code if test failed
     if (result.errorRate >= 1 || result.latencyP99 >= 500) {
       process.exit(1);

@@ -1,4 +1,4 @@
-# OpenTracker Production Caddyfile
+# Trackarr Production Caddyfile
 # Automatic HTTPS with Let's Encrypt
 
 {
@@ -28,7 +28,7 @@
 	# For advanced rate limiting, use the app's built-in Redis-backed limiter
 
 	# Reverse proxy to Nuxt app
-	reverse_proxy opentracker-app:3000 {
+	reverse_proxy trackarr-app:3000 {
 		header_up X-Real-IP {remote_host}
 		header_up X-Forwarded-For {remote_host}
 		header_up X-Forwarded-Proto {scheme}
@@ -65,7 +65,7 @@
 	}
 
 	# Tracker endpoints
-	reverse_proxy opentracker-app:8080 {
+	reverse_proxy trackarr-app:8080 {
 		header_up X-Real-IP {remote_host}
 		header_up X-Forwarded-For {remote_host}
 	}

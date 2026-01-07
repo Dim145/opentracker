@@ -213,7 +213,7 @@ function formatDiscordMessage(alert: SecurityAlert): any {
             : []),
         ],
         footer: {
-          text: 'OpenTracker Security System',
+          text: 'Trackarr Security System',
         },
         timestamp: alert.timestamp,
       },
@@ -287,7 +287,7 @@ function formatSlackMessage(alert: SecurityAlert): any {
         elements: [
           {
             type: 'mrkdwn',
-            text: `OpenTracker Security System | ${alert.timestamp}`,
+            text: `Trackarr Security System | ${alert.timestamp}`,
           },
         ],
       },

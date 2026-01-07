@@ -20,7 +20,7 @@
         </div>
         <h1
           class="text-2xl font-bold tracking-tighter uppercase"
-          v-html="branding?.authTitle || branding?.siteName || 'OpenTracker'"
+          v-html="branding?.authTitle || branding?.siteName || 'Trackarr'"
         ></h1>
         <p
           class="text-text-muted text-sm mt-1"

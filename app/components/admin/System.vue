@@ -18,7 +18,7 @@
           <div>
             <p class="text-sm font-medium text-text-primary">Current Version</p>
             <p class="text-[10px] text-text-muted mt-0.5">
-              Installed version of OpenTracker
+              Installed version of Trackarr
             </p>
           </div>
           <div class="flex items-center gap-2">

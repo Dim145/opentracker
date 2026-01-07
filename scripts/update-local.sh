@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# OpenTracker - Local Update Script
+# Trackarr - Local Update Script
 # =============================================================================
 # Updates the local environment from git and restarts services
 # Usage: ./scripts/update-local.sh
@@ -34,7 +34,7 @@ fi
 
 echo -e "${GREEN}${BOLD}"
 echo "  ┌──────────────────────────────────────────────────────────────┐"
-echo "  │       OpenTracker - Local Update                             │"
+echo "  │       Trackarr - Local Update                                │"
 echo "  └──────────────────────────────────────────────────────────────┘"
 echo -e "${NC}"
 
