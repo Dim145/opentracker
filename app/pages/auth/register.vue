@@ -22,10 +22,10 @@
           class="text-2xl font-bold tracking-tighter uppercase"
           v-html="branding?.authTitle || branding?.siteName || 'Trackarr'"
         ></h1>
-        <p
-          class="text-text-muted text-sm mt-1"
+        <div
+          class="text-text-muted text-sm mt-1 [&>p]:m-0"
           v-html="branding?.authSubtitle || 'Private BitTorrent Tracker'"
-        ></p>
+        ></div>
       </div>
 
       <!-- Registration Closed -->

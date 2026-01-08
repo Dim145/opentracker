@@ -2,6 +2,16 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { settings } from '../db/schema';
 
+/**
+ * Check if HTML content is effectively empty (just empty tags like <p></p> or whitespace)
+ */
+function isEmptyHtml(html: string | null): boolean {
+  if (!html) return true;
+  // Strip all HTML tags and check if anything meaningful remains
+  const textContent = html.replace(/<[^>]*>/g, '').trim();
+  return textContent.length === 0;
+}
+
 export const SETTINGS_KEYS = {
   REGISTRATION_OPEN: 'registration_open',
   MIN_RATIO: 'min_ratio',
@@ -191,7 +201,7 @@ export async function getSiteFavicon(): Promise<string | null> {
  */
 export async function getSiteSubtitle(): Promise<string | null> {
   const value = await getSetting(SETTINGS_KEYS.SITE_SUBTITLE);
-  return value || null;
+  return isEmptyHtml(value) ? null : value;
 }
 
 /**
@@ -216,7 +226,7 @@ export async function isSiteNameBold(): Promise<boolean> {
  */
 export async function getAuthTitle(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.AUTH_TITLE);
-  return value || '';
+  return isEmptyHtml(value) ? '' : value!;
 }
 
 /**
@@ -224,7 +234,7 @@ export async function getAuthTitle(): Promise<string> {
  */
 export async function getAuthSubtitle(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.AUTH_SUBTITLE);
-  return value || 'Private BitTorrent Tracker';
+  return isEmptyHtml(value) ? 'Private BitTorrent Tracker' : value!;
 }
 
 /**
@@ -232,7 +242,7 @@ export async function getAuthSubtitle(): Promise<string> {
  */
 export async function getFooterText(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.FOOTER_TEXT);
-  return value || '';
+  return isEmptyHtml(value) ? '' : value!;
 }
 
 /**

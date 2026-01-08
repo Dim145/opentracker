@@ -196,36 +196,37 @@ onMounted(async () => {
 });
 
 function getStatusClass() {
-  if (registrationOpen && !inviteEnabled)
+  if (registrationOpen.value && !inviteEnabled.value)
     return 'bg-success/10 border-success/20';
-  if (inviteEnabled) return 'bg-accent/10 border-accent/20';
+  if (inviteEnabled.value) return 'bg-accent/10 border-accent/20';
   return 'bg-bg-tertiary border-border';
 }
 
 function getStatusIcon() {
-  if (registrationOpen && !inviteEnabled) return 'ph:lock-open';
-  if (inviteEnabled) return 'ph:envelope-simple';
+  if (registrationOpen.value && !inviteEnabled.value) return 'ph:lock-open';
+  if (inviteEnabled.value) return 'ph:envelope-simple';
   return 'ph:lock-simple';
 }
 
 function getStatusIconClass() {
-  if (registrationOpen && !inviteEnabled) return 'text-success';
-  if (inviteEnabled) return 'text-accent';
+  if (registrationOpen.value && !inviteEnabled.value) return 'text-success';
+  if (inviteEnabled.value) return 'text-accent';
   return 'text-text-muted';
 }
 
 function getStatusTextClass() {
-  if (registrationOpen && !inviteEnabled) return 'text-success';
-  if (inviteEnabled) return 'text-accent';
+  if (registrationOpen.value && !inviteEnabled.value) return 'text-success';
+  if (inviteEnabled.value) return 'text-accent';
   return 'text-text-secondary';
 }
 
 function getStatusText() {
-  if (registrationOpen && !inviteEnabled)
+  if (registrationOpen.value && !inviteEnabled.value)
     return 'Registration is open to everyone';
-  if (registrationOpen && inviteEnabled)
+  if (registrationOpen.value && inviteEnabled.value)
     return 'Registration open (invite optional)';
-  if (!registrationOpen && inviteEnabled) return 'Invite-only registration';
+  if (!registrationOpen.value && inviteEnabled.value)
+    return 'Invite-only registration';
   return 'Registration is closed';
 }
 

@@ -35,10 +35,13 @@
               :style="{ color: branding?.siteNameColor || '' }"
               v-html="branding?.siteName || 'Trackarr'"
             ></span>
-            <span class="text-[10px] text-text-muted font-mono">{{
-              branding?.siteSubtitle ||
-              `v${useRuntimeConfig().public.appVersion}`
-            }}</span>
+            <span
+              class="text-[10px] text-text-muted font-mono [&>p]:inline [&>p]:m-0"
+              v-html="
+                branding?.siteSubtitle ||
+                `v${useRuntimeConfig().public.appVersion}`
+              "
+            ></span>
           </div>
         </NuxtLink>
 
@@ -292,10 +295,13 @@
         <div
           class="flex items-center gap-4 text-[10px] text-text-muted font-mono uppercase tracking-widest"
         >
-          <span>{{
-            branding?.footerText ||
-            `© ${new Date().getFullYear()} ${(branding?.siteName || 'Trackarr').toUpperCase()}`
-          }}</span>
+          <span
+            class="[&>p]:inline [&>p]:m-0"
+            v-html="
+              branding?.footerText ||
+              `© ${new Date().getFullYear()} ${(branding?.siteName || 'Trackarr').toUpperCase()}`
+            "
+          ></span>
           <span class="w-1 h-1 bg-border rounded-full"></span>
           <span>P2P PROTOCOL</span>
         </div>
@@ -349,8 +355,15 @@ const { data: branding } = await useFetch<{
   pageTitleSuffix: string | null;
 }>('/api/branding');
 
-// Set dynamic favicon
+// Set dynamic favicon and title template
 useHead({
+  titleTemplate: computed(() => {
+    const suffix =
+      branding.value?.pageTitleSuffix ||
+      `- ${branding.value?.siteName || 'Trackarr'}`;
+    return (title?: string) =>
+      title ? `${title} ${suffix}` : suffix.replace(/^- /, '');
+  }),
   link: [
     {
       rel: 'icon',
