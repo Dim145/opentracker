@@ -229,8 +229,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // 2. Check User Ban (for authenticated sessions)
-  // Skip for auth routes to avoid blocking login/logout
-  if (!path.startsWith('/api/auth/')) {
+  // Skip for auth routes and Torznab API (has its own passkey auth)
+  if (!path.startsWith('/api/auth/') && !path.startsWith('/api/torznab')) {
     const session = await getUserSession(event);
 
     if (session.user) {
