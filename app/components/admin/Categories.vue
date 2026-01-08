@@ -37,6 +37,15 @@
           class="input flex-1 !py-2 text-xs font-bold uppercase tracking-wider"
           @keyup.enter="addCategory"
         />
+        <input
+          v-model.number="newCategoryNewznabId"
+          type="number"
+          placeholder="Newznab ID"
+          min="1000"
+          max="9999"
+          class="input w-28 !py-2 text-xs font-bold tracking-wider"
+          title="Newznab/Torznab category ID (e.g., 2040 for Movies/HD)"
+        />
         <button
           class="btn btn-primary !px-6 flex items-center gap-2 uppercase tracking-widest font-bold text-xs"
           :disabled="!newCategoryName.trim() || isAdding"
@@ -54,10 +63,23 @@
       >
         <Icon name="ph:tag-slash" class="text-3xl text-text-muted mb-2" />
         <p
-          class="text-[10px] font-bold text-text-muted uppercase tracking-widest"
+          class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-4"
         >
           No categories defined
         </p>
+        <button
+          class="btn btn-primary !px-4 !py-2 text-xs font-bold uppercase tracking-wider"
+          :disabled="isSeeding"
+          @click="seedCategories"
+        >
+          <Icon
+            v-if="isSeeding"
+            name="ph:circle-notch"
+            class="animate-spin mr-2"
+          />
+          <Icon v-else name="ph:plant" class="mr-2" />
+          Seed Torznab Categories
+        </button>
       </div>
       <div v-else class="space-y-3">
         <!-- Root Categories -->
@@ -93,20 +115,36 @@
               </div>
               <div class="flex-1">
                 <!-- Edit Mode -->
-                <div v-if="editingId === category.id" class="flex items-center gap-2">
+                <div
+                  v-if="editingId === category.id"
+                  class="flex items-center gap-2"
+                >
                   <input
                     v-model="editingName"
                     type="text"
-                    class="input !py-1 !px-2 text-xs font-bold uppercase tracking-wider w-48"
+                    class="input !py-1 !px-2 text-xs font-bold uppercase tracking-wider w-40"
                     @keyup.enter="saveEdit(category.id)"
                     @keyup.escape="cancelEdit"
+                  />
+                  <input
+                    v-model.number="editingNewznabId"
+                    type="number"
+                    placeholder="NZ ID"
+                    min="1000"
+                    max="9999"
+                    class="input !py-1 !px-2 text-xs font-bold tracking-wider w-20"
+                    title="Newznab/Torznab category ID"
                   />
                   <button
                     class="p-1 text-success hover:bg-success/10 rounded transition-colors"
                     :disabled="isSaving"
                     @click="saveEdit(category.id)"
                   >
-                    <Icon v-if="isSaving" name="ph:circle-notch" class="animate-spin" />
+                    <Icon
+                      v-if="isSaving"
+                      name="ph:circle-notch"
+                      class="animate-spin"
+                    />
                     <Icon v-else name="ph:check-bold" />
                   </button>
                   <button
@@ -122,6 +160,12 @@
                     class="text-xs font-bold text-text-primary uppercase tracking-wider"
                   >
                     {{ category.name }}
+                    <span
+                      v-if="category.newznabId"
+                      class="text-text-muted font-mono text-[10px] ml-2"
+                    >
+                      [{{ category.newznabId }}]
+                    </span>
                   </p>
                   <p class="text-[10px] font-mono text-text-muted">
                     {{ category.slug }}
@@ -135,7 +179,10 @@
                 </template>
               </div>
             </div>
-            <div v-if="editingId !== category.id" class="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+            <div
+              v-if="editingId !== category.id"
+              class="flex items-center gap-1 opacity-0 group-hover:opacity-100"
+            >
               <button
                 class="p-2 text-text-muted hover:text-text-primary transition-colors rounded hover:bg-bg-tertiary"
                 @click="startEdit(category)"
@@ -172,20 +219,36 @@
                 </div>
                 <div class="flex-1">
                   <!-- Edit Mode for Subcategory -->
-                  <div v-if="editingId === subcategory.id" class="flex items-center gap-2">
+                  <div
+                    v-if="editingId === subcategory.id"
+                    class="flex items-center gap-2"
+                  >
                     <input
                       v-model="editingName"
                       type="text"
-                      class="input !py-1 !px-2 text-xs font-bold uppercase tracking-wider w-48"
+                      class="input !py-1 !px-2 text-xs font-bold uppercase tracking-wider w-40"
                       @keyup.enter="saveEdit(subcategory.id)"
                       @keyup.escape="cancelEdit"
+                    />
+                    <input
+                      v-model.number="editingNewznabId"
+                      type="number"
+                      placeholder="NZ ID"
+                      min="1000"
+                      max="9999"
+                      class="input !py-1 !px-2 text-xs font-bold tracking-wider w-20"
+                      title="Newznab/Torznab category ID"
                     />
                     <button
                       class="p-1 text-success hover:bg-success/10 rounded transition-colors"
                       :disabled="isSaving"
                       @click="saveEdit(subcategory.id)"
                     >
-                      <Icon v-if="isSaving" name="ph:circle-notch" class="animate-spin" />
+                      <Icon
+                        v-if="isSaving"
+                        name="ph:circle-notch"
+                        class="animate-spin"
+                      />
                       <Icon v-else name="ph:check-bold" />
                     </button>
                     <button
@@ -201,6 +264,12 @@
                       class="text-xs font-bold text-text-primary uppercase tracking-wider"
                     >
                       {{ subcategory.name }}
+                      <span
+                        v-if="subcategory.newznabId"
+                        class="text-text-muted font-mono text-[10px] ml-2"
+                      >
+                        [{{ subcategory.newznabId }}]
+                      </span>
                     </p>
                     <p class="text-[10px] font-mono text-text-muted">
                       {{ subcategory.slug }}
@@ -208,7 +277,10 @@
                   </template>
                 </div>
               </div>
-              <div v-if="editingId !== subcategory.id" class="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+              <div
+                v-if="editingId !== subcategory.id"
+                class="flex items-center gap-1 opacity-0 group-hover:opacity-100"
+              >
                 <button
                   class="p-2 text-text-muted hover:text-text-primary transition-colors rounded hover:bg-bg-tertiary"
                   @click="startEdit(subcategory)"
@@ -236,6 +308,7 @@ interface Subcategory {
   name: string;
   slug: string;
   parentId: string | null;
+  newznabId: number | null;
   createdAt: string;
 }
 
@@ -244,6 +317,7 @@ interface Category {
   name: string;
   slug: string;
   parentId: string | null;
+  newznabId: number | null;
   createdAt: string;
   subcategories?: Subcategory[];
 }
@@ -252,11 +326,13 @@ const { data: categories, refresh } =
   await useFetch<Category[]>('/api/categories');
 
 const newCategoryName = ref('');
+const newCategoryNewznabId = ref<number | null>(null);
 const parentCategoryId = ref<string | null>(null);
 const isAdding = ref(false);
 const expandedCategories = ref(new Set<string>());
 const editingId = ref<string | null>(null);
 const editingName = ref('');
+const editingNewznabId = ref<number | null>(null);
 const isSaving = ref(false);
 
 function toggleCategory(id: string) {
@@ -270,11 +346,13 @@ function toggleCategory(id: string) {
 function startEdit(category: Category | Subcategory) {
   editingId.value = category.id;
   editingName.value = category.name;
+  editingNewznabId.value = category.newznabId;
 }
 
 function cancelEdit() {
   editingId.value = null;
   editingName.value = '';
+  editingNewznabId.value = null;
 }
 
 async function saveEdit(id: string) {
@@ -286,10 +364,12 @@ async function saveEdit(id: string) {
       method: 'PUT',
       body: {
         name: editingName.value.trim(),
+        newznabId: editingNewznabId.value,
       },
     });
     editingId.value = null;
     editingName.value = '';
+    editingNewznabId.value = null;
     await refresh();
   } catch (error: any) {
     alert(error.data?.message || 'Failed to update category');
@@ -308,9 +388,11 @@ async function addCategory() {
       body: {
         name: newCategoryName.value.trim(),
         parentId: parentCategoryId.value,
+        newznabId: newCategoryNewznabId.value,
       },
     });
     newCategoryName.value = '';
+    newCategoryNewznabId.value = null;
 
     // Expand parent if adding subcategory
     if (parentCategoryId.value) {
@@ -335,6 +417,33 @@ async function deleteCategory(id: string) {
     await refresh();
   } catch (error: any) {
     alert(error.data?.message || 'Failed to delete category');
+  }
+}
+
+const isSeeding = ref(false);
+
+async function seedCategories() {
+  if (
+    !confirm(
+      'This will create recommended Torznab-compatible categories. Continue?'
+    )
+  )
+    return;
+
+  isSeeding.value = true;
+  try {
+    const result = await (globalThis as any).$fetch(
+      '/api/admin/categories/seed',
+      {
+        method: 'POST',
+      }
+    );
+    await refresh();
+    alert(`Created ${result.created} categories`);
+  } catch (error: any) {
+    alert(error.data?.message || 'Failed to seed categories');
+  } finally {
+    isSeeding.value = false;
   }
 }
 </script>

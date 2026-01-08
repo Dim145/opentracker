@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       const [nextCursor, foundKeys] = await redis.scan(
         cursor,
         'MATCH',
-        'peers:*',
+        `${keyPrefix}peers:*`,
         'COUNT',
         100
       );

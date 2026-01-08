@@ -3,7 +3,16 @@
  * Protects admin routes with API key or session validation
  */
 
+import { randomBytes } from 'crypto';
+
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || '';
+
+/**
+ * Generate a random passkey (40 hex chars)
+ */
+export function generatePasskey(): string {
+  return randomBytes(20).toString('hex');
+}
 
 /**
  * Check if the request has valid admin authentication

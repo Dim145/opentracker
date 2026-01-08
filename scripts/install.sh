@@ -546,8 +546,33 @@ run_migrations() {
     
     cd "$INSTALL_DIR"
     
-    # Wait for PostgreSQL to be ready
-    log_info "Waiting for database to be ready..."
+    # Wait for PostgreSQL to be ready (connect to default postgres DB first)
+    log_info "Waiting for database service to be ready..."
+    for i in {1..30}; do
+        if docker compose -f docker-compose.prod.yml exec -T postgres pg_isready -U "$DB_USER" -d "postgres" &> /dev/null; then
+            log_success "Database service is ready"
+            break
+        fi
+        sleep 2
+    done
+
+    # Check/Rename database
+    log_info "Verifying database name..."
+    if docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$DB_USER" -d postgres -lqt | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+        log_success "Database '$DB_NAME' exists"
+    elif docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$DB_USER" -d postgres -lqt | cut -d \| -f 1 | grep -qw "opentracker"; then
+        log_warn "Found legacy database 'opentracker'. Renaming to '$DB_NAME'..."
+        docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$DB_USER" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'opentracker';" > /dev/null 2>&1 || true
+        docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$DB_USER" -d postgres -c "ALTER DATABASE opentracker RENAME TO \"$DB_NAME\";"
+        log_success "Database renamed successfully"
+    else
+        log_warn "Database '$DB_NAME' not found. Creating..."
+        docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$DB_USER" -d postgres -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$DB_USER\";"
+        log_success "Database created"
+    fi
+    
+    # Wait for target database to be ready
+    log_info "Waiting for $DB_NAME database to be ready..."
     for i in {1..30}; do
         if docker compose -f docker-compose.prod.yml exec -T postgres pg_isready -U "$DB_USER" -d "$DB_NAME" &> /dev/null; then
             log_success "Database is ready"

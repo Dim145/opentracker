@@ -121,6 +121,12 @@ const menuItems = [
     description: 'Manage invitation system',
   },
   {
+    label: 'Torznab API',
+    path: '/admin/torznab',
+    icon: 'ph:plug',
+    description: 'Configure *arr integration and rate limiting',
+  },
+  {
     label: 'Branding',
     path: '/admin/branding',
     icon: 'ph:paint-brush',

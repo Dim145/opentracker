@@ -3,14 +3,13 @@
  * Centralized request validation schemas for all API endpoints
  */
 
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 // ============================================================================
 // Base Schemas
 // ============================================================================
 
 export const uuidSchema = z
-  .string()
   .uuid('Invalid UUID format')
   .transform((val) => val.toLowerCase());
 
@@ -76,14 +75,14 @@ export const registerSchema = z.object({
 // ============================================================================
 
 export const torrentUploadSchema = z.object({
-  categoryId: z.string().uuid('Invalid category ID').optional(),
+  categoryId: z.uuid('Invalid category ID').optional(),
   description: z.string().max(10000, 'Description too long').optional(),
 });
 
 export const torrentQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
-  categoryId: z.string().uuid().optional(),
+  categoryId: z.uuid().optional(),
   search: z.string().max(255).optional(),
   sortBy: z
     .enum(['uploaded', 'name', 'size', 'seeders', 'leechers'])
@@ -121,7 +120,8 @@ export const adminCategorySchema = z.object({
       'Slug can only contain lowercase letters, numbers, and hyphens'
     )
     .optional(),
-  parentId: z.string().uuid('Invalid parent category ID').nullable().optional(),
+  parentId: z.uuid('Invalid parent category ID').nullable().optional(),
+  newznabId: z.coerce.number().int().min(1000).max(9999).nullable().optional(),
   description: z.string().max(500).optional(),
   icon: z.string().max(50).optional(),
 });
@@ -185,12 +185,12 @@ export const forumCategorySchema = z.object({
 export const forumTopicSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   content: z.string().min(1, 'Content is required').max(50000),
-  categoryId: z.string().uuid('Invalid category ID'),
+  categoryId: z.uuid('Invalid category ID'),
 });
 
 export const forumPostSchema = z.object({
   content: z.string().min(1, 'Content is required').max(50000),
-  topicId: z.string().uuid('Invalid topic ID'),
+  topicId: z.uuid('Invalid topic ID'),
 });
 
 export const forumTopicUpdateSchema = z.object({

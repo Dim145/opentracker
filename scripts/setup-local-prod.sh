@@ -200,6 +200,27 @@ for i in {1..30}; do
     sleep 2
 done
 
+# =============================================================================
+# Database Setup / Migration
+# =============================================================================
+log_step "Verifying database..."
+
+# Check if 'trackarr' exists
+if docker compose -f docker-compose.local.yml --env-file "$ENV_FILE" exec -T postgres psql -U tracker -d postgres -lqt | cut -d \| -f 1 | grep -qw "trackarr"; then
+    log_success "Database 'trackarr' exists"
+elif docker compose -f docker-compose.local.yml --env-file "$ENV_FILE" exec -T postgres psql -U tracker -d postgres -lqt | cut -d \| -f 1 | grep -qw "opentracker"; then
+    log_warn "Found legacy database 'opentracker'. Renaming to 'trackarr'..."
+    # We need to terminate connections to the old db before renaming could potentially fail if app is retrying
+    # usage of pg_terminate_backend avoids "database is being accessed by other users"
+    docker compose -f docker-compose.local.yml --env-file "$ENV_FILE" exec -T postgres psql -U tracker -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'opentracker';" > /dev/null 2>&1 || true
+    docker compose -f docker-compose.local.yml --env-file "$ENV_FILE" exec -T postgres psql -U tracker -d postgres -c "ALTER DATABASE opentracker RENAME TO trackarr;"
+    log_success "Database renamed successfully"
+else
+    log_warn "Database 'trackarr' not found. Creating..."
+    docker compose -f docker-compose.local.yml --env-file "$ENV_FILE" exec -T postgres psql -U tracker -d postgres -c "CREATE DATABASE trackarr OWNER tracker;"
+    log_success "Database created"
+fi
+
 # Wait for Redis
 for i in {1..15}; do
     if docker compose -f docker-compose.local.yml --env-file "$ENV_FILE" exec -T redis redis-cli -a "$REDIS_PASSWORD" PING 2>/dev/null | grep -q PONG; then

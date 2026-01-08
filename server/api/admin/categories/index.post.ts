@@ -52,6 +52,7 @@ export default defineEventHandler(async (event) => {
         name,
         slug,
         parentId,
+        newznabId: body.newznabId ?? null,
         createdAt: new Date(),
       })
       .returning();

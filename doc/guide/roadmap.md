@@ -30,6 +30,7 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 - [ ] **Freeleech System** — Global and per-torrent freeleech toggle
 - [ ] **User Classes** — Power User, VIP with granular permissions
 - [ ] **Notifications** — In-app alerts for replies, requests, etc.
+- [x] **Tornzb** — Torznab API for third-party clients
 
 ---
 
