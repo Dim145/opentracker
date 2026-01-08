@@ -4,10 +4,16 @@ import { redis } from '../redis/client';
 import { v4 as uuidv4 } from 'uuid';
 
 export default defineNitroPlugin((nitroApp) => {
-  // Run every hour
-  const INTERVAL = 60 * 60 * 1000;
+  // Run every hour by default, or use env var (in ms)
+  const INTERVAL = parseInt(
+    process.env.STATS_COLLECTION_INTERVAL || '3600000',
+    10
+  );
+
+  console.log(`[Stats Collector] Initialized with interval: ${INTERVAL}ms`);
 
   const collectStats = async () => {
+    console.log('[Stats Collector] Starting stats collection...');
     try {
       // 1. Users Count
       const usersCountResult = await db
@@ -32,7 +38,7 @@ export default defineNitroPlugin((nitroApp) => {
         const [nextCursor, keys] = await redis.scan(
           cursor,
           'MATCH',
-          'peers:*',
+          `${keyPrefix}peers:*`,
           'COUNT',
           100
         );
@@ -75,6 +81,10 @@ export default defineNitroPlugin((nitroApp) => {
         dbSize,
         createdAt: new Date(),
       });
+
+      console.log(
+        `[Stats Collector] Stats collected successfully. Peers: ${peersCount}, Seeders: ${seedersCount}`
+      );
     } catch (err) {
       console.error('[Stats Collector] Failed to collect stats:', err);
     }

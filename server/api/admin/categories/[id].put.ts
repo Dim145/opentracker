@@ -7,6 +7,7 @@ import { validateBody } from '../../../utils/schemas';
 
 const updateCategorySchema = z.object({
   name: z.string().min(1).max(50),
+  newznabId: z.coerce.number().int().min(1000).max(9999).nullable().optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -59,12 +60,23 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    const updateData: {
+      name: string;
+      slug: string;
+      newznabId?: number | null;
+    } = {
+      name,
+      slug,
+    };
+
+    // Only update newznabId if explicitly provided
+    if (body.newznabId !== undefined) {
+      updateData.newznabId = body.newznabId;
+    }
+
     const [category] = await db
       .update(schema.categories)
-      .set({
-        name,
-        slug,
-      })
+      .set(updateData)
       .where(eq(schema.categories.id, id))
       .returning();
 

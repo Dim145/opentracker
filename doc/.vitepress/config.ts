@@ -35,6 +35,7 @@ export default defineConfig({
 
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
+      { text: 'Integrations', link: '/integrations/torznab' },
       { text: 'Reference', link: '/reference/api' },
       { text: 'Support', link: '/support/professional' },
     ],
@@ -65,6 +66,12 @@ export default defineConfig({
             { text: 'Troubleshooting', link: '/guide/troubleshooting' },
             { text: 'Load Testing', link: '/guide/load-testing' },
           ],
+        },
+      ],
+      '/integrations/': [
+        {
+          text: 'Integrations',
+          items: [{ text: 'Torznab API', link: '/integrations/torznab' }],
         },
       ],
       '/reference/': [

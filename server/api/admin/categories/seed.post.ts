@@ -1,7 +1,9 @@
-import { db, schema } from '../server/db';
+import { db, schema } from '../../../db';
 import { randomUUID } from 'crypto';
+import { requireAdminSession } from '../../../utils/adminAuth';
+import { rateLimit, RATE_LIMITS } from '../../../utils/rateLimit';
 
-// Torznab-compatible categories with proper Newznab IDs
+// Recommended Torznab-compatible categories with proper Newznab IDs
 const SEED_CATEGORIES = [
   // Movies
   {
@@ -71,7 +73,7 @@ const SEED_CATEGORIES = [
       { name: 'Magazines', slug: 'books-magazines', newznabId: 7010 },
     ],
   },
-  // XXX
+  // XXX (optional, can be removed if not needed)
   {
     name: 'XXX',
     slug: 'xxx',
@@ -87,15 +89,19 @@ const SEED_CATEGORIES = [
   },
 ];
 
-async function seed() {
-  // Check if categories already exist
-  const existing = await db.query.categories.findFirst();
-  if (existing) {
-    console.log('✓ Categories already exist, skipping seed');
-    process.exit(0);
-  }
+export default defineEventHandler(async (event) => {
+  rateLimit(event, RATE_LIMITS.admin);
+  await requireAdminSession(event);
 
-  console.log('🌱 Seeding Torznab-compatible categories...');
+  // Check if categories already exist
+  const existingCategories = await db.query.categories.findMany();
+  if (existingCategories.length > 0) {
+    throw createError({
+      statusCode: 400,
+      message:
+        'Categories already exist. Delete all categories first to re-seed.',
+    });
+  }
 
   let created = 0;
 
@@ -103,40 +109,29 @@ async function seed() {
     const parentId = randomUUID();
 
     // Create parent category
-    await db
-      .insert(schema.categories)
-      .values({
-        id: parentId,
-        name: cat.name,
-        slug: cat.slug,
-        parentId: null,
-        newznabId: cat.newznabId,
-        createdAt: new Date(),
-      })
-      .onConflictDoNothing();
-    console.log(`  ✓ ${cat.name} [${cat.newznabId}]`);
+    await db.insert(schema.categories).values({
+      id: parentId,
+      name: cat.name,
+      slug: cat.slug,
+      parentId: null,
+      newznabId: cat.newznabId,
+      createdAt: new Date(),
+    });
     created++;
 
     // Create subcategories
     for (const sub of cat.subcategories) {
-      await db
-        .insert(schema.categories)
-        .values({
-          id: randomUUID(),
-          name: sub.name,
-          slug: sub.slug,
-          parentId: parentId,
-          newznabId: sub.newznabId,
-          createdAt: new Date(),
-        })
-        .onConflictDoNothing();
-      console.log(`    ↳ ${sub.name} [${sub.newznabId}]`);
+      await db.insert(schema.categories).values({
+        id: randomUUID(),
+        name: sub.name,
+        slug: sub.slug,
+        parentId: parentId,
+        newznabId: sub.newznabId,
+        createdAt: new Date(),
+      });
       created++;
     }
   }
 
-  console.log(`\n✅ Created ${created} Torznab-compatible categories`);
-  process.exit(0);
-}
-
-seed();
+  return { success: true, created };
+});

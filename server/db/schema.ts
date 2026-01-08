@@ -77,6 +77,7 @@ export const categories = pgTable(
     name: text('name').notNull(),
     slug: text('slug').notNull().unique(),
     parentId: text('parent_id'),
+    newznabId: integer('newznab_id'), // Newznab/Torznab category ID for *arr integration
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [index('categories_parent_idx').on(table.parentId)]
