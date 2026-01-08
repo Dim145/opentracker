@@ -27,8 +27,34 @@
             <h2 class="text-2xl font-bold text-text-primary tracking-tight">
               {{ torrent.name }}
             </h2>
+            <!-- Category Badge -->
+            <div v-if="torrent.category" class="mt-2">
+              <span
+                class="text-[10px] font-bold bg-bg-tertiary border border-border px-2 py-1 rounded-sm text-text-secondary uppercase tracking-wider"
+              >
+                {{ torrent.category.name }}
+              </span>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Edit Button (owner/mod/admin only) -->
+            <button
+              v-if="canEdit"
+              class="btn btn-secondary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider"
+              @click="showEditModal = true"
+            >
+              <Icon name="ph:pencil-simple-bold" />
+              <span>Edit</span>
+            </button>
+            <!-- Delete Button (owner/mod/admin only) -->
+            <button
+              v-if="canDelete"
+              class="btn btn-secondary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider text-error hover:bg-error/10"
+              @click="confirmDelete"
+            >
+              <Icon name="ph:trash-bold" />
+              <span>Delete</span>
+            </button>
             <button
               class="btn btn-secondary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider"
               @click="copyHash"
@@ -157,9 +183,11 @@
                 No active peers detected in swarm
               </td>
             </tr>
-            <tr v-for="peer in torrent.peers" :key="`${peer.ip}:${peer.port}`">
+            <tr v-for="peer in torrent.peers" :key="peer.id">
               <td class="font-mono text-xs">
-                <span class="text-text-primary">{{ peer.ip }}</span>
+                <span class="text-text-muted"
+                  >{{ peer.id.slice(0, 12) }}...</span
+                >
                 <span class="text-text-muted">:{{ peer.port }}</span>
               </td>
               <td>
@@ -190,6 +218,73 @@
         </table>
       </div>
     </div>
+
+    <!-- Edit Modal -->
+    <EditTorrentModal
+      :is-open="showEditModal"
+      :torrent="editableTorrent"
+      @close="showEditModal = false"
+      @saved="handleSaved"
+    />
+
+    <!-- Delete Confirmation Dialog -->
+    <Teleport to="body">
+      <div
+        v-if="showDeleteConfirm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        @click.self="showDeleteConfirm = false"
+      >
+        <div
+          class="bg-bg-secondary border border-border rounded shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
+        >
+          <div
+            class="flex items-center gap-2 px-4 py-3 border-b border-border bg-bg-tertiary/50"
+          >
+            <Icon name="ph:warning-circle-bold" class="text-error" />
+            <h3
+              class="text-xs font-bold uppercase tracking-widest text-text-primary"
+            >
+              Confirm Delete
+            </h3>
+          </div>
+          <div class="p-6">
+            <p class="text-sm text-text-secondary mb-4">
+              Are you sure you want to delete this torrent? This action cannot
+              be undone.
+            </p>
+            <p
+              class="text-xs font-mono text-text-muted bg-bg-tertiary p-2 rounded border border-border mb-6 truncate"
+            >
+              {{ torrent.name }}
+            </p>
+            <div v-if="deleteError" class="mb-4 text-xs text-error">
+              {{ deleteError }}
+            </div>
+            <div class="flex gap-2">
+              <button
+                class="btn btn-secondary flex-1 text-[10px] font-bold uppercase tracking-widest"
+                :disabled="isDeleting"
+                @click="showDeleteConfirm = false"
+              >
+                Cancel
+              </button>
+              <button
+                class="btn btn-primary flex-1 text-[10px] font-bold uppercase tracking-widest bg-error hover:bg-error/80 flex items-center justify-center gap-2"
+                :disabled="isDeleting"
+                @click="deleteTorrent"
+              >
+                <Icon
+                  v-if="isDeleting"
+                  name="ph:circle-notch"
+                  class="animate-spin"
+                />
+                <span>{{ isDeleting ? 'Deleting...' : 'Delete' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -197,12 +292,18 @@
 import { marked } from 'marked';
 
 interface Peer {
-  ip: string;
+  id: string;
   port: number;
   isSeeder: boolean;
   uploaded: number;
   downloaded: number;
   lastSeen: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
 }
 
 interface TorrentDetail {
@@ -211,6 +312,9 @@ interface TorrentDetail {
   name: string;
   size: number;
   description: string | null;
+  uploaderId: string | null;
+  categoryId: string | null;
+  category: Category | null;
   createdAt: string;
   stats: {
     seeders: number;
@@ -223,9 +327,41 @@ interface TorrentDetail {
 const route = useRoute();
 const hash = route.params.hash as string;
 
-const { data: torrent, error } = await useFetch<TorrentDetail>(
-  `/api/torrents/${hash}`
-);
+const {
+  data: torrent,
+  error,
+  refresh,
+} = await useFetch<TorrentDetail>(`/api/torrents/${hash}`);
+
+// Get current user session
+const { loggedIn, user } = useUserSession();
+
+// Edit/delete state
+const showEditModal = ref(false);
+const showDeleteConfirm = ref(false);
+const isDeleting = ref(false);
+const deleteError = ref<string | null>(null);
+
+// Compute permissions
+const canEdit = computed(() => {
+  if (!loggedIn.value || !user.value) return false;
+  const isOwner = torrent.value?.uploaderId === user.value.id;
+  return isOwner || user.value.isAdmin || user.value.isModerator;
+});
+
+const canDelete = computed(() => {
+  if (!loggedIn.value || !user.value) return false;
+  const isOwner = torrent.value?.uploaderId === user.value.id;
+  return isOwner || user.value.isAdmin || user.value.isModerator;
+});
+
+// Editable data for modal
+const editableTorrent = computed(() => ({
+  infoHash: torrent.value?.infoHash || '',
+  name: torrent.value?.name || '',
+  description: torrent.value?.description || null,
+  categoryId: torrent.value?.categoryId || null,
+}));
 
 const renderedDescription = computed(() => {
   if (!torrent.value?.description) return '';
@@ -238,6 +374,37 @@ if (error.value || !torrent.value) {
 
 async function copyHash() {
   await navigator.clipboard.writeText(torrent.value!.infoHash);
+}
+
+function confirmDelete() {
+  deleteError.value = null;
+  showDeleteConfirm.value = true;
+}
+
+async function deleteTorrent() {
+  isDeleting.value = true;
+  deleteError.value = null;
+
+  try {
+    await $fetch(`/api/torrents/${torrent.value!.infoHash}`, {
+      method: 'DELETE',
+    });
+    // Navigate back to torrents list
+    navigateTo('/torrents');
+  } catch (err: unknown) {
+    const fetchError = err as { data?: { message?: string }; message?: string };
+    deleteError.value =
+      fetchError.data?.message ||
+      fetchError.message ||
+      'Failed to delete torrent';
+  } finally {
+    isDeleting.value = false;
+  }
+}
+
+async function handleSaved() {
+  // Refresh torrent data
+  await refresh();
 }
 </script>
 

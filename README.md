@@ -391,18 +391,6 @@ Trackarr is built on the shoulders of giants. We'd like to thank the following o
 
 ---
 
----
-
----
-
----
-
----
-
----
-
----
-
 <!-- CONTRIBUTORS:START -->
 
 ## 👥 Contributors
@@ -411,7 +399,8 @@ Thanks to all our contributors! Sorted by number of commits.
 
 |                                                      Avatar                                                       | Contributor                             | Commits |
 | :---------------------------------------------------------------------------------------------------------------: | --------------------------------------- | :-----: |
-| <img src="https://avatars.githubusercontent.com/u/64362443?v=4" width="40" height="40" style="border-radius:50%"> | **[IkiaeM](https://github.com/IkiaeM)** |    2    |
+| <img src="https://avatars.githubusercontent.com/u/50747004?v=4" width="40" height="40" style="border-radius:50%"> | **[Dim145](https://github.com/Dim145)** |    4    |
+| <img src="https://avatars.githubusercontent.com/u/64362443?v=4" width="40" height="40" style="border-radius:50%"> | **[IkiaeM](https://github.com/IkiaeM)** |    4    |
 
 <!-- CONTRIBUTORS:END -->
 

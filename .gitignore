@@ -4,6 +4,10 @@
 .nuxt
 .nitro
 .cache
+.dev-test
+.dev-downloads
+.vitepress/cache
+doc/node_modules
 dist
 
 # Agents
@@ -21,6 +25,11 @@ logs
 .DS_Store
 .fleet
 .idea
+
+# Secrets
+CREDENTIALS.txt
+secrets/
+docker/pgbouncer/userlist.txt
 
 # Local env files
 .env

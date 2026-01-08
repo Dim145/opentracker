@@ -1,20 +1,21 @@
 /**
  * DELETE /api/torrents/:hash
  * Delete a torrent from the tracker
+ * Owner, moderator, or admin can delete
  */
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { torrents } from '../../db/schema';
 import { redis } from '../../redis/client';
-import { requireAdminSession } from '../../utils/adminAuth';
+import { requireAuthSession } from '../../utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '../../utils/rateLimit';
 
 export default defineEventHandler(async (event) => {
-  // Rate limit admin endpoints
-  rateLimit(event, RATE_LIMITS.admin);
+  // Rate limit mutations
+  rateLimit(event, RATE_LIMITS.mutation);
 
-  // Require admin authentication
-  await requireAdminSession(event);
+  // Require authentication
+  const { user } = await requireAuthSession(event);
 
   const hash = getRouterParam(event, 'hash');
 
@@ -36,6 +37,17 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 404,
       message: 'Torrent not found',
+    });
+  }
+
+  // Check permissions: owner, moderator, or admin
+  const isOwner = existing.uploaderId === user.id;
+  const canDelete = isOwner || user.isAdmin || user.isModerator;
+
+  if (!canDelete) {
+    throw createError({
+      statusCode: 403,
+      message: 'You do not have permission to delete this torrent',
     });
   }
 
