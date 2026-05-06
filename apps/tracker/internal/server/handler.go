@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/florianjs/trackarr/apps/tracker/internal/announce"
@@ -17,11 +17,12 @@ import (
 	"github.com/florianjs/trackarr/apps/tracker/internal/cryptohash"
 	dbpkg "github.com/florianjs/trackarr/apps/tracker/internal/db"
 	"github.com/florianjs/trackarr/apps/tracker/internal/peers"
+	"github.com/florianjs/trackarr/apps/tracker/internal/queries"
 )
 
 // Server holds shared state for the HTTP handlers.
 type Server struct {
-	pool         *pgxpool.Pool
+	db           *dbpkg.DB
 	redis        *redis.Client
 	peers        *peers.Store
 	dedup        *dedup
@@ -31,9 +32,9 @@ type Server struct {
 
 // New builds a Server. It does not start listening — callers wire it into
 // http.Handler routes themselves so tests can use httptest directly.
-func New(pool *pgxpool.Pool, rclient *redis.Client, store *peers.Store, ipHashSecret string, debug bool) *Server {
+func New(db *dbpkg.DB, rclient *redis.Client, store *peers.Store, ipHashSecret string, debug bool) *Server {
 	return &Server{
-		pool:         pool,
+		db:           db,
 		redis:        rclient,
 		peers:        store,
 		dedup:        newDedup(),
@@ -71,9 +72,9 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// 1. Resolve & validate the user
-	user, err := dbpkg.FindUserByPasskey(ctx, s.pool, req.Passkey)
+	user, err := s.db.Q.FindUserByPasskey(ctx, req.Passkey)
 	if err != nil {
-		if errors.Is(err, dbpkg.ErrUserNotFound) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			writeFailure(w, "Invalid passkey")
 			return
 		}
@@ -87,7 +88,7 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Ratio check (only when leeching: left > 0)
 	if req.Left > 0 {
-		minRatio, err := dbpkg.GetMinRatio(ctx, s.pool)
+		minRatio, err := s.db.GetMinRatio(ctx)
 		if err == nil && minRatio > 0 && user.Downloaded > 0 {
 			ratio := float64(user.Uploaded) / float64(user.Downloaded)
 			if ratio < minRatio {
@@ -98,8 +99,8 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 3. Torrent must exist and be active
-	if _, err := dbpkg.FindActiveTorrentByInfoHash(ctx, s.pool, infoHashHex); err != nil {
-		if errors.Is(err, dbpkg.ErrTorrentNotFound) {
+	if _, err := s.db.Q.FindActiveTorrentByInfoHash(ctx, infoHashHex); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
 			writeFailure(w, "Torrent not found or inactive")
 			return
 		}
@@ -111,9 +112,6 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 	peerHex := hexBytes(req.PeerID[:])
 	dedupKey := infoHashHex + ":" + peerHex + ":" + req.Event.String()
 	if !s.dedup.CheckAndMark(dedupKey) {
-		// Tell the client we accepted the announce but don't redo any work.
-		// Building the same response shape (with cached counts) is good
-		// enough — the client only cares that it isn't an error.
 		s.writeMinimalSuccess(ctx, w, infoHashHex, req)
 		return
 	}
@@ -132,14 +130,21 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 6. Persist user stats deltas (best-effort: log but don't reject)
-	if err := dbpkg.IncrementUserStats(ctx, s.pool, req.Passkey, deltaUp, deltaDown); err != nil {
-		slog.Warn("failed to increment user stats", "err", err)
+	if deltaUp > 0 || deltaDown > 0 {
+		err := s.db.Q.IncrementUserStats(ctx, queries.IncrementUserStatsParams{
+			Uploaded:   deltaUp,
+			Downloaded: deltaDown,
+			Passkey:    req.Passkey,
+		})
+		if err != nil {
+			slog.Warn("failed to increment user stats", "err", err)
+		}
 	}
 
 	// 7. event=stopped: remove peer and respond
 	if req.Event == announce.EventStopped {
 		_ = s.peers.Remove(ctx, infoHashHex, peerHex)
-		s.writeAnnounceResponse(ctx, w, infoHashHex, req, nil)
+		s.writeAnnounceResponse(ctx, w, infoHashHex, req)
 		return
 	}
 
@@ -170,13 +175,12 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 	if req.IsSeeder() && prev != nil {
 		elapsed := (time.Now().UnixMilli() - prev.UpdatedAt) / 1000
 		if elapsed > 0 && elapsed < 3600 {
-			go s.recordSeedTime(req.Passkey, infoHashHex, elapsed)
+			go s.recordSeedTime(req.Passkey, infoHashHex, int32(elapsed))
 		}
 	}
 
 	// 11. Build the announce response with the current swarm state
-	s.writeAnnounceResponse(ctx, w, infoHashHex, req, &peerHex)
-	_ = prev
+	s.writeAnnounceResponse(ctx, w, infoHashHex, req)
 }
 
 // writeMinimalSuccess is the response we emit when we hit the dedup cache.
@@ -188,7 +192,7 @@ func (s *Server) writeMinimalSuccess(ctx context.Context, w http.ResponseWriter,
 }
 
 // writeAnnounceResponse fetches the current peer list and emits the bencode dict.
-func (s *Server) writeAnnounceResponse(ctx context.Context, w http.ResponseWriter, infoHashHex string, req *announce.Request, _ *string) {
+func (s *Server) writeAnnounceResponse(ctx context.Context, w http.ResponseWriter, infoHashHex string, req *announce.Request) {
 	peerList, err := s.peers.List(ctx, infoHashHex)
 	if err != nil {
 		s.serverError(w, "list peers", err)
@@ -213,27 +217,57 @@ func (s *Server) writeAnnounceResponse(ctx context.Context, w http.ResponseWrite
 func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if enabled, _ := dbpkg.IsHnrEnabled(ctx, s.pool); !enabled {
+
+	enabled, _ := s.db.IsHnrEnabled(ctx)
+	if !enabled {
 		return
 	}
-	required, _ := dbpkg.GetHnrRequiredSeedTime(ctx, s.pool)
-	userID, torrentID, err := dbpkg.FindUserAndTorrentIDs(ctx, s.pool, passkey, infoHashHex)
-	if err != nil || userID == "" || torrentID == "" {
+	required, _ := s.db.GetHnrRequiredSeedTime(ctx)
+
+	row, err := s.db.Q.FindUserAndTorrentByPasskeyAndHash(ctx,
+		queries.FindUserAndTorrentByPasskeyAndHashParams{
+			Passkey:  passkey,
+			InfoHash: infoHashHex,
+		})
+	if err != nil {
 		return
 	}
-	if err := dbpkg.CreateHnrEntry(ctx, s.pool, userID, torrentID, required); err != nil {
+
+	id, err := dbpkg.NewID()
+	if err != nil {
+		slog.Warn("hnr id generation", "err", err)
+		return
+	}
+	err = s.db.Q.CreateHnrEntry(ctx, queries.CreateHnrEntryParams{
+		ID:               id,
+		UserID:           row.UserID,
+		TorrentID:        row.TorrentID,
+		RequiredSeedTime: required,
+	})
+	if err != nil {
 		slog.Warn("create hnr entry", "err", err)
 	}
 }
 
-func (s *Server) recordSeedTime(passkey, infoHashHex string, secondsToAdd int64) {
+func (s *Server) recordSeedTime(passkey, infoHashHex string, secondsToAdd int32) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	userID, torrentID, err := dbpkg.FindUserAndTorrentIDs(ctx, s.pool, passkey, infoHashHex)
-	if err != nil || userID == "" || torrentID == "" {
+
+	row, err := s.db.Q.FindUserAndTorrentByPasskeyAndHash(ctx,
+		queries.FindUserAndTorrentByPasskeyAndHashParams{
+			Passkey:  passkey,
+			InfoHash: infoHashHex,
+		})
+	if err != nil {
 		return
 	}
-	if err := dbpkg.UpdateSeedTime(ctx, s.pool, userID, torrentID, secondsToAdd); err != nil {
+
+	err = s.db.Q.AddSeedTime(ctx, queries.AddSeedTimeParams{
+		SeedTime:  secondsToAdd,
+		UserID:    row.UserID,
+		TorrentID: row.TorrentID,
+	})
+	if err != nil {
 		slog.Warn("update seed time", "err", err)
 	}
 }
@@ -285,7 +319,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()
 
-	dbOK := s.pool.Ping(ctx) == nil
+	dbOK := s.db.Pool.Ping(ctx) == nil
 	redisOK := s.redis.Ping(ctx).Err() == nil
 
 	if !dbOK || !redisOK {
