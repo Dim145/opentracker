@@ -28,11 +28,19 @@ type Server struct {
 	dedup        *dedup
 	ipHashSecret string
 	debug        bool
+	// appCtx is the process-lifecycle context. Background goroutines spawned
+	// from a request derive their own timeouts from this so they cancel when
+	// the server shuts down rather than running on context.Background().
+	appCtx context.Context
 }
 
 // New builds a Server. It does not start listening — callers wire it into
 // http.Handler routes themselves so tests can use httptest directly.
-func New(db *dbpkg.DB, rclient *redis.Client, store *peers.Store, ipHashSecret string, debug bool) *Server {
+// appCtx should be the process-lifecycle context (cancelled on shutdown).
+func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *peers.Store, ipHashSecret string, debug bool) *Server {
+	if appCtx == nil {
+		appCtx = context.Background()
+	}
 	return &Server{
 		db:           db,
 		redis:        rclient,
@@ -40,6 +48,7 @@ func New(db *dbpkg.DB, rclient *redis.Client, store *peers.Store, ipHashSecret s
 		dedup:        newDedup(),
 		ipHashSecret: ipHashSecret,
 		debug:        debug,
+		appCtx:       appCtx,
 	}
 }
 
@@ -137,7 +146,11 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 			Passkey:    req.Passkey,
 		})
 		if err != nil {
-			slog.Warn("failed to increment user stats", "err", err)
+			slog.Warn("failed to increment user stats",
+				"info_hash", infoHashHex,
+				"peer_id", peerHex,
+				"event", req.Event.String(),
+				"err", err)
 		}
 	}
 
@@ -215,7 +228,7 @@ func (s *Server) writeAnnounceResponse(ctx context.Context, w http.ResponseWrite
 // ----------------------------------------------------------------------------
 
 func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(s.appCtx, 5*time.Second)
 	defer cancel()
 
 	enabled, _ := s.db.IsHnrEnabled(ctx)
@@ -235,7 +248,7 @@ func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 
 	id, err := dbpkg.NewID()
 	if err != nil {
-		slog.Warn("hnr id generation", "err", err)
+		slog.Warn("hnr id generation", "info_hash", infoHashHex, "err", err)
 		return
 	}
 	err = s.db.Q.CreateHnrEntry(ctx, queries.CreateHnrEntryParams{
@@ -245,12 +258,12 @@ func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 		RequiredSeedTime: required,
 	})
 	if err != nil {
-		slog.Warn("create hnr entry", "err", err)
+		slog.Warn("create hnr entry", "info_hash", infoHashHex, "err", err)
 	}
 }
 
 func (s *Server) recordSeedTime(passkey, infoHashHex string, secondsToAdd int32) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(s.appCtx, 5*time.Second)
 	defer cancel()
 
 	row, err := s.db.Q.FindUserAndTorrentByPasskeyAndHash(ctx,
@@ -268,7 +281,10 @@ func (s *Server) recordSeedTime(passkey, infoHashHex string, secondsToAdd int32)
 		TorrentID: row.TorrentID,
 	})
 	if err != nil {
-		slog.Warn("update seed time", "err", err)
+		slog.Warn("update seed time",
+			"info_hash", infoHashHex,
+			"seconds", secondsToAdd,
+			"err", err)
 	}
 }
 
@@ -350,17 +366,23 @@ func SetTrustProxy(b bool) { trustProxy = b }
 
 // clientIP extracts the announcing peer's IP. We only honor proxy headers
 // when explicitly enabled, otherwise an attacker behind a proxy could
-// forge any IP.
+// forge any IP. Header values are validated as real IP literals so a
+// malformed/garbage header just falls through to RemoteAddr.
 func (s *Server) clientIP(r *http.Request) string {
 	if trustProxy {
 		if v := r.Header.Get("X-Real-IP"); v != "" {
-			return v
+			if ip := net.ParseIP(strings.TrimSpace(v)); ip != nil {
+				return ip.String()
+			}
 		}
 		if v := r.Header.Get("X-Forwarded-For"); v != "" {
+			candidate := v
 			if i := strings.IndexByte(v, ','); i >= 0 {
-				return strings.TrimSpace(v[:i])
+				candidate = v[:i]
 			}
-			return strings.TrimSpace(v)
+			if ip := net.ParseIP(strings.TrimSpace(candidate)); ip != nil {
+				return ip.String()
+			}
 		}
 	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)

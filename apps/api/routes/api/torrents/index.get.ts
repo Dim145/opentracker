@@ -78,20 +78,26 @@ export default defineEventHandler(async (event) => {
 
   const total = countResult[0]?.count || 0;
 
-  // Enrich with live stats from Redis
-  const enriched = await Promise.all(
-    torrents.map(async (torrent) => {
-      const stats = await getStats(torrent.infoHash);
-      return {
-        ...torrent,
-        stats: {
-          seeders: stats.seeders,
-          leechers: stats.leechers,
-          completed: stats.completed,
-        },
-      };
-    })
+  // Enrich with live stats from Redis. Tolerate partial failure: a Redis hiccup
+  // for one torrent should not fail the whole listing — fall back to zeroes.
+  const settled = await Promise.allSettled(
+    torrents.map((t) => getStats(t.infoHash))
   );
+  const enriched = torrents.map((torrent, i) => {
+    const r = settled[i];
+    const stats =
+      r.status === 'fulfilled'
+        ? r.value
+        : { seeders: 0, leechers: 0, completed: 0 };
+    return {
+      ...torrent,
+      stats: {
+        seeders: stats.seeders,
+        leechers: stats.leechers,
+        completed: stats.completed,
+      },
+    };
+  });
 
   return {
     data: enriched,

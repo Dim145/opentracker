@@ -1,10 +1,50 @@
 import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { settings } from '@trackarr/db/schema';
+import { redis } from '../redis/client';
 
 // Version is injected by the running app via env (each app has its own
 // package.json now that we're in a monorepo).
 const appVersion = process.env.APP_VERSION || 'dev';
+
+// ============================================================================
+// Cross-instance cache invalidation via Redis pub/sub
+// ============================================================================
+//
+// When `setSetting` updates a value on instance A, instance B's in-memory cache
+// would otherwise serve a stale value for up to CACHE_TTL. We publish to a
+// dedicated channel and a subscriber on each instance evicts the matching key.
+const SETTINGS_INVALIDATE_CHANNEL = 'settings:invalidate';
+
+let subscriberStarted = false;
+function ensureSubscriber(): void {
+  if (subscriberStarted) return;
+  subscriberStarted = true;
+  try {
+    const sub = redis.duplicate();
+    sub.on('message', (channel, message) => {
+      if (channel !== SETTINGS_INVALIDATE_CHANNEL) return;
+      if (message === '*') {
+        settingsCache.clear();
+      } else {
+        settingsCache.delete(message);
+      }
+    });
+    sub.on('error', (err) => {
+      // Non-fatal: invalidation falls back to TTL. Don't spam logs.
+      if ((err as any)?.code !== 'ECONNRESET') {
+        console.warn('[Settings] subscriber error:', err.message);
+      }
+    });
+    sub.subscribe(SETTINGS_INVALIDATE_CHANNEL).catch((err) => {
+      console.warn('[Settings] subscribe error:', err.message);
+      subscriberStarted = false; // allow retry
+    });
+  } catch (err: any) {
+    console.warn('[Settings] failed to set up subscriber:', err.message);
+    subscriberStarted = false;
+  }
+}
 
 /**
  * Check if HTML content is effectively empty (just empty tags like <p></p> or whitespace)
@@ -64,6 +104,7 @@ const CACHE_TTL = 60000; // 1 minute cache for settings
  * Get a setting value
  */
 export async function getSetting(key: string): Promise<string | null> {
+  ensureSubscriber();
   const cached = settingsCache.get(key);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.value;
@@ -84,6 +125,7 @@ export async function getSetting(key: string): Promise<string | null> {
  * Set a setting value
  */
 export async function setSetting(key: string, value: string): Promise<void> {
+  ensureSubscriber();
   await db
     .insert(settings)
     .values({ key, value, updatedAt: new Date() })
@@ -92,8 +134,14 @@ export async function setSetting(key: string, value: string): Promise<void> {
       set: { value, updatedAt: new Date() },
     });
 
-  // Invalidate cache
+  // Invalidate cache locally and on every other instance.
   settingsCache.delete(key);
+  try {
+    await redis.publish(SETTINGS_INVALIDATE_CHANNEL, key);
+  } catch (err: any) {
+    // Non-fatal: TTL still bounds staleness on other instances.
+    console.warn('[Settings] invalidate publish error:', err.message);
+  }
 }
 
 /**

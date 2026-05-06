@@ -2,7 +2,7 @@ import { requireAdminSession } from '~~/utils/adminAuth';
 import { setSetting, SETTINGS_KEYS } from '~~/utils/server';
 import { randomBytes } from 'crypto';
 import { writeFile, mkdir, unlink } from 'fs/promises';
-import { join } from 'path';
+import { join, resolve, sep } from 'path';
 import { existsSync } from 'fs';
 
 /**
@@ -92,16 +92,17 @@ export default defineEventHandler(async (event) => {
 
   // Delete old logo if it exists and is in uploads folder
   if (currentLogo && currentLogo.startsWith('/uploads/')) {
-    const oldPath = join(
-      uploadsDir,
-      currentLogo.replace(/^\/uploads\//, '')
-    );
-    try {
-      if (existsSync(oldPath)) {
-        await unlink(oldPath);
+    const oldName = currentLogo.replace(/^\/uploads\//, '');
+    const uploadsRoot = resolve(uploadsDir);
+    const oldPath = resolve(uploadsRoot, oldName);
+    if (oldPath === uploadsRoot || oldPath.startsWith(uploadsRoot + sep)) {
+      try {
+        if (existsSync(oldPath)) {
+          await unlink(oldPath);
+        }
+      } catch {
+        // Ignore deletion errors
       }
-    } catch {
-      // Ignore deletion errors
     }
   }
 

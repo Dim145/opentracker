@@ -65,7 +65,7 @@ func main() {
 
 	store := peers.New(rclient, cfg.RedisKeyPrefix)
 	database := db.New(pool)
-	srv := server.New(database, rclient, store, cfg.IPHashSecret, cfg.Debug)
+	srv := server.New(ctx, database, rclient, store, cfg.IPHashSecret, cfg.Debug)
 	defer srv.Stop()
 
 	addr := ":" + strconv.Itoa(cfg.HTTPPort)

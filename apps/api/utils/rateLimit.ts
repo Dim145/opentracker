@@ -21,9 +21,21 @@ interface BlacklistEntry {
   violations: number;
 }
 
-// In-memory fallback when Redis is unavailable
+// In-memory fallback when Redis is unavailable.
+// Bounded to prevent unbounded growth when Redis is down under abuse.
+const MAX_MEMORY_ENTRIES = 100_000;
 const memoryStore = new Map<string, RateLimitEntry>();
 const memoryBlacklist = new Map<string, BlacklistEntry>();
+
+function setBounded<V>(map: Map<string, V>, key: string, value: V): void {
+  // Map preserves insertion order — evict the oldest when at cap.
+  // We only evict when adding a NEW key; in-place updates don't grow the map.
+  if (map.size >= MAX_MEMORY_ENTRIES && !map.has(key)) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey !== undefined) map.delete(oldestKey);
+  }
+  map.set(key, value);
+}
 
 // Cleanup stale entries every 5 minutes
 setInterval(
@@ -168,7 +180,7 @@ export async function blacklistIP(
     await redis.hset(BLACKLIST_KEY, normalizedIP, JSON.stringify(entry));
     await redis.expire(BLACKLIST_KEY, MAX_BLACKLIST_DURATION);
   } catch {
-    memoryBlacklist.set(normalizedIP, entry);
+    setBounded(memoryBlacklist, normalizedIP, entry);
   }
 }
 
@@ -257,7 +269,7 @@ function rateLimitMemory(
   const entry = memoryStore.get(key);
 
   if (!entry || entry.resetAt < now) {
-    memoryStore.set(key, { count: 1, resetAt: now + windowMs });
+    setBounded(memoryStore, key, { count: 1, resetAt: now + windowMs });
     return { remaining: maxRequests - 1, blocked: false };
   }
 
