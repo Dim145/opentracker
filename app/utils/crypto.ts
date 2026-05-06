@@ -75,7 +75,10 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<Uint8Array
     {
       name: 'PBKDF2',
       salt: salt.buffer as ArrayBuffer,
-      iterations: 100000, // OWASP recommendation
+      // OWASP 2023: 600 000 iterations for PBKDF2-SHA256.
+      // Higher = slower brute-force, but also slower login on the client.
+      // 600k takes ~250-400ms on modern hardware.
+      iterations: 600000,
       hash: 'SHA-256',
     },
     keyMaterial,

@@ -140,18 +140,19 @@ const emit = defineEmits<{
   deleted: [infoHash: string];
 }>();
 
-function getCategoryDisplayName(category) {
-  let displayName = category.name;
-
-  const parent = categories.value.find(
-    (cat) => cat.id === category.parentId
-  );
-
-  if (parent) {
-    displayName = `${parent.name}/${displayName}`;
+const categoriesById = computed(() => {
+  const map = new Map<string, { id: string; name: string }>();
+  for (const cat of categories.value ?? []) {
+    map.set(cat.id, cat);
   }
+  return map;
+});
 
-  return displayName;
+function getCategoryDisplayName(category: { name: string; parentId?: string }) {
+  const parent = category.parentId
+    ? categoriesById.value.get(category.parentId)
+    : undefined;
+  return parent ? `${parent.name}/${category.name}` : category.name;
 }
 
 async function deleteTorrent(torrent: TorrentWithStats) {

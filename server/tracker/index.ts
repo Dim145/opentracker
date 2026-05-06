@@ -15,8 +15,9 @@ export interface TrackerConfig {
 }
 
 /**
- * Initialize the BitTorrent tracker server
- * Supports HTTP, UDP, and WebSocket (WebTorrent) protocols
+ * Initialize the BitTorrent tracker server.
+ * Only HTTP is enabled — UDP can't carry passkeys cleanly, and WS needs a native
+ * build (node-datachannel) we deliberately exclude from the bundle.
  */
 export function initTracker(config: TrackerConfig = {}): TrackerServer {
   if (server) {

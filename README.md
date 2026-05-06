@@ -25,7 +25,7 @@ Built with Nuxt 4 • PostgreSQL • Redis
 | ----------------------------------- | --------------------------------- |
 | Zero-Knowledge Authentication       | Redis-powered sub-ms peer lookups |
 | Proof of Work anti-abuse            | PostgreSQL with full-text search  |
-| Private torrents (DHT/PEX disabled) | HTTP & WebSocket announce support |
+| Private torrents (DHT/PEX disabled) | HTTP announce (UDP/WS disabled)   |
 | Ratio tracking & enforcement        | Optimized for high concurrency    |
 
 | **Security**              | **Emergency**                                |
@@ -279,7 +279,7 @@ docker compose logs -f app
 | Backend  | Nitro Server Engine                 | API routes, middleware              |
 | Database | PostgreSQL 16 + Drizzle ORM         | Data persistence, full-text search  |
 | Cache    | Redis 7                             | Peer lists, sessions, rate limiting |
-| P2P      | bittorrent-tracker                  | HTTP & WebSocket announces          |
+| P2P      | bittorrent-tracker                  | HTTP announces (passkey-gated)      |
 | Crypto   | Web Crypto API, scrypt, AES-256-GCM | ZKE auth, Panic encryption          |
 | Monitor  | Prometheus + Grafana                | Metrics, dashboards, alerting       |
 

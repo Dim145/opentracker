@@ -401,6 +401,8 @@ REDIS_KEY_PREFIX=tr:
 # Security
 ADMIN_API_KEY=${ADMIN_API_KEY}
 IP_HASH_SECRET=${IP_HASH_SECRET}
+# Caddy is in front of the app — trust X-Forwarded-For for real client IPs
+TRUST_PROXY=true
 
 # Domains
 DOMAIN=${DOMAIN}

@@ -7,6 +7,7 @@ import {
   boolean,
   index,
   uniqueIndex,
+  primaryKey,
   customType,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
@@ -27,8 +28,8 @@ export const users = pgTable(
     id: text('id').primaryKey(), // UUID
     username: text('username').notNull().unique(),
     // ZKE fields - server never sees password
-    authSalt: text('auth_salt'), // Client-generated salt (base64) - nullable for migration
-    authVerifier: text('auth_verifier'), // Derived verifier (base64) - nullable for migration
+    authSalt: text('auth_salt').notNull(), // Client-generated salt (base64)
+    authVerifier: text('auth_verifier').notNull(), // Derived verifier (base64)
     passkey: text('passkey').notNull().unique(), // For private tracker auth
     isAdmin: boolean('is_admin').default(false).notNull(),
     isModerator: boolean('is_moderator').default(false).notNull(),
@@ -338,7 +339,7 @@ export const torrentTags = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
-    index('torrent_tags_torrent_idx').on(table.torrentId),
+    primaryKey({ columns: [table.torrentId, table.tagId] }),
     index('torrent_tags_tag_idx').on(table.tagId),
   ]
 );
@@ -368,6 +369,8 @@ export const hnrTracking = pgTable(
     index('hnr_torrent_idx').on(table.torrentId),
     index('hnr_status_idx').on(table.isHnr),
     uniqueIndex('hnr_user_torrent_idx').on(table.userId, table.torrentId),
+    // Speeds up moderator queries "list HnR violations for user X"
+    index('hnr_user_is_hnr_idx').on(table.userId, table.isHnr),
   ]
 );
 

@@ -79,6 +79,8 @@ services:
       NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-ws://localhost:8082}
       # Security: Secret for hashing peer IPs
       IP_HASH_SECRET: ${IP_HASH_SECRET}
+      # Caddy is in front of the app — honor X-Forwarded-For for real client IPs
+      TRUST_PROXY: "true"
       # Debug mode for verbose tracker logging
       TRACKER_DEBUG: ${TRACKER_DEBUG:-false}
     expose:
@@ -230,10 +232,14 @@ services:
     container_name: trackarr-redis
     restart: always
     # Enhanced security
-    # cap_drop:
-    #   - ALL
-    # security_opt:
-    #   - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+    security_opt:
+      - no-new-privileges:true
     command: >
       redis-server
       --appendonly yes

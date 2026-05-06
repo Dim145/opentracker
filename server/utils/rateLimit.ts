@@ -61,10 +61,23 @@ export interface RateLimitOptions {
 // ============================================================================
 
 /**
- * Extract client IP with proxy support
+ * Whether to trust upstream proxy headers (X-Forwarded-For, X-Real-IP, CF-Connecting-IP).
+ * Must be enabled ONLY when the app sits behind a reverse proxy you control (Caddy, Cloudflare, etc.).
+ * If the app is exposed directly to the internet, leaving this off prevents IP spoofing
+ * (an attacker could otherwise forge a header to bypass rate limiting / blacklists).
+ */
+const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
+
+/**
+ * Extract client IP. Honors proxy headers only if TRUST_PROXY=true.
  */
 export function getClientIP(event: any): string {
-  // Check trusted proxy headers
+  const directIp = event.node?.req?.socket?.remoteAddress || 'unknown';
+
+  if (!TRUST_PROXY) {
+    return directIp;
+  }
+
   const cfConnectingIP = getHeader(event, 'cf-connecting-ip');
   if (cfConnectingIP) return cfConnectingIP;
 
@@ -74,8 +87,7 @@ export function getClientIP(event: any): string {
   const forwarded = getHeader(event, 'x-forwarded-for');
   if (forwarded) return forwarded.split(',')[0].trim();
 
-  // Fallback to direct connection IP
-  return event.node?.req?.socket?.remoteAddress || 'unknown';
+  return directIp;
 }
 
 /**
@@ -310,10 +322,15 @@ export async function rateLimit(
       }
     }
 
+    // RFC 6585: 429 responses SHOULD include Retry-After.
+    // Fallback to the configured window if Redis didn't return one.
+    const retryAfter = result.retryAfter ?? windowSec;
+    setResponseHeader(event, 'Retry-After', String(retryAfter));
+
     throw createError({
       statusCode: 429,
       message: 'Too many requests',
-      data: { retryAfter: result.retryAfter },
+      data: { retryAfter },
     });
   }
 
