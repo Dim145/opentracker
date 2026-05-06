@@ -4,8 +4,8 @@
  * separate from the Nuxt frontend and the Nitro API.
  */
 
-import { connectRedis } from '@trackarr/backend/redis';
-import { initTracker, stopTracker } from '@trackarr/backend/tracker';
+import { connectRedis } from './redis';
+import { initTracker, stopTracker } from './tracker';
 
 async function main() {
   // Make sure Redis is reachable before we start accepting peer announces.

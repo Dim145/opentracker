@@ -6,7 +6,7 @@ const root = fileURLToPath(new URL('.', import.meta.url));
 export default defineNitroConfig({
   compatibilityDate: '2025-07-15',
   srcDir: '.',
-  scanDirs: ['routes', 'middleware', 'plugins', 'utils'],
+  scanDirs: ['routes', 'middleware', 'plugins', 'utils', 'redis'],
 
   // Keep the legacy `~~/...` and `~/...` aliases working; they point at the
   // app root so existing route imports don't all need rewriting.

@@ -3,7 +3,7 @@
  * Usage: GET /api/admin/debug/redis-all-peers
  * Useful for diagnosing if peers are being stored at all
  */
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 
 export default defineEventHandler(async (event) => {
   // Admin only

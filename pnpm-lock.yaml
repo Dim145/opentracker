@@ -28,9 +28,6 @@ importers:
 
   apps/api:
     dependencies:
-      '@trackarr/backend':
-        specifier: workspace:*
-        version: link:../../packages/backend
       '@trackarr/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -95,18 +92,22 @@ importers:
 
   apps/tracker:
     dependencies:
-      '@trackarr/backend':
-        specifier: workspace:*
-        version: link:../../packages/backend
       '@trackarr/db':
         specifier: workspace:*
         version: link:../../packages/db
+      bittorrent-tracker:
+        specifier: ^11.2.2
+        version: 11.2.2
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.2(postgres@3.4.9)
       ioredis:
         specifier: ^5.8.2
         version: 5.10.1
+    devDependencies:
+      '@types/bencode':
+        specifier: ^2.0.4
+        version: 2.0.4
 
   apps/web:
     dependencies:
@@ -168,25 +169,6 @@ importers:
       '@types/marked':
         specifier: ^5.0.2
         version: 5.0.2
-
-  packages/backend:
-    dependencies:
-      '@trackarr/db':
-        specifier: workspace:*
-        version: link:../db
-      bittorrent-tracker:
-        specifier: ^11.2.2
-        version: 11.2.2
-      drizzle-orm:
-        specifier: ^0.45.1
-        version: 0.45.2(postgres@3.4.9)
-      ioredis:
-        specifier: ^5.8.2
-        version: 5.10.1
-    devDependencies:
-      '@types/bencode':
-        specifier: ^2.0.4
-        version: 2.0.4
 
   packages/db:
     dependencies:

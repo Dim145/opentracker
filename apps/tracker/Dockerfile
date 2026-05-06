@@ -7,7 +7,6 @@ FROM base AS deps
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/tracker/package.json ./apps/tracker/
 COPY packages/db/package.json ./packages/db/
-COPY packages/backend/package.json ./packages/backend/
 RUN pnpm install --filter "@trackarr/tracker..." --frozen-lockfile && \
     # bittorrent-tracker imports @thaunknown/simple-peer/lite.js which our
     # overrides replace with empty-npm-package. The empty package doesn't
@@ -23,7 +22,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --chown=tracker:nodejs package.json pnpm-workspace.yaml ./
 COPY --chown=tracker:nodejs apps/tracker ./apps/tracker
 COPY --chown=tracker:nodejs packages/db ./packages/db
-COPY --chown=tracker:nodejs packages/backend ./packages/backend
 
 USER tracker
 

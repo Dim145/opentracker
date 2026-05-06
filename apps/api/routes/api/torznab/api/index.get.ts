@@ -12,7 +12,7 @@
 import type { H3Event } from 'h3';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
-import { getStats } from '@trackarr/backend';
+import { getStats } from '~~/utils/server';
 import { desc, eq, ilike, and, inArray } from 'drizzle-orm';
 import { authenticateTorznab, sendTorznabError } from '../utils/auth';
 import {

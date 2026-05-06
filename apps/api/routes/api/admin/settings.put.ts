@@ -3,7 +3,7 @@ import {
   setRegistrationOpen,
   setSetting,
   SETTINGS_KEYS,
-} from '@trackarr/backend';
+} from '~~/utils/server';
 import { validateBody, adminSettingsSchema } from '~~/utils/schemas';
 
 /**

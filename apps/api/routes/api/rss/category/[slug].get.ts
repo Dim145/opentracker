@@ -1,5 +1,5 @@
 import { db, schema } from '@trackarr/db';
-import { getStats } from '@trackarr/backend';
+import { getStats } from '~~/utils/server';
 import { desc, eq, and } from 'drizzle-orm';
 import { z } from 'zod';
 

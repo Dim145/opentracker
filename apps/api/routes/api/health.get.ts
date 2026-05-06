@@ -1,6 +1,6 @@
 // Health check endpoint for load balancers and monitoring
 import { db } from '@trackarr/db';
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 
 export default defineEventHandler(async (event) => {
   const startTime = Date.now();

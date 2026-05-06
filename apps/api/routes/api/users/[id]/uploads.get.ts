@@ -1,6 +1,6 @@
 import { db, schema } from '@trackarr/db';
 import { eq, desc, sql } from 'drizzle-orm';
-import { getStats } from '@trackarr/backend';
+import { getStats } from '~~/utils/server';
 import { z } from 'zod';
 
 const paramsSchema = z.object({

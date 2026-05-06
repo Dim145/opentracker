@@ -3,7 +3,7 @@ import { createHash } from 'crypto';
 import { db } from '@trackarr/db';
 import { users, bannedIps } from '@trackarr/db/schema';
 import { validateBody, loginSchema } from '~~/utils/schemas';
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 
 /**
  * POST /api/auth/login

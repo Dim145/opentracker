@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { getUserHnrEntries, getUserHnrCount } from '@trackarr/backend';
+import { getUserHnrEntries, getUserHnrCount } from '~~/utils/server';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);

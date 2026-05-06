@@ -1,7 +1,7 @@
 import { count, eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users } from '@trackarr/db/schema';
-import { getSetting, SETTINGS_KEYS, isInviteEnabled } from '@trackarr/backend';
+import { getSetting, SETTINGS_KEYS, isInviteEnabled } from '~~/utils/server';
 import type { PublicUser } from '@trackarr/shared';
 
 /**

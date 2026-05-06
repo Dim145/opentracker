@@ -1,7 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
 import { eq, desc, and, sql } from 'drizzle-orm';
-import { checkAndMarkHnrs } from '@trackarr/backend';
+import { checkAndMarkHnrs } from '~~/utils/server';
 
 export default defineEventHandler(async (event) => {
   await requireModeratorSession(event);

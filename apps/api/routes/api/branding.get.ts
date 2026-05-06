@@ -10,7 +10,7 @@ import {
   getAuthSubtitle,
   getFooterText,
   getPageTitleSuffix,
-} from '@trackarr/backend';
+} from '~~/utils/server';
 
 /**
  * GET /api/branding

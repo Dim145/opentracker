@@ -1,14 +1,14 @@
 import { count, eq, and, isNull } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users, bannedIps, invitations } from '@trackarr/db/schema';
-import { generateToken } from '@trackarr/backend';
+import { generateToken } from '~~/utils/server';
 import {
   isRegistrationOpen,
   setRegistrationOpen,
   getStarterUpload,
   isInviteEnabled,
   getDefaultInvites,
-} from '@trackarr/backend';
+} from '~~/utils/server';
 import { validateBody, registerSchema } from '~~/utils/schemas';
 import { verifyPoWSolution } from '~~/utils/pow';
 

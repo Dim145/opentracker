@@ -3,7 +3,7 @@
  * Server-side PoW challenge generation and verification
  */
 import { randomBytes, createHash } from 'crypto';
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 
 // Difficulty: number of leading zeros required in hash
 // 4 = ~0.5s, 5 = ~2-5s, 6 = ~30s on modern hardware

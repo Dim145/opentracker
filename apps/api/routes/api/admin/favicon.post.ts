@@ -1,5 +1,5 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
-import { setSetting, SETTINGS_KEYS } from '@trackarr/backend';
+import { setSetting, SETTINGS_KEYS } from '~~/utils/server';
 import { randomBytes } from 'crypto';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import { join } from 'path';
@@ -79,7 +79,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Get current favicon to delete old one
-  const { getSiteFavicon } = await import('@trackarr/backend');
+  const { getSiteFavicon } = await import('~~/utils/server');
   const currentFavicon = await getSiteFavicon();
 
   // Save file

@@ -1,6 +1,6 @@
 import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
-import { getPeers, getStats } from '@trackarr/backend';
+import { getPeers, getStats } from '~~/utils/server';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
 
 export default defineEventHandler(async (event) => {

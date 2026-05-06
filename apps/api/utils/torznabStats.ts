@@ -3,7 +3,7 @@
  * Tracks API usage, logs requests, and manages user-specific stats
  */
 
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 
 // Redis key prefixes
 const KEYS = {

@@ -1,5 +1,5 @@
 import { requireModeratorSession } from '~~/utils/adminAuth';
-import { exemptHnr, clearHnr } from '@trackarr/backend';
+import { exemptHnr, clearHnr } from '~~/utils/server';
 import { z } from 'zod';
 
 const actionSchema = z.object({

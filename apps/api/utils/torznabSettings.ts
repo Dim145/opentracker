@@ -3,7 +3,7 @@
  * Manages configuration for the Torznab API from admin panel
  */
 
-import { getSetting, setSetting } from '@trackarr/backend';
+import { getSetting, setSetting } from '~~/utils/server';
 
 // Settings keys for Torznab
 export const TORZNAB_SETTINGS = {

@@ -5,7 +5,7 @@
 
 import { createHash } from 'crypto';
 import { requireAdminSession } from '~~/utils/adminAuth';
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 
 const BLACKLIST_KEY = 'ddos:blacklist';
 const TORZNAB_BLOCK_KEY = 'torznab:blocked';

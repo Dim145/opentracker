@@ -1,4 +1,4 @@
-import { getPeers, getStats } from '@trackarr/backend';
+import { getPeers, getStats } from '~~/utils/server';
 import { requireAdmin } from '~~/utils/auth';
 
 // Debug endpoint to check Redis state directly

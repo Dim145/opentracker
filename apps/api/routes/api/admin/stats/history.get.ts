@@ -1,7 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { desc, asc, gte, sql } from 'drizzle-orm';
 import { requireAdminSession } from '~~/utils/adminAuth';
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);

@@ -2,8 +2,8 @@
  * Debug endpoint to check Redis peer data for a torrent
  * Usage: GET /api/admin/debug/redis-peers?infoHash=xxx
  */
-import { getPeers, getStats } from '@trackarr/backend';
-import { redis } from '@trackarr/backend';
+import { getPeers, getStats } from '~~/utils/server';
+import { redis } from '~~/utils/server';
 
 export default defineEventHandler(async (event) => {
   // Admin only

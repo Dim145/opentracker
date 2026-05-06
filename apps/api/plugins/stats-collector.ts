@@ -1,6 +1,6 @@
 import { db, schema } from '@trackarr/db';
 import { sql } from 'drizzle-orm';
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 import { v4 as uuidv4 } from 'uuid';
 
 export default defineNitroPlugin((nitroApp) => {

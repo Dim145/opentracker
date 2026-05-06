@@ -10,7 +10,6 @@ FROM base AS deps
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/db/package.json ./packages/db/
-COPY packages/backend/package.json ./packages/backend/
 COPY packages/shared/package.json ./packages/shared/
 RUN pnpm install --filter "@trackarr/api..." --frozen-lockfile
 
@@ -23,7 +22,6 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/api ./apps/api
 COPY packages/db ./packages/db
-COPY packages/backend ./packages/backend
 COPY packages/shared ./packages/shared
 RUN pnpm --filter @trackarr/api build
 

@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import { db } from '@trackarr/db';
 import { users } from '@trackarr/db/schema';
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 
 const CHALLENGE_TTL = 300; // 5 minutes
 

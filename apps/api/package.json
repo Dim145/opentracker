@@ -10,7 +10,6 @@
     "preview": "node .output/server/index.mjs"
   },
   "dependencies": {
-    "@trackarr/backend": "workspace:*",
     "@trackarr/db": "workspace:*",
     "@trackarr/shared": "workspace:*",
     "bencode": "^4.0.0",

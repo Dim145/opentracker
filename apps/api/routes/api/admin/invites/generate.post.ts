@@ -1,7 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { z } from 'zod';
-import { generateToken } from '@trackarr/backend';
+import { generateToken } from '~~/utils/server';
 
 const generateInviteSchema = z.object({
   count: z.number().int().min(1).max(50).default(1),

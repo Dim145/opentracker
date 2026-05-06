@@ -1,7 +1,7 @@
-import { getGlobalStats } from '@trackarr/backend';
+import { getGlobalStats } from '~~/utils/server';
 import { db, schema } from '@trackarr/db';
 import { sql } from 'drizzle-orm';
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 import { requireAdminSession } from '~~/utils/adminAuth';
 
 export default defineEventHandler(async (event) => {

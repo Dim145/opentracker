@@ -4,7 +4,7 @@
  * Implements sliding window, IP blacklisting, and progressive penalties
  */
 
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 
 // ============================================================================
 // Types & Configuration

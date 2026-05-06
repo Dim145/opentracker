@@ -2,8 +2,8 @@
  * Debug endpoint to check tracker status and configuration
  * Usage: GET /api/admin/debug/tracker-status
  */
-import { redis } from '@trackarr/backend';
-import { getGlobalStats } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
+import { getGlobalStats } from '~~/utils/server';
 
 export default defineEventHandler(async (event) => {
   // Admin only

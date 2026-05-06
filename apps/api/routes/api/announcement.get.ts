@@ -2,7 +2,7 @@ import {
   isAnnouncementEnabled,
   getAnnouncementMessage,
   getAnnouncementType,
-} from '@trackarr/backend';
+} from '~~/utils/server';
 
 /**
  * GET /api/announcement

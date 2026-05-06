@@ -1,7 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { eq, sql } from 'drizzle-orm';
 import { randomUUID, randomBytes } from 'crypto';
-import { isInviteEnabled } from '@trackarr/backend';
+import { isInviteEnabled } from '~~/utils/server';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 export default defineEventHandler(async (event) => {

@@ -30,7 +30,7 @@ import {
   getFeature3Desc,
   isInviteEnabled,
   getDefaultInvites,
-} from '@trackarr/backend';
+} from '~~/utils/server';
 
 /**
  * GET /api/admin/settings

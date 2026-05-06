@@ -8,7 +8,7 @@ import {
   getFeature2Desc,
   getFeature3Title,
   getFeature3Desc,
-} from '@trackarr/backend';
+} from '~~/utils/server';
 
 /**
  * GET /api/homepage-content

@@ -6,7 +6,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { torrents } from '@trackarr/db/schema';
-import { redis } from '@trackarr/backend';
+import { redis } from '~~/utils/server';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
