@@ -1,0 +1,6 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Hoist dependencies that have peer-dep issues with auto-install-peers
+shamefully-hoist: false

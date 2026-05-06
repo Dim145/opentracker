@@ -1,46 +1,9 @@
-services:
-  app:
-    build:
-      context: .
-      target: base
-    container_name: trackarr-app
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-      - "8080:8080" # Tracker HTTP
-      - "24678:24678" # Vite HMR
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@postgres:5432/${DB_NAME:-trackarr}
-      - REDIS_URL=redis://redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=${DB_USER:-tracker}
-      - DB_PASSWORD=${DB_PASSWORD:-tracker}
-      - DB_NAME=${DB_NAME:-trackarr}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - TRACKER_DEBUG=${TRACKER_DEBUG:-false}
-      # Tracker announce URLs (read at runtime by Nuxt via NUXT_PUBLIC_ prefix)
-      - NUXT_PUBLIC_TRACKER_HTTP_URL=${NUXT_PUBLIC_TRACKER_HTTP_URL:-http://localhost:8080/announce}
-      - NUXT_PUBLIC_TRACKER_UDP_URL=${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost:8081/announce}
-      - NUXT_PUBLIC_TRACKER_WS_URL=${NUXT_PUBLIC_TRACKER_WS_URL:-ws://localhost:8082}
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.nuxt
-      - /app/.output
-    working_dir: /app
-    command: sh -c "npm install && npm run dev"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - trackarr-internal
+# Development docker-compose
+# Spins up Postgres and Redis only — run the apps with `pnpm dev` on the host
+# so you get HMR. Use docker-compose.local.yml if you want everything inside
+# containers.
 
+services:
   postgres:
     image: postgres:16-alpine
     container_name: trackarr-db
@@ -49,10 +12,8 @@ services:
       POSTGRES_USER: ${DB_USER:-tracker}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-tracker}
       POSTGRES_DB: ${DB_NAME:-trackarr}
-      # Security: Disable trust authentication
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
-    # Expose to host for local development (drizzle-kit, etc.)
     ports:
       - "5432:5432"
     volumes:
@@ -69,15 +30,12 @@ services:
       -c shared_buffers=256MB
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${DB_USER:-tracker} -d ${DB_NAME:-trackarr}",
-        ]
+        ["CMD-SHELL", "pg_isready -U ${DB_USER:-tracker} -d ${DB_NAME:-trackarr}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - trackarr-internal
+      - trackarr
 
   redis:
     image: redis:7-alpine
@@ -87,7 +45,7 @@ services:
       redis-server
       --appendonly no
       --save ""
-      --requirepass ${REDIS_PASSWORD}
+      --requirepass ${REDIS_PASSWORD:-trackertest}
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
       --tcp-keepalive 300
@@ -96,28 +54,20 @@ services:
       --maxclients 1000
       --protected-mode yes
       --bind 0.0.0.0
-      --rename-command FLUSHALL ""
-      --rename-command FLUSHDB ""
-      --rename-command DEBUG ""
-      --rename-command CONFIG ""
-      --rename-command KEYS ""
-      --rename-command SHUTDOWN ""
       --loglevel warning
-    # Internal only, accessed via Docker network
-    expose:
-      - "6379"
+    ports:
+      - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-trackertest}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - trackarr-internal
+      - trackarr
 
 networks:
-  trackarr-internal:
+  trackarr:
     driver: bridge
-    internal: false # Set to true in production to isolate from host
 
 volumes:
   postgres_data:

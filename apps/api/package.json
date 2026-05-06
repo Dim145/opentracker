@@ -1,0 +1,37 @@
+{
+  "name": "@trackarr/api",
+  "version": "0.5.7",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nitropack dev",
+    "build": "nitropack build",
+    "prepare": "nitropack prepare",
+    "preview": "node .output/server/index.mjs"
+  },
+  "dependencies": {
+    "@trackarr/backend": "workspace:*",
+    "@trackarr/db": "workspace:*",
+    "@trackarr/shared": "workspace:*",
+    "bencode": "^4.0.0",
+    "create-torrent": "^6.1.0",
+    "drizzle-orm": "^0.45.1",
+    "h3": "^1.13.0",
+    "iron-webcrypto": "^1.2.1",
+    "ioredis": "^5.8.2",
+    "marked": "^17.0.1",
+    "nitropack": "^2.10.4",
+    "parse-torrent": "^11.0.19",
+    "pino": "^10.1.0",
+    "uuid": "^13.0.0",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/bencode": "^2.0.4",
+    "@types/create-torrent": "^6.1.0",
+    "@types/marked": "^5.0.2",
+    "@types/parse-torrent": "^5.8.8",
+    "@types/uuid": "^10.0.0",
+    "pino-pretty": "^13.1.3"
+  }
+}

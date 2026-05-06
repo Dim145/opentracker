@@ -1,6 +1,5 @@
 # Production Docker Compose Configuration
-# Enhanced security settings for private tracker deployment
-# Includes: Caddy (reverse proxy with HTTPS) and PgBouncer (PostgreSQL connection pooling)
+# Three application containers (web/api/tracker) + Caddy + PgBouncer + Postgres + Redis.
 
 services:
   # =============================================================================
@@ -23,12 +22,13 @@ services:
       - caddy_data:/data
       - caddy_config:/config
       - caddy_logs:/var/log/caddy
-      - uploads_data:/srv/uploads
     networks:
       - trackarr-public
       - trackarr-internal
     depends_on:
-      - app
+      - web
+      - api
+      - tracker
     deploy:
       resources:
         limits:
@@ -37,93 +37,162 @@ services:
           memory: 64M
 
   # =============================================================================
-  # APPLICATION - Nuxt Trackarr
+  # WEB - Nuxt SSR frontend
   # =============================================================================
-  app:
-    image: trackarr:latest
+  web:
+    image: trackarr-web:latest
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: trackarr-app
+      dockerfile: apps/web/Dockerfile
+    container_name: trackarr-web
     restart: always
-    # Enhanced security: Drop all capabilities and add only required ones
     cap_drop:
       - ALL
-    cap_add:
-      - NET_BIND_SERVICE # Only if binding to port < 1024
     security_opt:
       - no-new-privileges:true
     environment:
       NODE_ENV: production
-      # Session secret (required by nuxt-auth-utils)
-      NUXT_SESSION_PASSWORD: ${NUXT_SESSION_SECRET}
-      # Database connection (SSL disabled for internal Docker network)
-      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable
-      DB_HOST: pgbouncer
-      DB_PORT: 6432
-      DB_USER: ${DB_USER:-tracker}
-      DB_PASSWORD: ${DB_PASSWORD:-tracker}
-      DB_NAME: ${DB_NAME:-trackarr}
-      DB_SSL: "false"
-      # Redis connection
-      REDIS_URL: redis://redis:6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      # Tracker announce URLs (read at runtime by Nuxt via NUXT_PUBLIC_ prefix)
+      # SSR fetches need to reach the API container internally
+      API_INTERNAL_URL: http://api:4000
+      # Tracker URLs displayed to users (read at runtime by Nuxt)
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-http://localhost:8080/announce}
       NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost:8081/announce}
       NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-ws://localhost:8082}
-      # Security: Secret for hashing peer IPs
-      IP_HASH_SECRET: ${IP_HASH_SECRET}
-      # Caddy is in front of the app — honor X-Forwarded-For for real client IPs
-      TRUST_PROXY: "true"
-      # Debug mode for verbose tracker logging
-      TRACKER_DEBUG: ${TRACKER_DEBUG:-false}
     expose:
       - "3000"
-      - "8080"
+    networks:
+      - trackarr-public
+      - trackarr-internal
+    depends_on:
+      - api
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    healthcheck:
+      test:
+        ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # =============================================================================
+  # API - Nitro standalone (all /api/* routes)
+  # =============================================================================
+  api:
+    image: trackarr-api:latest
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: trackarr-api
+    restart: always
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      NODE_ENV: production
+      NITRO_PORT: 4000
+      NITRO_HOST: 0.0.0.0
+      # Database (through PgBouncer)
+      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable
+      DB_SSL: "false"
+      # Redis
+      REDIS_URL: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # Auth/session secrets
+      NUXT_SESSION_SECRET: ${NUXT_SESSION_SECRET}
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
+      IP_HASH_SECRET: ${IP_HASH_SECRET}
+      # Caddy is in front — trust proxy headers for real client IPs
+      TRUST_PROXY: "true"
+      # Uploads directory (volume-mounted)
+      UPLOADS_DIR: /app/data/uploads
+      # Tracker URLs are also exposed by the API for endpoints like
+      # GET /api/torrents/[hash]/download (announce embedded in .torrent files).
+      NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-http://localhost:8080/announce}
+      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost:8081/announce}
+      NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-ws://localhost:8082}
+    expose:
+      - "4000"
     volumes:
-      - uploads_data:/app/public/uploads
+      - uploads_data:/app/data/uploads
     networks:
       - trackarr-public
       - trackarr-internal
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
       pgbouncer:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 512M
         reservations:
-          memory: 256M
+          memory: 128M
     healthcheck:
       test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:3000/api/health",
-        ]
+        ["CMD", "wget", "-q", "--spider", "http://localhost:4000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
 
   # =============================================================================
-  # DATABASE - PostgreSQL with optimized settings
+  # TRACKER - BitTorrent HTTP tracker (standalone)
+  # =============================================================================
+  tracker:
+    image: trackarr-tracker:latest
+    build:
+      context: .
+      dockerfile: apps/tracker/Dockerfile
+    container_name: trackarr-tracker
+    restart: always
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable
+      DB_SSL: "false"
+      REDIS_URL: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      IP_HASH_SECRET: ${IP_HASH_SECRET}
+      TRACKER_HTTP_PORT: 8080
+      TRACKER_DEBUG: ${TRACKER_DEBUG:-false}
+    expose:
+      - "8080"
+    networks:
+      - trackarr-public
+      - trackarr-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # =============================================================================
+  # DATABASE - PostgreSQL
   # =============================================================================
   postgres:
     image: postgres:16-alpine
     container_name: trackarr-db
     restart: always
-    # Enhanced security
     cap_drop:
       - ALL
     cap_add:
@@ -140,7 +209,6 @@ services:
       POSTGRES_DB: ${DB_NAME:-trackarr}
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
-    # No exposed ports in production - internal network only
     expose:
       - "5432"
     volumes:
@@ -165,10 +233,7 @@ services:
       -c default_statistics_target=100
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${DB_USER:-tracker} -d ${DB_NAME:-trackarr}",
-        ]
+        ["CMD-SHELL", "pg_isready -U ${DB_USER:-tracker} -d ${DB_NAME:-trackarr}"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -182,7 +247,6 @@ services:
         reservations:
           memory: 512M
 
-  # =============================================================================
   # =============================================================================
   # CONNECTION POOLING - PgBouncer
   # =============================================================================
@@ -228,7 +292,6 @@ services:
     image: redis:7
     container_name: trackarr-redis
     restart: always
-    # Enhanced security
     cap_drop:
       - ALL
     cap_add:
@@ -262,7 +325,6 @@ services:
       --rename-command KEYS ""
       --rename-command SHUTDOWN ""
       --loglevel warning
-    # No exposed ports in production - internal network only
     expose:
       - "6379"
     volumes:
@@ -287,7 +349,7 @@ networks:
     driver: bridge
   trackarr-internal:
     driver: bridge
-    internal: true # Isolated from host network
+    internal: true
     ipam:
       config:
         - subnet: 172.28.0.0/16

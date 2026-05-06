@@ -1,58 +1,74 @@
-# Nuxt dev/build outputs
+# =============================================================================
+# Build outputs
+# =============================================================================
 .output
-.data
 .nuxt
 .nitro
 .cache
+.data
+dist
+*.tsbuildinfo
+
+# Dev-only volumes used by scripts/tests
 .dev-test
 .dev-downloads
 .vitepress/cache
-doc/node_modules
-dist
 
-# Agents
-.github/*.md
-.agent
-
-# Node dependencies
+# =============================================================================
+# Dependencies
+# =============================================================================
 node_modules
 
+# pnpm is the canonical package manager for the monorepo. Ignore stray lockfiles
+# for npm/yarn at the repo root. (doc/ is a separate VitePress sub-project that
+# uses its own package-lock.json — only the root one is ignored.)
+/package-lock.json
+yarn.lock
+.pnpm-store/
+
+# =============================================================================
 # Logs
+# =============================================================================
 logs
 *.log
+pnpm-debug.log*
+npm-debug.log*
 
-# Misc
-.DS_Store
-.fleet
-.idea
+# =============================================================================
+# Tests
+# =============================================================================
+coverage/
 
-# Secrets
-CREDENTIALS.txt
-secrets/
-docker/pgbouncer/userlist.txt
-
-# Local env files
+# =============================================================================
+# Environment & secrets (never commit)
+# =============================================================================
 .env
 .env.*
 !.env.example
 
-# SSL/TLS Certificates (DO NOT COMMIT)
+CREDENTIALS.txt
+secrets/
+docker/pgbouncer/userlist.txt
+
+# SSL/TLS certificates
 certs/
 *.key
 *.crt
 *.csr
 *.pem
 
-# IDE / Editor
+# =============================================================================
+# Editor / OS
+# =============================================================================
 .vscode/
 .idea/
-
-# OS files
+.fleet
+.DS_Store
 Thumbs.db
 
-# Documentation (internal only)
+# =============================================================================
+# Project-internal (not part of the public repo)
+# =============================================================================
+.agent
+.github/*.md
 documentation/
-.dev-test/	
-.dev-downloads/	
-.publishignore
-.scripts/publish-public.sh

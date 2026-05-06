@@ -1,17 +1,18 @@
-# Trackarr Production Caddyfile
-# Automatic HTTPS with Let's Encrypt
+# Trackarr production Caddyfile
+# Routes:
+#   - your-domain.com/api/*    → api container
+#   - your-domain.com/announce → tracker container (announce on main domain)
+#   - your-domain.com/*        → web container (Nuxt SSR)
+#   - tracker.your-domain.com/announce → tracker container (announce on subdomain)
 
 {
-	# Global options
 	email {$ACME_EMAIL:admin@example.com}
-	
-	# Use staging for testing (remove in production)
-	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
 }
 
-# Main application
+# -----------------------------------------------------------------------------
+# Main app: web frontend + api + tracker on the same hostname
+# -----------------------------------------------------------------------------
 {$DOMAIN:localhost} {
-	# Security headers
 	header {
 		X-Frame-Options "SAMEORIGIN"
 		X-Content-Type-Options "nosniff"
@@ -21,31 +22,43 @@
 		-Server
 	}
 
-	# Compression
 	encode gzip zstd
 
-	# Rate limiting (basic)
-	# For advanced rate limiting, use the app's built-in Redis-backed limiter
-
-	# Reverse proxy to Nuxt app
-	reverse_proxy trackarr-app:3000 {
-		header_up X-Real-IP {remote_host}
-		header_up X-Forwarded-For {remote_host}
-		header_up X-Forwarded-Proto {scheme}
-		
-		# Health checks
-		health_uri /api/health
-		health_interval 30s
-		health_timeout 10s
+	# Tracker announce on the main domain (what BitTorrent clients hit when
+	# the .torrent file's `announce` is your-domain.com/announce).
+	handle /announce* {
+		reverse_proxy tracker:8080 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+		}
 	}
 
-	# Serve Uploaded Files
-	handle_path /uploads/* {
-		root * /srv/uploads
-		file_server
+	# All API routes (including /api/uploads/*, /api/health, /api/torrents/...).
+	handle /api/* {
+		reverse_proxy api:4000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
 	}
 
-	# Logging
+	# Public uploads served by the API.
+	handle /uploads/* {
+		reverse_proxy api:4000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+		}
+	}
+
+	# Everything else goes to the Nuxt web container (SSR pages + assets).
+	handle {
+		reverse_proxy web:3000 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
 	log {
 		output file /var/log/caddy/access.log {
 			roll_size 100mb
@@ -56,16 +69,17 @@
 	}
 }
 
-# Tracker announce endpoint (separate subdomain or port)
+# -----------------------------------------------------------------------------
+# Tracker subdomain: dedicated host so .torrent announce URLs can use a clean
+# `tracker.your-domain.com/announce` URL.
+# -----------------------------------------------------------------------------
 {$TRACKER_DOMAIN:tracker.localhost} {
-	# Minimal headers for tracker
 	header {
-		-Server
 		X-Content-Type-Options "nosniff"
+		-Server
 	}
 
-	# Tracker endpoints
-	reverse_proxy trackarr-app:8080 {
+	reverse_proxy tracker:8080 {
 		header_up X-Real-IP {remote_host}
 		header_up X-Forwarded-For {remote_host}
 	}
@@ -78,4 +92,3 @@
 		format json
 	}
 }
-
