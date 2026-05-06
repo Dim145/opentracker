@@ -12,7 +12,6 @@ Don't want to deal with server setup? I'll handle everything:
 - DNS and SSL setup
 - Trackarr installation and optimization
 - Security hardening
-- Monitoring setup (Prometheus + Grafana)
 
 **You get:** A fully working tracker, ready to use.
 
@@ -37,10 +36,9 @@ Need something that doesn't exist yet? I can build it:
 Keep your tracker running smoothly:
 
 - Regular updates and security patches
-- Performance monitoring and optimization
+- Performance optimization
 - Backup management
 - Issue resolution
-- 24/7 availability monitoring
 
 ---
 

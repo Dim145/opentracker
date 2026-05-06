@@ -1,145 +1,234 @@
-# Getting Started
+# Getting Started with Docker
 
-This guide will help you get Trackarr up and running in minutes.
+Trackarr ships as a Docker stack: one image runs the Nuxt app, the BitTorrent
+tracker, and the migrations. The same image is reused everywhere — your URLs,
+secrets and domain are passed at runtime via environment variables, so you
+**never need to rebuild** to change them.
+
+This page covers two scenarios:
+
+1. [Local development](#local-development) — get something running on your laptop in under a minute.
+2. [Production deployment](#production-deployment) — a real VPS with HTTPS and a domain.
+
+---
 
 ## Prerequisites
 
-Before you begin, ensure you have:
+- **Docker** 20+ and **Docker Compose v2** (`docker compose ...`).
+- For production: a **Linux VPS** (any distro), a **domain name**, and ports **80/443** open.
+- `openssl` is used to generate secrets. It is preinstalled on every Linux/macOS distribution.
 
-- **Node.js** 20 or higher
-- **Docker** and Docker Compose
-- **npm** package manager
+---
 
-## DNS Configuration
+## Local development
 
-::: warning Required Before Installation
-You must configure your DNS records to point to your VPS IP address before running the installer.
-:::
-
-Create the following **A records** pointing to your server's IP:
-
-| Subdomain                    | Record Type | Value       |
-| ---------------------------- | ----------- | ----------- |
-| `tracker.your-domain.com`    | A           | Your VPS IP |
-| `announce.your-domain.com`   | A           | Your VPS IP |
-| `monitoring.your-domain.com` | A           | Your VPS IP |
-
-::: tip
-DNS propagation usually completes within a few minutes, but can take up to 24-48 hours. The installer will fail to obtain SSL certificates if DNS is not properly configured.
-:::
-
-## Installation Options
-
-### Option 1: Automated Installation (Recommended)
-
-Best for production deployments. Handles dependencies, secrets, SSL, and systemd automatically.
+For local hacking, the defaults work as-is.
 
 ```bash
-# Download and run the installer
-curl -fsSL https://raw.githubusercontent.com/florianjs/trackarr/main/scripts/install.sh -o install.sh
-chmod +x install.sh
-sudo ./install.sh
+git clone https://github.com/florianjs/trackarr.git
+cd trackarr
+cp .env.example .env
+
+# Generate the one secret that has no usable default
+echo "IP_HASH_SECRET=$(openssl rand -hex 32)" >> .env
+
+# Start postgres + redis + the dev server
+docker compose up -d
 ```
 
-The installer will automatically:
+Open **[http://localhost:3000](http://localhost:3000)**. The first user that
+registers is automatically promoted to admin.
 
-- Install Docker and dependencies
-- Generate cryptographic secrets
-- Configure firewall rules
-- Set up TLS/SSL with Let's Encrypt
-- Create systemd service for auto-restart
-- Configure PostgreSQL, Redis, Caddy, and monitoring
-- Set up Prometheus + Grafana monitoring
+::: tip
+The dev compose file uses `npm run dev` and bind-mounts your source tree, so
+saves trigger HMR. PostgreSQL and Redis listen on `localhost:5432` and
+`localhost:6379` if you want to attach with a GUI client.
+:::
 
-After installation, Grafana is accessible at `https://monitoring.your-domain.com/grafana` with default credentials `admin` / `admin`.
-
-### Option 2: Docker Setup (Interactive)
-
-For local development or production deployment with guided setup:
+To follow the logs:
 
 ```bash
-# Clone repository
-git clone https://github.com/florianjs/trackarr.git && cd trackarr
+docker compose logs -f app
+```
 
-# Run interactive setup
+To wipe everything (including the database):
+
+```bash
+docker compose down -v
+```
+
+---
+
+## Production deployment
+
+The production stack adds **Caddy** (automatic HTTPS via Let's Encrypt) and
+**PgBouncer** (PostgreSQL connection pool) on top of the dev stack.
+
+### 1. DNS records
+
+Point two A records at your VPS public IP:
+
+| Subdomain                 | Record | Value             |
+| ------------------------- | ------ | ----------------- |
+| `your-domain.com`         | A      | Your VPS IP       |
+| `tracker.your-domain.com` | A      | Your VPS IP       |
+
+::: tip
+DNS usually propagates within a few minutes. Caddy will fail to obtain TLS
+certificates if the records are missing or pointing to the wrong host, so
+verify with `dig your-domain.com` before continuing.
+:::
+
+### 2. Clone and configure
+
+```bash
+git clone https://github.com/florianjs/trackarr.git /opt/trackarr
+cd /opt/trackarr
+```
+
+You have two ways to populate `.env`:
+
+**Option A — interactive helper:**
+
+```bash
 ./scripts/setup.sh
 ```
 
-The setup script will:
+It prompts you for the domain, the tracker subdomain, and an ACME email,
+generates all the secrets, and writes a ready-to-use `.env`.
 
-- Ask if you want **development** or **production** mode
-- For production: prompt for domain names and email
-- Generate all cryptographic secrets automatically
-- Configure tracker announce URLs
-- Create a ready-to-use `.env` file
-
-Then start the services:
+**Option B — manual:**
 
 ```bash
-# Development
-docker compose up -d
-
-# Production (with SSL, Caddy, monitoring)
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-### Option 3: Manual Docker Setup (Not Recommended)
-
-For full manual control over the installation:
-
-```bash
-# Clone repository
-git clone https://github.com/florianjs/trackarr.git && cd trackarr
-
-# Copy and configure environment
 cp .env.example .env
 
-# Generate secrets (or set them manually in .env)
-./scripts/generate-secrets.sh
+cat >> .env <<EOF
+NODE_ENV=production
+DOMAIN=your-domain.com
+TRACKER_DOMAIN=tracker.your-domain.com
+ACME_EMAIL=admin@your-domain.com
 
-# Edit .env with your domain and settings
-nano .env
+NUXT_SESSION_SECRET=$(openssl rand -hex 32)
+ADMIN_API_KEY=$(openssl rand -hex 32)
+IP_HASH_SECRET=$(openssl rand -hex 32)
+DB_PASSWORD=$(openssl rand -base64 24)
+REDIS_PASSWORD=$(openssl rand -base64 24)
 
-# Start production stack
+NUXT_PUBLIC_TRACKER_HTTP_URL=https://tracker.your-domain.com/announce
+NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.your-domain.com:8081/announce
+NUXT_PUBLIC_TRACKER_WS_URL=wss://tracker.your-domain.com/ws
+EOF
+```
+
+::: warning
+`IP_HASH_SECRET` has no fallback — the app refuses to start without it.
+Likewise `NUXT_SESSION_SECRET` must be at least 32 chars long.
+:::
+
+### 3. Start the stack
+
+```bash
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-::: tip Required Environment Variables
-At minimum, configure these in your `.env`:
+The first start does the following, in order:
 
-- `DOMAIN` — Your main domain (e.g., `tracker.example.com`)
-- `TRACKER_DOMAIN` — Announce domain (e.g., `announce.example.com`)
-- `MONITORING_DOMAIN` — Grafana domain (e.g., `monitoring.example.com`)
-- `ACME_EMAIL` — Email for Let's Encrypt SSL certificates
-  :::
+1. Build the Trackarr image (Nuxt SSR + tracker bundled together).
+2. Start PostgreSQL, Redis, PgBouncer, the app, and Caddy.
+3. The app's entrypoint pushes the schema with `drizzle-kit push` and seeds
+   default categories.
+4. Caddy requests Let's Encrypt certificates for `DOMAIN` and `TRACKER_DOMAIN`.
 
-Open `https://your-domain.com` to access your tracker.
+Once everything is healthy:
 
-## First Steps After Installation
+```bash
+docker compose -f docker-compose.prod.yml ps
+curl https://your-domain.com/api/health
+```
 
-1. **Register the first user** — The first registered user automatically becomes an administrator
-2. **Set a Panic Password** — This is required and protects your data in emergencies
-3. **Configure site settings** — Set your tracker name, description, and rules
-4. **Invite users** — Use the invitation system to add trusted members
+Open **`https://your-domain.com`** and register the first user — they become
+the admin and are prompted to set a **panic password**.
 
-## Updating
+### 4. Operating the stack
 
-To update your Trackarr installation to the latest version:
+```bash
+# Logs (app only)
+docker compose -f docker-compose.prod.yml logs -f app
+
+# Logs (everything)
+docker compose -f docker-compose.prod.yml logs -f
+
+# Restart everything
+docker compose -f docker-compose.prod.yml restart
+
+# Stop the stack (data preserved)
+docker compose -f docker-compose.prod.yml down
+
+# Health checks
+docker exec trackarr-db pg_isready
+docker exec trackarr-redis redis-cli -a "$REDIS_PASSWORD" ping
+```
+
+### 5. Updating
 
 ```bash
 cd /opt/trackarr
-git checkout main
 git pull origin main
-docker compose -f docker-compose.prod.yml down
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-::: info
-Your data (PostgreSQL, Redis) is persisted in Docker volumes and will not be affected by updates.
+The entrypoint runs `drizzle-kit push` on every start, so schema migrations
+are applied automatically. Volumes (`postgres_data`, `redis_data`,
+`uploads_data`, `caddy_data`) survive rebuilds.
+
+::: warning Breaking schema changes
+If a release tightens column constraints (e.g. adds `NOT NULL`), `drizzle-kit
+push` will fail when the existing data violates the new constraint. The
+release notes call those out explicitly — read them before pulling.
 :::
 
-## Next Steps
+---
 
-- [Configuration](/guide/configuration) — Learn about environment variables and settings
-- [Security](/guide/security) — Understand the security architecture
-- [Zero-Knowledge Auth](/guide/zero-knowledge-auth) — How authentication works
+## Required environment variables
+
+The full list is in [Configuration](/guide/configuration). The ones below are
+the minimum you must set for production:
+
+| Variable                        | Why                                                 |
+| ------------------------------- | --------------------------------------------------- |
+| `NUXT_SESSION_SECRET`           | Encrypts user sessions (32+ chars)                  |
+| `ADMIN_API_KEY`                 | Internal admin operations                           |
+| `IP_HASH_SECRET`                | Daily-rotated salt for peer-IP hashing              |
+| `DB_PASSWORD`                   | PostgreSQL password                                 |
+| `REDIS_PASSWORD`                | Redis password                                      |
+| `DOMAIN`                        | Main domain (Caddy TLS)                             |
+| `TRACKER_DOMAIN`                | Announce subdomain (Caddy TLS)                      |
+| `ACME_EMAIL`                    | Let's Encrypt contact email                         |
+| `NUXT_PUBLIC_TRACKER_HTTP_URL`  | Announce URL embedded in `.torrent` files (runtime) |
+| `NUXT_PUBLIC_TRACKER_UDP_URL`   | UDP announce URL (informational, UDP is disabled)   |
+| `NUXT_PUBLIC_TRACKER_WS_URL`    | WS announce URL (informational, WS is disabled)     |
+
+The `docker-compose.prod.yml` file ships with `TRUST_PROXY=true` — needed so
+the rate limiter sees the real client IP through Caddy. Don't remove it.
+
+---
+
+## First steps after install
+
+1. **Register the first user.** That account is automatically the admin.
+2. **Set a panic password** when prompted (12+ chars). Without it you can't
+   activate the [Panic Mode](/guide/panic-mode).
+3. **Open the admin panel** (`/admin`) and configure the site name, rules and
+   invite policy.
+4. **Generate invitations** if you want a closed community.
+
+---
+
+## Next steps
+
+- [Configuration](/guide/configuration) — every environment variable explained.
+- [Security](/guide/security) — the security architecture in depth.
+- [Zero-Knowledge Auth](/guide/zero-knowledge-auth) — how login works.
+- [Panic Mode](/guide/panic-mode) — emergency encryption.
+- [Backup & restore](/guide/backup-restore) — protect your data.
+- [Troubleshooting](/guide/troubleshooting) — when things go wrong.

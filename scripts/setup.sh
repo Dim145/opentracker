@@ -95,9 +95,6 @@ fi
 read -p "Tracker subdomain [tracker.$DOMAIN]: " TRACKER_DOMAIN
 TRACKER_DOMAIN="${TRACKER_DOMAIN:-tracker.$DOMAIN}"
 
-read -p "Monitoring subdomain [monitoring.$DOMAIN]: " MONITORING_DOMAIN
-MONITORING_DOMAIN="${MONITORING_DOMAIN:-monitoring.$DOMAIN}"
-
 read -p "Email for SSL certificates: " ACME_EMAIL
 if [[ -z "$ACME_EMAIL" ]]; then
     log_error "Email is required for Let's Encrypt SSL"
@@ -110,7 +107,6 @@ ADMIN_API_KEY=$(openssl rand -hex 32)
 IP_HASH_SECRET=$(openssl rand -hex 32)
 DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=')
 REDIS_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=')
-GRAFANA_PASSWORD=$(openssl rand -base64 16 | tr -d '/+=')
 
 # Update .env file
 log_info "Updating .env file..."
@@ -130,7 +126,6 @@ sed_inplace "s/^NODE_ENV=.*/NODE_ENV=production/" "$PROJECT_DIR/.env"
 # Domains
 sed_inplace "s|^# DOMAIN=.*|DOMAIN=$DOMAIN|" "$PROJECT_DIR/.env"
 sed_inplace "s|^# TRACKER_DOMAIN=.*|TRACKER_DOMAIN=$TRACKER_DOMAIN|" "$PROJECT_DIR/.env"
-sed_inplace "s|^# MONITORING_DOMAIN=.*|MONITORING_DOMAIN=$MONITORING_DOMAIN|" "$PROJECT_DIR/.env"
 sed_inplace "s|^# ACME_EMAIL=.*|ACME_EMAIL=$ACME_EMAIL|" "$PROJECT_DIR/.env"
 
 # Database
@@ -151,28 +146,21 @@ sed_inplace "s|^NUXT_PUBLIC_TRACKER_HTTP_URL=.*|NUXT_PUBLIC_TRACKER_HTTP_URL=htt
 sed_inplace "s|^NUXT_PUBLIC_TRACKER_UDP_URL=.*|NUXT_PUBLIC_TRACKER_UDP_URL=udp://$TRACKER_DOMAIN:8081/announce|" "$PROJECT_DIR/.env"
 sed_inplace "s|^NUXT_PUBLIC_TRACKER_WS_URL=.*|NUXT_PUBLIC_TRACKER_WS_URL=wss://$TRACKER_DOMAIN/ws|" "$PROJECT_DIR/.env"
 
-# Monitoring
-sed_inplace "s|^# GRAFANA_ADMIN_USER=.*|GRAFANA_ADMIN_USER=admin|" "$PROJECT_DIR/.env"
-sed_inplace "s|^# GRAFANA_ADMIN_PASSWORD=.*|GRAFANA_ADMIN_PASSWORD=$GRAFANA_PASSWORD|" "$PROJECT_DIR/.env"
-
 echo ""
 log_success "Production setup complete!"
 echo ""
 echo -e "${BOLD}Generated credentials (save these!):${NC}"
 echo -e "  Database password: ${CYAN}$DB_PASSWORD${NC}"
 echo -e "  Redis password:    ${CYAN}$REDIS_PASSWORD${NC}"
-echo -e "  Grafana password:  ${CYAN}$GRAFANA_PASSWORD${NC}"
 echo ""
 echo -e "${BOLD}Configured domains:${NC}"
 echo -e "  Main:       https://$DOMAIN"
 echo -e "  Tracker:    https://$TRACKER_DOMAIN"
-echo -e "  Monitoring: https://$MONITORING_DOMAIN/grafana"
 echo ""
 echo -e "${BOLD}Next steps:${NC}"
 echo "  1. Ensure DNS A records point to your server IP:"
 echo "     - $DOMAIN"
 echo "     - $TRACKER_DOMAIN"
-echo "     - $MONITORING_DOMAIN"
 echo ""
 echo "  2. Start the production stack:"
 echo "     docker compose -f docker-compose.prod.yml up -d --build"

@@ -70,12 +70,11 @@ Previous versions used unprefixed `TRACKER_HTTP_URL`, `TRACKER_UDP_URL`, `TRACKE
 
 The production compose file includes:
 
-- **app** — Main Trackarr application
-- **db** — PostgreSQL 16 database
+- **app** — Main Trackarr application (Nuxt + tracker)
+- **postgres** — PostgreSQL 16 database
+- **pgbouncer** — Connection pooling
 - **redis** — Redis 7 cache
 - **caddy** — Reverse proxy with automatic HTTPS
-- **prometheus** — Metrics collection
-- **grafana** — Dashboards and monitoring
 
 ### Development (`docker-compose.yml`)
 
@@ -111,41 +110,24 @@ services:
 
 ## Caddy Configuration
 
-The production setup uses Caddy for automatic HTTPS. Configuration is in `docker/Caddyfile`:
+The production setup uses Caddy for automatic HTTPS. Configuration is in `docker/caddy/Caddyfile`:
 
 ```
 {$DOMAIN} {
-    reverse_proxy app:3000
+    reverse_proxy trackarr-app:3000
 }
 
-announce.{$DOMAIN} {
-    reverse_proxy app:3000
-}
-
-monitoring.{$DOMAIN} {
-    handle_path /grafana* {
-        reverse_proxy grafana:3000
-    }
-    handle_path /prometheus* {
-        reverse_proxy prometheus:9090
-    }
+{$TRACKER_DOMAIN} {
+    reverse_proxy trackarr-app:8080
 }
 ```
 
 ## Security Recommendations
 
-::: danger Production Checklist
-Always use the `install.sh` script for production deployments. It handles:
+For production deployments, ensure:
 
-- Generating cryptographically secure secrets
-- Configuring TLS for all connections
-- Setting up firewall rules
-- Network isolation for databases
-  :::
-
-For manual deployments, ensure:
-
-1. All secrets are at least 32 characters
-2. Database ports are not exposed publicly
-3. Redis is password-protected
-4. HTTPS is enforced on all endpoints
+1. All secrets are at least 32 characters (generate with `openssl rand -hex 32`)
+2. `IP_HASH_SECRET` is set — the app refuses to start without it
+3. Database and Redis ports are not exposed to the host
+4. HTTPS is enforced on all endpoints (Caddy handles this automatically)
+5. `TRUST_PROXY=true` is set when behind a reverse proxy you control

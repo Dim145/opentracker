@@ -99,7 +99,7 @@ Trackarr uses a **Zero-Knowledge** authentication system: the server **never see
 **Key Properties:**
 
 - **Password never transmitted** — Only cryptographic proofs
-- **PBKDF2 with 100k iterations** — Brute-force resistant
+- **PBKDF2 with 600k iterations** (OWASP 2023) — Brute-force resistant
 - **Unique challenge per login** — Prevents replay attacks
 - **Proof of Work** — Stops automated registration attacks
 
@@ -160,72 +160,27 @@ The **Panic Button** allows administrators to **instantly encrypt all sensitive 
 
 ### Prerequisites
 
-- **Node.js** 20+ • **Docker** & Docker Compose • **npm**
+- **Docker** 20+ and Docker Compose v2
 
-#### DNS Configuration (Required before installation)
-
-> **IMPORTANT**: Before running the installer, you must configure your DNS records to point to your VPS IP address.
-
-Create the following **A records** pointing to your server's IP:
-
-| Subdomain                    | Record Type | Value       |
-| ---------------------------- | ----------- | ----------- |
-| `tracker.your-domain.com`    | A           | Your VPS IP |
-| `announce.your-domain.com`   | A           | Your VPS IP |
-| `monitoring.your-domain.com` | A           | Your VPS IP |
-
-> **Note**: DNS propagation can take up to 24-48 hours, but usually completes within a few minutes. The installer will fail to obtain SSL certificates if DNS is not properly configured.
-
-### Option 1: Automated Installation (Recommended)
-
-> **Best for production deployments.** Handles dependencies, secrets, SSL, and systemd automatically.
+### Local development (one command)
 
 ```bash
-# Download and run the installer
-curl -fsSL https://raw.githubusercontent.com/florianjs/trackarr/main/scripts/install.sh -o install.sh
-chmod +x install.sh
-sudo ./install.sh
-```
-
-The installer will:
-
-- Install Docker and dependencies
-- Generate cryptographic secrets
-- Configure firewall rules
-- Set up TLS/SSL with Let's Encrypt
-- Create systemd service for auto-restart
-- Configure PostgreSQL, Redis, Caddy, and monitoring
-- Set up Prometheus + Grafana monitoring
-
-> **Monitoring**: After installation, Grafana is accessible at `https://monitoring.your-domain.com/grafana`
->
-> Default credentials: `admin` / `admin` (you'll be prompted to change on first login)
-> Having issues with the password ? Just launch :
-
-```bash
-cd /opt/trackarr
-docker exec -it trackarr-grafana grafana cli admin reset-admin-password <new-password>
-```
-
-![Grafana Dashboard](/public/images/grafana.png)
-
-### Option 2: Development with Docker
-
-> Databases are only exposed to the container network for security.
-
-```bash
-# Clone repository
 git clone https://github.com/florianjs/trackarr.git && cd trackarr
 cp .env.example .env
-
-# Start all services (app + postgres + redis)
 docker compose up -d
-
-# View logs
-docker compose logs -f app
 ```
 
-**Open [http://localhost:3000](http://localhost:3000)**
+Open **[http://localhost:3000](http://localhost:3000)** — the first user to register becomes the admin.
+
+### Production deployment
+
+For a real VPS deployment with HTTPS via Caddy, follow the **[Docker deployment guide](doc/guide/getting-started.md)**. It covers:
+
+- DNS records you need to set up
+- Generating secrets with `openssl`
+- The interactive `scripts/setup.sh` helper for production
+- Starting and updating the stack
+- Backups and operational commands
 
 ![Torrent List](/public/images/image.png)
 ![Torrent Details](/public/images/image%20copy%202.png)
@@ -234,7 +189,7 @@ docker compose logs -f app
 
 ## 🔒 Security
 
-> **For production, always use the install script** to ensure proper secret generation and security configuration.
+> **For production, always generate strong secrets** (see the [deployment guide](doc/guide/getting-started.md)) and put the app behind a reverse proxy (Caddy is included).
 
 ### Key Security Features
 
@@ -257,16 +212,11 @@ docker compose logs -f app
 
 ### Production Security Checklist
 
-**Use `install.sh`** — it handles security automatically:
-
-- Generates cryptographic secrets (32-64 chars)
-- Configures TLS for all connections
-- Sets up Caddy reverse proxy with HTTPS
-- Configures firewall (ports 80, 443 only)
-- Network isolation (databases not exposed)
-
-**Manual steps after install:**
-
+- [ ] Generate cryptographic secrets (32+ chars) — `NUXT_SESSION_SECRET`, `IP_HASH_SECRET`, `ADMIN_API_KEY`
+- [ ] Set strong passwords for `DB_PASSWORD` and `REDIS_PASSWORD`
+- [ ] Configure TLS — Caddy handles Let's Encrypt automatically
+- [ ] Restrict firewall to ports 80/443 only
+- [ ] Set `TRUST_PROXY=true` (already on in `docker-compose.prod.yml`)
 - [ ] Set up automated PostgreSQL backups
 
 ---
@@ -281,7 +231,6 @@ docker compose logs -f app
 | Cache    | Redis 7                             | Peer lists, sessions, rate limiting |
 | P2P      | bittorrent-tracker                  | HTTP announces (passkey-gated)      |
 | Crypto   | Web Crypto API, scrypt, AES-256-GCM | ZKE auth, Panic encryption          |
-| Monitor  | Prometheus + Grafana                | Metrics, dashboards, alerting       |
 
 ---
 
@@ -303,41 +252,25 @@ docker exec trackarr-redis redis-cli ping    # Redis
 
 ### Updating
 
-To update your Trackarr installation to the latest version:
-
 ```bash
-cd /opt/trackarr
 git checkout main
 git pull origin main
-docker compose -f docker-compose.prod.yml down
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-> **Note**: This will rebuild the containers with the latest code. Your data (PostgreSQL, Redis) is persisted in Docker volumes and will not be affected.
+> Data is persisted in Docker volumes (`postgres_data`, `redis_data`, `uploads_data`, `caddy_data`) and survives rebuilds.
 
 ### Troubleshooting
 
-**Full restart (stop and start all services):**
-
 ```bash
-cd /opt/trackarr
-docker compose -f docker-compose.prod.yml down
-docker compose -f docker-compose.prod.yml up -d
-```
+# Full restart
+docker compose -f docker-compose.prod.yml restart
 
-**Full restart with rebuild (if you suspect issues with cached images):**
-
-```bash
-cd /opt/trackarr
-docker compose -f docker-compose.prod.yml down
+# Rebuild after pulling new code
 docker compose -f docker-compose.prod.yml up -d --build --force-recreate
-```
 
-**View logs to debug issues:**
-
-```bash
-docker compose -f docker-compose.prod.yml logs -f
-docker compose -f docker-compose.prod.yml logs -f app  # App only
+# View logs
+docker compose -f docker-compose.prod.yml logs -f app
 ```
 
 ---
@@ -382,8 +315,6 @@ Trackarr is built on the shoulders of giants. We'd like to thank the following o
 | [ioredis](https://github.com/redis/ioredis)                            | Redis client for Node.js    |
 | [Tailwind CSS](https://tailwindcss.com)                                | Utility-first CSS           |
 | [Chart.js](https://www.chartjs.org)                                    | Charts & visualizations     |
-| [Prometheus](https://prometheus.io)                                    | Metrics collection          |
-| [Grafana](https://grafana.com)                                         | Monitoring dashboards       |
 | [VitePress](https://vitepress.dev)                                     | Documentation framework     |
 | [Vitest](https://vitest.dev)                                           | Testing framework           |
 | [Pinia](https://pinia.vuejs.org)                                       | State management            |

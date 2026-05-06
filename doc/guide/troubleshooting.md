@@ -19,9 +19,8 @@ Common issues and how to resolve them.
 1. Verify DNS records are correct:
 
    ```bash
+   dig your-domain.com +short
    dig tracker.your-domain.com +short
-   dig announce.your-domain.com +short
-   dig monitoring.your-domain.com +short
    ```
 
    Each should return your VPS IP address.
@@ -178,7 +177,7 @@ e21V5@postgres:5432/trackarr = host=postgres port=5432 auth_user=tracker
    docker compose -f docker-compose.prod.yml restart postgres pgbouncer app
    ```
 
-**Alternative:** Re-run `./scripts/install.sh` which automatically generates safe passwords.
+**Alternative:** Regenerate `.env` from `.env.example` and use `openssl rand -hex 32` to produce safe secrets.
 
 ---
 
@@ -304,44 +303,6 @@ e21V5@postgres:5432/trackarr = host=postgres port=5432 auth_user=tracker
    ```bash
    docker compose -f docker-compose.prod.yml logs -f app | grep challenge
    ```
-
----
-
-## Monitoring Issues
-
-### Grafana Shows Black Screen
-
-**Symptoms:** Grafana dashboard loads but displays nothing.
-
-**Causes:**
-
-- Incorrect `GF_SERVER_ROOT_URL` configuration
-- Grafana redirect loop
-
-**Solutions:**
-
-1. Verify `GF_SERVER_ROOT_URL` includes the full path:
-
-   ```
-   GF_SERVER_ROOT_URL=https://monitoring.your-domain.com/grafana
-   ```
-
-2. Restart Grafana:
-   ```bash
-   docker compose -f docker-compose.prod.yml restart grafana
-   ```
-
----
-
-### Forgot Grafana Password
-
-**Solutions:**
-
-Reset the admin password:
-
-```bash
-docker exec -it trackarr-grafana grafana-cli admin reset-admin-password <new-password>
-```
 
 ---
 

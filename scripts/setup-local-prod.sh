@@ -145,12 +145,6 @@ ADMIN_API_KEY=${ADMIN_API_KEY}
 NUXT_PUBLIC_TRACKER_HTTP_URL=http://localhost:8080/announce
 NUXT_PUBLIC_TRACKER_UDP_URL=
 NUXT_PUBLIC_TRACKER_WS_URL=
-
-# =============================================================================
-# Monitoring (Grafana)
-# =============================================================================
-GRAFANA_ADMIN_USER=admin
-GRAFANA_ADMIN_PASSWORD=admin
 EOF
 
 chmod 600 "$ENV_FILE"
@@ -254,12 +248,10 @@ echo ""
 echo -e "${BOLD}Access URLs:${NC}"
 echo -e "  Frontend:     ${CYAN}http://localhost:3000${NC}"
 echo -e "  Tracker:      ${CYAN}http://localhost:8080/announce${NC}"
-echo -e "  Grafana:      ${CYAN}http://localhost:3001${NC} (admin/admin)"
 echo ""
 if command -v orb &> /dev/null; then
     echo -e "${BOLD}OrbStack Domains:${NC}"
     echo -e "  Frontend:     ${CYAN}http://trackarr.orb.local:3000${NC}"
-    echo -e "  Grafana:      ${CYAN}http://trackarr-grafana.orb.local:3000${NC}"
     echo ""
 fi
 echo -e "${BOLD}Environment File:${NC}"

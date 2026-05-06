@@ -59,14 +59,6 @@ These must be set for the application to run:
 | `TRACKER_MIN_INTERVAL` | Minimum announce interval       | `900`   |
 | `TRACKER_MAX_PEERS`    | Max peers returned per announce | `50`    |
 
-## Monitoring
-
-| Variable                 | Description            | Default |
-| ------------------------ | ---------------------- | ------- |
-| `GRAFANA_ADMIN_USER`     | Grafana admin username | `admin` |
-| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password | `admin` |
-| `GF_SERVER_ROOT_URL`     | Grafana public URL     | —       |
-
 ## Example `.env` File
 
 ```bash

@@ -13,7 +13,7 @@ assignees: ''
 ## 🖥️ Context
 
 - **Trackarr Version**: [e.g., v0.3.0]
-- **Installation Method**: [e.g., Docker, install.sh, manual]
+- **Installation Method**: [e.g., docker compose, manual]
 
 ## 📖 What I've Tried
 

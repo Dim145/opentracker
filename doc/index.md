@@ -25,10 +25,10 @@ features:
     details: Instant AES-256-GCM encryption of all sensitive data. One click to protect everything, recoverable only with your password.
   - title: Security First
     details: Distributed rate limiting, auto IP bans, SQL/XSS detection, SHA-256 hashed IPs, and comprehensive attack pattern detection.
-  - title: Multi-Protocol
-    details: Support for HTTP, UDP, and WebSocket announces via bittorrent-tracker. Full WebTorrent compatibility.
-  - title: Built-in Monitoring
-    details: Prometheus metrics and Grafana dashboards out of the box. Track peers, announces, and system health in real-time.
+  - title: Private by design
+    details: Passkey-gated HTTP announces, DHT/PEX disabled, SHA-256-hashed peer IPs with daily-rotating salt.
+  - title: Hit-and-Run tracking
+    details: Built-in seeding requirements, exemption controls and moderator dashboards keep the swarm healthy.
 ---
 
 ## Why Trackarr?
@@ -43,9 +43,8 @@ Trackarr is designed for communities that value **privacy** and **security** abo
 | Backend  | Nitro Server Engine                 | API routes, middleware              |
 | Database | PostgreSQL 16 + Drizzle ORM         | Data persistence, full-text search  |
 | Cache    | Redis 7                             | Peer lists, sessions, rate limiting |
-| P2P      | bittorrent-tracker                  | HTTP & WebSocket announces          |
+| P2P      | bittorrent-tracker                  | HTTP announces (passkey-gated)      |
 | Crypto   | Web Crypto API, scrypt, AES-256-GCM | ZKE auth, Panic encryption          |
-| Monitor  | Prometheus + Grafana                | Metrics, dashboards, alerting       |
 
 ---
 
@@ -57,7 +56,7 @@ I offer:
 
 - **Custom Installation** — Turnkey setup on your infrastructure
 - **Feature Development** — Custom features tailored to your community
-- **Ongoing Maintenance** — Updates, backups, and monitoring
+- **Ongoing Maintenance** — Updates and backups
 - **Performance Optimization** — Fine-tuning for high-traffic trackers
 
 <div class="custom-cta">

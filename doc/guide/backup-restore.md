@@ -51,13 +51,8 @@ To restore your database on a new VPS:
 
 **1. Install Trackarr on the new server**
 
-Run the installer as usual:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/florianjs/trackarr/main/scripts/install.sh -o install.sh
-chmod +x install.sh
-sudo ./install.sh
-```
+Follow [Getting Started](/guide/getting-started) to install Docker, clone the repo,
+configure `.env`, and start the production stack.
 
 **2. Stop the application**
 
@@ -109,11 +104,10 @@ If you're migrating to a new domain (e.g., `old-tracker.com` → `new-tracker.co
 
 Create A records for your new domain pointing to your server's IP:
 
-| Subdomain                   | Record Type | Value       |
-| --------------------------- | ----------- | ----------- |
-| `tracker.new-domain.com`    | A           | Your VPS IP |
-| `announce.new-domain.com`   | A           | Your VPS IP |
-| `monitoring.new-domain.com` | A           | Your VPS IP |
+| Subdomain                | Record Type | Value       |
+| ------------------------ | ----------- | ----------- |
+| `new-domain.com`         | A           | Your VPS IP |
+| `tracker.new-domain.com` | A           | Your VPS IP |
 
 **2. Update environment variables**
 

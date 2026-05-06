@@ -79,26 +79,3 @@
 	}
 }
 
-# Monitoring (internal access only - restrict in production)
-{$MONITORING_DOMAIN:monitoring.localhost} {
-	# Basic auth for monitoring endpoints
-	basicauth {
-		{$MONITORING_USER:admin} {$MONITORING_PASSWORD_HASH}
-	}
-
-	# Grafana
-	handle /grafana* {
-		reverse_proxy grafana:3000
-	}
-
-	# Prometheus (admin only)
-	handle /prometheus* {
-		uri strip_prefix /prometheus
-		reverse_proxy prometheus:9090
-	}
-
-	# Default to Grafana
-	handle {
-		redir /grafana{uri} permanent
-	}
-}

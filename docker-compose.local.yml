@@ -111,47 +111,6 @@ services:
     networks:
       - trackarr
 
-  # =============================================================================
-  # MONITORING - Prometheus
-  # =============================================================================
-  prometheus:
-    image: prom/prometheus:v2.48.0
-    container_name: trackarr-prometheus
-    restart: unless-stopped
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=7d"
-      - "--web.enable-lifecycle"
-    volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
-    networks:
-      - trackarr
-
-  # =============================================================================
-  # MONITORING - Grafana
-  # =============================================================================
-  grafana:
-    image: grafana/grafana:12.3.1
-    container_name: trackarr-grafana
-    restart: unless-stopped
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    ports:
-      - "3001:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
-    depends_on:
-      - prometheus
-    networks:
-      - trackarr
-
 networks:
   trackarr:
     driver: bridge
@@ -160,10 +119,6 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
-    driver: local
-  grafana_data:
-    driver: local
-  prometheus_data:
     driver: local
   uploads_data:
     driver: local
