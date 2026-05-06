@@ -1,0 +1,104 @@
+// Command tracker runs the BitTorrent HTTP tracker.
+//
+// Wiring is intentionally simple: load config, open Postgres, open Redis,
+// then serve /announce, /scrape, /health on TRACKER_HTTP_PORT.
+package main
+
+import (
+	"context"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
+	"time"
+
+	"github.com/florianjs/trackarr/apps/tracker/internal/config"
+	"github.com/florianjs/trackarr/apps/tracker/internal/db"
+	"github.com/florianjs/trackarr/apps/tracker/internal/peers"
+	"github.com/florianjs/trackarr/apps/tracker/internal/server"
+)
+
+func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	slog.SetDefault(logger)
+
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Error("config load", "err", err)
+		os.Exit(1)
+	}
+	if cfg.Debug {
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	}
+
+	server.SetTrustProxy(os.Getenv("TRUST_PROXY") == "true")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Postgres
+	pool, err := db.Open(ctx, cfg.DatabaseURL)
+	if err != nil {
+		logger.Error("open postgres", "err", err)
+		os.Exit(1)
+	}
+	defer pool.Close()
+	logger.Info("postgres connected")
+
+	// Redis
+	rclient, err := peers.NewClientFromURL(cfg.RedisURL, cfg.RedisPassword)
+	if err != nil {
+		logger.Error("redis client", "err", err)
+		os.Exit(1)
+	}
+	pingCtx, pingCancel := context.WithTimeout(ctx, 5*time.Second)
+	if err := rclient.Ping(pingCtx).Err(); err != nil {
+		pingCancel()
+		logger.Error("redis ping", "err", err)
+		os.Exit(1)
+	}
+	pingCancel()
+	defer rclient.Close()
+	logger.Info("redis connected")
+
+	store := peers.New(rclient, cfg.RedisKeyPrefix)
+	srv := server.New(pool, rclient, store, cfg.IPHashSecret, cfg.Debug)
+	defer srv.Stop()
+
+	addr := ":" + strconv.Itoa(cfg.HTTPPort)
+	httpSrv := &http.Server{
+		Addr:              addr,
+		Handler:           srv.Routes(),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	// Start serving in a goroutine so we can wait for signals in main.
+	go func() {
+		logger.Info("tracker listening", "addr", addr)
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("http server", "err", err)
+			cancel()
+		}
+	}()
+
+	// Graceful shutdown on SIGTERM/SIGINT.
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
+	select {
+	case s := <-sig:
+		logger.Info("shutting down", "signal", s.String())
+	case <-ctx.Done():
+		logger.Info("shutting down (context cancelled)")
+	}
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	if err := httpSrv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("http shutdown", "err", err)
+	}
+}

@@ -1,31 +1,29 @@
-# Trackarr tracker (BitTorrent HTTP tracker, standalone)
-FROM node:20-alpine AS base
-RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
-WORKDIR /app
+# Trackarr tracker (Go) — produces a tiny static binary on a distroless base.
 
-FROM base AS deps
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY apps/tracker/package.json ./apps/tracker/
-COPY packages/db/package.json ./packages/db/
-RUN pnpm install --filter "@trackarr/tracker..." --frozen-lockfile && \
-    # bittorrent-tracker imports @thaunknown/simple-peer/lite.js which our
-    # overrides replace with empty-npm-package. The empty package doesn't
-    # ship a lite.js so we create one — this matches the behavior of the
-    # legacy postinstall script in the monolith. -L follows pnpm symlinks.
-    # Note: avoid `{}` in the inline shell — find substitutes it everywhere.
-    find -L node_modules -type d -name simple-peer -exec sh -c 'echo "export default null;" > "$1/lite.js"' _ {} \;
+FROM golang:1.23-alpine AS builder
+WORKDIR /src
 
-FROM base AS runner
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 tracker
+# Cache deps independently of source changes.
+COPY apps/tracker/go.mod apps/tracker/go.sum ./
+RUN go mod download
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --chown=tracker:nodejs package.json pnpm-workspace.yaml ./
-COPY --chown=tracker:nodejs apps/tracker ./apps/tracker
-COPY --chown=tracker:nodejs packages/db ./packages/db
+COPY apps/tracker/ ./
 
-USER tracker
+# CGO_ENABLED=0 + a static link so the binary can run on distroless/scratch.
+# -s -w strips DWARF and symbol tables (~30% smaller).
+# -trimpath drops the build host's path from the binary.
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w" \
+    -trimpath \
+    -o /out/tracker \
+    ./cmd/tracker
+
+# Runtime image: distroless static. ~2 MB base, runs as nonroot (uid 65532).
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=builder /out/tracker /tracker
 
 EXPOSE 8080
-ENV NODE_ENV=production
+ENV TRACKER_HTTP_PORT=8080
 
-CMD ["pnpm", "--filter", "@trackarr/tracker", "run", "start"]
+ENTRYPOINT ["/tracker"]
