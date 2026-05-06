@@ -22,16 +22,15 @@
       </div>
       <h1
         class="text-4xl md:text-6xl font-black text-text-primary tracking-tighter mb-4 hero-title"
-        v-html="
-          content?.heroTitle ||
-          'TRACKARR'
-        "
+        v-html="sanitizeHtml(content?.heroTitle || 'TRACKARR')"
       ></h1>
       <div
         class="text-sm text-text-muted font-mono max-w-xl mx-auto mb-10 hero-subtitle"
         v-html="
-          content?.heroSubtitle ||
-          'High-performance, minimalist P2P tracking engine. Search through our indexed database of verified torrents.'
+          sanitizeHtml(
+            content?.heroSubtitle ||
+            'High-performance, minimalist P2P tracking engine. Search through our indexed database of verified torrents.'
+          )
         "
       ></div>
 
@@ -100,11 +99,11 @@
       >
         <h4
           class="feature-title text-xs font-bold uppercase tracking-widest text-text-primary mb-3"
-          v-html="feature.title"
+          v-html="sanitizeHtml(feature.title)"
         />
         <div
           class="feature-description text-xs text-text-muted leading-relaxed font-mono"
-          v-html="feature.description"
+          v-html="sanitizeHtml(feature.description)"
         />
       </div>
     </div>

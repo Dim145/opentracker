@@ -1,11 +1,11 @@
 import { getPeers, getStats } from '~~/utils/server';
-import { requireAdmin } from '~~/utils/auth';
+import { requireAdminSession } from '~~/utils/adminAuth';
 
 // Debug endpoint to check Redis state directly
 // Admin only - contains sensitive peer data
 export default defineEventHandler(async (event) => {
   // Require admin authentication
-  requireAdmin(event);
+  await requireAdminSession(event);
 
   const hash = getRouterParam(event, 'hash');
 

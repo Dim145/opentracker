@@ -30,11 +30,21 @@ export default defineNitroPlugin((nitroApp) => {
       // 3. Peers & Seeders Count (from Redis) - count unique peers by ip:port
       // Note: ioredis with keyPrefix - SCAN returns full keys with prefix,
       // but we need to strip the prefix before passing to other commands
+      // Bounded by SCAN_TIME_BUDGET_MS so a swarm of 100k+ peers can't block
+      // the event loop indefinitely. We just emit partial stats if exceeded.
+      const SCAN_TIME_BUDGET_MS = 30_000;
+      const scanDeadline = Date.now() + SCAN_TIME_BUDGET_MS;
+      let scanTruncated = false;
+
       const keyPrefix = process.env.REDIS_KEY_PREFIX || 'ot:';
       const uniquePeers = new Set<string>();
       const uniqueSeeders = new Set<string>();
       let cursor = '0';
       do {
+        if (Date.now() > scanDeadline) {
+          scanTruncated = true;
+          break;
+        }
         const [nextCursor, keys] = await redis.scan(
           cursor,
           'MATCH',
@@ -61,6 +71,11 @@ export default defineNitroPlugin((nitroApp) => {
       } while (cursor !== '0');
       const peersCount = uniquePeers.size;
       const seedersCount = uniqueSeeders.size;
+      if (scanTruncated) {
+        console.warn(
+          `[Stats Collector] SCAN exceeded ${SCAN_TIME_BUDGET_MS}ms — counts are partial`
+        );
+      }
 
       // 4. Redis Memory Usage
       const info = await redis.info('memory');

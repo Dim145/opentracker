@@ -11,7 +11,7 @@
 # We also skip /etc/passwd: USER takes a numeric uid:gid, so the kernel
 # applies it without ever needing to look up a username.
 
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 WORKDIR /src
 
 # Cache deps independently of source changes.

@@ -7,7 +7,7 @@ import {
   forumPosts,
   torrentComments,
 } from '@trackarr/db/schema';
-import { requireAdmin } from '~~/utils/auth';
+import { requireAdminSession } from '~~/utils/adminAuth';
 import {
   deriveKey,
   generateSalt,
@@ -22,7 +22,7 @@ import {
  * This is an emergency action that renders data unreadable
  */
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event);
+  await requireAdminSession(event);
 
   const body = await readBody(event);
 

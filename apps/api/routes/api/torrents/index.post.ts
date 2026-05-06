@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
 
   // Rate limit uploads
-  rateLimit(event, RATE_LIMITS.mutation);
+  await rateLimit(event, RATE_LIMITS.mutation);
 
   // Read multipart form data
   const formData = await readMultipartFormData(event);

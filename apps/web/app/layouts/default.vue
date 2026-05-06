@@ -33,10 +33,10 @@
                 'font-medium': !(branding?.siteNameBold ?? true),
               }"
               :style="{ color: branding?.siteNameColor || '' }"
-              v-html="branding?.siteName"
+              v-html="sanitizeHtml(branding?.siteName)"
             ></span>
             <span class="text-[10px] text-text-muted font-mono"
-              v-html="branding?.siteSubtitle"
+              v-html="sanitizeHtml(branding?.siteSubtitle)"
             ></span>
           </div>
         </NuxtLink>
@@ -294,8 +294,10 @@
           <span
             class="[&>p]:inline [&>p]:m-0"
             v-html="
-              branding?.footerText ||
-              `© ${new Date().getFullYear()} ${(branding?.siteName || 'Trackarr')}`
+              sanitizeHtml(
+                branding?.footerText ||
+                `© ${new Date().getFullYear()} ${branding?.siteName || 'Trackarr'}`
+              )
             "
           ></span>
           <span class="w-1 h-1 bg-border rounded-full"></span>

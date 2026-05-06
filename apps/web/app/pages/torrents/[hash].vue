@@ -289,7 +289,6 @@
 </template>
 
 <script setup lang="ts">
-import { marked } from 'marked';
 
 interface Peer {
   id: string;
@@ -363,10 +362,9 @@ const editableTorrent = computed(() => ({
   categoryId: torrent.value?.categoryId || null,
 }));
 
-const renderedDescription = computed(() => {
-  if (!torrent.value?.description) return '';
-  return marked.parse(torrent.value.description);
-});
+const renderedDescription = computed(() =>
+  renderMarkdown(torrent.value?.description)
+);
 
 if (error.value || !torrent.value) {
   throw createError({ statusCode: 404, message: 'Torrent not found' });

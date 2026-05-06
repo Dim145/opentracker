@@ -35,13 +35,11 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Check if IP is banned
-  const ip =
-    event.node.req.headers['x-forwarded-for'] ||
-    event.node.req.socket.remoteAddress;
-  const clientIp = Array.isArray(ip) ? ip[0] : ip;
+  // Check if IP is banned. getClientIP honors TRUST_PROXY so a client behind
+  // an untrusted proxy can't forge X-Forwarded-For to bypass the ban.
+  const clientIp = getClientIP(event);
 
-  if (clientIp) {
+  if (clientIp && clientIp !== 'unknown') {
     const isBanned = await db
       .select()
       .from(bannedIps)
@@ -147,7 +145,7 @@ export default defineEventHandler(async (event) => {
     passkey,
     isAdmin: isFirstUser,
     isModerator: false,
-    lastIp: clientIp,
+    lastIp: clientIp !== 'unknown' ? clientIp : null,
     uploaded: starterUpload,
     invitesRemaining: isFirstUser ? 10 : defaultInvites,
     panicPasswordHash,

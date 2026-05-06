@@ -212,7 +212,6 @@
 </template>
 
 <script setup lang="ts">
-import { marked } from 'marked';
 
 interface Category {
   id: string;
@@ -246,9 +245,7 @@ const error = ref<string | null>(null);
 
 const { data: categories } = await useFetch<Category[]>('/api/categories');
 
-const renderedDescription = computed(() => {
-  return marked.parse(description.value || '');
-});
+const renderedDescription = computed(() => renderMarkdown(description.value));
 
 // Initialize form data when torrent prop changes
 watch(

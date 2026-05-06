@@ -44,10 +44,10 @@
                 'font-medium': !siteNameBold,
               }"
               :style="{ color: siteNameColor || '' }"
-              v-html="siteName"
+              v-html="sanitizeHtml(siteName)"
             ></span>
             <span class="text-[10px] text-text-muted font-mono"
-              v-html="siteSubtitle"
+              v-html="sanitizeHtml(siteSubtitle)"
             ></span>
           </div>
         </div>

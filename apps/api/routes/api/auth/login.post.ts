@@ -49,13 +49,11 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Check if IP is banned
-  const ip =
-    event.node.req.headers['x-forwarded-for'] ||
-    event.node.req.socket.remoteAddress;
-  const clientIp = Array.isArray(ip) ? ip[0] : ip;
+  // Check if IP is banned. getClientIP honors TRUST_PROXY so a client behind
+  // an untrusted proxy can't forge X-Forwarded-For to bypass the ban.
+  const clientIp = getClientIP(event);
 
-  if (clientIp) {
+  if (clientIp && clientIp !== 'unknown') {
     const isIpBanned = await db
       .select()
       .from(bannedIps)
@@ -84,7 +82,8 @@ export default defineEventHandler(async (event) => {
     .update(user.authVerifier + body.challenge)
     .digest('hex');
 
-  if (body.proof !== expectedProof) {
+  // Constant-time comparison to prevent timing-attack leakage of the proof.
+  if (!secureCompare(body.proof, expectedProof)) {
     throw createError({
       statusCode: 401,
       message: 'Invalid credentials',
@@ -94,7 +93,10 @@ export default defineEventHandler(async (event) => {
   // Update last seen and IP
   await db
     .update(users)
-    .set({ lastSeen: new Date(), lastIp: clientIp })
+    .set({
+      lastSeen: new Date(),
+      lastIp: clientIp !== 'unknown' ? clientIp : null,
+    })
     .where(eq(users.id, user.id));
 
   // Set user session using nuxt-auth-utils

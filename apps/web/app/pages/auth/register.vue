@@ -20,11 +20,11 @@
         </div>
         <h1
           class="text-2xl font-bold tracking-tighter"
-          v-html="branding?.authTitle || branding?.siteName || 'TRACKARR'"
+          v-html="sanitizeHtml(branding?.authTitle || branding?.siteName || 'TRACKARR')"
         ></h1>
         <div
           class="text-text-muted text-sm mt-1 [&>p]:m-0"
-          v-html="branding?.authSubtitle || 'Private BitTorrent Tracker'"
+          v-html="sanitizeHtml(branding?.authSubtitle || 'Private BitTorrent Tracker')"
         ></div>
       </div>
 
