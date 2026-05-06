@@ -163,8 +163,7 @@ export default defineEventHandler(async (event) => {
 });
 
 function generateMagnetLink(infoHash: string, name: string): string {
-  const trackerUrl =
-    process.env.TRACKER_HTTP_URL || 'http://localhost:8080/announce';
+  const trackerUrl = useRuntimeConfig().public.trackerHttpUrl as string;
   const encodedName = encodeURIComponent(name);
   return `magnet:?xt=urn:btih:${infoHash}&dn=${encodedName}&tr=${encodeURIComponent(trackerUrl)}`;
 }

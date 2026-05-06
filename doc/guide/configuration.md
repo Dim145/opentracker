@@ -30,26 +30,30 @@ Trackarr is configured primarily through environment variables. This page covers
 
 ### Tracker
 
-| Variable           | Description                                 | Default                          |
-| ------------------ | ------------------------------------------- | -------------------------------- |
-| `TRACKER_SECRET`   | Secret for generating passkeys              | —                                |
-| `IP_HASH_SECRET`   | Secret for hashing peer IPs                 | —                                |
-| `TRACKER_HTTP_URL` | HTTP announce URL (shown in .torrent files) | `http://localhost:8080/announce` |
-| `TRACKER_UDP_URL`  | UDP announce URL                            | `udp://localhost:8081/announce`  |
-| `TRACKER_WS_URL`   | WebSocket URL                               | `ws://localhost:8082`            |
-| `TRACKER_DEBUG`    | Enable verbose tracker logging              | `false`                          |
+| Variable                       | Description                                 | Default                          |
+| ------------------------------ | ------------------------------------------- | -------------------------------- |
+| `TRACKER_SECRET`               | Secret for generating passkeys              | —                                |
+| `IP_HASH_SECRET`               | Secret for hashing peer IPs                 | —                                |
+| `NUXT_PUBLIC_TRACKER_HTTP_URL` | HTTP announce URL (shown in .torrent files) | `http://localhost:8080/announce` |
+| `NUXT_PUBLIC_TRACKER_UDP_URL`  | UDP announce URL                            | `udp://localhost:8081/announce`  |
+| `NUXT_PUBLIC_TRACKER_WS_URL`   | WebSocket URL                               | `ws://localhost:8082`            |
+| `TRACKER_DEBUG`                | Enable verbose tracker logging              | `false`                          |
 
 ::: tip Configuring Tracker URLs
-These URLs are embedded in `.torrent` files and displayed in the admin dashboard. Configure them with your actual domain:
+These URLs are embedded in `.torrent` files and displayed in the admin dashboard. They are read at **runtime** by Nuxt — the `NUXT_PUBLIC_` prefix is required so the same Docker image can be reused by anyone with their own domain (no rebuild needed).
 
 ```bash
 # In your .env file
-TRACKER_HTTP_URL=https://tracker.your-domain.com/announce
-TRACKER_UDP_URL=udp://tracker.your-domain.com:8081/announce
-TRACKER_WS_URL=wss://tracker.your-domain.com/ws
+NUXT_PUBLIC_TRACKER_HTTP_URL=https://tracker.your-domain.com/announce
+NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.your-domain.com:8081/announce
+NUXT_PUBLIC_TRACKER_WS_URL=wss://tracker.your-domain.com/ws
 ```
 
 Replace `your-domain.com` with your actual tracker domain.
+:::
+
+::: warning Breaking change since v0.5.7
+Previous versions used unprefixed `TRACKER_HTTP_URL`, `TRACKER_UDP_URL`, `TRACKER_WS_URL`. Those are no longer read — rename them in your `.env` file when upgrading.
 :::
 
 ### Security

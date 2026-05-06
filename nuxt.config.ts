@@ -41,11 +41,12 @@ export default defineNuxtConfig({
     redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
     public: {
       appVersion: pkg.version,
-      trackerHttpUrl:
-        process.env.TRACKER_HTTP_URL || 'http://localhost:8080/announce',
-      trackerUdpUrl:
-        process.env.TRACKER_UDP_URL || 'udp://localhost:8081/announce',
-      trackerWsUrl: process.env.TRACKER_WS_URL || 'ws://localhost:8082',
+      // Tracker URLs are read at RUNTIME from NUXT_PUBLIC_TRACKER_*_URL env vars.
+      // Nuxt auto-overrides these defaults at server start. Do not read process.env here
+      // (it would freeze the value at build time).
+      trackerHttpUrl: 'http://localhost:8080/announce',
+      trackerUdpUrl: 'udp://localhost:8081/announce',
+      trackerWsUrl: 'ws://localhost:8082',
     },
   },
 

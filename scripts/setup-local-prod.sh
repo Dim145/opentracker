@@ -140,10 +140,11 @@ ADMIN_API_KEY=${ADMIN_API_KEY}
 
 # =============================================================================
 # Tracker URLs (Local OrbStack domains)
+# Read at RUNTIME by Nuxt — NUXT_PUBLIC_ prefix is required.
 # =============================================================================
-TRACKER_HTTP_URL=http://localhost:8080/announce
-TRACKER_UDP_URL=
-TRACKER_WS_URL=
+NUXT_PUBLIC_TRACKER_HTTP_URL=http://localhost:8080/announce
+NUXT_PUBLIC_TRACKER_UDP_URL=
+NUXT_PUBLIC_TRACKER_WS_URL=
 
 # =============================================================================
 # Monitoring (Grafana)

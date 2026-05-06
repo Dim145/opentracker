@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
     tracker: {
       status: trackerStatus,
       protocols: trackerProtocols,
-      httpUrl: process.env.TRACKER_HTTP_URL || 'not set',
+      httpUrl: useRuntimeConfig().public.trackerHttpUrl as string,
     },
     peers: {
       keyCount: peerKeyCount,

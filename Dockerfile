@@ -1,14 +1,9 @@
 # Production Dockerfile for Trackarr
 FROM node:20-alpine AS base
 
-ARG TRACKER_HTTP_URL
-ARG TRACKER_UDP_URL
-ARG TRACKER_WS_URL
-
-ENV TRACKER_HTTP_URL=${TRACKER_HTTP_URL}
-ENV TRACKER_UDP_URL=${TRACKER_UDP_URL}
-ENV TRACKER_WS_URL=${TRACKER_WS_URL}
-
+# Tracker URLs are NOT baked into the image. They must be provided at runtime via
+# NUXT_PUBLIC_TRACKER_HTTP_URL, NUXT_PUBLIC_TRACKER_UDP_URL, NUXT_PUBLIC_TRACKER_WS_URL.
+# This way the same image can be used by anyone, with their own domain.
 
 # Install dependencies only when needed
 FROM base AS deps

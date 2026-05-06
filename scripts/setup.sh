@@ -146,10 +146,10 @@ sed_inplace "s/^NUXT_SESSION_SECRET=.*/NUXT_SESSION_SECRET=$NUXT_SESSION_SECRET/
 sed_inplace "s/^ADMIN_API_KEY=.*/ADMIN_API_KEY=$ADMIN_API_KEY/" "$PROJECT_DIR/.env"
 sed_inplace "s/^IP_HASH_SECRET=.*/IP_HASH_SECRET=$IP_HASH_SECRET/" "$PROJECT_DIR/.env"
 
-# Tracker URLs
-sed_inplace "s|^TRACKER_HTTP_URL=.*|TRACKER_HTTP_URL=https://$TRACKER_DOMAIN/announce|" "$PROJECT_DIR/.env"
-sed_inplace "s|^TRACKER_UDP_URL=.*|TRACKER_UDP_URL=udp://$TRACKER_DOMAIN:8081/announce|" "$PROJECT_DIR/.env"
-sed_inplace "s|^TRACKER_WS_URL=.*|TRACKER_WS_URL=wss://$TRACKER_DOMAIN/ws|" "$PROJECT_DIR/.env"
+# Tracker URLs (read at runtime by Nuxt via NUXT_PUBLIC_ prefix)
+sed_inplace "s|^NUXT_PUBLIC_TRACKER_HTTP_URL=.*|NUXT_PUBLIC_TRACKER_HTTP_URL=https://$TRACKER_DOMAIN/announce|" "$PROJECT_DIR/.env"
+sed_inplace "s|^NUXT_PUBLIC_TRACKER_UDP_URL=.*|NUXT_PUBLIC_TRACKER_UDP_URL=udp://$TRACKER_DOMAIN:8081/announce|" "$PROJECT_DIR/.env"
+sed_inplace "s|^NUXT_PUBLIC_TRACKER_WS_URL=.*|NUXT_PUBLIC_TRACKER_WS_URL=wss://$TRACKER_DOMAIN/ws|" "$PROJECT_DIR/.env"
 
 # Monitoring
 sed_inplace "s|^# GRAFANA_ADMIN_USER=.*|GRAFANA_ADMIN_USER=admin|" "$PROJECT_DIR/.env"
