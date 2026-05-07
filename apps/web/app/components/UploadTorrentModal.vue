@@ -103,111 +103,15 @@
 
             <!-- Description -->
             <div class="space-y-2">
-              <div class="flex items-center justify-between ml-1">
-                <label
-                  class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
-                  >Description (Markdown)</label
-                >
-                <button
-                  type="button"
-                  class="text-[10px] font-bold uppercase tracking-widest transition-colors"
-                  :class="
-                    isPreview
-                      ? 'text-text-strong'
-                      : 'text-text-muted hover:text-text-strong'
-                  "
-                  @click="isPreview = !isPreview"
-                >
-                  {{ isPreview ? 'Edit' : 'Preview' }}
-                </button>
-              </div>
-
-              <div v-if="!isPreview" class="space-y-0">
-                <!-- Toolbar -->
-                <div
-                  class="flex items-center gap-1 p-1 bg-bg-tertiary border border-border rounded-t-sm border-b-0"
-                >
-                  <button
-                    type="button"
-                    class="toolbar-btn"
-                    title="Bold"
-                    @click="insertMarkdown('bold')"
-                  >
-                    <Icon name="ph:text-b-bold" />
-                  </button>
-                  <button
-                    type="button"
-                    class="toolbar-btn"
-                    title="Italic"
-                    @click="insertMarkdown('italic')"
-                  >
-                    <Icon name="ph:text-italic-bold" />
-                  </button>
-                  <div class="w-px h-3 bg-border mx-1"></div>
-                  <button
-                    type="button"
-                    class="toolbar-btn"
-                    title="Link"
-                    @click="insertMarkdown('link')"
-                  >
-                    <Icon name="ph:link-bold" />
-                  </button>
-                  <button
-                    type="button"
-                    class="toolbar-btn"
-                    title="Image"
-                    @click="insertMarkdown('image')"
-                  >
-                    <Icon name="ph:image-bold" />
-                  </button>
-                  <div class="w-px h-3 bg-border mx-1"></div>
-                  <button
-                    type="button"
-                    class="toolbar-btn"
-                    title="List"
-                    @click="insertMarkdown('list')"
-                  >
-                    <Icon name="ph:list-bullets-bold" />
-                  </button>
-                  <button
-                    type="button"
-                    class="toolbar-btn"
-                    title="Quote"
-                    @click="insertMarkdown('quote')"
-                  >
-                    <Icon name="ph:quotes-bold" />
-                  </button>
-                  <button
-                    type="button"
-                    class="toolbar-btn"
-                    title="Code"
-                    @click="insertMarkdown('code')"
-                  >
-                    <Icon name="ph:code-bold" />
-                  </button>
-                </div>
-                <textarea
-                  ref="textareaRef"
-                  v-model="description"
-                  rows="6"
-                  class="input w-full !py-2 text-xs font-medium resize-none rounded-t-none"
-                  placeholder="Enter torrent description, images, etc..."
-                ></textarea>
-              </div>
-
-              <div
-                v-else
-                class="input w-full min-h-[158px] !py-3 text-xs overflow-y-auto bg-bg-primary/50"
+              <label
+                class="text-[10px] font-bold uppercase tracking-widest text-text-muted ml-1"
+                >Description</label
               >
-                <div
-                  v-if="description"
-                  class="prose prose-invert prose-xs max-w-none description-preview"
-                  v-html="renderedDescription"
-                ></div>
-                <div v-else class="text-text-muted italic text-[10px]">
-                  Nothing to preview
-                </div>
-              </div>
+              <WysiwygEditor
+                v-model="description"
+                format="markdown"
+                placeholder="Describe the release. Paste BBCode, HTML or Markdown — it all converts."
+              />
             </div>
 
             <!-- Tags -->
@@ -397,13 +301,11 @@ const emit = defineEmits<{
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const nfoInput = ref<HTMLInputElement | null>(null);
-const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const selectedFile = ref<File | null>(null);
 const nfoFile = ref<File | null>(null);
 const selectedCategoryId = ref('');
 const description = ref('');
 const tags = ref<string[]>([]);
-const isPreview = ref(false);
 const isUploading = ref(false);
 const result = ref<TorrentResult | null>(null);
 const error = ref<string | null>(null);
@@ -411,8 +313,6 @@ const copied = ref(false);
 const NFO_MAX_BYTES = 256 * 1024;
 
 const { data: categories } = await useFetch('/api/categories');
-
-const renderedDescription = computed(() => renderMarkdown(description.value));
 
 function getFlattenedCategories(
   categories: Array<{ id: string; name: string; subcategories?: any[] }>,
@@ -446,74 +346,9 @@ function reset() {
   selectedCategoryId.value = '';
   description.value = '';
   tags.value = [];
-  isPreview.value = false;
   result.value = null;
   error.value = null;
   copied.value = false;
-}
-
-function insertMarkdown(type: string) {
-  if (!textareaRef.value) return;
-
-  const start = textareaRef.value.selectionStart;
-  const end = textareaRef.value.selectionEnd;
-  const text = description.value;
-  const selected = text.substring(start, end);
-
-  let before = '';
-  let after = '';
-  let placeholder = '';
-
-  switch (type) {
-    case 'bold':
-      before = '**';
-      after = '**';
-      placeholder = 'bold text';
-      break;
-    case 'italic':
-      before = '*';
-      after = '*';
-      placeholder = 'italic text';
-      break;
-    case 'link':
-      before = '[';
-      after = '](url)';
-      placeholder = 'link text';
-      break;
-    case 'image':
-      before = '![';
-      after = '](url)';
-      placeholder = 'alt text';
-      break;
-    case 'list':
-      before = '\n- ';
-      after = '';
-      placeholder = 'list item';
-      break;
-    case 'quote':
-      before = '\n> ';
-      after = '';
-      placeholder = 'quote';
-      break;
-    case 'code':
-      before = '`';
-      after = '`';
-      placeholder = 'code';
-      break;
-  }
-
-  const content = selected || placeholder;
-  description.value =
-    text.substring(0, start) + before + content + after + text.substring(end);
-
-  // Focus back and select
-  nextTick(() => {
-    if (!textareaRef.value) return;
-    textareaRef.value.focus();
-    const newStart = start + before.length;
-    const newEnd = newStart + content.length;
-    textareaRef.value.setSelectionRange(newStart, newEnd);
-  });
 }
 
 function triggerFileInput() {
@@ -625,43 +460,3 @@ async function copyMagnet() {
 
 </script>
 
-<style scoped>
-.toolbar-btn {
-  @apply w-7 h-7 flex items-center justify-center rounded-sm text-text-muted hover:text-text-strong hover:bg-fg-default/5 transition-all;
-}
-
-.toolbar-btn :deep(svg) {
-  @apply w-3.5 h-3.5;
-}
-
-.description-preview :deep(img) {
-  max-width: 100%;
-  height: auto;
-  border-radius: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.description-preview :deep(p) {
-  margin-bottom: 0.75rem;
-}
-
-.description-preview :deep(p:last-child) {
-  margin-bottom: 0;
-}
-
-.description-preview :deep(a) {
-  color: #fff;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.description-preview :deep(ul),
-.description-preview :deep(ol) {
-  margin-bottom: 0.75rem;
-  padding-left: 1.25rem;
-}
-
-.description-preview :deep(li) {
-  margin-bottom: 0.25rem;
-}
-</style>

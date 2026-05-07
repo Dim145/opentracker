@@ -14,8 +14,12 @@
     "@nuxtjs/tailwindcss": "6.14.0",
     "@pinia/nuxt": "0.11.3",
     "@tiptap/extension-color": "^3.22.5",
+    "@tiptap/extension-image": "^3.22.5",
+    "@tiptap/extension-link": "^3.22.5",
     "@tiptap/extension-placeholder": "^3.22.5",
+    "@tiptap/extension-text-align": "^3.22.5",
     "@tiptap/extension-text-style": "^3.22.5",
+    "@tiptap/extension-underline": "^3.22.5",
     "@tiptap/starter-kit": "^3.22.5",
     "@tiptap/vue-3": "^3.22.5",
     "@trackarr/shared": "workspace:*",
@@ -26,6 +30,7 @@
     "marked": "^17.0.1",
     "nuxt": "^4.4.4",
     "pinia": "^3.0.4",
+    "turndown": "^7.2.0",
     "vue": "^3.5.34",
     "vue-chartjs": "^5.3.3",
     "vue-router": "^4.6.4"
@@ -33,6 +38,7 @@
   "devDependencies": {
     "@iconify-json/ph": "^1.2.2",
     "@nuxt/icon": "^2.2.2",
-    "@types/marked": "^5.0.2"
+    "@types/marked": "^5.0.2",
+    "@types/turndown": "^5.0.5"
   }
 }
