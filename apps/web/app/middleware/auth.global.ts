@@ -35,7 +35,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   if (shouldRefresh) {
     try {
-      const status = await $fetch('/api/auth/status');
+      // Forward the incoming request cookies during SSR so the API sees
+      // the user's session. Without this, hard-refreshing a protected page
+      // makes the middleware think we're logged out and bounces us back to
+      // / via /auth/login.
+      const status = await $fetch('/api/auth/status', {
+        headers: import.meta.server ? useRequestHeaders(['cookie']) : undefined,
+      });
       cachedNeedsSetup.value = !!status?.needsSetup;
       session.value = { user: status?.user ?? null };
       lastRefresh.value = now;
