@@ -80,9 +80,22 @@ COPY --chown=nonroot:nonroot apps/api/scripts/healthcheck.mjs ./healthcheck.mjs
 
 USER nonroot
 EXPOSE 4000
+# Memory tuning:
+#   --max-old-space-size=512   cap the V8 old-generation heap at 512 MB.
+#                              Without this, Node 24 derives the cap from the
+#                              host's RAM (often 2+ GB on dev machines), which
+#                              defers GC and lets RSS balloon under load.
+#   --max-semi-space-size=8    smaller young-generation chunks → more frequent
+#                              minor GCs, lower transient peak.
+#   MALLOC_ARENA_MAX=2         glibc malloc on distroless pre-allocates one
+#                              memory arena per CPU; capping at 2 saves
+#                              ~30-60 MB of RSS on multi-core hosts.
+# Override NODE_OPTIONS at runtime to scale up for heavy traffic.
 ENV NODE_ENV=production \
     NITRO_PORT=4000 \
-    NITRO_HOST=0.0.0.0
+    NITRO_HOST=0.0.0.0 \
+    NODE_OPTIONS="--max-old-space-size=512 --max-semi-space-size=8" \
+    MALLOC_ARENA_MAX=2
 STOPSIGNAL SIGTERM
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \

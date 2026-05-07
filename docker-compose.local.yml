@@ -11,6 +11,10 @@ services:
       dockerfile: apps/web/Dockerfile
     container_name: trackarr-web
     restart: unless-stopped
+    # Cap memory so V8's heap-size autotuning sees a tight ceiling and GCs
+    # eagerly. The Dockerfile sets --max-old-space-size=384 to stay below.
+    mem_limit: 512m
+    mem_reservation: 192m
     environment:
       NODE_ENV: production
       API_INTERNAL_URL: http://api:4000
@@ -31,6 +35,10 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: trackarr-api
     restart: unless-stopped
+    # Cap memory so V8's heap-size autotuning sees a tight ceiling and GCs
+    # eagerly. The Dockerfile sets --max-old-space-size=512 to stay below.
+    mem_limit: 768m
+    mem_reservation: 256m
     environment:
       NODE_ENV: production
       NITRO_PORT: 4000

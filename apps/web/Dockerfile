@@ -44,9 +44,15 @@ COPY --chown=nonroot:nonroot apps/web/scripts/healthcheck.mjs ./healthcheck.mjs
 
 USER nonroot
 EXPOSE 3000
+# Memory tuning (see apps/api/Dockerfile for rationale).
+# Web SSR retains compiled Vue templates / component state; without an
+# explicit V8 heap cap, sustained traffic on Node 24 grows RSS into the
+# hundreds of MB before V8 bothers to GC. 384 MB is plenty for SSR.
 ENV NODE_ENV=production \
     NUXT_HOST=0.0.0.0 \
-    NUXT_PORT=3000
+    NUXT_PORT=3000 \
+    NODE_OPTIONS="--max-old-space-size=384 --max-semi-space-size=8" \
+    MALLOC_ARENA_MAX=2
 STOPSIGNAL SIGTERM
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
