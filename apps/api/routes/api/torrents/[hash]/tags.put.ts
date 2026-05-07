@@ -2,10 +2,19 @@ import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
+import { resolveTagsByName, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
 
-const updateTagsSchema = z.object({
-  tagIds: z.array(z.string()).max(10),
-});
+// Accept either pre-resolved `tagIds` (kept for the existing admin UI)
+// or free-form `tags` strings (the user-facing flow from issue #45).
+// At least one of the two must be present.
+const updateTagsSchema = z
+  .object({
+    tagIds: z.array(z.string()).max(MAX_TAGS_PER_TORRENT).optional(),
+    tags: z.array(z.string()).max(MAX_TAGS_PER_TORRENT).optional(),
+  })
+  .refine((v) => v.tagIds !== undefined || v.tags !== undefined, {
+    message: 'Provide either tagIds or tags',
+  });
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
@@ -28,7 +37,20 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event);
-  const { tagIds } = updateTagsSchema.parse(body);
+  const parsed = updateTagsSchema.parse(body);
+
+  // Resolve names → ids first so we can fail before mutating anything.
+  const resolvedIds = parsed.tags
+    ? (await resolveTagsByName(parsed.tags)).ids
+    : [];
+  // Final id list: dedupe across both inputs.
+  const ids = Array.from(new Set([...(parsed.tagIds ?? []), ...resolvedIds]));
+  if (ids.length > MAX_TAGS_PER_TORRENT) {
+    throw createError({
+      statusCode: 400,
+      message: `Too many tags (max ${MAX_TAGS_PER_TORRENT})`,
+    });
+  }
 
   // Delete existing tags
   await db
@@ -36,9 +58,9 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.torrentTags.torrentId, torrent.id));
 
   // Insert new tags
-  if (tagIds.length > 0) {
+  if (ids.length > 0) {
     await db.insert(schema.torrentTags).values(
-      tagIds.map((tagId) => ({
+      ids.map((tagId) => ({
         torrentId: torrent.id,
         tagId,
       }))

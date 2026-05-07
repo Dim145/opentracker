@@ -1,7 +1,8 @@
 import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
-import { desc, eq, ilike, sql, and, or } from 'drizzle-orm';
+import { desc, eq, ilike, sql, and, or, inArray } from 'drizzle-orm';
 import { validateQuery, torrentQuerySchema } from '~~/utils/schemas';
+import { slugifyTag } from '~~/utils/tags';
 
 export default defineEventHandler(async (event) => {
   // Require authentication
@@ -57,6 +58,44 @@ export default defineEventHandler(async (event) => {
     );
   }
 
+  // Tag filter — `?tag=fhd,bluray` returns torrents that carry every tag in
+  // the list (AND semantics, matching how a user thinks: "show me torrents
+  // that are FHD AND Blu-Ray"). Resolves both names and slugs so the URL
+  // stays readable while the autocomplete can keep submitting whatever the
+  // user typed.
+  if (query.tag) {
+    const slugs = query.tag
+      .split(',')
+      .map((s) => slugifyTag(s))
+      .filter(Boolean);
+    if (slugs.length > 0) {
+      const matchedTags = await db.query.tags.findMany({
+        where: inArray(schema.tags.slug, slugs),
+        columns: { id: true },
+      });
+      // If any requested slug doesn't exist, no torrent can carry it →
+      // honest empty result instead of widening to "ignore the filter".
+      if (matchedTags.length !== slugs.length) {
+        conditions.push(sql`false`);
+      } else {
+        const tagIds = matchedTags.map((t) => t.id);
+        // Sub-select: torrent_id appears at least once for EACH requested
+        // tag id (count = N). Cheaper than chaining N EXISTS clauses.
+        conditions.push(
+          inArray(
+            schema.torrents.id,
+            db
+              .select({ torrentId: schema.torrentTags.torrentId })
+              .from(schema.torrentTags)
+              .where(inArray(schema.torrentTags.tagId, tagIds))
+              .groupBy(schema.torrentTags.torrentId)
+              .having(sql`count(*) = ${tagIds.length}`)
+          )
+        );
+      }
+    }
+  }
+
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   // Get torrents with optional search
@@ -64,6 +103,7 @@ export default defineEventHandler(async (event) => {
     where: whereClause,
     with: {
       category: true,
+      torrentTags: { with: { tag: true } },
     },
     orderBy: [desc(schema.torrents.createdAt)],
     limit: query.limit,
@@ -89,8 +129,11 @@ export default defineEventHandler(async (event) => {
       r.status === 'fulfilled'
         ? r.value
         : { seeders: 0, leechers: 0, completed: 0 };
+    const tags = torrent.torrentTags?.map((tt) => tt.tag) ?? [];
     return {
       ...torrent,
+      torrentTags: undefined, // collapse the junction-table noise
+      tags,
       stats: {
         seeders: stats.seeders,
         leechers: stats.leechers,

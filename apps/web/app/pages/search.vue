@@ -10,7 +10,7 @@
     <!-- Main Content -->
     <div class="flex-1 min-w-0 py-8">
       <!-- Search Header -->
-      <div class="mb-12 text-center lg:text-left">
+      <div class="mb-8 text-center lg:text-left">
         <h1
           class="text-3xl font-black text-text-primary tracking-tighter uppercase mb-4"
         >
@@ -19,16 +19,95 @@
         <div class="max-w-2xl lg:mx-0 mx-auto">
           <SearchBar
             v-model="searchQuery"
-            placeholder="Search by name, tag or infohash..."
+            placeholder="Search by name or infohash..."
             size="lg"
             :loading="pending"
             @search="handleSearch"
           />
         </div>
+
+        <!-- Filter panel — collapsed by default; tag toggles live here. -->
+        <div class="max-w-2xl lg:mx-0 mx-auto mt-3">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
+            :aria-expanded="filtersOpen"
+            aria-controls="search-filter-panel"
+            @click="filtersOpen = !filtersOpen"
+          >
+            <Icon
+              :name="filtersOpen ? 'ph:funnel-fill' : 'ph:funnel'"
+              :class="filtersOpen ? 'text-success' : ''"
+            />
+            <span :class="filtersOpen ? 'text-text-strong' : ''">
+              {{ filtersOpen ? 'Hide filters' : 'Show filters' }}
+            </span>
+            <span
+              v-if="selectedTags.length > 0"
+              class="text-[10px] font-mono text-success bg-success/10 border border-success/30 rounded-full px-1.5 py-0.5 normal-case tracking-normal"
+            >
+              {{ selectedTags.length }}
+            </span>
+          </button>
+
+          <div
+            v-show="filtersOpen"
+            id="search-filter-panel"
+            class="mt-3 p-4 bg-bg-secondary border border-border rounded-lg text-left"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <span
+                class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
+              >
+                Tags
+              </span>
+              <button
+                v-if="selectedTags.length > 0"
+                type="button"
+                class="text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-error transition-colors"
+                @click="clearTagFilters"
+              >
+                Clear
+              </button>
+            </div>
+            <div
+              v-if="(allTags?.length ?? 0) === 0"
+              class="text-xs text-text-muted italic"
+            >
+              No tags yet — they'll appear here once a torrent is tagged.
+            </div>
+            <div v-else class="flex flex-wrap gap-2">
+              <button
+                v-for="tag in allTags"
+                :key="tag.id"
+                type="button"
+                class="tag-toggle"
+                :class="{
+                  'tag-toggle--active': selectedTags.includes(tag.slug),
+                }"
+                :style="
+                  selectedTags.includes(tag.slug)
+                    ? activeTagStyle(tag)
+                    : undefined
+                "
+                @click="toggleTag(tag.slug)"
+              >
+                <span
+                  class="inline-block w-2 h-2 rounded-full"
+                  :style="{ backgroundColor: tag.color }"
+                />
+                {{ tag.name }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Results Section -->
-      <div v-if="searchQuery || selectedCategory" class="space-y-6">
+      <div
+        v-if="searchQuery || selectedCategory || selectedTags.length > 0"
+        class="space-y-6"
+      >
         <div class="flex items-center justify-between px-1">
           <div class="flex items-center gap-2">
             <Icon name="ph:list-bullets-bold" class="text-text-muted" />
@@ -133,6 +212,13 @@
 </template>
 
 <script setup lang="ts">
+interface TorrentTag {
+  id: string;
+  name: string;
+  slug: string;
+  color: string;
+}
+
 interface TorrentWithStats {
   id: string;
   infoHash: string;
@@ -144,6 +230,7 @@ interface TorrentWithStats {
     name: string;
     slug: string;
   };
+  tags?: TorrentTag[];
   stats: {
     seeders: number;
     leechers: number;
@@ -156,10 +243,18 @@ const router = useRouter();
 
 const searchQuery = ref((route.query.q as string) || '');
 const selectedCategory = ref((route.query.c as string) || '');
+const selectedTags = ref<string[]>(
+  ((route.query.tag as string) || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+);
+const filtersOpen = ref(selectedTags.value.length > 0);
 const page = ref(parseInt((route.query.p as string) || '1', 10));
 
 // Fetch categories
 const { data: categories } = await useFetch<any[]>('/api/categories');
+const { data: allTags } = await useFetch<TorrentTag[]>('/api/tags');
 
 // Fetch torrents
 const {
@@ -176,12 +271,18 @@ const {
   };
 }>('/api/torrents', {
   query: computed(() => ({
-    search: searchQuery.value,
-    categoryId: selectedCategory.value,
+    // Coerce empty strings to undefined — the API's Zod schema requires
+    // min(1) on `search` and `categoryId`, so passing the literal empty
+    // string fails validation and the fetch returns 400. The /torrents
+    // page already does this; we mirror it here.
+    search: searchQuery.value || undefined,
+    categoryId: selectedCategory.value || undefined,
+    tag:
+      selectedTags.value.length > 0 ? selectedTags.value.join(',') : undefined,
     page: page.value,
     limit: 20,
   })),
-  watch: [searchQuery, selectedCategory, page],
+  watch: [searchQuery, selectedCategory, selectedTags, page],
 });
 
 // Fetch trending (just recent for now)
@@ -222,9 +323,47 @@ function updateUrl() {
     query: {
       q: searchQuery.value || undefined,
       c: selectedCategory.value || undefined,
+      tag:
+        selectedTags.value.length > 0
+          ? selectedTags.value.join(',')
+          : undefined,
       p: page.value > 1 ? page.value : undefined,
     },
   });
+}
+
+function toggleTag(slug: string) {
+  if (selectedTags.value.includes(slug)) {
+    selectedTags.value = selectedTags.value.filter((t) => t !== slug);
+  } else {
+    selectedTags.value = [...selectedTags.value, slug];
+  }
+  page.value = 1;
+  updateUrl();
+}
+
+function clearTagFilters() {
+  selectedTags.value = [];
+  page.value = 1;
+  updateUrl();
+}
+
+function activeTagStyle(tag: { color: string }) {
+  // Same logic as the torrents page — see comment there.
+  const hex = (tag.color || '').replace('#', '').toLowerCase();
+  const isDefault = !/^[0-9a-f]{6}$/i.test(hex) || hex === '6b7280';
+  if (isDefault) {
+    return {
+      backgroundColor: 'rgb(var(--fg-default) / 0.18)',
+      borderColor: 'rgb(var(--fg-default))',
+      color: 'rgb(var(--fg-strong))',
+    };
+  }
+  return {
+    backgroundColor: `#${hex}3d`,
+    borderColor: `#${hex}`,
+    color: 'rgb(var(--fg-strong))',
+  };
 }
 
 // Sync with URL on load and back/forward
@@ -233,6 +372,10 @@ watch(
   (newQuery) => {
     searchQuery.value = (newQuery.q as string) || '';
     selectedCategory.value = (newQuery.c as string) || '';
+    selectedTags.value = ((newQuery.tag as string) || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
     page.value = parseInt((newQuery.p as string) || '1', 10);
   },
   { deep: true }
@@ -242,3 +385,17 @@ useHead({
   title: 'Search Torrents',
 });
 </script>
+
+<style scoped>
+.tag-toggle {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full
+         border border-border bg-bg-tertiary
+         text-[11px] font-medium text-text-secondary
+         hover:text-text-primary hover:bg-fg-default/5
+         hover:border-fg-default/30
+         transition-colors;
+}
+.tag-toggle--active {
+  @apply text-text-primary;
+}
+</style>

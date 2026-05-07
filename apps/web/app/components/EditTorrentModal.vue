@@ -171,6 +171,15 @@
             </div>
           </div>
 
+          <!-- Tags -->
+          <div class="space-y-2">
+            <label
+              class="text-[10px] font-bold uppercase tracking-widest text-text-muted ml-1"
+              >Tags</label
+            >
+            <TagInput v-model="tagNames" placeholder="FHD, Full Season, NC…" />
+          </div>
+
           <!-- NFO -->
           <div class="space-y-2">
             <div class="flex items-center justify-between ml-1">
@@ -265,6 +274,7 @@ interface TorrentData {
   description: string | null;
   nfo: string | null;
   categoryId: string | null;
+  tags?: Array<{ id: string; name: string; slug: string; color: string }>;
 }
 
 const props = defineProps<{
@@ -282,6 +292,7 @@ const nfoInput = ref<HTMLInputElement | null>(null);
 const selectedCategoryId = ref('');
 const description = ref('');
 const nfo = ref('');
+const tagNames = ref<string[]>([]);
 const isPreview = ref(false);
 const isSaving = ref(false);
 const error = ref<string | null>(null);
@@ -299,6 +310,7 @@ watch(
       selectedCategoryId.value = torrent.categoryId || '';
       description.value = torrent.description || '';
       nfo.value = torrent.nfo || '';
+      tagNames.value = torrent.tags?.map((t) => t.name) ?? [];
     }
   },
   { immediate: true }
@@ -312,6 +324,7 @@ watch(
       selectedCategoryId.value = props.torrent.categoryId || '';
       description.value = props.torrent.description || '';
       nfo.value = props.torrent.nfo || '';
+      tagNames.value = props.torrent.tags?.map((t) => t.name) ?? [];
       isPreview.value = false;
       error.value = null;
     }
@@ -447,6 +460,21 @@ async function save() {
         throw new Error(data.message || 'Failed to save changes');
       }
       return res.json();
+    });
+
+    // Tags are kept in their own endpoint so the picker can persist
+    // independently of the description/category edit. Send the full set
+    // of names; the API resolves/creates as needed and replaces the
+    // torrent's tag links atomically.
+    await fetch(`/api/torrents/${props.torrent.infoHash}/tags`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags: tagNames.value }),
+    }).then(async (res) => {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Failed to save tags');
+      }
     });
 
     emit('saved');

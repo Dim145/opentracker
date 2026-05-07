@@ -44,7 +44,7 @@
         @click="navigateTo(`/torrents/${torrent.infoHash}`)"
       >
         <td>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <Icon
               name="ph:file-zip"
               class="text-text-muted text-base shrink-0"
@@ -53,6 +53,19 @@
               class="text-text-primary hover:text-text-strong transition-colors font-medium truncate max-w-[300px] lg:max-w-[500px]"
               >{{ torrent.name }}</span
             >
+            <span
+              v-for="tag in torrent.tags ?? []"
+              :key="tag.id"
+              class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider border px-1.5 py-0.5 rounded-sm shrink-0"
+              :style="tagBadgeStyle(tag)"
+              :title="tag.name"
+            >
+              <span
+                class="inline-block w-1.5 h-1.5 rounded-full"
+                :style="{ backgroundColor: tag.color }"
+              />
+              {{ tag.name }}
+            </span>
           </div>
         </td>
         <td v-if="!compact">
@@ -110,6 +123,13 @@
 </template>
 
 <script setup lang="ts">
+interface TorrentTag {
+  id: string;
+  name: string;
+  slug: string;
+  color: string;
+}
+
 interface TorrentWithStats {
   id: string;
   infoHash: string;
@@ -121,6 +141,7 @@ interface TorrentWithStats {
     name: string;
     slug: string;
   };
+  tags?: TorrentTag[];
   stats: {
     seeders: number;
     leechers: number;
@@ -153,6 +174,22 @@ function getCategoryDisplayName(category: { name: string; parentId?: string }) {
     ? categoriesById.value.get(category.parentId)
     : undefined;
   return parent ? `${parent.name}/${category.name}` : category.name;
+}
+
+function tagBadgeStyle(tag: TorrentTag) {
+  const hex = (tag.color || '').replace('#', '');
+  if (!/^[0-9a-f]{6}$/i.test(hex)) {
+    return {
+      backgroundColor: 'rgb(var(--bg-elevated))',
+      borderColor: 'rgb(var(--line-default))',
+      color: 'rgb(var(--fg-default))',
+    };
+  }
+  return {
+    backgroundColor: `#${hex}1a`,
+    borderColor: `#${hex}66`,
+    color: 'rgb(var(--fg-default))',
+  };
 }
 
 const confirm = useConfirm();

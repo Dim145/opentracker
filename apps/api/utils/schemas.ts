@@ -82,8 +82,14 @@ export const torrentUploadSchema = z.object({
 export const torrentQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
-  categoryId: z.uuid().optional(),
+  // The categories table's primary key is `text` — drizzle defaults
+  // generate UUIDs but operators can seed/import with any string. We
+  // therefore accept any short identifier and let the DB lookup decide
+  // whether it matches; an unknown id naturally yields zero torrents.
+  categoryId: z.string().min(1).max(128).optional(),
   search: z.string().max(255).optional(),
+  // Comma-separated tag slugs/names — matches torrents that carry ALL.
+  tag: z.string().max(255).optional(),
   sortBy: z
     .enum(['uploaded', 'name', 'size', 'seeders', 'leechers'])
     .default('uploaded'),

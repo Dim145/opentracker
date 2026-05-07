@@ -27,13 +27,30 @@
             <h2 class="text-2xl font-bold text-text-primary tracking-tight">
               {{ torrent.name }}
             </h2>
-            <!-- Category Badge -->
-            <div v-if="torrent.category" class="mt-2">
+            <!-- Category + Tag Badges -->
+            <div
+              v-if="torrent.category || torrent.tags?.length"
+              class="mt-2 flex flex-wrap items-center gap-2"
+            >
               <span
+                v-if="torrent.category"
                 class="text-[10px] font-bold bg-bg-tertiary border border-border px-2 py-1 rounded-sm text-text-secondary uppercase tracking-wider"
               >
                 {{ torrent.category.name }}
               </span>
+              <NuxtLink
+                v-for="tag in torrent.tags"
+                :key="tag.id"
+                :to="`/torrents?tag=${encodeURIComponent(tag.slug)}`"
+                class="text-[10px] font-bold border px-2 py-1 rounded-sm uppercase tracking-wider hover:opacity-80 transition-opacity flex items-center gap-1.5"
+                :style="tagBadgeStyle(tag)"
+              >
+                <span
+                  class="inline-block w-2 h-2 rounded-full"
+                  :style="{ backgroundColor: tag.color }"
+                />
+                {{ tag.name }}
+              </NuxtLink>
             </div>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
@@ -291,6 +308,13 @@ interface Category {
   slug: string;
 }
 
+interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+  color: string;
+}
+
 interface TorrentDetail {
   id: string;
   infoHash: string;
@@ -301,6 +325,7 @@ interface TorrentDetail {
   uploaderId: string | null;
   categoryId: string | null;
   category: Category | null;
+  tags?: Tag[];
   createdAt: string;
   stats: {
     seeders: number;
@@ -347,7 +372,28 @@ const editableTorrent = computed(() => ({
   description: torrent.value?.description || null,
   nfo: torrent.value?.nfo || null,
   categoryId: torrent.value?.categoryId || null,
+  tags: torrent.value?.tags ?? [],
 }));
+
+function tagBadgeStyle(tag: { color: string }) {
+  // Tint the chip background with the tag's color while keeping the
+  // foreground readable in either theme. Falls back to neutral on any
+  // unparseable input.
+  const hex = (tag.color || '').replace('#', '');
+  const valid = /^[0-9a-f]{6}$/i.test(hex);
+  if (!valid) {
+    return {
+      backgroundColor: 'rgb(var(--bg-elevated))',
+      borderColor: 'rgb(var(--line-default))',
+      color: 'rgb(var(--fg-default))',
+    };
+  }
+  return {
+    backgroundColor: `#${hex}1a`, // ~10% alpha
+    borderColor: `#${hex}66`, // ~40% alpha
+    color: 'rgb(var(--fg-default))',
+  };
+}
 
 const renderedDescription = computed(() =>
   renderMarkdown(torrent.value?.description)

@@ -2,6 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { randomUUID } from 'crypto';
 import parseTorrent from 'parse-torrent';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { resolveTagsByName, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
 
 export default defineEventHandler(async (event) => {
   // Require authentication
@@ -152,20 +153,42 @@ export default defineEventHandler(async (event) => {
     updatedAt: now,
   });
 
-  // Add tags if provided
+  // Add tags if provided. The form part can be either:
+  //   - tags: JSON string array of names (preferred, free-form input)
+  //   - tagIds: JSON string array of pre-resolved ids (kept for callers
+  //     that already know the ids — e.g. the admin tag picker)
   if (tagsRaw) {
     try {
-      const tagIds = JSON.parse(tagsRaw) as string[];
-      if (Array.isArray(tagIds) && tagIds.length > 0) {
-        await db.insert(schema.torrentTags).values(
-          tagIds.map((tagId) => ({
-            torrentId: id,
-            tagId,
-          }))
+      const parsed = JSON.parse(tagsRaw) as unknown;
+      let resolvedIds: string[] = [];
+      if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')) {
+        // Heuristic: a UUIDv4 has 36 chars with hyphens at fixed offsets.
+        // Anything that doesn't look like a uuid is treated as a free-form
+        // tag name. This lets old callers (admin form sending ids) and new
+        // ones (upload modal sending names) share the same form field.
+        const looksLikeUuid = (s: string) =>
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+        const ids = (parsed as string[]).filter(looksLikeUuid);
+        const names = (parsed as string[]).filter((s) => !looksLikeUuid(s));
+        if (names.length > 0) {
+          const r = await resolveTagsByName(names);
+          resolvedIds = r.ids;
+        }
+        const all = Array.from(new Set([...ids, ...resolvedIds])).slice(
+          0,
+          MAX_TAGS_PER_TORRENT
         );
+        if (all.length > 0) {
+          await db.insert(schema.torrentTags).values(
+            all.map((tagId) => ({
+              torrentId: id,
+              tagId,
+            }))
+          );
+        }
       }
     } catch {
-      // Ignore invalid tags JSON
+      // Ignore invalid tags JSON; the torrent is already saved.
     }
   }
 

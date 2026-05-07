@@ -210,6 +210,18 @@
               </div>
             </div>
 
+            <!-- Tags -->
+            <div class="space-y-2">
+              <label
+                class="text-[10px] font-bold uppercase tracking-widest text-text-muted ml-1"
+                >Tags</label
+              >
+              <TagInput v-model="tags" placeholder="FHD, Full Season, NC…" />
+              <p class="text-[10px] text-text-muted ml-1">
+                Press Enter or comma to add. Existing tags auto-suggest as you type.
+              </p>
+            </div>
+
             <!-- Optional NFO -->
             <div class="space-y-2">
               <label
@@ -390,6 +402,7 @@ const selectedFile = ref<File | null>(null);
 const nfoFile = ref<File | null>(null);
 const selectedCategoryId = ref('');
 const description = ref('');
+const tags = ref<string[]>([]);
 const isPreview = ref(false);
 const isUploading = ref(false);
 const result = ref<TorrentResult | null>(null);
@@ -432,6 +445,7 @@ function reset() {
   nfoFile.value = null;
   selectedCategoryId.value = '';
   description.value = '';
+  tags.value = [];
   isPreview.value = false;
   result.value = null;
   error.value = null;
@@ -572,6 +586,11 @@ async function upload() {
     }
     if (nfoFile.value) {
       formData.append('nfoFile', nfoFile.value);
+    }
+    if (tags.value.length > 0) {
+      // Send as JSON. The endpoint distinguishes UUIDs (admin pre-resolved
+      // ids) from free-form names and auto-creates the latter.
+      formData.append('tags', JSON.stringify(tags.value));
     }
 
     const response = await $fetch<TorrentResult>('/api/torrents', {
