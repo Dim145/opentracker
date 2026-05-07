@@ -54,8 +54,13 @@ services:
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-http://localhost:8080/announce}
       NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-}
       NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-}
+      METRICS_ENABLED: ${METRICS_ENABLED:-false}
+      METRICS_PORT: ${METRICS_PORT:-9090}
+      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
     ports:
       - "4000:4000"
+      # Uncomment to scrape from the host:
+      - "${METRICS_PORT:-9090}:${METRICS_PORT:-9090}"
     volumes:
       - uploads_data:/app/data/uploads
     networks:
