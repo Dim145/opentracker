@@ -227,13 +227,10 @@ for i in {1..15}; do
 done
 
 # =============================================================================
-# Run migrations
+# Migrations
 # =============================================================================
-log_step "Running database migrations..."
-
-# The entrypoint.sh should handle this, but we can also run manually
-docker compose -f docker-compose.local.yml --env-file "$ENV_FILE" exec -T app sh -c "cd /app && ./scripts/db-push.sh" 2>/dev/null || \
-    log_warn "Migrations may have already run via entrypoint"
+# Migrations are applied automatically at API boot by the 00.migrate Nitro
+# plugin (uses drizzle-orm's bundled migrator — no drizzle-kit at runtime).
 
 # =============================================================================
 # Print Summary

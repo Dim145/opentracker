@@ -71,13 +71,8 @@ services:
           memory: 512M
         reservations:
           memory: 128M
-    healthcheck:
-      test:
-        ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+    # Healthcheck is defined in apps/web/Dockerfile (Node-based, no shell needed
+    # because the runtime image is distroless). Compose inherits it.
 
   # =============================================================================
   # API - Nitro standalone (all /api/* routes)
@@ -136,13 +131,8 @@ services:
           memory: 512M
         reservations:
           memory: 128M
-    healthcheck:
-      test:
-        ["CMD", "wget", "-q", "--spider", "http://localhost:4000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+    # Healthcheck is defined in apps/api/Dockerfile (Node-based, no shell needed
+    # because the runtime image is distroless). Compose inherits it.
 
   # =============================================================================
   # TRACKER - BitTorrent HTTP tracker (standalone)

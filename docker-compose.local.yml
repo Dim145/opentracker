@@ -57,12 +57,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+    # Healthcheck is defined in apps/api/Dockerfile (Node-based, no shell needed
+    # because the runtime image is distroless). Compose inherits it.
 
   tracker:
     image: trackarr-tracker:latest
