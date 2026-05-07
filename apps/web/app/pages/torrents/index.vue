@@ -25,13 +25,14 @@
         </div>
 
         <!-- Actions -->
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-start gap-2">
           <SearchBar
             v-model="search"
-            placeholder="Search by name or hash..."
-            class="w-full md:w-64"
+            placeholder="Search by name, hash, or paste an IMDb / TMDb / TVDB link…"
+            class="w-full md:w-80"
             :loading="pending"
             @search="doSearch"
+            @media-id-search="doMediaIdSearch"
           />
           <button
             class="btn btn-primary flex items-center gap-2 !py-1.5"
@@ -41,6 +42,35 @@
             <span>Upload</span>
           </button>
         </div>
+      </div>
+
+      <!-- Active media-id filter chip — sits between the search bar
+           and the filter panel so it's the first thing the user sees
+           when their listing is narrowed by an external id. -->
+      <div
+        v-if="activeMediaId"
+        class="mb-4 flex items-center gap-2"
+      >
+        <span
+          class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
+        >
+          Filtered by:
+        </span>
+        <span
+          class="media-id-chip"
+          :class="`media-id-chip--${activeMediaId.source}`"
+        >
+          <span class="media-id-chip-tag">{{ activeMediaId.label }}</span>
+          <code class="media-id-chip-id">{{ activeMediaId.display }}</code>
+          <button
+            type="button"
+            class="media-id-chip-close"
+            :aria-label="`Clear ${activeMediaId.label} filter`"
+            @click="clearMediaIdFilter"
+          >
+            <Icon name="ph:x-bold" class="text-[10px]" />
+          </button>
+        </span>
       </div>
 
       <!-- Filter panel — collapsed by default, opens to expose tag toggles -->
@@ -231,6 +261,41 @@ const selectedTags = ref<string[]>(
     .filter(Boolean)
 );
 
+// External media-id filter. Backed by URL query params so the filter
+// survives reloads and can be shared as a deep link. Read on mount
+// from any of `?imdbid=`, `?tmdbid=`, `?tvdbid=`.
+const mediaIdFilter = ref<{ source: 'imdb' | 'tmdb' | 'tvdb'; id: string } | null>(
+  (() => {
+    const q = route.query;
+    if (q.imdbid) return { source: 'imdb', id: String(q.imdbid) };
+    if (q.tmdbid) return { source: 'tmdb', id: String(q.tmdbid) };
+    if (q.tvdbid) return { source: 'tvdb', id: String(q.tvdbid) };
+    return null;
+  })()
+);
+
+import {
+  detectMediaId,
+  type DetectedMediaId,
+} from '~/utils/mediaIdDetect';
+
+const activeMediaId = computed<DetectedMediaId | null>(() => {
+  const m = mediaIdFilter.value;
+  if (!m) return null;
+  // Re-detect to recover a clean display label/icon — the URL value
+  // can be any of the canonical forms we emit (`tt12345`, `tv/121361`,
+  // bare digits, …) so we feed it back through the detector.
+  return (
+    detectMediaId(m.id) ?? {
+      source: m.source,
+      id: m.id,
+      display: m.id,
+      label:
+        m.source === 'imdb' ? 'IMDb' : m.source === 'tmdb' ? 'TMDb' : 'TVDB',
+    }
+  );
+});
+
 const showUploadModal = ref(false);
 // Filter panel starts open if a tag filter is already in the URL —
 // otherwise the user wouldn't see why their listing is filtered.
@@ -245,13 +310,23 @@ const { data, refresh, pending } = await useFetch<{
   data: TorrentWithStats[];
   pagination: Pagination;
 }>('/api/torrents', {
-  query: computed(() => ({
-    page: page.value,
-    limit: 25,
-    search: search.value || undefined,
-    categoryId: selectedCategory.value || undefined,
-    tag: selectedTags.value.length > 0 ? selectedTags.value.join(',') : undefined,
-  })),
+  query: computed(() => {
+    const m = mediaIdFilter.value;
+    return {
+      page: page.value,
+      limit: 25,
+      search: search.value || undefined,
+      categoryId: selectedCategory.value || undefined,
+      tag: selectedTags.value.length > 0
+        ? selectedTags.value.join(',')
+        : undefined,
+      // Only one media-id filter is active at a time; passing only
+      // the matching key keeps the request short and the schema happy.
+      imdbid: m?.source === 'imdb' ? m.id : undefined,
+      tmdbid: m?.source === 'tmdb' ? m.id : undefined,
+      tvdbid: m?.source === 'tvdb' ? m.id : undefined,
+    };
+  }),
 });
 
 function onUploaded() {
@@ -263,19 +338,45 @@ const pagination = computed(
   () => data.value?.pagination ?? { page: 1, limit: 25, total: 0, pages: 0 }
 );
 
+function buildQuery(extra: Record<string, string | undefined> = {}) {
+  const m = mediaIdFilter.value;
+  return {
+    search: search.value || undefined,
+    categoryId: selectedCategory.value || undefined,
+    tag:
+      selectedTags.value.length > 0
+        ? selectedTags.value.join(',')
+        : undefined,
+    imdbid: m?.source === 'imdb' ? m.id : undefined,
+    tmdbid: m?.source === 'tmdb' ? m.id : undefined,
+    tvdbid: m?.source === 'tvdb' ? m.id : undefined,
+    page: undefined,
+    ...extra,
+  };
+}
+
 function doSearch() {
   page.value = 1;
-  router.push({
-    query: {
-      search: search.value || undefined,
-      categoryId: selectedCategory.value || undefined,
-      tag:
-        selectedTags.value.length > 0
-          ? selectedTags.value.join(',')
-          : undefined,
-      page: undefined,
-    },
-  });
+  router.push({ query: buildQuery() });
+  refresh();
+}
+
+function doMediaIdSearch(detected: DetectedMediaId) {
+  // A media-id submission supersedes the text search — running both
+  // would be confusing and the API treats them as independent narrows
+  // anyway. Clear the text input + adopt the detected id as the
+  // sole filter.
+  search.value = '';
+  mediaIdFilter.value = { source: detected.source, id: detected.id };
+  page.value = 1;
+  router.push({ query: buildQuery() });
+  refresh();
+}
+
+function clearMediaIdFilter() {
+  mediaIdFilter.value = null;
+  page.value = 1;
+  router.push({ query: buildQuery() });
   refresh();
 }
 
@@ -288,6 +389,7 @@ function clearFilters() {
   search.value = '';
   selectedCategory.value = '';
   selectedTags.value = [];
+  mediaIdFilter.value = null;
   doSearch();
 }
 
@@ -347,5 +449,66 @@ function goToPage(p: number) {
   @apply text-text-primary;
   /* active background/border come from the inline tint in activeTagStyle —
      this class only handles the default-state override. */
+}
+
+/* Active media-id filter chip — same brand-colour palette as the
+   detail-page badges, with a close button. */
+.media-id-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem 0.3rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.media-id-chip--imdb {
+  background: rgba(245, 197, 24, 0.1);
+  border-color: rgba(245, 197, 24, 0.45);
+}
+.media-id-chip--tmdb {
+  background: rgba(1, 180, 228, 0.1);
+  border-color: rgba(1, 180, 228, 0.45);
+}
+.media-id-chip--tvdb {
+  background: rgba(108, 209, 97, 0.1);
+  border-color: rgba(108, 209, 97, 0.45);
+}
+.media-id-chip-tag {
+  font-weight: 800;
+}
+.media-id-chip--imdb .media-id-chip-tag {
+  color: #f5c518;
+}
+.media-id-chip--tmdb .media-id-chip-tag {
+  color: #01b4e4;
+}
+.media-id-chip--tvdb .media-id-chip-tag {
+  color: #6cd161;
+}
+.media-id-chip-id {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgb(var(--fg-default));
+  font-weight: 600;
+  font-size: 11px;
+}
+.media-id-chip-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 9999px;
+  color: rgb(var(--fg-muted));
+  transition: all 0.15s ease;
+}
+.media-id-chip-close:hover {
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--fg-default) / 0.1);
 }
 </style>

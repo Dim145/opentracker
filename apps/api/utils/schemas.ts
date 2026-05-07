@@ -90,6 +90,14 @@ export const torrentQuerySchema = z.object({
   search: z.string().max(255).optional(),
   // Comma-separated tag slugs/names — matches torrents that carry ALL.
   tag: z.string().max(255).optional(),
+  // External media-database filters. Same semantic as the Torznab
+  // endpoint's params (Sonarr / Radarr already use those server-side);
+  // exposing them here is what makes the smart search bar work for
+  // human users. Each one accepts a bare id, a `tt`-prefixed IMDb id,
+  // or a full URL — `normalizeMediaId` collapses all forms.
+  imdbid: z.string().max(255).optional(),
+  tmdbid: z.string().max(255).optional(),
+  tvdbid: z.string().max(255).optional(),
   sortBy: z
     .enum(['uploaded', 'name', 'size', 'seeders', 'leechers'])
     .default('uploaded'),

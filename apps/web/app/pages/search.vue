@@ -19,11 +19,40 @@
         <div class="max-w-2xl lg:mx-0 mx-auto">
           <SearchBar
             v-model="searchQuery"
-            placeholder="Search by name or infohash..."
+            placeholder="Search by name, hash, or paste an IMDb / TMDb / TVDB link…"
             size="lg"
             :loading="pending"
             @search="handleSearch"
+            @media-id-search="handleMediaIdSearch"
           />
+        </div>
+
+        <!-- Active media-id filter — same chip pattern as /torrents,
+             scaled for the larger search hero. -->
+        <div
+          v-if="activeMediaId"
+          class="max-w-2xl lg:mx-0 mx-auto mt-3 flex items-center gap-2"
+        >
+          <span
+            class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
+          >
+            Filtered by:
+          </span>
+          <span
+            class="media-id-chip"
+            :class="`media-id-chip--${activeMediaId.source}`"
+          >
+            <span class="media-id-chip-tag">{{ activeMediaId.label }}</span>
+            <code class="media-id-chip-id">{{ activeMediaId.display }}</code>
+            <button
+              type="button"
+              class="media-id-chip-close"
+              :aria-label="`Clear ${activeMediaId.label} filter`"
+              @click="clearMediaIdFilter"
+            >
+              <Icon name="ph:x-bold" class="text-[10px]" />
+            </button>
+          </span>
         </div>
 
         <!-- Filter panel — collapsed by default; tag toggles live here. -->
@@ -105,7 +134,12 @@
 
       <!-- Results Section -->
       <div
-        v-if="searchQuery || selectedCategory || selectedTags.length > 0"
+        v-if="
+          searchQuery ||
+          selectedCategory ||
+          selectedTags.length > 0 ||
+          activeMediaId
+        "
         class="space-y-6"
       >
         <div class="flex items-center justify-between px-1">
@@ -252,6 +286,36 @@ const selectedTags = ref<string[]>(
 const filtersOpen = ref(selectedTags.value.length > 0);
 const page = ref(parseInt((route.query.p as string) || '1', 10));
 
+import {
+  detectMediaId,
+  type DetectedMediaId,
+  type MediaIdSource,
+} from '~/utils/mediaIdDetect';
+
+const mediaIdFilter = ref<{ source: MediaIdSource; id: string } | null>(
+  (() => {
+    const q = route.query;
+    if (q.imdbid) return { source: 'imdb', id: String(q.imdbid) };
+    if (q.tmdbid) return { source: 'tmdb', id: String(q.tmdbid) };
+    if (q.tvdbid) return { source: 'tvdb', id: String(q.tvdbid) };
+    return null;
+  })()
+);
+
+const activeMediaId = computed<DetectedMediaId | null>(() => {
+  const m = mediaIdFilter.value;
+  if (!m) return null;
+  return (
+    detectMediaId(m.id) ?? {
+      source: m.source,
+      id: m.id,
+      display: m.id,
+      label:
+        m.source === 'imdb' ? 'IMDb' : m.source === 'tmdb' ? 'TMDb' : 'TVDB',
+    }
+  );
+});
+
 // Fetch categories
 const { data: categories } = await useFetch<any[]>('/api/categories');
 const { data: allTags } = await useFetch<TorrentTag[]>('/api/tags');
@@ -270,19 +334,26 @@ const {
     pages: number;
   };
 }>('/api/torrents', {
-  query: computed(() => ({
-    // Coerce empty strings to undefined — the API's Zod schema requires
-    // min(1) on `search` and `categoryId`, so passing the literal empty
-    // string fails validation and the fetch returns 400. The /torrents
-    // page already does this; we mirror it here.
-    search: searchQuery.value || undefined,
-    categoryId: selectedCategory.value || undefined,
-    tag:
-      selectedTags.value.length > 0 ? selectedTags.value.join(',') : undefined,
-    page: page.value,
-    limit: 20,
-  })),
-  watch: [searchQuery, selectedCategory, selectedTags, page],
+  query: computed(() => {
+    const m = mediaIdFilter.value;
+    return {
+      // Coerce empty strings to undefined — the API's Zod schema requires
+      // min(1) on `search` and `categoryId`, so passing the literal empty
+      // string fails validation and the fetch returns 400.
+      search: searchQuery.value || undefined,
+      categoryId: selectedCategory.value || undefined,
+      tag:
+        selectedTags.value.length > 0
+          ? selectedTags.value.join(',')
+          : undefined,
+      imdbid: m?.source === 'imdb' ? m.id : undefined,
+      tmdbid: m?.source === 'tmdb' ? m.id : undefined,
+      tvdbid: m?.source === 'tvdb' ? m.id : undefined,
+      page: page.value,
+      limit: 20,
+    };
+  }),
+  watch: [searchQuery, selectedCategory, selectedTags, mediaIdFilter, page],
 });
 
 // Fetch trending (just recent for now)
@@ -319,6 +390,7 @@ function goToPage(p: number) {
 }
 
 function updateUrl() {
+  const m = mediaIdFilter.value;
   router.replace({
     query: {
       q: searchQuery.value || undefined,
@@ -327,9 +399,26 @@ function updateUrl() {
         selectedTags.value.length > 0
           ? selectedTags.value.join(',')
           : undefined,
+      imdbid: m?.source === 'imdb' ? m.id : undefined,
+      tmdbid: m?.source === 'tmdb' ? m.id : undefined,
+      tvdbid: m?.source === 'tvdb' ? m.id : undefined,
       p: page.value > 1 ? page.value : undefined,
     },
   });
+}
+
+function handleMediaIdSearch(detected: DetectedMediaId) {
+  // A media-id submission supersedes the text search.
+  searchQuery.value = '';
+  mediaIdFilter.value = { source: detected.source, id: detected.id };
+  page.value = 1;
+  updateUrl();
+}
+
+function clearMediaIdFilter() {
+  mediaIdFilter.value = null;
+  page.value = 1;
+  updateUrl();
 }
 
 function toggleTag(slug: string) {
@@ -376,6 +465,15 @@ watch(
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
+    if (newQuery.imdbid) {
+      mediaIdFilter.value = { source: 'imdb', id: String(newQuery.imdbid) };
+    } else if (newQuery.tmdbid) {
+      mediaIdFilter.value = { source: 'tmdb', id: String(newQuery.tmdbid) };
+    } else if (newQuery.tvdbid) {
+      mediaIdFilter.value = { source: 'tvdb', id: String(newQuery.tvdbid) };
+    } else {
+      mediaIdFilter.value = null;
+    }
     page.value = parseInt((newQuery.p as string) || '1', 10);
   },
   { deep: true }
@@ -397,5 +495,64 @@ useHead({
 }
 .tag-toggle--active {
   @apply text-text-primary;
+}
+
+.media-id-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem 0.3rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.media-id-chip--imdb {
+  background: rgba(245, 197, 24, 0.1);
+  border-color: rgba(245, 197, 24, 0.45);
+}
+.media-id-chip--tmdb {
+  background: rgba(1, 180, 228, 0.1);
+  border-color: rgba(1, 180, 228, 0.45);
+}
+.media-id-chip--tvdb {
+  background: rgba(108, 209, 97, 0.1);
+  border-color: rgba(108, 209, 97, 0.45);
+}
+.media-id-chip-tag {
+  font-weight: 800;
+}
+.media-id-chip--imdb .media-id-chip-tag {
+  color: #f5c518;
+}
+.media-id-chip--tmdb .media-id-chip-tag {
+  color: #01b4e4;
+}
+.media-id-chip--tvdb .media-id-chip-tag {
+  color: #6cd161;
+}
+.media-id-chip-id {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgb(var(--fg-default));
+  font-weight: 600;
+  font-size: 11px;
+}
+.media-id-chip-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 9999px;
+  color: rgb(var(--fg-muted));
+  transition: all 0.15s ease;
+}
+.media-id-chip-close:hover {
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--fg-default) / 0.1);
 }
 </style>

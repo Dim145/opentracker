@@ -3,6 +3,7 @@ import { getStats } from '~~/utils/server';
 import { desc, eq, ilike, sql, and, or, inArray } from 'drizzle-orm';
 import { validateQuery, torrentQuerySchema } from '~~/utils/schemas';
 import { slugifyTag } from '~~/utils/tags';
+import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
 
 export default defineEventHandler(async (event) => {
   // Require authentication
@@ -56,6 +57,37 @@ export default defineEventHandler(async (event) => {
           ...subcategories.map((subcat) => eq(schema.torrents.categoryId, subcat.id))
       )
     );
+  }
+
+  // External media-id filters. Mirror the Torznab handler so a user
+  // pasting an IMDb URL into the search bar finds the same torrents
+  // Sonarr/Radarr would. Unparseable input → `WHERE false` rather
+  // than silently widening to "ignore the filter".
+  if (query.imdbid) {
+    const norm = normalizeMediaId('imdb', query.imdbid);
+    conditions.push(norm ? eq(schema.torrents.imdbId, norm) : sql`false`);
+  }
+  if (query.tmdbid) {
+    // Stored TMDb id may carry a `tv/` or `movie/` prefix; bare query
+    // values must still match. Same pattern as the Torznab handler.
+    const norm = normalizeMediaId('tmdb', query.tmdbid);
+    const bare = norm ? tmdbIdBare(norm) : null;
+    if (norm && bare) {
+      conditions.push(
+        or(
+          eq(schema.torrents.tmdbId, norm),
+          eq(schema.torrents.tmdbId, bare),
+          eq(schema.torrents.tmdbId, `movie/${bare}`),
+          eq(schema.torrents.tmdbId, `tv/${bare}`)
+        )!
+      );
+    } else {
+      conditions.push(sql`false`);
+    }
+  }
+  if (query.tvdbid) {
+    const norm = normalizeMediaId('tvdb', query.tvdbid);
+    conditions.push(norm ? eq(schema.torrents.tvdbId, norm) : sql`false`);
   }
 
   // Tag filter — `?tag=fhd,bluray` returns torrents that carry every tag in
