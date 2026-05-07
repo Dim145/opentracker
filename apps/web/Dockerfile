@@ -5,13 +5,13 @@
 # (Nuxt inlines its node_modules at build time), so the runtime image
 # carries only that bundle and a small Node-based healthcheck.
 #
-# Base is gcr.io/distroless/nodejs20-debian12:nonroot — no /bin/sh, no apt,
+# Base is gcr.io/distroless/nodejs24-debian13:nonroot — no /bin/sh, no apt,
 # no package manager, runs as uid 65532, signed by Google.
 
 # -----------------------------------------------------------------------------
 # Install dependencies (cached on package.json + lockfile)
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
@@ -22,7 +22,7 @@ RUN pnpm install --filter "@trackarr/web..." --frozen-lockfile
 # -----------------------------------------------------------------------------
 # Build the Nuxt app (produces apps/web/.output)
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -36,7 +36,7 @@ RUN pnpm --filter @trackarr/web build
 # Final runtime — distroless nonroot
 # Entrypoint of this base image is `/nodejs/bin/node`; CMD is just the script.
 # -----------------------------------------------------------------------------
-FROM gcr.io/distroless/nodejs20-debian12:nonroot AS runner
+FROM gcr.io/distroless/nodejs24-debian13:nonroot AS runner
 WORKDIR /app
 
 COPY --from=builder --chown=nonroot:nonroot /app/apps/web/.output ./.output

@@ -14,13 +14,13 @@
 # corepack + the api's build deps just to expose a single CLI invocation;
 # this trims it down to what's actually needed at boot.
 #
-# Base is gcr.io/distroless/nodejs20-debian12:nonroot — no /bin/sh, no apt,
+# Base is gcr.io/distroless/nodejs24-debian13:nonroot — no /bin/sh, no apt,
 # runs as uid 65532, signed by Google.
 
 # -----------------------------------------------------------------------------
 # Install dependencies for the API build (cached on package.json + lockfile)
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
@@ -32,7 +32,7 @@ RUN pnpm install --filter "@trackarr/api..." --frozen-lockfile
 # -----------------------------------------------------------------------------
 # Build Nitro (produces apps/api/.output, fully self-contained)
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -48,7 +48,7 @@ RUN pnpm --filter @trackarr/api build
 # `drizzle-kit push --force` against schema.ts. Hoisted into /db-tools so it
 # stays isolated from the Nitro bundle's own (inlined) node_modules.
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS db-tools
+FROM node:24-alpine AS db-tools
 RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
 WORKDIR /db-tools
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
@@ -70,7 +70,7 @@ RUN find node_modules \
 # Final runtime — distroless nonroot
 # Entrypoint of this base image is `/nodejs/bin/node`; CMD is just the script.
 # -----------------------------------------------------------------------------
-FROM gcr.io/distroless/nodejs20-debian12:nonroot AS runner
+FROM gcr.io/distroless/nodejs24-debian13:nonroot AS runner
 WORKDIR /app
 
 COPY --from=builder --chown=nonroot:nonroot /app/apps/api/.output ./.output
