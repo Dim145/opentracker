@@ -99,6 +99,13 @@ export const torrents = pgTable(
     torrentData: bytea('torrent_data'), // Raw .torrent file for download
     uploaderId: text('uploader_id').references(() => users.id),
     categoryId: text('category_id').references(() => categories.id),
+    // External media-database tags (issue #47). Stored as canonical ids
+    // — `imdb_id` keeps the `tt` prefix, `tmdb_id` and `tvdb_id` are
+    // pure digits. *Arr clients use these to match torrents against
+    // their library; the upload form normalises raw URLs into these.
+    imdbId: text('imdb_id'),
+    tmdbId: text('tmdb_id'),
+    tvdbId: text('tvdb_id'),
     isActive: boolean('is_active').default(true).notNull(),
     isApproved: boolean('is_approved').default(false).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -107,6 +114,9 @@ export const torrents = pgTable(
     uniqueIndex('torrents_info_hash_idx').on(table.infoHash),
     index('torrents_uploader_idx').on(table.uploaderId),
     index('torrents_category_idx').on(table.categoryId),
+    index('torrents_imdb_idx').on(table.imdbId),
+    index('torrents_tmdb_idx').on(table.tmdbId),
+    index('torrents_tvdb_idx').on(table.tvdbId),
     index('torrents_name_trgm_idx').using(
       'gist',
       sql`${table.name} gist_trgm_ops`

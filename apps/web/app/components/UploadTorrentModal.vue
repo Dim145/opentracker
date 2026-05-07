@@ -101,6 +101,60 @@
               </select>
             </div>
 
+            <!-- Media-database IDs (optional). Pasting a full URL works
+                 too — the API normalises everything down to the bare id. -->
+            <details class="group">
+              <summary
+                class="text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong cursor-pointer flex items-center gap-2 ml-1 list-none"
+              >
+                <Icon
+                  name="ph:caret-right-bold"
+                  class="text-[8px] transition-transform group-open:rotate-90"
+                />
+                Media IDs (optional)
+              </summary>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+                <input
+                  v-model="imdbId"
+                  type="text"
+                  class="input w-full !py-2 text-xs font-mono"
+                  placeholder="IMDb · tt1234567"
+                />
+                <input
+                  v-model="tmdbId"
+                  type="text"
+                  class="input w-full !py-2 text-xs font-mono"
+                  placeholder="TMDb · 12345 or tv/12345"
+                />
+                <input
+                  v-model="tvdbId"
+                  type="text"
+                  class="input w-full !py-2 text-xs font-mono"
+                  placeholder="TVDB · 78804"
+                />
+              </div>
+              <div class="flex items-center gap-2 mt-2">
+                <button
+                  type="button"
+                  class="text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  :disabled="!hasAnyMediaId || lookupPending"
+                  @click="runLookup"
+                >
+                  <Icon
+                    :name="lookupPending ? 'ph:circle-notch' : 'ph:magic-wand'"
+                    :class="{ 'animate-spin': lookupPending }"
+                  />
+                  {{ lookupPending ? 'Looking up…' : 'Lookup metadata' }}
+                </button>
+                <span v-if="lookupError" class="text-[10px] text-error">
+                  {{ lookupError }}
+                </span>
+              </div>
+              <div v-if="lookupResult" class="mt-3">
+                <MediaMetadataCard :metadata="lookupResult" size="compact" />
+              </div>
+            </details>
+
             <!-- Description -->
             <div class="space-y-2">
               <label
@@ -306,6 +360,80 @@ const nfoFile = ref<File | null>(null);
 const selectedCategoryId = ref('');
 const description = ref('');
 const tags = ref<string[]>([]);
+const imdbId = ref('');
+const tmdbId = ref('');
+const tvdbId = ref('');
+const hasAnyMediaId = computed(
+  () => !!(imdbId.value.trim() || tmdbId.value.trim() || tvdbId.value.trim())
+);
+const lookupPending = ref(false);
+const lookupError = ref<string | null>(null);
+const lookupResult = ref<any>(null);
+
+function findCategory(cats: any[], id: string): any {
+  for (const c of cats) {
+    if (c.id === id) return c;
+    if (c.subcategories) {
+      const found = findCategory(c.subcategories, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function categoryTypeHint(): 'movie' | 'tv' | undefined {
+  const id = selectedCategoryId.value;
+  if (!id || !categories.value) return undefined;
+  const cat = findCategory(categories.value as any[], id);
+  if (!cat) return undefined;
+  const nz = cat.newznabId;
+  if (typeof nz === 'number') {
+    if (nz >= 5000 && nz < 6000) return 'tv';
+    if (nz >= 2000 && nz < 3000) return 'movie';
+  }
+  const text = `${cat.slug || ''} ${cat.name || ''}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+  if (/\b(?:tv|seri|episod|saison|season|show|anime)/.test(text)) return 'tv';
+  if (/\b(?:movie|film|cinema|cine)/.test(text)) return 'movie';
+  return undefined;
+}
+
+async function runLookup() {
+  const params: Record<string, string> | null = tmdbId.value.trim()
+    ? { source: 'tmdb', id: tmdbId.value.trim() }
+    : imdbId.value.trim()
+      ? { source: 'imdb', id: imdbId.value.trim() }
+      : tvdbId.value.trim()
+        ? { source: 'tvdb', id: tvdbId.value.trim() }
+        : null;
+  if (!params) return;
+  const type = categoryTypeHint();
+  if (type) params.type = type;
+
+  lookupPending.value = true;
+  lookupError.value = null;
+  try {
+    const res = await $fetch<{
+      enabled: boolean;
+      found: boolean;
+      metadata: any;
+    }>('/api/metadata/lookup', { query: params });
+    if (!res.enabled) {
+      lookupError.value = 'Metadata lookup is not configured.';
+    } else if (!res.found) {
+      lookupError.value = `No match for ${params.source.toUpperCase()} ${params.id}`;
+    } else {
+      lookupResult.value = res.metadata;
+    }
+  } catch (err: any) {
+    lookupError.value =
+      err?.data?.message || err?.message || 'Lookup failed';
+  } finally {
+    lookupPending.value = false;
+  }
+}
 const isUploading = ref(false);
 const result = ref<TorrentResult | null>(null);
 const error = ref<string | null>(null);
@@ -346,9 +474,14 @@ function reset() {
   selectedCategoryId.value = '';
   description.value = '';
   tags.value = [];
+  imdbId.value = '';
+  tmdbId.value = '';
+  tvdbId.value = '';
   result.value = null;
   error.value = null;
   copied.value = false;
+  lookupResult.value = null;
+  lookupError.value = null;
 }
 
 function triggerFileInput() {
@@ -427,6 +560,9 @@ async function upload() {
       // ids) from free-form names and auto-creates the latter.
       formData.append('tags', JSON.stringify(tags.value));
     }
+    if (imdbId.value.trim()) formData.append('imdbId', imdbId.value.trim());
+    if (tmdbId.value.trim()) formData.append('tmdbId', tmdbId.value.trim());
+    if (tvdbId.value.trim()) formData.append('tvdbId', tvdbId.value.trim());
 
     const response = await $fetch<TorrentResult>('/api/torrents', {
       method: 'POST',

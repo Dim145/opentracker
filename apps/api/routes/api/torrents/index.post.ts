@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import parseTorrent from 'parse-torrent';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { resolveTagsByName, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
+import { normalizeMediaId } from '~~/utils/mediaIds';
 
 export default defineEventHandler(async (event) => {
   // Require authentication
@@ -31,6 +32,21 @@ export default defineEventHandler(async (event) => {
     .find((f) => f.name === 'description')
     ?.data.toString();
   const tagsRaw = formData.find((f) => f.name === 'tags')?.data.toString();
+  // External media-database tags. Each is normalised (URL → bare id);
+  // non-matching input is silently dropped to null rather than 400ing
+  // since the user can fix the field afterwards via Edit.
+  const imdbId = normalizeMediaId(
+    'imdb',
+    formData.find((f) => f.name === 'imdbId')?.data.toString()
+  );
+  const tmdbId = normalizeMediaId(
+    'tmdb',
+    formData.find((f) => f.name === 'tmdbId')?.data.toString()
+  );
+  const tvdbId = normalizeMediaId(
+    'tvdb',
+    formData.find((f) => f.name === 'tvdbId')?.data.toString()
+  );
   // NFO can arrive either as a `.nfo` file part or as a plain `nfo` string
   // (e.g. user pasted the contents into a textarea). Cap at 256KB so we
   // can't be used to dump arbitrary blobs into the row.
@@ -139,6 +155,9 @@ export default defineEventHandler(async (event) => {
     torrentData: Buffer.from(file.data),
     uploaderId: user.id, // Set uploader from authenticated user
     categoryId: categoryId || null,
+    imdbId,
+    tmdbId,
+    tvdbId,
     isActive: true,
     isApproved: canBypassModeration,
     createdAt: now,

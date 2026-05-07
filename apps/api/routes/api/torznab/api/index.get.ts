@@ -13,7 +13,7 @@ import type { H3Event } from 'h3';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
-import { desc, eq, ilike, and, inArray, sql } from 'drizzle-orm';
+import { desc, eq, ilike, and, or, inArray, sql } from 'drizzle-orm';
 import { authenticateTorznab, sendTorznabError } from '../utils/auth';
 import {
   buildCapsXml,
@@ -37,6 +37,7 @@ import {
   isTorznabUserBlocked,
   trackRateLimitHit,
 } from '~~/utils/torznabStats';
+import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
 
 // Query schema for Torznab requests
 const torznabQuerySchema = z.object({
@@ -50,8 +51,10 @@ const torznabQuerySchema = z.object({
   season: z.string().optional(),
   ep: z.string().optional(),
   tvdbid: z.string().optional(),
-  // Movie search params
+  // Movie / common search params (Sonarr+Radarr send these to match a
+  // release against their library — see issue #47).
   imdbid: z.string().optional(),
+  tmdbid: z.string().optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -235,29 +238,21 @@ async function handleTvSearch(
 
 /**
  * Handle t=movie - Movie-specific search
- * Supports IMDB ID
+ * Supports IMDB and TMDb ids — each is matched against the stored
+ * torrent column directly, so a release with `imdbId=tt1234567` shows
+ * up regardless of whether `tt1234567` appears in its title.
  */
 async function handleMovieSearch(
   event: H3Event,
   query: z.infer<typeof torznabQuerySchema>,
   user: { passkey: string }
 ) {
-  let searchQuery = query.q || '';
-
-  // IMDB ID support - for now, just include it in search
-  // Full support would require IMDB field in torrents table
-  if (query.imdbid) {
-    // Clean IMDB ID format (tt1234567 -> 1234567)
-    const imdbNum = query.imdbid.replace(/^tt/i, '');
-    searchQuery += ` ${imdbNum}`;
-  }
-
   // Force Movie categories if none specified
   if (!query.cat) {
     query.cat = '2000'; // Movies main category
   }
 
-  return performSearch(event, { ...query, q: searchQuery.trim() }, user);
+  return performSearch(event, query, user);
 }
 
 /**
@@ -283,6 +278,42 @@ async function performSearch(
         and(...terms.map((term) => ilike(schema.torrents.name, `%${term}%`)))
       );
     }
+  }
+
+  // External media-database filters. *Arr clients send these on every
+  // search to match a release against their library — answering with
+  // unrelated torrents poisons their automation.
+  if (query.imdbid) {
+    const norm = normalizeMediaId('imdb', query.imdbid);
+    conditions.push(
+      norm ? eq(schema.torrents.imdbId, norm) : sql`false`
+    );
+  }
+  if (query.tmdbid) {
+    // Sonarr / Radarr send bare TMDb digits ("121361") but our column
+    // may store either bare or a `tv/`/`movie/` prefixed form (an
+    // operator can encode the type to disambiguate the two TMDb
+    // namespaces). Match all three shapes against whatever's stored.
+    const norm = normalizeMediaId('tmdb', query.tmdbid);
+    const bare = norm ? tmdbIdBare(norm) : null;
+    if (norm && bare) {
+      conditions.push(
+        or(
+          eq(schema.torrents.tmdbId, norm),
+          eq(schema.torrents.tmdbId, bare),
+          eq(schema.torrents.tmdbId, `movie/${bare}`),
+          eq(schema.torrents.tmdbId, `tv/${bare}`)
+        )!
+      );
+    } else {
+      conditions.push(sql`false`);
+    }
+  }
+  if (query.tvdbid) {
+    const norm = normalizeMediaId('tvdb', query.tvdbid);
+    conditions.push(
+      norm ? eq(schema.torrents.tvdbId, norm) : sql`false`
+    );
   }
 
   // Category filter
@@ -341,6 +372,12 @@ async function performSearch(
         downloadUrl: `${baseUrl}/api/torznab/download?id=${torrent.infoHash}&apikey=${user.passkey}`,
         downloadVolumeFactor: 1, // Could be enhanced with freeleech support
         uploadVolumeFactor: 1,
+        imdbId: torrent.imdbId ?? undefined,
+        // Strip any `tv/` / `movie/` prefix before emitting — the
+        // Torznab spec expects bare digits and *Arr clients won't
+        // match against a prefixed value.
+        tmdbId: tmdbIdBare(torrent.tmdbId) ?? undefined,
+        tvdbId: torrent.tvdbId ?? undefined,
       };
     })
   );

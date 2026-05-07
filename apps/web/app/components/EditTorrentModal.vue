@@ -64,6 +64,62 @@
             </select>
           </div>
 
+          <!-- Media-database IDs -->
+          <details class="group" :open="hasAnyMediaId">
+            <summary
+              class="text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong cursor-pointer flex items-center gap-2 ml-1 list-none"
+            >
+              <Icon
+                name="ph:caret-right-bold"
+                class="text-[8px] transition-transform group-open:rotate-90"
+              />
+              Media IDs (optional)
+            </summary>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+              <input
+                v-model="imdbId"
+                type="text"
+                class="input w-full !py-2 text-xs font-mono"
+                placeholder="IMDb · tt1234567"
+              />
+              <input
+                v-model="tmdbId"
+                type="text"
+                class="input w-full !py-2 text-xs font-mono"
+                placeholder="TMDb · 12345 or tv/12345"
+              />
+              <input
+                v-model="tvdbId"
+                type="text"
+                class="input w-full !py-2 text-xs font-mono"
+                placeholder="TVDB · 78804"
+              />
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+              <button
+                type="button"
+                class="text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="!hasAnyMediaId || lookupPending"
+                @click="runLookup"
+              >
+                <Icon
+                  :name="lookupPending ? 'ph:circle-notch' : 'ph:magic-wand'"
+                  :class="{ 'animate-spin': lookupPending }"
+                />
+                {{ lookupPending ? 'Looking up…' : 'Lookup metadata' }}
+              </button>
+              <span
+                v-if="lookupError"
+                class="text-[10px] text-error"
+              >
+                {{ lookupError }}
+              </span>
+            </div>
+            <div v-if="lookupResult" class="mt-3">
+              <MediaMetadataCard :metadata="lookupResult" size="compact" />
+            </div>
+          </details>
+
           <!-- Description -->
           <div class="space-y-2">
             <label
@@ -181,6 +237,9 @@ interface TorrentData {
   nfo: string | null;
   categoryId: string | null;
   tags?: Array<{ id: string; name: string; slug: string; color: string }>;
+  imdbId?: string | null;
+  tmdbId?: string | null;
+  tvdbId?: string | null;
 }
 
 const props = defineProps<{
@@ -198,9 +257,95 @@ const selectedCategoryId = ref('');
 const description = ref('');
 const nfo = ref('');
 const tagNames = ref<string[]>([]);
+const imdbId = ref('');
+const tmdbId = ref('');
+const tvdbId = ref('');
 const isSaving = ref(false);
 const error = ref<string | null>(null);
 const NFO_MAX_BYTES = 256 * 1024;
+
+const hasAnyMediaId = computed(
+  () => !!(imdbId.value || tmdbId.value || tvdbId.value)
+);
+
+const lookupPending = ref(false);
+const lookupError = ref<string | null>(null);
+const lookupResult = ref<any>(null);
+
+// Walk the categories tree to find the one matching the modal's
+// current selection, then map its Newznab id to a TMDb namespace
+// hint. Without this, looking up `121361` on a TV show whose category
+// is mis-set as Movies would resolve to whatever movie shares that id.
+function findCategory(
+  cats: any[],
+  id: string
+): { newznabId?: number | null } | null {
+  for (const c of cats) {
+    if (c.id === id) return c;
+    if (c.subcategories) {
+      const found = findCategory(c.subcategories, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function categoryTypeHint(): 'movie' | 'tv' | undefined {
+  const id = selectedCategoryId.value;
+  if (!id || !categories.value) return undefined;
+  const cat = findCategory(categories.value as any[], id);
+  if (!cat) return undefined;
+  const nz = cat.newznabId;
+  if (typeof nz === 'number') {
+    if (nz >= 5000 && nz < 6000) return 'tv';
+    if (nz >= 2000 && nz < 3000) return 'movie';
+  }
+  // Slug / name fallback so custom categories without an explicit
+  // newznab_id still pick the right TMDb namespace.
+  const text = `${cat.slug || ''} ${cat.name || ''}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+  if (/\b(?:tv|seri|episod|saison|season|show|anime)/.test(text)) return 'tv';
+  if (/\b(?:movie|film|cinema|cine)/.test(text)) return 'movie';
+  return undefined;
+}
+
+async function runLookup() {
+  // Pick whichever id the user has — TMDb's /find resolves all three.
+  const params: Record<string, string> | null = tmdbId.value.trim()
+    ? { source: 'tmdb', id: tmdbId.value.trim() }
+    : imdbId.value.trim()
+      ? { source: 'imdb', id: imdbId.value.trim() }
+      : tvdbId.value.trim()
+        ? { source: 'tvdb', id: tvdbId.value.trim() }
+        : null;
+  if (!params) return;
+  const type = categoryTypeHint();
+  if (type) params.type = type;
+
+  lookupPending.value = true;
+  lookupError.value = null;
+  try {
+    const res = await $fetch<{
+      enabled: boolean;
+      found: boolean;
+      metadata: any;
+    }>('/api/metadata/lookup', { query: params });
+    if (!res.enabled) {
+      lookupError.value = 'Metadata lookup is not configured.';
+    } else if (!res.found) {
+      lookupError.value = `No match for ${params.source.toUpperCase()} ${params.id}`;
+    } else {
+      lookupResult.value = res.metadata;
+    }
+  } catch (err: any) {
+    lookupError.value =
+      err?.data?.message || err?.message || 'Lookup failed';
+  } finally {
+    lookupPending.value = false;
+  }
+}
 
 const { data: categories } = await useFetch<Category[]>('/api/categories');
 
@@ -213,6 +358,9 @@ watch(
       description.value = torrent.description || '';
       nfo.value = torrent.nfo || '';
       tagNames.value = torrent.tags?.map((t) => t.name) ?? [];
+      imdbId.value = torrent.imdbId || '';
+      tmdbId.value = torrent.tmdbId || '';
+      tvdbId.value = torrent.tvdbId || '';
     }
   },
   { immediate: true }
@@ -227,7 +375,12 @@ watch(
       description.value = props.torrent.description || '';
       nfo.value = props.torrent.nfo || '';
       tagNames.value = props.torrent.tags?.map((t) => t.name) ?? [];
+      imdbId.value = props.torrent.imdbId || '';
+      tmdbId.value = props.torrent.tmdbId || '';
+      tvdbId.value = props.torrent.tvdbId || '';
       error.value = null;
+      lookupResult.value = null;
+      lookupError.value = null;
     }
   }
 );
@@ -290,6 +443,9 @@ async function save() {
         description: description.value,
         categoryId: selectedCategoryId.value || null,
         nfo: nfo.value,
+        imdbId: imdbId.value.trim() || null,
+        tmdbId: tmdbId.value.trim() || null,
+        tvdbId: tvdbId.value.trim() || null,
       }),
     }).then(async (res) => {
       if (!res.ok) {

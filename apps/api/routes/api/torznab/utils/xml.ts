@@ -82,9 +82,9 @@ export function buildCapsXml(config: CapsConfig): string {
   <registration available="no" open="no"/>
 
   <searching>
-    <search available="yes" supportedParams="q"/>
-    <tv-search available="yes" supportedParams="q,season,ep"/>
-    <movie-search available="yes" supportedParams="q,imdbid"/>
+    <search available="yes" supportedParams="q,imdbid,tmdbid,tvdbid"/>
+    <tv-search available="yes" supportedParams="q,season,ep,tvdbid,imdbid,tmdbid"/>
+    <movie-search available="yes" supportedParams="q,imdbid,tmdbid"/>
     <audio-search available="no"/>
     <book-search available="no"/>
   </searching>
@@ -114,7 +114,13 @@ export interface TorznabItem {
   downloadUrl: string;
   downloadVolumeFactor?: number; // 0 = freeleech, 1 = normal
   uploadVolumeFactor?: number; // 1 = normal, 2 = double upload
+  // Torznab predefined external-id attributes (issue #47). Sonarr /
+  // Radarr / Lidarr use these to match a release against their own
+  // library. We pass them through as-is — IMDb keeps its `tt` prefix,
+  // TMDb / TVDB are bare digits.
   imdbId?: string;
+  tmdbId?: string;
+  tvdbId?: string;
 }
 
 export interface TorznabFeed {
@@ -141,6 +147,16 @@ export function buildSearchXml(feed: TorznabFeed): string {
       if (item.imdbId) {
         attrs.push(
           `      <torznab:attr name="imdbid" value="${escapeXml(item.imdbId)}"/>`
+        );
+      }
+      if (item.tmdbId) {
+        attrs.push(
+          `      <torznab:attr name="tmdbid" value="${escapeXml(item.tmdbId)}"/>`
+        );
+      }
+      if (item.tvdbId) {
+        attrs.push(
+          `      <torznab:attr name="tvdbid" value="${escapeXml(item.tvdbId)}"/>`
         );
       }
 

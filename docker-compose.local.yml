@@ -57,6 +57,10 @@ services:
       METRICS_ENABLED: ${METRICS_ENABLED:-false}
       METRICS_PORT: ${METRICS_PORT:-9090}
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
+      # TMDb API key — when set, /api/metadata/lookup returns poster,
+      # overview, genres, etc. for an IMDb/TMDb/TVDB id. Free key:
+      # https://www.themoviedb.org/settings/api
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
     ports:
       - "4000:4000"
       # Uncomment to scrape from the host:

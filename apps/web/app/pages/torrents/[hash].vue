@@ -27,9 +27,15 @@
             <h2 class="text-2xl font-bold text-text-primary tracking-tight">
               {{ torrent.name }}
             </h2>
-            <!-- Category + Tag Badges -->
+            <!-- Category + Tag + Media-id Badges -->
             <div
-              v-if="torrent.category || torrent.tags?.length"
+              v-if="
+                torrent.category ||
+                torrent.tags?.length ||
+                torrent.imdbId ||
+                torrent.tmdbId ||
+                torrent.tvdbId
+              "
               class="mt-2 flex flex-wrap items-center gap-2"
             >
               <span
@@ -51,6 +57,45 @@
                 />
                 {{ tag.name }}
               </NuxtLink>
+
+              <!-- Media-database links — clickable badges that open the
+                   official IMDb / TMDb / TVDB page in a new tab. -->
+              <a
+                v-if="torrent.imdbId"
+                :href="`https://www.imdb.com/title/${torrent.imdbId}/`"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="media-id-badge media-id-badge--imdb"
+                :title="`IMDb · ${torrent.imdbId}`"
+              >
+                <span class="media-id-badge-tag">IMDb</span>
+                <span class="media-id-badge-id">{{ torrent.imdbId }}</span>
+                <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
+              </a>
+              <a
+                v-if="tmdbLink"
+                :href="tmdbLink.href"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="media-id-badge media-id-badge--tmdb"
+                :title="`TMDb · ${tmdbLink.label}`"
+              >
+                <span class="media-id-badge-tag">TMDb</span>
+                <span class="media-id-badge-id">{{ tmdbLink.label }}</span>
+                <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
+              </a>
+              <a
+                v-if="torrent.tvdbId"
+                :href="`https://thetvdb.com/dereferrer/series/${torrent.tvdbId}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="media-id-badge media-id-badge--tvdb"
+                :title="`TVDB · ${torrent.tvdbId}`"
+              >
+                <span class="media-id-badge-tag">TVDB</span>
+                <span class="media-id-badge-id">{{ torrent.tvdbId }}</span>
+                <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
+              </a>
             </div>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
@@ -121,6 +166,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Rich metadata card (TMDb integration). Only renders when at
+         least one external id is set AND the lookup succeeded — silent
+         no-op when integration is disabled or the id was wrong. -->
+    <MediaMetadataCard
+      v-if="metadata"
+      :metadata="metadata"
+      class="mb-6"
+    />
 
     <!-- Stats Grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -306,6 +360,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  newznabId?: number | null;
 }
 
 interface Tag {
@@ -326,6 +381,9 @@ interface TorrentDetail {
   categoryId: string | null;
   category: Category | null;
   tags?: Tag[];
+  imdbId?: string | null;
+  tmdbId?: string | null;
+  tvdbId?: string | null;
   createdAt: string;
   stats: {
     seeders: number;
@@ -343,6 +401,94 @@ const {
   error,
   refresh,
 } = await useFetch<TorrentDetail>(`/api/torrents/${hash}`);
+
+// Pick whichever external id the uploader supplied — TMDb's /find
+// resolves all three. Order matters: TMDb's own id is the most direct
+// (skips the /find redirect), IMDb is the most universally available.
+interface MediaMetadataResponse {
+  enabled: boolean;
+  found: boolean;
+  metadata: {
+    type: 'movie' | 'tv';
+    title: string;
+    originalTitle: string | null;
+    tagline: string | null;
+    year: number | null;
+    overview: string | null;
+    posterUrl: string | null;
+    backdropUrl: string | null;
+    genres: string[];
+    runtime: number | null;
+    voteAverage: number | null;
+    voteCount: number | null;
+    imdbId: string | null;
+    url: string;
+  } | null;
+}
+
+// Derive a TMDb namespace hint from the torrent's category — a
+// category mapped under the Newznab `Movies` parent (2xxx) implies a
+// movie, `TV` (5xxx) implies a series. The hint stops the lookup from
+// guessing the wrong namespace when the same numeric id exists in
+// both. Falls back to a slug/name heuristic so custom French
+// categories (`Films Français`, `Séries Françaises`, …) are still
+// classified even when the operator hasn't set a newznab_id.
+function deriveTypeHint(
+  cat:
+    | { newznabId?: number | null; slug?: string; name?: string }
+    | null
+    | undefined
+): 'movie' | 'tv' | undefined {
+  const id = cat?.newznabId;
+  if (typeof id === 'number') {
+    if (id >= 5000 && id < 6000) return 'tv';
+    if (id >= 2000 && id < 3000) return 'movie';
+  }
+  const text = `${cat?.slug || ''} ${cat?.name || ''}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+  if (/\b(?:tv|seri|episod|saison|season|show|anime)/.test(text)) return 'tv';
+  if (/\b(?:movie|film|cinema|cine)/.test(text)) return 'movie';
+  return undefined;
+}
+
+const lookupParams = computed(() => {
+  const t = torrent.value;
+  if (!t) return null;
+  const type = deriveTypeHint(t.category);
+  if (t.tmdbId) return { source: 'tmdb', id: t.tmdbId, type };
+  if (t.imdbId) return { source: 'imdb', id: t.imdbId, type };
+  if (t.tvdbId) return { source: 'tvdb', id: t.tvdbId, type };
+  return null;
+});
+
+const { data: metadataResponse } = await useFetch<MediaMetadataResponse>(
+  '/api/metadata/lookup',
+  {
+    // useFetch refetches when reactive query params change.
+    query: computed(() => {
+      const p = lookupParams.value;
+      if (!p) return {};
+      const out: Record<string, string> = { source: p.source, id: p.id };
+      if (p.type) out.type = p.type;
+      return out;
+    }),
+    // Skip the call entirely when there's nothing to look up — saves
+    // the 503 response when the operator hasn't set TMDB_API_KEY.
+    immediate: !!lookupParams.value,
+    watch: [lookupParams],
+    // Don't surface a 5xx to the page error boundary; the metadata
+    // card just won't render and the rest of the page works.
+    onResponseError({ response }) {
+      if (response.status === 503) return;
+    },
+  }
+);
+
+const metadata = computed(
+  () => metadataResponse.value?.metadata ?? null
+);
 
 // Get current user session
 const { loggedIn, user } = useUserSession();
@@ -373,7 +519,39 @@ const editableTorrent = computed(() => ({
   nfo: torrent.value?.nfo || null,
   categoryId: torrent.value?.categoryId || null,
   tags: torrent.value?.tags ?? [],
+  imdbId: torrent.value?.imdbId || null,
+  tmdbId: torrent.value?.tmdbId || null,
+  tvdbId: torrent.value?.tvdbId || null,
 }));
+
+/**
+ * Build the badge target for a TMDb id.
+ *
+ * The stored value can be a bare integer ("121361") or a prefixed form
+ * ("tv/121361" / "movie/121361") — see `normalizeTmdbId`. Without the
+ * helper we used to hardcode `/movie/` in the URL, which produced
+ * `https://www.themoviedb.org/movie/tv/57243` for prefixed ids and
+ * landed on a broken page.
+ */
+const tmdbLink = computed(() => {
+  const raw = torrent.value?.tmdbId;
+  if (!raw) return null;
+  const prefixed = raw.match(/^(movie|tv)\/(\d+)$/);
+  if (prefixed) {
+    const [, type, id] = prefixed;
+    return {
+      href: `https://www.themoviedb.org/${type}/${id}`,
+      label: id,
+    };
+  }
+  // Bare digits — fall back to the type the lookup hint resolves to,
+  // otherwise `/movie/` (TMDb redirects to the right namespace anyway).
+  const fallbackType = lookupParams.value?.type ?? 'movie';
+  return {
+    href: `https://www.themoviedb.org/${fallbackType}/${raw}`,
+    label: raw,
+  };
+});
 
 function tagBadgeStyle(tag: { color: string }) {
   // Tint the chip background with the tag's color while keeping the
@@ -460,6 +638,47 @@ async function handleSaved() {
 </script>
 
 <style scoped>
+/* Media-id badges. Each one carries a subtle tint of the database's
+   brand colour so the user can scan the trio at a glance: yellow for
+   IMDb, teal for TMDb, blue for TVDB. The tint is applied with low
+   alpha so the chip still reads on the light theme. */
+.media-id-badge {
+  @apply inline-flex items-center gap-1.5 text-[10px] font-bold uppercase
+         tracking-wider px-2 py-1 rounded-sm border transition-colors
+         text-text-primary;
+}
+.media-id-badge:hover {
+  filter: brightness(1.15);
+}
+.media-id-badge .media-id-badge-tag {
+  @apply font-extrabold;
+}
+.media-id-badge .media-id-badge-id {
+  @apply font-mono normal-case tracking-tight text-text-secondary;
+}
+
+.media-id-badge--imdb {
+  background: rgba(245, 197, 24, 0.12);
+  border-color: rgba(245, 197, 24, 0.45);
+}
+.media-id-badge--imdb .media-id-badge-tag {
+  color: #f5c518;
+}
+.media-id-badge--tmdb {
+  background: rgba(1, 180, 228, 0.12);
+  border-color: rgba(1, 180, 228, 0.45);
+}
+.media-id-badge--tmdb .media-id-badge-tag {
+  color: #01b4e4;
+}
+.media-id-badge--tvdb {
+  background: rgba(108, 209, 97, 0.12);
+  border-color: rgba(108, 209, 97, 0.45);
+}
+.media-id-badge--tvdb .media-id-badge-tag {
+  color: #6cd161;
+}
+
 .description-content :deep(img) {
   max-width: 100%;
   height: auto;

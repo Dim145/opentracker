@@ -8,6 +8,7 @@ import { db } from '@trackarr/db';
 import { torrents, categories } from '@trackarr/db/schema';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { normalizeMediaId } from '~~/utils/mediaIds';
 
 export default defineEventHandler(async (event) => {
   // Rate limit mutations
@@ -52,7 +53,7 @@ export default defineEventHandler(async (event) => {
 
   // Read body
   const body = await readBody(event);
-  const { description, categoryId, nfo } = body || {};
+  const { description, categoryId, nfo, imdbId, tmdbId, tvdbId } = body || {};
 
   // Validate categoryId if provided
   if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
@@ -86,6 +87,9 @@ export default defineEventHandler(async (event) => {
     description?: string | null;
     categoryId?: string | null;
     nfo?: string | null;
+    imdbId?: string | null;
+    tmdbId?: string | null;
+    tvdbId?: string | null;
   } = {};
 
   if (description !== undefined) {
@@ -98,6 +102,19 @@ export default defineEventHandler(async (event) => {
 
   if (nfo !== undefined) {
     updateData.nfo = typeof nfo === 'string' && nfo.length > 0 ? nfo : null;
+  }
+
+  // Media-database tags. An explicit `null`/empty string clears the
+  // field so the user can remove a wrong id; anything else gets
+  // normalised (URL → bare id) and stored or rejected silently.
+  if (imdbId !== undefined) {
+    updateData.imdbId = imdbId ? normalizeMediaId('imdb', imdbId) : null;
+  }
+  if (tmdbId !== undefined) {
+    updateData.tmdbId = tmdbId ? normalizeMediaId('tmdb', tmdbId) : null;
+  }
+  if (tvdbId !== undefined) {
+    updateData.tvdbId = tvdbId ? normalizeMediaId('tvdb', tvdbId) : null;
   }
 
   // Update the torrent
@@ -126,6 +143,9 @@ export default defineEventHandler(async (event) => {
       nfo: updated!.nfo,
       categoryId: updated!.categoryId,
       category: updated!.category,
+      imdbId: updated!.imdbId,
+      tmdbId: updated!.tmdbId,
+      tvdbId: updated!.tvdbId,
     },
   };
 });

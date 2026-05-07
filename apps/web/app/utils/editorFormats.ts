@@ -200,15 +200,39 @@ export type EditorFormat = 'markdown' | 'html' | 'bbcode';
 export function detectFormat(input: string): EditorFormat {
   const trimmed = input.trim();
   if (!trimmed) return 'markdown';
+
   // BBCode wins if we see at least one `[tag]…[/tag]` pair; the closing
   // form is what distinguishes it from a Markdown link `[label](url)`.
   if (/\[[a-z]+(?:=[^\]]+)?\][\s\S]*?\[\/[a-z]+\]/i.test(trimmed)) {
     return 'bbcode';
   }
-  // HTML: a tag with attributes or a closing tag is a strong signal.
-  if (/<[a-z][a-z0-9]*\b[^>]*>/i.test(trimmed) && /<\/?[a-z]/i.test(trimmed)) {
+
+  // Markdown-first heuristic: any commonmark-flavour syntax wins, even
+  // when the input also contains inline HTML (`<u>`, `<br>`, `<sub>` —
+  // all common in trackers that already supported some HTML on top of
+  // Markdown). Marked happily parses MD with inline HTML, but a naive
+  // "has-an-HTML-tag" probe would misclassify it as pure HTML and the
+  // markdown delimiters end up rendered literally.
+  const mdPatterns: RegExp[] = [
+    /^#{1,6}\s+/m, // ATX heading
+    /(^|\s)\*\*[^\s*][\s\S]*?\*\*/, // **bold**
+    /(^|\s)__[^\s_][\s\S]*?__/, // __bold__
+    /(^|\s)\*[^\s*][\s\S]*?\*(\s|$)/, // *italic*
+    /(^|\s)_[^\s_][\s\S]*?_(\s|$)/, // _italic_
+    /^\s*[-*+]\s+/m, // bullet list
+    /^\s*\d+\.\s+/m, // ordered list
+    /\[[^\]]+\]\([^)]+\)/, // [label](url)
+    /^>\s+/m, // blockquote
+    /```[\s\S]*?```/, // fenced code
+    /^---+$/m, // horizontal rule
+  ];
+  if (mdPatterns.some((re) => re.test(trimmed))) return 'markdown';
+
+  // HTML: at least one opening AND closing tag, no markdown syntax.
+  if (/<[a-z][a-z0-9]*\b[^>]*>/i.test(trimmed) && /<\/[a-z]/i.test(trimmed)) {
     return 'html';
   }
+
   return 'markdown';
 }
 
