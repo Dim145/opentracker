@@ -95,6 +95,7 @@ export const torrents = pgTable(
     name: text('name').notNull(),
     size: bigint('size', { mode: 'number' }).notNull(), // Bytes
     description: text('description'), // Rich text/Markdown description
+    nfo: text('nfo'), // Optional plain-text NFO release notes (preserve formatting)
     torrentData: bytea('torrent_data'), // Raw .torrent file for download
     uploaderId: text('uploader_id').references(() => users.id),
     categoryId: text('category_id').references(() => categories.id),

@@ -30,6 +30,32 @@ export default defineEventHandler(async (event) => {
     .find((f) => f.name === 'description')
     ?.data.toString();
   const tagsRaw = formData.find((f) => f.name === 'tags')?.data.toString();
+  // NFO can arrive either as a `.nfo` file part or as a plain `nfo` string
+  // (e.g. user pasted the contents into a textarea). Cap at 256KB so we
+  // can't be used to dump arbitrary blobs into the row.
+  const NFO_MAX_BYTES = 256 * 1024;
+  const nfoFile = formData.find(
+    (f) => f.name === 'nfoFile' || f.filename?.toLowerCase().endsWith('.nfo')
+  );
+  const nfoText = formData.find((f) => f.name === 'nfo')?.data.toString();
+  let nfo: string | null = null;
+  if (nfoFile?.data && nfoFile.data.length > 0) {
+    if (nfoFile.data.length > NFO_MAX_BYTES) {
+      throw createError({
+        statusCode: 413,
+        message: `NFO file exceeds ${NFO_MAX_BYTES} bytes`,
+      });
+    }
+    nfo = decodeNfo(nfoFile.data);
+  } else if (nfoText && nfoText.length > 0) {
+    if (Buffer.byteLength(nfoText, 'utf8') > NFO_MAX_BYTES) {
+      throw createError({
+        statusCode: 413,
+        message: `NFO content exceeds ${NFO_MAX_BYTES} bytes`,
+      });
+    }
+    nfo = nfoText;
+  }
 
   if (!file || !file.data) {
     throw createError({
@@ -108,6 +134,7 @@ export default defineEventHandler(async (event) => {
     name,
     size: totalSize,
     description: description || null,
+    nfo,
     torrentData: Buffer.from(file.data),
     uploaderId: user.id, // Set uploader from authenticated user
     categoryId: categoryId || null,
@@ -166,4 +193,25 @@ function generateMagnetLink(infoHash: string, name: string): string {
   const trackerUrl = useRuntimeConfig().public.trackerHttpUrl as string;
   const encodedName = encodeURIComponent(name);
   return `magnet:?xt=urn:btih:${infoHash}&dn=${encodedName}&tr=${encodeURIComponent(trackerUrl)}`;
+}
+
+/**
+ * NFO files traditionally use CP437 for the ASCII-art borders (▓░█▌etc.).
+ * If the bytes parse cleanly as UTF-8 (no replacement chars) we keep that;
+ * otherwise we fall back to CP437→UTF-8 so the box drawing renders.
+ */
+function decodeNfo(buf: Uint8Array): string {
+  const utf8 = new TextDecoder('utf-8', { fatal: false }).decode(buf);
+  // U+FFFD = decode error. A handful is OK (some scene NFOs mix encodings),
+  // but if more than ~1% of chars are replacement we treat the whole thing
+  // as legacy CP437.
+  const errs = (utf8.match(/�/g) || []).length;
+  if (errs <= Math.max(2, Math.floor(utf8.length / 100))) return utf8;
+  try {
+    return new TextDecoder('cp437' as any).decode(buf);
+  } catch {
+    // Node before 22 / non-ICU builds may not have cp437; fall back to
+    // latin-1 which at least preserves the byte→char mapping.
+    return new TextDecoder('iso-8859-1').decode(buf);
+  }
 }

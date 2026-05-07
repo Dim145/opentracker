@@ -210,6 +210,63 @@
               </div>
             </div>
 
+            <!-- Optional NFO -->
+            <div class="space-y-2">
+              <label
+                class="text-[10px] font-bold uppercase tracking-widest text-text-muted ml-1"
+                >NFO (optional)</label
+              >
+              <div
+                class="border border-dashed border-border rounded p-4 text-center hover:border-fg-default/30 hover:bg-fg-default/5 transition-all cursor-pointer"
+                :class="{ 'border-success/50 bg-success/5': nfoFile }"
+                @click="triggerNfoInput"
+                @drop.prevent="handleNfoDrop"
+                @dragover.prevent
+              >
+                <input
+                  ref="nfoInput"
+                  type="file"
+                  accept=".nfo,.txt,text/plain"
+                  class="hidden"
+                  @change="handleNfoSelect"
+                />
+                <div
+                  v-if="!nfoFile"
+                  class="flex flex-col items-center gap-1 text-[10px] text-text-muted"
+                >
+                  <Icon name="ph:file-text" class="text-lg" />
+                  <span class="font-mono uppercase tracking-wider"
+                    >Drop or browse a .nfo file</span
+                  >
+                </div>
+                <div
+                  v-else
+                  class="flex items-center justify-between gap-2 text-left"
+                >
+                  <div class="flex items-center gap-2 min-w-0">
+                    <Icon
+                      name="ph:check-circle-bold"
+                      class="text-success shrink-0"
+                    />
+                    <span class="text-xs text-text-primary truncate">{{
+                      nfoFile.name
+                    }}</span>
+                    <span
+                      class="text-[10px] text-text-muted font-mono uppercase shrink-0"
+                      >{{ formatSize(nfoFile.size) }}</span
+                    >
+                  </div>
+                  <button
+                    type="button"
+                    class="text-text-muted hover:text-error transition-colors shrink-0"
+                    @click.stop="clearNfo"
+                  >
+                    <Icon name="ph:x-bold" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <button
               class="btn btn-primary w-full !py-2.5 flex items-center justify-center gap-2 uppercase tracking-widest font-bold text-xs"
               :disabled="!selectedFile || isUploading"
@@ -327,8 +384,10 @@ const emit = defineEmits<{
 }>();
 
 const fileInput = ref<HTMLInputElement | null>(null);
+const nfoInput = ref<HTMLInputElement | null>(null);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const selectedFile = ref<File | null>(null);
+const nfoFile = ref<File | null>(null);
 const selectedCategoryId = ref('');
 const description = ref('');
 const isPreview = ref(false);
@@ -336,6 +395,7 @@ const isUploading = ref(false);
 const result = ref<TorrentResult | null>(null);
 const error = ref<string | null>(null);
 const copied = ref(false);
+const NFO_MAX_BYTES = 256 * 1024;
 
 const { data: categories } = await useFetch('/api/categories');
 
@@ -369,6 +429,7 @@ function close() {
 
 function reset() {
   selectedFile.value = null;
+  nfoFile.value = null;
   selectedCategoryId.value = '';
   description.value = '';
   isPreview.value = false;
@@ -466,6 +527,34 @@ function handleDrop(e: DragEvent) {
   }
 }
 
+function triggerNfoInput() {
+  nfoInput.value?.click();
+}
+
+function pickNfo(file: File | null | undefined): boolean {
+  if (!file) return false;
+  if (file.size > NFO_MAX_BYTES) {
+    error.value = `NFO file is too large (max ${Math.round(NFO_MAX_BYTES / 1024)} KB)`;
+    return false;
+  }
+  nfoFile.value = file;
+  error.value = null;
+  return true;
+}
+
+function handleNfoSelect(e: Event) {
+  pickNfo((e.target as HTMLInputElement).files?.[0]);
+}
+
+function handleNfoDrop(e: DragEvent) {
+  pickNfo(e.dataTransfer?.files?.[0]);
+}
+
+function clearNfo() {
+  nfoFile.value = null;
+  if (nfoInput.value) nfoInput.value.value = '';
+}
+
 async function upload() {
   if (!selectedFile.value) return;
 
@@ -480,6 +569,9 @@ async function upload() {
     }
     if (description.value) {
       formData.append('description', description.value);
+    }
+    if (nfoFile.value) {
+      formData.append('nfoFile', nfoFile.value);
     }
 
     const response = await $fetch<TorrentResult>('/api/torrents', {

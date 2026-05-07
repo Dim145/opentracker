@@ -171,6 +171,46 @@
             </div>
           </div>
 
+          <!-- NFO -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between ml-1">
+              <label
+                class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
+                >NFO</label
+              >
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
+                  @click="triggerNfoInput"
+                >
+                  Upload .nfo
+                </button>
+                <button
+                  v-if="nfo"
+                  type="button"
+                  class="text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-error transition-colors"
+                  @click="nfo = ''"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            <input
+              ref="nfoInput"
+              type="file"
+              accept=".nfo,.txt,text/plain"
+              class="hidden"
+              @change="handleNfoSelect"
+            />
+            <textarea
+              v-model="nfo"
+              rows="6"
+              class="input w-full !py-2 text-[11px] resize-none nfo-textarea"
+              placeholder="Paste or upload an NFO release file…"
+            ></textarea>
+          </div>
+
           <!-- Error Message -->
           <div
             v-if="error"
@@ -223,6 +263,7 @@ interface TorrentData {
   infoHash: string;
   name: string;
   description: string | null;
+  nfo: string | null;
   categoryId: string | null;
 }
 
@@ -237,11 +278,14 @@ const emit = defineEmits<{
 }>();
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const nfoInput = ref<HTMLInputElement | null>(null);
 const selectedCategoryId = ref('');
 const description = ref('');
+const nfo = ref('');
 const isPreview = ref(false);
 const isSaving = ref(false);
 const error = ref<string | null>(null);
+const NFO_MAX_BYTES = 256 * 1024;
 
 const { data: categories } = await useFetch<Category[]>('/api/categories');
 
@@ -254,6 +298,7 @@ watch(
     if (torrent) {
       selectedCategoryId.value = torrent.categoryId || '';
       description.value = torrent.description || '';
+      nfo.value = torrent.nfo || '';
     }
   },
   { immediate: true }
@@ -266,6 +311,7 @@ watch(
     if (isOpen && props.torrent) {
       selectedCategoryId.value = props.torrent.categoryId || '';
       description.value = props.torrent.description || '';
+      nfo.value = props.torrent.nfo || '';
       isPreview.value = false;
       error.value = null;
     }
@@ -293,6 +339,27 @@ function getFlattenedCategories(
 
 function close() {
   emit('close');
+}
+
+function triggerNfoInput() {
+  nfoInput.value?.click();
+}
+
+async function handleNfoSelect(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  if (file.size > NFO_MAX_BYTES) {
+    error.value = `NFO file is too large (max ${Math.round(NFO_MAX_BYTES / 1024)} KB)`;
+    return;
+  }
+  try {
+    nfo.value = await file.text();
+    error.value = null;
+  } catch {
+    error.value = 'Could not read the NFO file';
+  } finally {
+    if (nfoInput.value) nfoInput.value.value = '';
+  }
 }
 
 function insertMarkdown(type: string) {
@@ -372,6 +439,7 @@ async function save() {
       body: JSON.stringify({
         description: description.value,
         categoryId: selectedCategoryId.value || null,
+        nfo: nfo.value,
       }),
     }).then(async (res) => {
       if (!res.ok) {
@@ -399,6 +467,13 @@ async function save() {
 
 .toolbar-btn :deep(svg) {
   @apply w-3.5 h-3.5;
+}
+
+.nfo-textarea {
+  font-family: 'IBM Plex Mono', 'Cascadia Code', Menlo, ui-monospace, monospace;
+  white-space: pre;
+  overflow-x: auto;
+  tab-size: 4;
 }
 
 .description-preview :deep(img) {

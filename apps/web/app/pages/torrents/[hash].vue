@@ -151,6 +151,48 @@
       </div>
     </div>
 
+    <!-- NFO (collapsed by default — releases can be huge) -->
+    <div v-if="torrent.nfo" class="card mb-6">
+      <div class="card-header flex items-stretch gap-0 !p-0">
+        <button
+          type="button"
+          class="flex-1 flex items-center gap-2 text-left px-4 py-3 hover:bg-fg-default/5 transition-colors min-w-0"
+          :aria-expanded="nfoExpanded"
+          aria-controls="nfo-body"
+          @click="nfoExpanded = !nfoExpanded"
+        >
+          <Icon
+            name="ph:caret-right-bold"
+            class="text-text-muted text-[10px] transition-transform shrink-0"
+            :class="{ 'rotate-90': nfoExpanded }"
+          />
+          <Icon name="ph:scroll-bold" class="text-text-muted shrink-0" />
+          <h3
+            class="text-xs font-bold uppercase tracking-wider text-text-primary shrink-0"
+          >
+            NFO
+          </h3>
+          <span
+            class="text-[10px] text-text-muted font-mono uppercase tracking-widest truncate"
+          >
+            · {{ nfoMeta }}
+          </span>
+        </button>
+        <button
+          v-if="nfoExpanded"
+          type="button"
+          class="px-4 py-3 border-l border-border text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong hover:bg-fg-default/5 transition-colors flex items-center gap-1 shrink-0"
+          @click="copyNfo"
+        >
+          <Icon :name="nfoCopied ? 'ph:check-bold' : 'ph:copy-bold'" />
+          {{ nfoCopied ? 'Copied' : 'Copy' }}
+        </button>
+      </div>
+      <div v-show="nfoExpanded" id="nfo-body" class="nfo-frame">
+        <pre class="nfo-body">{{ torrent.nfo }}</pre>
+      </div>
+    </div>
+
     <!-- Peer List -->
     <div class="card">
       <div class="card-header">
@@ -255,6 +297,7 @@ interface TorrentDetail {
   name: string;
   size: number;
   description: string | null;
+  nfo: string | null;
   uploaderId: string | null;
   categoryId: string | null;
   category: Category | null;
@@ -302,6 +345,7 @@ const editableTorrent = computed(() => ({
   infoHash: torrent.value?.infoHash || '',
   name: torrent.value?.name || '',
   description: torrent.value?.description || null,
+  nfo: torrent.value?.nfo || null,
   categoryId: torrent.value?.categoryId || null,
 }));
 
@@ -317,6 +361,25 @@ async function copyHash() {
   await navigator.clipboard.writeText(torrent.value!.infoHash);
   notifications.success('Info hash copied to clipboard');
 }
+
+const nfoCopied = ref(false);
+const nfoExpanded = ref(false);
+async function copyNfo() {
+  if (!torrent.value?.nfo) return;
+  await navigator.clipboard.writeText(torrent.value.nfo);
+  nfoCopied.value = true;
+  setTimeout(() => (nfoCopied.value = false), 1500);
+}
+
+const nfoMeta = computed(() => {
+  const txt = torrent.value?.nfo;
+  if (!txt) return '';
+  const lines = txt.split('\n').length;
+  const bytes = new Blob([txt]).size;
+  const size =
+    bytes >= 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${bytes} B`;
+  return `${lines} lines · ${size}`;
+});
 
 async function confirmDelete() {
   if (!torrent.value) return;
@@ -380,5 +443,27 @@ async function handleSaved() {
 
 .description-content :deep(li) {
   margin-bottom: 0.25rem;
+}
+
+.nfo-frame {
+  background: rgb(var(--bg-inset));
+  border-top: 1px solid rgb(var(--line-default));
+  padding: 1rem;
+  overflow: auto;
+  max-height: 70vh;
+}
+
+.nfo-body {
+  font-family: 'IBM Plex Mono', 'Cascadia Code', Menlo, ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgb(var(--fg-default));
+  white-space: pre;
+  margin: 0;
+  tab-size: 4;
+  /* NFO ASCII art is visually centered when read in a fixed-width
+     terminal — keeping the natural width prevents reflow. */
+  width: max-content;
+  min-width: 100%;
 }
 </style>

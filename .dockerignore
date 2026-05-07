@@ -1,0 +1,25 @@
+# Don't ship local dev artefacts into the build context — they can override
+# what each stage's `pnpm install` produced. The previous "build sometimes
+# works" was buildkit cache + locally-matching pnpm hashes; once a
+# `pnpm install` on the host re-resolves a different .pnpm hash directory,
+# `COPY apps/web` overlays the deps-stage symlinks with broken targets and
+# `nuxt` becomes unresolvable.
+
+# Workspace dependencies — every stage that needs them runs its own install.
+**/node_modules/
+
+# Nuxt / Nitro build outputs — recreated by the builder stage.
+**/.nuxt/
+**/.output/
+**/.nitro/
+
+# Local env / docker / git noise — never relevant inside the image.
+.env
+.env.*
+!.env.example
+.git/
+.github/
+.idea/
+.vscode/
+*.log
+.DS_Store

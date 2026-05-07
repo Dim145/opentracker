@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
 
   // Read body
   const body = await readBody(event);
-  const { description, categoryId } = body || {};
+  const { description, categoryId, nfo } = body || {};
 
   // Validate categoryId if provided
   if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
@@ -68,10 +68,24 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Same cap as the upload endpoint, applied here so PATCH can't be used
+  // to grow the NFO past the documented limit.
+  const NFO_MAX_BYTES = 256 * 1024;
+  if (
+    typeof nfo === 'string' &&
+    Buffer.byteLength(nfo, 'utf8') > NFO_MAX_BYTES
+  ) {
+    throw createError({
+      statusCode: 413,
+      message: `NFO content exceeds ${NFO_MAX_BYTES} bytes`,
+    });
+  }
+
   // Build update object
   const updateData: {
     description?: string | null;
     categoryId?: string | null;
+    nfo?: string | null;
   } = {};
 
   if (description !== undefined) {
@@ -80,6 +94,10 @@ export default defineEventHandler(async (event) => {
 
   if (categoryId !== undefined) {
     updateData.categoryId = categoryId || null;
+  }
+
+  if (nfo !== undefined) {
+    updateData.nfo = typeof nfo === 'string' && nfo.length > 0 ? nfo : null;
   }
 
   // Update the torrent
@@ -105,6 +123,7 @@ export default defineEventHandler(async (event) => {
       infoHash: updated!.infoHash,
       name: updated!.name,
       description: updated!.description,
+      nfo: updated!.nfo,
       categoryId: updated!.categoryId,
       category: updated!.category,
     },
