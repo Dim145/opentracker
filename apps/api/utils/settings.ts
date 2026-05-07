@@ -21,7 +21,14 @@ function ensureSubscriber(): void {
   if (subscriberStarted) return;
   subscriberStarted = true;
   try {
-    const sub = redis.duplicate();
+    // The shared client uses lazyConnect + enableOfflineQueue=false (DDoS
+    // protection on hot request paths) — but those defaults are wrong for a
+    // long-lived idle subscriber, which needs to queue SUBSCRIBE until the TCP
+    // socket becomes writeable. Override both for the duplicate.
+    const sub = redis.duplicate({
+      lazyConnect: false,
+      enableOfflineQueue: true,
+    });
     sub.on('message', (channel, message) => {
       if (channel !== SETTINGS_INVALIDATE_CHANNEL) return;
       if (message === '*') {
@@ -31,18 +38,26 @@ function ensureSubscriber(): void {
       }
     });
     sub.on('error', (err) => {
-      // Non-fatal: invalidation falls back to TTL. Don't spam logs.
-      if ((err as any)?.code !== 'ECONNRESET') {
+      // Non-fatal: invalidation falls back to TTL. ioredis reconnects on its
+      // own, so we don't spam logs on transient socket churn.
+      const code = (err as any)?.code;
+      if (code !== 'ECONNRESET' && code !== 'EPIPE') {
         console.warn('[Settings] subscriber error:', err.message);
       }
     });
+    // Subscribe once. ioredis re-issues SUBSCRIBE on reconnect automatically,
+    // so we deliberately keep `subscriberStarted = true` even on a transient
+    // failure here — re-attempting on every getSetting() would flood the
+    // logs with hundreds of identical lines per request burst.
     sub.subscribe(SETTINGS_INVALIDATE_CHANNEL).catch((err) => {
-      console.warn('[Settings] subscribe error:', err.message);
-      subscriberStarted = false; // allow retry
+      console.warn(
+        '[Settings] initial subscribe failed (will retry on reconnect):',
+        err.message
+      );
     });
   } catch (err: any) {
     console.warn('[Settings] failed to set up subscriber:', err.message);
-    subscriberStarted = false;
+    subscriberStarted = false; // synchronous setup failure: allow one retry
   }
 }
 
