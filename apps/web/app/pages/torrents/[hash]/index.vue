@@ -100,14 +100,14 @@
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <!-- Edit Button (owner/mod/admin only) -->
-            <button
+            <NuxtLink
               v-if="canEdit"
+              :to="`/torrents/${torrent.infoHash}/edit`"
               class="btn btn-secondary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider"
-              @click="showEditModal = true"
             >
               <Icon name="ph:pencil-simple-bold" />
               <span>Edit</span>
-            </button>
+            </NuxtLink>
             <!-- Delete Button (owner/mod/admin only) -->
             <button
               v-if="canDelete"
@@ -332,14 +332,6 @@
       </div>
     </div>
 
-    <!-- Edit Modal -->
-    <EditTorrentModal
-      :is-open="showEditModal"
-      :torrent="editableTorrent"
-      @close="showEditModal = false"
-      @saved="handleSaved"
-    />
-
     <!-- Delete confirmation now handled by the shared <ConfirmHost /> via
          useConfirm() — see confirmDelete() below. -->
   </div>
@@ -495,9 +487,6 @@ const { loggedIn, user } = useUserSession();
 const notifications = useNotificationStore();
 const confirm = useConfirm();
 
-// Edit/delete state
-const showEditModal = ref(false);
-
 // Compute permissions
 const canEdit = computed(() => {
   if (!loggedIn.value || !user.value) return false;
@@ -510,19 +499,6 @@ const canDelete = computed(() => {
   const isOwner = torrent.value?.uploaderId === user.value.id;
   return isOwner || user.value.isAdmin || user.value.isModerator;
 });
-
-// Editable data for modal
-const editableTorrent = computed(() => ({
-  infoHash: torrent.value?.infoHash || '',
-  name: torrent.value?.name || '',
-  description: torrent.value?.description || null,
-  nfo: torrent.value?.nfo || null,
-  categoryId: torrent.value?.categoryId || null,
-  tags: torrent.value?.tags ?? [],
-  imdbId: torrent.value?.imdbId || null,
-  tmdbId: torrent.value?.tmdbId || null,
-  tvdbId: torrent.value?.tvdbId || null,
-}));
 
 /**
  * Build the badge target for a TMDb id.
@@ -631,10 +607,6 @@ async function confirmDelete() {
   }
 }
 
-async function handleSaved() {
-  // Refresh torrent data
-  await refresh();
-}
 </script>
 
 <style scoped>

@@ -53,7 +53,8 @@ export default defineEventHandler(async (event) => {
 
   // Read body
   const body = await readBody(event);
-  const { description, categoryId, nfo, imdbId, tmdbId, tvdbId } = body || {};
+  const { name, description, categoryId, nfo, imdbId, tmdbId, tvdbId } =
+    body || {};
 
   // Validate categoryId if provided
   if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
@@ -84,6 +85,7 @@ export default defineEventHandler(async (event) => {
 
   // Build update object
   const updateData: {
+    name?: string;
     description?: string | null;
     categoryId?: string | null;
     nfo?: string | null;
@@ -91,6 +93,19 @@ export default defineEventHandler(async (event) => {
     tmdbId?: string | null;
     tvdbId?: string | null;
   } = {};
+
+  // Allow renaming the release. We require non-empty when provided so a
+  // bad client can't blank the column out (the schema marks it
+  // notNull). 256 chars matches typical scene name lengths.
+  if (name !== undefined) {
+    if (typeof name !== 'string' || !name.trim()) {
+      throw createError({
+        statusCode: 400,
+        message: 'Release name cannot be empty',
+      });
+    }
+    updateData.name = name.trim().slice(0, 256);
+  }
 
   if (description !== undefined) {
     updateData.description = description || null;

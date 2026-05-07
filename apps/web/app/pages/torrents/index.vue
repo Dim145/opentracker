@@ -34,13 +34,13 @@
             @search="doSearch"
             @media-id-search="doMediaIdSearch"
           />
-          <button
+          <NuxtLink
+            to="/torrents/upload"
             class="btn btn-primary flex items-center gap-2 !py-1.5"
-            @click="showUploadModal = true"
           >
             <Icon name="ph:plus-bold" />
             <span>Upload</span>
-          </button>
+          </NuxtLink>
         </div>
       </div>
 
@@ -212,12 +212,6 @@
       </div>
     </div>
 
-    <!-- Upload Modal -->
-    <UploadTorrentModal
-      :is-open="showUploadModal"
-      @close="showUploadModal = false"
-      @uploaded="onUploaded"
-    />
   </div>
 </template>
 
@@ -296,7 +290,6 @@ const activeMediaId = computed<DetectedMediaId | null>(() => {
   );
 });
 
-const showUploadModal = ref(false);
 // Filter panel starts open if a tag filter is already in the URL —
 // otherwise the user wouldn't see why their listing is filtered.
 const filtersOpen = ref(selectedTags.value.length > 0);
@@ -328,10 +321,6 @@ const { data, refresh, pending } = await useFetch<{
     };
   }),
 });
-
-function onUploaded() {
-  refresh();
-}
 
 const torrents = computed(() => data.value?.data ?? []);
 const pagination = computed(

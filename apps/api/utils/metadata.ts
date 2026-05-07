@@ -294,3 +294,138 @@ export async function lookupMetadata(
 export function isMetadataEnabled(): boolean {
   return !!process.env.TMDB_API_KEY;
 }
+
+/** Lightweight search hit — what the upload form's picker needs. */
+export interface MediaSearchHit {
+  type: 'movie' | 'tv';
+  tmdbId: number;
+  title: string;
+  originalTitle: string | null;
+  year: number | null;
+  overview: string | null;
+  posterUrl: string | null;
+  voteAverage: number | null;
+  url: string;
+}
+
+const SEARCH_PAGE_SIZE = 8;
+const SEARCH_TTL_S = 60 * 60 * 6; // 6h — fresh enough for poster swaps
+
+function normaliseHit(type: 'movie' | 'tv', data: any): MediaSearchHit {
+  const isMovie = type === 'movie';
+  const releaseDate = isMovie ? data.release_date : data.first_air_date;
+  return {
+    type,
+    tmdbId: data.id,
+    title: (isMovie ? data.title : data.name) || '',
+    originalTitle:
+      (isMovie ? data.original_title : data.original_name) || null,
+    year: releaseDate
+      ? parseInt(String(releaseDate).slice(0, 4), 10) || null
+      : null,
+    overview: data.overview || null,
+    posterUrl: data.poster_path
+      ? `https://image.tmdb.org/t/p/${POSTER_SIZE}${data.poster_path}`
+      : null,
+    voteAverage:
+      typeof data.vote_average === 'number' ? data.vote_average : null,
+    url: `https://www.themoviedb.org/${type}/${data.id}`,
+  };
+}
+
+/**
+ * Free-text search against TMDb. `type` constrains the namespace — when
+ * undefined we run both /search/movie and /search/tv in parallel and
+ * interleave by descending popularity (TMDb already returns its own
+ * ranking, so we just merge and sort by the `popularity` field that
+ * comes back).
+ *
+ * Throws on missing API key so the route can convert it into a clean
+ * 503 — same pattern as `lookupMetadata`.
+ */
+export async function searchMetadata(
+  query: string,
+  type?: MediaTypeHint,
+  year?: number
+): Promise<MediaSearchHit[]> {
+  const cred = getCredential();
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const cacheKey = `meta:v1:search:${type ?? 'auto'}:${year ?? '-'}:${trimmed.toLowerCase()}`;
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached === NEG_SENTINEL) return [];
+    if (cached) return JSON.parse(cached) as MediaSearchHit[];
+  } catch {
+    // Redis hiccup → just hit TMDb.
+  }
+
+  const params: Record<string, string> = {
+    query: trimmed,
+    include_adult: 'false',
+    language: 'en-US',
+    page: '1',
+  };
+
+  // The two endpoints take different year-filter param names. We pass
+  // both — the unused one is silently ignored on the wrong route.
+  const movieParams = { ...params } as Record<string, string>;
+  const tvParams = { ...params } as Record<string, string>;
+  if (year) {
+    movieParams.year = String(year);
+    tvParams.first_air_date_year = String(year);
+  }
+
+  // Track popularity for the merge sort below without leaking it into
+  // the public shape.
+  type RankedHit = MediaSearchHit & { _pop: number };
+  let hits: RankedHit[] = [];
+
+  if (type === 'movie' || !type) {
+    const data = await tmdbGet<any>('/search/movie', movieParams, cred);
+    if (Array.isArray(data?.results)) {
+      hits = hits.concat(
+        data.results.slice(0, SEARCH_PAGE_SIZE).map(
+          (r: any): RankedHit => ({
+            ...normaliseHit('movie', r),
+            _pop: typeof r.popularity === 'number' ? r.popularity : 0,
+          })
+        )
+      );
+    }
+  }
+  if (type === 'tv' || !type) {
+    const data = await tmdbGet<any>('/search/tv', tvParams, cred);
+    if (Array.isArray(data?.results)) {
+      hits = hits.concat(
+        data.results.slice(0, SEARCH_PAGE_SIZE).map(
+          (r: any): RankedHit => ({
+            ...normaliseHit('tv', r),
+            _pop: typeof r.popularity === 'number' ? r.popularity : 0,
+          })
+        )
+      );
+    }
+  }
+
+  // When both namespaces are queried, sort by raw popularity so the
+  // most likely match floats to the top. Within a single namespace
+  // TMDb already returns popularity-desc so the sort is a no-op.
+  if (!type) hits.sort((a, b) => b._pop - a._pop);
+  const finalHits: MediaSearchHit[] = hits
+    .slice(0, SEARCH_PAGE_SIZE)
+    .map(({ _pop, ...rest }) => rest);
+
+  try {
+    if (finalHits.length > 0) {
+      await redis.setex(cacheKey, SEARCH_TTL_S, JSON.stringify(finalHits));
+    } else {
+      await redis.setex(cacheKey, NEG_TTL_S, NEG_SENTINEL);
+    }
+  } catch {
+    // Cache write failure is non-fatal.
+  }
+
+  return finalHits;
+}

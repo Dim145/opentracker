@@ -28,6 +28,14 @@ export default defineEventHandler(async (event) => {
   const categoryId = formData
     .find((f) => f.name === 'categoryId')
     ?.data.toString();
+  // Optional human-readable override for the release name. The form uses
+  // it to let the uploader rewrite the parsed `.torrent` name (which is
+  // often a scene-style filename) into something more readable. Empty or
+  // absent → fall through to the parsed name.
+  const customName = formData
+    .find((f) => f.name === 'name')
+    ?.data.toString()
+    ?.trim();
   const description = formData
     .find((f) => f.name === 'description')
     ?.data.toString();
@@ -100,7 +108,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const infoHash = parsed.infoHash.toLowerCase();
-  const name = parsed.name || file.filename || 'Unknown';
+  // 256 chars matches typical scene name lengths and gives a sane
+  // upper bound without truncating real-world torrents.
+  const name = (customName?.slice(0, 256) || parsed.name || file.filename || 'Unknown');
 
   // Calculate total size
   let totalSize = 0;
