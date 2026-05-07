@@ -138,6 +138,7 @@ interface PendingTorrent {
 const pending = ref<PendingTorrent[]>([]);
 const isLoading = ref(true);
 const processingId = ref<string | null>(null);
+const notifications = useNotificationStore();
 
 async function loadPending() {
   isLoading.value = true;
@@ -157,14 +158,16 @@ async function approve(torrent: PendingTorrent) {
       method: 'POST',
     });
     pending.value = pending.value.filter((t) => t.id !== torrent.id);
+    notifications.success(`Approved “${torrent.name}”`);
   } catch (error: any) {
-    alert(error.data?.message || 'Failed to approve torrent');
+    notifications.error(error.data?.message || 'Failed to approve torrent');
   } finally {
     processingId.value = null;
   }
 }
 
 async function reject(torrent: PendingTorrent) {
+  // TODO(lot-3): replace with a styled prompt component
   const reason = prompt('Reason for rejection (optional):');
   if (reason === null) return; // User cancelled
 
@@ -175,8 +178,9 @@ async function reject(torrent: PendingTorrent) {
       body: { reason },
     });
     pending.value = pending.value.filter((t) => t.id !== torrent.id);
+    notifications.success(`Rejected “${torrent.name}”`);
   } catch (error: any) {
-    alert(error.data?.message || 'Failed to reject torrent');
+    notifications.error(error.data?.message || 'Failed to reject torrent');
   } finally {
     processingId.value = null;
   }

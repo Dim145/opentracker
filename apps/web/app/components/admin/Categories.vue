@@ -324,6 +324,8 @@ interface Category {
 
 const { data: categories, refresh } =
   await useFetch<Category[]>('/api/categories');
+const notifications = useNotificationStore();
+const confirm = useConfirm();
 
 const newCategoryName = ref('');
 const newCategoryNewznabId = ref<number | null>(null);
@@ -371,8 +373,9 @@ async function saveEdit(id: string) {
     editingName.value = '';
     editingNewznabId.value = null;
     await refresh();
+    notifications.success('Category updated');
   } catch (error: any) {
-    alert(error.data?.message || 'Failed to update category');
+    notifications.error(error.data?.message || 'Failed to update category');
   } finally {
     isSaving.value = false;
   }
@@ -400,48 +403,62 @@ async function addCategory() {
     }
 
     await refresh();
+    notifications.success('Category created');
   } catch (error: any) {
-    alert(error.data?.message || 'Failed to add category');
+    notifications.error(error.data?.message || 'Failed to add category');
   } finally {
     isAdding.value = false;
   }
 }
 
 async function deleteCategory(id: string) {
-  if (!confirm('Are you sure you want to delete this category?')) return;
+  // Walk the (one-level) tree to find a friendly name for the dialog.
+  let target: { name: string } | undefined;
+  for (const cat of categories.value || []) {
+    if (cat.id === id) { target = cat; break; }
+    target = cat.subcategories?.find((s) => s.id === id);
+    if (target) break;
+  }
+  const ok = await confirm({
+    title: 'Delete category',
+    message: target
+      ? `Permanently delete the category “${target.name}”? Torrents currently in it will become uncategorised.`
+      : 'Permanently delete this category? Torrents currently in it will become uncategorised.',
+    confirmText: 'Delete category',
+    destructive: true,
+  });
+  if (!ok) return;
 
   try {
-    await $fetch(`/api/admin/categories/${id}`, {
-      method: 'DELETE',
-    });
+    await $fetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
     await refresh();
+    notifications.success('Category deleted');
   } catch (error: any) {
-    alert(error.data?.message || 'Failed to delete category');
+    notifications.error(error.data?.message || 'Failed to delete category');
   }
 }
 
 const isSeeding = ref(false);
 
 async function seedCategories() {
-  if (
-    !confirm(
-      'This will create recommended Torznab-compatible categories. Continue?'
-    )
-  )
-    return;
+  const ok = await confirm({
+    title: 'Seed default categories',
+    message:
+      'Create the recommended Torznab-compatible category set on top of what already exists?',
+    confirmText: 'Seed categories',
+  });
+  if (!ok) return;
 
   isSeeding.value = true;
   try {
     const result = await (globalThis as any).$fetch(
       '/api/admin/categories/seed',
-      {
-        method: 'POST',
-      }
+      { method: 'POST' }
     );
     await refresh();
-    alert(`Created ${result.created} categories`);
+    notifications.success(`Created ${result.created} categories`);
   } catch (error: any) {
-    alert(error.data?.message || 'Failed to seed categories');
+    notifications.error(error.data?.message || 'Failed to seed categories');
   } finally {
     isSeeding.value = false;
   }

@@ -167,6 +167,8 @@
 <script setup lang="ts">
 const route = useRoute();
 const { user } = useUserSession();
+const notifications = useNotificationStore();
+const confirm = useConfirm();
 const {
   data: topic,
   pending,
@@ -190,8 +192,8 @@ async function handlePostReply() {
     });
     replyContent.value = '';
     await refresh();
-  } catch (e) {
-    console.error(e);
+  } catch (e: any) {
+    notifications.error(e?.data?.message || 'Failed to post reply');
   } finally {
     posting.value = false;
   }
@@ -205,8 +207,8 @@ async function handleTogglePin() {
       body: { isPinned: !topic.value.isPinned },
     });
     await refresh();
-  } catch (e) {
-    console.error(e);
+  } catch (e: any) {
+    notifications.error(e?.data?.message || 'Failed to update topic');
   }
 }
 
@@ -218,40 +220,51 @@ async function handleToggleLock() {
       body: { isLocked: !topic.value.isLocked },
     });
     await refresh();
-  } catch (e) {
-    console.error(e);
+  } catch (e: any) {
+    notifications.error(e?.data?.message || 'Failed to update topic');
   }
 }
 
 async function handleDeleteTopic() {
-  if (!topic.value || !confirm('Are you sure you want to delete this topic?'))
-    return;
+  if (!topic.value) return;
+  const ok = await confirm({
+    title: 'Delete topic',
+    message: `Permanently delete “${topic.value.title}” and all its replies?`,
+    confirmText: 'Delete topic',
+    destructive: true,
+  });
+  if (!ok) return;
   try {
-    await $fetch(`/api/forum/topics/${topic.value.id}`, {
-      method: 'DELETE',
-    });
+    await $fetch(`/api/forum/topics/${topic.value.id}`, { method: 'DELETE' });
+    notifications.success('Topic deleted');
     navigateTo(`/forum/category/${topic.value.categoryId}`);
-  } catch (e) {
-    console.error(e);
+  } catch (e: any) {
+    notifications.error(e?.data?.message || 'Failed to delete topic');
   }
 }
 
 async function handleDeletePost(postId: string) {
-  if (!confirm('Are you sure you want to delete this post?')) return;
+  const ok = await confirm({
+    title: 'Delete post',
+    message: 'Permanently remove this post from the thread?',
+    confirmText: 'Delete post',
+    destructive: true,
+  });
+  if (!ok) return;
   try {
     const res = await $fetch<{ message: string }>(
       `/api/forum/posts/${postId}`,
-      {
-        method: 'DELETE',
-      }
+      { method: 'DELETE' }
     );
     if (res.message.includes('Topic deleted')) {
+      notifications.success('Post deleted (last post — topic removed)');
       navigateTo(`/forum/category/${topic.value?.categoryId}`);
     } else {
+      notifications.success('Post deleted');
       await refresh();
     }
-  } catch (e) {
-    console.error(e);
+  } catch (e: any) {
+    notifications.error(e?.data?.message || 'Failed to delete post');
   }
 }
 

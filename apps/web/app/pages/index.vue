@@ -189,8 +189,10 @@ const features = computed(() => {
   );
 });
 
-// Fetch tracker stats for the hero section
-const { data: stats } = await useFetch<TrackerStats>('/api/admin/stats');
+// Fetch tracker stats for the hero section. Uses /api/stats/public (no auth)
+// instead of /api/admin/stats which is admin-gated and would 401 for normal
+// visitors, leaving the hero stuck on "0 torrents · 0 peers".
+const { data: stats } = await useFetch<TrackerStats>('/api/stats/public');
 
 // Fetch recent torrents
 const { data: torrentsData } = await useFetch<{ data: TorrentWithStats[] }>(

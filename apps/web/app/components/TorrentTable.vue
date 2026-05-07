@@ -155,15 +155,25 @@ function getCategoryDisplayName(category: { name: string; parentId?: string }) {
   return parent ? `${parent.name}/${category.name}` : category.name;
 }
 
+const confirm = useConfirm();
+const notifications = useNotificationStore();
+
 async function deleteTorrent(torrent: TorrentWithStats) {
-  if (!confirm(`Delete "${torrent.name}"?`)) return;
+  const ok = await confirm({
+    title: 'Delete torrent',
+    message: `Permanently remove “${torrent.name}” from the index?`,
+    confirmText: 'Delete',
+    destructive: true,
+  });
+  if (!ok) return;
 
   try {
-    await fetch(`/api/torrents/${torrent.infoHash}`, { method: 'DELETE' });
+    await $fetch(`/api/torrents/${torrent.infoHash}`, { method: 'DELETE' });
+    notifications.success('Torrent deleted');
     emit('deleted', torrent.infoHash);
-  } catch (err) {
+  } catch (err: any) {
     console.error('Delete failed:', err);
-    alert('Failed to delete torrent');
+    notifications.error(err?.data?.message || 'Failed to delete torrent');
   }
 }
 </script>

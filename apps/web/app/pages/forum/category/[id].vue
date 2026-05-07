@@ -123,6 +123,8 @@
 <script setup lang="ts">
 const route = useRoute();
 const { user } = useUserSession();
+const notifications = useNotificationStore();
+const confirm = useConfirm();
 const {
   data: category,
   pending,
@@ -130,14 +132,22 @@ const {
 } = await useFetch(`/api/forum/categories/${route.params.id}`);
 
 async function handleDeleteTopic(topicId: string) {
-  if (!confirm('Are you sure you want to delete this topic?')) return;
+  const topic = category.value?.topics?.find((t: { id: string }) => t.id === topicId);
+  const ok = await confirm({
+    title: 'Delete topic',
+    message: topic
+      ? `Permanently delete “${(topic as any).title}” and all its replies?`
+      : 'Delete this topic and all its replies?',
+    confirmText: 'Delete topic',
+    destructive: true,
+  });
+  if (!ok) return;
   try {
-    await $fetch(`/api/forum/topics/${topicId}`, {
-      method: 'DELETE',
-    });
+    await $fetch(`/api/forum/topics/${topicId}`, { method: 'DELETE' });
     await refresh();
-  } catch (e) {
-    console.error(e);
+    notifications.success('Topic deleted');
+  } catch (e: any) {
+    notifications.error(e?.data?.message || 'Failed to delete topic');
   }
 }
 

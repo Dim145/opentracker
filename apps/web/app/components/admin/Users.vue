@@ -157,6 +157,8 @@ interface Role {
 }
 
 const { user } = useUserSession();
+const notifications = useNotificationStore();
+const confirm = useConfirm();
 const userSearchQuery = ref('');
 const isSearching = ref(false);
 const hasSearched = ref(false);
@@ -205,27 +207,36 @@ async function toggleUserRole(user: any, role: 'isAdmin' | 'isModerator') {
       foundUsers.value[index] = updatedUser;
     }
   } catch (error: any) {
-    alert(error.data?.message || 'Failed to update user role');
+    notifications.error(error.data?.message || 'Failed to update user role');
   }
 }
 
 async function toggleBan(user: any) {
   const action = user.isBanned ? 'unban' : 'ban';
-  if (!confirm(`Are you sure you want to ${action} ${user.username}?`)) return;
+  const ok = await confirm({
+    title: action === 'ban' ? 'Ban user' : 'Unban user',
+    message:
+      action === 'ban'
+        ? `Ban ${user.username}? Their session will be invalidated and they won't be able to sign in.`
+        : `Restore ${user.username}'s access?`,
+    confirmText: action === 'ban' ? 'Ban' : 'Unban',
+    destructive: action === 'ban',
+  });
+  if (!ok) return;
 
   try {
     await $fetch(`/api/admin/users/${user.id}/${action}`, {
       method: 'POST',
       body: action === 'ban' ? { reason: 'Banned by admin' } : {},
     });
-
     // Update local state
     const index = foundUsers.value.findIndex((u) => u.id === user.id);
     if (index !== -1) {
       foundUsers.value[index].isBanned = !user.isBanned;
     }
+    notifications.success(action === 'ban' ? 'User banned' : 'User unbanned');
   } catch (error: any) {
-    alert(error.data?.message || `Failed to ${action} user`);
+    notifications.error(error.data?.message || `Failed to ${action} user`);
   }
 }
 
@@ -240,8 +251,9 @@ async function assignRole(targetUser: any, roleId: string) {
     if (index !== -1) {
       foundUsers.value[index].roleId = roleId || null;
     }
+    notifications.success('Role updated');
   } catch (error: any) {
-    alert(error.data?.message || 'Failed to assign role');
+    notifications.error(error.data?.message || 'Failed to assign role');
   }
 }
 </script>

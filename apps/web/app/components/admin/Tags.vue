@@ -143,6 +143,8 @@ interface Tag {
 }
 
 const { data: tags, refresh } = await useFetch<Tag[]>('/api/tags');
+const notifications = useNotificationStore();
+const confirm = useConfirm();
 
 const showAddModal = ref(false);
 const isCreating = ref(false);
@@ -181,12 +183,22 @@ async function createTag() {
 }
 
 async function deleteTag(id: string) {
-  if (!confirm('Delete this tag?')) return;
+  const tag = tags.value?.find((t) => t.id === id);
+  const ok = await confirm({
+    title: 'Delete tag',
+    message: tag
+      ? `Remove the “${tag.name}” tag? Torrents currently tagged with it keep their other tags.`
+      : 'Delete this tag?',
+    confirmText: 'Delete tag',
+    destructive: true,
+  });
+  if (!ok) return;
   try {
     await $fetch(`/api/admin/tags/${id}`, { method: 'DELETE' });
+    notifications.success('Tag deleted');
     await refresh();
   } catch (error: any) {
-    console.error('Failed to delete tag:', error);
+    notifications.error(error.data?.message || 'Failed to delete tag');
   }
 }
 </script>

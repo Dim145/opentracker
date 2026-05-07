@@ -166,6 +166,8 @@ interface Role {
 const roles = ref<Role[]>([]);
 const isLoading = ref(true);
 const isCreating = ref(false);
+const notifications = useNotificationStore();
+const confirm = useConfirm();
 
 const newRole = ref({
   name: '',
@@ -200,7 +202,7 @@ async function createRole() {
       canUploadWithoutModeration: false,
     };
   } catch (error: any) {
-    alert(error.data?.message || 'Failed to create role');
+    notifications.error(error.data?.message || 'Failed to create role');
   } finally {
     isCreating.value = false;
   }
@@ -219,21 +221,25 @@ async function togglePermission(role: Role) {
       roles.value[index] = updated;
     }
   } catch (error: any) {
-    alert(error.data?.message || 'Failed to update role');
+    notifications.error(error.data?.message || 'Failed to update role');
   }
 }
 
 async function deleteRole(role: Role) {
-  if (!confirm(`Are you sure you want to delete the role "${role.name}"?`))
-    return;
+  const ok = await confirm({
+    title: 'Delete role',
+    message: `Permanently remove the role “${role.name}”? Users currently assigned to it will lose its permissions.`,
+    confirmText: 'Delete role',
+    destructive: true,
+  });
+  if (!ok) return;
 
   try {
-    await $fetch(`/api/admin/roles/${role.id}`, {
-      method: 'DELETE',
-    });
+    await $fetch(`/api/admin/roles/${role.id}`, { method: 'DELETE' });
     roles.value = roles.value.filter((r) => r.id !== role.id);
+    notifications.success(`Role “${role.name}” deleted`);
   } catch (error: any) {
-    alert(error.data?.message || 'Failed to delete role');
+    notifications.error(error.data?.message || 'Failed to delete role');
   }
 }
 

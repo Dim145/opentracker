@@ -135,9 +135,6 @@
                   <p class="text-sm font-medium">
                     {{ user?.username }}
                   </p>
-                  <p class="text-xs text-text-muted truncate">
-                    {{ user?.email }}
-                  </p>
                   <div
                     v-if="user?.isAdmin || user?.isModerator"
                     class="mt-1 flex gap-1"
@@ -323,6 +320,14 @@
     <main class="flex-grow max-w-[1400px] w-full mx-auto px-4 py-6">
       <slot />
     </main>
+
+    <!-- Global UI hosts: notifications & confirm dialogs.
+         NotificationToast must be mounted here — without this, every
+         `notifications.success(...)` / `.error(...)` call across the app
+         updates the store but renders nothing.
+         ConfirmHost provides a promise-based replacement for window.confirm. -->
+    <NotificationToast />
+    <ConfirmHost />
 
     <!-- Footer -->
     <footer class="border-t border-border mt-auto py-6 bg-bg-secondary/30">
