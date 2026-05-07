@@ -4,7 +4,7 @@
       <!-- Logo -->
       <div class="text-center mb-8">
         <div
-          class="w-16 h-16 bg-white rounded-lg flex items-center justify-center mx-auto mb-4 overflow-hidden"
+          class="w-16 h-16 bg-accent rounded-lg flex items-center justify-center mx-auto mb-4 overflow-hidden"
         >
           <img
             v-if="branding?.siteLogoImage"
@@ -15,7 +15,7 @@
           <Icon
             v-else
             :name="branding?.siteLogo || 'ph:broadcast-bold'"
-            class="text-black text-4xl"
+            class="text-accent-fg text-4xl"
           />
         </div>
         <h1
@@ -52,7 +52,7 @@
             type="text"
             required
             autocomplete="username"
-            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white transition-colors"
+            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
             placeholder="Enter your username"
           />
         </div>
@@ -70,7 +70,7 @@
             type="password"
             required
             autocomplete="current-password"
-            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white transition-colors"
+            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
             placeholder="Enter your password"
           />
         </div>
@@ -91,7 +91,7 @@
         <button
           type="submit"
           :disabled="loading"
-          class="w-full bg-white text-black font-medium py-2.5 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-full bg-accent text-accent-fg font-medium py-2.5 rounded hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span v-if="loading">Signing in...</span>
           <span v-else>Sign In</span>
@@ -106,7 +106,7 @@
           Don't have an account?
           <NuxtLink
             to="/auth/register"
-            class="text-white hover:underline font-medium"
+            class="text-text-strong hover:underline font-medium"
           >
             Create one
           </NuxtLink>

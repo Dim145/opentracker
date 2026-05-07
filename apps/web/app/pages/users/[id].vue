@@ -2,7 +2,7 @@
   <div class="max-w-4xl mx-auto">
     <NuxtLink
       to="/torrents"
-      class="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white mb-6 transition-colors"
+      class="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong mb-6 transition-colors"
     >
       <Icon name="ph:arrow-left-bold" />
       Back to torrents
@@ -161,7 +161,7 @@
                 <td class="px-4 py-3">
                   <NuxtLink
                     :to="`/torrents/${torrent.infoHash}`"
-                    class="text-sm font-medium text-text-primary hover:text-white transition-colors line-clamp-1"
+                    class="text-sm font-medium text-text-primary hover:text-text-strong transition-colors line-clamp-1"
                   >
                     {{ torrent.name }}
                   </NuxtLink>
@@ -277,7 +277,7 @@ const ratioClass = computed(() => {
   if (!user.value) return 'text-text-primary';
   const r = user.value.ratio;
   if (r === null || r >= 2) return 'text-green-400';
-  if (r >= 1) return 'text-white';
+  if (r >= 1) return 'text-text-strong';
   if (r >= 0.5) return 'text-yellow-400';
   return 'text-red-400';
 });

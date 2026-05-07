@@ -4,7 +4,7 @@
       <!-- Logo -->
       <div class="text-center mb-8">
         <div
-          class="w-16 h-16 bg-white rounded-lg flex items-center justify-center mx-auto mb-4 overflow-hidden"
+          class="w-16 h-16 bg-accent rounded-lg flex items-center justify-center mx-auto mb-4 overflow-hidden"
         >
           <img
             v-if="branding?.siteLogoImage"
@@ -15,7 +15,7 @@
           <Icon
             v-else
             :name="branding?.siteLogo || 'ph:broadcast-bold'"
-            class="text-black text-4xl"
+            class="text-accent-fg text-4xl"
           />
         </div>
         <h1
@@ -53,7 +53,7 @@
         </p>
         <NuxtLink
           to="/auth/login"
-          class="inline-block bg-white text-black font-medium px-6 py-2 rounded hover:bg-gray-200 transition-colors"
+          class="inline-block bg-accent text-accent-fg font-medium px-6 py-2 rounded hover:bg-gray-200 transition-colors"
         >
           Sign In
         </NuxtLink>
@@ -111,7 +111,7 @@
               v-model="form.inviteCode"
               type="text"
               :required="!status?.registrationOpen"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white transition-colors font-mono"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors font-mono"
               placeholder="Enter your invite code"
             />
           </div>
@@ -129,7 +129,7 @@
               type="text"
               required
               autocomplete="username"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
               placeholder="3-20 characters, letters, numbers, _ or -"
             />
           </div>
@@ -147,7 +147,7 @@
               type="password"
               required
               autocomplete="new-password"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
               placeholder="At least 8 characters"
             />
           </div>
@@ -165,7 +165,7 @@
               type="password"
               required
               autocomplete="new-password"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
               placeholder="Re-enter your password"
             />
           </div>
@@ -197,7 +197,7 @@
                 v-model="form.panicPassword"
                 type="password"
                 required
-                class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white transition-colors"
+                class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
                 placeholder="At least 12 characters"
               />
             </div>
@@ -214,7 +214,7 @@
                 v-model="form.confirmPanicPassword"
                 type="password"
                 required
-                class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white transition-colors"
+                class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
                 placeholder="Re-enter panic password"
               />
             </div>
@@ -236,7 +236,7 @@
               class="w-full bg-bg-tertiary rounded-full h-1"
             >
               <div
-                class="bg-white h-1 rounded-full transition-all duration-300"
+                class="bg-accent h-1 rounded-full transition-all duration-300"
                 :style="{ width: `${Math.min(powProgress, 100)}%` }"
               />
             </div>
@@ -245,7 +245,7 @@
           <button
             type="submit"
             :disabled="loading"
-            class="w-full bg-white text-black font-medium py-2.5 rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full bg-accent text-accent-fg font-medium py-2.5 rounded hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="loading">Creating account...</span>
             <span v-else>{{
@@ -262,7 +262,7 @@
             Already have an account?
             <NuxtLink
               to="/auth/login"
-              class="text-white hover:underline font-medium"
+              class="text-text-strong hover:underline font-medium"
             >
               Sign in
             </NuxtLink>

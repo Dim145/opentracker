@@ -2,12 +2,12 @@
   <div class="card p-3 group">
     <div class="flex items-center gap-3">
       <div
-        class="w-10 h-10 rounded bg-bg-tertiary flex items-center justify-center border border-border group-hover:border-white/20 transition-colors"
+        class="w-10 h-10 rounded bg-bg-tertiary flex items-center justify-center border border-border group-hover:border-fg-default/20 transition-colors"
         :class="{
           'text-success bg-success/5': variant === 'success',
           'text-warning bg-warning/5': variant === 'warning',
           'text-error bg-error/5': variant === 'error',
-          'text-white': !variant,
+          'text-text-primary': !variant,
         }"
       >
         <Icon :name="icon || 'ph:chart-bar'" class="text-xl" />

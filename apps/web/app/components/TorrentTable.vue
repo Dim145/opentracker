@@ -50,7 +50,7 @@
               class="text-text-muted text-base shrink-0"
             />
             <span
-              class="text-text-primary hover:text-white transition-colors font-medium truncate max-w-[300px] lg:max-w-[500px]"
+              class="text-text-primary hover:text-text-strong transition-colors font-medium truncate max-w-[300px] lg:max-w-[500px]"
               >{{ torrent.name }}</span
             >
           </div>

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen flex flex-col bg-bg-primary text-text-primary selection:bg-white selection:text-black"
+    class="min-h-screen flex flex-col bg-bg-primary text-text-primary selection:bg-accent selection:text-accent-fg"
   >
     <!-- Header — z-30 so dropdowns (z-40) and modals (z-50) layer above it -->
     <header
@@ -12,7 +12,7 @@
       >
         <NuxtLink to="/" class="flex items-center gap-2.5 group">
           <div
-            class="w-7 h-7 bg-white rounded-sm flex items-center justify-center transition-transform group-hover:rotate-12 overflow-hidden"
+            class="w-7 h-7 bg-accent rounded-sm flex items-center justify-center transition-transform group-hover:rotate-12 overflow-hidden"
           >
             <img
               v-if="branding?.siteLogoImage"
@@ -23,7 +23,7 @@
             <Icon
               v-else
               :name="branding?.siteLogo || 'ph:broadcast-bold'"
-              class="text-black text-lg"
+              class="text-accent-fg text-lg"
             />
           </div>
           <div class="flex flex-col leading-none">
@@ -47,8 +47,8 @@
             v-for="link in visibleNavLinks"
             :key="link.to"
             :to="link.to"
-            class="px-3 py-1.5 text-xs font-medium rounded transition-all hover:bg-white/5"
-            active-class="bg-white/10 text-white"
+            class="px-3 py-1.5 text-xs font-medium rounded transition-all text-text-secondary hover:bg-fg-default/5 hover:text-text-primary"
+            active-class="bg-fg-default/10 text-text-strong"
           >
             <div class="flex items-center gap-2">
               <Icon :name="link.icon" class="text-base" />
@@ -94,7 +94,7 @@
             </div>
             <button
               @click="refreshStats"
-              class="p-1 rounded hover:bg-white/5 text-text-muted hover:text-text-secondary transition-colors"
+              class="p-1 rounded hover:bg-fg-default/5 text-text-muted hover:text-text-secondary transition-colors"
               title="Refresh stats"
             >
               <Icon name="ph:arrows-clockwise" class="text-xs" />
@@ -119,7 +119,7 @@
           <div class="relative" ref="userMenuRef">
             <button
               @click="toggleUserMenu"
-              class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white/5 transition-colors"
+              class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-fg-default/5 transition-colors"
             >
               <div
                 class="w-7 h-7 rounded-full bg-bg-tertiary border border-border flex items-center justify-center overflow-hidden"
@@ -156,13 +156,13 @@
                   >
                     <span
                       v-if="user?.isAdmin"
-                      class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-white/10 rounded text-text-secondary"
+                      class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-fg-default/10 rounded text-text-secondary"
                     >
                       Admin
                     </span>
                     <span
                       v-if="user?.isModerator"
-                      class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-white/10 rounded text-text-secondary"
+                      class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-fg-default/10 rounded text-text-secondary"
                     >
                       Moderator
                     </span>
@@ -181,7 +181,7 @@
                           v-if="!passkeyRevealed"
                           @click="revealPasskey"
                           :disabled="passkeyLoading"
-                          class="text-[10px] uppercase tracking-wider text-text-muted hover:text-white transition-colors disabled:opacity-50"
+                          class="text-[10px] uppercase tracking-wider text-text-muted hover:text-text-strong transition-colors disabled:opacity-50"
                         >
                           <Icon
                             v-if="passkeyLoading"
@@ -193,13 +193,13 @@
                         <template v-else>
                           <button
                             @click="copyPasskey"
-                            class="text-[10px] uppercase tracking-wider text-text-muted hover:text-white transition-colors"
+                            class="text-[10px] uppercase tracking-wider text-text-muted hover:text-text-strong transition-colors"
                           >
                             {{ passkeyCopied ? 'Copied' : 'Copy' }}
                           </button>
                           <button
                             @click="hidePasskey"
-                            class="text-[10px] uppercase tracking-wider text-text-muted hover:text-white transition-colors ml-1"
+                            class="text-[10px] uppercase tracking-wider text-text-muted hover:text-text-strong transition-colors ml-1"
                           >
                             Hide
                           </button>
@@ -263,7 +263,7 @@
                 <div class="border-t border-border py-1">
                   <button
                     @click="handleLogout"
-                    class="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-white/5 transition-colors flex items-center gap-2"
+                    class="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-fg-default/5 transition-colors flex items-center gap-2"
                   >
                     <Icon name="ph:sign-out" />
                     Sign Out
@@ -319,7 +319,7 @@
             </p>
             <button
               @click="dismissAnnouncement"
-              class="p-1 rounded hover:bg-white/10 transition-colors flex-shrink-0"
+              class="p-1 rounded hover:bg-fg-default/10 transition-colors flex-shrink-0"
               title="Dismiss"
             >
               <Icon
@@ -371,21 +371,21 @@
             href="https://n0w.me/"
             target="_blank"
             rel="noopener"
-            class="text-text-muted hover:text-white transition-colors"
+            class="text-text-muted hover:text-text-strong transition-colors"
             ><Icon name="ph:globe" class="text-xl"
           /></a>
           <a
             href="https://github.com/florianjs/trackarr"
             target="_blank"
             rel="noopener"
-            class="text-text-muted hover:text-white transition-colors"
+            class="text-text-muted hover:text-text-strong transition-colors"
             ><Icon name="ph:github-logo" class="text-xl"
           /></a>
           <a
             href="https://discord.gg/GRFu35djvz"
             target="_blank"
             rel="noopener"
-            class="text-text-muted hover:text-white transition-colors"
+            class="text-text-muted hover:text-text-strong transition-colors"
             ><Icon name="ph:discord-logo" class="text-xl"
           /></a>
         </div>

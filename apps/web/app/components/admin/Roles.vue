@@ -49,7 +49,7 @@
               "
             >
               <span
-                class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+                class="inline-block h-3 w-3 transform rounded-full bg-fg-strong transition-transform"
                 :class="
                   newRole.canUploadWithoutModeration
                     ? 'translate-x-5'
@@ -118,7 +118,7 @@
                 "
               >
                 <span
-                  class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+                  class="inline-block h-3 w-3 transform rounded-full bg-fg-strong transition-transform"
                   :class="
                     role.canUploadWithoutModeration
                       ? 'translate-x-5'

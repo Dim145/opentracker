@@ -21,7 +21,7 @@
             </h3>
           </div>
           <button
-            class="text-text-muted hover:text-white transition-colors"
+            class="text-text-muted hover:text-text-strong transition-colors"
             @click="close"
           >
             <Icon name="ph:x-bold" />
@@ -75,7 +75,7 @@
                 type="button"
                 class="text-[10px] font-bold uppercase tracking-widest transition-colors"
                 :class="
-                  isPreview ? 'text-white' : 'text-text-muted hover:text-white'
+                  isPreview ? 'text-text-strong' : 'text-text-muted hover:text-text-strong'
                 "
                 @click="isPreview = !isPreview"
               >
@@ -394,7 +394,7 @@ async function save() {
 
 <style scoped>
 .toolbar-btn {
-  @apply w-7 h-7 flex items-center justify-center rounded-sm text-text-muted hover:text-white hover:bg-white/5 transition-all;
+  @apply w-7 h-7 flex items-center justify-center rounded-sm text-text-muted hover:text-text-strong hover:bg-fg-default/5 transition-all;
 }
 
 .toolbar-btn :deep(svg) {

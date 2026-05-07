@@ -17,7 +17,7 @@
           <div
             class="flex items-center gap-2 text-text-muted text-xs font-mono uppercase tracking-widest mb-2"
           >
-            <NuxtLink to="/forum" class="hover:text-white transition-colors"
+            <NuxtLink to="/forum" class="hover:text-text-strong transition-colors"
               >Forum</NuxtLink
             >
             <Icon name="ph:caret-right" />
@@ -29,7 +29,7 @@
         <div>
           <NuxtLink
             :to="`/forum/new-topic?categoryId=${category.id}`"
-            class="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wider rounded hover:bg-white/90 transition-colors flex items-center gap-2"
+            class="px-4 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors flex items-center gap-2"
           >
             <Icon name="ph:plus-bold" />
             New Topic
@@ -58,14 +58,14 @@
         <div
           v-for="topic in category.topics"
           :key="topic.id"
-          class="grid grid-cols-12 px-6 py-4 border-b border-border last:border-0 hover:bg-white/[0.02] transition-colors items-center group"
+          class="grid grid-cols-12 px-6 py-4 border-b border-border last:border-0 hover:bg-fg-default/5 transition-colors items-center group"
         >
           <div class="col-span-7 flex items-center gap-4">
             <div class="flex-shrink-0">
               <Icon
                 v-if="topic.isPinned"
                 name="ph:push-pin-fill"
-                class="text-white text-lg"
+                class="text-text-strong text-lg"
               />
               <Icon
                 v-else-if="topic.isLocked"
@@ -81,7 +81,7 @@
             <div>
               <NuxtLink
                 :to="`/forum/topic/${topic.id}`"
-                class="font-bold hover:text-white transition-colors block"
+                class="font-bold hover:text-text-strong transition-colors block"
               >
                 {{ topic.title }}
               </NuxtLink>

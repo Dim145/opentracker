@@ -3,7 +3,7 @@
     <div
       class="flex items-center gap-2 text-text-muted text-xs font-mono uppercase tracking-widest"
     >
-      <NuxtLink to="/forum" class="hover:text-white transition-colors"
+      <NuxtLink to="/forum" class="hover:text-text-strong transition-colors"
         >Forum</NuxtLink
       >
       <Icon name="ph:caret-right" />
@@ -20,7 +20,7 @@
         >
         <select
           v-model="form.categoryId"
-          class="w-full bg-bg-tertiary border border-border rounded px-4 py-2.5 text-sm focus:outline-none focus:border-white/40 transition-colors appearance-none"
+          class="w-full bg-bg-tertiary border border-border rounded px-4 py-2.5 text-sm focus:outline-none focus:border-fg-default/40 transition-colors appearance-none"
         >
           <option value="" disabled>Select a category</option>
           <option v-for="cat in categories" :key="cat.id" :value="cat.id">
@@ -37,7 +37,7 @@
         <input
           v-model="form.title"
           type="text"
-          class="w-full bg-bg-tertiary border border-border rounded px-4 py-2.5 text-sm focus:outline-none focus:border-white/40 transition-colors"
+          class="w-full bg-bg-tertiary border border-border rounded px-4 py-2.5 text-sm focus:outline-none focus:border-fg-default/40 transition-colors"
           placeholder="What's on your mind?"
         />
       </div>
@@ -49,7 +49,7 @@
         >
         <textarea
           v-model="form.content"
-          class="w-full bg-bg-tertiary border border-border rounded px-4 py-3 text-sm focus:outline-none focus:border-white/40 transition-colors h-64 resize-none"
+          class="w-full bg-bg-tertiary border border-border rounded px-4 py-3 text-sm focus:outline-none focus:border-fg-default/40 transition-colors h-64 resize-none"
           placeholder="Write your post content here..."
         ></textarea>
       </div>
@@ -57,14 +57,14 @@
       <div class="flex justify-end gap-4 pt-4">
         <button
           @click="router.back()"
-          class="px-6 py-2 bg-bg-tertiary text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-white/5 transition-colors"
+          class="px-6 py-2 bg-bg-tertiary text-text-primary text-xs font-bold uppercase tracking-wider rounded hover:bg-fg-default/5 transition-colors"
         >
           Cancel
         </button>
         <button
           @click="handleSubmit"
           :disabled="!isFormValid || submitting"
-          class="px-8 py-2 bg-white text-black text-xs font-bold uppercase tracking-wider rounded hover:bg-white/90 transition-colors disabled:opacity-50"
+          class="px-8 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors disabled:opacity-50"
         >
           {{ submitting ? 'Creating...' : 'Create Topic' }}
         </button>

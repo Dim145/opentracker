@@ -30,7 +30,7 @@
               </p>
             </div>
             <button
-              class="shrink-0 text-text-muted hover:text-white transition-colors"
+              class="shrink-0 text-text-muted hover:text-text-strong transition-colors"
               @click="notificationStore.remove(notification.id)"
             >
               <Icon name="ph:x-bold" class="w-4 h-4" />

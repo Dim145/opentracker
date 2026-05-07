@@ -30,7 +30,7 @@
             <button
               @click="checkUpdates"
               :disabled="checkingUpdates"
-              class="p-2 bg-bg-tertiary border border-border rounded hover:border-white/20 transition-colors disabled:opacity-50"
+              class="p-2 bg-bg-tertiary border border-border rounded hover:border-fg-default/20 transition-colors disabled:opacity-50"
               title="Check for updates"
             >
               <Icon
@@ -121,7 +121,7 @@
 
         <button
           @click="toggleUpdateInstructions"
-          class="w-full bg-bg-tertiary border border-border text-[10px] font-bold uppercase tracking-widest py-2.5 rounded hover:border-white/20 transition-colors flex items-center justify-center gap-2"
+          class="w-full bg-bg-tertiary border border-border text-[10px] font-bold uppercase tracking-widest py-2.5 rounded hover:border-fg-default/20 transition-colors flex items-center justify-center gap-2"
         >
           <Icon name="ph:terminal" />
           {{ showUpdateInstructions ? 'Hide' : 'Show' }} Update Instructions

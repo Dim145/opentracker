@@ -27,7 +27,7 @@
             type="number"
             min="10"
             max="3600"
-            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-white/20"
+            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
           />
           <span class="text-sm text-text-muted">seconds</span>
           <div class="flex-1" />
@@ -48,7 +48,7 @@
             type="number"
             min="1"
             max="1000"
-            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-white/20"
+            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
           />
           <span class="text-sm text-text-muted"
             >requests / {{ formatDuration(localWindow) }}</span
@@ -81,7 +81,7 @@
             type="number"
             min="1"
             max="500"
-            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-white/20"
+            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
           />
           <span class="text-sm text-text-muted"
             >requests / {{ formatDuration(localWindow) }}</span
@@ -115,7 +115,7 @@
             v-for="preset in presets"
             :key="preset.name"
             @click="applyPreset(preset)"
-            class="px-3 py-1.5 bg-bg-tertiary border border-border rounded text-xs hover:border-white/20 transition-colors"
+            class="px-3 py-1.5 bg-bg-tertiary border border-border rounded text-xs hover:border-fg-default/20 transition-colors"
           >
             {{ preset.name }}
           </button>

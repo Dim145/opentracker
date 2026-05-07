@@ -23,7 +23,7 @@
             {{ endpoints.http }}
           </code>
           <button
-            class="p-1.5 text-text-muted hover:text-white transition-colors"
+            class="p-1.5 text-text-muted hover:text-text-strong transition-colors"
             @click="copyToClipboard(endpoints.http)"
           >
             <Icon name="ph:copy" />
@@ -42,7 +42,7 @@
             {{ endpoints.udp }}
           </code>
           <button
-            class="p-1.5 text-text-muted hover:text-white transition-colors"
+            class="p-1.5 text-text-muted hover:text-text-strong transition-colors"
             @click="copyToClipboard(endpoints.udp)"
           >
             <Icon name="ph:copy" />
@@ -61,7 +61,7 @@
             {{ endpoints.ws }}
           </code>
           <button
-            class="p-1.5 text-text-muted hover:text-white transition-colors"
+            class="p-1.5 text-text-muted hover:text-text-strong transition-colors"
             @click="copyToClipboard(endpoints.ws)"
           >
             <Icon name="ph:copy" />

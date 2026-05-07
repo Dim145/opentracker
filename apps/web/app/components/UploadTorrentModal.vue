@@ -21,7 +21,7 @@
             </h3>
           </div>
           <button
-            class="text-text-muted hover:text-white transition-colors"
+            class="text-text-muted hover:text-text-strong transition-colors"
             @click="close"
           >
             <Icon name="ph:x-bold" />
@@ -33,7 +33,7 @@
           <!-- File Input -->
           <div v-if="!result" class="space-y-6">
             <div
-              class="border border-dashed border-border rounded p-10 text-center hover:border-white/30 hover:bg-white/[0.02] transition-all cursor-pointer group"
+              class="border border-dashed border-border rounded p-10 text-center hover:border-fg-default/30 hover:bg-fg-default/5 transition-all cursor-pointer group"
               :class="{ 'border-success/50 bg-success/5': selectedFile }"
               @click="triggerFileInput"
               @drop.prevent="handleDrop"
@@ -113,8 +113,8 @@
                   class="text-[10px] font-bold uppercase tracking-widest transition-colors"
                   :class="
                     isPreview
-                      ? 'text-white'
-                      : 'text-text-muted hover:text-white'
+                      ? 'text-text-strong'
+                      : 'text-text-muted hover:text-text-strong'
                   "
                   @click="isPreview = !isPreview"
                 >
@@ -516,7 +516,7 @@ async function copyMagnet() {
 
 <style scoped>
 .toolbar-btn {
-  @apply w-7 h-7 flex items-center justify-center rounded-sm text-text-muted hover:text-white hover:bg-white/5 transition-all;
+  @apply w-7 h-7 flex items-center justify-center rounded-sm text-text-muted hover:text-text-strong hover:bg-fg-default/5 transition-all;
 }
 
 .toolbar-btn :deep(svg) {

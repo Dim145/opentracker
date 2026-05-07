@@ -6,7 +6,7 @@
       <Icon
         v-if="!loading"
         name="ph:magnifying-glass"
-        class="h-5 w-5 text-text-muted group-focus-within:text-white transition-colors"
+        class="h-5 w-5 text-text-muted group-focus-within:text-text-strong transition-colors"
       />
       <Icon
         v-else
@@ -19,7 +19,7 @@
       :value="modelValue"
       type="text"
       :placeholder="placeholder"
-      class="w-full bg-bg-secondary/50 border border-border text-text-primary placeholder-text-muted focus:outline-none focus:border-white/20 focus:bg-bg-secondary transition-all shadow-2xl"
+      class="w-full bg-bg-secondary border border-border text-text-primary placeholder-text-muted focus:outline-none focus:border-fg-default/30 focus:bg-bg-tertiary transition-all"
       :class="[
         size === 'lg'
           ? 'rounded-xl pl-12 pr-24 py-4 text-lg'
@@ -37,7 +37,7 @@
       </div>
       <button
         v-if="modelValue"
-        class="text-text-muted hover:text-white transition-colors p-2"
+        class="text-text-muted hover:text-text-strong transition-colors p-2"
         title="Clear"
         @click="clear"
       >
@@ -60,7 +60,10 @@
 
 <style scoped>
 .btn-search {
-  @apply rounded-lg text-gray-200 transition-all active:scale-95 shadow-lg;
+  @apply rounded-lg text-text-secondary transition-all active:scale-95 shadow-lg;
+}
+.btn-search:hover {
+  @apply text-text-strong;
 }
 .btn-lg {
   @apply p-2.5;

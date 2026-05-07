@@ -122,8 +122,8 @@
             class="flex-1 py-2 px-3 text-xs font-bold uppercase tracking-wider rounded border transition-colors"
             :class="
               !useCustomImage
-                ? 'bg-white text-black border-white'
-                : 'bg-bg-tertiary border-border text-text-secondary hover:border-white/20'
+                ? 'bg-accent text-accent-fg border-accent'
+                : 'bg-bg-tertiary border-border text-text-secondary hover:border-fg-default/20'
             "
           >
             <Icon name="ph:phosphor-logo" class="mr-1" /> Icon
@@ -133,8 +133,8 @@
             class="flex-1 py-2 px-3 text-xs font-bold uppercase tracking-wider rounded border transition-colors"
             :class="
               useCustomImage
-                ? 'bg-white text-black border-white'
-                : 'bg-bg-tertiary border-border text-text-secondary hover:border-white/20'
+                ? 'bg-accent text-accent-fg border-accent'
+                : 'bg-bg-tertiary border-border text-text-secondary hover:border-fg-default/20'
             "
           >
             <Icon name="ph:image" class="mr-1" /> Image
@@ -153,7 +153,7 @@
             v-model="siteLogo"
             type="text"
             maxlength="100"
-            class="flex-1 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-white/20 font-mono"
+            class="flex-1 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 font-mono"
             placeholder="ph:broadcast-bold"
           />
           <div
@@ -175,8 +175,8 @@
               v-for="icon in commonIcons"
               :key="icon"
               @click="siteLogo = icon"
-              class="w-9 h-9 bg-bg-tertiary border rounded flex items-center justify-center hover:bg-white/5 transition-colors"
-              :class="siteLogo === icon ? 'border-white' : 'border-border'"
+              class="w-9 h-9 bg-bg-tertiary border rounded flex items-center justify-center hover:bg-fg-default/5 transition-colors"
+              :class="siteLogo === icon ? 'border-accent' : 'border-border'"
             >
               <Icon :name="icon" class="text-lg text-text-secondary" />
             </button>
@@ -228,8 +228,8 @@
           class="border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer group"
           :class="
             dragOver
-              ? 'border-white bg-white/5'
-              : 'border-border hover:border-white/30 hover:bg-bg-tertiary/50'
+              ? 'border-accent bg-fg-default/5'
+              : 'border-border hover:border-fg-default/30 hover:bg-bg-tertiary/50'
           "
           @click="triggerFileInput"
         >
@@ -295,8 +295,8 @@
           class="border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer group"
           :class="
             dragOverFavicon
-              ? 'border-white bg-white/5'
-              : 'border-border hover:border-white/30 hover:bg-bg-tertiary/50'
+              ? 'border-accent bg-fg-default/5'
+              : 'border-border hover:border-fg-default/30 hover:bg-bg-tertiary/50'
           "
           @click="triggerFaviconInput"
         >
@@ -404,7 +404,7 @@
             v-model="pageTitleSuffix"
             type="text"
             maxlength="100"
-            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-white/20"
+            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
             :placeholder="`- ${siteName?.replace(/<[^>]*>/g, '') || 'Trackarr'}`"
           />
           <p class="text-[10px] text-text-muted">
@@ -510,7 +510,7 @@
             v-model="statusBadgeText"
             type="text"
             maxlength="100"
-            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-white/20"
+            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
             placeholder="Tracker Online & Operational"
           />
         </SettingsGroup>

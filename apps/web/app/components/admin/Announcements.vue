@@ -26,7 +26,7 @@
           >
             <span
               :class="[
-                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                'inline-block h-4 w-4 transform rounded-full bg-fg-strong transition-transform',
                 enabled ? 'translate-x-6' : 'translate-x-1',
               ]"
             />
@@ -47,7 +47,7 @@
             v-model="message"
             rows="3"
             maxlength="500"
-            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-white/20 resize-none"
+            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 resize-none"
             placeholder="Enter your announcement message..."
           />
           <p
@@ -71,8 +71,8 @@
             :class="[
               'flex items-center justify-center gap-2 px-3 py-2 rounded border text-xs font-medium transition-colors',
               type === option.value
-                ? 'border-white bg-white/5 text-text-primary'
-                : 'border-border text-text-muted hover:border-white/20',
+                ? 'border-accent bg-fg-default/5 text-text-primary'
+                : 'border-border text-text-muted hover:border-fg-default/20',
             ]"
           >
             <Icon :name="option.icon" />

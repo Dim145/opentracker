@@ -20,7 +20,7 @@ export const useUserStore = defineStore('user', () => {
   const ratioClass = computed(() => {
     const r = ratio.value;
     if (r === Infinity || r >= 2) return 'text-green-400';
-    if (r >= 1) return 'text-white';
+    if (r >= 1) return 'text-text-strong';
     if (r >= 0.5) return 'text-yellow-400';
     return 'text-red-400';
   });

@@ -12,43 +12,47 @@
  * `border-border` etc. to these vars so the existing markup picks both
  * themes up without churn.
  *
- * Spacing tokens (--header-h, --container-pad) keep sticky offsets in sync
- * across the layout, sidebars, and announcement banner.
+ * Colour vars are stored as **space-separated RGB triplets** ("250 250 250")
+ * rather than hex literals, so Tailwind's `<alpha-value>` placeholder can
+ * compose them: `rgb(var(--bg-base) / 0.5)` is valid; the previous
+ * `rgba(var(--bg-base), 0.5)` form silently dropped to the user-agent default
+ * and gave us white inputs in dark mode.
  * ============================================================================= */
 
 :root,
 :root[data-theme='dark'] {
-  /* Surfaces — late-night console, warm-neutral neutrals */
-  --bg-base:        #0a0a0a;
-  --bg-surface:     #141414;
-  --bg-elevated:    #1a1a1a;
-  --bg-hover:       #232323;
-  --bg-inset:       #0f0f0f;
+  /* Surfaces */
+  --bg-base:        10 10 10;
+  --bg-surface:     20 20 20;
+  --bg-elevated:    26 26 26;
+  --bg-hover:       35 35 35;
+  --bg-inset:       15 15 15;
 
   /* Foreground */
-  --fg-default:     #fafafa;
-  --fg-strong:      #ffffff;
-  --fg-muted:       #a1a1a1;
-  --fg-subtle:      #707070;
-  --fg-faint:       #4a4a4a;
+  --fg-default:     250 250 250;
+  --fg-strong:      255 255 255;
+  --fg-muted:       161 161 161;
+  --fg-subtle:      112 112 112;
+  --fg-faint:       74 74 74;
 
   /* Lines */
-  --line-default:   #2a2a2a;
-  --line-strong:    #3a3a3a;
+  --line-default:   42 42 42;
+  --line-strong:    58 58 58;
 
   /* Accent — deliberately neutral; primary CTA inverts the surface */
-  --accent:         #ffffff;
-  --accent-hover:   #e5e5e5;
-  --accent-fg:      #0a0a0a;
-  --accent-soft:    rgba(255, 255, 255, 0.08);
+  --accent:         255 255 255;
+  --accent-hover:   229 229 229;
+  --accent-fg:      10 10 10;
 
   /* Semantic — used for status badges and notifications, NOT for chrome */
-  --online:         #22c55e;   /* seeders, online status */
-  --warning:        #eab308;   /* leechers, soft warnings */
-  --danger:         #ef4444;   /* destructive, errors */
-  --info:           #38bdf8;   /* info banners */
+  --online:         34 197 94;
+  --warning:        234 179 8;
+  --danger:         239 68 68;
+  --info:           56 189 248;
 
-  /* Background grid pattern color (radial dots) */
+  /* Static colour values that need to be invariant per theme go here. The
+     dot-grid pattern uses theme-tinted whites/blacks, so it lives outside
+     the rgb() pattern. */
   --bg-pattern:     rgba(255, 255, 255, 0.025);
 
   /* Spacing tokens */
@@ -68,30 +72,29 @@
 }
 
 :root[data-theme='light'] {
-  --bg-base:        #fafafa;
-  --bg-surface:     #ffffff;
-  --bg-elevated:    #ffffff;
-  --bg-hover:       #f3f3f3;
-  --bg-inset:       #f5f5f5;
+  --bg-base:        250 250 250;
+  --bg-surface:     255 255 255;
+  --bg-elevated:    255 255 255;
+  --bg-hover:       243 243 243;
+  --bg-inset:       245 245 245;
 
-  --fg-default:     #0a0a0a;
-  --fg-strong:      #000000;
-  --fg-muted:       #555555;
-  --fg-subtle:      #767676;
-  --fg-faint:       #b0b0b0;
+  --fg-default:     10 10 10;
+  --fg-strong:      0 0 0;
+  --fg-muted:       85 85 85;
+  --fg-subtle:      118 118 118;
+  --fg-faint:       176 176 176;
 
-  --line-default:   #e5e5e5;
-  --line-strong:    #d0d0d0;
+  --line-default:   229 229 229;
+  --line-strong:    208 208 208;
 
-  --accent:         #0a0a0a;
-  --accent-hover:   #1f1f1f;
-  --accent-fg:      #ffffff;
-  --accent-soft:    rgba(10, 10, 10, 0.06);
+  --accent:         10 10 10;
+  --accent-hover:   31 31 31;
+  --accent-fg:      255 255 255;
 
-  --online:         #15803d;
-  --warning:        #b45309;
-  --danger:         #b91c1c;
-  --info:           #0369a1;
+  --online:         21 128 61;
+  --warning:        180 83 9;
+  --danger:         185 28 28;
+  --info:           3 105 161;
 
   --bg-pattern:     rgba(0, 0, 0, 0.04);
 
@@ -106,15 +109,15 @@
 @layer base {
   html {
     @apply antialiased;
-    background-color: var(--bg-base);
-    color: var(--fg-default);
+    background-color: rgb(var(--bg-base));
+    color: rgb(var(--fg-default));
   }
 
   body {
-    background-color: var(--bg-base);
-    color: var(--fg-default);
+    background-color: rgb(var(--bg-base));
+    color: rgb(var(--fg-default));
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    /* Subtle dot grid — quieter than the original (4% / 2.5% opacity) */
+    /* Subtle dot grid */
     background-image: radial-gradient(
       circle at 2px 2px,
       var(--bg-pattern) 1px,
@@ -125,22 +128,22 @@
   }
 
   ::selection {
-    background-color: var(--accent);
-    color: var(--accent-fg);
+    background-color: rgb(var(--accent));
+    color: rgb(var(--accent-fg));
   }
 
   /* Scrollbars — track in surface, thumb in line */
   ::-webkit-scrollbar { @apply w-2 h-2; }
-  ::-webkit-scrollbar-track { background: var(--bg-surface); }
+  ::-webkit-scrollbar-track { background: rgb(var(--bg-surface)); }
   ::-webkit-scrollbar-thumb {
-    background: var(--line-default);
+    background: rgb(var(--line-default));
     border-radius: 9999px;
   }
-  ::-webkit-scrollbar-thumb:hover { background: var(--line-strong); }
+  ::-webkit-scrollbar-thumb:hover { background: rgb(var(--line-strong)); }
 
   /* Focus ring — thin, keyboard only */
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid rgb(var(--accent));
     outline-offset: 2px;
     border-radius: 2px;
   }
@@ -168,16 +171,16 @@
    * Card — surface container with hover line shift
    * --------------------------------------------------------------------------- */
   .card {
-    background-color: var(--bg-surface);
-    border: 1px solid var(--line-default);
+    background-color: rgb(var(--bg-surface));
+    border: 1px solid rgb(var(--line-default));
     border-radius: var(--radius-md);
     transition: border-color 180ms ease, background-color 180ms ease;
   }
-  .card:hover { border-color: var(--line-strong); }
+  .card:hover { border-color: rgb(var(--line-strong)); }
 
   .card-header {
     @apply px-3 py-2 flex items-center justify-between;
-    border-bottom: 1px solid var(--line-default);
+    border-bottom: 1px solid rgb(var(--line-default));
   }
   .card-body { @apply p-3; }
 
@@ -209,40 +212,43 @@
   .btn:active:not(:disabled) { transform: translateY(0.5px); }
 
   .btn-primary {
-    background-color: var(--accent);
-    color: var(--accent-fg);
-    border-color: var(--accent);
+    background-color: rgb(var(--accent));
+    color: rgb(var(--accent-fg));
+    border-color: rgb(var(--accent));
   }
-  .btn-primary:hover { background-color: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-primary:hover {
+    background-color: rgb(var(--accent-hover));
+    border-color: rgb(var(--accent-hover));
+  }
 
   .btn-secondary {
-    background-color: var(--bg-elevated);
-    color: var(--fg-default);
-    border-color: var(--line-default);
+    background-color: rgb(var(--bg-elevated));
+    color: rgb(var(--fg-default));
+    border-color: rgb(var(--line-default));
   }
   .btn-secondary:hover {
-    background-color: var(--bg-hover);
-    border-color: var(--line-strong);
-    color: var(--fg-strong);
+    background-color: rgb(var(--bg-hover));
+    border-color: rgb(var(--line-strong));
+    color: rgb(var(--fg-strong));
   }
 
   .btn-ghost {
     background-color: transparent;
-    color: var(--fg-muted);
+    color: rgb(var(--fg-muted));
   }
   .btn-ghost:hover {
-    background-color: var(--bg-hover);
-    color: var(--fg-default);
+    background-color: rgb(var(--bg-hover));
+    color: rgb(var(--fg-default));
   }
 
   .btn-danger {
-    background-color: var(--danger);
+    background-color: rgb(var(--danger));
     color: #fff;
-    border-color: var(--danger);
+    border-color: rgb(var(--danger));
   }
   .btn-danger:hover {
-    background-color: color-mix(in srgb, var(--danger) 85%, black);
-    border-color: color-mix(in srgb, var(--danger) 85%, black);
+    background-color: rgb(var(--danger) / 0.85);
+    border-color: rgb(var(--danger) / 0.85);
   }
 
   .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
@@ -253,18 +259,18 @@
    * --------------------------------------------------------------------------- */
   .input {
     width: 100%;
-    background-color: var(--bg-elevated);
-    color: var(--fg-default);
-    border: 1px solid var(--line-default);
+    background-color: rgb(var(--bg-elevated));
+    color: rgb(var(--fg-default));
+    border: 1px solid rgb(var(--line-default));
     border-radius: var(--radius-sm);
     padding: 0.45rem 0.75rem;
     font-size: 0.875rem;
     line-height: 1.4;
     transition: border-color 140ms ease, background-color 140ms ease;
   }
-  .input::placeholder { color: var(--fg-faint); }
+  .input::placeholder { color: rgb(var(--fg-faint)); }
   .input:focus {
-    border-color: var(--fg-default);
+    border-color: rgb(var(--fg-default));
     outline: none;
   }
 
@@ -278,7 +284,7 @@
   .eyebrow {
     font-size: 0.6875rem;
     font-weight: 600;
-    color: var(--fg-subtle);
+    color: rgb(var(--fg-subtle));
     text-transform: uppercase;
     letter-spacing: 0.08em;
     line-height: 1.4;
@@ -294,7 +300,7 @@
     font-size: 1.5rem;     /* 24px */
     line-height: 1.15;
     font-weight: 700;
-    color: var(--fg-strong);
+    color: rgb(var(--fg-strong));
     letter-spacing: -0.02em;
     margin: 0;
   }
@@ -307,7 +313,7 @@
     font-size: 1rem;       /* 16px */
     line-height: 1.3;
     font-weight: 600;
-    color: var(--fg-strong);
+    color: rgb(var(--fg-strong));
     letter-spacing: -0.01em;
     margin: 0;
   }
@@ -317,14 +323,14 @@
     font-size: 0.875rem;   /* 14px */
     line-height: 1.3;
     font-weight: 600;
-    color: var(--fg-default);
+    color: rgb(var(--fg-default));
     margin: 0;
   }
 
   /* Sub-text under a heading */
   .h-sub {
     font-size: 0.875rem;
-    color: var(--fg-muted);
+    color: rgb(var(--fg-muted));
     line-height: 1.5;
     margin: 0;
   }
@@ -340,9 +346,9 @@
   .data-table th {
     text-align: left;
     padding: 0.5rem 0.75rem;
-    color: var(--fg-subtle);
-    background-color: color-mix(in srgb, var(--bg-surface) 50%, transparent);
-    border-bottom: 1px solid var(--line-default);
+    color: rgb(var(--fg-subtle));
+    background-color: rgb(var(--bg-surface) / 0.5);
+    border-bottom: 1px solid rgb(var(--line-default));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -350,11 +356,11 @@
   }
   .data-table td {
     padding: 0.55rem 0.75rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--line-default) 60%, transparent);
-    color: var(--fg-default);
+    border-bottom: 1px solid rgb(var(--line-default) / 0.6);
+    color: rgb(var(--fg-default));
   }
   .data-table tr:last-child td { border-bottom: 0; }
-  .data-table tr:hover td { background-color: color-mix(in srgb, var(--fg-default) 3%, transparent); }
+  .data-table tr:hover td { background-color: rgb(var(--fg-default) / 0.03); }
 
   /* ---------------------------------------------------------------------------
    * Badges & stat pills
@@ -372,21 +378,21 @@
     line-height: 1.4;
   }
   .stat-seeders {
-    color: var(--online);
-    background-color: color-mix(in srgb, var(--online) 8%, transparent);
-    border: 1px solid color-mix(in srgb, var(--online) 30%, transparent);
+    color: rgb(var(--online));
+    background-color: rgb(var(--online) / 0.08);
+    border: 1px solid rgb(var(--online) / 0.3);
   }
   .stat-leechers {
-    color: var(--warning);
-    background-color: color-mix(in srgb, var(--warning) 8%, transparent);
-    border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+    color: rgb(var(--warning));
+    background-color: rgb(var(--warning) / 0.08);
+    border: 1px solid rgb(var(--warning) / 0.3);
   }
 
   .btn-search {
     @apply p-1.5 transition-colors;
-    color: var(--fg-muted);
+    color: rgb(var(--fg-muted));
   }
-  .btn-search:hover { color: var(--fg-default); }
+  .btn-search:hover { color: rgb(var(--fg-default)); }
 
   /* ---------------------------------------------------------------------------
    * Modal primitives — used by the shared <Modal> component (and any inline
@@ -406,13 +412,13 @@
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    background-color: color-mix(in srgb, var(--bg-base) 75%, transparent);
+    background-color: rgb(var(--bg-base) / 0.75);
     backdrop-filter: blur(6px);
   }
   .modal-panel {
     width: 100%;
-    background-color: var(--bg-surface);
-    border: 1px solid var(--line-default);
+    background-color: rgb(var(--bg-surface));
+    border: 1px solid rgb(var(--line-default));
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-overlay);
     max-height: 90vh;

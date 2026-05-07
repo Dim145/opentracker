@@ -17,13 +17,13 @@
           <div
             class="flex items-center gap-2 text-text-muted text-xs font-mono uppercase tracking-widest mb-2"
           >
-            <NuxtLink to="/forum" class="hover:text-white transition-colors"
+            <NuxtLink to="/forum" class="hover:text-text-strong transition-colors"
               >Forum</NuxtLink
             >
             <Icon name="ph:caret-right" />
             <NuxtLink
               :to="`/forum/category/${topic.category.id}`"
-              class="hover:text-white transition-colors"
+              class="hover:text-text-strong transition-colors"
               >{{ topic.category.name }}</NuxtLink
             >
             <Icon name="ph:caret-right" />
@@ -33,7 +33,7 @@
             <Icon
               v-if="topic.isPinned"
               name="ph:push-pin-fill"
-              class="text-white text-xl"
+              class="text-text-strong text-xl"
             />
             <Icon
               v-if="topic.isLocked"
@@ -46,7 +46,7 @@
         <div v-if="user?.isAdmin || user?.isModerator" class="flex gap-2">
           <button
             @click="handleTogglePin"
-            class="px-3 py-1.5 bg-bg-secondary border border-border text-[10px] font-bold uppercase tracking-wider rounded hover:bg-white/5 transition-colors flex items-center gap-2"
+            class="px-3 py-1.5 bg-bg-secondary border border-border text-[10px] font-bold uppercase tracking-wider rounded hover:bg-fg-default/5 transition-colors flex items-center gap-2"
           >
             <Icon
               :name="topic.isPinned ? 'ph:push-pin-slash' : 'ph:push-pin'"
@@ -55,7 +55,7 @@
           </button>
           <button
             @click="handleToggleLock"
-            class="px-3 py-1.5 bg-bg-secondary border border-border text-[10px] font-bold uppercase tracking-wider rounded hover:bg-white/5 transition-colors flex items-center gap-2"
+            class="px-3 py-1.5 bg-bg-secondary border border-border text-[10px] font-bold uppercase tracking-wider rounded hover:bg-fg-default/5 transition-colors flex items-center gap-2"
           >
             <Icon :name="topic.isLocked ? 'ph:lock-open' : 'ph:lock'" />
             {{ topic.isLocked ? 'Unlock' : 'Lock' }}
@@ -93,12 +93,12 @@
               <div class="flex flex-wrap gap-1 mt-1">
                 <span
                   v-if="post.author.isAdmin"
-                  class="text-[8px] uppercase tracking-tighter px-1 bg-white/10 rounded text-text-secondary"
+                  class="text-[8px] uppercase tracking-tighter px-1 bg-fg-default/10 rounded text-text-secondary"
                   >Admin</span
                 >
                 <span
                   v-if="post.author.isModerator"
-                  class="text-[8px] uppercase tracking-tighter px-1 bg-white/10 rounded text-text-secondary"
+                  class="text-[8px] uppercase tracking-tighter px-1 bg-fg-default/10 rounded text-text-secondary"
                   >Mod</span
                 >
               </div>
@@ -140,14 +140,14 @@
         >
           <textarea
             v-model="replyContent"
-            class="w-full bg-bg-tertiary border border-border rounded px-4 py-3 text-sm focus:outline-none focus:border-white/40 transition-colors h-48 resize-none"
+            class="w-full bg-bg-tertiary border border-border rounded px-4 py-3 text-sm focus:outline-none focus:border-fg-default/40 transition-colors h-48 resize-none"
             placeholder="Write your reply here..."
           ></textarea>
           <div class="flex justify-end">
             <button
               @click="handlePostReply"
               :disabled="!replyContent.trim() || posting"
-              class="px-6 py-2 bg-white text-black text-xs font-bold uppercase tracking-wider rounded hover:bg-white/90 transition-colors disabled:opacity-50"
+              class="px-6 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors disabled:opacity-50"
             >
               {{ posting ? 'Posting...' : 'Post Reply' }}
             </button>

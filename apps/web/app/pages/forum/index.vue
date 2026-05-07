@@ -10,7 +10,7 @@
       <div v-if="user?.isAdmin">
         <button
           @click="showCreateCategory = true"
-          class="px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wider rounded hover:bg-white/90 transition-colors flex items-center gap-2"
+          class="px-4 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors flex items-center gap-2"
         >
           <Icon name="ph:plus-bold" />
           New Category
@@ -30,13 +30,13 @@
       <div
         v-for="category in categories"
         :key="category.id"
-        class="bg-bg-secondary border border-border rounded-lg overflow-hidden group hover:border-white/20 transition-colors"
+        class="bg-bg-secondary border border-border rounded-lg overflow-hidden group hover:border-fg-default/20 transition-colors"
       >
         <NuxtLink :to="`/forum/category/${category.id}`" class="block p-6">
           <div class="flex justify-between items-start">
             <div>
               <h2
-                class="text-lg font-bold group-hover:text-white transition-colors"
+                class="text-lg font-bold group-hover:text-text-strong transition-colors"
               >
                 {{ category.name }}
               </h2>
@@ -66,7 +66,7 @@
         >
           <button
             @click.prevent="openEditModal(category)"
-            class="p-2 text-text-muted hover:text-white hover:bg-white/10 rounded transition-colors"
+            class="p-2 text-text-muted hover:text-text-strong hover:bg-fg-default/10 rounded transition-colors"
             title="Edit category"
           >
             <Icon name="ph:pencil-bold" class="text-sm" />
@@ -100,7 +100,7 @@
             <input
               v-model="newCategory.name"
               type="text"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white/40 transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors"
               placeholder="General Discussion"
             />
           </div>
@@ -111,7 +111,7 @@
             >
             <textarea
               v-model="newCategory.description"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white/40 transition-colors h-24 resize-none"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors h-24 resize-none"
               placeholder="Talk about anything here..."
             ></textarea>
           </div>
@@ -123,21 +123,21 @@
             <input
               v-model.number="newCategory.order"
               type="number"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white/40 transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors"
             />
           </div>
         </div>
         <div class="flex gap-3 pt-2">
           <button
             @click="showCreateCategory = false"
-            class="flex-1 px-4 py-2 bg-bg-tertiary text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-white/5 transition-colors"
+            class="flex-1 px-4 py-2 bg-bg-tertiary text-text-primary text-xs font-bold uppercase tracking-wider rounded hover:bg-fg-default/5 transition-colors"
           >
             Cancel
           </button>
           <button
             @click="handleCreateCategory"
             :disabled="creating"
-            class="flex-1 px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wider rounded hover:bg-white/90 transition-colors disabled:opacity-50"
+            class="flex-1 px-4 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors disabled:opacity-50"
           >
             {{ creating ? 'Creating...' : 'Create' }}
           </button>
@@ -163,7 +163,7 @@
             <input
               v-model="editCategory.name"
               type="text"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white/40 transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors"
             />
           </div>
           <div>
@@ -173,7 +173,7 @@
             >
             <textarea
               v-model="editCategory.description"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white/40 transition-colors h-24 resize-none"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors h-24 resize-none"
             ></textarea>
           </div>
           <div>
@@ -184,21 +184,21 @@
             <input
               v-model.number="editCategory.order"
               type="number"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-white/40 transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors"
             />
           </div>
         </div>
         <div class="flex gap-3 pt-2">
           <button
             @click="showEditCategory = false"
-            class="flex-1 px-4 py-2 bg-bg-tertiary text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-white/5 transition-colors"
+            class="flex-1 px-4 py-2 bg-bg-tertiary text-text-primary text-xs font-bold uppercase tracking-wider rounded hover:bg-fg-default/5 transition-colors"
           >
             Cancel
           </button>
           <button
             @click="handleUpdateCategory"
             :disabled="updating"
-            class="flex-1 px-4 py-2 bg-white text-black text-xs font-bold uppercase tracking-wider rounded hover:bg-white/90 transition-colors disabled:opacity-50"
+            class="flex-1 px-4 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors disabled:opacity-50"
           >
             {{ updating ? 'Saving...' : 'Save' }}
           </button>
@@ -217,14 +217,14 @@
         <h3 class="text-lg font-bold text-red-400">Delete Category</h3>
         <p class="text-text-muted text-sm">
           Are you sure you want to delete
-          <strong class="text-white">{{ categoryToDelete?.name }}</strong
+          <strong class="text-text-strong">{{ categoryToDelete?.name }}</strong
           >? This will permanently delete all topics and posts within this
           category.
         </p>
         <div class="flex gap-3 pt-2">
           <button
             @click="showDeleteConfirm = false"
-            class="flex-1 px-4 py-2 bg-bg-tertiary text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-white/5 transition-colors"
+            class="flex-1 px-4 py-2 bg-bg-tertiary text-text-primary text-xs font-bold uppercase tracking-wider rounded hover:bg-fg-default/5 transition-colors"
           >
             Cancel
           </button>

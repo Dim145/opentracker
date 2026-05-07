@@ -76,7 +76,7 @@
         </div>
         <NuxtLink
           to="/torrents"
-          class="text-[10px] font-bold uppercase text-text-muted hover:text-white transition-colors flex items-center gap-1"
+          class="text-[10px] font-bold uppercase text-text-muted hover:text-text-strong transition-colors flex items-center gap-1"
         >
           Browse all <Icon name="ph:arrow-right" />
         </NuxtLink>

@@ -164,7 +164,7 @@
     <!-- Editor -->
     <EditorContent
       :editor="editor"
-      class="wysiwyg-content bg-bg-tertiary border border-border rounded-b px-3 py-2 min-h-[120px] focus-within:border-white/20 transition-colors"
+      class="wysiwyg-content bg-bg-tertiary border border-border rounded-b px-3 py-2 min-h-[120px] focus-within:border-fg-default/20 transition-colors"
     />
 
     <!-- Character Count -->

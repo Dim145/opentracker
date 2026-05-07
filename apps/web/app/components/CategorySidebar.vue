@@ -12,8 +12,8 @@
           class="w-full text-left px-3 py-2 rounded-md text-xs font-medium transition-colors flex items-center gap-2"
           :class="[
             !selectedId
-              ? 'bg-white/10 text-white'
-              : 'text-text-secondary hover:bg-white/5 hover:text-white',
+              ? 'bg-fg-default/10 text-text-strong'
+              : 'text-text-secondary hover:bg-fg-default/5 hover:text-text-strong',
           ]"
           @click="$emit('select', '')"
         >
@@ -27,8 +27,8 @@
             class="w-full text-left px-3 py-2 rounded-md text-xs font-medium transition-colors flex items-center justify-between group"
             :class="[
               selectedId === category.id
-                ? 'bg-white/10 text-white'
-                : 'text-text-secondary hover:bg-white/5 hover:text-white',
+                ? 'bg-fg-default/10 text-text-strong'
+                : 'text-text-secondary hover:bg-fg-default/5 hover:text-text-strong',
             ]"
             @click="handleCategoryClick(category)"
           >
@@ -63,8 +63,8 @@
                 class="w-full text-left px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors flex items-center gap-2"
                 :class="[
                   selectedId === sub.id
-                    ? 'bg-white/10 text-white'
-                    : 'text-text-muted hover:bg-white/5 hover:text-text-secondary',
+                    ? 'bg-fg-default/10 text-text-strong'
+                    : 'text-text-muted hover:bg-fg-default/5 hover:text-text-secondary',
                 ]"
                 @click="$emit('select', sub.id)"
               >

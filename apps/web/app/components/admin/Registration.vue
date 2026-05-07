@@ -28,7 +28,7 @@
             "
           >
             <span
-              class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+              class="inline-block h-4 w-4 transform rounded-full bg-fg-strong transition-transform"
               :class="registrationOpen ? 'translate-x-6' : 'translate-x-1'"
             />
           </button>
@@ -55,7 +55,7 @@
             "
           >
             <span
-              class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+              class="inline-block h-4 w-4 transform rounded-full bg-fg-strong transition-transform"
               :class="inviteEnabled ? 'translate-x-6' : 'translate-x-1'"
             />
           </button>
@@ -95,7 +95,7 @@
               type="number"
               min="0"
               max="100"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-white/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 font-mono"
               placeholder="2"
             />
           </div>
@@ -112,7 +112,7 @@
               type="number"
               step="0.1"
               min="0"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-white/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 font-mono"
               placeholder="0.00"
             />
             <span
@@ -134,7 +134,7 @@
               v-model.number="starterUploadGB"
               type="number"
               min="0"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-white/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 font-mono"
               placeholder="0"
             />
             <span class="text-xs text-text-muted">GB</span>

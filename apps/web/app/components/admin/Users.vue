@@ -70,7 +70,7 @@
                 "
               >
                 <span
-                  class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+                  class="inline-block h-3 w-3 transform rounded-full bg-fg-strong transition-transform"
                   :class="u.isBanned ? 'translate-x-5' : 'translate-x-1'"
                 />
               </button>
@@ -106,7 +106,7 @@
                 "
               >
                 <span
-                  class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+                  class="inline-block h-3 w-3 transform rounded-full bg-fg-strong transition-transform"
                   :class="u.isModerator ? 'translate-x-5' : 'translate-x-1'"
                 />
               </button>
@@ -126,7 +126,7 @@
                 "
               >
                 <span
-                  class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
+                  class="inline-block h-3 w-3 transform rounded-full bg-fg-strong transition-transform"
                   :class="u.isAdmin ? 'translate-x-5' : 'translate-x-1'"
                 />
               </button>

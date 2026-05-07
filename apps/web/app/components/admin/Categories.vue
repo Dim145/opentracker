@@ -90,12 +90,12 @@
         >
           <!-- Parent Category -->
           <div
-            class="flex items-center justify-between p-3 bg-bg-tertiary/50 hover:border-white/20 transition-colors group"
+            class="flex items-center justify-between p-3 bg-bg-tertiary/50 hover:border-fg-default/20 transition-colors group"
           >
             <div class="flex items-center gap-3">
               <button
                 v-if="category.subcategories?.length"
-                class="w-6 h-6 rounded bg-bg-primary border border-border flex items-center justify-center hover:border-white/30 transition-colors"
+                class="w-6 h-6 rounded bg-bg-primary border border-border flex items-center justify-center hover:border-fg-default/30 transition-colors"
                 @click="toggleCategory(category.id)"
               >
                 <Icon

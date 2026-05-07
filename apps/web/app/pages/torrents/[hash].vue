@@ -2,7 +2,7 @@
   <div v-if="torrent">
     <NuxtLink
       to="/torrents"
-      class="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white mb-6 transition-colors"
+      class="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong mb-6 transition-colors"
     >
       <Icon name="ph:arrow-left-bold" />
       Back to index

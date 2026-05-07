@@ -42,7 +42,7 @@
             "
           >
             <span
-              class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+              class="inline-block h-4 w-4 transform rounded-full bg-fg-strong transition-transform"
               :class="config?.enabled ? 'translate-x-6' : 'translate-x-1'"
             />
           </button>
@@ -71,7 +71,7 @@
             "
           >
             <span
-              class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+              class="inline-block h-4 w-4 transform rounded-full bg-fg-strong transition-transform"
               :class="config?.enableLogging ? 'translate-x-6' : 'translate-x-1'"
             />
           </button>
@@ -94,7 +94,7 @@
           />
           <button
             @click="copyUrl"
-            class="p-2 bg-bg-tertiary border border-border rounded hover:border-white/20 transition-colors"
+            class="p-2 bg-bg-tertiary border border-border rounded hover:border-fg-default/20 transition-colors"
             title="Copy URL"
           >
             <Icon

@@ -13,7 +13,7 @@
         <button
           @click="() => refresh()"
           :disabled="loading"
-          class="p-1.5 bg-bg-tertiary border border-border rounded hover:border-white/20 transition-colors"
+          class="p-1.5 bg-bg-tertiary border border-border rounded hover:border-fg-default/20 transition-colors"
           title="Refresh"
         >
           <Icon
@@ -110,7 +110,7 @@
                 <button
                   @click="unblockUser(user.blockId)"
                   :disabled="unblocking === user.blockId"
-                  class="px-2 py-1 bg-bg-secondary border border-border rounded text-[10px] hover:border-white/20 transition-colors disabled:opacity-50"
+                  class="px-2 py-1 bg-bg-secondary border border-border rounded text-[10px] hover:border-fg-default/20 transition-colors disabled:opacity-50"
                 >
                   {{
                     unblocking === user.blockId ? 'Unblocking...' : 'Unblock'

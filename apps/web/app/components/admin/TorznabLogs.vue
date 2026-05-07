@@ -17,7 +17,7 @@
           <button
             @click="() => refresh()"
             :disabled="loading"
-            class="p-1.5 bg-bg-tertiary border border-border rounded hover:border-white/20 transition-colors"
+            class="p-1.5 bg-bg-tertiary border border-border rounded hover:border-fg-default/20 transition-colors"
             title="Refresh"
           >
             <Icon
@@ -44,14 +44,14 @@
           <button
             @click="prevPage"
             :disabled="offset === 0"
-            class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-white/20 transition-colors"
+            class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-fg-default/20 transition-colors"
           >
             Previous
           </button>
           <button
             @click="nextPage"
             :disabled="offset + limit >= data.total"
-            class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-white/20 transition-colors"
+            class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-fg-default/20 transition-colors"
           >
             Next
           </button>

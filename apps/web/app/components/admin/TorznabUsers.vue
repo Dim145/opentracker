@@ -13,7 +13,7 @@
         <button
           @click="() => refresh()"
           :disabled="loading"
-          class="p-1.5 bg-bg-tertiary border border-border rounded hover:border-white/20 transition-colors"
+          class="p-1.5 bg-bg-tertiary border border-border rounded hover:border-fg-default/20 transition-colors"
           title="Refresh"
         >
           <Icon
@@ -35,7 +35,7 @@
             v-model="search"
             type="text"
             placeholder="Search users..."
-            class="w-full bg-bg-tertiary border border-border rounded pl-9 pr-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-white/20"
+            class="w-full bg-bg-tertiary border border-border rounded pl-9 pr-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-fg-default/20"
           />
         </div>
       </div>
@@ -180,14 +180,14 @@
           <button
             @click="prevPage"
             :disabled="offset === 0"
-            class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-white/20 transition-colors"
+            class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-fg-default/20 transition-colors"
           >
             Previous
           </button>
           <button
             @click="nextPage"
             :disabled="offset + limit >= data.total"
-            class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-white/20 transition-colors"
+            class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-fg-default/20 transition-colors"
           >
             Next
           </button>
@@ -248,7 +248,7 @@
           <div class="flex items-center justify-end gap-3">
             <button
               @click="confirmAction = null"
-              class="px-4 py-2 bg-bg-tertiary border border-border rounded text-sm hover:border-white/20 transition-colors"
+              class="px-4 py-2 bg-bg-tertiary border border-border rounded text-sm hover:border-fg-default/20 transition-colors"
             >
               Cancel
             </button>
