@@ -29,11 +29,16 @@
       </div>
 
       <!-- Registration Closed -->
+      <!-- All three flags must be explicitly false for "closed" to apply.
+           If `status` is undefined (e.g. transient fetch failure), the
+           v-else branch renders the form rather than the worst-case
+           closed page so first-admin setup is never blocked. -->
       <div
         v-if="
-          !status?.registrationOpen &&
-          !status?.inviteEnabled &&
-          !status?.needsSetup
+          status &&
+          !status.registrationOpen &&
+          !status.inviteEnabled &&
+          !status.needsSetup
         "
         class="bg-bg-secondary border border-border rounded-lg p-6 text-center"
       >

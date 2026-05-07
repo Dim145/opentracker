@@ -29,7 +29,7 @@
       </div>
 
       <div
-        v-if="!status?.registrationOpen && !status?.needsSetup"
+        v-if="status && !status.registrationOpen && !status.needsSetup"
         class="mb-6 p-3 bg-blue-500/10 border border-blue-500/20 rounded flex items-start gap-3"
       >
         <Icon name="ph:info" class="text-blue-400 text-lg mt-0.5 shrink-0" />
