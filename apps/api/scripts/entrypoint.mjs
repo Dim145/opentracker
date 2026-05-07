@@ -3,6 +3,13 @@
 //    `pnpm --filter @trackarr/db exec drizzle-kit push --force`).
 // 2. Boot the Nitro server in-process.
 //
+// Notes on env-var-driven runtimeConfig:
+//   The web container is Nuxt (reads NUXT_PUBLIC_*) and the api is Nitro
+//   standalone (reads NITRO_PUBLIC_* by default). To let a single env var
+//   like NUXT_PUBLIC_TRACKER_HTTP_URL drive both, the api Dockerfile sets
+//   NITRO_ENV_PREFIX=NUXT_ — Nitro then accepts both NITRO_PUBLIC_FOO and
+//   NUXT_PUBLIC_FOO when resolving runtimeConfig overrides at startup.
+//
 // We `import()` the server bundle from the same Node process rather than
 // `spawn()`-ing a child so the API runs as PID 1 — graceful shutdown signals
 // from Docker/Kubernetes reach Nitro directly.

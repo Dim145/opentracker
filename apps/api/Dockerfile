@@ -95,7 +95,8 @@ ENV NODE_ENV=production \
     NITRO_PORT=4000 \
     NITRO_HOST=0.0.0.0 \
     NODE_OPTIONS="--max-old-space-size=512 --max-semi-space-size=8" \
-    MALLOC_ARENA_MAX=2
+    MALLOC_ARENA_MAX=2 \
+    NITRO_ENV_PREFIX=NUXT_
 STOPSIGNAL SIGTERM
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
