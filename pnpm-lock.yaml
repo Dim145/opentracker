@@ -14,7 +14,7 @@ importers:
   .:
     devDependencies:
       '@types/node':
-        specifier: ^25.0.3
+        specifier: ^25.6.0
         version: 25.6.0
       tsx:
         specifier: ^4.21.0
@@ -23,7 +23,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.0.16
+        specifier: ^4.1.5
         version: 4.1.5(@types/node@25.6.0)(jsdom@29.1.1)(vite@7.3.2(@types/node@25.6.0)(jiti@2.7.0)(terser@5.46.2)(tsx@4.21.0)(yaml@2.8.4))
 
   apps/api:
@@ -41,13 +41,13 @@ importers:
         specifier: ^6.1.0
         version: 6.1.0
       drizzle-orm:
-        specifier: ^0.45.1
+        specifier: ^0.45.2
         version: 0.45.2(postgres@3.4.9)
       h3:
         specifier: ^1.13.0
         version: 1.15.11
       ioredis:
-        specifier: ^5.8.2
+        specifier: ^5.10.1
         version: 5.10.1
       iron-webcrypto:
         specifier: ^1.2.1
@@ -56,19 +56,19 @@ importers:
         specifier: ^17.0.1
         version: 17.0.6
       nitropack:
-        specifier: ^2.10.4
+        specifier: ^2.13.4
         version: 2.13.4(drizzle-orm@0.45.2(postgres@3.4.9))(oxc-parser@0.128.0)
       parse-torrent:
         specifier: ^11.0.19
         version: 11.0.19
       pino:
-        specifier: ^10.1.0
+        specifier: ^10.3.1
         version: 10.3.1
       uuid:
         specifier: ^13.0.0
         version: 13.0.2
       zod:
-        specifier: ^4.2.1
+        specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
       '@types/bencode':
@@ -99,25 +99,25 @@ importers:
         specifier: 0.11.3
         version: 0.11.3(magicast@0.5.2)(pinia@3.0.4(typescript@5.9.3)(vue@3.5.34(typescript@5.9.3)))
       '@tiptap/extension-color':
-        specifier: ^3.15.0
+        specifier: ^3.22.5
         version: 3.22.5(@tiptap/extension-text-style@3.22.5(@tiptap/core@3.22.5(@tiptap/pm@3.22.5)))
       '@tiptap/extension-placeholder':
-        specifier: ^3.15.0
+        specifier: ^3.22.5
         version: 3.22.5(@tiptap/extensions@3.22.5(@tiptap/core@3.22.5(@tiptap/pm@3.22.5))(@tiptap/pm@3.22.5))
       '@tiptap/extension-text-style':
-        specifier: ^3.15.0
+        specifier: ^3.22.5
         version: 3.22.5(@tiptap/core@3.22.5(@tiptap/pm@3.22.5))
       '@tiptap/starter-kit':
-        specifier: ^3.15.0
+        specifier: ^3.22.5
         version: 3.22.5
       '@tiptap/vue-3':
-        specifier: ^3.15.0
+        specifier: ^3.22.5
         version: 3.22.5(@floating-ui/dom@1.7.6)(@tiptap/core@3.22.5(@tiptap/pm@3.22.5))(@tiptap/pm@3.22.5)(vue@3.5.34(typescript@5.9.3))
       '@trackarr/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@vueuse/core':
-        specifier: ^14.1.0
+        specifier: ^14.3.0
         version: 14.3.0(vue@3.5.34(typescript@5.9.3))
       chart.js:
         specifier: ^4.5.1
@@ -132,13 +132,13 @@ importers:
         specifier: ^17.0.1
         version: 17.0.6
       nuxt:
-        specifier: ^4.2.2
+        specifier: ^4.4.4
         version: 4.4.4(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@types/node@25.6.0)(@vue/compiler-sfc@3.5.34)(bufferutil@4.1.0)(cac@6.7.14)(db0@0.3.4(drizzle-orm@0.45.2(postgres@3.4.9)))(drizzle-orm@0.45.2(postgres@3.4.9))(ioredis@5.10.1)(magicast@0.5.2)(pinia@3.0.4(typescript@5.9.3)(vue@3.5.34(typescript@5.9.3)))(rollup-plugin-visualizer@7.0.1(rollup@4.60.3))(rollup@4.60.3)(terser@5.46.2)(tsx@4.21.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(vite@7.3.2(@types/node@25.6.0)(jiti@2.7.0)(terser@5.46.2)(tsx@4.21.0)(yaml@2.8.4))(yaml@2.8.4)
       pinia:
         specifier: ^3.0.4
         version: 3.0.4(typescript@5.9.3)(vue@3.5.34(typescript@5.9.3))
       vue:
-        specifier: ^3.5.26
+        specifier: ^3.5.34
         version: 3.5.34(typescript@5.9.3)
       vue-chartjs:
         specifier: ^5.3.3
@@ -148,7 +148,7 @@ importers:
         version: 4.6.4(vue@3.5.34(typescript@5.9.3))
     devDependencies:
       '@nuxt/icon':
-        specifier: ^2.1.1
+        specifier: ^2.2.2
         version: 2.2.2(magicast@0.5.2)(vite@7.3.2(@types/node@25.6.0)(jiti@2.7.0)(terser@5.46.2)(tsx@4.21.0)(yaml@2.8.4))(vue@3.5.34(typescript@5.9.3))
       '@types/marked':
         specifier: ^5.0.2
@@ -157,20 +157,20 @@ importers:
   packages/db:
     dependencies:
       drizzle-orm:
-        specifier: ^0.45.1
+        specifier: ^0.45.2
         version: 0.45.2(postgres@3.4.9)
       postgres:
-        specifier: ^3.4.7
+        specifier: ^3.4.9
         version: 3.4.9
     devDependencies:
       drizzle-kit:
-        specifier: ^0.31.8
+        specifier: ^0.31.10
         version: 0.31.10
 
   packages/shared:
     dependencies:
       zod:
-        specifier: ^4.2.1
+        specifier: ^4.4.3
         version: 4.4.3
 
 packages:
