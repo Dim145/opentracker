@@ -16,6 +16,20 @@ export function formatDate(dateStr: string): string {
   });
 }
 
+/**
+ * Day-precision date for membership / "since" labels — strips the time so
+ * "Member since" doesn't read as "Mar 5, 2026, 04:32 PM" (the original
+ * `formatDate` includes the minute, which is absurd for a join date).
+ */
+export function formatDay(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 export function formatAge(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();

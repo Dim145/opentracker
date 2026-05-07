@@ -1,47 +1,63 @@
-import type { Config } from 'tailwindcss'
+import type { Config } from 'tailwindcss';
 
+/**
+ * Tailwind config — token-driven via CSS variables.
+ *
+ * The class names below (`bg-bg-primary`, `text-text-muted`, `border-border`,
+ * etc.) are kept identical to what the existing markup uses — they just point
+ * at CSS custom properties now. Switching `data-theme` on <html> swaps the
+ * underlying values without touching any template.
+ */
 export default {
   content: [
     './app/**/*.{vue,ts}',
     './components/**/*.{vue,ts}',
     './layouts/**/*.vue',
-    './pages/**/*.vue'
+    './pages/**/*.vue',
   ],
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       colors: {
-        // Monochrome palette
         bg: {
-          primary: '#0a0a0a',
-          secondary: '#141414',
-          tertiary: '#1a1a1a',
-          hover: '#252525'
+          primary:   'var(--bg-base)',
+          secondary: 'var(--bg-surface)',
+          tertiary:  'var(--bg-elevated)',
+          hover:     'var(--bg-hover)',
+          inset:     'var(--bg-inset)',
         },
         text: {
-          primary: '#fafafa',
-          secondary: '#a1a1a1',
-          muted: '#666666'
+          primary:   'var(--fg-default)',
+          secondary: 'var(--fg-muted)',
+          muted:     'var(--fg-subtle)',
+          faint:     'var(--fg-faint)',
+          strong:    'var(--fg-strong)',
         },
         border: {
-          DEFAULT: '#2a2a2a',
-          hover: '#3a3a3a'
+          DEFAULT: 'var(--line-default)',
+          hover:   'var(--line-strong)',
         },
         accent: {
-          DEFAULT: '#ffffff',
-          muted: '#888888'
+          DEFAULT: 'var(--accent)',
+          muted:   'var(--fg-subtle)',
+          fg:      'var(--accent-fg)',
+          soft:    'var(--accent-soft)',
         },
-        success: '#22c55e',
-        warning: '#eab308',
-        error: '#ef4444'
+        success: 'var(--online)',
+        online:  'var(--online)',
+        warning: 'var(--warning)',
+        error:   'var(--danger)',
+        danger:  'var(--danger)',
+        info:    'var(--info)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+        mono: ['JetBrains Mono', 'Fira Code', 'ui-monospace', 'monospace'],
       },
       fontSize: {
-        '2xs': ['0.65rem', { lineHeight: '0.85rem' }]
-      }
-    }
+        '2xs': ['0.65rem', { lineHeight: '0.85rem' }],
+      },
+    },
   },
-  plugins: []
-} satisfies Config
+  plugins: [],
+} satisfies Config;

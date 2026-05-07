@@ -7,6 +7,22 @@ export default defineNuxtConfig({
 
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@nuxt/icon'],
 
+  // Force inline-SVG rendering for <Icon>. The default CSS mode in
+  // @nuxt/icon 2.x emits `<span class="iconify i-ph:foo">` and relies on a
+  // per-icon `:where(.i-ph\:foo) { mask-image: url(...) }` <style> block
+  // injected by SSR. That block is built from a *static* analysis of the
+  // templates and silently misses any icon hidden behind a v-if branch the
+  // analyser doesn't traverse, or behind a dynamic `:name="..."` binding —
+  // those icons render as 0×0 invisible spans.
+  //
+  // SVG mode emits `<svg>...</svg>` inline with the path data baked in, so
+  // every icon — static, conditional, or dynamic — paints regardless of
+  // any external stylesheet. Colour falls back to `currentColor`, the same
+  // contract as before.
+  icon: {
+    mode: 'svg',
+  },
+
   typescript: {
     strict: true,
     typeCheck: false,

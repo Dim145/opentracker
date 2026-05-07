@@ -40,13 +40,9 @@
             </h3>
           </div>
 
-          <div class="flex items-center gap-4">
-            <div
-              class="text-[10px] font-mono text-text-muted uppercase tracking-widest"
-            >
-              Sort by: <span class="text-text-primary">Newest</span>
-            </div>
-          </div>
+          <!-- Sort selector: removed for now — the previous "Sort by: Newest"
+               text was static and lied about being a control. Real sort UI
+               is tracked for a follow-up patch. -->
         </div>
 
         <div class="card overflow-hidden">

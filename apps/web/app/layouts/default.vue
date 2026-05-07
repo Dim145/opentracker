@@ -2,12 +2,13 @@
   <div
     class="min-h-screen flex flex-col bg-bg-primary text-text-primary selection:bg-white selection:text-black"
   >
-    <!-- Header -->
+    <!-- Header — z-30 so dropdowns (z-40) and modals (z-50) layer above it -->
     <header
-      class="sticky top-0 z-50 border-b border-border bg-bg-primary/80 backdrop-blur-md"
+      class="sticky top-0 z-30 border-b border-border backdrop-blur-md app-header"
     >
       <div
-        class="max-w-[1400px] mx-auto px-4 h-14 flex items-center justify-between"
+        class="max-w-[1400px] mx-auto px-4 flex items-center justify-between"
+        style="height: var(--header-h);"
       >
         <NuxtLink to="/" class="flex items-center gap-2.5 group">
           <div
@@ -75,7 +76,7 @@
               <div class="flex items-center gap-1.5">
                 <Icon
                   name="ph:arrow-down-bold"
-                  class="text-[10px] text-error"
+                  class="text-[10px] text-text-muted"
                 />
                 <span class="text-[11px] font-mono text-text-secondary">{{
                   formatSize(user.downloaded)
@@ -99,6 +100,20 @@
               <Icon name="ph:arrows-clockwise" class="text-xs" />
             </button>
           </div>
+
+          <!-- Theme toggle (light / dark) -->
+          <button
+            type="button"
+            class="theme-toggle"
+            :title="mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
+            :aria-label="mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
+            @click="toggle"
+          >
+            <Icon
+              :name="mode === 'dark' ? 'ph:sun' : 'ph:moon'"
+              class="text-base"
+            />
+          </button>
 
           <!-- User Menu -->
           <div class="relative" ref="userMenuRef">
@@ -129,7 +144,7 @@
             >
               <div
                 v-if="showUserMenu"
-                class="absolute right-0 top-full mt-1 w-56 bg-bg-secondary border border-border rounded-lg shadow-xl overflow-hidden z-50"
+                class="absolute right-0 top-full mt-1 w-64 bg-bg-secondary border border-border rounded-lg shadow-xl overflow-hidden z-40"
               >
                 <div class="px-4 py-3 border-b border-border">
                   <p class="text-sm font-medium">
@@ -207,7 +222,11 @@
                     </p>
                   </div>
                 </div>
-                <div class="border-t border-border py-2 px-4">
+                <!-- Stats grid: only shown on mobile (sm:hidden) — desktop has
+                     the inline header bar and would otherwise show the same
+                     numbers twice 200px apart. Downloaded uses text-secondary
+                     (neutral) instead of red — downloading isn't an error. -->
+                <div class="border-t border-border py-2 px-4 sm:hidden">
                   <div class="grid grid-cols-2 gap-2">
                     <div>
                       <p
@@ -225,7 +244,7 @@
                       >
                         Downloaded
                       </p>
-                      <p class="text-xs font-mono text-error">
+                      <p class="text-xs font-mono text-text-secondary">
                         {{ formatSize(user?.downloaded || 0) }}
                       </p>
                     </div>
@@ -346,8 +365,6 @@
               )
             "
           ></span>
-          <span class="w-1 h-1 bg-border rounded-full"></span>
-          <span>P2P PROTOCOL</span>
         </div>
         <div class="flex gap-6">
           <a
@@ -379,6 +396,7 @@
 
 <script setup lang="ts">
 const { user, clear, fetch } = useUserSession();
+const { mode, toggle } = useColorMode();
 const router = useRouter();
 
 const showUserMenu = ref(false);
@@ -616,3 +634,29 @@ const ratioColor = computed(() => {
   return 'text-success';
 });
 </script>
+
+<style scoped>
+/* Header background — translucent surface that adapts to the active theme */
+.app-header {
+  background-color: color-mix(in srgb, var(--bg-base) 80%, transparent);
+}
+
+/* Theme toggle button — small icon button slotted between user stats and menu */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm, 4px);
+  color: var(--fg-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+.theme-toggle:hover {
+  color: var(--fg-default);
+  background-color: var(--bg-hover);
+  border-color: var(--line-default);
+}
+</style>

@@ -1,6 +1,6 @@
 <template>
   <aside class="w-56 shrink-0 hidden lg:block">
-    <div class="sticky top-20">
+    <div class="sticky" style="top: calc(var(--header-h) + 1rem);">
       <div class="flex items-center gap-2 px-3 py-2 mb-2">
         <Icon name="ph:folders-bold" class="text-text-muted" />
         <h3 class="text-xs font-bold uppercase tracking-wider">Categories</h3>

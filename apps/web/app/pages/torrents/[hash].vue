@@ -227,64 +227,8 @@
       @saved="handleSaved"
     />
 
-    <!-- Delete Confirmation Dialog -->
-    <Teleport to="body">
-      <div
-        v-if="showDeleteConfirm"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-        @click.self="showDeleteConfirm = false"
-      >
-        <div
-          class="bg-bg-secondary border border-border rounded shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
-        >
-          <div
-            class="flex items-center gap-2 px-4 py-3 border-b border-border bg-bg-tertiary/50"
-          >
-            <Icon name="ph:warning-circle-bold" class="text-error" />
-            <h3
-              class="text-xs font-bold uppercase tracking-widest text-text-primary"
-            >
-              Confirm Delete
-            </h3>
-          </div>
-          <div class="p-6">
-            <p class="text-sm text-text-secondary mb-4">
-              Are you sure you want to delete this torrent? This action cannot
-              be undone.
-            </p>
-            <p
-              class="text-xs font-mono text-text-muted bg-bg-tertiary p-2 rounded border border-border mb-6 truncate"
-            >
-              {{ torrent.name }}
-            </p>
-            <div v-if="deleteError" class="mb-4 text-xs text-error">
-              {{ deleteError }}
-            </div>
-            <div class="flex gap-2">
-              <button
-                class="btn btn-secondary flex-1 text-[10px] font-bold uppercase tracking-widest"
-                :disabled="isDeleting"
-                @click="showDeleteConfirm = false"
-              >
-                Cancel
-              </button>
-              <button
-                class="btn btn-primary flex-1 text-[10px] font-bold uppercase tracking-widest bg-error hover:bg-error/80 flex items-center justify-center gap-2"
-                :disabled="isDeleting"
-                @click="deleteTorrent"
-              >
-                <Icon
-                  v-if="isDeleting"
-                  name="ph:circle-notch"
-                  class="animate-spin"
-                />
-                <span>{{ isDeleting ? 'Deleting...' : 'Delete' }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <!-- Delete confirmation now handled by the shared <ConfirmHost /> via
+         useConfirm() — see confirmDelete() below. -->
   </div>
 </template>
 
@@ -334,12 +278,11 @@ const {
 
 // Get current user session
 const { loggedIn, user } = useUserSession();
+const notifications = useNotificationStore();
+const confirm = useConfirm();
 
 // Edit/delete state
 const showEditModal = ref(false);
-const showDeleteConfirm = ref(false);
-const isDeleting = ref(false);
-const deleteError = ref<string | null>(null);
 
 // Compute permissions
 const canEdit = computed(() => {
@@ -372,31 +315,32 @@ if (error.value || !torrent.value) {
 
 async function copyHash() {
   await navigator.clipboard.writeText(torrent.value!.infoHash);
+  notifications.success('Info hash copied to clipboard');
 }
 
-function confirmDelete() {
-  deleteError.value = null;
-  showDeleteConfirm.value = true;
-}
-
-async function deleteTorrent() {
-  isDeleting.value = true;
-  deleteError.value = null;
+async function confirmDelete() {
+  if (!torrent.value) return;
+  const ok = await confirm({
+    title: 'Delete torrent',
+    message: `Permanently remove “${torrent.value.name}” from the index? This cannot be undone.`,
+    confirmText: 'Delete',
+    destructive: true,
+  });
+  if (!ok) return;
 
   try {
     await $fetch(`/api/torrents/${torrent.value!.infoHash}`, {
       method: 'DELETE',
     });
-    // Navigate back to torrents list
+    notifications.success('Torrent deleted');
     navigateTo('/torrents');
   } catch (err: unknown) {
     const fetchError = err as { data?: { message?: string }; message?: string };
-    deleteError.value =
+    notifications.error(
       fetchError.data?.message ||
-      fetchError.message ||
-      'Failed to delete torrent';
-  } finally {
-    isDeleting.value = false;
+        fetchError.message ||
+        'Failed to delete torrent'
+    );
   }
 }
 

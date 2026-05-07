@@ -58,19 +58,13 @@
 
               <div class="flex flex-wrap gap-6 text-sm">
                 <div>
-                  <span
-                    class="text-[10px] font-bold text-text-muted uppercase tracking-widest block mb-0.5"
-                    >Member since</span
-                  >
+                  <span class="eyebrow block mb-0.5">Member since</span>
                   <span class="text-text-secondary">{{
-                    formatDate(user.createdAt)
+                    formatDay(user.createdAt)
                   }}</span>
                 </div>
                 <div>
-                  <span
-                    class="text-[10px] font-bold text-text-muted uppercase tracking-widest block mb-0.5"
-                    >Last seen</span
-                  >
+                  <span class="eyebrow block mb-0.5">Last seen</span>
                   <span class="text-text-secondary">{{
                     formatAge(user.lastSeen)
                   }}</span>
@@ -224,7 +218,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatSize, formatDate, formatAge } from '~/utils/format';
+import { formatSize, formatDay, formatAge } from '~/utils/format';
 
 interface UserProfile {
   id: string;
