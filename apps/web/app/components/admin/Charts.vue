@@ -29,7 +29,7 @@
           Users & Torrents Growth
         </h3>
         <div class="h-64">
-          <Line :data="growthData" :options="chartOptions" />
+          <Line :key="`growth-${mode}`" :data="growthData" :options="chartOptions" />
         </div>
       </div>
       <div class="bg-bg-secondary p-4 rounded-lg border border-border">
@@ -39,7 +39,7 @@
           Peers & Seeders
         </h3>
         <div class="h-64">
-          <Line :data="peersData" :options="chartOptions" />
+          <Line :key="`peers-${mode}`" :data="peersData" :options="chartOptions" />
         </div>
       </div>
       <div class="bg-bg-secondary p-4 rounded-lg border border-border">
@@ -49,7 +49,7 @@
           Redis Memory Usage (MB)
         </h3>
         <div class="h-64">
-          <Line :data="redisData" :options="chartOptions" />
+          <Line :key="`redis-${mode}`" :data="redisData" :options="chartOptions" />
         </div>
       </div>
       <div class="bg-bg-secondary p-4 rounded-lg border border-border">
@@ -59,7 +59,7 @@
           Database Size (MB)
         </h3>
         <div class="h-64">
-          <Line :data="dbData" :options="chartOptions" />
+          <Line :key="`db-${mode}`" :data="dbData" :options="chartOptions" />
         </div>
       </div>
     </div>
@@ -141,47 +141,56 @@ const formatDate = (date: string) => {
   });
 };
 
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  scales: {
-    y: {
-      beginAtZero: true,
-      grid: {
-        color: 'rgba(255, 255, 255, 0.05)',
+const { mode } = useColorMode();
+
+function readToken(name: string, fallback: string): string {
+  if (!import.meta.client) return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+const chartOptions = computed(() => {
+  // Reactivity: re-evaluate when theme toggles.
+  void mode.value;
+  const fg = readToken('--fg-default', '250 250 250');
+  const fgMuted = readToken('--fg-muted', '161 161 161');
+  const line = readToken('--line-default', '42 42 42');
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: `rgb(${line} / 0.5)` },
+        ticks: { color: `rgb(${fgMuted})`, font: { size: 10 } },
       },
-      ticks: {
-        color: '#94a3b8',
-        font: { size: 10 },
-      },
-    },
-    x: {
-      grid: {
-        display: false,
-      },
-      ticks: {
-        color: '#94a3b8',
-        font: { size: 10 },
-        maxTicksLimit: 8,
-      },
-    },
-  },
-  plugins: {
-    legend: {
-      display: true,
-      position: 'top' as const,
-      labels: {
-        color: '#f8fafc',
-        font: { size: 11 },
-        usePointStyle: true,
+      x: {
+        grid: { display: false },
+        ticks: {
+          color: `rgb(${fgMuted})`,
+          font: { size: 10 },
+          maxTicksLimit: 8,
+        },
       },
     },
-    tooltip: {
-      mode: 'index' as const,
-      intersect: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top' as const,
+        labels: {
+          color: `rgb(${fg})`,
+          font: { size: 11 },
+          usePointStyle: true,
+        },
+      },
+      tooltip: {
+        mode: 'index' as const,
+        intersect: false,
+      },
     },
-  },
-};
+  };
+});
 
 const growthData = computed(() => ({
   labels: filteredHistory.value.map((h) => formatDate(h.createdAt)),
