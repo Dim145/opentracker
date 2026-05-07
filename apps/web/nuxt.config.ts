@@ -7,20 +7,72 @@ export default defineNuxtConfig({
 
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@nuxt/icon'],
 
-  // Force inline-SVG rendering for <Icon>. The default CSS mode in
-  // @nuxt/icon 2.x emits `<span class="iconify i-ph:foo">` and relies on a
-  // per-icon `:where(.i-ph\:foo) { mask-image: url(...) }` <style> block
-  // injected by SSR. That block is built from a *static* analysis of the
-  // templates and silently misses any icon hidden behind a v-if branch the
-  // analyser doesn't traverse, or behind a dynamic `:name="..."` binding —
-  // those icons render as 0×0 invisible spans.
+  // Icon module — see follow-up notes; the previous CSS mode rendering
+  // and runtime icon fetching combined to break icons in Firefox/Safari.
   //
-  // SVG mode emits `<svg>...</svg>` inline with the path data baked in, so
-  // every icon — static, conditional, or dynamic — paints regardless of
-  // any external stylesheet. Colour falls back to `currentColor`, the same
-  // contract as before.
+  // 1. mode: 'svg'
+  //    Renders <Icon> as an inline `<svg>` with the path baked in, instead
+  //    of `<span class="iconify i-ph:foo">` masked by a per-icon CSS rule.
+  //    SVG inline is universal; CSS-mode masks were the original buggy path.
+  //
+  // 2. serverBundle: 'local'
+  //    Bundle the icon collections we ship (Phosphor) into the server
+  //    output. SSR no longer goes out to iconify.design for icon JSON
+  //    on cold paths — important on networks where the API container
+  //    can't reach the public internet, and faster everywhere else.
+  //
+  // 3. clientBundle.scan: true
+  //    Pre-bundle every icon name found by static analysis of the templates
+  //    into the client JS. Without this, @nuxt/icon's client-side <Icon>
+  //    component falls back to an async fetch of /api/_nuxt_icon/<coll>
+  //    on first render, returns an empty placeholder until the fetch
+  //    resolves, and Firefox + Safari's stricter hydration replaces the
+  //    SSR-rendered <svg><path/></svg> with the empty placeholder — which
+  //    was the root cause of "no icons in non-Chromium browsers". The
+  //    bundle keeps client-side rendering fully synchronous.
+  //
+  // Dynamic-name icons (e.g. `:name="mode === 'dark' ? 'ph:sun' : 'ph:moon'"`)
+  // can't be discovered statically — clientBundle.icons lists them
+  // explicitly so they ship in the client bundle too.
   icon: {
     mode: 'svg',
+    serverBundle: 'local',
+    clientBundle: {
+      scan: true,
+      includeCustomCollections: true,
+      icons: [
+        // Theme toggle (default.vue)
+        'ph:sun',
+        'ph:sun-bold',
+        'ph:moon',
+        'ph:moon-bold',
+        // Topic icons (forum/category/[id].vue)
+        'ph:push-pin',
+        'ph:push-pin-fill',
+        'ph:push-pin-slash',
+        'ph:lock',
+        'ph:lock-fill',
+        'ph:lock-open',
+        'ph:lock-key',
+        'ph:lock-key-open',
+        // Category sidebar icons
+        'ph:film-slate-bold',
+        'ph:television-bold',
+        'ph:music-notes-bold',
+        'ph:game-controller-bold',
+        'ph:app-window-bold',
+        'ph:book-open-bold',
+        'ph:shooting-star-bold',
+        'ph:prohibit-bold',
+        'ph:package-bold',
+        'ph:folder-bold',
+        // Notification toast icons
+        'ph:check-circle-bold',
+        'ph:x-circle-bold',
+        'ph:warning-bold',
+        'ph:info-bold',
+      ],
+    },
   },
 
   typescript: {
