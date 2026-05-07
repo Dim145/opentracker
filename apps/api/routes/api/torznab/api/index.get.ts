@@ -13,7 +13,7 @@ import type { H3Event } from 'h3';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
-import { desc, eq, ilike, and, inArray } from 'drizzle-orm';
+import { desc, eq, ilike, and, inArray, sql } from 'drizzle-orm';
 import { authenticateTorznab, sendTorznabError } from '../utils/auth';
 import {
   buildCapsXml,
@@ -294,9 +294,15 @@ async function performSearch(
 
     if (newznabIds.length > 0) {
       const trackarrCatIds = await filterCategoriesByNewznab(newznabIds);
-      if (trackarrCatIds.length > 0) {
-        conditions.push(inArray(schema.torrents.categoryId, trackarrCatIds));
-      }
+      // Even when no Trackarr category matches the requested Newznab id we
+      // must still apply a (deliberately empty) filter — otherwise an
+      // unmatched `cat=` param silently widens to "all categories" and
+      // returns torrents the consumer didn't ask for.
+      conditions.push(
+        trackarrCatIds.length > 0
+          ? inArray(schema.torrents.categoryId, trackarrCatIds)
+          : sql`false`
+      );
     }
   }
 

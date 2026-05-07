@@ -3,8 +3,22 @@ import { randomUUID } from 'crypto';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
-// Recommended Torznab-compatible categories with proper Newznab IDs
-const SEED_CATEGORIES = [
+// Recommended Torznab-compatible categories with proper Newznab IDs.
+// `newznabId: null` means "no specific Newznab mapping" — the runtime
+// resolver picks a synthetic id and groups the row under a Newznab parent
+// inferred from its children or slug.
+interface SeedCategory {
+  name: string;
+  slug: string;
+  newznabId: number | null;
+  subcategories: Array<{
+    name: string;
+    slug: string;
+    newznabId: number | null;
+  }>;
+}
+
+const SEED_CATEGORIES: SeedCategory[] = [
   // Movies
   {
     name: 'Movies',
@@ -40,11 +54,15 @@ const SEED_CATEGORIES = [
       { name: 'Lossless', slug: 'audio-lossless', newznabId: 3040 },
     ],
   },
-  // Games
+  // Games — parent has no Newznab id of its own (Newznab splits games
+  // between PC=4050 and Console=1000), so leave it null and let each
+  // child carry its own mapping. Setting it to 4050 here used to
+  // collide with the PC child and produced two <subcat id="4050"/>
+  // entries in the caps response.
   {
     name: 'Games',
     slug: 'games',
-    newznabId: 4050,
+    newznabId: null,
     subcategories: [
       { name: 'PC', slug: 'games-pc', newznabId: 4050 },
       { name: 'Console', slug: 'games-console', newznabId: 1000 },

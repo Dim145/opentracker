@@ -107,9 +107,38 @@ const DEFAULT_SLUG_MAPPINGS: Record<string, number> = {
   misc: NEWZNAB_CATEGORIES.OTHER_MISC,
 };
 
+// Custom-category Torznab IDs live in 100000–199999 — same convention used
+// by Jackett/Prowlarr for tracker-specific categories. They never collide
+// with the standard Newznab numbering (1000–8999) and consumers (Sonarr,
+// Radarr, etc.) ignore them unless explicitly subscribed to.
+const SYNTHETIC_BASE = 100_000;
+const SYNTHETIC_RANGE = 100_000;
+
 /**
- * Get Newznab category ID for a Trackarr category
- * Priority: 1) Database newznabId field, 2) Slug-based mapping, 3) Fallback to OTHER
+ * Stable string→int hash. Same input always produces the same id, so a
+ * Trackarr category that has no explicit `newznabId` keeps the same
+ * synthetic Torznab id across API restarts (and across containers in a
+ * deployment) — Prowlarr's saved "include this category" mappings stay
+ * valid.
+ */
+function syntheticIdFor(uuid: string): number {
+  let h = 0;
+  for (let i = 0; i < uuid.length; i++) {
+    h = ((h << 5) - h + uuid.charCodeAt(i)) | 0;
+  }
+  return SYNTHETIC_BASE + (Math.abs(h) % SYNTHETIC_RANGE);
+}
+
+/**
+ * Get Newznab category ID for a Trackarr category.
+ * Priority: 1) Database newznabId, 2) Slug-based mapping, 3) Stable synthetic id.
+ *
+ * Note: previously fell through to OTHER (8000), which made every unmapped
+ * Trackarr category collapse into the same id. Prowlarr then displayed
+ * every torrent under "Other" and the caps tree had no way to distinguish
+ * them. The synthetic id keeps each Trackarr category individually
+ * addressable; the caps tree separately groups it under a Newznab parent
+ * for *arr compatibility.
  */
 export function getNewznabCategoryId(
   category: {
@@ -120,79 +149,174 @@ export function getNewznabCategoryId(
   } | null
 ): number {
   if (!category) return NEWZNAB_CATEGORIES.OTHER;
-
-  // Priority 1: Use database-configured newznabId if set
   if (category.newznabId) return category.newznabId;
-
-  // Priority 2: Check slug-based mapping
   const mapped = DEFAULT_SLUG_MAPPINGS[category.slug.toLowerCase()];
   if (mapped) return mapped;
+  return syntheticIdFor(category.id);
+}
 
-  // Fallback to OTHER
+interface CategoryRow {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  newznabId: number | null;
+}
+
+interface ResolvedCategory extends CategoryRow {
+  newznabId: number;
+  newznabParent: number;
+}
+
+/**
+ * Map a category to its Newznab "main" parent (1000/2000/.../8000).
+ *
+ *   - If the resolved id is in the standard 1xxx–8xxx range, use floor/1000.
+ *   - Otherwise (synthetic id), inherit from the Trackarr parent chain
+ *     when one of the ancestors maps to a standard range.
+ *   - Failing that, fall back to OTHER (8000).
+ *
+ * This is what makes a Trackarr category named "Films français" with no
+ * `newznabId` still appear under "Movies" in Prowlarr, instead of "Other".
+ */
+function resolveNewznabParent(
+  cat: CategoryRow & { newznabId: number },
+  byId: Map<string, CategoryRow>
+): number {
+  if (cat.newznabId < SYNTHETIC_BASE) {
+    return Math.floor(cat.newznabId / 1000) * 1000;
+  }
+  // Climb the Trackarr parent chain looking for a standard-range ancestor.
+  const visited = new Set<string>();
+  let cursor: string | null = cat.parentId;
+  while (cursor && !visited.has(cursor)) {
+    visited.add(cursor);
+    const parent = byId.get(cursor);
+    if (!parent) break;
+    const parentId = getNewznabCategoryId(parent);
+    if (parentId < SYNTHETIC_BASE) {
+      return Math.floor(parentId / 1000) * 1000;
+    }
+    cursor = parent.parentId;
+  }
+  // Last resort: try slug/name heuristic on the cat itself.
+  const slugMain = inferMainFromSlug(cat);
+  if (slugMain) return slugMain;
   return NEWZNAB_CATEGORIES.OTHER;
 }
 
 /**
- * Get all categories with their Newznab mappings
+ * Best-effort slug-based main-category guess for fully custom categories
+ * with no parent and no explicit newznab mapping. Cheap heuristic; the
+ * real fix is for the operator to set `newznab_id` on the row.
  */
-export async function getCategoriesWithNewznabIds(): Promise<
-  Array<{
-    id: string;
-    name: string;
-    slug: string;
-    parentId: string | null;
-    newznabId: number;
-  }>
-> {
-  const categories = await db.query.categories.findMany({
-    orderBy: (cat, { asc }) => [asc(cat.name)],
-  });
-
-  return categories.map((cat) => ({
-    ...cat,
-    newznabId: getNewznabCategoryId(cat),
-  }));
+function inferMainFromSlug(cat: { slug?: string; name?: string }): number | null {
+  // Drop accents so "séries" matches the same pattern as "series".
+  const text = `${cat.slug || ''} ${cat.name || ''}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+  // Anchored on word starts; trailing letters tolerated ("films", "series",
+  // "movies") so we don't depend on exact pluralisation.
+  if (/\b(?:movie|film|cinema|cine)/.test(text)) return NEWZNAB_CATEGORIES.MOVIES;
+  if (/\b(?:tv|seri|episod|saison|season|show|anime)/.test(text))
+    return NEWZNAB_CATEGORIES.TV;
+  if (/\b(?:audio|music|musique|song|album)/.test(text))
+    return NEWZNAB_CATEGORIES.AUDIO;
+  if (/\b(?:book|ebook|livre|comic|magazine|bd)\b/.test(text))
+    return NEWZNAB_CATEGORIES.BOOKS;
+  if (/\b(?:console|xbox|playstation|nintendo|switch|wii)/.test(text))
+    return NEWZNAB_CATEGORIES.CONSOLE;
+  if (/\b(?:game|jeu)/.test(text)) return NEWZNAB_CATEGORIES.PC;
+  if (/\b(?:software|app|program|logiciel)/.test(text))
+    return NEWZNAB_CATEGORIES.PC;
+  return null;
 }
 
 /**
- * Build Newznab category tree for capabilities response
+ * Get all categories with their resolved Newznab id + main parent.
+ */
+export async function getCategoriesWithNewznabIds(): Promise<ResolvedCategory[]> {
+  const rows = (await db.query.categories.findMany({
+    orderBy: (cat, { asc }) => [asc(cat.name)],
+  })) as CategoryRow[];
+
+  const byId = new Map(rows.map((c) => [c.id, c]));
+
+  return rows.map((cat) => {
+    const newznabId = getNewznabCategoryId(cat);
+    const newznabParent = resolveNewznabParent({ ...cat, newznabId }, byId);
+    return { ...cat, newznabId, newznabParent };
+  });
+}
+
+/**
+ * Build Newznab category tree for the capabilities response.
+ *
+ *   - One main entry per used Newznab parent (Movies, TV, …).
+ *   - Each Trackarr category is exposed as a `<subcat>` of its parent,
+ *     with the operator-configured Trackarr name (not a hardcoded
+ *     Newznab label).
+ *   - Subcats are deduped by id — the previous version of this code
+ *     emitted two `<subcat id="4050"/>` entries when the seeded "Games"
+ *     parent collided with its "PC" child, making Prowlarr's category
+ *     picker look broken.
  */
 export async function buildCategoryTree() {
   const categories = await getCategoriesWithNewznabIds();
 
-  // Group by parent categories (Newznab main categories)
-  const mainCats: Map<
+  const mainCats = new Map<
     number,
-    { name: string; subcats: Array<{ id: number; name: string }> }
-  > = new Map();
+    {
+      name: string;
+      subcats: Map<number, string>; // id → name (preserves order, dedupes)
+    }
+  >();
 
   for (const cat of categories) {
-    const mainCatId = Math.floor(cat.newznabId / 1000) * 1000;
-
-    if (!mainCats.has(mainCatId)) {
-      mainCats.set(mainCatId, {
-        name: getMainCategoryName(mainCatId),
-        subcats: [],
+    const main = cat.newznabParent;
+    if (!mainCats.has(main)) {
+      mainCats.set(main, {
+        // Prefer the Trackarr-configured name when this row IS the main
+        // category itself (i.e. its newznabId equals the main parent).
+        // Otherwise use the standard Newznab label so consumers map it.
+        name:
+          cat.newznabId === main && cat.newznabId < SYNTHETIC_BASE
+            ? cat.name
+            : standardMainName(main),
+        subcats: new Map(),
       });
+    } else if (cat.newznabId === main && cat.newznabId < SYNTHETIC_BASE) {
+      // A later category claims to BE this main parent; let it own the name.
+      mainCats.get(main)!.name = cat.name;
     }
 
-    // Add as subcat if it's not exactly the main category
-    if (cat.newznabId !== mainCatId) {
-      mainCats.get(mainCatId)!.subcats.push({
-        id: cat.newznabId,
-        name: cat.name,
-      });
+    // Don't list the main category as a subcat of itself.
+    if (cat.newznabId === main) continue;
+
+    const bucket = mainCats.get(main)!;
+    if (!bucket.subcats.has(cat.newznabId)) {
+      bucket.subcats.set(cat.newznabId, cat.name);
     }
   }
 
-  return Array.from(mainCats.entries()).map(([id, data]) => ({
-    id,
-    name: data.name,
-    subcats: data.subcats.length > 0 ? data.subcats : undefined,
-  }));
+  // Sort main categories so the response order is deterministic.
+  return Array.from(mainCats.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([id, data]) => ({
+      id,
+      name: data.name,
+      subcats:
+        data.subcats.size > 0
+          ? Array.from(data.subcats.entries()).map(([sid, sname]) => ({
+              id: sid,
+              name: sname,
+            }))
+          : undefined,
+    }));
 }
 
-function getMainCategoryName(catId: number): string {
+function standardMainName(catId: number): string {
   switch (catId) {
     case 1000:
       return 'Console';
@@ -216,8 +340,10 @@ function getMainCategoryName(catId: number): string {
 }
 
 /**
- * Filter Trackarr categories by Newznab category IDs
- * Used for search filtering
+ * Filter Trackarr categories by Newznab category IDs.
+ * Used for search filtering: `?cat=2040` returns Trackarr cats whose
+ * resolved newznabId is 2040, and `?cat=2000` returns every cat under
+ * the Movies main parent (synthetic ids included, via newznabParent).
  */
 export async function filterCategoriesByNewznab(
   newznabIds: number[]
@@ -226,15 +352,12 @@ export async function filterCategoriesByNewznab(
 
   const categories = await getCategoriesWithNewznabIds();
 
-  // Match exact IDs or parent IDs (e.g., 2000 matches 2040, 2050, etc.)
   return categories
     .filter((cat) => {
       for (const nId of newznabIds) {
-        // Exact match
         if (cat.newznabId === nId) return true;
-        // Parent match (e.g., 2000 matches all 2xxx)
-        if (nId % 1000 === 0 && Math.floor(cat.newznabId / 1000) * 1000 === nId)
-          return true;
+        // Main-parent match: nId is a 1xxx/2xxx/.../8xxx root.
+        if (nId % 1000 === 0 && cat.newznabParent === nId) return true;
       }
       return false;
     })
