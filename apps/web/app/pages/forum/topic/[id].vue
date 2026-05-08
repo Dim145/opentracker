@@ -237,7 +237,7 @@ async function handleDeleteTopic() {
   try {
     await $fetch(`/api/forum/topics/${topic.value.id}`, { method: 'DELETE' });
     notifications.success('Topic deleted');
-    navigateTo(`/forum/category/${topic.value.categoryId}`);
+    await navigateTo(`/forum/category/${topic.value.categoryId}`);
   } catch (e: any) {
     notifications.error(e?.data?.message || 'Failed to delete topic');
   }
@@ -258,7 +258,7 @@ async function handleDeletePost(postId: string) {
     );
     if (res.message.includes('Topic deleted')) {
       notifications.success('Post deleted (last post — topic removed)');
-      navigateTo(`/forum/category/${topic.value?.categoryId}`);
+      await navigateTo(`/forum/category/${topic.value?.categoryId}`);
     } else {
       notifications.success('Post deleted');
       await refresh();

@@ -596,7 +596,7 @@ async function confirmDelete() {
       method: 'DELETE',
     });
     notifications.success('Torrent deleted');
-    navigateTo('/torrents');
+    await navigateTo('/torrents');
   } catch (err: unknown) {
     const fetchError = err as { data?: { message?: string }; message?: string };
     notifications.error(

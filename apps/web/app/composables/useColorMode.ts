@@ -28,6 +28,12 @@ type Mode = 'light' | 'dark';
 const STORAGE_KEY = 'trackarr.theme';
 const DEFAULT_MODE: Mode = 'dark';
 
+// Process-scoped flag so the user-session watcher is registered exactly
+// once, no matter how many components call this composable. Without it
+// every component (layout + page + Charts + settings + …) would attach
+// its own watcher, all firing in lockstep on each session refresh.
+let sessionWatcherStarted = false;
+
 export function useColorMode() {
   const mode = useState<Mode>('color-mode', () => DEFAULT_MODE);
 
@@ -64,7 +70,8 @@ export function useColorMode() {
     void apply(mode.value === 'dark' ? 'light' : 'dark');
   }
 
-  if (import.meta.client) {
+  if (import.meta.client && !sessionWatcherStarted) {
+    sessionWatcherStarted = true;
     onMounted(() => {
       // Catch any drift between the cache-painted attr and the state ref.
       const attr = document.documentElement.getAttribute('data-theme');
@@ -73,8 +80,8 @@ export function useColorMode() {
       if (observed !== mode.value) mode.value = observed;
 
       // Reconcile against the server-stored theme as soon as the
-      // session lands. The session is populated by the global auth
-      // middleware on first nav; we react to its arrival via a watcher.
+      // session lands. Watcher is module-singleton (see top of file)
+      // so we don't re-create it for every component using the theme.
       const { user } = useUserSession();
       watch(
         user,

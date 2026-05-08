@@ -38,6 +38,7 @@ import {
   trackRateLimitHit,
 } from '~~/utils/torznabStats';
 import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
+import { escapeLike } from '~~/utils/sql';
 
 // Query schema for Torznab requests
 const torznabQuerySchema = z.object({
@@ -279,7 +280,11 @@ async function performSearch(
     const terms = query.q.split(/\s+/).filter((t) => t.length > 0);
     if (terms.length > 0) {
       conditions.push(
-        and(...terms.map((term) => ilike(schema.torrents.name, `%${term}%`)))
+        and(
+          ...terms.map((term) =>
+            ilike(schema.torrents.name, `%${escapeLike(term)}%`)
+          )
+        )
       );
     }
   }

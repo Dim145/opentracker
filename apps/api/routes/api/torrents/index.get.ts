@@ -4,6 +4,7 @@ import { desc, eq, ilike, sql, and, or, inArray } from 'drizzle-orm';
 import { validateQuery, torrentQuerySchema } from '~~/utils/schemas';
 import { slugifyTag } from '~~/utils/tags';
 import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
+import { escapeLike } from '~~/utils/sql';
 
 export default defineEventHandler(async (event) => {
   // Require authentication
@@ -40,7 +41,11 @@ export default defineEventHandler(async (event) => {
       const terms = query.search.split(/\s+/).filter((t) => t.length > 0);
       if (terms.length > 0) {
         conditions.push(
-          and(...terms.map((term) => ilike(schema.torrents.name, `%${term}%`)))
+          and(
+            ...terms.map((term) =>
+              ilike(schema.torrents.name, `%${escapeLike(term)}%`)
+            )
+          )
         );
       }
     }
@@ -96,10 +101,14 @@ export default defineEventHandler(async (event) => {
   // stays readable while the autocomplete can keep submitting whatever the
   // user typed.
   if (query.tag) {
-    const slugs = query.tag
-      .split(',')
-      .map((s) => slugifyTag(s))
-      .filter(Boolean);
+    const slugs = Array.from(
+      new Set(
+        query.tag
+          .split(',')
+          .map((s) => slugifyTag(s))
+          .filter(Boolean)
+      )
+    );
     if (slugs.length > 0) {
       const matchedTags = await db.query.tags.findMany({
         where: inArray(schema.tags.slug, slugs),
@@ -111,8 +120,9 @@ export default defineEventHandler(async (event) => {
         conditions.push(sql`false`);
       } else {
         const tagIds = matchedTags.map((t) => t.id);
-        // Sub-select: torrent_id appears at least once for EACH requested
-        // tag id (count = N). Cheaper than chaining N EXISTS clauses.
+        // Sub-select: torrent_id matches every requested tag id. Use
+        // `count(distinct tag_id)` so the predicate stays correct
+        // regardless of any future de-normalisation in torrent_tags.
         conditions.push(
           inArray(
             schema.torrents.id,
@@ -121,7 +131,9 @@ export default defineEventHandler(async (event) => {
               .from(schema.torrentTags)
               .where(inArray(schema.torrentTags.tagId, tagIds))
               .groupBy(schema.torrentTags.torrentId)
-              .having(sql`count(*) = ${tagIds.length}`)
+              .having(
+                sql`count(distinct ${schema.torrentTags.tagId}) = ${tagIds.length}`
+              )
           )
         );
       }

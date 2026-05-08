@@ -108,9 +108,10 @@ export default defineNitroPlugin((nitroApp) => {
     }
   };
 
-  // Initial collection after a short delay to ensure DB/Redis are ready
-  setTimeout(collectStats, 10000);
+  // Initial collection after a short delay to ensure DB/Redis are ready.
+  // unref both timers so they don't pin the event loop during shutdown.
+  setTimeout(collectStats, 10000).unref?.();
 
   // Schedule periodic collection
-  setInterval(collectStats, INTERVAL);
+  setInterval(collectStats, INTERVAL).unref?.();
 });

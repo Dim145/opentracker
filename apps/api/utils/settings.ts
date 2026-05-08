@@ -20,12 +20,16 @@ let subscriberStarted = false;
 function ensureSubscriber(): void {
   if (subscriberStarted) return;
   subscriberStarted = true;
+  // Tracked outside the try so the catch can release a partially-built
+  // socket. Without this, a synchronous failure after `redis.duplicate()`
+  // returned would leave an orphaned connection on every retry.
+  let sub: ReturnType<typeof redis.duplicate> | null = null;
   try {
     // The shared client uses lazyConnect + enableOfflineQueue=false (DDoS
     // protection on hot request paths) — but those defaults are wrong for a
     // long-lived idle subscriber, which needs to queue SUBSCRIBE until the TCP
     // socket becomes writeable. Override both for the duplicate.
-    const sub = redis.duplicate({
+    sub = redis.duplicate({
       lazyConnect: false,
       enableOfflineQueue: true,
     });
@@ -57,6 +61,13 @@ function ensureSubscriber(): void {
     });
   } catch (err: any) {
     console.warn('[Settings] failed to set up subscriber:', err.message);
+    if (sub) {
+      try {
+        sub.disconnect();
+      } catch {
+        // best-effort cleanup
+      }
+    }
     subscriberStarted = false; // synchronous setup failure: allow one retry
   }
 }

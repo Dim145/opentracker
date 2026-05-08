@@ -325,8 +325,10 @@ function getEmojiForSeverity(severity: SecurityAlert['severity']): string {
   }
 }
 
-// Cleanup old cooldowns periodically
-setInterval(() => {
+// Cleanup old cooldowns periodically. Unref so the timer doesn't keep
+// the Node process alive on graceful shutdown — without this, ctrl-C
+// in dev (and a clean docker stop) hang for the full timer interval.
+const cooldownTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, timestamp] of alertCooldowns.entries()) {
     if (now - timestamp > ALERT_COOLDOWN * 2) {
@@ -334,3 +336,4 @@ setInterval(() => {
     }
   }
 }, ALERT_COOLDOWN);
+cooldownTimer.unref?.();

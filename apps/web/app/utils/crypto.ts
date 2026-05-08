@@ -132,30 +132,42 @@ export async function generateLoginProof(
 }
 
 /**
- * Solve Proof of Work challenge
- * Finds nonce such that SHA256(challenge:nonce) starts with N zeros
+ * Solve Proof of Work challenge.
+ * Finds nonce such that SHA256(challenge:nonce) starts with N zeros.
+ *
+ * Bounded by `maxMs` (default 60s) so a misconfigured server-side
+ * difficulty doesn't hang the browser tab indefinitely. The expected
+ * runtime at difficulty 4 is sub-second on a modern laptop; one minute
+ * already covers difficulty ~6-7 with comfortable margin.
  */
 export async function solvePoW(
-  challenge: string, 
+  challenge: string,
   difficulty: number,
-  onProgress?: (hashesComputed: number) => void
+  onProgress?: (hashesComputed: number) => void,
+  maxMs: number = 60_000
 ): Promise<PoWSolution> {
   const target = '0'.repeat(difficulty);
+  const deadline = Date.now() + maxMs;
   let nonce = 0;
-  
+
   while (true) {
     const input = `${challenge}:${nonce}`;
     const hash = await sha256Hex(input);
-    
+
     if (hash.startsWith(target)) {
       return { challenge, nonce: nonce.toString(), hash };
     }
-    
+
     nonce++;
-    
+
     // Report progress and yield to main thread every 5000 iterations
     if (nonce % 5000 === 0) {
       onProgress?.(nonce);
+      if (Date.now() > deadline) {
+        throw new Error(
+          `Proof-of-work timed out after ${nonce.toLocaleString()} attempts at difficulty ${difficulty}.`
+        );
+      }
       await new Promise(r => setTimeout(r, 0));
     }
   }

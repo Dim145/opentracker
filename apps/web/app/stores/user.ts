@@ -32,7 +32,7 @@ export const useUserStore = defineStore('user', () => {
   async function logout() {
     await $fetch('/api/auth/logout', { method: 'POST' });
     await clear();
-    navigateTo('/auth/login');
+    await navigateTo('/auth/login');
   }
 
   return {

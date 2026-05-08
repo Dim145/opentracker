@@ -139,8 +139,18 @@ export async function getTorznabStats(): Promise<TorznabStats> {
       }
     }
 
+    const totalRequests = parseInt(data.totalRequests || '0', 10);
+    const responseTimeSum = parseFloat(data.responseTimeSum || '0');
+    // Prefer the atomic sum-based mean. Fall back to the legacy
+    // `avgResponseTime` field for instances upgraded mid-flight, so
+    // the dashboard doesn't drop to 0 until the new sum has built up.
+    const avgResponseTime =
+      totalRequests > 0 && responseTimeSum > 0
+        ? responseTimeSum / totalRequests
+        : parseFloat(data.avgResponseTime || '0');
+
     return {
-      totalRequests: parseInt(data.totalRequests || '0', 10),
+      totalRequests,
       searchRequests: parseInt(data.searchRequests || '0', 10),
       downloadRequests: parseInt(data.downloadRequests || '0', 10),
       capsRequests: parseInt(data.capsRequests || '0', 10),
@@ -148,7 +158,7 @@ export async function getTorznabStats(): Promise<TorznabStats> {
       movieSearchRequests: parseInt(data.movieSearchRequests || '0', 10),
       errorsCount: parseInt(data.errorsCount || '0', 10),
       uniqueUsers: userKeys.length,
-      avgResponseTime: parseFloat(data.avgResponseTime || '0'),
+      avgResponseTime,
       last24hRequests,
     };
   } catch (error) {
@@ -225,16 +235,16 @@ export async function logTorznabRequest(input: TorznabLogInput): Promise<void> {
 
     await updateUserStats(input.passkey, input.function);
 
-    // Rolling average response time
-    const currentAvg = parseFloat(
-      (await redis.hget(KEYS.STATS, 'avgResponseTime')) || '0'
+    // Atomic sum of response times — average is computed lazily on read
+    // (responseTimeSum / totalRequests). The previous approach read both
+    // counters, recomputed the mean and wrote it back, which raced under
+    // concurrent load and produced drift each time totalRequests was
+    // out of sync with the mean snapshot.
+    await redis.hincrby(
+      KEYS.STATS,
+      'responseTimeSum',
+      Math.max(0, Math.round(input.responseTime))
     );
-    const total = parseInt(
-      (await redis.hget(KEYS.STATS, 'totalRequests')) || '1',
-      10
-    );
-    const newAvg = (currentAvg * (total - 1) + input.responseTime) / total;
-    await redis.hset(KEYS.STATS, 'avgResponseTime', newAvg.toFixed(2));
   } catch (error) {
     console.error('[Torznab Stats] Failed to log request:', error);
   }

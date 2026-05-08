@@ -4,6 +4,7 @@
  * Implements sliding window, IP blacklisting, and progressive penalties
  */
 
+import { randomUUID } from 'node:crypto';
 import { redis } from '~~/utils/server';
 
 // ============================================================================
@@ -37,8 +38,9 @@ function setBounded<V>(map: Map<string, V>, key: string, value: V): void {
   map.set(key, value);
 }
 
-// Cleanup stale entries every 5 minutes
-setInterval(
+// Cleanup stale entries every 5 minutes. unref so a graceful shutdown
+// isn't stalled by this timer when no work remains.
+const memoryCleanupTimer = setInterval(
   () => {
     const now = Date.now();
     for (const [key, entry] of memoryStore.entries()) {
@@ -54,6 +56,7 @@ setInterval(
   },
   5 * 60 * 1000
 );
+memoryCleanupTimer.unref?.();
 
 export interface RateLimitOptions {
   /** Time window in seconds */
@@ -221,10 +224,14 @@ async function rateLimitRedis(
   const redisKey = `ratelimit:${key}`;
 
   try {
-    // Remove old entries and add current request atomically
+    // Remove old entries and add current request atomically.
+    // Member must be unique per call: Math.random() can collide under
+    // burst load, and a colliding ZADD silently *updates* the score
+    // instead of inserting — under-counting requests against the limit.
+    // randomUUID gives 122 bits of entropy, far past collision territory.
     const multi = redis.multi();
     multi.zremrangebyscore(redisKey, 0, windowStart);
-    multi.zadd(redisKey, now.toString(), `${now}:${Math.random()}`);
+    multi.zadd(redisKey, now, `${now}:${randomUUID()}`);
     multi.zcard(redisKey);
     multi.expire(redisKey, windowSec + 1);
 

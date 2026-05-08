@@ -27,6 +27,7 @@
  */
 import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
+import { escapeLike } from '~~/utils/sql';
 import {
   and,
   asc,
@@ -58,7 +59,7 @@ export default defineEventHandler(async (event) => {
 
   const conditions: SQL[] = [];
   if (params.search) {
-    const pattern = `%${params.search}%`;
+    const pattern = `%${escapeLike(params.search)}%`;
     conditions.push(
       // search across both ip and reason for fast-find from a partial
       // input — the moderator usually knows one or the other.

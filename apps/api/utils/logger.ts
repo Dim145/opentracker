@@ -1,4 +1,5 @@
 import pino from 'pino';
+import { fingerprintIP } from './crypto';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -31,10 +32,10 @@ export const logger = pino({
     req: (req: any) => ({
       method: req.method,
       url: req.url,
-      // Hash IP for privacy
-      ip: req.headers?.['x-forwarded-for']
-        ? hashForLog(req.headers['x-forwarded-for'])
-        : hashForLog(req.socket?.remoteAddress || 'unknown'),
+      // Hash IP for privacy with the same secret-keyed fingerprint used
+      // elsewhere — the previous helper produced 32 unsalted bits, which
+      // is trivially reversible against the IPv4 space.
+      ip: hashRequestIp(req),
       userAgent: req.headers?.['user-agent'],
       referer: req.headers?.referer,
     }),
@@ -74,18 +75,23 @@ export const logger = pino({
   timestamp: pino.stdTimeFunctions.isoTime,
 });
 
-// Helper to hash IPs for logging (privacy)
-function hashForLog(value: string): string {
-  if (!value || value === 'unknown') return 'unknown';
-
-  // Use a simple hash for logging (not cryptographic)
-  let hash = 0;
-  for (let i = 0; i < value.length; i++) {
-    const char = value.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32bit integer
+function hashRequestIp(req: any): string {
+  const fwd = req.headers?.['x-forwarded-for'];
+  // x-forwarded-for can be a comma-separated chain; only the leftmost
+  // entry is the original client.
+  const raw =
+    (typeof fwd === 'string' ? fwd.split(',')[0]?.trim() : undefined) ||
+    req.socket?.remoteAddress ||
+    null;
+  if (!raw) return 'unknown';
+  try {
+    return fingerprintIP(raw);
+  } catch {
+    // fingerprintIP throws if IP_HASH_SECRET isn't configured. Avoid
+    // crashing the logger for a missing secret — better to drop privacy
+    // than the request log.
+    return 'unhashed';
   }
-  return Math.abs(hash).toString(16).padStart(8, '0').slice(0, 8);
 }
 
 // Create child loggers for different components

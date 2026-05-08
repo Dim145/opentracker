@@ -1,4 +1,5 @@
 import { db } from '@trackarr/db';
+import { escapeLike } from '~~/utils/sql';
 import { z } from 'zod';
 
 const querySchema = z.object({
@@ -13,10 +14,11 @@ export default defineEventHandler(async (event) => {
   await requireUserSession(event);
 
   const { q, limit } = querySchema.parse(getQuery(event));
+  const pattern = q ? `%${escapeLike(q)}%` : null;
 
   const tags = await db.query.tags.findMany({
-    where: q
-      ? (t, { ilike, or }) => or(ilike(t.name, `%${q}%`), ilike(t.slug, `%${q}%`))
+    where: pattern
+      ? (t, { ilike, or }) => or(ilike(t.name, pattern), ilike(t.slug, pattern))
       : undefined,
     orderBy: (t, { asc }) => [asc(t.name)],
     limit,

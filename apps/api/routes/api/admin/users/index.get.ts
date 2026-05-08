@@ -28,6 +28,7 @@ import { db } from '@trackarr/db';
 import { users } from '@trackarr/db/schema';
 import { requireModeratorSession } from '~~/utils/adminAuth';
 import { fingerprintIP } from '~~/utils/crypto';
+import { escapeLike } from '~~/utils/sql';
 import {
   and,
   asc,
@@ -73,7 +74,7 @@ export default defineEventHandler(async (event) => {
   // ── WHERE clause ─────────────────────────────────────────────
   const conditions: SQL[] = [];
   if (params.search) {
-    conditions.push(ilike(users.username, `%${params.search}%`));
+    conditions.push(ilike(users.username, `%${escapeLike(params.search)}%`));
   }
   if (params.banned === 'true') conditions.push(eq(users.isBanned, true));
   if (params.banned === 'false') conditions.push(eq(users.isBanned, false));
