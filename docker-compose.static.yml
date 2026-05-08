@@ -1,0 +1,54 @@
+# Compose overlay that swaps the SSR Nuxt frontend for a static SPA
+# served by distroless nginx (apps/web/Dockerfile.static). The rest of
+# the stack — API, tracker, Caddy, Postgres, Redis, PgBouncer — is
+# inherited from docker-compose.prod.yml unchanged.
+#
+# Usage:
+#   docker compose \
+#     -f docker-compose.prod.yml \
+#     -f docker-compose.static.yml \
+#     --env-file .env \
+#     up -d --build
+#
+# Why bother:
+#   - SSR runtime memory: ~120-150 MB sustained, peaks during page renders
+#   - Static runtime memory: ~10-15 MB (nginx idle)
+#   - Cold-start: SSR ~2 s booting Nitro, static ~0.1 s
+#   - Image size: SSR ~80 MB (Node + bundle), static ~30 MB (nginx + assets)
+#
+# Trade-offs:
+#   - No SSR means no SEO out of the box (every page hydrates client-side).
+#     For a private tracker this is usually fine — nothing is indexed
+#     publicly anyway.
+#   - First Contentful Paint is slower for the first uncached visit
+#     (the SPA shell must download + execute before anything renders).
+#     Subsequent navigations are much faster.
+#
+# Runtime config:
+#   The static bundle has no env-var injection — it fetches
+#   /api/runtime-config on boot to learn the public tracker URLs. So
+#   the same image is portable across domains: only the API container
+#   needs the NUXT_PUBLIC_TRACKER_*_URL vars set.
+
+services:
+  web:
+    image: trackarr-web-static:latest
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.static
+    # The static container has zero environment-driven config — all the
+    # NUXT_PUBLIC_* values are baked into the bundle as fallbacks but
+    # overridden at runtime via /api/runtime-config. Drop the SSR env
+    # block entirely.
+    environment: {}
+    # Resource caps drop massively. Distroless nginx idles around
+    # 8-10 MB; 64 MB is plenty for any realistic concurrency on a
+    # private-tracker scale workload.
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+        reservations:
+          memory: 16M
+    # The Dockerfile.static HEALTHCHECK uses `nginx -t` (config
+    # validation) — fast, no shell needed in distroless. Inherit it.

@@ -1,9 +1,19 @@
 import pkg from './package.json';
 
+// Set NUXT_STATIC_BUILD=true at build time to disable SSR and produce
+// a fully static SPA via `pnpm exec nuxi generate`. The default build
+// (Dockerfile) keeps SSR on; the alternative (Dockerfile.static)
+// flips this for an nginx-served bundle. See apps/web/plugins/
+// runtime-config.client.ts for how the SPA picks up tracker URLs at
+// runtime so the same image can be redeployed against any domain.
+const STATIC_BUILD = process.env.NUXT_STATIC_BUILD === 'true';
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+
+  ssr: !STATIC_BUILD,
 
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@nuxt/icon'],
 
