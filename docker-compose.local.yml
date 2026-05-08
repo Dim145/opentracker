@@ -11,6 +11,21 @@ services:
       dockerfile: apps/web/Dockerfile
     container_name: trackarr-web
     restart: unless-stopped
+    # Runtime hardening:
+    # - read_only locks the rootfs; everything in the distroless image is
+    #   already there, Node only needs /tmp at runtime (V8 perf logs,
+    #   ICU caches) which we provide via tmpfs.
+    # - cap_drop[ALL] + no-new-privileges block any privilege escalation
+    #   path even if a Nitro plugin gets compromised.
+    # - pids_limit caps fork bombs from a runaway worker.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
     # Cap memory so V8's heap-size autotuning sees a tight ceiling and GCs
     # eagerly. The Dockerfile sets --max-old-space-size=384 to stay below.
     mem_limit: 512m
@@ -35,6 +50,18 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: trackarr-api
     restart: unless-stopped
+    # Runtime hardening (see web service above for the rationale).
+    # The api also runs drizzle-kit at boot to push the schema; esbuild's
+    # transient artefacts go to /tmp, which is why a tmpfs mount is
+    # required even for an otherwise stateless service.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
     # Cap memory so V8's heap-size autotuning sees a tight ceiling and GCs
     # eagerly. The Dockerfile sets --max-old-space-size=512 to stay below.
     mem_limit: 768m
@@ -87,6 +114,14 @@ services:
       dockerfile: apps/tracker/Dockerfile
     container_name: trackarr-tracker
     restart: unless-stopped
+    # The tracker is a static Go binary on `scratch`; it never writes to
+    # disk, so we don't even need a tmpfs.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-trackarr}

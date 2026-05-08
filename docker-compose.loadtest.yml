@@ -9,6 +9,14 @@ services:
       dockerfile: apps/tracker/Dockerfile
     container_name: trackarr-loadtest-tracker
     restart: unless-stopped
+    # Same hardening as the prod tracker — the binary runs from scratch
+    # with no disk writes, so we don't need a tmpfs.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@postgres:5432/${DB_NAME:-trackarr}
