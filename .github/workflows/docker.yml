@@ -22,6 +22,10 @@ jobs:
   # aucune raison de payer la latence d'un build séquentiel.
   build-api:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v5
 
@@ -63,6 +67,10 @@ jobs:
 
   build-tracker:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v5
 
@@ -104,6 +112,10 @@ jobs:
 
   build-front-ssr:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v5
 
@@ -144,6 +156,10 @@ jobs:
 
   build-front:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v5
 
