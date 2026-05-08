@@ -10,7 +10,7 @@ import {
   primaryKey,
   customType,
 } from 'drizzle-orm/pg-core';
-import { relations, sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 
 // Custom type for bytea (binary data)
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
@@ -132,7 +132,7 @@ export const torrents = pgTable(
     index('torrents_tvdb_idx').on(table.tvdbId),
     index('torrents_name_trgm_idx').using(
       'gist',
-      sql`${table.name} gist_trgm_ops`
+      table.name.op('gist_trgm_ops')
     ),
   ]
 );
