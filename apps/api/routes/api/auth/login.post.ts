@@ -104,6 +104,8 @@ export default defineEventHandler(async (event) => {
     user: {
       id: user.id,
       username: user.username,
+      displayName: user.displayName,
+      theme: user.theme,
       passkey: user.passkey,
       isAdmin: user.isAdmin,
       isModerator: user.isModerator,

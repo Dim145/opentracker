@@ -101,20 +101,6 @@
             </button>
           </div>
 
-          <!-- Theme toggle (light / dark) -->
-          <button
-            type="button"
-            class="theme-toggle"
-            :title="mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
-            :aria-label="mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
-            @click="toggle"
-          >
-            <Icon
-              :name="mode === 'dark' ? 'ph:sun' : 'ph:moon'"
-              class="text-base"
-            />
-          </button>
-
           <!-- User Menu -->
           <div class="relative" ref="userMenuRef">
             <button
@@ -129,7 +115,9 @@
                   class="text-xl text-text-secondary"
                 />
               </div>
-              <span class="text-sm font-medium">{{ user?.username }}</span>
+              <span class="text-sm font-medium">{{
+                user?.displayName || user?.username
+              }}</span>
               <Icon name="ph:caret-down" class="text-xs text-text-muted" />
             </button>
 
@@ -154,7 +142,13 @@
                   <div class="flex items-center justify-between gap-2">
                     <div class="min-w-0">
                       <p class="text-sm font-medium truncate">
-                        {{ user?.username }}
+                        {{ user?.displayName || user?.username }}
+                      </p>
+                      <p
+                        v-if="user?.displayName"
+                        class="text-[11px] font-mono text-text-muted mt-0.5 truncate"
+                      >
+                        @{{ user.username }}
                       </p>
                       <p
                         class="text-[10px] uppercase tracking-wider text-text-muted mt-0.5"
@@ -224,6 +218,14 @@
                   </div>
                 </div>
                 <div class="py-1">
+                  <NuxtLink
+                    to="/settings"
+                    class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
+                    @click="showUserMenu = false"
+                  >
+                    <Icon name="ph:gear" />
+                    Settings
+                  </NuxtLink>
                   <button
                     @click="handleLogout"
                     class="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-fg-default/5 transition-colors flex items-center gap-2"
@@ -359,7 +361,9 @@
 
 <script setup lang="ts">
 const { user, clear, fetch } = useUserSession();
-const { mode, toggle } = useColorMode();
+// Theme is loaded server-side via the session; the composable's watcher
+// reconciles the DOM. The settings page is the only surface that flips
+// it, so the layout doesn't need to import useColorMode here.
 const router = useRouter();
 
 const showUserMenu = ref(false);
@@ -550,22 +554,4 @@ const ratioColor = computed(() => {
   background-color: color-mix(in srgb, var(--bg-base) 80%, transparent);
 }
 
-/* Theme toggle button — small icon button slotted between user stats and menu */
-.theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-sm, 4px);
-  color: var(--fg-muted);
-  background: transparent;
-  border: 1px solid transparent;
-  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
-}
-.theme-toggle:hover {
-  color: var(--fg-default);
-  background-color: var(--bg-hover);
-  border-color: var(--line-default);
-}
 </style>

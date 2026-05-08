@@ -7,7 +7,7 @@ const paramsSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event);
+  const { user: viewer } = await requireUserSession(event);
 
   const params = paramsSchema.parse(getRouterParams(event));
 
@@ -16,10 +16,13 @@ export default defineEventHandler(async (event) => {
     columns: {
       id: true,
       username: true,
+      displayName: true,
+      bio: true,
       isAdmin: true,
       isModerator: true,
       uploaded: true,
       downloaded: true,
+      showLastSeen: true,
       createdAt: true,
       lastSeen: true,
     },
@@ -46,8 +49,17 @@ export default defineEventHandler(async (event) => {
     .from(schema.torrents)
     .where(eq(schema.torrents.uploaderId, params.id));
 
+  // Privacy: redact `lastSeen` for the public view when the target user
+  // has hidden it. Mods/admins keep the real value so moderation isn't
+  // blinded by a privacy flag, and a user always sees their own.
+  const isPrivileged =
+    viewer.id === user.id || viewer.isAdmin || viewer.isModerator;
+  const visibleLastSeen =
+    user.showLastSeen || isPrivileged ? user.lastSeen : null;
+
   return {
     ...user,
+    lastSeen: visibleLastSeen,
     ratio: ratio === Infinity ? null : ratio, // null = infinite
     uploadsCount: uploadsCount[0]?.count || 0,
   };

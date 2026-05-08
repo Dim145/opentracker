@@ -40,7 +40,7 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-2">
                 <h1 class="text-2xl font-bold text-text-primary">
-                  {{ user.username }}
+                  {{ user.displayName || user.username }}
                 </h1>
                 <span
                   v-if="user.isAdmin"
@@ -55,6 +55,18 @@
                   Mod
                 </span>
               </div>
+              <p
+                v-if="user.displayName"
+                class="text-xs font-mono text-text-muted mb-2"
+              >
+                @{{ user.username }}
+              </p>
+              <p
+                v-if="user.bio"
+                class="text-sm text-text-secondary mb-3 whitespace-pre-line break-words max-w-2xl"
+              >
+                {{ user.bio }}
+              </p>
 
               <div class="flex flex-wrap gap-6 text-sm">
                 <div>
@@ -66,7 +78,7 @@
                 <div>
                   <span class="eyebrow block mb-0.5">Last seen</span>
                   <span class="text-text-secondary">{{
-                    formatAge(user.lastSeen)
+                    user.lastSeen ? formatAge(user.lastSeen) : 'Hidden'
                   }}</span>
                 </div>
               </div>
@@ -223,12 +235,14 @@ import { formatSize, formatDay, formatAge } from '~/utils/format';
 interface UserProfile {
   id: string;
   username: string;
+  displayName: string | null;
+  bio: string | null;
   isAdmin: boolean;
   isModerator: boolean;
   uploaded: number;
   downloaded: number;
   createdAt: string;
-  lastSeen: string;
+  lastSeen: string | null;
   ratio: number | null;
   uploadsCount: number;
 }

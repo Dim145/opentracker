@@ -14,7 +14,15 @@
             </div>
             <div class="hero-id-body">
               <p class="hero-eyebrow">Personal dossier</p>
-              <h1 class="hero-title">{{ profile.username }}</h1>
+              <h1 class="hero-title">
+                {{ profile.displayName || profile.username }}
+              </h1>
+              <p v-if="profile.displayName" class="hero-handle">
+                @{{ profile.username }}
+              </p>
+              <p v-if="profile.bio" class="hero-bio">
+                {{ profile.bio }}
+              </p>
               <div class="hero-pills">
                 <span class="hero-pill" :class="rolePillClass">
                   <Icon :name="rolePillIcon" />
@@ -473,6 +481,8 @@ interface MeRole {
 interface MeProfile {
   id: string;
   username: string;
+  displayName: string | null;
+  bio: string | null;
   isAdmin: boolean;
   isModerator: boolean;
   isBanned: boolean;
@@ -482,6 +492,7 @@ interface MeProfile {
   ratio: number | null; // null = infinite
   invitesRemaining: number;
   lastIp: string | null;
+  showLastSeen: boolean;
   createdAt: string;
   lastSeen: string;
   counts: {
@@ -985,6 +996,22 @@ function formatDuration(seconds: number) {
   line-height: 1;
   color: rgb(var(--fg-strong));
   word-break: break-all;
+}
+.hero-handle {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgb(var(--fg-muted));
+  margin: 0;
+}
+.hero-bio {
+  margin: 0.4rem 0 0;
+  max-width: 38rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgb(var(--fg-default));
+  white-space: pre-line;
+  word-break: break-word;
 }
 .hero-pills {
   display: flex;

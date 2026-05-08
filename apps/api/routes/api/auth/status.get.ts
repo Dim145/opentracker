@@ -2,7 +2,7 @@ import { count, eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users } from '@trackarr/db/schema';
 import { getSetting, SETTINGS_KEYS, isInviteEnabled } from '~~/utils/server';
-import type { PublicUser } from '@trackarr/shared';
+import type { PublicUser, ThemePreference } from '@trackarr/shared';
 
 /**
  * GET /api/auth/status
@@ -26,6 +26,8 @@ export default defineEventHandler(async (event) => {
     // Fetch latest stats and roles from DB to ensure they are up to date
     const [dbUser] = await db
       .select({
+        displayName: users.displayName,
+        theme: users.theme,
         uploaded: users.uploaded,
         downloaded: users.downloaded,
         isBanned: users.isBanned,
@@ -42,17 +44,27 @@ export default defineEventHandler(async (event) => {
         await clearUserSession(event);
         publicUser = null;
       } else {
-        // Update session if stats or roles changed
+        // Update session if stats, roles, display name or theme changed.
+        // These fields drive the navbar / theme so a stale session
+        // would otherwise force the user to re-login to see edits.
+        const sessionDisplayName =
+          (session.user as { displayName?: string | null }).displayName ?? null;
+        const sessionTheme =
+          (session.user as { theme?: ThemePreference }).theme ?? 'dark';
         if (
           dbUser.uploaded !== session.user.uploaded ||
           dbUser.downloaded !== session.user.downloaded ||
           dbUser.isAdmin !== session.user.isAdmin ||
-          dbUser.isModerator !== session.user.isModerator
+          dbUser.isModerator !== session.user.isModerator ||
+          dbUser.displayName !== sessionDisplayName ||
+          dbUser.theme !== sessionTheme
         ) {
           await setUserSession(event, {
             ...session,
             user: {
               ...session.user,
+              displayName: dbUser.displayName,
+              theme: dbUser.theme as ThemePreference,
               uploaded: dbUser.uploaded,
               downloaded: dbUser.downloaded,
               isAdmin: dbUser.isAdmin,
@@ -64,10 +76,12 @@ export default defineEventHandler(async (event) => {
         publicUser = {
           id: session.user.id,
           username: session.user.username,
+          displayName: dbUser.displayName,
           isAdmin: dbUser.isAdmin,
           isModerator: dbUser.isModerator,
           uploaded: dbUser.uploaded,
           downloaded: dbUser.downloaded,
+          theme: (dbUser.theme as ThemePreference) ?? 'dark',
         };
       }
     } else {

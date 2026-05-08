@@ -17,6 +17,8 @@ export default defineEventHandler(async (event) => {
     columns: {
       id: true,
       username: true,
+      displayName: true,
+      bio: true,
       isAdmin: true,
       isModerator: true,
       isBanned: true,
@@ -25,6 +27,8 @@ export default defineEventHandler(async (event) => {
       downloaded: true,
       invitesRemaining: true,
       lastIp: true,
+      showLastSeen: true,
+      theme: true,
       createdAt: true,
       lastSeen: true,
     },
@@ -74,6 +78,8 @@ export default defineEventHandler(async (event) => {
   return {
     id: user.id,
     username: user.username,
+    displayName: user.displayName,
+    bio: user.bio,
     isAdmin: user.isAdmin,
     isModerator: user.isModerator,
     isBanned: user.isBanned,
@@ -83,6 +89,8 @@ export default defineEventHandler(async (event) => {
     ratio,
     invitesRemaining: user.invitesRemaining,
     lastIp: user.lastIp,
+    showLastSeen: user.showLastSeen,
+    theme: user.theme,
     createdAt: user.createdAt,
     lastSeen: user.lastSeen,
     counts: {

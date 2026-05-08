@@ -40,6 +40,19 @@ export const users = pgTable(
     downloaded: bigint('downloaded', { mode: 'number' }).default(0).notNull(),
     invitesRemaining: integer('invites_remaining').default(0).notNull(),
     panicPasswordHash: text('panic_password_hash'), // Only set for first admin
+    // User-editable profile preferences (settings page).
+    // displayName overrides `username` on profile pages when set; the
+    // canonical `username` is still used for moderation traceability,
+    // mentions, and the announce URL.
+    displayName: text('display_name'),
+    bio: text('bio'),
+    // Privacy toggle that hides "last seen" info from public-facing
+    // surfaces. Mod/admin views still see the real value.
+    showLastSeen: boolean('show_last_seen').default(true).notNull(),
+    // 'light' | 'dark'. Persisted server-side so the chosen theme
+    // follows the user across devices instead of being trapped in a
+    // single browser's localStorage.
+    theme: text('theme').default('dark').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     lastSeen: timestamp('last_seen').defaultNow().notNull(),
   },
