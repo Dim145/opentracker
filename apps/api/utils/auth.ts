@@ -1,40 +1,29 @@
-/**
- * Admin Authentication Middleware
- * Protects admin routes with API key or session validation
- */
+// Admin API-key gate. The session-based path lives in adminAuth.ts; this
+// file is for header-based access only (X-Admin-Key or `Authorization:
+// Bearer …`). Constant-time comparison prevents key recovery via timing.
 
 import { randomBytes } from 'crypto';
 
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || '';
 
-/**
- * Generate a random passkey (40 hex chars)
- */
 export function generatePasskey(): string {
   return randomBytes(20).toString('hex');
 }
 
-/**
- * Check if the request has valid admin authentication
- * Supports:
- * - X-Admin-Key header
- * - Authorization: Bearer <key> header
- */
 export function requireAdmin(event: any): void {
-  // Check for admin API key
   const apiKey =
     getHeader(event, 'x-admin-key') ||
     getHeader(event, 'authorization')?.replace('Bearer ', '');
 
   if (!ADMIN_API_KEY) {
-    // No API key configured - only allow in development
+    // Refuse to gate anything in production without a configured key —
+    // returning 200 there would silently expose admin routes.
     if (process.env.NODE_ENV === 'production') {
       throw createError({
         statusCode: 503,
         message: 'Admin API not configured',
       });
     }
-    // In dev mode, allow without key but log warning
     console.warn(
       '[Security] Admin endpoint accessed without ADMIN_API_KEY configured'
     );
@@ -48,7 +37,6 @@ export function requireAdmin(event: any): void {
     });
   }
 
-  // Constant-time comparison to prevent timing attacks
   if (!secureCompare(apiKey, ADMIN_API_KEY)) {
     throw createError({
       statusCode: 403,
@@ -57,9 +45,6 @@ export function requireAdmin(event: any): void {
   }
 }
 
-/**
- * Optional admin check - returns boolean instead of throwing
- */
 export function isAdmin(event: any): boolean {
   try {
     requireAdmin(event);
@@ -67,17 +52,4 @@ export function isAdmin(event: any): boolean {
   } catch {
     return false;
   }
-}
-
-/**
- * Constant-time string comparison
- */
-function secureCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return result === 0;
 }

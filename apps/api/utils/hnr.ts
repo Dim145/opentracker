@@ -7,9 +7,6 @@ import {
   getHnrGracePeriod,
 } from './settings';
 
-/**
- * Create HnR tracking entry when user completes a download
- */
 export async function createHnrEntry(
   userId: string,
   torrentId: string
@@ -41,9 +38,6 @@ export async function createHnrEntry(
   });
 }
 
-/**
- * Update seed time for a user on a torrent
- */
 export async function updateSeedTime(
   userId: string,
   torrentId: string,
@@ -78,9 +72,6 @@ export async function updateSeedTime(
   }
 }
 
-/**
- * Check and mark HnRs that have exceeded grace period
- */
 export async function checkAndMarkHnrs(): Promise<number> {
   const enabled = await isHnrEnabled();
   if (!enabled) return 0;
@@ -109,9 +100,6 @@ export async function checkAndMarkHnrs(): Promise<number> {
   return result.length;
 }
 
-/**
- * Get user's HnR count
- */
 export async function getUserHnrCount(userId: string): Promise<number> {
   const result = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -126,9 +114,6 @@ export async function getUserHnrCount(userId: string): Promise<number> {
   return result[0]?.count || 0;
 }
 
-/**
- * Get user's HnR entries
- */
 export async function getUserHnrEntries(userId: string) {
   return db.query.hnrTracking.findMany({
     where: eq(schema.hnrTracking.userId, userId),
@@ -141,9 +126,6 @@ export async function getUserHnrEntries(userId: string) {
   });
 }
 
-/**
- * Exempt a user from HnR on a specific torrent (admin action)
- */
 export async function exemptHnr(entryId: string): Promise<boolean> {
   const result = await db
     .update(schema.hnrTracking)
@@ -154,9 +136,6 @@ export async function exemptHnr(entryId: string): Promise<boolean> {
   return result.length > 0;
 }
 
-/**
- * Clear HnR status (admin action)
- */
 export async function clearHnr(entryId: string): Promise<boolean> {
   const result = await db
     .update(schema.hnrTracking)

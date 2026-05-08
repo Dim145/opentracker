@@ -1,20 +1,10 @@
-/**
- * Docker Secrets Reader
- * Utilities for reading Docker secrets from mounted files
- * Supports both file-based secrets (_FILE suffix) and direct environment variables
- */
+// Reads secrets from a Docker-style `${ENVKEY}_FILE` mount path first, and
+// falls back to the plain `${ENVKEY}` environment variable. Mounted-file
+// secrets are preferred because they don't show up in container metadata
+// or `docker inspect`.
 
 import { readFileSync, existsSync } from 'fs';
 
-/**
- * Read a secret from Docker secret file or environment variable
- * Prioritizes _FILE suffix environment variables over direct values
- *
- * @param envKey - Base environment variable name (without _FILE suffix)
- * @param defaultValue - Optional default value if secret not found
- * @returns The secret value or default
- * @throws Error if secret is required but not found
- */
 export function readSecret(envKey: string, defaultValue?: string): string {
   // Try reading from Docker secret file first
   const fileEnvKey = `${envKey}_FILE`;

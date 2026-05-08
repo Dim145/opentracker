@@ -72,12 +72,11 @@ function ensureSubscriber(): void {
   }
 }
 
-/**
- * Check if HTML content is effectively empty (just empty tags like <p></p> or whitespace)
- */
+// Treat <p></p>, <br>, and stray whitespace as "unset" so a user who
+// clears a rich-text field doesn't end up with the literal placeholder
+// markup as the rendered value.
 function isEmptyHtml(html: string | null): boolean {
   if (!html) return true;
-  // Strip all HTML tags and check if anything meaningful remains
   const textContent = html.replace(/<[^>]*>/g, '').trim();
   return textContent.length === 0;
 }
@@ -126,9 +125,6 @@ const settingsCache = new Map<
 >();
 const CACHE_TTL = 60000; // 1 minute cache for settings
 
-/**
- * Get a setting value
- */
 export async function getSetting(key: string): Promise<string | null> {
   ensureSubscriber();
   const cached = settingsCache.get(key);
@@ -147,9 +143,6 @@ export async function getSetting(key: string): Promise<string | null> {
   return value;
 }
 
-/**
- * Set a setting value
- */
 export async function setSetting(key: string, value: string): Promise<void> {
   ensureSubscriber();
   await db
@@ -170,205 +163,136 @@ export async function setSetting(key: string, value: string): Promise<void> {
   }
 }
 
-/**
- * Check if registration is open
- */
 export async function isRegistrationOpen(): Promise<boolean> {
+  // Default closed if unset — opt-in registration is the safer default
+  // for a brand-new install before the operator has tightened anything.
   const value = await getSetting(SETTINGS_KEYS.REGISTRATION_OPEN);
-  // Default to closed if not set
   return value === 'true';
 }
 
-/**
- * Set registration status
- */
 export async function setRegistrationOpen(open: boolean): Promise<void> {
   await setSetting(SETTINGS_KEYS.REGISTRATION_OPEN, open ? 'true' : 'false');
 }
 
-/**
- * Get minimum ratio requirement
- */
 export async function getMinRatio(): Promise<number> {
   const value = await getSetting(SETTINGS_KEYS.MIN_RATIO);
   return value ? parseFloat(value) : 0;
 }
 
-/**
- * Get starter upload credit in bytes
- */
 export async function getStarterUpload(): Promise<number> {
   const value = await getSetting(SETTINGS_KEYS.STARTER_UPLOAD);
   return value ? parseInt(value, 10) : 0;
 }
 
-/**
- * Check if HnR tracking is enabled
- */
 export async function isHnrEnabled(): Promise<boolean> {
   const value = await getSetting(SETTINGS_KEYS.HNR_ENABLED);
   return value === 'true';
 }
 
-/**
- * Get required seed time for HnR (in seconds, default 24h)
- */
 export async function getHnrRequiredSeedTime(): Promise<number> {
+  // 24h default mirrors the tracker's `hnrRequiredSeedTime` fallback so
+  // both sides agree if the row is missing.
   const value = await getSetting(SETTINGS_KEYS.HNR_REQUIRED_SEED_TIME);
   return value ? parseInt(value, 10) : 86400;
 }
 
-/**
- * Get HnR grace period (in seconds, default 72h)
- */
 export async function getHnrGracePeriod(): Promise<number> {
   const value = await getSetting(SETTINGS_KEYS.HNR_GRACE_PERIOD);
   return value ? parseInt(value, 10) : 259200;
 }
 
-/**
- * Check if invitation system is enabled
- */
 export async function isInviteEnabled(): Promise<boolean> {
   const value = await getSetting(SETTINGS_KEYS.INVITE_ENABLED);
   return value === 'true';
 }
 
-/**
- * Get default number of invites for new users
- */
 export async function getDefaultInvites(): Promise<number> {
   const value = await getSetting(SETTINGS_KEYS.DEFAULT_INVITES);
   return value ? parseInt(value, 10) : 2;
 }
 
-/**
- * Get site name (for branding)
- */
 export async function getSiteName(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.SITE_NAME);
   return isEmptyHtml(value) ? 'TRACKARR' : value!;
 }
 
-/**
- * Get site logo icon name
- */
 export async function getSiteLogo(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.SITE_LOGO);
   return value || 'ph:broadcast-bold';
 }
 
-/**
- * Get site logo image URL (custom uploaded image)
- */
 export async function getSiteLogoImage(): Promise<string | null> {
   const value = await getSetting(SETTINGS_KEYS.SITE_LOGO_IMAGE);
   return value || null;
 }
 
-/**
- * Get site favicon URL (custom uploaded favicon)
- */
 export async function getSiteFavicon(): Promise<string | null> {
   const value = await getSetting(SETTINGS_KEYS.SITE_FAVICON);
   return value || null;
 }
 
-/**
- * Get site subtitle (displayed below site name)
- */
 export async function getSiteSubtitle(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.SITE_SUBTITLE);
   return isEmptyHtml(value) ? `v${appVersion}` : value!;
 }
 
-/**
- * Get site name color
- */
 export async function getSiteNameColor(): Promise<string | null> {
   const value = await getSetting(SETTINGS_KEYS.SITE_NAME_COLOR);
   return value || null;
 }
 
-/**
- * Check if site name should be bold
- */
 export async function isSiteNameBold(): Promise<boolean> {
+  // Default true — the original brand mark uses a bold weight, so an
+  // unset value should match what existing installs render today.
   const value = await getSetting(SETTINGS_KEYS.SITE_NAME_BOLD);
-  // Default to true if not set
   return value !== 'false';
 }
 
-/**
- * Get auth page title (login/register)
- */
 export async function getAuthTitle(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.AUTH_TITLE);
   return isEmptyHtml(value) ? '' : value!;
 }
 
-/**
- * Get auth page subtitle (login/register)
- */
 export async function getAuthSubtitle(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.AUTH_SUBTITLE);
   return isEmptyHtml(value) ? 'Private BitTorrent Tracker' : value!;
 }
 
-/**
- * Get footer text
- */
 export async function getFooterText(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.FOOTER_TEXT);
   return isEmptyHtml(value) ? '' : value!;
 }
 
-/**
- * Get page title suffix
- */
 export async function getPageTitleSuffix(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.PAGE_TITLE_SUFFIX);
   return value || '';
 }
 
-/**
- * Get welcome message (rich text HTML)
- */
 export async function getWelcomeMessage(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.WELCOME_MESSAGE);
   return value || '';
 }
 
-/**
- * Get site rules (rich text HTML)
- */
 export async function getSiteRules(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.SITE_RULES);
   return value || '';
 }
 
-/**
- * Check if announcement is enabled
- */
 export async function isAnnouncementEnabled(): Promise<boolean> {
   const value = await getSetting(SETTINGS_KEYS.ANNOUNCEMENT_ENABLED);
   return value === 'true';
 }
 
-/**
- * Get announcement message
- */
 export async function getAnnouncementMessage(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.ANNOUNCEMENT_MESSAGE);
   return value || '';
 }
 
-/**
- * Get announcement type (info, warning, error)
- */
 export async function getAnnouncementType(): Promise<
   'info' | 'warning' | 'error'
 > {
+  // Coerce any unrecognised value to 'info' so a typo in the DB row
+  // doesn't render a banner with broken styling.
   const value = await getSetting(SETTINGS_KEYS.ANNOUNCEMENT_TYPE);
   if (value === 'warning' || value === 'error') return value;
   return 'info';
@@ -378,17 +302,11 @@ export async function getAnnouncementType(): Promise<
 // Homepage Content
 // ============================================================================
 
-/**
- * Get hero title
- */
 export async function getHeroTitle(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.HERO_TITLE);
   return value || 'Trackarr';
 }
 
-/**
- * Get hero subtitle
- */
 export async function getHeroSubtitle(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.HERO_SUBTITLE);
   return (
@@ -397,25 +315,16 @@ export async function getHeroSubtitle(): Promise<string> {
   );
 }
 
-/**
- * Get status badge text
- */
 export async function getStatusBadgeText(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.STATUS_BADGE_TEXT);
   return value || 'Tracker Online & Operational';
 }
 
-/**
- * Get feature 1 title
- */
 export async function getFeature1Title(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.FEATURE_1_TITLE);
   return value || 'High Performance';
 }
 
-/**
- * Get feature 1 description
- */
 export async function getFeature1Desc(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.FEATURE_1_DESC);
   return (
@@ -424,17 +333,11 @@ export async function getFeature1Desc(): Promise<string> {
   );
 }
 
-/**
- * Get feature 2 title
- */
 export async function getFeature2Title(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.FEATURE_2_TITLE);
   return value || 'Multi-Protocol';
 }
 
-/**
- * Get feature 2 description
- */
 export async function getFeature2Desc(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.FEATURE_2_DESC);
   return (
@@ -443,17 +346,11 @@ export async function getFeature2Desc(): Promise<string> {
   );
 }
 
-/**
- * Get feature 3 title
- */
 export async function getFeature3Title(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.FEATURE_3_TITLE);
   return value || 'Open Source';
 }
 
-/**
- * Get feature 3 description
- */
 export async function getFeature3Desc(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.FEATURE_3_DESC);
   return (

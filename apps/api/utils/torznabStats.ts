@@ -104,9 +104,6 @@ interface TorznabStats {
 // Global Stats
 // ============================================================================
 
-/**
- * Increment a stat counter
- */
 async function incrementStat(field: string, amount = 1): Promise<void> {
   try {
     await redis.hincrby(KEYS.STATS, field, amount);
@@ -116,9 +113,6 @@ async function incrementStat(field: string, amount = 1): Promise<void> {
   }
 }
 
-/**
- * Get all Torznab stats
- */
 export async function getTorznabStats(): Promise<TorznabStats> {
   try {
     const data = await redis.hgetall(KEYS.STATS);
@@ -403,9 +397,6 @@ export async function getTorznabTopUsers(
   }
 }
 
-/**
- * Get requests by hour (last N hours)
- */
 export async function getTorznabRequestsByHour(
   hours = 24
 ): Promise<Array<{ hour: number; count: number }>> {
@@ -447,22 +438,13 @@ export async function trackRateLimitHit(passkey: string): Promise<void> {
   }
 }
 
-/**
- * Get rate limit hit stats
- */
-export async function getTorznabRateLimitHits(): Promise<{
-  total: number;
-  byHour: Array<{ hour: number; count: number }>;
-}> {
+export async function getTorznabRateLimitHits(): Promise<{ total: number }> {
   try {
     const data = await redis.hgetall(KEYS.RATE_LIMIT_HITS);
-    return {
-      total: parseInt(data.total || '0', 10),
-      byHour: [], // Could implement hourly tracking if needed
-    };
+    return { total: parseInt(data.total || '0', 10) };
   } catch (error) {
     console.error('[Torznab Stats] Failed to get rate limit hits:', error);
-    return { total: 0, byHour: [] };
+    return { total: 0 };
   }
 }
 

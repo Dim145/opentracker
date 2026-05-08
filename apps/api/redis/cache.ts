@@ -28,9 +28,6 @@ export interface PeerData {
 // Peer Operations
 // ============================================================================
 
-/**
- * Add or update a peer in the swarm
- */
 export async function setPeer(
   infoHash: string,
   peerId: string,
@@ -48,9 +45,6 @@ export async function setPeer(
   await redis.expire(key, PEER_TTL);
 }
 
-/**
- * Get a single peer from the swarm
- */
 export async function getPeer(
   infoHash: string,
   peerId: string
@@ -74,9 +68,6 @@ export async function getPeer(
   }
 }
 
-/**
- * Remove a peer from the swarm
- */
 export async function removePeer(
   infoHash: string,
   peerId: string
@@ -85,9 +76,6 @@ export async function removePeer(
   await redis.hdel(key, peerId);
 }
 
-/**
- * Get all peers for a torrent
- */
 export async function getPeers(infoHash: string): Promise<PeerData[]> {
   const key = PEER_KEY(infoHash);
   const data = await redis.hgetall(key);
@@ -114,9 +102,6 @@ export async function getPeers(infoHash: string): Promise<PeerData[]> {
   return peers;
 }
 
-/**
- * Get peer count for a torrent (seeders + leechers)
- */
 export async function getPeerCount(
   infoHash: string
 ): Promise<{ seeders: number; leechers: number }> {
@@ -131,18 +116,14 @@ export async function getPeerCount(
 // Stats Operations
 // ============================================================================
 
-/**
- * Increment completed count for a torrent
- */
 export async function incrementCompleted(infoHash: string): Promise<number> {
   const key = STATS_KEY(infoHash);
   return redis.hincrby(key, 'completed', 1);
 }
 
-/**
- * Get cached stats for a torrent
- * Falls back to tracker's internal swarm data if Redis cache is empty
- */
+// Returns swarm counters from Redis. The tracker is in a separate
+// container so we can't fall back to its in-process map; Redis is the
+// single source of truth.
 export async function getStats(
   infoHash: string
 ): Promise<{ seeders: number; leechers: number; completed: number }> {
@@ -150,9 +131,6 @@ export async function getStats(
     getPeerCount(infoHash),
     redis.hget(STATS_KEY(infoHash), 'completed'),
   ]);
-
-  // The tracker runs in a separate container so we can't fall back to its
-  // in-process swarm map. Redis is the single source of truth here.
   return {
     ...peerCount,
     completed: parseInt(completedRaw || '0', 10),
@@ -163,9 +141,6 @@ export async function getStats(
 // Global Stats
 // ============================================================================
 
-/**
- * Track global tracker stats
- */
 export async function updateGlobalStats(
   torrents: number,
   peers: number,
