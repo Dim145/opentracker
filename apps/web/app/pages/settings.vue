@@ -682,9 +682,12 @@ async function signOut() {
 }
 
 // ── Account info derivations ────────────────────────────────────
+// Pin the locale ('en-US') so SSR and the browser produce identical
+// strings — using `undefined` here triggered Vue's hydration mismatch
+// warning when the server-side ICU locale didn't match the user's.
 const memberSince = computed(() =>
   profile.value
-    ? new Date(profile.value.createdAt).toLocaleDateString(undefined, {
+    ? new Date(profile.value.createdAt).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',

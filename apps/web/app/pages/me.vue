@@ -289,7 +289,14 @@
                   {{ t.stats?.completed ?? 0 }} DL
                 </span>
                 <span class="row-age">
-                  {{ relativeTime(t.createdAt) }}
+                  <!-- ClientOnly because relativeTime() depends on Date.now()
+                       which diverges between SSR and hydration. The fallback
+                       renders the deterministic absolute date so the slot
+                       isn't blank during the first paint. -->
+                  <ClientOnly>
+                    {{ relativeTime(t.createdAt) }}
+                    <template #fallback>{{ formatDay(t.createdAt) }}</template>
+                  </ClientOnly>
                 </span>
               </div>
             </div>
@@ -463,7 +470,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatSize } from '~/utils/format';
+import { formatSize, formatDay } from '~/utils/format';
 
 definePageMeta({ title: 'My profile' });
 useHead({ title: 'My profile' });
@@ -598,15 +605,12 @@ async function copy(kind: 'passkey' | 'announce') {
 }
 
 // ── Hero pills ─────────────────────────────────────────────────
-const memberSince = computed(() => {
-  if (!profile.value) return '';
-  const d = new Date(profile.value.createdAt);
-  return d.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  });
-});
+// Use the shared `formatDay` helper which pins the locale to 'en-US' —
+// undefined locale picks Node's locale on SSR and the browser's on the
+// client, which produced a hydration mismatch warning on this page.
+const memberSince = computed(() =>
+  profile.value ? formatDay(profile.value.createdAt) : ''
+);
 
 const rolePillClass = computed(() => {
   const p = profile.value;

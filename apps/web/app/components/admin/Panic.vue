@@ -42,7 +42,8 @@
               password to restore access.
             </p>
             <p v-if="encryptedAt" class="text-text-muted text-xs mt-2">
-              Encrypted at: {{ new Date(encryptedAt).toLocaleString() }}
+              Encrypted at:
+              {{ new Date(encryptedAt).toLocaleString('en-US') }}
             </p>
           </div>
         </div>

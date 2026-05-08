@@ -206,7 +206,12 @@
             </td>
             <td class="cell cell--right cell--mono">
               <span :title="formatAbsolute(item.createdAt)">
-                {{ formatRelative(item.createdAt) }}
+                <!-- ClientOnly: formatRelative reads Date.now() each call,
+                     which diverges between SSR and hydration. -->
+                <ClientOnly>
+                  {{ formatRelative(item.createdAt) }}
+                  <template #fallback>{{ formatAbsolute(item.createdAt) }}</template>
+                </ClientOnly>
               </span>
             </td>
             <td class="cell cell--right">
@@ -482,7 +487,9 @@ function formatRelative(iso: string) {
   return `${yr}y ago`;
 }
 function formatAbsolute(iso: string) {
-  return new Date(iso).toLocaleString();
+  // Pin the locale so SSR (Node default, often en-US) and the client
+  // (browser default) render the same string in the table cell.
+  return new Date(iso).toLocaleString('en-US');
 }
 function ipVersion(ip: string) {
   return ip.includes(':') ? 'IPv6' : 'IPv4';

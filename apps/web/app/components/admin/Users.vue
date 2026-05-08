@@ -234,10 +234,22 @@
             </td>
 
             <td class="cell cell--mono">
-              <span class="last-seen" :class="lastSeenTone(u)">
-                <span v-if="lastSeenTone(u) === 'online'" class="online-dot" />
-                {{ formatLastSeen(u) }}
-              </span>
+              <!-- ClientOnly: lastSeenTone() and formatLastSeen() both call
+                   Date.now(), which diverges between SSR and hydration. The
+                   fallback shows the raw "Joined …" timestamp so the cell
+                   isn't blank during the first paint. -->
+              <ClientOnly>
+                <span class="last-seen" :class="lastSeenTone(u)">
+                  <span
+                    v-if="lastSeenTone(u) === 'online'"
+                    class="online-dot"
+                  />
+                  {{ formatLastSeen(u) }}
+                </span>
+                <template #fallback>
+                  <span class="last-seen">…</span>
+                </template>
+              </ClientOnly>
             </td>
 
             <td class="cell cell--right cell--mono">
