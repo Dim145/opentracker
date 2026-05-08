@@ -94,8 +94,9 @@ services:
       NODE_ENV: production
       NITRO_PORT: 4000
       NITRO_HOST: 0.0.0.0
-      # Database (through PgBouncer)
+      # Database (through PgBouncer at runtime)
       DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable
+      MIGRATIONS_DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@postgres:5432/${DB_NAME:-trackarr}?sslmode=disable
       DB_SSL: "false"
       # Redis
       REDIS_URL: redis://redis:6379
