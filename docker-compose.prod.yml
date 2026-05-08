@@ -40,7 +40,7 @@ services:
   # WEB - Nuxt SSR frontend
   # =============================================================================
   web:
-    image: trackarr-web:latest
+    image: ghcr.io/dim145/opentracker/front-ssr:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -80,7 +80,7 @@ services:
   # API - Nitro standalone (all /api/* routes)
   # =============================================================================
   api:
-    image: trackarr-api:latest
+    image: ghcr.io/dim145/opentracker/api:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -147,7 +147,7 @@ services:
   # TRACKER - BitTorrent HTTP tracker (standalone)
   # =============================================================================
   tracker:
-    image: trackarr-tracker:latest
+    image: ghcr.io/dim145/opentracker/tracker:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/tracker/Dockerfile

@@ -32,7 +32,7 @@
 
 services:
   web:
-    image: trackarr-web-static:latest
+    image: ghcr.io/dim145/opentracker/front:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/web/Dockerfile.static

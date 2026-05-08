@@ -5,7 +5,7 @@
 
 services:
   web:
-    image: trackarr-web:latest
+    image: ghcr.io/dim145/opentracker/front-ssr:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -29,7 +29,7 @@ services:
       - api
 
   api:
-    image: trackarr-api:latest
+    image: ghcr.io/dim145/opentracker/api:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -81,7 +81,7 @@ services:
     # because the runtime image is distroless). Compose inherits it.
 
   tracker:
-    image: trackarr-tracker:latest
+    image: ghcr.io/dim145/opentracker/tracker:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/tracker/Dockerfile

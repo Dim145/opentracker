@@ -3,7 +3,7 @@
 
 services:
   tracker:
-    image: trackarr-tracker:latest
+    image: ghcr.io/dim145/opentracker/tracker:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: apps/tracker/Dockerfile
