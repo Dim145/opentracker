@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REGISTRY: ghcr.io/
+  REGISTRY: ghcr.io
   IMAGE_BASE: ${{ github.repository }}
 
 jobs:
