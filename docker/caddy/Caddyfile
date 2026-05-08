@@ -30,7 +30,11 @@
 		# app.vue (constant string, not user-controlled, so the XSS
 		# risk is nil); when that script moves to a nonce-scoped
 		# external file we can drop the keyword.
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		# fonts.googleapis.com (CSS) + fonts.gstatic.com (font binaries)
+		# are explicitly allow-listed because main.css imports the Inter
+		# and JetBrains Mono families from there. If you bundle fonts
+		# locally instead, the two extra hosts can be dropped.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https:; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
 		-Server
 	}
 
