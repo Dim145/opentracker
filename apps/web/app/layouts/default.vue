@@ -330,6 +330,12 @@
               )
             "
           ></span>
+          <span
+            v-if="appVersion"
+            class="text-text-muted/60"
+            :title="`Trackarr v${appVersion}`"
+            >v{{ appVersion }}</span
+          >
         </div>
         <div class="flex gap-6">
           <a
@@ -368,6 +374,13 @@ const router = useRouter();
 
 const showUserMenu = ref(false);
 const userMenuRef = ref<HTMLElement | null>(null);
+
+// App version comes from `pkg.version` via nuxt.config runtime config;
+// the static-build path also gets a runtime override from the API at
+// boot (apps/web/app/plugins/runtime-config.client.ts).
+const appVersion = computed(
+  () => useRuntimeConfig().public.appVersion as string | undefined
+);
 
 // Fetch site branding
 const { data: branding } = await useFetch<{
