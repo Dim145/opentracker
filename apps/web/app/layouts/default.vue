@@ -146,13 +146,30 @@
                 v-if="showUserMenu"
                 class="absolute right-0 top-full mt-1 w-64 bg-bg-secondary border border-border rounded-lg shadow-xl overflow-hidden z-40"
               >
-                <div class="px-4 py-3 border-b border-border">
-                  <p class="text-sm font-medium">
-                    {{ user?.username }}
-                  </p>
+                <NuxtLink
+                  to="/me"
+                  class="block px-4 py-3 border-b border-border hover:bg-fg-default/5 transition-colors group"
+                  @click="showUserMenu = false"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="text-sm font-medium truncate">
+                        {{ user?.username }}
+                      </p>
+                      <p
+                        class="text-[10px] uppercase tracking-wider text-text-muted mt-0.5"
+                      >
+                        View profile
+                      </p>
+                    </div>
+                    <Icon
+                      name="ph:arrow-right"
+                      class="text-text-muted group-hover:text-text-primary transition-colors flex-shrink-0"
+                    />
+                  </div>
                   <div
                     v-if="user?.isAdmin || user?.isModerator"
-                    class="mt-1 flex gap-1"
+                    class="mt-1.5 flex gap-1"
                   >
                     <span
                       v-if="user?.isAdmin"
@@ -167,61 +184,7 @@
                       Moderator
                     </span>
                   </div>
-                </div>
-                <div class="py-1">
-                  <div class="px-4 py-2">
-                    <div class="flex items-center justify-between mb-1">
-                      <p
-                        class="text-[10px] uppercase tracking-wider text-text-muted"
-                      >
-                        Passkey
-                      </p>
-                      <div class="flex items-center gap-1">
-                        <button
-                          v-if="!passkeyRevealed"
-                          @click="revealPasskey"
-                          :disabled="passkeyLoading"
-                          class="text-[10px] uppercase tracking-wider text-text-muted hover:text-text-strong transition-colors disabled:opacity-50"
-                        >
-                          <Icon
-                            v-if="passkeyLoading"
-                            name="ph:spinner"
-                            class="animate-spin inline"
-                          />
-                          <span v-else>Reveal</span>
-                        </button>
-                        <template v-else>
-                          <button
-                            @click="copyPasskey"
-                            class="text-[10px] uppercase tracking-wider text-text-muted hover:text-text-strong transition-colors"
-                          >
-                            {{ passkeyCopied ? 'Copied' : 'Copy' }}
-                          </button>
-                          <button
-                            @click="hidePasskey"
-                            class="text-[10px] uppercase tracking-wider text-text-muted hover:text-text-strong transition-colors ml-1"
-                          >
-                            Hide
-                          </button>
-                        </template>
-                      </div>
-                    </div>
-                    <code
-                      class="text-xs font-mono text-text-secondary break-all select-all"
-                      >{{
-                        passkeyRevealed
-                          ? passkey
-                          : '••••••••••••••••••••••••••••••••'
-                      }}</code
-                    >
-                    <p
-                      v-if="passkeyError"
-                      class="text-[10px] text-red-400 mt-1"
-                    >
-                      {{ passkeyError }}
-                    </p>
-                  </div>
-                </div>
+                </NuxtLink>
                 <!-- Stats grid: only shown on mobile (sm:hidden) — desktop has
                      the inline header bar and would otherwise show the same
                      numbers twice 200px apart. Downloaded uses text-secondary
@@ -260,7 +223,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="border-t border-border py-1">
+                <div class="py-1">
                   <button
                     @click="handleLogout"
                     class="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-fg-default/5 transition-colors flex items-center gap-2"
@@ -563,60 +526,6 @@ async function handleLogout() {
   await clear();
   router.push('/auth/login');
 }
-
-const passkey = ref('');
-const passkeyRevealed = ref(false);
-const passkeyLoading = ref(false);
-const passkeyError = ref('');
-const passkeyCopied = ref(false);
-let passkeyCopyTimeout: ReturnType<typeof setTimeout> | null = null;
-
-async function revealPasskey() {
-  passkeyError.value = '';
-  if (passkey.value) {
-    passkeyRevealed.value = true;
-    return;
-  }
-  passkeyLoading.value = true;
-  try {
-    const res = await $fetch<{ passkey: string }>('/api/auth/passkey');
-    passkey.value = res.passkey;
-    passkeyRevealed.value = true;
-  } catch (err: any) {
-    passkeyError.value = err?.data?.message || 'Failed to load passkey';
-  } finally {
-    passkeyLoading.value = false;
-  }
-}
-
-function hidePasskey() {
-  passkeyRevealed.value = false;
-}
-
-async function copyPasskey() {
-  if (!passkey.value) return;
-  try {
-    await navigator.clipboard.writeText(passkey.value);
-    passkeyCopied.value = true;
-    if (passkeyCopyTimeout) clearTimeout(passkeyCopyTimeout);
-    passkeyCopyTimeout = setTimeout(() => {
-      passkeyCopied.value = false;
-    }, 1500);
-  } catch {
-    passkeyError.value = 'Could not copy to clipboard';
-  }
-}
-
-// Reset passkey state on logout / user change
-watch(user, (u) => {
-  if (!u) {
-    passkey.value = '';
-    passkeyRevealed.value = false;
-    passkeyError.value = '';
-    passkeyCopied.value = false;
-  }
-});
-
 
 function calculateRatio(up = 0, down = 0) {
   if (down === 0) return up > 0 ? '∞' : '0.00';
