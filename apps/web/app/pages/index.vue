@@ -4,19 +4,29 @@
     <div class="text-center mb-16">
       <div
         class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-bg-secondary border border-border mb-6"
+        :title="
+          health
+            ? `Tracker checked ${Math.max(0, Math.round((Date.now() - health.checkedAt) / 1000))}s ago`
+            : 'Tracker status: probing…'
+        "
       >
         <span class="relative flex h-2 w-2">
           <span
+            v-if="trackerOnline"
             class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"
           ></span>
           <span
-            class="relative inline-flex rounded-full h-2 w-2 bg-success"
+            class="relative inline-flex rounded-full h-2 w-2"
+            :class="trackerOnline ? 'bg-success' : 'bg-danger'"
           ></span>
         </span>
         <span
-          class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
+          class="text-[10px] font-bold uppercase tracking-widest"
+          :class="trackerOnline ? 'text-text-muted' : 'text-danger'"
           >{{
-            content?.statusBadgeText ?? 'Tracker Online & Operational'
+            trackerOnline
+              ? content?.statusBadgeText ?? 'Tracker Online & Operational'
+              : 'Tracker Offline'
           }}</span
         >
       </div>
@@ -193,6 +203,34 @@ const features = computed(() => {
 // instead of /api/admin/stats which is admin-gated and would 401 for normal
 // visitors, leaving the hero stuck on "0 torrents · 0 peers".
 const { data: stats } = await useFetch<TrackerStats>('/api/stats/public');
+
+// Live tracker liveness for the badge. The API hits the tracker's /health
+// endpoint and caches for ~10s. We use `useLazyFetch` so the request
+// doesn't block SSR — the badge ships optimistic on first paint and
+// reconciles after hydration.
+interface TrackerHealthPayload {
+  online: boolean;
+  checkedAt: number;
+}
+const { data: health } = useLazyFetch<TrackerHealthPayload>(
+  '/api/tracker-health'
+);
+const trackerOnline = computed(() => health.value?.online !== false);
+
+if (import.meta.client) {
+  const tick = setInterval(() => {
+    $fetch<TrackerHealthPayload>('/api/tracker-health')
+      .then((r) => {
+        health.value = r;
+      })
+      .catch(() => {
+        // If even reaching the API fails, keep the previous value — we'd
+        // rather show a stale "online" than ping-pong to red on a flaky
+        // home Wi-Fi.
+      });
+  }, 30_000);
+  onBeforeUnmount(() => clearInterval(tick));
+}
 
 // Fetch recent torrents
 const { data: torrentsData } = await useFetch<{ data: TorrentWithStats[] }>(

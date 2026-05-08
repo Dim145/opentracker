@@ -54,6 +54,9 @@ services:
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-http://localhost:8080/announce}
       NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-}
       NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-}
+      # Reached over the internal compose network for /api/tracker-health
+      # probes. Override only if the tracker lives outside this stack.
+      TRACKER_INTERNAL_URL: ${TRACKER_INTERNAL_URL:-http://tracker:8080}
       METRICS_ENABLED: ${METRICS_ENABLED:-false}
       METRICS_PORT: ${METRICS_PORT:-9090}
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}

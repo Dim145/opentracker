@@ -114,6 +114,9 @@ services:
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-https://localhost/announce}
       NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost/announce}
       NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-ws://localhost:8082}
+      # Reached over the internal compose network for /api/tracker-health
+      # probes. Override only if the tracker lives outside this stack.
+      TRACKER_INTERNAL_URL: ${TRACKER_INTERNAL_URL:-http://tracker:8080}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
     expose:
       - "4000"
