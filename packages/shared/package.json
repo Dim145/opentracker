@@ -1,6 +1,6 @@
 {
   "name": "@trackarr/shared",
-  "version": "0.5.7",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
   "exports": {
