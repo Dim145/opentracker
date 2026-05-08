@@ -347,7 +347,7 @@ async function showUserLogs(user: TorznabUser) {
   loadingLogs.value = true;
   try {
     const response = await $fetch<{ logs: any[] }>('/api/admin/torznab/logs', {
-      query: { passkey: user.passkeyMasked.replace('...', '') },
+      query: { userId: user.id },
     });
     userLogs.value = response.logs;
   } catch (error) {

@@ -42,7 +42,9 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
-  await rateLimit(event, RATE_LIMITS.mutation);
+  // Password change is a credential operation — use the strict auth
+  // bucket (5/5min, progressive) instead of the looser mutation bucket.
+  await rateLimit(event, RATE_LIMITS.auth);
   const body = await readValidatedBody(event, bodySchema.parse);
 
   // Verify the challenge belongs to this user (prevents a hijacker who

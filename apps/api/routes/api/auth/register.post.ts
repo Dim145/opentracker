@@ -11,6 +11,7 @@ import {
 } from '~~/utils/server';
 import { validateBody, registerSchema } from '~~/utils/schemas';
 import { verifyPoWSolution } from '~~/utils/pow';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 /**
  * POST /api/auth/register
@@ -18,7 +19,9 @@ import { verifyPoWSolution } from '~~/utils/pow';
  * Server never receives password - only verifier and salt
  */
 export default defineEventHandler(async (event) => {
-  // Validate request body with Zod
+  // PoW solo isn't enough at low difficulty (~0.5–2s solve). Pair with
+  // the strict auth bucket: 5 tries / 5 min / IP, progressive lockout.
+  await rateLimit(event, RATE_LIMITS.auth);
   const body = await validateBody(event, registerSchema);
 
   // Verify Proof of Work first (anti-abuse)

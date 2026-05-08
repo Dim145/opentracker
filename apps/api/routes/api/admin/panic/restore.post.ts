@@ -8,6 +8,7 @@ import {
   torrentComments,
 } from '@trackarr/db/schema';
 import { deriveKey, decryptField, decrypt } from '~~/utils/panic';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 /**
  * POST /api/admin/panic/restore
@@ -16,6 +17,11 @@ import { deriveKey, decryptField, decrypt } from '~~/utils/panic';
  * user sessions may be invalid after encryption
  */
 export default defineEventHandler(async (event) => {
+  // No session is available post-panic, so the strict auth bucket is
+  // the only guard against an online brute-force of the panic password
+  // (scrypt is slow but still attackable with the endpoint open). 5
+  // tries per 5 min per IP, with progressive lockout.
+  await rateLimit(event, RATE_LIMITS.auth);
   const body = await readBody(event);
 
   if (!body.panicPassword) {
@@ -34,7 +40,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (!currentState.encryptionSalt || !currentState.encryptionIv) {
+  if (!currentState.encryptionSalt) {
     throw createError({
       statusCode: 500,
       message: 'Encryption metadata missing. Recovery impossible.',
@@ -63,26 +69,28 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Derive decryption key (same as encryption key)
+  // Derive decryption key. The IV is now embedded per-record (`iv:ct:tag`)
+  // — `legacyIv` is forwarded for databases encrypted before this fix
+  // (when a single global IV was reused).
   const key = await deriveKey(
     admin.panicPasswordHash,
     Buffer.from(currentState.encryptionSalt, 'base64')
   );
-  const ivBuffer = Buffer.from(currentState.encryptionIv, 'base64');
+  const legacyIv = currentState.encryptionIv
+    ? Buffer.from(currentState.encryptionIv, 'base64')
+    : undefined;
 
-  // =====================================================================
-  // Decrypt user data
-  // =====================================================================
+  // ── Decrypt user data ────────────────────────────────────────
   const allUsers = await db.select().from(users);
   for (const user of allUsers) {
     try {
       await db
         .update(users)
         .set({
-          authSalt: decryptField(user.authSalt, key, ivBuffer),
-          authVerifier: decryptField(user.authVerifier, key, ivBuffer),
-          passkey: decryptField(user.passkey, key, ivBuffer)!,
-          lastIp: decryptField(user.lastIp, key, ivBuffer) ?? undefined,
+          authSalt: decryptField(user.authSalt, key, legacyIv),
+          authVerifier: decryptField(user.authVerifier, key, legacyIv),
+          passkey: decryptField(user.passkey, key, legacyIv)!,
+          lastIp: decryptField(user.lastIp, key, legacyIv) ?? undefined,
         })
         .where(eq(users.id, user.id));
     } catch (err) {
@@ -90,13 +98,10 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // =====================================================================
-  // Decrypt torrent data (including .torrent file and metadata)
-  // =====================================================================
+  // ── Decrypt torrent data ─────────────────────────────────────
   const allTorrents = await db.select().from(torrents);
   for (const torrent of allTorrents) {
     try {
-      // Parse the description to extract encrypted metadata
       const panicMetaMatch = torrent.description?.match(
         /^\[PANIC_META:([^\]]+)\](.*)?$/s
       );
@@ -106,12 +111,11 @@ export default defineEventHandler(async (event) => {
       let originalCategoryId: string | null = torrent.categoryId;
 
       if (panicMetaMatch) {
-        // Extract and decrypt metadata
         const encryptedMeta = panicMetaMatch[1]!;
         const encryptedDescPart = panicMetaMatch[2] || null;
 
         try {
-          const metaJson = decrypt(encryptedMeta, key, ivBuffer);
+          const metaJson = decrypt(encryptedMeta, key, legacyIv);
           const meta = JSON.parse(metaJson);
           originalSize = meta.size ?? 0;
           originalCategoryId = meta.categoryId ?? null;
@@ -119,21 +123,20 @@ export default defineEventHandler(async (event) => {
           console.error(`Failed to decrypt metadata for torrent ${torrent.id}`);
         }
 
-        // Decrypt the description part (after the metadata prefix)
         decryptedDesc = encryptedDescPart
-          ? decryptField(encryptedDescPart, key, ivBuffer)
+          ? decryptField(encryptedDescPart, key, legacyIv)
           : null;
       } else {
-        // Fallback: try to decrypt the whole description
-        decryptedDesc = decryptField(torrent.description, key, ivBuffer);
+        decryptedDesc = decryptField(torrent.description, key, legacyIv);
       }
 
-      // Decrypt the .torrent file (Buffer -> utf8 string -> decrypt -> base64 -> Buffer)
+      // .torrent payload → ascii string (matches encrypt-side wrapping)
+      // → decrypt → base64 → Buffer.
       let decryptedTorrentData: Buffer | null = null;
       if (torrent.torrentData) {
         try {
-          const encryptedStr = torrent.torrentData.toString('utf8');
-          const decryptedBase64 = decrypt(encryptedStr, key, ivBuffer);
+          const encryptedStr = torrent.torrentData.toString('ascii');
+          const decryptedBase64 = decrypt(encryptedStr, key, legacyIv);
           decryptedTorrentData = Buffer.from(decryptedBase64, 'base64');
         } catch {
           console.error(`Failed to decrypt torrentData for torrent ${torrent.id}`);
@@ -143,7 +146,7 @@ export default defineEventHandler(async (event) => {
       await db
         .update(torrents)
         .set({
-          name: decryptField(torrent.name, key, ivBuffer) ?? torrent.name,
+          name: decryptField(torrent.name, key, legacyIv) ?? torrent.name,
           description: decryptedDesc,
           torrentData: decryptedTorrentData,
           size: originalSize,
@@ -155,16 +158,14 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // =====================================================================
-  // Decrypt forum posts
-  // =====================================================================
+  // ── Decrypt forum posts ──────────────────────────────────────
   const allPosts = await db.select().from(forumPosts);
   for (const post of allPosts) {
     try {
       await db
         .update(forumPosts)
         .set({
-          content: decryptField(post.content, key, ivBuffer) ?? post.content,
+          content: decryptField(post.content, key, legacyIv) ?? post.content,
         })
         .where(eq(forumPosts.id, post.id));
     } catch (err) {
@@ -172,16 +173,14 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // =====================================================================
-  // Decrypt torrent comments
-  // =====================================================================
+  // ── Decrypt torrent comments ─────────────────────────────────
   const allComments = await db.select().from(torrentComments);
   for (const comment of allComments) {
     try {
       await db
         .update(torrentComments)
         .set({
-          content: decryptField(comment.content, key, ivBuffer) ?? comment.content,
+          content: decryptField(comment.content, key, legacyIv) ?? comment.content,
         })
         .where(eq(torrentComments.id, comment.id));
     } catch (err) {

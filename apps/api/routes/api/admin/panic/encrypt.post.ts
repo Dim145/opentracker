@@ -11,7 +11,6 @@ import { requireAdminSession } from '~~/utils/adminAuth';
 import {
   deriveKey,
   generateSalt,
-  generateIv,
   encryptField,
   encrypt,
 } from '~~/utils/panic';
@@ -55,96 +54,87 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Generate encryption parameters
+  // We only need a salt now — IVs are generated per-record inside
+  // `encrypt()` and prefixed into each ciphertext. The legacy IV
+  // column on `panic_state` is left null on fresh panics; restore
+  // still reads it as a fallback when decrypting old data.
   const salt = generateSalt();
-  const iv = generateIv();
 
-  // Derive key from the original panic password (stored hash)
-  // We use the hash as a "key" since we can't recover the original password
+  // Derive key from the original panic password (stored hash). We use
+  // the hash as a key since we can't recover the original password.
   const key = await deriveKey(admin.panicPasswordHash, Buffer.from(salt, 'base64'));
-  const ivBuffer = Buffer.from(iv, 'base64');
 
-  // =====================================================================
-  // Encrypt sensitive user data
-  // =====================================================================
+  // ── Encrypt sensitive user data ──────────────────────────────
   const allUsers = await db.select().from(users);
   for (const user of allUsers) {
     await db
       .update(users)
       .set({
-        authSalt: encryptField(user.authSalt, key, ivBuffer),
-        authVerifier: encryptField(user.authVerifier, key, ivBuffer),
-        passkey: encryptField(user.passkey, key, ivBuffer)!,
-        lastIp: encryptField(user.lastIp, key, ivBuffer) ?? undefined,
+        authSalt: encryptField(user.authSalt, key),
+        authVerifier: encryptField(user.authVerifier, key),
+        passkey: encryptField(user.passkey, key)!,
+        lastIp: encryptField(user.lastIp, key) ?? undefined,
       })
       .where(eq(users.id, user.id));
   }
 
-  // =====================================================================
-  // Encrypt torrent data (including .torrent file and metadata)
-  // =====================================================================
+  // ── Encrypt torrent data ─────────────────────────────────────
   const allTorrents = await db.select().from(torrents);
   for (const torrent of allTorrents) {
-    // Store original metadata for restoration (size, categoryId)
     const originalMeta = JSON.stringify({
       size: torrent.size,
       categoryId: torrent.categoryId,
     });
-    const encryptedMeta = encrypt(originalMeta, key, ivBuffer);
+    const encryptedMeta = encrypt(originalMeta, key);
 
-    // Encrypt the .torrent file (Buffer -> base64 -> encrypt -> Buffer)
     let encryptedTorrentData: Buffer | null = null;
     if (torrent.torrentData) {
       const base64Data = torrent.torrentData.toString('base64');
-      const encryptedBase64 = encrypt(base64Data, key, ivBuffer);
-      encryptedTorrentData = Buffer.from(encryptedBase64, 'utf8');
+      const encryptedBase64 = encrypt(base64Data, key);
+      // Each ciphertext is ASCII (`iv:ct:tag` base64), but bytea is
+      // tagged binary — wrap as ascii so the bytes round-trip cleanly
+      // through Postgres without utf8 normalisation surprises on
+      // restore.
+      encryptedTorrentData = Buffer.from(encryptedBase64, 'ascii');
     }
 
-    // Build encrypted description with metadata prefix
-    const encryptedDesc = encryptField(torrent.description, key, ivBuffer);
+    const encryptedDesc = encryptField(torrent.description, key);
     const descWithMeta = `[PANIC_META:${encryptedMeta}]${encryptedDesc ?? ''}`;
 
     await db
       .update(torrents)
       .set({
-        name: encryptField(torrent.name, key, ivBuffer) ?? '[ENCRYPTED]',
+        name: encryptField(torrent.name, key) ?? '[ENCRYPTED]',
         description: descWithMeta,
         torrentData: encryptedTorrentData,
-        size: 0, // Hide real size
-        categoryId: null, // Clear category reference
+        size: 0,
+        categoryId: null,
       })
       .where(eq(torrents.id, torrent.id));
   }
 
-  // =====================================================================
-  // Encrypt forum posts
-  // =====================================================================
+  // ── Encrypt forum posts ──────────────────────────────────────
   const allPosts = await db.select().from(forumPosts);
   for (const post of allPosts) {
     await db
       .update(forumPosts)
-      .set({
-        content: encryptField(post.content, key, ivBuffer) ?? '[ENCRYPTED]',
-      })
+      .set({ content: encryptField(post.content, key) ?? '[ENCRYPTED]' })
       .where(eq(forumPosts.id, post.id));
   }
 
-  // =====================================================================
-  // Encrypt torrent comments
-  // =====================================================================
+  // ── Encrypt torrent comments ─────────────────────────────────
   const allComments = await db.select().from(torrentComments);
   for (const comment of allComments) {
     await db
       .update(torrentComments)
-      .set({
-        content: encryptField(comment.content, key, ivBuffer) ?? '[ENCRYPTED]',
-      })
+      .set({ content: encryptField(comment.content, key) ?? '[ENCRYPTED]' })
       .where(eq(torrentComments.id, comment.id));
   }
 
-  // =====================================================================
-  // Save panic state
-  // =====================================================================
+  // ── Save panic state ─────────────────────────────────────────
+  // encryptionIv is left null — IVs are now embedded per-record.
+  // The column stays in the schema for backward-compatible restore
+  // of databases encrypted before this fix.
   await db
     .insert(panicState)
     .values({
@@ -152,7 +142,7 @@ export default defineEventHandler(async (event) => {
       isEncrypted: true,
       encryptedAt: new Date(),
       encryptionSalt: salt,
-      encryptionIv: iv,
+      encryptionIv: null,
     })
     .onConflictDoUpdate({
       target: panicState.id,
@@ -160,7 +150,7 @@ export default defineEventHandler(async (event) => {
         isEncrypted: true,
         encryptedAt: new Date(),
         encryptionSalt: salt,
-        encryptionIv: iv,
+        encryptionIv: null,
       },
     });
 

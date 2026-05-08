@@ -68,7 +68,23 @@ func (s *Server) Stop() { s.dedup.Stop() }
 // /announce
 // ----------------------------------------------------------------------------
 
+// minAnnounceLatency floors every announce response to this duration.
+// A valid passkey hits Postgres + Redis (a few ms each) and finishes
+// in tens of ms; an invalid passkey returns immediately on
+// `pgx.ErrNoRows`. The unfiltered gap (sub-ms vs ~10–30 ms) is a
+// trivially observable side channel for passkey enumeration. Sleeping
+// the response up to this threshold collapses that signal without
+// adding meaningful latency for legitimate traffic.
+const minAnnounceLatency = 30 * time.Millisecond
+
 func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	defer func() {
+		if elapsed := time.Since(start); elapsed < minAnnounceLatency {
+			time.Sleep(minAnnounceLatency - elapsed)
+		}
+	}()
+
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
 	req, err := announce.Parse(r.URL.Query())

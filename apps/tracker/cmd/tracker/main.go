@@ -21,7 +21,13 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	// Wrap the text handler with our passkey-masking middleware so
+	// any 32+-char hex run in messages or attribute values is
+	// redacted before reaching stdout — defense-in-depth against pgx
+	// errors stringifying their parameters and against future code
+	// accidentally logging req.Passkey.
+	base := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
+	logger := slog.New(server.NewPasskeyMaskingHandler(base))
 	slog.SetDefault(logger)
 
 	cfg, err := config.Load()
@@ -30,7 +36,8 @@ func main() {
 		os.Exit(1)
 	}
 	if cfg.Debug {
-		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
+		debugBase := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
+		slog.SetDefault(slog.New(server.NewPasskeyMaskingHandler(debugBase)))
 	}
 
 	server.SetTrustProxy(os.Getenv("TRUST_PROXY") == "true")

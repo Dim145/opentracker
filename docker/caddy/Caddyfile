@@ -59,13 +59,25 @@
 		}
 	}
 
+	# Drop the `passkey` query param from access logs before they hit
+	# disk. The tracker requires it in the URL by BitTorrent protocol,
+	# so we can't strip it from the request itself, but we can prevent
+	# it from being persisted in the log file (which is otherwise a
+	# textbook log-leak vector for credential exfiltration).
 	log {
 		output file /var/log/caddy/access.log {
 			roll_size 100mb
 			roll_keep 10
 			roll_keep_for 720h
 		}
-		format json
+		format filter {
+			wrap json
+			fields {
+				uri query {
+					delete passkey
+				}
+			}
+		}
 	}
 }
 
@@ -84,11 +96,21 @@
 		header_up X-Forwarded-For {remote_host}
 	}
 
+	# Same passkey scrub as on the main domain — every request to this
+	# subdomain is an announce, so every line otherwise carries a
+	# passkey in the URL.
 	log {
 		output file /var/log/caddy/tracker.log {
 			roll_size 100mb
 			roll_keep 5
 		}
-		format json
+		format filter {
+			wrap json
+			fields {
+				uri query {
+					delete passkey
+				}
+			}
+		}
 	}
 }

@@ -4,6 +4,7 @@ import { db } from '@trackarr/db';
 import { users, bannedIps } from '@trackarr/db/schema';
 import { validateBody, loginSchema } from '~~/utils/schemas';
 import { redis } from '~~/utils/server';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 /**
  * POST /api/auth/login
@@ -11,7 +12,9 @@ import { redis } from '~~/utils/server';
  * User proves knowledge of password without sending it
  */
 export default defineEventHandler(async (event) => {
-  // Validate request body with Zod (now expects username, challenge, proof)
+  // 5 tries per 5 minutes per IP, with progressive penalties — keeps
+  // online brute-force of ZK proofs out of reach.
+  await rateLimit(event, RATE_LIMITS.auth);
   const body = await validateBody(event, loginSchema);
 
   // Verify challenge is valid and get associated user ID
