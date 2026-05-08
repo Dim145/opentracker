@@ -130,6 +130,12 @@ const menuItems = [
     description: 'Monitor and manage H&R violations',
   },
   {
+    label: 'Banned IPs',
+    path: '/admin/banned-ips',
+    icon: 'ph:prohibit',
+    description: 'View, add and remove IPs from the auth blocklist',
+  },
+  {
     label: 'Invitations',
     path: '/admin/invites',
     icon: 'ph:envelope-simple',
