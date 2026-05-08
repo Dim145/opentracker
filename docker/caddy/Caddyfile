@@ -14,11 +14,23 @@
 # -----------------------------------------------------------------------------
 {$DOMAIN:localhost} {
 	header {
+		# Clickjacking: SAMEORIGIN keeps the auth/upload flows
+		# embeddable from the same domain (useful for OAuth-style
+		# popups in future) but blocks any external iframe wrapping
+		# admin pages.
 		X-Frame-Options "SAMEORIGIN"
 		X-Content-Type-Options "nosniff"
-		X-XSS-Protection "1; mode=block"
+		# X-XSS-Protection is removed: deprecated by browsers and
+		# can introduce its own bugs. CSP below replaces it.
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+		# CSP — locks scripts/frames to first-party. `unsafe-inline`
+		# is currently required by the Nuxt FOUC theme script in
+		# app.vue (constant string, not user-controlled, so the XSS
+		# risk is nil); when that script moves to a nonce-scoped
+		# external file we can drop the keyword.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
 		-Server
 	}
 

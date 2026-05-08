@@ -1,3 +1,16 @@
+/**
+ * POST /api/admin/users/:id/ban
+ *
+ * Hierarchy:
+ *   - Admins can ban any non-admin (including moderators).
+ *   - Moderators can only ban regular users — not admins, not other
+ *     moderators, not themselves. The previous version let any mod
+ *     ban any non-admin, including peer moderators.
+ *
+ * Tracking: we record `bannedById` and `bannedByRole` so the
+ * sibling unban route can refuse a moderator trying to lift an
+ * admin-issued ban.
+ */
 import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users, bannedIps } from '@trackarr/db/schema';
@@ -10,48 +23,46 @@ import {
 } from '~~/utils/schemas';
 
 export default defineEventHandler(async (event) => {
-  await requireModeratorSession(event);
-
-  // Validate user ID parameter
+  const { user: actor } = await requireModeratorSession(event);
   const userId = validateParam(event, 'id', uuidSchema);
-
-  // Validate request body
   const body = await validateBody(event, adminBanSchema);
   const reason = body.reason || 'Banned by admin';
 
-  // Get user to find their IP
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
-
-  if (!user) {
-    throw createError({
-      statusCode: 404,
-      message: 'User not found',
-    });
+  const target = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  if (!target) {
+    throw createError({ statusCode: 404, message: 'User not found' });
   }
 
-  if (user.isAdmin) {
+  if (actor.id === target.id) {
+    throw createError({ statusCode: 400, message: 'You cannot ban yourself' });
+  }
+  if (target.isAdmin) {
+    throw createError({ statusCode: 403, message: 'Cannot ban an admin' });
+  }
+  if (target.isModerator && !actor.isAdmin) {
     throw createError({
       statusCode: 403,
-      message: 'Cannot ban an admin',
+      message: 'Only admins can ban a moderator',
     });
   }
 
-  // Update user status
-  await db.update(users).set({ isBanned: true }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({
+      isBanned: true,
+      bannedById: actor.id,
+      bannedByRole: actor.isAdmin ? 'admin' : 'moderator',
+    })
+    .where(eq(users.id, userId));
 
-  // Ban their IP if available
-  if (user.lastIp) {
+  if (target.lastIp) {
+    const banReason = `Banned user: ${target.username}. Reason: ${reason}`;
     await db
       .insert(bannedIps)
-      .values({
-        ip: user.lastIp,
-        reason: `Banned user: ${user.username}. Reason: ${reason}`,
-      })
+      .values({ ip: target.lastIp, reason: banReason })
       .onConflictDoUpdate({
         target: bannedIps.ip,
-        set: { reason: `Banned user: ${user.username}. Reason: ${reason}` },
+        set: { reason: banReason },
       });
   }
 

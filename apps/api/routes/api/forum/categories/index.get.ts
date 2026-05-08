@@ -3,6 +3,9 @@ import { forumCategories } from '@trackarr/db/schema';
 import { asc } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
+  // Private tracker — forum is members-only.
+  await requireUserSession(event);
+
   const categories = await db.query.forumCategories.findMany({
     orderBy: [asc(forumCategories.order)],
     with: {

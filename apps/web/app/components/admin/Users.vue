@@ -201,9 +201,21 @@
                   </NuxtLink>
                   <p class="user-cell-meta">
                     <span class="user-uid">#{{ u.id.slice(0, 8) }}</span>
-                    <span v-if="u.lastIp" class="user-ip" :title="u.lastIp">
+                    <span
+                      v-if="u.lastIp"
+                      class="user-ip"
+                      :title="u.lastIp"
+                    >
                       <Icon name="ph:globe-bold" />
                       {{ u.lastIp }}
+                    </span>
+                    <span
+                      v-else-if="u.lastIpHash"
+                      class="user-ip user-ip--hashed"
+                      title="Stable hash of the user's last IP. Equal hashes mean equal IPs — useful for spotting multi-account abuse without seeing the raw address."
+                    >
+                      <Icon name="ph:fingerprint-bold" />
+                      {{ u.lastIpHash }}
                     </span>
                   </p>
                 </div>
@@ -426,7 +438,10 @@ interface RegistryUser {
   isModerator: boolean;
   isBanned: boolean;
   roleId: string | null;
+  // Raw IP — only sent to admin viewers. Moderators see `lastIpHash`
+  // instead (a stable fingerprint, see `fingerprintIP` API-side).
   lastIp: string | null;
+  lastIpHash: string | null;
   uploaded: number;
   downloaded: number;
   invitesRemaining: number;
@@ -1416,6 +1431,14 @@ async function onAssignRole(u: RegistryUser, roleId: string) {
   align-items: center;
   gap: 0.25rem;
   opacity: 0.85;
+}
+.user-ip--hashed {
+  /* Stable IP fingerprint shown to moderators — different visual
+   * affordance from a raw IP so the moderator knows it's a hash
+   * (cursor:help to surface the tooltip). */
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  letter-spacing: 0.06em;
+  cursor: help;
 }
 
 /* Role chip */

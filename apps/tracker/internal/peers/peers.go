@@ -52,6 +52,10 @@ func New(client *redis.Client, keyPrefix string) *Store {
 }
 
 // Set inserts or updates a peer in the swarm and refreshes the TTL.
+// HSet+Expire run in a TxPipeline so they're applied atomically on
+// the Redis side: a server crash between the two commands can't
+// leave the hash without a TTL (which previously caused slow memory
+// leaks on swarms that went idle right after their first peer).
 func (s *Store) Set(ctx context.Context, infoHashHex string, p *PeerData) error {
 	p.UpdatedAt = time.Now().UnixMilli()
 	data, err := json.Marshal(p)
@@ -59,7 +63,7 @@ func (s *Store) Set(ctx context.Context, infoHashHex string, p *PeerData) error 
 		return err
 	}
 	key := s.peerKey(infoHashHex)
-	pipe := s.client.Pipeline()
+	pipe := s.client.TxPipeline()
 	pipe.HSet(ctx, key, p.PeerID, data)
 	pipe.Expire(ctx, key, peerTTL)
 	_, err = pipe.Exec(ctx)
@@ -137,9 +141,22 @@ func (s *Store) Counts(ctx context.Context, infoHashHex string) (seeders, leeche
 	return seeders, leechers, nil
 }
 
+// statsTTL keeps stats:* hashes alive long enough for live charts to
+// render after a swarm goes idle, without leaking memory forever
+// when a torrent is removed from the index. 7 days matches the
+// admin charts horizon.
+const statsTTL = 7 * 24 * time.Hour
+
 // IncrementCompleted bumps the completed counter for a torrent.
+// Atomic with Expire — if the hash didn't exist, the same TxPipeline
+// stamps it with a TTL so we don't leak forever.
 func (s *Store) IncrementCompleted(ctx context.Context, infoHashHex string) error {
-	return s.client.HIncrBy(ctx, s.statsKey(infoHashHex), "completed", 1).Err()
+	key := s.statsKey(infoHashHex)
+	pipe := s.client.TxPipeline()
+	pipe.HIncrBy(ctx, key, "completed", 1)
+	pipe.Expire(ctx, key, statsTTL)
+	_, err := pipe.Exec(ctx)
+	return err
 }
 
 // CompletedCount returns the number of completed downloads for a torrent.

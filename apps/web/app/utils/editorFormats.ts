@@ -20,7 +20,7 @@
  */
 import { marked } from 'marked';
 import TurndownService from 'turndown';
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeHtml } from '~/utils/markdown';
 
 // Turndown is configured to mirror common Markdown writing conventions
 // (fenced code blocks, ATX headings) so a save → reload round-trip
@@ -62,7 +62,7 @@ export function htmlToMarkdown(html: string): string {
 export function markdownToHtml(md: string): string {
   if (!md) return '';
   const out = marked.parse(md, { async: false }) as string;
-  return DOMPurify.sanitize(out);
+  return sanitizeHtml(out);
 }
 
 // ─── BBCode → HTML ──────────────────────────────────────────────────────────
@@ -247,7 +247,7 @@ export function toEditorHtml(input: string | null | undefined): string {
       return bbcodeToHtml(input);
     case 'html':
       // Sanitise just in case it came from clipboard.
-      return DOMPurify.sanitize(input);
+      return sanitizeHtml(input);
     case 'markdown':
     default:
       return markdownToHtml(input);

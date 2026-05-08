@@ -1,7 +1,12 @@
 export function formatSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  // Guards: negative or sub-byte values render as "0 B"; values past
+  // PB clamp to the largest unit instead of indexing past the array
+  // (the previous version returned "0.5 undefined" for bytes < 1 and
+  // would crash on > PB).
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  const raw = Math.floor(Math.log(bytes) / Math.log(1024));
+  const i = Math.min(units.length - 1, Math.max(0, raw));
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 

@@ -2,6 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
 import { desc, eq, and } from 'drizzle-orm';
 import { z } from 'zod';
+import { requireSessionOrApikey } from '~~/utils/adminAuth';
 
 const paramsSchema = z.object({
   slug: z.string().min(1),
@@ -13,13 +14,14 @@ const querySchema = z.object({
 
 /**
  * GET /api/rss/category/[slug]
- * RSS feed for a specific category
+ * Per-category RSS. Same auth model as /api/rss/latest — private
+ * tracker, members-only, pending uploads filtered out.
  */
 export default defineEventHandler(async (event) => {
+  await requireSessionOrApikey(event);
   const params = paramsSchema.parse(getRouterParams(event));
   const query = querySchema.parse(getQuery(event));
 
-  // Find category
   const category = await db.query.categories.findFirst({
     where: eq(schema.categories.slug, params.slug),
   });
@@ -34,6 +36,7 @@ export default defineEventHandler(async (event) => {
   const torrents = await db.query.torrents.findMany({
     where: and(
       eq(schema.torrents.isActive, true),
+      eq(schema.torrents.isApproved, true),
       eq(schema.torrents.categoryId, category.id)
     ),
     with: {

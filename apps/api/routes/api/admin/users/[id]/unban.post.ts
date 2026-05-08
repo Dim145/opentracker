@@ -1,37 +1,49 @@
+/**
+ * POST /api/admin/users/:id/unban
+ *
+ * Hierarchy:
+ *   - Admins can lift any ban.
+ *   - Moderators can only lift bans they (or another moderator)
+ *     issued — never an admin-issued ban. Without this guard, a
+ *     compromised mod account could undo every admin moderation
+ *     decision.
+ *
+ * The check reads the `bannedByRole` field set on `users` at ban
+ * time, so subsequent role changes on the issuer don't loosen the
+ * gate.
+ */
 import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users, bannedIps } from '@trackarr/db/schema';
 import { requireModeratorSession } from '~~/utils/adminAuth';
+import { validateParam, uuidSchema } from '~~/utils/schemas';
 
 export default defineEventHandler(async (event) => {
-  await requireModeratorSession(event);
-  const userId = getRouterParam(event, 'id');
+  const { user: actor } = await requireModeratorSession(event);
+  const userId = validateParam(event, 'id', uuidSchema);
 
-  if (!userId) {
+  const target = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  if (!target) {
+    throw createError({ statusCode: 404, message: 'User not found' });
+  }
+
+  if (
+    target.bannedByRole === 'admin' &&
+    !actor.isAdmin
+  ) {
     throw createError({
-      statusCode: 400,
-      message: 'User ID is required',
+      statusCode: 403,
+      message: 'This ban was issued by an admin and can only be lifted by an admin',
     });
   }
 
-  // Get user to find their IP
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
+  await db
+    .update(users)
+    .set({ isBanned: false, bannedById: null, bannedByRole: null })
+    .where(eq(users.id, userId));
 
-  if (!user) {
-    throw createError({
-      statusCode: 404,
-      message: 'User not found',
-    });
-  }
-
-  // Update user status
-  await db.update(users).set({ isBanned: false }).where(eq(users.id, userId));
-
-  // Unban their IP if available
-  if (user.lastIp) {
-    await db.delete(bannedIps).where(eq(bannedIps.ip, user.lastIp));
+  if (target.lastIp) {
+    await db.delete(bannedIps).where(eq(bannedIps.ip, target.lastIp));
   }
 
   return { success: true };

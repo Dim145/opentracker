@@ -122,8 +122,12 @@ export default defineEventHandler(async (event) => {
   }
 
   let result: string;
-  let resultCount = 0;
   let errorMsg: string | undefined;
+  // performSearch stores the row count it built into the response on
+  // `event.context.torznabResultCount` so the request log records
+  // how many items the user actually got — the previous code
+  // initialised `resultCount = 0` and never incremented it.
+  event.context.torznabResultCount = 0;
 
   try {
     switch (func) {
@@ -159,7 +163,7 @@ export default defineEventHandler(async (event) => {
         ip: getClientIP(event),
         userAgent: getHeader(event, 'user-agent'),
         responseTime,
-        resultCount,
+        resultCount: (event.context.torznabResultCount as number) ?? 0,
         error: errorMsg,
       });
     }
@@ -389,6 +393,10 @@ async function performSearch(
     selfUrl: `${baseUrl}/api/torznab`,
     items,
   });
+
+  // Stash the row count for the request logger in the parent handler
+  // (read in `finally`). Avoids changing the function's return type.
+  event.context.torznabResultCount = items.length;
 
   setHeader(event, 'Content-Type', 'application/xml; charset=utf-8');
   return xml;

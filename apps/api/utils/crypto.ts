@@ -44,6 +44,27 @@ export function hashPeerId(peerId: string): string {
 }
 
 /**
+ * Stable IP fingerprint for moderator views.
+ *
+ * Unlike `hashIP()` which uses a daily-rotating salt (good for swarm
+ * privacy, bad for moderation correlation), this uses a fixed salt
+ * derived only from `IP_HASH_SECRET`. Two uploads from the same IP
+ * always produce the same hash — letting a moderator spot
+ * multi-account abuse without ever seeing the raw IP. Admins still
+ * get the raw value via the unhashed admin views.
+ *
+ * 12 hex chars = 48 bits. Plenty to discriminate between IPs in a
+ * private-tracker user base while keeping the chip compact in the UI.
+ */
+export function fingerprintIP(ip: string): string {
+  const secret = readSecret('IP_HASH_SECRET');
+  return createHash('sha256')
+    .update(`${secret}:fp:${ip}`)
+    .digest('hex')
+    .slice(0, 12);
+}
+
+/**
  * Generate a secure random token
  */
 export function generateToken(length: number = 32): string {

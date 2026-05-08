@@ -3,6 +3,7 @@ import { forumCategories, forumTopics, forumPosts } from '@trackarr/db/schema';
 import { eq, desc, sql, count } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
+  await requireUserSession(event);
   const id = getRouterParam(event, 'id');
 
   if (!id) {

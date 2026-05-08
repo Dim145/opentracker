@@ -27,6 +27,7 @@
 import { db } from '@trackarr/db';
 import { users } from '@trackarr/db/schema';
 import { requireModeratorSession } from '~~/utils/adminAuth';
+import { fingerprintIP } from '~~/utils/crypto';
 import {
   and,
   asc,
@@ -66,7 +67,7 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  await requireModeratorSession(event);
+  const { user: viewer } = await requireModeratorSession(event);
   const params = querySchema.parse(getQuery(event));
 
   // ── WHERE clause ─────────────────────────────────────────────
@@ -182,8 +183,28 @@ export default defineEventHandler(async (event) => {
       .where(gte(users.lastSeen, sql`now() - interval '5 minutes'`)),
   ]);
 
+  // ── lastIp visibility per role ───────────────────────────────
+  // Admins see the raw IP for ban/forensics. Moderators see a stable
+  // hash so they can spot multi-account abuse from a single IP
+  // without ever holding the IP itself. Plain users would never reach
+  // this route — the requireModeratorSession check above already
+  // gated it.
+  const projected = items.map((u) => {
+    if (viewer.isAdmin) {
+      return { ...u, lastIpHash: null };
+    }
+    // Moderator path: replace `lastIp` with the fingerprint and drop
+    // the raw value entirely.
+    const { lastIp, ...rest } = u;
+    return {
+      ...rest,
+      lastIp: null,
+      lastIpHash: lastIp ? fingerprintIP(lastIp) : null,
+    };
+  });
+
   return {
-    items,
+    items: projected,
     total,
     page: params.page,
     pageSize: params.pageSize,

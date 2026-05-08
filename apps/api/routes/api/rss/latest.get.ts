@@ -1,7 +1,8 @@
 import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, and } from 'drizzle-orm';
 import { z } from 'zod';
+import { requireSessionOrApikey } from '~~/utils/adminAuth';
 
 const querySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(50),
@@ -9,13 +10,20 @@ const querySchema = z.object({
 
 /**
  * GET /api/rss/latest
- * RSS feed for latest torrents
+ * RSS feed for latest torrents. Private tracker — requires either a
+ * browser session or `?apikey=<passkey>` for *Arr-style readers.
+ * Pending uploads (`isApproved=false`) are excluded so the feed never
+ * exposes content awaiting moderation.
  */
 export default defineEventHandler(async (event) => {
+  await requireSessionOrApikey(event);
   const query = querySchema.parse(getQuery(event));
 
   const torrents = await db.query.torrents.findMany({
-    where: eq(schema.torrents.isActive, true),
+    where: and(
+      eq(schema.torrents.isActive, true),
+      eq(schema.torrents.isApproved, true)
+    ),
     with: {
       category: true,
       uploader: {

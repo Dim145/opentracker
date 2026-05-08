@@ -34,6 +34,13 @@ export const users = pgTable(
     isAdmin: boolean('is_admin').default(false).notNull(),
     isModerator: boolean('is_moderator').default(false).notNull(),
     isBanned: boolean('is_banned').default(false).notNull(),
+    // userId of the staffer who issued the most recent ban. Null when
+    // the user has never been banned, or after an unban.
+    bannedById: text('banned_by_id'),
+    // Admin/moderator level of the staffer at ban time. Frozen at ban
+    // time so a later promotion/demotion of the issuer doesn't mess
+    // with the unban hierarchy check.
+    bannedByRole: text('banned_by_role'), // 'admin' | 'moderator'
     roleId: text('role_id'),
     lastIp: text('last_ip'),
     uploaded: bigint('uploaded', { mode: 'number' }).default(0).notNull(),

@@ -1,5 +1,5 @@
 <template>
-  <div class="picker">
+  <div ref="root" class="picker">
     <!-- Search input + results -->
     <div class="picker-search">
       <div class="picker-search-input-wrap">

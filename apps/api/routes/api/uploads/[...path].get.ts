@@ -1,69 +1,80 @@
-import { createReadStream, existsSync, statSync } from 'fs';
-import { join } from 'path';
-import { sendStream, setHeader, createError } from 'h3';
-
 /**
  * GET /api/uploads/[...path]
- * Serve uploaded files from /app/data/uploads in production
- * In development, files are served directly from public/uploads
+ *
+ * Serve uploaded files from `/app/data/uploads` in prod, or
+ * `public/uploads` in dev. Path-traversal mitigation uses
+ * `path.resolve` + a relative-prefix check + `realpathSync` so:
+ *   - URL-decoded `..` segments collapse correctly
+ *   - Absolute paths in the URL ("/etc/passwd") get rebased
+ *   - Symlinks pointing outside the uploads dir are caught after
+ *     resolving the link
+ *
+ * The earlier substring check (`path.includes('..')`) was incomplete
+ * — `path.join('/app/data/uploads', '/etc/passwd')` collapses the
+ * left side and returns `/etc/passwd`, which would have been served.
  */
+import { createReadStream, existsSync, realpathSync, statSync } from 'fs';
+import { resolve, sep } from 'path';
+
 export default defineEventHandler(async (event) => {
-  const path = getRouterParam(event, 'path');
-  
-  if (!path) {
-    throw createError({
-      statusCode: 400,
-      message: 'File path required',
-    });
+  const requested = getRouterParam(event, 'path');
+  if (!requested) {
+    throw createError({ statusCode: 400, message: 'File path required' });
   }
 
-  // Prevent directory traversal attacks
-  if (path.includes('..') || path.includes('~')) {
-    throw createError({
-      statusCode: 400,
-      message: 'Invalid file path',
-    });
-  }
-
-  // Determine base directory
   const isProduction = process.env.NODE_ENV === 'production';
-  const baseDir = isProduction 
+  const baseDir = isProduction
     ? '/app/data/uploads'
-    : join(process.cwd(), 'public', 'uploads');
-  
-  const filePath = join(baseDir, path);
+    : resolve(process.cwd(), 'public', 'uploads');
+  const baseReal = realpathSync.native(baseDir);
 
-  // Check file exists and is within the uploads directory
-  if (!existsSync(filePath)) {
-    throw createError({
-      statusCode: 404,
-      message: 'File not found',
-    });
+  // Strip a leading separator so `resolve(baseReal, requested)`
+  // doesn't switch to the absolute-path semantics of the second arg.
+  const safeRequested = requested.replace(/^[\\/]+/, '');
+  const candidate = resolve(baseReal, safeRequested);
+
+  // First containment check before touching the filesystem — a
+  // requested path that resolves outside `baseReal` already screams
+  // traversal.
+  if (
+    candidate !== baseReal &&
+    !candidate.startsWith(baseReal + sep)
+  ) {
+    throw createError({ statusCode: 400, message: 'Invalid file path' });
   }
 
-  // Ensure we're not serving a directory
-  const stats = statSync(filePath);
+  if (!existsSync(candidate)) {
+    throw createError({ statusCode: 404, message: 'File not found' });
+  }
+
+  // Second containment check after resolving symlinks — an upload
+  // dir might contain a `latest -> ../secret` style trap. realpath
+  // dereferences it and we re-assert the prefix.
+  const finalPath = realpathSync.native(candidate);
+  if (
+    finalPath !== baseReal &&
+    !finalPath.startsWith(baseReal + sep)
+  ) {
+    throw createError({ statusCode: 400, message: 'Invalid file path' });
+  }
+
+  const stats = statSync(finalPath);
   if (stats.isDirectory()) {
-    throw createError({
-      statusCode: 400,
-      message: 'Cannot serve directory',
-    });
+    throw createError({ statusCode: 400, message: 'Cannot serve directory' });
   }
 
-  // Set content type based on extension
-  const ext = path.split('.').pop()?.toLowerCase();
+  const ext = requested.split('.').pop()?.toLowerCase();
   const mimeTypes: Record<string, string> = {
-    'png': 'image/png',
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'svg': 'image/svg+xml',
-    'webp': 'image/webp',
-    'gif': 'image/gif',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    svg: 'image/svg+xml',
+    webp: 'image/webp',
+    gif: 'image/gif',
   };
-  
   const contentType = mimeTypes[ext || ''] || 'application/octet-stream';
   setHeader(event, 'Content-Type', contentType);
   setHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable');
-  
-  return sendStream(event, createReadStream(filePath));
+
+  return sendStream(event, createReadStream(finalPath));
 });

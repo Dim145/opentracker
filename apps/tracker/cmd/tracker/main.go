@@ -83,6 +83,12 @@ func main() {
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       60 * time.Second,
+		// Cap headers + URL at 16 KB. Default in net/http is 1 MB —
+		// way more than an announce ever needs (a typical request
+		// header is < 2 KB, even with 64 info_hash params on
+		// /scrape) and lets an attacker burn server allocator on
+		// query-parsing into a `map[string][]string`.
+		MaxHeaderBytes: 16 << 10,
 	}
 
 	// Start serving in a goroutine so we can wait for signals in main.

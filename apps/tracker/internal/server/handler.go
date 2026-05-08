@@ -20,6 +20,15 @@ import (
 	"github.com/florianjs/trackarr/apps/tracker/internal/queries"
 )
 
+// hnrWorkerSlots caps how many HnR background goroutines can run in
+// parallel. Each one holds a pgx connection on `pgxpool.Pool`
+// (default 20 connections in our config), so without a ceiling a
+// burst of `event=completed` announces could exhaust the pool and
+// block legitimate requests on `acquire`. 8 slots leaves headroom
+// for the announce hot path while still letting HnR catch up under
+// load.
+const hnrWorkerSlots = 8
+
 // Server holds shared state for the HTTP handlers.
 type Server struct {
 	db           *dbpkg.DB
@@ -32,6 +41,10 @@ type Server struct {
 	// from a request derive their own timeouts from this so they cancel when
 	// the server shuts down rather than running on context.Background().
 	appCtx context.Context
+	// hnrSlots is a buffered semaphore — `<- hnrSlots` reserves a
+	// worker slot, `hnrSlots <- struct{}{}` releases it. Ensures the
+	// HnR DB writes never overshoot the connection pool budget.
+	hnrSlots chan struct{}
 }
 
 // New builds a Server. It does not start listening — callers wire it into
@@ -41,6 +54,12 @@ func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *pee
 	if appCtx == nil {
 		appCtx = context.Background()
 	}
+	slots := make(chan struct{}, hnrWorkerSlots)
+	// Pre-fill so the channel acts as a "tickets available" pool —
+	// goroutines acquire by reading, release by sending back.
+	for i := 0; i < hnrWorkerSlots; i++ {
+		slots <- struct{}{}
+	}
 	return &Server{
 		db:           db,
 		redis:        rclient,
@@ -49,6 +68,7 @@ func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *pee
 		ipHashSecret: ipHashSecret,
 		debug:        debug,
 		appCtx:       appCtx,
+		hnrSlots:     slots,
 	}
 }
 
@@ -241,17 +261,51 @@ func (s *Server) writeAnnounceResponse(ctx context.Context, w http.ResponseWrite
 
 // ----------------------------------------------------------------------------
 // HnR background updates — best-effort, never fail the announce response.
+//
+// Both recorders bracket their work with a hnrSlots semaphore so the
+// pgx connection pool isn't drained by a burst of `event=completed`
+// announces. They also fail-closed on the HnR config queries: if we
+// can't tell whether HnR is enabled, the safer default is to not
+// silently skip credit (which would make every user a free leecher
+// during a DB hiccup) — we abort and let the next announce retry.
 // ----------------------------------------------------------------------------
+
+// hnrAcquire reserves a worker slot, returning false if the server
+// is shutting down before one becomes free.
+func (s *Server) hnrAcquire(ctx context.Context) bool {
+	select {
+	case <-s.hnrSlots:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
+func (s *Server) hnrRelease() {
+	s.hnrSlots <- struct{}{}
+}
 
 func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 	ctx, cancel := context.WithTimeout(s.appCtx, 5*time.Second)
 	defer cancel()
+	if !s.hnrAcquire(ctx) {
+		return
+	}
+	defer s.hnrRelease()
 
-	enabled, _ := s.db.IsHnrEnabled(ctx)
+	enabled, err := s.db.IsHnrEnabled(ctx)
+	if err != nil {
+		slog.Warn("hnr enabled lookup", "info_hash", infoHashHex, "err", err)
+		return
+	}
 	if !enabled {
 		return
 	}
-	required, _ := s.db.GetHnrRequiredSeedTime(ctx)
+	required, err := s.db.GetHnrRequiredSeedTime(ctx)
+	if err != nil {
+		slog.Warn("hnr required seed time", "info_hash", infoHashHex, "err", err)
+		return
+	}
 
 	row, err := s.db.Q.FindUserAndTorrentByPasskeyAndHash(ctx,
 		queries.FindUserAndTorrentByPasskeyAndHashParams{
@@ -281,6 +335,10 @@ func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 func (s *Server) recordSeedTime(passkey, infoHashHex string, secondsToAdd int32) {
 	ctx, cancel := context.WithTimeout(s.appCtx, 5*time.Second)
 	defer cancel()
+	if !s.hnrAcquire(ctx) {
+		return
+	}
+	defer s.hnrRelease()
 
 	row, err := s.db.Q.FindUserAndTorrentByPasskeyAndHash(ctx,
 		queries.FindUserAndTorrentByPasskeyAndHashParams{
