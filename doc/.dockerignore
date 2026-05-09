@@ -1,0 +1,21 @@
+# Keep the build context small. The .vitepress/dist artefact is
+# regenerated inside the builder stage; node_modules and caches are
+# never useful as build inputs.
+node_modules
+.vitepress/dist
+.vitepress/cache
+.vitepress/.temp
+
+# Editor / OS clutter
+.DS_Store
+.idea
+.vscode
+
+# Don't bake the Dockerfile / dockerignore back into the image
+# (they'd land at /app in the builder stage otherwise).
+Dockerfile
+.dockerignore
+
+# Git metadata not needed for the build
+.git
+.gitignore

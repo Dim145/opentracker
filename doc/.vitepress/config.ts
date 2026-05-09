@@ -4,11 +4,15 @@ export default defineConfig({
   title: 'Trackarr',
   description: 'A modern, high-performance private BitTorrent tracker',
 
-  // GitHub Pages base — deployed at https://dim145.github.io/opentracker/
+  // GitHub Pages base — deployed at https://dim145.github.io/opentracker/.
   // The repo is `Dim145/opentracker`; the product itself is still
   // called Trackarr inside the app, but the URL space follows the
   // repo name.
-  base: '/opentracker/',
+  //
+  // Overridable at build time via `VITEPRESS_BASE` so the Docker
+  // image can serve the docs from the root (`/`) when the operator
+  // deploys it behind a vhost dedicated to the documentation.
+  base: process.env.VITEPRESS_BASE || '/opentracker/',
 
   ignoreDeadLinks: [/^http:\/\/localhost/],
 

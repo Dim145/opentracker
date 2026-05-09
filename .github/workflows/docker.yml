@@ -197,3 +197,61 @@ jobs:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+
+  # Documentation site (VitePress static + distroless nginx).
+  # Self-contained npm project under ./doc — context scoped there
+  # so the build doesn't drag the rest of the monorepo into the
+  # builder layer.
+  build-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@main
+        with:
+          cosign-release: 'v2.2.4'
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata (docs)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}/docs
+
+      - name: Build and push docs image
+        id: build-and-push
+        uses: docker/build-push-action@v6
+        with:
+          # The doc bundle is a self-contained npm project; scope
+          # the build context to ./doc so the COPY in Dockerfile
+          # resolves locally and we don't ship pnpm workspace
+          # overhead into the builder layer.
+          context: ./doc
+          file: ./doc/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          # Default base path is `/`, matching the standalone
+          # docker-run usage. The GitHub Pages deploy
+          # (deploy-docs.yml) keeps its own `/opentracker/` base
+          # via the VitePress config fallback.
+          build-args: |
+            VITEPRESS_BASE=/
+
+      - name: Sign the docs image
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
