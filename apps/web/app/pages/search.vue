@@ -481,6 +481,14 @@ const selectedTags = ref<string[]>(
 );
 const filtersOpen = ref(selectedTags.value.length > 0);
 const page = ref(parseInt((route.query.p as string) || '1', 10));
+// View preference is persisted in localStorage so the user keeps the
+// same mode across visits. Precedence:
+//   1. `?v=…` in the URL — wins on every render so a shared link forces
+//      the mode on the recipient.
+//   2. `trackarr.search.view` in localStorage — read once on the client
+//      so SSR doesn't try to access browser storage.
+//   3. `simple` — default for first-time visitors.
+const VIEW_LS_KEY = 'trackarr.search.view';
 const view = ref<'simple' | 'grouped'>(
   (route.query.v as string) === 'grouped' ? 'grouped' : 'simple'
 );
@@ -871,10 +879,36 @@ function updateUrl() {
   });
 }
 
-watch(view, () => {
+watch(view, (next) => {
   page.value = 1;
   expandedGroups.value = new Set();
   updateUrl();
+  // Persist the user's choice across reloads. We only touch localStorage
+  // on the client; the early ref init runs identically on server and
+  // client to avoid hydration mismatches.
+  if (import.meta.client) {
+    try {
+      localStorage.setItem(VIEW_LS_KEY, next);
+    } catch {
+      // Storage might be disabled (Safari private mode, quota); a missing
+      // persisted preference isn't worth surfacing to the user.
+    }
+  }
+});
+
+// Hydrate the view from localStorage once on mount, but only if the
+// current URL doesn't pin a view explicitly. A shared `?v=grouped`
+// link still beats the user's stored preference.
+onMounted(() => {
+  if (route.query.v) return;
+  try {
+    const stored = localStorage.getItem(VIEW_LS_KEY);
+    if (stored === 'grouped' || stored === 'simple') {
+      view.value = stored;
+    }
+  } catch {
+    // No-op — see comment in the watcher above.
+  }
 });
 
 function handleMediaIdSearch(detected: DetectedMediaId) {
