@@ -282,8 +282,20 @@ definePageMeta({
 
 const { fetch: fetchSession } = useUserSession();
 const router = useRouter();
+const route = useRoute();
 
 const { data: status } = await useFetch('/api/auth/status');
+
+// Pre-fill the invite code from `?code=` so the share-a-link flow on
+// /invites works end-to-end (the recipient lands here with the code
+// already typed). We trim and uppercase to match what the back-end
+// stores; an invalid value just gets typed normally and rejected on
+// submit, same as a manual paste.
+const initialInviteCode = (() => {
+  const raw = route.query.code;
+  if (typeof raw !== 'string') return '';
+  return raw.trim().toUpperCase();
+})();
 const { data: branding } = await useFetch<{
   siteName: string;
   siteLogo: string;
@@ -317,7 +329,7 @@ const form = reactive({
   confirmPassword: '',
   panicPassword: '',
   confirmPanicPassword: '',
-  inviteCode: '',
+  inviteCode: initialInviteCode,
 });
 
 const error = ref('');
