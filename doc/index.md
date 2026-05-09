@@ -4,101 +4,67 @@ layout: home
 hero:
   name: Trackarr
   text: Modern Private BitTorrent Tracker
-  tagline: High-performance, security-first tracker with Zero-Knowledge Authentication and Panic Mode encryption.
+  tagline: High-performance, security-first tracker with Zero-Knowledge Authentication, Two-Factor Auth, and Panic Mode encryption.
   actions:
     - theme: brand
       text: Get Started
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/florianjs/trackarr
-    - theme: alt
-      text: Live Demo
-      link: https://tracker.florianargaud.com/
+      link: https://github.com/Dim145/opentracker
 
 features:
   - title: Zero-Knowledge Auth
-    details: Your password never leaves your device. All cryptographic operations happen client-side with PBKDF2 and challenge-response.
+    details: Your password never leaves your device. SRP-style challenge/response with PBKDF2 client-side; the server only ever sees a verifier.
+  - title: Two-Factor Auth
+    details: TOTP with recovery codes plus WebAuthn passkeys. Trusted-device cookies skip 2FA on familiar browsers; admins can force enrolment for staff or everyone.
   - title: Lightning Fast
-    details: Redis-powered sub-millisecond peer lookups with PostgreSQL full-text search and optimized concurrent handling.
+    details: Redis-powered sub-millisecond peer lookups, Postgres trigram search, and a Go announce hot path designed for thousands of swarms per second.
   - title: Panic Mode
-    details: Instant AES-256-GCM encryption of all sensitive data. One click to protect everything, recoverable only with your password.
-  - title: Security First
-    details: Distributed rate limiting, auto IP bans, SQL/XSS detection, SHA-256 hashed IPs, and comprehensive attack pattern detection.
-  - title: Private by design
-    details: Passkey-gated HTTP announces, DHT/PEX disabled, SHA-256-hashed peer IPs with daily-rotating salt.
+    details: One-click AES-256-GCM encryption of every sensitive column. The data is recoverable only with your panic password — no server-side key escrow.
+  - title: Moderation pipeline
+    details: Pending / accepted / changes-requested / rejected lifecycle with a per-torrent discussion thread between uploaders and moderators.
+  - title: Bonus events
+    details: Time-bounded Freeleech / Silverleech windows or any custom multipliers. Applied on the announce hot path; the snapshot is cached for 30 s in Redis.
+  - title: User-managed invitations
+    details: Members generate their own one-time codes from a dedicated page. Codes are masked from staff to remove the temptation to harvest. Three-state registration (open / invite-only / closed).
+  - title: Built-in observability
+    details: Prometheus metrics for moderation queue depth, 2FA adoption, bonus events, invitations funnel, registration mode, and more — exposed on a dedicated port.
   - title: Hit-and-Run tracking
     details: Built-in seeding requirements, exemption controls and moderator dashboards keep the swarm healthy.
 ---
 
 ## Why Trackarr?
 
-Trackarr is designed for communities that value **privacy** and **security** above all else. Unlike traditional trackers that store passwords and personal data in plaintext or with reversible encryption, Trackarr uses cryptographic proofs that make it mathematically impossible to recover user credentials—even for administrators.
+Trackarr is designed for communities that value **privacy** and **security** above all else. Unlike traditional trackers that store passwords and personal data in plaintext or with reversible encryption, Trackarr uses cryptographic proofs that make it mathematically impossible to recover user credentials — even for administrators.
+
+This documentation covers the [`Dim145/opentracker`](https://github.com/Dim145/opentracker) fork, which adds two-factor auth, user-managed invitations, the moderation pipeline, bonus events, the three-state registration mode, and a hardened announce hot path on top of the original feature set.
 
 ### Tech Stack
 
-| Layer    | Technology                          | Purpose                             |
-| -------- | ----------------------------------- | ----------------------------------- |
-| Frontend | Nuxt 4, Vue 3, Tailwind CSS         | SSR, Composition API                |
-| Backend  | Nitro Server Engine                 | API routes, middleware              |
-| Database | PostgreSQL 16 + Drizzle ORM         | Data persistence, full-text search  |
-| Cache    | Redis 7                             | Peer lists, sessions, rate limiting |
-| P2P      | bittorrent-tracker                  | HTTP announces (passkey-gated)      |
-| Crypto   | Web Crypto API, scrypt, AES-256-GCM | ZKE auth, Panic encryption          |
+| Layer    | Technology                          | Purpose                                |
+| -------- | ----------------------------------- | -------------------------------------- |
+| Frontend | Nuxt 4, Vue 3, Tailwind CSS         | SSR (or fully static SPA), Composition |
+| Backend  | Nitro Server Engine                 | API routes, middleware                 |
+| Tracker  | Go (custom)                         | HTTP announces, peer store, bonus mul. |
+| Database | PostgreSQL 16 + Drizzle ORM         | Data persistence, full-text search     |
+| Cache    | Redis 7                             | Peer lists, sessions, rate limiting    |
+| Crypto   | Web Crypto API, scrypt, AES-256-GCM | ZKE auth, panic encryption             |
+| 2FA      | otplib + @simplewebauthn            | TOTP + WebAuthn passkeys               |
 
 ---
 
-## Need a Custom Setup?
+## Getting Started
 
-Want a **custom installation**, specific features, or professional support for your private tracker?
+```bash
+# Clone the repository
+git clone https://github.com/Dim145/opentracker.git
+cd opentracker
 
-I offer:
+# Spin up the full stack (API + tracker + web + Postgres + Redis + Caddy)
+docker compose up -d
 
-- **Custom Installation** — Turnkey setup on your infrastructure
-- **Feature Development** — Custom features tailored to your community
-- **Ongoing Maintenance** — Updates and backups
-- **Performance Optimization** — Fine-tuning for high-traffic trackers
+# Open https://localhost in your browser and create the first admin
+```
 
-<div class="custom-cta">
-
-**Let's talk:** [u68w37uj@exile.4wrd.cc](mailto:u68w37uj@exile.4wrd.cc) · [Discord](https://discord.gg/GRFu35djvz) · [argaudflorian.com](https://argaudflorian.com/)
-
-</div>
-
-<style>
-:root {
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(135deg, #1f2937 0%, #6b7280 100%);
-}
-
-.dark {
-  --vp-home-hero-name-background: linear-gradient(135deg, #f9fafb 0%, #9ca3af 100%);
-}
-
-.custom-cta {
-  margin-top: 1.5rem;
-  padding: 1.5rem 2rem;
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-  border-radius: 12px;
-  text-align: center;
-  border: none;
-}
-
-.dark .custom-cta {
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-  /* border-color: #4b5563; */
-}
-
-.custom-cta a {
-  color: #111827;
-  font-weight: 600;
-}
-
-.dark .custom-cta a {
-  color: #f9fafb;
-}
-
-.custom-cta a:hover {
-  text-decoration: underline;
-}
-</style>
+See the [Getting Started](/guide/getting-started) guide for a deeper walk-through, or jump straight into the [Configuration](/guide/configuration) reference.

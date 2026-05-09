@@ -63,6 +63,33 @@ Previous versions used unprefixed `TRACKER_HTTP_URL`, `TRACKER_UDP_URL`, `TRACKE
 | `POW_DIFFICULTY`    | Proof of Work difficulty (1-10) | `5`     |
 | `RATE_LIMIT_WINDOW` | Rate limit window in seconds    | `60`    |
 | `RATE_LIMIT_MAX`    | Max requests per window         | `100`   |
+| `TRUST_PROXY`       | Honour `X-Forwarded-For` for client IP. Set to `true` only when a trusted reverse proxy is in front. | `false` |
+| `REDIS_KEY_PREFIX`  | Prefix every Redis key. Must match between the API (ioredis) and the Go tracker. | `ot:` |
+
+### Observability
+
+The Prometheus scrape endpoint is opt-in and listens on its own port —
+firewall it independently of the public API.
+
+| Variable            | Description                                                              | Default     |
+| ------------------- | ------------------------------------------------------------------------ | ----------- |
+| `METRICS_ENABLED`   | Master switch (`true`/`1`/`on`/`yes`).                                   | `false`     |
+| `METRICS_HOST`      | Bind address.                                                            | `0.0.0.0`   |
+| `METRICS_PORT`      | Bind port.                                                               | `9090`      |
+| `METRICS_PATH`      | Scrape path.                                                             | `/metrics`  |
+| `METRICS_AUTH_TOKEN`| Optional `Authorization: Bearer <token>` requirement on the endpoint.    | unset       |
+
+See the dedicated [Prometheus Metrics reference](../reference/metrics.md) for the full list.
+
+### Two-factor / WebAuthn
+
+| Variable            | Description                                              | Default      |
+| ------------------- | -------------------------------------------------------- | ------------ |
+| `WEBAUTHN_RP_NAME`  | Relying-party name shown by the browser at registration. | `Trackarr`   |
+| `WEBAUTHN_RP_ID`    | RP id (host the passkey is bound to). Inferred when unset. | inferred   |
+| `WEBAUTHN_ORIGIN`   | Origin allow-list for assertions. Inferred when unset.   | inferred     |
+
+Most 2FA configuration is **runtime** rather than env-driven — the *Force 2FA* enforcement scope (off / staff / all) is set by an admin from `/admin/settings` and stored in the `settings` table. See the [Two-Factor Auth guide](./two-factor-auth.md).
 
 ## Docker Compose Configuration
 

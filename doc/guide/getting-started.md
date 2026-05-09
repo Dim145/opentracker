@@ -25,8 +25,8 @@ This page covers two scenarios:
 For local hacking, the defaults work as-is.
 
 ```bash
-git clone https://github.com/florianjs/trackarr.git
-cd trackarr
+git clone https://github.com/Dim145/opentracker.git
+cd opentracker
 cp .env.example .env
 
 # Generate the one secret that has no usable default
@@ -82,7 +82,7 @@ verify with `dig your-domain.com` before continuing.
 ### 2. Clone and configure
 
 ```bash
-git clone https://github.com/florianjs/trackarr.git /opt/trackarr
+git clone https://github.com/Dim145/opentracker.git /opt/trackarr
 cd /opt/trackarr
 ```
 

@@ -406,10 +406,9 @@ cat backup.sql | docker exec -i trackarr-db psql -U tracker trackarr
 
 If you're still experiencing issues:
 
-1. Check the [GitHub Issues](https://github.com/florianjs/trackarr/issues) for similar problems
+1. Check the [GitHub Issues](https://github.com/Dim145/opentracker/issues) for similar problems
 2. Open a new issue with:
    - Description of the problem
    - Relevant log output
    - Your environment (OS, Docker version)
    - Steps to reproduce
-3. [Get professional support](/support/professional) if you need hands-on help

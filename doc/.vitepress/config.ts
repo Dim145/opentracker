@@ -4,7 +4,11 @@ export default defineConfig({
   title: 'Trackarr',
   description: 'A modern, high-performance private BitTorrent tracker',
 
-  base: '/trackarr/',
+  // GitHub Pages base — deployed at https://dim145.github.io/opentracker/
+  // The repo is `Dim145/opentracker`; the product itself is still
+  // called Trackarr inside the app, but the URL space follows the
+  // repo name.
+  base: '/opentracker/',
 
   ignoreDeadLinks: [/^http:\/\/localhost/],
 
@@ -37,7 +41,6 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Integrations', link: '/integrations/torznab' },
       { text: 'Reference', link: '/reference/api' },
-      { text: 'Support', link: '/support/professional' },
     ],
 
     sidebar: {
@@ -57,7 +60,16 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/guide/security' },
             { text: 'Zero-Knowledge Auth', link: '/guide/zero-knowledge-auth' },
+            { text: 'Two-Factor Auth', link: '/guide/two-factor-auth' },
             { text: 'Panic Mode', link: '/guide/panic-mode' },
+          ],
+        },
+        {
+          text: 'Operations',
+          items: [
+            { text: 'Invitations', link: '/guide/invitations' },
+            { text: 'Moderation', link: '/guide/moderation' },
+            { text: 'Bonus Events', link: '/guide/bonus-events' },
           ],
         },
         {
@@ -80,28 +92,19 @@ export default defineConfig({
           items: [
             { text: 'API', link: '/reference/api' },
             { text: 'Environment Variables', link: '/reference/env' },
-          ],
-        },
-      ],
-      '/support/': [
-        {
-          text: 'Support',
-          items: [
-            { text: 'Professional Services', link: '/support/professional' },
-            { text: 'Troubleshooting', link: '/guide/troubleshooting' },
+            { text: 'Prometheus Metrics', link: '/reference/metrics' },
           ],
         },
       ],
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/florianjs/trackarr' },
-      { icon: 'discord', link: 'https://discord.gg/GRFu35djvz' },
+      { icon: 'github', link: 'https://github.com/Dim145/opentracker' },
     ],
 
     footer: {
       message: 'Released under the MIT License.',
-      copyright: '2025-present Trackarr',
+      copyright: '2026-present Trackarr (Dim145/opentracker fork)',
     },
 
     search: {

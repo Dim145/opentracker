@@ -1,69 +1,51 @@
 # Roadmap
 
-Trackarr is actively developed with a focus on performance, security, and usability. Below is our current development roadmap.
+Trackarr is actively developed with a focus on performance, security, and usability. The fork at [`Dim145/opentracker`](https://github.com/Dim145/opentracker) tracks against this roadmap.
 
 ## Released
 
-### v0.4.0 — Rebranding to Trackarr
+### v0.13.x — Moderation, 2FA, bonus events
 
-- [x] **Project Rebranding** — Trackarr renamed to Trackarr
-- [x] **Repository Migration** — New public repository at `florianjs/trackarr`
-- [x] **Documentation Updates** — All references updated to Trackarr
+- [x] **Two-Factor Auth** — TOTP with recovery codes, WebAuthn passkeys, trusted-device cookies, A+C re-auth pattern, admin-controlled enforcement scope (off / staff / all)
+- [x] **User-managed invitations** — Members generate their own one-time codes with custom expiry; admins see masked previews only; three-state registration mode (open / invite-only / closed)
+- [x] **Torrent moderation pipeline** — `pending` / `accepted` / `changes_requested` / `rejected` lifecycle with a per-torrent discussion thread; rejected rows kept on file to block re-uploads of the same info-hash
+- [x] **Bonus events** — Time-bounded Freeleech / Silverleech / custom multiplier windows applied on the announce hot path; advisory-locked overlap check guards against concurrent admin writes
+- [x] **Hardening pass** — Int64 overflow guard on announce deltas, advisory locks on bonus-events + first-user register, Redis-backed caches on `requireAuthSession` and `userCanBypassModeration`
+- [x] **Prometheus metrics expansion** — torrents-by-status, users-by-role, 2FA adoption, invitations funnel, bonus events, registration mode
 
-### v0.3.x — Core Features
+### v0.12.x — Tracker enhancements
 
 - [x] **Custom Branding** — Logo, favicon, site name, colors, font weight
-- [x] **Invitation System** — Private invite codes with per-user limits
+- [x] **Invitation System** — Private invite codes with per-user limits (now reworked in 0.13 — see Operations / Invitations)
 - [x] **Registration Modes** — Open, invite-only, or closed registration
 - [x] **Hit and Run Tracking** — Track users who don't seed minimum time
 - [x] **Tags & Categories** — Flexible labels and admin category management
 - [x] **Reports & Moderation** — Flag content for moderation review
 - [x] **Homepage Customization** — WYSIWYG editor for homepage content
 - [x] **Panic Mode** — Emergency lockdown system
+- [x] **Static SPA build** — Optional `nuxi generate` build served by distroless nginx (~10× less RAM than the SSR path)
 
 ---
 
-## v0.5.0 — User Features
+## In progress / next
 
 - [ ] **Favorites / Watchlist** — Save torrents to personal list
-- [ ] **Freeleech System** — Global and per-torrent freeleech toggle
-- [ ] **User Classes** — Power User, VIP with granular permissions
-- [ ] **Notifications** — In-app alerts for replies, requests, etc.
-- [x] **Tornzb** — Torznab API for third-party clients
-
----
-
-## v0.6.0 — Community
-
+- [ ] **Bonus Points** — Reward seeders with exchangeable points (groundwork already laid by the bonus-events multiplier engine)
+- [ ] **User Classes** — Power User, VIP with granular permissions on top of the existing role engine
+- [ ] **Notifications** — In-app alerts for replies, moderation actions, requests
 - [ ] **Torrent Requests** — Request content with bounty system
-- [ ] **Bonus Points** — Reward seeders with exchangeable points
-- [ ] **Private Messages** — User-to-user inbox system
-- [ ] **Collages / Collections** — Group torrents by theme
 
 ---
 
-## v0.7.0 — Plugins System
+## Later
 
 - [ ] **Plugin Architecture** — Admin-activatable modules
-
----
-
-## v0.8.0 — Public Tracker Mode
-
-- [ ] **Public Mode** — Browse and download without account
-- [ ] **Anonymous Announces** — Tracking without passkey
-- [ ] **Public API** — Open endpoints for integrations
-- [ ] **Public Magnet Links** — Direct sharing
-
----
-
-## v1.0.0 — Production Ready
-
-- [ ] **Theme System** — Dark/Light/Custom theme support
-- [ ] **i18n** — Multi-language support (FR, EN, ES...)
+- [ ] **Private Messages** — User-to-user inbox system
+- [ ] **Collages / Collections** — Group torrents by theme
+- [ ] **Theme System** — Custom theme support beyond the built-in dark/light pair
+- [ ] **i18n** — Multi-language support
 - [ ] **E2E Tests** — Complete functional test suite
 - [ ] **API Documentation** — OpenAPI/Swagger at `/api/docs`
-- [ ] **Performance Audit** — Final optimizations
 
 ---
 
@@ -74,9 +56,8 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 - [ ] Mobile app companion
 - [ ] CLI tool for tracker management
 - [ ] Distributed tracker (multi-node)
-- [ ] IPv6 support
 
 ---
 
 > [!NOTE]
-> This roadmap is subject to change based on community feedback and project priorities. Have a feature request? Open an issue on [GitHub](https://github.com/florianjs/trackarr/issues).
+> This roadmap is subject to change based on feedback and priorities. Have a feature request? Open an issue on [GitHub](https://github.com/Dim145/opentracker/issues).

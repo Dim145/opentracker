@@ -58,6 +58,47 @@ These must be set for the application to run:
 | `TRACKER_INTERVAL`     | Announce interval (seconds)     | `1800`  |
 | `TRACKER_MIN_INTERVAL` | Minimum announce interval       | `900`   |
 | `TRACKER_MAX_PEERS`    | Max peers returned per announce | `50`    |
+| `TRUST_PROXY`          | Honour `X-Forwarded-For` for client IP. Set to `true` only when a trusted reverse proxy is in front of the tracker. | `false` |
+| `REDIS_KEY_PREFIX`     | Prefix every Redis key with this string. Must match between the API (ioredis) and the Go tracker. | `ot:`   |
+
+## Static SPA build (optional)
+
+Set when building the Nuxt static bundle (`apps/web/Dockerfile.static`):
+
+| Variable                     | Description                                                          | Default |
+| ---------------------------- | -------------------------------------------------------------------- | ------- |
+| `NUXT_STATIC_BUILD`          | When `true`, `nuxi generate` produces a fully static SPA (no SSR).    | `false` |
+| `NUXT_PUBLIC_TRACKER_HTTP_URL` | Tracker HTTP announce URL surfaced in the user's announce URL.    | —       |
+| `NUXT_PUBLIC_TRACKER_UDP_URL`  | UDP announce URL.                                                  | —       |
+| `NUXT_PUBLIC_TRACKER_WS_URL`   | WebSocket announce URL.                                            | —       |
+
+The static bundle reads the runtime tracker URLs from `/api/runtime-config` on
+boot, so the build-time values above are only fallbacks. The same image is
+portable across domains.
+
+## Prometheus metrics
+
+| Variable                 | Description                                                  | Default     |
+| ------------------------ | ------------------------------------------------------------ | ----------- |
+| `METRICS_ENABLED`        | Master switch. `true`/`1`/`on`/`yes` enables the listener.   | `false`     |
+| `METRICS_HOST`           | Bind address.                                                | `0.0.0.0`   |
+| `METRICS_PORT`           | Bind port.                                                   | `9090`      |
+| `METRICS_PATH`           | Scrape path.                                                 | `/metrics`  |
+| `METRICS_AUTH_TOKEN`     | Optional. When set, scrapes must present `Authorization: Bearer <token>`. | unset |
+| `METRICS_PEER_CACHE_MS`  | TTL of the cached Redis SCAN over `peers:*`.                 | `30000`     |
+
+See the [Prometheus Metrics reference](./metrics.md) for the full list of
+exposed gauges and example queries.
+
+## Two-factor auth & sessions
+
+| Variable                 | Description                                              | Default |
+| ------------------------ | -------------------------------------------------------- | ------- |
+| `WEBAUTHN_RP_NAME`       | Relying-party name shown by the browser at registration. | `Trackarr` |
+| `WEBAUTHN_RP_ID`         | RP id (the host the passkey is bound to). Inferred from `Origin` when unset; pin explicitly behind a load balancer. | inferred |
+| `WEBAUTHN_ORIGIN`        | Origin allow-list for assertions. Inferred when unset.   | inferred |
+
+(2FA is enabled per-user from `/settings#security`. Force-enrolment is configured live via `/admin/settings`, not via env.)
 
 ## Example `.env` File
 
