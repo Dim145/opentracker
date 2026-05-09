@@ -33,6 +33,11 @@
 services:
   web:
     image: ghcr.io/dim145/opentracker/front:${IMAGE_TAG:-latest}
+    tmpfs:
+      - /var/lib/nginx/tmp:rw,noexec,nosuid,size=32m,uid=65532,gid=65532
+      - /var/lib/nginx/logs:rw,noexec,nosuid,size=32m,uid=65532,gid=65532
+      - /tmp:rw,noexec,nosuid,size=32m,uid=65532,gid=65532
+      - /var/cache/nginx:rw,noexec,nosuid,size=16m,uid=65532,gid=65532
     build:
       context: .
       dockerfile: apps/web/Dockerfile.static

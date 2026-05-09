@@ -15,6 +15,16 @@ export default defineNuxtConfig({
 
   ssr: !STATIC_BUILD,
 
+  // In the static build path Nuxt would otherwise extract a JSON payload
+  // file alongside each pre-rendered route (`_payload.json`). With
+  // `ssr: false` only `/` is pre-rendered; every other route falls back
+  // to the SPA shell and there's no payload on disk. The client still
+  // tries to fetch one on hard-reload, which then collides with nginx's
+  // catch-all index.html fallback and stalls the boot. Disabling
+  // extraction tells Nuxt not to bother — the SPA hydrates from the
+  // bundle alone, no extra round-trip.
+  experimental: STATIC_BUILD ? { payloadExtraction: false } : {},
+
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@nuxt/icon'],
 
   // Icon module — see follow-up notes; the previous CSS mode rendering
