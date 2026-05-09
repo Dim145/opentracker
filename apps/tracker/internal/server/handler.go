@@ -194,29 +194,53 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 				"event", req.Event.String(),
 				"err", err)
 		}
-		// On the first announce for this (user, torrent) pair we'll
-		// create the row; any cached required_seed_time keeps us
-		// consistent with what the HnR pass would have written. Both
-		// errors (id gen, db) are non-fatal — we just log and move on.
-		newID, idErr := dbpkg.NewID()
-		if idErr != nil {
-			slog.Warn("hnr id generation (bytes)",
-				"info_hash", infoHashHex, "err", idErr)
-		} else {
-			required, _ := s.db.GetHnrRequiredSeedTime(ctx)
-			if err := s.db.Q.AccumulateUserTorrentBytes(ctx, queries.AccumulateUserTorrentBytesParams{
-				ID:               newID,
-				UserID:           user.ID,
-				TorrentID:        torrentID,
-				RequiredSeedTime: required,
-				Uploaded:         deltaUp,
-				Downloaded:       deltaDown,
-			}); err != nil {
-				slog.Warn("failed to accumulate per-torrent bytes",
-					"info_hash", infoHashHex,
-					"peer_id", peerHex,
-					"event", req.Event.String(),
-					"err", err)
+		// Hot-path-first: try a plain UPDATE. The row almost always
+		// exists by the time we get here — either the API stamped one
+		// when the user pulled the .torrent file, or a previous
+		// announce already created one. The UPDATE pays no crypto-rand,
+		// no FK index check, no dead-tuple churn, and skips the
+		// settings cache lookup entirely.
+		//
+		// Cold path: rows == 0 means we're seeing the very first
+		// announce for this (user, torrent) pair. Generate an id, read
+		// the cached required_seed_time, and do the INSERT … ON
+		// CONFLICT DO NOTHING (race-safe against a concurrent click
+		// from the API that's mid-flight). All errors here are
+		// best-effort — we never fail the announce because of
+		// bookkeeping.
+		rows, bumpErr := s.db.Q.BumpUserTorrentBytes(ctx, queries.BumpUserTorrentBytesParams{
+			Uploaded:   deltaUp,
+			Downloaded: deltaDown,
+			UserID:     user.ID,
+			TorrentID:  torrentID,
+		})
+		if bumpErr != nil {
+			slog.Warn("failed to bump per-torrent bytes",
+				"info_hash", infoHashHex,
+				"peer_id", peerHex,
+				"event", req.Event.String(),
+				"err", bumpErr)
+		} else if rows == 0 {
+			newID, idErr := dbpkg.NewID()
+			if idErr != nil {
+				slog.Warn("hnr id generation (bytes)",
+					"info_hash", infoHashHex, "err", idErr)
+			} else {
+				required, _ := s.db.GetHnrRequiredSeedTime(ctx)
+				if err := s.db.Q.InsertUserTorrentBytes(ctx, queries.InsertUserTorrentBytesParams{
+					ID:               newID,
+					UserID:           user.ID,
+					TorrentID:        torrentID,
+					RequiredSeedTime: required,
+					Uploaded:         deltaUp,
+					Downloaded:       deltaDown,
+				}); err != nil {
+					slog.Warn("failed to seed per-torrent bytes row",
+						"info_hash", infoHashHex,
+						"peer_id", peerHex,
+						"event", req.Event.String(),
+						"err", err)
+				}
 			}
 		}
 	}

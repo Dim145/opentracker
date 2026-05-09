@@ -9,16 +9,19 @@ import (
 )
 
 type Querier interface {
-	// Incrementally records per-(user, torrent) byte totals on every
-	// announce. Creates the tracking row on the first non-zero delta so
-	// the Downloads page in the web UI surfaces the entry as soon as the
-	// user starts leeching, well before completion. The composite UNIQUE
-	// on (user_id, torrent_id) makes the upsert race-free.
-	AccumulateUserTorrentBytes(ctx context.Context, arg AccumulateUserTorrentBytesParams) error
 	// Adds `additional` seconds to a peer's seed time. If the cumulative total
 	// crosses required_seed_time the row is also stamped completed_at = NOW()
 	// and is_hnr cleared, all in one atomic UPDATE.
 	AddSeedTime(ctx context.Context, arg AddSeedTimeParams) error
+	// Fast path on every announce: increment the byte totals for an
+	// existing (user, torrent) pair. Returns the row count so the caller
+	// can fall through to InsertUserTorrentBytes when the row hasn't been
+	// created yet (rare — the API stamps a row on the first .torrent
+	// download, and the tracker's own HnR completion path also creates
+	// one). Plain UPDATE costs no crypto-rand, no constraint check, no
+	// dead-tuple churn — the previous INSERT … ON CONFLICT path paid all
+	// of those on every single announce.
+	BumpUserTorrentBytes(ctx context.Context, arg BumpUserTorrentBytesParams) (int64, error)
 	// Inserts a new hit-and-run row when a user completes a torrent for the
 	// first time. Idempotent thanks to the (user_id, torrent_id) UNIQUE.
 	CreateHnrEntry(ctx context.Context, arg CreateHnrEntryParams) error
@@ -35,6 +38,11 @@ type Querier interface {
 	GetSetting(ctx context.Context, key string) (string, error)
 	// Adds upload/download deltas to the user identified by passkey.
 	IncrementUserStats(ctx context.Context, arg IncrementUserStatsParams) error
+	// Cold path used only when BumpUserTorrentBytes touched zero rows —
+	// typically the very first delta we receive for a user×torrent pair
+	// when there's no .torrent-click stamp yet. ON CONFLICT DO NOTHING
+	// keeps the call race-safe against a concurrent first-announce.
+	InsertUserTorrentBytes(ctx context.Context, arg InsertUserTorrentBytesParams) error
 }
 
 var _ Querier = (*Queries)(nil)

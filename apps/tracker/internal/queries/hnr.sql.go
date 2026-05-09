@@ -9,45 +9,6 @@ import (
 	"context"
 )
 
-const accumulateUserTorrentBytes = `-- name: AccumulateUserTorrentBytes :exec
-INSERT INTO hnr_tracking (
-    id, user_id, torrent_id, downloaded_at,
-    seed_time, required_seed_time,
-    is_hnr, is_exempt,
-    uploaded, downloaded
-)
-VALUES ($1, $2, $3, NOW(), 0, $4, false, false, $5, $6)
-ON CONFLICT (user_id, torrent_id) DO UPDATE
-   SET uploaded   = hnr_tracking.uploaded   + EXCLUDED.uploaded,
-       downloaded = hnr_tracking.downloaded + EXCLUDED.downloaded
-`
-
-type AccumulateUserTorrentBytesParams struct {
-	ID               string
-	UserID           string
-	TorrentID        string
-	RequiredSeedTime int32
-	Uploaded         int64
-	Downloaded       int64
-}
-
-// Incrementally records per-(user, torrent) byte totals on every
-// announce. Creates the tracking row on the first non-zero delta so
-// the Downloads page in the web UI surfaces the entry as soon as the
-// user starts leeching, well before completion. The composite UNIQUE
-// on (user_id, torrent_id) makes the upsert race-free.
-func (q *Queries) AccumulateUserTorrentBytes(ctx context.Context, arg AccumulateUserTorrentBytesParams) error {
-	_, err := q.db.Exec(ctx, accumulateUserTorrentBytes,
-		arg.ID,
-		arg.UserID,
-		arg.TorrentID,
-		arg.RequiredSeedTime,
-		arg.Uploaded,
-		arg.Downloaded,
-	)
-	return err
-}
-
 const addSeedTime = `-- name: AddSeedTime :exec
 UPDATE hnr_tracking
    SET seed_time    = seed_time + $1,
@@ -81,6 +42,42 @@ type AddSeedTimeParams struct {
 func (q *Queries) AddSeedTime(ctx context.Context, arg AddSeedTimeParams) error {
 	_, err := q.db.Exec(ctx, addSeedTime, arg.SeedTime, arg.UserID, arg.TorrentID)
 	return err
+}
+
+const bumpUserTorrentBytes = `-- name: BumpUserTorrentBytes :execrows
+UPDATE hnr_tracking
+   SET uploaded   = uploaded   + $1,
+       downloaded = downloaded + $2
+ WHERE user_id    = $3
+   AND torrent_id = $4
+`
+
+type BumpUserTorrentBytesParams struct {
+	Uploaded   int64
+	Downloaded int64
+	UserID     string
+	TorrentID  string
+}
+
+// Fast path on every announce: increment the byte totals for an
+// existing (user, torrent) pair. Returns the row count so the caller
+// can fall through to InsertUserTorrentBytes when the row hasn't been
+// created yet (rare — the API stamps a row on the first .torrent
+// download, and the tracker's own HnR completion path also creates
+// one). Plain UPDATE costs no crypto-rand, no constraint check, no
+// dead-tuple churn — the previous INSERT … ON CONFLICT path paid all
+// of those on every single announce.
+func (q *Queries) BumpUserTorrentBytes(ctx context.Context, arg BumpUserTorrentBytesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, bumpUserTorrentBytes,
+		arg.Uploaded,
+		arg.Downloaded,
+		arg.UserID,
+		arg.TorrentID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const createHnrEntry = `-- name: CreateHnrEntry :exec
@@ -138,4 +135,40 @@ func (q *Queries) FindUserAndTorrentByPasskeyAndHash(ctx context.Context, arg Fi
 	var i FindUserAndTorrentByPasskeyAndHashRow
 	err := row.Scan(&i.UserID, &i.TorrentID)
 	return i, err
+}
+
+const insertUserTorrentBytes = `-- name: InsertUserTorrentBytes :exec
+INSERT INTO hnr_tracking (
+    id, user_id, torrent_id, downloaded_at,
+    seed_time, required_seed_time,
+    is_hnr, is_exempt,
+    uploaded, downloaded
+)
+VALUES ($1, $2, $3, NOW(), 0, $4, false, false, $5, $6)
+ON CONFLICT (user_id, torrent_id) DO NOTHING
+`
+
+type InsertUserTorrentBytesParams struct {
+	ID               string
+	UserID           string
+	TorrentID        string
+	RequiredSeedTime int32
+	Uploaded         int64
+	Downloaded       int64
+}
+
+// Cold path used only when BumpUserTorrentBytes touched zero rows —
+// typically the very first delta we receive for a user×torrent pair
+// when there's no .torrent-click stamp yet. ON CONFLICT DO NOTHING
+// keeps the call race-safe against a concurrent first-announce.
+func (q *Queries) InsertUserTorrentBytes(ctx context.Context, arg InsertUserTorrentBytesParams) error {
+	_, err := q.db.Exec(ctx, insertUserTorrentBytes,
+		arg.ID,
+		arg.UserID,
+		arg.TorrentID,
+		arg.RequiredSeedTime,
+		arg.Uploaded,
+		arg.Downloaded,
+	)
+	return err
 }
