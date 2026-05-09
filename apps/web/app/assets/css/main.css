@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -159,6 +159,16 @@
   .mono,
   [data-tabular] {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Editorial serif used by the forum redesign — Fraunces is a variable
+     "broadsheet" face with proper italic and an optical-size axis, so the
+     same family does the masthead at 60 px and the topic byline at 14 px
+     without crunching. The `.font-display` utility opts elements in. */
+  .font-display {
+    font-family: 'Fraunces', 'Times New Roman', serif;
+    font-feature-settings: 'liga' 1, 'dlig' 1, 'ss01' 1;
+    font-optical-sizing: auto;
   }
 }
 

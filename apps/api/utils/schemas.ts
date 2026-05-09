@@ -188,17 +188,20 @@ export const adminSettingsSchema = z.object({
 // Forum Schemas
 // ============================================================================
 
+// Hex colour with optional shorthand (`#abc` → `#aabbcc`). The actual storage
+// is the raw value; the FE expands shorthand at render time.
+const hexColour = z
+  .string()
+  .regex(/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i, 'Color must be a hex value');
+
 export const forumCategorySchema = z.object({
   name: z.string().min(1, 'Category name is required').max(100),
-  slug: z
-    .string()
-    .min(1, 'Category slug is required')
-    .max(100)
-    .regex(
-      /^[a-z0-9-]+$/,
-      'Slug can only contain lowercase letters, numbers, and hyphens'
-    ),
-  description: z.string().max(500).optional(),
+  description: z.string().max(500).optional().nullable(),
+  // The newsroom redesign lets admins paint each category with a hex
+  // accent and a Phosphor icon id. Both are optional — if absent the UI
+  // falls back to the neutral chrome (`fg-muted` border, list icon).
+  color: hexColour.optional().nullable(),
+  icon: z.string().max(64).optional().nullable(),
   order: z.coerce.number().int().min(0).default(0),
 });
 
@@ -217,6 +220,17 @@ export const forumTopicUpdateSchema = z.object({
   isPinned: z.boolean().optional(),
   isLocked: z.boolean().optional(),
 });
+
+// Edit a single post body. Only the content can change; ownership /
+// staff-bypass is enforced in the route handler. Same 50 000-char ceiling
+// as the create endpoint so the UI doesn't have to know two limits.
+export const forumPostUpdateSchema = z.object({
+  content: z.string().min(1, 'Content is required').max(50000),
+});
+
+// Partial category update — every field is optional so the admin can patch
+// just the icon, just the colour, etc. without re-sending the whole row.
+export const forumCategoryUpdateSchema = forumCategorySchema.partial();
 
 // ============================================================================
 // Tracker Schemas (for announce/scrape validation)

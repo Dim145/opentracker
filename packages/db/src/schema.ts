@@ -270,6 +270,12 @@ export const forumCategories = pgTable('forum_categories', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description'),
+  // Display attributes — used by the newsroom-style forum redesign so each
+  // category has its own visual identity (sidebar tile in the index, banner
+  // accent on its own page). Both nullable; the UI falls back to a neutral
+  // chrome treatment when they're empty.
+  color: text('color'), // 7-char hex, e.g. '#9ca3af'
+  icon: text('icon'),   // phosphor icon id, e.g. 'ph:megaphone-bold'
   order: integer('order').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

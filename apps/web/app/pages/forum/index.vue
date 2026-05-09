@@ -1,367 +1,1126 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex justify-between items-end">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight">Forum</h1>
-        <p class="text-text-muted text-sm">
-          Community discussions and announcements.
-        </p>
-      </div>
-      <div v-if="user?.isAdmin">
-        <button
-          @click="showCreateCategory = true"
-          class="px-4 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors flex items-center gap-2"
-        >
+  <div class="forum-shell">
+    <!-- ── Masthead ────────────────────────────────────────── -->
+    <header class="masthead">
+      <p class="masthead-eyebrow">
+        <span>Vol. 1</span>
+        <span class="masthead-eyebrow-sep">·</span>
+        <span>Issue {{ issueNumber }}</span>
+        <span class="masthead-eyebrow-sep">·</span>
+        <time>{{ todayLabel }}</time>
+      </p>
+      <h1 class="masthead-title font-display">The&nbsp;Forum</h1>
+      <p class="masthead-tag">
+        Member-only dispatches, debriefs and dispatches&nbsp;—
+        <em>open the floor, leave the noise outside.</em>
+      </p>
+
+      <ul class="masthead-stats" :class="{ 'is-loading': statsPending }">
+        <li>
+          <span class="stat-key">Categories</span>
+          <span class="stat-val">{{ stats?.totals.categories ?? '—' }}</span>
+        </li>
+        <li>
+          <span class="stat-key">Threads</span>
+          <span class="stat-val">{{ stats?.totals.topics ?? '—' }}</span>
+        </li>
+        <li>
+          <span class="stat-key">Posts</span>
+          <span class="stat-val">{{ stats?.totals.posts ?? '—' }}</span>
+        </li>
+        <li>
+          <span class="stat-key">Contributors</span>
+          <span class="stat-val">{{ stats?.totals.contributors ?? '—' }}</span>
+        </li>
+        <li v-if="lastActivity" class="stat-pulse">
+          <span class="pulse-dot" />
+          <span class="stat-key">Last filed</span>
+          <span class="stat-val-mono">{{ formatAge(lastActivity) }}</span>
+        </li>
+      </ul>
+
+      <div v-if="user?.isAdmin" class="masthead-tools">
+        <button type="button" class="ed-btn ed-btn--primary" @click="openCreate">
           <Icon name="ph:plus-bold" />
-          New Category
+          New section
         </button>
       </div>
-    </div>
+    </header>
 
-    <div v-if="pending" class="space-y-4">
-      <div
-        v-for="i in 3"
-        :key="i"
-        class="h-24 bg-bg-secondary animate-pulse rounded-lg border border-border"
-      ></div>
-    </div>
+    <!-- ── Sections (categories) ───────────────────────────── -->
+    <section>
+      <header class="rule-head">
+        <span class="rule-eyebrow">Sections</span>
+        <span class="rule-line" />
+        <span class="rule-counter">{{ categories?.length ?? 0 }}</span>
+      </header>
 
-    <div v-else class="space-y-4">
-      <div
-        v-for="category in categories"
-        :key="category.id"
-        class="bg-bg-secondary border border-border rounded-lg overflow-hidden group hover:border-fg-default/20 transition-colors"
-      >
-        <NuxtLink :to="`/forum/category/${category.id}`" class="block p-6">
-          <div class="flex justify-between items-start">
-            <div>
-              <h2
-                class="text-lg font-bold group-hover:text-text-strong transition-colors"
-              >
-                {{ category.name }}
-              </h2>
-              <p class="text-text-muted text-sm mt-1">
-                {{ category.description }}
+      <div v-if="catPending" class="sections-grid">
+        <div v-for="i in 4" :key="`sk-${i}`" class="section-tile section-tile--skeleton" />
+      </div>
+
+      <div v-else-if="categories && categories.length > 0" class="sections-grid">
+        <article
+          v-for="(cat, idx) in categories"
+          :key="cat.id"
+          class="section-tile"
+          :style="tileStyle(cat)"
+        >
+          <NuxtLink :to="`/forum/category/${cat.id}`" class="section-tile-cover">
+            <span class="section-tile-id">{{ formatIssueNumber(idx + 1) }}</span>
+            <div class="section-tile-icon">
+              <Icon :name="resolveIcon(cat)" />
+            </div>
+            <h2 class="section-tile-title font-display">{{ cat.name }}</h2>
+            <p class="section-tile-desc" v-if="cat.description">
+              {{ cat.description }}
+            </p>
+
+            <dl class="section-tile-stats">
+              <div>
+                <dt>Threads</dt>
+                <dd>{{ cat.topicCount }}</dd>
+              </div>
+              <div>
+                <dt>Posts</dt>
+                <dd>{{ cat.postCount }}</dd>
+              </div>
+              <div>
+                <dt>Last</dt>
+                <dd>{{ cat.lastPost ? formatAge(cat.lastPost.createdAt) : '—' }}</dd>
+              </div>
+            </dl>
+
+            <div v-if="cat.lastPost" class="section-tile-last">
+              <p class="last-quote">
+                <Icon name="ph:quotes-bold" class="last-quote-mark" />
+                {{ excerpt(cat.lastPost.content, 110) }}
+              </p>
+              <p class="last-byline">
+                <span>by</span>
+                <strong>{{ cat.lastPost.authorUsername }}</strong>
+                <span class="last-byline-sep">in</span>
+                <em class="last-thread">{{ cat.lastPost.topicTitle }}</em>
               </p>
             </div>
-            <div class="text-right">
-              <div
-                class="text-xs font-mono text-text-muted uppercase tracking-widest"
-              >
-                Last Activity
-              </div>
-              <div v-if="category.topics?.[0]" class="text-sm mt-1">
-                {{ formatDate(category.topics[0].updatedAt) }}
-              </div>
-              <div v-else class="text-sm mt-1 text-text-muted italic">
-                No topics yet
-              </div>
-            </div>
-          </div>
-        </NuxtLink>
-        <!-- Admin Actions -->
-        <div
-          v-if="user?.isAdmin"
-          class="flex justify-end gap-2 px-6 pb-4 -mt-2"
-        >
-          <button
-            @click.prevent="openEditModal(category)"
-            class="p-2 text-text-muted hover:text-text-strong hover:bg-fg-default/10 rounded transition-colors"
-            title="Edit category"
-          >
-            <Icon name="ph:pencil-bold" class="text-sm" />
-          </button>
-          <button
-            @click.prevent="confirmDelete(category)"
-            class="p-2 text-text-muted hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
-            title="Delete category"
-          >
-            <Icon name="ph:trash-bold" class="text-sm" />
-          </button>
-        </div>
-      </div>
-    </div>
+            <p v-else class="section-tile-empty">
+              <em>No dispatch yet — be the first to file.</em>
+            </p>
+          </NuxtLink>
 
-    <!-- Create Category Modal -->
-    <div
-      v-if="showCreateCategory"
-      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-    >
-      <div
-        class="bg-bg-secondary border border-border rounded-lg w-full max-w-md p-6 space-y-4"
-      >
-        <h3 class="text-lg font-bold">Create New Category</h3>
-        <div class="space-y-4">
-          <div>
-            <label
-              class="block text-[10px] uppercase tracking-widest text-text-muted mb-1.5 font-bold"
-              >Name</label
+          <div v-if="user?.isAdmin" class="section-tile-admin">
+            <button
+              type="button"
+              class="row-action"
+              title="Edit section"
+              @click.prevent="openEdit(cat)"
             >
-            <input
-              v-model="newCategory.name"
-              type="text"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors"
-              placeholder="General Discussion"
-            />
-          </div>
-          <div>
-            <label
-              class="block text-[10px] uppercase tracking-widest text-text-muted mb-1.5 font-bold"
-              >Description</label
+              <Icon name="ph:pencil-bold" />
+            </button>
+            <button
+              type="button"
+              class="row-action row-action--danger"
+              title="Delete section"
+              @click.prevent="confirmDelete(cat)"
             >
-            <textarea
-              v-model="newCategory.description"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors h-24 resize-none"
-              placeholder="Talk about anything here..."
-            ></textarea>
+              <Icon name="ph:trash-bold" />
+            </button>
           </div>
-          <div>
-            <label
-              class="block text-[10px] uppercase tracking-widest text-text-muted mb-1.5 font-bold"
-              >Order</label
-            >
-            <input
-              v-model.number="newCategory.order"
-              type="number"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors"
-            />
-          </div>
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button
-            @click="showCreateCategory = false"
-            class="flex-1 px-4 py-2 bg-bg-tertiary text-text-primary text-xs font-bold uppercase tracking-wider rounded hover:bg-fg-default/5 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            @click="handleCreateCategory"
-            :disabled="creating"
-            class="flex-1 px-4 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors disabled:opacity-50"
-          >
-            {{ creating ? 'Creating...' : 'Create' }}
-          </button>
-        </div>
+        </article>
       </div>
-    </div>
 
-    <!-- Edit Category Modal -->
-    <div
-      v-if="showEditCategory"
-      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-    >
-      <div
-        class="bg-bg-secondary border border-border rounded-lg w-full max-w-md p-6 space-y-4"
-      >
-        <h3 class="text-lg font-bold">Edit Category</h3>
-        <div class="space-y-4">
-          <div>
-            <label
-              class="block text-[10px] uppercase tracking-widest text-text-muted mb-1.5 font-bold"
-              >Name</label
-            >
-            <input
-              v-model="editCategory.name"
-              type="text"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors"
-            />
-          </div>
-          <div>
-            <label
-              class="block text-[10px] uppercase tracking-widest text-text-muted mb-1.5 font-bold"
-              >Description</label
-            >
-            <textarea
-              v-model="editCategory.description"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors h-24 resize-none"
-            ></textarea>
-          </div>
-          <div>
-            <label
-              class="block text-[10px] uppercase tracking-widest text-text-muted mb-1.5 font-bold"
-              >Order</label
-            >
-            <input
-              v-model.number="editCategory.order"
-              type="number"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-fg-default/40 transition-colors"
-            />
-          </div>
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button
-            @click="showEditCategory = false"
-            class="flex-1 px-4 py-2 bg-bg-tertiary text-text-primary text-xs font-bold uppercase tracking-wider rounded hover:bg-fg-default/5 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            @click="handleUpdateCategory"
-            :disabled="updating"
-            class="flex-1 px-4 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors disabled:opacity-50"
-          >
-            {{ updating ? 'Saving...' : 'Save' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div
-      v-if="showDeleteConfirm"
-      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-    >
-      <div
-        class="bg-bg-secondary border border-border rounded-lg w-full max-w-md p-6 space-y-4"
-      >
-        <h3 class="text-lg font-bold text-red-400">Delete Category</h3>
-        <p class="text-text-muted text-sm">
-          Are you sure you want to delete
-          <strong class="text-text-strong">{{ categoryToDelete?.name }}</strong
-          >? This will permanently delete all topics and posts within this
-          category.
+      <div v-else class="sections-empty">
+        <Icon name="ph:newspaper-clipping" class="empty-icon" />
+        <h3 class="empty-title font-display">The press is silent</h3>
+        <p class="empty-sub">
+          {{ user?.isAdmin
+            ? 'Open the inaugural section so members have a place to start.'
+            : 'No sections yet. An admin will set them up shortly.' }}
         </p>
-        <div class="flex gap-3 pt-2">
-          <button
-            @click="showDeleteConfirm = false"
-            class="flex-1 px-4 py-2 bg-bg-tertiary text-text-primary text-xs font-bold uppercase tracking-wider rounded hover:bg-fg-default/5 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            @click="handleDeleteCategory"
-            :disabled="deleting"
-            class="flex-1 px-4 py-2 bg-red-500 text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-red-600 transition-colors disabled:opacity-50"
-          >
-            {{ deleting ? 'Deleting...' : 'Delete' }}
-          </button>
-        </div>
+        <button
+          v-if="user?.isAdmin"
+          type="button"
+          class="ed-btn ed-btn--primary"
+          @click="openCreate"
+        >
+          <Icon name="ph:plus-bold" />
+          Open the first section
+        </button>
       </div>
-    </div>
+    </section>
+
+    <!-- ── Latest threads (cross-category ribbon) ──────────── -->
+    <section v-if="stats && stats.latest.length > 0" class="latest">
+      <header class="rule-head">
+        <span class="rule-eyebrow">Across the floor</span>
+        <span class="rule-line" />
+        <span class="rule-counter">{{ stats.latest.length }} latest</span>
+      </header>
+
+      <ol class="latest-list">
+        <li
+          v-for="(t, i) in stats.latest"
+          :key="t.id"
+          class="latest-item"
+        >
+          <NuxtLink :to="`/forum/topic/${t.id}`" class="latest-link">
+            <span class="latest-num">{{ formatIssueNumber(i + 1) }}</span>
+            <div class="latest-body">
+              <span
+                class="latest-section"
+                :style="{ '--cat-color': t.category.color || 'rgb(var(--fg-muted))' }"
+              >
+                <Icon :name="t.category.icon || 'ph:bookmark-simple'" />
+                {{ t.category.name }}
+              </span>
+              <h3 class="latest-title font-display">
+                <Icon
+                  v-if="t.isPinned"
+                  name="ph:push-pin-fill"
+                  class="latest-status latest-status--pin"
+                />
+                <Icon
+                  v-else-if="t.isLocked"
+                  name="ph:lock-fill"
+                  class="latest-status latest-status--lock"
+                />
+                {{ t.title }}
+              </h3>
+              <p class="latest-meta">
+                <span>by</span>
+                <strong>{{ t.author.username }}</strong>
+                <span class="latest-meta-sep">·</span>
+                <span>{{ formatAge(t.updatedAt) }}</span>
+                <span class="latest-meta-sep">·</span>
+                <span>{{ pluralReplies(t.replyCount) }}</span>
+              </p>
+            </div>
+            <Icon name="ph:arrow-right-bold" class="latest-arrow" />
+          </NuxtLink>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ── Modals (create/edit/delete) ─────────────────────── -->
+    <Modal v-model="showCreate" title="Open a new section" size="md">
+      <CategoryForm v-model="createForm" />
+      <template #footer>
+        <button type="button" class="ed-btn" @click="showCreate = false">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="ed-btn ed-btn--primary"
+          :disabled="creating || !createForm.name.trim()"
+          @click="handleCreate"
+        >
+          <Icon
+            v-if="creating"
+            name="ph:circle-notch"
+            class="animate-spin"
+          />
+          {{ creating ? 'Opening…' : 'Open section' }}
+        </button>
+      </template>
+    </Modal>
+
+    <Modal v-model="showEdit" title="Edit section" size="md">
+      <CategoryForm v-model="editForm" />
+      <template #footer>
+        <button type="button" class="ed-btn" @click="showEdit = false">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="ed-btn ed-btn--primary"
+          :disabled="updating || !editForm.name.trim()"
+          @click="handleUpdate"
+        >
+          <Icon
+            v-if="updating"
+            name="ph:circle-notch"
+            class="animate-spin"
+          />
+          {{ updating ? 'Saving…' : 'Save changes' }}
+        </button>
+      </template>
+    </Modal>
+
+    <Modal v-model="showDelete" title="Delete section" size="sm">
+      <p class="delete-blurb">
+        About to permanently shutter
+        <strong>{{ categoryToDelete?.name }}</strong>. Every thread and every
+        reply within it disappears with it.
+      </p>
+      <template #footer>
+        <button type="button" class="ed-btn" @click="showDelete = false">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="ed-btn ed-btn--danger"
+          :disabled="deleting"
+          @click="handleDelete"
+        >
+          <Icon
+            v-if="deleting"
+            name="ph:circle-notch"
+            class="animate-spin"
+          />
+          {{ deleting ? 'Removing…' : 'Delete section' }}
+        </button>
+      </template>
+    </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
+import Modal from '~/components/Modal.vue';
+import CategoryForm from '~/components/forum/CategoryForm.vue';
+import { formatAge } from '~/utils/format';
+
 interface ForumCategory {
   id: string;
   name: string;
   description: string | null;
+  color: string | null;
+  icon: string | null;
   order: number;
-  topics?: { updatedAt: string }[];
+  topicCount: number;
+  postCount: number;
+  lastTopic: {
+    id: string;
+    title: string;
+    updatedAt: string;
+    isPinned: boolean;
+    isLocked: boolean;
+    authorUsername: string;
+  } | null;
+  lastPost: {
+    topicId: string;
+    topicTitle: string;
+    content: string;
+    createdAt: string;
+    authorUsername: string;
+  } | null;
+}
+
+interface ForumStats {
+  totals: {
+    categories: number;
+    topics: number;
+    posts: number;
+    contributors: number;
+  };
+  latest: Array<{
+    id: string;
+    title: string;
+    isPinned: boolean;
+    isLocked: boolean;
+    updatedAt: string;
+    category: {
+      id: string;
+      name: string;
+      color: string | null;
+      icon: string | null;
+    };
+    author: { id: string; username: string };
+    replyCount: number;
+  }>;
+}
+
+interface CategoryDraft {
+  id?: string;
+  name: string;
+  description: string;
+  color: string | null;
+  icon: string | null;
+  order: number;
 }
 
 const { user } = useUserSession();
+const notifications = useNotificationStore();
+const confirm = useConfirm();
+
 const {
   data: categories,
-  pending,
-  refresh,
+  pending: catPending,
+  refresh: refreshCategories,
 } = await useFetch<ForumCategory[]>('/api/forum/categories');
 
-// Create
-const showCreateCategory = ref(false);
-const creating = ref(false);
-const newCategory = ref({
-  name: '',
-  description: '',
-  order: 0,
+const {
+  data: stats,
+  pending: statsPending,
+  refresh: refreshStats,
+} = await useFetch<ForumStats>('/api/forum/stats');
+
+useHead({ title: 'Forum' });
+
+// ── Edition number: stable per day, derived from the issue's "first
+// publication". We anchor at the oldest known activity (or today) and
+// number issues by ISO week so the masthead reads like a real periodical.
+const issueNumber = computed(() => {
+  const since = new Date(2026, 0, 1).getTime();
+  const week = Math.floor((Date.now() - since) / (7 * 86400_000)) + 1;
+  return String(Math.max(1, week)).padStart(2, '0');
+});
+const todayLabel = computed(() =>
+  new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  })
+);
+
+const lastActivity = computed(() => {
+  const cands: number[] = [];
+  for (const c of categories.value ?? []) {
+    if (c.lastPost) cands.push(new Date(c.lastPost.createdAt).getTime());
+  }
+  if (cands.length === 0) return null;
+  return new Date(Math.max(...cands)).toISOString();
 });
 
-async function handleCreateCategory() {
-  if (!newCategory.value.name) return;
+// ── Helpers ──────────────────────────────────────────────────
+function formatIssueNumber(n: number): string {
+  return String(n).padStart(2, '0');
+}
+function excerpt(text: string, max: number): string {
+  const t = (text || '').replace(/\s+/g, ' ').trim();
+  return t.length > max ? `${t.slice(0, max)}…` : t;
+}
+function pluralReplies(n: number): string {
+  return n === 1 ? '1 reply' : `${n} replies`;
+}
+function resolveIcon(cat: ForumCategory): string {
+  return cat.icon || 'ph:newspaper-clipping-bold';
+}
+function tileStyle(cat: ForumCategory) {
+  const accent = cat.color || 'rgb(var(--fg-muted))';
+  return {
+    '--accent': accent,
+  } as Record<string, string>;
+}
 
+// ── Mutations ────────────────────────────────────────────────
+const showCreate = ref(false);
+const creating = ref(false);
+const createForm = ref<CategoryDraft>({
+  name: '',
+  description: '',
+  color: '#9ca3af',
+  icon: 'ph:newspaper-clipping-bold',
+  order: 0,
+});
+function openCreate() {
+  createForm.value = {
+    name: '',
+    description: '',
+    color: '#9ca3af',
+    icon: 'ph:newspaper-clipping-bold',
+    order: (categories.value?.length ?? 0),
+  };
+  showCreate.value = true;
+}
+async function handleCreate() {
+  if (!createForm.value.name.trim()) return;
   creating.value = true;
   try {
     await $fetch('/api/forum/categories', {
       method: 'POST',
-      body: newCategory.value,
+      body: {
+        name: createForm.value.name.trim(),
+        description: createForm.value.description?.trim() || null,
+        color: createForm.value.color,
+        icon: createForm.value.icon,
+        order: createForm.value.order,
+      },
     });
-    showCreateCategory.value = false;
-    newCategory.value = { name: '', description: '', order: 0 };
-    await refresh();
-  } catch (e) {
-    console.error(e);
+    showCreate.value = false;
+    notifications.success('Section opened');
+    await Promise.all([refreshCategories(), refreshStats()]);
+  } catch (e: any) {
+    notifications.error(e?.data?.message || 'Could not create section');
   } finally {
     creating.value = false;
   }
 }
 
-// Edit
-const showEditCategory = ref(false);
+const showEdit = ref(false);
 const updating = ref(false);
-const editCategory = ref({
-  id: '',
+const editForm = ref<CategoryDraft>({
   name: '',
   description: '',
+  color: null,
+  icon: null,
   order: 0,
 });
-
-function openEditModal(category: ForumCategory) {
-  editCategory.value = {
-    id: category.id,
-    name: category.name,
-    description: category.description || '',
-    order: category.order,
+function openEdit(cat: ForumCategory) {
+  editForm.value = {
+    id: cat.id,
+    name: cat.name,
+    description: cat.description ?? '',
+    color: cat.color,
+    icon: cat.icon,
+    order: cat.order,
   };
-  showEditCategory.value = true;
+  showEdit.value = true;
 }
-
-async function handleUpdateCategory() {
-  if (!editCategory.value.name) return;
-
+async function handleUpdate() {
+  if (!editForm.value.id || !editForm.value.name.trim()) return;
   updating.value = true;
   try {
-    await $fetch(`/api/forum/categories/${editCategory.value.id}` as '/api/forum/categories/:id', {
-      method: 'PUT',
-      body: {
-        name: editCategory.value.name,
-        description: editCategory.value.description,
-        order: editCategory.value.order,
-      },
-    } as any);
-    showEditCategory.value = false;
-    await refresh();
-  } catch (e) {
-    console.error(e);
+    await $fetch(
+      `/api/forum/categories/${editForm.value.id}` as '/api/forum/categories/:id',
+      {
+        method: 'PUT',
+        body: {
+          name: editForm.value.name.trim(),
+          description: editForm.value.description?.trim() || null,
+          color: editForm.value.color,
+          icon: editForm.value.icon,
+          order: editForm.value.order,
+        },
+      } as any
+    );
+    showEdit.value = false;
+    notifications.success('Section updated');
+    await refreshCategories();
+  } catch (e: any) {
+    notifications.error(e?.data?.message || 'Could not save section');
   } finally {
     updating.value = false;
   }
 }
 
-// Delete
-const showDeleteConfirm = ref(false);
+const showDelete = ref(false);
 const deleting = ref(false);
 const categoryToDelete = ref<ForumCategory | null>(null);
-
-function confirmDelete(category: ForumCategory) {
-  categoryToDelete.value = category;
-  showDeleteConfirm.value = true;
+function confirmDelete(cat: ForumCategory) {
+  categoryToDelete.value = cat;
+  showDelete.value = true;
 }
-
-async function handleDeleteCategory() {
+async function handleDelete() {
   if (!categoryToDelete.value) return;
-
   deleting.value = true;
   try {
-    await $fetch(`/api/forum/categories/${categoryToDelete.value.id}` as '/api/forum/categories/:id', {
-      method: 'DELETE',
-    } as any);
-    showDeleteConfirm.value = false;
+    await $fetch(
+      `/api/forum/categories/${categoryToDelete.value.id}` as '/api/forum/categories/:id',
+      { method: 'DELETE' } as any
+    );
+    showDelete.value = false;
     categoryToDelete.value = null;
-    await refresh();
-  } catch (e) {
-    console.error(e);
+    notifications.success('Section deleted');
+    await Promise.all([refreshCategories(), refreshStats()]);
+  } catch (e: any) {
+    notifications.error(e?.data?.message || 'Could not delete section');
   } finally {
     deleting.value = false;
   }
 }
-
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 </script>
+
+<style scoped>
+/* =============================================================================
+ * Forum — newsroom edition
+ *
+ * Direction: editorial broadsheet × terminal BBS. The page is built around
+ * a serif masthead ("THE FORUM"), a horizontal stat ribbon, then a grid
+ * of section tiles that read like a magazine table of contents. A
+ * "latest" ribbon at the bottom mirrors a wire-feed.
+ *
+ * Tokens reused: `--bg-base/surface/elevated`, `--fg-strong/muted/subtle`,
+ * `--line-default/strong`, `--accent`, `--header-h`. The serif comes from
+ * the `.font-display` utility (Fraunces) defined in main.css.
+ * ============================================================================= */
+
+.forum-shell {
+  --rule: rgb(var(--line-default));
+  --rule-strong: rgb(var(--line-strong));
+  --paper: rgb(var(--bg-base));
+  --ink: rgb(var(--fg-strong));
+  --ink-soft: rgb(var(--fg-default));
+  --ink-fade: rgb(var(--fg-muted));
+  --ink-faint: rgb(var(--fg-faint));
+
+  display: flex;
+  flex-direction: column;
+  gap: 3.5rem;
+  padding-bottom: 4rem;
+}
+
+/* ─── Masthead ──────────────────────────────────────────────────── */
+.masthead {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 2rem 1.5rem 2.25rem;
+  border-top: 4px solid var(--ink);
+  border-bottom: 1px double var(--rule-strong);
+  background:
+    radial-gradient(1200px 200px at 50% 0%, rgb(var(--fg-default) / 0.03), transparent 60%),
+    rgb(var(--bg-surface) / 0.4);
+  overflow: hidden;
+}
+.masthead::before {
+  /* Subtle hairline above the bottom rule, in the spirit of a folio
+     dotted underline used in vintage print. */
+  content: '';
+  position: absolute;
+  inset-inline: 1.5rem;
+  bottom: 0;
+  height: 1px;
+  background-image: linear-gradient(to right, var(--rule) 50%, transparent 0);
+  background-size: 6px 1px;
+  background-repeat: repeat-x;
+}
+.masthead-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-fade);
+}
+.masthead-eyebrow-sep {
+  color: var(--ink-faint);
+}
+.masthead-title {
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+  color: var(--ink);
+  font-size: clamp(3rem, 9vw, 6.5rem);
+  margin: 0;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+}
+.masthead-tag {
+  font-size: 1rem;
+  color: var(--ink-soft);
+  max-width: 48ch;
+  line-height: 1.55;
+}
+.masthead-tag em {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  color: var(--ink-fade);
+}
+
+.masthead-stats {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+  gap: 0;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.masthead-stats li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border-right: 1px solid var(--rule);
+}
+.masthead-stats li:last-child {
+  border-right: 0;
+}
+.masthead-stats.is-loading .stat-val,
+.masthead-stats.is-loading .stat-val-mono {
+  opacity: 0.4;
+}
+.stat-key {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.stat-val {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 1.65rem;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  font-variation-settings: 'opsz' 96;
+}
+.stat-val-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+.stat-pulse {
+  position: relative;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+}
+.pulse-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 9999px;
+  background: rgb(var(--online));
+  box-shadow: 0 0 0 0 rgb(var(--online) / 0.6);
+  animation: pulse 2.4s infinite ease-out;
+}
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgb(var(--online) / 0.55); }
+  60%  { box-shadow: 0 0 0 0.65rem rgb(var(--online) / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(var(--online) / 0); }
+}
+.stat-pulse .stat-key {
+  flex: none;
+}
+.stat-pulse .stat-val-mono {
+  margin-left: auto;
+}
+
+.masthead-tools {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ─── Editorial buttons ─────────────────────────────────────── */
+.ed-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: 1px solid var(--rule-strong);
+  background: rgb(var(--bg-elevated));
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+.ed-btn:hover:not(:disabled) {
+  background: var(--ink);
+  color: rgb(var(--accent-fg));
+  border-color: var(--ink);
+}
+.ed-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ed-btn--primary {
+  background: var(--ink);
+  color: rgb(var(--accent-fg));
+  border-color: var(--ink);
+}
+.ed-btn--primary:hover:not(:disabled) {
+  background: rgb(var(--fg-default));
+  border-color: rgb(var(--fg-default));
+}
+.ed-btn--danger {
+  background: rgb(var(--danger));
+  color: #fff;
+  border-color: rgb(var(--danger));
+}
+.ed-btn--danger:hover:not(:disabled) {
+  background: rgb(var(--danger) / 0.85);
+  border-color: rgb(var(--danger) / 0.85);
+}
+
+/* ─── Rule head (used between sections) ───────────────────── */
+.rule-head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+.rule-eyebrow {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.rule-line {
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+.rule-counter {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+/* ─── Section tiles ─────────────────────────────────────────── */
+.sections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 1rem;
+}
+.section-tile {
+  position: relative;
+  background: rgb(var(--bg-surface));
+  border: 1px solid var(--rule);
+  border-left: 3px solid color-mix(in srgb, var(--accent) 80%, transparent);
+  border-radius: 4px;
+  transition: border-color 0.18s, transform 0.18s;
+}
+.section-tile:hover {
+  border-color: var(--rule-strong);
+  border-left-color: var(--accent);
+  transform: translateY(-1px);
+}
+.section-tile--skeleton {
+  min-height: 12rem;
+  border-left-color: var(--rule);
+  background: linear-gradient(
+    90deg,
+    rgb(var(--bg-surface)) 0%,
+    rgb(var(--bg-elevated)) 50%,
+    rgb(var(--bg-surface)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.section-tile-cover {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.4rem 1.5rem 1.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+.section-tile-id {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.section-tile-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.section-tile-title {
+  margin: 0;
+  font-size: 1.65rem;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  font-weight: 700;
+  font-variation-settings: 'opsz' 96, 'SOFT' 50;
+}
+.section-tile-desc {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  margin: 0;
+}
+.section-tile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+.section-tile-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.75rem;
+  border-right: 1px solid var(--rule);
+}
+.section-tile-stats > div:last-child {
+  border-right: 0;
+}
+.section-tile-stats dt {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.section-tile-stats dd {
+  margin: 0;
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--ink);
+  font-variation-settings: 'opsz' 48;
+}
+.section-tile-last {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.last-quote {
+  position: relative;
+  margin: 0;
+  padding-left: 1.4rem;
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  font-variation-settings: 'opsz' 14;
+}
+.last-quote-mark {
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+.last-byline {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-fade);
+  text-transform: uppercase;
+}
+.last-byline strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+.last-byline-sep {
+  color: var(--ink-faint);
+}
+.last-thread {
+  font-style: italic;
+  color: var(--ink-soft);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.section-tile-empty {
+  margin: 0;
+  font-family: 'Fraunces', serif;
+  color: var(--ink-faint);
+  font-size: 0.95rem;
+}
+.section-tile-admin {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.3rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.section-tile:hover .section-tile-admin,
+.section-tile:focus-within .section-tile-admin {
+  opacity: 1;
+}
+.row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 4px;
+  border: 1px solid var(--rule);
+  background: rgb(var(--bg-elevated));
+  color: var(--ink-fade);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.row-action:hover {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+.row-action--danger:hover {
+  border-color: rgb(var(--danger) / 0.5);
+  color: rgb(var(--danger));
+  background: rgb(var(--danger) / 0.08);
+}
+@media (max-width: 640px) {
+  .section-tile-admin {
+    opacity: 1;
+  }
+}
+
+/* ─── Sections empty state ─────────────────────────────────── */
+.sections-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  border: 1px dashed var(--rule);
+  border-radius: 4px;
+}
+.empty-icon {
+  font-size: 2.5rem;
+  color: var(--ink-faint);
+}
+.empty-title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variation-settings: 'opsz' 96;
+}
+.empty-sub {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink-fade);
+  max-width: 36ch;
+}
+
+/* ─── Latest ribbon ─────────────────────────────────────────── */
+.latest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--rule);
+}
+.latest-item {
+  border-bottom: 1px solid var(--rule);
+}
+.latest-link {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 0.5rem;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.12s;
+}
+.latest-link:hover {
+  background: rgb(var(--fg-default) / 0.03);
+}
+.latest-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-faint);
+}
+.latest-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.latest-section {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cat-color);
+  width: max-content;
+}
+.latest-title {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variation-settings: 'opsz' 48;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.latest-status {
+  font-size: 0.9rem;
+}
+.latest-status--pin { color: var(--ink); }
+.latest-status--lock { color: var(--ink-fade); }
+.latest-meta {
+  margin: 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-fade);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+.latest-meta strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+.latest-meta-sep {
+  color: var(--ink-faint);
+}
+.latest-arrow {
+  font-size: 1rem;
+  color: var(--ink-faint);
+  transition: transform 0.18s, color 0.18s;
+}
+.latest-link:hover .latest-arrow {
+  color: var(--ink);
+  transform: translateX(2px);
+}
+
+/* ─── Modal helpers ─────────────────────────────────────────── */
+.delete-blurb {
+  margin: 0;
+  font-family: 'Fraunces', serif;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.delete-blurb strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .masthead {
+    padding: 1.5rem 1rem 1.75rem;
+  }
+  .masthead-stats li {
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .masthead-stats li:last-child {
+    border-bottom: 0;
+  }
+  .latest-link {
+    grid-template-columns: auto 1fr;
+  }
+  .latest-arrow {
+    display: none;
+  }
+}
+</style>

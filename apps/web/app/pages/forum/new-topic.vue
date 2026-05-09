@@ -1,82 +1,180 @@
 <template>
-  <div class="max-w-3xl mx-auto space-y-6">
-    <div
-      class="flex items-center gap-2 text-text-muted text-xs font-mono uppercase tracking-widest"
-    >
-      <NuxtLink to="/forum" class="hover:text-text-strong transition-colors"
-        >Forum</NuxtLink
+  <div class="compose-shell">
+    <!-- Crumb -->
+    <nav class="compose-crumb">
+      <NuxtLink to="/forum" class="compose-crumb-link">The Forum</NuxtLink>
+      <Icon name="ph:caret-right-bold" class="compose-crumb-sep" />
+      <NuxtLink
+        v-if="selectedCategory"
+        :to="`/forum/category/${selectedCategory.id}`"
+        class="compose-crumb-link"
       >
-      <Icon name="ph:caret-right" />
-      <span>New Topic</span>
-    </div>
+        {{ selectedCategory.name }}
+      </NuxtLink>
+      <Icon
+        v-if="selectedCategory"
+        name="ph:caret-right-bold"
+        class="compose-crumb-sep"
+      />
+      <span class="compose-crumb-leaf">New thread</span>
+    </nav>
 
-    <h1 class="text-2xl font-bold tracking-tight">Create New Topic</h1>
+    <!-- Hero -->
+    <header class="compose-head">
+      <p class="compose-eyebrow">
+        Filing for
+        <span class="compose-eyebrow-cat">
+          <Icon
+            v-if="selectedCategory?.icon"
+            :name="selectedCategory.icon"
+            class="compose-eyebrow-icon"
+            :style="{ color: selectedCategory.color || 'inherit' }"
+          />
+          {{ selectedCategory?.name || '— pick a section —' }}
+        </span>
+      </p>
+      <h1 class="compose-title font-display">Open a new thread</h1>
+      <p class="compose-blurb">
+        State your case, drop your dispatch, raise your question — the floor
+        is yours. <em>Markdown light: **bold**, *italics*, `code`, &gt; quote, ``` fences ```.</em>
+      </p>
+    </header>
 
-    <div class="bg-bg-secondary border border-border rounded-lg p-8 space-y-6">
-      <div class="space-y-2">
-        <label
-          class="block text-[10px] uppercase tracking-widest text-text-muted font-bold"
-          >Category</label
-        >
-        <select
-          v-model="form.categoryId"
-          class="w-full bg-bg-tertiary border border-border rounded px-4 py-2.5 text-sm focus:outline-none focus:border-fg-default/40 transition-colors appearance-none"
-        >
-          <option value="" disabled>Select a category</option>
-          <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-            {{ cat.name }}
-          </option>
-        </select>
-      </div>
+    <!-- Form + preview -->
+    <div class="compose-grid">
+      <form class="compose-form" @submit.prevent="handleSubmit">
+        <div class="compose-row">
+          <label class="compose-label">
+            <span>Section</span>
+            <div class="cat-picker">
+              <button
+                v-for="cat in categories ?? []"
+                :key="cat.id"
+                type="button"
+                class="cat-tile"
+                :class="{ 'cat-tile--on': form.categoryId === cat.id }"
+                :style="catTileStyle(cat)"
+                @click="form.categoryId = cat.id"
+              >
+                <Icon :name="cat.icon || 'ph:newspaper-clipping-bold'" />
+                <span>{{ cat.name }}</span>
+              </button>
+            </div>
+          </label>
+        </div>
 
-      <div class="space-y-2">
-        <label
-          class="block text-[10px] uppercase tracking-widest text-text-muted font-bold"
-          >Title</label
-        >
-        <input
-          v-model="form.title"
-          type="text"
-          class="w-full bg-bg-tertiary border border-border rounded px-4 py-2.5 text-sm focus:outline-none focus:border-fg-default/40 transition-colors"
-          placeholder="What's on your mind?"
-        />
-      </div>
+        <div class="compose-row">
+          <label class="compose-label">
+            <span>Headline</span>
+            <input
+              v-model="form.title"
+              type="text"
+              class="compose-title-input font-display"
+              placeholder="Type a clear, specific headline."
+              maxlength="200"
+              autocomplete="off"
+            />
+            <span class="compose-counter">{{ form.title.length }} / 200</span>
+          </label>
+        </div>
 
-      <div class="space-y-2">
-        <label
-          class="block text-[10px] uppercase tracking-widest text-text-muted font-bold"
-          >Content</label
-        >
-        <textarea
-          v-model="form.content"
-          class="w-full bg-bg-tertiary border border-border rounded px-4 py-3 text-sm focus:outline-none focus:border-fg-default/40 transition-colors h-64 resize-none"
-          placeholder="Write your post content here..."
-        ></textarea>
-      </div>
+        <div class="compose-row">
+          <label class="compose-label">
+            <span>Lede &amp; body</span>
+            <textarea
+              v-model="form.content"
+              class="compose-input"
+              placeholder="Write the seed post. Markdown formatting is supported."
+              maxlength="50000"
+              rows="14"
+            />
+            <span class="compose-counter">
+              {{ form.content.length }} / 50000
+            </span>
+          </label>
+        </div>
 
-      <div class="flex justify-end gap-4 pt-4">
-        <button
-          @click="router.back()"
-          class="px-6 py-2 bg-bg-tertiary text-text-primary text-xs font-bold uppercase tracking-wider rounded hover:bg-fg-default/5 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          @click="handleSubmit"
-          :disabled="!isFormValid || submitting"
-          class="px-8 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors disabled:opacity-50"
-        >
-          {{ submitting ? 'Creating...' : 'Create Topic' }}
-        </button>
-      </div>
+        <div class="compose-actions">
+          <button type="button" class="ed-btn" @click="router.back()">
+            Discard
+          </button>
+          <button
+            type="submit"
+            class="ed-btn ed-btn--primary"
+            :disabled="!isValid || submitting"
+          >
+            <Icon
+              v-if="submitting"
+              name="ph:circle-notch"
+              class="animate-spin"
+            />
+            <Icon v-else name="ph:feather-bold" />
+            {{ submitting ? 'Filing…' : 'File the thread' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- Live preview — mirrors the published article header + body. -->
+      <aside class="compose-preview">
+        <p class="preview-eyebrow">Live preview</p>
+        <div class="preview-card">
+          <p
+            class="preview-section"
+            :style="{
+              '--cat-color':
+                selectedCategory?.color || 'rgb(var(--fg-muted))',
+            }"
+          >
+            <Icon
+              :name="selectedCategory?.icon || 'ph:bookmark-simple'"
+              class="preview-section-icon"
+            />
+            {{ selectedCategory?.name || 'Pick a section' }}
+          </p>
+          <h2 class="preview-title font-display">
+            {{ form.title.trim() || 'Your headline appears here' }}
+          </h2>
+          <p class="preview-byline">
+            <span>By</span>
+            <strong>{{ user?.username || 'you' }}</strong>
+            <span class="preview-byline-sep">·</span>
+            <span>just now</span>
+          </p>
+          <PostBody
+            v-if="form.content.trim()"
+            :content="form.content"
+            class="preview-body"
+          />
+          <p v-else class="preview-empty">
+            <em>The body of your post will render here, formatting included.</em>
+          </p>
+        </div>
+      </aside>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import PostBody from '~/components/forum/PostBody.vue';
+
+interface Category {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+}
+
 const router = useRouter();
 const route = useRoute();
-const { data: categories } = await useFetch('/api/forum/categories');
+const { user } = useUserSession();
+const notifications = useNotificationStore();
+
+const { data: categories } = await useFetch<Category[]>(
+  '/api/forum/categories'
+);
+
+useHead({ title: 'New thread' });
 
 const form = ref({
   categoryId: (route.query.categoryId as string) || '',
@@ -86,28 +184,393 @@ const form = ref({
 
 const submitting = ref(false);
 
-const isFormValid = computed(() => {
-  return (
-    form.value.categoryId &&
-    form.value.title.trim() &&
-    form.value.content.trim()
-  );
-});
+const selectedCategory = computed(() =>
+  (categories.value ?? []).find((c) => c.id === form.value.categoryId) ?? null
+);
+
+const isValid = computed(
+  () =>
+    Boolean(form.value.categoryId) &&
+    form.value.title.trim().length > 0 &&
+    form.value.content.trim().length > 0
+);
+
+function catTileStyle(cat: Category) {
+  const accent = cat.color || 'rgb(var(--fg-muted))';
+  return { '--accent': accent } as Record<string, string>;
+}
 
 async function handleSubmit() {
-  if (!isFormValid.value) return;
-
+  if (!isValid.value) return;
   submitting.value = true;
   try {
-    const topic = await $fetch('/api/forum/topics', {
+    const topic = await $fetch<{ id: string } | null>('/api/forum/topics', {
       method: 'POST',
-      body: form.value,
+      body: {
+        categoryId: form.value.categoryId,
+        title: form.value.title.trim(),
+        content: form.value.content,
+      },
     });
-    router.push(`/forum/topic/${topic?.id}`);
-  } catch (e) {
-    console.error(e);
+    if (topic?.id) {
+      router.push(`/forum/topic/${topic.id}`);
+    }
+  } catch (e: any) {
+    notifications.error(e?.data?.message || 'Could not file the thread');
   } finally {
     submitting.value = false;
   }
 }
 </script>
+
+<style scoped>
+.compose-shell {
+  --rule: rgb(var(--line-default));
+  --rule-strong: rgb(var(--line-strong));
+  --ink: rgb(var(--fg-strong));
+  --ink-soft: rgb(var(--fg-default));
+  --ink-fade: rgb(var(--fg-muted));
+  --ink-faint: rgb(var(--fg-faint));
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-bottom: 4rem;
+  max-width: 78rem;
+  margin: 0 auto;
+}
+
+.compose-crumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-fade);
+  flex-wrap: wrap;
+}
+.compose-crumb-link {
+  color: var(--ink-fade);
+  text-decoration: none;
+  transition: color 0.12s;
+}
+.compose-crumb-link:hover {
+  color: var(--ink);
+}
+.compose-crumb-sep {
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+}
+.compose-crumb-leaf {
+  color: var(--ink);
+}
+
+.compose-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.25rem 0 1.5rem;
+  border-bottom: 1px double var(--rule-strong);
+}
+.compose-eyebrow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-fade);
+  margin: 0;
+}
+.compose-eyebrow-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink);
+}
+.compose-eyebrow-icon {
+  font-size: 0.95rem;
+}
+.compose-title {
+  margin: 0;
+  font-size: clamp(2.25rem, 5.5vw, 3.5rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-weight: 800;
+  color: var(--ink);
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+}
+.compose-blurb {
+  margin: 0;
+  font-family: 'Fraunces', serif;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 60ch;
+  font-variation-settings: 'opsz' 14;
+}
+.compose-blurb em {
+  color: var(--ink-fade);
+  font-style: italic;
+}
+
+.compose-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 960px) {
+  .compose-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ─── Form column ────────────────────────────────────────── */
+.compose-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem 1.4rem 1.5rem;
+  background: rgb(var(--bg-surface));
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--ink);
+  border-radius: 4px;
+}
+.compose-row {
+  display: flex;
+  flex-direction: column;
+}
+.compose-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.cat-picker {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.cat-tile {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: rgb(var(--bg-elevated));
+  color: var(--ink-fade);
+  cursor: pointer;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: all 0.12s;
+}
+.cat-tile:hover {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+.cat-tile--on {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.cat-tile--on > svg {
+  color: var(--accent);
+}
+
+.compose-title-input {
+  width: 100%;
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  background: rgb(var(--bg-base));
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.75rem 0.95rem;
+  font-variation-settings: 'opsz' 48;
+}
+.compose-title-input:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.compose-input {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+  background: rgb(var(--bg-base));
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.85rem 1rem;
+  color: var(--ink);
+  resize: vertical;
+}
+.compose-input:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+.compose-counter {
+  align-self: flex-end;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.compose-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--rule);
+}
+
+/* ─── Preview column ─────────────────────────────────────── */
+.compose-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  position: sticky;
+  top: calc(var(--header-h) + 1rem);
+  align-self: start;
+}
+.preview-eyebrow {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-fade);
+  margin: 0;
+}
+.preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.4rem 1.5rem;
+  background:
+    radial-gradient(800px 200px at 0 0, rgb(var(--fg-default) / 0.04), transparent 60%),
+    rgb(var(--bg-surface));
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  border-top: 4px solid var(--ink);
+}
+.preview-section {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cat-color);
+  width: max-content;
+}
+.preview-section-icon {
+  font-size: 0.95rem;
+}
+.preview-title {
+  margin: 0;
+  font-size: clamp(1.55rem, 3.5vw, 2.2rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  color: var(--ink);
+  font-variation-settings: 'opsz' 96, 'SOFT' 30;
+  word-break: break-word;
+}
+.preview-byline {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-fade);
+}
+.preview-byline strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+.preview-byline-sep {
+  color: var(--ink-faint);
+}
+.preview-body {
+  border-top: 1px solid var(--rule);
+  padding-top: 0.75rem;
+}
+.preview-empty {
+  margin: 0;
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  color: var(--ink-faint);
+  font-size: 0.95rem;
+  font-variation-settings: 'opsz' 14;
+}
+
+/* ─── Editorial buttons ──────────────────────────────────── */
+.ed-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: 1px solid var(--rule-strong);
+  background: rgb(var(--bg-elevated));
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+.ed-btn:hover:not(:disabled) {
+  background: var(--ink);
+  color: rgb(var(--accent-fg));
+  border-color: var(--ink);
+}
+.ed-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ed-btn--primary {
+  background: var(--ink);
+  color: rgb(var(--accent-fg));
+  border-color: var(--ink);
+}
+.ed-btn--primary:hover:not(:disabled) {
+  background: rgb(var(--fg-default));
+  border-color: rgb(var(--fg-default));
+}
+</style>
