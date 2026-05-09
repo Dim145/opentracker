@@ -83,6 +83,15 @@ export function useTmdbPosters() {
   }
 
   async function fetchOne(tmdbBare: string, type: PosterTypeHint) {
+    // Posters are a client-only concern. If we run during SSR the
+    // `$fetch('/api/metadata/lookup')` call lacks the user cookie
+    // (Nitro doesn't forward it through unless we explicitly opt
+    // in) and would return 401; meanwhile we'd mark the key as
+    // `loading` in the useState map and ship that to the browser.
+    // Hydration then skips the fetch (cache hit) and the skeleton
+    // spins forever. Bail early so the first real fetch happens
+    // on the client, with a session cookie attached.
+    if (import.meta.server) return;
     if (tmdbDisabled.value) return;
     const key = cacheKey(tmdbBare, type);
     if (postersMap.value.has(key)) return;
