@@ -143,8 +143,11 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 3. Torrent must exist and be active
-	if _, err := s.db.Q.FindActiveTorrentByInfoHash(ctx, infoHashHex); err != nil {
+	// 3. Torrent must exist and be active. We capture the row's id —
+	// previously discarded — so step 6 can persist per-(user, torrent)
+	// byte deltas into hnr_tracking without an extra round-trip.
+	torrentID, err := s.db.Q.FindActiveTorrentByInfoHash(ctx, infoHashHex)
+	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeFailure(w, "Torrent not found or inactive")
 			return
@@ -174,19 +177,47 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 6. Persist user stats deltas (best-effort: log but don't reject)
+	// 6. Persist user stats deltas (best-effort: log but don't reject).
+	// We bump both the global counter (`users.uploaded/downloaded`) and
+	// the per-torrent counter inside hnr_tracking. The latter creates a
+	// tracking row on the first non-zero delta so the Downloads page in
+	// the web UI can show a torrent before the user has completed it.
 	if deltaUp > 0 || deltaDown > 0 {
-		err := s.db.Q.IncrementUserStats(ctx, queries.IncrementUserStatsParams{
+		if err := s.db.Q.IncrementUserStats(ctx, queries.IncrementUserStatsParams{
 			Uploaded:   deltaUp,
 			Downloaded: deltaDown,
 			Passkey:    req.Passkey,
-		})
-		if err != nil {
+		}); err != nil {
 			slog.Warn("failed to increment user stats",
 				"info_hash", infoHashHex,
 				"peer_id", peerHex,
 				"event", req.Event.String(),
 				"err", err)
+		}
+		// On the first announce for this (user, torrent) pair we'll
+		// create the row; any cached required_seed_time keeps us
+		// consistent with what the HnR pass would have written. Both
+		// errors (id gen, db) are non-fatal — we just log and move on.
+		newID, idErr := dbpkg.NewID()
+		if idErr != nil {
+			slog.Warn("hnr id generation (bytes)",
+				"info_hash", infoHashHex, "err", idErr)
+		} else {
+			required, _ := s.db.GetHnrRequiredSeedTime(ctx)
+			if err := s.db.Q.AccumulateUserTorrentBytes(ctx, queries.AccumulateUserTorrentBytesParams{
+				ID:               newID,
+				UserID:           user.ID,
+				TorrentID:        torrentID,
+				RequiredSeedTime: required,
+				Uploaded:         deltaUp,
+				Downloaded:       deltaDown,
+			}); err != nil {
+				slog.Warn("failed to accumulate per-torrent bytes",
+					"info_hash", infoHashHex,
+					"peer_id", peerHex,
+					"event", req.Event.String(),
+					"err", err)
+			}
 		}
 	}
 

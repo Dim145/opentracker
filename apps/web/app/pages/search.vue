@@ -449,16 +449,11 @@ interface TorrentWithStats {
   };
 }
 
-interface TmdbPoster {
-  title: string;
-  year: number | null;
-  posterUrl: string | null;
-  backdropUrl: string | null;
-  overview: string | null;
-  voteAverage: number | null;
-  type: 'movie' | 'tv';
-  url: string;
-}
+// `TmdbPoster` is exported by the `useTmdbPosters` composable; we
+// import the type when we need to lean on it directly. The previous
+// inline copy duplicated the same fields and went stale every time
+// the composable shape evolved.
+import type { TmdbPoster } from '~/composables/useTmdbPosters';
 
 interface Category {
   id: string;
@@ -701,116 +696,26 @@ const groupedResults = computed<ReleaseGroup[]>(() => {
 
 // ── TMDb metadata fetch (grouped view only) ────────────────
 //
-// For every group with a TMDb id we hit `/api/metadata/lookup` once and
-// stash the result. The endpoint is Redis-cached server-side (24 h
-// positive, 1 h negative) so even a 50-poster page only hits TMDb on the
-// very first user. We launch the fetches in parallel and update the map
-// progressively so posters fade in as they arrive.
-//
-// Three completion states for a TMDb-tagged group:
-//   - `loading`  → fetch in flight, show a skeleton.
-//   - `missing`  → TMDb returned 404 / null metadata, show the filename
-//                  fallback (no poster, mono title) but keep the
-//                  grouping intact since the id is still a clustering
-//                  signal.
-//   - `hit`      → metadata in hand, render the proper card.
-// `tmdbDisabled` short-circuits the fetch loop entirely when the
-// operator hasn't set TMDB_API_KEY — same fallback as `missing`, but
-// we avoid the round-trip on every group.
-type PosterState =
-  | { kind: 'loading' }
-  | { kind: 'missing' }
-  | { kind: 'hit'; data: TmdbPoster };
-
-const postersMap = ref<Map<string, PosterState>>(new Map());
-const tmdbDisabled = ref(false);
-
-function setPoster(key: string, state: PosterState) {
-  // Map mutations aren't deeply reactive — re-create the Map so the
-  // computed views downstream invalidate.
-  const next = new Map(postersMap.value);
-  next.set(key, state);
-  postersMap.value = next;
-}
-
-async function fetchPoster(group: ReleaseGroup) {
-  if (!group.tmdbBare || tmdbDisabled.value) return;
-  const cacheKey = `${group.tmdbType ?? 'auto'}:${group.tmdbBare}`;
-  if (postersMap.value.has(cacheKey)) return;
-  setPoster(cacheKey, { kind: 'loading' });
-  try {
-    const res = await $fetch<{
-      enabled: boolean;
-      found: boolean;
-      metadata: {
-        title: string;
-        year: number | null;
-        posterUrl: string | null;
-        backdropUrl: string | null;
-        overview: string | null;
-        voteAverage: number | null;
-        type: 'movie' | 'tv';
-        url: string;
-      } | null;
-    }>('/api/metadata/lookup', {
-      query: {
-        source: 'tmdb',
-        id: group.tmdbBare,
-        type: group.tmdbType ?? undefined,
-      },
-    });
-    if (res.enabled === false) {
-      // Operator never set TMDB_API_KEY. Stop hammering the endpoint
-      // and fall every other group back to the filename view.
-      tmdbDisabled.value = true;
-      return;
-    }
-    if (res.metadata) {
-      const m = res.metadata;
-      // Posters come back at w500; for a list-cell thumbnail w342 is
-      // plenty. Same CDN, just a smaller variant — saves ~60% of bytes.
-      setPoster(cacheKey, {
-        kind: 'hit',
-        data: {
-          ...m,
-          posterUrl: m.posterUrl?.replace('/w500/', '/w342/') ?? null,
-        },
-      });
-    } else {
-      setPoster(cacheKey, { kind: 'missing' });
-    }
-  } catch (e) {
-    // Network / auth hiccup — fall back to the filename row instead of
-    // letting the skeleton spin forever.
-    setPoster(cacheKey, { kind: 'missing' });
-  }
-}
-
-function posterStateFor(group: ReleaseGroup): PosterState | null {
-  if (!group.tmdbBare) return null;
-  if (tmdbDisabled.value) return { kind: 'missing' };
-  return (
-    postersMap.value.get(`${group.tmdbType ?? 'auto'}:${group.tmdbBare}`) ??
-    null
-  );
-}
+// All the state machinery (loading / hit / missing, sticky disabled
+// flag, w500→w342 downscale) lives in `useTmdbPosters` so this page,
+// /downloads, and any future surface share one cache. Local helpers
+// adapt the group-shaped API to the composable's bare-id input.
+const postersComposable = useTmdbPosters();
 
 function posterFor(group: ReleaseGroup): TmdbPoster | null {
-  const s = posterStateFor(group);
-  return s?.kind === 'hit' ? s.data : null;
+  return postersComposable.posterFor(group.tmdbBare, group.tmdbType);
 }
-
 function isPosterLoading(group: ReleaseGroup): boolean {
-  return posterStateFor(group)?.kind === 'loading';
+  return postersComposable.isPosterLoading(group.tmdbBare, group.tmdbType);
 }
 
 // Trigger fetches whenever the grouped view shows new TMDb-tagged groups.
 watch(
   [groupedResults, view],
   () => {
-    if (view.value !== 'grouped' || tmdbDisabled.value) return;
+    if (view.value !== 'grouped') return;
     for (const g of groupedResults.value) {
-      if (g.tmdbBare) fetchPoster(g);
+      postersComposable.register(g.tmdbBare, g.tmdbType);
     }
   },
   { immediate: true }

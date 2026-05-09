@@ -38,6 +38,41 @@ export async function createHnrEntry(
   });
 }
 
+/**
+ * Record a "download click" — fire-and-forget on /api/torrents/:hash/download
+ * so the user's `/downloads` history reflects every torrent they've fetched
+ * the .torrent file for, even if their client never announces. Idempotent
+ * via ON CONFLICT (user_id, torrent_id) so re-downloading the same file
+ * doesn't create dup rows.
+ *
+ * Unconditional — unlike `createHnrEntry`, this does NOT consult the HnR
+ * feature flag. The Downloads page is a personal log, independent of
+ * whether the operator has enabled HnR enforcement.
+ */
+export async function recordDownloadClick(
+  userId: string,
+  torrentId: string
+): Promise<void> {
+  const requiredSeedTime = await getHnrRequiredSeedTime();
+  await db
+    .insert(schema.hnrTracking)
+    .values({
+      id: randomUUID(),
+      userId,
+      torrentId,
+      downloadedAt: new Date(),
+      seedTime: 0,
+      requiredSeedTime,
+      isHnr: false,
+      isExempt: false,
+      uploaded: 0,
+      downloaded: 0,
+    })
+    .onConflictDoNothing({
+      target: [schema.hnrTracking.userId, schema.hnrTracking.torrentId],
+    });
+}
+
 export async function updateSeedTime(
   userId: string,
   torrentId: string,

@@ -41,3 +41,20 @@ SELECT u.id AS user_id, t.id AS torrent_id
    AND t.info_hash = $2
    AND t.is_active = true
  LIMIT 1;
+
+-- name: AccumulateUserTorrentBytes :exec
+-- Incrementally records per-(user, torrent) byte totals on every
+-- announce. Creates the tracking row on the first non-zero delta so
+-- the Downloads page in the web UI surfaces the entry as soon as the
+-- user starts leeching, well before completion. The composite UNIQUE
+-- on (user_id, torrent_id) makes the upsert race-free.
+INSERT INTO hnr_tracking (
+    id, user_id, torrent_id, downloaded_at,
+    seed_time, required_seed_time,
+    is_hnr, is_exempt,
+    uploaded, downloaded
+)
+VALUES ($1, $2, $3, NOW(), 0, $4, false, false, $5, $6)
+ON CONFLICT (user_id, torrent_id) DO UPDATE
+   SET uploaded   = hnr_tracking.uploaded   + EXCLUDED.uploaded,
+       downloaded = hnr_tracking.downloaded + EXCLUDED.downloaded;

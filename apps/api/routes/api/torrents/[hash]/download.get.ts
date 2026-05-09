@@ -1,6 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
 import bencode from 'bencode';
+import { recordDownloadClick } from '~~/utils/hnr';
 
 export default defineEventHandler(async (event) => {
   // Require authentication
@@ -18,9 +19,13 @@ export default defineEventHandler(async (event) => {
 
   const infoHash = hash.toLowerCase();
 
-  // Get torrent from DB
+  // Get torrent from DB. We pull the row id here so we can stamp a
+  // download-history row immediately after — this lets the /downloads
+  // page surface a torrent the moment the user clicked "Download",
+  // before the BitTorrent client has even announced.
   const torrents = await db
     .select({
+      id: schema.torrents.id,
       name: schema.torrents.name,
       torrentData: schema.torrents.torrentData,
     })
@@ -35,6 +40,16 @@ export default defineEventHandler(async (event) => {
       statusCode: 404,
       message: 'Torrent not found',
     });
+  }
+
+  // Stamp the download history. Best-effort: if the insert fails we
+  // still serve the .torrent because the user came here for the file,
+  // not the bookkeeping. The helper is idempotent via ON CONFLICT so
+  // repeated clicks don't pile up duplicate rows.
+  try {
+    await recordDownloadClick(user.id, torrent.id);
+  } catch (err) {
+    console.warn('[download] failed to record download click', err);
   }
 
   // Inject passkey into torrent data

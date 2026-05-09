@@ -56,5 +56,11 @@ CREATE TABLE IF NOT EXISTS hnr_tracking (
     is_hnr              boolean    NOT NULL DEFAULT false,
     is_exempt           boolean    NOT NULL DEFAULT false,
     completed_at        timestamp,
+    -- Per (user, torrent) byte accounting. Mirrors the deltas the
+    -- handler already pushes into users.uploaded / users.downloaded so
+    -- the "Downloads" page in the web UI can break the totals down by
+    -- torrent. Defaults to 0 so old rows render as "no data".
+    uploaded            bigint     NOT NULL DEFAULT 0,
+    downloaded          bigint     NOT NULL DEFAULT 0,
     UNIQUE (user_id, torrent_id)
 );

@@ -493,6 +493,14 @@ export const hnrTracking = pgTable(
     isHnr: boolean('is_hnr').default(false).notNull(),
     isExempt: boolean('is_exempt').default(false).notNull(), // Manual exemption
     completedAt: timestamp('completed_at'), // When requirement was met
+    // Per (user, torrent) byte accounting. The tracker's announce handler
+    // already computes deltaUploaded / deltaDownloaded against the previous
+    // peer entry to bump `users.uploaded/downloaded`; we persist the same
+    // deltas here so the "Downloads" page can show how much the user has
+    // exchanged for *this specific* torrent. Columns default to 0 so old
+    // rows surface as "no data" until the user reannounces.
+    uploaded: bigint('uploaded', { mode: 'number' }).default(0).notNull(),
+    downloaded: bigint('downloaded', { mode: 'number' }).default(0).notNull(),
   },
   (table) => [
     index('hnr_user_idx').on(table.userId),

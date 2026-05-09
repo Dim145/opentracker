@@ -9,6 +9,45 @@ import (
 	"context"
 )
 
+const accumulateUserTorrentBytes = `-- name: AccumulateUserTorrentBytes :exec
+INSERT INTO hnr_tracking (
+    id, user_id, torrent_id, downloaded_at,
+    seed_time, required_seed_time,
+    is_hnr, is_exempt,
+    uploaded, downloaded
+)
+VALUES ($1, $2, $3, NOW(), 0, $4, false, false, $5, $6)
+ON CONFLICT (user_id, torrent_id) DO UPDATE
+   SET uploaded   = hnr_tracking.uploaded   + EXCLUDED.uploaded,
+       downloaded = hnr_tracking.downloaded + EXCLUDED.downloaded
+`
+
+type AccumulateUserTorrentBytesParams struct {
+	ID               string
+	UserID           string
+	TorrentID        string
+	RequiredSeedTime int32
+	Uploaded         int64
+	Downloaded       int64
+}
+
+// Incrementally records per-(user, torrent) byte totals on every
+// announce. Creates the tracking row on the first non-zero delta so
+// the Downloads page in the web UI surfaces the entry as soon as the
+// user starts leeching, well before completion. The composite UNIQUE
+// on (user_id, torrent_id) makes the upsert race-free.
+func (q *Queries) AccumulateUserTorrentBytes(ctx context.Context, arg AccumulateUserTorrentBytesParams) error {
+	_, err := q.db.Exec(ctx, accumulateUserTorrentBytes,
+		arg.ID,
+		arg.UserID,
+		arg.TorrentID,
+		arg.RequiredSeedTime,
+		arg.Uploaded,
+		arg.Downloaded,
+	)
+	return err
+}
+
 const addSeedTime = `-- name: AddSeedTime :exec
 UPDATE hnr_tracking
    SET seed_time    = seed_time + $1,

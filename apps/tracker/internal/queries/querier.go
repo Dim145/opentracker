@@ -9,6 +9,12 @@ import (
 )
 
 type Querier interface {
+	// Incrementally records per-(user, torrent) byte totals on every
+	// announce. Creates the tracking row on the first non-zero delta so
+	// the Downloads page in the web UI surfaces the entry as soon as the
+	// user starts leeching, well before completion. The composite UNIQUE
+	// on (user_id, torrent_id) makes the upsert race-free.
+	AccumulateUserTorrentBytes(ctx context.Context, arg AccumulateUserTorrentBytesParams) error
 	// Adds `additional` seconds to a peer's seed time. If the cumulative total
 	// crosses required_seed_time the row is also stamped completed_at = NOW()
 	// and is_hnr cleared, all in one atomic UPDATE.
