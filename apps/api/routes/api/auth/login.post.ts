@@ -1,10 +1,12 @@
 import { eq } from 'drizzle-orm';
 import { createHash } from 'crypto';
 import { db } from '@trackarr/db';
-import { users, bannedIps } from '@trackarr/db/schema';
+import { users, bannedIps, webauthnCredentials } from '@trackarr/db/schema';
 import { validateBody, loginSchema } from '~~/utils/schemas';
 import { redis } from '~~/utils/server';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { mintChallengeToken, markFreshAuth } from '~~/utils/twoFactor';
+import { consumeTrustedDevice } from '~~/utils/trustedDevices';
 
 /**
  * POST /api/auth/login
@@ -102,7 +104,48 @@ export default defineEventHandler(async (event) => {
     })
     .where(eq(users.id, user.id));
 
-  // Set user session using nuxt-auth-utils
+  // ── 2FA gate ────────────────────────────────────────────────
+  // If the user has any second factor configured (TOTP or at least
+  // one passkey) we DON'T open a session yet. Instead we mint a
+  // short-lived challenge token; the client trades it on
+  // /api/auth/2fa/verify with a valid code or assertion to get the
+  // real session cookie.
+  const passkeyCount = await db
+    .select({ id: webauthnCredentials.id })
+    .from(webauthnCredentials)
+    .where(eq(webauthnCredentials.userId, user.id))
+    .then((r) => r.length);
+  const hasTotp = !!user.totpEnabled;
+  const hasPasskey = passkeyCount > 0;
+
+  if (hasTotp || hasPasskey) {
+    // Trusted-device fast path: if the browser carries a valid
+    // `trackarr_td` cookie that pins to this user, skip the 2FA
+    // step entirely. The user opted into this in settings; a
+    // cookie that doesn't match falls through to the challenge as
+    // if there were no opt-in.
+    const td = await consumeTrustedDevice(event, user.id);
+    if (!td) {
+      const token = await mintChallengeToken(user.id);
+      return {
+        requires2FA: true,
+        challengeToken: token,
+        // Tell the FE which method pickers to render. Recovery code
+        // is implicit when TOTP is on — adding it explicitly keeps
+        // the segmented control predictable.
+        methods: [
+          ...(hasTotp ? (['totp', 'recovery'] as const) : []),
+          ...(hasPasskey ? (['passkey'] as const) : []),
+        ],
+      };
+    }
+    // Fall through to the no-2FA session-issue path below — but
+    // mark the response so the FE can show a "Trusted device used"
+    // notice for transparency.
+    (event.context as any).trustedDeviceUsed = true;
+  }
+
+  // No 2FA configured — open the session straight away (legacy path).
   await setUserSession(event, {
     user: {
       id: user.id,
@@ -118,8 +161,14 @@ export default defineEventHandler(async (event) => {
     loggedInAt: Date.now(),
   });
 
+  // Stamp the fresh-auth window even on no-2FA logins so the same
+  // settings flow ("change my password" etc.) works either way.
+  const session = await getUserSession(event);
+  if (session?.id) await markFreshAuth(String(session.id));
+
   return {
     success: true,
+    requires2FA: false,
     user: {
       id: user.id,
       username: user.username,

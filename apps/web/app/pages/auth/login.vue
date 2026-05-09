@@ -38,7 +38,12 @@
         </p>
       </div>
 
-      <form @submit.prevent="handleLogin" class="space-y-4">
+      <!-- Step 1 — username + password (SRP) -->
+      <form
+        v-if="!twoFactor"
+        @submit.prevent="handleLogin"
+        class="space-y-4"
+      >
         <div>
           <label
             for="username"
@@ -98,6 +103,15 @@
         </button>
       </form>
 
+      <!-- Step 2 — second factor (when the SRP response asked for it) -->
+      <TwoFactorLoginStep
+        v-else
+        :challenge-token="twoFactor.token"
+        :methods="twoFactor.methods"
+        @verified="onTwoFactorVerified"
+        @cancel="cancelTwoFactor"
+      />
+
       <div
         v-if="status?.registrationOpen"
         class="mt-6 pt-6 border-t border-border text-center"
@@ -118,6 +132,7 @@
 
 <script setup lang="ts">
 import { generateLoginProof } from '~/utils/crypto';
+import TwoFactorLoginStep from '~/components/security/TwoFactorLoginStep.vue';
 
 definePageMeta({
   layout: false,
@@ -163,6 +178,14 @@ const error = ref('');
 const loading = ref(false);
 const authStatus = ref('');
 
+// Set when the SRP step succeeds but the account has 2FA enabled.
+// `<TwoFactorLoginStep>` then takes over and trades the token for a
+// session via /api/auth/2fa/verify-totp or /verify-passkey.
+const twoFactor = ref<{
+  token: string;
+  methods: ('totp' | 'recovery' | 'passkey')[];
+} | null>(null);
+
 async function handleLogin() {
   error.value = '';
   loading.value = true;
@@ -186,7 +209,11 @@ async function handleLogin() {
 
     // Step 3: Send proof to server (password never leaves client)
     authStatus.value = 'Authenticating...';
-    await $fetch('/api/auth/login', {
+    const result = await $fetch<{
+      requires2FA: boolean;
+      challengeToken?: string;
+      methods?: ('totp' | 'recovery' | 'passkey')[];
+    }>('/api/auth/login', {
       method: 'POST',
       body: {
         username: form.username,
@@ -195,7 +222,20 @@ async function handleLogin() {
       },
     });
 
-    // Refresh session and redirect
+    // 2FA gate: switch to the second-factor step instead of finalising.
+    if (result.requires2FA && result.challengeToken && result.methods) {
+      twoFactor.value = {
+        token: result.challengeToken,
+        methods: result.methods,
+      };
+      // Clear the password from memory — the SRP exchange is done,
+      // the user shouldn't be able to land on a 2FA screen with the
+      // input still readable in devtools.
+      form.password = '';
+      return;
+    }
+
+    // No 2FA — refresh session and redirect.
     await fetchSession();
     router.push('/');
   } catch (err: any) {
@@ -204,5 +244,19 @@ async function handleLogin() {
     loading.value = false;
     authStatus.value = '';
   }
+}
+
+async function onTwoFactorVerified() {
+  twoFactor.value = null;
+  await fetchSession();
+  router.push('/');
+}
+
+function cancelTwoFactor() {
+  // User aborted at the 2FA step. Reset the state so they can start
+  // over from the username/password form. The challenge token in
+  // Redis will expire on its own in 5 min.
+  twoFactor.value = null;
+  error.value = '';
 }
 </script>

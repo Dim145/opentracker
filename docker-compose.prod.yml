@@ -118,6 +118,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      TZ: ${TZ:-Europe/Paris}
       NODE_ENV: production
       NITRO_PORT: 4000
       NITRO_HOST: 0.0.0.0

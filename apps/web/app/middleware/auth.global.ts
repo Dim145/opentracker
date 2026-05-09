@@ -66,4 +66,19 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (loggedIn && isPublicRoute) {
     return navigateTo('/');
   }
+
+  // 2FA enforcement: a logged-in user that's required to configure
+  // 2FA is only allowed on `/settings` (where the form lives) and
+  // the auth endpoints. The status payload sets
+  // `user.requires2FASetup = true` when the operator's enforcement
+  // scope hits this user and they haven't enrolled anything yet.
+  if (loggedIn && (session.value.user as any)?.requires2FASetup) {
+    const allowed =
+      to.path === '/settings' ||
+      to.path.startsWith('/api/') ||
+      isPublicRoute;
+    if (!allowed) {
+      return navigateTo('/settings#security');
+    }
+  }
 });

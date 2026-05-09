@@ -95,6 +95,10 @@ export const SETTINGS_KEYS = {
   HNR_ENABLED: 'hnr_enabled',
   HNR_REQUIRED_SEED_TIME: 'hnr_required_seed_time',
   HNR_GRACE_PERIOD: 'hnr_grace_period',
+  // 2FA enforcement (off | staff | all). 'staff' forces admins +
+  // moderators, 'all' forces every user. 'off' is the default and
+  // makes 2FA an opt-in personal setting.
+  REQUIRE_2FA_SCOPE: 'require_2fa_scope',
   INVITE_ENABLED: 'invite_enabled',
   DEFAULT_INVITES: 'default_invites',
   SITE_NAME: 'site_name',
@@ -206,6 +210,39 @@ export async function getHnrRequiredSeedTime(): Promise<number> {
 export async function getHnrGracePeriod(): Promise<number> {
   const value = await getSetting(SETTINGS_KEYS.HNR_GRACE_PERIOD);
   return value ? parseInt(value, 10) : 259200;
+}
+
+/**
+ * 2FA enforcement scope. `off` lets 2FA be a per-user opt-in (the
+ * default), `staff` forces admins + moderators to configure it,
+ * `all` forces every user. Sourced from settings, cached.
+ */
+export type Require2FAScope = 'off' | 'staff' | 'all';
+
+export async function getRequire2FAScope(): Promise<Require2FAScope> {
+  const value = await getSetting(SETTINGS_KEYS.REQUIRE_2FA_SCOPE);
+  if (value === 'staff' || value === 'all') return value;
+  return 'off';
+}
+
+export async function setRequire2FAScope(scope: Require2FAScope): Promise<void> {
+  await setSetting(SETTINGS_KEYS.REQUIRE_2FA_SCOPE, scope);
+}
+
+/**
+ * Decide whether `user` must have 2FA configured to proceed past the
+ * settings page. Used by the auth middleware on the FE / a guard
+ * server-side.
+ */
+export async function isUserRequiredFor2FA(opts: {
+  isAdmin: boolean;
+  isModerator: boolean;
+}): Promise<boolean> {
+  const scope = await getRequire2FAScope();
+  if (scope === 'off') return false;
+  if (scope === 'all') return true;
+  // 'staff' — force admins + mods only.
+  return opts.isAdmin || opts.isModerator;
 }
 
 export async function isInviteEnabled(): Promise<boolean> {

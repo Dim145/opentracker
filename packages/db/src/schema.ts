@@ -68,10 +68,108 @@ export const users = pgTable(
     // follows the user across devices instead of being trapped in a
     // single browser's localStorage.
     theme: text('theme').default('dark').notNull(),
+    // ── Two-factor authentication ────────────────────────────
+    // TOTP secret stored as base32 (the `otpauth://` URI form).
+    // Encryption-at-rest is left to the operator's Postgres setup;
+    // the secret is useless without an active session anyway since
+    // the SRP handshake gates access to the account.
+    totpSecret: text('totp_secret'),
+    totpEnabled: boolean('totp_enabled').default(false).notNull(),
+    // User-controlled toggle: when on, completing a 2FA challenge
+    // also issues a long-lived `trusted_device` cookie that lets
+    // future logins from the same browser skip the 2FA step. Off
+    // by default to keep the high-security stance for users who
+    // don't explicitly opt in.
+    trustDevicesEnabled: boolean('trust_devices_enabled').default(false).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     lastSeen: timestamp('last_seen').defaultNow().notNull(),
   },
   (table) => [uniqueIndex('users_passkey_idx').on(table.passkey)]
+);
+
+// ============================================================================
+// 2FA — TOTP recovery codes, WebAuthn passkeys, trusted devices
+// ============================================================================
+//
+// `recovery_codes` is the printable fallback for TOTP. We hash each code
+// (sha256 hex) before storage so the DB compromise never yields plaintext;
+// the user receives the cleartext exactly once at generation time. Codes
+// are single-use, so we mark a row consumed by setting `usedAt` rather
+// than deleting it (audit trail of which code was burned).
+export const recoveryCodes = pgTable(
+  'recovery_codes',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    codeHash: text('code_hash').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    usedAt: timestamp('used_at'),
+  },
+  (table) => [index('recovery_codes_user_idx').on(table.userId)]
+);
+
+// One row per registered passkey. A user can register many — phone +
+// laptop + hardware key — and pick whichever is convenient at login.
+// `credentialId` is base64url-encoded (matches what @simplewebauthn
+// expects round-tripping through the browser's PublicKeyCredential).
+export const webauthnCredentials = pgTable(
+  'webauthn_credentials',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // 64-char base64url string max (RP-issued credential id).
+    credentialId: text('credential_id').notNull().unique(),
+    // CBOR-encoded COSE public key. Stored as base64 to keep the
+    // schema portable — bytea round-trips a little awkwardly across
+    // pgbouncer with prepared-statement pooling.
+    publicKey: text('public_key').notNull(),
+    // Replay-attack counter the authenticator increments on every
+    // assertion. Server enforces strict-monotonic increase.
+    counter: bigint('counter', { mode: 'number' }).default(0).notNull(),
+    // Comma-separated list of transport hints from the browser
+    // (`usb,nfc,ble,internal,hybrid`). Helps the browser pick the
+    // right device at sign-in.
+    transports: text('transports'),
+    // Human-friendly label so the settings page list reads as
+    // "iPhone 15", "YubiKey 5C" etc. instead of an opaque hash.
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    lastUsedAt: timestamp('last_used_at'),
+  },
+  (table) => [
+    index('webauthn_credentials_user_idx').on(table.userId),
+  ]
+);
+
+// Long-lived "this browser is trusted" cookie. The actual cookie
+// holds a random token; we store its sha256 hash here. A trusted
+// device row that matches the incoming cookie skips the 2FA step
+// during login. Revoked from the settings page or by global
+// security events (password change, 2FA reset).
+export const trustedDevices = pgTable(
+  'trusted_devices',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    // Best-effort labelling so the user can recognise the row later
+    // ("Firefox · macOS · Paris" or similar). Derived from User-Agent
+    // + best-effort geolocation by the operator's Caddy config.
+    label: text('label'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    lastUsedAt: timestamp('last_used_at'),
+  },
+  (table) => [
+    index('trusted_devices_user_idx').on(table.userId),
+    index('trusted_devices_expires_idx').on(table.expiresAt),
+  ]
 );
 
 // ============================================================================
@@ -338,6 +436,34 @@ export const usersRelations = relations(users, ({ many }) => ({
   hnrTracking: many(hnrTracking),
   invitesCreated: many(invitations, { relationName: 'invitesCreated' }),
   reportsCreated: many(reports, { relationName: 'reportsCreated' }),
+  // 2FA
+  recoveryCodes: many(recoveryCodes),
+  webauthnCredentials: many(webauthnCredentials),
+  trustedDevices: many(trustedDevices),
+}));
+
+export const recoveryCodesRelations = relations(recoveryCodes, ({ one }) => ({
+  user: one(users, {
+    fields: [recoveryCodes.userId],
+    references: [users.id],
+  }),
+}));
+
+export const webauthnCredentialsRelations = relations(
+  webauthnCredentials,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [webauthnCredentials.userId],
+      references: [users.id],
+    }),
+  })
+);
+
+export const trustedDevicesRelations = relations(trustedDevices, ({ one }) => ({
+  user: one(users, {
+    fields: [trustedDevices.userId],
+    references: [users.id],
+  }),
 }));
 
 export const rolesRelations = relations(roles, ({ many }) => ({

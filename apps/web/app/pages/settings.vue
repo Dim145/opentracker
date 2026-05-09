@@ -222,6 +222,12 @@
           </header>
 
           <div class="section-body">
+            <!-- Two-factor authentication: extracted into its own
+                 component since it owns several modals + a poll
+                 against /api/me/2fa/status that we don't want to
+                 entangle with the password form below. -->
+            <TwoFactorSection />
+
             <article class="action-card">
               <div class="action-card-body">
                 <h3 class="action-card-title">
@@ -450,6 +456,7 @@
 
 <script setup lang="ts">
 import { generateLoginProof, generateCredentials } from '~/utils/crypto';
+import TwoFactorSection from '~/components/security/TwoFactorSection.vue';
 
 definePageMeta({ title: 'Settings' });
 useHead({ title: 'Settings' });

@@ -182,6 +182,11 @@ export const adminSettingsSchema = z.object({
   feature2Desc: z.string().max(2000).optional(),
   feature3Title: z.string().max(500).optional(),
   feature3Desc: z.string().max(2000).optional(),
+  // Enforce 2FA at one of three scopes. `off` keeps the per-user
+  // toggle. `staff` forces admins + moderators. `all` forces every
+  // logged-in user. The middleware redirects to /settings/security
+  // until they comply.
+  require2FAScope: z.enum(['off', 'staff', 'all']).optional(),
 });
 
 // ============================================================================

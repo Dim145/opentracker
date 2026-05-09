@@ -31,6 +31,7 @@ import {
   isInviteEnabled,
   getDefaultInvites,
 } from '~~/utils/server';
+import { getRequire2FAScope } from '~~/utils/settings';
 
 /**
  * GET /api/admin/settings
@@ -69,6 +70,7 @@ export default defineEventHandler(async (event) => {
   const feature3Desc = await getFeature3Desc();
   const inviteEnabled = await isInviteEnabled();
   const defaultInvites = await getDefaultInvites();
+  const require2FAScope = await getRequire2FAScope();
 
   return {
     registrationOpen,
@@ -101,5 +103,6 @@ export default defineEventHandler(async (event) => {
     feature3Desc,
     inviteEnabled,
     defaultInvites,
+    require2FAScope,
   };
 });

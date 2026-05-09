@@ -167,6 +167,16 @@ export default defineEventHandler(async (event) => {
     await setSetting(SETTINGS_KEYS.FEATURE_3_DESC, body.feature3Desc);
   }
 
+  // 2FA enforcement scope. Only the three sentinel values are
+  // accepted; the FE renders them as a 3-way segmented control.
+  if (
+    body.require2FAScope === 'off' ||
+    body.require2FAScope === 'staff' ||
+    body.require2FAScope === 'all'
+  ) {
+    await setSetting(SETTINGS_KEYS.REQUIRE_2FA_SCOPE, body.require2FAScope);
+  }
+
   return {
     success: true,
     ...body,

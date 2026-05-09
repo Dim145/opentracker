@@ -1,7 +1,8 @@
 import { count, eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
-import { users } from '@trackarr/db/schema';
+import { users, webauthnCredentials } from '@trackarr/db/schema';
 import { getSetting, SETTINGS_KEYS, isInviteEnabled } from '~~/utils/server';
+import { getRequire2FAScope, isUserRequiredFor2FA } from '~~/utils/settings';
 import type { PublicUser, ThemePreference } from '@trackarr/shared';
 
 /**
@@ -44,6 +45,12 @@ export default defineEventHandler(async (event) => {
         await clearUserSession(event);
         publicUser = null;
       } else {
+        // Cache lookup so /auth/status is one round-trip even when
+        // pulling 2FA enforcement state.
+        const fullUser = await db.query.users.findFirst({
+          where: eq(users.id, session.user.id),
+          columns: { totpEnabled: true },
+        });
         // Update session if stats, roles, display name or theme changed.
         // These fields drive the navbar / theme so a stale session
         // would otherwise force the user to re-login to see edits.
@@ -83,6 +90,21 @@ export default defineEventHandler(async (event) => {
           downloaded: dbUser.downloaded,
           theme: (dbUser.theme as ThemePreference) ?? 'dark',
         };
+        // Decide if the FE should hard-redirect this user to
+        // /settings/security. We surface enforcement state here so
+        // every page load can act on it without an extra round-trip.
+        const required = await isUserRequiredFor2FA({
+          isAdmin: dbUser.isAdmin,
+          isModerator: dbUser.isModerator,
+        });
+        const passkeyCount = await db
+          .select({ id: webauthnCredentials.id })
+          .from(webauthnCredentials)
+          .where(eq(webauthnCredentials.userId, session.user.id))
+          .then((r) => r.length);
+        const has2FA =
+          (fullUser?.totpEnabled ?? false) || passkeyCount > 0;
+        (publicUser as any).requires2FASetup = required && !has2FA;
       }
     } else {
       // User not found in DB, clear session
@@ -99,5 +121,8 @@ export default defineEventHandler(async (event) => {
     // Whether new registrations are allowed
     registrationOpen: registrationOpen === 'true',
     inviteEnabled,
+    // Public scope marker so the FE login form can hint "this site
+    // requires 2FA" in advance of the user actually configuring it.
+    require2FAScope: await getRequire2FAScope(),
   };
 });
