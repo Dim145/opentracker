@@ -129,6 +129,37 @@ function tokenise(s: string): string {
   return s.replace(/[._]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * Merge a parsed tag list into an existing one without duplicating
+ * (case-insensitive, so "1080p" / "1080P" don't both end up in the
+ * chip row). Returns both the merged list and the newly-added items
+ * so the caller can show a "X tags added" notice.
+ *
+ * Used by both upload and edit pages to power their "Parse title"
+ * button: the parser produces a fresh tag list from the title, this
+ * helper folds it into whatever the user has already typed.
+ */
+export function mergeParsedTags(
+  current: string[],
+  parsed: string[]
+): { merged: string[]; added: string[] } {
+  const seen = new Map<string, string>();
+  for (const t of current) {
+    const key = t.trim().toLowerCase();
+    if (key.length > 0) seen.set(key, t.trim());
+  }
+  const added: string[] = [];
+  for (const t of parsed) {
+    const trimmed = t.trim();
+    const key = trimmed.toLowerCase();
+    if (key.length > 0 && !seen.has(key)) {
+      seen.set(key, trimmed);
+      added.push(trimmed);
+    }
+  }
+  return { merged: Array.from(seen.values()), added };
+}
+
 export function parseReleaseName(input: string): ParsedRelease {
   const raw = stripGroup(stripExtension(input || ''));
 

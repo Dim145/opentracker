@@ -183,6 +183,24 @@
   font-size: 0.75rem;
 }
 
+/* Title field paired with a "Parse title" button on the right.
+   Falls back to a stacked layout on narrow screens so the input
+   keeps a usable hit area. */
+.field-with-action {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+.field-with-action .field-input {
+  flex: 1;
+  min-width: 0;
+}
+@media (max-width: 540px) {
+  .field-with-action {
+    flex-direction: column;
+  }
+}
+
 /* ─── ID grid ────────────────────────────────────────────────── */
 .id-grid {
   display: grid;

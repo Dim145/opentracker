@@ -75,12 +75,31 @@
               <span class="field-label">
                 Title<span class="section-required" aria-hidden="true">*</span>
               </span>
-              <input
-                v-model="title"
-                type="text"
-                class="input field-input"
-                placeholder="The release name as you want it indexed"
-              />
+              <div class="field-with-action">
+                <input
+                  v-model="title"
+                  type="text"
+                  class="input field-input"
+                  placeholder="The release name as you want it indexed"
+                />
+                <!-- Mirror of the upload page's "Parse title" button.
+                     Re-runs `parseReleaseName` on the current title and
+                     merges any newly-detected scene flags into the
+                     tag list — useful when an admin imports an
+                     existing release whose tags weren't filled at
+                     upload time, or whose title was edited after the
+                     fact. -->
+                <button
+                  type="button"
+                  class="btn-ghost btn-ghost--small"
+                  :disabled="!title.trim()"
+                  title="Detect tags (resolution / source / codec / language / …) from the title"
+                  @click="parseTitleNow"
+                >
+                  <Icon name="ph:wand" />
+                  Parse title
+                </button>
+              </div>
             </label>
           </div>
         </section>
@@ -312,7 +331,8 @@ import {
   getFlattenedCategories,
   type CategoryNode,
 } from '~/utils/categories';
-import { parseReleaseName } from '~/utils/releaseParse';
+import { mergeParsedTags, parseReleaseName } from '~/utils/releaseParse';
+import { useNotificationStore } from '~/stores/notifications';
 
 definePageMeta({ title: 'Edit torrent' });
 
@@ -423,6 +443,32 @@ const parsedFromName = computed(() =>
 );
 const parsedTitle = computed(() => parsedFromName.value?.title ?? '');
 const parsedYear = computed(() => parsedFromName.value?.year ?? null);
+
+/**
+ * "Parse title" button handler — same logic as the upload page.
+ * Re-runs the parser on the current Title field and folds any newly
+ * detected scene flags into the tag list (case-insensitive merge so
+ * the user's manual entries aren't duplicated). The title itself is
+ * never overwritten — the editor controls it.
+ */
+function parseTitleNow() {
+  const value = title.value.trim();
+  if (!value) return;
+  const r = parseReleaseName(value);
+  if (r.tags.length === 0) {
+    notifications.info('No tags detected from the title.');
+    return;
+  }
+  const { merged, added } = mergeParsedTags(tagNames.value, r.tags);
+  tagNames.value = merged;
+  if (added.length === 0) {
+    notifications.success('Title parsed — every detected tag was already on.');
+  } else {
+    notifications.success(
+      `Added ${added.length} tag${added.length === 1 ? '' : 's'}: ${added.join(', ')}`
+    );
+  }
+}
 
 const dirtyCount = computed(() => {
   const s = snapshot.value;

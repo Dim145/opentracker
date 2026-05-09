@@ -174,13 +174,31 @@
                 Title
                 <span class="field-hint">override the parsed name</span>
               </span>
-              <input
-                v-model="title"
-                type="text"
-                class="input field-input"
-                placeholder="The release name as you want it indexed"
-                :disabled="!selectedFile"
-              />
+              <div class="field-with-action">
+                <input
+                  v-model="title"
+                  type="text"
+                  class="input field-input"
+                  placeholder="The release name as you want it indexed"
+                  :disabled="!selectedFile"
+                />
+                <!-- Re-parse the *current title* (not the filename) and
+                     fold any newly-detected tags into the tag list.
+                     Useful when the user hand-types a release name or
+                     pastes one from a tracker page that doesn't carry
+                     the original filename. The same parser handles
+                     both inputs — no fork. -->
+                <button
+                  type="button"
+                  class="btn-ghost btn-ghost--small"
+                  :disabled="!title.trim()"
+                  title="Detect tags (resolution / source / codec / language / …) from the title"
+                  @click="parseTitleNow"
+                >
+                  <Icon name="ph:wand" />
+                  Parse title
+                </button>
+              </div>
             </label>
           </div>
         </section>
@@ -444,7 +462,12 @@ import {
   getFlattenedCategories,
   type CategoryNode,
 } from '~/utils/categories';
-import { parseReleaseName, type ParsedRelease } from '~/utils/releaseParse';
+import {
+  mergeParsedTags,
+  parseReleaseName,
+  type ParsedRelease,
+} from '~/utils/releaseParse';
+import { useNotificationStore } from '~/stores/notifications';
 
 definePageMeta({ title: 'Upload torrent' });
 
@@ -560,6 +583,34 @@ watch(tags, () => {
   // hint label so the help text reverts to its normal copy.
   if (autoTagApplied.value) autoTagApplied.value = false;
 }, { deep: true });
+
+const notifications = useNotificationStore();
+
+/**
+ * "Parse title" button handler — re-runs the same parser used at
+ * file-drop time, but on the current Title field instead of the
+ * filename. Tags are merged (case-insensitive) into whatever is
+ * already there so the user's manual entries aren't clobbered.
+ */
+function parseTitleNow() {
+  const value = title.value.trim();
+  if (!value) return;
+  const r = parseReleaseName(value);
+  if (r.tags.length === 0) {
+    notifications.info('No tags detected from the title.');
+    return;
+  }
+  const { merged, added } = mergeParsedTags(tags.value, r.tags);
+  tags.value = merged;
+  if (added.length === 0) {
+    notifications.success('Title parsed — every detected tag was already on.');
+  } else {
+    autoTagApplied.value = true;
+    notifications.success(
+      `Added ${added.length} tag${added.length === 1 ? '' : 's'}: ${added.join(', ')}`
+    );
+  }
+}
 
 // Lookup state — populated by the picker emitting a normalised payload.
 const lookupResult = ref<MediaMetadata | null>(null);
