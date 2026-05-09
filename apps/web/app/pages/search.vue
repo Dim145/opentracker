@@ -1,6 +1,6 @@
 <template>
-  <div class="flex gap-6">
-    <!-- Category Sidebar -->
+  <div class="flex flex-col lg:flex-row gap-4 lg:gap-6">
+    <!-- Category Sidebar (renders as a left-side drawer below lg) -->
     <CategorySidebar
       :categories="categories ?? []"
       :selected-id="selectedCategory"
@@ -8,11 +8,11 @@
     />
 
     <!-- Main Content -->
-    <div class="flex-1 min-w-0 py-8">
+    <div class="flex-1 min-w-0 py-4 lg:py-8">
       <!-- Search Header -->
-      <div class="mb-8 text-center lg:text-left">
+      <div class="mb-6 lg:mb-8 text-center lg:text-left">
         <h1
-          class="text-3xl font-black text-text-primary tracking-tighter uppercase mb-4"
+          class="text-2xl sm:text-3xl font-black text-text-primary tracking-tighter uppercase mb-4 break-words"
         >
           Search <span class="text-text-muted">Torrents</span>
         </h1>

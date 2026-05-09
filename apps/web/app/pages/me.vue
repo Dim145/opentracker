@@ -1516,6 +1516,16 @@ function formatDuration(seconds: number) {
   border-radius: 0.5rem;
   transition: all 0.12s;
 }
+/* Below sm, the row reflows to two stacked sections so the progress bar
+   doesn't fight the torrent name + meta + chevron for ~120 px of usable
+   space. The icon stays as a leading column; everything else stacks. */
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    padding: 0.7rem 0.85rem;
+  }
+}
 .row:hover {
   border-color: rgb(var(--fg-default) / 0.25);
   background: rgb(var(--bg-base));
@@ -1623,6 +1633,16 @@ function formatDuration(seconds: number) {
   flex: 1 1 auto;
   min-width: 8rem;
   max-width: 16rem;
+}
+@media (max-width: 640px) {
+  /* Below sm the progress bar wraps under the meta line — keeping it
+     inline starves both for space. Drop the min-width and let it own a
+     full row. */
+  .row-progress {
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+  }
 }
 .row-progress-bar {
   position: relative;

@@ -1,7 +1,7 @@
 <template>
-  <div class="max-w-5xl mx-auto py-12">
+  <div class="max-w-5xl mx-auto py-8 sm:py-12">
     <!-- Hero Section -->
-    <div class="text-center mb-16">
+    <div class="text-center mb-12 sm:mb-16">
       <div
         class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-bg-secondary border border-border mb-6"
         :title="
@@ -31,7 +31,7 @@
         >
       </div>
       <h1
-        class="text-4xl md:text-6xl font-black text-text-primary tracking-tighter mb-4 hero-title"
+        class="text-3xl sm:text-4xl md:text-6xl font-black text-text-primary tracking-tighter mb-4 hero-title break-words"
         v-html="sanitizeHtml(content?.heroTitle || 'TRACKARR')"
       ></h1>
       <div

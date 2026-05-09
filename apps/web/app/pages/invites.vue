@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="flex items-end justify-between mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
       <div>
         <h2
           class="text-xl font-bold text-text-primary tracking-tight uppercase"
@@ -11,8 +11,8 @@
           Invite new members to the tracker
         </p>
       </div>
-      <div class="flex items-center gap-4">
-        <div class="text-right">
+      <div class="flex items-center gap-4 flex-wrap sm:justify-end">
+        <div class="sm:text-right">
           <p
             class="text-[10px] font-bold text-text-muted uppercase tracking-widest"
           >
@@ -57,25 +57,25 @@
           <div
             v-for="invite in inviteData.invites"
             :key="invite.id"
-            class="flex items-center justify-between p-4 rounded border border-border bg-bg-tertiary/50"
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded border border-border bg-bg-tertiary/50"
           >
-            <div>
-              <div class="flex items-center gap-3 mb-2">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
                 <code
-                  class="px-3 py-1.5 text-sm font-mono bg-bg-primary rounded border border-border select-all cursor-pointer"
+                  class="px-3 py-1.5 text-xs sm:text-sm font-mono bg-bg-primary rounded border border-border select-all cursor-pointer break-all"
                   @click="copyCode(invite.code)"
                   title="Click to copy"
                 >
                   {{ invite.code }}
                 </code>
                 <span
-                  class="px-2 py-0.5 text-[10px] font-bold uppercase rounded"
+                  class="px-2 py-0.5 text-[10px] font-bold uppercase rounded shrink-0"
                   :class="getStatusClass(invite)"
                 >
                   {{ getStatusLabel(invite) }}
                 </span>
               </div>
-              <div class="flex items-center gap-4 text-[10px] text-text-muted">
+              <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-[10px] text-text-muted">
                 <span> Created: {{ formatDate(invite.createdAt) }} </span>
                 <span v-if="invite.usedByUser">
                   Used by:
@@ -94,7 +94,7 @@
             <button
               v-if="!invite.usedBy && !isExpired(invite.expiresAt)"
               @click="copyCode(invite.code)"
-              class="btn btn-secondary !px-3 !py-2 text-xs"
+              class="btn btn-secondary !px-3 !py-2 text-xs self-start sm:self-auto"
             >
               <Icon name="ph:copy-bold" class="mr-1" />
               Copy

@@ -12,8 +12,8 @@
     </div>
 
     <div v-else-if="category" class="space-y-6">
-      <div class="flex justify-between items-end">
-        <div>
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+        <div class="min-w-0">
           <div
             class="flex items-center gap-2 text-text-muted text-xs font-mono uppercase tracking-widest mb-2"
           >
@@ -23,13 +23,13 @@
             <Icon name="ph:caret-right" />
             <span>Category</span>
           </div>
-          <h1 class="text-2xl font-bold tracking-tight">{{ category.name }}</h1>
-          <p class="text-text-muted text-sm">{{ category.description }}</p>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight break-words">{{ category.name }}</h1>
+          <p class="text-text-muted text-sm break-words">{{ category.description }}</p>
         </div>
-        <div>
+        <div class="flex-shrink-0">
           <NuxtLink
             :to="`/forum/new-topic?categoryId=${category.id}`"
-            class="px-4 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors flex items-center gap-2"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-accent text-accent-fg text-xs font-bold uppercase tracking-wider rounded hover:bg-accent transition-colors"
           >
             <Icon name="ph:plus-bold" />
             New Topic
@@ -40,8 +40,10 @@
       <div
         class="bg-bg-secondary border border-border rounded-lg overflow-hidden"
       >
+        <!-- Header row hidden below sm — the cards use their own labels.
+             The 7/2/3 grid only kicks in from sm up where it actually fits. -->
         <div
-          class="grid grid-cols-12 px-6 py-3 border-b border-border bg-bg-tertiary/50 text-[10px] uppercase tracking-widest font-bold text-text-muted"
+          class="hidden sm:grid grid-cols-12 px-4 sm:px-6 py-3 border-b border-border bg-bg-tertiary/50 text-[10px] uppercase tracking-widest font-bold text-text-muted"
         >
           <div class="col-span-7">Topic</div>
           <div class="col-span-2 text-center">Replies</div>
@@ -58,9 +60,9 @@
         <div
           v-for="topic in category.topics"
           :key="topic.id"
-          class="grid grid-cols-12 px-6 py-4 border-b border-border last:border-0 hover:bg-fg-default/5 transition-colors items-center group"
+          class="flex flex-col sm:grid sm:grid-cols-12 px-4 sm:px-6 py-3 sm:py-4 gap-1 sm:gap-0 border-b border-border last:border-0 hover:bg-fg-default/5 transition-colors sm:items-center"
         >
-          <div class="col-span-7 flex items-center gap-4">
+          <div class="sm:col-span-7 flex items-center gap-3 sm:gap-4 min-w-0">
             <div class="flex-shrink-0">
               <Icon
                 v-if="topic.isPinned"
@@ -78,25 +80,28 @@
                 class="text-text-secondary text-lg"
               />
             </div>
-            <div>
+            <div class="min-w-0 flex-1">
               <NuxtLink
                 :to="`/forum/topic/${topic.id}`"
-                class="font-bold hover:text-text-strong transition-colors block"
+                class="font-bold hover:text-text-strong transition-colors block break-words"
               >
                 {{ topic.title }}
               </NuxtLink>
               <div
-                class="text-xs text-text-muted mt-0.5 flex items-center gap-2"
+                class="text-xs text-text-muted mt-0.5 flex items-center flex-wrap gap-x-2 gap-y-0.5"
               >
-                by
-                <span class="text-text-secondary">{{
-                  topic.author.username
-                }}</span>
-                • {{ formatDate(topic.createdAt) }}
+                <span>
+                  by
+                  <span class="text-text-secondary">{{
+                    topic.author.username
+                  }}</span>
+                </span>
+                <span class="text-text-faint">•</span>
+                <span>{{ formatDate(topic.createdAt) }}</span>
                 <button
                   v-if="user?.isAdmin || user?.isModerator"
                   @click.stop.prevent="handleDeleteTopic(topic.id)"
-                  class="text-red-500 hover:text-red-400 ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  class="text-red-500 hover:text-red-400 inline-flex items-center justify-center w-7 h-7 ml-auto sm:ml-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                   title="Delete Topic"
                 >
                   <Icon name="ph:trash" />
@@ -104,14 +109,18 @@
               </div>
             </div>
           </div>
-          <div class="col-span-2 text-center font-mono text-sm">
+          <!-- Below sm: replies + last-post become inline labelled chips
+               below the topic row. ≥ sm: original right-side columns. -->
+          <div
+            class="sm:col-span-2 sm:text-center font-mono text-xs sm:text-sm flex items-center sm:block gap-1 pl-9 sm:pl-0"
+          >
+            <span class="sm:hidden text-[10px] uppercase tracking-widest text-text-muted font-bold">Replies:</span>
             {{ topic.replyCount }}
           </div>
-          <div class="col-span-3 text-right">
-            <div v-if="topic.posts?.[0]" class="text-xs">
-              <div class="text-text-secondary">
-                {{ formatDate(topic.updatedAt) }}
-              </div>
+          <div class="sm:col-span-3 sm:text-right pl-9 sm:pl-0">
+            <div v-if="topic.posts?.[0]" class="text-xs flex items-center sm:block gap-1">
+              <span class="sm:hidden text-[10px] uppercase tracking-widest text-text-muted font-bold">Last:</span>
+              <span class="text-text-secondary">{{ formatDate(topic.updatedAt) }}</span>
             </div>
           </div>
         </div>

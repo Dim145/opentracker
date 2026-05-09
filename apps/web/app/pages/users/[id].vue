@@ -146,7 +146,7 @@
         <div class="card-header flex items-center justify-between">
           <h2 class="font-bold text-text-primary">Uploaded Torrents</h2>
         </div>
-        <div class="card-body !p-0">
+        <div class="card-body !p-0 overflow-x-auto">
           <div v-if="uploadsPending" class="flex justify-center py-8">
             <Icon
               name="ph:spinner-bold"
@@ -159,7 +159,7 @@
           >
             No uploads yet
           </div>
-          <table v-else class="w-full">
+          <table v-else class="w-full min-w-[34rem]">
             <thead>
               <tr
                 class="text-left text-[10px] font-bold text-text-muted uppercase tracking-widest border-b border-border"

@@ -2,17 +2,20 @@
   <div
     class="min-h-screen flex flex-col bg-bg-primary text-text-primary selection:bg-accent selection:text-accent-fg"
   >
-    <!-- Header — z-30 so dropdowns (z-40) and modals (z-50) layer above it -->
+    <!-- Header — z-30 so dropdowns (z-40) and modals (z-50) layer above it.
+         Below md the header keeps just the brand + a hamburger; the rest of
+         the chrome (nav, user stats, account dropdown) folds into a drawer
+         that mounts at the top of the viewport. -->
     <header
       class="sticky top-0 z-30 border-b border-border backdrop-blur-md app-header"
     >
       <div
-        class="max-w-[1400px] mx-auto px-4 flex items-center justify-between"
+        class="max-w-[1400px] mx-auto px-3 sm:px-4 flex items-center justify-between gap-3"
         style="height: var(--header-h);"
       >
-        <NuxtLink to="/" class="flex items-center gap-2.5 group">
+        <NuxtLink to="/" class="flex items-center gap-2.5 group min-w-0">
           <div
-            class="w-7 h-7 bg-accent rounded-sm flex items-center justify-center transition-transform group-hover:rotate-12 overflow-hidden"
+            class="w-7 h-7 bg-accent rounded-sm flex items-center justify-center transition-transform group-hover:rotate-12 overflow-hidden flex-shrink-0"
           >
             <img
               v-if="branding?.siteLogoImage"
@@ -26,9 +29,9 @@
               class="text-accent-fg text-lg"
             />
           </div>
-          <div class="flex flex-col leading-none">
+          <div class="flex flex-col leading-none min-w-0">
             <span
-              class="text-sm tracking-tighter transition-colors"
+              class="text-sm tracking-tighter transition-colors truncate"
               :class="{
                 'font-bold': branding?.siteNameBold ?? true,
                 'font-medium': !(branding?.siteNameBold ?? true),
@@ -36,13 +39,14 @@
               :style="{ color: branding?.siteNameColor || '' }"
               v-html="sanitizeHtml(branding?.siteName)"
             ></span>
-            <span class="text-[10px] text-text-muted font-mono"
+            <span class="text-[10px] text-text-muted font-mono truncate"
               v-html="sanitizeHtml(branding?.siteSubtitle)"
             ></span>
           </div>
         </NuxtLink>
 
-        <nav class="flex items-center gap-1">
+        <!-- Desktop nav: hidden below md, visible from md up. -->
+        <nav class="hidden md:flex items-center gap-1">
           <NuxtLink
             v-for="link in visibleNavLinks"
             :key="link.to"
@@ -58,7 +62,7 @@
         </nav>
 
         <div class="flex items-center gap-3">
-          <!-- User Stats -->
+          <!-- User Stats — desktop only -->
           <div
             v-if="user"
             class="hidden sm:flex items-center gap-4 px-3 py-1 border-l border-border ml-2"
@@ -101,8 +105,8 @@
             </button>
           </div>
 
-          <!-- User Menu -->
-          <div class="relative" ref="userMenuRef">
+          <!-- User Menu — desktop only -->
+          <div class="relative hidden md:block" ref="userMenuRef">
             <button
               @click="toggleUserMenu"
               class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-fg-default/5 transition-colors"
@@ -115,7 +119,7 @@
                   class="text-xl text-text-secondary"
                 />
               </div>
-              <span class="text-sm font-medium">{{
+              <span class="text-sm font-medium max-w-[12rem] truncate">{{
                 user?.displayName || user?.username
               }}</span>
               <Icon name="ph:caret-down" class="text-xs text-text-muted" />
@@ -179,44 +183,6 @@
                     </span>
                   </div>
                 </NuxtLink>
-                <!-- Stats grid: only shown on mobile (sm:hidden) — desktop has
-                     the inline header bar and would otherwise show the same
-                     numbers twice 200px apart. Downloaded uses text-secondary
-                     (neutral) instead of red — downloading isn't an error. -->
-                <div class="border-t border-border py-2 px-4 sm:hidden">
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <p
-                        class="text-[10px] uppercase tracking-wider text-text-muted mb-0.5"
-                      >
-                        Uploaded
-                      </p>
-                      <p class="text-xs font-mono text-success">
-                        {{ formatSize(user?.uploaded || 0) }}
-                      </p>
-                    </div>
-                    <div>
-                      <p
-                        class="text-[10px] uppercase tracking-wider text-text-muted mb-0.5"
-                      >
-                        Downloaded
-                      </p>
-                      <p class="text-xs font-mono text-text-secondary">
-                        {{ formatSize(user?.downloaded || 0) }}
-                      </p>
-                    </div>
-                    <div class="col-span-2">
-                      <p
-                        class="text-[10px] uppercase tracking-wider text-text-muted mb-0.5"
-                      >
-                        Ratio
-                      </p>
-                      <p class="text-xs font-mono" :class="ratioColor">
-                        {{ calculateRatio(user?.uploaded, user?.downloaded) }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
                 <div class="py-1">
                   <NuxtLink
                     to="/settings"
@@ -237,9 +203,176 @@
               </div>
             </Transition>
           </div>
+
+          <!-- Mobile hamburger — visible below md only -->
+          <button
+            type="button"
+            class="md:hidden inline-flex items-center justify-center w-10 h-10 -mr-1.5 rounded-md text-text-strong hover:bg-fg-default/10 active:bg-fg-default/15 transition-colors"
+            :aria-expanded="showMobileNav"
+            aria-label="Open navigation"
+            @click="showMobileNav = true"
+          >
+            <Icon name="ph:list-bold" class="text-xl" />
+          </button>
         </div>
       </div>
     </header>
+
+    <!-- Mobile drawer — slides down from the top, fills the viewport.
+         Contains the user identity card, the nav, the stats grid, and
+         the settings/sign-out actions. Animated; tap on backdrop or any
+         link auto-closes. -->
+    <Transition
+      enter-active-class="transition-opacity duration-150 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-100 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showMobileNav"
+        class="md:hidden fixed inset-0 z-50 bg-bg-primary/80 backdrop-blur-sm"
+        @click.self="showMobileNav = false"
+      />
+    </Transition>
+    <Transition
+      enter-active-class="transition-transform duration-200 ease-out"
+      enter-from-class="-translate-y-full"
+      enter-to-class="translate-y-0"
+      leave-active-class="transition-transform duration-150 ease-in"
+      leave-from-class="translate-y-0"
+      leave-to-class="-translate-y-full"
+    >
+      <aside
+        v-if="showMobileNav"
+        class="md:hidden fixed inset-x-0 top-0 z-50 max-h-[100dvh] overflow-y-auto bg-bg-secondary border-b border-line-strong flex flex-col mobile-drawer"
+      >
+        <!-- Drawer header — mirrors the sticky header so the close button
+             lands where the hamburger was. -->
+        <div
+          class="flex items-center justify-between gap-3 px-3 border-b border-border"
+          style="height: var(--header-h);"
+        >
+          <span
+            class="eyebrow-mono text-text-muted truncate"
+          >
+            {{ branding?.siteName ? stripTags(branding.siteName) : 'Trackarr' }}
+            · Menu
+          </span>
+          <button
+            type="button"
+            class="inline-flex items-center justify-center w-10 h-10 -mr-1.5 rounded-md text-text-strong hover:bg-fg-default/10 active:bg-fg-default/15 transition-colors"
+            aria-label="Close navigation"
+            @click="showMobileNav = false"
+          >
+            <Icon name="ph:x-bold" class="text-lg" />
+          </button>
+        </div>
+
+        <!-- User identity card -->
+        <NuxtLink
+          v-if="user"
+          to="/me"
+          class="flex items-center gap-3 px-4 py-4 border-b border-border hover:bg-fg-default/5 transition-colors"
+          @click="showMobileNav = false"
+        >
+          <div
+            class="w-12 h-12 rounded-md bg-bg-elevated border border-border flex items-center justify-center overflow-hidden flex-shrink-0"
+          >
+            <Icon
+              name="ph:user-circle-light"
+              class="text-3xl text-text-secondary"
+            />
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-bold text-text-strong truncate">
+              {{ user?.displayName || user?.username }}
+            </p>
+            <p
+              v-if="user?.displayName"
+              class="text-[11px] font-mono text-text-muted truncate mt-0.5"
+            >
+              @{{ user.username }}
+            </p>
+            <div
+              v-if="user?.isAdmin || user?.isModerator"
+              class="mt-1 flex gap-1"
+            >
+              <span
+                v-if="user?.isAdmin"
+                class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-fg-default/10 rounded text-text-secondary"
+              >Admin</span>
+              <span
+                v-if="user?.isModerator"
+                class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-fg-default/10 rounded text-text-secondary"
+              >Moderator</span>
+            </div>
+          </div>
+          <Icon name="ph:arrow-right-bold" class="text-text-muted text-base flex-shrink-0" />
+        </NuxtLink>
+
+        <!-- Stats strip — three cells, mono numerics -->
+        <div
+          v-if="user"
+          class="grid grid-cols-3 border-b border-border bg-bg-inset/50"
+        >
+          <div class="px-3 py-3 border-r border-border">
+            <p class="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-0.5">↑ Up</p>
+            <p class="text-xs font-mono font-bold text-success truncate">
+              {{ formatSize(user.uploaded) }}
+            </p>
+          </div>
+          <div class="px-3 py-3 border-r border-border">
+            <p class="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-0.5">↓ Down</p>
+            <p class="text-xs font-mono font-bold text-text-secondary truncate">
+              {{ formatSize(user.downloaded) }}
+            </p>
+          </div>
+          <div class="px-3 py-3">
+            <p class="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-0.5">Ratio</p>
+            <p :class="['text-xs font-mono font-bold truncate', ratioColor]">
+              {{ calculateRatio(user.uploaded, user.downloaded) }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Primary nav -->
+        <nav class="flex flex-col p-2">
+          <NuxtLink
+            v-for="link in visibleNavLinks"
+            :key="link.to"
+            :to="link.to"
+            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
+            active-class="bg-fg-default/10 text-text-strong"
+            @click="showMobileNav = false"
+          >
+            <Icon :name="link.icon" class="text-lg flex-shrink-0" />
+            <span>{{ link.label }}</span>
+          </NuxtLink>
+        </nav>
+
+        <!-- Footer actions -->
+        <div class="mt-auto border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex flex-col">
+          <NuxtLink
+            to="/settings"
+            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
+            @click="showMobileNav = false"
+          >
+            <Icon name="ph:gear" class="text-lg flex-shrink-0" />
+            <span>Settings</span>
+          </NuxtLink>
+          <button
+            type="button"
+            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors text-left"
+            @click="onMobileLogout"
+          >
+            <Icon name="ph:sign-out" class="text-lg flex-shrink-0" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+    </Transition>
 
     <!-- Announcement Banner -->
     <ClientOnly>
@@ -374,6 +507,20 @@ const router = useRouter();
 
 const showUserMenu = ref(false);
 const userMenuRef = ref<HTMLElement | null>(null);
+
+// Mobile drawer state. We close it on every route change so the user
+// doesn't see stale chrome from the previous page, and we lock body
+// scroll while it's open so the page underneath doesn't move when the
+// user scrolls inside the drawer.
+const showMobileNav = ref(false);
+watch(() => router.currentRoute.value.fullPath, () => {
+  showMobileNav.value = false;
+});
+if (import.meta.client) {
+  watch(showMobileNav, (open) => {
+    document.body.style.overflow = open ? 'hidden' : '';
+  });
+}
 
 // App version comes from `pkg.version` via nuxt.config runtime config;
 // the static-build path also gets a runtime override from the API at
@@ -538,6 +685,13 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
 
+async function onMobileLogout() {
+  // Mobile drawer wraps both the link and the button: close the drawer
+  // first so the transition isn't fighting the navigation.
+  showMobileNav.value = false;
+  await handleLogout();
+}
+
 async function handleLogout() {
   showUserMenu.value = false;
   // Without this POST the server-side session cookie stays valid, so
@@ -577,4 +731,9 @@ const ratioColor = computed(() => {
   background-color: color-mix(in srgb, var(--bg-base) 80%, transparent);
 }
 
+/* Drawer panel: solid surface so the page underneath isn't visible
+   through the sheet, with a hard shadow that anchors it to the top. */
+.mobile-drawer {
+  box-shadow: var(--shadow-overlay);
+}
 </style>

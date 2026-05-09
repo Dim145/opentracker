@@ -1,6 +1,6 @@
 <template>
-  <div class="flex gap-6">
-    <!-- Category Sidebar -->
+  <div class="flex flex-col lg:flex-row gap-4 lg:gap-6">
+    <!-- Category Sidebar (renders as a left-side drawer below lg) -->
     <CategorySidebar
       :categories="categories ?? []"
       :selected-id="selectedCategory"
@@ -24,19 +24,21 @@
           </p>
         </div>
 
-        <!-- Actions -->
-        <div class="flex flex-wrap items-start gap-2">
+        <!-- Actions: search bar grows full-width on phones, sits next to the
+             upload button from md up. Upload moves above the search on
+             phones so the primary CTA is reachable in the thumb zone. -->
+        <div class="flex flex-col sm:flex-row md:items-start gap-2">
           <SearchBar
             v-model="search"
             placeholder="Search by name, hash, or paste an IMDb / TMDb / TVDB link…"
-            class="w-full md:w-80"
+            class="w-full md:w-80 order-2 sm:order-1"
             :loading="pending"
             @search="doSearch"
             @media-id-search="doMediaIdSearch"
           />
           <NuxtLink
             to="/torrents/upload"
-            class="btn btn-primary flex items-center gap-2 !py-1.5"
+            class="btn btn-primary inline-flex items-center justify-center gap-2 !py-1.5 order-1 sm:order-2 self-start sm:self-auto"
           >
             <Icon name="ph:plus-bold" />
             <span>Upload</span>

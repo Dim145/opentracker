@@ -1,5 +1,107 @@
 <template>
-  <table class="data-table">
+  <!-- Below md: stack each torrent as a tappable card. Tables drown on
+       phones — too many narrow columns force horizontal scroll inside
+       a card on every page. The card layout keeps the same data
+       (name + tags + category + S/L + size + age) but reflows it into
+       readable blocks with a 44 px-min tap target. -->
+  <div class="md:hidden divide-y divide-border">
+    <p
+      v-if="torrents.length === 0"
+      class="text-center text-text-muted py-8 text-sm"
+    >
+      No torrents found
+    </p>
+    <button
+      v-for="torrent in torrents"
+      :key="torrent.id"
+      type="button"
+      class="w-full text-left px-3 py-3 active:bg-fg-default/5 transition-colors block"
+      @click="navigateTo(`/torrents/${torrent.infoHash}`)"
+    >
+      <div class="flex items-start gap-2">
+        <Icon
+          name="ph:file-zip"
+          class="text-text-muted text-base shrink-0 mt-0.5"
+        />
+        <div class="flex-1 min-w-0">
+          <p
+            class="text-sm font-medium text-text-primary leading-snug break-words line-clamp-2"
+          >
+            {{ torrent.name }}
+          </p>
+          <!-- Meta row: category chip + tags. The tag list scrolls
+               horizontally so a torrent with 5+ tags doesn't bloat
+               the card height. -->
+          <div
+            v-if="torrent.category || (torrent.tags?.length ?? 0) > 0"
+            class="mt-1.5 flex items-center gap-1.5 overflow-x-auto -mx-1 px-1 no-scrollbar"
+          >
+            <span
+              v-if="!compact && torrent.category"
+              class="text-[10px] bg-bg-tertiary border border-border px-1.5 py-0.5 rounded-sm text-text-secondary uppercase font-bold tracking-wider whitespace-nowrap shrink-0"
+            >
+              {{ getCategoryDisplayName(torrent.category) }}
+            </span>
+            <span
+              v-for="tag in torrent.tags ?? []"
+              :key="tag.id"
+              class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider border px-1.5 py-0.5 rounded-sm shrink-0 whitespace-nowrap"
+              :style="tagBadgeStyle(tag)"
+              :title="tag.name"
+            >
+              <span
+                class="inline-block w-1.5 h-1.5 rounded-full"
+                :style="{ backgroundColor: tag.color }"
+              />
+              {{ tag.name }}
+            </span>
+          </div>
+          <!-- Stats row: S/L pills + size + age, all monospace.
+               This row is always present so the user can compare
+               cards by glancing down the right side. -->
+          <div class="mt-2 flex items-center flex-wrap gap-x-3 gap-y-1.5">
+            <span class="stat-badge stat-seeders">
+              <Icon name="ph:arrow-up-bold" class="text-[8px]" />
+              {{ torrent.stats.seeders }}
+            </span>
+            <span class="stat-badge stat-leechers">
+              <Icon name="ph:arrow-down-bold" class="text-[8px]" />
+              {{ torrent.stats.leechers }}
+            </span>
+            <span
+              v-if="!compact"
+              class="text-[10px] font-mono text-text-secondary"
+              title="Completed downloads"
+            >
+              <Icon name="ph:check-bold" class="text-[10px] inline" />
+              {{ torrent.stats.completed }}
+            </span>
+            <span
+              v-if="!compact"
+              class="text-[10px] font-mono text-text-secondary"
+            >
+              {{ formatSize(torrent.size) }}
+            </span>
+            <span class="ml-auto text-[10px] font-mono text-text-muted">
+              {{ formatAge(torrent.createdAt) }}
+            </span>
+            <button
+              v-if="admin"
+              type="button"
+              class="text-text-muted hover:text-error active:text-error transition-colors w-9 h-9 -mr-2 -my-2 inline-flex items-center justify-center rounded"
+              title="Delete torrent"
+              @click.stop="deleteTorrent(torrent)"
+            >
+              <Icon name="ph:trash" class="text-base" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </button>
+  </div>
+
+  <!-- ≥ md: original table preserved verbatim. -->
+  <table class="data-table hidden md:table">
     <thead>
       <tr>
         <th class="w-1/2">Name</th>

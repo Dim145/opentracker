@@ -939,12 +939,15 @@ async function recompute() {
 }
 
 /* ─── Role list ────────────────────────────────────────────────────── */
+/* `min(100%, 420px)` keeps the desktop layout (nice 420 px columns) while
+   collapsing cleanly on phones — without it, `minmax(420px, 1fr)` forces
+   the page itself to scroll horizontally on any viewport <420 px. */
 .role-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
   gap: 1rem;
 }
 .role-card {

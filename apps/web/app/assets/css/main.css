@@ -415,6 +415,10 @@
     background-color: rgb(var(--bg-base) / 0.75);
     backdrop-filter: blur(6px);
   }
+  /* `dvh` (dynamic viewport height) shrinks with the iOS / Android URL
+     bar and keyboard — without it, opening the keyboard inside a modal
+     on mobile pushes the action bar off-screen and the user can't reach
+     "Cancel" / "Save". `vh` is the fallback for old browsers. */
   .modal-panel {
     width: 100%;
     background-color: rgb(var(--bg-surface));
@@ -422,6 +426,7 @@
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-overlay);
     max-height: 90vh;
+    max-height: 90dvh;
     overflow-y: auto;
   }
 }
@@ -434,5 +439,24 @@
   .truncate-hash {
     @apply font-mono text-2xs;
     max-width: 120px;
+  }
+
+  /* Hide native scrollbars on horizontal scroll containers — used for
+     tag strips, tab bars, and any "swipe to see more" rail on mobile.
+     The scroll itself still works (no `overflow: hidden`); we only hide
+     the chrome since the content is the only visual cue needed. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Honour the iOS safe area on stuck-to-bottom action bars. The
+     fallback to 1rem keeps a sensible baseline padding on browsers
+     that don't expose env(). */
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }

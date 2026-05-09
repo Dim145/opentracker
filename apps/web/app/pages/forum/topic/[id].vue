@@ -12,10 +12,10 @@
     </div>
 
     <div v-else-if="topic" class="space-y-6">
-      <div class="flex justify-between items-start">
-        <div>
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+        <div class="min-w-0 flex-1">
           <div
-            class="flex items-center gap-2 text-text-muted text-xs font-mono uppercase tracking-widest mb-2"
+            class="flex items-center gap-2 text-text-muted text-xs font-mono uppercase tracking-widest mb-2 flex-wrap"
           >
             <NuxtLink to="/forum" class="hover:text-text-strong transition-colors"
               >Forum</NuxtLink
@@ -23,27 +23,27 @@
             <Icon name="ph:caret-right" />
             <NuxtLink
               :to="`/forum/category/${topic.category.id}`"
-              class="hover:text-text-strong transition-colors"
+              class="hover:text-text-strong transition-colors truncate"
               >{{ topic.category.name }}</NuxtLink
             >
             <Icon name="ph:caret-right" />
             <span>Topic</span>
           </div>
-          <h1 class="text-2xl font-bold tracking-tight flex items-center gap-3">
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight flex items-start gap-3 break-words">
             <Icon
               v-if="topic.isPinned"
               name="ph:push-pin-fill"
-              class="text-text-strong text-xl"
+              class="text-text-strong text-xl flex-shrink-0 mt-0.5"
             />
             <Icon
               v-if="topic.isLocked"
               name="ph:lock-fill"
-              class="text-text-muted text-xl"
+              class="text-text-muted text-xl flex-shrink-0 mt-0.5"
             />
-            {{ topic.title }}
+            <span class="min-w-0">{{ topic.title }}</span>
           </h1>
         </div>
-        <div v-if="user?.isAdmin || user?.isModerator" class="flex gap-2">
+        <div v-if="user?.isAdmin || user?.isModerator" class="flex gap-2 flex-wrap">
           <button
             @click="handleTogglePin"
             class="px-3 py-1.5 bg-bg-secondary border border-border text-[10px] font-bold uppercase tracking-wider rounded hover:bg-fg-default/5 transition-colors flex items-center gap-2"
@@ -114,7 +114,7 @@
               <button
                 v-if="user?.isAdmin || user?.isModerator"
                 @click="handleDeletePost(post.id)"
-                class="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-400 p-1"
+                class="opacity-50 sm:opacity-0 sm:group-hover:opacity-100 hover:opacity-100 focus-visible:opacity-100 transition-opacity text-red-500 hover:text-red-400 inline-flex items-center justify-center w-9 h-9 -my-1.5 -mr-1.5"
                 title="Delete Post"
               >
                 <Icon name="ph:trash" class="text-lg" />

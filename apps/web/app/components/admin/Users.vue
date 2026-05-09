@@ -118,8 +118,188 @@
       </div>
     </div>
 
-    <!-- ── Table ───────────────────────────────────────────── -->
-    <div class="table-wrap">
+    <!-- ── Mobile card list ─ < md ────────────────────────── -->
+    <!-- The 8-column table is unreadable on phones (every column adds
+         horizontal scroll inside the card). We render a compact card
+         per user with the same data and action set. -->
+    <div class="md:hidden user-cards" :aria-busy="loading">
+      <div
+        v-if="loading && !data"
+        class="user-card user-card--skeleton"
+        v-for="i in pageSize"
+        :key="`uc-sk-${i}`"
+      >
+        <div class="sk-bar" :style="{ width: `${40 + (i % 7) * 6}%` }" />
+      </div>
+
+      <div
+        v-if="data && data.items.length === 0"
+        class="user-card-empty"
+      >
+        <Icon name="ph:user-list" class="empty-icon" />
+        <p class="empty-headline">No users match those filters</p>
+        <button type="button" class="empty-link" @click="resetFilters">
+          clearing all filters
+        </button>
+      </div>
+
+      <article
+        v-for="u in (data && data.items.length > 0) ? data.items : []"
+        :key="`uc-${u.id}`"
+        class="user-card"
+        :class="{ 'user-card--banned': u.isBanned }"
+      >
+        <div class="user-card-head">
+          <div class="avatar avatar--md" :style="avatarStyle(u)">
+            {{ u.username.slice(0, 2).toUpperCase() }}
+          </div>
+          <div class="user-card-id">
+            <NuxtLink
+              :to="`/users/${u.id}`"
+              class="user-card-name"
+              :class="{ 'user-cell-name--banned': u.isBanned }"
+            >
+              {{ u.username }}
+            </NuxtLink>
+            <p class="user-card-meta">
+              <span class="user-uid">#{{ u.id.slice(0, 8) }}</span>
+              <ClientOnly>
+                <span class="last-seen" :class="lastSeenTone(u)">
+                  <span
+                    v-if="lastSeenTone(u) === 'online'"
+                    class="online-dot"
+                  />
+                  {{ formatLastSeen(u) }}
+                </span>
+                <template #fallback>
+                  <span class="last-seen">…</span>
+                </template>
+              </ClientOnly>
+            </p>
+          </div>
+        </div>
+
+        <div class="role-stack user-card-roles">
+          <span
+            v-if="u.isAdmin"
+            class="role-chip role-chip--admin"
+            title="Permission level: admin"
+          >
+            <Icon name="ph:crown-fill" />
+            Admin
+          </span>
+          <span
+            v-else-if="u.isModerator"
+            class="role-chip role-chip--mod"
+            title="Permission level: moderator"
+          >
+            <Icon name="ph:shield-chevron-fill" />
+            Mod
+          </span>
+          <RoleBadge
+            v-for="r in u.roles"
+            :key="r.id"
+            :role="r"
+            :title="`${r.assignmentMode === 'auto' ? 'Auto' : 'Manual'} · attached ${formatJoined(r.assignedAt)}`"
+          />
+          <span
+            v-if="!u.isAdmin && !u.isModerator && u.roles.length === 0"
+            class="role-chip role-chip--none"
+          >
+            <Icon name="ph:user" />
+            Member
+          </span>
+        </div>
+
+        <dl class="user-card-stats">
+          <div>
+            <dt>Ratio</dt>
+            <dd :class="['ratio', ratioTone(u)]">{{ formatRatio(u) }}</dd>
+          </div>
+          <div>
+            <dt>Up / Down</dt>
+            <dd class="user-card-bytes">
+              <span class="bytes">{{ formatSize(u.uploaded) }}</span>
+              <span class="bytes-divider">/</span>
+              <span class="bytes bytes-down">{{ formatSize(u.downloaded) }}</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Joined</dt>
+            <dd class="cell--mono">{{ formatJoined(u.createdAt) }}</dd>
+          </div>
+          <div v-if="u.invitesRemaining > 0">
+            <dt>Invites</dt>
+            <dd>
+              <span class="invites">
+                <Icon name="ph:envelope-bold" />
+                {{ u.invitesRemaining }}
+              </span>
+            </dd>
+          </div>
+        </dl>
+
+        <div class="user-card-actions">
+          <button
+            type="button"
+            class="row-action"
+            :class="{ 'row-action--danger-on': u.isBanned }"
+            :title="u.isBanned ? 'Unban' : 'Ban (will also block their IP)'"
+            :disabled="actionPending[`${u.id}:ban`]"
+            @click="onToggleBan(u)"
+          >
+            <Icon
+              :name="actionPending[`${u.id}:ban`] ? 'ph:circle-notch' : u.isBanned ? 'ph:lock-key-open-bold' : 'ph:lock-key-bold'"
+              :class="{ 'animate-spin': actionPending[`${u.id}:ban`] }"
+            />
+          </button>
+          <button
+            v-if="user?.isAdmin"
+            type="button"
+            class="row-action"
+            :class="{ 'row-action--mod-on': u.isModerator }"
+            title="Toggle moderator"
+            :disabled="actionPending[`${u.id}:mod`]"
+            @click="onToggleStaff(u, 'isModerator')"
+          >
+            <Icon
+              :name="actionPending[`${u.id}:mod`] ? 'ph:circle-notch' : 'ph:shield-chevron-bold'"
+              :class="{ 'animate-spin': actionPending[`${u.id}:mod`] }"
+            />
+          </button>
+          <button
+            v-if="user?.isAdmin"
+            type="button"
+            class="row-action"
+            :class="{ 'row-action--admin-on': u.isAdmin }"
+            title="Toggle admin"
+            :disabled="actionPending[`${u.id}:admin`]"
+            @click="onToggleStaff(u, 'isAdmin')"
+          >
+            <Icon
+              :name="actionPending[`${u.id}:admin`] ? 'ph:circle-notch' : 'ph:crown-bold'"
+              :class="{ 'animate-spin': actionPending[`${u.id}:admin`] }"
+            />
+          </button>
+          <button
+            v-if="user?.isAdmin && roles.length > 0"
+            type="button"
+            class="row-action"
+            :class="{ 'row-action--has-roles': u.roles.length > 0 }"
+            :title="`Manage roles (${u.roles.length} attached)`"
+            @click="openRolesModal(u)"
+          >
+            <Icon name="ph:identification-badge-bold" />
+            <span v-if="u.roles.length > 0" class="row-action__count">{{
+              u.roles.length
+            }}</span>
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <!-- ── Table ─ ≥ md ─────────────────────────────────── -->
+    <div class="table-wrap hidden md:block">
       <table class="reg-table" :aria-busy="loading">
         <thead>
           <tr>
@@ -2139,5 +2319,166 @@ async function onDetachRole(roleId: string) {
   color: rgb(var(--fg-strong));
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+/* =============================================================================
+ * Mobile card list (< md) — replaces the 8-column table when there isn't
+ * enough horizontal real-estate for it. Each card mirrors the same data:
+ * identity row, role stack, key/value stats grid, then the action rail.
+ * ============================================================================= */
+.user-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.user-card {
+  background-color: rgb(var(--bg-surface));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: border-color 160ms ease;
+}
+.user-card:focus-within,
+.user-card:hover {
+  border-color: rgb(var(--line-strong));
+}
+.user-card--banned {
+  border-color: rgb(var(--danger) / 0.45);
+  background-color: rgb(var(--danger) / 0.04);
+}
+.user-card--skeleton {
+  min-height: 4rem;
+  display: flex;
+  align-items: center;
+}
+.user-card-empty {
+  text-align: center;
+  padding: 2.5rem 1.25rem;
+  color: rgb(var(--fg-muted));
+  font-size: 12px;
+  background-color: rgb(var(--bg-surface));
+  border: 1px dashed rgb(var(--line-default));
+  border-radius: var(--radius-md);
+}
+.user-card-empty .empty-icon {
+  font-size: 1.75rem;
+  color: rgb(var(--fg-faint));
+  display: block;
+  margin: 0 auto 0.5rem;
+}
+.user-card-empty .empty-headline {
+  font-weight: 700;
+  color: rgb(var(--fg-default));
+  margin-bottom: 0.4rem;
+  letter-spacing: -0.005em;
+}
+.user-card-empty .empty-link {
+  color: rgb(var(--fg-strong));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.user-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.avatar--md {
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 0.9rem;
+}
+.user-card-id {
+  flex: 1;
+  min-width: 0;
+}
+.user-card-name {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgb(var(--fg-strong));
+  text-decoration: none;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-card-name:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.user-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 0.15rem 0 0;
+  font-size: 10.5px;
+  color: rgb(var(--fg-muted));
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Role stack inside a card lays roles out left-to-right with wrap so a
+   user with many roles doesn't blow the card height up. */
+.user-card-roles {
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.user-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 1rem;
+  margin: 0;
+  padding: 0.65rem 0;
+  border-top: 1px solid rgb(var(--line-default) / 0.7);
+  border-bottom: 1px solid rgb(var(--line-default) / 0.7);
+}
+.user-card-stats > div {
+  min-width: 0;
+}
+.user-card-stats dt {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+  margin-bottom: 0.2rem;
+}
+.user-card-stats dd {
+  margin: 0;
+  font-size: 12.5px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  color: rgb(var(--fg-default));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-card-bytes {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.user-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.user-card-actions .row-action {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
 }
 </style>
