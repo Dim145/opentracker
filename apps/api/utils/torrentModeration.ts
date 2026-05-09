@@ -19,6 +19,7 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import { redis } from '../redis/client';
 
 export type ModerationStatus =
   | 'pending'
@@ -34,10 +35,33 @@ export const MODERATION_STATUSES: readonly ModerationStatus[] = [
 ];
 
 /**
+ * Cache the role-side bypass for 5 minutes per user. The role-grant
+ * endpoint invalidates the entry whenever a role membership or the
+ * `canUploadWithoutModeration` flag of an attached role changes.
+ *
+ * Stored as the literal strings "1"/"0" so a torn read can never
+ * be silently coerced to truthy.
+ */
+const BYPASS_CACHE_TTL_S = 5 * 60;
+const bypassCacheKey = (userId: string) => `auth:bypass-mod:${userId}`;
+
+export async function invalidateBypassCache(userId: string): Promise<void> {
+  try {
+    await redis.del(bypassCacheKey(userId));
+  } catch {
+    /* no-op */
+  }
+}
+
+/**
  * True if the given user can publish without moderation review.
- *   - admins and moderators always can
+ *   - admins and moderators always can (decided in-memory, no I/O)
  *   - members carry the bypass via any attached role's
- *     `canUploadWithoutModeration` flag
+ *     `canUploadWithoutModeration` flag (Redis-cached)
+ *
+ * The cache exists because this helper is called on every upload
+ * AND on every torrent edit; without it the role-membership join
+ * fires on every page load that touches a torrent.
  */
 export async function userCanBypassModeration(user: {
   id: string;
@@ -46,13 +70,35 @@ export async function userCanBypassModeration(user: {
 }): Promise<boolean> {
   if (user.isAdmin || user.isModerator) return true;
 
+  // Fast path: cached value.
+  try {
+    const cached = await redis.get(bypassCacheKey(user.id));
+    if (cached === '1') return true;
+    if (cached === '0') return false;
+  } catch {
+    // Redis hiccup → fall through to a DB hit so the call still
+    // resolves correctly. The mutation surface is small (uploads
+    // and edits), so a brief cache outage is tolerable.
+  }
+
   const rows = await db
     .select({ canBypass: schema.roles.canUploadWithoutModeration })
     .from(schema.userRoles)
     .innerJoin(schema.roles, eq(schema.userRoles.roleId, schema.roles.id))
     .where(eq(schema.userRoles.userId, user.id));
 
-  return rows.some((r) => r.canBypass === true);
+  const allowed = rows.some((r) => r.canBypass === true);
+
+  try {
+    await redis.setex(
+      bypassCacheKey(user.id),
+      BYPASS_CACHE_TTL_S,
+      allowed ? '1' : '0'
+    );
+  } catch {
+    /* no-op */
+  }
+  return allowed;
 }
 
 /**

@@ -490,14 +490,22 @@ export const forumCategories = pgTable('forum_categories', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// `authorId` is nullable + `onDelete: 'set null'` on the three
+// user-content tables below (forumTopics, forumPosts,
+// torrentComments). Without that rule the FK refused every user
+// deletion, leaving spam accounts permanently un-purgeable. With
+// `set null` the contributions stay (community history is rarely
+// worth nuking with the author) but lose attribution; the FE
+// renders a `null` author as "[deleted]" — same convention already
+// used by torrentModerationMessages.
 export const forumTopics = pgTable('forum_topics', {
   id: text('id').primaryKey(),
   categoryId: text('category_id')
     .notNull()
     .references(() => forumCategories.id, { onDelete: 'cascade' }),
-  authorId: text('author_id')
-    .notNull()
-    .references(() => users.id),
+  authorId: text('author_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
   title: text('title').notNull(),
   isPinned: boolean('is_pinned').default(false).notNull(),
   isLocked: boolean('is_locked').default(false).notNull(),
@@ -510,9 +518,9 @@ export const forumPosts = pgTable('forum_posts', {
   topicId: text('topic_id')
     .notNull()
     .references(() => forumTopics.id, { onDelete: 'cascade' }),
-  authorId: text('author_id')
-    .notNull()
-    .references(() => users.id),
+  authorId: text('author_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -526,9 +534,9 @@ export const torrentComments = pgTable('torrent_comments', {
   torrentId: text('torrent_id')
     .notNull()
     .references(() => torrents.id, { onDelete: 'cascade' }),
-  authorId: text('author_id')
-    .notNull()
-    .references(() => users.id),
+  authorId: text('author_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -15,7 +15,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users, bannedIps } from '@trackarr/db/schema';
-import { requireModeratorSession } from '~~/utils/adminAuth';
+import { invalidateBanCache, requireModeratorSession } from '~~/utils/adminAuth';
 import { validateParam, uuidSchema } from '~~/utils/schemas';
 
 export default defineEventHandler(async (event) => {
@@ -41,6 +41,10 @@ export default defineEventHandler(async (event) => {
     .update(users)
     .set({ isBanned: false, bannedById: null, bannedByRole: null })
     .where(eq(users.id, userId));
+
+  // Drop the cached `isBanned` so the unbanned user can sign in
+  // again on the very next attempt rather than waiting for the TTL.
+  await invalidateBanCache(userId);
 
   if (target.lastIp) {
     await db.delete(bannedIps).where(eq(bannedIps.ip, target.lastIp));

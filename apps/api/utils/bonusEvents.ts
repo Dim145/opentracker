@@ -24,7 +24,7 @@
  */
 import { db } from '@trackarr/db';
 import { bonusEvents } from '@trackarr/db/schema';
-import { and, desc, eq, gt, lt, lte, ne } from 'drizzle-orm';
+import { and, desc, eq, gt, lt, lte, ne, sql } from 'drizzle-orm';
 import { redis } from '../redis/client';
 
 // ── Multiplier ranges ───────────────────────────────────────
@@ -143,16 +143,48 @@ export async function getActiveSnapshot(): Promise<ActiveBonusEventSnapshot | nu
 // ── Overlap check ───────────────────────────────────────────
 
 /**
+ * Postgres advisory-lock id, scoped to "any write that touches the
+ * bonus-events overlap rule". Two admins doing concurrent
+ * create/update/toggle calls take this lock and serialize naturally,
+ * so the check-then-insert race window collapses to zero. The id is
+ * arbitrary; any 32-bit constant works as long as nothing else in
+ * the codebase uses it.
+ *
+ * (Stays well under Number.MAX_SAFE_INTEGER so JSON serialisation
+ * through the driver doesn't risk a silent precision downgrade.)
+ */
+const BONUS_EVENTS_ADVISORY_LOCK_ID = 0x424f4e55; // "BONU" — 1112757589
+
+/**
+ * Hold the advisory lock for the rest of the transaction. Postgres
+ * releases it automatically on COMMIT/ROLLBACK, so the caller never
+ * has to think about cleanup. Always call before any overlap query
+ * + write inside the same `db.transaction(...)` block.
+ */
+export async function lockBonusEventsForWrite(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0]
+): Promise<void> {
+  await tx.execute(
+    sql`SELECT pg_advisory_xact_lock(${BONUS_EVENTS_ADVISORY_LOCK_ID}::bigint)`
+  );
+}
+
+/**
  * True if any other `enabled = true` row's window overlaps `[start,
  * end)`. Pass `excludeId` when updating a row so it doesn't conflict
  * with itself.
  *
  * Two windows [a, b) and [c, d) overlap iff `a < d && c < b`.
+ *
+ * The optional `tx` argument lets callers run the check inside an
+ * existing transaction (paired with `lockBonusEventsForWrite`) so
+ * the check + the subsequent insert/update are atomic.
  */
 export async function hasOverlap(
   startsAt: Date,
   endsAt: Date,
-  excludeId?: string
+  excludeId?: string,
+  tx?: Parameters<Parameters<typeof db.transaction>[0]>[0]
 ): Promise<boolean> {
   const conditions = [
     eq(bonusEvents.enabled, true),
@@ -160,7 +192,8 @@ export async function hasOverlap(
     gt(bonusEvents.endsAt, startsAt),
   ];
   if (excludeId) conditions.push(ne(bonusEvents.id, excludeId));
-  const row = await db.query.bonusEvents.findFirst({
+  const exec = tx ?? db;
+  const row = await exec.query.bonusEvents.findFirst({
     where: and(...conditions),
     columns: { id: true },
   });

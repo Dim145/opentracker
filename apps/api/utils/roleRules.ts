@@ -20,6 +20,7 @@
 
 import { db, schema } from '@trackarr/db';
 import { eq, sql, and as drizzleAnd, inArray, notInArray } from 'drizzle-orm';
+import { invalidateBypassCache } from './torrentModeration';
 
 export type RuleField =
   | 'approvedUploads'
@@ -263,6 +264,13 @@ export async function reevaluateUserRole(
           eq(schema.userRoles.assignedManually, false)
         )!
       );
+  }
+
+  // Any change to the user's role membership might flip the
+  // `canUploadWithoutModeration` flag — drop the bypass cache so
+  // the next upload re-resolves from the freshly written rows.
+  if (toAdd.length > 0 || toRemove.length > 0) {
+    await invalidateBypassCache(userId);
   }
 
   return { added: toAdd, removed: toRemove };

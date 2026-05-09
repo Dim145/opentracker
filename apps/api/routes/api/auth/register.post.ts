@@ -1,4 +1,4 @@
-import { count, eq, and, isNull } from 'drizzle-orm';
+import { count, eq, and, isNull, sql } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users, bannedIps, invitations } from '@trackarr/db/schema';
 import { generateToken } from '~~/utils/server';
@@ -12,6 +12,19 @@ import {
 import { validateBody, registerSchema } from '~~/utils/schemas';
 import { verifyPoWSolution } from '~~/utils/pow';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+
+/**
+ * Postgres advisory lock id used to serialise the "first user gets
+ * admin" branch of registration. Two concurrent POSTs hitting an
+ * empty users table would both see `count === 0` and both INSERT
+ * with `isAdmin = true`, leaving the instance with two unintended
+ * admins. The lock turns that race into a queue: the first
+ * transaction commits the admin row, the second sees `count > 0`
+ * and falls through to the normal-user branch.
+ *
+ * The id is arbitrary; any 32-bit value not used elsewhere works.
+ */
+const REGISTER_FIRST_USER_LOCK_ID = 0x52454749; // "REGI"
 
 /**
  * POST /api/auth/register
@@ -58,7 +71,21 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Check if any users exist (setup mode)
+  // We need a stable read of "is the table empty?" that survives
+  // concurrent registrations. We take the advisory lock right away
+  // and hold it across the count read AND the insert — releasing
+  // only when the transaction commits at the bottom of the handler.
+  // The downstream invite-validation and username uniqueness checks
+  // stay above the transaction (they have their own atomicity:
+  // unique constraint on username, atomic decrement on
+  // invitesRemaining, etc.) so the lock window stays as small as
+  // possible.
+  //
+  // Outside the transaction we still need an early `isFirstUser`
+  // value to decide whether the panic-password is required and
+  // which validation rules to run. We compute it from a non-locking
+  // count and re-check inside the transaction to settle the race
+  // before the INSERT.
   const userCount = await db.select({ count: count() }).from(users);
   const isFirstUser = userCount[0].count === 0;
 
@@ -140,33 +167,58 @@ export default defineEventHandler(async (event) => {
     panicPasswordHash = await hashPassword(body.panicPassword);
   }
 
-  await db.insert(users).values({
-    id: userId,
-    username: body.username,
-    authSalt: body.authSalt,
-    authVerifier: body.authVerifier,
-    passkey,
-    isAdmin: isFirstUser,
-    isModerator: false,
-    lastIp: clientIp !== 'unknown' ? clientIp : null,
-    uploaded: starterUpload,
-    invitesRemaining: isFirstUser ? 10 : defaultInvites,
-    panicPasswordHash,
+  // Atomic block: take the first-user lock, re-check the user count
+  // under the lock, INSERT with the settled `isAdmin` flag, and burn
+  // the invite (if any) in the same transaction. Anything that can
+  // fail here rolls back as a unit — no partially-created admin
+  // accounts, no consumed-but-unattributed invites.
+  const finalIsFirstUser = await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(${REGISTER_FIRST_USER_LOCK_ID}::bigint)`
+    );
+
+    // Re-check under the lock. A concurrent registration that won
+    // the race has already committed by now, so `c > 0` means we're
+    // a regular member regardless of what the unlocked read above
+    // said.
+    const [{ count: cNow }] = await tx.select({ count: count() }).from(users);
+    const settledFirstUser = cNow === 0;
+
+    await tx.insert(users).values({
+      id: userId,
+      username: body.username,
+      authSalt: body.authSalt,
+      authVerifier: body.authVerifier,
+      passkey,
+      isAdmin: settledFirstUser,
+      isModerator: false,
+      lastIp: clientIp !== 'unknown' ? clientIp : null,
+      uploaded: starterUpload,
+      invitesRemaining: settledFirstUser ? 10 : defaultInvites,
+      panicPasswordHash,
+    });
+
+    // Mark invite as used inside the same transaction so the row
+    // is never consumed without a matching new user row landing.
+    if (validInvite) {
+      await tx
+        .update(invitations)
+        .set({
+          usedBy: userId,
+          usedAt: new Date(),
+        })
+        .where(eq(invitations.id, validInvite.id));
+    }
+
+    return settledFirstUser;
   });
 
-  // Mark invite as used if registration was via invite
-  if (validInvite) {
-    await db
-      .update(invitations)
-      .set({
-        usedBy: userId,
-        usedAt: new Date(),
-      })
-      .where(eq(invitations.id, validInvite.id));
-  }
-
-  // If first user, close registration by default
-  if (isFirstUser) {
+  // If first user, close registration by default. Outside the
+  // transaction because `setSetting` writes to a different table
+  // and Redis; bundling it would unnecessarily widen the locked
+  // window. A failure here doesn't roll back the new admin user —
+  // the operator can flip the switch in /admin/settings.
+  if (finalIsFirstUser) {
     await setRegistrationOpen(false);
   }
 
@@ -176,7 +228,7 @@ export default defineEventHandler(async (event) => {
       id: userId,
       username: body.username,
       passkey,
-      isAdmin: isFirstUser,
+      isAdmin: finalIsFirstUser,
       isModerator: false,
       uploaded: starterUpload,
       downloaded: 0,
@@ -186,11 +238,11 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
-    isFirstUser,
+    isFirstUser: finalIsFirstUser,
     user: {
       id: userId,
       username: body.username,
-      isAdmin: isFirstUser,
+      isAdmin: finalIsFirstUser,
       isModerator: false,
       uploaded: starterUpload,
       downloaded: 0,

@@ -182,11 +182,39 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 5a. Apply the active bonus event multipliers (Freeleech /
+	// 5a. Sanity-cap the per-announce delta. A malicious client can
+	// claim arbitrary int64 values for `uploaded`/`downloaded` query
+	// params; combined with a Bonus Event 10× upload multiplier this
+	// would overflow int64 on the multiplication below and silently
+	// poison the user's lifetime counters. 1 TiB per announce is
+	// already two orders of magnitude beyond what any honest client
+	// could legitimately push between two announces, so anything
+	// above is dropped to the cap.
+	const maxDeltaPerAnnounce int64 = 1 << 40 // 1 TiB
+	if deltaUp > maxDeltaPerAnnounce {
+		slog.Warn("clamping unrealistic upload delta",
+			"info_hash", infoHashHex,
+			"peer_id", peerHex,
+			"claimed", deltaUp,
+		)
+		deltaUp = maxDeltaPerAnnounce
+	}
+	if deltaDown > maxDeltaPerAnnounce {
+		slog.Warn("clamping unrealistic download delta",
+			"info_hash", infoHashHex,
+			"peer_id", peerHex,
+			"claimed", deltaDown,
+		)
+		deltaDown = maxDeltaPerAnnounce
+	}
+
+	// 5b. Apply the active bonus event multipliers (Freeleech /
 	// Silverleech / custom) before persisting. The resolver reads
 	// from a 30 s in-memory cache backed by Redis, so this is a
 	// near-zero-cost call when no event is active. With identity
-	// (1x/1x) the deltas are unchanged.
+	// (1x/1x) the deltas are unchanged. The cap above guarantees
+	// the multiplication can never overflow int64
+	// (1 TiB × 1000 / 100 = 10 TiB ≪ 9.2 EiB).
 	mults := s.bonus.Get(ctx)
 	deltaUp, deltaDown = mults.Apply(deltaUp, deltaDown)
 

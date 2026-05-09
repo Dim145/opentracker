@@ -2,6 +2,81 @@ import type { H3Event } from 'h3';
 import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users } from '@trackarr/db/schema';
+import { redis } from '../redis/client';
+
+/**
+ * Cached `isBanned` lookup — backs `requireAuthSession`.
+ *
+ * Without a cache, every authenticated request issued a SELECT
+ * against `users` just to read a single boolean column. On an
+ * active site that meant N queries per page load, all serialised
+ * through pgbouncer. We cache the result in Redis for 60 s under
+ * `auth:ban:{userId}` and invalidate explicitly when the staff
+ * pages flip `is_banned`.
+ *
+ * Cache values:
+ *   - "0"  → user exists and is not banned
+ *   - "1"  → user is banned
+ *   - "x"  → user no longer exists (treated as banned for safety)
+ *
+ * The TTL is short on purpose: a moderator who bans a spammer
+ * sees the lockout effective within at most 60 s even if the
+ * invalidation hook misfires.
+ */
+const BAN_CACHE_TTL_S = 60;
+const banCacheKey = (userId: string) => `auth:ban:${userId}`;
+
+async function readBanStatusCached(
+  userId: string
+): Promise<'ok' | 'banned' | 'gone'> {
+  try {
+    const cached = await redis.get(banCacheKey(userId));
+    if (cached === '0') return 'ok';
+    if (cached === '1') return 'banned';
+    if (cached === 'x') return 'gone';
+  } catch {
+    // Redis hiccup — fall through to a DB hit so we never
+    // accidentally lock everyone out on a transient failure.
+  }
+
+  const [dbUser] = await db
+    .select({ isBanned: users.isBanned })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  let value: 'ok' | 'banned' | 'gone';
+  if (!dbUser) value = 'gone';
+  else if (dbUser.isBanned) value = 'banned';
+  else value = 'ok';
+
+  // Best-effort cache write; if Redis is down, the next request
+  // will pay the same DB hit. That's tolerable for a 60 s window.
+  try {
+    await redis.setex(
+      banCacheKey(userId),
+      BAN_CACHE_TTL_S,
+      value === 'ok' ? '0' : value === 'banned' ? '1' : 'x'
+    );
+  } catch {
+    /* no-op */
+  }
+  return value;
+}
+
+/**
+ * Drop the cached ban status for a user. Call from any code path
+ * that mutates `users.is_banned` (the admin ban / unban endpoints,
+ * the panic flow, etc.) so the next request observes the change
+ * without waiting for the TTL.
+ */
+export async function invalidateBanCache(userId: string): Promise<void> {
+  try {
+    await redis.del(banCacheKey(userId));
+  } catch {
+    /* no-op */
+  }
+}
 
 /**
  * Require user authentication and check for bans
@@ -9,19 +84,14 @@ import { users } from '@trackarr/db/schema';
 export async function requireAuthSession(event: H3Event) {
   const session = await requireUserSession(event);
 
-  // Skip DB check if already verified by middleware
+  // Skip DB check if already verified by middleware (per-request
+  // memoisation — distinct from the Redis cache).
   if (event.context.authChecked) {
     return session;
   }
 
-  // Check DB for ban status to ensure banned users are immediately blocked
-  const [dbUser] = await db
-    .select({ isBanned: users.isBanned })
-    .from(users)
-    .where(eq(users.id, session.user.id))
-    .limit(1);
-
-  if (!dbUser || dbUser.isBanned) {
+  const status = await readBanStatusCached(session.user.id);
+  if (status !== 'ok') {
     await clearUserSession(event);
     throw createError({
       statusCode: 403,

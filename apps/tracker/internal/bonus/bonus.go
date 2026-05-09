@@ -130,12 +130,19 @@ func (r *Resolver) Get(ctx context.Context) Multipliers {
 		return Identity
 	} else {
 		var s snapshot
+		nowMs := now.UnixMilli()
 		if json.Unmarshal([]byte(raw), &s) != nil {
 			fresh = Identity
-		} else if s.EndsAtMs <= now.UnixMilli() {
+		} else if s.EndsAtMs <= nowMs {
 			// Snapshot's window has ended even though the API hasn't
 			// re-resolved yet (clock skew, missed mutation). Don't
 			// honour it — fail open to identity.
+			fresh = Identity
+		} else if s.StartsAtMs > nowMs {
+			// Mirror end-time check on the start side: a snapshot
+			// pushed by the API with a future startsAt (operator
+			// scheduling a window in advance + sync race) must not
+			// apply yet. Fail open until the window actually begins.
 			fresh = Identity
 		} else if s.DownloadMultiplier < 0 || s.UploadMultiplier < 0 {
 			// Defensive: a corrupted JSON could underflow the int64

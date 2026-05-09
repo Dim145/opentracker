@@ -15,6 +15,7 @@
  */
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { invalidateBypassCache } from '~~/utils/torrentModeration';
 import { validateBody } from '~~/utils/schemas';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -61,6 +62,11 @@ export default defineEventHandler(async (event) => {
       set: { assignedManually: true },
     })
     .returning();
+
+  // Role attachment may have flipped the user's
+  // `canUploadWithoutModeration` status — invalidate the cached
+  // bypass flag so the next upload sees the new value.
+  await invalidateBypassCache(id);
 
   return row;
 });

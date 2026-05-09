@@ -1,9 +1,10 @@
-import { db } from '@trackarr/db';
+import { db, schema } from '@trackarr/db';
 import { roles } from '@trackarr/db/schema';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 import { reevaluateAllUsers } from '~~/utils/roleRules';
+import { invalidateBypassCache } from '~~/utils/torrentModeration';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -111,6 +112,18 @@ export default defineEventHandler(async (event) => {
     void reevaluateAllUsers().catch((err) => {
       console.error('[Roles] post-edit sweep failed:', err);
     });
+  }
+
+  // If the moderation-bypass flag was touched, invalidate the
+  // bypass cache for every user currently carrying this role.
+  // Without this hop, the change would only propagate as caches
+  // expire over the next 5 minutes.
+  if (body.canUploadWithoutModeration !== undefined) {
+    const holders = await db
+      .select({ userId: schema.userRoles.userId })
+      .from(schema.userRoles)
+      .where(eq(schema.userRoles.roleId, id));
+    await Promise.all(holders.map((r) => invalidateBypassCache(r.userId)));
   }
 
   return updated;

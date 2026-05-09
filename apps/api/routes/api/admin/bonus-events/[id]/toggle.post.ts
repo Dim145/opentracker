@@ -9,7 +9,11 @@ import { db } from '@trackarr/db';
 import { bonusEvents } from '@trackarr/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAdminSession } from '~~/utils/adminAuth';
-import { hasOverlap, syncActiveSnapshot } from '~~/utils/bonusEvents';
+import {
+  hasOverlap,
+  lockBonusEventsForWrite,
+  syncActiveSnapshot,
+} from '~~/utils/bonusEvents';
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
@@ -18,29 +22,37 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing id' });
   }
 
-  const existing = await db.query.bonusEvents.findFirst({
-    where: eq(bonusEvents.id, id),
-  });
-  if (!existing) {
-    throw createError({ statusCode: 404, message: 'Event not found' });
-  }
+  // Toggle = read + overlap check (only when re-enabling) + write,
+  // gated by the bonus-events advisory lock to serialise with
+  // concurrent POST/PATCH/toggle calls.
+  const updated = await db.transaction(async (tx) => {
+    await lockBonusEventsForWrite(tx);
 
-  const next = !existing.enabled;
-
-  if (next && (await hasOverlap(existing.startsAt, existing.endsAt, id))) {
-    throw createError({
-      statusCode: 409,
-      statusMessage: 'Conflict',
-      message:
-        'Another enabled bonus event overlaps this time window. Disable the conflicting one before re-enabling this row.',
+    const existing = await tx.query.bonusEvents.findFirst({
+      where: eq(bonusEvents.id, id),
     });
-  }
+    if (!existing) {
+      throw createError({ statusCode: 404, message: 'Event not found' });
+    }
 
-  const [updated] = await db
-    .update(bonusEvents)
-    .set({ enabled: next, updatedAt: new Date() })
-    .where(eq(bonusEvents.id, id))
-    .returning();
+    const next = !existing.enabled;
+
+    if (next && (await hasOverlap(existing.startsAt, existing.endsAt, id, tx))) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Conflict',
+        message:
+          'Another enabled bonus event overlaps this time window. Disable the conflicting one before re-enabling this row.',
+      });
+    }
+
+    const [row] = await tx
+      .update(bonusEvents)
+      .set({ enabled: next, updatedAt: new Date() })
+      .where(eq(bonusEvents.id, id))
+      .returning();
+    return row;
+  });
 
   await syncActiveSnapshot();
 

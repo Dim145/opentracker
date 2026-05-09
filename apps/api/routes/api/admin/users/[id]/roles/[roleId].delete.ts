@@ -15,6 +15,7 @@
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { reevaluateUserRole } from '~~/utils/roleRules';
+import { invalidateBypassCache } from '~~/utils/torrentModeration';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -48,6 +49,10 @@ export default defineEventHandler(async (event) => {
   void reevaluateUserRole(id).catch((err) => {
     console.error('[Roles] post-detach sweep failed:', err);
   });
+
+  // The detached role may have carried `canUploadWithoutModeration`;
+  // invalidate the cached bypass flag so the next upload re-checks.
+  await invalidateBypassCache(id);
 
   return { success: true };
 });

@@ -16,6 +16,7 @@ import {
   DOWNLOAD_MULTIPLIER_MAX,
   DOWNLOAD_MULTIPLIER_MIN,
   hasOverlap,
+  lockBonusEventsForWrite,
   syncActiveSnapshot,
   UPLOAD_MULTIPLIER_MAX,
   UPLOAD_MULTIPLIER_MIN,
@@ -51,35 +52,41 @@ export default defineEventHandler(async (event) => {
   const startsAt = new Date(body.startsAt);
   const endsAt = new Date(body.endsAt);
 
-  // Only check overlap when the window is being inserted as enabled.
-  // A disabled-on-creation row is operator-curated and can sit on top
-  // of an active one — they'll resolve the conflict before flipping
-  // the toggle.
-  if (body.enabled && (await hasOverlap(startsAt, endsAt))) {
-    throw createError({
-      statusCode: 409,
-      statusMessage: 'Conflict',
-      message:
-        'Another enabled bonus event overlaps this time window. Disable the conflicting one or pick a different window.',
-    });
-  }
-
+  // Overlap check + insert run inside the same transaction, gated by
+  // a Postgres advisory lock so two admins POSTing concurrent windows
+  // serialise. Without the lock, both calls could pass `hasOverlap`
+  // and both inserts would commit, violating the "at most one
+  // window active at a time" product rule.
   const id = randomUUID();
-  const [row] = await db
-    .insert(bonusEvents)
-    .values({
-      id,
-      title: body.title,
-      description: body.description ?? null,
-      longDescription: body.longDescription ?? null,
-      downloadMultiplier: body.downloadMultiplier,
-      uploadMultiplier: body.uploadMultiplier,
-      startsAt,
-      endsAt,
-      enabled: body.enabled,
-      createdById: session.user.id,
-    })
-    .returning();
+  const row = await db.transaction(async (tx) => {
+    await lockBonusEventsForWrite(tx);
+
+    if (body.enabled && (await hasOverlap(startsAt, endsAt, undefined, tx))) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Conflict',
+        message:
+          'Another enabled bonus event overlaps this time window. Disable the conflicting one or pick a different window.',
+      });
+    }
+
+    const [inserted] = await tx
+      .insert(bonusEvents)
+      .values({
+        id,
+        title: body.title,
+        description: body.description ?? null,
+        longDescription: body.longDescription ?? null,
+        downloadMultiplier: body.downloadMultiplier,
+        uploadMultiplier: body.uploadMultiplier,
+        startsAt,
+        endsAt,
+        enabled: body.enabled,
+        createdById: session.user.id,
+      })
+      .returning();
+    return inserted;
+  });
 
   // Re-resolve the active window snapshot — the new row may itself
   // be the new "active now" event if the operator created a window

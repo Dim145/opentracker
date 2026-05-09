@@ -18,6 +18,7 @@ import {
   DOWNLOAD_MULTIPLIER_MAX,
   DOWNLOAD_MULTIPLIER_MIN,
   hasOverlap,
+  lockBonusEventsForWrite,
   syncActiveSnapshot,
   UPLOAD_MULTIPLIER_MAX,
   UPLOAD_MULTIPLIER_MIN,
@@ -58,50 +59,59 @@ export default defineEventHandler(async (event) => {
   }
   const body = await validateBody(event, bodySchema);
 
-  const existing = await db.query.bonusEvents.findFirst({
-    where: eq(bonusEvents.id, id),
-  });
-  if (!existing) {
-    throw createError({ statusCode: 404, message: 'Event not found' });
-  }
+  // Read + overlap check + update all run inside one transaction
+  // gated by the bonus-events advisory lock — same protection as on
+  // POST. Without the lock, two concurrent PATCH calls could both
+  // see no conflict and both commit overlapping windows.
+  const updated = await db.transaction(async (tx) => {
+    await lockBonusEventsForWrite(tx);
 
-  // Compute the prospective window. We always check against the
-  // post-update values so an admin can't sneak past the overlap
-  // guard by tweaking one bound at a time.
-  const newStartsAt = body.startsAt ? new Date(body.startsAt) : existing.startsAt;
-  const newEndsAt = body.endsAt ? new Date(body.endsAt) : existing.endsAt;
-  const newEnabled = body.enabled ?? existing.enabled;
-
-  if (newEnabled && (await hasOverlap(newStartsAt, newEndsAt, id))) {
-    throw createError({
-      statusCode: 409,
-      statusMessage: 'Conflict',
-      message:
-        'Another enabled bonus event overlaps this time window. Disable the conflicting one or pick a different window.',
+    const existing = await tx.query.bonusEvents.findFirst({
+      where: eq(bonusEvents.id, id),
     });
-  }
+    if (!existing) {
+      throw createError({ statusCode: 404, message: 'Event not found' });
+    }
 
-  const [updated] = await db
-    .update(bonusEvents)
-    .set({
-      ...(body.title !== undefined && { title: body.title }),
-      ...(body.description !== undefined && { description: body.description }),
-      ...(body.longDescription !== undefined && {
-        longDescription: body.longDescription,
-      }),
-      ...(body.downloadMultiplier !== undefined && {
-        downloadMultiplier: body.downloadMultiplier,
-      }),
-      ...(body.uploadMultiplier !== undefined && {
-        uploadMultiplier: body.uploadMultiplier,
-      }),
-      ...(body.startsAt !== undefined && { startsAt: newStartsAt }),
-      ...(body.endsAt !== undefined && { endsAt: newEndsAt }),
-      ...(body.enabled !== undefined && { enabled: newEnabled }),
-      updatedAt: new Date(),
-    })
-    .where(eq(bonusEvents.id, id))
-    .returning();
+    // Compute the prospective window. We always check against the
+    // post-update values so an admin can't sneak past the overlap
+    // guard by tweaking one bound at a time.
+    const newStartsAt = body.startsAt ? new Date(body.startsAt) : existing.startsAt;
+    const newEndsAt = body.endsAt ? new Date(body.endsAt) : existing.endsAt;
+    const newEnabled = body.enabled ?? existing.enabled;
+
+    if (newEnabled && (await hasOverlap(newStartsAt, newEndsAt, id, tx))) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Conflict',
+        message:
+          'Another enabled bonus event overlaps this time window. Disable the conflicting one or pick a different window.',
+      });
+    }
+
+    const [row] = await tx
+      .update(bonusEvents)
+      .set({
+        ...(body.title !== undefined && { title: body.title }),
+        ...(body.description !== undefined && { description: body.description }),
+        ...(body.longDescription !== undefined && {
+          longDescription: body.longDescription,
+        }),
+        ...(body.downloadMultiplier !== undefined && {
+          downloadMultiplier: body.downloadMultiplier,
+        }),
+        ...(body.uploadMultiplier !== undefined && {
+          uploadMultiplier: body.uploadMultiplier,
+        }),
+        ...(body.startsAt !== undefined && { startsAt: newStartsAt }),
+        ...(body.endsAt !== undefined && { endsAt: newEndsAt }),
+        ...(body.enabled !== undefined && { enabled: newEnabled }),
+        updatedAt: new Date(),
+      })
+      .where(eq(bonusEvents.id, id))
+      .returning();
+    return row;
+  });
 
   await syncActiveSnapshot();
 

@@ -46,7 +46,35 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Check if user is banned
+  // ── Verify ZKE proof FIRST ──────────────────────────────────
+  // Username/account-status checks (banned, etc.) deliberately run
+  // *after* the proof verification. Otherwise an attacker who knows
+  // a username could probe the system for a 403 vs 401 to enumerate
+  // banned accounts without ever solving the SRP challenge. With the
+  // proof gate on top, those branches are unreachable to anyone
+  // without the password.
+  if (!user.authVerifier) {
+    throw createError({
+      statusCode: 401,
+      message: 'Invalid credentials',
+    });
+  }
+
+  const expectedProof = createHash('sha256')
+    .update(user.authVerifier + body.challenge)
+    .digest('hex');
+
+  if (!secureCompare(body.proof, expectedProof)) {
+    throw createError({
+      statusCode: 401,
+      message: 'Invalid credentials',
+    });
+  }
+
+  // ── Account & IP bans ───────────────────────────────────────
+  // Both gates run *after* the proof check (see above) so a
+  // non-credentialed probe can never distinguish a banned from a
+  // healthy account.
   if (user.isBanned) {
     throw createError({
       statusCode: 403,
@@ -54,8 +82,8 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Check if IP is banned. getClientIP honors TRUST_PROXY so a client behind
-  // an untrusted proxy can't forge X-Forwarded-For to bypass the ban.
+  // getClientIP honors TRUST_PROXY so a client behind an untrusted
+  // proxy can't forge X-Forwarded-For to bypass the ban.
   const clientIp = getClientIP(event);
 
   if (clientIp && clientIp !== 'unknown') {
@@ -72,27 +100,6 @@ export default defineEventHandler(async (event) => {
         message: 'Your IP address is banned',
       });
     }
-  }
-
-  // Verify ZKE proof
-  // Expected proof = SHA256(authVerifier + challenge)
-  if (!user.authVerifier) {
-    throw createError({
-      statusCode: 401,
-      message: 'Invalid credentials',
-    });
-  }
-  
-  const expectedProof = createHash('sha256')
-    .update(user.authVerifier + body.challenge)
-    .digest('hex');
-
-  // Constant-time comparison to prevent timing-attack leakage of the proof.
-  if (!secureCompare(body.proof, expectedProof)) {
-    throw createError({
-      statusCode: 401,
-      message: 'Invalid credentials',
-    });
   }
 
   // Update last seen and IP

@@ -14,7 +14,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users, bannedIps } from '@trackarr/db/schema';
-import { requireModeratorSession } from '~~/utils/adminAuth';
+import { invalidateBanCache, requireModeratorSession } from '~~/utils/adminAuth';
 import {
   validateBody,
   validateParam,
@@ -54,6 +54,10 @@ export default defineEventHandler(async (event) => {
       bannedByRole: actor.isAdmin ? 'admin' : 'moderator',
     })
     .where(eq(users.id, userId));
+
+  // Drop the cached `isBanned` so the lockout takes effect on the
+  // very next request rather than waiting up to 60 s for the TTL.
+  await invalidateBanCache(userId);
 
   if (target.lastIp) {
     const banReason = `Banned user: ${target.username}. Reason: ${reason}`;
