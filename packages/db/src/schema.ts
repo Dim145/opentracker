@@ -368,7 +368,23 @@ export const torrents = pgTable(
     tmdbId: text('tmdb_id'),
     tvdbId: text('tvdb_id'),
     isActive: boolean('is_active').default(true).notNull(),
-    isApproved: boolean('is_approved').default(false).notNull(),
+    // Moderation pipeline. Replaces the legacy `is_approved` boolean.
+    //   pending             — first state, awaiting a moderator's call
+    //   accepted            — public; visible everywhere
+    //   changes_requested   — moderator wants edits; uploader can edit
+    //                          and re-submit (auto-reverts to pending)
+    //   rejected            — refused; row kept so the same info_hash
+    //                          can never be silently re-uploaded.
+    //                          Only mods/admins can move it elsewhere.
+    moderationStatus: text('moderation_status')
+      .notNull()
+      .default('pending'),
+    // Last staffer who acted on the torrent (approved / rejected /
+    // requested-changes). Null when nothing has been actioned yet.
+    moderatedById: text('moderated_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    moderatedAt: timestamp('moderated_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
@@ -378,10 +394,46 @@ export const torrents = pgTable(
     index('torrents_imdb_idx').on(table.imdbId),
     index('torrents_tmdb_idx').on(table.tmdbId),
     index('torrents_tvdb_idx').on(table.tvdbId),
+    index('torrents_moderation_status_idx').on(table.moderationStatus),
     index('torrents_name_trgm_idx').using(
       'gist',
       table.name.op('gist_trgm_ops')
     ),
+  ]
+);
+
+// Discussion thread between the uploader and the moderation team for a
+// given torrent. Every status transition emits a row (the moderator's
+// note travels with the action), but ad-hoc messages from either side
+// are also accepted so the parties can clarify a request without
+// changing the status. Visibility:
+//   - the uploader (read/write on their own torrent's thread)
+//   - any moderator/admin (read/write on every thread)
+// `is_system` flags rows the back-end posted on the user's behalf,
+// e.g. "Resubmitted for review" when an edit reverts the torrent to
+// `pending` automatically.
+export const torrentModerationMessages = pgTable(
+  'torrent_moderation_messages',
+  {
+    id: text('id').primaryKey(),
+    torrentId: text('torrent_id')
+      .notNull()
+      .references(() => torrents.id, { onDelete: 'cascade' }),
+    authorId: text('author_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    body: text('body').notNull(),
+    isSystem: boolean('is_system').default(false).notNull(),
+    // If this message accompanied a status change, store the new
+    // status here. `null` means the post is a free-form chat message
+    // (a clarification request, an FYI, …). Useful so the UI can
+    // render "Status changed to X" inline with the same row.
+    statusChange: text('status_change'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('torrent_mod_messages_torrent_idx').on(table.torrentId),
+    index('torrent_mod_messages_author_idx').on(table.authorId),
   ]
 );
 
@@ -489,10 +541,15 @@ export const usersRelations = relations(users, ({ many }) => ({
   // Multi-role relation via the junction table. Drizzle's `with`
   // helper traverses to the role row through `userRoles`.
   userRoles: many(userRoles),
-  torrents: many(torrents),
+  // Two distinct relationships from `users` to `torrents`: the rows
+  // they uploaded vs. the rows they last moderated. The relationName
+  // matches what `torrentsRelations` uses on the other side.
+  torrents: many(torrents, { relationName: 'torrent_uploader' }),
+  moderatedTorrents: many(torrents, { relationName: 'torrent_moderator' }),
   forumTopics: many(forumTopics),
   forumPosts: many(forumPosts),
   torrentComments: many(torrentComments),
+  torrentModerationMessages: many(torrentModerationMessages),
   hnrTracking: many(hnrTracking),
   invitesCreated: many(invitations, { relationName: 'invitesCreated' }),
   reportsCreated: many(reports, { relationName: 'reportsCreated' }),
@@ -599,6 +656,16 @@ export const torrentsRelations = relations(torrents, ({ one, many }) => ({
   uploader: one(users, {
     fields: [torrents.uploaderId],
     references: [users.id],
+    relationName: 'torrent_uploader',
+  }),
+  // Last staffer who acted on the torrent. Distinct from `uploader`
+  // even though both reference the `users` table — Drizzle requires
+  // an explicit relationName when two relations target the same
+  // foreign table.
+  moderatedBy: one(users, {
+    fields: [torrents.moderatedById],
+    references: [users.id],
+    relationName: 'torrent_moderator',
   }),
   category: one(categories, {
     fields: [torrents.categoryId],
@@ -610,7 +677,22 @@ export const torrentsRelations = relations(torrents, ({ one, many }) => ({
   }),
   comments: many(torrentComments),
   torrentTags: many(torrentTags),
+  moderationMessages: many(torrentModerationMessages),
 }));
+
+export const torrentModerationMessagesRelations = relations(
+  torrentModerationMessages,
+  ({ one }) => ({
+    torrent: one(torrents, {
+      fields: [torrentModerationMessages.torrentId],
+      references: [torrents.id],
+    }),
+    author: one(users, {
+      fields: [torrentModerationMessages.authorId],
+      references: [users.id],
+    }),
+  })
+);
 
 // ============================================================================
 // Settings (Key-Value store for tracker configuration)

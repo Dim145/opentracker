@@ -13,8 +13,9 @@ const querySchema = z.object({
  * GET /api/rss/latest
  * RSS feed for latest torrents. Private tracker — requires either a
  * browser session or `?apikey=<passkey>` for *Arr-style readers.
- * Pending uploads (`isApproved=false`) are excluded so the feed never
- * exposes content awaiting moderation.
+ * Non-accepted rows (pending / changes_requested / rejected) are
+ * excluded so the feed never exposes content awaiting moderation or
+ * already turned down.
  */
 export default defineEventHandler(async (event) => {
   const { user } = await requireSessionOrApikey(event);
@@ -25,7 +26,7 @@ export default defineEventHandler(async (event) => {
   // surfaces showAdultContent on the user record.
   const conditions = [
     eq(schema.torrents.isActive, true),
-    eq(schema.torrents.isApproved, true),
+    eq(schema.torrents.moderationStatus, 'accepted'),
   ];
   if (!user.showAdultContent) {
     const adultIds = await adultCategoryIds();

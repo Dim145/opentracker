@@ -30,11 +30,14 @@ export default defineEventHandler(async (event) => {
   // Build where clause
   const conditions = [];
 
-  // Only show approved torrents to regular users (but show their own pending)
+  // Only show accepted torrents to regular users (but show their own
+  // pending / changes_requested / rejected so they can find them in
+  // their own listings even though they're hidden from the public
+  // catalogue).
   if (!canSeeUnapproved) {
     conditions.push(
       or(
-        eq(schema.torrents.isApproved, true),
+        eq(schema.torrents.moderationStatus, 'accepted'),
         eq(schema.torrents.uploaderId, user.id)
       )
     );

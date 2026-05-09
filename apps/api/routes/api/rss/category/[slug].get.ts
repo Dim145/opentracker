@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   const torrents = await db.query.torrents.findMany({
     where: and(
       eq(schema.torrents.isActive, true),
-      eq(schema.torrents.isApproved, true),
+      eq(schema.torrents.moderationStatus, 'accepted'),
       eq(schema.torrents.categoryId, category.id)
     ),
     with: {

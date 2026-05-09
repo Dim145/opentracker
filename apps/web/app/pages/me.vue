@@ -277,12 +277,21 @@
               <Icon name="ph:file-archive-bold" />
             </div>
             <div class="row-body">
-              <NuxtLink
-                :to="`/torrents/${t.infoHash}`"
-                class="row-name"
-              >
-                {{ t.name }}
-              </NuxtLink>
+              <div class="row-name-line">
+                <NuxtLink
+                  :to="`/torrents/${t.infoHash}`"
+                  class="row-name"
+                >
+                  {{ t.name }}
+                </NuxtLink>
+                <!-- Surface the moderation state inline so the user
+                     sees at a glance which uploads are still in
+                     review, in changes-requested, or rejected. -->
+                <TorrentModerationBadge
+                  :status="t.moderationStatus"
+                  size="sm"
+                />
+              </div>
               <div class="row-meta">
                 <span v-if="t.category" class="row-tag">
                   {{ t.category.name }}
@@ -483,6 +492,7 @@
 
 <script setup lang="ts">
 import { formatSize, formatDay } from '~/utils/format';
+import TorrentModerationBadge from '~/components/torrent/TorrentModerationBadge.vue';
 
 definePageMeta({ title: 'My profile' });
 useHead({ title: 'My profile' });
@@ -728,6 +738,10 @@ interface UploadRow {
   createdAt: string;
   category?: { id: string; name: string } | null;
   stats?: { seeders: number; leechers: number; completed: number };
+  // Pipeline state of the torrent for the current viewer (the user
+  // browsing /me sees their own rows so the status mirrors what /me
+  // should show in the badge column).
+  moderationStatus?: 'pending' | 'accepted' | 'changes_requested' | 'rejected';
 }
 interface UploadsResponse {
   data: UploadRow[];
@@ -1582,6 +1596,13 @@ function formatDuration(seconds: number) {
   text-decoration: none;
   word-break: break-all;
   line-height: 1.3;
+}
+.row-name-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 .row-name:hover {
   text-decoration: underline;

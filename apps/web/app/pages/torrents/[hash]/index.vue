@@ -100,7 +100,7 @@
           class="flex flex-col md:flex-row md:items-center justify-between gap-4"
         >
           <div>
-            <div class="flex items-center gap-2 mb-1">
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
               <span
                 class="text-[10px] font-bold bg-bg-tertiary border border-border px-1.5 py-0.5 rounded-sm text-text-muted uppercase tracking-wider"
                 >Object</span
@@ -108,6 +108,11 @@
               <span class="text-[10px] font-mono text-text-muted">{{
                 torrent.id
               }}</span>
+              <!-- Surfaced for the uploader and any staff member: the
+                   row's moderation state. Returns nothing when the
+                   row is `accepted` so the badge only appears when
+                   it actually carries information. -->
+              <TorrentModerationBadge :status="torrent.moderationStatus" />
             </div>
             <h2 class="text-2xl font-bold text-text-primary tracking-tight">
               {{ torrent.name }}
@@ -417,12 +422,27 @@
       </div>
     </div>
 
+    <!-- Moderation thread + actions. The component handles its own
+         visibility (renders nothing for visitors who aren't the
+         uploader or staff) and the API call falls back gracefully
+         when the viewer isn't authorised. -->
+    <div class="mb-6">
+      <TorrentModerationPanel
+        :hash="torrent.infoHash"
+        :status="(torrent.moderationStatus as 'pending' | 'accepted' | 'changes_requested' | 'rejected')"
+        :uploader-id="torrent.uploaderId ?? null"
+        @status-change="onModerationStatusChange"
+      />
+    </div>
+
     <!-- Delete confirmation now handled by the shared <ConfirmHost /> via
          useConfirm() — see confirmDelete() below. -->
   </div>
 </template>
 
 <script setup lang="ts">
+import TorrentModerationBadge from '~/components/torrent/TorrentModerationBadge.vue';
+import TorrentModerationPanel from '~/components/torrent/TorrentModerationPanel.vue';
 
 interface Peer {
   id: string;
@@ -462,6 +482,10 @@ interface TorrentDetail {
   tmdbId?: string | null;
   tvdbId?: string | null;
   createdAt: string;
+  // Moderation pipeline status. Sent on every detail fetch so the
+  // header badge + the inline panel can render without an extra
+  // round-trip.
+  moderationStatus?: 'pending' | 'accepted' | 'changes_requested' | 'rejected';
   stats: {
     seeders: number;
     leechers: number;
@@ -494,6 +518,19 @@ const {
   error,
   refresh,
 } = await useFetch<TorrentDetail>(`/api/torrents/${hash}`);
+
+/**
+ * Sync the local torrent reactive when the moderation panel pushes a
+ * status transition (approve / reject / etc.). Saves us from
+ * re-fetching the whole detail payload just to refresh the badge.
+ */
+function onModerationStatusChange(
+  next: 'pending' | 'accepted' | 'changes_requested' | 'rejected'
+) {
+  if (torrent.value && !torrent.value.gatedAdult) {
+    torrent.value.moderationStatus = next;
+  }
+}
 
 // Pick whichever external id the uploader supplied — TMDb's /find
 // resolves all three. Order matters: TMDb's own id is the most direct

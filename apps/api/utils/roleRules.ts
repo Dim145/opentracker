@@ -95,7 +95,7 @@ export async function computeUserStats(
 
   const [agg] = await db
     .select({
-      approvedUploads: sql<number>`count(*) FILTER (WHERE ${schema.torrents.uploaderId} = ${userId} AND ${schema.torrents.isApproved} = true)::int`,
+      approvedUploads: sql<number>`count(*) FILTER (WHERE ${schema.torrents.uploaderId} = ${userId} AND ${schema.torrents.moderationStatus} = 'accepted')::int`,
       totalUploads: sql<number>`count(*) FILTER (WHERE ${schema.torrents.uploaderId} = ${userId})::int`,
     })
     .from(schema.torrents);

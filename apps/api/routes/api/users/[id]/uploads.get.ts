@@ -1,5 +1,5 @@
 import { db, schema } from '@trackarr/db';
-import { eq, desc, sql } from 'drizzle-orm';
+import { and, eq, desc, sql } from 'drizzle-orm';
 import { getStats } from '~~/utils/server';
 import { z } from 'zod';
 
@@ -13,7 +13,7 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event);
+  const { user: viewer } = await requireUserSession(event);
 
   const params = paramsSchema.parse(getRouterParams(event));
   const query = querySchema.parse(getQuery(event));
@@ -33,9 +33,22 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Visibility filter on moderation status:
+  //   - the uploader themselves see every row (incl. pending /
+  //     changes_requested / rejected) so /me lists them all
+  //   - staff see every row regardless of whose profile they're on
+  //   - everyone else only sees `accepted` rows on a profile page
+  const isSelf = viewer.id === params.id;
+  const isStaff = !!(viewer.isAdmin || viewer.isModerator);
+  const seeAll = isSelf || isStaff;
+  const baseFilter = eq(schema.torrents.uploaderId, params.id);
+  const where = seeAll
+    ? baseFilter
+    : and(baseFilter, eq(schema.torrents.moderationStatus, 'accepted'));
+
   // Get user's uploads
   const torrents = await db.query.torrents.findMany({
-    where: eq(schema.torrents.uploaderId, params.id),
+    where,
     with: {
       category: true,
     },
@@ -48,7 +61,7 @@ export default defineEventHandler(async (event) => {
   const countResult = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(schema.torrents)
-    .where(eq(schema.torrents.uploaderId, params.id));
+    .where(where);
 
   const total = countResult[0]?.count || 0;
 

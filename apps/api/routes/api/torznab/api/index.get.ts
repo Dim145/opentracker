@@ -272,9 +272,10 @@ async function performSearch(
   const baseUrl = getRequestURL(event).origin;
   const conditions = [];
 
-  // Only show active, approved torrents
+  // Only show active + accepted torrents — pending / changes-
+  // requested / rejected rows never leak through Torznab feeds.
   conditions.push(eq(schema.torrents.isActive, true));
-  conditions.push(eq(schema.torrents.isApproved, true));
+  conditions.push(eq(schema.torrents.moderationStatus, 'accepted'));
 
   // Hide adult-categorised torrents from accounts that haven't opted
   // in. *Arr clients submit the same `apikey=` for every search so the

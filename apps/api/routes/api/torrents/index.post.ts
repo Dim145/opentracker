@@ -121,13 +121,26 @@ export default defineEventHandler(async (event) => {
     totalSize = parsed.files.reduce((sum, f) => sum + (f.length || 0), 0);
   }
 
-  // Check if torrent already exists
+  // Check if torrent already exists. We branch on its moderation
+  // status so a previously-rejected upload can never be silently
+  // re-introduced — that's the whole reason rejected rows are kept
+  // in the table instead of being deleted.
   const existing = await db.query.torrents.findFirst({
     where: (t, { eq }) => eq(t.infoHash, infoHash),
   });
 
   if (existing) {
-    // Return existing torrent
+    if (existing.moderationStatus === 'rejected') {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Forbidden',
+        message:
+          'This torrent has previously been rejected by moderation. Re-uploading it is not allowed.',
+      });
+    }
+    // Otherwise (pending / changes_requested / accepted) just hand
+    // the existing row back. The uploader can find it on /me, and a
+    // moderator can act on it via the queue.
     return {
       success: true,
       message: 'Torrent already exists',
@@ -166,7 +179,9 @@ export default defineEventHandler(async (event) => {
     tmdbId,
     tvdbId,
     isActive: true,
-    isApproved: canBypassModeration,
+    moderationStatus: canBypassModeration ? 'accepted' : 'pending',
+    moderatedById: canBypassModeration ? user.id : null,
+    moderatedAt: canBypassModeration ? now : null,
     createdAt: now,
   });
 
@@ -224,7 +239,7 @@ export default defineEventHandler(async (event) => {
     name,
     size: totalSize,
     isActive: true,
-    isApproved: canBypassModeration,
+    moderationStatus: canBypassModeration ? 'accepted' : 'pending',
     createdAt: now.toISOString(),
     magnetLink: generateMagnetLink(infoHash, name),
   };

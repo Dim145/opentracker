@@ -99,7 +99,7 @@ export default defineEventHandler(async (event) => {
       name: schema.torrents.name,
       torrentData: schema.torrents.torrentData,
       isActive: schema.torrents.isActive,
-      isApproved: schema.torrents.isApproved,
+      moderationStatus: schema.torrents.moderationStatus,
     })
     .from(schema.torrents)
     .where(eq(schema.torrents.infoHash, infoHash))
@@ -116,8 +116,10 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Check if torrent is active and approved
-  if (!torrent.isActive || !torrent.isApproved) {
+  // Only `accepted` rows are downloadable through Torznab — anything
+  // pending / changes_requested / rejected is hidden from external
+  // *Arr clients regardless of their api key.
+  if (!torrent.isActive || torrent.moderationStatus !== 'accepted') {
     setHeader(event, 'Content-Type', 'application/xml; charset=utf-8');
     throw createError({
       statusCode: 403,
