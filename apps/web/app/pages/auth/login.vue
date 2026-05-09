@@ -28,13 +28,29 @@
         ></div>
       </div>
 
+      <!-- Registration mode banner. Three explicit states:
+             - closed       → no sign-up path at all
+             - invite-only  → sign-up requires a code (link still shown)
+             - open         → no banner, just the link below
+           The fourth combination (open + inviteEnabled) is treated
+           as "open" since the code is optional in that case. -->
       <div
-        v-if="status && !status.registrationOpen && !status.needsSetup"
+        v-if="registrationMode === 'closed' && !status?.needsSetup"
         class="mb-6 p-3 bg-blue-500/10 border border-blue-500/20 rounded flex items-start gap-3"
       >
-        <Icon name="ph:info" class="text-blue-400 text-lg mt-0.5 shrink-0" />
+        <Icon name="ph:lock-simple" class="text-blue-400 text-lg mt-0.5 shrink-0" />
         <p class="text-blue-400 text-xs leading-relaxed">
           Registrations are currently closed. Only existing members can sign in.
+        </p>
+      </div>
+      <div
+        v-else-if="registrationMode === 'invite-only' && !status?.needsSetup"
+        class="mb-6 p-3 bg-accent/10 border border-accent/20 rounded flex items-start gap-3"
+      >
+        <Icon name="ph:envelope-simple" class="text-accent text-lg mt-0.5 shrink-0" />
+        <p class="text-accent text-xs leading-relaxed">
+          Registrations are by invitation only. You'll need a code from an
+          existing member to create an account.
         </p>
       </div>
 
@@ -112,17 +128,28 @@
         @cancel="cancelTwoFactor"
       />
 
+      <!-- The "create one" link is hidden only when registration is
+           fully closed; in invite-only mode the user still needs the
+           register page to redeem their code. -->
       <div
-        v-if="status?.registrationOpen"
+        v-if="registrationMode !== 'closed'"
         class="mt-6 pt-6 border-t border-border text-center"
       >
         <p class="text-text-muted text-sm">
-          Don't have an account?
+          {{
+            registrationMode === 'invite-only'
+              ? 'Have an invite code?'
+              : "Don't have an account?"
+          }}
           <NuxtLink
             to="/auth/register"
-            class="text-text-strong hover:underline font-medium"
+            class="text-text-strong hover:underline font-medium ml-1"
           >
-            Create one
+            {{
+              registrationMode === 'invite-only'
+                ? 'Redeem it'
+                : 'Create one'
+            }}
           </NuxtLink>
         </p>
       </div>
@@ -142,6 +169,22 @@ const { fetch: fetchSession } = useUserSession();
 const router = useRouter();
 
 const { data: status } = await useFetch('/api/auth/status');
+
+/**
+ * Derive a single user-facing registration mode from the two
+ * back-end flags. Three states matter to the visitor:
+ *   - 'open'         registrations are unrestricted
+ *   - 'invite-only'  registrations require a code (still has a path)
+ *   - 'closed'       no path to /auth/register at all
+ *
+ * The fourth raw combination (registrationOpen=true + inviteEnabled)
+ * collapses into 'open' since the code is optional in that case.
+ */
+const registrationMode = computed<'open' | 'invite-only' | 'closed'>(() => {
+  if (status.value?.registrationOpen) return 'open';
+  if (status.value?.inviteEnabled) return 'invite-only';
+  return 'closed';
+});
 const { data: branding } = await useFetch<{
   siteName: string;
   siteLogo: string;

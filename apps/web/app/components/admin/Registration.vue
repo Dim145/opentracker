@@ -11,81 +11,52 @@
       </div>
     </div>
     <div class="card-body">
-      <!-- Open Registration Toggle -->
+      <!-- Three-way mode selector. Replaces the previous pair of
+           independent toggles, which surfaced four raw combinations
+           but only three meaningful product states. The selected
+           option drives both `registrationOpen` and `inviteEnabled`
+           in a single PUT. -->
       <SettingsGroup
-        label="Open Registration"
-        description="Allow new users to create accounts freely."
+        label="Registration Mode"
+        description="How members can join the tracker."
       >
-        <div class="flex items-center gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <button
-            @click="toggleRegistration"
+            v-for="opt in MODE_OPTIONS"
+            :key="opt.value"
+            type="button"
             :disabled="settingsLoading"
-            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
-            :class="
-              registrationOpen
-                ? 'bg-success'
-                : 'bg-bg-tertiary border border-border'
-            "
+            class="text-left px-3 py-3 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-white/10"
+            :class="[
+              mode === opt.value
+                ? `${opt.activeBg} ${opt.activeBorder}`
+                : 'bg-bg-tertiary border-border hover:border-fg-default/20',
+            ]"
+            @click="setMode(opt.value)"
           >
-            <span
-              class="inline-block h-4 w-4 transform rounded-full bg-fg-strong transition-transform"
-              :class="registrationOpen ? 'translate-x-6' : 'translate-x-1'"
-            />
+            <div class="flex items-center gap-2 mb-1">
+              <Icon
+                :name="opt.icon"
+                :class="mode === opt.value ? opt.activeText : 'text-text-muted'"
+              />
+              <span
+                class="text-xs font-bold uppercase tracking-widest"
+                :class="mode === opt.value ? opt.activeText : 'text-text-secondary'"
+              >
+                {{ opt.label }}
+              </span>
+            </div>
+            <p class="text-[11px] leading-relaxed text-text-muted">
+              {{ opt.description }}
+            </p>
           </button>
-          <span class="text-xs text-text-muted">
-            {{ registrationOpen ? 'Open' : 'Closed' }}
-          </span>
         </div>
       </SettingsGroup>
-
-      <!-- Invite Only Mode Toggle -->
-      <SettingsGroup
-        label="Invite Only Mode"
-        description="Require invitation code for registration."
-      >
-        <div class="flex items-center gap-3">
-          <button
-            @click="toggleInviteEnabled"
-            :disabled="settingsLoading"
-            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
-            :class="
-              inviteEnabled
-                ? 'bg-accent'
-                : 'bg-bg-tertiary border border-border'
-            "
-          >
-            <span
-              class="inline-block h-4 w-4 transform rounded-full bg-fg-strong transition-transform"
-              :class="inviteEnabled ? 'translate-x-6' : 'translate-x-1'"
-            />
-          </button>
-          <span class="text-xs text-text-muted">
-            {{ inviteEnabled ? 'Enabled' : 'Disabled' }}
-          </span>
-        </div>
-      </SettingsGroup>
-
-      <!-- Status Indicator -->
-      <div
-        class="my-6 p-4 rounded-lg border flex items-center gap-3"
-        :class="getStatusClass()"
-      >
-        <Icon
-          :name="getStatusIcon()"
-          class="text-xl"
-          :class="getStatusIconClass()"
-        />
-        <div class="flex-1">
-          <p class="text-sm font-semibold" :class="getStatusTextClass()">
-            Current Status: {{ getStatusText() }}
-          </p>
-        </div>
-      </div>
 
       <div class="space-y-0">
         <!-- Default Invites Per User -->
         <SettingsGroup
-          v-if="inviteEnabled"
+          v-if="mode !== 'closed'"
           label="Default Invites"
           description="Number of invitation codes each new user receives upon registration."
         >
@@ -167,13 +138,68 @@
 </template>
 
 <script setup lang="ts">
-const registrationOpen = ref(false);
-const inviteEnabled = ref(false);
+type RegistrationMode = 'closed' | 'invite-only' | 'open';
+
+const mode = ref<RegistrationMode>('closed');
 const defaultInvites = ref(2);
 const minRatio = ref(0);
 const starterUploadGB = ref(0);
 const settingsLoading = ref(false);
 const saved = ref(false);
+
+/**
+ * Three-way selector entries. Each option carries:
+ *   - what it sets on the back-end (`registrationOpen` / `inviteEnabled`)
+ *   - the visual treatment when active (background / border / text)
+ *
+ * The 'open' state forces inviteEnabled=false: when the door is
+ * unrestricted, the invite-code path adds nothing useful and risks
+ * confusing the user-side counter logic.
+ */
+const MODE_OPTIONS = [
+  {
+    value: 'closed' as const,
+    label: 'Closed',
+    icon: 'ph:lock-simple',
+    description:
+      'No new accounts. Existing members can still sign in and operate normally.',
+    payload: { registrationOpen: false, inviteEnabled: false },
+    activeBg: 'bg-bg-tertiary',
+    activeBorder: 'border-text-muted',
+    activeText: 'text-text-primary',
+  },
+  {
+    value: 'invite-only' as const,
+    label: 'Invite-only',
+    icon: 'ph:envelope-simple',
+    description:
+      'Only people with a valid invitation code from a member can register.',
+    payload: { registrationOpen: false, inviteEnabled: true },
+    activeBg: 'bg-accent/10',
+    activeBorder: 'border-accent/40',
+    activeText: 'text-accent',
+  },
+  {
+    value: 'open' as const,
+    label: 'Open',
+    icon: 'ph:lock-open',
+    description:
+      'Anyone can sign up freely. Invitation codes are not required.',
+    payload: { registrationOpen: true, inviteEnabled: false },
+    activeBg: 'bg-success/10',
+    activeBorder: 'border-success/40',
+    activeText: 'text-success',
+  },
+] as const;
+
+function deriveMode(
+  registrationOpen: boolean,
+  inviteEnabled: boolean
+): RegistrationMode {
+  if (registrationOpen) return 'open';
+  if (inviteEnabled) return 'invite-only';
+  return 'closed';
+}
 
 // Fetch settings on mount
 onMounted(async () => {
@@ -185,8 +211,7 @@ onMounted(async () => {
       minRatio: number;
       starterUpload: number;
     }>('/api/admin/settings');
-    registrationOpen.value = settings.registrationOpen;
-    inviteEnabled.value = settings.inviteEnabled;
+    mode.value = deriveMode(settings.registrationOpen, settings.inviteEnabled);
     defaultInvites.value = settings.defaultInvites;
     minRatio.value = settings.minRatio;
     starterUploadGB.value = Math.floor(settings.starterUpload / 1024 ** 3);
@@ -195,68 +220,19 @@ onMounted(async () => {
   }
 });
 
-function getStatusClass() {
-  if (registrationOpen.value && !inviteEnabled.value)
-    return 'bg-success/10 border-success/20';
-  if (inviteEnabled.value) return 'bg-accent/10 border-accent/20';
-  return 'bg-bg-tertiary border-border';
-}
-
-function getStatusIcon() {
-  if (registrationOpen.value && !inviteEnabled.value) return 'ph:lock-open';
-  if (inviteEnabled.value) return 'ph:envelope-simple';
-  return 'ph:lock-simple';
-}
-
-function getStatusIconClass() {
-  if (registrationOpen.value && !inviteEnabled.value) return 'text-success';
-  if (inviteEnabled.value) return 'text-accent';
-  return 'text-text-muted';
-}
-
-function getStatusTextClass() {
-  if (registrationOpen.value && !inviteEnabled.value) return 'text-success';
-  if (inviteEnabled.value) return 'text-accent';
-  return 'text-text-secondary';
-}
-
-function getStatusText() {
-  if (registrationOpen.value && !inviteEnabled.value)
-    return 'Registration is open to everyone';
-  if (registrationOpen.value && inviteEnabled.value)
-    return 'Registration open (invite optional)';
-  if (!registrationOpen.value && inviteEnabled.value)
-    return 'Invite-only registration';
-  return 'Registration is closed';
-}
-
-async function toggleRegistration() {
+async function setMode(next: RegistrationMode) {
+  if (next === mode.value || settingsLoading.value) return;
+  const opt = MODE_OPTIONS.find((o) => o.value === next);
+  if (!opt) return;
   settingsLoading.value = true;
   try {
-    const newValue = !registrationOpen.value;
     await $fetch('/api/admin/settings', {
       method: 'PUT',
-      body: { registrationOpen: newValue },
+      body: opt.payload,
     });
-    registrationOpen.value = newValue;
+    mode.value = next;
   } catch (error) {
-    console.error('Failed to update settings:', error);
-  } finally {
-    settingsLoading.value = false;
-  }
-}
-
-async function toggleInviteEnabled() {
-  settingsLoading.value = true;
-  try {
-    const newValue = !inviteEnabled.value;
-    await $fetch('/api/admin/settings', {
-      method: 'PUT',
-      body: { inviteEnabled: newValue },
-    });
-    inviteEnabled.value = newValue;
-  } catch (error) {
-    console.error('Failed to update settings:', error);
+    console.error('Failed to update registration mode:', error);
   } finally {
     settingsLoading.value = false;
   }
