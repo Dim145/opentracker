@@ -14,6 +14,7 @@ import (
 
 	"github.com/florianjs/trackarr/apps/tracker/internal/announce"
 	"github.com/florianjs/trackarr/apps/tracker/internal/bencode"
+	"github.com/florianjs/trackarr/apps/tracker/internal/bonus"
 	"github.com/florianjs/trackarr/apps/tracker/internal/cryptohash"
 	dbpkg "github.com/florianjs/trackarr/apps/tracker/internal/db"
 	"github.com/florianjs/trackarr/apps/tracker/internal/peers"
@@ -34,6 +35,7 @@ type Server struct {
 	db           *dbpkg.DB
 	redis        *redis.Client
 	peers        *peers.Store
+	bonus        *bonus.Resolver
 	dedup        *dedup
 	ipHashSecret string
 	debug        bool
@@ -50,7 +52,9 @@ type Server struct {
 // New builds a Server. It does not start listening — callers wire it into
 // http.Handler routes themselves so tests can use httptest directly.
 // appCtx should be the process-lifecycle context (cancelled on shutdown).
-func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *peers.Store, ipHashSecret string, debug bool) *Server {
+// `redisKeyPrefix` must match the API's REDIS_KEY_PREFIX so the bonus
+// resolver reads the same Redis snapshot the API writes.
+func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *peers.Store, redisKeyPrefix, ipHashSecret string, debug bool) *Server {
 	if appCtx == nil {
 		appCtx = context.Background()
 	}
@@ -64,6 +68,7 @@ func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *pee
 		db:           db,
 		redis:        rclient,
 		peers:        store,
+		bonus:        bonus.New(rclient, redisKeyPrefix),
 		dedup:        newDedup(),
 		ipHashSecret: ipHashSecret,
 		debug:        debug,
@@ -176,6 +181,14 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 			deltaDown = d
 		}
 	}
+
+	// 5a. Apply the active bonus event multipliers (Freeleech /
+	// Silverleech / custom) before persisting. The resolver reads
+	// from a 30 s in-memory cache backed by Redis, so this is a
+	// near-zero-cost call when no event is active. With identity
+	// (1x/1x) the deltas are unchanged.
+	mults := s.bonus.Get(ctx)
+	deltaUp, deltaDown = mults.Apply(deltaUp, deltaDown)
 
 	// 6. Persist user stats deltas (best-effort: log but don't reject).
 	// We bump both the global counter (`users.uploaded/downloaded`) and

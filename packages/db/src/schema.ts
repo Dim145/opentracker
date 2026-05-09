@@ -173,6 +173,66 @@ export const trustedDevices = pgTable(
 );
 
 // ============================================================================
+// Bonus events (Freeleech / Silverleech / custom multipliers)
+// ============================================================================
+//
+// A bonus event is a time-bounded window during which the announce
+// pipeline scales the {uploaded, downloaded} byte deltas before they
+// land in `users.uploaded`/`users.downloaded`. Two presets cover the
+// common cases:
+//   - Freeleech    → download multiplier 0   (no leech is counted)
+//   - Silverleech  → download multiplier 50  (half leech is counted)
+// …but the admin can pick any combination in the allowed range.
+//
+// Multipliers are stored as integer basis points (×100) so the tracker
+// (Go) can apply them with a plain `delta * mul / 100` and we never pay
+// the cost of parsing pg `numeric` on the announce hot path. UI layers
+// divide by 100 to render `0.5x`, `2x`, etc.
+//
+// Allowed ranges (enforced by app layer + CHECK below):
+//   - download_multiplier ∈ [0, 200]   → 0.00x to 2.00x
+//   - upload_multiplier   ∈ [0, 1000]  → 0.00x to 10.00x
+//
+// We forbid time-overlap with any other `enabled = true` row on insert
+// and update, so at most one window is ever active at a given instant.
+export const bonusEvents = pgTable(
+  'bonus_events',
+  {
+    id: text('id').primaryKey(),
+    title: text('title').notNull(),
+    // Short description shown under the title in the user-facing
+    // popup ("Silverleech global jusqu'à la mise en place du système
+    // de points." in the design). Optional.
+    description: text('description'),
+    // Long description for the "Qu'est-ce que … ?" explainer block.
+    // Optional — falls back to a generated sentence when null.
+    longDescription: text('long_description'),
+    // basis points × 100 — see header comment.
+    downloadMultiplier: integer('download_multiplier').notNull(),
+    uploadMultiplier: integer('upload_multiplier').notNull(),
+    startsAt: timestamp('starts_at').notNull(),
+    endsAt: timestamp('ends_at').notNull(),
+    // Soft toggle. An admin can pause an in-progress window without
+    // deleting it; flipping it back on resumes the window if `now`
+    // is still inside [startsAt, endsAt]. Disabled rows are ignored
+    // by the active-window resolver and skipped by overlap checks.
+    enabled: boolean('enabled').default(true).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    createdById: text('created_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    updatedAt: timestamp('updated_at'),
+  },
+  (table) => [
+    // Resolver for "what's active now?" filters by enabled + startsAt
+    // <= now <= endsAt. Indexing the time bounds keeps the lookup
+    // cheap even when we accumulate years of historical rows.
+    index('bonus_events_window_idx').on(table.startsAt, table.endsAt),
+    index('bonus_events_enabled_idx').on(table.enabled),
+  ]
+);
+
+// ============================================================================
 // Banned IPs
 // ============================================================================
 export const bannedIps = pgTable('banned_ips', {

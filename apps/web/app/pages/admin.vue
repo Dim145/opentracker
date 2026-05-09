@@ -130,6 +130,13 @@ const menuItems = [
     description: 'Monitor and manage H&R violations',
   },
   {
+    label: 'Bonus Events',
+    path: '/admin/bonus-events',
+    icon: 'ph:gift',
+    description:
+      'Schedule Freeleech / Silverleech windows and custom multipliers',
+  },
+  {
     label: 'Banned IPs',
     path: '/admin/banned-ips',
     icon: 'ph:prohibit',

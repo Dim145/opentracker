@@ -62,6 +62,11 @@
         </nav>
 
         <div class="flex items-center gap-3">
+          <!-- Active bonus event icon — visible to every signed-in user
+               whenever a Freeleech / Silverleech / custom multiplier
+               window is in flight. Renders nothing while idle. -->
+          <BonusEventIcon v-if="user" />
+
           <!-- User Stats — desktop only -->
           <div
             v-if="user"
