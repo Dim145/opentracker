@@ -15,15 +15,18 @@
           <strong>{{ data.total }}</strong>
           {{ data.total === 1 ? 'entry' : 'entries' }}
         </span>
-        <span v-if="aggregate.up > 0 || aggregate.down > 0" class="dl-stat-sep" />
-        <span v-if="aggregate.up > 0 || aggregate.down > 0" class="dl-stat">
-          <Icon name="ph:arrow-up-bold" class="text-success" />
-          <strong>{{ formatSize(aggregate.up) }}</strong>
-        </span>
-        <span v-if="aggregate.up > 0 || aggregate.down > 0" class="dl-stat">
-          <Icon name="ph:arrow-down-bold" class="text-warning" />
-          <strong>{{ formatSize(aggregate.down) }}</strong>
-        </span>
+        <template v-if="aggregate.up > 0 || aggregate.down > 0">
+          <span class="dl-stat-sep" />
+          <span class="dl-stat dl-stat--scope">on this page</span>
+          <span class="dl-stat">
+            <Icon name="ph:arrow-up-bold" class="text-success" />
+            <strong>{{ formatSize(aggregate.up) }}</strong>
+          </span>
+          <span class="dl-stat">
+            <Icon name="ph:arrow-down-bold" class="text-warning" />
+            <strong>{{ formatSize(aggregate.down) }}</strong>
+          </span>
+        </template>
       </div>
     </header>
 
@@ -54,45 +57,16 @@
     <ol v-else class="dl-list">
       <li v-for="item in data.items" :key="item.id" class="dl-row">
         <NuxtLink :to="`/torrents/${item.infoHash}`" class="dl-row-link">
-          <!-- Poster slot — TMDb cover when we've got a hit, falls back to
-               a status icon (download / completed / hnr) so the layout
-               never collapses while the lookup is in flight. -->
-          <figure
-            v-if="posterBareFor(item) && (posters.isPosterLoading(posterBareFor(item)!, posterTypeFor(item)) || posters.posterFor(posterBareFor(item)!, posterTypeFor(item)))"
-            class="dl-row-poster"
-          >
-            <img
-              v-if="posters.posterFor(posterBareFor(item)!, posterTypeFor(item))?.posterUrl"
-              :src="posters.posterFor(posterBareFor(item)!, posterTypeFor(item))!.posterUrl!"
-              :alt="posters.posterFor(posterBareFor(item)!, posterTypeFor(item))?.title || item.name"
-              loading="lazy"
-              decoding="async"
-            />
-            <Icon
-              v-else-if="posters.posterFor(posterBareFor(item)!, posterTypeFor(item))"
-              name="ph:image-broken-bold"
-              class="dl-row-poster-placeholder"
-            />
-            <span v-else class="dl-row-poster-skeleton" />
-          </figure>
-          <div v-else class="dl-row-icon">
-            <Icon
-              :name="
-                item.isHnr
-                  ? 'ph:warning-bold'
-                  : item.completedAt
-                    ? 'ph:check-circle-fill'
-                    : 'ph:download-simple-bold'
-              "
-              :class="
-                item.isHnr
-                  ? 'text-error'
-                  : item.completedAt
-                    ? 'text-success'
-                    : 'text-text-muted'
-              "
-            />
-          </div>
+          <!-- Pre-resolve poster + state once per row instead of
+               funneling `posterBareFor(item)!` through every binding.
+               The helper accepts null and returns null defensively, so
+               we get a single tidy block instead of the bang-soup. -->
+          <DownloadPosterCell
+            :item="item"
+            :poster="posters.posterFor(posterBareFor(item), posterTypeFor(item))"
+            :loading="posters.isPosterLoading(posterBareFor(item), posterTypeFor(item))"
+            :tmdb-id="posterBareFor(item)"
+          />
 
           <div class="dl-row-body">
             <p
@@ -105,11 +79,11 @@
               />
               {{ item.category.name }}
               <template
-                v-if="posters.posterFor(posterBareFor(item)!, posterTypeFor(item))?.year"
+                v-if="posters.posterFor(posterBareFor(item), posterTypeFor(item))?.year"
               >
                 <span class="dl-row-cat-sep">·</span>
                 <span class="dl-row-year">
-                  {{ posters.posterFor(posterBareFor(item)!, posterTypeFor(item))?.year }}
+                  {{ posters.posterFor(posterBareFor(item), posterTypeFor(item))?.year }}
                 </span>
               </template>
             </p>
@@ -117,14 +91,14 @@
                  raw filename moves underneath as a mono caption so power
                  users can still copy the exact release name. -->
             <p
-              v-if="posters.posterFor(posterBareFor(item)!, posterTypeFor(item))?.title"
+              v-if="posters.posterFor(posterBareFor(item), posterTypeFor(item))?.title"
               class="dl-row-title"
             >
-              {{ posters.posterFor(posterBareFor(item)!, posterTypeFor(item))?.title }}
+              {{ posters.posterFor(posterBareFor(item), posterTypeFor(item))?.title }}
             </p>
             <p
               class="dl-row-name"
-              :class="{ 'dl-row-name--secondary': posters.posterFor(posterBareFor(item)!, posterTypeFor(item))?.title }"
+              :class="{ 'dl-row-name--secondary': posters.posterFor(posterBareFor(item), posterTypeFor(item))?.title }"
             >
               {{ item.name }}
             </p>
@@ -213,6 +187,7 @@
 <script setup lang="ts">
 import { formatSize, formatAge } from '~/utils/format';
 import Pager from '~/components/search/Pager.vue';
+import DownloadPosterCell from '~/components/downloads/DownloadPosterCell.vue';
 
 interface DownloadItem {
   id: string;
@@ -274,13 +249,16 @@ function posterTypeFor(item: DownloadItem): 'movie' | 'tv' | null {
 }
 
 // Trigger a fetch for every TMDb-tagged item in the current page. The
-// composable dedupes; switching pages just enqueues new ids.
+// composable dedupes; switching pages just enqueues new ids. We gate
+// on a known type hint (movie/tv) so a stray tmdbId on a music or
+// games upload doesn't burn a TMDb call that's guaranteed to miss.
 watch(
   () => data.value?.items ?? [],
   (items) => {
     for (const it of items) {
       const bare = posterBareFor(it);
-      if (bare) posters.register(bare, posterTypeFor(it));
+      const type = posterTypeFor(it);
+      if (bare && type) posters.register(bare, type);
     }
   },
   { immediate: true }
@@ -423,6 +401,15 @@ watch(
   border-radius: 9999px;
   background: rgb(var(--fg-faint));
 }
+/* Lower-cased qualifier so the page-scope totals can't be mistaken
+   for the user's all-time uploaded / downloaded — the per-page sums
+   land here, not the aggregate over the full hnr_tracking history. */
+.dl-stat--scope {
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: italic;
+  color: rgb(var(--fg-faint));
+}
 
 /* ─── List ──────────────────────────────────────────────── */
 .dl-list {
@@ -471,64 +458,9 @@ watch(
   color: inherit;
 }
 
-.dl-row-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 4px;
-  border: 1px solid rgb(var(--line-default));
-  background: rgb(var(--bg-elevated));
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-/* Poster slot — fixed-size thumbnail (3.5 / 5.25 rem) so layout
-   stays stable while TMDb loads. The skeleton shimmers in place
-   until the lookup resolves; on miss we render a broken-image
-   icon so the user knows we tried. */
-.dl-row-poster {
-  margin: 0;
-  width: 3rem;
-  height: 4.5rem;
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid rgb(var(--line-default));
-  background: rgb(var(--bg-base));
-  flex-shrink: 0;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.dl-row-poster img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  animation: dl-poster-fade 0.3s ease both;
-}
-@keyframes dl-poster-fade {
-  from { opacity: 0; transform: scale(1.02); }
-  to   { opacity: 1; transform: scale(1); }
-}
-.dl-row-poster-placeholder {
-  font-size: 1.1rem;
-  color: rgb(var(--fg-faint));
-}
-.dl-row-poster-skeleton {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    100deg,
-    rgb(var(--bg-base)) 30%,
-    rgb(var(--bg-elevated)) 50%,
-    rgb(var(--bg-base)) 70%
-  );
-  background-size: 220% 100%;
-  animation: dl-shimmer 1.4s ease-in-out infinite;
-}
+/* Poster + icon variants now live in DownloadPosterCell. The shared
+   skeleton keyframe is still referenced by the row-skeleton below
+   so it stays defined here. */
 
 .dl-row-body {
   display: flex;
@@ -743,15 +675,7 @@ watch(
     grid-template-columns: auto 1fr;
     row-gap: 0.65rem;
   }
-  .dl-row-icon {
-    width: 2rem;
-    height: 2rem;
-    font-size: 0.95rem;
-  }
-  .dl-row-poster {
-    width: 2.5rem;
-    height: 3.75rem;
-  }
+  /* Poster + icon mobile sizes are owned by DownloadPosterCell. */
   .dl-row-bytes {
     grid-column: 1 / -1;
     border-left: 0;
