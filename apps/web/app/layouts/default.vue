@@ -402,7 +402,7 @@ useHead({
   titleTemplate: computed(() => {
     const suffix =
       branding.value?.pageTitleSuffix ||
-      `- ${branding.value?.siteName?.replace(/<[^>]*>/g, '') || 'TRACKARR'}`;
+      `- ${stripTags(branding.value?.siteName) || 'TRACKARR'}`;
     return (title?: string) =>
       title ? `${title} ${suffix}` : suffix.replace(/^- /, '');
   }),

@@ -74,11 +74,18 @@ function ensureSubscriber(): void {
 
 // Treat <p></p>, <br>, and stray whitespace as "unset" so a user who
 // clears a rich-text field doesn't end up with the literal placeholder
-// markup as the rendered value.
+// markup as the rendered value. We loop until the string stops shrinking
+// because a single pass can't strip pathological inputs like
+// `<<script>script>` (after one pass: `<script>` — visible markup).
 function isEmptyHtml(html: string | null): boolean {
   if (!html) return true;
-  const textContent = html.replace(/<[^>]*>/g, '').trim();
-  return textContent.length === 0;
+  let s = html;
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(/<[^>]*>/g, '');
+  } while (s !== prev);
+  return s.trim().length === 0;
 }
 
 export const SETTINGS_KEYS = {

@@ -92,6 +92,25 @@ function escapeAttr(s: string): string {
 }
 
 /**
+ * Inverse of `escapeHtml`. Implemented with a placeholder pass for the
+ * `&amp;` substitution so that an already-escaped entity nested inside
+ * another (e.g. `&amp;lt;`, which represents the literal text `&lt;`)
+ * round-trips correctly. A naive multi-pass replace would otherwise
+ * collapse `&amp;lt;` to `<` — the bug CodeQL flagged as
+ * `js/double-escaping`.
+ */
+function unescapeHtml(s: string): string {
+  // U+0001 / U+0002 are control codepoints that can't appear in any
+  // BBCode payload we care about, so they're safe sentinels.
+  return s
+    .replace(/&amp;/g, 'AMP')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/AMP/g, '&');
+}
+
+/**
  * Whitelist for `[color=…]`. Allow:
  *   - named colours (`red`, `cornflowerblue`) — restricted to A-Za-z
  *   - hex `#rgb` / `#rrggbb`
@@ -123,20 +142,20 @@ export function bbcodeToHtml(input: string): string {
     /\[url=([^\]\s]+)\](.*?)\[\/url\]/gis,
     (_m, href: string, label: string) => {
       // Unescape the URL we previously escaped, then re-escape as an attr.
-      const decoded = href.replace(/&amp;/g, '&').replace(/&quot;/g, '"');
+      const decoded = unescapeHtml(href);
       if (!/^https?:\/\//i.test(decoded)) return label; // drop unsafe schemes
       return `<a href="${escapeAttr(decoded)}" rel="noopener noreferrer" target="_blank">${label}</a>`;
     }
   );
   s = s.replace(/\[url\](.*?)\[\/url\]/gis, (_m, href: string) => {
-    const decoded = href.replace(/&amp;/g, '&').replace(/&quot;/g, '"');
+    const decoded = unescapeHtml(href);
     if (!/^https?:\/\//i.test(decoded)) return decoded;
     return `<a href="${escapeAttr(decoded)}" rel="noopener noreferrer" target="_blank">${escapeHtml(decoded)}</a>`;
   });
 
   // [img]url[/img]
   s = s.replace(/\[img\](.*?)\[\/img\]/gis, (_m, src: string) => {
-    const decoded = src.replace(/&amp;/g, '&').replace(/&quot;/g, '"');
+    const decoded = unescapeHtml(src);
     if (!/^https?:\/\//i.test(decoded)) return '';
     return `<img src="${escapeAttr(decoded)}" alt="" />`;
   });
@@ -145,7 +164,7 @@ export function bbcodeToHtml(input: string): string {
   s = s.replace(
     /\[color=([^\]]+)\](.*?)\[\/color\]/gis,
     (_m, raw: string, content: string) => {
-      const c = safeColor(raw.replace(/&amp;/g, '&').replace(/&quot;/g, '"'));
+      const c = safeColor(unescapeHtml(raw));
       return c ? `<span style="color:${c}">${content}</span>` : content;
     }
   );

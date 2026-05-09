@@ -116,8 +116,20 @@ async function sendToWebhook(
   alert: SecurityAlert
 ): Promise<void> {
   try {
-    const isDiscord = webhookUrl.includes('discord.com');
-    const isSlack = webhookUrl.includes('slack.com');
+    // Parse the URL and check the hostname properly. Substring matching
+    // (`url.includes('discord.com')`) is bypassable — a webhook pointed
+    // at `https://attacker.tld/?fake=discord.com` would otherwise be
+    // formatted as a Discord embed and could leak alert content cross-origin.
+    let hostname = '';
+    try {
+      hostname = new URL(webhookUrl).hostname.toLowerCase();
+    } catch {
+      // Invalid URL — fall through with the generic JSON payload.
+    }
+    const isDiscord =
+      hostname === 'discord.com' || hostname.endsWith('.discord.com');
+    const isSlack =
+      hostname === 'hooks.slack.com' || hostname.endsWith('.slack.com');
 
     let payload: any;
 

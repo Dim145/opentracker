@@ -49,3 +49,23 @@ export function formatAge(dateStr: string): string {
     return `${Math.floor(diffInSeconds / 2592000)}mo ago`;
   return `${Math.floor(diffInSeconds / 31536000)}y ago`;
 }
+
+/**
+ * Strip every HTML tag from a string. Used to derive plain-text fallbacks
+ * (page titles, placeholders) from the admin's rich-text settings.
+ *
+ * The naive single-pass `replace(/<[^>]*>/g, '')` lets crafted inputs slip
+ * through — `<<script>script>` becomes `<script>` after one pass. We loop
+ * until the string stops shrinking so the output is guaranteed to be
+ * tag-free, regardless of nesting depth.
+ */
+export function stripTags(input: string | null | undefined): string {
+  if (!input) return '';
+  let s = input;
+  let prev: string;
+  do {
+    prev = s;
+    s = s.replace(/<[^>]*>/g, '');
+  } while (s !== prev);
+  return s;
+}

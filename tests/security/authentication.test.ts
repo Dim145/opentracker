@@ -1,11 +1,31 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createHash } from 'crypto';
+import { pbkdf2Sync, randomBytes } from 'crypto';
+
+// Production derives a key from the user password client-side with PBKDF2
+// (600k SHA-256 rounds), then sends only its SHA-256 fingerprint as the
+// "verifier" to the server. We mirror that scheme in the tests so they
+// reflect the real defence: a fast hash like raw SHA-256 wouldn't slow
+// brute-forcing of a leaked verifier the way PBKDF2 does.
+const PBKDF2_ITERATIONS = 600_000;
+const PBKDF2_KEYLEN = 32;
+const PBKDF2_DIGEST = 'sha256';
+
+function deriveKey(password: string, salt: Buffer): string {
+  return pbkdf2Sync(
+    password,
+    salt,
+    PBKDF2_ITERATIONS,
+    PBKDF2_KEYLEN,
+    PBKDF2_DIGEST
+  ).toString('hex');
+}
 
 describe('Authentication Security', () => {
   describe('Password Hashing', () => {
     it('should never store passwords in plain text', () => {
       const password = 'MySecurePassword123!';
-      const hash = createHash('sha256').update(password).digest('hex');
+      const salt = randomBytes(16);
+      const hash = deriveKey(password, salt);
 
       expect(hash).not.toBe(password);
       expect(hash.length).toBe(64);
@@ -14,20 +34,31 @@ describe('Authentication Security', () => {
     it('should produce different hashes for different passwords', () => {
       const password1 = 'password1';
       const password2 = 'password2';
+      const salt = randomBytes(16);
 
-      const hash1 = createHash('sha256').update(password1).digest('hex');
-      const hash2 = createHash('sha256').update(password2).digest('hex');
+      const hash1 = deriveKey(password1, salt);
+      const hash2 = deriveKey(password2, salt);
 
       expect(hash1).not.toBe(hash2);
     });
 
-    it('should produce same hash for same password', () => {
+    it('should produce same hash for same password and salt', () => {
       const password = 'MyPassword123';
+      const salt = randomBytes(16);
 
-      const hash1 = createHash('sha256').update(password).digest('hex');
-      const hash2 = createHash('sha256').update(password).digest('hex');
+      const hash1 = deriveKey(password, salt);
+      const hash2 = deriveKey(password, salt);
 
       expect(hash1).toBe(hash2);
+    });
+
+    it('should produce different hashes for the same password under different salts', () => {
+      const password = 'MyPassword123';
+
+      const hash1 = deriveKey(password, randomBytes(16));
+      const hash2 = deriveKey(password, randomBytes(16));
+
+      expect(hash1).not.toBe(hash2);
     });
   });
 
@@ -73,9 +104,10 @@ describe('Authentication Security', () => {
 
   describe('Passkey Security', () => {
     it('should generate secure passkeys', () => {
-      const passkey = createHash('sha256')
-        .update(Math.random().toString())
-        .digest('hex');
+      // The production tracker uses crypto.randomBytes for passkeys —
+      // Math.random() is non-cryptographic and trivially predictable
+      // from a handful of outputs. The test mirrors the real source.
+      const passkey = randomBytes(32).toString('hex');
 
       expect(passkey.length).toBe(64);
       expect(passkey).toMatch(/^[a-f0-9]{64}$/);
