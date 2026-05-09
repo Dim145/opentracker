@@ -540,8 +540,18 @@ onUnmounted(() => {
 
 async function handleLogout() {
   showUserMenu.value = false;
+  // Without this POST the server-side session cookie stays valid, so
+  // the auth middleware bounces /auth/login back to / — the user
+  // appeared to be redirected home "without logging out".
+  try {
+    await $fetch('/api/auth/logout', { method: 'POST' });
+  } catch {
+    // The endpoint clears the cookie unconditionally; if the network
+    // hiccupped we still fall through to clear() so the local state
+    // matches what the server is about to do on the next request.
+  }
   await clear();
-  router.push('/auth/login');
+  await navigateTo('/auth/login');
 }
 
 function calculateRatio(up = 0, down = 0) {
