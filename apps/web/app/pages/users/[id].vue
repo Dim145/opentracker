@@ -38,7 +38,7 @@
             </div>
 
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-2">
+              <div class="flex flex-wrap items-center gap-2 mb-2">
                 <h1 class="text-2xl font-bold text-text-primary">
                   {{ user.displayName || user.username }}
                 </h1>
@@ -54,6 +54,12 @@
                 >
                   Mod
                 </span>
+                <RoleBadge
+                  v-for="r in user.roles"
+                  :key="r.id"
+                  :role="r"
+                  :title="`Role · ${r.name}`"
+                />
               </div>
               <p
                 v-if="user.displayName"
@@ -245,6 +251,16 @@ interface UserProfile {
   lastSeen: string | null;
   ratio: number | null;
   uploadsCount: number;
+  roles: Array<{
+    id: string;
+    name: string;
+    color: string;
+    icon: string | null;
+    priority: number;
+    showAsBadge: boolean;
+    assignedAt: string;
+    assignedManually: boolean;
+  }>;
 }
 
 interface TorrentItem {

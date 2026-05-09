@@ -223,10 +223,42 @@
             </td>
 
             <td class="cell">
-              <span class="role-chip" :class="roleChipClass(u)">
-                <Icon :name="roleChipIcon(u)" />
-                {{ roleChipLabel(u) }}
-              </span>
+              <!-- Multi-role display: stack the staff indicator (admin /
+                   mod) before the user's custom badges. Each chip is
+                   self-coloured via <RoleBadge>; on hover the title
+                   surfaces when it was attached + whether manually. -->
+              <div class="role-stack">
+                <span
+                  v-if="u.isAdmin"
+                  class="role-chip role-chip--admin"
+                  title="Permission level: admin"
+                >
+                  <Icon name="ph:crown-fill" />
+                  Admin
+                </span>
+                <span
+                  v-else-if="u.isModerator"
+                  class="role-chip role-chip--mod"
+                  title="Permission level: moderator"
+                >
+                  <Icon name="ph:shield-chevron-fill" />
+                  Mod
+                </span>
+                <RoleBadge
+                  v-for="r in u.roles"
+                  :key="r.id"
+                  :role="r"
+                  :title="`${r.assignmentMode === 'auto' ? 'Auto' : 'Manual'} · attached ${formatJoined(r.assignedAt)}`"
+                />
+                <span
+                  v-if="!u.isAdmin && !u.isModerator && u.roles.length === 0"
+                  class="role-chip role-chip--none"
+                  title="No staff flag, no role attached"
+                >
+                  <Icon name="ph:user" />
+                  Member
+                </span>
+              </div>
             </td>
 
             <td class="cell cell--mono">
@@ -338,23 +370,21 @@
                   />
                 </button>
 
-                <select
+                <button
                   v-if="user?.isAdmin && roles.length > 0"
-                  :value="u.roleId || ''"
-                  :title="`Role: ${currentRoleName(u) ?? 'None'}`"
-                  class="row-role-select"
-                  @change="
-                    onAssignRole(
-                      u,
-                      ($event.target as HTMLSelectElement).value
-                    )
-                  "
+                  type="button"
+                  class="row-action"
+                  :class="{ 'row-action--has-roles': u.roles.length > 0 }"
+                  :title="`Manage roles (${u.roles.length} attached)`"
+                  @click="openRolesModal(u)"
                 >
-                  <option value="">— No role</option>
-                  <option v-for="role in roles" :key="role.id" :value="role.id">
-                    {{ role.name }}
-                  </option>
-                </select>
+                  <Icon name="ph:identification-badge-bold" />
+                  <span
+                    v-if="u.roles.length > 0"
+                    class="row-action__count"
+                    >{{ u.roles.length }}</span
+                  >
+                </button>
               </div>
             </td>
           </tr>
@@ -430,17 +460,151 @@
         </div>
       </div>
     </footer>
+
+    <!-- ── Multi-role management modal ─────────────────────────
+         Lists every defined role; per row shows the live attached
+         state (manual / auto / none) + an action that flips it. -->
+    <Modal
+      v-model="rolesModalOpen"
+      :title="
+        rolesModalUser
+          ? `Manage roles · ${rolesModalUser.username}`
+          : 'Manage roles'
+      "
+      icon="ph:identification-badge-bold"
+      size="lg"
+    >
+      <div v-if="rolesModalUser" class="rm-body">
+        <p class="rm-eyebrow">
+          {{ rolesModalUser.roles.length }} of
+          {{ roles.length }} role{{ roles.length === 1 ? '' : 's' }} attached
+        </p>
+
+        <ul v-if="roles.length > 0" class="rm-list">
+          <li
+            v-for="role in roles"
+            :key="role.id"
+            class="rm-row"
+            :class="{
+              'rm-row--on': isAttached(rolesModalUser, role.id),
+              'rm-row--manual':
+                isAttached(rolesModalUser, role.id) &&
+                attachedManually(rolesModalUser, role.id),
+            }"
+          >
+            <div class="rm-row__id">
+              <RoleBadge :role="role" />
+              <p class="rm-row__meta">
+                <span
+                  class="rm-row__mode"
+                  :class="
+                    role.assignmentMode === 'auto'
+                      ? 'rm-row__mode--auto'
+                      : 'rm-row__mode--manual'
+                  "
+                >
+                  <Icon
+                    :name="
+                      role.assignmentMode === 'auto'
+                        ? 'ph:lightning-fill'
+                        : 'ph:hand-pointing-fill'
+                    "
+                  />
+                  {{ role.assignmentMode === 'auto' ? 'Auto' : 'Manual' }}
+                </span>
+                <span class="rm-row__sep">·</span>
+                <span>prio {{ role.priority }}</span>
+                <template v-if="isAttached(rolesModalUser, role.id)">
+                  <span class="rm-row__sep">·</span>
+                  <span class="rm-row__attached">
+                    {{
+                      attachedManually(rolesModalUser, role.id)
+                        ? 'Manual freeze'
+                        : 'Auto-attached'
+                    }}
+                  </span>
+                </template>
+              </p>
+            </div>
+            <div class="rm-row__actions">
+              <button
+                v-if="!isAttached(rolesModalUser, role.id)"
+                type="button"
+                class="rm-action rm-action--attach"
+                :disabled="!!rolesModalState[role.id]"
+                @click="onAttachRole(role.id)"
+              >
+                <Icon
+                  :name="
+                    rolesModalState[role.id] === 'attaching'
+                      ? 'ph:circle-notch'
+                      : 'ph:plus-bold'
+                  "
+                  :class="{
+                    'animate-spin': rolesModalState[role.id] === 'attaching',
+                  }"
+                />
+                <span>Attach</span>
+              </button>
+              <button
+                v-else
+                type="button"
+                class="rm-action rm-action--detach"
+                :disabled="!!rolesModalState[role.id]"
+                @click="onDetachRole(role.id)"
+              >
+                <Icon
+                  :name="
+                    rolesModalState[role.id] === 'detaching'
+                      ? 'ph:circle-notch'
+                      : 'ph:minus-bold'
+                  "
+                  :class="{
+                    'animate-spin': rolesModalState[role.id] === 'detaching',
+                  }"
+                />
+                <span>Detach</span>
+              </button>
+            </div>
+          </li>
+        </ul>
+        <p v-else class="rm-empty">
+          No roles defined yet. Create one in
+          <NuxtLink to="/admin/roles" class="rm-empty__link">
+            Admin → Roles</NuxtLink
+          >.
+        </p>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { formatSize } from '~/utils/format';
+import Modal from '~/components/Modal.vue';
+import RoleBadge from '~/components/RoleBadge.vue';
 
 interface Role {
   id: string;
   name: string;
   color: string;
+  icon: string | null;
+  priority: number;
+  assignmentMode: 'manual' | 'auto';
+  showAsBadge: boolean;
   canUploadWithoutModeration: boolean;
+}
+
+interface AttachedRole {
+  id: string;
+  name: string;
+  color: string;
+  icon: string | null;
+  priority: number;
+  assignmentMode: 'manual' | 'auto';
+  showAsBadge: boolean;
+  assignedAt: string;
+  assignedManually: boolean;
 }
 
 interface RegistryUser {
@@ -449,7 +613,11 @@ interface RegistryUser {
   isAdmin: boolean;
   isModerator: boolean;
   isBanned: boolean;
-  roleId: string | null;
+  // List of every role currently attached to this user, ordered by
+  // role.priority desc. Empty array = no roles. Drives the chips
+  // shown in the Role column + the modal's "currently attached"
+  // state.
+  roles: AttachedRole[];
   // Raw IP — only sent to admin viewers. Moderators see `lastIpHash`
   // instead (a stable fingerprint, see `fingerprintIP` API-side).
   lastIp: string | null;
@@ -814,39 +982,16 @@ function ratioTone(u: RegistryUser) {
   return 'ratio--zero';
 }
 
-// ── Role chip ──────────────────────────────────────────────────
-function currentRole(u: RegistryUser) {
-  return u.roleId ? roles.value.find((r) => r.id === u.roleId) ?? null : null;
-}
-function currentRoleName(u: RegistryUser) {
-  return currentRole(u)?.name ?? null;
-}
-function roleChipClass(u: RegistryUser) {
-  if (u.isAdmin) return 'role-chip--admin';
-  if (u.isModerator) return 'role-chip--mod';
-  if (currentRole(u)) return 'role-chip--custom';
-  return 'role-chip--none';
-}
-function roleChipIcon(u: RegistryUser) {
-  if (u.isAdmin) return 'ph:crown-fill';
-  if (u.isModerator) return 'ph:shield-chevron-fill';
-  if (currentRole(u)) return 'ph:identification-badge-fill';
-  return 'ph:user';
-}
-function roleChipLabel(u: RegistryUser) {
-  if (u.isAdmin) return 'Admin';
-  if (u.isModerator) return 'Moderator';
-  return currentRole(u)?.name ?? 'Member';
-}
-
 // ── Avatar (initials with deterministic colour) ────────────────
 function avatarStyle(u: RegistryUser) {
-  const role = currentRole(u);
-  if (role?.color) {
+  // Use the highest-priority attached role's colour when present —
+  // the API already orders by priority desc.
+  const top = u.roles[0];
+  if (top?.color) {
     return {
-      background: `${role.color}1f`,
-      color: role.color,
-      borderColor: `${role.color}66`,
+      background: `${top.color}1f`,
+      color: top.color,
+      borderColor: `${top.color}66`,
     };
   }
   // Hash the username into one of a handful of accent hues.
@@ -946,20 +1091,85 @@ async function onToggleStaff(u: RegistryUser, role: 'isAdmin' | 'isModerator') {
   }
 }
 
-async function onAssignRole(u: RegistryUser, roleId: string) {
-  const key = `${u.id}:role`;
-  actionPending[key] = true;
+// ── Multi-role modal ───────────────────────────────────────────
+// `rolesModalUser` is the user currently being edited. While the
+// modal is open we use `rolesModalState[roleId] = 'attached' |
+// 'attaching' | 'detaching'` to render per-row spinners without
+// blocking the rest of the table.
+const rolesModalUser = ref<RegistryUser | null>(null);
+const rolesModalOpen = computed({
+  get: () => rolesModalUser.value !== null,
+  set: (v: boolean) => {
+    if (!v) rolesModalUser.value = null;
+  },
+});
+const rolesModalState = reactive<Record<string, 'attaching' | 'detaching'>>({});
+
+function openRolesModal(u: RegistryUser) {
+  rolesModalUser.value = u;
+  for (const k of Object.keys(rolesModalState)) delete rolesModalState[k];
+}
+
+function isAttached(u: RegistryUser, roleId: string) {
+  return u.roles.some((r) => r.id === roleId);
+}
+function attachedManually(u: RegistryUser, roleId: string) {
+  return u.roles.find((r) => r.id === roleId)?.assignedManually ?? false;
+}
+
+async function onAttachRole(roleId: string) {
+  const u = rolesModalUser.value;
+  if (!u) return;
+  rolesModalState[roleId] = 'attaching';
   try {
-    await $fetch(`/api/admin/users/${u.id}/assign-role`, {
-      method: 'PUT',
-      body: { roleId: roleId || null },
+    await $fetch(`/api/admin/users/${u.id}/roles`, {
+      method: 'POST',
+      body: { roleId },
     });
-    patchUser(u.id, { roleId: roleId || null });
-    notifications.success('Role updated');
+    // Update the in-memory row optimistically: if the role was
+    // already attached (auto), bump it to manual; otherwise add it.
+    const role = roles.value.find((r) => r.id === roleId);
+    if (!role) return;
+    const next = u.roles.filter((r) => r.id !== roleId);
+    next.push({
+      id: role.id,
+      name: role.name,
+      color: role.color,
+      icon: role.icon ?? null,
+      priority: role.priority ?? 0,
+      assignmentMode: role.assignmentMode ?? 'manual',
+      showAsBadge: role.showAsBadge ?? false,
+      assignedAt: new Date().toISOString(),
+      assignedManually: true,
+    });
+    next.sort((a, b) => b.priority - a.priority);
+    patchUser(u.id, { roles: next });
+    rolesModalUser.value = { ...u, roles: next };
+    notifications.success(`Attached "${role.name}"`);
   } catch (err: any) {
-    notifications.error(err?.data?.message || 'Failed to assign role');
+    notifications.error(err?.data?.message || 'Failed to attach role');
   } finally {
-    actionPending[key] = false;
+    delete rolesModalState[roleId];
+  }
+}
+
+async function onDetachRole(roleId: string) {
+  const u = rolesModalUser.value;
+  if (!u) return;
+  rolesModalState[roleId] = 'detaching';
+  try {
+    await $fetch(`/api/admin/users/${u.id}/roles/${roleId}`, {
+      method: 'DELETE',
+    });
+    const next = u.roles.filter((r) => r.id !== roleId);
+    patchUser(u.id, { roles: next });
+    rolesModalUser.value = { ...u, roles: next };
+    const role = roles.value.find((r) => r.id === roleId);
+    notifications.success(`Detached "${role?.name ?? 'role'}"`);
+  } catch (err: any) {
+    notifications.error(err?.data?.message || 'Failed to detach role');
+  } finally {
+    delete rolesModalState[roleId];
   }
 }
 </script>
@@ -1764,5 +1974,170 @@ async function onAssignRole(u: RegistryUser, roleId: string) {
 .pager-where strong {
   color: rgb(var(--fg-strong));
   font-weight: 700;
+}
+
+/* ─── Role stack (per-row chips) ─────────────────────────────────── */
+.role-stack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 22rem;
+}
+.row-action__count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 9999px;
+  background: rgb(var(--fg-strong));
+  color: rgb(var(--bg-base));
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.row-action--has-roles {
+  position: relative;
+}
+
+/* ─── Roles modal ────────────────────────────────────────────────── */
+.rm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.rm-eyebrow {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  margin: 0;
+}
+.rm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.rm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.45rem;
+  background: rgb(var(--bg-elevated));
+  transition: border-color 0.15s, background 0.15s;
+}
+.rm-row--on {
+  border-left: 3px solid #34d4d8;
+  padding-left: calc(0.95rem - 2px);
+}
+.rm-row--manual {
+  border-left-color: #f5c518;
+}
+.rm-row__id {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.rm-row__meta {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: rgb(var(--fg-muted));
+}
+.rm-row__sep {
+  opacity: 0.5;
+}
+.rm-row__mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 0.2rem;
+  border: 1px solid rgb(var(--line-default));
+  background: rgb(var(--bg-elevated));
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 9.5px;
+}
+.rm-row__mode--auto {
+  color: #34d4d8;
+  border-color: rgba(52, 212, 216, 0.4);
+  background: rgba(52, 212, 216, 0.08);
+}
+.rm-row__attached {
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.rm-row--manual .rm-row__attached {
+  color: #f5c518;
+}
+.rm-row__actions {
+  display: flex;
+  flex-shrink: 0;
+}
+.rm-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--line-default));
+  background: rgb(var(--bg-elevated));
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-default));
+  transition: all 0.15s;
+}
+.rm-action:hover:not(:disabled) {
+  border-color: rgb(var(--fg-default) / 0.3);
+  color: rgb(var(--fg-strong));
+}
+.rm-action--attach:hover:not(:disabled) {
+  border-color: rgba(108, 209, 97, 0.5);
+  color: #6cd161;
+  background: rgba(108, 209, 97, 0.08);
+}
+.rm-action--detach:hover:not(:disabled) {
+  border-color: rgba(229, 62, 62, 0.5);
+  color: rgb(var(--danger));
+  background: rgba(229, 62, 62, 0.08);
+}
+.rm-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.rm-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: rgb(var(--fg-muted));
+  font-size: 12px;
+}
+.rm-empty__link {
+  color: rgb(var(--fg-strong));
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 </style>

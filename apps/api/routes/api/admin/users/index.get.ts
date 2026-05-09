@@ -25,7 +25,7 @@
  * Auth: moderator+ (matches the original endpoint).
  */
 import { db } from '@trackarr/db';
-import { users } from '@trackarr/db/schema';
+import { users, userRoles, roles } from '@trackarr/db/schema';
 import { requireModeratorSession } from '~~/utils/adminAuth';
 import { fingerprintIP } from '~~/utils/crypto';
 import { escapeLike } from '~~/utils/sql';
@@ -37,7 +37,8 @@ import {
   eq,
   gte,
   ilike,
-  isNull,
+  inArray,
+  notInArray,
   lte,
   sql,
   type SQL,
@@ -83,9 +84,27 @@ export default defineEventHandler(async (event) => {
   if (params.mod === 'true') conditions.push(eq(users.isModerator, true));
   if (params.mod === 'false') conditions.push(eq(users.isModerator, false));
   if (params.role === 'none') {
-    conditions.push(isNull(users.roleId));
+    // Users with no role → not present in user_roles at all.
+    conditions.push(
+      notInArray(
+        users.id,
+        db
+          .select({ id: userRoles.userId })
+          .from(userRoles)
+      )!
+    );
   } else if (params.role) {
-    conditions.push(eq(users.roleId, params.role));
+    // Users carrying a specific role → present in user_roles with
+    // that roleId.
+    conditions.push(
+      inArray(
+        users.id,
+        db
+          .select({ id: userRoles.userId })
+          .from(userRoles)
+          .where(eq(userRoles.roleId, params.role))
+      )!
+    );
   }
   // Activity is computed against `lastSeen`. The `never` bucket needs a
   // tolerance because lastSeen defaults to now() at registration and then
@@ -151,7 +170,6 @@ export default defineEventHandler(async (event) => {
         isAdmin: true,
         isModerator: true,
         isBanned: true,
-        roleId: true,
         lastIp: true,
         uploaded: true,
         downloaded: true,
@@ -184,15 +202,53 @@ export default defineEventHandler(async (event) => {
       .where(gte(users.lastSeen, sql`now() - interval '5 minutes'`)),
   ]);
 
-  // ── lastIp visibility per role ───────────────────────────────
+  // ── Roles per user (single follow-up query) ─────────────────
+  // We fetch every attachment for the page slice in one shot then
+  // bucket by userId. The list is ordered by role.priority desc so
+  // the highest-priority chip renders first in the UI.
+  const pageUserIds = items.map((u) => u.id);
+  const roleRows = pageUserIds.length
+    ? await db
+        .select({
+          userId: userRoles.userId,
+          assignedAt: userRoles.assignedAt,
+          assignedManually: userRoles.assignedManually,
+          role: {
+            id: roles.id,
+            name: roles.name,
+            color: roles.color,
+            icon: roles.icon,
+            priority: roles.priority,
+            assignmentMode: roles.assignmentMode,
+            showAsBadge: roles.showAsBadge,
+          },
+        })
+        .from(userRoles)
+        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(inArray(userRoles.userId, pageUserIds))
+        .orderBy(desc(roles.priority))
+    : [];
+  const rolesByUser = new Map<string, typeof roleRows>();
+  for (const row of roleRows) {
+    const arr = rolesByUser.get(row.userId);
+    if (arr) arr.push(row);
+    else rolesByUser.set(row.userId, [row]);
+  }
+
+  // ── lastIp visibility per viewer level ──────────────────────
   // Admins see the raw IP for ban/forensics. Moderators see a stable
   // hash so they can spot multi-account abuse from a single IP
   // without ever holding the IP itself. Plain users would never reach
   // this route — the requireModeratorSession check above already
   // gated it.
   const projected = items.map((u) => {
+    const userRoleList = (rolesByUser.get(u.id) ?? []).map((r) => ({
+      ...r.role,
+      assignedAt: r.assignedAt,
+      assignedManually: r.assignedManually,
+    }));
     if (viewer.isAdmin) {
-      return { ...u, lastIpHash: null };
+      return { ...u, lastIpHash: null, roles: userRoleList };
     }
     // Moderator path: replace `lastIp` with the fingerprint and drop
     // the raw value entirely.
@@ -201,6 +257,7 @@ export default defineEventHandler(async (event) => {
       ...rest,
       lastIp: null,
       lastIpHash: lastIp ? fingerprintIP(lastIp) : null,
+      roles: userRoleList,
     };
   });
 

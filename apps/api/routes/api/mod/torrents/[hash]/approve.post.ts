@@ -1,5 +1,6 @@
 import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
+import { reevaluateUserRole } from '~~/utils/roleRules';
 import { eq } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
@@ -25,6 +26,15 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 404,
       message: 'Torrent not found',
+    });
+  }
+
+  // The uploader's `approvedUploads` count just went up — that's the
+  // headline trigger for auto roles like "Certified". Fire-and-forget
+  // so the moderator's response time isn't tied to the sweep.
+  if (approvedTorrent.uploaderId) {
+    void reevaluateUserRole(approvedTorrent.uploaderId).catch((err) => {
+      console.error('[Roles] post-approve sweep failed:', err);
     });
   }
 

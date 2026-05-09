@@ -1,5 +1,5 @@
 import { db } from '@trackarr/db';
-import { roles, users } from '@trackarr/db/schema';
+import { roles } from '@trackarr/db/schema';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { eq } from 'drizzle-orm';
 
@@ -15,10 +15,9 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // First, remove role from all users that have it
-  await db.update(users).set({ roleId: null }).where(eq(users.roleId, id));
-
-  // Then delete the role
+  // user_roles has ON DELETE CASCADE on roleId, so all attachments
+  // disappear with the role row itself — no manual cleanup needed
+  // anymore.
   const [deletedRole] = await db
     .delete(roles)
     .where(eq(roles.id, id))

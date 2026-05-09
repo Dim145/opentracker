@@ -1,5 +1,5 @@
 import { db, schema } from '@trackarr/db';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, desc } from 'drizzle-orm';
 import { z } from 'zod';
 
 const paramsSchema = z.object({
@@ -35,6 +35,30 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Self / staff always see every role attached to the user so they
+  // can audit what's there. Foreign viewers only get the rows where
+  // the operator opted into a public badge.
+  const isPrivileged =
+    viewer.id === user.id || viewer.isAdmin || viewer.isModerator;
+  const allRoles = await db
+    .select({
+      id: schema.roles.id,
+      name: schema.roles.name,
+      color: schema.roles.color,
+      icon: schema.roles.icon,
+      priority: schema.roles.priority,
+      showAsBadge: schema.roles.showAsBadge,
+      assignedAt: schema.userRoles.assignedAt,
+      assignedManually: schema.userRoles.assignedManually,
+    })
+    .from(schema.userRoles)
+    .innerJoin(schema.roles, eq(schema.userRoles.roleId, schema.roles.id))
+    .where(eq(schema.userRoles.userId, params.id))
+    .orderBy(desc(schema.roles.priority));
+  const visibleRoles = isPrivileged
+    ? allRoles
+    : allRoles.filter((r) => r.showAsBadge);
+
   // Calculate ratio
   const ratio =
     user.downloaded === 0
@@ -52,8 +76,6 @@ export default defineEventHandler(async (event) => {
   // Privacy: redact `lastSeen` for the public view when the target user
   // has hidden it. Mods/admins keep the real value so moderation isn't
   // blinded by a privacy flag, and a user always sees their own.
-  const isPrivileged =
-    viewer.id === user.id || viewer.isAdmin || viewer.isModerator;
   const visibleLastSeen =
     user.showLastSeen || isPrivileged ? user.lastSeen : null;
 
@@ -62,5 +84,6 @@ export default defineEventHandler(async (event) => {
     lastSeen: visibleLastSeen,
     ratio: ratio === Infinity ? null : ratio, // null = infinite
     uploadsCount: uploadsCount[0]?.count || 0,
+    roles: visibleRoles,
   };
 });

@@ -24,10 +24,22 @@
                 {{ profile.bio }}
               </p>
               <div class="hero-pills">
-                <span class="hero-pill" :class="rolePillClass">
-                  <Icon :name="rolePillIcon" />
-                  {{ rolePillLabel }}
+                <!-- Permission level only — admin / mod / member. The
+                     custom role gets its own chip below so a
+                     mod-with-Certified shows BOTH (matches the
+                     "Team Pending + Early Adopter" pattern in the
+                     brief). -->
+                <span class="hero-pill" :class="permissionPillClass">
+                  <Icon :name="permissionPillIcon" />
+                  {{ permissionPillLabel }}
                 </span>
+                <RoleBadge
+                  v-for="r in profile.roles"
+                  :key="r.id"
+                  :role="r"
+                  :title="`Role · ${r.name} · attached ${formatDay(r.assignedAt)}${r.assignedManually ? ' (manual)' : ''}`"
+                  class="hero-role-chip"
+                />
                 <span class="hero-pill hero-pill--soft">
                   <Icon name="ph:hourglass-medium-bold" />
                   Member since {{ memberSince }}
@@ -484,6 +496,11 @@ interface MeRole {
   id: string;
   name: string;
   color: string;
+  icon: string | null;
+  priority: number;
+  showAsBadge: boolean;
+  assignedAt: string;
+  assignedManually: boolean;
 }
 interface MeProfile {
   id: string;
@@ -493,7 +510,7 @@ interface MeProfile {
   isAdmin: boolean;
   isModerator: boolean;
   isBanned: boolean;
-  role: MeRole | null;
+  roles: MeRole[];
   uploaded: number;
   downloaded: number;
   ratio: number | null; // null = infinite
@@ -612,39 +629,43 @@ const memberSince = computed(() =>
   profile.value ? formatDay(profile.value.createdAt) : ''
 );
 
-const rolePillClass = computed(() => {
+// Permission level pill — admin / moderator / member. Decoupled from
+// the custom role chip so a moderator with a "Certified" badge shows
+// BOTH chips next to each other instead of one swallowing the other.
+const permissionPillClass = computed(() => {
   const p = profile.value;
-  if (!p) return '';
+  if (!p) return 'hero-pill--member';
   if (p.isAdmin) return 'hero-pill--admin';
   if (p.isModerator) return 'hero-pill--mod';
-  if (p.role) return 'hero-pill--custom';
   return 'hero-pill--member';
 });
-const rolePillIcon = computed(() => {
+const permissionPillIcon = computed(() => {
   const p = profile.value;
   if (!p) return 'ph:user';
   if (p.isAdmin) return 'ph:crown-fill';
   if (p.isModerator) return 'ph:shield-chevron-fill';
-  if (p.role) return 'ph:identification-badge-fill';
   return 'ph:user';
 });
-const rolePillLabel = computed(() => {
+const permissionPillLabel = computed(() => {
   const p = profile.value;
   if (!p) return 'Member';
   if (p.isAdmin) return 'Admin';
   if (p.isModerator) return 'Moderator';
-  return p.role?.name ?? 'Member';
+  return 'Member';
 });
 
-// Avatar — deterministic accent hue from username (or role color)
+// Avatar — deterministic accent hue from username, or the highest-
+// priority role's colour when one is attached. `roles[0]` is already
+// the top-priority entry thanks to the API's ORDER BY priority desc.
 const avatarStyle = computed(() => {
   const p = profile.value;
   if (!p) return {};
-  if (p.role?.color) {
+  const top = p.roles?.[0];
+  if (top?.color) {
     return {
-      background: `${p.role.color}24`,
-      color: p.role.color,
-      borderColor: `${p.role.color}66`,
+      background: `${top.color}24`,
+      color: top.color,
+      borderColor: `${top.color}66`,
     };
   }
   let hash = 0;

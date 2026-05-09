@@ -1,5 +1,6 @@
 import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
+import { reevaluateUserRole } from '~~/utils/roleRules';
 import { eq } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
@@ -32,6 +33,15 @@ export default defineEventHandler(async (event) => {
   await db
     .delete(schema.torrentStats)
     .where(eq(schema.torrentStats.infoHash, hash.toLowerCase()));
+
+  // Rejecting a torrent removes it from the uploader's totalUploads
+  // count, which can knock them below the threshold of an auto role.
+  // Same fire-and-forget pattern as the approve hook.
+  if (deletedTorrent.uploaderId) {
+    void reevaluateUserRole(deletedTorrent.uploaderId).catch((err) => {
+      console.error('[Roles] post-reject sweep failed:', err);
+    });
+  }
 
   return {
     success: true,

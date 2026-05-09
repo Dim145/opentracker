@@ -5,6 +5,7 @@ import {
   integer,
   bigint,
   boolean,
+  jsonb,
   index,
   uniqueIndex,
   primaryKey,
@@ -41,7 +42,10 @@ export const users = pgTable(
     // time so a later promotion/demotion of the issuer doesn't mess
     // with the unban hierarchy check.
     bannedByRole: text('banned_by_role'), // 'admin' | 'moderator'
-    roleId: text('role_id'),
+    // Role assignment moved to the `user_roles` junction table so a
+    // user can carry multiple badges (e.g. "Certified" + "Donator").
+    // The legacy `roleId` / `roleAssignedManually` columns were
+    // retired with this migration — see user_roles below.
     lastIp: text('last_ip'),
     uploaded: bigint('uploaded', { mode: 'number' }).default(0).notNull(),
     downloaded: bigint('downloaded', { mode: 'number' }).default(0).notNull(),
@@ -80,17 +84,79 @@ export const bannedIps = pgTable('banned_ips', {
 });
 
 // ============================================================================
-// Roles (Flexible permission management)
+// Roles (Flexible permission management + auto-assignment rules)
 // ============================================================================
+//
+// Two assignment modes:
+//   - 'manual'  → only an admin can attach this role to a user; the
+//                 auto-evaluator never touches it.
+//   - 'auto'    → the periodic evaluator (apps/api/utils/roleRules.ts)
+//                 computes whether each user matches `rules` and attaches
+//                 the highest-priority match. Manual overrides on a user
+//                 (users.roleAssignedManually = true) freeze the role
+//                 against the engine.
+//
+// `rules` is a jsonb tree consumed by the evaluator: `{combinator: 'and'|
+// 'or', conditions: [{field, comparator, value}]}` (see RuleSet in
+// apps/api/utils/roleRules.ts for the full shape). Empty conditions =
+// no auto-match — useful as a guard so an unconfigured auto role doesn't
+// accidentally win every comparison.
 export const roles = pgTable('roles', {
   id: text('id').primaryKey(),
   name: text('name').notNull().unique(),
   color: text('color').default('#6b7280').notNull(),
+  // Phosphor icon name (e.g. 'ph:shield-check'). Optional; the badge
+  // / list fall back to a tag-shape glyph when null.
+  icon: text('icon'),
+  // When true, the role surfaces as a public badge on user profiles.
+  // Hidden roles still control permissions but don't decorate the UI.
+  showAsBadge: boolean('show_as_badge').default(false).notNull(),
+  // Higher priority renders first when a user has multiple badges. Also
+  // dictates the resolution order for permission unions (e.g. if any
+  // attached role grants `canUploadWithoutModeration` the user gets it).
+  priority: integer('priority').default(0).notNull(),
+  assignmentMode: text('assignment_mode').default('manual').notNull(),
+  rules: jsonb('rules'),
   canUploadWithoutModeration: boolean('can_upload_without_moderation')
     .default(false)
     .notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// ============================================================================
+// User ↔ Roles junction (many-to-many)
+// ============================================================================
+//
+// A user can carry several roles at once — e.g. "Certified" granted by
+// the auto-engine plus "Patron" attached manually by an admin. Each
+// row stores when the role was obtained (used by the profile chip
+// tooltip + the admin manage-roles dialog) and whether it was an
+// admin manual decision (which the engine respects as a freeze).
+export const userRoles = pgTable(
+  'user_roles',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    roleId: text('role_id')
+      .notNull()
+      .references(() => roles.id, { onDelete: 'cascade' }),
+    // Defaults to NOW() on insert — the auto-engine + the admin
+    // manual-attach endpoint both rely on the default rather than
+    // computing the value client-side.
+    assignedAt: timestamp('assigned_at').defaultNow().notNull(),
+    // True for admin-attached rows: the engine never deletes them on
+    // the next sweep even if the user no longer matches the role's
+    // rules. Auto-attached rows carry false and the engine owns them.
+    assignedManually: boolean('assigned_manually')
+      .default(false)
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.roleId] }),
+    index('user_roles_role_idx').on(table.roleId),
+  ]
+);
 
 // ============================================================================
 // Categories (with subcategories support via parentId)
@@ -255,11 +321,10 @@ export const torrentComments = pgTable('torrent_comments', {
 // ============================================================================
 // Relations
 // ============================================================================
-export const usersRelations = relations(users, ({ one, many }) => ({
-  role: one(roles, {
-    fields: [users.roleId],
-    references: [roles.id],
-  }),
+export const usersRelations = relations(users, ({ many }) => ({
+  // Multi-role relation via the junction table. Drizzle's `with`
+  // helper traverses to the role row through `userRoles`.
+  userRoles: many(userRoles),
   torrents: many(torrents),
   forumTopics: many(forumTopics),
   forumPosts: many(forumPosts),
@@ -270,7 +335,18 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 }));
 
 export const rolesRelations = relations(roles, ({ many }) => ({
-  users: many(users),
+  userRoles: many(userRoles),
+}));
+
+export const userRolesRelations = relations(userRoles, ({ one }) => ({
+  user: one(users, {
+    fields: [userRoles.userId],
+    references: [users.id],
+  }),
+  role: one(roles, {
+    fields: [userRoles.roleId],
+    references: [roles.id],
+  }),
 }));
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
@@ -553,6 +629,8 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Role = typeof roles.$inferSelect;
 export type NewRole = typeof roles.$inferInsert;
+export type UserRole = typeof userRoles.$inferSelect;
+export type NewUserRole = typeof userRoles.$inferInsert;
 export type BannedIp = typeof bannedIps.$inferSelect;
 export type NewBannedIp = typeof bannedIps.$inferInsert;
 export type Category = typeof categories.$inferSelect;

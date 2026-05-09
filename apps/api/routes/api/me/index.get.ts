@@ -7,7 +7,7 @@
  * user record so the profile page renders in one round-trip.
  */
 import { db, schema } from '@trackarr/db';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, desc } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   const { user: session } = await requireUserSession(event);
@@ -22,7 +22,6 @@ export default defineEventHandler(async (event) => {
       isAdmin: true,
       isModerator: true,
       isBanned: true,
-      roleId: true,
       uploaded: true,
       downloaded: true,
       invitesRemaining: true,
@@ -39,12 +38,25 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'User not found' });
   }
 
-  // Custom role lookup so the page can show the role's name + colour.
-  const role = user.roleId
-    ? await db.query.roles.findFirst({
-        where: eq(schema.roles.id, user.roleId),
-      })
-    : null;
+  // Self always sees its full role list — the showAsBadge gate is
+  // only enforced on /api/users/:id for foreign viewers. Order by
+  // role priority desc so the most "important" badge renders first
+  // and we have a stable order for the avatar accent fallback.
+  const roleRows = await db
+    .select({
+      id: schema.roles.id,
+      name: schema.roles.name,
+      color: schema.roles.color,
+      icon: schema.roles.icon,
+      priority: schema.roles.priority,
+      showAsBadge: schema.roles.showAsBadge,
+      assignedAt: schema.userRoles.assignedAt,
+      assignedManually: schema.userRoles.assignedManually,
+    })
+    .from(schema.userRoles)
+    .innerJoin(schema.roles, eq(schema.userRoles.roleId, schema.roles.id))
+    .where(eq(schema.userRoles.userId, user.id))
+    .orderBy(desc(schema.roles.priority));
 
   // Fold in counts that are useful at the top of the profile but
   // would otherwise need separate round-trips.
@@ -84,7 +96,7 @@ export default defineEventHandler(async (event) => {
     isAdmin: user.isAdmin,
     isModerator: user.isModerator,
     isBanned: user.isBanned,
-    role,
+    roles: roleRows,
     uploaded: user.uploaded,
     downloaded: user.downloaded,
     ratio,
