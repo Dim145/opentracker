@@ -1,4 +1,5 @@
 import { db, schema } from '@trackarr/db';
+import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import parseTorrent from 'parse-torrent';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
@@ -141,19 +142,15 @@ export default defineEventHandler(async (event) => {
   const id = randomUUID();
   const now = new Date();
 
-  // Check if user can bypass moderation (admins, mods, or users with permission via role)
-  // Need to fetch user's role to check permissions
-  const userWithRole = await db.query.users.findFirst({
-    where: (u, { eq }) => eq(u.id, user.id),
-    with: {
-      role: true,
-    },
-  });
-
+  // Check if user can bypass moderation. The legacy "one role per user"
+  // relation was replaced by a many-to-many junction (`userRoles`) earlier
+  // in this branch, so we walk every attached role and pass if *any* of
+  // them carries the `canUploadWithoutModeration` flag. Staff still get
+  // the bypass straight from their `is_admin` / `is_moderator` columns.
   const canBypassModeration =
     user.isAdmin ||
     user.isModerator ||
-    (userWithRole?.role?.canUploadWithoutModeration ?? false);
+    (await userHasUploadBypass(user.id));
 
   await db.insert(schema.torrents).values({
     id,
@@ -245,6 +242,21 @@ function generateMagnetLink(infoHash: string, name: string): string {
   const trackerUrl = useRuntimeConfig().public.trackerHttpUrl as string;
   const encodedName = encodeURIComponent(name);
   return `magnet:?xt=urn:btih:${infoHash}&dn=${encodedName}&tr=${encodeURIComponent(trackerUrl)}`;
+}
+
+/**
+ * Returns true when any of the user's attached roles carries the
+ * `canUploadWithoutModeration` permission. We do the join through the
+ * `user_roles` junction table since the legacy `users.role_id` column
+ * has been dropped.
+ */
+async function userHasUploadBypass(userId: string): Promise<boolean> {
+  const rows = await db
+    .select({ canBypass: schema.roles.canUploadWithoutModeration })
+    .from(schema.userRoles)
+    .innerJoin(schema.roles, eq(schema.userRoles.roleId, schema.roles.id))
+    .where(eq(schema.userRoles.userId, userId));
+  return rows.some((r) => r.canBypass === true);
 }
 
 /**
