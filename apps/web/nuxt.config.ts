@@ -25,6 +25,36 @@ export default defineNuxtConfig({
   // bundle alone, no extra round-trip.
   experimental: STATIC_BUILD ? { payloadExtraction: false } : {},
 
+  // Pin the prerender surface for the static build to a single
+  // route (`/`). Without this Nitro's default `crawlLinks: true`
+  // walks every <NuxtLink> it can find and emits a per-route HTML
+  // file (e.g. `/torrents/index.html`) — those files include
+  // hydration markers + asset preloads tied to the SSR pipeline,
+  // which then desync against the SPA shell on hard-reload and
+  // hang the boot ("loading forever" on every deep link).
+  //
+  // The single `/` page is enough: nginx's SPA fallback serves
+  // it for any unknown URL, and vue-router routes the rest on the
+  // client. Dynamic routes (`/torrents/:hash`, `/forum/topic/:id`)
+  // would have failed to crawl anyway because their params aren't
+  // statically known.
+  nitro: STATIC_BUILD
+    ? {
+        prerender: {
+          crawlLinks: false,
+          routes: ['/'],
+          ignore: [
+            // Even if something else triggers prerender, don't
+            // bother with these — they're API-side or runtime-only
+            // surfaces with no static representation.
+            '/api',
+            '/announce',
+            '/scrape',
+          ],
+        },
+      }
+    : {},
+
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@nuxt/icon'],
 
   // Icon module — see follow-up notes; the previous CSS mode rendering

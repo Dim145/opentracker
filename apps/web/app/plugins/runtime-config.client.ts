@@ -20,16 +20,24 @@
 export default defineNuxtPlugin({
   name: 'runtime-config',
   enforce: 'pre',
-  parallel: false,
+  // Run in parallel with the rest of the boot so the app can mount
+  // even if /api/runtime-config is slow or unreachable. The previous
+  // `parallel: false` chained the boot behind this single fetch — a
+  // hung connection meant the SPA never got past the splash on every
+  // route except `/` (which has its own pre-rendered HTML).
+  parallel: true,
   async setup() {
     const cfg = useRuntimeConfig();
     try {
+      // Hard ceiling: 4 s is plenty for a same-origin fetch over
+      // Caddy. Anything longer means something's broken — fall back
+      // to the build-time values rather than blocking forever.
       const remote = await $fetch<{
         trackerHttpUrl: string;
         trackerUdpUrl: string;
         trackerWsUrl: string;
         appVersion: string;
-      }>('/api/runtime-config');
+      }>('/api/runtime-config', { timeout: 4000 });
 
       // Mutate in place — `cfg.public` is the same reactive-ish object
       // that any later `useRuntimeConfig()` call returns.

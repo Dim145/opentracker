@@ -39,14 +39,23 @@ export default defineNuxtRouteMiddleware(async (to) => {
       // the user's session. Without this, hard-refreshing a protected page
       // makes the middleware think we're logged out and bounces us back to
       // / via /auth/login.
+      //
+      // Hard ceiling on the fetch: a hung /api/auth/status would
+      // otherwise stall every page navigation indefinitely. 4 s is
+      // already 100× the typical response time on a healthy stack;
+      // anything longer means the API is down and we're better off
+      // letting the user see the cached routing state than spinning
+      // a blank screen forever.
       const status = await $fetch('/api/auth/status', {
+        timeout: 4000,
         headers: import.meta.server ? useRequestHeaders(['cookie']) : undefined,
       });
       cachedNeedsSetup.value = !!status?.needsSetup;
       session.value = { user: status?.user ?? null };
       lastRefresh.value = now;
     } catch {
-      // Network error — keep current state, fail open to existing routing.
+      // Network error / timeout — keep current state, fail open to
+      // existing routing.
     }
   }
 
