@@ -19,8 +19,9 @@ import {
   type MetricObjectWithValues,
 } from 'prom-client';
 import { db, schema } from '@trackarr/db';
-import { sql, eq, isNull, and, or, gt, ne } from 'drizzle-orm';
+import { sql, eq, isNull, and, or, gt, ne, lte } from 'drizzle-orm';
 import { redis } from './server';
+import { isInviteEnabled, isRegistrationOpen, getRequire2FAScope } from './settings';
 
 const PEER_CACHE_MS = parseInt(
   process.env.METRICS_PEER_CACHE_MS || '30000',
@@ -115,6 +116,149 @@ const invitationsPendingTotal = new Gauge({
 const bannedIpsTotal = new Gauge({
   name: 'trackarr_banned_ips_total',
   help: 'Banned IPs currently in the blocklist.',
+  ...labelMeta,
+});
+
+// ─── Torrent moderation pipeline (since 0.10) ────────────────────────────────
+//
+// `trackarr_torrents_total` above stays as the grand-total count. The
+// labelled gauge below splits the same population by moderation
+// status so dashboards can plot the queue depth (pending +
+// changes_requested) over time and spot a rejection spike.
+
+const torrentsByStatus = new Gauge({
+  name: 'trackarr_torrents_by_status',
+  help: 'Torrents broken down by moderation status (pending/accepted/changes_requested/rejected). Sum equals trackarr_torrents_total.',
+  labelNames: ['status'] as const,
+  ...labelMeta,
+});
+
+const torrentModerationMessagesTotal = new Gauge({
+  name: 'trackarr_torrent_moderation_messages_total',
+  help: 'Posts on torrent moderation threads, labelled by author kind (system/staff/user).',
+  labelNames: ['kind'] as const,
+  ...labelMeta,
+});
+
+// ─── Users by role / status (since 0.10) ─────────────────────────────────────
+
+const usersByRole = new Gauge({
+  name: 'trackarr_users_by_role',
+  help: 'User accounts by built-in role (admin/moderator/member). Each user counts in exactly one bucket — admins are not double-counted as moderators.',
+  labelNames: ['role'] as const,
+  ...labelMeta,
+});
+
+const usersBannedTotal = new Gauge({
+  name: 'trackarr_users_banned_total',
+  help: 'User accounts currently flagged is_banned (banned users still count in usersByRole — this gauge is a separate, overlapping view).',
+  ...labelMeta,
+});
+
+// ─── 2FA enrolment (since 0.11) ──────────────────────────────────────────────
+
+const usersTotpEnabledTotal = new Gauge({
+  name: 'trackarr_users_totp_enabled_total',
+  help: 'User accounts with TOTP-based 2FA enabled.',
+  ...labelMeta,
+});
+
+const passkeysTotal = new Gauge({
+  name: 'trackarr_passkeys_total',
+  help: 'WebAuthn credentials registered across all users (one user may carry several).',
+  ...labelMeta,
+});
+
+const usersWithPasskeyTotal = new Gauge({
+  name: 'trackarr_users_with_passkey_total',
+  help: 'Distinct user accounts that have at least one WebAuthn credential.',
+  ...labelMeta,
+});
+
+const recoveryCodesUnusedTotal = new Gauge({
+  name: 'trackarr_recovery_codes_unused_total',
+  help: 'TOTP recovery codes still available (not yet redeemed). Drops to 0 when a user burns the whole batch.',
+  ...labelMeta,
+});
+
+const trustedDevicesActiveTotal = new Gauge({
+  name: 'trackarr_trusted_devices_active_total',
+  help: 'Trusted-device cookies still within their TTL.',
+  ...labelMeta,
+});
+
+const require2faScope = new Gauge({
+  name: 'trackarr_require_2fa_scope',
+  help: 'Forced-2FA enforcement scope. Exactly one label has value 1: off | staff | all.',
+  labelNames: ['scope'] as const,
+  ...labelMeta,
+});
+
+// ─── Invitations lifecycle (since 0.12) ──────────────────────────────────────
+//
+// `trackarr_invitations_pending_total` above is kept for backward
+// compatibility with existing dashboards. The labelled gauge below
+// adds the `used` / `expired` slices for richer breakdowns.
+
+const invitationsByStatus = new Gauge({
+  name: 'trackarr_invitations_by_status',
+  help: 'Invitations by lifecycle bucket. pending = unused & not expired; used = redeemed; expired = unused but past expiresAt.',
+  labelNames: ['status'] as const,
+  ...labelMeta,
+});
+
+const registrationState = new Gauge({
+  name: 'trackarr_registration_state',
+  help: 'Registration mode. Exactly one label has value 1: open | invite_only | closed.',
+  labelNames: ['mode'] as const,
+  ...labelMeta,
+});
+
+// ─── Bonus events (Freeleech / Silverleech, since 0.12) ──────────────────────
+
+const bonusEventsByStatus = new Gauge({
+  name: 'trackarr_bonus_events_by_status',
+  help: 'Bonus events by current state (active/scheduled/ended/disabled).',
+  labelNames: ['status'] as const,
+  ...labelMeta,
+});
+
+const bonusEventActive = new Gauge({
+  name: 'trackarr_bonus_event_active',
+  help: '1 if a bonus event is currently in flight, 0 otherwise.',
+  ...labelMeta,
+});
+
+const bonusActiveDownloadMultiplier = new Gauge({
+  name: 'trackarr_bonus_active_download_multiplier',
+  help: 'Download multiplier of the currently active bonus event, expressed as a ratio (1.0 = identity, 0 = full freeleech, 0.5 = silverleech). Equals 1.0 when no event is active.',
+  ...labelMeta,
+});
+
+const bonusActiveUploadMultiplier = new Gauge({
+  name: 'trackarr_bonus_active_upload_multiplier',
+  help: 'Upload multiplier of the currently active bonus event, as a ratio. Equals 1.0 when no event is active.',
+  ...labelMeta,
+});
+
+const bonusEventActiveEndsAt = new Gauge({
+  name: 'trackarr_bonus_event_active_ends_at_seconds',
+  help: 'Unix epoch (seconds) at which the currently active bonus event ends. 0 when no event is active.',
+  ...labelMeta,
+});
+
+// ─── Custom roles (since 0.11) ───────────────────────────────────────────────
+
+const rolesTotal = new Gauge({
+  name: 'trackarr_roles_total',
+  help: 'Custom roles defined in the system, by assignment mode (manual/auto).',
+  labelNames: ['assignment_mode'] as const,
+  ...labelMeta,
+});
+
+const userRoleAssignmentsTotal = new Gauge({
+  name: 'trackarr_user_role_assignments_total',
+  help: 'Total user↔role attachments. Sums across users — one user with three roles counts three times.',
   ...labelMeta,
 });
 
@@ -332,6 +476,306 @@ async function refreshGauges(): Promise<void> {
       seedersTotal.set(s.seeders);
       leechersTotal.set(s.leechers);
     })
+  );
+
+  // ─── Torrents by moderation status ────────────────────────
+  // One GROUP BY hits the index `torrents_moderation_status_idx`
+  // and returns at most four rows. We initialise every label to 0
+  // first so a status that drops to zero shows as `… 0` rather
+  // than vanishing from the scrape.
+  tasks.push(
+    db
+      .select({
+        status: schema.torrents.moderationStatus,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(schema.torrents)
+      .groupBy(schema.torrents.moderationStatus)
+      .then((rows) => {
+        for (const s of ['pending', 'accepted', 'changes_requested', 'rejected']) {
+          torrentsByStatus.set({ status: s }, 0);
+        }
+        for (const r of rows) {
+          torrentsByStatus.set(
+            { status: r.status as string },
+            Number(r.count ?? 0)
+          );
+        }
+      })
+      .catch(() => {
+        /* tolerate schema drift */
+      })
+  );
+
+  // ─── Moderation messages by author kind ───────────────────
+  // System messages → is_system = true. User vs staff requires a
+  // join on the author's role flags; we run two cheap targeted
+  // counts instead of a single GROUP BY so the SQL stays trivially
+  // index-friendly.
+  tasks.push(
+    Promise.all([
+      countQuery(
+        schema.torrentModerationMessages,
+        eq(schema.torrentModerationMessages.isSystem, true)
+      ),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.torrentModerationMessages)
+        .innerJoin(
+          schema.users,
+          eq(schema.torrentModerationMessages.authorId, schema.users.id)
+        )
+        .where(
+          and(
+            eq(schema.torrentModerationMessages.isSystem, false),
+            or(
+              eq(schema.users.isAdmin, true),
+              eq(schema.users.isModerator, true)
+            )
+          )
+        ),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.torrentModerationMessages)
+        .innerJoin(
+          schema.users,
+          eq(schema.torrentModerationMessages.authorId, schema.users.id)
+        )
+        .where(
+          and(
+            eq(schema.torrentModerationMessages.isSystem, false),
+            eq(schema.users.isAdmin, false),
+            eq(schema.users.isModerator, false)
+          )
+        ),
+    ])
+      .then(([sys, staff, user]) => {
+        torrentModerationMessagesTotal.set(
+          { kind: 'system' },
+          sys[0]?.count ?? 0
+        );
+        torrentModerationMessagesTotal.set(
+          { kind: 'staff' },
+          staff[0]?.count ?? 0
+        );
+        torrentModerationMessagesTotal.set(
+          { kind: 'user' },
+          user[0]?.count ?? 0
+        );
+      })
+      .catch(() => {
+        /* tolerate schema drift */
+      })
+  );
+
+  // ─── Users by role + ban count ────────────────────────────
+  // Mutually exclusive buckets: admin > moderator > member.
+  tasks.push(
+    Promise.all([
+      countQuery(schema.users, eq(schema.users.isAdmin, true)),
+      countQuery(
+        schema.users,
+        and(eq(schema.users.isAdmin, false), eq(schema.users.isModerator, true))
+      ),
+      countQuery(
+        schema.users,
+        and(eq(schema.users.isAdmin, false), eq(schema.users.isModerator, false))
+      ),
+      countQuery(schema.users, eq(schema.users.isBanned, true)),
+    ])
+      .then(([admin, mod, member, banned]) => {
+        usersByRole.set({ role: 'admin' }, admin[0]?.count ?? 0);
+        usersByRole.set({ role: 'moderator' }, mod[0]?.count ?? 0);
+        usersByRole.set({ role: 'member' }, member[0]?.count ?? 0);
+        usersBannedTotal.set(banned[0]?.count ?? 0);
+      })
+      .catch(() => {
+        /* tolerate schema drift */
+      })
+  );
+
+  // ─── 2FA enrolment ────────────────────────────────────────
+  tasks.push(
+    countQuery(schema.users, eq(schema.users.totpEnabled, true))
+      .then((r) => usersTotpEnabledTotal.set(r[0]?.count ?? 0))
+      .catch(() => {})
+  );
+  tasks.push(
+    countQuery(schema.webauthnCredentials)
+      .then((r) => passkeysTotal.set(r[0]?.count ?? 0))
+      .catch(() => {})
+  );
+  tasks.push(
+    db
+      .select({
+        count: sql<number>`count(distinct ${schema.webauthnCredentials.userId})::int`,
+      })
+      .from(schema.webauthnCredentials)
+      .then((r) => usersWithPasskeyTotal.set(r[0]?.count ?? 0))
+      .catch(() => {})
+  );
+  tasks.push(
+    countQuery(
+      schema.recoveryCodes,
+      isNull(schema.recoveryCodes.usedAt)
+    )
+      .then((r) => recoveryCodesUnusedTotal.set(r[0]?.count ?? 0))
+      .catch(() => {})
+  );
+  tasks.push(
+    countQuery(
+      schema.trustedDevices,
+      gt(schema.trustedDevices.expiresAt, new Date())
+    )
+      .then((r) => trustedDevicesActiveTotal.set(r[0]?.count ?? 0))
+      .catch(() => {})
+  );
+
+  // ─── Invitations broken down by status ────────────────────
+  tasks.push(
+    Promise.all([
+      // pending = unused, no expiry OR not yet expired
+      countQuery(
+        schema.invitations,
+        and(
+          isNull(schema.invitations.usedBy),
+          or(
+            isNull(schema.invitations.expiresAt),
+            gt(schema.invitations.expiresAt, new Date())
+          )
+        )
+      ),
+      // used = redeemed
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.invitations)
+        .where(sql`${schema.invitations.usedBy} is not null`),
+      // expired = unused but past expiresAt
+      countQuery(
+        schema.invitations,
+        and(
+          isNull(schema.invitations.usedBy),
+          lte(schema.invitations.expiresAt, new Date())
+        )
+      ),
+    ])
+      .then(([pending, used, expired]) => {
+        invitationsByStatus.set({ status: 'pending' }, pending[0]?.count ?? 0);
+        invitationsByStatus.set({ status: 'used' }, used[0]?.count ?? 0);
+        invitationsByStatus.set({ status: 'expired' }, expired[0]?.count ?? 0);
+      })
+      .catch(() => {})
+  );
+
+  // ─── Bonus events ─────────────────────────────────────────
+  tasks.push(
+    db.query.bonusEvents
+      .findMany({
+        columns: {
+          enabled: true,
+          startsAt: true,
+          endsAt: true,
+          downloadMultiplier: true,
+          uploadMultiplier: true,
+        },
+      })
+      .then((rows) => {
+        const now = Date.now();
+        const buckets = {
+          active: 0,
+          scheduled: 0,
+          ended: 0,
+          disabled: 0,
+        };
+        let activeEvent: typeof rows[number] | null = null;
+        for (const r of rows) {
+          const startsMs = r.startsAt.getTime();
+          const endsMs = r.endsAt.getTime();
+          if (!r.enabled) {
+            buckets.disabled++;
+          } else if (endsMs <= now) {
+            buckets.ended++;
+          } else if (startsMs > now) {
+            buckets.scheduled++;
+          } else {
+            buckets.active++;
+            // Tie-break with most-recent createdAt is unnecessary here:
+            // the API enforces "at most one active window" via the
+            // overlap check + advisory lock. If the constraint ever
+            // slipped we'd just publish whichever row landed last.
+            activeEvent = r;
+          }
+        }
+        for (const [status, count] of Object.entries(buckets)) {
+          bonusEventsByStatus.set({ status }, count);
+        }
+        if (activeEvent) {
+          bonusEventActive.set(1);
+          bonusActiveDownloadMultiplier.set(
+            activeEvent.downloadMultiplier / 100
+          );
+          bonusActiveUploadMultiplier.set(activeEvent.uploadMultiplier / 100);
+          bonusEventActiveEndsAt.set(
+            Math.floor(activeEvent.endsAt.getTime() / 1000)
+          );
+        } else {
+          bonusEventActive.set(0);
+          // Identity multipliers when no event is in flight — keeps
+          // dashboards plotting "the multiplier applied to traffic
+          // right now" without dropping to zero (= freeleech) when
+          // nothing is active.
+          bonusActiveDownloadMultiplier.set(1);
+          bonusActiveUploadMultiplier.set(1);
+          bonusEventActiveEndsAt.set(0);
+        }
+      })
+      .catch(() => {})
+  );
+
+  // ─── Custom roles ─────────────────────────────────────────
+  tasks.push(
+    Promise.all([
+      countQuery(
+        schema.roles,
+        eq(schema.roles.assignmentMode, 'manual')
+      ),
+      countQuery(
+        schema.roles,
+        eq(schema.roles.assignmentMode, 'auto')
+      ),
+      countQuery(schema.userRoles),
+    ])
+      .then(([manual, auto, attachments]) => {
+        rolesTotal.set({ assignment_mode: 'manual' }, manual[0]?.count ?? 0);
+        rolesTotal.set({ assignment_mode: 'auto' }, auto[0]?.count ?? 0);
+        userRoleAssignmentsTotal.set(attachments[0]?.count ?? 0);
+      })
+      .catch(() => {})
+  );
+
+  // ─── Settings (registration / 2FA scope) ──────────────────
+  // These are static-ish gauges: one of three labels carries 1,
+  // the others carry 0. Setting all of them on every refresh
+  // keeps Prometheus' current-value semantics correct even when
+  // the operator flips the mode mid-window.
+  tasks.push(
+    Promise.all([isRegistrationOpen(), isInviteEnabled()])
+      .then(([open, invite]) => {
+        const mode = open ? 'open' : invite ? 'invite_only' : 'closed';
+        for (const m of ['open', 'invite_only', 'closed']) {
+          registrationState.set({ mode: m }, m === mode ? 1 : 0);
+        }
+      })
+      .catch(() => {})
+  );
+  tasks.push(
+    getRequire2FAScope()
+      .then((scope) => {
+        for (const s of ['off', 'staff', 'all']) {
+          require2faScope.set({ scope: s }, s === scope ? 1 : 0);
+        }
+      })
+      .catch(() => {})
   );
 
   // We don't want one slow / failed query to block the rest. allSettled
