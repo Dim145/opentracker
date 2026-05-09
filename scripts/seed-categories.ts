@@ -8,11 +8,12 @@ const SEED_CATEGORIES = [
     name: 'Movies',
     slug: 'movies',
     newznabId: 2000,
+    type: 'movie',
     subcategories: [
-      { name: 'HD', slug: 'movies-hd', newznabId: 2040 },
-      { name: 'UHD/4K', slug: 'movies-uhd', newznabId: 2045 },
-      { name: 'SD', slug: 'movies-sd', newznabId: 2030 },
-      { name: 'Blu-Ray', slug: 'movies-bluray', newznabId: 2050 },
+      { name: 'HD', slug: 'movies-hd', newznabId: 2040, type: 'movie' },
+      { name: 'UHD/4K', slug: 'movies-uhd', newznabId: 2045, type: 'movie' },
+      { name: 'SD', slug: 'movies-sd', newznabId: 2030, type: 'movie' },
+      { name: 'Blu-Ray', slug: 'movies-bluray', newznabId: 2050, type: 'movie' },
     ],
   },
   // TV
@@ -20,12 +21,13 @@ const SEED_CATEGORIES = [
     name: 'TV',
     slug: 'tv',
     newznabId: 5000,
+    type: 'tv',
     subcategories: [
-      { name: 'HD', slug: 'tv-hd', newznabId: 5040 },
-      { name: 'UHD/4K', slug: 'tv-uhd', newznabId: 5045 },
-      { name: 'SD', slug: 'tv-sd', newznabId: 5030 },
-      { name: 'Anime', slug: 'tv-anime', newznabId: 5070 },
-      { name: 'Documentary', slug: 'tv-documentary', newznabId: 5080 },
+      { name: 'HD', slug: 'tv-hd', newznabId: 5040, type: 'tv' },
+      { name: 'UHD/4K', slug: 'tv-uhd', newznabId: 5045, type: 'tv' },
+      { name: 'SD', slug: 'tv-sd', newznabId: 5030, type: 'tv' },
+      { name: 'Anime', slug: 'tv-anime', newznabId: 5070, type: 'tv' },
+      { name: 'Documentary', slug: 'tv-documentary', newznabId: 5080, type: 'tv' },
     ],
   },
   // Audio
@@ -71,12 +73,20 @@ const SEED_CATEGORIES = [
       { name: 'Magazines', slug: 'books-magazines', newznabId: 7010 },
     ],
   },
-  // XXX
+  // XXX — gated behind users.showAdultContent on the read path
   {
     name: 'XXX',
     slug: 'xxx',
     newznabId: 6000,
-    subcategories: [],
+    isAdult: true,
+    subcategories: [
+      { name: 'Films', slug: 'xxx-films', newznabId: 6040, isAdult: true, type: 'movie' },
+      { name: 'Hentai', slug: 'xxx-hentai', newznabId: 6070, isAdult: true, type: 'tv' },
+      { name: 'Images', slug: 'xxx-images', newznabId: 6060, isAdult: true },
+      { name: 'Jeux', slug: 'xxx-jeux', newznabId: null, isAdult: true },
+      { name: 'VR', slug: 'xxx-vr', newznabId: null, isAdult: true, type: 'movie' },
+      { name: 'Ebooks', slug: 'xxx-ebooks', newznabId: null, isAdult: true },
+    ],
   },
   // Other
   {
@@ -111,6 +121,8 @@ async function seed() {
         slug: cat.slug,
         parentId: null,
         newznabId: cat.newznabId,
+        isAdult: (cat as { isAdult?: boolean }).isAdult ?? false,
+        type: (cat as { type?: 'movie' | 'tv' }).type ?? null,
         createdAt: new Date(),
       })
       .onConflictDoNothing();
@@ -127,6 +139,8 @@ async function seed() {
           slug: sub.slug,
           parentId: parentId,
           newznabId: sub.newznabId,
+          isAdult: (sub as { isAdult?: boolean }).isAdult ?? false,
+          type: (sub as { type?: 'movie' | 'tv' }).type ?? null,
           createdAt: new Date(),
         })
         .onConflictDoNothing();

@@ -13,7 +13,7 @@ import type { H3Event } from 'h3';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
-import { desc, eq, ilike, and, or, inArray, sql } from 'drizzle-orm';
+import { desc, eq, ilike, and, or, inArray, notInArray, isNull, sql } from 'drizzle-orm';
 import { authenticateTorznab, sendTorznabError } from '../utils/auth';
 import {
   buildCapsXml,
@@ -39,6 +39,7 @@ import {
 } from '~~/utils/torznabStats';
 import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
 import { escapeLike } from '~~/utils/sql';
+import { adultCategoryIds } from '~~/utils/adultContent';
 
 // Query schema for Torznab requests
 const torznabQuerySchema = z.object({
@@ -266,7 +267,7 @@ async function handleMovieSearch(
 async function performSearch(
   event: H3Event,
   query: z.infer<typeof torznabQuerySchema>,
-  user: { passkey: string }
+  user: { passkey: string; showAdultContent: boolean }
 ) {
   const baseUrl = getRequestURL(event).origin;
   const conditions = [];
@@ -274,6 +275,21 @@ async function performSearch(
   // Only show active, approved torrents
   conditions.push(eq(schema.torrents.isActive, true));
   conditions.push(eq(schema.torrents.isApproved, true));
+
+  // Hide adult-categorised torrents from accounts that haven't opted
+  // in. *Arr clients submit the same `apikey=` for every search so the
+  // toggle effectively scopes the whole feed.
+  if (!user.showAdultContent) {
+    const adultIds = await adultCategoryIds();
+    if (adultIds.length > 0) {
+      conditions.push(
+        or(
+          isNull(schema.torrents.categoryId),
+          notInArray(schema.torrents.categoryId, adultIds)
+        )!
+      );
+    }
+  }
 
   // Text search
   if (query.q) {

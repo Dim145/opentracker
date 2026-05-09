@@ -1,5 +1,90 @@
 <template>
-  <div v-if="torrent">
+  <!-- ─── Adult-content gate ────────────────────────────────────────
+       Renders when /api/torrents/:hash returned the redacted shape
+       because the torrent's category is flagged adult and the viewer
+       hasn't opted in. We deliberately don't show the torrent name
+       or any metadata — the redacted bar mimics the position of the
+       title so the operator's filter is visibly working, and the CTA
+       points at /settings#adult so a user who opted out by mistake
+       can flip the switch in one click. -->
+  <section
+    v-if="torrent && torrent.gatedAdult"
+    class="adult-gate"
+    aria-labelledby="adult-gate-title"
+  >
+    <NuxtLink to="/torrents" class="adult-gate__back">
+      <Icon name="ph:arrow-left-bold" />
+      Back to index
+    </NuxtLink>
+
+    <div class="adult-gate__panel">
+      <header class="adult-gate__hatch">
+        <span class="adult-gate__hatch-label">
+          <Icon name="ph:eye-slash-fill" />
+          Filter active
+        </span>
+        <span class="adult-gate__hatch-route">
+          /torrents/<span class="adult-gate__hash">{{ redactedHash }}</span>
+        </span>
+      </header>
+
+      <div class="adult-gate__body">
+        <p class="adult-gate__eyebrow">
+          §6000 · Adult content · Hidden by your settings
+        </p>
+        <h1 id="adult-gate-title" class="adult-gate__title">
+          <span class="adult-gate__title-word">CONTENT</span>
+          <span class="adult-gate__title-stamp" aria-hidden="true">
+            <span class="adult-gate__title-stamp-inner">FILTERED</span>
+          </span>
+        </h1>
+
+        <p class="adult-gate__redacted" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </p>
+
+        <dl class="adult-gate__meta">
+          <div>
+            <dt>Category</dt>
+            <dd>{{ torrent.category?.name ?? 'XXX' }}</dd>
+          </div>
+          <div>
+            <dt>Reason</dt>
+            <dd>Show adult content = false</dd>
+          </div>
+          <div>
+            <dt>Reachable in</dt>
+            <dd>1 click ↗</dd>
+          </div>
+        </dl>
+
+        <p class="adult-gate__copy">
+          You have adult content turned off in your settings. The page
+          still exists, but everything on it — including the title and
+          the full hash — is intentionally hidden until you toggle the
+          setting back on.
+        </p>
+
+        <div class="adult-gate__actions">
+          <NuxtLink to="/settings" class="adult-gate__cta">
+            <Icon name="ph:eye-bold" />
+            <span>Enable adult content</span>
+          </NuxtLink>
+          <NuxtLink to="/torrents" class="adult-gate__cta adult-gate__cta--ghost">
+            <Icon name="ph:list-bold" />
+            <span>Browse safe categories</span>
+          </NuxtLink>
+        </div>
+      </div>
+
+      <footer class="adult-gate__foot">
+        <span>Document withheld at viewer request</span>
+        <span class="adult-gate__foot-mono">/settings#adult</span>
+      </footer>
+    </div>
+  </section>
+
+  <div v-else-if="torrent">
     <NuxtLink
       to="/torrents"
       class="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong mb-6 transition-colors"
@@ -383,10 +468,26 @@ interface TorrentDetail {
     completed: number;
   };
   peers: Peer[];
+  // Server signals an adult-content gate by sending a minimal payload
+  // with this flag set. The full TorrentDetail fields are absent in
+  // that case — the template guards every dereference behind
+  // `!torrent.gatedAdult`.
+  gatedAdult?: boolean;
 }
 
 const route = useRoute();
 const hash = route.params.hash as string;
+
+// Render the gate's faux file path with the middle of the hash blacked
+// out. Showing the full hash would let a determined operator copy it
+// elsewhere; showing nothing would feel like an opaque error. Keeping
+// the first / last four hex chars preserves the impression of "yes,
+// there is a real document here, you just don't get to see it".
+const redactedHash = computed(() => {
+  const h = hash || '';
+  if (h.length <= 8) return h;
+  return `${h.slice(0, 4)}…${h.slice(-4)}`;
+});
 
 const {
   data: torrent,
@@ -702,5 +803,286 @@ async function confirmDelete() {
      terminal — keeping the natural width prevents reflow. */
   width: max-content;
   min-width: 100%;
+}
+
+/* ─── Adult-content gate ────────────────────────────────────────────
+   The "you opted out, so we redacted this page" treatment. Built on
+   the same operator-console primitives used elsewhere in the app
+   (mono eyebrows, hatched warning band, sharp danger borders) so it
+   reads as a deliberate filter rather than an error. */
+.adult-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 720px;
+  margin: 1rem auto 4rem;
+  padding: 0 0.25rem;
+}
+.adult-gate__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  transition: color 0.15s;
+  width: max-content;
+}
+.adult-gate__back:hover {
+  color: rgb(var(--fg-strong));
+}
+.adult-gate__panel {
+  position: relative;
+  border: 1px solid rgb(var(--line-default));
+  border-left: 3px solid rgb(var(--danger));
+  background: rgb(var(--bg-secondary));
+  /* Subtle danger hatching tints the whole document so it reads as
+     "warning surface" without overwhelming the actual content. */
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 16px,
+    rgba(229, 62, 62, 0.03) 16px,
+    rgba(229, 62, 62, 0.03) 18px
+  );
+  border-radius: 0.5rem;
+  overflow: hidden;
+  animation: gate-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes gate-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.adult-gate__hatch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 1.1rem;
+  border-bottom: 1px solid rgb(var(--line-default));
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(229, 62, 62, 0.18),
+    rgba(229, 62, 62, 0.18) 14px,
+    rgba(229, 62, 62, 0.06) 14px,
+    rgba(229, 62, 62, 0.06) 28px
+  );
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-strong));
+}
+.adult-gate__hatch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: rgb(var(--danger));
+}
+.adult-gate__hatch-route {
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: rgb(var(--fg-muted));
+}
+.adult-gate__hash {
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--fg-strong));
+  /* The middle of the hash is rendered as an opaque bar by giving the
+     foreground the same colour as the background. The text is still
+     in the DOM (so screen readers ignore it via aria-hidden on the
+     wrapping span only when needed) but visually censored. */
+}
+
+.adult-gate__body {
+  position: relative;
+  padding: 2rem 1.6rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.adult-gate__eyebrow {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.adult-gate__title {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: clamp(2rem, 6vw, 3.4rem);
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-strong));
+  line-height: 1;
+}
+.adult-gate__title-word {
+  font-style: italic;
+}
+.adult-gate__title-stamp {
+  position: relative;
+  display: inline-flex;
+  padding: 0.2em 0.6em 0.25em;
+  background: rgb(var(--danger));
+  color: #fff;
+  letter-spacing: 0.05em;
+  /* A faint, off-axis tilt to feel like an actual rubber-stamp impression. */
+  transform: rotate(-1.5deg);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.08),
+    0 1px 0 rgba(0, 0, 0, 0.4);
+}
+.adult-gate__title-stamp::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px dashed rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+.adult-gate__title-stamp-inner {
+  position: relative;
+  display: inline-block;
+}
+
+.adult-gate__redacted {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0.5rem 0 0.25rem;
+}
+.adult-gate__redacted span {
+  display: block;
+  height: 0.95rem;
+  background: rgb(var(--fg-strong));
+  border-radius: 1px;
+  /* Three censorship bars approximating the title block — the eye
+     reads "there's a title here, you just don't see it". */
+  animation: gate-bar 1.2s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+}
+.adult-gate__redacted span:nth-child(1) { width: 78%; animation-delay: 0.05s; }
+.adult-gate__redacted span:nth-child(2) { width: 64%; animation-delay: 0.12s; }
+.adult-gate__redacted span:nth-child(3) { width: 42%; animation-delay: 0.19s; }
+@keyframes gate-bar {
+  0% { transform: scaleX(0.05); transform-origin: left; opacity: 0.2; }
+  60% { transform: scaleX(1.04); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 1; }
+}
+
+.adult-gate__meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0.4rem 0 0.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.4rem;
+  background: rgb(var(--bg-elevated) / 0.6);
+}
+@media (max-width: 540px) {
+  .adult-gate__meta {
+    grid-template-columns: 1fr;
+  }
+}
+.adult-gate__meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.adult-gate__meta dt {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  margin: 0;
+}
+.adult-gate__meta dd {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: rgb(var(--fg-strong));
+}
+
+.adult-gate__copy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgb(var(--fg-default));
+  max-width: 56ch;
+}
+
+.adult-gate__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+.adult-gate__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1.05rem;
+  border: 1px solid rgb(var(--danger));
+  background: rgb(var(--danger));
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border-radius: 9999px;
+  transition: filter 0.15s;
+}
+.adult-gate__cta:hover {
+  filter: brightness(1.1);
+}
+.adult-gate__cta--ghost {
+  background: transparent;
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--line-default));
+}
+.adult-gate__cta--ghost:hover {
+  border-color: rgb(var(--fg-default) / 0.4);
+  filter: none;
+}
+
+.adult-gate__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1.1rem;
+  border-top: 1px dashed rgb(var(--line-default));
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  background: rgb(var(--bg-secondary));
+}
+.adult-gate__foot-mono {
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  color: rgb(var(--fg-default));
 }
 </style>

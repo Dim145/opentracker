@@ -8,6 +8,10 @@ import { validateBody } from '~~/utils/schemas';
 const updateCategorySchema = z.object({
   name: z.string().min(1).max(50),
   newznabId: z.coerce.number().int().min(1000).max(9999).nullable().optional(),
+  isAdult: z.boolean().optional(),
+  // 'movie' / 'tv' / null. Sent explicitly null to clear a previously
+  // set type and fall back to the heuristic.
+  type: z.enum(['movie', 'tv']).nullable().optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -64,14 +68,24 @@ export default defineEventHandler(async (event) => {
       name: string;
       slug: string;
       newznabId?: number | null;
+      isAdult?: boolean;
+      type?: 'movie' | 'tv' | null;
     } = {
       name,
       slug,
     };
 
-    // Only update newznabId if explicitly provided
+    // Only patch optional fields when the body explicitly carried one.
+    // Spreading "all keys" would let an empty PATCH wipe operator
+    // choices (set isAdult to false, clear type, …).
     if (body.newznabId !== undefined) {
       updateData.newznabId = body.newznabId;
+    }
+    if (body.isAdult !== undefined) {
+      updateData.isAdult = body.isAdult;
+    }
+    if (body.type !== undefined) {
+      updateData.type = body.type;
     }
 
     const [category] = await db

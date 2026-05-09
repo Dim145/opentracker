@@ -1,8 +1,9 @@
 import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
-import { desc, eq, and } from 'drizzle-orm';
+import { desc, eq, and, or, isNull, notInArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { requireSessionOrApikey } from '~~/utils/adminAuth';
+import { adultCategoryIds } from '~~/utils/adultContent';
 
 const querySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(50),
@@ -16,14 +17,30 @@ const querySchema = z.object({
  * exposes content awaiting moderation.
  */
 export default defineEventHandler(async (event) => {
-  await requireSessionOrApikey(event);
+  const { user } = await requireSessionOrApikey(event);
   const query = querySchema.parse(getQuery(event));
 
+  // Build the where so feeds for users who haven't opted into XXX
+  // skip those entries entirely. requireSessionOrApikey already
+  // surfaces showAdultContent on the user record.
+  const conditions = [
+    eq(schema.torrents.isActive, true),
+    eq(schema.torrents.isApproved, true),
+  ];
+  if (!user.showAdultContent) {
+    const adultIds = await adultCategoryIds();
+    if (adultIds.length > 0) {
+      conditions.push(
+        or(
+          isNull(schema.torrents.categoryId),
+          notInArray(schema.torrents.categoryId, adultIds)
+        )!
+      );
+    }
+  }
+
   const torrents = await db.query.torrents.findMany({
-    where: and(
-      eq(schema.torrents.isActive, true),
-      eq(schema.torrents.isApproved, true)
-    ),
+    where: and(...conditions),
     with: {
       category: true,
       uploader: {

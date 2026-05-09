@@ -10,6 +10,8 @@
  * a Redis cache (see `searchMetadata` for TTLs).
  */
 import { z } from 'zod';
+import { eq } from 'drizzle-orm';
+import { db, schema } from '@trackarr/db';
 import { searchMetadata, isMetadataEnabled } from '~~/utils/metadata';
 
 const querySchema = z.object({
@@ -19,7 +21,7 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event);
+  const { user: session } = await requireUserSession(event);
 
   if (!isMetadataEnabled()) {
     setResponseStatus(event, 503);
@@ -32,13 +34,28 @@ export default defineEventHandler(async (event) => {
   }
 
   const { query, type, year } = querySchema.parse(getQuery(event));
-  const results = await searchMetadata(query, type, year);
+
+  // Mirror the gating used elsewhere: read the canonical preference
+  // from the row so flipping the toggle takes effect on the next
+  // search without waiting for the cookie to refresh. Users who
+  // opted into adult content see TMDb's adult tree on /search/movie
+  // and /search/tv; the rest get TMDb's default (adult hidden) so an
+  // accidental query for an XXX title can't surface a poster on the
+  // upload form.
+  const me = await db.query.users.findFirst({
+    where: eq(schema.users.id, session.id),
+    columns: { showAdultContent: true },
+  });
+  const includeAdult = me?.showAdultContent ?? false;
+
+  const results = await searchMetadata(query, type, year, includeAdult);
 
   return {
     enabled: true,
     query,
     type: type ?? null,
     year: year ?? null,
+    includeAdult,
     results,
   };
 });

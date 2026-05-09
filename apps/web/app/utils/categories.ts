@@ -19,6 +19,10 @@ export interface CategoryNode {
   name: string;
   slug?: string;
   newznabId?: number | null;
+  // Operator-set canonical type — preferred over heuristics when
+  // present. Lets, e.g., XXX/Hentai opt into the TV namespace even
+  // though its newznab id sits outside the 5000-range.
+  type?: 'movie' | 'tv' | null;
   subcategories?: CategoryNode[];
 }
 
@@ -42,9 +46,16 @@ export function findCategory(
 /**
  * Resolve a category to one of three kinds. The IDs section on the
  * upload/edit forms only renders when the kind is 'movie' or 'tv'.
+ *
+ * Resolution order:
+ *   1. `category.type` if the operator set one — explicit wins.
+ *   2. Newznab id range (2xxx → movie, 5xxx → tv).
+ *   3. Slug / name keyword heuristic.
+ *   4. 'other'.
  */
 export function categoryKind(cat: CategoryNode | null | undefined): CategoryKind {
   if (!cat) return 'other';
+  if (cat.type === 'movie' || cat.type === 'tv') return cat.type;
   const nz = cat.newznabId;
   if (typeof nz === 'number') {
     if (nz >= 2000 && nz < 3000) return 'movie';

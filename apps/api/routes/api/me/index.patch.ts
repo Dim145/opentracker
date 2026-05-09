@@ -38,6 +38,10 @@ const bodySchema = z
       .nullable()
       .optional(),
     showLastSeen: z.boolean().optional(),
+    // Opt-in to the XXX category tree. Defaults false; the toggle in
+    // settings.vue flips this and the read paths immediately stop
+    // returning adult-tagged categories / torrents.
+    showAdultContent: z.boolean().optional(),
     theme: z.enum(['light', 'dark']).optional(),
   })
   .strict();
@@ -53,6 +57,7 @@ export default defineEventHandler(async (event) => {
     displayName: string | null;
     bio: string | null;
     showLastSeen: boolean;
+    showAdultContent: boolean;
     theme: 'light' | 'dark';
   }> = {};
 
@@ -65,6 +70,9 @@ export default defineEventHandler(async (event) => {
   }
   if (body.showLastSeen !== undefined) {
     updates.showLastSeen = body.showLastSeen;
+  }
+  if (body.showAdultContent !== undefined) {
+    updates.showAdultContent = body.showAdultContent;
   }
   if (body.theme !== undefined) {
     updates.theme = body.theme;
@@ -84,6 +92,7 @@ export default defineEventHandler(async (event) => {
       displayName: schema.users.displayName,
       bio: schema.users.bio,
       showLastSeen: schema.users.showLastSeen,
+      showAdultContent: schema.users.showAdultContent,
       theme: schema.users.theme,
     });
 
@@ -112,6 +121,7 @@ export default defineEventHandler(async (event) => {
     displayName: updated.displayName,
     bio: updated.bio,
     showLastSeen: updated.showLastSeen,
+    showAdultContent: updated.showAdultContent,
     theme: updated.theme,
   };
 });

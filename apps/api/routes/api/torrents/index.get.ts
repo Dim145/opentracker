@@ -1,10 +1,11 @@
 import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
-import { desc, eq, ilike, sql, and, or, inArray } from 'drizzle-orm';
+import { desc, eq, ilike, sql, and, or, inArray, notInArray, isNull } from 'drizzle-orm';
 import { validateQuery, torrentQuerySchema } from '~~/utils/schemas';
 import { slugifyTag } from '~~/utils/tags';
 import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
 import { escapeLike } from '~~/utils/sql';
+import { adultCategoryIds } from '~~/utils/adultContent';
 
 export default defineEventHandler(async (event) => {
   // Require authentication
@@ -18,6 +19,14 @@ export default defineEventHandler(async (event) => {
   // Check if user can see unapproved torrents
   const canSeeUnapproved = user.isAdmin || user.isModerator;
 
+  // Refresh the adult preference from the row — the session is updated
+  // lazily and we want the toggle to take effect on the very next page.
+  const me = await db.query.users.findFirst({
+    where: eq(schema.users.id, user.id),
+    columns: { showAdultContent: true },
+  });
+  const showAdult = me?.showAdultContent ?? false;
+
   // Build where clause
   const conditions = [];
 
@@ -29,6 +38,21 @@ export default defineEventHandler(async (event) => {
         eq(schema.torrents.uploaderId, user.id)
       )
     );
+  }
+
+  // Hide adult-categorised torrents from users who haven't opted in.
+  // Uncategorised torrents (categoryId = null) are never adult so they
+  // pass through unconditionally.
+  if (!showAdult) {
+    const adultIds = await adultCategoryIds();
+    if (adultIds.length > 0) {
+      conditions.push(
+        or(
+          isNull(schema.torrents.categoryId),
+          notInArray(schema.torrents.categoryId, adultIds)
+        )
+      );
+    }
   }
 
   if (query.search) {

@@ -138,6 +138,12 @@ export const adminCategorySchema = z.object({
   newznabId: z.coerce.number().int().min(1000).max(9999).nullable().optional(),
   description: z.string().max(500).optional(),
   icon: z.string().max(50).optional(),
+  // Marks the row as part of the gated XXX subtree.
+  isAdult: z.boolean().optional(),
+  // Canonical media type. 'movie' / 'tv' force the TMDb-namespace
+  // hint in the upload/edit forms; null clears any earlier choice
+  // and falls back to the heuristics in apps/web/app/utils/categories.ts.
+  type: z.enum(['movie', 'tv']).nullable().optional(),
 });
 
 export const adminSettingsSchema = z.object({

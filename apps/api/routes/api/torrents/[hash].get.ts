@@ -4,13 +4,9 @@ import { getPeers, getStats } from '~~/utils/server';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
 
 export default defineEventHandler(async (event) => {
-  // Require authentication
-  await requireUserSession(event);
-
-  // Validate info hash parameter
+  const { user: session } = await requireUserSession(event);
   const infoHash = validateParam(event, 'hash', infoHashSchema);
 
-  // Get torrent from DB
   const torrent = await db.query.torrents.findFirst({
     where: (t, { eq }) => eq(t.infoHash, infoHash),
     with: {
@@ -41,19 +37,41 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Get live data from Redis
+  // Adult gate: if the torrent's category is flagged adult and the
+  // viewer hasn't opted in, return a redacted shape instead of the
+  // real torrent. The frontend renders a dedicated "content hidden"
+  // screen from this signal — we deliberately *don't* 404 so the
+  // operator can offer a one-click toggle to reveal.
+  if (torrent.category?.isAdult) {
+    const me = await db.query.users.findFirst({
+      where: eq(schema.users.id, session.id),
+      columns: { showAdultContent: true },
+    });
+    const showAdult = me?.showAdultContent ?? false;
+    if (!showAdult) {
+      return {
+        gatedAdult: true,
+        infoHash: torrent.infoHash,
+        category: {
+          id: torrent.category.id,
+          name: torrent.category.name,
+          slug: torrent.category.slug,
+        },
+      };
+    }
+  }
+
   const [stats, peers] = await Promise.all([
     getStats(infoHash),
     getPeers(infoHash),
   ]);
 
-  // Extract tags from torrentTags relation
   const tags = torrent.torrentTags?.map((tt) => tt.tag) || [];
 
   return {
     ...torrent,
     tags,
-    torrentTags: undefined, // Remove the junction table data
+    torrentTags: undefined,
     stats: {
       seeders: stats.seeders,
       leechers: stats.leechers,
@@ -61,7 +79,7 @@ export default defineEventHandler(async (event) => {
     },
     // Only expose anonymized peer data - no raw IPs
     peers: peers.map((p) => ({
-      id: p.ipHash, // Use hashed IP as identifier
+      id: p.ipHash,
       port: p.port,
       isSeeder: p.isSeeder,
       uploaded: p.uploaded,

@@ -53,6 +53,8 @@ export default defineEventHandler(async (event) => {
         slug,
         parentId,
         newznabId: body.newznabId ?? null,
+        isAdult: body.isAdult ?? false,
+        type: body.type ?? null,
         createdAt: new Date(),
       })
       .returning();

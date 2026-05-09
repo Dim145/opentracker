@@ -18,7 +18,7 @@ const querySchema = z.object({
  * tracker, members-only, pending uploads filtered out.
  */
 export default defineEventHandler(async (event) => {
-  await requireSessionOrApikey(event);
+  const { user } = await requireSessionOrApikey(event);
   const params = paramsSchema.parse(getRouterParams(event));
   const query = querySchema.parse(getQuery(event));
 
@@ -27,6 +27,16 @@ export default defineEventHandler(async (event) => {
   });
 
   if (!category) {
+    throw createError({
+      statusCode: 404,
+      message: 'Category not found',
+    });
+  }
+
+  // Don't 401 the user — return the same 404 they'd see for any
+  // unknown slug. Otherwise the response shape leaks the existence of
+  // the adult tree to anyone enumerating slugs.
+  if (category.isAdult && !user.showAdultContent) {
     throw createError({
       statusCode: 404,
       message: 'Category not found',

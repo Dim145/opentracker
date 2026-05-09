@@ -340,19 +340,31 @@ function normaliseHit(type: 'movie' | 'tv', data: any): MediaSearchHit {
  * ranking, so we just merge and sort by the `popularity` field that
  * comes back).
  *
+ * `includeAdult` flips TMDb's `include_adult` param on `/search/movie`
+ * and `/search/tv`. Defaults to `false` (TMDb's own default); the route
+ * passes `true` only when the caller has opted into adult content via
+ * `users.showAdultContent`. The cache key is keyed on this dimension so
+ * a regular user's results don't collide with an opted-in user's.
+ *
  * Throws on missing API key so the route can convert it into a clean
  * 503 — same pattern as `lookupMetadata`.
  */
 export async function searchMetadata(
   query: string,
   type?: MediaTypeHint,
-  year?: number
+  year?: number,
+  includeAdult = false
 ): Promise<MediaSearchHit[]> {
   const cred = getCredential();
   const trimmed = query.trim();
   if (!trimmed) return [];
 
-  const cacheKey = `meta:v1:search:${type ?? 'auto'}:${year ?? '-'}:${trimmed.toLowerCase()}`;
+  // Cache key dimension order: type / adult / year / query. Adult is in
+  // the second slot so a single search-query column in Redis can be
+  // scanned per-user without a full SCAN.
+  const cacheKey = `meta:v1:search:${type ?? 'auto'}:${
+    includeAdult ? 'adult' : 'sfw'
+  }:${year ?? '-'}:${trimmed.toLowerCase()}`;
   try {
     const cached = await redis.get(cacheKey);
     if (cached === NEG_SENTINEL) return [];
@@ -363,7 +375,7 @@ export async function searchMetadata(
 
   const params: Record<string, string> = {
     query: trimmed,
-    include_adult: 'false',
+    include_adult: includeAdult ? 'true' : 'false',
     language: 'en-US',
     page: '1',
   };

@@ -15,6 +15,9 @@ export interface TorznabUser {
   isBanned: boolean;
   isAdmin: boolean;
   isModerator: boolean;
+  // Adult-content opt-in flag, surfaced here so search handlers can
+  // filter the XXX tree without a separate user round-trip.
+  showAdultContent: boolean;
 }
 
 /**
@@ -53,6 +56,7 @@ export async function authenticateTorznab(
       isBanned: schema.users.isBanned,
       isAdmin: schema.users.isAdmin,
       isModerator: schema.users.isModerator,
+      showAdultContent: schema.users.showAdultContent,
     })
     .from(schema.users)
     .where(eq(schema.users.passkey, apikey.toLowerCase()))

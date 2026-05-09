@@ -110,6 +110,9 @@ export async function requireSessionOrApikey(event: H3Event) {
       isBanned: users.isBanned,
       uploaded: users.uploaded,
       downloaded: users.downloaded,
+      // Adult content opt-in flag carried alongside the rest so
+      // RSS / Torznab consumers don't need to re-query for it.
+      showAdultContent: users.showAdultContent,
     })
     .from(users)
     .where(eq(users.passkey, apikey))

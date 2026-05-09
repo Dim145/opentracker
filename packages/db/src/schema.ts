@@ -56,6 +56,10 @@ export const users = pgTable(
     // Privacy toggle that hides "last seen" info from public-facing
     // surfaces. Mod/admin views still see the real value.
     showLastSeen: boolean('show_last_seen').default(true).notNull(),
+    // Opt-in toggle for adult-tagged categories. Defaults false so a
+    // newly-registered user never sees the XXX tree until they
+    // explicitly turn it on in their profile settings.
+    showAdultContent: boolean('show_adult_content').default(false).notNull(),
     // 'light' | 'dark'. Persisted server-side so the chosen theme
     // follows the user across devices instead of being trapped in a
     // single browser's localStorage.
@@ -99,6 +103,19 @@ export const categories = pgTable(
     slug: text('slug').notNull().unique(),
     parentId: text('parent_id'),
     newznabId: integer('newznab_id'), // Newznab/Torznab category ID for *arr integration
+    // Marks the row as part of the adult tree. We tag both the parent
+    // (XXX) and each child explicitly so a row can be classified
+    // without a recursive parent walk on every read. The user's
+    // `users.showAdultContent` flag gates whether these rows are
+    // returned at all in non-admin surfaces.
+    isAdult: boolean('is_adult').default(false).notNull(),
+    // Drives which TMDb namespace (movies vs series) the upload/edit
+    // forms hint, so a category like XXX/Hentai can opt into the TV
+    // path even though its newznab id sits in 6000-range. Stored as
+    // text to leave room for future buckets ('music', 'book', …)
+    // without a schema migration. Null = use the existing newznab
+    // / slug heuristic.
+    type: text('type'), // 'movie' | 'tv' | null
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [index('categories_parent_idx').on(table.parentId)]

@@ -145,6 +145,36 @@
                 </p>
               </div>
             </label>
+
+            <label
+              id="adult"
+              class="toggle-row"
+              :class="{
+                'toggle-row--on': form.showAdultContent,
+                'toggle-row--danger': form.showAdultContent,
+              }"
+            >
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="form.showAdultContent"
+                class="toggle"
+                :class="{ 'toggle--on': form.showAdultContent }"
+                @click="form.showAdultContent = !form.showAdultContent"
+              >
+                <span class="toggle-knob" />
+              </button>
+              <div class="toggle-body">
+                <p class="toggle-title">Show adult content (XXX)</p>
+                <p class="toggle-sub">
+                  Hides every torrent in the XXX category tree from
+                  listings, searches, RSS and the homepage feed. The
+                  individual torrent pages render a “content filtered”
+                  notice in place of the actual data when this is off.
+                  Default off — flip it on only if that's what you want.
+                </p>
+              </div>
+            </label>
           </div>
         </section>
 
@@ -430,6 +460,7 @@ interface MeProfile {
   displayName: string | null;
   bio: string | null;
   showLastSeen: boolean;
+  showAdultContent: boolean;
   isAdmin: boolean;
   isModerator: boolean;
   role: { id: string; name: string; color: string } | null;
@@ -460,11 +491,13 @@ const form = reactive({
   displayName: '',
   bio: '',
   showLastSeen: true,
+  showAdultContent: false,
 });
 const snapshot = ref<{
   displayName: string;
   bio: string;
   showLastSeen: boolean;
+  showAdultContent: boolean;
 } | null>(null);
 
 function hydrate() {
@@ -473,10 +506,12 @@ function hydrate() {
   form.displayName = profile.value.displayName ?? '';
   form.bio = profile.value.bio ?? '';
   form.showLastSeen = profile.value.showLastSeen;
+  form.showAdultContent = profile.value.showAdultContent ?? false;
   snapshot.value = {
     displayName: form.displayName,
     bio: form.bio,
     showLastSeen: form.showLastSeen,
+    showAdultContent: form.showAdultContent,
   };
 }
 watch(profile, hydrate, { immediate: true });
@@ -488,6 +523,7 @@ const dirtyCount = computed(() => {
   if (s.displayName !== form.displayName) n++;
   if (s.bio !== form.bio) n++;
   if (s.showLastSeen !== form.showLastSeen) n++;
+  if (s.showAdultContent !== form.showAdultContent) n++;
   return n;
 });
 
@@ -521,6 +557,8 @@ async function save() {
     if (s.bio !== form.bio) payload.bio = form.bio.trim() || null;
     if (s.showLastSeen !== form.showLastSeen)
       payload.showLastSeen = form.showLastSeen;
+    if (s.showAdultContent !== form.showAdultContent)
+      payload.showAdultContent = form.showAdultContent;
 
     await $fetch('/api/me', { method: 'PATCH', body: payload });
     await refreshProfile();
@@ -1026,6 +1064,12 @@ onBeforeRouteLeave((_to, _from, next) => {
 .toggle-row--on {
   border-left: 3px solid #6cd161;
   padding-left: calc(1.1rem - 2px);
+}
+/* Adult-content toggle: when enabled, the left bar turns red so the
+   "this surface is now showing XXX" semantics is unmissable in
+   passing — the colour matches the gate's danger accent. */
+.toggle-row--on.toggle-row--danger {
+  border-left-color: rgb(var(--danger));
 }
 .toggle {
   position: relative;
