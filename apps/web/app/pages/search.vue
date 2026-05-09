@@ -1,44 +1,42 @@
 <template>
-  <div class="flex flex-col lg:flex-row gap-4 lg:gap-6">
-    <!-- Category Sidebar (renders as a left-side drawer below lg) -->
-    <CategorySidebar
-      :categories="categories ?? []"
-      :selected-id="selectedCategory"
-      @select="handleCategorySelect"
-    />
-
-    <!-- Main Content -->
-    <div class="flex-1 min-w-0 py-4 lg:py-8">
-      <!-- Search Header -->
-      <div class="mb-6 lg:mb-8 text-center lg:text-left">
-        <h1
-          class="text-2xl sm:text-3xl font-black text-text-primary tracking-tighter uppercase mb-4 break-words"
-        >
-          Search <span class="text-text-muted">Torrents</span>
+  <div class="search-shell">
+    <!-- ── Hero ──────────────────────────────────────────────── -->
+    <header class="search-hero">
+      <div class="search-hero-row">
+        <h1 class="search-title">
+          Search <span class="search-title-faint">Torrents</span>
         </h1>
-        <div class="max-w-2xl lg:mx-0 mx-auto">
-          <SearchBar
-            v-model="searchQuery"
-            placeholder="Search by name, hash, or paste an IMDb / TMDb / TVDB link…"
-            size="lg"
-            :loading="pending"
-            @search="handleSearch"
-            @media-id-search="handleMediaIdSearch"
-          />
-        </div>
-
-        <!-- Active media-id filter — same chip pattern as /torrents,
-             scaled for the larger search hero. -->
-        <div
-          v-if="activeMediaId"
-          class="max-w-2xl lg:mx-0 mx-auto mt-3 flex items-center gap-2"
-        >
-          <span
-            class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
+        <div class="search-mode" role="tablist" aria-label="Result view">
+          <button
+            v-for="opt in viewOptions"
+            :key="opt.value"
+            type="button"
+            role="tab"
+            :aria-selected="view === opt.value"
+            class="search-mode-btn"
+            :class="{ 'search-mode-btn--on': view === opt.value }"
+            @click="view = opt.value"
           >
-            Filtered by:
-          </span>
+            <Icon :name="opt.icon" />
+            <span>{{ opt.label }}</span>
+          </button>
+        </div>
+      </div>
+
+      <SearchBar
+        v-model="searchQuery"
+        placeholder="Search by name, hash, or paste an IMDb / TMDb / TVDB link…"
+        size="lg"
+        :loading="pending"
+        @search="handleSearch"
+        @media-id-search="handleMediaIdSearch"
+      />
+
+      <!-- Active media-id chip + filters toggle row -->
+      <div class="search-meta-row">
+        <Transition name="hint">
           <span
+            v-if="activeMediaId"
             class="media-id-chip"
             :class="`media-id-chip--${activeMediaId.source}`"
           >
@@ -53,199 +51,371 @@
               <Icon name="ph:x-bold" class="text-[10px]" />
             </button>
           </span>
-        </div>
+        </Transition>
 
-        <!-- Filter panel — collapsed by default; tag toggles live here. -->
-        <div class="max-w-2xl lg:mx-0 mx-auto mt-3">
+        <button
+          type="button"
+          class="filters-toggle"
+          :class="{ 'filters-toggle--on': filtersOpen }"
+          :aria-expanded="filtersOpen"
+          aria-controls="search-filter-panel"
+          @click="filtersOpen = !filtersOpen"
+        >
+          <Icon :name="filtersOpen ? 'ph:funnel-fill' : 'ph:funnel'" />
+          {{ filtersOpen ? 'Hide filters' : 'Show filters' }}
+          <span v-if="selectedTags.length > 0" class="filters-toggle-count">
+            {{ selectedTags.length }}
+          </span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── Categories (root row) ─────────────────────────────── -->
+    <section class="cats">
+      <p class="cats-eyebrow">Category</p>
+      <div class="cats-row">
+        <button
+          type="button"
+          class="cat-pill"
+          :class="{ 'cat-pill--on': !selectedCategory }"
+          @click="handleCategorySelect('')"
+        >
+          <Icon name="ph:asterisk-bold" />
+          <span>All</span>
+        </button>
+        <button
+          v-for="cat in rootCategories"
+          :key="cat.id"
+          type="button"
+          class="cat-pill"
+          :class="{
+            'cat-pill--on': selectedCategory === cat.id || hasActiveSub(cat),
+          }"
+          @click="handleCategorySelect(cat.id)"
+        >
+          <Icon :name="categoryIcon(cat.slug)" />
+          <span>{{ cat.name }}</span>
+        </button>
+      </div>
+
+      <!-- Sub-categories — only render when the active root has children. -->
+      <Transition name="subs">
+        <div v-if="visibleSubcats.length > 0" class="cats-row cats-row--sub">
           <button
+            v-for="sub in visibleSubcats"
+            :key="sub.id"
             type="button"
-            class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
-            :aria-expanded="filtersOpen"
-            aria-controls="search-filter-panel"
-            @click="filtersOpen = !filtersOpen"
+            class="cat-pill cat-pill--sub"
+            :class="{ 'cat-pill--on': selectedCategory === sub.id }"
+            @click="handleCategorySelect(sub.id)"
           >
-            <Icon
-              :name="filtersOpen ? 'ph:funnel-fill' : 'ph:funnel'"
-              :class="filtersOpen ? 'text-success' : ''"
-            />
-            <span :class="filtersOpen ? 'text-text-strong' : ''">
-              {{ filtersOpen ? 'Hide filters' : 'Show filters' }}
-            </span>
-            <span
-              v-if="selectedTags.length > 0"
-              class="text-[10px] font-mono text-success bg-success/10 border border-success/30 rounded-full px-1.5 py-0.5 normal-case tracking-normal"
-            >
-              {{ selectedTags.length }}
-            </span>
+            <span>{{ sub.name }}</span>
           </button>
-
-          <div
-            v-show="filtersOpen"
-            id="search-filter-panel"
-            class="mt-3 p-4 bg-bg-secondary border border-border rounded-lg text-left"
-          >
-            <div class="flex items-center justify-between mb-3">
-              <span
-                class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
-              >
-                Tags
-              </span>
-              <button
-                v-if="selectedTags.length > 0"
-                type="button"
-                class="text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-error transition-colors"
-                @click="clearTagFilters"
-              >
-                Clear
-              </button>
-            </div>
-            <div
-              v-if="(allTags?.length ?? 0) === 0"
-              class="text-xs text-text-muted italic"
-            >
-              No tags yet — they'll appear here once a torrent is tagged.
-            </div>
-            <div v-else class="flex flex-wrap gap-2">
-              <button
-                v-for="tag in allTags"
-                :key="tag.id"
-                type="button"
-                class="tag-toggle"
-                :class="{
-                  'tag-toggle--active': selectedTags.includes(tag.slug),
-                }"
-                :style="
-                  selectedTags.includes(tag.slug)
-                    ? activeTagStyle(tag)
-                    : undefined
-                "
-                @click="toggleTag(tag.slug)"
-              >
-                <span
-                  class="inline-block w-2 h-2 rounded-full"
-                  :style="{ backgroundColor: tag.color }"
-                />
-                {{ tag.name }}
-              </button>
-            </div>
-          </div>
         </div>
-      </div>
+      </Transition>
+    </section>
 
-      <!-- Results Section -->
+    <!-- ── Filters panel ─────────────────────────────────────── -->
+    <Transition name="panel">
       <div
-        v-if="
-          searchQuery ||
-          selectedCategory ||
-          selectedTags.length > 0 ||
-          activeMediaId
-        "
-        class="space-y-6"
+        v-if="filtersOpen"
+        id="search-filter-panel"
+        class="filter-panel"
       >
-        <div class="flex items-center justify-between px-1">
-          <div class="flex items-center gap-2">
-            <Icon name="ph:list-bullets-bold" class="text-text-muted" />
-            <h3 class="text-xs font-bold uppercase tracking-wider">
-              Search Results
-              <span v-if="pagination.total > 0" class="text-text-muted ml-1">
-                ({{ pagination.total }})
-              </span>
-            </h3>
-          </div>
-
-          <!-- Sort selector: removed for now — the previous "Sort by: Newest"
-               text was static and lied about being a control. Real sort UI
-               is tracked for a follow-up patch. -->
-        </div>
-
-        <div class="card overflow-hidden">
-          <div class="overflow-x-auto">
-            <TorrentTable
-              v-if="torrents.length > 0"
-              :torrents="torrents"
-              :compact="false"
-            />
-            <div v-else-if="!pending" class="p-20 text-center">
-              <div
-                class="w-16 h-16 bg-bg-tertiary rounded-full flex items-center justify-center mx-auto mb-4 border border-border"
-              >
-                <Icon
-                  name="ph:magnifying-glass-x"
-                  class="text-3xl text-text-muted"
-                />
-              </div>
-              <h3
-                class="text-sm font-bold text-text-primary uppercase tracking-wider"
-              >
-                No results found
-              </h3>
-              <p
-                class="text-xs text-text-muted mt-1 font-mono max-w-xs mx-auto"
-              >
-                We couldn't find any torrents matching your search criteria. Try
-                different keywords or filters.
-              </p>
-            </div>
-            <div v-else class="p-20 text-center">
-              <Icon
-                name="ph:circle-notch"
-                class="animate-spin h-8 w-8 text-text-muted mx-auto mb-4"
-              />
-              <p
-                class="text-xs text-text-muted font-mono uppercase tracking-widest"
-              >
-                Searching database...
-              </p>
-            </div>
-          </div>
-
-          <!-- Pagination -->
-          <div
-            v-if="pagination.pages > 1"
-            class="px-4 py-3 border-t border-border flex items-center justify-between bg-bg-secondary/50"
+        <div class="filter-panel-head">
+          <p class="cats-eyebrow">Tags</p>
+          <button
+            v-if="selectedTags.length > 0"
+            type="button"
+            class="filter-panel-clear"
+            @click="clearTagFilters"
           >
-            <p
-              class="text-[10px] font-mono text-text-muted uppercase tracking-widest"
-            >
-              Page {{ pagination.page }} / {{ pagination.pages }}
-            </p>
-            <div class="flex gap-1">
-              <button
-                class="btn btn-secondary !py-1 !px-2 text-[10px] uppercase font-bold"
-                :disabled="pagination.page <= 1"
-                @click="goToPage(pagination.page - 1)"
-              >
-                <Icon name="ph:caret-left-bold" />
-              </button>
-              <button
-                class="btn btn-secondary !py-1 !px-2 text-[10px] uppercase font-bold"
-                :disabled="pagination.page >= pagination.pages"
-                @click="goToPage(pagination.page + 1)"
-              >
-                <Icon name="ph:caret-right-bold" />
-              </button>
-            </div>
+            Clear
+          </button>
+        </div>
+        <div
+          v-if="(allTags?.length ?? 0) === 0"
+          class="filter-panel-empty"
+        >
+          No tags yet — they'll appear here once a torrent is tagged.
+        </div>
+        <div v-else class="filter-panel-tags">
+          <button
+            v-for="tag in allTags"
+            :key="tag.id"
+            type="button"
+            class="tag-toggle"
+            :class="{ 'tag-toggle--active': selectedTags.includes(tag.slug) }"
+            :style="
+              selectedTags.includes(tag.slug)
+                ? activeTagStyle(tag)
+                : undefined
+            "
+            @click="toggleTag(tag.slug)"
+          >
+            <span
+              class="inline-block w-2 h-2 rounded-full"
+              :style="{ backgroundColor: tag.color }"
+            />
+            {{ tag.name }}
+          </button>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ── Results header (stats + pagination top) ─────────── -->
+    <div
+      v-if="hasActiveQuery && pagination.total > 0"
+      class="results-head"
+    >
+      <div class="results-stats">
+        <span class="results-stat">
+          <Icon name="ph:hard-drive-bold" />
+          <strong>{{ formatSize(totalSize) }}</strong>
+        </span>
+        <span class="results-stat-sep" />
+        <span class="results-stat">
+          <strong>{{ pagination.total }}</strong>
+          {{ pagination.total === 1 ? 'torrent' : 'torrents' }}
+        </span>
+      </div>
+      <Pager
+        v-if="pagination.pages > 1"
+        :page="pagination.page"
+        :pages="pagination.pages"
+        @go="goToPage"
+      />
+    </div>
+
+    <!-- ── Results body ──────────────────────────────────────── -->
+    <section v-if="hasActiveQuery">
+      <div v-if="pending" class="results-loading">
+        <Icon name="ph:circle-notch" class="animate-spin h-8 w-8" />
+        <p>Searching database…</p>
+      </div>
+      <div v-else-if="torrents.length === 0" class="results-empty">
+        <Icon name="ph:magnifying-glass-x" class="results-empty-icon" />
+        <h3>No results found</h3>
+        <p>
+          We couldn't find any torrents matching your search criteria. Try
+          different keywords or filters.
+        </p>
+      </div>
+      <template v-else>
+        <!-- Simple: classic table -->
+        <div v-if="view === 'simple'" class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <TorrentTable :torrents="torrents" :compact="false" />
           </div>
         </div>
-      </div>
+        <!-- Grouped: cluster releases by TMDb id, fall back to solo for
+             un-tagged torrents. The whole card is the toggle when there's
+             more than one release; solo cards behave like a normal row
+             link. Poster comes from TMDb (cached); we soft-fade it in once
+             the lookup resolves so the layout doesn't jump. -->
+        <div v-else class="grouped-list">
+          <article
+            v-for="group in groupedResults"
+            :key="group.key"
+            class="release-group"
+            :class="{
+              'release-group--solo': !group.tmdbBare,
+              'release-group--open': expandedGroups.has(group.key),
+            }"
+          >
+            <component
+              :is="group.tmdbBare && group.releases.length > 1 ? 'button' : 'div'"
+              :type="group.tmdbBare && group.releases.length > 1 ? 'button' : undefined"
+              class="release-group-head"
+              :aria-expanded="
+                group.tmdbBare && group.releases.length > 1
+                  ? expandedGroups.has(group.key)
+                  : undefined
+              "
+              @click="
+                group.releases.length > 1
+                  ? toggleGroup(group.key)
+                  : navigateTo(`/torrents/${group.lead.infoHash}`)
+              "
+            >
+              <!-- Poster slot — only renders when we have a TMDb id and
+                   the lookup is configured. While the lookup is in
+                   flight we show a shimmering skeleton; on success the
+                   image fades in; on miss / TMDb-disabled we drop the
+                   poster column entirely so the head reflows full-width
+                   like a solo card. -->
+              <figure
+                v-if="group.tmdbBare && (isPosterLoading(group) || posterFor(group))"
+                class="release-poster"
+              >
+                <img
+                  v-if="posterFor(group)?.posterUrl"
+                  :src="posterFor(group)!.posterUrl!"
+                  :alt="posterFor(group)?.title || group.fallbackTitle"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <Icon
+                  v-else-if="posterFor(group)"
+                  name="ph:image-broken-bold"
+                  class="release-poster-placeholder"
+                />
+                <span v-else class="release-poster-skeleton" />
+              </figure>
 
-      <!-- Empty State / Trending -->
-      <div v-else class="mt-12">
-        <div class="flex items-center gap-2 mb-6 px-1">
-          <Icon name="ph:trend-up-bold" class="text-text-muted" />
-          <h3 class="text-xs font-bold uppercase tracking-wider">
-            Trending Torrents
-          </h3>
+              <div class="release-group-body">
+                <span class="release-group-eyebrow">
+                  <Icon
+                    :name="categoryIcon(group.lead.category?.slug || 'other')"
+                  />
+                  {{ group.lead.category?.name || 'Uncategorised' }}
+                  <template v-if="group.tmdbBare">
+                    <span class="results-stat-sep" />
+                    <span class="release-group-tmdb">
+                      <Icon name="ph:popcorn-fill" class="release-group-tmdb-icon" />
+                      TMDb {{ group.tmdbType ? `· ${group.tmdbType.toUpperCase()}` : '' }}
+                    </span>
+                  </template>
+                </span>
+
+                <h3 class="release-group-title">
+                  <template v-if="posterFor(group)?.title">
+                    {{ posterFor(group)?.title }}
+                    <span
+                      v-if="posterFor(group)?.year"
+                      class="release-group-year"
+                      >({{ posterFor(group)?.year }})</span
+                    >
+                  </template>
+                  <template
+                    v-else-if="group.tmdbBare && isPosterLoading(group)"
+                  >
+                    <span class="release-group-title-loading">
+                      Loading title…
+                    </span>
+                  </template>
+                  <template v-else>
+                    <span class="release-group-title-mono">
+                      {{ group.fallbackTitle }}
+                    </span>
+                  </template>
+                </h3>
+
+                <p
+                  v-if="posterFor(group)?.overview"
+                  class="release-group-overview"
+                >
+                  {{ posterFor(group)!.overview }}
+                </p>
+
+                <p class="release-group-meta">
+                  <span>
+                    <strong>{{ group.releases.length }}</strong>
+                    release{{ group.releases.length === 1 ? '' : 's' }}
+                  </span>
+                  <span class="results-stat-sep" />
+                  <span>{{ formatSize(group.totalSize) }}</span>
+                  <span class="results-stat-sep" />
+                  <span class="release-group-meta-seed">
+                    <Icon name="ph:arrow-up-bold" class="text-[10px]" />
+                    {{ group.totalSeeders }}
+                  </span>
+                  <span
+                    v-if="posterFor(group)?.voteAverage"
+                    class="results-stat-sep"
+                  />
+                  <span
+                    v-if="posterFor(group)?.voteAverage"
+                    class="release-group-rating"
+                  >
+                    <Icon name="ph:star-fill" />
+                    {{ posterFor(group)!.voteAverage!.toFixed(1) }}
+                  </span>
+                </p>
+              </div>
+
+              <Icon
+                v-if="group.releases.length > 1"
+                name="ph:caret-down-bold"
+                class="release-group-chev"
+                :class="{
+                  'release-group-chev--up': expandedGroups.has(group.key),
+                }"
+              />
+            </component>
+
+            <!-- Releases — always show the lead row in solo cards (it IS
+                 the result), and only show the rest when expanded. -->
+            <Transition name="releases">
+              <ul
+                v-if="
+                  !group.tmdbBare ||
+                  expandedGroups.has(group.key) ||
+                  group.releases.length === 1
+                "
+                class="release-list"
+              >
+                <li
+                  v-for="t in group.tmdbBare && expandedGroups.has(group.key)
+                    ? group.releases
+                    : !group.tmdbBare
+                      ? group.releases
+                      : group.releases.slice(0, 1)"
+                  :key="t.id"
+                  class="release-row"
+                  @click.stop="navigateTo(`/torrents/${t.infoHash}`)"
+                >
+                  <span class="release-name" :title="t.name">{{ t.name }}</span>
+                  <span class="release-pills">
+                    <span class="stat-badge stat-seeders">
+                      <Icon name="ph:arrow-up-bold" class="text-[8px]" />
+                      {{ t.stats.seeders }}
+                    </span>
+                    <span class="stat-badge stat-leechers">
+                      <Icon name="ph:arrow-down-bold" class="text-[8px]" />
+                      {{ t.stats.leechers }}
+                    </span>
+                    <span class="release-size">{{ formatSize(t.size) }}</span>
+                    <span class="release-age">{{ formatAge(t.createdAt) }}</span>
+                  </span>
+                </li>
+              </ul>
+            </Transition>
+          </article>
         </div>
-        <div class="card overflow-hidden">
-          <TorrentTable :torrents="trendingTorrents" :compact="true" />
-        </div>
+      </template>
+
+      <!-- Bottom pagination -->
+      <div v-if="pagination.pages > 1 && torrents.length > 0" class="results-foot">
+        <p class="results-foot-summary">
+          Page <strong>{{ pagination.page }}</strong> /
+          {{ pagination.pages }}
+          <span v-if="pagination.total > 0">
+            · <strong>{{ pagination.total }}</strong> total
+          </span>
+        </p>
+        <Pager
+          :page="pagination.page"
+          :pages="pagination.pages"
+          @go="goToPage"
+        />
       </div>
-    </div>
+    </section>
+
+    <!-- ── Trending (when nothing's queried) ─────────────────── -->
+    <section v-else class="trending">
+      <p class="cats-eyebrow">Trending</p>
+      <div class="card overflow-hidden">
+        <TorrentTable :torrents="trendingTorrents" :compact="true" />
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
+import { formatSize, formatAge } from '~/utils/format';
+import Pager from '~/components/search/Pager.vue';
+
 interface TorrentTag {
   id: string;
   name: string;
@@ -259,10 +429,17 @@ interface TorrentWithStats {
   name: string;
   size: number;
   createdAt: string;
+  // External-database ids — the grouped view buckets by tmdbId so two
+  // releases of the same movie / series cluster together. The other ids
+  // are kept for the chips in the row body.
+  imdbId: string | null;
+  tmdbId: string | null;
+  tvdbId: string | null;
   category?: {
     id: string;
     name: string;
     slug: string;
+    type: 'movie' | 'tv' | null;
   };
   tags?: TorrentTag[];
   stats: {
@@ -270,6 +447,25 @@ interface TorrentWithStats {
     leechers: number;
     completed: number;
   };
+}
+
+interface TmdbPoster {
+  title: string;
+  year: number | null;
+  posterUrl: string | null;
+  backdropUrl: string | null;
+  overview: string | null;
+  voteAverage: number | null;
+  type: 'movie' | 'tv';
+  url: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  subcategories?: Category[];
 }
 
 const route = useRoute();
@@ -285,6 +481,10 @@ const selectedTags = ref<string[]>(
 );
 const filtersOpen = ref(selectedTags.value.length > 0);
 const page = ref(parseInt((route.query.p as string) || '1', 10));
+const view = ref<'simple' | 'grouped'>(
+  (route.query.v as string) === 'grouped' ? 'grouped' : 'simple'
+);
+const expandedGroups = ref<Set<string>>(new Set());
 
 import {
   detectMediaId,
@@ -316,15 +516,45 @@ const activeMediaId = computed<DetectedMediaId | null>(() => {
   );
 });
 
-// Fetch categories
-const { data: categories } = await useFetch<any[]>('/api/categories');
+const viewOptions = [
+  { value: 'simple' as const, label: 'Simple', icon: 'ph:list-bullets-bold' },
+  { value: 'grouped' as const, label: 'Grouped', icon: 'ph:squares-four-bold' },
+];
+
+// Fetch categories — flat list with subcategories nested.
+const { data: categories } = await useFetch<Category[]>('/api/categories');
 const { data: allTags } = await useFetch<TorrentTag[]>('/api/tags');
 
-// Fetch torrents
+const rootCategories = computed<Category[]>(() => categories.value ?? []);
+
+// Resolve which root is "active" for the sub-row, even when the user picked
+// a sub-category directly (e.g. through a deep link). The sub-row stays
+// visible while any of the parent's children is selected.
+const activeRoot = computed<Category | null>(() => {
+  if (!selectedCategory.value) return null;
+  for (const cat of rootCategories.value) {
+    if (cat.id === selectedCategory.value) return cat;
+    const sub = cat.subcategories?.find(
+      (s) => s.id === selectedCategory.value
+    );
+    if (sub) return cat;
+  }
+  return null;
+});
+
+const visibleSubcats = computed<Category[]>(() =>
+  activeRoot.value?.subcategories ?? []
+);
+
+function hasActiveSub(cat: Category): boolean {
+  return cat.subcategories?.some((s) => s.id === selectedCategory.value)
+    ?? false;
+}
+
+// Fetch torrents — driven by every filter slice via a computed query.
 const {
   data: torrentsData,
   pending,
-  refresh,
 } = await useFetch<{
   data: TorrentWithStats[];
   pagination: {
@@ -350,18 +580,18 @@ const {
       tmdbid: m?.source === 'tmdb' ? m.id : undefined,
       tvdbid: m?.source === 'tvdb' ? m.id : undefined,
       page: page.value,
-      limit: 20,
+      // The grouped view loads a bigger window so we have something to
+      // cluster — the page slicer is virtual on the FE side then.
+      limit: view.value === 'grouped' ? 60 : 20,
     };
   }),
-  watch: [searchQuery, selectedCategory, selectedTags, mediaIdFilter, page],
+  watch: [searchQuery, selectedCategory, selectedTags, mediaIdFilter, page, view],
 });
 
-// Fetch trending (just recent for now)
+// Trending — surface 10 latest torrents when there's no query.
 const { data: trendingData } = await useFetch<{ data: TorrentWithStats[] }>(
   '/api/torrents',
-  {
-    query: { limit: 10 },
-  }
+  { query: { limit: 10 } }
 );
 
 const torrents = computed(() => torrentsData.value?.data ?? []);
@@ -370,7 +600,238 @@ const pagination = computed(
 );
 const trendingTorrents = computed(() => trendingData.value?.data ?? []);
 
-const searchBarRef = ref(null);
+// Total size of the current page — the table displays per-row sizes; the
+// header summary helps the user gauge "is this 100 GB or 5 TB" at a
+// glance, matching the upstream screenshot's "4.193 To" pill.
+const totalSize = computed(() =>
+  torrents.value.reduce((acc, t) => acc + (t.size || 0), 0)
+);
+
+const hasActiveQuery = computed(
+  () =>
+    Boolean(searchQuery.value) ||
+    Boolean(selectedCategory.value) ||
+    selectedTags.value.length > 0 ||
+    Boolean(activeMediaId.value)
+);
+
+// ── Grouping (client-side) ───────────────────────────────────
+//
+// We bucket torrents by their TMDb id so every release of the same
+// movie / series clusters into one card with a poster from TMDb. A
+// torrent without a TMDb id has nothing to cluster against, so it gets
+// its own one-element bucket and renders as a plain row (no poster,
+// just the filename). The `bare` form normalises the stored id (which
+// may carry a `movie/` or `tv/` prefix) so two siblings stored the
+// same way still match.
+function tmdbBucketKey(tmdbId: string | null | undefined): string | null {
+  if (!tmdbId) return null;
+  const m = tmdbId.match(/^(?:movie|tv)\/(\d+)$/);
+  const bare = m ? m[1] : tmdbId;
+  return `tmdb:${bare}`;
+}
+
+interface ReleaseGroup {
+  key: string;
+  /** Filename of the lead release — used as fallback title when no TMDb metadata. */
+  fallbackTitle: string;
+  /** TMDb id without `movie/` / `tv/` prefix; null for solo (un-tagged) torrents. */
+  tmdbBare: string | null;
+  /** TMDb namespace for the lookup endpoint. Null when we genuinely don't know. */
+  tmdbType: 'movie' | 'tv' | null;
+  releases: TorrentWithStats[];
+  lead: TorrentWithStats;
+  totalSize: number;
+  totalSeeders: number;
+}
+
+const groupedResults = computed<ReleaseGroup[]>(() => {
+  const buckets = new Map<string, ReleaseGroup>();
+  for (const t of torrents.value) {
+    const bucketKey = tmdbBucketKey(t.tmdbId) ?? `solo:${t.id}`;
+    let group = buckets.get(bucketKey);
+    if (!group) {
+      // Pull a type hint from either the stored tmdbId prefix or the
+      // category type. Both can be null; the lookup endpoint is happy
+      // with null and probes movie-then-tv as a fallback.
+      const prefixMatch = t.tmdbId?.match(/^(movie|tv)\//);
+      const tmdbType =
+        (prefixMatch?.[1] as 'movie' | 'tv' | undefined) ??
+        t.category?.type ??
+        null;
+      group = {
+        key: bucketKey,
+        fallbackTitle: t.name,
+        tmdbBare: bucketKey.startsWith('tmdb:') ? bucketKey.slice(5) : null,
+        tmdbType,
+        releases: [],
+        lead: t,
+        totalSize: 0,
+        totalSeeders: 0,
+      };
+      buckets.set(bucketKey, group);
+    }
+    group.releases.push(t);
+    group.totalSize += t.size || 0;
+    group.totalSeeders += t.stats?.seeders || 0;
+  }
+  // Sort each group's releases by seeders desc (best release first).
+  for (const g of buckets.values()) {
+    g.releases.sort(
+      (a, b) => (b.stats?.seeders || 0) - (a.stats?.seeders || 0)
+    );
+    g.lead = g.releases[0];
+  }
+  // Sort: TMDb-clustered groups first (newest activity first), then solo
+  // torrents — that way browsing the grouped view always feels organised
+  // around real titles rather than orphan releases.
+  return Array.from(buckets.values()).sort((a, b) => {
+    if (!!a.tmdbBare !== !!b.tmdbBare) return a.tmdbBare ? -1 : 1;
+    return b.totalSeeders - a.totalSeeders;
+  });
+});
+
+// ── TMDb metadata fetch (grouped view only) ────────────────
+//
+// For every group with a TMDb id we hit `/api/metadata/lookup` once and
+// stash the result. The endpoint is Redis-cached server-side (24 h
+// positive, 1 h negative) so even a 50-poster page only hits TMDb on the
+// very first user. We launch the fetches in parallel and update the map
+// progressively so posters fade in as they arrive.
+//
+// Three completion states for a TMDb-tagged group:
+//   - `loading`  → fetch in flight, show a skeleton.
+//   - `missing`  → TMDb returned 404 / null metadata, show the filename
+//                  fallback (no poster, mono title) but keep the
+//                  grouping intact since the id is still a clustering
+//                  signal.
+//   - `hit`      → metadata in hand, render the proper card.
+// `tmdbDisabled` short-circuits the fetch loop entirely when the
+// operator hasn't set TMDB_API_KEY — same fallback as `missing`, but
+// we avoid the round-trip on every group.
+type PosterState =
+  | { kind: 'loading' }
+  | { kind: 'missing' }
+  | { kind: 'hit'; data: TmdbPoster };
+
+const postersMap = ref<Map<string, PosterState>>(new Map());
+const tmdbDisabled = ref(false);
+
+function setPoster(key: string, state: PosterState) {
+  // Map mutations aren't deeply reactive — re-create the Map so the
+  // computed views downstream invalidate.
+  const next = new Map(postersMap.value);
+  next.set(key, state);
+  postersMap.value = next;
+}
+
+async function fetchPoster(group: ReleaseGroup) {
+  if (!group.tmdbBare || tmdbDisabled.value) return;
+  const cacheKey = `${group.tmdbType ?? 'auto'}:${group.tmdbBare}`;
+  if (postersMap.value.has(cacheKey)) return;
+  setPoster(cacheKey, { kind: 'loading' });
+  try {
+    const res = await $fetch<{
+      enabled: boolean;
+      found: boolean;
+      metadata: {
+        title: string;
+        year: number | null;
+        posterUrl: string | null;
+        backdropUrl: string | null;
+        overview: string | null;
+        voteAverage: number | null;
+        type: 'movie' | 'tv';
+        url: string;
+      } | null;
+    }>('/api/metadata/lookup', {
+      query: {
+        source: 'tmdb',
+        id: group.tmdbBare,
+        type: group.tmdbType ?? undefined,
+      },
+    });
+    if (res.enabled === false) {
+      // Operator never set TMDB_API_KEY. Stop hammering the endpoint
+      // and fall every other group back to the filename view.
+      tmdbDisabled.value = true;
+      return;
+    }
+    if (res.metadata) {
+      const m = res.metadata;
+      // Posters come back at w500; for a list-cell thumbnail w342 is
+      // plenty. Same CDN, just a smaller variant — saves ~60% of bytes.
+      setPoster(cacheKey, {
+        kind: 'hit',
+        data: {
+          ...m,
+          posterUrl: m.posterUrl?.replace('/w500/', '/w342/') ?? null,
+        },
+      });
+    } else {
+      setPoster(cacheKey, { kind: 'missing' });
+    }
+  } catch (e) {
+    // Network / auth hiccup — fall back to the filename row instead of
+    // letting the skeleton spin forever.
+    setPoster(cacheKey, { kind: 'missing' });
+  }
+}
+
+function posterStateFor(group: ReleaseGroup): PosterState | null {
+  if (!group.tmdbBare) return null;
+  if (tmdbDisabled.value) return { kind: 'missing' };
+  return (
+    postersMap.value.get(`${group.tmdbType ?? 'auto'}:${group.tmdbBare}`) ??
+    null
+  );
+}
+
+function posterFor(group: ReleaseGroup): TmdbPoster | null {
+  const s = posterStateFor(group);
+  return s?.kind === 'hit' ? s.data : null;
+}
+
+function isPosterLoading(group: ReleaseGroup): boolean {
+  return posterStateFor(group)?.kind === 'loading';
+}
+
+// Trigger fetches whenever the grouped view shows new TMDb-tagged groups.
+watch(
+  [groupedResults, view],
+  () => {
+    if (view.value !== 'grouped' || tmdbDisabled.value) return;
+    for (const g of groupedResults.value) {
+      if (g.tmdbBare) fetchPoster(g);
+    }
+  },
+  { immediate: true }
+);
+
+function toggleGroup(key: string) {
+  if (expandedGroups.value.has(key)) {
+    expandedGroups.value.delete(key);
+  } else {
+    expandedGroups.value.add(key);
+  }
+  // Force reactivity since Set mutations are not deeply reactive.
+  expandedGroups.value = new Set(expandedGroups.value);
+}
+
+function categoryIcon(slug: string): string {
+  const icons: Record<string, string> = {
+    movies: 'ph:film-slate-bold',
+    tv: 'ph:television-bold',
+    music: 'ph:music-notes-bold',
+    games: 'ph:game-controller-bold',
+    software: 'ph:app-window-bold',
+    ebooks: 'ph:book-open-bold',
+    anime: 'ph:shooting-star-bold',
+    xxx: 'ph:prohibit-bold',
+    other: 'ph:package-bold',
+  };
+  return icons[slug] || 'ph:folder-bold';
+}
 
 function handleSearch() {
   page.value = 1;
@@ -386,7 +847,9 @@ function handleCategorySelect(id: string) {
 function goToPage(p: number) {
   page.value = p;
   updateUrl();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (typeof window !== 'undefined') {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }
 
 function updateUrl() {
@@ -403,12 +866,18 @@ function updateUrl() {
       tmdbid: m?.source === 'tmdb' ? m.id : undefined,
       tvdbid: m?.source === 'tvdb' ? m.id : undefined,
       p: page.value > 1 ? page.value : undefined,
+      v: view.value === 'grouped' ? 'grouped' : undefined,
     },
   });
 }
 
+watch(view, () => {
+  page.value = 1;
+  expandedGroups.value = new Set();
+  updateUrl();
+});
+
 function handleMediaIdSearch(detected: DetectedMediaId) {
-  // A media-id submission supersedes the text search.
   searchQuery.value = '';
   mediaIdFilter.value = { source: detected.source, id: detected.id };
   page.value = 1;
@@ -438,7 +907,6 @@ function clearTagFilters() {
 }
 
 function activeTagStyle(tag: { color: string }) {
-  // Same logic as the torrents page — see comment there.
   const hex = (tag.color || '').replace('#', '').toLowerCase();
   const isDefault = !/^[0-9a-f]{6}$/i.test(hex) || hex === '6b7280';
   if (isDefault) {
@@ -455,7 +923,6 @@ function activeTagStyle(tag: { color: string }) {
   };
 }
 
-// Sync with URL on load and back/forward
 watch(
   () => route.query,
   (newQuery) => {
@@ -475,6 +942,7 @@ watch(
       mediaIdFilter.value = null;
     }
     page.value = parseInt((newQuery.p as string) || '1', 10);
+    view.value = (newQuery.v as string) === 'grouped' ? 'grouped' : 'simple';
   },
   { deep: true }
 );
@@ -485,18 +953,637 @@ useHead({
 </script>
 
 <style scoped>
-.tag-toggle {
-  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full
-         border border-border bg-bg-tertiary
-         text-[11px] font-medium text-text-secondary
-         hover:text-text-primary hover:bg-fg-default/5
-         hover:border-fg-default/30
-         transition-colors;
-}
-.tag-toggle--active {
-  @apply text-text-primary;
+/* =============================================================================
+ * Search hub — chip-driven category navigation à la C411.
+ *
+ * Uses the existing brutalist-techno tokens (Inter + JetBrains Mono, mono
+ * accent on `--accent`) but reorganises the page around inline category
+ * chips with a conditional sub-row — sub-categories only render once the
+ * user has selected (or deep-linked into) their parent.
+ * ============================================================================= */
+
+.search-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-bottom: 4rem;
 }
 
+/* ─── Hero ───────────────────────────────────────────────── */
+.search-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.search-hero-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.search-title {
+  margin: 0;
+  font-size: clamp(1.4rem, 3.5vw, 1.85rem);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: rgb(var(--fg-strong));
+}
+.search-title-faint {
+  color: rgb(var(--fg-muted));
+  font-weight: 700;
+}
+
+/* Toggle Simple / Grouped — segmented pill, mirrors the screenshot's
+   "Simple / Groupé" control. Active state inverts to the accent fill. */
+.search-mode {
+  display: inline-flex;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 9999px;
+  padding: 3px;
+  background: rgb(var(--bg-surface));
+}
+.search-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  background: transparent;
+  border: 0;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.14s;
+}
+.search-mode-btn:hover {
+  color: rgb(var(--fg-strong));
+}
+.search-mode-btn--on {
+  background: rgb(var(--fg-strong));
+  color: rgb(var(--accent-fg));
+}
+.search-mode-btn--on:hover {
+  color: rgb(var(--accent-fg));
+}
+
+.search-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.filters-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.14s;
+}
+.filters-toggle:hover,
+.filters-toggle--on {
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--line-default));
+  background: rgb(var(--bg-surface));
+}
+.filters-toggle-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  padding: 0 0.3rem;
+  font-size: 9.5px;
+  letter-spacing: 0;
+  color: rgb(var(--accent-fg));
+  background: rgb(var(--fg-strong));
+  border-radius: 9999px;
+}
+
+/* ─── Categories ─────────────────────────────────────────── */
+.cats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.cats-eyebrow {
+  margin: 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+}
+.cats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.cats-row--sub {
+  padding-top: 0.35rem;
+  border-top: 1px dashed rgb(var(--line-default));
+}
+.cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 9999px;
+  background: rgb(var(--bg-surface));
+  color: rgb(var(--fg-muted));
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.14s;
+  white-space: nowrap;
+}
+.cat-pill:hover {
+  border-color: rgb(var(--line-strong));
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--bg-elevated));
+}
+.cat-pill--on {
+  background: rgb(var(--fg-strong));
+  color: rgb(var(--accent-fg));
+  border-color: rgb(var(--fg-strong));
+}
+.cat-pill--on:hover {
+  background: rgb(var(--fg-default));
+  color: rgb(var(--accent-fg));
+}
+.cat-pill--sub {
+  font-size: 0.74rem;
+  padding: 0.32rem 0.7rem;
+}
+
+/* ─── Filters panel ──────────────────────────────────────── */
+.filter-panel {
+  padding: 0.85rem 1rem 1rem;
+  background: rgb(var(--bg-surface));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 4px;
+}
+.filter-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.filter-panel-clear {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.filter-panel-clear:hover {
+  color: rgb(var(--danger));
+}
+.filter-panel-empty {
+  font-size: 12px;
+  color: rgb(var(--fg-muted));
+  font-style: italic;
+}
+.filter-panel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+/* ─── Tag toggle (kept from previous design) ──────────── */
+.tag-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 9999px;
+  background: rgb(var(--bg-elevated));
+  color: rgb(var(--fg-muted));
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.tag-toggle:hover {
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--line-strong));
+}
+.tag-toggle--active {
+  color: rgb(var(--fg-strong));
+}
+
+/* ─── Results header ─────────────────────────────────────── */
+.results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid rgb(var(--line-default));
+}
+.results-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: rgb(var(--fg-muted));
+  text-transform: uppercase;
+}
+.results-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.results-stat strong {
+  font-weight: 700;
+  color: rgb(var(--fg-strong));
+}
+.results-stat-sep {
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgb(var(--fg-faint));
+}
+
+/* ─── Loading / empty ───────────────────────────────────── */
+.results-loading,
+.results-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.8rem;
+  padding: 4rem 1.5rem;
+  border: 1px dashed rgb(var(--line-default));
+  border-radius: 4px;
+  background: rgb(var(--bg-surface));
+}
+.results-loading svg {
+  color: rgb(var(--fg-muted));
+}
+.results-loading p {
+  margin: 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.results-empty-icon {
+  font-size: 2.25rem;
+  color: rgb(var(--fg-faint));
+}
+.results-empty h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-strong));
+}
+.results-empty p {
+  margin: 0;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  color: rgb(var(--fg-muted));
+  max-width: 36ch;
+}
+
+/* ─── Grouped view ──────────────────────────────────────── */
+.grouped-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.release-group {
+  background: rgb(var(--bg-surface));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 4px;
+  overflow: hidden;
+  transition: border-color 0.14s;
+}
+.release-group:hover {
+  border-color: rgb(var(--line-strong));
+}
+.release-group-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgb(var(--line-default));
+  background: rgb(var(--bg-elevated) / 0.4);
+  width: 100%;
+  text-align: left;
+  /* `<button>` reset — when the grouped head doubles as a toggle we need
+     it to look like the div variant. */
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+.release-group-head:not([type='button']) {
+  cursor: default;
+}
+button.release-group-head:hover {
+  background: rgb(var(--bg-elevated) / 0.7);
+}
+.release-group--solo .release-group-head {
+  grid-template-columns: 1fr auto;
+  cursor: pointer;
+}
+.release-group--solo .release-group-head:hover {
+  background: rgb(var(--bg-elevated) / 0.7);
+}
+/* When the poster is intentionally absent (no tmdbId, TMDb disabled, or
+   a 404 from the lookup) collapse to two columns so we don't carry an
+   empty gutter on the left. */
+.release-group-head:not(:has(.release-poster)) {
+  grid-template-columns: 1fr auto;
+}
+.release-group--open .release-group-head {
+  border-bottom-color: rgb(var(--line-strong));
+}
+
+/* Poster — fixed-width thumbnail with a subtle inset shadow when the
+   image lands. Skeleton/placeholder share the same footprint so the
+   layout never reflows. */
+.release-poster {
+  margin: 0;
+  width: 4.5rem;
+  aspect-ratio: 2 / 3;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgb(var(--bg-base));
+  border: 1px solid rgb(var(--line-default));
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.release-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  animation: poster-fade 0.32s ease both;
+}
+@keyframes poster-fade {
+  from { opacity: 0; transform: scale(1.02); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.release-poster-placeholder {
+  font-size: 1.4rem;
+  color: rgb(var(--fg-faint));
+}
+.release-poster-skeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    rgb(var(--bg-base)) 30%,
+    rgb(var(--bg-elevated)) 50%,
+    rgb(var(--bg-base)) 70%
+  );
+  background-size: 220% 100%;
+  animation: poster-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes poster-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.release-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.release-group-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+  flex-wrap: wrap;
+}
+.release-group-tmdb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: rgb(var(--fg-muted));
+}
+.release-group-tmdb-icon {
+  color: #01b4e4;
+  font-size: 10.5px;
+}
+.release-group-title {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: rgb(var(--fg-strong));
+  word-break: break-word;
+}
+.release-group-year {
+  color: rgb(var(--fg-muted));
+  font-weight: 500;
+  font-size: 0.95rem;
+  margin-left: 0.2rem;
+}
+.release-group-title-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgb(var(--fg-default));
+}
+.release-group-title-loading {
+  color: rgb(var(--fg-faint));
+  font-style: italic;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+.release-group-overview {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgb(var(--fg-muted));
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.release-group-meta {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: rgb(var(--fg-muted));
+  flex-wrap: wrap;
+}
+.release-group-meta strong {
+  color: rgb(var(--fg-strong));
+  font-weight: 700;
+}
+.release-group-meta-seed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: rgb(var(--online));
+}
+.release-group-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #f5c518;
+  font-weight: 700;
+}
+.release-group-chev {
+  font-size: 0.95rem;
+  color: rgb(var(--fg-muted));
+  transition: transform 0.18s ease;
+  flex-shrink: 0;
+}
+.release-group-chev--up {
+  transform: rotate(-180deg);
+  color: rgb(var(--fg-strong));
+}
+
+.release-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.release-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid rgb(var(--line-default) / 0.6);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.release-row:last-child {
+  border-bottom: 0;
+}
+.release-row:hover {
+  background: rgb(var(--fg-default) / 0.04);
+}
+.release-name {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: rgb(var(--fg-default));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.release-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: rgb(var(--fg-muted));
+}
+.release-size,
+.release-age {
+  white-space: nowrap;
+}
+.release-age {
+  color: rgb(var(--fg-faint));
+}
+
+/* Accordion transition — slide releases in/out under the head. We use
+   max-height so the height is animatable while the content keeps its
+   intrinsic size; the bound is generous enough for 20+ releases. */
+.releases-enter-active,
+.releases-leave-active {
+  transition: max-height 0.24s ease, opacity 0.18s ease;
+  overflow: hidden;
+}
+.releases-enter-from,
+.releases-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+.releases-enter-to,
+.releases-leave-from {
+  max-height: 800px;
+  opacity: 1;
+}
+
+/* ─── Bottom pagination ─────────────────────────────────── */
+.results-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(var(--line-default));
+}
+.results-foot-summary {
+  margin: 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: rgb(var(--fg-muted));
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.results-foot-summary strong {
+  color: rgb(var(--fg-strong));
+}
+
+.trending {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+/* ─── media-id chip (kept from previous design) ────────── */
 .media-id-chip {
   display: inline-flex;
   align-items: center;
@@ -549,10 +1636,103 @@ useHead({
   height: 1.1rem;
   border-radius: 9999px;
   color: rgb(var(--fg-muted));
+  background: transparent;
+  border: 0;
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 .media-id-chip-close:hover {
   color: rgb(var(--fg-strong));
   background: rgb(var(--fg-default) / 0.1);
+}
+
+/* ─── Transitions ─────────────────────────────────────── */
+.subs-enter-active,
+.subs-leave-active,
+.panel-enter-active,
+.panel-leave-active {
+  transition: max-height 0.22s ease, opacity 0.18s ease, padding 0.18s ease,
+    margin 0.18s ease;
+  overflow: hidden;
+}
+.subs-enter-from,
+.subs-leave-to {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+.subs-enter-to,
+.subs-leave-from {
+  max-height: 200px;
+  opacity: 1;
+}
+.panel-enter-from,
+.panel-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+.panel-enter-to,
+.panel-leave-from {
+  max-height: 600px;
+  opacity: 1;
+}
+.hint-enter-active,
+.hint-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.hint-enter-from,
+.hint-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* ─── Mobile reflow ─────────────────────────────────────── */
+@media (max-width: 640px) {
+  .search-hero-row {
+    align-items: flex-start;
+  }
+  .search-mode {
+    width: 100%;
+  }
+  .search-mode-btn {
+    flex: 1;
+    justify-content: center;
+  }
+  /* Cat row scrolls horizontally on phones so chips stay readable. */
+  .cats-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+    scrollbar-width: none;
+  }
+  .cats-row::-webkit-scrollbar {
+    display: none;
+  }
+  .release-row {
+    grid-template-columns: 1fr;
+  }
+  .release-pills {
+    flex-wrap: wrap;
+  }
+  /* On phones the release-group head reflows into a tighter card with a
+     smaller poster — readable but not eating half the screen. */
+  .release-group-head {
+    gap: 0.7rem;
+    padding: 0.7rem 0.85rem;
+  }
+  .release-poster {
+    width: 3.5rem;
+  }
+  .release-group-title {
+    font-size: 0.95rem;
+  }
+  .release-group-overview {
+    -webkit-line-clamp: 1;
+  }
+  .filters-toggle {
+    margin-left: 0;
+  }
 }
 </style>
