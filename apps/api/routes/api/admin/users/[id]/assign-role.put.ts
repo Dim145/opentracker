@@ -8,6 +8,7 @@
  */
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { validateBody } from '~~/utils/schemas';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -21,7 +22,7 @@ const bodySchema = z
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
   const { id } = paramsSchema.parse(getRouterParams(event));
-  const body = await readValidatedBody(event, bodySchema.parse);
+  const body = await validateBody(event, bodySchema);
 
   if (body.roleId !== null) {
     const role = await db.query.roles.findFirst({

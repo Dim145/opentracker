@@ -12,6 +12,7 @@
  */
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { validateBody } from '~~/utils/schemas';
 import { eq, and, ne, count } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -26,7 +27,11 @@ const bodySchema = z
 export default defineEventHandler(async (event) => {
   const { user: actor } = await requireAdminSession(event);
   const { id } = paramsSchema.parse(getRouterParams(event));
-  const body = await readValidatedBody(event, bodySchema.parse);
+  // Routed through validateBody so a Zod failure renders as a clean
+  // 400 with a human message, not a wall of `unrecognized_keys` issue
+  // objects. The frontend used to send the whole RegistryUser object
+  // here and the operator saw a list of every column name.
+  const body = await validateBody(event, bodySchema);
 
   const target = await db.query.users.findFirst({
     where: eq(schema.users.id, id),

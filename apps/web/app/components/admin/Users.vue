@@ -912,13 +912,17 @@ async function onToggleStaff(u: RegistryUser, role: 'isAdmin' | 'isModerator') {
   const key = `${u.id}:${role === 'isAdmin' ? 'admin' : 'mod'}`;
   actionPending[key] = true;
   try {
+    // The endpoint's body schema is strict — only the two boolean flags.
+    // Spreading the whole RegistryUser used to trip a Zod
+    // `unrecognized_keys` error that surfaced to the operator as a
+    // wall of field names.
     const updated = await $fetch<RegistryUser>(
       `/api/admin/users/${u.id}/role`,
       {
         method: 'PUT',
         body: {
-          ...u,
-          [role]: !u[role],
+          isAdmin: role === 'isAdmin' ? !u.isAdmin : u.isAdmin,
+          isModerator: role === 'isModerator' ? !u.isModerator : u.isModerator,
         },
       }
     );

@@ -241,6 +241,22 @@ export const scrapeQuerySchema = z.object({
 // ============================================================================
 
 /**
+ * Render a single Zod issue into an operator-readable line. Strict
+ * schemas (`.strict()`) emit `unrecognized_keys` with an empty path,
+ * which used to surface as `": Unrecognized keys: …"` — meaningless.
+ * We special-case it so the message names the offending fields without
+ * the punctuation noise.
+ */
+function describeZodIssue(e: z.ZodIssue): string {
+  if (e.code === 'unrecognized_keys') {
+    const keys = (e as z.ZodIssue & { keys?: string[] }).keys ?? [];
+    return `Unexpected field${keys.length === 1 ? '' : 's'} in request body: ${keys.join(', ')}`;
+  }
+  const path = e.path.join('.');
+  return path ? `${path}: ${e.message}` : e.message;
+}
+
+/**
  * Validate and parse request body with Zod schema
  * Throws HTTP 400 error with validation messages on failure
  */
@@ -253,12 +269,9 @@ export async function validateBody<T>(
     return schema.parse(body);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const messages = error.issues.map(
-        (e: z.ZodIssue) => `${e.path.join('.')}: ${e.message}`
-      );
       throw createError({
         statusCode: 400,
-        message: messages.join('; '),
+        message: error.issues.map(describeZodIssue).join('; '),
       });
     }
     throw error;
@@ -275,12 +288,9 @@ export function validateQuery<T>(event: any, schema: z.ZodSchema<T>): T {
     return schema.parse(query);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const messages = error.issues.map(
-        (e: z.ZodIssue) => `${e.path.join('.')}: ${e.message}`
-      );
       throw createError({
         statusCode: 400,
-        message: messages.join('; '),
+        message: error.issues.map(describeZodIssue).join('; '),
       });
     }
     throw error;

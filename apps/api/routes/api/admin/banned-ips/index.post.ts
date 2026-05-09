@@ -18,6 +18,7 @@ import { isIP } from 'node:net';
 import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { validateBody } from '~~/utils/schemas';
 import { z } from 'zod';
 
 const bodySchema = z.object({
@@ -40,7 +41,7 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   await requireModeratorSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
-  const body = await readValidatedBody(event, bodySchema.parse);
+  const body = await validateBody(event, bodySchema);
 
   const reason = body.reason?.trim() || 'Manual ban by admin';
 
