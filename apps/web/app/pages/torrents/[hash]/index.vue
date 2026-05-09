@@ -93,6 +93,22 @@
       Back to index
     </NuxtLink>
 
+    <!-- ─── Moderation panel (top placement) ───────────────────
+         When the torrent is in a non-final state (pending or
+         changes_requested) we surface the panel above the fold so
+         the uploader sees the moderator's instructions before any
+         metadata. Final states (accepted / rejected) keep the panel
+         at the bottom of the page so the conversation doesn't push
+         the public-facing content down. -->
+    <div v-if="moderationOnTop" class="mb-6">
+      <TorrentModerationPanel
+        :hash="torrent.infoHash"
+        :status="(torrent.moderationStatus as 'pending' | 'accepted' | 'changes_requested' | 'rejected')"
+        :uploader-id="torrent.uploaderId ?? null"
+        @status-change="onModerationStatusChange"
+      />
+    </div>
+
     <!-- Torrent Header -->
     <div class="card mb-6 overflow-hidden">
       <div class="card-body !p-6">
@@ -354,8 +370,13 @@
       </div>
     </div>
 
-    <!-- Peer List -->
-    <div class="card">
+    <!-- Peer List — admin-only.
+         The raw peer list (anonymised endpoints, port, byte counts,
+         last-seen timestamps) is operational data: useful to debug a
+         peer that's mis-reporting, not to a regular member. We hide
+         the whole card from non-admins to keep the public detail
+         page focused on the release itself. -->
+    <div v-if="user?.isAdmin" class="card">
       <div class="card-header">
         <div class="flex items-center gap-2">
           <Icon name="ph:users-bold" class="text-text-muted" />
@@ -364,6 +385,12 @@
           >
             Active Swarm ({{ torrent.peers.length }})
           </h3>
+          <span
+            class="ml-auto text-[9px] font-mono uppercase tracking-widest text-text-muted px-1.5 py-0.5 rounded border border-border bg-bg-tertiary"
+            title="Visible only to administrators"
+          >
+            Admin only
+          </span>
         </div>
       </div>
       <div class="overflow-x-auto">
@@ -422,11 +449,10 @@
       </div>
     </div>
 
-    <!-- Moderation thread + actions. The component handles its own
-         visibility (renders nothing for visitors who aren't the
-         uploader or staff) and the API call falls back gracefully
-         when the viewer isn't authorised. -->
-    <div class="mb-6">
+    <!-- Moderation panel (bottom placement) — only when the row is
+         in a final state. For pending / changes_requested rows the
+         panel renders at the top instead, before the metadata. -->
+    <div v-if="!moderationOnTop" class="mt-6">
       <TorrentModerationPanel
         :hash="torrent.infoHash"
         :status="(torrent.moderationStatus as 'pending' | 'accepted' | 'changes_requested' | 'rejected')"
@@ -531,6 +557,26 @@ function onModerationStatusChange(
     torrent.value.moderationStatus = next;
   }
 }
+
+/**
+ * Drives the placement of the moderation panel.
+ *   - pending / changes_requested  → top of the page (the uploader
+ *     has something to read or to do; we don't want them scrolling
+ *     past every byte of metadata to find it)
+ *   - accepted / rejected          → bottom of the page (the matter
+ *     is closed; the conversation is reference material rather than
+ *     a call to action)
+ *
+ * The component itself is rendered exactly once on either side of
+ * the layout via mutually-exclusive v-ifs so the API call doesn't
+ * fire twice.
+ */
+const moderationOnTop = computed(() => {
+  const status = torrent.value && !torrent.value.gatedAdult
+    ? torrent.value.moderationStatus
+    : null;
+  return status === 'pending' || status === 'changes_requested';
+});
 
 // Pick whichever external id the uploader supplied — TMDb's /find
 // resolves all three. Order matters: TMDb's own id is the most direct

@@ -2,11 +2,23 @@
   <section
     v-if="visible"
     class="mod"
-    :class="`mod--${currentStatus}`"
+    :class="[`mod--${currentStatus}`, { 'mod--collapsed': !expanded }]"
     :data-status="currentStatus"
   >
     <!-- ─── Banner ──────────────────────────────────────── -->
-    <header class="mod-banner">
+    <!--
+      The whole banner is the toggle. Clicking anywhere on the strip
+      flips the panel between collapsed (default) and expanded. We
+      use a button for keyboard / screen-reader semantics; `aria-
+      expanded` and `aria-controls` link it to the body region below.
+    -->
+    <button
+      type="button"
+      class="mod-banner"
+      :aria-expanded="expanded"
+      :aria-controls="bodyId"
+      @click="toggle"
+    >
       <div class="mod-banner-glyph" aria-hidden="true">
         <Icon :name="bannerIcon" />
       </div>
@@ -16,12 +28,26 @@
           <span v-if="!loading" class="mod-banner-count">
             {{ messages.length }} {{ messages.length === 1 ? 'entry' : 'entries' }}
           </span>
+          <span v-if="!expanded" class="mod-banner-collapsed-pip">
+            click to open
+          </span>
         </p>
         <h3 class="mod-banner-title">{{ bannerTitle }}</h3>
         <p class="mod-banner-sub">{{ bannerSub }}</p>
       </div>
-      <TorrentModerationBadge :status="currentStatus" />
-    </header>
+      <div class="mod-banner-trail">
+        <TorrentModerationBadge :status="currentStatus" />
+        <Icon
+          name="ph:caret-down-bold"
+          class="mod-banner-caret"
+          :class="{ 'mod-banner-caret--up': expanded }"
+          aria-hidden="true"
+        />
+      </div>
+    </button>
+
+    <!-- ─── Body (collapsible) ──────────────────────────── -->
+    <div :id="bodyId" v-show="expanded" class="mod-body">
 
     <!-- ─── Loading ─────────────────────────────────────── -->
     <div v-if="loading" class="mod-loading">
@@ -184,6 +210,7 @@
         This conversation is read-only from your viewpoint.
       </p>
     </div>
+    </div><!-- /.mod-body -->
   </section>
 </template>
 
@@ -229,6 +256,16 @@ const composerBody = ref('');
 const composerLoading = ref(false);
 const composerAction = ref<'reply' | 'approve' | 'request-changes' | 'reject' | 'reset' | null>(null);
 const composerError = ref<string | null>(null);
+
+// Collapsed by default — the panel sits under the torrent header
+// most of the time and we don't want a wall of text every page load.
+// Clicking the banner flips this on; aria-expanded + aria-controls
+// keep keyboard / screen-reader users in the loop.
+const expanded = ref(false);
+const bodyId = `mod-panel-body-${Math.random().toString(36).slice(2, 9)}`;
+function toggle() {
+  expanded.value = !expanded.value;
+}
 
 const isStaff = computed(() =>
   Boolean(user.value && (user.value.isAdmin || user.value.isModerator))
@@ -501,16 +538,71 @@ function formatDate(iso: string): string {
     linear-gradient(135deg, var(--c-mid) 0%, transparent 70%),
     rgb(var(--bg-elevated));
   border-bottom: 1px solid var(--c-line);
+  /* The banner is the toggle button; reset native button cosmetics */
+  width: 100%;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: background 160ms ease;
 }
+.mod-banner:hover {
+  background:
+    linear-gradient(135deg, rgb(var(--c) / 0.32) 0%, transparent 70%),
+    rgb(var(--bg-hover));
+}
+.mod-banner:focus-visible {
+  outline: 2px solid rgb(var(--c) / 0.6);
+  outline-offset: -2px;
+}
+/* When collapsed, the banner is the only thing visible — drop the
+   bottom border so it merges with the rounded panel edge. */
+.mod--collapsed .mod-banner {
+  border-bottom: 0;
+}
+
 @media (max-width: 540px) {
   .mod-banner {
     grid-template-columns: 40px 1fr;
-    grid-template-areas: "glyph text" "badge badge";
+    grid-template-areas: "glyph trail" "text text";
     row-gap: 0.5rem;
   }
   .mod-banner-glyph { grid-area: glyph; }
   .mod-banner-text  { grid-area: text;  }
-  .mod-banner > :deep(.mod-badge) { grid-area: badge; justify-self: end; }
+  .mod-banner-trail { grid-area: trail; justify-self: end; }
+}
+
+.mod-banner-trail {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+.mod-banner-caret {
+  font-size: 14px;
+  color: rgb(var(--fg-subtle));
+  transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1), color 160ms ease;
+}
+.mod-banner:hover .mod-banner-caret { color: var(--c-text); }
+.mod-banner-caret--up { transform: rotate(-180deg); }
+
+.mod-banner-collapsed-pip {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+  font-weight: 600;
+  font-style: normal;
+}
+.mod-banner-collapsed-pip::before {
+  content: '·';
+  margin: 0 0.4rem;
+  color: rgb(var(--fg-faint));
 }
 .mod-banner-glyph {
   width: 44px;
