@@ -195,6 +195,11 @@ services:
       IP_HASH_SECRET: ${IP_HASH_SECRET}
       TRACKER_HTTP_PORT: 8080
       TRACKER_DEBUG: ${TRACKER_DEBUG:-false}
+      # Caddy proxies BitTorrent announces on `/announce` and on the
+      # `tracker.*` subdomain. Without trusting its X-Real-IP /
+      # X-Forwarded-For headers every peer ends up registered with
+      # Caddy's container IP and clients can't reach each other.
+      TRUST_PROXY: "true"
     expose:
       - "8080"
     networks:
