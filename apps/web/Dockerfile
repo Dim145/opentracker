@@ -52,7 +52,8 @@ ENV NODE_ENV=production \
     NUXT_HOST=0.0.0.0 \
     NUXT_PORT=3000 \
     NODE_OPTIONS="--max-old-space-size=384 --max-semi-space-size=8" \
-    MALLOC_ARENA_MAX=2
+    MALLOC_ARENA_MAX=2 \
+    TRACKARR_RUNTIME=docker
 STOPSIGNAL SIGTERM
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

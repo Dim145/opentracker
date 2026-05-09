@@ -96,7 +96,8 @@ ENV NODE_ENV=production \
     NITRO_HOST=0.0.0.0 \
     NODE_OPTIONS="--max-old-space-size=512 --max-semi-space-size=8" \
     MALLOC_ARENA_MAX=2 \
-    NITRO_ENV_PREFIX=NUXT_
+    NITRO_ENV_PREFIX=NUXT_ \
+    TRACKARR_RUNTIME=docker
 STOPSIGNAL SIGTERM
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
