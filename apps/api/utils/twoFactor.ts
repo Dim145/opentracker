@@ -21,7 +21,7 @@
  *      user's MFA.
  */
 import { generateSecret, generateURI, verify as otpVerify } from 'otplib';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { redis } from '../redis/client';
 
 // ── TOTP ─────────────────────────────────────────────────────
@@ -104,14 +104,24 @@ export const RECOVERY_CODE_COUNT = 8;
  * they're readable when printed. The caller is expected to hash each
  * one (via `hashRecoveryCode`) before persisting; the cleartext is
  * shown to the user exactly once.
+ *
+ * Implementation note: we deliberately avoid `randomBytes(...)[i] %
+ * ALPHABET.length`. Even though our 32-char alphabet happens to
+ * divide 256 evenly (so the bias would be zero in practice), CodeQL
+ * flags the pattern because the property silently breaks the moment
+ * the alphabet length stops dividing 256 — e.g. dropping `Z` to land
+ * at 31 chars would make `0..7` 13% more likely than `8..30`.
+ *
+ * `crypto.randomInt(max)` is the safe primitive: Node uses rejection
+ * sampling internally so every value in `[0, max)` is equally
+ * likely, regardless of `max`.
  */
 export function generateRecoveryCodes(n = RECOVERY_CODE_COUNT): string[] {
   const out: string[] = [];
   for (let i = 0; i < n; i++) {
-    const bytes = randomBytes(RECOVERY_CODE_LENGTH);
     let code = '';
     for (let j = 0; j < RECOVERY_CODE_LENGTH; j++) {
-      code += RECOVERY_ALPHABET[bytes[j] % RECOVERY_ALPHABET.length];
+      code += RECOVERY_ALPHABET[randomInt(RECOVERY_ALPHABET.length)];
     }
     // Hyphenate at the 4th char so both halves are visually balanced.
     out.push(`${code.slice(0, 4)}-${code.slice(4)}`);
