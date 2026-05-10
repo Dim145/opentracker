@@ -26,6 +26,10 @@ features:
     details: Pending / accepted / changes-requested / rejected lifecycle with a per-torrent discussion thread between uploaders and moderators.
   - title: Bonus events
     details: Time-bounded Freeleech / Silverleech windows or any custom multipliers. Applied on the announce hot path; the snapshot is cached for 30 s in Redis.
+  - title: Seed bonus economy
+    details: Per-user points earned for seeding (rate-limited curves on torrent age, swarm rarity, seed count, …) and spent in an operator-curated shop on upload-credit or invites.
+  - title: HTTP + UDP tracker
+    details: Single Go binary speaks BEP 3 over HTTP/8080 and BEP 15 over UDP/6969. Stateless connection-id HMAC, BEP 41 URL_DATA carries the passkey, and the .torrent generator advertises both tiers.
   - title: User-managed invitations
     details: Members generate their own one-time codes from a dedicated page. Codes are masked from staff to remove the temptation to harvest. Three-state registration (open / invite-only / closed).
   - title: Built-in observability
@@ -38,7 +42,7 @@ features:
 
 Trackarr is designed for communities that value **privacy** and **security** above all else. Unlike traditional trackers that store passwords and personal data in plaintext or with reversible encryption, Trackarr uses cryptographic proofs that make it mathematically impossible to recover user credentials — even for administrators.
 
-This documentation covers the [`Dim145/opentracker`](https://github.com/Dim145/opentracker) fork, which adds two-factor auth, user-managed invitations, the moderation pipeline, bonus events, the three-state registration mode, and a hardened announce hot path on top of the original feature set.
+This documentation covers the [`Dim145/opentracker`](https://github.com/Dim145/opentracker) fork, which adds two-factor auth, user-managed invitations, the moderation pipeline, bonus events, the [seed-bonus economy](/guide/seed-bonus) (per-user points + shop), the [UDP tracker frontend](/guide/udp-tracker) (BEP 15 alongside HTTP), the three-state registration mode, and a hardened announce hot path on top of the original feature set.
 
 ### Tech Stack
 

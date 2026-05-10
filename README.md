@@ -76,6 +76,27 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 | `/users/[id]` | Public profile — uses display name, bio, redacts last-seen when the user opted out                   |
 | `/settings`   | Editorial layout with anchor sidebar, sticky save bar, theme picker, change-password ZK flow         |
 
+### Tracker protocols
+
+| Feature                       | Notes                                                                                    |
+| ----------------------------- | ---------------------------------------------------------------------------------------- |
+| HTTP announce (BEP 3)         | Default `8080/tcp`; sub-ms p99; the bencode response path is alloc-friendly             |
+| **UDP announce (BEP 15)**     | Default `6969/udp`; ~6×–8× cheaper on the wire, supported by every modern client         |
+| BEP 41 URL_DATA passkey        | UDP carries the passkey path-style — `udp://host:6969/announce/PASSKEY` works as-is     |
+| Stateless connection_id        | HMAC-SHA256(secret, ip ‖ minute) folded to 8 B; ~2-min validity, no per-id memory       |
+| Multi-tier `.torrent` files    | Generator advertises HTTP + UDP independently when UDP is enabled                       |
+| Single env switch              | `TRACKER_UDP_ENABLED=false` disables UDP + drops it from new `.torrent` files in one go |
+
+### Bonus economy
+
+| Feature                  | Notes                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------- |
+| **Seed-bonus points**    | Customisable per-minute rules (time, torrent age, rarity); tiered curves with live preview |
+| Bonus shop               | Operator-curated catalogue; built-in `upload_credit` and `invite` effects, transactional buy |
+| Bonus uploaded tracking  | `users.bonusUploaded` distinct from real seeded bytes — `/me` shows `X (incl. Y bonus)`     |
+| Admin point adjustment   | Add / remove points from `/admin/users` with audit-logged reason                             |
+| Bonus events (windows)   | Time-bounded Freeleech / Silverleech / custom multipliers, applied on the announce hot path |
+
 ### Performance & resilience
 
 | Feature                     | Notes                                                                       |
@@ -93,21 +114,22 @@ Trackarr ships as **three independent containers** behind Caddy, plus the usual 
 
 ```
                               ┌───────────────────────────────────┐
-   Browser ──HTTPS──►   Caddy │ /announce  → tracker (Go)         │
+   Browser ──HTTPS──►   Caddy │ /announce  → tracker (Go) :8080   │
                               │ /api/*     → api (Nitro)          │
                               │ /uploads/* → api (Nitro)          │
                               │ /*         → web (Nuxt SSR)       │
                               └───────────────────────────────────┘
+   BT client  ──UDP──► tracker :6969  (BEP 15, bypasses Caddy — UDP can't be reverse-proxied)
                                   │            │           │
                                   ▼            ▼           ▼
-                       ┌─────────────┐ ┌─────────────┐ ┌──────────┐
-                       │  apps/web   │ │  apps/api   │ │ apps/    │
-                       │  Nuxt 4 SSR │ │ Nitro 4     │ │ tracker  │
-                       │  Vue 3      │ │ Drizzle ORM │ │ Go 1.25  │
-                       │  TypeScript │ │ Zod, h3     │ │ sqlc     │
-                       └─────────────┘ └──────┬──────┘ └────┬─────┘
-                                              │             │
-                                              ▼             ▼
+                       ┌─────────────┐ ┌─────────────┐ ┌──────────────┐
+                       │  apps/web   │ │  apps/api   │ │ apps/tracker │
+                       │  Nuxt 4 SSR │ │ Nitro 4     │ │ Go 1.25      │
+                       │  Vue 3      │ │ Drizzle ORM │ │ sqlc         │
+                       │  TypeScript │ │ Zod, h3     │ │ HTTP + UDP   │
+                       └─────────────┘ └──────┬──────┘ └──────┬───────┘
+                                              │              │
+                                              ▼              ▼
                                        ┌─────────────────────────┐
                                        │   PgBouncer (pool)      │
                                        └────────────┬────────────┘
@@ -117,12 +139,13 @@ Trackarr ships as **three independent containers** behind Caddy, plus the usual 
                                               └───────────┘
                                               ┌───────────┐
                                               │   Redis   │ ◄── tracker peers,
-                                              └───────────┘     sessions, rate limit
+                                              └───────────┘     sessions, rate limit,
+                                                                seed-bonus accumulator
 ```
 
 **Why three containers**
 
-- **The tracker is its own thing.** It's the hot path — every BitTorrent client in the swarm hits `/announce` every few minutes. Rewriting it from Node.js to a static Go binary on `scratch` (~10 MB image, sub-ms p99) means a single broken Nuxt deploy can't take down announces, and the announce path doesn't pay V8 startup costs. The Go module uses `sqlc` for type-safe DB access; the announce protocol talks to the same Redis hashes Node used to write, so callers don't change.
+- **The tracker is its own thing.** It's the hot path — every BitTorrent client in the swarm hits `/announce` every few minutes. Rewriting it from Node.js to a static Go binary on `scratch` (~10 MB image, sub-ms p99) means a single broken Nuxt deploy can't take down announces, and the announce path doesn't pay V8 startup costs. The Go module uses `sqlc` for type-safe DB access; the announce protocol talks to the same Redis hashes Node used to write, so callers don't change. **Two transports**: BEP 3 over HTTP/8080 and BEP 15 over UDP/6969 — same wire-agnostic processor, different parsers/encoders. The UDP frontend uses a stateless HMAC-bound `connection_id` and pulls the passkey out of the BEP 41 URL_DATA option (`udp://host:6969/announce/PASSKEY`). See the [UDP tracker guide](doc/guide/udp-tracker.md).
 - **The API and the web are split.** `apps/api` is Nitro standalone — every `/api/*` route, the upload endpoints, the metadata lookups, the admin tools. `apps/web` is Nuxt SSR — the rendered shell + page chunks. The split lets each scale and redeploy independently, and the static-build alternative below replaces only `apps/web`.
 - **Distroless everywhere.** `apps/web` and `apps/api` run on `gcr.io/distroless/nodejs24-debian13:nonroot`. The tracker runs on `scratch`. The optional static frontend runs on `cgr.dev/chainguard/nginx`. No shells, no package managers, signed images, non-root by default.
 

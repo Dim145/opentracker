@@ -55,11 +55,23 @@ These must be set for the application to run:
 
 | Variable               | Description                     | Default |
 | ---------------------- | ------------------------------- | ------- |
+| `TRACKER_HTTP_PORT`    | HTTP listener port (BEP 3 announce) | `8080` |
+| `TRACKER_UDP_PORT`     | UDP listener port (BEP 15 announce) | `6969` |
+| `TRACKER_UDP_ENABLED`  | Toggle the UDP listener. Read by **three** processes: the tracker (controls the listener), the API stats endpoint (drives the homepage Protocol-health tile), and the `.torrent` download endpoint (only adds the UDP tier when this is true). | `true` |
 | `TRACKER_INTERVAL`     | Announce interval (seconds)     | `1800`  |
 | `TRACKER_MIN_INTERVAL` | Minimum announce interval       | `900`   |
 | `TRACKER_MAX_PEERS`    | Max peers returned per announce | `50`    |
+| `TRACKER_DEBUG`        | Enables `debug` logs on the tracker container (announce successes, UDP packet dispatch, …). | `false` |
 | `TRUST_PROXY`          | Honour `X-Forwarded-For` for client IP. Set to `true` only when a trusted reverse proxy is in front of the tracker. | `false` |
 | `REDIS_KEY_PREFIX`     | Prefix every Redis key with this string. Must match between the API (ioredis) and the Go tracker. | `ot:`   |
+
+::: tip UDP frontend
+Disabling UDP at the tracker (`TRACKER_UDP_ENABLED=false`) automatically
+keeps the UDP tier out of newly downloaded `.torrent` files — the API
+reads the same env. See the [UDP Tracker guide](../guide/udp-tracker)
+for the protocol details, the BEP 41 passkey scheme, and reverse-proxy
+caveats.
+:::
 
 ## Static SPA build (optional)
 
