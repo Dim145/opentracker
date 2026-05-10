@@ -222,6 +222,8 @@ the rate limiter sees the real client IP through Caddy. Don't remove it.
    invite policy.
 4. **Generate invitations** if you want a closed community.
 
+![Admin dashboard — swarm KPIs and time-series charts (peers, seeders, Redis memory, DB size)](/screenshots/admin-dashboard.png)
+
 ---
 
 ## Next steps

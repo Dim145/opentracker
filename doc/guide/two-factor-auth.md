@@ -8,6 +8,8 @@ Trackarr ships with two complementary second-factor methods on top of the
 
 A user can enable either, both, or neither. When at least one is configured the SRP login path mints a short-lived **challenge token** instead of opening a session; the client trades it for a session by submitting a TOTP code, a recovery code, or a WebAuthn assertion.
 
+![Settings · Security panel with TOTP, passkeys and trusted devices](/screenshots/settings-security.png)
+
 ## Enrolling
 
 Each user manages their own factors from `/settings#security`:

@@ -11,6 +11,8 @@ Any custom combination in `[0×, 2×]` download / `[0×, 10×]` upload is also a
 
 ## Admin surface (`/admin/bonus-events`)
 
+![Bonus events admin — active Freeleech window with start / end times and the day's deltas](/screenshots/admin-bonus-events.png)
+
 The page lists every event (active, scheduled, ended, disabled) and exposes a **New event** modal. The modal carries:
 
 - A 3-button preset picker (Freeleech, Silverleech, Custom) that pre-fills the multiplier sliders.

@@ -440,9 +440,13 @@ go run ./cmd/tracker                        # Run locally
 go test ./...                                # Tests
 ```
 
-![Forum](apps/web/public/images/image%20copy%203.png)
+![Forum](apps/web/public/images/screens/forum.png)
 
-![User profile](apps/web/public/images/image%20copy%204.png)
+![User profile](apps/web/public/images/screens/me.png)
+
+![Admin dashboard](apps/web/public/images/screens/admin-dashboard.png)
+
+![Moderation queue](apps/web/public/images/screens/mod-pending.png)
 
 ---
 

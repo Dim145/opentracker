@@ -9,6 +9,8 @@ Both are gated by the [registration mode](#registration-mode) — if registratio
 
 ## Member view (`/invites`)
 
+![Member invitations page — editorial registry layout with the 30-day window selected](/screenshots/invites.png)
+
 A member's "Invitation Registry" is the only place where the **full code** is ever revealed. The page tells the user:
 
 - How many invitations they have left to extend (their `users.invites_remaining` quota).
@@ -26,6 +28,8 @@ The invitation count decrements at **code creation**, not at redemption. Generat
 :::
 
 ## Admin view (`/admin/invites`)
+
+![Admin invitations console — KPIs, filters and the registry-wide ledger with masked codes](/screenshots/admin-invites.png)
 
 Staff manage the registry from a dedicated admin page:
 
