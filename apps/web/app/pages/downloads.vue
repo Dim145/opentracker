@@ -163,7 +163,7 @@
       </li>
     </ol>
 
-    <!-- Pagination — same compact pager used on /search. -->
+    <!-- Pagination — same compact pager used on /torrents. -->
     <div v-if="data && data.total > data.pageSize" class="dl-foot">
       <i18n-t keypath="downloads.footer.pageSummary" tag="p" class="dl-foot-summary" scope="global">
         <template #current><strong>{{ data.page }}</strong></template>

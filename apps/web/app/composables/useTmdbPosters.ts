@@ -1,7 +1,7 @@
 /**
  * Composable around TMDb poster lookups.
  *
- * Each call site (e.g. /search grouped view, /downloads list) registers
+ * Each call site (e.g. /torrents grouped view, /downloads list) registers
  * the (tmdbId, typeHint) pairs it cares about; the composable batches
  * the fetches against `/api/metadata/lookup` and exposes a tiny state
  * machine per pair:

@@ -726,8 +726,10 @@ async function refreshStats() {
 // has to touch the JSON, never the template.
 const navLinks = [
   { to: '/', labelKey: 'nav.dashboard', icon: 'ph:squares-four', adminOnly: false },
-  { to: '/search', labelKey: 'nav.search', icon: 'ph:magnifying-glass', adminOnly: false },
-  { to: '/torrents', labelKey: 'nav.torrents', icon: 'ph:files', adminOnly: false },
+  // /search was merged into /torrents — one surface for browsing, searching
+  // and uploading. Keep the magnifying-glass icon since the page leads
+  // with a search bar and trending results.
+  { to: '/torrents', labelKey: 'nav.torrents', icon: 'ph:magnifying-glass', adminOnly: false },
   { to: '/forum', labelKey: 'nav.forum', icon: 'ph:chat-centered-text', adminOnly: false },
   { to: '/admin', labelKey: 'nav.admin', icon: 'ph:shield-check', adminOnly: true },
   { to: '/mod', labelKey: 'nav.mod', icon: 'ph:shield', modOnly: true },

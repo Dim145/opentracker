@@ -161,7 +161,7 @@ const router = useRouter();
 function handleSearch() {
   if (!search.value.trim()) return;
   router.push({
-    path: '/search',
+    path: '/torrents',
     query: { q: search.value.trim() },
   });
 }
