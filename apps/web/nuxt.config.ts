@@ -99,6 +99,14 @@ export default defineNuxtConfig({
       alwaysRedirect: false,
       fallbackLocale: 'en',
     },
+    // Explicitly disable the legacy `v-t` directive optimisation. The
+    // module warns about it being on by default and slated for removal
+    // in v10; we don't use the directive (we always go through `$t()`
+    // / `t()`), so opting out drops the build-time AST-walk and
+    // silences the deprecation notice.
+    bundle: {
+      optimizeTranslationDirective: false,
+    },
   },
 
   // Icon module — see follow-up notes; the previous CSS mode rendering
@@ -203,5 +211,51 @@ export default defineNuxtConfig({
 
   build: {
     transpile: ['chart.js', 'vue-chartjs'],
+  },
+
+  // Production sourcemaps are off across server + client. They double
+  // the .output size and trigger a Nuxt internal warning from the
+  // module-preload-polyfill plugin (which doesn't emit a paired map),
+  // and we ship through GHCR + Caddy so there's no stack-trace UX
+  // benefit at runtime. Dev mode keeps Vite's default behaviour.
+  sourcemap: {
+    server: false,
+    client: false,
+  },
+
+  vite: {
+    build: {
+      // We knowingly bundle the Phosphor icon collection in full
+      // (~4.5 MB of `chunks/_/icons.mjs`, ~940 kB gzip) so SSR can
+      // hydrate icons without a runtime fetch — see icon.clientBundle
+      // notes above. Bumping the warning ceiling to 5 MB silences
+      // the rollup chunk-size advisory for that one expected chunk
+      // without hiding genuinely-oversized chunks elsewhere.
+      chunkSizeWarningLimit: 5000,
+      // Belt-and-braces with the top-level `sourcemap.{server,client}`
+      // setting above — without it, Vite's `nuxt:module-preload-polyfill`
+      // plugin still injects a transform without an accompanying source
+      // map and warns about the chain being incomplete. Locking it off
+      // at the rollup level too keeps the build output silent.
+      sourcemap: false,
+      rollupOptions: {
+        // Nuxt's internal `nuxt:module-preload-polyfill` plugin emits a
+        // transform without a paired source map, which makes Rollup
+        // warn `Sourcemap is likely to be incorrect` on every build.
+        // It's a framework-level plumbing issue, not a code-quality
+        // signal — silence it specifically while letting every other
+        // Rollup warning surface as usual.
+        onwarn(warning, defaultHandler) {
+          if (
+            warning.code === 'SOURCEMAP_BROKEN' ||
+            (warning.plugin === 'nuxt:module-preload-polyfill' &&
+              warning.message.includes('Sourcemap'))
+          ) {
+            return;
+          }
+          defaultHandler(warning);
+        },
+      },
+    },
   },
 });
