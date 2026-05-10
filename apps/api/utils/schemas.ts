@@ -135,7 +135,18 @@ export const adminCategorySchema = z.object({
     )
     .optional(),
   parentId: z.uuid('Invalid parent category ID').nullable().optional(),
-  newznabId: z.coerce.number().int().min(1000).max(9999).nullable().optional(),
+  // 1000–199_999 covers both the standard Newznab ranges (1000–8999)
+  // and the Prowlarr/Jackett "custom" range (100_000–199_999). Real
+  // tracker definitions in Prowlarr use ids like 105070 / 106060 for
+  // tracker-specific anime / movie categories — capping at 9999 used
+  // to lock those out of the manual mapping field.
+  newznabId: z.coerce
+    .number()
+    .int()
+    .min(1000)
+    .max(199_999)
+    .nullable()
+    .optional(),
   description: z.string().max(500).optional(),
   icon: z.string().max(50).optional(),
   // Marks the row as part of the gated XXX subtree.

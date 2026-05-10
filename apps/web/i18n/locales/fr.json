@@ -1129,8 +1129,8 @@
         "rootCategory": "— Catégorie racine —",
         "parentReassignHint": "Le déplacement de parent n'est pas encore pris en charge — supprimez puis recréez si vous devez déplacer une ligne.",
         "newznabId": "ID Newznab",
-        "newznabIdPlaceholder": "ex. 5070",
-        "newznabIdHint": "ID de catégorie Torznab à 4 chiffres utilisé par les clients *Arr. Laissez vide si non applicable.",
+        "newznabIdPlaceholder": "ex. 5070 ou 105070",
+        "newznabIdHint": "ID de catégorie Torznab utilisé par les clients *Arr. Les IDs standards vivent dans 1000–8999 ; la plage personnalisée Prowlarr/Jackett (100000–199999) est également acceptée pour les catégories spécifiques au tracker. Laissez vide pour retomber sur un ID synthétique stable dérivé du slug de la catégorie.",
         "mediaType": "Type de média",
         "mediaTypeHint": "Détermine l'espace TMDb. Auto se rabat sur l'heuristique slug + Newznab."
       },

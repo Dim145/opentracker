@@ -1129,8 +1129,8 @@
         "rootCategory": "— Root category —",
         "parentReassignHint": "Parent reassignment isn't supported yet — delete and recreate if you need to move a row.",
         "newznabId": "Newznab id",
-        "newznabIdPlaceholder": "e.g. 5070",
-        "newznabIdHint": "4-digit Torznab category id used by *Arr clients. Leave empty if none applies.",
+        "newznabIdPlaceholder": "e.g. 5070 or 105070",
+        "newznabIdHint": "Torznab category id used by *Arr clients. Standard ids live in 1000–8999; the Prowlarr/Jackett custom range (100000–199999) is also accepted for tracker-specific categories. Leave empty to fall back to a stable synthetic id derived from the category slug.",
         "mediaType": "Media type",
         "mediaTypeHint": "Drives the TMDb namespace hint. Auto falls back to the slug + Newznab heuristic."
       },

@@ -7,7 +7,16 @@ import { validateBody } from '~~/utils/schemas';
 
 const updateCategorySchema = z.object({
   name: z.string().min(1).max(50),
-  newznabId: z.coerce.number().int().min(1000).max(9999).nullable().optional(),
+  // See apps/api/utils/schemas.ts for the rationale on the upper
+  // bound — kept in sync here so the per-id update path doesn't
+  // silently re-cap to 9999.
+  newznabId: z.coerce
+    .number()
+    .int()
+    .min(1000)
+    .max(199_999)
+    .nullable()
+    .optional(),
   isAdult: z.boolean().optional(),
   // 'movie' / 'tv' / null. Sent explicitly null to clear a previously
   // set type and fall back to the heuristic.

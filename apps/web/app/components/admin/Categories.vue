@@ -261,7 +261,7 @@
             v-model.number="form.newznabId"
             type="number"
             min="1000"
-            max="9999"
+            max="199999"
             :placeholder="$t('admin.categories.fields.newznabIdPlaceholder')"
             class="input cat-form__input"
             :disabled="saving"
