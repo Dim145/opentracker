@@ -51,7 +51,10 @@
     "languageSelector": "Select language",
     "refreshStats": "Refresh stats",
     "openNav": "Open navigation",
-    "closeNav": "Close navigation"
+    "closeNav": "Close navigation",
+    "searchPlaceholder": "Search a torrent…",
+    "searchAria": "Search torrents",
+    "searchHint": "Press / to focus"
   },
   "home": {
     "trackerOnline": "Tracker online & operational",

@@ -45,23 +45,78 @@
           </div>
         </NuxtLink>
 
-        <!-- Desktop nav: hidden below md, visible from md up. -->
-        <nav class="hidden md:flex items-center gap-1">
+        <!-- Desktop nav: hidden below md, visible from md up.
+             From md→lg the labels collapse so the search bar has room
+             without bumping the user-menu off-screen; lg+ shows full
+             icon+label pairs again. -->
+        <nav class="hidden md:flex items-center gap-1 flex-shrink-0">
           <NuxtLink
             v-for="link in visibleNavLinks"
             :key="link.to"
             :to="link.to"
-            class="px-3 py-1.5 text-xs font-medium rounded transition-all text-text-secondary hover:bg-fg-default/5 hover:text-text-primary"
+            class="px-2.5 py-1.5 text-xs font-medium rounded transition-all text-text-secondary hover:bg-fg-default/5 hover:text-text-primary"
             active-class="bg-fg-default/10 text-text-strong"
+            :title="$t(link.labelKey)"
           >
             <div class="flex items-center gap-2">
               <Icon :name="link.icon" class="text-base" />
-              <span>{{ $t(link.labelKey) }}</span>
+              <span class="hidden lg:inline">{{ $t(link.labelKey) }}</span>
             </div>
           </NuxtLink>
         </nav>
 
-        <div class="flex items-center gap-3">
+        <!-- Navbar search — the centerpiece. Grows to fill the gap
+             between the nav cluster and the right-hand stats so the
+             header reads as "directory · search · status" left-to-right.
+             A `/` keypress anywhere on the page focuses it; the input is
+             a search-typed control so the browser surfaces a clear
+             button on Webkit/Chromium. Submitting pushes to /torrents
+             with the query pre-filled — the page already watches
+             `route.query.q` and re-runs the fetch automatically. -->
+        <form
+          class="hidden md:flex flex-1 min-w-0 max-w-[640px] mx-2 lg:mx-3"
+          role="search"
+          @submit.prevent="submitNavSearch"
+        >
+          <div
+            class="navsearch"
+            :class="{ 'navsearch--filled': navSearchQuery.length > 0 }"
+          >
+            <Icon
+              name="ph:magnifying-glass-bold"
+              class="navsearch-icon"
+              aria-hidden="true"
+            />
+            <input
+              ref="navSearchRef"
+              v-model="navSearchQuery"
+              type="search"
+              autocomplete="off"
+              :placeholder="$t('nav.searchPlaceholder')"
+              :aria-label="$t('nav.searchAria')"
+              class="navsearch-input"
+              @focus="navSearchFocused = true"
+              @blur="navSearchFocused = false"
+            />
+            <kbd
+              v-if="!navSearchQuery && !navSearchFocused"
+              class="navsearch-kbd"
+              :title="$t('nav.searchHint')"
+              aria-hidden="true"
+            >/</kbd>
+            <button
+              v-else-if="navSearchQuery"
+              type="button"
+              class="navsearch-clear"
+              :aria-label="$t('common.cancel')"
+              @click="clearNavSearch"
+            >
+              <Icon name="ph:x-bold" />
+            </button>
+          </div>
+        </form>
+
+        <div class="flex items-center gap-3 flex-shrink-0">
           <!-- Active bonus event icon — visible to every signed-in user
                whenever a Freeleech / Silverleech / custom multiplier
                window is in flight. Renders nothing while idle. -->
@@ -314,6 +369,42 @@
             <Icon name="ph:x-bold" class="text-lg" />
           </button>
         </div>
+
+        <!-- Mobile search — same surface as the desktop navbar input,
+             reflowed into the drawer so phone users still get a
+             one-tap path into the listing without having to navigate
+             to /torrents first. -->
+        <form
+          class="px-3 py-3 border-b border-border"
+          role="search"
+          @submit.prevent="submitNavSearchMobile"
+        >
+          <div class="navsearch navsearch--block">
+            <Icon
+              name="ph:magnifying-glass-bold"
+              class="navsearch-icon"
+              aria-hidden="true"
+            />
+            <input
+              ref="navSearchMobileRef"
+              v-model="navSearchMobileQuery"
+              type="search"
+              autocomplete="off"
+              :placeholder="$t('nav.searchPlaceholder')"
+              :aria-label="$t('nav.searchAria')"
+              class="navsearch-input"
+            />
+            <button
+              v-if="navSearchMobileQuery"
+              type="button"
+              class="navsearch-clear"
+              :aria-label="$t('common.cancel')"
+              @click="navSearchMobileQuery = ''"
+            >
+              <Icon name="ph:x-bold" />
+            </button>
+          </div>
+        </form>
 
         <!-- User identity card -->
         <NuxtLink
@@ -591,6 +682,17 @@ const router = useRouter();
 const showUserMenu = ref(false);
 const userMenuRef = ref<HTMLElement | null>(null);
 
+// Navbar search bar state. The query is local to the layout — it
+// pushes to /torrents on submit and the listing's own `route.query.q`
+// watcher takes over from there. Tracking focus in a ref (rather than
+// CSS :focus-within) lets us swap the right-hand affordance between a
+// `/` key hint (idle) and an `x` clear button (typing).
+const navSearchQuery = ref('');
+const navSearchRef = ref<HTMLInputElement | null>(null);
+const navSearchFocused = ref(false);
+const navSearchMobileRef = ref<HTMLInputElement | null>(null);
+const navSearchMobileQuery = ref('');
+
 // Mobile drawer state. We close it on every route change so the user
 // doesn't see stale chrome from the previous page, and we lock body
 // scroll while it's open so the page underneath doesn't move when the
@@ -724,12 +826,17 @@ async function refreshStats() {
 // Nav labels go through `t()` at render time. The `labelKey` lookup
 // stays in `i18n/locales/*.json` under `nav.*` so a translator only
 // has to touch the JSON, never the template.
+// Dashboard ("/") is reachable via the logo on the left of the bar, so
+// it's omitted from the link list to keep the navbar slim — adding a
+// duplicate entry would just buy space and noise without a new
+// affordance.
+//
+// /search was merged into /torrents — one surface for browsing, searching
+// and uploading. The icon stays a "list" because the navbar already
+// surfaces a magnifying-glass via the centred search bar; doubling up
+// would muddy the meaning of the link.
 const navLinks = [
-  { to: '/', labelKey: 'nav.dashboard', icon: 'ph:squares-four', adminOnly: false },
-  // /search was merged into /torrents — one surface for browsing, searching
-  // and uploading. Keep the magnifying-glass icon since the page leads
-  // with a search bar and trending results.
-  { to: '/torrents', labelKey: 'nav.torrents', icon: 'ph:magnifying-glass', adminOnly: false },
+  { to: '/torrents', labelKey: 'nav.torrents', icon: 'ph:files', adminOnly: false },
   { to: '/forum', labelKey: 'nav.forum', icon: 'ph:chat-centered-text', adminOnly: false },
   { to: '/admin', labelKey: 'nav.admin', icon: 'ph:shield-check', adminOnly: true },
   { to: '/mod', labelKey: 'nav.mod', icon: 'ph:shield', modOnly: true },
@@ -755,12 +862,66 @@ function handleClickOutside(event: MouseEvent) {
   }
 }
 
+// Submit either the desktop or mobile navbar search. Same destination,
+// same query semantics — the only difference is which input we read.
+// We trim whitespace, bail on empty submissions (no point landing on
+// /torrents?q= with an empty parameter that the page would just ignore),
+// and clear the field afterwards so the navbar feels "consumed" the
+// way a command palette does.
+function submitNavSearch() {
+  const q = navSearchQuery.value.trim();
+  if (!q) return;
+  router.push({ path: '/torrents', query: { q } });
+  navSearchQuery.value = '';
+  navSearchRef.value?.blur();
+}
+
+function clearNavSearch() {
+  navSearchQuery.value = '';
+  navSearchRef.value?.focus();
+}
+
+function submitNavSearchMobile() {
+  const q = navSearchMobileQuery.value.trim();
+  if (!q) return;
+  router.push({ path: '/torrents', query: { q } });
+  navSearchMobileQuery.value = '';
+  showMobileNav.value = false;
+}
+
+// Global `/` shortcut — focuses the navbar search from anywhere on
+// the page. We deliberately ignore the keypress while the user is
+// already typing in another field (input/textarea/contenteditable) so
+// that legitimate slashes still land in their target. Esc inside the
+// search blurs the field and clears any in-flight query.
+function onGlobalKeydown(e: KeyboardEvent) {
+  if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    const active = document.activeElement as HTMLElement | null;
+    const isTyping =
+      !!active &&
+      (active.tagName === 'INPUT' ||
+        active.tagName === 'TEXTAREA' ||
+        active.isContentEditable);
+    if (isTyping) return;
+    e.preventDefault();
+    navSearchRef.value?.focus();
+    navSearchRef.value?.select();
+    return;
+  }
+  if (e.key === 'Escape' && document.activeElement === navSearchRef.value) {
+    navSearchQuery.value = '';
+    navSearchRef.value?.blur();
+  }
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  document.addEventListener('keydown', onGlobalKeydown);
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener('keydown', onGlobalKeydown);
 });
 
 async function onMobileLogout() {
@@ -813,5 +974,160 @@ const ratioColor = computed(() => {
    through the sheet, with a hard shadow that anchors it to the top. */
 .mobile-drawer {
   box-shadow: var(--shadow-overlay);
+}
+
+/* =============================================================================
+ * Navbar search — slim pill that nests between the desktop nav and the
+ * stats cluster. The container does the visuals (border, background,
+ * focus glow); the <input> stays transparent so the icon and the
+ * trailing affordance (kbd hint OR clear button) feel like part of one
+ * surface. The whole thing follows the brutalist-techno tokens used
+ * elsewhere — JetBrains Mono caption, 4px radius, accent-tinted ring
+ * on focus.
+ * ============================================================================= */
+.navsearch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 34px;
+  padding: 0 0.5rem 0 0.7rem;
+  background: rgb(var(--bg-elevated) / 0.55);
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 6px;
+  transition: border-color 0.18s ease, background 0.18s ease,
+    box-shadow 0.18s ease;
+  position: relative;
+}
+.navsearch::before {
+  /* Faint top-edge sheen — reads as a subtle "lit-from-above" treatment
+     when the input is on a dark background, mirroring the depth of the
+     stats badge to its right. Hidden in light mode where the gradient
+     would muddy the cleaner palette. */
+  content: '';
+  position: absolute;
+  inset: 0 1px auto 1px;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgb(var(--fg-default) / 0.08),
+    transparent
+  );
+  border-radius: inherit;
+  pointer-events: none;
+}
+.navsearch:hover {
+  border-color: rgb(var(--line-strong));
+  background: rgb(var(--bg-elevated) / 0.85);
+}
+.navsearch:focus-within {
+  border-color: rgb(var(--accent) / 0.7);
+  background: rgb(var(--bg-elevated));
+  box-shadow:
+    0 0 0 3px rgb(var(--accent) / 0.14),
+    0 1px 0 0 rgb(var(--accent) / 0.18) inset;
+}
+.navsearch--filled {
+  border-color: rgb(var(--accent) / 0.4);
+}
+.navsearch--block {
+  /* Mobile drawer: full-width, slightly taller for thumb comfort. */
+  height: 40px;
+  border-radius: 8px;
+  padding-left: 0.85rem;
+}
+
+.navsearch-icon {
+  color: rgb(var(--fg-muted));
+  font-size: 14px;
+  flex-shrink: 0;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+.navsearch:focus-within .navsearch-icon,
+.navsearch--filled .navsearch-icon {
+  color: rgb(var(--accent));
+  transform: scale(1.05);
+}
+
+.navsearch-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgb(var(--fg-strong));
+  caret-color: rgb(var(--accent));
+}
+.navsearch-input::placeholder {
+  color: rgb(var(--fg-subtle));
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+.navsearch-input:focus::placeholder {
+  color: rgb(var(--fg-faint));
+}
+/* Hide the WebKit/Blink "search" decorations — the trailing X cancel
+   button doesn't match the rest of the design and the magnifier-result
+   decoration is redundant with our left-side icon. */
+.navsearch-input::-webkit-search-decoration,
+.navsearch-input::-webkit-search-cancel-button,
+.navsearch-input::-webkit-search-results-button,
+.navsearch-input::-webkit-search-results-decoration {
+  display: none;
+}
+
+/* Idle affordance — a `/` keyboard hint badge that mirrors the in-page
+   SearchBar component, doubling as visual weight balance against the
+   left icon. Disappears on focus + when the user starts typing. */
+.navsearch-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.2rem;
+  min-width: 1.2rem;
+  padding: 0 0.35rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgb(var(--fg-muted));
+  background: rgb(var(--bg-base) / 0.7);
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 3px;
+  flex-shrink: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+/* Active affordance — clear button, swaps in once the user starts
+   typing. Matches the size/weight of the kbd hint so the bar's
+   silhouette doesn't shift between idle and editing. */
+.navsearch-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.4rem;
+  width: 1.4rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  color: rgb(var(--fg-muted));
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.14s ease, background 0.14s ease;
+}
+.navsearch-clear:hover {
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--fg-default) / 0.1);
+}
+.navsearch-clear svg {
+  width: 11px;
+  height: 11px;
 }
 </style>
