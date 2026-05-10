@@ -76,7 +76,7 @@ services:
       API_INTERNAL_URL: http://api:4000
       # Tracker URLs displayed to users (read at runtime by Nuxt)
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-https://localhost/announce}
-      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost/announce}
+      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost:6969/announce}
       NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-ws://localhost:8082}
     expose:
       - "3000"
@@ -141,7 +141,7 @@ services:
       # Tracker URLs are also exposed by the API for endpoints like
       # GET /api/torrents/[hash]/download (announce embedded in .torrent files).
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-https://localhost/announce}
-      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost/announce}
+      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost:6969/announce}
       NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-ws://localhost:8082}
       # Reached over the internal compose network for /api/tracker-health
       # probes. Override only if the tracker lives outside this stack.
@@ -196,6 +196,10 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       IP_HASH_SECRET: ${IP_HASH_SECRET}
       TRACKER_HTTP_PORT: 8080
+      # UDP frontend (BEP 15). UDP can't be reverse-proxied by Caddy
+      # so it's exposed directly on the host via `ports` below.
+      TRACKER_UDP_PORT: 6969
+      TRACKER_UDP_ENABLED: ${TRACKER_UDP_ENABLED:-false}
       TRACKER_DEBUG: ${TRACKER_DEBUG:-false}
       # Caddy proxies BitTorrent announces on `/announce` and on the
       # `tracker.*` subdomain. Without trusting its X-Real-IP /
@@ -204,6 +208,8 @@ services:
       TRUST_PROXY: "true"
     expose:
       - "8080"
+    ports:
+      - "6969:6969/udp"
     networks:
       - trackarr-public
       - trackarr-internal

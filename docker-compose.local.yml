@@ -131,6 +131,10 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       IP_HASH_SECRET: ${IP_HASH_SECRET}
       TRACKER_HTTP_PORT: 8080
+      # UDP frontend (BEP 15). 6969 is the de-facto port; flip
+      # TRACKER_UDP_ENABLED=false to keep the listener off.
+      TRACKER_UDP_PORT: 6969
+      TRACKER_UDP_ENABLED: ${TRACKER_UDP_ENABLED:-false}
       TRACKER_DEBUG: ${TRACKER_DEBUG:-false}
       # Caddy proxies BitTorrent announces on `/announce` and on the
       # `tracker.*` subdomain. Without trusting its X-Real-IP /
@@ -139,6 +143,7 @@ services:
       TRUST_PROXY: "true"
     ports:
       - "8080:8080"
+      - "6969:6969/udp"
     networks:
       - trackarr
     depends_on:

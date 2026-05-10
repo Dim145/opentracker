@@ -18,6 +18,7 @@ import (
 	"github.com/florianjs/trackarr/apps/tracker/internal/db"
 	"github.com/florianjs/trackarr/apps/tracker/internal/peers"
 	"github.com/florianjs/trackarr/apps/tracker/internal/server"
+	"github.com/florianjs/trackarr/apps/tracker/internal/udp"
 )
 
 func main() {
@@ -100,6 +101,31 @@ func main() {
 		}
 	}()
 
+	// UDP frontend (BEP 15). Same business logic as HTTP — the UDP
+	// server adapts BEP 15 binary packets into the wire-agnostic
+	// `ProcessAnnounce` and lifts the passkey out of the BEP 41
+	// URL_DATA option. Opt-in via `TRACKER_UDP_ENABLED` so HTTPS-only
+	// deployments can keep the UDP listener off.
+	var udpSrv *udp.Server
+	if cfg.UDPEnabled {
+		udpAddr := ":" + strconv.Itoa(cfg.UDPPort)
+		var err error
+		udpSrv, err = udp.New(udpAddr, cfg.IPHashSecret, srv, store)
+		if err != nil {
+			logger.Error("udp listen", "err", err)
+			os.Exit(1)
+		}
+		go func() {
+			logger.Info("tracker udp listening", "addr", udpAddr)
+			if err := udpSrv.Serve(ctx); err != nil {
+				logger.Error("udp server", "err", err)
+				cancel()
+			}
+		}()
+	} else {
+		logger.Info("tracker udp disabled")
+	}
+
 	// Graceful shutdown on SIGTERM/SIGINT.
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
@@ -114,5 +140,10 @@ func main() {
 	defer shutdownCancel()
 	if err := httpSrv.Shutdown(shutdownCtx); err != nil {
 		logger.Error("http shutdown", "err", err)
+	}
+	// UDP has no in-flight connections to drain; closing the socket
+	// makes the read loop exit on the next deadline tick.
+	if udpSrv != nil {
+		_ = udpSrv.Close()
 	}
 }

@@ -59,9 +59,11 @@ export default defineEventHandler(async (event) => {
   const totalPeers = uniquePeers.size;
   const totalSeeders = uniqueSeeders.size;
 
-  // The tracker runs in a separate container now, so we can't introspect it
-  // from the API process. We report the static protocol matrix (HTTP only)
-  // and rely on the docker compose healthcheck for liveness.
+  // Protocol matrix mirrored from the tracker container's env. HTTP
+  // is always on; UDP toggles via `TRACKER_UDP_ENABLED` (default true,
+  // see apps/tracker/internal/config/config.go). The api process and
+  // tracker process share the same env so this read is authoritative
+  // without an internal RPC.
   return {
     status: 'running',
     cached: {
@@ -74,6 +76,10 @@ export default defineEventHandler(async (event) => {
       torrents: totalTorrents,
       peers: totalPeers,
     },
-    protocols: { http: true, udp: false, ws: false },
+    protocols: {
+      http: true,
+      udp: process.env.TRACKER_UDP_ENABLED !== 'false',
+      ws: false,
+    },
   };
 });

@@ -123,10 +123,17 @@ async function computeStats(): Promise<PublicStats> {
       torrents: totalTorrents,
       peers: uniquePeers.size,
     },
-    // Mirror the admin matrix. The tracker container exposes HTTP only;
-    // surface that truth so the homepage's protocol-health tile reflects
-    // reality instead of optimistically painting all three green.
-    protocols: { http: true, udp: false, ws: false },
+    // Protocol matrix mirrored from the tracker container's wiring.
+    // HTTP is always on; UDP is opt-in via `TRACKER_UDP_ENABLED` on
+    // the tracker side and we read the same env here so the homepage
+    // tile matches what the tracker is actually serving. WS is not
+    // implemented (see the WebTorrent research note in the project
+    // history — the cost/value ratio doesn't justify it).
+    protocols: {
+      http: true,
+      udp: process.env.TRACKER_UDP_ENABLED !== 'false',
+      ws: false,
+    },
   };
 }
 

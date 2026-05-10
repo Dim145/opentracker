@@ -9,6 +9,8 @@ import (
 
 type Config struct {
 	HTTPPort       int
+	UDPPort        int
+	UDPEnabled     bool
 	DatabaseURL    string
 	RedisURL       string
 	RedisPassword  string
@@ -21,7 +23,14 @@ type Config struct {
 // values cause an error (we refuse to start with broken security defaults).
 func Load() (*Config, error) {
 	cfg := &Config{
-		HTTPPort:       getEnvInt("TRACKER_HTTP_PORT", 8080),
+		HTTPPort: getEnvInt("TRACKER_HTTP_PORT", 8080),
+		// 6969 is the de-facto BEP 15 port; we keep it as default so a
+		// `udp://tracker.example.com:6969` URL works without operator
+		// tweaking. UDP support is opt-in via TRACKER_UDP_ENABLED so an
+		// operator who doesn't want to expose it (HTTPS-only deployments,
+		// strict firewall rules, etc.) can keep the listener off.
+		UDPPort:        getEnvInt("TRACKER_UDP_PORT", 6969),
+		UDPEnabled:     getEnvDefault("TRACKER_UDP_ENABLED", "true") == "true",
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		RedisURL:       os.Getenv("REDIS_URL"),
 		RedisPassword:  os.Getenv("REDIS_PASSWORD"),

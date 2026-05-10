@@ -118,22 +118,78 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	out := s.ProcessAnnounce(r.Context(), req, s.clientIP(r))
+	if out.Failure != "" {
+		writeFailure(w, out.Failure)
+		return
+	}
+
+	body := buildAnnounceResponse(out.Seeders, out.Leechers, out.Peers, req.Compact, req.PeerID, req.NumWant)
+	_, _ = w.Write(body)
+}
+
+// AnnounceOutcome is the wire-agnostic result of processing an announce.
+// The HTTP path renders it as bencode (`buildAnnounceResponse`); the UDP
+// path encodes the peer list as a 6-byte-per-peer binary payload (BEP 15).
+//
+// The struct is exported so other transports (currently `internal/udp`)
+// can reach it from outside the `server` package.
+type AnnounceOutcome struct {
+	// Failure, when non-empty, is a tracker-protocol failure reason
+	// (e.g. "Invalid passkey", "Low ratio. Download disabled."). All
+	// other fields are zero in this case. The wire layer renders this
+	// as the protocol-specific error shape — bencode `failure reason`
+	// for HTTP, action=3 for UDP.
+	Failure string
+
+	// Counts observed in the swarm at the moment the announce was
+	// processed. Always populated on success — even on dedup hits and
+	// on event=stopped responses, so the client UI can still show
+	// current seed/leech numbers.
+	Seeders  int
+	Leechers int
+
+	// Peers is the swarm snapshot the wire layer should send back.
+	// Empty on event=stopped (the peer just left and doesn't need a
+	// new list) and on dedup hits (we already gave them one a few
+	// seconds ago). The wire layer is responsible for filtering by
+	// NumWant and excluding the announcer's own peer_id.
+	Peers []*peers.PeerData
+
+	// Interval / MinInterval (seconds) are the gaps the client should
+	// respect between announces. Constants today; surfaced through the
+	// outcome so a future dynamic-interval feature has somewhere to
+	// land without forking the wire layer.
+	Interval    int
+	MinInterval int
+}
+
+// ProcessAnnounce runs the wire-agnostic core of an announce: passkey
+// resolution, ratio gate, torrent lookup, dedup, delta computation
+// (with bonus multipliers), peer upsert, and HnR / seed-time
+// bookkeeping. Returns enough data for the caller to render whatever
+// response shape the client expects (bencode / BEP 15 binary).
+//
+// `clientIP` is the announcing peer's IP — the caller is responsible
+// for extracting it correctly per its transport (HTTP X-Forwarded-For
+// when trusted, UDP socket address, etc.). The min-latency floor lives
+// in the HTTP wrapper, not here, because UDP timing-side-channel
+// concerns are different (no single-shot round-trip a remote attacker
+// can measure with sub-ms precision).
+func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, clientIP string) AnnounceOutcome {
 	infoHashHex := hexBytes(req.InfoHash[:])
-	ctx := r.Context()
 
 	// 1. Resolve & validate the user
 	user, err := s.db.Q.FindUserByPasskey(ctx, req.Passkey)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			writeFailure(w, "Invalid passkey")
-			return
+			return AnnounceOutcome{Failure: "Invalid passkey"}
 		}
-		s.serverError(w, "find user", err)
-		return
+		slog.Error("internal error", "where", "find user", "err", err)
+		return AnnounceOutcome{Failure: "Internal tracker error"}
 	}
 	if user.IsBanned {
-		writeFailure(w, "User is banned")
-		return
+		return AnnounceOutcome{Failure: "User is banned"}
 	}
 
 	// 2. Ratio check (only when leeching: left > 0)
@@ -142,8 +198,7 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 		if err == nil && minRatio > 0 && user.Downloaded > 0 {
 			ratio := float64(user.Uploaded) / float64(user.Downloaded)
 			if ratio < minRatio {
-				writeFailure(w, "Low ratio. Download disabled.")
-				return
+				return AnnounceOutcome{Failure: "Low ratio. Download disabled."}
 			}
 		}
 	}
@@ -154,23 +209,27 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 	torrentID, err := s.db.Q.FindActiveTorrentByInfoHash(ctx, infoHashHex)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			writeFailure(w, "Torrent not found or inactive")
-			return
+			return AnnounceOutcome{Failure: "Torrent not found or inactive"}
 		}
-		s.serverError(w, "find torrent", err)
-		return
+		slog.Error("internal error", "where", "find torrent", "err", err)
+		return AnnounceOutcome{Failure: "Internal tracker error"}
 	}
 
 	// 4. Dedup window — skip if same {hash,peer,event} fired within 2 seconds
 	peerHex := hexBytes(req.PeerID[:])
 	dedupKey := infoHashHex + ":" + peerHex + ":" + req.Event.String()
 	if !s.dedup.CheckAndMark(dedupKey) {
-		s.writeMinimalSuccess(ctx, w, infoHashHex, req)
-		return
+		seeders, leechers, _ := s.peers.Counts(ctx, infoHashHex)
+		return AnnounceOutcome{
+			Seeders:     seeders,
+			Leechers:    leechers,
+			Peers:       nil,
+			Interval:    announceInterval,
+			MinInterval: minAnnounceInterval,
+		}
 	}
 
 	// 5. Calculate stats deltas vs the previous announce
-	clientIP := s.clientIP(r)
 	prev, _ := s.peers.Get(ctx, infoHashHex, peerHex)
 	var deltaUp, deltaDown int64
 	if prev != nil {
@@ -286,11 +345,19 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 7. event=stopped: remove peer and respond
+	// 7. event=stopped: remove peer and emit the empty-peer-list
+	// response — the client just left, so they don't need a fresh
+	// swarm snapshot, but they do still want the current counts.
 	if req.Event == announce.EventStopped {
 		_ = s.peers.Remove(ctx, infoHashHex, peerHex)
-		s.writeAnnounceResponse(ctx, w, infoHashHex, req)
-		return
+		seeders, leechers, _ := s.peers.Counts(ctx, infoHashHex)
+		return AnnounceOutcome{
+			Seeders:     seeders,
+			Leechers:    leechers,
+			Peers:       nil,
+			Interval:    announceInterval,
+			MinInterval: minAnnounceInterval,
+		}
 	}
 
 	// 8. Upsert the peer
@@ -307,8 +374,8 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 		IsSeeder:   req.IsSeeder(),
 	}
 	if err := s.peers.Set(ctx, infoHashHex, pdata); err != nil {
-		s.serverError(w, "store peer", err)
-		return
+		slog.Error("internal error", "where", "store peer", "err", err)
+		return AnnounceOutcome{Failure: "Internal tracker error"}
 	}
 
 	// 9. event=completed: bump the counter and create the HnR entry
@@ -326,23 +393,10 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 11. Build the announce response with the current swarm state
-	s.writeAnnounceResponse(ctx, w, infoHashHex, req)
-}
-
-// writeMinimalSuccess is the response we emit when we hit the dedup cache.
-// We still include peer counts so the client UI shows seed/leech numbers.
-func (s *Server) writeMinimalSuccess(ctx context.Context, w http.ResponseWriter, infoHashHex string, req *announce.Request) {
-	seeders, leechers, _ := s.peers.Counts(ctx, infoHashHex)
-	body := buildAnnounceResponse(seeders, leechers, nil, req.Compact, req.PeerID, req.NumWant)
-	_, _ = w.Write(body)
-}
-
-// writeAnnounceResponse fetches the current peer list and emits the bencode dict.
-func (s *Server) writeAnnounceResponse(ctx context.Context, w http.ResponseWriter, infoHashHex string, req *announce.Request) {
 	peerList, err := s.peers.List(ctx, infoHashHex)
 	if err != nil {
-		s.serverError(w, "list peers", err)
-		return
+		slog.Error("internal error", "where", "list peers", "err", err)
+		return AnnounceOutcome{Failure: "Internal tracker error"}
 	}
 	seeders, leechers := 0, 0
 	for _, p := range peerList {
@@ -352,8 +406,13 @@ func (s *Server) writeAnnounceResponse(ctx context.Context, w http.ResponseWrite
 			leechers++
 		}
 	}
-	body := buildAnnounceResponse(seeders, leechers, peerList, req.Compact, req.PeerID, req.NumWant)
-	_, _ = w.Write(body)
+	return AnnounceOutcome{
+		Seeders:     seeders,
+		Leechers:    leechers,
+		Peers:       peerList,
+		Interval:    announceInterval,
+		MinInterval: minAnnounceInterval,
+	}
 }
 
 // ----------------------------------------------------------------------------
