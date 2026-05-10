@@ -8,6 +8,23 @@ export default defineNitroConfig({
   srcDir: '.',
   scanDirs: ['routes', 'middleware', 'plugins', 'utils', 'redis'],
 
+  // esbuild target. Nitro's default is `es2019` — far older than what
+  // we actually run, and old enough to refuse BigInt literal syntax
+  // (`0n` / `1024n`) at parse time even though the runtime supports
+  // them fine. Pinning to `node24` matches the production runtime
+  // (distroless `gcr.io/distroless/nodejs24-debian13:nonroot`, see
+  // apps/api/Dockerfile) and unlocks every ES2025 feature V8 13.6
+  // ships — iterator helpers, Set methods (`union` / `intersection` / …),
+  // `Promise.try`, `RegExp.escape`, JSON modules. Targeting a Node
+  // version rather than an ES year is the recommended idiom for
+  // server-only bundles since esbuild keeps a per-runtime feature
+  // table that accounts for V8-specific quirks.
+  esbuild: {
+    options: {
+      target: 'node24',
+    },
+  },
+
   // Keep the legacy `~~/...` and `~/...` aliases working; they point at the
   // app root so existing route imports don't all need rewriting.
   alias: {

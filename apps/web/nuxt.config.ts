@@ -38,22 +38,41 @@ export default defineNuxtConfig({
   // client. Dynamic routes (`/torrents/:hash`, `/forum/topic/:id`)
   // would have failed to crawl anyway because their params aren't
   // statically known.
-  nitro: STATIC_BUILD
-    ? {
-        prerender: {
-          crawlLinks: false,
-          routes: ['/'],
-          ignore: [
-            // Even if something else triggers prerender, don't
-            // bother with these — they're API-side or runtime-only
-            // surfaces with no static representation.
-            '/api',
-            '/announce',
-            '/scrape',
-          ],
-        },
-      }
-    : {},
+  nitro: {
+    // esbuild target for the Nitro server bundle. Nitro defaults to
+    // `es2019`, which is older than every runtime we ship and old
+    // enough to refuse BigInt literal syntax (`0n` / `1024n`). Pinning
+    // to `node24` matches the production runtime (distroless
+    // `gcr.io/distroless/nodejs24-debian13:nonroot`) and unlocks
+    // ES2025 features V8 13.6 ships — iterator helpers, Set methods,
+    // `Promise.try`, `RegExp.escape`, JSON modules.
+    //
+    // Note: this only governs the SSR / server bundle. The client
+    // bundle is emitted by Vite and is left at its default
+    // (`baseline-widely-available`), which targets browsers ~1 year
+    // back rather than a Node runtime.
+    esbuild: {
+      options: {
+        target: 'node24',
+      },
+    },
+    ...(STATIC_BUILD
+      ? {
+          prerender: {
+            crawlLinks: false,
+            routes: ['/'],
+            ignore: [
+              // Even if something else triggers prerender, don't
+              // bother with these — they're API-side or runtime-only
+              // surfaces with no static representation.
+              '/api',
+              '/announce',
+              '/scrape',
+            ],
+          },
+        }
+      : {}),
+  },
 
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@nuxt/icon', '@nuxtjs/i18n'],
 

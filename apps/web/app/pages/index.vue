@@ -440,15 +440,8 @@ interface VolumeParts {
   unit: string;
 }
 
-// Pre-built BigInt constants — using the literal syntax (`0n` / `1024n`)
-// trips esbuild when the build target is ES2019 (Nitro's default for the
-// SSR bundle). The `BigInt(...)` constructor is a plain runtime call, so
-// it stays compatible regardless of the parse-time target.
-const BIG_ZERO = BigInt(0);
-const BIG_KIB = BigInt(1024);
-
 function splitBigBytes(bytes: bigint): VolumeParts {
-  if (bytes === BIG_ZERO) return { value: '0', unit: 'B' };
+  if (bytes === 0n) return { value: '0', unit: 'B' };
   const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
   // Find the largest unit that still keeps the integer part >= 1, by
   // dividing in the BigInt domain. Past that we drop into Number land
@@ -456,8 +449,8 @@ function splitBigBytes(bytes: bigint): VolumeParts {
   // off the high-order bits.
   let i = 0;
   let scaled = bytes;
-  while (scaled >= BIG_KIB && i < units.length - 1) {
-    scaled = scaled / BIG_KIB;
+  while (scaled >= 1024n && i < units.length - 1) {
+    scaled = scaled / 1024n;
     i++;
   }
   // Recompute the float value at the chosen unit so we keep one or
