@@ -13,7 +13,7 @@ import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
  * Rationale: the home page used to call /api/admin/stats which is gated behind
  * `requireAdminSession`. For any non-admin visitor the call returned 401, the
  * page rendered "0 torrents · 0 peers", and casual visitors saw a tracker that
- * looked dead. We expose only aggregate counts here — no protocol matrix, no
+ * looked dead. We expose aggregate counts and the protocol matrix here — no
  * per-torrent / per-user data.
  *
  * Cached at the response level via a short module-scope TTL because the
@@ -25,11 +25,30 @@ interface PublicStats {
     torrents: number;
     peers: number;
     seeders: number;
+    /**
+     * Total bytes seeded across the whole user base — `SUM(users.uploaded)`.
+     * Surfaces on the homepage as the "Volume" KPI; cached the same as the
+     * other counters so a busy swarm doesn't slam Postgres on every refresh.
+     * Sent as a string so JSON/JS doesn't lose precision past
+     * `Number.MAX_SAFE_INTEGER` (~9 PiB).
+     */
+    totalUploaded: string;
     updatedAt: number;
   };
   live: {
     torrents: number;
     peers: number;
+  };
+  /**
+   * Static protocol matrix mirrored from /api/admin/stats. The Go tracker
+   * only implements HTTP — UDP and WebSocket are not built in. We expose
+   * the same shape on the public endpoint so the homepage can render the
+   * "Protocol health" tile without needing admin credentials.
+   */
+  protocols: {
+    http: boolean;
+    udp: boolean;
+    ws: boolean;
   };
 }
 
@@ -41,6 +60,19 @@ async function computeStats(): Promise<PublicStats> {
     .select({ count: sql<number>`count(*)::int` })
     .from(schema.torrents);
   const totalTorrents = torrentsCountResult[0]?.count || 0;
+
+  // Total seeded volume — sum of every user's `uploaded` counter. We pull
+  // it as a string straight from Postgres because the value can outgrow
+  // `Number.MAX_SAFE_INTEGER` on a long-running tracker (≈9 PiB), and a
+  // silent precision loss would make the KPI quietly wrong as soon as the
+  // site crosses that threshold. The frontend parses it with `BigInt`
+  // when it needs arithmetic; for display we round to the nearest unit.
+  const totalUploadedResult = await db
+    .select({
+      total: sql<string>`COALESCE(SUM(${schema.users.uploaded}), 0)::text`,
+    })
+    .from(schema.users);
+  const totalUploaded = totalUploadedResult[0]?.total ?? '0';
 
   const keyPrefix = process.env.REDIS_KEY_PREFIX || 'ot:';
   const uniquePeers = new Set<string>();
@@ -84,12 +116,17 @@ async function computeStats(): Promise<PublicStats> {
       torrents: totalTorrents,
       peers: uniquePeers.size,
       seeders: uniqueSeeders.size,
+      totalUploaded,
       updatedAt: now,
     },
     live: {
       torrents: totalTorrents,
       peers: uniquePeers.size,
     },
+    // Mirror the admin matrix. The tracker container exposes HTTP only;
+    // surface that truth so the homepage's protocol-health tile reflects
+    // reality instead of optimistically painting all three green.
+    protocols: { http: true, udp: false, ws: false },
   };
 }
 

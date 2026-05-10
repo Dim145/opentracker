@@ -66,6 +66,39 @@
       "peers": "{n} peer | {n} peers",
       "lowLatency": "Ultra-low latency"
     },
+    "section": {
+      "state": "State of the tracker",
+      "releases": "Latest releases",
+      "swarm": "Swarm snapshot",
+      "manifesto": "Manifesto"
+    },
+    "live": "Live",
+    "kpi": {
+      "torrents": "Torrents",
+      "peers": "Peers",
+      "seeders": "Seeders",
+      "protocols": "Protocols",
+      "volume": "Volume exchanged"
+    },
+    "tip": "Press {kbd} from anywhere to search.",
+    "ledger": {
+      "rank": "Rank",
+      "name": "Name",
+      "size": "Size",
+      "seed": "S",
+      "leech": "L",
+      "age": "Age",
+      "empty": "No releases indexed yet — be the first to seed.",
+      "uploadCta": "Upload your first release →"
+    },
+    "swarmTile": {
+      "hottest": "Hottest right now",
+      "hottestEmpty": "Activity will appear here as soon as someone starts seeding.",
+      "protocols": "Protocol health",
+      "protocolHealthy": "Online",
+      "protocolDown": "Offline"
+    },
+    "manifestoLead": "Three principles, one tracker.",
     "recentlyIndexed": "Recently indexed",
     "browseAll": "Browse all",
     "featuresDefault": {
