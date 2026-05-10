@@ -244,9 +244,11 @@ export async function lookupMetadata(
       // shouldn't quietly resolve to a different `movie/N`.
       result = await fetchTmdbDetail(effectiveType, bareId, cred);
     } else {
-      // Last-resort guess: try movie then tv.
+      // Last-resort guess: try movie then tv. The `??=` short-circuits
+      // when the movie probe succeeded, so we never pay the second
+      // network round-trip on a hit.
       result = await fetchTmdbDetail('movie', bareId, cred);
-      if (!result) result = await fetchTmdbDetail('tv', bareId, cred);
+      result ??= await fetchTmdbDetail('tv', bareId, cred);
     }
   } else {
     // /find resolves an external id (IMDb tt-form or TVDB integer) to

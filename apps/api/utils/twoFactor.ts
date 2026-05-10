@@ -139,7 +139,7 @@ export function generateRecoveryCodes(n = RECOVERY_CODE_COUNT): string[] {
  */
 export function hashRecoveryCode(code: string): string {
   return createHash('sha256')
-    .update(code.replace(/-/g, '').toUpperCase())
+    .update(code.replaceAll('-', '').toUpperCase())
     .digest('hex');
 }
 

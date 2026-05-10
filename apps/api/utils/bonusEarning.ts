@@ -464,7 +464,7 @@ export async function creditDailyLoginIfDue(userId: string): Promise<number> {
   const parsed = dailyLoginConfig.safeParse(rule.config);
   if (!parsed.success || parsed.data.reward <= 0) return 0;
 
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const today = new Date().toISOString().slice(0, 10).replaceAll('-', '');
   const key = `bonus:dailyLogin:${userId}:${today}`;
   // SET NX with a 36 h TTL — slightly more than 24 h so a user near
   // midnight UTC doesn't double-claim from a clock skew.

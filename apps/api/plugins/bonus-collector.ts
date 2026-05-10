@@ -268,7 +268,7 @@ async function ensureDefaults(): Promise<void> {
     const config = BONUS_RULE_DEFAULTS[kind as BonusRuleKind];
     await db.execute(
       sql`INSERT INTO ${schema.bonusRules} (id, kind, enabled, config)
-          VALUES (${uuidv4()}, ${kind}, true, ${sql.raw(`'${JSON.stringify(config).replace(/'/g, "''")}'::jsonb`)})
+          VALUES (${uuidv4()}, ${kind}, true, ${sql.raw(`'${JSON.stringify(config).replaceAll("'", "''")}'::jsonb`)})
           ON CONFLICT (kind) DO NOTHING`
     );
   }

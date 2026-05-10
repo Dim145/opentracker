@@ -134,7 +134,7 @@ export default defineEventHandler(async (event) => {
 
   const hasMore = entries.length > limit;
   const items = entries.slice(0, limit);
-  const nextCursor = hasMore ? items[items.length - 1].createdAt : null;
+  const nextCursor = hasMore ? items.at(-1)!.createdAt : null;
 
   return {
     items,

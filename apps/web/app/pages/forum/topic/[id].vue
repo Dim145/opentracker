@@ -443,9 +443,10 @@ async function handlePostReply() {
     await refresh();
     nextTick(() => {
       // Scroll to the new last post — that's the one we just added.
-      const posts = topic.value?.posts;
-      if (posts?.length) {
-        const last = posts[posts.length - 1];
+      // `.at(-1)` is in baseline-widely-available so it's safe to ship
+      // to the browser bundle; no fallback needed.
+      const last = topic.value?.posts?.at(-1);
+      if (last) {
         document.getElementById(`post-${last.id}`)?.scrollIntoView({
           behavior: 'smooth',
           block: 'start',

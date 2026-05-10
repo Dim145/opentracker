@@ -229,12 +229,10 @@ export default defineEventHandler(async (event) => {
         .where(inArray(userRoles.userId, pageUserIds))
         .orderBy(desc(roles.priority))
     : [];
-  const rolesByUser = new Map<string, typeof roleRows>();
-  for (const row of roleRows) {
-    const arr = rolesByUser.get(row.userId);
-    if (arr) arr.push(row);
-    else rolesByUser.set(row.userId, [row]);
-  }
+  // ES2024 `Map.groupBy` (Node 22+) replaces the manual two-step
+  // get-or-init loop. Same Map shape, same complexity, less surface
+  // area for an off-by-one.
+  const rolesByUser = Map.groupBy(roleRows, (row) => row.userId);
 
   // ── lastIp visibility per viewer level ──────────────────────
   // Admins see the raw IP for ban/forensics. Moderators see a stable

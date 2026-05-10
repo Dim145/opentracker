@@ -98,13 +98,17 @@ interface RSSFeed {
 }
 
 function buildRSSFeed(feed: RSSFeed): string {
+  // `&` MUST run first — otherwise the &amp; we just emitted gets
+  // rewritten into &amp;amp; on the next pass. The other four chars
+  // are independent. ES2021 `replaceAll` makes the literal-string
+  // intent explicit (no global-regex / per-char-class confusion).
   const escapeXml = (str: string) =>
     str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
 
   const items = feed.items
     .map(

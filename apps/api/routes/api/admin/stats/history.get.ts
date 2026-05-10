@@ -92,9 +92,11 @@ export default defineEventHandler(async (event) => {
       createdAt: new Date(),
     } as any;
 
-    // If the last historical point is very recent (< 1 min), replace it with live data
-    // Otherwise append as a new point
-    const lastPoint = history[history.length - 1];
+    // If the last historical point is very recent (< 1 min), replace
+    // it with live data; otherwise append as a new point. `.at(-1)`
+    // (ES2022) is the read; the assignment still uses an explicit
+    // index since `.at()` returns a value, not an l-value.
+    const lastPoint = history.at(-1);
     const now = Date.now();
     const oneMinute = 60 * 1000;
 
