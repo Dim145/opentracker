@@ -93,7 +93,7 @@ services:
           memory: 512M
           pids: 200
         reservations:
-          memory: 192M
+          memory: 96M
     # Healthcheck is defined in apps/web/Dockerfile (Node-based, no shell needed
     # because the runtime image is distroless). Compose inherits it.
 
@@ -126,6 +126,7 @@ services:
       DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable
       MIGRATIONS_DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@postgres:5432/${DB_NAME:-trackarr}?sslmode=disable
       DB_SSL: "false"
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
       # Redis
       REDIS_URL: redis://redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -168,7 +169,7 @@ services:
           memory: 768M
           pids: 200
         reservations:
-          memory: 256M
+          memory: 96M
     # Healthcheck is defined in apps/api/Dockerfile (Node-based, no shell needed
     # because the runtime image is distroless). Compose inherits it.
 

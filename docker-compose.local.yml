@@ -72,6 +72,7 @@ services:
       NITRO_HOST: 0.0.0.0
       DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-trackarr}
       DB_SSL: "false"
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
       REDIS_URL: redis://redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       NUXT_SESSION_SECRET: ${NUXT_SESSION_SECRET}

@@ -15,9 +15,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 // Build secure connection options
 function buildPostgresOptions(): Options<Record<string, never>> {
   const options: Options<Record<string, never>> = {
-    // Connection pool settings (prevent resource exhaustion)
-    max: parseInt(process.env.DB_POOL_MAX || '20'),
-    idle_timeout: 30,
+    // Connection pool settings
+    max: parseInt(process.env.DB_POOL_MAX || '10'),
+    idle_timeout: 10,
     connect_timeout: 10,
 
     // Query settings
@@ -82,8 +82,8 @@ export async function checkDatabaseHealth(): Promise<boolean> {
  */
 export function getPoolStats(): { max: number; idle_timeout: number } {
   return {
-    max: parseInt(process.env.DB_POOL_MAX || '20'),
-    idle_timeout: 30,
+    max: parseInt(process.env.DB_POOL_MAX || '10'),
+    idle_timeout: 10,
   };
 }
 
