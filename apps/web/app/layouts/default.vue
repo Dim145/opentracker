@@ -104,7 +104,7 @@
             <button
               @click="refreshStats"
               class="p-1 rounded hover:bg-fg-default/5 text-text-muted hover:text-text-secondary transition-colors"
-              title="Refresh stats"
+              :title="$t('nav.refreshStats')"
             >
               <Icon name="ph:arrows-clockwise" class="text-xs" />
             </button>
@@ -238,7 +238,7 @@
             type="button"
             class="md:hidden inline-flex items-center justify-center w-10 h-10 -mr-1.5 rounded-md text-text-strong hover:bg-fg-default/10 active:bg-fg-default/15 transition-colors"
             :aria-expanded="showMobileNav"
-            aria-label="Open navigation"
+            :aria-label="$t('nav.openNav')"
             @click="showMobileNav = true"
           >
             <Icon name="ph:list-bold" class="text-xl" />
@@ -292,7 +292,7 @@
           <button
             type="button"
             class="inline-flex items-center justify-center w-10 h-10 -mr-1.5 rounded-md text-text-strong hover:bg-fg-default/10 active:bg-fg-default/15 transition-colors"
-            aria-label="Close navigation"
+            :aria-label="$t('nav.closeNav')"
             @click="showMobileNav = false"
           >
             <Icon name="ph:x-bold" class="text-lg" />

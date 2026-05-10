@@ -15,7 +15,7 @@
     @click="$emit('select', '')"
   >
     <Icon name="ph:list-bold" class="text-sm" />
-    <span>All Torrents</span>
+    <span>{{ $t('components.categorySidebar.allTorrents') }}</span>
   </button>
 
   <div v-for="category in categories" :key="category.id" class="mt-0.5">

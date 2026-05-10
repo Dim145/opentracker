@@ -10,10 +10,10 @@
           class="input picker-search-input"
           :placeholder="
             typeHint === 'tv'
-              ? 'Search TV shows on TMDb…'
+              ? t('components.mediaSearch.placeholderTv')
               : typeHint === 'movie'
-                ? 'Search movies on TMDb…'
-                : 'Search TMDb (movies + TV)…'
+                ? t('components.mediaSearch.placeholderMovie')
+                : t('components.mediaSearch.placeholderAny')
           "
           @focus="open = true"
           @keydown.escape="open = false"
@@ -45,7 +45,7 @@
             v-else-if="debouncedQuery && !loading && results.length === 0"
             class="picker-empty"
           >
-            No matches for <em>{{ debouncedQuery }}</em>
+            {{ t('components.mediaSearch.noMatchesPrefix') }} <em>{{ debouncedQuery }}</em>
           </p>
           <ul v-else class="picker-list">
             <li
@@ -79,7 +79,7 @@
                           : 'ph:television-simple-bold'
                       "
                     />
-                    {{ hit.type === 'movie' ? 'Movie' : 'TV' }}
+                    {{ hit.type === 'movie' ? t('components.mediaSearch.movie') : t('components.mediaSearch.tv') }}
                   </span>
                   <span v-if="hit.voteAverage" class="picker-rating">
                     <Icon name="ph:star-fill" />
@@ -93,7 +93,7 @@
             </li>
           </ul>
           <p v-if="results.length > 0" class="picker-hint">
-            <kbd>↑</kbd><kbd>↓</kbd> to browse · <kbd>Enter</kbd> to pick
+            <kbd>↑</kbd><kbd>↓</kbd> {{ t('components.mediaSearch.kbdHint') }} · <kbd>Enter</kbd> {{ t('components.mediaSearch.kbdHintPick') }}
           </p>
         </div>
       </Transition>
@@ -118,19 +118,19 @@
         </p>
         <div class="picker-selected-ids">
           <span class="id-tag id-tag--tmdb"
-            >TMDb {{ selected.tmdbId }}</span
+            >{{ t('components.mediaSearch.tmdbBadge', { id: selected.tmdbId }) }}</span
           >
           <span v-if="selected.imdbId" class="id-tag id-tag--imdb">{{
             selected.imdbId
           }}</span>
           <span v-if="selected.tvdbId" class="id-tag id-tag--tvdb"
-            >TVDB {{ selected.tvdbId }}</span
+            >{{ t('components.mediaSearch.tvdbBadge', { id: selected.tvdbId }) }}</span
           >
         </div>
       </div>
       <button type="button" class="picker-clear" @click="clearSelection">
         <Icon name="ph:x-bold" />
-        <span>Clear</span>
+        <span>{{ t('components.mediaSearch.clear') }}</span>
       </button>
     </div>
 
@@ -138,11 +138,11 @@
     <details class="picker-manual">
       <summary>
         <Icon name="ph:identification-card-bold" />
-        Or paste an ID manually
+        {{ t('components.mediaSearch.manualToggle') }}
       </summary>
       <div class="id-grid">
         <label>
-          <span class="id-tag id-tag--imdb">IMDb</span>
+          <span class="id-tag id-tag--imdb">{{ t('components.mediaSearch.imdb') }}</span>
           <input
             :value="imdbId"
             type="text"
@@ -152,7 +152,7 @@
           />
         </label>
         <label>
-          <span class="id-tag id-tag--tmdb">TMDb</span>
+          <span class="id-tag id-tag--tmdb">{{ t('components.mediaSearch.tmdb') }}</span>
           <input
             :value="tmdbId"
             type="text"
@@ -162,7 +162,7 @@
           />
         </label>
         <label>
-          <span class="id-tag id-tag--tvdb">TVDB</span>
+          <span class="id-tag id-tag--tvdb">{{ t('components.mediaSearch.tvdb') }}</span>
           <input
             :value="tvdbId"
             type="text"
@@ -182,7 +182,7 @@
           :name="resolving ? 'ph:circle-notch' : 'ph:magic-wand-bold'"
           :class="{ 'animate-spin': resolving }"
         />
-        {{ resolving ? 'Resolving…' : 'Resolve & preview' }}
+        {{ resolving ? t('components.mediaSearch.resolving') : t('components.mediaSearch.resolveAndPreview') }}
       </button>
     </details>
   </div>
@@ -212,6 +212,8 @@ interface MediaMetadata {
   posterUrl: string | null;
   [key: string]: unknown;
 }
+
+const { t } = useI18n();
 
 const props = defineProps<{
   initialQuery?: string;
@@ -287,7 +289,7 @@ watch(debouncedQuery, async (q) => {
       results: MediaSearchHit[];
     }>('/api/metadata/search', { query: params });
     if (!res.enabled) {
-      error.value = res.message || 'Metadata search is not configured.';
+      error.value = res.message || t('components.mediaSearch.errors.metadataNotConfigured');
       results.value = [];
     } else {
       results.value = res.results;
@@ -295,7 +297,7 @@ watch(debouncedQuery, async (q) => {
     }
   } catch (err: any) {
     error.value =
-      err?.data?.message || err?.message || 'Search failed';
+      err?.data?.message || err?.message || t('components.mediaSearch.errors.searchFailed');
     results.value = [];
   } finally {
     loading.value = false;
@@ -354,10 +356,10 @@ async function selectHit(hit: MediaSearchHit) {
     if (res.enabled && res.found && res.metadata) {
       emit('select', res.metadata);
     } else {
-      error.value = 'Could not load full details for that result.';
+      error.value = t('components.mediaSearch.errors.couldNotLoadDetails');
     }
   } catch (err: any) {
-    error.value = err?.data?.message || err?.message || 'Lookup failed';
+    error.value = err?.data?.message || err?.message || t('components.mediaSearch.errors.lookupFailed');
   } finally {
     resolving.value = false;
   }
@@ -401,14 +403,14 @@ async function resolveManual() {
       metadata: MediaMetadata | null;
     }>('/api/metadata/lookup', { query: params });
     if (!res.enabled) {
-      error.value = 'Metadata lookup is not configured.';
+      error.value = t('components.mediaSearch.errors.metadataLookupNotConfigured');
     } else if (!res.found) {
-      error.value = `No match for ${params.source.toUpperCase()} ${params.id}`;
+      error.value = t('components.mediaSearch.errors.noMatchFor', { source: params.source.toUpperCase(), id: params.id });
     } else if (res.metadata) {
       emit('select', res.metadata);
     }
   } catch (err: any) {
-    error.value = err?.data?.message || err?.message || 'Lookup failed';
+    error.value = err?.data?.message || err?.message || t('components.mediaSearch.errors.lookupFailed');
   } finally {
     resolving.value = false;
   }

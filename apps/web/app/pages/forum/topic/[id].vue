@@ -9,7 +9,7 @@
       <!-- ── Article header ──────────────────────────────────── -->
       <header class="article-head">
         <nav class="article-crumb">
-          <NuxtLink to="/forum" class="article-crumb-link">The Forum</NuxtLink>
+          <NuxtLink to="/forum" class="article-crumb-link">{{ $t('forum.theForum') }}</NuxtLink>
           <Icon name="ph:caret-right-bold" class="article-crumb-sep" />
           <NuxtLink
             :to="`/forum/category/${topic.category.id}`"
@@ -18,17 +18,17 @@
             {{ topic.category.name }}
           </NuxtLink>
           <Icon name="ph:caret-right-bold" class="article-crumb-sep" />
-          <span class="article-crumb-leaf">Thread</span>
+          <span class="article-crumb-leaf">{{ $t('forum.topic.crumbLeaf') }}</span>
         </nav>
 
         <p class="article-flags" v-if="topic.isPinned || topic.isLocked">
           <span v-if="topic.isPinned" class="flag flag--pin">
             <Icon name="ph:push-pin-fill" />
-            Pinned
+            {{ $t('forum.topic.pinned') }}
           </span>
           <span v-if="topic.isLocked" class="flag flag--lock">
             <Icon name="ph:lock-fill" />
-            Locked
+            {{ $t('forum.topic.locked') }}
           </span>
         </p>
 
@@ -37,12 +37,12 @@
         </h1>
 
         <p class="article-byline">
-          <span>By</span>
+          <span>{{ $t('forum.topic.byline.by') }}</span>
           <strong>{{ topic.author.username }}</strong>
           <span class="byline-sep">·</span>
-          <span>Filed {{ formatJoined(topic.createdAt) }}</span>
+          <span>{{ $t('forum.topic.byline.filed', { date: formatJoined(topic.createdAt) }) }}</span>
           <span class="byline-sep">·</span>
-          <span>{{ pluralReplies(replyCount) }}</span>
+          <span>{{ $t('forum.topic.replies', { n: replyCount }) }}</span>
         </p>
 
         <div class="article-tools" v-if="canModerate">
@@ -52,7 +52,7 @@
             @click="handleTogglePin"
           >
             <Icon :name="topic.isPinned ? 'ph:push-pin-slash' : 'ph:push-pin'" />
-            {{ topic.isPinned ? 'Unpin' : 'Pin' }}
+            {{ topic.isPinned ? $t('forum.actions.unpin') : $t('forum.actions.pin') }}
           </button>
           <button
             type="button"
@@ -60,7 +60,7 @@
             @click="handleToggleLock"
           >
             <Icon :name="topic.isLocked ? 'ph:lock-open' : 'ph:lock'" />
-            {{ topic.isLocked ? 'Unlock' : 'Lock' }}
+            {{ topic.isLocked ? $t('forum.actions.unlock') : $t('forum.actions.lock') }}
           </button>
           <button
             type="button"
@@ -68,7 +68,7 @@
             @click="handleDeleteTopic"
           >
             <Icon name="ph:trash" />
-            Delete
+            {{ $t('common.delete') }}
           </button>
         </div>
       </header>
@@ -86,7 +86,7 @@
           <a
             :href="`#post-${post.id}`"
             class="post-anchor"
-            :title="`Permalink to post #${idx + 1}`"
+            :title="$t('forum.topic.permalinkTitle', { n: idx + 1 })"
             @click.prevent="copyPermalink(post.id, idx)"
           >
             <span class="post-anchor-num">{{ formatIssueNumber(idx + 1) }}</span>
@@ -111,15 +111,15 @@
               </NuxtLink>
               <p class="post-author-tags">
                 <span v-if="post.author.isAdmin" class="role-pill role-pill--admin">
-                  <Icon name="ph:crown-fill" /> Admin
+                  <Icon name="ph:crown-fill" /> {{ $t('me.permission.admin') }}
                 </span>
                 <span
                   v-else-if="post.author.isModerator"
                   class="role-pill role-pill--mod"
                 >
-                  <Icon name="ph:shield-chevron-fill" /> Mod
+                  <Icon name="ph:shield-chevron-fill" /> {{ $t('nav.mod') }}
                 </span>
-                <span v-else class="role-pill">Member</span>
+                <span v-else class="role-pill">{{ $t('me.permission.member') }}</span>
               </p>
             </div>
           </aside>
@@ -133,9 +133,9 @@
               <span
                 v-if="isEdited(post)"
                 class="post-edited"
-                :title="`Edited ${absoluteDate(post.updatedAt)}`"
+                :title="$t('forum.topic.editedTitle', { date: absoluteDate(post.updatedAt) })"
               >
-                · edited {{ formatAge(post.updatedAt) }}
+                {{ $t('forum.topic.editedSuffix', { age: formatAge(post.updatedAt) }) }}
               </span>
 
               <div class="post-meta-tools">
@@ -143,7 +143,7 @@
                   v-if="!isEditing(post.id)"
                   type="button"
                   class="post-tool"
-                  title="Quote"
+                  :title="$t('forum.actions.quote')"
                   @click="quoteReply(post)"
                 >
                   <Icon name="ph:quotes-bold" />
@@ -152,7 +152,7 @@
                   v-if="canEdit(post) && !isEditing(post.id)"
                   type="button"
                   class="post-tool"
-                  title="Edit"
+                  :title="$t('common.edit')"
                   @click="startEdit(post)"
                 >
                   <Icon name="ph:pencil-simple-bold" />
@@ -161,7 +161,7 @@
                   v-if="canDelete(post) && !isEditing(post.id)"
                   type="button"
                   class="post-tool post-tool--danger"
-                  title="Delete"
+                  :title="$t('common.delete')"
                   @click="handleDeletePost(post.id)"
                 >
                   <Icon name="ph:trash-bold" />
@@ -182,7 +182,7 @@
                   class="ed-btn ed-btn--ghost"
                   @click="cancelEdit"
                 >
-                  Cancel
+                  {{ $t('common.cancel') }}
                 </button>
                 <button
                   type="button"
@@ -199,7 +199,7 @@
                     name="ph:circle-notch"
                     class="animate-spin"
                   />
-                  {{ saving ? 'Saving…' : 'Save changes' }}
+                  {{ saving ? $t('forum.topic.saving') : $t('common.saveChanges') }}
                 </button>
               </div>
             </div>
@@ -218,10 +218,10 @@
         id="composer"
       >
         <header class="composer-head">
-          <span class="composer-eyebrow">Reply</span>
+          <span class="composer-eyebrow">{{ $t('forum.actions.reply') }}</span>
           <span class="composer-rule" />
           <span class="composer-hint">
-            <kbd>⌘</kbd> + <kbd>↵</kbd> to post
+            <kbd>⌘</kbd> + <kbd>↵</kbd> {{ $t('forum.topic.toPost') }}
           </span>
         </header>
         <textarea
@@ -229,7 +229,7 @@
           ref="replyTextareaRef"
           class="composer-input"
           rows="6"
-          placeholder="Write your reply… you can quote previous posts via the “ icon."
+          :placeholder="$t('forum.topic.replyPlaceholder')"
           @keydown.meta.enter="handlePostReply"
           @keydown.ctrl.enter="handlePostReply"
         />
@@ -249,23 +249,22 @@
               class="animate-spin"
             />
             <Icon v-else name="ph:paper-plane-tilt-bold" />
-            {{ posting ? 'Posting…' : 'Post reply' }}
+            {{ posting ? $t('forum.topic.posting') : $t('forum.topic.postReply') }}
           </button>
         </footer>
       </section>
       <div v-else class="composer-locked">
         <Icon name="ph:lock-fill" />
         <p>
-          This thread is locked. The conversation has wrapped — start a new
-          one if you want to keep talking.
+          {{ $t('forum.topic.lockedNotice') }}
         </p>
       </div>
     </template>
 
     <div v-else class="topic-not-found">
       <Icon name="ph:question-bold" class="empty-icon" />
-      <p>That thread doesn't exist or has been retired.</p>
-      <NuxtLink to="/forum" class="ed-btn">Back to The Forum</NuxtLink>
+      <p>{{ $t('forum.topic.notFound') }}</p>
+      <NuxtLink to="/forum" class="ed-btn">{{ $t('forum.topic.backToForum') }}</NuxtLink>
     </div>
   </div>
 </template>
@@ -305,6 +304,7 @@ const route = useRoute();
 const { user } = useUserSession();
 const notifications = useNotificationStore();
 const confirm = useConfirm();
+const { t } = useI18n();
 
 const {
   data: topic,
@@ -313,7 +313,7 @@ const {
 } = await useFetch<Topic>(() => `/api/forum/topics/${route.params.id}`);
 
 useHead({
-  title: () => topic.value?.title ?? 'Thread',
+  title: () => topic.value?.title ?? t('forum.topic.headFallback'),
 });
 
 const replyContent = ref('');
@@ -361,9 +361,6 @@ function isEdited(post: Post) {
 function formatIssueNumber(n: number): string {
   return String(n).padStart(2, '0');
 }
-function pluralReplies(n: number): string {
-  return n === 1 ? '1 reply' : `${n} replies`;
-}
 function formatJoined(date: string): string {
   return new Date(date).toLocaleDateString('en-US', {
     month: 'long',
@@ -409,9 +406,9 @@ async function copyPermalink(postId: string, idx: number) {
   const url = `${window.location.origin}${window.location.pathname}#post-${postId}`;
   try {
     await navigator.clipboard.writeText(url);
-    notifications.success(`Permalink to #${formatIssueNumber(idx + 1)} copied`);
+    notifications.success(t('forum.topic.toasts.permalinkCopied', { n: formatIssueNumber(idx + 1) }));
   } catch {
-    notifications.error('Could not copy permalink');
+    notifications.error(t('forum.topic.errors.permalinkCopy'));
   }
 }
 
@@ -420,7 +417,7 @@ function quoteReply(post: Post) {
     .split('\n')
     .map((l) => `> ${l}`)
     .join('\n');
-  const insertion = `> @${post.author.username} wrote:\n${lines}\n\n`;
+  const insertion = `> ${t('forum.topic.quotedAttribution', { at: '@', username: post.author.username })}\n${lines}\n\n`;
   // If the user already typed something, append; otherwise replace.
   replyContent.value = replyContent.value
     ? `${replyContent.value.replace(/\s*$/, '\n\n')}${insertion}`
@@ -456,7 +453,7 @@ async function handlePostReply() {
       }
     });
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Failed to post reply');
+    notifications.error(e?.data?.message || t('forum.topic.errors.postReply'));
   } finally {
     posting.value = false;
   }
@@ -472,10 +469,10 @@ async function commitEdit(postId: string) {
     } as any);
     editingPostId.value = null;
     editDraftContent.value = '';
-    notifications.success('Post updated');
+    notifications.success(t('forum.topic.toasts.postUpdated'));
     await refresh();
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Failed to save edit');
+    notifications.error(e?.data?.message || t('forum.topic.errors.saveEdit'));
   } finally {
     saving.value = false;
   }
@@ -490,7 +487,7 @@ async function handleTogglePin() {
     });
     await refresh();
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Failed to update topic');
+    notifications.error(e?.data?.message || t('forum.topic.errors.updateTopic'));
   }
 }
 async function handleToggleLock() {
@@ -502,31 +499,31 @@ async function handleToggleLock() {
     });
     await refresh();
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Failed to update topic');
+    notifications.error(e?.data?.message || t('forum.topic.errors.updateTopic'));
   }
 }
 async function handleDeleteTopic() {
   if (!topic.value) return;
   const ok = await confirm({
-    title: 'Delete topic',
-    message: `Permanently delete "${topic.value.title}" and all its replies?`,
-    confirmText: 'Delete topic',
+    title: t('forum.topic.deleteTopicConfirm.title'),
+    message: t('forum.topic.deleteTopicConfirm.message', { title: topic.value.title }),
+    confirmText: t('forum.topic.deleteTopicConfirm.action'),
     destructive: true,
   });
   if (!ok) return;
   try {
     await $fetch(`/api/forum/topics/${topic.value.id}`, { method: 'DELETE' });
-    notifications.success('Topic deleted');
+    notifications.success(t('forum.topic.toasts.topicDeleted'));
     await navigateTo(`/forum/category/${topic.value.categoryId}`);
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Failed to delete topic');
+    notifications.error(e?.data?.message || t('forum.topic.errors.deleteTopic'));
   }
 }
 async function handleDeletePost(postId: string) {
   const ok = await confirm({
-    title: 'Delete post',
-    message: 'Permanently remove this post from the thread?',
-    confirmText: 'Delete post',
+    title: t('forum.topic.deletePostConfirm.title'),
+    message: t('forum.topic.deletePostConfirm.message'),
+    confirmText: t('forum.topic.deletePostConfirm.action'),
     destructive: true,
   });
   if (!ok) return;
@@ -536,14 +533,14 @@ async function handleDeletePost(postId: string) {
       { method: 'DELETE' }
     );
     if (res.message.includes('Topic deleted')) {
-      notifications.success('Post deleted (last post — topic removed)');
+      notifications.success(t('forum.topic.toasts.postDeletedTopicRemoved'));
       await navigateTo(`/forum/category/${topic.value?.categoryId}`);
     } else {
-      notifications.success('Post deleted');
+      notifications.success(t('forum.topic.toasts.postDeleted'));
       await refresh();
     }
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Failed to delete post');
+    notifications.error(e?.data?.message || t('forum.topic.errors.deletePost'));
   }
 }
 

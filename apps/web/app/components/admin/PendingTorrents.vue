@@ -4,7 +4,7 @@
       <div class="queue-head">
         <div class="queue-head-left">
           <Icon name="ph:gavel" class="queue-head-icon" />
-          <h3 class="queue-head-title">Moderation queue</h3>
+          <h3 class="queue-head-title">{{ $t('admin.pendingTorrents.title') }}</h3>
         </div>
         <div class="queue-segments" role="tablist">
           <button
@@ -28,86 +28,89 @@
 
     <div class="card-body">
       <p class="queue-intro">
-        Every torrent that isn't <strong>accepted</strong>:
-        <span class="queue-intro-pip queue-intro-pip--pending">pending</span>
-        uploads,
-        <span class="queue-intro-pip queue-intro-pip--changes">changes-requested</span>
-        rows, and the
-        <span class="queue-intro-pip queue-intro-pip--rejected">rejected</span>
-        ones we keep on file. Open a torrent to read its conversation thread
-        and act on it — every status change is tied to a moderator note.
+        <i18n-t keypath="admin.pendingTorrents.intro.lead" tag="span">
+          <template #accepted>
+            <strong>{{ $t('admin.pendingTorrents.intro.accepted') }}</strong>
+          </template>
+        </i18n-t>
+        <span class="queue-intro-pip queue-intro-pip--pending">{{ $t('admin.pendingTorrents.intro.pendingPip') }}</span>
+        {{ $t('admin.pendingTorrents.intro.pendingSuffix') }}
+        <span class="queue-intro-pip queue-intro-pip--changes">{{ $t('admin.pendingTorrents.intro.changesPip') }}</span>
+        {{ $t('admin.pendingTorrents.intro.changesSuffix') }}
+        <span class="queue-intro-pip queue-intro-pip--rejected">{{ $t('admin.pendingTorrents.intro.rejectedPip') }}</span>
+        {{ $t('admin.pendingTorrents.intro.trail') }}
       </p>
 
       <div v-if="loading" class="queue-loading">
         <Icon name="ph:circle-notch" class="animate-spin" />
-        Loading queue…
+        {{ $t('admin.pendingTorrents.loading') }}
       </div>
 
       <div v-else-if="visibleTorrents.length === 0" class="queue-empty">
         <Icon name="ph:check-circle-fill" class="queue-empty-glyph" />
-        <p class="queue-empty-text">All clear.</p>
+        <p class="queue-empty-text">{{ $t('admin.pendingTorrents.empty.headline') }}</p>
         <p class="queue-empty-help">
-          Nothing matches this filter. Take a coffee.
+          {{ $t('admin.pendingTorrents.empty.help') }}
         </p>
       </div>
 
       <ul v-else class="queue-list">
         <li
-          v-for="t in visibleTorrents"
-          :key="t.id"
+          v-for="row in visibleTorrents"
+          :key="row.id"
           class="queue-row"
-          :class="`queue-row--${t.moderationStatus}`"
+          :class="`queue-row--${row.moderationStatus}`"
         >
           <NuxtLink
-            :to="`/torrents/${t.infoHash}`"
+            :to="`/torrents/${row.infoHash}`"
             class="queue-row-name"
-            :title="t.name"
+            :title="row.name"
           >
-            {{ t.name }}
+            {{ row.name }}
           </NuxtLink>
 
-          <TorrentModerationBadge :status="t.moderationStatus" />
+          <TorrentModerationBadge :status="row.moderationStatus" />
 
           <dl class="queue-row-meta">
             <div>
-              <dt>Uploaded by</dt>
+              <dt>{{ $t('admin.pendingTorrents.meta.uploadedBy') }}</dt>
               <dd>
                 <NuxtLink
-                  v-if="t.uploader"
-                  :to="`/users/${t.uploader.id}`"
+                  v-if="row.uploader"
+                  :to="`/users/${row.uploader.id}`"
                   class="queue-link"
                 >
-                  @{{ t.uploader.username }}
+                  @{{ row.uploader.username }}
                 </NuxtLink>
                 <span v-else>—</span>
               </dd>
             </div>
-            <div v-if="t.category">
-              <dt>Category</dt>
-              <dd>{{ t.category.name }}</dd>
+            <div v-if="row.category">
+              <dt>{{ $t('admin.pendingTorrents.meta.category') }}</dt>
+              <dd>{{ row.category.name }}</dd>
             </div>
             <div>
-              <dt>Cast</dt>
-              <dd>{{ formatDate(t.createdAt) }}</dd>
+              <dt>{{ $t('admin.pendingTorrents.meta.cast') }}</dt>
+              <dd>{{ formatDate(row.createdAt) }}</dd>
             </div>
-            <div v-if="t.moderatedBy && t.moderatedAt">
-              <dt>Last action</dt>
+            <div v-if="row.moderatedBy && row.moderatedAt">
+              <dt>{{ $t('admin.pendingTorrents.meta.lastAction') }}</dt>
               <dd>
                 <NuxtLink
-                  :to="`/users/${t.moderatedBy.id}`"
+                  :to="`/users/${row.moderatedBy.id}`"
                   class="queue-link"
                 >
-                  @{{ t.moderatedBy.username }}
+                  @{{ row.moderatedBy.username }}
                 </NuxtLink>
-                <span class="queue-meta-soft">·  {{ formatDate(t.moderatedAt) }}</span>
+                <span class="queue-meta-soft">·  {{ formatDate(row.moderatedAt) }}</span>
               </dd>
             </div>
           </dl>
 
           <NuxtLink
-            :to="`/torrents/${t.infoHash}`"
+            :to="`/torrents/${row.infoHash}`"
             class="queue-row-cta"
-            title="Open the torrent"
+            :title="$t('admin.pendingTorrents.openTitle')"
           >
             <Icon name="ph:arrow-right-bold" />
           </NuxtLink>
@@ -120,6 +123,8 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
 import TorrentModerationBadge from '~/components/torrent/TorrentModerationBadge.vue';
+
+const { t } = useI18n();
 
 type Status = 'pending' | 'accepted' | 'changes_requested' | 'rejected';
 type FilterValue = 'all' | 'pending' | 'changes_requested' | 'rejected';
@@ -136,12 +141,12 @@ interface QueueRow {
   moderatedBy: { id: string; username: string } | null;
 }
 
-const STATUS_FILTERS: { value: FilterValue; label: string; dot: boolean }[] = [
-  { value: 'all', label: 'All', dot: false },
-  { value: 'pending', label: 'Pending', dot: true },
-  { value: 'changes_requested', label: 'Changes', dot: true },
-  { value: 'rejected', label: 'Rejected', dot: true },
-];
+const STATUS_FILTERS = computed<{ value: FilterValue; label: string; dot: boolean }[]>(() => [
+  { value: 'all', label: t('admin.pendingTorrents.filters.all'), dot: false },
+  { value: 'pending', label: t('admin.pendingTorrents.filters.pending'), dot: true },
+  { value: 'changes_requested', label: t('admin.pendingTorrents.filters.changes'), dot: true },
+  { value: 'rejected', label: t('admin.pendingTorrents.filters.rejected'), dot: true },
+]);
 
 const filter = ref<FilterValue>('all');
 const torrents = ref<QueueRow[]>([]);

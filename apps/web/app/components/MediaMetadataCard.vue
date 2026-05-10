@@ -43,7 +43,7 @@
             class="media-card-type"
             :class="`media-card-type--${metadata.type}`"
           >
-            {{ metadata.type === 'tv' ? 'TV Series' : 'Movie' }}
+            {{ metadata.type === 'tv' ? t('components.mediaMetadata.tvSeries') : t('components.mediaMetadata.movie') }}
           </span>
         </div>
 
@@ -80,11 +80,11 @@
           <span
             v-if="metadata.voteAverage !== null"
             class="media-card-stat"
-            :title="`${metadata.voteCount?.toLocaleString() ?? '?'} votes on TMDb`"
+            :title="t('components.mediaMetadata.votesOnTmdb', { n: metadata.voteCount?.toLocaleString() ?? '?' })"
           >
             <Icon name="ph:star-fill" class="text-amber-400" />
             <strong>{{ metadata.voteAverage.toFixed(1) }}</strong>
-            <span class="text-text-muted">/ 10</span>
+            <span class="text-text-muted">{{ t('components.mediaMetadata.ratingSlash') }}</span>
           </span>
           <span v-if="metadata.runtime" class="media-card-stat">
             <Icon name="ph:clock" />
@@ -110,7 +110,7 @@
             class="media-card-link"
           >
             <Icon name="ph:link" />
-            View on TMDb
+            {{ t('components.mediaMetadata.viewOnTmdb') }}
             <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
           </a>
           <a
@@ -120,7 +120,7 @@
             rel="noopener noreferrer"
             class="media-card-link"
           >
-            View on IMDb
+            {{ t('components.mediaMetadata.viewOnImdb') }}
             <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
           </a>
         </div>
@@ -150,15 +150,17 @@ interface Props {
   size?: 'compact' | 'full';
 }
 
+const { t } = useI18n();
+
 withDefaults(defineProps<Props>(), {
   size: 'full',
 });
 
 function formatRuntime(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 60) return t('components.mediaMetadata.minutes', { n: minutes });
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}min`;
+  return m === 0 ? t('components.mediaMetadata.hoursOnly', { h }) : t('components.mediaMetadata.hoursMinutes', { h, m });
 }
 </script>
 

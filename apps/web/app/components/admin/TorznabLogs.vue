@@ -7,18 +7,18 @@
           <h3
             class="text-xs font-bold uppercase tracking-wider text-text-primary"
           >
-            Recent Requests
+            {{ $t('admin.torznab.logs.title') }}
           </h3>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-[10px] text-text-muted">
-            {{ data?.total || 0 }} total requests
+            {{ $t('admin.torznab.logs.totalRequests', { n: data?.total || 0 }) }}
           </span>
           <button
             @click="() => refresh()"
             :disabled="loading"
             class="p-1.5 bg-bg-tertiary border border-border rounded hover:border-fg-default/20 transition-colors"
-            title="Refresh"
+            :title="$t('admin.torznab.logs.refreshTitle')"
           >
             <Icon
               name="ph:arrows-clockwise"
@@ -37,8 +37,7 @@
         class="flex items-center justify-between mt-4 pt-4 border-t border-border"
       >
         <span class="text-xs text-text-muted">
-          Showing {{ offset + 1 }} -
-          {{ Math.min(offset + limit, data.total) }} of {{ data.total }}
+          {{ $t('admin.torznab.logs.showing', { from: offset + 1, to: Math.min(offset + limit, data.total), total: data.total }) }}
         </span>
         <div class="flex items-center gap-2">
           <button
@@ -46,14 +45,14 @@
             :disabled="offset === 0"
             class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-fg-default/20 transition-colors"
           >
-            Previous
+            {{ $t('admin.torznab.logs.previous') }}
           </button>
           <button
             @click="nextPage"
             :disabled="offset + limit >= data.total"
             class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-fg-default/20 transition-colors"
           >
-            Next
+            {{ $t('admin.torznab.logs.next') }}
           </button>
         </div>
       </div>

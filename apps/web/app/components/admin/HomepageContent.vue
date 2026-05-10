@@ -6,7 +6,7 @@
         <h3
           class="text-xs font-bold uppercase tracking-wider text-text-primary"
         >
-          Homepage Content
+          {{ $t('admin.homepage.title') }}
         </h3>
       </div>
     </div>
@@ -16,41 +16,41 @@
         <p
           class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
         >
-          Hero Section
+          {{ $t('admin.homepage.heroSection') }}
         </p>
 
         <SettingsGroup
-          label="Title"
-          description="The main headline on the homepage. Use rich text for custom styling, colors, and fonts."
+          :label="$t('admin.homepage.heroTitle')"
+          :description="$t('admin.homepage.heroTitleDescription')"
         >
           <WysiwygEditor
             v-model="heroTitle"
-            placeholder="Trackarr"
+            :placeholder="$t('admin.branding.siteNamePlaceholder')"
             :maxLength="500"
           />
         </SettingsGroup>
 
         <SettingsGroup
-          label="Subtitle"
-          description="A short description below the title. Supports rich text."
+          :label="$t('admin.homepage.heroSubtitle')"
+          :description="$t('admin.homepage.heroSubtitleDescription')"
         >
           <WysiwygEditor
             v-model="heroSubtitle"
-            placeholder="High-performance, minimalist P2P tracking engine..."
+            :placeholder="$t('admin.homepage.heroSubtitlePlaceholder')"
             :maxLength="1000"
           />
         </SettingsGroup>
 
         <SettingsGroup
-          label="Status Badge"
-          description="Text shown in the pill badge above the title."
+          :label="$t('admin.homepage.statusBadge')"
+          :description="$t('admin.homepage.statusBadgeDescription')"
         >
           <input
             v-model="statusBadgeText"
             type="text"
             maxlength="100"
             class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
-            placeholder="Tracker Online & Operational"
+            :placeholder="$t('admin.homepage.statusBadgePlaceholder')"
           />
         </SettingsGroup>
       </div>
@@ -60,35 +60,35 @@
         <p
           class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
         >
-          Feature Boxes
+          {{ $t('admin.homepage.featureBoxes') }}
         </p>
 
         <SettingsGroup
           v-for="(feature, index) in features"
           :key="index"
-          :label="`Feature ${index + 1}`"
-          description="Title and description for this feature card. Supports rich text."
+          :label="$t('admin.homepage.featureLabel', { n: index + 1 })"
+          :description="$t('admin.homepage.featureLabelDescription')"
         >
           <div class="space-y-3">
             <div>
               <label
                 class="text-[10px] text-text-muted uppercase tracking-wider mb-1 block"
-                >Title</label
+                >{{ $t('admin.homepage.featureTitleLabel') }}</label
               >
               <WysiwygEditor
                 v-model="feature.title"
-                placeholder="Feature title"
+                :placeholder="$t('admin.homepage.featureTitlePlaceholder')"
                 :maxLength="300"
               />
             </div>
             <div>
               <label
                 class="text-[10px] text-text-muted uppercase tracking-wider mb-1 block"
-                >Description</label
+                >{{ $t('admin.homepage.featureDescLabel') }}</label
               >
               <WysiwygEditor
                 v-model="feature.description"
-                placeholder="Feature description..."
+                :placeholder="$t('admin.homepage.featureDescPlaceholder')"
                 :maxLength="1000"
               />
             </div>
@@ -109,7 +109,7 @@
       >
         <Icon v-if="loading" name="ph:circle-notch" class="animate-spin" />
         <Icon v-else-if="saved" name="ph:check-bold" />
-        {{ loading ? 'Saving...' : saved ? 'Saved' : 'Save Homepage Content' }}
+        {{ loading ? $t('admin.homepage.saving') : saved ? $t('admin.homepage.saved') : $t('admin.homepage.saveContent') }}
       </button>
     </div>
   </div>

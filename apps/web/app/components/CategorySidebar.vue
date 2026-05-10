@@ -21,7 +21,7 @@
     <div class="sticky" style="top: calc(var(--header-h) + 1rem);">
       <div class="flex items-center gap-2 px-3 py-2 mb-2">
         <Icon name="ph:folders-bold" class="text-text-muted" />
-        <h3 class="text-xs font-bold uppercase tracking-wider">Categories</h3>
+        <h3 class="text-xs font-bold uppercase tracking-wider">{{ $t('components.categorySidebar.categories') }}</h3>
       </div>
       <nav class="space-y-0.5">
         <CategorySidebarItems
@@ -68,11 +68,11 @@
         class="flex items-center justify-between gap-3 px-3 border-b border-border"
         style="height: var(--header-h);"
       >
-        <span class="eyebrow-mono text-text-muted">Categories</span>
+        <span class="eyebrow-mono text-text-muted">{{ $t('components.categorySidebar.categories') }}</span>
         <button
           type="button"
           class="inline-flex items-center justify-center w-10 h-10 -mr-1.5 rounded-md text-text-strong hover:bg-fg-default/10 transition-colors"
-          aria-label="Close categories"
+          :aria-label="$t('components.categorySidebar.closeCategories')"
           @click="mobileOpen = false"
         >
           <Icon name="ph:x-bold" class="text-lg" />
@@ -100,6 +100,8 @@ interface Category {
   parentId: string | null;
   subcategories?: Category[];
 }
+
+const { t } = useI18n();
 
 const props = defineProps<{
   categories: Category[];
@@ -160,12 +162,12 @@ function onMobileSelect(id: string) {
 // Trigger label resolves to the currently-active leaf so the user
 // doesn't need to open the drawer to know which category is on.
 const activeLabel = computed(() => {
-  if (!props.selectedId) return 'All Torrents';
+  if (!props.selectedId) return t('components.categorySidebar.allTorrents');
   for (const cat of props.categories) {
     if (cat.id === props.selectedId) return cat.name;
     const sub = cat.subcategories?.find((s) => s.id === props.selectedId);
     if (sub) return `${cat.name} / ${sub.name}`;
   }
-  return 'All Torrents';
+  return t('components.categorySidebar.allTorrents');
 });
 </script>

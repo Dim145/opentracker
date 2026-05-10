@@ -4,9 +4,9 @@
     <header class="search-hero">
       <div class="search-hero-row">
         <h1 class="search-title">
-          Search <span class="search-title-faint">Torrents</span>
+          {{ $t('search.titleMain') }} <span class="search-title-faint">{{ $t('search.titleAccent') }}</span>
         </h1>
-        <div class="search-mode" role="tablist" aria-label="Result view">
+        <div class="search-mode" role="tablist" :aria-label="$t('search.resultView')">
           <button
             v-for="opt in viewOptions"
             :key="opt.value"
@@ -25,7 +25,7 @@
 
       <SearchBar
         v-model="searchQuery"
-        placeholder="Search by name, hash, or paste an IMDb / TMDb / TVDB link…"
+        :placeholder="$t('search.searchPlaceholder')"
         size="lg"
         :loading="pending"
         @search="handleSearch"
@@ -45,7 +45,7 @@
             <button
               type="button"
               class="media-id-chip-close"
-              :aria-label="`Clear ${activeMediaId.label} filter`"
+              :aria-label="$t('search.clearMediaIdFilter', { label: activeMediaId.label })"
               @click="clearMediaIdFilter"
             >
               <Icon name="ph:x-bold" class="text-[10px]" />
@@ -62,7 +62,7 @@
           @click="filtersOpen = !filtersOpen"
         >
           <Icon :name="filtersOpen ? 'ph:funnel-fill' : 'ph:funnel'" />
-          {{ filtersOpen ? 'Hide filters' : 'Show filters' }}
+          {{ filtersOpen ? $t('torrents.hideFilters') : $t('torrents.showFilters') }}
           <span v-if="selectedTags.length > 0" class="filters-toggle-count">
             {{ selectedTags.length }}
           </span>
@@ -72,7 +72,7 @@
 
     <!-- ── Categories (root row) ─────────────────────────────── -->
     <section class="cats">
-      <p class="cats-eyebrow">Category</p>
+      <p class="cats-eyebrow">{{ $t('common.category') }}</p>
       <div class="cats-row">
         <button
           type="button"
@@ -81,7 +81,7 @@
           @click="handleCategorySelect('')"
         >
           <Icon name="ph:asterisk-bold" />
-          <span>All</span>
+          <span>{{ $t('common.all') }}</span>
         </button>
         <button
           v-for="cat in rootCategories"
@@ -123,21 +123,21 @@
         class="filter-panel"
       >
         <div class="filter-panel-head">
-          <p class="cats-eyebrow">Tags</p>
+          <p class="cats-eyebrow">{{ $t('search.tags') }}</p>
           <button
             v-if="selectedTags.length > 0"
             type="button"
             class="filter-panel-clear"
             @click="clearTagFilters"
           >
-            Clear
+            {{ $t('search.clear') }}
           </button>
         </div>
         <div
           v-if="(allTags?.length ?? 0) === 0"
           class="filter-panel-empty"
         >
-          No tags yet — they'll appear here once a torrent is tagged.
+          {{ $t('search.noTags') }}
         </div>
         <div v-else class="filter-panel-tags">
           <button
@@ -176,7 +176,7 @@
         <span class="results-stat-sep" />
         <span class="results-stat">
           <strong>{{ pagination.total }}</strong>
-          {{ pagination.total === 1 ? 'torrent' : 'torrents' }}
+          {{ $t('search.torrentCount', pagination.total) }}
         </span>
       </div>
       <Pager
@@ -191,15 +191,12 @@
     <section v-if="hasActiveQuery">
       <div v-if="pending" class="results-loading">
         <Icon name="ph:circle-notch" class="animate-spin h-8 w-8" />
-        <p>Searching database…</p>
+        <p>{{ $t('search.searchingDatabase') }}</p>
       </div>
       <div v-else-if="torrents.length === 0" class="results-empty">
         <Icon name="ph:magnifying-glass-x" class="results-empty-icon" />
-        <h3>No results found</h3>
-        <p>
-          We couldn't find any torrents matching your search criteria. Try
-          different keywords or filters.
-        </p>
+        <h3>{{ $t('search.noResults') }}</h3>
+        <p>{{ $t('search.noResultsHint') }}</p>
       </div>
       <template v-else>
         <!-- Simple: classic table -->
@@ -268,7 +265,7 @@
                   <Icon
                     :name="categoryIcon(group.lead.category?.slug || 'other')"
                   />
-                  {{ group.lead.category?.name || 'Uncategorised' }}
+                  {{ group.lead.category?.name || $t('search.uncategorised') }}
                   <template v-if="group.tmdbBare">
                     <span class="results-stat-sep" />
                     <span class="release-group-tmdb">
@@ -291,7 +288,7 @@
                     v-else-if="group.tmdbBare && isPosterLoading(group)"
                   >
                     <span class="release-group-title-loading">
-                      Loading title…
+                      {{ $t('search.loadingTitle') }}
                     </span>
                   </template>
                   <template v-else>
@@ -311,7 +308,7 @@
                 <p class="release-group-meta">
                   <span>
                     <strong>{{ group.releases.length }}</strong>
-                    release{{ group.releases.length === 1 ? '' : 's' }}
+                    {{ $t('search.releaseCount', group.releases.length) }}
                   </span>
                   <span class="results-stat-sep" />
                   <span>{{ formatSize(group.totalSize) }}</span>
@@ -388,10 +385,10 @@
       <!-- Bottom pagination -->
       <div v-if="pagination.pages > 1 && torrents.length > 0" class="results-foot">
         <p class="results-foot-summary">
-          Page <strong>{{ pagination.page }}</strong> /
+          {{ $t('search.page') }} <strong>{{ pagination.page }}</strong> /
           {{ pagination.pages }}
           <span v-if="pagination.total > 0">
-            · <strong>{{ pagination.total }}</strong> total
+            · <strong>{{ pagination.total }}</strong> {{ $t('search.total') }}
           </span>
         </p>
         <Pager
@@ -404,7 +401,7 @@
 
     <!-- ── Trending (when nothing's queried) ─────────────────── -->
     <section v-else class="trending">
-      <p class="cats-eyebrow">Trending</p>
+      <p class="cats-eyebrow">{{ $t('search.trending') }}</p>
       <div class="card overflow-hidden">
         <TorrentTable :torrents="trendingTorrents" :compact="true" />
       </div>
@@ -465,6 +462,7 @@ interface Category {
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 const searchQuery = ref((route.query.q as string) || '');
 const selectedCategory = ref((route.query.c as string) || '');
@@ -519,10 +517,10 @@ const activeMediaId = computed<DetectedMediaId | null>(() => {
   );
 });
 
-const viewOptions = [
-  { value: 'simple' as const, label: 'Simple', icon: 'ph:list-bullets-bold' },
-  { value: 'grouped' as const, label: 'Grouped', icon: 'ph:squares-four-bold' },
-];
+const viewOptions = computed(() => [
+  { value: 'simple' as const, label: t('search.viewSimple'), icon: 'ph:list-bullets-bold' },
+  { value: 'grouped' as const, label: t('search.viewGrouped'), icon: 'ph:squares-four-bold' },
+]);
 
 // Fetch categories — flat list with subcategories nested.
 const { data: categories } = await useFetch<Category[]>('/api/categories');
@@ -887,7 +885,7 @@ watch(
 );
 
 useHead({
-  title: 'Search Torrents',
+  title: () => t('search.pageTitle'),
 });
 </script>
 

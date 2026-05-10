@@ -6,20 +6,19 @@
         <h3
           class="text-xs font-bold uppercase tracking-wider text-text-primary"
         >
-          Rate Limiting
+          {{ $t('admin.torznab.rateLimiting.title') }}
         </h3>
       </div>
     </div>
     <div class="card-body space-y-6">
       <p class="text-xs text-text-muted">
-        Configure rate limits to prevent API abuse. These limits apply per user
-        (passkey) within the specified time window.
+        {{ $t('admin.torznab.rateLimiting.intro') }}
       </p>
 
       <!-- Time Window -->
       <SettingsGroup
-        label="Time Window"
-        description="The duration (in seconds) for rate limit calculations."
+        :label="$t('admin.torznab.rateLimiting.windowLabel')"
+        :description="$t('admin.torznab.rateLimiting.windowDescription')"
       >
         <div class="flex items-center gap-3">
           <input
@@ -29,18 +28,18 @@
             max="3600"
             class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
           />
-          <span class="text-sm text-text-muted">seconds</span>
+          <span class="text-sm text-text-muted">{{ $t('admin.torznab.rateLimiting.seconds') }}</span>
           <div class="flex-1" />
           <span class="text-[10px] text-text-muted font-mono">
-            = {{ formatDuration(localWindow) }}
+            {{ $t('admin.torznab.rateLimiting.windowEquals', { duration: formatDuration(localWindow) }) }}
           </span>
         </div>
       </SettingsGroup>
 
       <!-- Search Rate Limit -->
       <SettingsGroup
-        label="Search Requests Limit"
-        description="Maximum search requests (search, tvsearch, movie) per window per user."
+        :label="$t('admin.torznab.rateLimiting.searchLimitLabel')"
+        :description="$t('admin.torznab.rateLimiting.searchLimitDescription')"
       >
         <div class="flex items-center gap-3">
           <input
@@ -51,7 +50,7 @@
             class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
           />
           <span class="text-sm text-text-muted"
-            >requests / {{ formatDuration(localWindow) }}</span
+            >{{ $t('admin.torznab.rateLimiting.requestsPerWindow', { window: formatDuration(localWindow) }) }}</span
           >
         </div>
         <div class="mt-2">
@@ -64,16 +63,16 @@
             />
           </div>
           <div class="flex justify-between mt-1 text-[10px] text-text-muted">
-            <span>Strict</span>
-            <span>Generous</span>
+            <span>{{ $t('admin.torznab.rateLimiting.strict') }}</span>
+            <span>{{ $t('admin.torznab.rateLimiting.generous') }}</span>
           </div>
         </div>
       </SettingsGroup>
 
       <!-- Download Rate Limit -->
       <SettingsGroup
-        label="Download Requests Limit"
-        description="Maximum torrent file download requests per window per user."
+        :label="$t('admin.torznab.rateLimiting.downloadLimitLabel')"
+        :description="$t('admin.torznab.rateLimiting.downloadLimitDescription')"
       >
         <div class="flex items-center gap-3">
           <input
@@ -84,7 +83,7 @@
             class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
           />
           <span class="text-sm text-text-muted"
-            >requests / {{ formatDuration(localWindow) }}</span
+            >{{ $t('admin.torznab.rateLimiting.requestsPerWindow', { window: formatDuration(localWindow) }) }}</span
           >
         </div>
         <div class="mt-2">
@@ -97,8 +96,8 @@
             />
           </div>
           <div class="flex justify-between mt-1 text-[10px] text-text-muted">
-            <span>Strict</span>
-            <span>Generous</span>
+            <span>{{ $t('admin.torznab.rateLimiting.strict') }}</span>
+            <span>{{ $t('admin.torznab.rateLimiting.generous') }}</span>
           </div>
         </div>
       </SettingsGroup>
@@ -108,12 +107,12 @@
         <p
           class="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-3"
         >
-          Quick Presets
+          {{ $t('admin.torznab.rateLimiting.quickPresets') }}
         </p>
         <div class="flex flex-wrap gap-2">
           <button
             v-for="preset in presets"
-            :key="preset.name"
+            :key="preset.key"
             @click="applyPreset(preset)"
             class="px-3 py-1.5 bg-bg-tertiary border border-border rounded text-xs hover:border-fg-default/20 transition-colors"
           >
@@ -128,7 +127,7 @@
       >
         <p class="text-xs text-text-muted">
           <Icon name="ph:info" class="inline mr-1" />
-          Changes take effect immediately for new requests.
+          {{ $t('admin.torznab.rateLimiting.infoNote') }}
         </p>
         <button
           @click="saveChanges"
@@ -136,7 +135,7 @@
           class="px-4 py-2 bg-text-primary text-bg-primary text-xs font-bold uppercase tracking-widest rounded hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
         >
           <Icon v-if="saving" name="ph:circle-notch" class="animate-spin" />
-          {{ saving ? 'Saving...' : 'Save Changes' }}
+          {{ saving ? $t('admin.torznab.rateLimiting.saving') : $t('admin.torznab.rateLimiting.saveChanges') }}
         </button>
       </div>
     </div>
@@ -154,11 +153,14 @@ interface TorznabConfig {
 }
 
 interface Preset {
+  key: string;
   name: string;
   window: number;
   search: number;
   download: number;
 }
+
+const { t } = useI18n();
 
 const props = defineProps<{
   config?: TorznabConfig;
@@ -198,12 +200,12 @@ const hasChanges = computed(() => {
   );
 });
 
-const presets: Preset[] = [
-  { name: 'Strict', window: 60, search: 10, download: 5 },
-  { name: 'Default', window: 60, search: 30, download: 20 },
-  { name: 'Relaxed', window: 60, search: 60, download: 40 },
-  { name: 'Generous', window: 60, search: 100, download: 50 },
-];
+const presets = computed<Preset[]>(() => [
+  { key: 'strict', name: t('admin.torznab.rateLimiting.presetStrict'), window: 60, search: 10, download: 5 },
+  { key: 'default', name: t('admin.torznab.rateLimiting.presetDefault'), window: 60, search: 30, download: 20 },
+  { key: 'relaxed', name: t('admin.torznab.rateLimiting.presetRelaxed'), window: 60, search: 60, download: 40 },
+  { key: 'generous', name: t('admin.torznab.rateLimiting.presetGenerous'), window: 60, search: 100, download: 50 },
+]);
 
 function applyPreset(preset: Preset) {
   localWindow.value = preset.window;
@@ -227,8 +229,8 @@ async function saveChanges() {
 }
 
 function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  return `${Math.floor(seconds / 3600)}h`;
+  if (seconds < 60) return t('admin.torznab.rateLimiting.secondsShort', { n: seconds });
+  if (seconds < 3600) return t('admin.torznab.rateLimiting.minutesShort', { n: Math.floor(seconds / 60) });
+  return t('admin.torznab.rateLimiting.hoursShort', { n: Math.floor(seconds / 3600) });
 }
 </script>

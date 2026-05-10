@@ -7,7 +7,7 @@
           <h3
             class="text-xs font-bold uppercase tracking-wider text-text-primary"
           >
-            API Configuration
+            {{ $t('admin.torznab.config.title') }}
           </h3>
         </div>
         <div class="flex items-center gap-2">
@@ -19,7 +19,7 @@
                 : 'bg-red-500/20 text-red-400'
             "
           >
-            {{ config?.enabled ? 'Enabled' : 'Disabled' }}
+            {{ config?.enabled ? $t('admin.torznab.config.enabled') : $t('admin.torznab.config.disabled') }}
           </span>
         </div>
       </div>
@@ -27,8 +27,8 @@
     <div class="card-body space-y-6">
       <!-- API Status Toggle -->
       <SettingsGroup
-        label="Torznab API Status"
-        description="Enable or disable the Torznab API for all users. When disabled, *arr apps won't be able to connect."
+        :label="$t('admin.torznab.config.apiStatusLabel')"
+        :description="$t('admin.torznab.config.apiStatusDescription')"
       >
         <div class="flex items-center gap-3">
           <button
@@ -48,7 +48,7 @@
           </button>
           <span class="text-sm text-text-muted">
             {{
-              config?.enabled ? 'API is accepting requests' : 'API is disabled'
+              config?.enabled ? $t('admin.torznab.config.apiAccepting') : $t('admin.torznab.config.apiDisabled')
             }}
           </span>
         </div>
@@ -56,8 +56,8 @@
 
       <!-- Request Logging -->
       <SettingsGroup
-        label="Request Logging"
-        description="Log all API requests for debugging and monitoring. Logs are stored for 7 days."
+        :label="$t('admin.torznab.config.loggingLabel')"
+        :description="$t('admin.torznab.config.loggingDescription')"
       >
         <div class="flex items-center gap-3">
           <button
@@ -76,15 +76,15 @@
             />
           </button>
           <span class="text-sm text-text-muted">
-            {{ config?.enableLogging ? 'Logging enabled' : 'Logging disabled' }}
+            {{ config?.enableLogging ? $t('admin.torznab.config.loggingEnabled') : $t('admin.torznab.config.loggingDisabled') }}
           </span>
         </div>
       </SettingsGroup>
 
       <!-- API URL Info -->
       <SettingsGroup
-        label="API Endpoint"
-        description="The base URL for the Torznab API. Users add this in Prowlarr/Sonarr/Radarr."
+        :label="$t('admin.torznab.config.endpointLabel')"
+        :description="$t('admin.torznab.config.endpointDescription')"
       >
         <div class="flex items-center gap-2">
           <input
@@ -95,7 +95,7 @@
           <button
             @click="copyUrl"
             class="p-2 bg-bg-tertiary border border-border rounded hover:border-fg-default/20 transition-colors"
-            title="Copy URL"
+            :title="$t('admin.torznab.config.copyUrlTitle')"
           >
             <Icon
               :name="copied ? 'ph:check' : 'ph:copy'"

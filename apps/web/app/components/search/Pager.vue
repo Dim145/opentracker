@@ -4,12 +4,12 @@
        page, with first/last and prev/next anchors when there's enough
        room. On phones we collapse to first / prev / current / next /
        last so the strip never wraps. -->
-  <nav class="pager" aria-label="Pagination">
+  <nav class="pager" :aria-label="$t('search.pager.pagination')">
     <button
       type="button"
       class="pager-btn pager-btn--icon"
       :disabled="page <= 1"
-      :aria-label="`First page`"
+      :aria-label="$t('admin.bannedIps.pager.firstPage')"
       @click="$emit('go', 1)"
     >
       <Icon name="ph:caret-double-left-bold" />
@@ -18,7 +18,7 @@
       type="button"
       class="pager-btn pager-btn--icon"
       :disabled="page <= 1"
-      :aria-label="`Previous page`"
+      :aria-label="$t('search.pager.previousPage')"
       @click="$emit('go', page - 1)"
     >
       <Icon name="ph:caret-left-bold" />
@@ -40,7 +40,7 @@
       type="button"
       class="pager-btn pager-btn--icon"
       :disabled="page >= pages"
-      :aria-label="`Next page`"
+      :aria-label="$t('search.pager.nextPage')"
       @click="$emit('go', page + 1)"
     >
       <Icon name="ph:caret-right-bold" />
@@ -49,7 +49,7 @@
       type="button"
       class="pager-btn pager-btn--icon"
       :disabled="page >= pages"
-      :aria-label="`Last page`"
+      :aria-label="$t('admin.bannedIps.pager.lastPage')"
       @click="$emit('go', pages)"
     >
       <Icon name="ph:caret-double-right-bold" />

@@ -11,28 +11,31 @@
     <div class="rcv-actions">
       <button class="btn-ghost" type="button" @click="copyAll">
         <Icon name="ph:copy-bold" />
-        {{ copied ? 'Copied' : 'Copy all' }}
+        {{ copied ? $t('common.copied') : $t('security.recoveryCodes.copyAll') }}
       </button>
       <button class="btn-ghost" type="button" @click="download">
         <Icon name="ph:download-simple-bold" />
-        Download .txt
+        {{ $t('security.recoveryCodes.downloadTxt') }}
       </button>
       <button class="btn-ghost" type="button" @click="print">
         <Icon name="ph:printer-bold" />
-        Print
+        {{ $t('security.recoveryCodes.print') }}
       </button>
     </div>
     <p class="rcv-warning">
       <Icon name="ph:warning-bold" />
-      These codes are <strong>shown once</strong>. Each is single-use.
-      Keep them somewhere offline — a password manager, a printout, or
-      both.
+      <span>
+        {{ $t('security.recoveryCodes.warningPrefix') }}
+        <strong>{{ $t('security.recoveryCodes.warningStrong') }}</strong>{{ $t('security.recoveryCodes.warningSuffix') }}
+      </span>
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
 const props = defineProps<{ codes: string[] }>();
+
+const { t } = useI18n();
 
 const copied = ref(false);
 
@@ -66,14 +69,16 @@ function print() {
   const w = window.open('', 'rc-print');
   if (!w) return;
   const list = props.codes.map((c) => `<li><code>${c}</code></li>`).join('');
+  const title = t('security.recoveryCodes.printTitle');
+  const intro = t('security.recoveryCodes.printIntro');
   w.document.write(
-    `<!doctype html><meta charset="utf-8"><title>Trackarr recovery codes</title>` +
+    `<!doctype html><meta charset="utf-8"><title>${title}</title>` +
       `<style>body{font-family:ui-monospace,monospace;padding:2rem;color:#111}` +
       `h1{font-size:1.2rem}ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem 1.5rem}` +
       `code{font-size:1.05rem;letter-spacing:.06em}` +
       `</style>` +
-      `<h1>Trackarr recovery codes</h1>` +
-      `<p>Each code is single-use. Keep this paper somewhere safe.</p>` +
+      `<h1>${title}</h1>` +
+      `<p>${intro}</p>` +
       `<ul>${list}</ul>`
   );
   w.document.close();

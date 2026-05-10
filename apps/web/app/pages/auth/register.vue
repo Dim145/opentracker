@@ -24,7 +24,7 @@
         ></h1>
         <div
           class="text-text-muted text-sm mt-1 [&>p]:m-0"
-          v-html="sanitizeHtml(branding?.authSubtitle || 'Private BitTorrent Tracker')"
+          v-html="sanitizeHtml(branding?.authSubtitle || $t('auth.register.tagline'))"
         ></div>
       </div>
 
@@ -46,16 +46,15 @@
           name="ph:lock-simple"
           class="text-4xl text-text-muted mx-auto mb-4"
         />
-        <h2 class="text-lg font-semibold mb-2">Registration Closed</h2>
+        <h2 class="text-lg font-semibold mb-2">{{ $t('auth.register.closedTitle') }}</h2>
         <p class="text-text-muted text-sm mb-6">
-          New registrations are currently not accepted. If you have an invite,
-          please contact an administrator.
+          {{ $t('auth.register.closedDescription') }}
         </p>
         <NuxtLink
           to="/auth/login"
           class="inline-block bg-accent text-accent-fg font-medium px-6 py-2 rounded hover:bg-gray-200 transition-colors"
         >
-          Sign In
+          {{ $t('auth.login.submit') }}
         </NuxtLink>
       </div>
 
@@ -64,10 +63,10 @@
         <h2 class="text-lg font-semibold mb-6">
           {{
             status?.needsSetup
-              ? 'Create Admin Account'
+              ? $t('auth.register.titleAdmin')
               : !status?.registrationOpen && status?.inviteEnabled
-                ? 'Invite Only Registration'
-                : 'Create Account'
+                ? $t('auth.register.titleInviteOnly')
+                : $t('auth.register.titleDefault')
           }}
         </h2>
 
@@ -77,7 +76,7 @@
         >
           <p class="text-amber-400 text-sm">
             <Icon name="ph:warning" class="inline mr-1" />
-            This is the first account. It will have administrator privileges.
+            {{ $t('auth.register.firstAccountNotice') }}
           </p>
         </div>
 
@@ -85,9 +84,7 @@
         <div class="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded">
           <p class="text-red-400 text-sm">
             <Icon name="ph:shield-warning" class="inline mr-1" />
-            <strong>Zero Knowledge Encryption:</strong> Your password is never
-            sent to the server. If you forget it, your account cannot be
-            recovered.
+            <strong>{{ $t('auth.register.zkeTitle') }}</strong> {{ $t('auth.register.zkeDescription') }}
           </p>
         </div>
 
@@ -98,12 +95,12 @@
               for="inviteCode"
               class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
             >
-              Invite Code
+              {{ $t('auth.register.inviteCodeLabel') }}
               <span
                 v-if="status?.registrationOpen"
                 class="text-text-muted/50 normal-case tracking-normal ml-1"
               >
-                (Optional)
+                {{ $t('auth.register.optional') }}
               </span>
             </label>
             <input
@@ -112,7 +109,7 @@
               type="text"
               :required="!status?.registrationOpen"
               class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors font-mono"
-              placeholder="Enter your invite code"
+              :placeholder="$t('auth.register.inviteCodePlaceholder')"
             />
           </div>
 
@@ -121,7 +118,7 @@
               for="username"
               class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
             >
-              Username
+              {{ $t('auth.login.username') }}
             </label>
             <input
               id="username"
@@ -130,7 +127,7 @@
               required
               autocomplete="username"
               class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
-              placeholder="3-20 characters, letters, numbers, _ or -"
+              :placeholder="$t('auth.register.usernamePlaceholder')"
             />
           </div>
 
@@ -139,7 +136,7 @@
               for="password"
               class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
             >
-              Password
+              {{ $t('auth.login.password') }}
             </label>
             <input
               id="password"
@@ -148,7 +145,7 @@
               required
               autocomplete="new-password"
               class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
-              placeholder="At least 8 characters"
+              :placeholder="$t('auth.register.passwordPlaceholder')"
             />
           </div>
 
@@ -157,7 +154,7 @@
               for="confirmPassword"
               class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
             >
-              Confirm Password
+              {{ $t('auth.register.confirmPassword') }}
             </label>
             <input
               id="confirmPassword"
@@ -166,7 +163,7 @@
               required
               autocomplete="new-password"
               class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
-              placeholder="Re-enter your password"
+              :placeholder="$t('auth.register.confirmPasswordPlaceholder')"
             />
           </div>
 
@@ -180,8 +177,7 @@
             >
               <p class="text-red-400 text-sm">
                 <Icon name="ph:shield-warning" class="inline mr-1" />
-                The panic password enables emergency database encryption. Store
-                it securely — it cannot be recovered or changed.
+                {{ $t('auth.register.panicPasswordWarning') }}
               </p>
             </div>
 
@@ -190,7 +186,7 @@
                 for="panicPassword"
                 class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
               >
-                Panic Password
+                {{ $t('auth.register.panicPassword') }}
               </label>
               <input
                 id="panicPassword"
@@ -198,7 +194,7 @@
                 type="password"
                 required
                 class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
-                placeholder="At least 12 characters"
+                :placeholder="$t('auth.register.panicPasswordPlaceholder')"
               />
             </div>
 
@@ -207,7 +203,7 @@
                 for="confirmPanicPassword"
                 class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
               >
-                Confirm Panic Password
+                {{ $t('auth.register.confirmPanicPassword') }}
               </label>
               <input
                 id="confirmPanicPassword"
@@ -215,7 +211,7 @@
                 type="password"
                 required
                 class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
-                placeholder="Re-enter panic password"
+                :placeholder="$t('auth.register.confirmPanicPasswordPlaceholder')"
               />
             </div>
           </div>
@@ -247,9 +243,9 @@
             :disabled="loading"
             class="w-full bg-accent text-accent-fg font-medium py-2.5 rounded hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span v-if="loading">Creating account...</span>
+            <span v-if="loading">{{ $t('auth.register.submitting') }}</span>
             <span v-else>{{
-              status?.needsSetup ? 'Create Admin Account' : 'Create Account'
+              status?.needsSetup ? $t('auth.register.titleAdmin') : $t('auth.register.titleDefault')
             }}</span>
           </button>
         </form>
@@ -259,12 +255,12 @@
           class="mt-6 pt-6 border-t border-border text-center"
         >
           <p class="text-text-muted text-sm">
-            Already have an account?
+            {{ $t('auth.register.haveAccount') }}
             <NuxtLink
               to="/auth/login"
               class="text-text-strong hover:underline font-medium"
             >
-              Sign in
+              {{ $t('auth.register.loginInstead') }}
             </NuxtLink>
           </p>
         </div>
@@ -280,6 +276,7 @@ definePageMeta({
   layout: false,
 });
 
+const { t } = useI18n();
 const { fetch: fetchSession } = useUserSession();
 const router = useRouter();
 const route = useRoute();
@@ -343,23 +340,23 @@ async function handleRegister() {
   powProgress.value = 0;
 
   if (form.password !== form.confirmPassword) {
-    error.value = 'Passwords do not match';
+    error.value = t('auth.register.errors.passwordMismatch');
     return;
   }
 
   if (form.password.length < 8) {
-    error.value = 'Password must be at least 8 characters';
+    error.value = t('auth.register.errors.passwordTooShort');
     return;
   }
 
   // Panic password validation for first admin
   if (status.value?.needsSetup) {
     if (form.panicPassword !== form.confirmPanicPassword) {
-      error.value = 'Panic passwords do not match';
+      error.value = t('auth.register.errors.panicPasswordMismatch');
       return;
     }
     if (form.panicPassword.length < 12) {
-      error.value = 'Panic password must be at least 12 characters';
+      error.value = t('auth.register.errors.panicPasswordTooShort');
       return;
     }
   }
@@ -368,14 +365,14 @@ async function handleRegister() {
 
   try {
     // Step 1: Get PoW challenge
-    authStatus.value = 'Getting challenge...';
+    authStatus.value = t('auth.register.status.gettingChallenge');
     const powChallenge = await $fetch<{
       challenge: string;
       difficulty: number;
     }>('/api/auth/pow');
 
     // Step 2: Solve Proof of Work (anti-abuse)
-    authStatus.value = 'Solving proof of work...';
+    authStatus.value = t('auth.register.status.solvingPow');
     const powSolution = await solvePoW(
       powChallenge.challenge,
       powChallenge.difficulty,
@@ -388,11 +385,11 @@ async function handleRegister() {
     powProgress.value = 100;
 
     // Step 3: Generate ZKE credentials client-side
-    authStatus.value = 'Generating secure credentials...';
+    authStatus.value = t('auth.register.status.generatingCredentials');
     const credentials = await generateCredentials(form.password);
 
     // Step 4: Register (password never sent to server)
-    authStatus.value = 'Creating account...';
+    authStatus.value = t('auth.register.status.creatingAccount');
     await $fetch('/api/auth/register', {
       method: 'POST',
       body: {
@@ -411,7 +408,7 @@ async function handleRegister() {
     await fetchSession();
     router.push('/');
   } catch (err: any) {
-    error.value = err.data?.message || 'Registration failed';
+    error.value = err.data?.message || t('auth.register.errors.registrationFailed');
   } finally {
     loading.value = false;
     authStatus.value = '';

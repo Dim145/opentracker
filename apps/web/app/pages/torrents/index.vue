@@ -17,10 +17,10 @@
           <h2
             class="text-xl font-bold text-text-primary tracking-tight uppercase"
           >
-            Torrent Index
+            {{ $t('torrents.title') }}
           </h2>
           <p class="text-xs text-text-muted font-mono mt-0.5">
-            {{ pagination.total }} objects indexed in database
+            {{ $t('torrents.objectsIndexed', { n: pagination.total }) }}
           </p>
         </div>
 
@@ -30,7 +30,7 @@
         <div class="flex flex-col sm:flex-row md:items-start gap-2">
           <SearchBar
             v-model="search"
-            placeholder="Search by name, hash, or paste an IMDb / TMDb / TVDB link…"
+            :placeholder="$t('torrents.list.searchPlaceholder')"
             class="w-full md:w-80 order-2 sm:order-1"
             :loading="pending"
             @search="doSearch"
@@ -41,7 +41,7 @@
             class="btn btn-primary inline-flex items-center justify-center gap-2 !py-1.5 order-1 sm:order-2 self-start sm:self-auto"
           >
             <Icon name="ph:plus-bold" />
-            <span>Upload</span>
+            <span>{{ $t('torrents.upload') }}</span>
           </NuxtLink>
         </div>
       </div>
@@ -56,7 +56,7 @@
         <span
           class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
         >
-          Filtered by:
+          {{ $t('torrents.list.filteredBy') }}
         </span>
         <span
           class="media-id-chip"
@@ -67,7 +67,7 @@
           <button
             type="button"
             class="media-id-chip-close"
-            :aria-label="`Clear ${activeMediaId.label} filter`"
+            :aria-label="$t('torrents.list.clearFilterAria', { label: activeMediaId.label })"
             @click="clearMediaIdFilter"
           >
             <Icon name="ph:x-bold" class="text-[10px]" />
@@ -89,7 +89,7 @@
             :class="filtersOpen ? 'text-success' : ''"
           />
           <span :class="filtersOpen ? 'text-text-strong' : ''">
-            {{ filtersOpen ? 'Hide filters' : 'Show filters' }}
+            {{ filtersOpen ? $t('torrents.hideFilters') : $t('torrents.showFilters') }}
           </span>
           <span
             v-if="selectedTags.length > 0"
@@ -108,7 +108,7 @@
             <span
               class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
             >
-              Tags
+              {{ $t('torrents.list.tags') }}
             </span>
             <button
               v-if="selectedTags.length > 0"
@@ -116,14 +116,14 @@
               class="text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-error transition-colors"
               @click="clearTagFilters"
             >
-              Clear
+              {{ $t('torrents.list.clear') }}
             </button>
           </div>
           <div
             v-if="(allTags?.length ?? 0) === 0"
             class="text-xs text-text-muted italic"
           >
-            No tags yet — they'll appear here once a torrent is tagged.
+            {{ $t('torrents.list.noTagsYet') }}
           </div>
           <div v-else class="flex flex-wrap gap-2">
             <button
@@ -169,17 +169,17 @@
             <h3
               class="text-sm font-bold text-text-primary uppercase tracking-wider"
             >
-              No results found
+              {{ $t('torrents.list.noResults') }}
             </h3>
             <p class="text-xs text-text-muted mt-1 font-mono">
-              The search query did not match any indexed torrents.
+              {{ $t('torrents.list.noResultsHint') }}
             </p>
             <button
               v-if="search || selectedCategory"
               class="btn btn-secondary mt-6 text-xs uppercase tracking-widest font-bold"
               @click="clearFilters"
             >
-              Reset Filters
+              {{ $t('torrents.list.resetFilters') }}
             </button>
           </div>
         </div>
@@ -192,7 +192,7 @@
           <p
             class="text-[10px] font-mono text-text-muted uppercase tracking-widest"
           >
-            Page {{ pagination.page }} / {{ pagination.pages }}
+            {{ $t('torrents.list.pageOf', { current: pagination.page, total: pagination.pages }) }}
           </p>
           <div class="flex gap-1">
             <button

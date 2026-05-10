@@ -24,12 +24,12 @@
       </div>
       <div class="mod-banner-text">
         <p class="mod-banner-eyebrow">
-          File · Moderation
+          {{ $t('torrent.moderation.eyebrow') }}
           <span v-if="!loading" class="mod-banner-count">
-            {{ messages.length }} {{ messages.length === 1 ? 'entry' : 'entries' }}
+            {{ $t('torrent.moderation.entries', { n: messages.length }, messages.length) }}
           </span>
           <span v-if="!expanded" class="mod-banner-collapsed-pip">
-            click to open
+            {{ $t('torrent.moderation.clickToOpen') }}
           </span>
         </p>
         <h3 class="mod-banner-title">{{ bannerTitle }}</h3>
@@ -52,14 +52,14 @@
     <!-- ─── Loading ─────────────────────────────────────── -->
     <div v-if="loading" class="mod-loading">
       <Icon name="ph:circle-notch" class="animate-spin" />
-      <span>Loading conversation…</span>
+      <span>{{ $t('torrent.moderation.loadingConversation') }}</span>
     </div>
 
     <div v-else class="mod-stack">
       <!-- ─── Timeline ─────────────────────────────────── -->
       <div v-if="messages.length === 0" class="mod-empty">
         <Icon name="ph:scroll-bold" class="mod-empty-glyph" />
-        <p class="mod-empty-text">No entries yet.</p>
+        <p class="mod-empty-text">{{ $t('torrent.moderation.empty') }}</p>
         <p class="mod-empty-help">{{ emptyHint }}</p>
       </div>
 
@@ -78,21 +78,21 @@
           <div class="mod-row-card">
             <div class="mod-row-meta">
               <span class="mod-row-author">
-                <template v-if="m.isSystem">System</template>
+                <template v-if="m.isSystem">{{ $t('torrent.moderation.system') }}</template>
                 <template v-else-if="m.author">@{{ m.author.username }}</template>
-                <template v-else>(deleted)</template>
+                <template v-else>{{ $t('torrent.moderation.deleted') }}</template>
                 <span v-if="!m.isSystem && m.author?.isAdmin" class="mod-row-pip mod-row-pip--admin">
-                  Admin
+                  {{ $t('me.permission.admin') }}
                 </span>
                 <span v-else-if="!m.isSystem && m.author?.isModerator" class="mod-row-pip mod-row-pip--mod">
-                  Mod
+                  {{ $t('nav.mod') }}
                 </span>
               </span>
               <time class="mod-row-time" :datetime="m.createdAt">
                 {{ formatDate(m.createdAt) }}
               </time>
               <span v-if="m.statusChange" class="mod-row-statuschange">
-                set to <strong>{{ statusLabel(m.statusChange) }}</strong>
+                {{ $t('torrent.moderation.setTo') }} <strong>{{ statusLabel(m.statusChange) }}</strong>
               </span>
             </div>
             <p class="mod-row-body">{{ m.body }}</p>
@@ -104,7 +104,7 @@
       <div v-if="canAct" class="mod-composer">
         <div class="mod-composer-head">
           <Icon name="ph:paper-plane-tilt" />
-          <span>{{ isStaff ? 'Take action or leave a note' : 'Reply to the moderation team' }}</span>
+          <span>{{ isStaff ? $t('torrent.moderation.composer.headStaff') : $t('torrent.moderation.composer.headUser') }}</span>
         </div>
         <textarea
           v-model="composerBody"
@@ -127,7 +127,7 @@
                 : 'ph:chat-circle-text-bold'"
               :class="{ 'animate-spin': composerAction === 'reply' && composerLoading }"
             />
-            <span>Send reply</span>
+            <span>{{ $t('torrent.moderation.actions.sendReply') }}</span>
           </button>
 
           <template v-if="isStaff">
@@ -144,7 +144,7 @@
                   : 'ph:check-circle-fill'"
                 :class="{ 'animate-spin': composerAction === 'approve' && composerLoading }"
               />
-              <span>Approve</span>
+              <span>{{ $t('torrent.moderation.actions.approve') }}</span>
             </button>
 
             <button
@@ -153,7 +153,7 @@
               class="mod-action mod-action--changes"
               :disabled="composerLoading || !composerBody.trim()"
               @click="act('request-changes')"
-              :title="!composerBody.trim() ? 'A note explaining what to change is required' : ''"
+              :title="!composerBody.trim() ? $t('torrent.moderation.titles.changesRequiresNote') : ''"
             >
               <Icon
                 :name="composerAction === 'request-changes' && composerLoading
@@ -161,7 +161,7 @@
                   : 'ph:pencil-line-fill'"
                 :class="{ 'animate-spin': composerAction === 'request-changes' && composerLoading }"
               />
-              <span>Request changes</span>
+              <span>{{ $t('torrent.moderation.actions.requestChanges') }}</span>
             </button>
 
             <button
@@ -170,7 +170,7 @@
               class="mod-action mod-action--reject"
               :disabled="composerLoading || !composerBody.trim()"
               @click="act('reject')"
-              :title="!composerBody.trim() ? 'A reason is required' : ''"
+              :title="!composerBody.trim() ? $t('torrent.moderation.titles.rejectRequiresReason') : ''"
             >
               <Icon
                 :name="composerAction === 'reject' && composerLoading
@@ -178,7 +178,7 @@
                   : 'ph:prohibit-fill'"
                 :class="{ 'animate-spin': composerAction === 'reject' && composerLoading }"
               />
-              <span>Reject</span>
+              <span>{{ $t('torrent.moderation.actions.reject') }}</span>
             </button>
 
             <button
@@ -187,7 +187,7 @@
               class="mod-action mod-action--reset"
               :disabled="composerLoading || !composerBody.trim()"
               @click="act('reset')"
-              :title="!composerBody.trim() ? 'A note is required' : ''"
+              :title="!composerBody.trim() ? $t('torrent.moderation.titles.resetRequiresNote') : ''"
             >
               <Icon
                 :name="composerAction === 'reset' && composerLoading
@@ -195,7 +195,7 @@
                   : 'ph:arrow-counter-clockwise-bold'"
                 :class="{ 'animate-spin': composerAction === 'reset' && composerLoading }"
               />
-              <span>Re-open to pending</span>
+              <span>{{ $t('torrent.moderation.actions.reopen') }}</span>
             </button>
           </template>
         </div>
@@ -207,7 +207,7 @@
 
       <p v-else class="mod-readonly">
         <Icon name="ph:lock-simple" />
-        This conversation is read-only from your viewpoint.
+        {{ $t('torrent.moderation.readonly') }}
       </p>
     </div>
     </div><!-- /.mod-body -->
@@ -246,6 +246,7 @@ const emit = defineEmits<{
   (e: 'status-change', s: Status): void;
 }>();
 
+const { t } = useI18n();
 const notifications = useNotificationStore();
 const { user } = useUserSession();
 
@@ -295,33 +296,35 @@ const bannerIcon = computed(() => {
 const bannerTitle = computed(() => {
   switch (currentStatus.value) {
     case 'pending':
-      return isStaff.value ? 'Awaiting your call' : 'Awaiting moderation';
+      return isStaff.value
+        ? t('torrent.moderation.banner.pendingStaff')
+        : t('torrent.moderation.banner.pendingUser');
     case 'changes_requested':
       return isOwner.value
-        ? 'Changes requested — edit and resubmit'
-        : 'Changes requested';
+        ? t('torrent.moderation.banner.changesOwner')
+        : t('torrent.moderation.banner.changesOther');
     case 'rejected':
-      return 'This file has been rejected';
+      return t('torrent.moderation.banner.rejected');
     case 'accepted':
-      return 'Open conversation';
+      return t('torrent.moderation.banner.accepted');
   }
-  return 'Moderation';
+  return t('torrent.moderation.banner.fallback');
 });
 
 const bannerSub = computed(() => {
   switch (currentStatus.value) {
     case 'pending':
       return isStaff.value
-        ? 'Use the actions below to approve, request changes, or reject this row.'
-        : 'A moderator will review your upload shortly.';
+        ? t('torrent.moderation.bannerSub.pendingStaff')
+        : t('torrent.moderation.bannerSub.pendingUser');
     case 'changes_requested':
       return isOwner.value
-        ? 'Read the moderator’s note, edit the torrent, then save to resubmit.'
-        : 'Awaiting the uploader’s edits.';
+        ? t('torrent.moderation.bannerSub.changesOwner')
+        : t('torrent.moderation.bannerSub.changesOther');
     case 'rejected':
-      return 'Hidden from public listings. Only a moderator can re-open it.';
+      return t('torrent.moderation.bannerSub.rejected');
     case 'accepted':
-      return 'Visible everywhere. Notes posted here stay between you and the moderation team.';
+      return t('torrent.moderation.bannerSub.accepted');
   }
   return '';
 });
@@ -329,22 +332,22 @@ const bannerSub = computed(() => {
 const emptyHint = computed(() => {
   if (currentStatus.value === 'pending')
     return isStaff.value
-      ? 'Open the composer below to action this row.'
-      : 'You will be notified once a moderator chimes in.';
+      ? t('torrent.moderation.emptyHint.pendingStaff')
+      : t('torrent.moderation.emptyHint.pendingUser');
   if (currentStatus.value === 'changes_requested')
     return isOwner.value
-      ? 'Save an edit to push the torrent back into review.'
-      : 'Awaiting the uploader’s edits.';
+      ? t('torrent.moderation.emptyHint.changesOwner')
+      : t('torrent.moderation.emptyHint.changesOther');
   if (currentStatus.value === 'rejected')
-    return 'Only a moderator can post here now.';
-  return 'Nothing to discuss yet.';
+    return t('torrent.moderation.emptyHint.rejected');
+  return t('torrent.moderation.emptyHint.fallback');
 });
 
 const composerPlaceholder = computed(() => {
   if (currentStatus.value === 'rejected' && isStaff.value)
-    return 'Explain why you are re-opening this rejected file…';
-  if (isStaff.value) return 'Add a note or write the rationale for an action…';
-  return 'Reply to the moderation team…';
+    return t('torrent.moderation.composer.placeholderRejected');
+  if (isStaff.value) return t('torrent.moderation.composer.placeholderStaff');
+  return t('torrent.moderation.composer.placeholderUser');
 });
 
 watch(
@@ -389,11 +392,11 @@ async function postReply() {
     });
     composerBody.value = '';
     await load();
-    notifications.success('Reply sent.');
+    notifications.success(t('torrent.moderation.toasts.replySent'));
   } catch (err: unknown) {
     composerError.value =
       (err as { data?: { message?: string } })?.data?.message ??
-      'Failed to send reply.';
+      t('torrent.moderation.errors.replyFailed');
   } finally {
     composerLoading.value = false;
     composerAction.value = null;
@@ -406,7 +409,7 @@ async function act(
   if (!isStaff.value || composerLoading.value) return;
   const trimmed = composerBody.value.trim();
   if (action !== 'approve' && trimmed.length === 0) {
-    composerError.value = 'A note is required for this action.';
+    composerError.value = t('torrent.moderation.errors.noteRequired');
     return;
   }
   composerLoading.value = true;
@@ -431,7 +434,7 @@ async function act(
   } catch (err: unknown) {
     composerError.value =
       (err as { data?: { message?: string } })?.data?.message ??
-      'Action failed.';
+      t('torrent.moderation.errors.actionFailed');
   } finally {
     composerLoading.value = false;
     composerAction.value = null;
@@ -439,11 +442,11 @@ async function act(
 }
 
 function actionConfirmation(action: string, next: Status): string {
-  if (action === 'approve') return 'Torrent approved.';
-  if (action === 'request-changes') return 'Changes requested.';
-  if (action === 'reject') return 'Torrent rejected.';
-  if (action === 'reset') return `Torrent moved to ${statusLabel(next)}.`;
-  return 'Done.';
+  if (action === 'approve') return t('torrent.moderation.toasts.approved');
+  if (action === 'request-changes') return t('torrent.moderation.toasts.changesRequested');
+  if (action === 'reject') return t('torrent.moderation.toasts.rejected');
+  if (action === 'reset') return t('torrent.moderation.toasts.movedTo', { status: statusLabel(next) });
+  return t('torrent.moderation.toasts.done');
 }
 
 function rowClass(m: ModMessage): string[] {
@@ -468,10 +471,10 @@ function rowIcon(m: ModMessage): string {
 function statusLabel(s: Status | null): string {
   if (!s) return '—';
   return {
-    pending: 'pending',
-    accepted: 'accepted',
-    changes_requested: 'changes requested',
-    rejected: 'rejected',
+    pending: t('torrent.moderation.status.pending'),
+    accepted: t('torrent.moderation.status.accepted'),
+    changes_requested: t('torrent.moderation.status.changesRequested'),
+    rejected: t('torrent.moderation.status.rejected'),
   }[s];
 }
 

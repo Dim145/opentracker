@@ -2,7 +2,7 @@
   <div class="tfa">
     <div class="tfa-eyebrow">
       <Icon name="ph:shield-check-bold" class="tfa-eyebrow-icon" />
-      <span>Two-factor authentication</span>
+      <span>{{ $t('settings.security.twoFactor') }}</span>
       <span
         v-if="status"
         class="tfa-summary"
@@ -10,16 +10,14 @@
       >
         <span v-if="status.totpEnabled">TOTP</span>
         <span v-if="status.passkeys.length > 0">
-          {{ status.passkeys.length }} passkey{{ status.passkeys.length === 1 ? '' : 's' }}
+          {{ $t('security.twoFactor.passkeyCount', { n: status.passkeys.length }, status.passkeys.length) }}
         </span>
-        <span v-if="!status.totpEnabled && status.passkeys.length === 0">Off</span>
+        <span v-if="!status.totpEnabled && status.passkeys.length === 0">{{ $t('settings.security.off') }}</span>
       </span>
     </div>
 
     <p class="tfa-blurb">
-      Add a second factor on top of your password. We support
-      authenticator apps (TOTP) and platform / hardware passkeys.
-      Configure either or both — you'll pick which one to use at sign-in.
+      {{ $t('settings.security.twoFactorHint') }}
     </p>
 
     <!-- TOTP card --------------------------------------------------- -->
@@ -27,17 +25,16 @@
       <div class="tfa-card-head">
         <Icon name="ph:device-mobile-camera-bold" class="tfa-card-icon" />
         <div>
-          <h4 class="tfa-card-title">Authenticator app (TOTP)</h4>
+          <h4 class="tfa-card-title">{{ $t('settings.security.totpTitle') }}</h4>
           <p class="tfa-card-meta">
             <template v-if="status?.totpEnabled">
-              Enabled
+              {{ $t('security.twoFactor.totpEnabled') }}
               <span class="tfa-dot tfa-dot--on" />
               ·
-              {{ status.recoveryCodesRemaining }}
-              recovery code{{ status.recoveryCodesRemaining === 1 ? '' : 's' }} left
+              {{ $t('security.twoFactor.recoveryCodesLeft', { n: status.recoveryCodesRemaining }, status.recoveryCodesRemaining) }}
             </template>
             <template v-else>
-              Not configured
+              {{ $t('settings.security.totpNotConfigured') }}
               <span class="tfa-dot tfa-dot--off" />
             </template>
           </p>
@@ -50,7 +47,7 @@
             @click="startTotpSetup"
           >
             <Icon name="ph:plus-bold" />
-            Enable TOTP
+            {{ $t('settings.security.totpEnable') }}
           </button>
           <template v-else>
             <button
@@ -59,7 +56,7 @@
               @click="regenOpen = true"
             >
               <Icon name="ph:arrows-clockwise-bold" />
-              Regenerate codes
+              {{ $t('security.twoFactor.regenerateCodes') }}
             </button>
             <button
               type="button"
@@ -67,7 +64,7 @@
               @click="disableOpen = true"
             >
               <Icon name="ph:x-circle-bold" />
-              Disable
+              {{ $t('security.twoFactor.disable') }}
             </button>
           </template>
         </div>
@@ -79,14 +76,14 @@
       <div class="tfa-card-head">
         <Icon name="ph:fingerprint-simple-bold" class="tfa-card-icon" />
         <div>
-          <h4 class="tfa-card-title">Passkeys</h4>
+          <h4 class="tfa-card-title">{{ $t('settings.security.passkeysTitle') }}</h4>
           <p class="tfa-card-meta">
             <template v-if="status && status.passkeys.length > 0">
-              {{ status.passkeys.length }} registered
+              {{ $t('security.twoFactor.passkeysRegistered', { n: status.passkeys.length }, status.passkeys.length) }}
               <span class="tfa-dot tfa-dot--on" />
             </template>
             <template v-else>
-              No passkeys yet
+              {{ $t('settings.security.noPasskeys') }}
               <span class="tfa-dot tfa-dot--off" />
             </template>
           </p>
@@ -102,7 +99,7 @@
               :name="passkeyAdding ? 'ph:circle-notch' : 'ph:plus-bold'"
               :class="{ 'animate-spin': passkeyAdding }"
             />
-            Add passkey
+            {{ $t('settings.security.addPasskey') }}
           </button>
         </div>
       </div>
@@ -117,9 +114,9 @@
             {{ pk.name }}
           </span>
           <span class="tfa-passkey-meta">
-            Added {{ formatAge(pk.createdAt) }}
+            {{ $t('security.twoFactor.added', { age: formatAge(pk.createdAt) }) }}
             <template v-if="pk.lastUsedAt">
-              · last used {{ formatAge(pk.lastUsedAt) }}
+              · {{ $t('security.twoFactor.lastUsed', { age: formatAge(pk.lastUsedAt) }) }}
             </template>
           </span>
           <button
@@ -128,7 +125,7 @@
             @click="removePasskey(pk.id)"
           >
             <Icon name="ph:trash-bold" />
-            Remove
+            {{ $t('security.twoFactor.remove') }}
           </button>
         </li>
       </ul>
@@ -139,10 +136,9 @@
       <div class="tfa-card-head">
         <Icon name="ph:laptop-bold" class="tfa-card-icon" />
         <div>
-          <h4 class="tfa-card-title">Trusted devices</h4>
+          <h4 class="tfa-card-title">{{ $t('settings.security.trustedDevices') }}</h4>
           <p class="tfa-card-meta">
-            Skip the second factor on browsers you've already verified
-            (30 days). Disable to reset.
+            {{ $t('settings.security.trustedDevicesHint') }}
           </p>
         </div>
         <div class="tfa-card-actions">
@@ -155,7 +151,7 @@
             />
             <span class="tfa-switch-track" />
             <span class="tfa-switch-label">
-              {{ status?.trustDevicesEnabled ? 'On' : 'Off' }}
+              {{ status?.trustDevicesEnabled ? $t('settings.security.on') : $t('settings.security.off') }}
             </span>
           </label>
         </div>
@@ -171,12 +167,12 @@
         >
           <span class="tfa-passkey-name">
             <Icon name="ph:globe-bold" />
-            {{ d.label || 'Unknown browser' }}
+            {{ d.label || $t('security.twoFactor.unknownBrowser') }}
           </span>
           <span class="tfa-passkey-meta">
-            Added {{ formatAge(d.createdAt) }}
+            {{ $t('security.twoFactor.added', { age: formatAge(d.createdAt) }) }}
             <template v-if="d.lastUsedAt">
-              · last used {{ formatAge(d.lastUsedAt) }}
+              · {{ $t('security.twoFactor.lastUsed', { age: formatAge(d.lastUsedAt) }) }}
             </template>
           </span>
           <button
@@ -185,14 +181,14 @@
             @click="revokeDevice(d.id)"
           >
             <Icon name="ph:sign-out-bold" />
-            Revoke
+            {{ $t('security.twoFactor.revoke') }}
           </button>
         </li>
       </ul>
     </article>
 
     <!-- Modals ------------------------------------------------------ -->
-    <Modal v-model="totpSetupOpen" title="Enable TOTP" size="md">
+    <Modal v-model="totpSetupOpen" :title="$t('security.twoFactor.modals.enableTotpTitle')" size="md">
       <TotpSetupWizard
         v-if="totpSetupOpen"
         :setup-data="totpSetup"
@@ -202,14 +198,12 @@
       />
     </Modal>
 
-    <Modal v-model="disableOpen" title="Disable TOTP" size="sm">
+    <Modal v-model="disableOpen" :title="$t('security.twoFactor.modals.disableTotpTitle')" size="sm">
       <p class="tfa-modal-blurb">
-        Disabling TOTP also burns your recovery codes. Confirm with
-        either a current 6-digit code or one of the recovery codes —
-        you'll lose 2FA on this account if no passkey is registered.
+        {{ $t('security.twoFactor.modals.disableTotpBlurb') }}
       </p>
       <div class="tfa-modal-field">
-        <label class="field-label">TOTP code</label>
+        <label class="field-label">{{ $t('security.twoFactor.totpCodeLabel') }}</label>
         <input
           v-model="disableCode"
           inputmode="numeric"
@@ -218,9 +212,9 @@
           placeholder="123 456"
         />
       </div>
-      <p class="tfa-modal-or">— or —</p>
+      <p class="tfa-modal-or">{{ $t('security.twoFactor.orSeparator') }}</p>
       <div class="tfa-modal-field">
-        <label class="field-label">Recovery code</label>
+        <label class="field-label">{{ $t('security.twoFactor.recoveryCodeLabel') }}</label>
         <input
           v-model="disableRecovery"
           class="input"
@@ -232,7 +226,7 @@
         {{ disableError }}
       </p>
       <template #footer>
-        <button class="btn-ghost" @click="disableOpen = false">Cancel</button>
+        <button class="btn-ghost" @click="disableOpen = false">{{ $t('common.cancel') }}</button>
         <button
           class="btn-primary"
           :disabled="!canSubmitDisable || disableSubmitting"
@@ -243,18 +237,17 @@
             name="ph:circle-notch"
             class="animate-spin"
           />
-          {{ disableSubmitting ? 'Disabling…' : 'Disable TOTP' }}
+          {{ disableSubmitting ? $t('security.twoFactor.modals.disabling') : $t('settings.security.totpDisable') }}
         </button>
       </template>
     </Modal>
 
-    <Modal v-model="regenOpen" title="Regenerate recovery codes" size="sm">
+    <Modal v-model="regenOpen" :title="$t('security.twoFactor.modals.regenerateTitle')" size="sm">
       <p class="tfa-modal-blurb">
-        Issues 8 fresh recovery codes and burns the old batch. Confirm
-        with a current TOTP code.
+        {{ $t('security.twoFactor.modals.regenerateBlurb') }}
       </p>
       <div class="tfa-modal-field">
-        <label class="field-label">TOTP code</label>
+        <label class="field-label">{{ $t('security.twoFactor.totpCodeLabel') }}</label>
         <input
           v-model="regenCode"
           inputmode="numeric"
@@ -272,7 +265,7 @@
         {{ regenError }}
       </p>
       <template #footer>
-        <button class="btn-ghost" @click="closeRegen">Close</button>
+        <button class="btn-ghost" @click="closeRegen">{{ $t('common.close') }}</button>
         <button
           v-if="regenCodes.length === 0"
           class="btn-primary"
@@ -284,32 +277,31 @@
             name="ph:circle-notch"
             class="animate-spin"
           />
-          {{ regenSubmitting ? 'Generating…' : 'Generate' }}
+          {{ regenSubmitting ? $t('security.twoFactor.modals.generating') : $t('security.twoFactor.modals.generate') }}
         </button>
       </template>
     </Modal>
 
-    <Modal v-model="passkeyNameOpen" title="Name this passkey" size="sm">
+    <Modal v-model="passkeyNameOpen" :title="$t('security.twoFactor.modals.namePasskeyTitle')" size="sm">
       <p class="tfa-modal-blurb">
-        Helps you tell your passkeys apart later — e.g. "iPhone 15",
-        "YubiKey 5C", "Work laptop".
+        {{ $t('security.twoFactor.modals.namePasskeyBlurb') }}
       </p>
       <input
         v-model="passkeyName"
         class="input"
         maxlength="64"
-        placeholder="Phone, laptop, hardware key…"
+        :placeholder="$t('security.twoFactor.modals.namePasskeyPlaceholder')"
       />
       <template #footer>
         <button class="btn-ghost" @click="passkeyNameOpen = false">
-          Cancel
+          {{ $t('common.cancel') }}
         </button>
         <button
           class="btn-primary"
           :disabled="!passkeyName.trim() || passkeyAdding"
           @click="confirmAddPasskey"
         >
-          {{ passkeyAdding ? 'Registering…' : 'Register' }}
+          {{ passkeyAdding ? $t('security.twoFactor.modals.registering') : $t('security.twoFactor.modals.register') }}
         </button>
       </template>
     </Modal>
@@ -347,6 +339,7 @@ interface TrustedDevice {
   lastUsedAt: string | null;
 }
 
+const { t } = useI18n();
 const notifications = useNotificationStore();
 
 const status = ref<StatusPayload | null>(null);
@@ -364,7 +357,7 @@ async function refresh() {
       trustedDevices.value = [];
     }
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Could not load 2FA status');
+    notifications.error(e?.data?.message || t('security.twoFactor.errors.loadStatus'));
   }
 }
 onMounted(refresh);
@@ -384,7 +377,7 @@ async function startTotpSetup() {
     totpRecoveryCodes.value = [];
     totpSetupOpen.value = true;
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Could not start TOTP setup');
+    notifications.error(e?.data?.message || t('security.twoFactor.errors.startSetup'));
   }
 }
 async function onTotpEnabled(codes: string[]) {
@@ -413,14 +406,14 @@ async function submitDisable() {
         ? { code: disableCode.value }
         : { recoveryCode: disableRecovery.value },
     });
-    notifications.success('TOTP disabled');
+    notifications.success(t('security.twoFactor.toasts.totpDisabled'));
     disableOpen.value = false;
     disableCode.value = '';
     disableRecovery.value = '';
     await refresh();
   } catch (e: any) {
     disableError.value =
-      e?.data?.message || 'Could not disable TOTP — try again.';
+      e?.data?.message || t('security.twoFactor.errors.disable');
   } finally {
     disableSubmitting.value = false;
   }
@@ -441,10 +434,10 @@ async function submitRegen() {
       { method: 'POST', body: { code: regenCode.value } }
     );
     regenCodes.value = r.recoveryCodes;
-    notifications.success('Recovery codes regenerated');
+    notifications.success(t('security.twoFactor.toasts.codesRegenerated'));
     await refresh();
   } catch (e: any) {
-    regenError.value = e?.data?.message || 'Could not regenerate codes.';
+    regenError.value = e?.data?.message || t('security.twoFactor.errors.regenerate');
   } finally {
     regenSubmitting.value = false;
   }
@@ -475,17 +468,17 @@ async function confirmAddPasskey() {
     try {
       attResp = await startRegistration({ optionsJSON: options as any });
     } catch (err: any) {
-      throw new Error(err?.message || 'Browser cancelled the request');
+      throw new Error(err?.message || t('security.twoFactor.errors.browserCancelled'));
     }
     await $fetch('/api/me/2fa/passkey/register-verify', {
       method: 'POST',
       body: { name: passkeyName.value.trim(), response: attResp },
     });
-    notifications.success(`Passkey "${passkeyName.value.trim()}" added`);
+    notifications.success(t('security.twoFactor.toasts.passkeyAdded', { name: passkeyName.value.trim() }));
     passkeyNameOpen.value = false;
     await refresh();
   } catch (e: any) {
-    notifications.error(e?.message || e?.data?.message || 'Could not add passkey');
+    notifications.error(e?.message || e?.data?.message || t('security.twoFactor.errors.addPasskey'));
   } finally {
     passkeyAdding.value = false;
   }
@@ -495,10 +488,10 @@ async function removePasskey(id: string) {
     await $fetch(`/api/me/2fa/passkey/${id}` as '/api/me/2fa/passkey/:id', {
       method: 'DELETE',
     } as any);
-    notifications.success('Passkey removed');
+    notifications.success(t('security.twoFactor.toasts.passkeyRemoved'));
     await refresh();
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Could not remove passkey');
+    notifications.error(e?.data?.message || t('security.twoFactor.errors.removePasskey'));
   }
 }
 
@@ -513,7 +506,7 @@ async function toggleTrustDevices(enabled: boolean) {
     });
     await refresh();
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Could not update toggle');
+    notifications.error(e?.data?.message || t('security.twoFactor.errors.updateToggle'));
   } finally {
     trustToggling.value = false;
   }
@@ -526,7 +519,7 @@ async function revokeDevice(id: string) {
     );
     await refresh();
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Could not revoke device');
+    notifications.error(e?.data?.message || t('security.twoFactor.errors.revokeDevice'));
   }
 }
 </script>

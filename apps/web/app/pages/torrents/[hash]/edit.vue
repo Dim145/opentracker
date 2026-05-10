@@ -4,18 +4,18 @@
     <div class="upload-header">
       <NuxtLink :to="`/torrents/${torrent.infoHash}`" class="back-link">
         <Icon name="ph:arrow-left-bold" />
-        Back to release
+        {{ $t('torrents.edit.backToRelease') }}
       </NuxtLink>
       <div class="upload-title-row">
         <div>
-          <p class="page-eyebrow">Editing · {{ torrent.infoHash.slice(0, 12) }}…</p>
+          <p class="page-eyebrow">{{ $t('torrents.edit.eyebrow', { hash: torrent.infoHash.slice(0, 12) }) }}</p>
           <h1 class="page-title">
-            Edit <span class="page-title-accent">release</span>
+            {{ $t('torrents.edit.titleMain') }} <span class="page-title-accent">{{ $t('torrents.edit.titleAccent') }}</span>
           </h1>
         </div>
         <div class="ready-state idle">
           <Icon name="ph:pencil-simple-bold" />
-          <span>Owner / mod</span>
+          <span>{{ $t('torrents.edit.ownerOrMod') }}</span>
         </div>
       </div>
     </div>
@@ -28,18 +28,18 @@
         <section class="form-section">
           <header class="section-head">
             <span class="section-number">01</span>
-            <h2 class="section-title">Category</h2>
+            <h2 class="section-title">{{ $t('common.category') }}</h2>
             <span class="section-rule" />
           </header>
 
           <div class="section-body">
             <label class="field-row">
-              <span class="field-label">Category</span>
+              <span class="field-label">{{ $t('common.category') }}</span>
               <select
                 v-model="selectedCategoryId"
                 class="input field-input field-input--select"
               >
-                <option value="">No category</option>
+                <option value="">{{ $t('torrents.edit.noCategory') }}</option>
                 <option
                   v-for="cat in flatCategories"
                   :key="cat.id"
@@ -56,13 +56,13 @@
         <section class="form-section">
           <header class="section-head">
             <span class="section-number">02</span>
-            <h2 class="section-title">Source &amp; title</h2>
+            <h2 class="section-title">{{ $t('torrents.uploadForm.sourceTitle') }}</h2>
             <span class="section-rule" />
           </header>
 
           <div class="section-body">
             <div class="readonly-name">
-              <span class="field-label">.torrent file</span>
+              <span class="field-label">{{ $t('torrents.edit.torrentFile') }}</span>
               <p>
                 {{ torrent.name }}
                 <span class="readonly-name-meta"
@@ -73,14 +73,14 @@
             </div>
             <label class="field-row">
               <span class="field-label">
-                Title<span class="section-required" aria-hidden="true">*</span>
+                {{ $t('torrents.uploadForm.titleField') }}<span class="section-required" aria-hidden="true">*</span>
               </span>
               <div class="field-with-action">
                 <input
                   v-model="title"
                   type="text"
                   class="input field-input"
-                  placeholder="The release name as you want it indexed"
+                  :placeholder="$t('torrents.uploadForm.titlePlaceholder')"
                 />
                 <!-- Mirror of the upload page's "Parse title" button.
                      Re-runs `parseReleaseName` on the current title and
@@ -93,11 +93,11 @@
                   type="button"
                   class="btn-ghost btn-ghost--small"
                   :disabled="!title.trim()"
-                  title="Detect tags (resolution / source / codec / language / …) from the title"
+                  :title="$t('torrents.uploadForm.parseTitleTooltip')"
                   @click="parseTitleNow"
                 >
                   <Icon name="ph:wand" />
-                  Parse title
+                  {{ $t('torrents.uploadForm.parseTitle') }}
                 </button>
               </div>
             </label>
@@ -108,15 +108,13 @@
         <section v-if="categoryKindValue !== 'other'" class="form-section">
           <header class="section-head">
             <span class="section-number">03</span>
-            <h2 class="section-title">Identity</h2>
+            <h2 class="section-title">{{ $t('torrents.uploadForm.identity') }}</h2>
             <span class="section-rule" />
           </header>
 
           <div class="section-body">
             <p class="section-help">
-              Search TMDb to attach the right metadata, or paste an id
-              manually below. Picking a result fills IMDb / TMDb / TVDB in
-              one step.
+              {{ $t('torrents.edit.identityHelp') }}
             </p>
             <MediaSearchPicker
               :initial-query="parsedTitle"
@@ -141,7 +139,7 @@
             <span class="section-number">{{
               categoryKindValue === 'other' ? '03' : '04'
             }}</span>
-            <h2 class="section-title">Description<span class="section-required" aria-hidden="true">*</span></h2>
+            <h2 class="section-title">{{ $t('torrents.detail.description') }}<span class="section-required" aria-hidden="true">*</span></h2>
             <span class="section-rule" />
           </header>
 
@@ -149,14 +147,14 @@
             <WysiwygEditor
               v-model="description"
               format="markdown"
-              placeholder="Describe the release. Paste BBCode, HTML or Markdown — it all converts."
+              :placeholder="$t('torrents.uploadForm.descriptionPlaceholder')"
             />
             <p
               v-if="!descriptionFilled"
               class="section-help section-help--warning"
             >
               <Icon name="ph:warning-circle" />
-              A description is required.
+              {{ $t('torrents.edit.descriptionRequired') }}
             </p>
           </div>
         </section>
@@ -167,15 +165,14 @@
             <span class="section-number">{{
               categoryKindValue === 'other' ? '04' : '05'
             }}</span>
-            <h2 class="section-title">Tags</h2>
+            <h2 class="section-title">{{ $t('search.tags') }}</h2>
             <span class="section-rule" />
           </header>
 
           <div class="section-body">
-            <TagInput v-model="tagNames" placeholder="FHD, Full Season, NC…" />
+            <TagInput v-model="tagNames" :placeholder="$t('torrents.uploadForm.tagsPlaceholder')" />
             <p class="section-help">
-              Press Enter or comma to add. Existing tags auto-suggest as you
-              type.
+              {{ $t('torrents.uploadForm.tagsHint') }}
             </p>
           </div>
         </section>
@@ -198,7 +195,7 @@
                 @click="triggerNfoInput"
               >
                 <Icon name="ph:upload-simple-bold" />
-                Upload .nfo
+                {{ $t('torrents.edit.uploadNfo') }}
               </button>
               <button
                 v-if="nfo"
@@ -207,7 +204,7 @@
                 @click="nfo = ''"
               >
                 <Icon name="ph:trash" />
-                Clear
+                {{ $t('torrents.edit.clear') }}
               </button>
             </div>
             <input
@@ -221,7 +218,7 @@
               v-model="nfo"
               rows="10"
               class="input nfo-textarea"
-              placeholder="Paste or upload an NFO release file…"
+              :placeholder="$t('torrents.edit.nfoPlaceholder')"
             />
           </div>
         </section>
@@ -230,7 +227,7 @@
       <!-- ─────────────────────────  ASIDE  ───────────────────────── -->
       <aside class="upload-aside">
         <div class="aside-card">
-          <p class="page-eyebrow">Live preview</p>
+          <p class="page-eyebrow">{{ $t('forum.newTopic.preview.eyebrow') }}</p>
 
           <MediaMetadataCard
             v-if="lookupResult || existingMetadata"
@@ -248,11 +245,11 @@
           </div>
 
           <div v-if="categoryLabel" class="aside-row">
-            <span>Category</span>
+            <span>{{ $t('common.category') }}</span>
             <strong>{{ categoryLabel }}</strong>
           </div>
           <div v-if="tagNames.length > 0" class="aside-row aside-row--column">
-            <span>Tags</span>
+            <span>{{ $t('search.tags') }}</span>
             <div class="aside-tags">
               <span v-for="t in tagNames" :key="t" class="aside-tag">{{
                 t
@@ -262,7 +259,7 @@
 
           <div v-if="dirtyCount > 0" class="aside-pending">
             <Icon name="ph:pencil-line-bold" />
-            <span>{{ dirtyCount }} unsaved change{{ dirtyCount === 1 ? '' : 's' }}</span>
+            <span>{{ $t('settings.unsavedChangesCount', dirtyCount, { n: dirtyCount }) }}</span>
           </div>
         </div>
       </aside>
@@ -276,7 +273,7 @@
           class="btn btn-secondary"
         >
           <Icon name="ph:x-bold" />
-          Cancel
+          {{ $t('common.cancel') }}
         </NuxtLink>
         <span class="action-bar-status">
           <span v-if="error" class="action-error">
@@ -284,17 +281,17 @@
             {{ error }}
           </span>
           <span v-else-if="!title.trim()" class="action-hint">
-            Title is required
+            {{ $t('torrents.edit.titleRequired') }}
           </span>
           <span v-else-if="!descriptionFilled" class="action-hint">
-            Description is required
+            {{ $t('torrents.edit.descriptionRequiredHint') }}
           </span>
           <span v-else-if="dirtyCount === 0" class="action-hint">
-            No changes to save
+            {{ $t('torrents.edit.noChangesToSave') }}
           </span>
           <span v-else class="action-ready">
             <Icon name="ph:floppy-disk" />
-            {{ dirtyCount }} change{{ dirtyCount === 1 ? '' : 's' }} pending
+            {{ $t('torrents.edit.changesPending', dirtyCount, { n: dirtyCount }) }}
           </span>
         </span>
         <button
@@ -307,7 +304,7 @@
             :name="isSaving ? 'ph:circle-notch' : 'ph:floppy-disk-bold'"
             :class="{ 'animate-spin': isSaving }"
           />
-          {{ isSaving ? 'Saving…' : 'Save changes' }}
+          {{ isSaving ? $t('settings.saving') : $t('common.saveChanges') }}
         </button>
       </div>
     </div>
@@ -318,7 +315,7 @@
     <Icon name="ph:circle-notch" class="animate-spin h-8 w-8" />
   </div>
   <div v-else class="upload-page upload-loading">
-    <p class="text-text-muted">Torrent not found.</p>
+    <p class="text-text-muted">{{ $t('torrents.detail.notFound') }}.</p>
   </div>
 </template>
 
@@ -372,6 +369,7 @@ interface MediaMetadata {
 const route = useRoute();
 const router = useRouter();
 const notifications = useNotificationStore();
+const { t } = useI18n();
 
 const hash = route.params.hash as string;
 
@@ -456,16 +454,16 @@ function parseTitleNow() {
   if (!value) return;
   const r = parseReleaseName(value);
   if (r.tags.length === 0) {
-    notifications.info('No tags detected from the title.');
+    notifications.info(t('torrents.uploadForm.toasts.noTagsDetected'));
     return;
   }
   const { merged, added } = mergeParsedTags(tagNames.value, r.tags);
   tagNames.value = merged;
   if (added.length === 0) {
-    notifications.success('Title parsed — every detected tag was already on.');
+    notifications.success(t('torrents.uploadForm.toasts.titleParsedAllOn'));
   } else {
     notifications.success(
-      `Added ${added.length} tag${added.length === 1 ? '' : 's'}: ${added.join(', ')}`
+      t('torrents.uploadForm.toasts.tagsAdded', { count: added.length, tags: added.join(', ') })
     );
   }
 }
@@ -565,14 +563,14 @@ async function handleNfoSelect(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
   if (file.size > NFO_MAX_BYTES) {
-    error.value = `NFO file is too large (max ${Math.round(NFO_MAX_BYTES / 1024)} KB)`;
+    error.value = t('torrents.uploadForm.errors.nfoTooLarge', { kb: Math.round(NFO_MAX_BYTES / 1024) });
     return;
   }
   try {
     nfo.value = await file.text();
     error.value = null;
   } catch {
-    error.value = 'Could not read the NFO file';
+    error.value = t('torrents.edit.errors.readNfo');
   } finally {
     if (nfoInput.value) nfoInput.value.value = '';
   }
@@ -611,7 +609,7 @@ async function save() {
     );
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(data.message || 'Failed to save changes');
+      throw new Error(data.message || t('torrents.edit.errors.saveChanges'));
     }
 
     const tagsRes = await fetch(
@@ -624,20 +622,20 @@ async function save() {
     );
     if (!tagsRes.ok) {
       const data = await tagsRes.json().catch(() => ({}));
-      throw new Error(data.message || 'Failed to save tags');
+      throw new Error(data.message || t('torrents.edit.errors.saveTags'));
     }
 
-    notifications.success('Changes saved');
+    notifications.success(t('torrents.edit.toasts.changesSaved'));
     router.push(`/torrents/${torrent.value.infoHash}`);
   } catch (err: unknown) {
     const fetchError = err as { message?: string };
-    error.value = fetchError.message || 'Failed to save changes';
+    error.value = fetchError.message || t('torrents.edit.errors.saveChanges');
   } finally {
     isSaving.value = false;
   }
 }
 
-useHead({ title: 'Edit torrent' });
+useHead({ title: t('torrents.edit.headTitle') });
 </script>
 
 <style scoped>

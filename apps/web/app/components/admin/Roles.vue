@@ -3,16 +3,14 @@
     <!-- ── Eyebrow + headline ─────────────────────────────────────── -->
     <header class="rc-head">
       <div class="rc-head-text">
-        <p class="rc-eyebrow">Permissions · Auto-assignment</p>
+        <p class="rc-eyebrow">{{ $t('admin.roles.eyebrow') }}</p>
         <h2 class="rc-title">
-          Roles
+          {{ $t('admin.roles.title') }}
           <span class="rc-title-accent">{{ roles.length }}</span>
         </h2>
         <p class="rc-sub">
-          Manual roles attach by hand from the user registry. Auto roles
-          attach themselves whenever a user matches their rule set —
-          <strong>"Certified"</strong> after fifteen approved uploads is
-          the canonical example.
+          {{ $t('admin.roles.subBefore') }}
+          <strong>"{{ $t('admin.roles.subQuoted') }}"</strong> {{ $t('admin.roles.subAfter') }}
         </p>
       </div>
       <div class="rc-head-tools">
@@ -21,7 +19,7 @@
           class="rc-tool"
           :disabled="recomputing"
           :title="
-            recomputing ? 'Recomputing…' : 'Re-run the engine for every user'
+            recomputing ? $t('admin.roles.recomputing') : $t('admin.roles.recomputeTooltip')
           "
           @click="recompute"
         >
@@ -29,7 +27,7 @@
             :name="recomputing ? 'ph:arrows-clockwise-bold' : 'ph:lightning-bold'"
             :class="{ 'animate-spin': recomputing }"
           />
-          <span>Recompute</span>
+          <span>{{ $t('admin.roles.recompute') }}</span>
         </button>
         <button
           type="button"
@@ -37,7 +35,7 @@
           @click="openCreate"
         >
           <Icon name="ph:plus-bold" />
-          <span>New role</span>
+          <span>{{ $t('admin.roles.newRole') }}</span>
         </button>
       </div>
     </header>
@@ -51,10 +49,9 @@
       class="rc-empty"
     >
       <Icon name="ph:user-circle-gear" class="rc-empty__icon" />
-      <p class="rc-empty__title">No roles yet</p>
+      <p class="rc-empty__title">{{ $t('admin.roles.empty.title') }}</p>
       <p class="rc-empty__sub">
-        Hit <strong>New role</strong> to define your first permission tier
-        or auto-attached badge.
+        {{ $t('admin.roles.empty.subBefore') }} <strong>{{ $t('admin.roles.empty.subEmphasis') }}</strong> {{ $t('admin.roles.empty.subAfter') }}
       </p>
     </div>
     <ul v-else class="role-list">
@@ -96,10 +93,10 @@
                         : 'ph:hand-pointing-fill'
                     "
                   />
-                  {{ role.assignmentMode === 'auto' ? 'Auto' : 'Manual' }}
+                  {{ role.assignmentMode === 'auto' ? $t('admin.roles.card.modeAuto') : $t('admin.roles.card.modeManual') }}
                 </span>
                 <span class="role-card__sep">·</span>
-                <span class="role-card__priority">prio {{ role.priority }}</span>
+                <span class="role-card__priority">{{ $t('admin.roles.card.priority', { n: role.priority }) }}</span>
                 <span class="role-card__sep">·</span>
                 <span
                   class="role-card__perm"
@@ -118,8 +115,8 @@
                   />
                   {{
                     role.canUploadWithoutModeration
-                      ? 'Skip moderation'
-                      : 'Moderated upload'
+                      ? $t('admin.roles.card.skipModeration')
+                      : $t('admin.roles.card.moderatedUpload')
                   }}
                 </span>
                 <span
@@ -132,7 +129,7 @@
                   class="role-card__perm role-card__perm--badge"
                 >
                   <Icon name="ph:eye-bold" />
-                  Public badge
+                  {{ $t('admin.roles.card.publicBadge') }}
                 </span>
               </p>
             </div>
@@ -141,16 +138,16 @@
             <button
               type="button"
               class="role-card__edit"
-              title="Edit role"
+              :title="$t('admin.roles.card.editTitle')"
               @click="openEdit(role)"
             >
               <Icon name="ph:pencil-bold" />
-              <span>Edit</span>
+              <span>{{ $t('admin.roles.card.edit') }}</span>
             </button>
             <button
               type="button"
               class="role-card__del"
-              title="Delete role"
+              :title="$t('admin.roles.card.deleteTitle')"
               @click="onDelete(role)"
             >
               <Icon name="ph:trash-bold" />
@@ -165,9 +162,9 @@
           class="role-card__rules"
         >
           <span class="role-card__rules-prefix">
-            User must match
-            <strong>{{ role.rules.combinator === 'or' ? 'any' : 'all' }}</strong>
-            of:
+            {{ $t('admin.roles.card.rulesPrefixBefore') }}
+            <strong>{{ role.rules.combinator === 'or' ? $t('admin.roles.card.rulesAny') : $t('admin.roles.card.rulesAll') }}</strong>
+            {{ $t('admin.roles.card.rulesPrefixAfter') }}
           </span>
           <ul class="cond-strip">
             <li
@@ -176,7 +173,7 @@
               class="cond-pill"
             >
               <span class="cond-pill__field">
-                {{ FIELD_META[cond.field]?.label ?? cond.field }}
+                {{ fieldLabel(cond.field) }}
               </span>
               <span class="cond-pill__op">{{ COMPARATOR_LABEL[cond.comparator] }}</span>
               <span class="cond-pill__val">
@@ -188,7 +185,7 @@
               class="cond-pill cond-pill--warn"
             >
               <Icon name="ph:warning-circle-fill" />
-              No conditions — engine never matches
+              {{ $t('admin.roles.card.noConditions') }}
             </li>
           </ul>
         </div>
@@ -197,7 +194,7 @@
           class="role-card__rules role-card__rules--manual"
         >
           <Icon name="ph:hand-pointing-fill" class="text-text-muted" />
-          <span>Attached only by an admin from the user registry.</span>
+          <span>{{ $t('admin.roles.card.manualNote') }}</span>
         </div>
       </li>
     </ul>
@@ -205,7 +202,7 @@
     <!-- ── Modal: create / edit ───────────────────────────────────── -->
     <Modal
       v-model="modalOpen"
-      :title="editing.id ? 'Edit role' : 'New role'"
+      :title="editing.id ? $t('admin.roles.modal.editTitle') : $t('admin.roles.modal.newTitle')"
       icon="ph:user-circle-gear-bold"
       size="lg"
       :persistent="saving"
@@ -216,24 +213,24 @@
         <section class="form-section">
           <header class="form-section__head">
             <span class="form-section__num">01</span>
-            <h4 class="form-section__title">Identity</h4>
+            <h4 class="form-section__title">{{ $t('admin.roles.modal.sectionIdentity') }}</h4>
             <span class="form-section__rule" />
           </header>
           <div class="form-grid">
             <label class="form-field">
-              <span class="form-label">Name</span>
+              <span class="form-label">{{ $t('admin.roles.modal.name') }}</span>
               <input
                 ref="nameRef"
                 v-model="form.name"
                 type="text"
                 maxlength="50"
                 class="input form-input"
-                placeholder="e.g. Certified"
+                :placeholder="$t('admin.roles.modal.namePlaceholder')"
                 :disabled="saving"
               />
             </label>
             <label class="form-field form-field--narrow">
-              <span class="form-label">Color</span>
+              <span class="form-label">{{ $t('admin.roles.modal.color') }}</span>
               <div class="color-row">
                 <input
                   v-model="form.color"
@@ -245,7 +242,7 @@
               </div>
             </label>
             <label class="form-field form-field--narrow">
-              <span class="form-label">Priority</span>
+              <span class="form-label">{{ $t('admin.roles.modal.priority') }}</span>
               <input
                 v-model.number="form.priority"
                 type="number"
@@ -254,20 +251,20 @@
                 class="input form-input"
                 :disabled="saving"
               />
-              <span class="form-hint">Higher wins between matching auto roles.</span>
+              <span class="form-hint">{{ $t('admin.roles.modal.priorityHint') }}</span>
             </label>
             <label class="form-field form-field--full">
-              <span class="form-label">Icon (optional)</span>
+              <span class="form-label">{{ $t('admin.roles.modal.iconLabel') }}</span>
               <input
                 v-model="form.icon"
                 type="text"
                 maxlength="64"
                 class="input form-input"
-                placeholder="ph:shield-check"
+                :placeholder="$t('admin.roles.modal.iconPlaceholder')"
                 :disabled="saving"
               />
               <span class="form-hint">
-                Phosphor icon name. Leave empty for a coloured dot.
+                {{ $t('admin.roles.modal.iconHint') }}
               </span>
             </label>
           </div>
@@ -277,7 +274,7 @@
         <section class="form-section">
           <header class="form-section__head">
             <span class="form-section__num">02</span>
-            <h4 class="form-section__title">Assignment</h4>
+            <h4 class="form-section__title">{{ $t('admin.roles.modal.sectionAssignment') }}</h4>
             <span class="form-section__rule" />
           </header>
           <div class="mode-grid" role="radiogroup">
@@ -293,11 +290,10 @@
               />
               <span class="mode-card__head">
                 <Icon name="ph:hand-pointing-bold" />
-                Manual
+                {{ $t('admin.roles.modal.modeManualTitle') }}
               </span>
               <span class="mode-card__sub">
-                Admin attaches it from the user registry. The auto engine
-                never touches manual roles.
+                {{ $t('admin.roles.modal.modeManualSub') }}
               </span>
             </label>
             <label
@@ -312,11 +308,10 @@
               />
               <span class="mode-card__head">
                 <Icon name="ph:lightning-bold" />
-                Auto
+                {{ $t('admin.roles.modal.modeAutoTitle') }}
               </span>
               <span class="mode-card__sub">
-                Granted whenever a user matches the rules below.
-                Highest-priority match wins.
+                {{ $t('admin.roles.modal.modeAutoSub') }}
               </span>
             </label>
           </div>
@@ -338,10 +333,9 @@
                 <span class="toggle-knob" />
               </button>
               <div class="toggle-body">
-                <p class="toggle-title">Show as a public badge</p>
+                <p class="toggle-title">{{ $t('admin.roles.modal.showAsBadgeTitle') }}</p>
                 <p class="toggle-sub">
-                  Users with this role get a coloured chip on their
-                  profile alongside any Admin/Mod indicator.
+                  {{ $t('admin.roles.modal.showAsBadgeSub') }}
                 </p>
               </div>
             </label>
@@ -367,10 +361,9 @@
                 <span class="toggle-knob" />
               </button>
               <div class="toggle-body">
-                <p class="toggle-title">Skip moderation</p>
+                <p class="toggle-title">{{ $t('admin.roles.modal.skipModerationTitle') }}</p>
                 <p class="toggle-sub">
-                  Uploads from members with this role go straight to the
-                  index without passing through the pending queue.
+                  {{ $t('admin.roles.modal.skipModerationSub') }}
                 </p>
               </div>
             </label>
@@ -384,14 +377,14 @@
         >
           <header class="form-section__head">
             <span class="form-section__num">03</span>
-            <h4 class="form-section__title">Rules</h4>
+            <h4 class="form-section__title">{{ $t('admin.roles.modal.sectionRules') }}</h4>
             <span class="form-section__rule" />
           </header>
 
           <p class="form-help">
-            Combine the conditions below — pick
-            <strong>all</strong> if every must hold,
-            <strong>any</strong> if just one is enough.
+            {{ $t('admin.roles.modal.rulesHelpBefore') }}
+            <strong>{{ $t('admin.roles.modal.rulesHelpAll') }}</strong> {{ $t('admin.roles.modal.rulesHelpMiddle') }}
+            <strong>{{ $t('admin.roles.modal.rulesHelpAny') }}</strong> {{ $t('admin.roles.modal.rulesHelpAfter') }}
           </p>
 
           <div class="combinator-row" role="radiogroup">
@@ -408,7 +401,7 @@
                 @change="form.rules.combinator = 'and'"
               />
               <Icon name="ph:plus-bold" />
-              All conditions (AND)
+              {{ $t('admin.roles.modal.combinatorAnd') }}
             </label>
             <label
               class="combinator-pill"
@@ -421,7 +414,7 @@
                 @change="form.rules.combinator = 'or'"
               />
               <Icon name="ph:divide-bold" />
-              Any condition (OR)
+              {{ $t('admin.roles.modal.combinatorOr') }}
             </label>
           </div>
 
@@ -442,7 +435,7 @@
                   :key="f"
                   :value="f"
                 >
-                  {{ FIELD_META[f].label }}
+                  {{ fieldLabel(f) }}
                 </option>
               </select>
               <select
@@ -466,12 +459,12 @@
                 :disabled="saving"
               />
               <span class="cond-row__unit">
-                {{ FIELD_META[cond.field]?.unit ?? '' }}
+                {{ fieldUnit(cond.field) }}
               </span>
               <button
                 type="button"
                 class="cond-row__del"
-                title="Remove condition"
+                :title="$t('admin.roles.modal.removeCondition')"
                 :disabled="saving"
                 @click="removeCondition(idx)"
               >
@@ -483,7 +476,7 @@
             v-if="form.rules.conditions.length === 0"
             class="cond-empty"
           >
-            No conditions yet — add one to enable matching.
+            {{ $t('admin.roles.modal.noConditions') }}
           </p>
           <button
             type="button"
@@ -494,7 +487,7 @@
             @click="addCondition"
           >
             <Icon name="ph:plus-bold" />
-            Add condition
+            {{ $t('admin.roles.modal.addCondition') }}
           </button>
         </section>
 
@@ -511,7 +504,7 @@
           :disabled="saving"
           @click="modalOpen = false"
         >
-          Cancel
+          {{ $t('admin.roles.modal.cancel') }}
         </button>
         <button
           type="button"
@@ -523,7 +516,7 @@
             :name="saving ? 'ph:circle-notch' : 'ph:floppy-disk-bold'"
             :class="{ 'animate-spin': saving }"
           />
-          <span>{{ editing.id ? 'Save changes' : 'Create role' }}</span>
+          <span>{{ editing.id ? $t('admin.roles.modal.saveChanges') : $t('admin.roles.modal.createRole') }}</span>
         </button>
       </template>
     </Modal>
@@ -595,16 +588,16 @@ const COMPARATOR_LABEL: Record<RuleComparator, string> = {
 
 const FIELD_META: Record<
   RuleField,
-  { label: string; unit: string; format?: 'bytes' | 'days' | 'ratio' }
+  { labelKey: string; unitKey?: string; format?: 'bytes' | 'days' | 'ratio' }
 > = {
-  approvedUploads: { label: 'Approved uploads', unit: '' },
-  totalUploads: { label: 'Total uploads', unit: '' },
-  accountAgeDays: { label: 'Account age', unit: 'days', format: 'days' },
-  ratio: { label: 'Ratio', unit: '', format: 'ratio' },
-  uploadedBytes: { label: 'Uploaded', unit: 'bytes', format: 'bytes' },
-  downloadedBytes: { label: 'Downloaded', unit: 'bytes', format: 'bytes' },
-  hnrCount: { label: 'Active H&R', unit: '' },
-  completedSeeds: { label: 'Completed seeds', unit: '' },
+  approvedUploads: { labelKey: 'admin.roles.fields.approvedUploads' },
+  totalUploads: { labelKey: 'admin.roles.fields.totalUploads' },
+  accountAgeDays: { labelKey: 'admin.roles.fields.accountAge', unitKey: 'admin.roles.units.days', format: 'days' },
+  ratio: { labelKey: 'admin.roles.fields.ratio', format: 'ratio' },
+  uploadedBytes: { labelKey: 'admin.roles.fields.uploaded', unitKey: 'admin.roles.units.bytes', format: 'bytes' },
+  downloadedBytes: { labelKey: 'admin.roles.fields.downloaded', unitKey: 'admin.roles.units.bytes', format: 'bytes' },
+  hnrCount: { labelKey: 'admin.roles.fields.activeHnr' },
+  completedSeeds: { labelKey: 'admin.roles.fields.completedSeeds' },
 };
 
 function formatBytes(n: number): string {
@@ -614,11 +607,23 @@ function formatBytes(n: number): string {
   return `${(n / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 
+const { t } = useI18n();
+
+function fieldLabel(field: RuleField): string {
+  const meta = FIELD_META[field];
+  return meta ? t(meta.labelKey) : String(field);
+}
+
+function fieldUnit(field: RuleField): string {
+  const meta = FIELD_META[field];
+  return meta?.unitKey ? t(meta.unitKey) : '';
+}
+
 function formatConditionValue(cond: RuleCondition): string {
   const meta = FIELD_META[cond.field];
   if (meta?.format === 'bytes') return formatBytes(cond.value);
   if (meta?.format === 'ratio') return cond.value.toFixed(2);
-  if (meta?.format === 'days') return `${cond.value}d`;
+  if (meta?.format === 'days') return t('admin.roles.units.daysSuffix', { n: cond.value });
   return String(cond.value);
 }
 
@@ -751,19 +756,19 @@ async function submit() {
         method: 'PUT',
         body: payload,
       });
-      notifications.success('Role updated');
+      notifications.success(t('admin.roles.toasts.roleUpdated'));
     } else {
       await $fetch('/api/admin/roles', {
         method: 'POST',
         body: payload,
       });
-      notifications.success('Role created');
+      notifications.success(t('admin.roles.toasts.roleCreated'));
     }
     modalOpen.value = false;
     await loadRoles();
   } catch (err: any) {
     formError.value =
-      err?.data?.message || err?.message || 'Failed to save role';
+      err?.data?.message || err?.message || t('admin.roles.errors.saveFailed');
   } finally {
     saving.value = false;
   }
@@ -771,18 +776,18 @@ async function submit() {
 
 async function onDelete(role: Role) {
   const ok = await confirm({
-    title: 'Delete role',
-    message: `Permanently remove the role “${role.name}”? Users currently assigned to it will lose its permissions.`,
-    confirmText: 'Delete role',
+    title: t('admin.roles.confirm.deleteTitle'),
+    message: t('admin.roles.confirm.deleteMessage', { name: role.name }),
+    confirmText: t('admin.roles.confirm.deleteAction'),
     destructive: true,
   });
   if (!ok) return;
   try {
     await $fetch(`/api/admin/roles/${role.id}`, { method: 'DELETE' });
-    notifications.success(`Role “${role.name}” deleted`);
+    notifications.success(t('admin.roles.toasts.roleDeleted', { name: role.name }));
     await loadRoles();
   } catch (err: any) {
-    notifications.error(err?.data?.message || 'Failed to delete role');
+    notifications.error(err?.data?.message || t('admin.roles.errors.deleteFailed'));
   }
 }
 
@@ -794,11 +799,15 @@ async function recompute() {
       method: 'POST',
     })) as { changed: number; considered: number; skipped: number };
     notifications.success(
-      `Engine swept ${result.considered} user(s) — ${result.changed} updated, ${result.skipped} manual override(s)`
+      t('admin.roles.toasts.recomputeResult', {
+        considered: result.considered,
+        changed: result.changed,
+        skipped: result.skipped,
+      })
     );
     await loadRoles();
   } catch (err: any) {
-    notifications.error(err?.data?.message || 'Recompute failed');
+    notifications.error(err?.data?.message || t('admin.roles.errors.recomputeFailed'));
   } finally {
     recomputing.value = false;
   }

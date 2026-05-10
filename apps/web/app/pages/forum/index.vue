@@ -3,38 +3,37 @@
     <!-- ── Masthead ────────────────────────────────────────── -->
     <header class="masthead">
       <p class="masthead-eyebrow">
-        <span>Vol. 1</span>
+        <span>{{ $t('forum.index.masthead.volume', { n: 1 }) }}</span>
         <span class="masthead-eyebrow-sep">·</span>
-        <span>Issue {{ issueNumber }}</span>
+        <span>{{ $t('forum.index.masthead.issue', { n: issueNumber }) }}</span>
         <span class="masthead-eyebrow-sep">·</span>
         <time>{{ todayLabel }}</time>
       </p>
-      <h1 class="masthead-title font-display">The&nbsp;Forum</h1>
+      <h1 class="masthead-title font-display">{{ $t('forum.index.masthead.title') }}</h1>
       <p class="masthead-tag">
-        Member-only dispatches, debriefs and dispatches&nbsp;—
-        <em>open the floor, leave the noise outside.</em>
+        {{ $t('forum.index.masthead.tagline') }}
       </p>
 
       <ul class="masthead-stats" :class="{ 'is-loading': statsPending }">
         <li>
-          <span class="stat-key">Categories</span>
+          <span class="stat-key">{{ $t('forum.index.stats.categories') }}</span>
           <span class="stat-val">{{ stats?.totals.categories ?? '—' }}</span>
         </li>
         <li>
-          <span class="stat-key">Threads</span>
+          <span class="stat-key">{{ $t('forum.index.stats.threads') }}</span>
           <span class="stat-val">{{ stats?.totals.topics ?? '—' }}</span>
         </li>
         <li>
-          <span class="stat-key">Posts</span>
+          <span class="stat-key">{{ $t('forum.index.stats.posts') }}</span>
           <span class="stat-val">{{ stats?.totals.posts ?? '—' }}</span>
         </li>
         <li>
-          <span class="stat-key">Contributors</span>
+          <span class="stat-key">{{ $t('forum.index.stats.contributors') }}</span>
           <span class="stat-val">{{ stats?.totals.contributors ?? '—' }}</span>
         </li>
         <li v-if="lastActivity" class="stat-pulse">
           <span class="pulse-dot" />
-          <span class="stat-key">Last filed</span>
+          <span class="stat-key">{{ $t('forum.index.stats.lastFiled') }}</span>
           <span class="stat-val-mono">{{ formatAge(lastActivity) }}</span>
         </li>
       </ul>
@@ -42,7 +41,7 @@
       <div v-if="user?.isAdmin" class="masthead-tools">
         <button type="button" class="ed-btn ed-btn--primary" @click="openCreate">
           <Icon name="ph:plus-bold" />
-          New section
+          {{ $t('forum.index.actions.newSection') }}
         </button>
       </div>
     </header>
@@ -50,7 +49,7 @@
     <!-- ── Sections (categories) ───────────────────────────── -->
     <section>
       <header class="rule-head">
-        <span class="rule-eyebrow">Sections</span>
+        <span class="rule-eyebrow">{{ $t('forum.index.sections.title') }}</span>
         <span class="rule-line" />
         <span class="rule-counter">{{ categories?.length ?? 0 }}</span>
       </header>
@@ -78,15 +77,15 @@
 
             <dl class="section-tile-stats">
               <div>
-                <dt>Threads</dt>
+                <dt>{{ $t('forum.index.stats.threads') }}</dt>
                 <dd>{{ cat.topicCount }}</dd>
               </div>
               <div>
-                <dt>Posts</dt>
+                <dt>{{ $t('forum.index.stats.posts') }}</dt>
                 <dd>{{ cat.postCount }}</dd>
               </div>
               <div>
-                <dt>Last</dt>
+                <dt>{{ $t('forum.index.stats.last') }}</dt>
                 <dd>{{ cat.lastPost ? formatAge(cat.lastPost.createdAt) : '—' }}</dd>
               </div>
             </dl>
@@ -97,14 +96,14 @@
                 {{ excerpt(cat.lastPost.content, 110) }}
               </p>
               <p class="last-byline">
-                <span>by</span>
+                <span>{{ $t('forum.index.byline.by') }}</span>
                 <strong>{{ cat.lastPost.authorUsername }}</strong>
-                <span class="last-byline-sep">in</span>
+                <span class="last-byline-sep">{{ $t('forum.index.byline.in') }}</span>
                 <em class="last-thread">{{ cat.lastPost.topicTitle }}</em>
               </p>
             </div>
             <p v-else class="section-tile-empty">
-              <em>No dispatch yet — be the first to file.</em>
+              <em>{{ $t('forum.index.empty.tile') }}</em>
             </p>
           </NuxtLink>
 
@@ -112,7 +111,7 @@
             <button
               type="button"
               class="row-action"
-              title="Edit section"
+              :title="$t('forum.index.actions.editSection')"
               @click.prevent="openEdit(cat)"
             >
               <Icon name="ph:pencil-bold" />
@@ -120,7 +119,7 @@
             <button
               type="button"
               class="row-action row-action--danger"
-              title="Delete section"
+              :title="$t('forum.index.actions.deleteSection')"
               @click.prevent="confirmDelete(cat)"
             >
               <Icon name="ph:trash-bold" />
@@ -131,11 +130,11 @@
 
       <div v-else class="sections-empty">
         <Icon name="ph:newspaper-clipping" class="empty-icon" />
-        <h3 class="empty-title font-display">The press is silent</h3>
+        <h3 class="empty-title font-display">{{ $t('forum.index.empty.title') }}</h3>
         <p class="empty-sub">
           {{ user?.isAdmin
-            ? 'Open the inaugural section so members have a place to start.'
-            : 'No sections yet. An admin will set them up shortly.' }}
+            ? $t('forum.index.empty.subAdmin')
+            : $t('forum.index.empty.subMember') }}
         </p>
         <button
           v-if="user?.isAdmin"
@@ -144,7 +143,7 @@
           @click="openCreate"
         >
           <Icon name="ph:plus-bold" />
-          Open the first section
+          {{ $t('forum.index.actions.openFirstSection') }}
         </button>
       </div>
     </section>
@@ -152,9 +151,9 @@
     <!-- ── Latest threads (cross-category ribbon) ──────────── -->
     <section v-if="stats && stats.latest.length > 0" class="latest">
       <header class="rule-head">
-        <span class="rule-eyebrow">Across the floor</span>
+        <span class="rule-eyebrow">{{ $t('forum.index.latest.title') }}</span>
         <span class="rule-line" />
-        <span class="rule-counter">{{ stats.latest.length }} latest</span>
+        <span class="rule-counter">{{ $t('forum.index.latest.counter', { n: stats.latest.length }) }}</span>
       </header>
 
       <ol class="latest-list">
@@ -178,21 +177,23 @@
                   v-if="t.isPinned"
                   name="ph:push-pin-fill"
                   class="latest-status latest-status--pin"
+                  :title="$t('forum.topic.pinned')"
                 />
                 <Icon
                   v-else-if="t.isLocked"
                   name="ph:lock-fill"
                   class="latest-status latest-status--lock"
+                  :title="$t('forum.topic.locked')"
                 />
                 {{ t.title }}
               </h3>
               <p class="latest-meta">
-                <span>by</span>
+                <span>{{ $t('forum.index.byline.by') }}</span>
                 <strong>{{ t.author.username }}</strong>
                 <span class="latest-meta-sep">·</span>
                 <span>{{ formatAge(t.updatedAt) }}</span>
                 <span class="latest-meta-sep">·</span>
-                <span>{{ pluralReplies(t.replyCount) }}</span>
+                <span>{{ $t('forum.topic.replies', { n: t.replyCount }) }}</span>
               </p>
             </div>
             <Icon name="ph:arrow-right-bold" class="latest-arrow" />
@@ -202,11 +203,11 @@
     </section>
 
     <!-- ── Modals (create/edit/delete) ─────────────────────── -->
-    <Modal v-model="showCreate" title="Open a new section" size="md">
+    <Modal v-model="showCreate" :title="$t('forum.index.modals.createTitle')" size="md">
       <CategoryForm v-model="createForm" />
       <template #footer>
         <button type="button" class="ed-btn" @click="showCreate = false">
-          Cancel
+          {{ $t('common.cancel') }}
         </button>
         <button
           type="button"
@@ -219,16 +220,16 @@
             name="ph:circle-notch"
             class="animate-spin"
           />
-          {{ creating ? 'Opening…' : 'Open section' }}
+          {{ creating ? $t('forum.index.actions.opening') : $t('forum.index.actions.openSection') }}
         </button>
       </template>
     </Modal>
 
-    <Modal v-model="showEdit" title="Edit section" size="md">
+    <Modal v-model="showEdit" :title="$t('forum.index.modals.editTitle')" size="md">
       <CategoryForm v-model="editForm" />
       <template #footer>
         <button type="button" class="ed-btn" @click="showEdit = false">
-          Cancel
+          {{ $t('common.cancel') }}
         </button>
         <button
           type="button"
@@ -241,20 +242,19 @@
             name="ph:circle-notch"
             class="animate-spin"
           />
-          {{ updating ? 'Saving…' : 'Save changes' }}
+          {{ updating ? $t('forum.index.actions.saving') : $t('common.saveChanges') }}
         </button>
       </template>
     </Modal>
 
-    <Modal v-model="showDelete" title="Delete section" size="sm">
+    <Modal v-model="showDelete" :title="$t('forum.index.modals.deleteTitle')" size="sm">
       <p class="delete-blurb">
-        About to permanently shutter
-        <strong>{{ categoryToDelete?.name }}</strong>. Every thread and every
-        reply within it disappears with it.
+        {{ $t('forum.index.modals.deleteIntro') }}
+        <strong>{{ categoryToDelete?.name }}</strong>{{ $t('forum.index.modals.deleteWarning') }}
       </p>
       <template #footer>
         <button type="button" class="ed-btn" @click="showDelete = false">
-          Cancel
+          {{ $t('common.cancel') }}
         </button>
         <button
           type="button"
@@ -267,7 +267,7 @@
             name="ph:circle-notch"
             class="animate-spin"
           />
-          {{ deleting ? 'Removing…' : 'Delete section' }}
+          {{ deleting ? $t('forum.index.actions.removing') : $t('forum.index.actions.deleteSection') }}
         </button>
       </template>
     </Modal>
@@ -338,6 +338,7 @@ interface CategoryDraft {
   order: number;
 }
 
+const { t, locale } = useI18n();
 const { user } = useUserSession();
 const notifications = useNotificationStore();
 const confirm = useConfirm();
@@ -354,7 +355,7 @@ const {
   refresh: refreshStats,
 } = await useFetch<ForumStats>('/api/forum/stats');
 
-useHead({ title: 'Forum' });
+useHead({ title: t('forum.index.pageTitle') });
 
 // ── Edition number: stable per day, derived from the issue's "first
 // publication". We anchor at the oldest known activity (or today) and
@@ -365,7 +366,7 @@ const issueNumber = computed(() => {
   return String(Math.max(1, week)).padStart(2, '0');
 });
 const todayLabel = computed(() =>
-  new Date().toLocaleDateString('en-US', {
+  new Date().toLocaleDateString(locale.value === 'fr' ? 'fr-FR' : 'en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -389,9 +390,6 @@ function formatIssueNumber(n: number): string {
 function excerpt(text: string, max: number): string {
   const t = (text || '').replace(/\s+/g, ' ').trim();
   return t.length > max ? `${t.slice(0, max)}…` : t;
-}
-function pluralReplies(n: number): string {
-  return n === 1 ? '1 reply' : `${n} replies`;
 }
 function resolveIcon(cat: ForumCategory): string {
   return cat.icon || 'ph:newspaper-clipping-bold';
@@ -438,10 +436,10 @@ async function handleCreate() {
       },
     });
     showCreate.value = false;
-    notifications.success('Section opened');
+    notifications.success(t('forum.index.toasts.sectionCreated'));
     await Promise.all([refreshCategories(), refreshStats()]);
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Could not create section');
+    notifications.error(e?.data?.message || t('forum.index.errors.createFailed'));
   } finally {
     creating.value = false;
   }
@@ -485,10 +483,10 @@ async function handleUpdate() {
       } as any
     );
     showEdit.value = false;
-    notifications.success('Section updated');
+    notifications.success(t('forum.index.toasts.sectionUpdated'));
     await refreshCategories();
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Could not save section');
+    notifications.error(e?.data?.message || t('forum.index.errors.updateFailed'));
   } finally {
     updating.value = false;
   }
@@ -511,10 +509,10 @@ async function handleDelete() {
     );
     showDelete.value = false;
     categoryToDelete.value = null;
-    notifications.success('Section deleted');
+    notifications.success(t('forum.index.toasts.sectionDeleted'));
     await Promise.all([refreshCategories(), refreshStats()]);
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Could not delete section');
+    notifications.error(e?.data?.message || t('forum.index.errors.deleteFailed'));
   } finally {
     deleting.value = false;
   }

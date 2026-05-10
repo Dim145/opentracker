@@ -52,7 +52,7 @@
         <button
           v-if="modelValue"
           class="text-text-muted hover:text-text-strong transition-colors p-2"
-          title="Clear"
+          :title="t('components.searchBar.clear')"
           @click="clear"
         >
           <Icon name="ph:x" :class="size === 'lg' ? 'h-4 w-4' : 'h-3.5 w-3.5'" />
@@ -60,7 +60,7 @@
         <button
           class="btn-search"
           :class="size === 'lg' ? 'btn-lg' : 'btn-sm'"
-          :title="detected ? `Search by ${detected.label}` : 'Search'"
+          :title="detected ? t('components.searchBar.searchBy', { label: detected.label }) : t('components.searchBar.search')"
           @click="onSubmit"
         >
           <Icon
@@ -87,7 +87,7 @@
         <span class="detection-arrow"
           ><Icon name="ph:arrow-right-bold" class="text-[10px]"
         /></span>
-        <span class="detection-action">Press Enter to filter</span>
+        <span class="detection-action">{{ t('components.searchBar.pressEnterToFilter') }}</span>
       </div>
     </Transition>
   </div>
@@ -99,6 +99,8 @@ import {
   detectMediaId,
   type DetectedMediaId,
 } from '~/utils/mediaIdDetect';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   modelValue: string;
@@ -123,7 +125,7 @@ const detected = computed<DetectedMediaId | null>(() =>
 
 const effectivePlaceholder = computed(() => {
   if (detected.value) return '';
-  return props.placeholder ?? 'Search by name, hash, or paste an IMDb / TMDb / TVDB link…';
+  return props.placeholder ?? t('components.searchBar.placeholder');
 });
 
 function onInput(event: Event) {

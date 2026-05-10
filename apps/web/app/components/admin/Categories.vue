@@ -7,7 +7,7 @@
           <h3
             class="text-xs font-bold uppercase tracking-wider text-text-primary"
           >
-            Category Management
+            {{ $t('admin.categories.title') }}
           </h3>
         </div>
         <button
@@ -17,7 +17,7 @@
           @click="openCreate(null)"
         >
           <Icon name="ph:plus-bold" />
-          <span>New category</span>
+          <span>{{ $t('admin.categories.newCategory') }}</span>
         </button>
       </div>
     </div>
@@ -31,7 +31,7 @@
         <p
           class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-4"
         >
-          No categories defined
+          {{ $t('admin.categories.empty.noCategories') }}
         </p>
         <button
           class="btn btn-primary !px-4 !py-2 text-xs font-bold uppercase tracking-wider"
@@ -44,7 +44,7 @@
             class="animate-spin mr-2"
           />
           <Icon v-else name="ph:plant" class="mr-2" />
-          Seed Torznab Categories
+          {{ $t('admin.categories.empty.seedCta') }}
         </button>
       </div>
 
@@ -100,13 +100,13 @@
                   <span
                     v-if="category.isAdult"
                     class="cat-chip cat-chip--adult"
-                    >XXX</span
+                    >{{ $t('admin.categories.row.adultBadge') }}</span
                   >
                   <span
                     v-if="category.subcategories?.length"
                     class="text-[10px] text-text-muted/60"
                   >
-                    · {{ category.subcategories.length }} sub
+                    {{ $t('admin.categories.row.subCount', { n: category.subcategories.length }) }}
                   </span>
                 </div>
               </div>
@@ -116,14 +116,14 @@
             >
               <button
                 class="p-2 text-text-muted hover:text-text-primary transition-colors rounded hover:bg-bg-tertiary"
-                title="Edit category"
+                :title="$t('admin.categories.row.editCategory')"
                 @click="openEdit(category)"
               >
                 <Icon name="ph:pencil-bold" />
               </button>
               <button
                 class="p-2 text-text-muted hover:text-error transition-colors rounded hover:bg-error/10"
-                title="Delete category"
+                :title="$t('admin.categories.row.deleteCategory')"
                 @click="deleteCategory(category.id)"
               >
                 <Icon name="ph:trash-bold" />
@@ -171,7 +171,7 @@
                     <span
                       v-if="sub.isAdult"
                       class="cat-chip cat-chip--adult"
-                      >XXX</span
+                      >{{ $t('admin.categories.row.adultBadge') }}</span
                     >
                   </div>
                 </div>
@@ -181,14 +181,14 @@
               >
                 <button
                   class="p-2 text-text-muted hover:text-text-primary transition-colors rounded hover:bg-bg-tertiary"
-                  title="Edit subcategory"
+                  :title="$t('admin.categories.row.editSubcategory')"
                   @click="openEdit(sub)"
                 >
                   <Icon name="ph:pencil-bold" />
                 </button>
                 <button
                   class="p-2 text-text-muted hover:text-error transition-colors rounded hover:bg-error/10"
-                  title="Delete subcategory"
+                  :title="$t('admin.categories.row.deleteSubcategory')"
                   @click="deleteCategory(sub.id)"
                 >
                   <Icon name="ph:trash-bold" />
@@ -208,25 +208,25 @@
          as we added isAdult and type. -->
     <Modal
       v-model="modalOpen"
-      :title="editing.id ? 'Edit category' : 'New category'"
+      :title="editing.id ? $t('admin.categories.editTitles.edit') : $t('admin.categories.editTitles.create')"
       icon="ph:folders-bold"
       size="md"
       :persistent="saving"
     >
       <form class="cat-form" @submit.prevent="submit">
         <fieldset class="cat-form__row">
-          <label class="cat-form__label">Name</label>
+          <label class="cat-form__label">{{ $t('admin.categories.fields.name') }}</label>
           <input
             ref="nameRef"
             v-model="form.name"
             type="text"
             maxlength="100"
-            placeholder="e.g. Hentai"
+            :placeholder="$t('admin.categories.fields.namePlaceholder')"
             class="input cat-form__input"
             :disabled="saving"
           />
           <p class="cat-form__hint">
-            Slug:
+            {{ $t('admin.categories.fields.slug') }}
             <code class="cat-form__slug">{{ slugPreview }}</code>
           </p>
         </fieldset>
@@ -235,13 +235,13 @@
           v-if="!editing.id || !editing.parentId"
           class="cat-form__row"
         >
-          <label class="cat-form__label">Parent</label>
+          <label class="cat-form__label">{{ $t('admin.categories.fields.parent') }}</label>
           <select
             v-model="form.parentId"
             class="input cat-form__input"
             :disabled="!!editing.id || saving"
           >
-            <option :value="null">— Root category —</option>
+            <option :value="null">{{ $t('admin.categories.fields.rootCategory') }}</option>
             <option
               v-for="root in rootCategories"
               :key="root.id"
@@ -251,30 +251,28 @@
             </option>
           </select>
           <p v-if="editing.id" class="cat-form__hint">
-            Parent reassignment isn't supported yet — delete &amp; recreate
-            if you need to move a row.
+            {{ $t('admin.categories.fields.parentReassignHint') }}
           </p>
         </fieldset>
 
         <fieldset class="cat-form__row">
-          <label class="cat-form__label">Newznab id</label>
+          <label class="cat-form__label">{{ $t('admin.categories.fields.newznabId') }}</label>
           <input
             v-model.number="form.newznabId"
             type="number"
             min="1000"
             max="9999"
-            placeholder="e.g. 5070"
+            :placeholder="$t('admin.categories.fields.newznabIdPlaceholder')"
             class="input cat-form__input"
             :disabled="saving"
           />
           <p class="cat-form__hint">
-            4-digit Torznab category id used by *Arr clients. Leave
-            empty if none applies.
+            {{ $t('admin.categories.fields.newznabIdHint') }}
           </p>
         </fieldset>
 
         <fieldset class="cat-form__row">
-          <label class="cat-form__label">Media type</label>
+          <label class="cat-form__label">{{ $t('admin.categories.fields.mediaType') }}</label>
           <div class="type-grid" role="radiogroup">
             <label
               v-for="opt in TYPE_OPTIONS"
@@ -296,8 +294,7 @@
             </label>
           </div>
           <p class="cat-form__hint">
-            Drives the TMDb namespace hint. <strong>Auto</strong> falls back to
-            the slug + Newznab heuristic.
+            {{ $t('admin.categories.fields.mediaTypeHint') }}
           </p>
         </fieldset>
 
@@ -319,12 +316,10 @@
             </button>
             <span class="adult-toggle__body">
               <span class="adult-toggle__title">
-                Mark as adult content
+                {{ $t('admin.categories.adult.title') }}
               </span>
               <span class="adult-toggle__sub">
-                Hidden from users who haven't enabled XXX in their
-                profile settings — applies to listings, search, RSS,
-                Torznab and the homepage feed.
+                {{ $t('admin.categories.adult.subPart1') }}
               </span>
             </span>
           </label>
@@ -343,7 +338,7 @@
           :disabled="saving"
           @click="modalOpen = false"
         >
-          Cancel
+          {{ $t('common.cancel') }}
         </button>
         <button
           type="button"
@@ -355,7 +350,7 @@
             :name="saving ? 'ph:circle-notch' : 'ph:floppy-disk-bold'"
             :class="{ 'animate-spin': saving }"
           />
-          <span>{{ editing.id ? 'Save changes' : 'Create category' }}</span>
+          <span>{{ editing.id ? $t('admin.categories.actions.saveChanges') : $t('admin.categories.actions.createCategory') }}</span>
         </button>
       </template>
     </Modal>
@@ -364,6 +359,8 @@
 
 <script setup lang="ts">
 import Modal from '~/components/Modal.vue';
+
+const { t } = useI18n();
 
 interface Category {
   id: string;
@@ -379,31 +376,31 @@ interface Category {
 
 type MediaType = 'movie' | 'tv' | null;
 
-const TYPE_OPTIONS: Array<{
+const TYPE_OPTIONS = computed<Array<{
   value: MediaType;
   label: string;
   sub: string;
   icon: string;
-}> = [
+}>>(() => [
   {
     value: null,
-    label: 'Auto',
-    sub: 'Heuristic on slug + Newznab',
+    label: t('admin.categories.type.auto'),
+    sub: t('admin.categories.type.autoSub'),
     icon: 'ph:wand',
   },
   {
     value: 'movie',
-    label: 'Movie',
-    sub: 'TMDb /movie',
+    label: t('admin.categories.type.movie'),
+    sub: t('admin.categories.type.movieSub'),
     icon: 'ph:film-strip',
   },
   {
     value: 'tv',
-    label: 'TV / Series',
-    sub: 'TMDb /tv',
+    label: t('admin.categories.type.tv'),
+    sub: t('admin.categories.type.tvSub'),
     icon: 'ph:television',
   },
-];
+]);
 
 // Admin tree management needs the full picture, including the XXX
 // subtree, regardless of the operator's own showAdultContent setting.
@@ -523,7 +520,7 @@ async function submit() {
           isAdult: form.isAdult,
         },
       });
-      notifications.success('Category updated');
+      notifications.success(t('admin.categories.toasts.updated'));
     } else {
       await $fetch('/api/admin/categories', {
         method: 'POST',
@@ -539,13 +536,13 @@ async function submit() {
       if (form.parentId) {
         expandedCategories.value.add(form.parentId);
       }
-      notifications.success('Category created');
+      notifications.success(t('admin.categories.toasts.created'));
     }
     modalOpen.value = false;
     await refresh();
   } catch (err: any) {
     formError.value =
-      err?.data?.message || err?.message || 'Failed to save category';
+      err?.data?.message || err?.message || t('admin.categories.errors.saveFailed');
   } finally {
     saving.value = false;
   }
@@ -562,30 +559,29 @@ async function deleteCategory(id: string) {
     if (target) break;
   }
   const ok = await confirm({
-    title: 'Delete category',
+    title: t('admin.categories.deleteConfirm.title'),
     message: target
-      ? `Permanently delete the category “${target.name}”? Torrents currently in it will become uncategorised.`
-      : 'Permanently delete this category? Torrents currently in it will become uncategorised.',
-    confirmText: 'Delete category',
+      ? t('admin.categories.deleteConfirm.messageNamed', { name: target.name })
+      : t('admin.categories.deleteConfirm.messageGeneric'),
+    confirmText: t('admin.categories.deleteConfirm.action'),
     destructive: true,
   });
   if (!ok) return;
   try {
     await $fetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
     await refresh();
-    notifications.success('Category deleted');
+    notifications.success(t('admin.categories.toasts.deleted'));
   } catch (error: any) {
-    notifications.error(error.data?.message || 'Failed to delete category');
+    notifications.error(error.data?.message || t('admin.categories.errors.deleteFailed'));
   }
 }
 
 const isSeeding = ref(false);
 async function seedCategories() {
   const ok = await confirm({
-    title: 'Seed default categories',
-    message:
-      'Create the recommended Torznab-compatible category set on top of what already exists?',
-    confirmText: 'Seed categories',
+    title: t('admin.categories.seedConfirm.title'),
+    message: t('admin.categories.seedConfirm.message'),
+    confirmText: t('admin.categories.seedConfirm.action'),
   });
   if (!ok) return;
   isSeeding.value = true;
@@ -595,9 +591,9 @@ async function seedCategories() {
       { method: 'POST' }
     );
     await refresh();
-    notifications.success(`Created ${result.created} categories`);
+    notifications.success(t('admin.categories.toasts.seeded', { n: result.created }));
   } catch (error: any) {
-    notifications.error(error.data?.message || 'Failed to seed categories');
+    notifications.error(error.data?.message || t('admin.categories.errors.seedFailed'));
   } finally {
     isSeeding.value = false;
   }

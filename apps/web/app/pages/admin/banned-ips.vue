@@ -3,9 +3,9 @@
     <!-- ── Eyebrow + headline ──────────────────────────────── -->
     <header class="bl-head">
       <div>
-        <p class="bl-eyebrow">IP blocklist · Operator console</p>
+        <p class="bl-eyebrow">{{ $t('admin.bannedIps.eyebrow') }}</p>
         <h2 class="bl-title">
-          Banned addresses
+          {{ $t('admin.bannedIps.title') }}
           <span class="bl-title-accent">{{ data?.stats.total ?? 0 }}</span>
         </h2>
       </div>
@@ -14,7 +14,7 @@
           type="button"
           class="tool-btn"
           :disabled="loading"
-          :title="loading ? 'Refreshing…' : 'Refresh'"
+          :title="loading ? $t('admin.bannedIps.refreshing') : $t('admin.bannedIps.refresh')"
           @click="refresh"
         >
           <Icon
@@ -41,30 +41,30 @@
     <section class="add-card">
       <header class="section-head">
         <span class="section-number">＋</span>
-        <h3 class="section-title">Add to blocklist</h3>
+        <h3 class="section-title">{{ $t('admin.bannedIps.add.title') }}</h3>
         <span class="section-rule" />
       </header>
 
       <form class="add-form" @submit.prevent="submitAdd">
         <label class="add-field add-field--ip">
-          <span class="field-label">IP address</span>
+          <span class="field-label">{{ $t('admin.bannedIps.add.ipLabel') }}</span>
           <input
             v-model="addIp"
             type="text"
             class="input add-input add-input--mono"
-            placeholder="192.0.2.13 or 2001:db8::1"
+            :placeholder="$t('admin.bannedIps.add.ipPlaceholder')"
             :disabled="adding"
             autocomplete="off"
             spellcheck="false"
           />
         </label>
         <label class="add-field add-field--reason">
-          <span class="field-label">Reason</span>
+          <span class="field-label">{{ $t('admin.bannedIps.add.reasonLabel') }}</span>
           <input
             v-model="addReason"
             type="text"
             class="input add-input"
-            placeholder="Brute-force registration / abusive announce / …"
+            :placeholder="$t('admin.bannedIps.add.reasonPlaceholder')"
             :disabled="adding"
             maxlength="500"
           />
@@ -78,7 +78,7 @@
             :name="adding ? 'ph:circle-notch' : 'ph:prohibit-bold'"
             :class="{ 'animate-spin': adding }"
           />
-          {{ adding ? 'Adding…' : 'Add ban' }}
+          {{ adding ? $t('admin.bannedIps.add.submitting') : $t('admin.bannedIps.add.submit') }}
         </button>
       </form>
       <p v-if="addError" class="add-error">
@@ -94,14 +94,14 @@
         <input
           v-model="searchInput"
           type="search"
-          placeholder="Search IPs or reasons…"
+          :placeholder="$t('admin.bannedIps.searchPlaceholder')"
           class="filter-search-input"
         />
         <button
           v-if="searchInput"
           type="button"
           class="filter-search-clear"
-          aria-label="Clear search"
+          :aria-label="$t('admin.bannedIps.clearSearch')"
           @click="searchInput = ''"
         >
           <Icon name="ph:x-bold" />
@@ -120,21 +120,21 @@
               :aria-sort="ariaSort('ip')"
               @click="toggleSort('ip')"
             >
-              <span>IP address</span>
+              <span>{{ $t('admin.bannedIps.columns.ip') }}</span>
               <Icon :name="sortIcon('ip')" class="th-sort-icon" />
             </th>
-            <th class="th">Reason</th>
-            <th class="th th--center">Source</th>
+            <th class="th">{{ $t('admin.bannedIps.columns.reason') }}</th>
+            <th class="th th--center">{{ $t('admin.bannedIps.columns.source') }}</th>
             <th
               class="th th--sortable th--right"
               :class="{ 'th--active': sort === 'createdAt' }"
               :aria-sort="ariaSort('createdAt')"
               @click="toggleSort('createdAt')"
             >
-              <span>Banned</span>
+              <span>{{ $t('admin.bannedIps.columns.banned') }}</span>
               <Icon :name="sortIcon('createdAt')" class="th-sort-icon" />
             </th>
-            <th class="th th--right">Actions</th>
+            <th class="th th--right">{{ $t('common.actions') }}</th>
           </tr>
         </thead>
 
@@ -154,15 +154,15 @@
                 <p class="empty-headline">
                   {{
                     debouncedSearch
-                      ? 'No banned IPs match that search'
-                      : 'The blocklist is clean'
+                      ? $t('admin.bannedIps.empty.noMatch')
+                      : $t('admin.bannedIps.empty.clean')
                   }}
                 </p>
                 <p class="empty-sub">
                   {{
                     debouncedSearch
-                      ? 'Try a less specific term, or clear the search.'
-                      : 'Bans appear here as you add them or as users get banned with a known IP.'
+                      ? $t('admin.bannedIps.empty.noMatchHint')
+                      : $t('admin.bannedIps.empty.cleanHint')
                   }}
                 </p>
               </div>
@@ -201,7 +201,7 @@
                       : 'ph:user-circle-gear-fill'
                   "
                 />
-                {{ item.automatic ? 'Auto' : 'Manual' }}
+                {{ item.automatic ? $t('admin.bannedIps.source.auto') : $t('admin.bannedIps.source.manual') }}
               </span>
             </td>
             <td class="cell cell--right cell--mono">
@@ -218,7 +218,7 @@
               <button
                 type="button"
                 class="row-action row-action--unban"
-                title="Remove from blocklist"
+                :title="$t('admin.bannedIps.removeFromBlocklist')"
                 :disabled="actionPending[item.ip]"
                 @click="onUnban(item)"
               >
@@ -230,7 +230,7 @@
                   "
                   :class="{ 'animate-spin': actionPending[item.ip] }"
                 />
-                <span>Unban</span>
+                <span>{{ $t('admin.bannedIps.unban') }}</span>
               </button>
             </td>
           </tr>
@@ -244,13 +244,13 @@
         <span class="pager-summary-strong">
           {{ rangeStart }}–{{ rangeEnd }}
         </span>
-        of
+        {{ $t('admin.bannedIps.pager.of') }}
         <span class="pager-summary-strong">{{ data.total }}</span>
       </span>
 
       <div class="pager-controls">
         <label class="pager-size">
-          <span>Rows</span>
+          <span>{{ $t('admin.bannedIps.pager.rows') }}</span>
           <select v-model.number="pageSize" class="pager-size-input">
             <option :value="10">10</option>
             <option :value="25">25</option>
@@ -263,7 +263,7 @@
           <button
             class="pager-btn"
             :disabled="page === 1"
-            title="First page"
+            :title="$t('admin.bannedIps.pager.firstPage')"
             @click="goTo(1)"
           >
             <Icon name="ph:caret-double-left-bold" />
@@ -274,23 +274,24 @@
             @click="goTo(page - 1)"
           >
             <Icon name="ph:caret-left-bold" />
-            <span>Prev</span>
+            <span>{{ $t('admin.bannedIps.pager.prev') }}</span>
           </button>
-          <span class="pager-where">
-            Page <strong>{{ page }}</strong> of {{ totalPages }}
-          </span>
+          <i18n-t keypath="admin.bannedIps.pager.pageOf" tag="span" class="pager-where" scope="global">
+            <template #current><strong>{{ page }}</strong></template>
+            <template #total>{{ totalPages }}</template>
+          </i18n-t>
           <button
             class="pager-btn"
             :disabled="page >= totalPages"
             @click="goTo(page + 1)"
           >
-            <span>Next</span>
+            <span>{{ $t('admin.bannedIps.pager.next') }}</span>
             <Icon name="ph:caret-right-bold" />
           </button>
           <button
             class="pager-btn"
             :disabled="page >= totalPages"
-            title="Last page"
+            :title="$t('admin.bannedIps.pager.lastPage')"
             @click="goTo(totalPages)"
           >
             <Icon name="ph:caret-double-right-bold" />
@@ -325,6 +326,7 @@ interface RegistryPayload {
   };
 }
 
+const { t } = useI18n();
 const notifications = useNotificationStore();
 const confirm = useConfirm();
 
@@ -391,40 +393,40 @@ const kpis = computed(() => {
   return [
     {
       key: 'total',
-      label: 'Total banned',
+      label: t('admin.bannedIps.kpi.totalBanned'),
       value: s.total,
       icon: 'ph:prohibit-bold',
       tone: 'fg' as const,
     },
     {
       key: 'today',
-      label: 'Last 24h',
+      label: t('admin.bannedIps.kpi.last24h'),
       value: s.today,
       icon: 'ph:clock-countdown-bold',
       tone: 'amber' as const,
     },
     {
       key: 'week',
-      label: 'Last 7 days',
+      label: t('admin.bannedIps.kpi.last7Days'),
       value: s.week,
       icon: 'ph:calendar-blank-bold',
-      sub: 'rolling window',
+      sub: t('admin.bannedIps.kpi.rollingWindow'),
       tone: 'aqua' as const,
     },
     {
       key: 'manual',
-      label: 'Manual bans',
+      label: t('admin.bannedIps.kpi.manualBans'),
       value: s.manual,
       icon: 'ph:user-circle-gear-fill',
-      sub: 'set by an admin',
+      sub: t('admin.bannedIps.kpi.setByAdmin'),
       tone: 'gold' as const,
     },
     {
       key: 'auto',
-      label: 'Auto bans',
+      label: t('admin.bannedIps.kpi.autoBans'),
       value: s.automatic,
       icon: 'ph:robot-fill',
-      sub: 'cascaded from user bans',
+      sub: t('admin.bannedIps.kpi.cascadedFromUserBans'),
       tone: 'red' as const,
     },
   ];
@@ -472,19 +474,19 @@ watch(pageSize, () => {
 
 // ── Helpers ────────────────────────────────────────────────────
 function formatRelative(iso: string) {
-  const t = new Date(iso).getTime();
-  const delta = Date.now() - t;
-  if (delta < 60_000) return 'just now';
+  const ts = new Date(iso).getTime();
+  const delta = Date.now() - ts;
+  if (delta < 60_000) return t('me.relativeTime.justNow');
   const min = Math.floor(delta / 60_000);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return t('me.relativeTime.minutesAgo', { n: min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return t('me.relativeTime.hoursAgo', { n: hr });
   const day = Math.floor(hr / 24);
-  if (day < 30) return `${day}d ago`;
+  if (day < 30) return t('me.relativeTime.daysAgo', { n: day });
   const mo = Math.floor(day / 30);
-  if (mo < 12) return `${mo}mo ago`;
+  if (mo < 12) return t('me.relativeTime.monthsAgo', { n: mo });
   const yr = Math.floor(day / 365);
-  return `${yr}y ago`;
+  return t('me.relativeTime.yearsAgo', { n: yr });
 }
 function formatAbsolute(iso: string) {
   // Pin the locale so SSR (Node default, often en-US) and the client
@@ -512,14 +514,14 @@ async function submitAdd() {
     });
     addIp.value = '';
     addReason.value = '';
-    notifications.success('IP added to blocklist');
+    notifications.success(t('admin.bannedIps.toasts.added'));
     await refreshData();
   } catch (err: any) {
     addError.value =
       err?.data?.data?.issues?.[0]?.message ||
       err?.data?.message ||
       err?.message ||
-      'Failed to add IP';
+      t('admin.bannedIps.errors.addFailed');
   } finally {
     adding.value = false;
   }
@@ -527,11 +529,11 @@ async function submitAdd() {
 
 async function onUnban(item: BannedIp) {
   const ok = await confirm({
-    title: 'Remove from blocklist',
+    title: t('admin.bannedIps.confirm.title'),
     message: item.automatic
-      ? `${item.ip} was banned alongside a user account. Removing it here lets the IP register / log in again, but the user remains banned. Proceed?`
-      : `Allow ${item.ip} to register and authenticate again?`,
-    confirmText: 'Unban',
+      ? t('admin.bannedIps.confirm.messageAuto', { ip: item.ip })
+      : t('admin.bannedIps.confirm.messageManual', { ip: item.ip }),
+    confirmText: t('admin.bannedIps.unban'),
     destructive: false,
   });
   if (!ok) return;
@@ -542,7 +544,7 @@ async function onUnban(item: BannedIp) {
       `/api/admin/banned-ips/${encodeURIComponent(item.ip)}`,
       { method: 'DELETE' }
     );
-    notifications.success(`${item.ip} unbanned`);
+    notifications.success(t('admin.bannedIps.toasts.unbanned', { ip: item.ip }));
     if (data.value) {
       data.value = {
         ...data.value,
@@ -561,7 +563,7 @@ async function onUnban(item: BannedIp) {
       };
     }
   } catch (err: any) {
-    notifications.error(err?.data?.message || 'Failed to unban IP');
+    notifications.error(err?.data?.message || t('admin.bannedIps.errors.unbanFailed'));
   } finally {
     actionPending[item.ip] = false;
   }

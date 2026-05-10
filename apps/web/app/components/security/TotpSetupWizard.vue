@@ -3,29 +3,27 @@
     <!-- Step 1 — scan QR + enter first code ----------------------- -->
     <template v-if="!recoveryCodes.length">
       <p class="totp-blurb">
-        Scan the QR with your authenticator app (Google Authenticator,
-        1Password, Bitwarden, Authy…) or enter the secret manually.
-        Then type the 6-digit code it generates to confirm.
+        {{ $t('security.totp.scanBlurb') }}
       </p>
       <figure class="totp-qr">
-        <img v-if="setupData?.qrDataUrl" :src="setupData.qrDataUrl" alt="TOTP QR code" />
+        <img v-if="setupData?.qrDataUrl" :src="setupData.qrDataUrl" :alt="$t('security.totp.qrAlt')" />
       </figure>
       <details class="totp-secret">
-        <summary>Manual entry</summary>
+        <summary>{{ $t('security.totp.manualEntry') }}</summary>
         <code class="totp-secret-value">{{ setupData?.secret }}</code>
         <button
           type="button"
           class="totp-copy"
           @click="copySecret"
-          title="Copy secret"
+          :title="$t('security.totp.copySecretTitle')"
         >
           <Icon name="ph:copy-bold" />
-          {{ secretCopied ? 'Copied' : 'Copy' }}
+          {{ secretCopied ? $t('common.copied') : $t('common.copy') }}
         </button>
       </details>
 
       <div class="totp-field">
-        <label class="field-label">6-digit code</label>
+        <label class="field-label">{{ $t('security.totp.codeLabel') }}</label>
         <input
           v-model="code"
           inputmode="numeric"
@@ -43,7 +41,7 @@
       </p>
 
       <div class="totp-actions">
-        <button class="btn-ghost" @click="$emit('cancel')">Cancel</button>
+        <button class="btn-ghost" @click="$emit('cancel')">{{ $t('common.cancel') }}</button>
         <button
           class="btn-primary"
           :disabled="code.length !== 6 || submitting"
@@ -54,7 +52,7 @@
             name="ph:circle-notch"
             class="animate-spin"
           />
-          {{ submitting ? 'Verifying…' : 'Verify & enable' }}
+          {{ submitting ? $t('security.totp.verifying') : $t('security.totp.verifyEnable') }}
         </button>
       </div>
     </template>
@@ -63,13 +61,16 @@
     <template v-else>
       <p class="totp-success">
         <Icon name="ph:check-circle-fill" />
-        TOTP enabled. Save these recovery codes — they're shown <strong>once</strong>.
+        <span>
+          {{ $t('security.totp.enabledPrefix') }}
+          <strong>{{ $t('security.totp.enabledStrong') }}</strong>{{ $t('security.totp.enabledSuffix') }}
+        </span>
       </p>
       <RecoveryCodesView :codes="recoveryCodes" />
       <div class="totp-actions">
         <button class="btn-primary" @click="$emit('cancel')">
           <Icon name="ph:check-bold" />
-          I saved them
+          {{ $t('security.totp.saved') }}
         </button>
       </div>
     </template>
@@ -93,12 +94,13 @@ const submitting = ref(false);
 const error = ref('');
 const secretCopied = ref(false);
 
+const { t } = useI18n();
 const notifications = useNotificationStore();
 
 async function submit() {
   error.value = '';
   if (!/^\d{6}$/.test(code.value)) {
-    error.value = 'Enter the 6-digit code from your authenticator app.';
+    error.value = t('security.totp.errors.invalidCode');
     return;
   }
   submitting.value = true;
@@ -107,12 +109,12 @@ async function submit() {
       '/api/me/2fa/totp/enable',
       { method: 'POST', body: { code: code.value } }
     );
-    notifications.success('TOTP enabled');
+    notifications.success(t('security.totp.toasts.enabled'));
     emit('done', r.recoveryCodes);
   } catch (e: any) {
     error.value =
       e?.data?.message ||
-      'Code rejected. Double-check the time on your phone and try again.';
+      t('security.totp.errors.rejected');
   } finally {
     submitting.value = false;
   }

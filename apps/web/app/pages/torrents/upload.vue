@@ -4,13 +4,13 @@
     <div class="upload-header">
       <NuxtLink to="/torrents" class="back-link">
         <Icon name="ph:arrow-left-bold" />
-        Back to index
+        {{ $t('torrents.detail.backToIndex') }}
       </NuxtLink>
       <div class="upload-title-row">
         <div>
-          <p class="page-eyebrow">New entry · Indexer</p>
+          <p class="page-eyebrow">{{ $t('torrents.uploadForm.eyebrow') }}</p>
           <h1 class="page-title">
-            Upload <span class="page-title-accent">a release</span>
+            {{ $t('torrents.uploadForm.titleMain') }} <span class="page-title-accent">{{ $t('torrents.uploadForm.titleAccent') }}</span>
           </h1>
         </div>
         <div
@@ -23,7 +23,7 @@
         </div>
         <div v-else-if="result" class="ready-state ready">
           <Icon name="ph:check-circle-fill" />
-          <span>Indexed</span>
+          <span>{{ $t('torrents.uploadForm.indexed') }}</span>
         </div>
       </div>
     </div>
@@ -35,22 +35,22 @@
           <Icon name="ph:check-circle-fill" class="result-icon" />
           <div>
             <h2>{{ result.message }}</h2>
-            <p>The release is now indexed and ready to share.</p>
+            <p>{{ $t('torrents.uploadForm.result.subtitle') }}</p>
           </div>
         </div>
         <dl class="result-meta">
           <div>
-            <dt>Name</dt>
+            <dt>{{ $t('common.name') }}</dt>
             <dd>{{ result.data.name }}</dd>
           </div>
           <div>
-            <dt>Hash</dt>
+            <dt>{{ $t('common.hash') }}</dt>
             <dd>
               <code>{{ result.data.infoHash }}</code>
             </dd>
           </div>
           <div>
-            <dt>Size</dt>
+            <dt>{{ $t('common.size') }}</dt>
             <dd>{{ formatSize(result.data.size) }}</dd>
           </div>
         </dl>
@@ -61,19 +61,19 @@
             :download="`${result.data.name}.torrent`"
           >
             <Icon name="ph:download-simple-bold" />
-            Download .torrent
+            {{ $t('torrents.uploadForm.result.downloadTorrent') }}
           </a>
           <NuxtLink
             :to="`/torrents/${result.data.infoHash}`"
             class="btn btn-primary"
           >
-            View release
+            {{ $t('torrents.uploadForm.result.viewRelease') }}
             <Icon name="ph:arrow-right-bold" />
           </NuxtLink>
         </div>
         <button type="button" class="result-link" @click="resetForm">
           <Icon name="ph:plus-circle-bold" />
-          Upload another release
+          {{ $t('torrents.uploadForm.result.uploadAnother') }}
         </button>
       </div>
     </div>
@@ -86,22 +86,21 @@
         <section class="form-section">
           <header class="section-head">
             <span class="section-number">01</span>
-            <h2 class="section-title">Category</h2>
+            <h2 class="section-title">{{ $t('common.category') }}</h2>
             <span class="section-rule" />
           </header>
 
           <div class="section-body">
             <p class="section-help">
-              Pick the category first — movie or TV categories unlock the
-              metadata search.
+              {{ $t('torrents.uploadForm.categoryHelp') }}
             </p>
             <label class="field-row">
-              <span class="field-label">Category</span>
+              <span class="field-label">{{ $t('common.category') }}</span>
               <select
                 v-model="selectedCategoryId"
                 class="input field-input field-input--select"
               >
-                <option value="">Select a category…</option>
+                <option value="">{{ $t('torrents.uploadForm.selectCategoryPlaceholder') }}</option>
                 <option
                   v-for="cat in flatCategories"
                   :key="cat.id"
@@ -118,7 +117,7 @@
         <section class="form-section">
           <header class="section-head">
             <span class="section-number">02</span>
-            <h2 class="section-title">Source &amp; title</h2>
+            <h2 class="section-title">{{ $t('torrents.uploadForm.sourceTitle') }}</h2>
             <span class="section-rule" />
           </header>
 
@@ -147,8 +146,8 @@
                 <div class="drop-icon">
                   <Icon name="ph:file-arrow-up-bold" />
                 </div>
-                <p class="drop-headline">Drop your <code>.torrent</code> here</p>
-                <p class="drop-sub">or click to browse the filesystem</p>
+                <p class="drop-headline">{{ $t('torrents.uploadForm.dropHeadlinePrefix') }} <code>.torrent</code> {{ $t('torrents.uploadForm.dropHeadlineSuffix') }}</p>
+                <p class="drop-sub">{{ $t('torrents.uploadForm.dropSub') }}</p>
               </template>
               <template v-else>
                 <div class="drop-icon drop-icon--success">
@@ -156,13 +155,13 @@
                 </div>
                 <p class="drop-headline">{{ selectedFile.name }}</p>
                 <p class="drop-sub">
-                  {{ formatSize(selectedFile.size) }} · ready
+                  {{ formatSize(selectedFile.size) }} · {{ $t('torrents.uploadForm.readyBadge') }}
                   <button
                     type="button"
                     class="drop-clear"
                     @click.stop="clearFile"
                   >
-                    swap file
+                    {{ $t('torrents.uploadForm.swapFile') }}
                   </button>
                 </p>
               </template>
@@ -171,15 +170,15 @@
             <!-- Title (editable) -->
             <label class="field-row">
               <span class="field-label">
-                Title
-                <span class="field-hint">override the parsed name</span>
+                {{ $t('torrents.uploadForm.titleField') }}
+                <span class="field-hint">{{ $t('torrents.uploadForm.titleHint') }}</span>
               </span>
               <div class="field-with-action">
                 <input
                   v-model="title"
                   type="text"
                   class="input field-input"
-                  placeholder="The release name as you want it indexed"
+                  :placeholder="$t('torrents.uploadForm.titlePlaceholder')"
                   :disabled="!selectedFile"
                 />
                 <!-- Re-parse the *current title* (not the filename) and
@@ -192,11 +191,11 @@
                   type="button"
                   class="btn-ghost btn-ghost--small"
                   :disabled="!title.trim()"
-                  title="Detect tags (resolution / source / codec / language / …) from the title"
+                  :title="$t('torrents.uploadForm.parseTitleTooltip')"
                   @click="parseTitleNow"
                 >
                   <Icon name="ph:wand" />
-                  Parse title
+                  {{ $t('torrents.uploadForm.parseTitle') }}
                 </button>
               </div>
             </label>
@@ -207,14 +206,13 @@
         <section v-if="categoryKindValue !== 'other'" class="form-section">
           <header class="section-head">
             <span class="section-number">03</span>
-            <h2 class="section-title">Identity</h2>
+            <h2 class="section-title">{{ $t('torrents.uploadForm.identity') }}</h2>
             <span class="section-rule" />
           </header>
 
           <div class="section-body">
             <p class="section-help">
-              We auto-search TMDb from the parsed title. Pick a result to
-              attach IMDb / TMDb / TVDB ids in one step.
+              {{ $t('torrents.uploadForm.identityHelp') }}
             </p>
             <MediaSearchPicker
               :initial-query="extractedTitle"
@@ -240,7 +238,7 @@
             <span class="section-number">{{
               categoryKindValue === 'other' ? '03' : '04'
             }}</span>
-            <h2 class="section-title">Description<span class="section-required" aria-hidden="true">*</span></h2>
+            <h2 class="section-title">{{ $t('torrents.detail.description') }}<span class="section-required" aria-hidden="true">*</span></h2>
             <span class="section-rule" />
           </header>
 
@@ -248,14 +246,14 @@
             <WysiwygEditor
               v-model="description"
               format="markdown"
-              placeholder="Describe the release. Paste BBCode, HTML or Markdown — it all converts."
+              :placeholder="$t('torrents.uploadForm.descriptionPlaceholder')"
             />
             <p
               v-if="!descriptionFilled"
               class="section-help section-help--warning"
             >
               <Icon name="ph:warning-circle" />
-              A description is required to publish.
+              {{ $t('torrents.uploadForm.descriptionRequired') }}
             </p>
           </div>
         </section>
@@ -266,20 +264,19 @@
             <span class="section-number">{{
               categoryKindValue === 'other' ? '04' : '05'
             }}</span>
-            <h2 class="section-title">Tags</h2>
+            <h2 class="section-title">{{ $t('search.tags') }}</h2>
             <span class="section-rule" />
           </header>
 
           <div class="section-body">
-            <TagInput v-model="tags" placeholder="FHD, Full Season, NC…" />
+            <TagInput v-model="tags" :placeholder="$t('torrents.uploadForm.tagsPlaceholder')" />
             <p class="section-help">
               <span v-if="autoTagApplied" class="section-help--auto">
                 <Icon name="ph:sparkle-fill" />
-                Auto-detected from filename — edit freely.
+                {{ $t('torrents.uploadForm.tagsAutoDetected') }}
               </span>
               <span v-else>
-                Press Enter or comma to add. Existing tags auto-suggest as you
-                type.
+                {{ $t('torrents.uploadForm.tagsHint') }}
               </span>
             </p>
           </div>
@@ -312,14 +309,14 @@
               />
               <template v-if="!nfoFile">
                 <Icon name="ph:file-text-bold" class="drop-mini-icon" />
-                <span>Drop or browse a <code>.nfo</code> file (optional)</span>
+                <span>{{ $t('torrents.uploadForm.nfoDropPrefix') }} <code>.nfo</code> {{ $t('torrents.uploadForm.nfoDropSuffix') }}</span>
               </template>
               <template v-else>
                 <Icon name="ph:check-circle-fill" class="drop-mini-icon drop-mini-icon--success" />
                 <span class="drop-mini-name">{{ nfoFile.name }}</span>
                 <span class="drop-mini-meta">{{ formatSize(nfoFile.size) }}</span>
                 <button type="button" class="drop-clear" @click.stop="clearNfo">
-                  remove
+                  {{ $t('torrents.uploadForm.remove') }}
                 </button>
               </template>
             </div>
@@ -330,7 +327,7 @@
       <!-- ─────────────────────────  ASIDE  ───────────────────────── -->
       <aside class="upload-aside">
         <div class="aside-card">
-          <p class="page-eyebrow">Live preview</p>
+          <p class="page-eyebrow">{{ $t('forum.newTopic.preview.eyebrow') }}</p>
 
           <!-- Metadata preview if fetched -->
           <MediaMetadataCard
@@ -361,17 +358,16 @@
           <div v-else class="aside-placeholder">
             <Icon name="ph:cassette-tape" class="aside-placeholder-icon" />
             <p>
-              Pick a category, then drop a <code>.torrent</code>. The preview
-              fills as you go.
+              {{ $t('torrents.uploadForm.asidePlaceholderPrefix') }} <code>.torrent</code>{{ $t('torrents.uploadForm.asidePlaceholderSuffix') }}
             </p>
           </div>
 
           <div v-if="categoryLabel" class="aside-row">
-            <span>Category</span>
+            <span>{{ $t('common.category') }}</span>
             <strong>{{ categoryLabel }}</strong>
           </div>
           <div v-if="tags.length > 0" class="aside-row aside-row--column">
-            <span>Tags</span>
+            <span>{{ $t('search.tags') }}</span>
             <div class="aside-tags">
               <span v-for="t in tags" :key="t" class="aside-tag">{{ t }}</span>
             </div>
@@ -382,28 +378,28 @@
           <ol class="aside-progress">
             <li :class="{ done: !!selectedCategoryId }">
               <Icon :name="selectedCategoryId ? 'ph:check-bold' : 'ph:circle'" />
-              <span>Category</span>
+              <span>{{ $t('common.category') }}</span>
             </li>
             <li :class="{ done: !!selectedFile }">
               <Icon :name="selectedFile ? 'ph:check-bold' : 'ph:circle'" />
-              <span>Source file</span>
+              <span>{{ $t('torrents.uploadForm.progress.sourceFile') }}</span>
             </li>
             <li :class="{ done: !!title.trim() }">
               <Icon :name="title.trim() ? 'ph:check-bold' : 'ph:circle'" />
-              <span>Title</span>
+              <span>{{ $t('torrents.uploadForm.titleField') }}</span>
             </li>
             <li
               v-if="categoryKindValue !== 'other'"
               :class="{ done: !!lookupResult }"
             >
               <Icon :name="lookupResult ? 'ph:check-bold' : 'ph:circle'" />
-              <span>Identity (optional)</span>
+              <span>{{ $t('torrents.uploadForm.progress.identityOptional') }}</span>
             </li>
             <li :class="{ done: descriptionFilled }">
               <Icon
                 :name="descriptionFilled ? 'ph:check-bold' : 'ph:circle'"
               />
-              <span>Description</span>
+              <span>{{ $t('torrents.detail.description') }}</span>
             </li>
           </ol>
         </div>
@@ -415,7 +411,7 @@
       <div class="action-bar-inner">
         <NuxtLink to="/torrents" class="btn btn-secondary">
           <Icon name="ph:x-bold" />
-          Cancel
+          {{ $t('common.cancel') }}
         </NuxtLink>
         <span class="action-bar-status">
           <span v-if="error" class="action-error">
@@ -423,17 +419,17 @@
             {{ error }}
           </span>
           <span v-else-if="!selectedFile" class="action-hint">
-            Drop a <code>.torrent</code> file to enable upload
+            {{ $t('torrents.uploadForm.hintDropFilePrefix') }} <code>.torrent</code> {{ $t('torrents.uploadForm.hintDropFileSuffix') }}
           </span>
           <span v-else-if="!selectedCategoryId" class="action-hint">
-            Pick a category first
+            {{ $t('torrents.uploadForm.hintPickCategory') }}
           </span>
           <span v-else-if="!descriptionFilled" class="action-hint">
-            Write a description to publish
+            {{ $t('torrents.uploadForm.hintWriteDescription') }}
           </span>
           <span v-else class="action-ready">
             <Icon name="ph:rocket-launch" />
-            {{ formatSize(selectedFile.size) }} ready to publish
+            {{ $t('torrents.uploadForm.readyToPublish', { size: formatSize(selectedFile.size) }) }}
           </span>
         </span>
         <button
@@ -446,7 +442,7 @@
             :name="isUploading ? 'ph:circle-notch' : 'ph:rocket-launch-bold'"
             :class="{ 'animate-spin': isUploading }"
           />
-          {{ isUploading ? 'Publishing…' : 'Publish release' }}
+          {{ isUploading ? $t('torrents.uploadForm.publishing') : $t('torrents.uploadForm.publishRelease') }}
         </button>
       </div>
     </div>
@@ -468,6 +464,8 @@ import {
   type ParsedRelease,
 } from '~/utils/releaseParse';
 import { useNotificationStore } from '~/stores/notifications';
+
+const { t } = useI18n();
 
 definePageMeta({ title: 'Upload torrent' });
 
@@ -597,17 +595,17 @@ function parseTitleNow() {
   if (!value) return;
   const r = parseReleaseName(value);
   if (r.tags.length === 0) {
-    notifications.info('No tags detected from the title.');
+    notifications.info(t('torrents.uploadForm.toasts.noTagsDetected'));
     return;
   }
   const { merged, added } = mergeParsedTags(tags.value, r.tags);
   tags.value = merged;
   if (added.length === 0) {
-    notifications.success('Title parsed — every detected tag was already on.');
+    notifications.success(t('torrents.uploadForm.toasts.titleParsedAllOn'));
   } else {
     autoTagApplied.value = true;
     notifications.success(
-      `Added ${added.length} tag${added.length === 1 ? '' : 's'}: ${added.join(', ')}`
+      t('torrents.uploadForm.toasts.tagsAdded', { count: added.length, tags: added.join(', ') })
     );
   }
 }
@@ -642,7 +640,7 @@ function handleFileSelect(e: Event) {
     selectedFile.value = file;
     error.value = null;
   } else {
-    error.value = 'Please select a .torrent file';
+    error.value = t('torrents.uploadForm.errors.selectTorrent');
   }
 }
 
@@ -653,7 +651,7 @@ function handleDrop(e: DragEvent) {
     selectedFile.value = file;
     error.value = null;
   } else {
-    error.value = 'Please drop a .torrent file';
+    error.value = t('torrents.uploadForm.errors.dropTorrent');
   }
 }
 
@@ -680,7 +678,7 @@ function triggerNfoInput() {
 function pickNfo(file: File | null | undefined): boolean {
   if (!file) return false;
   if (file.size > NFO_MAX_BYTES) {
-    error.value = `NFO file is too large (max ${Math.round(NFO_MAX_BYTES / 1024)} KB)`;
+    error.value = t('torrents.uploadForm.errors.nfoTooLarge', { kb: Math.round(NFO_MAX_BYTES / 1024) });
     return false;
   }
   nfoFile.value = file;
@@ -709,20 +707,20 @@ interface ReadyHint {
 }
 const readyState = computed<ReadyHint | null>(() => {
   if (!selectedCategoryId.value)
-    return { icon: 'ph:folders-bold', label: 'Pick a category', tone: 'idle' };
+    return { icon: 'ph:folders-bold', label: t('torrents.uploadForm.ready.pickCategory'), tone: 'idle' };
   if (!selectedFile.value)
-    return { icon: 'ph:cassette-tape', label: 'Awaiting source file', tone: 'partial' };
+    return { icon: 'ph:cassette-tape', label: t('torrents.uploadForm.ready.awaitingFile'), tone: 'partial' };
   if (!title.value.trim())
-    return { icon: 'ph:textbox-bold', label: 'Title required', tone: 'partial' };
+    return { icon: 'ph:textbox-bold', label: t('torrents.uploadForm.ready.titleRequired'), tone: 'partial' };
   if (!descriptionFilled.value)
     return {
       icon: 'ph:article-bold',
-      label: 'Description required',
+      label: t('torrents.uploadForm.ready.descriptionRequired'),
       tone: 'partial',
     };
   return {
     icon: 'ph:rocket-launch-bold',
-    label: 'Ready to publish',
+    label: t('torrents.uploadForm.ready.readyToPublish'),
     tone: 'ready',
   };
 });
@@ -769,7 +767,7 @@ async function upload() {
   } catch (err: unknown) {
     const fetchError = err as { data?: { message?: string }; message?: string };
     error.value =
-      fetchError.data?.message || fetchError.message || 'Upload failed';
+      fetchError.data?.message || fetchError.message || t('torrents.uploadForm.errors.uploadFailed');
   } finally {
     isUploading.value = false;
   }
@@ -805,7 +803,7 @@ function resetForm() {
   }
 }
 
-useHead({ title: 'Upload torrent' });
+useHead({ title: t('torrents.uploadForm.headTitle') });
 </script>
 
 <style scoped>

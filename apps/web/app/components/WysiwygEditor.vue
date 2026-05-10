@@ -9,7 +9,7 @@
       <button
         type="button"
         :class="['toolbar-btn', { active: editor.isActive('bold') }]"
-        title="Bold"
+        :title="t('components.wysiwyg.tooltips.bold')"
         @click="editor.chain().focus().toggleBold().run()"
       >
         <Icon name="ph:text-b-bold" />
@@ -17,7 +17,7 @@
       <button
         type="button"
         :class="['toolbar-btn', { active: editor.isActive('italic') }]"
-        title="Italic"
+        :title="t('components.wysiwyg.tooltips.italic')"
         @click="editor.chain().focus().toggleItalic().run()"
       >
         <Icon name="ph:text-italic" />
@@ -25,7 +25,7 @@
       <button
         type="button"
         :class="['toolbar-btn', { active: editor.isActive('underline') }]"
-        title="Underline"
+        :title="t('components.wysiwyg.tooltips.underline')"
         @click="editor.chain().focus().toggleUnderline().run()"
       >
         <Icon name="ph:text-underline" />
@@ -33,7 +33,7 @@
       <button
         type="button"
         :class="['toolbar-btn', { active: editor.isActive('strike') }]"
-        title="Strikethrough"
+        :title="t('components.wysiwyg.tooltips.strike')"
         @click="editor.chain().focus().toggleStrike().run()"
       >
         <Icon name="ph:text-strikethrough" />
@@ -48,7 +48,7 @@
           'toolbar-btn',
           { active: editor.isActive('heading', { level: 1 }) },
         ]"
-        title="Heading 1"
+        :title="t('components.wysiwyg.tooltips.h1')"
         @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
       >
         <Icon name="ph:text-h-one" />
@@ -59,7 +59,7 @@
           'toolbar-btn',
           { active: editor.isActive('heading', { level: 2 }) },
         ]"
-        title="Heading 2"
+        :title="t('components.wysiwyg.tooltips.h2')"
         @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
       >
         <Icon name="ph:text-h-two" />
@@ -70,7 +70,7 @@
           'toolbar-btn',
           { active: editor.isActive('heading', { level: 3 }) },
         ]"
-        title="Heading 3"
+        :title="t('components.wysiwyg.tooltips.h3')"
         @click="editor.chain().focus().toggleHeading({ level: 3 }).run()"
       >
         <Icon name="ph:text-h-three" />
@@ -82,7 +82,7 @@
       <button
         type="button"
         :class="['toolbar-btn', { active: editor.isActive('bulletList') }]"
-        title="Bullet list"
+        :title="t('components.wysiwyg.tooltips.bulletList')"
         @click="editor.chain().focus().toggleBulletList().run()"
       >
         <Icon name="ph:list-bullets" />
@@ -90,7 +90,7 @@
       <button
         type="button"
         :class="['toolbar-btn', { active: editor.isActive('orderedList') }]"
-        title="Numbered list"
+        :title="t('components.wysiwyg.tooltips.orderedList')"
         @click="editor.chain().focus().toggleOrderedList().run()"
       >
         <Icon name="ph:list-numbers" />
@@ -105,7 +105,7 @@
           'toolbar-btn',
           { active: editor.isActive({ textAlign: 'left' }) },
         ]"
-        title="Align left"
+        :title="t('components.wysiwyg.tooltips.alignLeft')"
         @click="editor.chain().focus().setTextAlign('left').run()"
       >
         <Icon name="ph:text-align-left" />
@@ -116,7 +116,7 @@
           'toolbar-btn',
           { active: editor.isActive({ textAlign: 'center' }) },
         ]"
-        title="Align center"
+        :title="t('components.wysiwyg.tooltips.alignCenter')"
         @click="editor.chain().focus().setTextAlign('center').run()"
       >
         <Icon name="ph:text-align-center" />
@@ -127,7 +127,7 @@
           'toolbar-btn',
           { active: editor.isActive({ textAlign: 'right' }) },
         ]"
-        title="Align right"
+        :title="t('components.wysiwyg.tooltips.alignRight')"
         @click="editor.chain().focus().setTextAlign('right').run()"
       >
         <Icon name="ph:text-align-right" />
@@ -139,7 +139,7 @@
       <button
         type="button"
         :class="['toolbar-btn', { active: editor.isActive('blockquote') }]"
-        title="Quote"
+        :title="t('components.wysiwyg.tooltips.quote')"
         @click="editor.chain().focus().toggleBlockquote().run()"
       >
         <Icon name="ph:quotes" />
@@ -147,7 +147,7 @@
       <button
         type="button"
         :class="['toolbar-btn', { active: editor.isActive('codeBlock') }]"
-        title="Code block"
+        :title="t('components.wysiwyg.tooltips.codeBlock')"
         @click="editor.chain().focus().toggleCodeBlock().run()"
       >
         <Icon name="ph:code" />
@@ -155,7 +155,7 @@
       <button
         type="button"
         class="toolbar-btn"
-        title="Horizontal rule"
+        :title="t('components.wysiwyg.tooltips.horizontalRule')"
         @click="editor.chain().focus().setHorizontalRule().run()"
       >
         <Icon name="ph:minus" />
@@ -167,7 +167,7 @@
       <button
         type="button"
         :class="['toolbar-btn', { active: editor.isActive('link') }]"
-        title="Link"
+        :title="t('components.wysiwyg.tooltips.link')"
         @click="promptLink"
       >
         <Icon name="ph:link" />
@@ -175,7 +175,7 @@
       <button
         type="button"
         class="toolbar-btn"
-        title="Image"
+        :title="t('components.wysiwyg.tooltips.image')"
         @click="promptImage"
       >
         <Icon name="ph:image" />
@@ -184,7 +184,7 @@
       <span class="divider" />
 
       <!-- Color -->
-      <label class="toolbar-btn cursor-pointer relative" title="Text color">
+      <label class="toolbar-btn cursor-pointer relative" :title="t('components.wysiwyg.tooltips.textColor')">
         <Icon name="ph:paint-bucket" />
         <input
           type="color"
@@ -200,7 +200,7 @@
       <button
         type="button"
         class="toolbar-btn"
-        title="Clear formatting"
+        :title="t('components.wysiwyg.tooltips.clearFormatting')"
         @click="editor.chain().focus().unsetAllMarks().clearNodes().run()"
       >
         <Icon name="ph:eraser" />
@@ -209,7 +209,7 @@
         type="button"
         class="toolbar-btn"
         :disabled="!editor.can().undo()"
-        title="Undo"
+        :title="t('components.wysiwyg.tooltips.undo')"
         @click="editor.chain().focus().undo().run()"
       >
         <Icon name="ph:arrow-counter-clockwise" />
@@ -218,7 +218,7 @@
         type="button"
         class="toolbar-btn"
         :disabled="!editor.can().redo()"
-        title="Redo"
+        :title="t('components.wysiwyg.tooltips.redo')"
         @click="editor.chain().focus().redo().run()"
       >
         <Icon name="ph:arrow-clockwise" />
@@ -232,7 +232,7 @@
       class="flex items-center gap-1.5 px-3 py-1 bg-bg-tertiary/60 border border-border border-b-0 text-[10px] uppercase tracking-widest text-text-muted"
     >
       <Icon name="ph:magic-wand" />
-      Pasted as {{ lastImportedFormat }} — converted automatically
+      {{ t('components.wysiwyg.pastedAs', { format: lastImportedFormat }) }}
     </div>
 
     <!-- Editor -->
@@ -272,6 +272,8 @@ import {
   type EditorFormat,
 } from '~/utils/editorFormats';
 
+const { t } = useI18n();
+
 interface Props {
   modelValue: string;
   placeholder?: string;
@@ -286,10 +288,18 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  placeholder: 'Start typing…',
+  placeholder: '',
   format: 'html',
   maxLength: undefined,
 });
+
+// Resolve runtime placeholder: prefer the prop if explicitly passed,
+// fall back to the localised default. Computed so it reacts to locale switches.
+const resolvedPlaceholder = computed(() =>
+  props.placeholder && props.placeholder.length > 0
+    ? props.placeholder
+    : t('components.wysiwyg.placeholderDefault'),
+);
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
@@ -318,7 +328,7 @@ const editor = useEditor({
       // give us target / rel attributes.
       link: false,
     }),
-    Placeholder.configure({ placeholder: () => props.placeholder }),
+    Placeholder.configure({ placeholder: () => resolvedPlaceholder.value }),
     TextStyle,
     Color,
     Underline,
@@ -404,14 +414,14 @@ function promptLink() {
   const previous = editor.value?.getAttributes('link')?.href as
     | string
     | undefined;
-  const url = window.prompt('Link URL', previous || 'https://');
+  const url = window.prompt(t('components.wysiwyg.linkPrompt'), previous || 'https://');
   if (url === null) return;
   if (url === '') {
     editor.value?.chain().focus().extendMarkRange('link').unsetLink().run();
     return;
   }
   if (!/^https?:\/\//i.test(url)) {
-    window.alert('Only http(s) links are accepted.');
+    window.alert(t('components.wysiwyg.linkOnlyHttp'));
     return;
   }
   editor.value
@@ -423,10 +433,10 @@ function promptLink() {
 }
 
 function promptImage() {
-  const url = window.prompt('Image URL', 'https://');
+  const url = window.prompt(t('components.wysiwyg.imagePrompt'), 'https://');
   if (!url) return;
   if (!/^https?:\/\//i.test(url)) {
-    window.alert('Only http(s) image URLs are accepted.');
+    window.alert(t('components.wysiwyg.imageOnlyHttp'));
     return;
   }
   editor.value?.chain().focus().setImage({ src: url }).run();

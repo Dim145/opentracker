@@ -171,24 +171,24 @@ const { data: content } = await useFetch<HomepageContent>(
   '/api/homepage-content'
 );
 
-// Features with defaults
+// Features with defaults. The defaults pull from i18n so they follow
+// the user's locale; the operator can still override per-feature copy
+// from /admin/homepage-content (which always wins, regardless of locale).
+const { t } = useI18n();
 const features = computed(() => {
   return (
     content.value?.features ?? [
       {
-        title: 'High Performance',
-        description:
-          'Built with Node.js and Redis for sub-millisecond response times and high concurrency support.',
+        title: t('home.featuresDefault.highPerf.title'),
+        description: t('home.featuresDefault.highPerf.description'),
       },
       {
-        title: 'Multi-Protocol',
-        description:
-          'Supports HTTP, UDP, and WebSocket protocols for maximum compatibility with all BitTorrent clients.',
+        title: t('home.featuresDefault.multiProtocol.title'),
+        description: t('home.featuresDefault.multiProtocol.description'),
       },
       {
-        title: 'Open Source',
-        description:
-          'Fully transparent and community-driven. Designed for privacy and efficiency in the P2P ecosystem.',
+        title: t('home.featuresDefault.openSource.title'),
+        description: t('home.featuresDefault.openSource.description'),
       },
     ]
   );

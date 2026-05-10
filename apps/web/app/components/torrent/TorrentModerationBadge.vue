@@ -22,15 +22,17 @@ const props = withDefaults(
   { size: 'md' }
 );
 
+const { t } = useI18n();
+
 const sizeClass = computed(() =>
   props.size === 'sm' ? 'mod-badge--sm' : 'mod-badge--md'
 );
 
 const label = computed(() => {
   switch (props.status) {
-    case 'pending': return 'Pending review';
-    case 'changes_requested': return 'Changes requested';
-    case 'rejected': return 'Rejected';
+    case 'pending': return t('torrent.moderation.badge.pending');
+    case 'changes_requested': return t('torrent.moderation.badge.changesRequested');
+    case 'rejected': return t('torrent.moderation.badge.rejected');
     default: return '';
   }
 });
@@ -47,11 +49,11 @@ const iconName = computed(() => {
 const title = computed(() => {
   switch (props.status) {
     case 'pending':
-      return 'Awaiting moderation. Hidden from public listings until accepted.';
+      return t('torrent.moderation.badge.pendingTitle');
     case 'changes_requested':
-      return 'A moderator asked for changes. Edit the torrent to resubmit it.';
+      return t('torrent.moderation.badge.changesRequestedTitle');
     case 'rejected':
-      return 'Rejected. Hidden from public listings; only a moderator can move it elsewhere.';
+      return t('torrent.moderation.badge.rejectedTitle');
     default:
       return '';
   }

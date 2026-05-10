@@ -2,7 +2,7 @@
   <div class="compose-shell">
     <!-- Crumb -->
     <nav class="compose-crumb">
-      <NuxtLink to="/forum" class="compose-crumb-link">The Forum</NuxtLink>
+      <NuxtLink to="/forum" class="compose-crumb-link">{{ $t('forum.theForum') }}</NuxtLink>
       <Icon name="ph:caret-right-bold" class="compose-crumb-sep" />
       <NuxtLink
         v-if="selectedCategory"
@@ -16,13 +16,13 @@
         name="ph:caret-right-bold"
         class="compose-crumb-sep"
       />
-      <span class="compose-crumb-leaf">New thread</span>
+      <span class="compose-crumb-leaf">{{ $t('forum.newTopic.crumbLeaf') }}</span>
     </nav>
 
     <!-- Hero -->
     <header class="compose-head">
       <p class="compose-eyebrow">
-        Filing for
+        {{ $t('forum.newTopic.filingFor') }}
         <span class="compose-eyebrow-cat">
           <Icon
             v-if="selectedCategory?.icon"
@@ -30,13 +30,13 @@
             class="compose-eyebrow-icon"
             :style="{ color: selectedCategory.color || 'inherit' }"
           />
-          {{ selectedCategory?.name || '— pick a section —' }}
+          {{ selectedCategory?.name || $t('forum.newTopic.pickSectionEyebrow') }}
         </span>
       </p>
-      <h1 class="compose-title font-display">Open a new thread</h1>
+      <h1 class="compose-title font-display">{{ $t('forum.newTopic.title') }}</h1>
       <p class="compose-blurb">
-        State your case, drop your dispatch, raise your question — the floor
-        is yours. <em>Markdown light: **bold**, *italics*, `code`, &gt; quote, ``` fences ```.</em>
+        {{ $t('forum.newTopic.blurb') }}
+        <em>{{ $t('forum.newTopic.markdownHint') }}</em>
       </p>
     </header>
 
@@ -45,7 +45,7 @@
       <form class="compose-form" @submit.prevent="handleSubmit">
         <div class="compose-row">
           <label class="compose-label">
-            <span>Section</span>
+            <span>{{ $t('forum.newTopic.fields.section') }}</span>
             <div class="cat-picker">
               <button
                 v-for="cat in categories ?? []"
@@ -65,12 +65,12 @@
 
         <div class="compose-row">
           <label class="compose-label">
-            <span>Headline</span>
+            <span>{{ $t('forum.newTopic.fields.headline') }}</span>
             <input
               v-model="form.title"
               type="text"
               class="compose-title-input font-display"
-              placeholder="Type a clear, specific headline."
+              :placeholder="$t('forum.newTopic.fields.headlinePlaceholder')"
               maxlength="200"
               autocomplete="off"
             />
@@ -80,11 +80,11 @@
 
         <div class="compose-row">
           <label class="compose-label">
-            <span>Lede &amp; body</span>
+            <span>{{ $t('forum.newTopic.fields.body') }}</span>
             <textarea
               v-model="form.content"
               class="compose-input"
-              placeholder="Write the seed post. Markdown formatting is supported."
+              :placeholder="$t('forum.newTopic.fields.bodyPlaceholder')"
               maxlength="50000"
               rows="14"
             />
@@ -96,7 +96,7 @@
 
         <div class="compose-actions">
           <button type="button" class="ed-btn" @click="router.back()">
-            Discard
+            {{ $t('common.discard') }}
           </button>
           <button
             type="submit"
@@ -109,14 +109,14 @@
               class="animate-spin"
             />
             <Icon v-else name="ph:feather-bold" />
-            {{ submitting ? 'Filing…' : 'File the thread' }}
+            {{ submitting ? $t('forum.newTopic.filing') : $t('forum.newTopic.fileThread') }}
           </button>
         </div>
       </form>
 
       <!-- Live preview — mirrors the published article header + body. -->
       <aside class="compose-preview">
-        <p class="preview-eyebrow">Live preview</p>
+        <p class="preview-eyebrow">{{ $t('forum.newTopic.preview.eyebrow') }}</p>
         <div class="preview-card">
           <p
             class="preview-section"
@@ -129,16 +129,16 @@
               :name="selectedCategory?.icon || 'ph:bookmark-simple'"
               class="preview-section-icon"
             />
-            {{ selectedCategory?.name || 'Pick a section' }}
+            {{ selectedCategory?.name || $t('forum.newTopic.preview.pickSection') }}
           </p>
           <h2 class="preview-title font-display">
-            {{ form.title.trim() || 'Your headline appears here' }}
+            {{ form.title.trim() || $t('forum.newTopic.preview.headlinePlaceholder') }}
           </h2>
           <p class="preview-byline">
-            <span>By</span>
-            <strong>{{ user?.username || 'you' }}</strong>
+            <span>{{ $t('forum.topic.byline.by') }}</span>
+            <strong>{{ user?.username || $t('forum.newTopic.preview.youFallback') }}</strong>
             <span class="preview-byline-sep">·</span>
-            <span>just now</span>
+            <span>{{ $t('me.relativeTime.justNow') }}</span>
           </p>
           <PostBody
             v-if="form.content.trim()"
@@ -146,7 +146,7 @@
             class="preview-body"
           />
           <p v-else class="preview-empty">
-            <em>The body of your post will render here, formatting included.</em>
+            <em>{{ $t('forum.newTopic.preview.empty') }}</em>
           </p>
         </div>
       </aside>
@@ -169,12 +169,13 @@ const router = useRouter();
 const route = useRoute();
 const { user } = useUserSession();
 const notifications = useNotificationStore();
+const { t } = useI18n();
 
 const { data: categories } = await useFetch<Category[]>(
   '/api/forum/categories'
 );
 
-useHead({ title: 'New thread' });
+useHead({ title: t('forum.newTopic.headTitle') });
 
 const form = ref({
   categoryId: (route.query.categoryId as string) || '',
@@ -216,7 +217,7 @@ async function handleSubmit() {
       router.push(`/forum/topic/${topic.id}`);
     }
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Could not file the thread');
+    notifications.error(e?.data?.message || t('forum.newTopic.errors.fileThread'));
   } finally {
     submitting.value = false;
   }

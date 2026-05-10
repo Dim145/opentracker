@@ -13,7 +13,7 @@
         "
         style="top: calc(var(--header-h) + 1.5rem);"
       >
-        <h2 class="hidden md:block px-3 mb-3 eyebrow">Moderation</h2>
+        <h2 class="hidden md:block px-3 mb-3 eyebrow">{{ $t('mod.eyebrow') }}</h2>
 
         <NuxtLink
           v-for="item in menuItems"
@@ -61,42 +61,43 @@ definePageMeta({
 });
 
 const route = useRoute();
+const { t } = useI18n();
 
-const menuItems = [
+const menuItems = computed(() => [
   {
-    label: 'Dashboard',
+    label: t('mod.nav.dashboard'),
     path: '/mod',
     icon: 'ph:shield-check',
-    description: 'Moderation overview and quick actions',
+    description: t('mod.descriptions.dashboard'),
   },
   {
-    label: 'Pending Torrents',
+    label: t('mod.nav.pendingTorrents'),
     path: '/mod/pending',
     icon: 'ph:clock',
-    description: 'Review and approve pending torrent uploads',
+    description: t('mod.descriptions.pendingTorrents'),
   },
   {
-    label: 'Users',
+    label: t('mod.nav.users'),
     path: '/mod/users',
     icon: 'ph:users',
-    description: 'Manage user accounts and bans',
+    description: t('mod.descriptions.users'),
   },
   {
-    label: 'Reports',
+    label: t('mod.nav.reports'),
     path: '/mod/reports',
     icon: 'ph:flag',
-    description: 'Review and handle user reports',
+    description: t('mod.descriptions.reports'),
   },
   {
-    label: 'Hit & Run',
+    label: t('mod.nav.hnr'),
     path: '/mod/hnr',
     icon: 'ph:lightning',
-    description: 'Monitor and manage H&R violations',
+    description: t('mod.descriptions.hnr'),
   },
-];
+]);
 
 const currentItem = computed(
-  () => menuItems.find((item) => item.path === route.path) || menuItems[0]
+  () => menuItems.value.find((item) => item.path === route.path) || menuItems.value[0]
 );
 
 const currentTitle = computed(() => currentItem.value?.label || '');

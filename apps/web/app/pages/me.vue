@@ -37,7 +37,7 @@
                   v-for="r in profile.roles"
                   :key="r.id"
                   :role="r"
-                  :title="`Role · ${r.name} · attached ${formatDay(r.assignedAt)}${r.assignedManually ? ' (manual)' : ''}`"
+                  :title="$t('me.roleBadgeTitle', { name: r.name, date: formatDay(r.assignedAt) }) + (r.assignedManually ? ` ${$t('me.roleBadgeManualSuffix')}` : '')"
                   class="hero-role-chip"
                 />
                 <span class="hero-pill hero-pill--soft">
@@ -123,7 +123,7 @@
               <button
                 type="button"
                 class="cred-btn"
-                :title="passkeyVisible ? 'Hide' : 'Reveal'"
+                :title="passkeyVisible ? $t('me.credentials.hide') : $t('me.credentials.show')"
                 :disabled="passkeyLoading"
                 @click="togglePasskey"
               >
@@ -141,7 +141,7 @@
               <button
                 type="button"
                 class="cred-btn"
-                :title="copied === 'passkey' ? 'Copied!' : 'Copy'"
+                :title="copied === 'passkey' ? $t('common.copied') : $t('common.copy')"
                 :disabled="!passkey"
                 @click="copy('passkey')"
               >
@@ -156,7 +156,7 @@
               <button
                 type="button"
                 class="cred-btn cred-btn--danger"
-                title="Regenerate passkey"
+                :title="$t('me.credentials.rotate')"
                 :disabled="passkeyRotating"
                 @click="rotatePasskey"
               >
@@ -176,8 +176,7 @@
           }}</code>
           <p class="cred-note">
             <Icon name="ph:warning-bold" />
-            Never share this. Rotating it will break any torrent client still
-            configured with the old announce URL.
+            {{ $t('me.credentials.warning') }}
           </p>
         </article>
 
@@ -188,7 +187,7 @@
               <button
                 type="button"
                 class="cred-btn"
-                :title="announceVisible ? 'Hide' : 'Reveal'"
+                :title="announceVisible ? $t('me.credentials.hide') : $t('me.credentials.show')"
                 @click="announceVisible = !announceVisible"
               >
                 <Icon
@@ -198,7 +197,7 @@
               <button
                 type="button"
                 class="cred-btn"
-                :title="copied === 'announce' ? 'Copied!' : 'Copy'"
+                :title="copied === 'announce' ? $t('common.copied') : $t('common.copy')"
                 :disabled="!passkey"
                 @click="copy('announce')"
               >
@@ -217,7 +216,7 @@
           }}</code>
           <p class="cred-note cred-note--info">
             <Icon name="ph:info-bold" />
-            Use this in your torrent client. Includes your passkey.
+            {{ $t('me.credentials.useInClient') }}
           </p>
         </article>
       </div>
@@ -256,10 +255,10 @@
           class="panel-empty"
         >
           <Icon name="ph:upload-simple" class="panel-empty-icon" />
-          <p>You haven't published any releases yet.</p>
+          <p>{{ $t('me.activity.noUploads') }}</p>
           <NuxtLink to="/torrents/upload" class="panel-empty-link">
             <Icon name="ph:rocket-launch-bold" />
-            Publish your first release
+            {{ $t('me.activity.publishFirst') }}
           </NuxtLink>
         </div>
         <ul v-else class="row-list">
@@ -302,7 +301,7 @@
                 </span>
                 <span class="row-stat">
                   <Icon name="ph:check-bold" />
-                  {{ t.stats?.completed ?? 0 }} DL
+                  {{ $t('me.activity.downloadsCount', { n: t.stats?.completed ?? 0 }) }}
                 </span>
                 <span class="row-age">
                   <!-- ClientOnly because relativeTime() depends on Date.now()
@@ -319,7 +318,7 @@
             <NuxtLink
               :to="`/torrents/${t.infoHash}`"
               class="row-action"
-              title="Open"
+              :title="$t('common.open')"
             >
               <Icon name="ph:arrow-right-bold" />
             </NuxtLink>
@@ -332,7 +331,7 @@
         >
           <span class="panel-pager-summary">
             <strong>{{ uploadsRangeStart }}</strong>–
-            <strong>{{ uploadsRangeEnd }}</strong> of
+            <strong>{{ uploadsRangeEnd }}</strong> {{ $t('me.activity.pagerOf') }}
             <strong>{{ uploads.pagination.total }}</strong>
           </span>
           <div class="panel-pager-buttons">
@@ -342,7 +341,7 @@
               :disabled="uploadsPage === 1"
               @click="uploadsPage = Math.max(1, uploadsPage - 1)"
             >
-              <Icon name="ph:caret-left-bold" /> Prev
+              <Icon name="ph:caret-left-bold" /> {{ $t('common.previous') }}
             </button>
             <button
               type="button"
@@ -350,7 +349,7 @@
               :disabled="uploadsRangeEnd >= uploads.pagination.total"
               @click="uploadsPage = uploadsPage + 1"
             >
-              Next <Icon name="ph:caret-right-bold" />
+              {{ $t('common.next') }} <Icon name="ph:caret-right-bold" />
             </button>
           </div>
         </div>
@@ -422,7 +421,7 @@
                 </span>
                 <span
                   class="row-progress"
-                  :title="`${formatDuration(s.seedTime)} of ${formatDuration(s.requiredSeedTime)} required`"
+                  :title="$t('me.activity.seedProgressTitle', { done: formatDuration(s.seedTime), required: formatDuration(s.requiredSeedTime) })"
                 >
                   <span class="row-progress-bar">
                     <span
@@ -445,7 +444,7 @@
             <NuxtLink
               :to="`/torrents/${s.infoHash}`"
               class="row-action"
-              title="Open"
+              :title="$t('common.open')"
             >
               <Icon name="ph:arrow-right-bold" />
             </NuxtLink>
@@ -458,7 +457,7 @@
         >
           <span class="panel-pager-summary">
             <strong>{{ seedsRangeStart }}</strong>–
-            <strong>{{ seedsRangeEnd }}</strong> of
+            <strong>{{ seedsRangeEnd }}</strong> {{ $t('me.activity.pagerOf') }}
             <strong>{{ seeds.total }}</strong>
           </span>
           <div class="panel-pager-buttons">
@@ -468,7 +467,7 @@
               :disabled="seedsPage === 1"
               @click="seedsPage = Math.max(1, seedsPage - 1)"
             >
-              <Icon name="ph:caret-left-bold" /> Prev
+              <Icon name="ph:caret-left-bold" /> {{ $t('common.previous') }}
             </button>
             <button
               type="button"
@@ -476,7 +475,7 @@
               :disabled="seedsRangeEnd >= seeds.total"
               @click="seedsPage = seedsPage + 1"
             >
-              Next <Icon name="ph:caret-right-bold" />
+              {{ $t('common.next') }} <Icon name="ph:caret-right-bold" />
             </button>
           </div>
         </div>
@@ -490,8 +489,9 @@ import { formatSize, formatDay } from '~/utils/format';
 import TorrentModerationBadge from '~/components/torrent/TorrentModerationBadge.vue';
 
 definePageMeta({ title: 'My profile' });
-useHead({ title: 'My profile' });
 
+const { t } = useI18n();
+useHead({ title: () => t('me.headTitle') });
 const { user: session } = useUserSession();
 const notifications = useNotificationStore();
 const confirmDialog = useConfirm();
@@ -563,7 +563,7 @@ async function loadPasskey() {
     const res = await $fetch<{ passkey: string }>('/api/auth/passkey');
     passkey.value = res.passkey;
   } catch (err: any) {
-    notifications.error(err?.data?.message || 'Failed to load passkey');
+    notifications.error(err?.data?.message || t('me.credentials.loadFailed'));
   } finally {
     passkeyLoading.value = false;
   }
@@ -583,10 +583,9 @@ async function togglePasskey() {
  */
 async function rotatePasskey() {
   const ok = await confirmDialog({
-    title: 'Regenerate passkey?',
-    message:
-      'Your current announce URL will stop working immediately. Any torrent client still pointed at the old passkey will need to be reconfigured with the new one.',
-    confirmText: 'Regenerate',
+    title: t('me.credentials.rotateConfirmTitle'),
+    message: t('me.credentials.rotateConfirmMessage'),
+    confirmText: t('me.credentials.rotateConfirmAction'),
     destructive: true,
   });
   if (!ok) return;
@@ -599,12 +598,10 @@ async function rotatePasskey() {
     });
     passkey.value = res.passkey;
     passkeyVisible.value = true;
-    notifications.success(
-      'Passkey rotated — copy the new one into your torrent client.'
-    );
+    notifications.success(t('me.credentials.rotateSuccess'));
   } catch (err: any) {
     notifications.error(
-      err?.data?.message || 'Failed to regenerate passkey'
+      err?.data?.message || t('me.credentials.rotateFailed')
     );
   } finally {
     passkeyRotating.value = false;
@@ -622,7 +619,7 @@ async function copy(kind: 'passkey' | 'announce') {
       if (copied.value === kind) copied.value = '';
     }, 1500);
   } catch {
-    notifications.error('Could not copy to clipboard');
+    notifications.error(t('me.credentials.copyFailed'));
   }
 }
 
@@ -653,10 +650,10 @@ const permissionPillIcon = computed(() => {
 });
 const permissionPillLabel = computed(() => {
   const p = profile.value;
-  if (!p) return 'Member';
-  if (p.isAdmin) return 'Admin';
-  if (p.isModerator) return 'Moderator';
-  return 'Member';
+  if (!p) return t('me.permission.member');
+  if (p.isAdmin) return t('me.permission.admin');
+  if (p.isModerator) return t('me.permission.moderator');
+  return t('me.permission.member');
 });
 
 // Avatar — deterministic accent hue from username, or the highest-
@@ -701,11 +698,11 @@ const ratioToneClass = computed(() => {
 });
 const ratioLegend = computed(() => {
   const r = profile.value?.ratio;
-  if (r === null) return 'Pure giver — no downloads';
-  if (r === undefined || r === 0) return 'Build up some seed time';
-  if (r >= 1) return 'Healthy — keep it up';
-  if (r >= 0.5) return 'Below 1.0 — seed more';
-  return 'Critical — seeding required';
+  if (r === null) return t('me.ratioLegend.pureGiver');
+  if (r === undefined || r === 0) return t('me.stats.buildSeedTime');
+  if (r >= 1) return t('me.ratioLegend.healthy');
+  if (r >= 0.5) return t('me.ratioLegend.belowOne');
+  return t('me.ratioLegend.critical');
 });
 
 // ── Tabs ───────────────────────────────────────────────────────
@@ -713,13 +710,13 @@ const activeTab = ref<'uploads' | 'seeds'>('uploads');
 const tabs = computed(() => [
   {
     key: 'uploads' as const,
-    label: 'My uploads',
+    label: t('me.activity.myUploads'),
     icon: 'ph:cloud-arrow-up-bold',
     count: profile.value?.counts.uploads ?? null,
   },
   {
     key: 'seeds' as const,
-    label: 'My seeds',
+    label: t('me.activity.mySeeds'),
     icon: 'ph:broadcast-bold',
     count: profile.value?.counts.activeSeeds ?? null,
   },
@@ -833,31 +830,31 @@ const seedsRangeEnd = computed(() =>
   seeds.value ? Math.min(seedsPage.value * seedsPageSize, seeds.value.total) : 0
 );
 
-const seedFilters: Array<{
+const seedFilters = computed<Array<{
   key: 'active' | 'pending' | 'completed' | 'hnr' | 'all';
   label: string;
   countKey: 'active' | 'pending' | 'completed' | 'hnr' | 'all';
-}> = [
-  { key: 'active', label: 'Active', countKey: 'active' },
-  { key: 'pending', label: 'Pending', countKey: 'pending' },
-  { key: 'completed', label: 'Met', countKey: 'completed' },
-  { key: 'hnr', label: 'HnR', countKey: 'hnr' },
-  { key: 'all', label: 'All', countKey: 'all' },
-];
+}>>(() => [
+  { key: 'active', label: t('me.activity.seedFilters.active'), countKey: 'active' },
+  { key: 'pending', label: t('me.activity.seedFilters.pending'), countKey: 'pending' },
+  { key: 'completed', label: t('me.activity.seedFilters.met'), countKey: 'completed' },
+  { key: 'hnr', label: t('me.activity.seedFilters.hnr'), countKey: 'hnr' },
+  { key: 'all', label: t('me.activity.seedFilters.all'), countKey: 'all' },
+]);
 
 const seedEmptyCopy = computed(() => {
   switch (seedStatus.value) {
     case 'pending':
-      return 'No seeds currently building up time.';
+      return t('me.activity.seedEmpty.pending');
     case 'completed':
-      return "You haven't met any seed obligations yet.";
+      return t('me.activity.seedEmpty.completed');
     case 'hnr':
-      return 'No hit-and-run violations — well done.';
+      return t('me.activity.seedEmpty.hnr');
     case 'all':
-      return "You haven't downloaded anything yet.";
+      return t('me.activity.seedEmpty.all');
     case 'active':
     default:
-      return 'No active seeds yet — grab a torrent from the index to get going.';
+      return t('me.activity.seedEmpty.active');
   }
 });
 
@@ -884,11 +881,11 @@ function seedProgressTone(s: SeedRow) {
   return 'tone-low';
 }
 function seedStatusLabel(s: SeedRow) {
-  if (s.isHnr) return 'HnR violation';
-  if (s.isExempt) return 'Exempt';
-  if (s.completedAt) return 'Met';
-  if (s.seedTime > 0) return 'Seeding';
-  return 'Pending';
+  if (s.isHnr) return t('me.activity.seedStatus.hnrViolation');
+  if (s.isExempt) return t('me.activity.seedStatus.exempt');
+  if (s.completedAt) return t('me.activity.seedStatus.met');
+  if (s.seedTime > 0) return t('me.activity.seedStatus.seeding');
+  return t('me.activity.seedStatus.pending');
 }
 function seedStatusTone(s: SeedRow) {
   if (s.isHnr) return 'status-danger';
@@ -900,19 +897,19 @@ function seedStatusTone(s: SeedRow) {
 
 // ── Helpers ────────────────────────────────────────────────────
 function relativeTime(iso: string) {
-  const t = new Date(iso).getTime();
-  const delta = Date.now() - t;
-  if (delta < 60_000) return 'just now';
+  const ts = new Date(iso).getTime();
+  const delta = Date.now() - ts;
+  if (delta < 60_000) return t('me.relativeTime.justNow');
   const min = Math.floor(delta / 60_000);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return t('me.relativeTime.minutesAgo', { n: min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return t('me.relativeTime.hoursAgo', { n: hr });
   const day = Math.floor(hr / 24);
-  if (day < 30) return `${day}d ago`;
+  if (day < 30) return t('me.relativeTime.daysAgo', { n: day });
   const mo = Math.floor(day / 30);
-  if (mo < 12) return `${mo}mo ago`;
+  if (mo < 12) return t('me.relativeTime.monthsAgo', { n: mo });
   const yr = Math.floor(day / 365);
-  return `${yr}y ago`;
+  return t('me.relativeTime.yearsAgo', { n: yr });
 }
 function formatDuration(seconds: number) {
   if (seconds <= 0) return '—';

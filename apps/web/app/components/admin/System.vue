@@ -8,7 +8,7 @@
           <h3
             class="text-xs font-bold uppercase tracking-wider text-text-primary"
           >
-            Version &amp; Updates
+            {{ $t('admin.system.versionTitle') }}
           </h3>
         </div>
       </div>
@@ -16,9 +16,9 @@
         <!-- Current Version + repo + runtime ─────────────────── -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div class="min-w-0">
-            <p class="text-sm font-medium text-text-primary">Current Version</p>
+            <p class="text-sm font-medium text-text-primary">{{ $t('admin.system.currentVersion') }}</p>
             <p class="text-[10px] text-text-muted mt-0.5">
-              Installed version of Trackarr
+              {{ $t('admin.system.currentVersionHint') }}
             </p>
             <!-- Repo + runtime — small mono strip so admins can verify the
                  TRACKARR_REPO env var without shelling into the container. -->
@@ -33,7 +33,7 @@
                   :name="versionInfo.runtime === 'docker' ? 'ph:cube' : 'ph:hard-drives'"
                   class="text-[10px]"
                 />
-                {{ versionInfo.runtime === 'docker' ? 'Docker' : 'Native' }}
+                {{ versionInfo.runtime === 'docker' ? $t('admin.system.runtimeDocker') : $t('admin.system.runtimeNative') }}
               </span>
               <a
                 v-if="versionInfo.repository"
@@ -41,7 +41,7 @@
                 target="_blank"
                 rel="noreferrer"
                 class="inline-flex items-center gap-1 px-1.5 py-0.5 border border-border rounded-sm bg-bg-tertiary hover:border-fg-default/30 hover:text-text-primary transition-colors"
-                :title="versionInfo.repository.configured ? `TRACKARR_REPO=${versionInfo.repository.configured}` : 'Default repository'"
+                :title="versionInfo.repository.configured ? $t('admin.system.repoTooltipConfigured', { value: versionInfo.repository.configured }) : $t('admin.system.repoTooltipDefault')"
               >
                 <Icon name="ph:git-branch" class="text-[10px]" />
                 {{ versionInfo.repository.ownerRepo || versionInfo.repository.url }}
@@ -49,7 +49,7 @@
                   v-if="!versionInfo.repository.configured"
                   name="ph:question"
                   class="text-[10px] opacity-60"
-                  title="Default — no TRACKARR_REPO env var set"
+                  :title="$t('admin.system.repoFallbackHint')"
                 />
               </a>
             </p>
@@ -64,7 +64,7 @@
               @click="checkUpdates"
               :disabled="checkingUpdates"
               class="p-2 bg-bg-tertiary border border-border rounded hover:border-fg-default/20 transition-colors disabled:opacity-50"
-              title="Check for updates"
+              :title="$t('admin.system.checkUpdatesTitle')"
             >
               <Icon
                 name="ph:arrows-clockwise"
@@ -82,18 +82,18 @@
           <div class="flex items-center gap-2">
             <Icon name="ph:arrow-circle-up" class="text-success" />
             <p class="text-sm font-medium text-success">
-              Update Available: {{ versionInfo.latestRelease.version }}
+              {{ $t('admin.system.updateAvailable', { version: versionInfo.latestRelease.version }) }}
             </p>
           </div>
           <p class="text-xs text-text-muted">
-            Published {{ formatDate(versionInfo.latestRelease.publishedAt) }}
+            {{ $t('admin.system.publishedAt', { date: formatDate(versionInfo.latestRelease.publishedAt) }) }}
           </p>
           <a
             :href="versionInfo.latestRelease.url"
             target="_blank"
             class="inline-flex items-center gap-1 text-xs text-text-muted hover:text-text-primary"
           >
-            View changelog
+            {{ $t('admin.system.viewChangelog') }}
             <Icon name="ph:arrow-square-out" class="text-[10px]" />
           </a>
         </div>
@@ -106,7 +106,7 @@
           <div class="flex items-center gap-2">
             <Icon name="ph:check-circle" class="text-success" />
             <p class="text-sm text-text-muted">
-              You're running the latest version
+              {{ $t('admin.system.upToDate') }}
             </p>
           </div>
         </div>
@@ -119,7 +119,7 @@
           <div class="flex items-center gap-2">
             <Icon name="ph:warning" class="text-yellow-400" />
             <p class="text-sm font-medium text-yellow-400">
-              Update check unavailable
+              {{ $t('admin.system.checkUnavailable') }}
             </p>
           </div>
           <p class="text-xs text-text-muted">
@@ -131,7 +131,7 @@
             target="_blank"
             class="inline-flex items-center gap-1 text-xs text-text-muted hover:text-text-primary"
           >
-            Open repository
+            {{ $t('admin.system.openRepository') }}
             <Icon name="ph:arrow-square-out" class="text-[10px]" />
           </a>
         </div>
@@ -145,7 +145,7 @@
             v-if="playbooks.length > 1"
             class="flex flex-wrap gap-1 p-1 bg-bg-tertiary border border-border rounded-md"
             role="tablist"
-            aria-label="Update playbook"
+            :aria-label="$t('admin.system.playbookAriaLabel')"
           >
             <button
               v-for="pb in playbooks"
@@ -166,7 +166,7 @@
               <span
                 v-if="pb.id === recommendedPlaybookId"
                 class="text-[8px] tracking-widest text-success"
-                title="Recommended for your runtime"
+                :title="$t('admin.system.recommendedTitle')"
               >
                 ●
               </span>
@@ -182,7 +182,7 @@
             <p
               class="text-[10px] font-bold uppercase tracking-widest text-text-muted"
             >
-              Update Commands
+              {{ $t('admin.system.updateCommands') }}
             </p>
             <div class="space-y-2">
               <div
@@ -192,12 +192,12 @@
               >
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-[10px] text-text-muted">
-                    Step {{ cmd.step }}: {{ cmd.description }}
+                    {{ $t('admin.system.stepLabel', { n: cmd.step, description: cmd.description }) }}
                   </span>
                   <button
                     @click="copyCommand(cmd.command)"
                     class="text-text-muted hover:text-text-primary inline-flex items-center justify-center w-7 h-7 -my-1 -mr-1.5"
-                    title="Copy"
+                    :title="$t('admin.system.copyTitle')"
                   >
                     <Icon name="ph:copy" class="text-xs" />
                   </button>
@@ -229,7 +229,7 @@
           class="w-full bg-bg-tertiary border border-border text-[10px] font-bold uppercase tracking-widest py-2.5 rounded hover:border-fg-default/20 transition-colors flex items-center justify-center gap-2"
         >
           <Icon name="ph:terminal" />
-          {{ showUpdateInstructions ? 'Hide' : 'Show' }} Update Instructions
+          {{ showUpdateInstructions ? $t('admin.system.hideInstructions') : $t('admin.system.showInstructions') }}
         </button>
       </div>
     </div>

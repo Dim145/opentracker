@@ -9,7 +9,7 @@
       v-if="torrents.length === 0"
       class="text-center text-text-muted py-8 text-sm"
     >
-      No torrents found
+      {{ $t('components.torrentTable.noTorrents') }}
     </p>
     <button
       v-for="torrent in torrents"
@@ -71,7 +71,7 @@
             <span
               v-if="!compact"
               class="text-[10px] font-mono text-text-secondary"
-              title="Completed downloads"
+              :title="$t('components.torrentTable.completedDownloads')"
             >
               <Icon name="ph:check-bold" class="text-[10px] inline" />
               {{ torrent.stats.completed }}
@@ -89,7 +89,7 @@
               v-if="admin"
               type="button"
               class="text-text-muted hover:text-error active:text-error transition-colors w-9 h-9 -mr-2 -my-2 inline-flex items-center justify-center rounded"
-              title="Delete torrent"
+              :title="$t('components.torrentTable.deleteTitle')"
               @click.stop="deleteTorrent(torrent)"
             >
               <Icon name="ph:trash" class="text-base" />
@@ -104,29 +104,29 @@
   <table class="data-table hidden md:table">
     <thead>
       <tr>
-        <th class="w-1/2">Name</th>
-        <th v-if="!compact">Category</th>
-        <th v-if="!compact">Hash</th>
+        <th class="w-1/2">{{ $t('components.torrentTable.name') }}</th>
+        <th v-if="!compact">{{ $t('components.torrentTable.category') }}</th>
+        <th v-if="!compact">{{ $t('components.torrentTable.hash') }}</th>
         <th class="text-center w-16">
-          <div class="flex items-center justify-center gap-1" title="Seeders">
+          <div class="flex items-center justify-center gap-1" :title="$t('components.torrentTable.seedersTitle')">
             <Icon name="ph:arrow-up-bold" class="text-success" />
-            <span>S</span>
+            <span>{{ $t('components.torrentTable.seeders') }}</span>
           </div>
         </th>
         <th class="text-center w-16">
-          <div class="flex items-center justify-center gap-1" title="Leechers">
+          <div class="flex items-center justify-center gap-1" :title="$t('components.torrentTable.leechersTitle')">
             <Icon name="ph:arrow-down-bold" class="text-warning" />
-            <span>L</span>
+            <span>{{ $t('components.torrentTable.leechers') }}</span>
           </div>
         </th>
         <th v-if="!compact" class="text-center w-16">
-          <div class="flex items-center justify-center gap-1" title="Completed">
+          <div class="flex items-center justify-center gap-1" :title="$t('components.torrentTable.completedTitle')">
             <Icon name="ph:check-bold" class="text-text-secondary" />
-            <span>C</span>
+            <span>{{ $t('components.torrentTable.completed') }}</span>
           </div>
         </th>
-        <th v-if="!compact">Size</th>
-        <th class="text-right w-16">Age</th>
+        <th v-if="!compact">{{ $t('components.torrentTable.size') }}</th>
+        <th class="text-right w-16">{{ $t('components.torrentTable.age') }}</th>
         <th v-if="admin" class="w-12"></th>
       </tr>
     </thead>
@@ -136,7 +136,7 @@
           :colspan="(compact ? 4 : 8) + (admin ? 1 : 0)"
           class="text-center text-text-muted py-8"
         >
-          No torrents found
+          {{ $t('components.torrentTable.noTorrents') }}
         </td>
       </tr>
       <tr
@@ -213,7 +213,7 @@
         <td v-if="admin" class="text-center">
           <button
             class="text-text-muted hover:text-error transition-colors p-1.5 rounded hover:bg-error/10"
-            title="Delete torrent"
+            :title="$t('components.torrentTable.deleteTitle')"
             @click.stop="deleteTorrent(torrent)"
           >
             <Icon name="ph:trash" class="text-base" />
@@ -251,6 +251,7 @@ interface TorrentWithStats {
   };
 }
 
+const { t } = useI18n();
 const { data: categories } = await useFetch('/api/categories');
 
 const props = defineProps<{
@@ -299,20 +300,20 @@ const notifications = useNotificationStore();
 
 async function deleteTorrent(torrent: TorrentWithStats) {
   const ok = await confirm({
-    title: 'Delete torrent',
-    message: `Permanently remove “${torrent.name}” from the index?`,
-    confirmText: 'Delete',
+    title: t('components.torrentTable.deleteConfirmTitle'),
+    message: t('components.torrentTable.deleteConfirmMessage', { name: torrent.name }),
+    confirmText: t('components.torrentTable.deleteAction'),
     destructive: true,
   });
   if (!ok) return;
 
   try {
     await $fetch(`/api/torrents/${torrent.infoHash}`, { method: 'DELETE' });
-    notifications.success('Torrent deleted');
+    notifications.success(t('components.torrentTable.toasts.deleted'));
     emit('deleted', torrent.infoHash);
   } catch (err: any) {
     console.error('Delete failed:', err);
-    notifications.error(err?.data?.message || 'Failed to delete torrent');
+    notifications.error(err?.data?.message || t('components.torrentTable.errors.deleteFailed'));
   }
 }
 </script>

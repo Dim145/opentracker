@@ -13,7 +13,7 @@
 
     <aside class="reg-aside">
       <p class="reg-eyebrow">
-        <span class="reg-eyebrow-rule" /> The Invitation Registry
+        <span class="reg-eyebrow-rule" /> {{ $t('invites.registry.eyebrow') }}
       </p>
 
       <h1 class="reg-numeral">
@@ -27,21 +27,19 @@
       <hr class="reg-rule" />
 
       <p class="reg-prose">
-        An invitation is a quiet trust. Each code you draft below
-        offers the door to a single guest of your choosing — once
-        passed through, it is theirs alone.
+        {{ $t('invites.registry.prose') }}
       </p>
 
       <div class="reg-ledger-pills">
         <span class="reg-pill reg-pill--active">
-          <span class="reg-pill-dot" /> {{ counts.active }} active
+          <span class="reg-pill-dot" /> {{ $t('invites.registry.pillActive', { n: counts.active }) }}
         </span>
         <span class="reg-pill reg-pill--used">
           <span class="reg-pill-dot reg-pill-dot--success" />
-          {{ counts.used }} used
+          {{ $t('invites.registry.pillUsed', { n: counts.used }) }}
         </span>
         <span v-if="counts.expired > 0" class="reg-pill reg-pill--expired">
-          {{ counts.expired }} expired
+          {{ $t('invites.registry.pillExpired', { n: counts.expired }) }}
         </span>
       </div>
     </aside>
@@ -52,17 +50,16 @@
         <header class="draft-head">
           <span class="draft-roman">I</span>
           <div>
-            <h2 class="draft-title">Draft a new invitation</h2>
+            <h2 class="draft-title">{{ $t('invites.draft.title') }}</h2>
             <p class="draft-sub">
-              Pick how long the code remains valid. After that window
-              closes, the door reverts.
+              {{ $t('invites.draft.sub') }}
             </p>
           </div>
         </header>
 
         <div class="draft-body">
           <fieldset class="draft-field">
-            <legend class="draft-legend">Window of validity</legend>
+            <legend class="draft-legend">{{ $t('invites.draft.windowLegend') }}</legend>
             <div class="draft-segments" role="radiogroup">
               <label
                 v-for="opt in EXPIRY_OPTIONS"
@@ -77,7 +74,7 @@
                   v-model="expiryChoice"
                 />
                 <span class="draft-segment-label">{{ opt.short }}</span>
-                <span class="draft-segment-help">{{ opt.label }}</span>
+                <span class="draft-segment-help">{{ $t(opt.labelKey) }}</span>
               </label>
             </div>
           </fieldset>
@@ -97,15 +94,14 @@
               <Icon v-else name="ph:feather" />
             </span>
             <span class="draft-cta-label">
-              {{ isGenerating ? 'Sealing…' : 'Cast invitation' }}
+              {{ isGenerating ? $t('invites.draft.sealing') : $t('invites.draft.castCta') }}
             </span>
             <span class="draft-cta-arrow">→</span>
           </button>
 
           <p v-if="!canGenerate" class="draft-empty-note">
             <Icon name="ph:hourglass-low" />
-            Your registry has reached its allotted count. An
-            administrator may extend it.
+            {{ $t('invites.draft.emptyNote') }}
           </p>
         </div>
       </section>
@@ -115,9 +111,9 @@
         <header class="ledger-head">
           <span class="ledger-roman">II</span>
           <div>
-            <h2 class="ledger-title">The ledger</h2>
+            <h2 class="ledger-title">{{ $t('invites.ledger.title') }}</h2>
             <p class="ledger-sub">
-              Every code you have ever drafted, in chronological order.
+              {{ $t('invites.ledger.sub') }}
             </p>
           </div>
         </header>
@@ -147,11 +143,11 @@
 
               <dl class="ledger-meta">
                 <div>
-                  <dt>Cast</dt>
+                  <dt>{{ $t('invites.ledger.metaCast') }}</dt>
                   <dd>{{ formatDate(invite.createdAt) }}</dd>
                 </div>
                 <div v-if="invite.usedByUser">
-                  <dt>Received by</dt>
+                  <dt>{{ $t('invites.ledger.metaReceivedBy') }}</dt>
                   <dd>
                     <NuxtLink
                       :to="`/users/${invite.usedByUser.id}`"
@@ -163,9 +159,9 @@
                   </dd>
                 </div>
                 <div v-else>
-                  <dt>{{ statusOf(invite) === 'expired' ? 'Closed' : 'Closes' }}</dt>
+                  <dt>{{ statusOf(invite) === 'expired' ? $t('invites.ledger.metaClosed') : $t('invites.ledger.metaCloses') }}</dt>
                   <dd>
-                    {{ invite.expiresAt ? formatDate(invite.expiresAt) : 'Never' }}
+                    {{ invite.expiresAt ? formatDate(invite.expiresAt) : $t('invites.ledger.metaNever') }}
                   </dd>
                 </div>
               </dl>
@@ -176,7 +172,7 @@
                 v-if="statusOf(invite) === 'active'"
                 type="button"
                 class="ledger-action"
-                title="Copy invite link"
+                :title="$t('invites.ledger.copyLinkTitle')"
                 @click="copyLink(invite.code)"
               >
                 <Icon name="ph:link" />
@@ -186,7 +182,7 @@
                 type="button"
                 class="ledger-action ledger-action--danger"
                 :disabled="pendingDelete === invite.id"
-                title="Delete this code"
+                :title="$t('invites.ledger.deleteTitle')"
                 @click="askDelete(invite)"
               >
                 <Icon
@@ -200,9 +196,9 @@
 
         <div v-else class="ledger-empty">
           <Icon name="ph:scroll" class="ledger-empty-glyph" />
-          <p class="ledger-empty-headline">The page is blank.</p>
+          <p class="ledger-empty-headline">{{ $t('invites.ledger.emptyHeadline') }}</p>
           <p class="ledger-empty-help">
-            Cast your first invitation above to begin the ledger.
+            {{ $t('invites.ledger.emptyHelp') }}
           </p>
         </div>
       </section>
@@ -216,21 +212,18 @@
             <Icon name="ph:wax-seal-fill" />
           </div>
           <div>
-            <p class="seal-eyebrow">Sealed at {{ sealedTime }}</p>
-            <h3 class="seal-title">Your invitation has been cast</h3>
+            <p class="seal-eyebrow">{{ $t('invites.modal.sealedAt', { time: sealedTime }) }}</p>
+            <h3 class="seal-title">{{ $t('invites.modal.title') }}</h3>
           </div>
         </div>
       </template>
 
       <div v-if="lastGenerated" class="seal-body">
-        <p class="seal-instruction">
-          The code below appears <em>once</em>. Copy it now — once you
-          close this dialog, it returns to silence.
-        </p>
+        <p class="seal-instruction">{{ $t('invites.modal.instructionHtml') }}</p>
 
         <div class="seal-card">
           <div class="seal-card-header">
-            <span>Inscription</span>
+            <span>{{ $t('invites.modal.inscription') }}</span>
             <span class="seal-card-flourish">⁂</span>
           </div>
           <code class="seal-code">{{ formatCode(lastGenerated.code) }}</code>
@@ -238,60 +231,53 @@
             <span>
               {{
                 lastGenerated.expiresAt
-                  ? `Closes ${formatDate(lastGenerated.expiresAt)}`
-                  : 'Closes never'
+                  ? $t('invites.modal.closesOn', { date: formatDate(lastGenerated.expiresAt) })
+                  : $t('invites.modal.closesNever')
               }}
             </span>
-            <span>{{ inviteData?.remaining ?? 0 }} remaining</span>
+            <span>{{ $t('invites.modal.remaining', { n: inviteData?.remaining ?? 0 }) }}</span>
           </div>
         </div>
 
         <div class="seal-actions">
           <button type="button" class="seal-btn seal-btn--primary" @click="copyCode(lastGenerated.code)">
             <Icon name="ph:copy-bold" />
-            Copy code
+            {{ $t('invites.modal.copyCode') }}
           </button>
           <button type="button" class="seal-btn seal-btn--ghost" @click="copyLink(lastGenerated.code)">
             <Icon name="ph:link" />
-            Copy invite link
+            {{ $t('invites.modal.copyLink') }}
           </button>
         </div>
 
         <p class="seal-warning">
           <Icon name="ph:warning" />
-          If you misplace it, delete the row from the ledger to refund
-          the slot, then cast again.
+          {{ $t('invites.modal.warning') }}
         </p>
       </div>
 
       <template #footer>
         <div class="seal-footer">
           <button type="button" class="seal-btn seal-btn--ghost" @click="revealOpen = false">
-            I have it safe
+            {{ $t('invites.modal.dismiss') }}
           </button>
         </div>
       </template>
     </Modal>
 
     <!-- ─── Confirm delete ─────────────────────────────── -->
-    <Modal v-model="confirmOpen" size="sm" title="Strike from the ledger?">
+    <Modal v-model="confirmOpen" size="sm" :title="$t('invites.confirm.title')">
       <div class="confirm-body">
-        <p class="confirm-text">
-          This row will be <strong>permanently struck</strong> from
-          your registry.
-        </p>
+        <p class="confirm-text">{{ $t('invites.confirm.textHtml') }}</p>
         <p v-if="pendingInvite && willRefund(pendingInvite)" class="confirm-soft">
-          The slot will return to your remaining count.
+          {{ $t('invites.confirm.refundedNote') }}
         </p>
-        <p v-else-if="pendingInvite" class="confirm-soft">
-          Its window has already closed — the slot will <em>not</em>
-          return.
-        </p>
+        <p v-else-if="pendingInvite" class="confirm-soft">{{ $t('invites.confirm.expiredNoteHtml') }}</p>
       </div>
       <template #footer>
         <div class="confirm-footer">
           <button type="button" class="seal-btn seal-btn--ghost" @click="confirmOpen = false">
-            Keep it
+            {{ $t('invites.confirm.keep') }}
           </button>
           <button
             type="button"
@@ -303,7 +289,7 @@
               :name="pendingDelete ? 'ph:circle-notch' : 'ph:trash'"
               :class="{ 'animate-spin': pendingDelete }"
             />
-            Strike it
+            {{ $t('invites.confirm.strike') }}
           </button>
         </div>
       </template>
@@ -336,6 +322,7 @@ interface GeneratedInvite {
   expiresAt: string | null;
 }
 
+const { t } = useI18n();
 const notifications = useNotificationStore();
 const isGenerating = ref(false);
 const revealOpen = ref(false);
@@ -346,11 +333,11 @@ const pendingInvite = ref<Invite | null>(null);
 const pendingDelete = ref<string | null>(null);
 
 const EXPIRY_OPTIONS = [
-  { value: 1, short: '1d', label: 'one day' },
-  { value: 7, short: '7d', label: 'one week' },
-  { value: 30, short: '30d', label: 'one month' },
-  { value: 90, short: '90d', label: 'three months' },
-  { value: null as number | null, short: '∞', label: 'forever' },
+  { value: 1, short: '1d', labelKey: 'invites.window.oneDay' },
+  { value: 7, short: '7d', labelKey: 'invites.window.oneWeek' },
+  { value: 30, short: '30d', labelKey: 'invites.window.oneMonth' },
+  { value: 90, short: '90d', labelKey: 'invites.window.threeMonths' },
+  { value: null as number | null, short: '∞', labelKey: 'invites.window.forever' },
 ] as const;
 
 const expiryChoice = ref<number | null>(30);
@@ -363,9 +350,9 @@ const canGenerate = computed(() => (inviteData.value?.remaining ?? 0) > 0);
 
 const remainingLabel = computed(() => {
   const n = inviteData.value?.remaining ?? 0;
-  if (n === 0) return 'invitations to extend — the registry is full';
-  if (n === 1) return 'invitation remaining to extend';
-  return 'invitations remaining to extend';
+  if (n === 0) return t('invites.registry.remainingFull');
+  if (n === 1) return t('invites.registry.remainingOne');
+  return t('invites.registry.remainingMany');
 });
 
 type Status = 'active' | 'used' | 'expired';
@@ -376,7 +363,11 @@ function statusOf(invite: Invite): Status {
   return 'active';
 }
 function statusLabel(invite: Invite): string {
-  return { active: 'Open', used: 'Received', expired: 'Closed' }[statusOf(invite)];
+  return {
+    active: t('invites.status.open'),
+    used: t('invites.status.received'),
+    expired: t('invites.status.closed'),
+  }[statusOf(invite)];
 }
 function statusIcon(invite: Invite): string {
   return {
@@ -440,11 +431,11 @@ async function generateInvite() {
     });
     revealOpen.value = true;
     await refresh();
-    notifications.success('Invitation cast.');
+    notifications.success(t('invites.toasts.cast'));
   } catch (err: unknown) {
     notifications.error(
       (err as { data?: { message?: string } })?.data?.message ??
-        'Failed to cast invitation.'
+        t('invites.errors.cast')
     );
   } finally {
     isGenerating.value = false;
@@ -454,17 +445,17 @@ async function generateInvite() {
 async function copyCode(code: string) {
   try {
     await navigator.clipboard.writeText(code);
-    notifications.success('Code copied.');
+    notifications.success(t('invites.toasts.codeCopied'));
   } catch {
-    notifications.error('Could not copy. Select and copy manually.');
+    notifications.error(t('invites.errors.copyManual'));
   }
 }
 async function copyLink(code: string) {
   try {
     await navigator.clipboard.writeText(inviteUrl(code));
-    notifications.success('Invite link copied.');
+    notifications.success(t('invites.toasts.linkCopied'));
   } catch {
-    notifications.error('Could not copy.');
+    notifications.error(t('invites.errors.copy'));
   }
 }
 
@@ -484,12 +475,14 @@ async function confirmDelete() {
     pendingInvite.value = null;
     await refresh();
     notifications.success(
-      res.refunded ? 'Struck from the ledger. Slot returned.' : 'Struck from the ledger.'
+      res.refunded
+        ? t('invites.toasts.struckRefunded')
+        : t('invites.toasts.struck')
     );
   } catch (err: unknown) {
     notifications.error(
       (err as { data?: { message?: string } })?.data?.message ??
-        'Failed to strike entry.'
+        t('invites.errors.strike')
     );
   } finally {
     pendingDelete.value = null;

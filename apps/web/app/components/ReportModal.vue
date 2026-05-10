@@ -13,7 +13,7 @@
               <h3
                 class="text-xs font-bold uppercase tracking-wider text-text-primary"
               >
-                Report {{ targetType }}
+                {{ $t('components.report.title', { target: targetTypeLabel }) }}
               </h3>
             </div>
             <button
@@ -29,37 +29,37 @@
             <label
               class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 block"
             >
-              Reason
+              {{ $t('components.report.reason') }}
             </label>
             <select v-model="reason" class="input w-full">
-              <option value="">Select a reason...</option>
-              <option value="Spam or advertising">Spam or advertising</option>
+              <option value="">{{ $t('components.report.selectReason') }}</option>
+              <option value="Spam or advertising">{{ $t('components.report.reasons.spam') }}</option>
               <option value="Fake or misleading content">
-                Fake or misleading content
+                {{ $t('components.report.reasons.fake') }}
               </option>
-              <option value="Copyright violation">Copyright violation</option>
+              <option value="Copyright violation">{{ $t('components.report.reasons.copyright') }}</option>
               <option value="Inappropriate content">
-                Inappropriate content
+                {{ $t('components.report.reasons.inappropriate') }}
               </option>
-              <option value="Harassment or abuse">Harassment or abuse</option>
-              <option value="Other">Other</option>
+              <option value="Harassment or abuse">{{ $t('components.report.reasons.harassment') }}</option>
+              <option value="Other">{{ $t('components.report.reasons.other') }}</option>
             </select>
           </div>
           <div>
             <label
               class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 block"
             >
-              Additional Details (optional)
+              {{ $t('components.report.detailsLabel') }}
             </label>
             <textarea
               v-model="details"
               rows="3"
               class="input w-full resize-none"
-              placeholder="Provide any additional context..."
+              :placeholder="$t('components.report.detailsPlaceholder')"
             ></textarea>
           </div>
           <div class="flex justify-end gap-2 pt-2">
-            <button @click="close" class="btn btn-secondary">Cancel</button>
+            <button @click="close" class="btn btn-secondary">{{ $t('common.cancel') }}</button>
             <button
               @click="submitReport"
               :disabled="!reason || isSubmitting"
@@ -70,7 +70,7 @@
                 name="ph:circle-notch"
                 class="animate-spin mr-1"
               />
-              Submit Report
+              {{ $t('components.report.submit') }}
             </button>
           </div>
         </div>
@@ -81,6 +81,8 @@
 
 <script setup lang="ts">
 import { useNotificationStore } from '~/stores/notifications';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   isOpen: boolean;
@@ -97,6 +99,8 @@ const notifications = useNotificationStore();
 const reason = ref('');
 const details = ref('');
 const isSubmitting = ref(false);
+
+const targetTypeLabel = computed(() => t(`components.report.targets.${props.targetType}`));
 
 function close() {
   reason.value = '';
@@ -118,11 +122,11 @@ async function submitReport() {
         details: details.value || undefined,
       },
     });
-    notifications.success('Report submitted successfully');
+    notifications.success(t('components.report.toasts.submitted'));
     emit('submitted');
     close();
   } catch (error: any) {
-    notifications.error(error.data?.message || 'Failed to submit report');
+    notifications.error(error.data?.message || t('components.report.errors.submitFailed'));
   } finally {
     isSubmitting.value = false;
   }

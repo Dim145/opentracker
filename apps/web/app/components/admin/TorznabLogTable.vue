@@ -6,32 +6,32 @@
           <th
             class="text-left text-[10px] font-bold uppercase tracking-widest text-text-muted py-2 px-2"
           >
-            Time
+            {{ $t('admin.torznab.logs.table.time') }}
           </th>
           <th
             class="text-left text-[10px] font-bold uppercase tracking-widest text-text-muted py-2 px-2"
           >
-            User
+            {{ $t('admin.torznab.logs.table.user') }}
           </th>
           <th
             class="text-left text-[10px] font-bold uppercase tracking-widest text-text-muted py-2 px-2"
           >
-            Function
+            {{ $t('admin.torznab.logs.table.function') }}
           </th>
           <th
             class="text-left text-[10px] font-bold uppercase tracking-widest text-text-muted py-2 px-2"
           >
-            Query
+            {{ $t('admin.torznab.logs.table.query') }}
           </th>
           <th
             class="text-center text-[10px] font-bold uppercase tracking-widest text-text-muted py-2 px-2"
           >
-            Results
+            {{ $t('admin.torznab.logs.table.results') }}
           </th>
           <th
             class="text-right text-[10px] font-bold uppercase tracking-widest text-text-muted py-2 px-2"
           >
-            Time
+            {{ $t('admin.torznab.logs.table.responseTime') }}
           </th>
         </tr>
       </thead>
@@ -87,7 +87,7 @@
               class="text-xs text-red-400"
               :title="log.error"
             >
-              Error
+              {{ $t('admin.torznab.logs.table.error') }}
             </span>
             <span v-else class="text-xs text-text-muted">
               {{ log.resultCount }}
@@ -98,13 +98,13 @@
               class="text-xs font-mono"
               :class="getResponseTimeClass(log.responseTime)"
             >
-              {{ log.responseTime }}ms
+              {{ log.responseTime }}{{ $t('admin.torznab.logs.table.responseUnit') }}
             </span>
           </td>
         </tr>
         <tr v-if="!loading && (!logs || logs.length === 0)">
           <td colspan="6" class="py-8 text-center text-text-muted text-sm">
-            No logs available
+            {{ $t('admin.torznab.logs.table.empty') }}
           </td>
         </tr>
       </tbody>

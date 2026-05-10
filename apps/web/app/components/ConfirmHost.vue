@@ -51,7 +51,7 @@
                 class="btn btn-secondary flex-1 text-[10px] font-bold uppercase tracking-widest"
                 @click="onCancel"
               >
-                {{ current.cancelText || 'Cancel' }}
+                {{ current.cancelText || t('common.cancel') }}
               </button>
               <button
                 ref="confirmButtonRef"
@@ -60,7 +60,7 @@
                 :class="current.destructive ? 'destructive-btn' : ''"
                 @click="onConfirm"
               >
-                {{ current.confirmText || 'Confirm' }}
+                {{ current.confirmText || t('common.confirm') }}
               </button>
             </div>
           </div>
@@ -71,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+const { t } = useI18n();
 const queue = useConfirmState();
 const current = computed(() => queue.value[0] || null);
 const confirmButtonRef = ref<HTMLButtonElement | null>(null);

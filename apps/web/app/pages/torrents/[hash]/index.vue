@@ -14,14 +14,14 @@
   >
     <NuxtLink to="/torrents" class="adult-gate__back">
       <Icon name="ph:arrow-left-bold" />
-      Back to index
+      {{ $t('torrents.detail.backToIndex') }}
     </NuxtLink>
 
     <div class="adult-gate__panel">
       <header class="adult-gate__hatch">
         <span class="adult-gate__hatch-label">
           <Icon name="ph:eye-slash-fill" />
-          Filter active
+          {{ $t('torrents.detail.adultGate.filterActive') }}
         </span>
         <span class="adult-gate__hatch-route">
           /torrents/<span class="adult-gate__hash">{{ redactedHash }}</span>
@@ -30,12 +30,12 @@
 
       <div class="adult-gate__body">
         <p class="adult-gate__eyebrow">
-          §6000 · Adult content · Hidden by your settings
+          {{ $t('torrents.detail.adultGate.eyebrow') }}
         </p>
         <h1 id="adult-gate-title" class="adult-gate__title">
-          <span class="adult-gate__title-word">CONTENT</span>
+          <span class="adult-gate__title-word">{{ $t('torrents.detail.adultGate.titleWord') }}</span>
           <span class="adult-gate__title-stamp" aria-hidden="true">
-            <span class="adult-gate__title-stamp-inner">FILTERED</span>
+            <span class="adult-gate__title-stamp-inner">{{ $t('torrents.detail.adultGate.titleStamp') }}</span>
           </span>
         </h1>
 
@@ -45,40 +45,37 @@
 
         <dl class="adult-gate__meta">
           <div>
-            <dt>Category</dt>
+            <dt>{{ $t('common.category') }}</dt>
             <dd>{{ torrent.category?.name ?? 'XXX' }}</dd>
           </div>
           <div>
-            <dt>Reason</dt>
-            <dd>Show adult content = false</dd>
+            <dt>{{ $t('torrents.detail.adultGate.reasonLabel') }}</dt>
+            <dd>{{ $t('torrents.detail.adultGate.reasonValue') }}</dd>
           </div>
           <div>
-            <dt>Reachable in</dt>
-            <dd>1 click ↗</dd>
+            <dt>{{ $t('torrents.detail.adultGate.reachableIn') }}</dt>
+            <dd>{{ $t('torrents.detail.adultGate.reachableValue') }}</dd>
           </div>
         </dl>
 
         <p class="adult-gate__copy">
-          You have adult content turned off in your settings. The page
-          still exists, but everything on it — including the title and
-          the full hash — is intentionally hidden until you toggle the
-          setting back on.
+          {{ $t('torrents.detail.adultGate.copy') }}
         </p>
 
         <div class="adult-gate__actions">
           <NuxtLink to="/settings" class="adult-gate__cta">
             <Icon name="ph:eye-bold" />
-            <span>Enable adult content</span>
+            <span>{{ $t('torrents.detail.adultGate.enable') }}</span>
           </NuxtLink>
           <NuxtLink to="/torrents" class="adult-gate__cta adult-gate__cta--ghost">
             <Icon name="ph:list-bold" />
-            <span>Browse safe categories</span>
+            <span>{{ $t('torrents.detail.adultGate.browseSafe') }}</span>
           </NuxtLink>
         </div>
       </div>
 
       <footer class="adult-gate__foot">
-        <span>Document withheld at viewer request</span>
+        <span>{{ $t('torrents.detail.adultGate.footer') }}</span>
         <span class="adult-gate__foot-mono">/settings#adult</span>
       </footer>
     </div>
@@ -90,7 +87,7 @@
       class="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong mb-6 transition-colors"
     >
       <Icon name="ph:arrow-left-bold" />
-      Back to index
+      {{ $t('torrents.detail.backToIndex') }}
     </NuxtLink>
 
     <!-- ─── Moderation panel (top placement) ───────────────────
@@ -119,7 +116,7 @@
             <div class="flex items-center gap-2 mb-1 flex-wrap">
               <span
                 class="text-[10px] font-bold bg-bg-tertiary border border-border px-1.5 py-0.5 rounded-sm text-text-muted uppercase tracking-wider"
-                >Object</span
+                >{{ $t('torrents.detail.object') }}</span
               >
               <span class="text-[10px] font-mono text-text-muted">{{
                 torrent.id
@@ -212,7 +209,7 @@
               class="btn btn-secondary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider"
             >
               <Icon name="ph:pencil-simple-bold" />
-              <span>Edit</span>
+              <span>{{ $t('common.edit') }}</span>
             </NuxtLink>
             <!-- Delete Button (owner/mod/admin only) -->
             <button
@@ -221,14 +218,14 @@
               @click="confirmDelete"
             >
               <Icon name="ph:trash-bold" />
-              <span>Delete</span>
+              <span>{{ $t('common.delete') }}</span>
             </button>
             <button
               class="btn btn-secondary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider"
               @click="copyHash"
             >
               <Icon name="ph:copy-bold" />
-              <span>Copy Hash</span>
+              <span>{{ $t('torrents.detail.copyHash') }}</span>
             </button>
             <a
               :href="`/api/torrents/${torrent.infoHash}/download`"
@@ -236,7 +233,7 @@
               download
             >
               <Icon name="ph:download-simple-bold" />
-              <span>Download</span>
+              <span>{{ $t('torrents.detail.download') }}</span>
             </a>
           </div>
         </div>
@@ -245,7 +242,7 @@
           <div class="flex flex-col">
             <span
               class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1"
-              >Info Hash</span
+              >{{ $t('torrents.detail.infoHash') }}</span
             >
             <code
               class="text-xs font-mono text-text-secondary bg-bg-tertiary/50 px-2 py-1 rounded border border-border/50"
@@ -256,7 +253,7 @@
           <div class="flex flex-col">
             <span
               class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1"
-              >Created At</span
+              >{{ $t('torrents.detail.createdAt') }}</span
             >
             <div class="flex items-center gap-2">
               <span class="text-xs font-mono text-text-secondary">{{
@@ -285,24 +282,24 @@
     <!-- Stats Grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <StatsCard
-        title="Seeders"
+        :title="$t('torrents.detail.stats.seeders')"
         :value="torrent.stats.seeders"
         icon="ph:arrow-up-bold"
         variant="success"
       />
       <StatsCard
-        title="Leechers"
+        :title="$t('torrents.detail.stats.leechers')"
         :value="torrent.stats.leechers"
         icon="ph:arrow-down-bold"
         variant="warning"
       />
       <StatsCard
-        title="Completed"
+        :title="$t('torrents.detail.stats.completed')"
         :value="torrent.stats.completed"
         icon="ph:check-circle-bold"
       />
       <StatsCard
-        title="Total Size"
+        :title="$t('torrents.detail.stats.totalSize')"
         :value="formatSize(torrent.size)"
         icon="ph:database-bold"
       />
@@ -316,7 +313,7 @@
           <h3
             class="text-xs font-bold uppercase tracking-wider text-text-primary"
           >
-            Description
+            {{ $t('torrents.detail.description') }}
           </h3>
         </div>
       </div>
@@ -362,7 +359,7 @@
           @click="copyNfo"
         >
           <Icon :name="nfoCopied ? 'ph:check-bold' : 'ph:copy-bold'" />
-          {{ nfoCopied ? 'Copied' : 'Copy' }}
+          {{ nfoCopied ? $t('common.copied') : $t('common.copy') }}
         </button>
       </div>
       <div v-show="nfoExpanded" id="nfo-body" class="nfo-frame">
@@ -383,13 +380,13 @@
           <h3
             class="text-xs font-bold uppercase tracking-wider text-text-primary"
           >
-            Active Swarm ({{ torrent.peers.length }})
+            {{ $t('torrents.detail.swarm.title', { n: torrent.peers.length }) }}
           </h3>
           <span
             class="ml-auto text-[9px] font-mono uppercase tracking-widest text-text-muted px-1.5 py-0.5 rounded border border-border bg-bg-tertiary"
-            title="Visible only to administrators"
+            :title="$t('torrents.detail.swarm.adminOnlyTooltip')"
           >
-            Admin only
+            {{ $t('torrents.detail.swarm.adminOnly') }}
           </span>
         </div>
       </div>
@@ -397,11 +394,11 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Endpoint</th>
-              <th>Type</th>
-              <th>Uploaded</th>
-              <th>Downloaded</th>
-              <th class="text-right">Last Seen</th>
+              <th>{{ $t('torrents.detail.swarm.endpoint') }}</th>
+              <th>{{ $t('torrents.detail.swarm.type') }}</th>
+              <th>{{ $t('torrents.detail.swarm.uploaded') }}</th>
+              <th>{{ $t('torrents.detail.swarm.downloaded') }}</th>
+              <th class="text-right">{{ $t('torrents.detail.swarm.lastSeen') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -410,7 +407,7 @@
                 colspan="5"
                 class="text-center text-text-muted py-12 font-mono text-xs uppercase tracking-widest"
               >
-                No active peers detected in swarm
+                {{ $t('torrents.detail.swarm.empty') }}
               </td>
             </tr>
             <tr v-for="peer in torrent.peers" :key="peer.id">
@@ -431,7 +428,7 @@
                     "
                     class="text-[8px]"
                   />
-                  {{ peer.isSeeder ? 'Seeder' : 'Leecher' }}
+                  {{ peer.isSeeder ? $t('torrents.detail.swarm.seeder') : $t('torrents.detail.swarm.leecher') }}
                 </span>
               </td>
               <td class="text-text-secondary font-mono text-[10px]">
@@ -525,6 +522,7 @@ interface TorrentDetail {
   gatedAdult?: boolean;
 }
 
+const { t } = useI18n();
 const route = useRoute();
 const hash = route.params.hash as string;
 
@@ -738,12 +736,12 @@ const renderedDescription = computed(() =>
 );
 
 if (error.value || !torrent.value) {
-  throw createError({ statusCode: 404, message: 'Torrent not found' });
+  throw createError({ statusCode: 404, message: t('torrents.detail.notFound') });
 }
 
 async function copyHash() {
   await navigator.clipboard.writeText(torrent.value!.infoHash);
-  notifications.success('Info hash copied to clipboard');
+  notifications.success(t('torrents.detail.toasts.hashCopied'));
 }
 
 const nfoCopied = ref(false);
@@ -762,15 +760,15 @@ const nfoMeta = computed(() => {
   const bytes = new Blob([txt]).size;
   const size =
     bytes >= 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${bytes} B`;
-  return `${lines} lines · ${size}`;
+  return `${t('torrents.detail.nfoMeta.lines', { n: lines })} · ${size}`;
 });
 
 async function confirmDelete() {
   if (!torrent.value) return;
   const ok = await confirm({
-    title: 'Delete torrent',
-    message: `Permanently remove “${torrent.value.name}” from the index? This cannot be undone.`,
-    confirmText: 'Delete',
+    title: t('torrents.detail.deleteConfirm.title'),
+    message: t('torrents.detail.deleteConfirm.message', { name: torrent.value.name }),
+    confirmText: t('common.delete'),
     destructive: true,
   });
   if (!ok) return;
@@ -779,14 +777,14 @@ async function confirmDelete() {
     await $fetch(`/api/torrents/${torrent.value!.infoHash}`, {
       method: 'DELETE',
     });
-    notifications.success('Torrent deleted');
+    notifications.success(t('torrents.detail.toasts.deleted'));
     await navigateTo('/torrents');
   } catch (err: unknown) {
     const fetchError = err as { data?: { message?: string }; message?: string };
     notifications.error(
       fetchError.data?.message ||
         fetchError.message ||
-        'Failed to delete torrent'
+        t('torrents.detail.errors.deleteFailed')
     );
   }
 }

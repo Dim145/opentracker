@@ -4,24 +4,22 @@
     <header class="settings-head">
       <NuxtLink to="/me" class="back-link">
         <Icon name="ph:arrow-left-bold" />
-        Back to profile
+        {{ $t('settings.backToProfile') }}
       </NuxtLink>
       <div class="settings-title-row">
         <div>
-          <p class="page-eyebrow">Account preferences</p>
+          <p class="page-eyebrow">{{ $t('settings.eyebrow') }}</p>
           <h1 class="page-title">
-            Settings <span class="page-title-accent">&amp; controls</span>
+            {{ $t('settings.titleMain') }} <span class="page-title-accent">{{ $t('settings.titleAccent') }}</span>
           </h1>
         </div>
         <div v-if="dirtyCount > 0" class="ready-state partial">
           <Icon name="ph:pencil-line-bold" />
-          <span>{{ dirtyCount }} unsaved change{{
-            dirtyCount === 1 ? '' : 's'
-          }}</span>
+          <span>{{ $t('settings.unsavedChangesCount', dirtyCount, { n: dirtyCount }) }}</span>
         </div>
         <div v-else class="ready-state idle">
           <Icon name="ph:check-bold" />
-          <span>All saved</span>
+          <span>{{ $t('settings.allSaved') }}</span>
         </div>
       </div>
     </header>
@@ -32,7 +30,7 @@
 
     <div v-else class="settings-shell">
       <!-- Sidebar: anchor nav -->
-      <aside class="settings-nav" aria-label="Settings sections">
+      <aside class="settings-nav" :aria-label="$t('settings.navAriaLabel')">
         <a
           v-for="s in sections"
           :key="s.key"
@@ -55,36 +53,34 @@
         <section id="identity" class="form-section">
           <header class="section-head">
             <span class="section-number">01</span>
-            <h2 class="section-title">Identity</h2>
+            <h2 class="section-title">{{ $t('settings.sections.identity') }}</h2>
             <span class="section-rule" />
           </header>
 
           <div class="section-body">
             <p class="section-help">
-              Your username is locked — it's tied to your announce URL and
-              moderation history. Use a display name to change how you appear
-              on profile pages without rotating your identity.
+              {{ $t('settings.identity.usernameLocked') }}
             </p>
 
             <div class="readonly-row">
-              <span class="field-label">Username</span>
+              <span class="field-label">{{ $t('settings.identity.username') }}</span>
               <code class="readonly-value">{{ form.username }}</code>
               <span class="readonly-hint">
                 <Icon name="ph:lock-key-bold" />
-                immutable
+                {{ $t('settings.identity.immutable') }}
               </span>
             </div>
 
             <label class="field-row">
               <span class="field-label">
-                Display name
-                <span class="field-hint">optional · ≤ 32 chars</span>
+                {{ $t('settings.identity.displayName') }}
+                <span class="field-hint">{{ $t('settings.identity.displayNameHint') }}</span>
               </span>
               <input
                 v-model="form.displayName"
                 type="text"
                 maxlength="32"
-                placeholder="Leave blank to use your username"
+                :placeholder="$t('settings.identity.displayNamePlaceholder')"
                 class="input field-input"
               />
               <span class="char-counter" :class="overLimit('displayName', 32)">
@@ -94,14 +90,14 @@
 
             <label class="field-row">
               <span class="field-label">
-                Bio
-                <span class="field-hint">optional · ≤ 1000 chars · plain text</span>
+                {{ $t('settings.identity.bio') }}
+                <span class="field-hint">{{ $t('settings.identity.bioHint') }}</span>
               </span>
               <textarea
                 v-model="form.bio"
                 maxlength="1000"
                 rows="5"
-                placeholder="A short blurb on your seedbox, your taste, or what you're farming this month."
+                :placeholder="$t('settings.identity.bioPlaceholder')"
                 class="input field-input field-textarea"
               />
               <span class="char-counter" :class="overLimit('bio', 1000)">
@@ -115,7 +111,7 @@
         <section id="privacy" class="form-section">
           <header class="section-head">
             <span class="section-number">02</span>
-            <h2 class="section-title">Privacy</h2>
+            <h2 class="section-title">{{ $t('settings.sections.privacy') }}</h2>
             <span class="section-rule" />
           </header>
 
@@ -136,12 +132,10 @@
               </button>
               <div class="toggle-body">
                 <p class="toggle-title">
-                  Show last-seen on my public profile
+                  {{ $t('settings.privacy.showLastSeen') }}
                 </p>
                 <p class="toggle-sub">
-                  When off, members visiting your profile see “Hidden”
-                  instead of a timestamp. Mods and admins always see the
-                  real value for moderation.
+                  {{ $t('settings.privacy.showLastSeenHint') }}
                 </p>
               </div>
             </label>
@@ -165,13 +159,9 @@
                 <span class="toggle-knob" />
               </button>
               <div class="toggle-body">
-                <p class="toggle-title">Show adult content (XXX)</p>
+                <p class="toggle-title">{{ $t('settings.privacy.showAdultContent') }}</p>
                 <p class="toggle-sub">
-                  Hides every torrent in the XXX category tree from
-                  listings, searches, RSS and the homepage feed. The
-                  individual torrent pages render a “content filtered”
-                  notice in place of the actual data when this is off.
-                  Default off — flip it on only if that's what you want.
+                  {{ $t('settings.privacy.showAdultContentHint') }}
                 </p>
               </div>
             </label>
@@ -291,7 +281,7 @@
         <section id="security" class="form-section">
           <header class="section-head">
             <span class="section-number">04</span>
-            <h2 class="section-title">Security</h2>
+            <h2 class="section-title">{{ $t('settings.sections.security') }}</h2>
             <span class="section-rule" />
           </header>
 
@@ -306,12 +296,10 @@
               <div class="action-card-body">
                 <h3 class="action-card-title">
                   <Icon name="ph:lock-key-bold" />
-                  Change password
+                  {{ $t('settings.security.changePassword') }}
                 </h3>
                 <p class="action-card-text">
-                  Your password never leaves this device. We re-derive a fresh
-                  salt + verifier from the new password and replace the
-                  stored pair atomically.
+                  {{ $t('settings.security.changePasswordHint') }}
                 </p>
               </div>
               <button
@@ -322,42 +310,42 @@
                 <Icon
                   :name="passwordOpen ? 'ph:caret-up-bold' : 'ph:caret-down-bold'"
                 />
-                {{ passwordOpen ? 'Cancel' : 'Change password' }}
+                {{ passwordOpen ? $t('common.cancel') : $t('settings.security.changePassword') }}
               </button>
             </article>
 
             <Transition name="pwd-fade">
               <div v-if="passwordOpen" class="password-form">
                 <label class="field-row">
-                  <span class="field-label">Current password</span>
+                  <span class="field-label">{{ $t('settings.security.currentPassword') }}</span>
                   <input
                     v-model="pwd.current"
                     type="password"
                     autocomplete="current-password"
                     class="input field-input"
-                    placeholder="Enter your current password"
+                    :placeholder="$t('settings.security.currentPasswordPlaceholder')"
                   />
                 </label>
                 <label class="field-row">
-                  <span class="field-label">New password</span>
+                  <span class="field-label">{{ $t('settings.security.newPassword') }}</span>
                   <input
                     v-model="pwd.next"
                     type="password"
                     autocomplete="new-password"
                     minlength="8"
                     class="input field-input"
-                    placeholder="At least 8 characters"
+                    :placeholder="$t('settings.security.newPasswordPlaceholder')"
                   />
                 </label>
                 <label class="field-row">
-                  <span class="field-label">Confirm new password</span>
+                  <span class="field-label">{{ $t('settings.security.confirmPassword') }}</span>
                   <input
                     v-model="pwd.confirm"
                     type="password"
                     autocomplete="new-password"
                     minlength="8"
                     class="input field-input"
-                    placeholder="Re-enter the new password"
+                    :placeholder="$t('settings.security.confirmPasswordPlaceholder')"
                   />
                 </label>
                 <p
@@ -374,7 +362,7 @@
                     :disabled="pwdSubmitting"
                     @click="closePassword"
                   >
-                    Cancel
+                    {{ $t('common.cancel') }}
                   </button>
                   <button
                     type="button"
@@ -390,13 +378,12 @@
                       "
                       :class="{ 'animate-spin': pwdSubmitting }"
                     />
-                    {{ pwdSubmitting ? 'Updating…' : 'Update password' }}
+                    {{ pwdSubmitting ? $t('settings.security.updatingPassword') : $t('settings.security.updatePassword') }}
                   </button>
                 </div>
                 <p class="password-note">
                   <Icon name="ph:info-bold" />
-                  Other tabs and devices stay signed in until they log out
-                  manually.
+                  {{ $t('settings.security.otherDevicesNote') }}
                 </p>
               </div>
             </Transition>
@@ -405,19 +392,15 @@
               <div class="action-card-body">
                 <h3 class="action-card-title">
                   <Icon name="ph:key-bold" />
-                  Tracker passkey
+                  {{ $t('settings.security.trackerPasskey') }}
                 </h3>
                 <p class="action-card-text">
-                  Reveal, copy or rotate your passkey from the
-                  <NuxtLink to="/me" class="inline-link"
-                    >tracker credentials section</NuxtLink
-                  >
-                  on your profile.
+                  {{ $t('settings.security.trackerPasskeyHint') }}
                 </p>
               </div>
               <NuxtLink to="/me#01" class="btn-ghost">
                 <Icon name="ph:arrow-up-right-bold" />
-                Open profile
+                {{ $t('settings.security.openProfile') }}
               </NuxtLink>
             </article>
 
@@ -425,16 +408,15 @@
               <div class="action-card-body">
                 <h3 class="action-card-title">
                   <Icon name="ph:sign-out-bold" />
-                  Sign out of this device
+                  {{ $t('settings.security.signOutDevice') }}
                 </h3>
                 <p class="action-card-text">
-                  Ends the current session cookie and sends you back to the
-                  login page.
+                  {{ $t('settings.security.signOutDeviceHint') }}
                 </p>
               </div>
               <button type="button" class="btn-ghost btn-ghost--danger" @click="signOut">
                 <Icon name="ph:sign-out-bold" />
-                Sign out
+                {{ $t('settings.security.signOut') }}
               </button>
             </article>
           </div>
@@ -444,37 +426,37 @@
         <section id="account" class="form-section">
           <header class="section-head">
             <span class="section-number">05</span>
-            <h2 class="section-title">Account info</h2>
+            <h2 class="section-title">{{ $t('settings.sections.accountInfo') }}</h2>
             <span class="section-rule" />
           </header>
 
           <div class="section-body">
             <dl class="info-grid">
               <div>
-                <dt>User ID</dt>
+                <dt>{{ $t('settings.account.userId') }}</dt>
                 <dd><code>{{ profile?.id }}</code></dd>
               </div>
               <div>
-                <dt>Member since</dt>
+                <dt>{{ $t('settings.account.memberSince') }}</dt>
                 <dd>{{ memberSince }}</dd>
               </div>
               <div>
-                <dt>Role</dt>
+                <dt>{{ $t('settings.account.role') }}</dt>
                 <dd>{{ roleName }}</dd>
               </div>
               <div>
-                <dt>Last known IP</dt>
+                <dt>{{ $t('settings.account.lastKnownIp') }}</dt>
                 <dd>
                   <code v-if="profile?.lastIp">{{ profile.lastIp }}</code>
                   <span v-else class="info-dim">—</span>
                 </dd>
               </div>
               <div>
-                <dt>Invites remaining</dt>
+                <dt>{{ $t('settings.account.invitesRemaining') }}</dt>
                 <dd>{{ profile?.invitesRemaining ?? 0 }}</dd>
               </div>
               <div>
-                <dt>Total uploads</dt>
+                <dt>{{ $t('settings.account.totalUploads') }}</dt>
                 <dd>{{ profile?.counts.uploads ?? 0 }}</dd>
               </div>
             </dl>
@@ -493,7 +475,7 @@
           @click="resetForm"
         >
           <Icon name="ph:arrow-counter-clockwise-bold" />
-          Discard
+          {{ $t('common.discard') }}
         </button>
         <span class="action-bar-status">
           <span v-if="saveError" class="action-error">
@@ -501,14 +483,11 @@
             {{ saveError }}
           </span>
           <span v-else-if="dirtyCount === 0" class="action-hint">
-            Identity &amp; privacy preferences are up to date.
+            {{ $t('settings.upToDate') }}
           </span>
           <span v-else class="action-ready">
             <Icon name="ph:floppy-disk-bold" />
-            {{ dirtyCount }} change{{
-              dirtyCount === 1 ? '' : 's'
-            }}
-            ready to save
+            {{ $t('settings.changesReady', dirtyCount, { n: dirtyCount }) }}
           </span>
         </span>
         <button
@@ -521,7 +500,7 @@
             :name="saving ? 'ph:circle-notch' : 'ph:floppy-disk-bold'"
             :class="{ 'animate-spin': saving }"
           />
-          {{ saving ? 'Saving…' : 'Save changes' }}
+          {{ saving ? $t('settings.saving') : $t('common.saveChanges') }}
         </button>
       </div>
     </div>
@@ -533,7 +512,6 @@ import { generateLoginProof, generateCredentials } from '~/utils/crypto';
 import TwoFactorSection from '~/components/security/TwoFactorSection.vue';
 
 definePageMeta({ title: 'Settings' });
-useHead({ title: 'Settings' });
 
 interface MeProfile {
   id: string;
@@ -554,6 +532,8 @@ interface MeProfile {
 const router = useRouter();
 const notifications = useNotificationStore();
 const { clear: clearSession, fetch: refreshSession } = useUserSession();
+const { t, locale: i18nLocale, setLocale: setI18nLocale } = useI18n();
+useHead({ title: () => t('settings.pageTitle') });
 // The project ships its own minimal useColorMode (apps/web/app/composables/
 // useColorMode.ts) — light/dark only, persisted in localStorage. We use
 // `apply()` to set and `mode` (a readonly ref) for the active state.
@@ -647,10 +627,10 @@ async function save() {
     // from there), so re-poll /api/auth/status to refresh the cached
     // session ref. No-op when displayName didn't change.
     if ('displayName' in payload) await refreshSession();
-    notifications.success('Preferences saved');
+    notifications.success(t('settings.toasts.preferencesSaved'));
   } catch (err: any) {
     saveError.value =
-      err?.data?.message || err?.message || 'Failed to save preferences';
+      err?.data?.message || err?.message || t('settings.errors.savePreferences');
   } finally {
     saving.value = false;
   }
@@ -658,18 +638,15 @@ async function save() {
 
 // ── Anchor nav ──────────────────────────────────────────────────
 type SectionKey = 'identity' | 'privacy' | 'appearance' | 'security' | 'account';
-const sections: Array<{
-  key: SectionKey;
-  num: string;
-  label: string;
-  icon: string;
-}> = [
-  { key: 'identity', num: '01', label: 'Identity', icon: 'ph:identification-card' },
-  { key: 'privacy', num: '02', label: 'Privacy', icon: 'ph:eye-closed' },
-  { key: 'appearance', num: '03', label: 'Appearance', icon: 'ph:palette' },
-  { key: 'security', num: '04', label: 'Security', icon: 'ph:lock-key' },
-  { key: 'account', num: '05', label: 'Account info', icon: 'ph:info' },
-];
+const sections = computed<
+  Array<{ key: SectionKey; num: string; label: string; icon: string }>
+>(() => [
+  { key: 'identity', num: '01', label: t('settings.sections.identity'), icon: 'ph:identification-card' },
+  { key: 'privacy', num: '02', label: t('settings.sections.privacy'), icon: 'ph:eye-closed' },
+  { key: 'appearance', num: '03', label: t('settings.sections.appearance'), icon: 'ph:palette' },
+  { key: 'security', num: '04', label: t('settings.sections.security'), icon: 'ph:lock-key' },
+  { key: 'account', num: '05', label: t('settings.sections.accountInfo'), icon: 'ph:info' },
+]);
 const activeSection = ref<SectionKey>('identity');
 onMounted(() => {
   if (typeof window === 'undefined') return;
@@ -682,11 +659,11 @@ onMounted(() => {
     for (const e of entries) {
       if (e.isIntersecting) {
         const id = (e.target as HTMLElement).id as SectionKey;
-        if (sections.some((s) => s.key === id)) activeSection.value = id;
+        if (sections.value.some((s) => s.key === id)) activeSection.value = id;
       }
     }
   }, opts);
-  for (const s of sections) {
+  for (const s of sections.value) {
     const el = document.getElementById(s.key);
     if (el) io.observe(el);
   }
@@ -744,7 +721,6 @@ const languages: LanguageOption[] = [
   { value: 'en', native: 'English', region: 'English (US)' },
   { value: 'fr', native: 'Français', region: 'French (France)' },
 ];
-const { locale: i18nLocale, setLocale: setI18nLocale } = useI18n();
 // refreshSession is already destructured from useUserSession() near
 // the top of the file; we reuse it after the language PATCH so the
 // i18n-user.client plugin sees the updated `language` on the next
@@ -812,7 +788,7 @@ function closePassword() {
 async function submitPassword() {
   if (!canSubmitPassword.value || pwdSubmitting.value) return;
   if (pwd.next === pwd.current) {
-    pwdError.value = 'New password must differ from the current one';
+    pwdError.value = t('settings.security.errors.samePassword');
     return;
   }
   pwdSubmitting.value = true;
@@ -844,11 +820,11 @@ async function submitPassword() {
       },
     });
 
-    notifications.success('Password updated');
+    notifications.success(t('settings.toasts.passwordUpdated'));
     closePassword();
   } catch (err: any) {
     pwdError.value =
-      err?.data?.message || err?.message || 'Failed to update password';
+      err?.data?.message || err?.message || t('settings.security.errors.updatePassword');
   } finally {
     pwdSubmitting.value = false;
   }
@@ -883,9 +859,9 @@ const memberSince = computed(() =>
 const roleName = computed(() => {
   const p = profile.value;
   if (!p) return '';
-  if (p.isAdmin) return 'Admin';
-  if (p.isModerator) return 'Moderator';
-  return p.role?.name ?? 'Member';
+  if (p.isAdmin) return t('settings.account.roles.admin');
+  if (p.isModerator) return t('settings.account.roles.moderator');
+  return p.role?.name ?? t('settings.account.roles.member');
 });
 
 // ── Unsaved-change guard on navigation ──────────────────────────
@@ -893,7 +869,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   if (dirtyCount.value === 0) return next();
   if (
     typeof window !== 'undefined' &&
-    !confirm('You have unsaved changes. Leave anyway?')
+    !confirm(t('settings.unsavedChangesPrompt'))
   ) {
     return next(false);
   }

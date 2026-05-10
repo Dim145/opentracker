@@ -13,7 +13,7 @@
       <button
         type="button"
         class="tag-chip-close"
-        :aria-label="`Remove ${tag}`"
+        :aria-label="t('components.tagInput.removeTag', { tag })"
         @click.stop="removeAt(i)"
       >
         <Icon name="ph:x-bold" />
@@ -24,7 +24,7 @@
       v-model="draft"
       type="text"
       class="tag-input-field"
-      :placeholder="modelValue.length === 0 ? placeholder : ''"
+      :placeholder="modelValue.length === 0 ? resolvedPlaceholder : ''"
       :disabled="disabled || atMax"
       :aria-label="placeholder"
       @keydown.enter.prevent="commitDraft"
@@ -66,7 +66,7 @@
         @mouseenter="activeSuggestion = filteredSuggestions.length"
       >
         <Icon name="ph:plus-bold" class="text-text-muted" />
-        <span>Create “{{ draft.trim() }}”</span>
+        <span>{{ t('components.tagInput.createDraft', { name: draft.trim() }) }}</span>
       </div>
     </div>
   </div>
@@ -79,6 +79,8 @@ interface TagOption {
   slug: string;
   color: string;
 }
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -93,11 +95,20 @@ const props = withDefaults(
     suggestions?: TagOption[];
   }>(),
   {
-    placeholder: 'Add tags…',
+    placeholder: '',
     max: 10,
     disabled: false,
     suggestions: undefined,
   }
+);
+
+// Resolve the runtime placeholder: prefer the prop if explicitly passed,
+// fall back to the localised default. Computed so the placeholder
+// re-renders when the locale switches.
+const resolvedPlaceholder = computed(() =>
+  props.placeholder && props.placeholder.length > 0
+    ? props.placeholder
+    : t('components.tagInput.placeholderDefault'),
 );
 
 const emit = defineEmits<{

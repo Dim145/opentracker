@@ -6,7 +6,7 @@
         <h3
           class="text-xs font-bold uppercase tracking-wider text-text-primary"
         >
-          Registration
+          {{ $t('admin.registration.title') }}
         </h3>
       </div>
     </div>
@@ -17,12 +17,12 @@
            option drives both `registrationOpen` and `inviteEnabled`
            in a single PUT. -->
       <SettingsGroup
-        label="Registration Mode"
-        description="How members can join the tracker."
+        :label="$t('admin.registration.modeLabel')"
+        :description="$t('admin.registration.modeDescription')"
       >
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <button
-            v-for="opt in MODE_OPTIONS"
+            v-for="opt in modeOptions"
             :key="opt.value"
             type="button"
             :disabled="settingsLoading"
@@ -57,8 +57,8 @@
         <!-- Default Invites Per User -->
         <SettingsGroup
           v-if="mode !== 'closed'"
-          label="Default Invites"
-          description="Number of invitation codes each new user receives upon registration."
+          :label="$t('admin.registration.defaultInvitesLabel')"
+          :description="$t('admin.registration.defaultInvitesDescription')"
         >
           <div class="flex items-center gap-3">
             <input
@@ -67,15 +67,15 @@
               min="0"
               max="100"
               class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 font-mono"
-              placeholder="2"
+              :placeholder="$t('admin.registration.defaultInvitesPlaceholder')"
             />
           </div>
         </SettingsGroup>
 
         <!-- Minimum Ratio -->
         <SettingsGroup
-          label="Minimum Ratio"
-          description="Users with a ratio below this value will be blocked from downloading. Set to 0 to disable."
+          :label="$t('admin.registration.minRatioLabel')"
+          :description="$t('admin.registration.minRatioDescription')"
         >
           <div class="flex items-center gap-3">
             <input
@@ -84,21 +84,21 @@
               step="0.1"
               min="0"
               class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 font-mono"
-              placeholder="0.00"
+              :placeholder="$t('admin.registration.minRatioPlaceholder')"
             />
             <span
               class="text-xs text-text-muted font-mono"
               v-if="minRatio <= 0"
             >
-              (Disabled)
+              {{ $t('admin.registration.minRatioDisabled') }}
             </span>
           </div>
         </SettingsGroup>
 
         <!-- Starter Credit -->
         <SettingsGroup
-          label="Starter Credit (GB)"
-          description="Initial upload amount given to new users to prevent immediate ratio blocking."
+          :label="$t('admin.registration.starterCreditLabel')"
+          :description="$t('admin.registration.starterCreditDescription')"
         >
           <div class="flex items-center gap-3">
             <input
@@ -106,7 +106,7 @@
               type="number"
               min="0"
               class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 font-mono"
-              placeholder="0"
+              :placeholder="$t('admin.registration.starterCreditPlaceholder')"
             />
             <span class="text-xs text-text-muted">GB</span>
           </div>
@@ -130,7 +130,7 @@
         />
         <Icon v-else-if="saved" name="ph:check-bold" />
         {{
-          settingsLoading ? 'Saving...' : saved ? 'Saved' : 'Save Configuration'
+          settingsLoading ? $t('admin.registration.saving') : saved ? $t('admin.registration.saved') : $t('admin.registration.saveConfiguration')
         }}
       </button>
     </div>
@@ -138,6 +138,8 @@
 </template>
 
 <script setup lang="ts">
+const { t } = useI18n();
+
 type RegistrationMode = 'closed' | 'invite-only' | 'open';
 
 const mode = ref<RegistrationMode>('closed');
@@ -156,13 +158,12 @@ const saved = ref(false);
  * unrestricted, the invite-code path adds nothing useful and risks
  * confusing the user-side counter logic.
  */
-const MODE_OPTIONS = [
+const modeOptions = computed(() => [
   {
     value: 'closed' as const,
-    label: 'Closed',
+    label: t('admin.registration.modeClosedLabel'),
     icon: 'ph:lock-simple',
-    description:
-      'No new accounts. Existing members can still sign in and operate normally.',
+    description: t('admin.registration.modeClosedDescription'),
     payload: { registrationOpen: false, inviteEnabled: false },
     activeBg: 'bg-bg-tertiary',
     activeBorder: 'border-text-muted',
@@ -170,10 +171,9 @@ const MODE_OPTIONS = [
   },
   {
     value: 'invite-only' as const,
-    label: 'Invite-only',
+    label: t('admin.registration.modeInviteOnlyLabel'),
     icon: 'ph:envelope-simple',
-    description:
-      'Only people with a valid invitation code from a member can register.',
+    description: t('admin.registration.modeInviteOnlyDescription'),
     payload: { registrationOpen: false, inviteEnabled: true },
     activeBg: 'bg-accent/10',
     activeBorder: 'border-accent/40',
@@ -181,16 +181,15 @@ const MODE_OPTIONS = [
   },
   {
     value: 'open' as const,
-    label: 'Open',
+    label: t('admin.registration.modeOpenLabel'),
     icon: 'ph:lock-open',
-    description:
-      'Anyone can sign up freely. Invitation codes are not required.',
+    description: t('admin.registration.modeOpenDescription'),
     payload: { registrationOpen: true, inviteEnabled: false },
     activeBg: 'bg-success/10',
     activeBorder: 'border-success/40',
     activeText: 'text-success',
   },
-] as const;
+]);
 
 function deriveMode(
   registrationOpen: boolean,
@@ -222,7 +221,7 @@ onMounted(async () => {
 
 async function setMode(next: RegistrationMode) {
   if (next === mode.value || settingsLoading.value) return;
-  const opt = MODE_OPTIONS.find((o) => o.value === next);
+  const opt = modeOptions.value.find((o) => o.value === next);
   if (!opt) return;
   settingsLoading.value = true;
   try {

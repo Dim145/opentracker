@@ -3,9 +3,9 @@
     <!-- ── Eyebrow + headline ──────────────────────────────── -->
     <header class="registry-head">
       <div>
-        <p class="registry-eyebrow">User registry · Operator console</p>
+        <p class="registry-eyebrow">{{ $t('admin.users.eyebrow') }}</p>
         <h2 class="registry-title">
-          Population
+          {{ $t('admin.users.title') }}
           <span class="registry-title-accent">{{ data?.stats.total ?? 0 }}</span>
         </h2>
       </div>
@@ -14,7 +14,7 @@
           type="button"
           class="tool-btn"
           :disabled="loading"
-          :title="loading ? 'Refreshing…' : 'Refresh'"
+          :title="loading ? $t('admin.users.refreshing') : $t('admin.users.refresh')"
           @click="refresh"
         >
           <Icon
@@ -56,7 +56,7 @@
         <input
           v-model="searchInput"
           type="search"
-          placeholder="Search by username…"
+          :placeholder="$t('admin.users.searchPlaceholder')"
           class="filter-search-input"
           @keydown.enter.prevent
         />
@@ -64,7 +64,7 @@
           v-if="searchInput"
           type="button"
           class="filter-search-clear"
-          aria-label="Clear search"
+          :aria-label="$t('admin.users.clearSearch')"
           @click="searchInput = ''"
         >
           <Icon name="ph:x-bold" />
@@ -73,10 +73,10 @@
 
       <div class="filter-row">
         <label class="filter-select">
-          <span>Role</span>
+          <span>{{ $t('admin.users.filters.role') }}</span>
           <select v-model="filters.role" class="filter-select-input">
-            <option value="">All</option>
-            <option value="none">No role</option>
+            <option value="">{{ $t('admin.users.filters.all') }}</option>
+            <option value="none">{{ $t('admin.users.filters.noRole') }}</option>
             <option v-for="role in roles" :key="role.id" :value="role.id">
               {{ role.name }}
             </option>
@@ -84,25 +84,25 @@
         </label>
 
         <label class="filter-select">
-          <span>Activity</span>
+          <span>{{ $t('admin.users.filters.activity') }}</span>
           <select v-model="filters.activity" class="filter-select-input">
-            <option value="">All</option>
-            <option value="online">● Online (≤5 min)</option>
-            <option value="active">Active (≤24 h)</option>
-            <option value="idle">Idle (&gt;30 d)</option>
-            <option value="never">Never logged back</option>
+            <option value="">{{ $t('admin.users.filters.all') }}</option>
+            <option value="online">{{ $t('admin.users.filters.activityOnline') }}</option>
+            <option value="active">{{ $t('admin.users.filters.activityActive') }}</option>
+            <option value="idle">{{ $t('admin.users.filters.activityIdle') }}</option>
+            <option value="never">{{ $t('admin.users.filters.activityNever') }}</option>
           </select>
         </label>
 
         <label class="filter-select">
-          <span>Status</span>
+          <span>{{ $t('admin.users.filters.status') }}</span>
           <select v-model="filters.status" class="filter-select-input">
-            <option value="">All</option>
-            <option value="staff">Staff (admin or mod)</option>
-            <option value="admin">Admin only</option>
-            <option value="mod">Moderator only</option>
-            <option value="banned">Banned</option>
-            <option value="ok">Active &amp; not banned</option>
+            <option value="">{{ $t('admin.users.filters.all') }}</option>
+            <option value="staff">{{ $t('admin.users.filters.statusStaff') }}</option>
+            <option value="admin">{{ $t('admin.users.filters.statusAdmin') }}</option>
+            <option value="mod">{{ $t('admin.users.filters.statusMod') }}</option>
+            <option value="banned">{{ $t('admin.users.filters.statusBanned') }}</option>
+            <option value="ok">{{ $t('admin.users.filters.statusOk') }}</option>
           </select>
         </label>
 
@@ -113,7 +113,7 @@
           @click="resetFilters"
         >
           <Icon name="ph:broom-bold" />
-          Reset filters
+          {{ $t('admin.users.resetFilters') }}
         </button>
       </div>
     </div>
@@ -146,7 +146,7 @@
                 class="th-sort-icon"
               />
             </th>
-            <th class="th th--right">Actions</th>
+            <th class="th th--right">{{ $t('admin.users.columns.actions') }}</th>
           </tr>
         </thead>
 
@@ -165,13 +165,13 @@
             <td colspan="8" class="empty">
               <div class="empty-inner">
                 <Icon name="ph:user-list" class="empty-icon" />
-                <p class="empty-headline">No users match those filters</p>
+                <p class="empty-headline">{{ $t('admin.users.empty.title') }}</p>
                 <p class="empty-sub">
-                  Try widening the date range or
+                  {{ $t('admin.users.empty.subBefore') }}
                   <button type="button" class="empty-link" @click="resetFilters">
-                    clearing all filters
+                    {{ $t('admin.users.empty.subLink') }}
                   </button>
-                  .
+                  {{ $t('admin.users.empty.subAfter') }}
                 </p>
               </div>
             </td>
@@ -191,7 +191,7 @@
                 <div
                   class="avatar"
                   :style="avatarStyle(u)"
-                  :title="`UID ${u.id}`"
+                  :title="$t('admin.users.table.uidTitle', { id: u.id })"
                 >
                   {{ u.username.slice(0, 2).toUpperCase() }}
                 </div>
@@ -216,7 +216,7 @@
                     <span
                       v-else-if="u.lastIpHash"
                       class="user-ip user-ip--hashed"
-                      title="Stable hash of the user's last IP. Equal hashes mean equal IPs — useful for spotting multi-account abuse without seeing the raw address."
+                      :title="$t('admin.users.table.ipHashTooltip')"
                     >
                       <Icon name="ph:fingerprint-bold" />
                       {{ u.lastIpHash }}
@@ -235,32 +235,34 @@
                 <span
                   v-if="u.isAdmin"
                   class="role-chip role-chip--admin"
-                  title="Permission level: admin"
+                  :title="$t('admin.users.table.permissionAdmin')"
                 >
                   <Icon name="ph:crown-fill" />
-                  Admin
+                  {{ $t('me.permission.admin') }}
                 </span>
                 <span
                   v-else-if="u.isModerator"
                   class="role-chip role-chip--mod"
-                  title="Permission level: moderator"
+                  :title="$t('admin.users.table.permissionModerator')"
                 >
                   <Icon name="ph:shield-chevron-fill" />
-                  Mod
+                  {{ $t('me.permission.moderator') }}
                 </span>
                 <RoleBadge
                   v-for="r in u.roles"
                   :key="r.id"
                   :role="r"
-                  :title="`${r.assignmentMode === 'auto' ? 'Auto' : 'Manual'} · attached ${formatJoined(r.assignedAt)}`"
+                  :title="r.assignmentMode === 'auto'
+                    ? $t('admin.users.table.roleAttachedAuto', { date: formatJoined(r.assignedAt) })
+                    : $t('admin.users.table.roleAttachedManual', { date: formatJoined(r.assignedAt) })"
                 />
                 <span
                   v-if="!u.isAdmin && !u.isModerator && u.roles.length === 0"
                   class="role-chip role-chip--none"
-                  title="No staff flag, no role attached"
+                  :title="$t('admin.users.table.noStaffNoRole')"
                 >
                   <Icon name="ph:user" />
-                  Member
+                  {{ $t('me.permission.member') }}
                 </span>
               </div>
             </td>
@@ -314,7 +316,7 @@
                   type="button"
                   class="row-action"
                   :class="{ 'row-action--danger-on': u.isBanned }"
-                  :title="u.isBanned ? 'Unban' : 'Ban (will also block their IP)'"
+                  :title="u.isBanned ? $t('admin.users.actions.unban') : $t('admin.users.actions.ban')"
                   :disabled="actionPending[`${u.id}:ban`]"
                   @click="onToggleBan(u)"
                 >
@@ -337,7 +339,7 @@
                   type="button"
                   class="row-action"
                   :class="{ 'row-action--mod-on': u.isModerator }"
-                  title="Toggle moderator"
+                  :title="$t('admin.users.actions.toggleModerator')"
                   :disabled="actionPending[`${u.id}:mod`]"
                   @click="onToggleStaff(u, 'isModerator')"
                 >
@@ -358,7 +360,7 @@
                   type="button"
                   class="row-action"
                   :class="{ 'row-action--admin-on': u.isAdmin }"
-                  title="Toggle admin"
+                  :title="$t('admin.users.actions.toggleAdmin')"
                   :disabled="actionPending[`${u.id}:admin`]"
                   @click="onToggleStaff(u, 'isAdmin')"
                 >
@@ -379,7 +381,7 @@
                   type="button"
                   class="row-action"
                   :class="{ 'row-action--has-roles': u.roles.length > 0 }"
-                  :title="`Manage roles (${u.roles.length} attached)`"
+                  :title="$t('admin.users.actions.manageRoles', { count: u.roles.length })"
                   @click="openRolesModal(u)"
                 >
                   <Icon name="ph:identification-badge-bold" />
@@ -402,19 +404,19 @@
         <span class="pager-summary-strong">
           {{ rangeStart }}–{{ rangeEnd }}
         </span>
-        of
+        {{ $t('admin.users.pager.of') }}
         <span class="pager-summary-strong">{{ data.total }}</span>
         <template v-if="hasActiveFilters">
           ·
           <button class="pager-clear" @click="resetFilters">
-            clear filters
+            {{ $t('admin.users.clearFilters') }}
           </button>
         </template>
       </span>
 
       <div class="pager-controls">
         <label class="pager-size">
-          <span>Rows</span>
+          <span>{{ $t('admin.users.pager.rows') }}</span>
           <select v-model.number="pageSize" class="pager-size-input">
             <option :value="10">10</option>
             <option :value="25">25</option>
@@ -427,7 +429,7 @@
           <button
             class="pager-btn"
             :disabled="page === 1"
-            title="First page"
+            :title="$t('admin.users.pager.firstPage')"
             @click="goTo(1)"
           >
             <Icon name="ph:caret-double-left-bold" />
@@ -438,11 +440,11 @@
             @click="goTo(page - 1)"
           >
             <Icon name="ph:caret-left-bold" />
-            <span>Prev</span>
+            <span>{{ $t('admin.users.pager.prev') }}</span>
           </button>
 
           <span class="pager-where">
-            Page <strong>{{ page }}</strong> of {{ totalPages }}
+            {{ $t('admin.users.pager.pageOf', { current: page, total: totalPages }) }}
           </span>
 
           <button
@@ -450,13 +452,13 @@
             :disabled="page >= totalPages"
             @click="goTo(page + 1)"
           >
-            <span>Next</span>
+            <span>{{ $t('admin.users.pager.next') }}</span>
             <Icon name="ph:caret-right-bold" />
           </button>
           <button
             class="pager-btn"
             :disabled="page >= totalPages"
-            title="Last page"
+            :title="$t('admin.users.pager.lastPage')"
             @click="goTo(totalPages)"
           >
             <Icon name="ph:caret-double-right-bold" />
@@ -472,16 +474,15 @@
       v-model="rolesModalOpen"
       :title="
         rolesModalUser
-          ? `Manage roles · ${rolesModalUser.username}`
-          : 'Manage roles'
+          ? $t('admin.users.rolesModal.titleWithUser', { username: rolesModalUser.username })
+          : $t('admin.users.rolesModal.titleDefault')
       "
       icon="ph:identification-badge-bold"
       size="lg"
     >
       <div v-if="rolesModalUser" class="rm-body">
         <p class="rm-eyebrow">
-          {{ rolesModalUser.roles.length }} of
-          {{ roles.length }} role{{ roles.length === 1 ? '' : 's' }} attached
+          {{ $t('admin.users.rolesModal.summary', { attached: rolesModalUser.roles.length, total: roles.length }, roles.length) }}
         </p>
 
         <ul v-if="roles.length > 0" class="rm-list">
@@ -514,17 +515,17 @@
                         : 'ph:hand-pointing-fill'
                     "
                   />
-                  {{ role.assignmentMode === 'auto' ? 'Auto' : 'Manual' }}
+                  {{ role.assignmentMode === 'auto' ? $t('admin.users.rolesModal.modeAuto') : $t('admin.users.rolesModal.modeManual') }}
                 </span>
                 <span class="rm-row__sep">·</span>
-                <span>prio {{ role.priority }}</span>
+                <span>{{ $t('admin.users.rolesModal.priority', { n: role.priority }) }}</span>
                 <template v-if="isAttached(rolesModalUser, role.id)">
                   <span class="rm-row__sep">·</span>
                   <span class="rm-row__attached">
                     {{
                       attachedManually(rolesModalUser, role.id)
-                        ? 'Manual freeze'
-                        : 'Auto-attached'
+                        ? $t('admin.users.rolesModal.manualFreeze')
+                        : $t('admin.users.rolesModal.autoAttached')
                     }}
                   </span>
                 </template>
@@ -548,7 +549,7 @@
                     'animate-spin': rolesModalState[role.id] === 'attaching',
                   }"
                 />
-                <span>Attach</span>
+                <span>{{ $t('admin.users.rolesModal.attach') }}</span>
               </button>
               <button
                 v-else
@@ -567,16 +568,16 @@
                     'animate-spin': rolesModalState[role.id] === 'detaching',
                   }"
                 />
-                <span>Detach</span>
+                <span>{{ $t('admin.users.rolesModal.detach') }}</span>
               </button>
             </div>
           </li>
         </ul>
         <p v-else class="rm-empty">
-          No roles defined yet. Create one in
+          {{ $t('admin.users.rolesModal.emptyBefore') }}
           <NuxtLink to="/admin/roles" class="rm-empty__link">
-            Admin → Roles</NuxtLink
-          >.
+            {{ $t('admin.users.rolesModal.emptyLink') }}</NuxtLink
+          >{{ $t('admin.users.rolesModal.emptyAfter') }}
         </p>
       </div>
     </Modal>
@@ -650,6 +651,7 @@ interface RegistryPayload {
 
 type StatusFilter = '' | 'staff' | 'admin' | 'mod' | 'banned' | 'ok';
 
+const { t } = useI18n();
 const { user } = useUserSession();
 const notifications = useNotificationStore();
 const confirm = useConfirm();
@@ -799,15 +801,15 @@ interface Column {
   sortable?: boolean;
   align?: 'left' | 'center' | 'right';
 }
-const columns: Column[] = [
-  { key: 'username', label: 'User', sortable: true },
-  { key: 'role', label: 'Role' },
-  { key: 'createdAt', label: 'Joined', sortable: true },
-  { key: 'lastSeen', label: 'Last seen', sortable: true },
-  { key: 'ratio', label: 'Ratio', sortable: true, align: 'right' },
-  { key: 'volume', label: 'Up / Down', align: 'right' },
-  { key: 'invites', label: 'Invites', align: 'center' },
-];
+const columns = computed<Column[]>(() => [
+  { key: 'username', label: t('admin.users.columns.user'), sortable: true },
+  { key: 'role', label: t('admin.users.columns.role') },
+  { key: 'createdAt', label: t('admin.users.columns.joined'), sortable: true },
+  { key: 'lastSeen', label: t('admin.users.columns.lastSeen'), sortable: true },
+  { key: 'ratio', label: t('admin.users.columns.ratio'), sortable: true, align: 'right' },
+  { key: 'volume', label: t('admin.users.columns.upDown'), align: 'right' },
+  { key: 'invites', label: t('admin.users.columns.invites'), align: 'center' },
+]);
 
 // ── KPI strip ──────────────────────────────────────────────────
 const kpis = computed(() => {
@@ -822,41 +824,41 @@ const kpis = computed(() => {
   return [
     {
       key: 'total',
-      label: 'Population',
+      label: t('admin.users.kpi.population'),
       value: s.total,
       tone: 'fg' as const,
       filter: null,
     },
     {
       key: 'online',
-      label: 'Online now',
+      label: t('admin.users.kpi.onlineNow'),
       value: s.onlineNow,
-      sub: '≤ 5 min',
+      sub: t('admin.users.kpi.onlineWindow'),
       tone: 'green' as const,
       dot: true,
       filter: 'online',
     },
     {
       key: 'active',
-      label: 'Active 24h',
+      label: t('admin.users.kpi.active24h'),
       value: s.activeLast24h,
-      sub: '≤ 24 h',
+      sub: t('admin.users.kpi.active24hWindow'),
       tone: 'aqua' as const,
       filter: 'active',
     },
     {
       key: 'staff',
-      label: 'Staff',
+      label: t('admin.users.kpi.staff'),
       value: s.admins + s.moderators,
-      sub: `${s.admins} admin · ${s.moderators} mod`,
+      sub: t('admin.users.kpi.staffSub', { admins: s.admins, moderators: s.moderators }),
       tone: 'gold' as const,
       filter: 'staff',
     },
     {
       key: 'banned',
-      label: 'Banned',
+      label: t('admin.users.kpi.banned'),
       value: s.banned,
-      sub: 'tracker access revoked',
+      sub: t('admin.users.kpi.bannedSub'),
       tone: 'red' as const,
       filter: 'banned',
     },
@@ -937,19 +939,19 @@ function formatLastSeen(u: RegistryUser) {
   const created = new Date(u.createdAt).getTime();
   // We treat "lastSeen ≈ createdAt" as "never logged back in" — same
   // tolerance the API uses for the `never` activity bucket.
-  if (Math.abs(seen - created) < 60_000) return 'never';
+  if (Math.abs(seen - created) < 60_000) return t('admin.users.lastSeen.never');
   const delta = Date.now() - seen;
-  if (delta < 60_000) return 'just now';
+  if (delta < 60_000) return t('admin.users.lastSeen.justNow');
   const min = Math.floor(delta / 60_000);
-  if (min < 60) return `${min}m ago`;
+  if (min < 60) return t('admin.users.lastSeen.minutesAgo', { n: min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return t('admin.users.lastSeen.hoursAgo', { n: hr });
   const day = Math.floor(hr / 24);
-  if (day < 30) return `${day}d ago`;
+  if (day < 30) return t('admin.users.lastSeen.daysAgo', { n: day });
   const mo = Math.floor(day / 30);
-  if (mo < 12) return `${mo}mo ago`;
+  if (mo < 12) return t('admin.users.lastSeen.monthsAgo', { n: mo });
   const yr = Math.floor(day / 365);
-  return `${yr}y ago`;
+  return t('admin.users.lastSeen.yearsAgo', { n: yr });
 }
 
 function lastSeenTone(u: RegistryUser):
@@ -1025,12 +1027,12 @@ function patchUser(id: string, patch: Partial<RegistryUser>) {
 async function onToggleBan(u: RegistryUser) {
   const action = u.isBanned ? 'unban' : 'ban';
   const ok = await confirm({
-    title: action === 'ban' ? 'Ban user' : 'Unban user',
+    title: action === 'ban' ? t('admin.users.confirm.banTitle') : t('admin.users.confirm.unbanTitle'),
     message:
       action === 'ban'
-        ? `Ban ${u.username}? Their last known IP will be added to the IP blacklist and active sessions will be invalidated.`
-        : `Restore ${u.username}'s tracker access?`,
-    confirmText: action === 'ban' ? 'Ban' : 'Unban',
+        ? t('admin.users.confirm.banMessage', { username: u.username })
+        : t('admin.users.confirm.unbanMessage', { username: u.username }),
+    confirmText: action === 'ban' ? t('admin.users.confirm.banAction') : t('admin.users.confirm.unbanAction'),
     destructive: action === 'ban',
   });
   if (!ok) return;
@@ -1049,9 +1051,9 @@ async function onToggleBan(u: RegistryUser) {
         banned: action === 'ban' ? s.banned + 1 : Math.max(0, s.banned - 1),
       };
     }
-    notifications.success(action === 'ban' ? 'User banned' : 'User unbanned');
+    notifications.success(action === 'ban' ? t('admin.users.toasts.userBanned') : t('admin.users.toasts.userUnbanned'));
   } catch (err: any) {
-    notifications.error(err?.data?.message || `Failed to ${action} user`);
+    notifications.error(err?.data?.message || (action === 'ban' ? t('admin.users.errors.banFailed') : t('admin.users.errors.unbanFailed')));
   } finally {
     actionPending[key] = false;
   }
@@ -1089,7 +1091,7 @@ async function onToggleStaff(u: RegistryUser, role: 'isAdmin' | 'isModerator') {
       };
     }
   } catch (err: any) {
-    notifications.error(err?.data?.message || 'Failed to update user');
+    notifications.error(err?.data?.message || t('admin.users.errors.updateFailed'));
   } finally {
     actionPending[key] = false;
   }
@@ -1149,9 +1151,9 @@ async function onAttachRole(roleId: string) {
     next.sort((a, b) => b.priority - a.priority);
     patchUser(u.id, { roles: next });
     rolesModalUser.value = { ...u, roles: next };
-    notifications.success(`Attached "${role.name}"`);
+    notifications.success(t('admin.users.toasts.roleAttached', { name: role.name }));
   } catch (err: any) {
-    notifications.error(err?.data?.message || 'Failed to attach role');
+    notifications.error(err?.data?.message || t('admin.users.errors.attachFailed'));
   } finally {
     delete rolesModalState[roleId];
   }
@@ -1169,9 +1171,9 @@ async function onDetachRole(roleId: string) {
     patchUser(u.id, { roles: next });
     rolesModalUser.value = { ...u, roles: next };
     const role = roles.value.find((r) => r.id === roleId);
-    notifications.success(`Detached "${role?.name ?? 'role'}"`);
+    notifications.success(t('admin.users.toasts.roleDetached', { name: role?.name ?? t('admin.users.toasts.roleDetachedFallback') }));
   } catch (err: any) {
-    notifications.error(err?.data?.message || 'Failed to detach role');
+    notifications.error(err?.data?.message || t('admin.users.errors.detachFailed'));
   } finally {
     delete rolesModalState[roleId];
   }

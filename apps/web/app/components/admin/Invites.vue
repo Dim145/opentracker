@@ -4,30 +4,32 @@
       <div class="flex items-center gap-2">
         <Icon name="ph:envelope-simple-bold" class="text-text-muted" />
         <h3 class="text-xs font-bold uppercase tracking-wider text-text-primary">
-          Invitations
+          {{ $t('admin.invites.title') }}
         </h3>
       </div>
     </div>
 
     <div class="card-body">
-      <p class="text-xs text-text-muted leading-relaxed mb-5">
-        Members generate their own codes from
-        <NuxtLink to="/invites" class="text-accent underline-offset-2 underline">/invites</NuxtLink>
-        — your job here is to <strong>top up their quota</strong>. Admins follow
-        the same rule and use their own page to invite people.
-      </p>
+      <i18n-t keypath="admin.invites.intro" tag="p" class="text-xs text-text-muted leading-relaxed mb-5">
+        <template #link>
+          <NuxtLink to="/invites" class="text-accent underline-offset-2 underline">{{ $t('admin.invites.introLink') }}</NuxtLink>
+        </template>
+        <template #action>
+          <strong>{{ $t('admin.invites.introAction') }}</strong>
+        </template>
+      </i18n-t>
 
       <!-- ── Grant section ─────────────────────────────── -->
       <div class="grant-panel">
         <div class="grant-panel-row">
           <div class="grant-panel-search">
-            <label class="grant-panel-label">User</label>
+            <label class="grant-panel-label">{{ $t('admin.invites.grant.userLabel') }}</label>
             <div class="grant-panel-input-wrap">
               <Icon name="ph:magnifying-glass" class="grant-panel-input-icon" />
               <input
                 v-model="grantSearch"
                 type="text"
-                placeholder="Search by username…"
+                :placeholder="$t('admin.invites.grant.userPlaceholder')"
                 class="grant-panel-input"
                 @input="onSearchChange"
                 @blur="closeSuggestionsLater"
@@ -55,14 +57,14 @@
                 <Icon name="ph:user" />
                 <span class="grant-panel-suggestion-name">{{ u.username }}</span>
                 <span class="grant-panel-suggestion-quota">
-                  {{ u.invitesRemaining }} left
+                  {{ $t('admin.invites.grant.suggestionLeft', { n: u.invitesRemaining }) }}
                 </span>
               </li>
             </ul>
           </div>
 
           <div class="grant-panel-count">
-            <label class="grant-panel-label">Add</label>
+            <label class="grant-panel-label">{{ $t('admin.invites.grant.addLabel') }}</label>
             <input
               v-model.number="grantCount"
               type="number"
@@ -84,7 +86,7 @@
               class="animate-spin"
             />
             <Icon v-else name="ph:plus-bold" />
-            <span>Grant</span>
+            <span>{{ $t('admin.invites.grant.submit') }}</span>
           </button>
         </div>
       </div>
@@ -92,27 +94,27 @@
       <!-- ── KPIs ──────────────────────────────────────── -->
       <ul class="kpi-strip" :class="{ 'kpi-strip--loading': !invites }">
         <li class="kpi kpi--total">
-          <span class="kpi-label">Total emitted</span>
+          <span class="kpi-label">{{ $t('admin.invites.kpi.totalEmitted') }}</span>
           <span class="kpi-value">{{ stats.total }}</span>
         </li>
         <li class="kpi kpi--accent">
           <span class="kpi-label">
             <span class="kpi-dot kpi-dot--accent" />
-            Active
+            {{ $t('admin.invites.kpi.active') }}
           </span>
           <span class="kpi-value">{{ stats.active }}</span>
-          <span class="kpi-sub">awaiting signup</span>
+          <span class="kpi-sub">{{ $t('admin.invites.kpi.activeSub') }}</span>
         </li>
         <li class="kpi kpi--success">
           <span class="kpi-label">
             <span class="kpi-dot kpi-dot--success" />
-            Used
+            {{ $t('admin.invites.kpi.used') }}
           </span>
           <span class="kpi-value">{{ stats.used }}</span>
-          <span class="kpi-sub">successful invites</span>
+          <span class="kpi-sub">{{ $t('admin.invites.kpi.usedSub') }}</span>
         </li>
         <li class="kpi kpi--muted">
-          <span class="kpi-label">Expired</span>
+          <span class="kpi-label">{{ $t('admin.invites.kpi.expired') }}</span>
           <span class="kpi-value">{{ stats.expired }}</span>
         </li>
       </ul>
@@ -124,7 +126,7 @@
           <input
             v-model="filterText"
             type="text"
-            placeholder="Filter by code, creator or recipient…"
+            :placeholder="$t('admin.invites.filters.searchPlaceholder')"
           />
         </div>
         <div class="invite-filter-segments" role="tablist">
@@ -146,13 +148,13 @@
         <table class="invite-table">
           <thead>
             <tr>
-              <th>Code</th>
-              <th>Status</th>
-              <th>Issued by</th>
-              <th>Used by</th>
-              <th>Created</th>
-              <th>Expires</th>
-              <th class="invite-table-action-col" aria-label="Actions"></th>
+              <th>{{ $t('admin.invites.table.code') }}</th>
+              <th>{{ $t('admin.invites.table.status') }}</th>
+              <th>{{ $t('admin.invites.table.issuedBy') }}</th>
+              <th>{{ $t('admin.invites.table.usedBy') }}</th>
+              <th>{{ $t('admin.invites.table.created') }}</th>
+              <th>{{ $t('admin.invites.table.expires') }}</th>
+              <th class="invite-table-action-col" :aria-label="$t('common.actions')"></th>
             </tr>
           </thead>
           <tbody>
@@ -160,7 +162,7 @@
               <td>
                 <code
                   class="invite-table-code invite-table-code--readonly"
-                  :title="'Code (masked) — only the member who created it can see it in full.'"
+                  :title="$t('admin.invites.table.codeTitle')"
                 >
                   {{ inv.codePreview }}
                 </code>
@@ -193,7 +195,7 @@
               </td>
               <td class="invite-table-mono">{{ formatDate(inv.createdAt) }}</td>
               <td class="invite-table-mono">
-                {{ inv.expiresAt ? formatDate(inv.expiresAt) : 'Never' }}
+                {{ inv.expiresAt ? formatDate(inv.expiresAt) : $t('admin.invites.table.never') }}
               </td>
               <td class="invite-table-action-cell">
                 <button
@@ -202,8 +204,8 @@
                   :disabled="pendingDelete === inv.id"
                   :title="
                     statusOf(inv) === 'used'
-                      ? 'Strike from registry (recipient keeps their account)'
-                      : 'Strike from registry'
+                      ? $t('admin.invites.table.strikeUsedTitle')
+                      : $t('admin.invites.table.strikeTitle')
                   "
                   @click="askDelete(inv)"
                 >
@@ -219,29 +221,26 @@
       </div>
 
       <p v-else class="text-xs text-text-muted text-center py-8">
-        No invitations match the current filters.
+        {{ $t('admin.invites.noMatch') }}
       </p>
 
       <!-- ── Confirm strike modal ─────────────────────── -->
-      <Modal v-model="confirmOpen" size="sm" title="Strike this invitation?">
+      <Modal v-model="confirmOpen" size="sm" :title="$t('admin.invites.confirm.title')">
         <div class="invite-confirm-body">
-          <p class="invite-confirm-text">
-            This will <strong>permanently delete</strong> the invitation
-            <code class="invite-confirm-code">{{ pendingInvite?.codePreview ?? '' }}</code>
-            from the registry.
-          </p>
+          <i18n-t keypath="admin.invites.confirm.intro" tag="p" class="invite-confirm-text">
+            <template #code>
+              <code class="invite-confirm-code">{{ pendingInvite?.codePreview ?? '' }}</code>
+            </template>
+          </i18n-t>
           <p v-if="pendingInvite" class="invite-confirm-soft">
             <template v-if="pendingInvite.usedBy">
-              The code has already been redeemed — the recipient's
-              account is <strong>not affected</strong>. This is registry
-              housekeeping only.
+              {{ $t('admin.invites.confirm.alreadyRedeemed') }}
             </template>
             <template v-else-if="willRefund(pendingInvite)">
-              The slot will be returned to
-              <strong>@{{ pendingInvite.creator?.username ?? 'the creator' }}</strong>.
+              {{ $t('admin.invites.confirm.willRefund', { at: '@', username: pendingInvite.creator?.username ?? $t('admin.invites.confirm.willRefundFallback') }) }}
             </template>
             <template v-else>
-              The window has already closed — no slot will be returned.
+              {{ $t('admin.invites.confirm.alreadyClosed') }}
             </template>
           </p>
         </div>
@@ -252,7 +251,7 @@
               class="btn btn-secondary !px-3 !py-1.5 text-xs"
               @click="confirmOpen = false"
             >
-              Keep
+              {{ $t('admin.invites.confirm.keep') }}
             </button>
             <button
               type="button"
@@ -264,7 +263,7 @@
                 :name="pendingDelete ? 'ph:circle-notch' : 'ph:trash'"
                 :class="{ 'animate-spin': pendingDelete, 'mr-1': true }"
               />
-              Strike
+              {{ $t('admin.invites.confirm.strike') }}
             </button>
           </div>
         </template>
@@ -281,7 +280,7 @@
           :disabled="page <= 1"
           @click="page--"
         >
-          <Icon name="ph:caret-left" /> Prev
+          <Icon name="ph:caret-left" /> {{ $t('admin.invites.pager.prev') }}
         </button>
         <span class="text-xs text-text-muted self-center">
           {{ page }} / {{ invites.pagination.pages }}
@@ -292,7 +291,7 @@
           :disabled="page >= invites.pagination.pages"
           @click="page++"
         >
-          Next <Icon name="ph:caret-right" />
+          {{ $t('admin.invites.pager.next') }} <Icon name="ph:caret-right" />
         </button>
       </div>
     </div>
@@ -303,6 +302,8 @@
 import { computed, ref } from 'vue';
 import Modal from '~/components/Modal.vue';
 import { useNotificationStore } from '~/stores/notifications';
+
+const { t } = useI18n();
 
 interface UserMini {
   id: string;
@@ -399,7 +400,7 @@ async function grantInvites() {
       body: { userId: selectedUser.value.id, count: grantCount.value },
     });
     notifications.success(
-      `Granted ${grantCount.value} invitation${grantCount.value === 1 ? '' : 's'} to @${selectedUser.value.username}.`
+      t('admin.invites.toasts.granted', { count: grantCount.value, at: '@', username: selectedUser.value.username }, grantCount.value)
     );
     clearSelected();
     grantCount.value = 2;
@@ -407,7 +408,7 @@ async function grantInvites() {
   } catch (err: unknown) {
     notifications.error(
       (err as { data?: { message?: string } })?.data?.message ??
-        'Failed to grant invitations.'
+        t('admin.invites.errors.grantFailed')
     );
   } finally {
     isGranting.value = false;
@@ -419,12 +420,12 @@ const page = ref(1);
 const filterStatus = ref<'all' | 'active' | 'used' | 'expired'>('all');
 const filterText = ref('');
 
-const STATUS_FILTERS = [
-  { value: 'all' as const, label: 'All' },
-  { value: 'active' as const, label: 'Active' },
-  { value: 'used' as const, label: 'Used' },
-  { value: 'expired' as const, label: 'Expired' },
-];
+const STATUS_FILTERS = computed(() => [
+  { value: 'all' as const, label: t('admin.invites.filters.all') },
+  { value: 'active' as const, label: t('admin.invites.filters.active') },
+  { value: 'used' as const, label: t('admin.invites.filters.used') },
+  { value: 'expired' as const, label: t('admin.invites.filters.expired') },
+]);
 
 const { data: invites, refresh } = await useFetch<InvitesResponse>(
   '/api/admin/invites',
@@ -441,7 +442,11 @@ function statusOf(inv: Invitation): Status {
   return 'active';
 }
 function statusLabel(inv: Invitation): string {
-  return { active: 'Active', used: 'Used', expired: 'Expired' }[statusOf(inv)];
+  return {
+    active: t('admin.invites.status.active'),
+    used: t('admin.invites.status.used'),
+    expired: t('admin.invites.status.expired'),
+  }[statusOf(inv)];
 }
 function statusIcon(inv: Invitation): string {
   return {
@@ -519,15 +524,15 @@ async function confirmDelete() {
     await refresh();
     notifications.success(
       res.wasUsed
-        ? 'Struck from registry. Recipient unaffected.'
+        ? t('admin.invites.toasts.struckRecipientUnaffected')
         : res.refunded
-          ? 'Struck from registry. Slot returned to creator.'
-          : 'Struck from registry.'
+          ? t('admin.invites.toasts.struckRefunded')
+          : t('admin.invites.toasts.struck')
     );
   } catch (err: unknown) {
     notifications.error(
       (err as { data?: { message?: string } })?.data?.message ??
-        'Failed to strike entry.'
+        t('admin.invites.errors.strikeFailed')
     );
   } finally {
     pendingDelete.value = null;

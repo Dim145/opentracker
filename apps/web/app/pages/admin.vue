@@ -20,7 +20,7 @@
         <h2
           class="hidden md:block px-3 mb-3 eyebrow"
         >
-          Administration
+          {{ $t('admin.eyebrow') }}
         </h2>
 
         <NuxtLink
@@ -55,7 +55,7 @@
                 class="relative inline-flex rounded-full h-2 w-2 bg-success"
               ></span>
             </span>
-            LIVE TRACKER FEED
+            {{ $t('admin.liveTrackerFeed') }}
           </div>
         </div>
       </div>
@@ -85,91 +85,91 @@ definePageMeta({
 });
 
 const route = useRoute();
+const { t } = useI18n();
 
-const menuItems = [
+const menuItems = computed(() => [
   {
-    label: 'Dashboard',
+    label: t('admin.nav.dashboard'),
     path: '/admin',
     icon: 'ph:layout',
-    description: 'Tracker configuration and node management',
+    description: t('admin.descriptions.dashboard'),
   },
   {
-    label: 'Users',
+    label: t('admin.nav.users'),
     path: '/admin/users',
     icon: 'ph:users',
-    description: 'Manage user accounts and permissions',
+    description: t('admin.descriptions.users'),
   },
   {
-    label: 'Roles',
+    label: t('admin.nav.roles'),
     path: '/admin/roles',
     icon: 'ph:user-circle-gear',
-    description: 'Manage user roles and permissions',
+    description: t('admin.descriptions.roles'),
   },
   {
-    label: 'Reports',
+    label: t('admin.nav.reports'),
     path: '/admin/reports',
     icon: 'ph:flag',
-    description: 'Review and handle user reports',
+    description: t('admin.descriptions.reports'),
   },
   {
-    label: 'Categories',
+    label: t('admin.nav.categories'),
     path: '/admin/categories',
     icon: 'ph:folders',
-    description: 'Manage torrent categories',
+    description: t('admin.descriptions.categories'),
   },
   {
-    label: 'Tags',
+    label: t('admin.nav.tags'),
     path: '/admin/tags',
     icon: 'ph:tag',
-    description: 'Manage torrent tags',
+    description: t('admin.descriptions.tags'),
   },
   {
-    label: 'Hit & Run',
+    label: t('admin.nav.hnr'),
     path: '/admin/hnr',
     icon: 'ph:lightning',
-    description: 'Monitor and manage H&R violations',
+    description: t('admin.descriptions.hnr'),
   },
   {
-    label: 'Bonus Events',
+    label: t('admin.nav.bonusEvents'),
     path: '/admin/bonus-events',
     icon: 'ph:gift',
-    description:
-      'Schedule Freeleech / Silverleech windows and custom multipliers',
+    description: t('admin.descriptions.bonusEvents'),
   },
   {
-    label: 'Banned IPs',
+    label: t('admin.nav.bannedIps'),
     path: '/admin/banned-ips',
     icon: 'ph:prohibit',
-    description: 'View, add and remove IPs from the auth blocklist',
+    description: t('admin.descriptions.bannedIps'),
   },
   {
-    label: 'Invitations',
+    label: t('admin.nav.invitations'),
     path: '/admin/invites',
     icon: 'ph:envelope-simple',
-    description: 'Manage invitation system',
+    description: t('admin.descriptions.invitations'),
   },
   {
-    label: 'Torznab API',
+    label: t('admin.nav.torznab'),
     path: '/admin/torznab',
     icon: 'ph:plug',
-    description: 'Configure *arr integration and rate limiting',
+    description: t('admin.descriptions.torznab'),
   },
   {
-    label: 'Branding',
+    label: t('admin.nav.branding'),
     path: '/admin/branding',
     icon: 'ph:paint-brush',
-    description: 'Customize site appearance and branding',
+    description: t('admin.descriptions.branding'),
   },
   {
-    label: 'Settings',
+    label: t('admin.nav.settings'),
     path: '/admin/settings',
     icon: 'ph:gear',
-    description: 'System-wide registration and tracker settings',
+    description: t('admin.descriptions.settings'),
   },
-];
+]);
 
 const currentItem = computed(
-  () => menuItems.find((item) => item.path === route.path) || menuItems[0]
+  () => menuItems.value.find((item) => item.path === route.path) || menuItems.value[0]
 );
 
 const currentTitle = computed(() => currentItem?.value?.label);

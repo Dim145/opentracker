@@ -7,10 +7,10 @@
   <div class="step">
     <p class="step-eyebrow">
       <Icon name="ph:shield-check-bold" class="step-eyebrow-icon" />
-      Two-factor verification
+      {{ $t('security.twoFactorLogin.eyebrow') }}
     </p>
     <p class="step-blurb">
-      One more step. Pick the second factor that's handy:
+      {{ $t('security.twoFactorLogin.blurb') }}
     </p>
 
     <div class="step-tabs" role="tablist">
@@ -31,7 +31,7 @@
 
     <!-- TOTP panel ----------------------------------------------- -->
     <div v-if="active === 'totp'" class="step-panel">
-      <label class="step-label">6-digit code</label>
+      <label class="step-label">{{ $t('security.twoFactorLogin.totpLabel') }}</label>
       <input
         v-model="totpCode"
         inputmode="numeric"
@@ -45,7 +45,7 @@
 
     <!-- Recovery panel ------------------------------------------- -->
     <div v-else-if="active === 'recovery'" class="step-panel">
-      <label class="step-label">Recovery code</label>
+      <label class="step-label">{{ $t('security.twoFactorLogin.recoveryLabel') }}</label>
       <input
         v-model="recoveryCode"
         class="step-input"
@@ -54,7 +54,7 @@
       />
       <p class="step-hint">
         <Icon name="ph:info-bold" />
-        Recovery codes are single-use. The remaining set stays valid.
+        {{ $t('security.twoFactorLogin.recoveryHint') }}
       </p>
     </div>
 
@@ -62,9 +62,10 @@
     <div v-else-if="active === 'passkey'" class="step-panel">
       <p class="step-hint step-hint--center">
         <Icon name="ph:fingerprint-simple-bold" class="step-icon-lg" />
-        Click <strong>Authenticate</strong> below; your browser will
-        prompt for the registered passkey (Touch ID, Windows Hello,
-        security key…).
+        <span>
+          {{ $t('security.twoFactorLogin.passkeyHintPrefix') }}
+          <strong>{{ $t('security.twoFactorLogin.passkeyHintAction') }}</strong>{{ $t('security.twoFactorLogin.passkeyHintSuffix') }}
+        </span>
       </p>
     </div>
 
@@ -75,7 +76,7 @@
 
     <div class="step-actions">
       <button class="btn-ghost" type="button" @click="$emit('cancel')">
-        Cancel
+        {{ $t('common.cancel') }}
       </button>
       <button
         v-if="active !== 'passkey'"
@@ -89,7 +90,7 @@
           name="ph:circle-notch"
           class="animate-spin"
         />
-        {{ submitting ? 'Verifying…' : 'Verify' }}
+        {{ submitting ? $t('security.twoFactorLogin.verifying') : $t('security.twoFactorLogin.verify') }}
       </button>
       <button
         v-else
@@ -103,7 +104,7 @@
           name="ph:circle-notch"
           class="animate-spin"
         />
-        {{ submitting ? 'Awaiting passkey…' : 'Authenticate' }}
+        {{ submitting ? $t('security.twoFactorLogin.awaitingPasskey') : $t('security.twoFactorLogin.authenticate') }}
       </button>
     </div>
   </div>
@@ -126,6 +127,8 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
+const { t } = useI18n();
+
 const active = ref<Method>(props.methods[0] ?? 'totp');
 const totpCode = ref('');
 const recoveryCode = ref('');
@@ -145,9 +148,9 @@ function iconFor(m: Method): string {
   return 'ph:fingerprint-simple-bold';
 }
 function labelFor(m: Method): string {
-  if (m === 'totp') return 'Authenticator';
-  if (m === 'recovery') return 'Recovery';
-  return 'Passkey';
+  if (m === 'totp') return t('security.twoFactorLogin.tabs.totp');
+  if (m === 'recovery') return t('security.twoFactorLogin.tabs.recovery');
+  return t('security.twoFactorLogin.tabs.passkey');
 }
 
 async function submitTotp() {
@@ -169,8 +172,8 @@ async function submitTotp() {
     error.value =
       e?.data?.message ||
       (active.value === 'recovery'
-        ? 'Invalid or already-used recovery code.'
-        : 'Invalid code.');
+        ? t('security.twoFactorLogin.errors.invalidRecovery')
+        : t('security.twoFactorLogin.errors.invalidCode'));
   } finally {
     submitting.value = false;
   }
@@ -189,7 +192,7 @@ async function submitPasskey() {
     try {
       assertion = await startAuthentication({ optionsJSON: options as any });
     } catch (err: any) {
-      throw new Error(err?.message || 'Browser cancelled the request');
+      throw new Error(err?.message || t('security.twoFactorLogin.errors.browserCancelled'));
     }
     await $fetch('/api/auth/2fa/passkey-verify', {
       method: 'POST',
@@ -203,7 +206,7 @@ async function submitPasskey() {
     error.value =
       e?.message ||
       e?.data?.message ||
-      'Passkey verification failed. Try again or use another method.';
+      t('security.twoFactorLogin.errors.passkeyFailed');
   } finally {
     submitting.value = false;
   }

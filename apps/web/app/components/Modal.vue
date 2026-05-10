@@ -42,7 +42,7 @@
               v-if="!hideClose"
               type="button"
               class="btn-ghost btn btn-xs"
-              :aria-label="closeLabel"
+              :aria-label="closeLabel || t('components.modal.close')"
               @click="emit('update:modelValue', false)"
             >
               <Icon name="ph:x-bold" class="text-sm" />
@@ -67,6 +67,8 @@
 </template>
 
 <script setup lang="ts">
+const { t } = useI18n();
+
 const props = defineProps<{
   modelValue: boolean;
   title?: string;

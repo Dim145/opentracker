@@ -11,9 +11,9 @@
         <div class="cat-banner-stripe" />
 
         <nav class="cat-crumb">
-          <NuxtLink to="/forum" class="cat-crumb-link">The Forum</NuxtLink>
+          <NuxtLink to="/forum" class="cat-crumb-link">{{ $t('forum.theForum') }}</NuxtLink>
           <Icon name="ph:caret-right-bold" class="cat-crumb-sep" />
-          <span class="cat-crumb-leaf">Section</span>
+          <span class="cat-crumb-leaf">{{ $t('forum.category.crumbLeaf') }}</span>
         </nav>
 
         <div class="cat-banner-head">
@@ -22,9 +22,9 @@
           </span>
           <div class="cat-banner-text">
             <p class="cat-banner-eyebrow">
-              Section {{ formatIssueNumber(1) }}
+              {{ $t('forum.category.sectionLabel', { n: formatIssueNumber(1) }) }}
               <span class="dot" />
-              {{ pluralThreads(visibleTopics.length) }}
+              {{ $t('forum.category.threads', { n: visibleTopics.length }) }}
             </p>
             <h1 class="cat-banner-title font-display">{{ category.name }}</h1>
             <p v-if="category.description" class="cat-banner-tag">
@@ -37,7 +37,7 @@
               class="ed-btn ed-btn--primary"
             >
               <Icon name="ph:feather-bold" />
-              Open a thread
+              {{ $t('forum.category.openThread') }}
             </NuxtLink>
           </div>
         </div>
@@ -48,16 +48,16 @@
         <div class="cat-toolbar-stats">
           <span>
             <strong>{{ category.topics.length }}</strong>
-            {{ category.topics.length === 1 ? 'thread' : 'threads' }}
+            {{ $t('forum.category.threadWord', { n: category.topics.length }) }}
           </span>
           <span class="cat-toolbar-sep" />
           <span>
             <strong>{{ totalReplies }}</strong>
-            {{ totalReplies === 1 ? 'reply' : 'replies' }}
+            {{ $t('forum.category.replyWord', { n: totalReplies }) }}
           </span>
         </div>
         <div class="cat-toolbar-controls">
-          <div class="seg" role="tablist" aria-label="Sort topics">
+          <div class="seg" role="tablist" :aria-label="$t('forum.category.sortBy')">
             <button
               v-for="opt in sortOptions"
               :key="opt.value"
@@ -96,11 +96,11 @@
               <p class="topic-card-flags">
                 <span v-if="topic.isPinned" class="flag flag--pin">
                   <Icon name="ph:push-pin-fill" />
-                  Pinned
+                  {{ $t('forum.topic.pinned') }}
                 </span>
                 <span v-if="topic.isLocked" class="flag flag--lock">
                   <Icon name="ph:lock-fill" />
-                  Locked
+                  {{ $t('forum.topic.locked') }}
                 </span>
                 <span class="flag flag--time">
                   <Icon name="ph:clock-bold" />
@@ -115,7 +115,7 @@
               </p>
 
               <p class="topic-card-byline">
-                <span>By</span>
+                <span>{{ $t('forum.topic.byline.by') }}</span>
                 <strong>{{ topic.author.username }}</strong>
                 <span class="topic-card-byline-sep">·</span>
                 <span>{{ formatJoinedDate(topic.createdAt) }}</span>
@@ -125,12 +125,12 @@
             <div class="topic-card-side">
               <dl class="topic-card-stats">
                 <div>
-                  <dt>Replies</dt>
+                  <dt>{{ $t('forum.category.repliesLabel') }}</dt>
                   <dd>{{ topic.replyCount }}</dd>
                 </div>
               </dl>
               <div v-if="topic.lastPost" class="topic-card-last">
-                <p class="topic-card-last-eyebrow">Last reply</p>
+                <p class="topic-card-last-eyebrow">{{ $t('forum.category.lastReply') }}</p>
                 <p class="topic-card-last-line">
                   <strong>{{ topic.lastPost.authorUsername }}</strong>
                   <span class="topic-card-byline-sep">·</span>
@@ -138,7 +138,7 @@
                 </p>
               </div>
               <div v-else class="topic-card-last topic-card-last--empty">
-                <em>No replies yet</em>
+                <em>{{ $t('forum.category.noRepliesYet') }}</em>
               </div>
             </div>
           </NuxtLink>
@@ -147,7 +147,7 @@
             v-if="canDelete"
             type="button"
             class="topic-card-delete"
-            title="Delete topic"
+            :title="$t('forum.category.deleteTopicTitle')"
             @click.stop.prevent="handleDeleteTopic(topic)"
           >
             <Icon name="ph:trash-bold" />
@@ -157,24 +157,24 @@
 
       <div v-else class="topic-list-empty">
         <Icon name="ph:wind" class="empty-icon" />
-        <h3 class="empty-title font-display">A blank page awaits.</h3>
+        <h3 class="empty-title font-display">{{ $t('forum.category.empty.title') }}</h3>
         <p class="empty-sub">
-          No threads in this section yet — be the first to file one.
+          {{ $t('forum.category.empty.sub') }}
         </p>
         <NuxtLink
           :to="`/forum/new-topic?categoryId=${category.id}`"
           class="ed-btn ed-btn--primary"
         >
           <Icon name="ph:feather-bold" />
-          Open a thread
+          {{ $t('forum.category.openThread') }}
         </NuxtLink>
       </div>
     </template>
 
     <div v-else class="cat-not-found">
       <Icon name="ph:question-bold" class="empty-icon" />
-      <p>That section doesn't exist or has been retired.</p>
-      <NuxtLink to="/forum" class="ed-btn">Back to The Forum</NuxtLink>
+      <p>{{ $t('forum.category.notFound') }}</p>
+      <NuxtLink to="/forum" class="ed-btn">{{ $t('forum.topic.backToForum') }}</NuxtLink>
     </div>
   </div>
 </template>
@@ -210,6 +210,7 @@ interface Category {
 }
 
 const route = useRoute();
+const { t, locale } = useI18n();
 const { user } = useUserSession();
 const notifications = useNotificationStore();
 const confirm = useConfirm();
@@ -223,15 +224,15 @@ const {
 );
 
 useHead({
-  title: () => category.value?.name ?? 'Section',
+  title: () => category.value?.name ?? t('forum.category.headFallback'),
 });
 
-const sortOptions = [
-  { value: 'recent', label: 'Recent', icon: 'ph:clock-bold' },
-  { value: 'oldest', label: 'Oldest', icon: 'ph:hourglass-bold' },
-  { value: 'replies', label: 'Replies', icon: 'ph:chats-circle-bold' },
-] as const;
-type SortValue = (typeof sortOptions)[number]['value'];
+const sortOptions = computed(() => [
+  { value: 'recent' as const, label: t('forum.category.sort.recent'), icon: 'ph:clock-bold' },
+  { value: 'oldest' as const, label: t('forum.category.sort.oldest'), icon: 'ph:hourglass-bold' },
+  { value: 'replies' as const, label: t('forum.category.sort.replies'), icon: 'ph:chats-circle-bold' },
+]);
+type SortValue = 'recent' | 'oldest' | 'replies';
 const sort = ref<SortValue>('recent');
 
 // Pinned threads always float on top regardless of the sort axis — that's
@@ -269,11 +270,8 @@ const bannerStyle = computed(() => ({
 function formatIssueNumber(n: number): string {
   return String(n).padStart(2, '0');
 }
-function pluralThreads(n: number): string {
-  return n === 1 ? '1 thread' : `${n} threads`;
-}
 function formatJoinedDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-US', {
+  return new Date(date).toLocaleDateString(locale.value === 'fr' ? 'fr-FR' : 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -282,18 +280,18 @@ function formatJoinedDate(date: string): string {
 
 async function handleDeleteTopic(topic: ForumTopic) {
   const ok = await confirm({
-    title: 'Delete topic',
-    message: `Permanently delete "${topic.title}" and all its replies?`,
-    confirmText: 'Delete topic',
+    title: t('forum.topic.deleteTopicConfirm.title'),
+    message: t('forum.topic.deleteTopicConfirm.message', { title: topic.title }),
+    confirmText: t('forum.topic.deleteTopicConfirm.action'),
     destructive: true,
   });
   if (!ok) return;
   try {
     await $fetch(`/api/forum/topics/${topic.id}`, { method: 'DELETE' });
-    notifications.success('Topic deleted');
+    notifications.success(t('forum.topic.toasts.topicDeleted'));
     await refresh();
   } catch (e: any) {
-    notifications.error(e?.data?.message || 'Failed to delete topic');
+    notifications.error(e?.data?.message || t('forum.topic.errors.deleteTopic'));
   }
 }
 </script>

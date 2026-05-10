@@ -2,22 +2,20 @@
   <div class="dl-shell">
     <header class="dl-head">
       <div>
-        <p class="dl-eyebrow">Personal · Activity</p>
-        <h1 class="dl-title">Downloads</h1>
+        <p class="dl-eyebrow">{{ $t('downloads.eyebrow') }}</p>
+        <h1 class="dl-title">{{ $t('downloads.title') }}</h1>
         <p class="dl-blurb">
-          Every torrent you've started leeching, sorted by date.
-          When the tracker has captured your share for a release the
-          per-torrent uploaded / downloaded totals show up next to it.
+          {{ $t('downloads.blurb') }}
         </p>
       </div>
       <div v-if="data" class="dl-stats">
         <span class="dl-stat">
           <strong>{{ data.total }}</strong>
-          {{ data.total === 1 ? 'entry' : 'entries' }}
+          {{ $t('downloads.entries', { n: data.total }, data.total) }}
         </span>
         <template v-if="aggregate.up > 0 || aggregate.down > 0">
           <span class="dl-stat-sep" />
-          <span class="dl-stat dl-stat--scope">on this page</span>
+          <span class="dl-stat dl-stat--scope">{{ $t('downloads.onThisPage') }}</span>
           <span class="dl-stat">
             <Icon name="ph:arrow-up-bold" class="text-success" />
             <strong>{{ formatSize(aggregate.up) }}</strong>
@@ -42,15 +40,13 @@
       class="dl-empty"
     >
       <Icon name="ph:tray" class="dl-empty-icon" />
-      <h3>No downloads yet</h3>
+      <h3>{{ $t('downloads.empty.title') }}</h3>
       <p>
-        Once you start a download, the tracker stamps an entry here. Come
-        back after grabbing your first torrent — it'll show up at the
-        top of the list, freshest first.
+        {{ $t('downloads.empty.body') }}
       </p>
       <NuxtLink to="/torrents" class="dl-btn">
         <Icon name="ph:files" />
-        Browse the catalogue
+        {{ $t('downloads.empty.browseCta') }}
       </NuxtLink>
     </div>
 
@@ -112,14 +108,14 @@
                 <span class="dl-row-meta-sep" />
                 <span class="dl-row-meta-completed">
                   <Icon name="ph:check-bold" />
-                  Completed {{ formatAge(item.completedAt) }}
+                  {{ $t('downloads.completedAge', { age: formatAge(item.completedAt) }) }}
                 </span>
               </template>
               <template v-else-if="item.isHnr">
                 <span class="dl-row-meta-sep" />
                 <span class="dl-row-meta-hnr">
                   <Icon name="ph:warning-bold" />
-                  Hit & Run
+                  {{ $t('downloads.hitAndRun') }}
                 </span>
               </template>
             </p>
@@ -129,7 +125,7 @@
             <div class="dl-byte-cell">
               <span class="dl-byte-key">
                 <Icon name="ph:arrow-up-bold" class="text-success" />
-                Up
+                {{ $t('downloads.bytes.up') }}
               </span>
               <span
                 class="dl-byte-val"
@@ -141,7 +137,7 @@
             <div class="dl-byte-cell">
               <span class="dl-byte-key">
                 <Icon name="ph:arrow-down-bold" class="text-warning" />
-                Down
+                {{ $t('downloads.bytes.down') }}
               </span>
               <span
                 class="dl-byte-val"
@@ -154,7 +150,7 @@
               v-if="item.uploaded > 0 && item.downloaded > 0"
               class="dl-byte-cell"
             >
-              <span class="dl-byte-key">Ratio</span>
+              <span class="dl-byte-key">{{ $t('downloads.bytes.ratio') }}</span>
               <span
                 class="dl-byte-val"
                 :class="ratioClass(item.uploaded / item.downloaded)"
@@ -169,12 +165,11 @@
 
     <!-- Pagination — same compact pager used on /search. -->
     <div v-if="data && data.total > data.pageSize" class="dl-foot">
-      <p class="dl-foot-summary">
-        Page <strong>{{ data.page }}</strong> /
-        <strong>{{ pageCount }}</strong>
-        ·
-        <strong>{{ data.total }}</strong> total
-      </p>
+      <i18n-t keypath="downloads.footer.pageSummary" tag="p" class="dl-foot-summary" scope="global">
+        <template #current><strong>{{ data.page }}</strong></template>
+        <template #total><strong>{{ pageCount }}</strong></template>
+        <template #count><strong>{{ data.total }}</strong></template>
+      </i18n-t>
       <Pager
         :page="data.page"
         :pages="pageCount"
@@ -221,7 +216,8 @@ interface DownloadsPayload {
 // `auth.global.ts` already gates every non-public route, so we don't
 // need a per-page middleware here. Naming a non-existent local one
 // (e.g. `'auth'`) blows up at boot with "Unknown route middleware".
-useHead({ title: 'Downloads' });
+const { t } = useI18n();
+useHead({ title: t('downloads.title') });
 
 const route = useRoute();
 const router = useRouter();

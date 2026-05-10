@@ -2,12 +2,12 @@
   <div class="cat-form">
     <div class="cat-form-row">
       <label class="cat-label">
-        <span>Section name</span>
+        <span>{{ $t('forum.categoryForm.sectionName') }}</span>
         <input
           v-model="model.name"
           type="text"
           class="cat-input"
-          placeholder="General Dispatch"
+          :placeholder="$t('forum.categoryForm.sectionNamePlaceholder')"
           maxlength="100"
           autocomplete="off"
         />
@@ -16,12 +16,12 @@
 
     <div class="cat-form-row">
       <label class="cat-label">
-        <span>Lede / description</span>
+        <span>{{ $t('forum.categoryForm.description') }}</span>
         <textarea
           v-model="model.description"
           rows="3"
           class="cat-input cat-input--textarea"
-          placeholder="A short tagline shown beneath the section title."
+          :placeholder="$t('forum.categoryForm.descriptionPlaceholder')"
           maxlength="500"
         />
       </label>
@@ -29,7 +29,7 @@
 
     <div class="cat-form-row cat-form-row--split">
       <label class="cat-label">
-        <span>Order</span>
+        <span>{{ $t('forum.categoryForm.order') }}</span>
         <input
           v-model.number="model.order"
           type="number"
@@ -40,13 +40,13 @@
       </label>
 
       <label class="cat-label">
-        <span>Accent</span>
+        <span>{{ $t('forum.categoryForm.accent') }}</span>
         <div class="color-row">
           <input
             v-model="model.color"
             type="color"
             class="color-swatch"
-            aria-label="Accent colour"
+            :aria-label="$t('forum.categoryForm.accentColor')"
           />
           <input
             v-model="model.color"
@@ -62,7 +62,7 @@
 
     <div class="cat-form-row">
       <label class="cat-label">
-        <span>Icon</span>
+        <span>{{ $t('forum.categoryForm.icon') }}</span>
         <div class="icon-row">
           <span class="icon-preview">
             <Icon :name="model.icon || 'ph:newspaper-clipping-bold'" />
@@ -77,15 +77,15 @@
           />
         </div>
         <p class="cat-help">
-          Any
+          {{ $t('forum.categoryForm.iconHintPrefix') }}
           <a
             href="https://phosphoricons.com"
             target="_blank"
             rel="noreferrer"
             class="cat-help-link"
-            >Phosphor</a
+            >{{ $t('forum.categoryForm.phosphor') }}</a
           >
-          id, e.g. <code>ph:megaphone-bold</code>.
+          {{ $t('forum.categoryForm.iconHintMiddle') }} <code>ph:megaphone-bold</code>{{ $t('forum.categoryForm.iconHintSuffix') }}
         </p>
       </label>
     </div>

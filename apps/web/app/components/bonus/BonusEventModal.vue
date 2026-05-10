@@ -14,7 +14,7 @@
         </div>
         <div class="min-w-0">
           <h3 class="h-card truncate">{{ event.title }}</h3>
-          <p class="text-xs text-accent mt-0.5">{{ countdown }} left</p>
+          <p class="text-xs text-accent mt-0.5">{{ $t('bonus.modal.countdownLeft', { time: countdown }) }}</p>
         </div>
       </div>
     </template>
@@ -40,7 +40,7 @@
             class="text-[10px] font-bold uppercase tracking-widest mb-1"
             :class="downloadHeadClass"
           >
-            Download
+            {{ $t('bonus.modal.download') }}
           </p>
           <p class="text-2xl font-bold" :class="downloadValueClass">
             {{ downloadDisplay }}
@@ -54,7 +54,7 @@
             class="text-[10px] font-bold uppercase tracking-widest mb-1"
             :class="uploadHeadClass"
           >
-            Upload
+            {{ $t('bonus.modal.upload') }}
           </p>
           <p class="text-2xl font-bold" :class="uploadValueClass">
             {{ uploadDisplay }}
@@ -67,16 +67,16 @@
         <div class="flex items-center gap-2 mb-2">
           <Icon name="ph:clock" class="text-text-muted" />
           <p class="text-xs font-semibold text-text-primary">
-            Event window
+            {{ $t('bonus.modal.eventWindow') }}
           </p>
         </div>
         <div class="grid grid-cols-2 gap-3 text-xs">
           <div>
-            <p class="text-text-muted">Starts</p>
+            <p class="text-text-muted">{{ $t('bonus.modal.starts') }}</p>
             <p class="text-text-primary mt-0.5">{{ formatDateTime(event.startsAt) }}</p>
           </div>
           <div>
-            <p class="text-text-muted">Ends</p>
+            <p class="text-text-muted">{{ $t('bonus.modal.ends') }}</p>
             <p class="text-text-primary mt-0.5">{{ formatDateTime(event.endsAt) }}</p>
           </div>
         </div>
@@ -88,7 +88,7 @@
           <Icon name="ph:info" class="text-accent mt-0.5 flex-shrink-0" />
           <div class="text-xs text-text-muted leading-relaxed space-y-1">
             <p class="font-semibold text-text-primary">
-              What is this {{ preset.toLowerCase() }}?
+              {{ $t('bonus.modal.whatIsThis', { preset: preset.toLowerCase() }) }}
             </p>
             <p>{{ explainer }}</p>
           </div>
@@ -102,7 +102,7 @@
           class="btn btn-sm btn-primary"
           @click="$emit('update:modelValue', false)"
         >
-          Got it!
+          {{ $t('bonus.modal.gotIt') }}
         </button>
       </div>
     </div>
@@ -127,6 +127,8 @@ const props = defineProps<{
 defineEmits<{
   (e: 'update:modelValue', v: boolean): void;
 }>();
+
+const { t } = useI18n();
 
 const preset = computed(() =>
   bonusPresetLabel(
@@ -197,27 +199,25 @@ const explainer = computed(() => {
   const ul = props.event.uploadMultiplier;
   const parts: string[] = [];
   if (dl === 0) {
-    parts.push('Downloaded bytes are not counted at all (full freeleech).');
+    parts.push(t('bonus.modal.explainer.downloadFree'));
   } else if (dl < 100) {
-    parts.push(
-      `Only ${dl}% of your downloaded bytes count against your ratio (instead of 100% normally).`
-    );
+    parts.push(t('bonus.modal.explainer.downloadReduced', { pct: dl }));
   } else if (dl === 100) {
-    parts.push('Downloaded bytes are counted normally.');
+    parts.push(t('bonus.modal.explainer.downloadNormal'));
   } else {
     parts.push(
-      `Downloaded bytes are multiplied by ${formatBonusMultiplier(dl)}× — uncommon, your ratio drops faster than usual.`
+      t('bonus.modal.explainer.downloadMultiplied', { mult: formatBonusMultiplier(dl) })
     );
   }
   if (ul === 0) {
-    parts.push('Uploaded bytes do not count.');
+    parts.push(t('bonus.modal.explainer.uploadNone'));
   } else if (ul === 100) {
-    parts.push('Uploaded bytes are counted normally.');
+    parts.push(t('bonus.modal.explainer.uploadNormal'));
   } else if (ul < 100) {
-    parts.push(`Only ${ul}% of your uploaded bytes count.`);
+    parts.push(t('bonus.modal.explainer.uploadReduced', { pct: ul }));
   } else {
     parts.push(
-      `Uploaded bytes are multiplied by ${formatBonusMultiplier(ul)}×.`
+      t('bonus.modal.explainer.uploadMultiplied', { mult: formatBonusMultiplier(ul) })
     );
   }
   return parts.join(' ');

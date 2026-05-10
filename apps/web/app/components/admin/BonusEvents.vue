@@ -7,7 +7,7 @@
           <h3
             class="text-xs font-bold uppercase tracking-wider text-text-primary"
           >
-            Bonus Events
+            {{ $t('admin.bonusEvents.title') }}
           </h3>
         </div>
         <button
@@ -16,31 +16,35 @@
           @click="openCreate"
         >
           <Icon name="ph:plus-bold" />
-          New event
+          {{ $t('admin.bonusEvents.newEvent') }}
         </button>
       </div>
     </div>
 
     <div class="card-body space-y-4">
-      <p class="text-xs text-text-muted leading-relaxed">
-        Time-bounded windows during which upload / download byte deltas
-        are scaled before being persisted. Two presets cover the
-        classics — <strong>Freeleech</strong> (download×0) and
-        <strong>Silverleech</strong> (download×0.5) — but any
-        combination in [0×, 2×] download / [0×, 10×] upload works. At
-        most one window can be active at a time.
-      </p>
+      <i18n-t keypath="admin.bonusEvents.intro" tag="p" class="text-xs text-text-muted leading-relaxed">
+        <template #freeleech>
+          <strong>{{ $t('admin.bonusEvents.freeleech') }}</strong>
+        </template>
+        <template #silverleech>
+          <strong>{{ $t('admin.bonusEvents.silverleech') }}</strong>
+        </template>
+      </i18n-t>
 
       <!-- List -->
       <div v-if="loading" class="py-12 flex justify-center">
         <Icon name="ph:circle-notch" class="animate-spin text-2xl text-text-muted" />
       </div>
-      <div
+      <i18n-t
         v-else-if="!events.length"
+        keypath="admin.bonusEvents.empty"
+        tag="div"
         class="py-12 text-center text-xs text-text-muted"
       >
-        No bonus events yet. Click <strong>New event</strong> to schedule one.
-      </div>
+        <template #action>
+          <strong>{{ $t('admin.bonusEvents.emptyAction') }}</strong>
+        </template>
+      </i18n-t>
       <div v-else class="space-y-2">
         <div
           v-for="ev in events"
@@ -60,7 +64,7 @@
                 class="text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
                 :class="statusClass(ev.status)"
               >
-                {{ ev.status }}
+                {{ statusLabel(ev.status) }}
               </span>
               <span
                 v-if="presetOf(ev)"
@@ -72,11 +76,11 @@
             <div class="text-xs text-text-muted flex flex-wrap gap-x-4 gap-y-1">
               <span class="flex items-center gap-1">
                 <Icon name="ph:download-simple" class="text-[10px]" />
-                {{ formatMul(ev.downloadMultiplier) }} download
+                {{ formatMul(ev.downloadMultiplier) }} {{ $t('admin.bonusEvents.row.downloadSuffix') }}
               </span>
               <span class="flex items-center gap-1">
                 <Icon name="ph:upload-simple" class="text-[10px]" />
-                {{ formatMul(ev.uploadMultiplier) }} upload
+                {{ formatMul(ev.uploadMultiplier) }} {{ $t('admin.bonusEvents.row.uploadSuffix') }}
               </span>
               <span class="flex items-center gap-1">
                 <Icon name="ph:calendar-blank" class="text-[10px]" />
@@ -89,7 +93,7 @@
             <button
               type="button"
               class="btn btn-xs btn-ghost"
-              :title="ev.enabled ? 'Disable' : 'Enable'"
+              :title="ev.enabled ? $t('admin.bonusEvents.row.disable') : $t('admin.bonusEvents.row.enable')"
               @click="toggle(ev)"
             >
               <Icon
@@ -100,7 +104,7 @@
             <button
               type="button"
               class="btn btn-xs btn-ghost"
-              title="Edit"
+              :title="$t('admin.bonusEvents.row.edit')"
               @click="openEdit(ev)"
             >
               <Icon name="ph:pencil-simple" class="text-sm" />
@@ -108,7 +112,7 @@
             <button
               type="button"
               class="btn btn-xs btn-ghost text-error"
-              title="Delete"
+              :title="$t('admin.bonusEvents.row.delete')"
               @click="askDelete(ev)"
             >
               <Icon name="ph:trash" class="text-sm" />
@@ -119,12 +123,12 @@
     </div>
 
     <!-- Create / edit modal -->
-    <Modal v-model="formOpen" :title="editing ? 'Edit bonus event' : 'New bonus event'" size="lg">
+    <Modal v-model="formOpen" :title="editing ? $t('admin.bonusEvents.form.editTitle') : $t('admin.bonusEvents.form.createTitle')" size="lg">
       <form class="space-y-4" @submit.prevent="submitForm">
         <!-- Presets -->
         <div>
           <label class="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2 block">
-            Preset
+            {{ $t('admin.bonusEvents.form.presetLabel') }}
           </label>
           <div class="grid grid-cols-3 gap-2">
             <button
@@ -133,8 +137,8 @@
               @click="applyPreset('freeleech')"
             >
               <Icon name="ph:gift" />
-              Freeleech
-              <span class="text-[10px] opacity-75">DL×0 · UL×1</span>
+              {{ $t('admin.bonusEvents.form.preset.freeleech') }}
+              <span class="text-[10px] opacity-75">{{ $t('admin.bonusEvents.form.preset.freeleechSub') }}</span>
             </button>
             <button
               type="button"
@@ -142,8 +146,8 @@
               @click="applyPreset('silverleech')"
             >
               <Icon name="ph:medal" />
-              Silverleech
-              <span class="text-[10px] opacity-75">DL×0.5 · UL×1</span>
+              {{ $t('admin.bonusEvents.form.preset.silverleech') }}
+              <span class="text-[10px] opacity-75">{{ $t('admin.bonusEvents.form.preset.silverleechSub') }}</span>
             </button>
             <button
               type="button"
@@ -151,8 +155,8 @@
               @click="applyPreset('custom')"
             >
               <Icon name="ph:sliders" />
-              Custom
-              <span class="text-[10px] opacity-75">Pick anything</span>
+              {{ $t('admin.bonusEvents.form.preset.custom') }}
+              <span class="text-[10px] opacity-75">{{ $t('admin.bonusEvents.form.preset.customSub') }}</span>
             </button>
           </div>
         </div>
@@ -160,14 +164,14 @@
         <!-- Title -->
         <div>
           <label class="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1 block">
-            Title<span class="text-error">*</span>
+            {{ $t('admin.bonusEvents.form.titleLabel') }}<span class="text-error">*</span>
           </label>
           <input
             v-model="form.title"
             type="text"
             maxlength="120"
             required
-            placeholder="Global Silverleech"
+            :placeholder="$t('admin.bonusEvents.form.titlePlaceholder')"
             class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
           />
         </div>
@@ -175,13 +179,13 @@
         <!-- Description -->
         <div>
           <label class="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1 block">
-            Short description
+            {{ $t('admin.bonusEvents.form.descriptionLabel') }}
           </label>
           <textarea
             v-model="form.description"
             rows="2"
             maxlength="500"
-            placeholder="Global Silverleech until the points system goes live."
+            :placeholder="$t('admin.bonusEvents.form.descriptionPlaceholder')"
             class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 resize-none"
           />
         </div>
@@ -189,18 +193,17 @@
         <!-- Long description -->
         <div>
           <label class="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1 block">
-            Explainer (optional)
+            {{ $t('admin.bonusEvents.form.explainerLabel') }}
           </label>
           <textarea
             v-model="form.longDescription"
             rows="3"
             maxlength="2000"
-            placeholder="A silverleech is a special window during which…"
+            :placeholder="$t('admin.bonusEvents.form.explainerPlaceholder')"
             class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 resize-none"
           />
           <p class="text-[10px] text-text-muted mt-1">
-            Shown in the user-facing popup under "What is this?". Leave blank
-            to auto-generate from the multipliers.
+            {{ $t('admin.bonusEvents.form.explainerHint') }}
           </p>
         </div>
 
@@ -208,7 +211,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1 block">
-              Download ×{{ formatMul(form.downloadMultiplier) }}
+              {{ $t('admin.bonusEvents.form.downloadLabel', { value: formatMul(form.downloadMultiplier) }) }}
             </label>
             <input
               v-model.number="form.downloadMultiplier"
@@ -224,7 +227,7 @@
           </div>
           <div>
             <label class="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1 block">
-              Upload ×{{ formatMul(form.uploadMultiplier) }}
+              {{ $t('admin.bonusEvents.form.uploadLabel', { value: formatMul(form.uploadMultiplier) }) }}
             </label>
             <input
               v-model.number="form.uploadMultiplier"
@@ -244,7 +247,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1 block">
-              Starts at<span class="text-error">*</span>
+              {{ $t('admin.bonusEvents.form.startsAt') }}<span class="text-error">*</span>
             </label>
             <input
               v-model="form.startsAt"
@@ -255,7 +258,7 @@
           </div>
           <div>
             <label class="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1 block">
-              Ends at<span class="text-error">*</span>
+              {{ $t('admin.bonusEvents.form.endsAt') }}<span class="text-error">*</span>
             </label>
             <input
               v-model="form.endsAt"
@@ -268,8 +271,8 @@
 
         <!-- Enabled -->
         <SettingsGroup
-          label="Enabled"
-          description="Disable to schedule the window without activating it."
+          :label="$t('admin.bonusEvents.form.enabled')"
+          :description="$t('admin.bonusEvents.form.enabledHint')"
         >
           <button
             type="button"
@@ -301,7 +304,7 @@
             :disabled="submitting"
             @click="formOpen = false"
           >
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button
             type="submit"
@@ -309,22 +312,23 @@
             :disabled="submitting || !canSubmit"
           >
             <Icon v-if="submitting" name="ph:circle-notch" class="animate-spin" />
-            {{ editing ? 'Save changes' : 'Create event' }}
+            {{ editing ? $t('admin.bonusEvents.form.saveSubmit') : $t('admin.bonusEvents.form.createSubmit') }}
           </button>
         </div>
       </form>
     </Modal>
 
     <!-- Delete confirmation -->
-    <Modal v-model="deleteOpen" title="Delete bonus event" size="sm">
+    <Modal v-model="deleteOpen" :title="$t('admin.bonusEvents.deleteModal.title')" size="sm">
       <div class="space-y-4">
-        <p class="text-sm text-text-primary">
-          Permanently delete <strong>{{ pendingDelete?.title }}</strong>?
-          This cannot be undone.
-        </p>
+        <i18n-t keypath="admin.bonusEvents.deleteModal.message" tag="p" class="text-sm text-text-primary">
+          <template #title>
+            <strong>{{ pendingDelete?.title }}</strong>
+          </template>
+        </i18n-t>
         <div class="flex justify-end gap-2">
           <button class="btn btn-sm btn-ghost" @click="deleteOpen = false">
-            Cancel
+            {{ $t('common.cancel') }}
           </button>
           <button
             class="btn btn-sm btn-danger"
@@ -332,7 +336,7 @@
             @click="confirmDelete"
           >
             <Icon v-if="deleting" name="ph:circle-notch" class="animate-spin" />
-            Delete
+            {{ $t('common.delete') }}
           </button>
         </div>
       </div>
@@ -343,6 +347,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import Modal from '~/components/Modal.vue';
+
+const { t } = useI18n();
 
 interface BonusEvent {
   id: string;
@@ -405,9 +411,22 @@ function formatRange(startsAt: string, endsAt: string): string {
 }
 
 function presetOf(ev: BonusEvent): string | null {
-  if (ev.downloadMultiplier === 0 && ev.uploadMultiplier === 100) return 'Freeleech';
-  if (ev.downloadMultiplier === 50 && ev.uploadMultiplier === 100) return 'Silverleech';
+  if (ev.downloadMultiplier === 0 && ev.uploadMultiplier === 100) return t('admin.bonusEvents.freeleech');
+  if (ev.downloadMultiplier === 50 && ev.uploadMultiplier === 100) return t('admin.bonusEvents.silverleech');
   return null;
+}
+
+function statusLabel(status: BonusEvent['status']): string {
+  switch (status) {
+    case 'active':
+      return t('admin.bonusEvents.status.active');
+    case 'scheduled':
+      return t('admin.bonusEvents.status.scheduled');
+    case 'ended':
+      return t('admin.bonusEvents.status.ended');
+    case 'disabled':
+      return t('admin.bonusEvents.status.disabled');
+  }
 }
 
 function statusClass(status: BonusEvent['status']): string {
@@ -542,7 +561,7 @@ async function submitForm() {
       (err as { data?: { message?: string }; statusMessage?: string })?.data
         ?.message ??
       (err as { statusMessage?: string })?.statusMessage ??
-      'Failed to save event';
+      t('admin.bonusEvents.errors.saveFailed');
   } finally {
     submitting.value = false;
   }
@@ -557,7 +576,7 @@ async function toggle(ev: BonusEvent) {
   } catch (err: unknown) {
     alert(
       (err as { data?: { message?: string } })?.data?.message ??
-        'Failed to toggle event'
+        t('admin.bonusEvents.errors.toggleFailed')
     );
   }
 }
@@ -580,7 +599,7 @@ async function confirmDelete() {
   } catch (err: unknown) {
     alert(
       (err as { data?: { message?: string } })?.data?.message ??
-        'Failed to delete event'
+        t('admin.bonusEvents.errors.deleteFailed')
     );
   } finally {
     deleting.value = false;
