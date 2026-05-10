@@ -150,19 +150,33 @@
         active-seeds + released). No more decorative tick marks. The
         emphasis is on the *number*, not on the visual real estate.
       -->
-      <div class="bonus-bar">
-        <div class="bonus-readout" aria-live="polite">
-          <Icon name="ph:coin-fill" class="bonus-icon" aria-hidden="true" />
-          <span class="bonus-readout-stack">
-            <span class="bonus-eyebrow">{{ $t('me.bonus.availableBalance') }}</span>
-            <span class="bonus-figure-row">
-              <span class="bonus-figure">{{ animatedBalance }}</span>
-              <span class="bonus-unit">{{ $t('shop.points') }}</span>
+      <div class="bonus-bar" :class="{ 'bonus-bar--open': historyOpen }">
+        <button
+          type="button"
+          class="bonus-toggle"
+          :aria-expanded="historyOpen"
+          aria-controls="bonus-history-panel"
+          :title="historyOpen ? $t('me.bonus.collapseHint') : $t('me.bonus.expandHint')"
+          @click="toggleHistory"
+        >
+          <span class="bonus-readout" aria-live="polite">
+            <Icon name="ph:coin-fill" class="bonus-icon" aria-hidden="true" />
+            <span class="bonus-readout-stack">
+              <span class="bonus-eyebrow">{{ $t('me.bonus.availableBalance') }}</span>
+              <span class="bonus-figure-row">
+                <span class="bonus-figure">{{ animatedBalance }}</span>
+                <span class="bonus-unit">{{ $t('shop.points') }}</span>
+              </span>
             </span>
           </span>
-        </div>
-
-        <p class="bonus-caption">{{ $t('me.bonus.caption') }}</p>
+          <span class="bonus-caption">{{ $t('me.bonus.caption') }}</span>
+          <Icon
+            name="ph:caret-down-bold"
+            class="bonus-chevron"
+            :class="{ 'bonus-chevron--open': historyOpen }"
+            aria-hidden="true"
+          />
+        </button>
 
         <NuxtLink to="/shop" class="bonus-cta">
           <Icon name="ph:storefront-bold" />
@@ -170,6 +184,92 @@
           <Icon name="ph:arrow-right-bold" class="bonus-cta-arrow" />
         </NuxtLink>
       </div>
+
+      <!--
+        Transaction ledger — one row per credit (`bonus_grants`) or
+        debit (`shop_purchases`), merged server-side and sorted desc.
+        Lazy: the network round-trip only fires on first expansion, so
+        users who never click never pay for it. Stays mounted after
+        the first open, so re-toggling is instant.
+      -->
+      <Transition name="bv-panel">
+        <section
+          v-if="historyOpen"
+          id="bonus-history-panel"
+          class="bonus-history"
+          :aria-busy="bonusHistoryPending"
+        >
+          <header class="bv-head">
+            <span class="bv-head-num">02·a</span>
+            <span class="bv-head-rule" aria-hidden="true" />
+            <h3 class="bv-head-title">{{ $t('me.bonus.history.title') }}</h3>
+          </header>
+
+          <div v-if="bonusHistoryPending && bonusHistory.length === 0" class="bv-loading">
+            <Icon name="ph:circle-notch" class="bv-loading-spin" />
+            <span>{{ $t('me.bonus.history.loading') }}</span>
+          </div>
+
+          <div v-else-if="bonusHistoryError" class="bv-error">
+            <Icon name="ph:warning-bold" />
+            <span>{{ $t('me.bonus.history.loadFailed') }}</span>
+          </div>
+
+          <p v-else-if="bonusHistory.length === 0" class="bv-empty">
+            <Icon name="ph:scroll" />
+            <span>{{ $t('me.bonus.history.empty') }}</span>
+          </p>
+
+          <ol v-else class="bv-list">
+            <li
+              v-for="(entry, i) in bonusHistory"
+              :key="entry.id"
+              class="bv-row"
+              :class="`bv-row--${entry.type}`"
+              :style="{ '--row-i': i }"
+            >
+              <time class="bv-time" :datetime="entry.createdAt">
+                {{ formatHistoryTime(entry.createdAt) }}
+              </time>
+
+              <span class="bv-tag" :class="`bv-tag--${entry.type}`">
+                <Icon
+                  :name="entry.type === 'gain' ? 'ph:arrow-up-bold' : 'ph:arrow-down-bold'"
+                />
+                {{ entry.type === 'gain'
+                    ? $t('me.bonus.history.gain')
+                    : $t('me.bonus.history.spend') }}
+              </span>
+
+              <span class="bv-source">{{ sourceLabel(entry.source) }}</span>
+
+              <span class="bv-amount" :class="`bv-amount--${entry.type}`">
+                <span class="bv-amount-sign">{{ entry.type === 'gain' ? '+' : '−' }}</span>
+                <span class="bv-amount-num tabular-nums">{{ formatPoints(entry.amount) }}</span>
+                <span class="bv-amount-unit">{{ $t('shop.points') }}</span>
+              </span>
+
+              <span v-if="entry.message" class="bv-msg" :title="entry.message">
+                {{ entry.message }}
+              </span>
+            </li>
+          </ol>
+
+          <button
+            v-if="bonusHistoryHasMore"
+            type="button"
+            class="bv-more"
+            :disabled="bonusHistoryPending"
+            @click="loadMoreHistory"
+          >
+            <Icon
+              :name="bonusHistoryPending ? 'ph:circle-notch' : 'ph:caret-double-down-bold'"
+              :class="bonusHistoryPending ? 'bv-loading-spin' : ''"
+            />
+            <span>{{ $t('me.bonus.history.loadMore') }}</span>
+          </button>
+        </section>
+      </Transition>
     </section>
 
     <!-- ── Tracker info card ──────────────────────────────────── -->
@@ -664,6 +764,122 @@ watch(
 onBeforeUnmount(() => {
   if (counterRaf !== null) cancelAnimationFrame(counterRaf);
 });
+
+// ── Bonus transaction history (lazy) ───────────────────────────
+//
+// The bonus reserve bar acts as the toggle: clicking it opens an
+// expandable ledger of every credit (`bonus_grants`) and debit
+// (`shop_purchases`) that touched the running balance. We don't
+// fetch until the panel actually opens so a user who never clicks
+// never pays the round-trip; once loaded the entries stay in
+// memory for instant re-toggles, and `loadMoreHistory` paginates
+// older rows on demand via the createdAt cursor.
+interface BonusEntry {
+  id: string;
+  type: 'gain' | 'spend';
+  amount: number;
+  source: string;
+  message: string | null;
+  createdAt: string;
+}
+
+const historyOpen = ref(false);
+const bonusHistory = ref<BonusEntry[]>([]);
+const bonusHistoryPending = ref(false);
+const bonusHistoryError = ref(false);
+const bonusHistoryHasMore = ref(false);
+const bonusHistoryCursor = ref<string | null>(null);
+let bonusHistoryLoaded = false;
+
+async function loadHistory(cursor: string | null) {
+  bonusHistoryPending.value = true;
+  bonusHistoryError.value = false;
+  try {
+    const res = await $fetch<{
+      items: BonusEntry[];
+      hasMore: boolean;
+      nextCursor: string | null;
+    }>('/api/me/bonus-history', {
+      query: cursor ? { cursor, limit: 50 } : { limit: 50 },
+    });
+    if (cursor) {
+      // Append on "load more". We trust the server's cursor-based
+      // pagination — no need to dedupe locally.
+      bonusHistory.value = [...bonusHistory.value, ...res.items];
+    } else {
+      bonusHistory.value = res.items;
+    }
+    bonusHistoryHasMore.value = res.hasMore;
+    bonusHistoryCursor.value = res.nextCursor;
+    bonusHistoryLoaded = true;
+  } catch {
+    bonusHistoryError.value = true;
+  } finally {
+    bonusHistoryPending.value = false;
+  }
+}
+
+function toggleHistory() {
+  historyOpen.value = !historyOpen.value;
+  // First open triggers the fetch; subsequent toggles are
+  // memo-cheap. Refetching every open would feel snappy but we'd
+  // hit the DB twice on a typical "expand → glance → collapse"
+  // pattern, which is the most common interaction.
+  if (historyOpen.value && !bonusHistoryLoaded) {
+    loadHistory(null);
+  }
+}
+
+function loadMoreHistory() {
+  if (!bonusHistoryCursor.value || bonusHistoryPending.value) return;
+  loadHistory(bonusHistoryCursor.value);
+}
+
+function sourceLabel(source: string): string {
+  // Whitelist the keys we have explicit translations for; anything
+  // else falls back to a generic "Adjustment" label so a future
+  // bonus-rule kind never renders as a raw snake_case string.
+  const known = new Set([
+    'seeding',
+    'first_seeder',
+    'milestone',
+    'account_age_monthly',
+    'daily_login',
+    'admin_adjust',
+    'shop_purchase',
+  ]);
+  const key = known.has(source)
+    ? `me.bonus.history.source.${source}`
+    : 'me.bonus.history.source.unknown';
+  // Reuse the page-level `t` from useI18n (declared earlier in the
+  // setup block); calling useI18n() again would just create another
+  // composable instance with the same store.
+  return t(key);
+}
+
+// Compact, locale-aware date for ledger rows. Two formats:
+//  - Same day  → "14:32"   (just the time)
+//  - Otherwise → "10 May 14:32"
+// Long enough to disambiguate the entry, short enough to stay in a
+// 6-column grid without wrapping.
+function formatHistoryTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  const time = d.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  if (sameDay) return time;
+  const date = d.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+  });
+  return `${date} ${time}`;
+}
 
 // ── Passkey reveal (lazy) ──────────────────────────────────────
 const passkey = ref<string>('');
@@ -1433,13 +1649,21 @@ function formatDuration(seconds: number) {
 .bonus-bar {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  padding: 0.85rem 1rem;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0;
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
   background: rgb(var(--bg-elevated));
   overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.bonus-bar:hover {
+  border-color: rgb(212, 167, 52, 0.5);
+}
+.bonus-bar--open {
+  border-color: rgb(212, 167, 52, 0.7);
+  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
 }
 .bonus-bar::before {
   /* Hairline coin/gold accent at the top — same tone the /shop page
@@ -1461,6 +1685,56 @@ function formatDuration(seconds: number) {
     flex-wrap: wrap;
     align-items: stretch;
   }
+}
+
+/* Toggle button — fills most of the bar; the CTA stays as a sibling
+   on the right. Reset native button chrome so the visual matches the
+   surrounding card surface, then re-add a subtle hover state to
+   communicate that the row is interactive. */
+.bonus-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.85rem 1rem;
+  background: transparent;
+  border: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.16s ease;
+  min-width: 0;
+}
+.bonus-toggle:hover {
+  background: rgb(var(--fg-default) / 0.04);
+}
+.bonus-toggle:focus-visible {
+  outline: 2px solid rgb(212, 167, 52, 0.6);
+  outline-offset: -2px;
+}
+@media (max-width: 720px) {
+  .bonus-toggle {
+    flex-wrap: wrap;
+    flex: 1 1 100%;
+    align-items: stretch;
+  }
+}
+
+.bonus-chevron {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 1rem;
+  color: rgb(var(--fg-muted));
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), color 0.16s ease;
+}
+.bonus-toggle:hover .bonus-chevron {
+  color: rgb(var(--fg-strong));
+}
+.bonus-chevron--open {
+  transform: rotate(-180deg);
+  color: #d4a734;
 }
 
 .bonus-readout {
@@ -1554,7 +1828,16 @@ function formatDuration(seconds: number) {
   text-transform: uppercase;
   white-space: nowrap;
   flex-shrink: 0;
+  align-self: center;
+  margin-right: 0.7rem;
   transition: transform 0.15s, background 0.15s;
+}
+@media (max-width: 720px) {
+  .bonus-cta {
+    margin: 0 0.7rem 0.7rem;
+    align-self: stretch;
+    justify-content: center;
+  }
 }
 .bonus-cta:hover {
   transform: translateY(-1px);
@@ -1566,6 +1849,345 @@ function formatDuration(seconds: number) {
 }
 .bonus-cta:hover .bonus-cta-arrow {
   transform: translateX(2px);
+}
+
+/* ─── Bonus transaction ledger (expandable) ────────────────────
+ *
+ * Sits directly below the bar. Each entry is a single grid row that
+ * reads left-to-right: time, gain/spend tag, source label, amount,
+ * free-text note. The grid template stays consistent across rows so
+ * a long ledger reads as a register, not a stack of cards.
+ *
+ * The panel slides in via a max-height + opacity transition (no JS
+ * height measurement — keeps the animation cheap and snaps cleanly
+ * even when the viewport reflows mid-animation).
+ */
+.bonus-history {
+  margin-top: 0.65rem;
+  padding: 1rem 1rem 1.1rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.5rem;
+  background: rgb(var(--bg-elevated) / 0.4);
+  position: relative;
+  overflow: hidden;
+}
+.bonus-history::before {
+  /* Match the bar's coin sheen so the two surfaces feel like one
+     continuous panel that's been hinged open. */
+  content: '';
+  position: absolute;
+  inset-inline: 1rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(212, 167, 52, 0.4) 0%,
+    rgba(212, 167, 52, 0.1) 60%,
+    rgba(212, 167, 52, 0) 100%
+  );
+}
+
+/* Slide + fade transition for the whole panel. We deliberately use
+   a generous max-height (2000px) so a long ledger stays uncapped;
+   the actual panel height is content-driven. */
+.bv-panel-enter-active,
+.bv-panel-leave-active {
+  transition: max-height 0.32s ease, opacity 0.22s ease,
+    margin-top 0.22s ease;
+  overflow: hidden;
+}
+.bv-panel-enter-from,
+.bv-panel-leave-to {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+.bv-panel-enter-to,
+.bv-panel-leave-from {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+.bv-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+.bv-head-num {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #d4a734;
+}
+.bv-head-rule {
+  flex: 0 0 1.5rem;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgb(var(--fg-default) / 0.4),
+    rgb(var(--fg-default) / 0)
+  );
+}
+.bv-head-title {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-strong));
+}
+
+.bv-loading,
+.bv-error,
+.bv-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 1.25rem 1rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.bv-loading-spin {
+  animation: bv-spin 0.9s linear infinite;
+  color: rgb(var(--fg-muted));
+}
+@keyframes bv-spin {
+  to { transform: rotate(360deg); }
+}
+.bv-error {
+  color: rgb(var(--danger));
+}
+.bv-empty {
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 12px;
+  color: rgb(var(--fg-faint));
+}
+.bv-empty svg {
+  font-size: 1rem;
+}
+
+.bv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.4rem;
+  overflow: hidden;
+}
+
+/* Each row: 5-column grid that reads as a register entry. The amount
+   anchors the right side; the free-text note flows on row 2 of the
+   same row when present (we use grid-template-rows: auto auto). */
+.bv-row {
+  display: grid;
+  grid-template-columns:
+    minmax(5rem, auto)   /* time */
+    auto                 /* gain/spend tag */
+    minmax(0, 1fr)       /* source label */
+    auto;                /* amount */
+  grid-template-rows: auto;
+  gap: 0.4rem 0.85rem;
+  align-items: center;
+  padding: 0.65rem 0.9rem;
+  background: rgb(var(--bg-elevated));
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+  /* Stagger entry — each row arrives ~30ms after the previous so the
+     panel feels like it's being typed in. Caps via a class-bound max
+     so a 100-row ledger doesn't take 3s to settle. */
+  animation: bv-row-in 0.28s ease both;
+  animation-delay: calc(var(--row-i, 0) * 24ms);
+  transition: background 0.14s ease, transform 0.14s ease;
+  position: relative;
+}
+.bv-row:hover {
+  background: rgb(var(--bg-surface));
+}
+.bv-row::before {
+  /* Tiny vertical bar on the left, coloured by gain/spend. Two pixels
+     wide, full row height — works as a quiet visual key. */
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 2px;
+}
+.bv-row--gain::before {
+  background: rgb(var(--online));
+}
+.bv-row--spend::before {
+  background: #d4a734;
+}
+@keyframes bv-row-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.bv-time {
+  color: rgb(var(--fg-faint));
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Tag pill — small, outlined, gain or spend tinted. Reads as the
+   "verb" of the row at a glance without overwhelming the readout. */
+.bv-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.bv-tag--gain {
+  color: rgb(var(--online));
+  border-color: rgb(var(--online) / 0.4);
+  background: rgb(var(--online) / 0.08);
+}
+.bv-tag--spend {
+  color: #d4a734;
+  border-color: rgba(212, 167, 52, 0.4);
+  background: rgba(212, 167, 52, 0.08);
+}
+.bv-tag svg {
+  font-size: 9px;
+}
+
+.bv-source {
+  color: rgb(var(--fg-default));
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bv-amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  justify-self: end;
+}
+.bv-amount-sign {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.bv-amount-num {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.bv-amount-unit {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.bv-amount--gain {
+  color: rgb(var(--online));
+}
+.bv-amount--spend {
+  color: #d4a734;
+}
+
+/* Free-text note — when present it slips onto a second line of the
+   same grid row, full-width, smaller, muted. Italic so it reads as
+   commentary rather than another data column. */
+.bv-msg {
+  grid-column: 1 / -1;
+  margin-top: 0.15rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed rgb(var(--line-default));
+  font-style: italic;
+  font-size: 11px;
+  color: rgb(var(--fg-muted));
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: 0;
+  /* Truncate to a reasonable upper bound — admins occasionally write
+     paragraph-long reasons; we want the bar to stay within the ledger
+     rather than push other rows around. Click to read the full text
+     via the title attribute. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* "Older entries" pagination button — sits centred below the list.
+   `margin: 0.85rem auto 0` does the centring; flex enables the icon
+   alignment without an extra wrapper element. */
+.bv-more {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.85rem auto 0;
+  padding: 0.5rem 0.95rem;
+  background: transparent;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.4rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.bv-more:hover:not(:disabled) {
+  border-color: rgb(var(--fg-default) / 0.5);
+  color: rgb(var(--fg-strong));
+}
+.bv-more:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Mobile reflow — collapse the row into a 2-line stack so the source
+   and message wrap cleanly without horizontal overflow. */
+@media (max-width: 640px) {
+  .bv-row {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      'time tag amount'
+      'src  src src';
+  }
+  .bv-time { grid-area: time; }
+  .bv-tag { grid-area: tag; }
+  .bv-amount { grid-area: amount; }
+  .bv-source {
+    grid-area: src;
+    font-size: 11px;
+    color: rgb(var(--fg-muted));
+  }
+  .bv-msg {
+    grid-column: 1 / -1;
+  }
 }
 
 /* ─── Tracker card ─────────────────────────────────────────── */

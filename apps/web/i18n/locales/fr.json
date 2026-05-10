@@ -222,7 +222,28 @@
       "title": "Réserve bonus",
       "availableBalance": "Solde",
       "caption": "Gagnés en seedant des swarms actifs — les torrents rares et les archives de longue date rapportent davantage grâce aux courbes de paliers configurées par l'opérateur.",
-      "spend": "Dépenser dans la boutique"
+      "spend": "Dépenser dans la boutique",
+      "expandHint": "Cliquer pour voir l'historique",
+      "collapseHint": "Cliquer pour replier l'historique",
+      "history": {
+        "title": "Historique des transactions",
+        "loading": "Lecture du grand livre…",
+        "empty": "Aucune transaction pour l'instant — commence à seeder pour remplir la page.",
+        "loadFailed": "Impossible de charger l'historique",
+        "loadMore": "Entrées plus anciennes",
+        "gain": "Gain",
+        "spend": "Dépense",
+        "source": {
+          "seeding": "Cadence de seed",
+          "first_seeder": "Premier seeder",
+          "milestone": "Palier de seed",
+          "account_age_monthly": "Bonus de fidélité",
+          "daily_login": "Connexion quotidienne",
+          "admin_adjust": "Ajustement opérateur",
+          "shop_purchase": "Achat boutique",
+          "unknown": "Ajustement"
+        }
+      }
     },
     "credentials": {
       "title": "Identifiants tracker",

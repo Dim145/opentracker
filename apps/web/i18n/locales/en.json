@@ -222,7 +222,28 @@
       "title": "Bonus reserve",
       "availableBalance": "Available balance",
       "caption": "Earned by seeding active swarms — rare torrents and long-haul archives pay more thanks to the operator's tier curves.",
-      "spend": "Spend in the shop"
+      "spend": "Spend in the shop",
+      "expandHint": "Click to view transaction history",
+      "collapseHint": "Click to collapse history",
+      "history": {
+        "title": "Transaction ledger",
+        "loading": "Reading the ledger…",
+        "empty": "No transactions yet — start seeding to fill the page.",
+        "loadFailed": "Could not load history",
+        "loadMore": "Older entries",
+        "gain": "Gain",
+        "spend": "Spent",
+        "source": {
+          "seeding": "Seeding rate",
+          "first_seeder": "First seeder bonus",
+          "milestone": "Seeding milestone",
+          "account_age_monthly": "Loyalty bonus",
+          "daily_login": "Daily login",
+          "admin_adjust": "Operator adjustment",
+          "shop_purchase": "Shop purchase",
+          "unknown": "Adjustment"
+        }
+      }
     },
     "credentials": {
       "title": "Tracker credentials",
