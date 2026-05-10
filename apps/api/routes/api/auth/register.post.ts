@@ -234,6 +234,7 @@ export default defineEventHandler(async (event) => {
       isModerator: false,
       uploaded: starterUpload,
       downloaded: 0,
+      bonusPoints: 0,
       theme: 'dark',
       language: 'en',
     },

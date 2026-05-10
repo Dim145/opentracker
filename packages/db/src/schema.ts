@@ -50,6 +50,12 @@ export const users = pgTable(
     uploaded: bigint('uploaded', { mode: 'number' }).default(0).notNull(),
     downloaded: bigint('downloaded', { mode: 'number' }).default(0).notNull(),
     invitesRemaining: integer('invites_remaining').default(0).notNull(),
+    // Seed-bonus running balance (whole points). Earned through the
+    // hourly accumulation cron (rate × active-seed count) and spent in
+    // the shop (`/shop` user surface, `/admin/shop` operator console).
+    // Atomic increments / decrements only — never assigned wholesale
+    // from outside the cron + purchase paths.
+    bonusPoints: integer('bonus_points').default(0).notNull(),
     panicPasswordHash: text('panic_password_hash'), // Only set for first admin
     // User-editable profile preferences (settings page).
     // displayName overrides `username` on profile pages when set; the
@@ -247,6 +253,201 @@ export const bannedIps = pgTable('banned_ips', {
   reason: text('reason'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// ============================================================================
+// Seed-bonus shop
+// ============================================================================
+//
+// `shop_items` is the operator-defined catalogue of things a user can
+// trade their `users.bonus_points` balance for. The cron at
+// `plugins/bonus-collector.ts` credits points hourly based on each
+// user's active-seed count; a purchase at `POST /api/shop/buy`
+// deducts points and applies the item's effect atomically.
+//
+// `type` is a small enum so the API can switch on it to apply effects
+// without trusting arbitrary code from the operator. New types are
+// added in tandem with their handler in `apps/api/utils/shop.ts`.
+//
+//   - 'upload_credit'    payload: { bytes: number }
+//                        adds `bytes` to users.uploaded — pure ratio
+//                        relief, no torrent-level FL.
+//   - 'invite'           payload: { count: number }
+//                        bumps users.invites_remaining by `count`
+//                        slots.
+//
+// `stock` is nullable for unlimited; when set, decrements on every
+// purchase and the item is hidden from the user catalogue once it
+// hits 0. `enabled` lets an admin pause an item without losing its
+// configuration. `cost` is in whole points (matches the credit unit
+// of bonus_points).
+export const shopItems = pgTable(
+  'shop_items',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    description: text('description'),
+    icon: text('icon'), // ph: name (e.g. 'ph:gift-bold')
+    type: text('type').notNull(), // 'upload_credit' | 'invite'
+    payload: jsonb('payload').notNull(), // shape depends on `type`
+    cost: integer('cost').notNull(),
+    stock: integer('stock'), // null = unlimited
+    enabled: boolean('enabled').default(true).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at'),
+  },
+  (table) => [
+    index('shop_items_enabled_idx').on(table.enabled),
+  ]
+);
+
+// ============================================================================
+// Bonus earning rules + tiered multipliers + grant ledger
+// ============================================================================
+//
+// Five operator-configurable mechanisms credit `users.bonus_points`:
+//
+//   - `seeding`            base rate × seed-count tier × age tier, applied
+//                          per cron tick to every active seeder
+//   - `first_seeder`       one-time reward when the user becomes the unique
+//                          seeder of a torrent (idempotent via the grants
+//                          ledger)
+//   - `seeding_milestone`  per-torrent cumulative seed-time thresholds
+//                          (24 h / 1 week / 30 d, …) — each crossing emits
+//                          a single grant, also idempotent via the ledger
+//   - `daily_login`        once per UTC day on the user's first auth-status
+//                          poll (Redis SETNX gates the credit, the grant
+//                          row is the audit copy)
+//   - `account_age_monthly` monthly loyalty bonus — credited when the
+//                          user's last `account_age_monthly` grant is
+//                          more than 30 days old
+//
+// Each rule's per-kind config lives in `bonus_rules.config` (jsonb). The
+// API validates the shape against a Zod schema in `utils/bonusEarning.ts`
+// before applying — a malformed config disables the rule rather than
+// risking a runaway credit.
+//
+// Multipliers are always stored as basis points × 100 (matching the
+// `bonus_events` convention): 100 = 1×, 200 = 2×, 50 = 0.5×.
+export const bonusRules = pgTable(
+  'bonus_rules',
+  {
+    id: text('id').primaryKey(),
+    // Single row per kind. UNIQUE so the operator can't end up with two
+    // active "seeding" rules fighting each other.
+    kind: text('kind').notNull().unique(),
+    enabled: boolean('enabled').default(true).notNull(),
+    config: jsonb('config').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at'),
+  },
+  (table) => [index('bonus_rules_kind_idx').on(table.kind)]
+);
+
+// Seeder-count tiers — fewer concurrent seeders ⇒ higher multiplier so
+// rare torrents reward their seeders more. Tiers are evaluated in
+// ascending `max_seeders` order; the first row whose `max_seeders`
+// is ≥ the current seed count wins. A row with `max_seeders` = a
+// very high number acts as the catch-all tail.
+//
+// Disabled rows are skipped during evaluation but kept around so the
+// admin can re-enable a previously-tuned curve without re-typing it.
+export const bonusSeedCountTiers = pgTable(
+  'bonus_seed_count_tiers',
+  {
+    id: text('id').primaryKey(),
+    maxSeeders: integer('max_seeders').notNull(),
+    multiplier: integer('multiplier').notNull(), // basis points × 100
+    enabled: boolean('enabled').default(true).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('bonus_seed_count_tiers_threshold_idx').on(table.maxSeeders),
+    index('bonus_seed_count_tiers_enabled_idx').on(table.enabled),
+  ]
+);
+
+// Age tiers — older torrents reward seeding more, to keep the
+// archive alive. Evaluated in descending `min_age_days` order; the
+// first row whose `min_age_days` ≤ the torrent's age wins.
+export const bonusAgeTiers = pgTable(
+  'bonus_age_tiers',
+  {
+    id: text('id').primaryKey(),
+    minAgeDays: integer('min_age_days').notNull(),
+    multiplier: integer('multiplier').notNull(), // basis points × 100
+    enabled: boolean('enabled').default(true).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('bonus_age_tiers_threshold_idx').on(table.minAgeDays),
+    index('bonus_age_tiers_enabled_idx').on(table.enabled),
+  ]
+);
+
+// Grant ledger — every credit applied to `users.bonus_points` writes
+// a row here. Two jobs:
+//   1. Audit / "where did my points come from?" (per-user history page).
+//   2. Idempotency for one-time rewards (first_seeder, milestones,
+//      monthly account-age) — the rule's applicator queries this
+//      table before crediting.
+//
+// `metadata` is freeform jsonb so each rule kind can stash whatever
+// helps debugging — e.g. the seeder count and age multiplier used for
+// a `seeding` grant, or the milestone hours threshold reached.
+export const bonusGrants = pgTable(
+  'bonus_grants',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    source: text('source').notNull(), // matches bonusRules.kind
+    // Nullable: global grants (daily_login, account_age_monthly) leave it.
+    torrentId: text('torrent_id').references(() => torrents.id, {
+      onDelete: 'set null',
+    }),
+    amount: integer('amount').notNull(),
+    metadata: jsonb('metadata'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('bonus_grants_user_idx').on(table.userId, table.createdAt),
+    index('bonus_grants_source_user_torrent_idx').on(
+      table.source,
+      table.userId,
+      table.torrentId
+    ),
+  ]
+);
+
+// Audit ledger of every purchase. `cost_paid` is a snapshot of the
+// item's cost at the time of purchase — even if the operator later
+// re-prices the item, the record of what each user spent stays
+// honest.
+export const shopPurchases = pgTable(
+  'shop_purchases',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    itemId: text('item_id')
+      .notNull()
+      .references(() => shopItems.id, { onDelete: 'restrict' }),
+    // Snapshot fields — kept even when the item / user row is later
+    // mutated. The `restrict` cascade above prevents accidental item
+    // deletion while purchases reference it; admins must explicitly
+    // disable instead.
+    itemNameSnapshot: text('item_name_snapshot').notNull(),
+    itemTypeSnapshot: text('item_type_snapshot').notNull(),
+    costPaid: integer('cost_paid').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('shop_purchases_user_idx').on(table.userId, table.createdAt),
+    index('shop_purchases_item_idx').on(table.itemId),
+  ]
+);
 
 // ============================================================================
 // Roles (Flexible permission management + auto-assignment rules)

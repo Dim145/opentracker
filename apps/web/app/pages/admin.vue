@@ -137,6 +137,18 @@ const menuItems = computed(() => [
     description: t('admin.descriptions.bonusEvents'),
   },
   {
+    label: t('admin.nav.bonusRules'),
+    path: '/admin/bonus-rules',
+    icon: 'ph:strategy',
+    description: t('admin.descriptions.bonusRules'),
+  },
+  {
+    label: t('admin.nav.shop'),
+    path: '/admin/shop',
+    icon: 'ph:storefront',
+    description: t('admin.descriptions.shop'),
+  },
+  {
     label: t('admin.nav.bannedIps'),
     path: '/admin/banned-ips',
     icon: 'ph:prohibit',

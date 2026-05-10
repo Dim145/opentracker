@@ -391,6 +391,26 @@
                     >{{ u.roles.length }}</span
                   >
                 </button>
+
+                <!-- Adjust bonus points — admins only. The button doubles
+                     as a balance display (shows the current pts in the
+                     count badge so the admin sees who has what at a
+                     glance without opening the modal). -->
+                <button
+                  v-if="user?.isAdmin"
+                  type="button"
+                  class="row-action"
+                  :class="{ 'row-action--bonus-active': u.bonusPoints > 0 }"
+                  :title="$t('admin.users.actions.adjustBonus', { n: u.bonusPoints ?? 0 })"
+                  @click="openBonusModal(u)"
+                >
+                  <Icon name="ph:coin-bold" />
+                  <span
+                    v-if="u.bonusPoints > 0"
+                    class="row-action__count"
+                    >{{ formatNumber(u.bonusPoints) }}</span
+                  >
+                </button>
               </div>
             </td>
           </tr>
@@ -581,6 +601,149 @@
         </p>
       </div>
     </Modal>
+
+    <!-- ────────────────────────  BONUS POINTS ADJUSTMENT  ──────────────────────── -->
+    <Modal
+      v-model="bonusModalOpen"
+      size="sm"
+      :title="$t('admin.users.bonusModal.title', { username: bonusTarget?.username ?? '' })"
+    >
+      <div v-if="bonusTarget" class="bonus-modal">
+        <!-- Current balance — strong typographic anchor that doubles as
+             a confirmation that we're adjusting the right user. -->
+        <div class="bonus-balance-card">
+          <span class="bonus-balance-label">
+            {{ $t('admin.users.bonusModal.currentBalance') }}
+          </span>
+          <span class="bonus-balance-value">
+            <Icon name="ph:coin-bold" />
+            {{ formatNumber(bonusTarget.bonusPoints ?? 0) }}
+            <span class="bonus-balance-unit">{{ $t('shop.points') }}</span>
+          </span>
+        </div>
+
+        <!-- Quick-add chips so the common cases are 1 click away. The
+             admin can still type any value, including negatives. -->
+        <div class="bonus-presets">
+          <span class="bonus-presets-label">
+            {{ $t('admin.users.bonusModal.presets') }}
+          </span>
+          <div class="bonus-presets-row">
+            <button
+              v-for="p in [-100, -50, -10, 10, 50, 100, 500]"
+              :key="p"
+              type="button"
+              class="bonus-preset-chip"
+              :class="{
+                'bonus-preset-chip--negative': p < 0,
+                'bonus-preset-chip--positive': p > 0,
+              }"
+              @click="bonusForm.delta = p"
+            >
+              {{ p > 0 ? '+' : '' }}{{ p }}
+            </button>
+          </div>
+        </div>
+
+        <label class="bonus-field">
+          <span class="bonus-field-label">
+            {{ $t('admin.users.bonusModal.delta') }}
+            <span class="bonus-field-hint">{{ $t('admin.users.bonusModal.deltaHint') }}</span>
+          </span>
+          <div class="bonus-field-input-row">
+            <input
+              v-model.number="bonusForm.delta"
+              type="number"
+              step="1"
+              required
+              class="input bonus-field-input"
+              :placeholder="$t('admin.users.bonusModal.deltaPlaceholder')"
+            />
+            <span class="bonus-field-unit">{{ $t('shop.points') }}</span>
+          </div>
+        </label>
+
+        <!-- Live preview of the post-adjustment balance. Highlights when
+             clamping kicks in (admin tried to subtract more than the
+             user has). -->
+        <div
+          v-if="bonusForm.delta !== 0 && Number.isFinite(bonusForm.delta)"
+          class="bonus-preview"
+          :class="{ 'bonus-preview--clamped': previewClamped }"
+        >
+          <span class="bonus-preview-label">
+            {{ $t('admin.users.bonusModal.preview') }}
+          </span>
+          <span class="bonus-preview-arrow">→</span>
+          <span class="bonus-preview-value">
+            {{ formatNumber(previewBalance) }}
+            <span class="bonus-preview-unit">{{ $t('shop.points') }}</span>
+          </span>
+          <span
+            v-if="previewClamped"
+            class="bonus-preview-warning"
+          >
+            <Icon name="ph:warning-bold" />
+            {{ $t('admin.users.bonusModal.clamped') }}
+          </span>
+        </div>
+
+        <label class="bonus-field">
+          <span class="bonus-field-label">
+            {{ $t('admin.users.bonusModal.note') }}
+            <span class="bonus-field-hint">{{ $t('admin.users.bonusModal.noteHint') }}</span>
+          </span>
+          <textarea
+            v-model="bonusForm.note"
+            rows="2"
+            maxlength="500"
+            class="input bonus-field-input"
+            :placeholder="$t('admin.users.bonusModal.notePlaceholder')"
+          />
+        </label>
+
+        <p v-if="bonusForm.error" class="bonus-error" role="alert">
+          <Icon name="ph:warning-circle-bold" />
+          {{ bonusForm.error }}
+        </p>
+      </div>
+
+      <template #footer>
+        <div class="bonus-footer">
+          <button
+            type="button"
+            class="bonus-btn bonus-btn--ghost"
+            :disabled="bonusForm.saving"
+            @click="bonusModalOpen = false"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="bonus-btn"
+            :class="
+              bonusForm.delta < 0
+                ? 'bonus-btn--danger'
+                : 'bonus-btn--primary'
+            "
+            :disabled="bonusForm.saving || !bonusForm.delta || !Number.isFinite(bonusForm.delta)"
+            @click="submitBonusAdjustment"
+          >
+            <Icon
+              :name="bonusForm.saving ? 'ph:circle-notch' : 'ph:check-circle-bold'"
+              :class="{ 'animate-spin': bonusForm.saving }"
+            />
+            {{
+              bonusForm.saving
+                ? $t('common.loading')
+                : bonusForm.delta < 0
+                  ? $t('admin.users.bonusModal.removeAction')
+                  : $t('admin.users.bonusModal.grantAction')
+            }}
+          </button>
+        </div>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -630,6 +793,9 @@ interface RegistryUser {
   uploaded: number;
   downloaded: number;
   invitesRemaining: number;
+  /** Seed-bonus running balance — surfaced so the admin can adjust
+   *  it from the row action without a second round-trip. */
+  bonusPoints: number;
   createdAt: string;
   lastSeen: string;
 }
@@ -1114,6 +1280,87 @@ const rolesModalState = reactive<Record<string, 'attaching' | 'detaching'>>({});
 function openRolesModal(u: RegistryUser) {
   rolesModalUser.value = u;
   for (const k of Object.keys(rolesModalState)) delete rolesModalState[k];
+}
+
+// ─── Bonus-points adjustment ────────────────────────────────────────
+//
+// Single open-at-a-time modal with a target user + delta + optional
+// note. The submit goes through POST /api/admin/users/:id/bonus-points
+// which writes both the new balance and a `bonus_grants` audit row
+// with `source: 'admin_adjust'` in one transaction.
+const bonusTarget = ref<RegistryUser | null>(null);
+const bonusModalOpen = computed({
+  get: () => bonusTarget.value !== null,
+  set: (v: boolean) => {
+    if (!v) bonusTarget.value = null;
+  },
+});
+const bonusForm = reactive({
+  delta: 0,
+  note: '',
+  saving: false,
+  error: null as string | null,
+});
+
+const previewBalance = computed(() => {
+  const before = bonusTarget.value?.bonusPoints ?? 0;
+  return Math.max(0, before + (bonusForm.delta || 0));
+});
+const previewClamped = computed(() => {
+  const before = bonusTarget.value?.bonusPoints ?? 0;
+  return before + (bonusForm.delta || 0) < 0;
+});
+
+function openBonusModal(u: RegistryUser) {
+  bonusForm.delta = 0;
+  bonusForm.note = '';
+  bonusForm.error = null;
+  bonusForm.saving = false;
+  bonusTarget.value = u;
+}
+
+function formatNumber(n: number): string {
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
+}
+
+async function submitBonusAdjustment() {
+  const target = bonusTarget.value;
+  if (!target || bonusForm.saving) return;
+  if (!bonusForm.delta || !Number.isFinite(bonusForm.delta)) return;
+  bonusForm.saving = true;
+  bonusForm.error = null;
+  try {
+    const res = await $fetch<{
+      success: boolean;
+      before: number;
+      after: number;
+      appliedDelta: number;
+    }>(`/api/admin/users/${target.id}/bonus-points`, {
+      method: 'POST',
+      body: {
+        delta: bonusForm.delta,
+        note: bonusForm.note.trim() || undefined,
+      },
+    });
+    notifications.success(
+      res.appliedDelta >= 0
+        ? t('admin.users.bonusModal.toasts.granted', {
+            n: formatNumber(res.appliedDelta),
+            username: target.username,
+          })
+        : t('admin.users.bonusModal.toasts.removed', {
+            n: formatNumber(Math.abs(res.appliedDelta)),
+            username: target.username,
+          }),
+    );
+    bonusModalOpen.value = false;
+    await refresh();
+  } catch (err: any) {
+    bonusForm.error =
+      err?.data?.message || t('admin.users.bonusModal.errors.generic');
+  } finally {
+    bonusForm.saving = false;
+  }
 }
 
 function isAttached(u: RegistryUser, roleId: string) {
@@ -1837,6 +2084,266 @@ async function onDetachRole(roleId: string) {
   background: rgba(245, 197, 24, 0.12);
   border-color: rgba(245, 197, 24, 0.4);
   color: #f5c518;
+}
+/* Bonus-points action — coin tone when the user has a non-zero balance.
+   Wider than the other row actions because the count badge can hold
+   four digits (10k+ pts is plausible after a long seeding stretch). */
+.row-action--bonus-active {
+  background: rgba(212, 167, 52, 0.1);
+  border-color: rgba(212, 167, 52, 0.35);
+  color: #d4a734;
+}
+
+/* ─── Bonus-points adjustment modal ─────────────────────────────── */
+.bonus-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.bonus-balance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.5rem;
+  background: rgb(var(--bg-elevated));
+  position: relative;
+  overflow: hidden;
+}
+.bonus-balance-card::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0.85rem;
+  top: 0;
+  height: 1px;
+  background: rgb(212, 167, 52, 0.5);
+}
+.bonus-balance-label {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.bonus-balance-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: rgb(var(--fg-strong));
+}
+.bonus-balance-value > svg {
+  color: #d4a734;
+  font-size: 1.1rem;
+}
+.bonus-balance-unit {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  font-weight: 400;
+}
+
+.bonus-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.bonus-presets-label {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.bonus-presets-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.bonus-preset-chip {
+  padding: 0.3rem 0.6rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 0.3rem;
+  border: 1px solid rgb(var(--line-default));
+  background: rgb(var(--bg-elevated));
+  color: rgb(var(--fg-default));
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    transform 0.1s;
+}
+.bonus-preset-chip:hover {
+  transform: translateY(-1px);
+}
+.bonus-preset-chip--positive:hover {
+  border-color: rgba(34, 197, 94, 0.5);
+  color: rgb(34, 197, 94);
+}
+.bonus-preset-chip--negative:hover {
+  border-color: rgba(239, 68, 68, 0.5);
+  color: rgb(239, 68, 68);
+}
+
+.bonus-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.bonus-field-label {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.bonus-field-hint {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: rgb(var(--fg-faint));
+  text-transform: none;
+  font-weight: 400;
+}
+.bonus-field-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.bonus-field-input {
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.bonus-field-unit {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+
+.bonus-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.4rem;
+  background: rgb(var(--bg-inset));
+  flex-wrap: wrap;
+}
+.bonus-preview--clamped {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.06);
+}
+.bonus-preview-label,
+.bonus-preview-arrow {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.bonus-preview-value {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: rgb(var(--fg-strong));
+}
+.bonus-preview-unit {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  font-weight: 400;
+  margin-left: 0.2rem;
+}
+.bonus-preview-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: rgb(234, 179, 8);
+  margin-left: auto;
+}
+
+.bonus-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 0.4rem;
+  background: rgba(239, 68, 68, 0.06);
+  color: rgb(239, 68, 68);
+  font-size: 0.8rem;
+}
+
+.bonus-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.bonus-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 0.4rem;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.bonus-btn:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.bonus-btn--ghost {
+  background: transparent;
+  color: rgb(var(--fg-muted));
+}
+.bonus-btn--ghost:hover:not(:disabled) {
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--fg-default) / 0.05);
+}
+.bonus-btn--primary {
+  background: rgb(var(--accent));
+  color: rgb(var(--accent-fg));
+  border-color: rgb(var(--accent));
+}
+.bonus-btn--primary:hover:not(:disabled) {
+  background: rgb(var(--accent-hover));
+  border-color: rgb(var(--accent-hover));
+  transform: translateY(-1px);
+}
+.bonus-btn--danger {
+  background: rgb(239, 68, 68);
+  color: white;
+  border-color: rgb(239, 68, 68);
+}
+.bonus-btn--danger:hover:not(:disabled) {
+  background: rgb(220, 38, 38);
+  border-color: rgb(220, 38, 38);
+  transform: translateY(-1px);
 }
 .row-role-select {
   margin-left: 0.4rem;

@@ -165,6 +165,7 @@ export default defineEventHandler(async (event) => {
       isModerator: user.isModerator,
       uploaded: user.uploaded,
       downloaded: user.downloaded,
+      bonusPoints: user.bonusPoints,
     },
     loggedInAt: Date.now(),
   });

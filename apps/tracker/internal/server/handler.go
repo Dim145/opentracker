@@ -297,6 +297,7 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 	ipHash := cryptohash.HashIP(clientIP, s.ipHashSecret)
 	pdata := &peers.PeerData{
 		PeerID:     peerHex,
+		UserID:     user.ID,
 		IP:         clientIP,
 		IPHash:     ipHash,
 		Port:       req.Port,

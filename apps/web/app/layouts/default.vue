@@ -214,6 +214,22 @@
                     {{ $t('nav.invitations', 'Invitations') }}
                   </NuxtLink>
                   <NuxtLink
+                    to="/shop"
+                    class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center justify-between gap-2"
+                    @click="showUserMenu = false"
+                  >
+                    <span class="flex items-center gap-2">
+                      <Icon name="ph:storefront-bold" />
+                      {{ $t('nav.shop') }}
+                    </span>
+                    <span
+                      v-if="user && (user as any).bonusPoints !== undefined"
+                      class="text-[10px] font-mono text-text-muted"
+                    >
+                      {{ (user as any).bonusPoints }}
+                    </span>
+                  </NuxtLink>
+                  <NuxtLink
                     to="/settings"
                     class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
                     @click="showUserMenu = false"
@@ -398,6 +414,20 @@
           >
             <Icon name="ph:upload-simple-bold" class="text-lg flex-shrink-0" />
             <span>{{ $t('torrents.upload') }}</span>
+          </NuxtLink>
+          <NuxtLink
+            to="/shop"
+            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
+            @click="showMobileNav = false"
+          >
+            <Icon name="ph:storefront-bold" class="text-lg flex-shrink-0" />
+            <span class="flex-1">{{ $t('nav.shop') }}</span>
+            <span
+              v-if="user && (user as any).bonusPoints !== undefined"
+              class="text-[11px] font-mono text-text-muted"
+            >
+              {{ (user as any).bonusPoints }}
+            </span>
           </NuxtLink>
           <NuxtLink
             to="/invites"

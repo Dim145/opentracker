@@ -107,10 +107,55 @@
       </div>
     </section>
 
+    <!-- ── Bonus reserve card ──────────────────────────────────── -->
+    <!--
+      The user's seed-bonus balance, displayed as the focal asset of
+      the dossier. Animated counter on mount (rAF, ease-out), strong
+      typographic anchor on the left, action panel + caption on the
+      right. Grid collapses to a single column below 720 px.
+    -->
+    <section v-if="profile" class="bonus-vault">
+      <header class="section-head">
+        <span class="section-number">01</span>
+        <h2 class="section-title">{{ $t('me.bonus.title') }}</h2>
+        <span class="section-rule" />
+      </header>
+
+      <!--
+        Compact "wallet readout" — single row that reads like an asset
+        line in a financial dashboard:
+          [coin] [balance] PTS   |   one-line caption   →   [Spend ↗]
+
+        No more redundant mini-stats (the hero KPI strip already has
+        active-seeds + released). No more decorative tick marks. The
+        emphasis is on the *number*, not on the visual real estate.
+      -->
+      <div class="bonus-bar">
+        <div class="bonus-readout" aria-live="polite">
+          <Icon name="ph:coin-fill" class="bonus-icon" aria-hidden="true" />
+          <span class="bonus-readout-stack">
+            <span class="bonus-eyebrow">{{ $t('me.bonus.availableBalance') }}</span>
+            <span class="bonus-figure-row">
+              <span class="bonus-figure">{{ animatedBalance }}</span>
+              <span class="bonus-unit">{{ $t('shop.points') }}</span>
+            </span>
+          </span>
+        </div>
+
+        <p class="bonus-caption">{{ $t('me.bonus.caption') }}</p>
+
+        <NuxtLink to="/shop" class="bonus-cta">
+          <Icon name="ph:storefront-bold" />
+          <span>{{ $t('me.bonus.spend') }}</span>
+          <Icon name="ph:arrow-right-bold" class="bonus-cta-arrow" />
+        </NuxtLink>
+      </div>
+    </section>
+
     <!-- ── Tracker info card ──────────────────────────────────── -->
     <section v-if="profile" class="tracker-card">
       <header class="section-head">
-        <span class="section-number">01</span>
+        <span class="section-number">02</span>
         <h2 class="section-title">{{ $t('me.credentials.title') }}</h2>
         <span class="section-rule" />
       </header>
@@ -225,7 +270,7 @@
     <!-- ── Tabs ───────────────────────────────────────────────── -->
     <section v-if="profile" class="tabs-shell">
       <header class="section-head">
-        <span class="section-number">02</span>
+        <span class="section-number">03</span>
         <h2 class="section-title">{{ $t('me.activity.title') }}</h2>
         <span class="section-rule" />
       </header>
@@ -520,6 +565,7 @@ interface MeProfile {
   downloaded: number;
   ratio: number | null; // null = infinite
   invitesRemaining: number;
+  bonusPoints: number;
   lastIp: string | null;
   showLastSeen: boolean;
   createdAt: string;
@@ -534,6 +580,65 @@ interface MeProfile {
 
 const { data: profile } = await useFetch<MeProfile>('/api/me', {
   default: () => null as unknown as MeProfile,
+});
+
+// ── Animated balance counter ────────────────────────────────────
+//
+// Counts up from 0 to `profile.bonusPoints` on mount with rAF +
+// ease-out, then snaps to whatever the live value becomes after
+// hydration. Renders the number formatted with the user's locale,
+// tabular-nums, so the column width doesn't jitter as digits change.
+const animatedBalance = ref('0');
+let counterRaf: number | null = null;
+
+function formatPoints(n: number): string {
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(
+    Math.max(0, Math.round(n)),
+  );
+}
+
+function runCounter(target: number) {
+  if (typeof window === 'undefined') {
+    // SSR: paint the final value so there's no FOUC, the client
+    // animation re-runs on mount anyway.
+    animatedBalance.value = formatPoints(target);
+    return;
+  }
+  if (counterRaf !== null) cancelAnimationFrame(counterRaf);
+  // Cap the animation at 900 ms so very large balances still resolve
+  // quickly. Short animations feel snappier than a 2 s drift on a
+  // page load.
+  const duration = Math.min(900, Math.max(400, 250 + target / 8));
+  const start = performance.now();
+  // ease-out cubic — fast at the start, gentle landing.
+  const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+
+  const tick = (now: number) => {
+    const elapsed = now - start;
+    const t = Math.min(1, elapsed / duration);
+    animatedBalance.value = formatPoints(target * ease(t));
+    if (t < 1) {
+      counterRaf = requestAnimationFrame(tick);
+    } else {
+      counterRaf = null;
+    }
+  };
+  counterRaf = requestAnimationFrame(tick);
+}
+
+// Re-trigger the animation whenever the underlying value changes (e.g.
+// after a session refresh that landed a daily-login credit).
+watch(
+  () => profile.value?.bonusPoints,
+  (next) => {
+    if (typeof next !== 'number') return;
+    runCounter(next);
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  if (counterRaf !== null) cancelAnimationFrame(counterRaf);
 });
 
 // ── Passkey reveal (lazy) ──────────────────────────────────────
@@ -1262,6 +1367,159 @@ function formatDuration(seconds: number) {
     rgb(var(--line-default)),
     rgb(var(--line-default) / 0)
   );
+}
+
+/* ─── Bonus reserve ────────────────────────────────────────── */
+/*
+ * Compact wallet readout. One horizontal bar that fits a financial
+ * dashboard register more than a vault display: coin glyph + balance
+ * stack on the left, in-line caption in the middle, /shop CTA on the
+ * right. Wraps cleanly to two/three rows on narrow viewports.
+ *
+ * Hero KPI strip already carries active-seeds + released, so the
+ * previous mini-stats grid was duplication and got dropped. The
+ * decorative tick marks went too — the typography of the number
+ * carries the page on its own.
+ */
+.bonus-vault {
+  margin-bottom: 1.75rem;
+}
+.bonus-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.5rem;
+  background: rgb(var(--bg-elevated));
+  overflow: hidden;
+}
+.bonus-bar::before {
+  /* Hairline coin/gold accent at the top — same tone the /shop page
+     uses for low-stock warnings, threading the two surfaces visually. */
+  content: '';
+  position: absolute;
+  inset-inline: 1rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(212, 167, 52, 0.55) 0%,
+    rgba(212, 167, 52, 0.15) 50%,
+    rgba(212, 167, 52, 0) 100%
+  );
+}
+@media (max-width: 720px) {
+  .bonus-bar {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+}
+
+.bonus-readout {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-shrink: 0;
+}
+.bonus-icon {
+  font-size: 1.5rem;
+  color: #d4a734;
+  flex-shrink: 0;
+  /* Slow rotation to signal that the balance is "live"; barely
+     perceptible at 12 s per turn but adds the right kind of life. */
+  animation: bonus-coin-spin 12s linear infinite;
+}
+@keyframes bonus-coin-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.bonus-readout-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.bonus-eyebrow {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.bonus-figure-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.bonus-figure {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: rgb(var(--fg-strong));
+  /* Min-width keeps the layout stable while the counter animates
+     from 0 (icon would otherwise creep right as digits land). */
+  min-width: 3ch;
+  text-align: left;
+}
+.bonus-unit {
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+
+.bonus-caption {
+  flex: 1;
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgb(var(--fg-muted));
+  line-height: 1.5;
+  /* Hairline divider on the left when the row is wide enough.
+     Falls through cleanly when the layout wraps. */
+  border-left: 1px dashed rgb(var(--line-default) / 0.7);
+  padding-left: 1.1rem;
+}
+@media (max-width: 720px) {
+  .bonus-caption {
+    border-left: 0;
+    padding-left: 0;
+    flex: 1 1 100%;
+  }
+}
+
+.bonus-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.4rem;
+  background: rgb(var(--accent));
+  color: rgb(var(--accent-fg));
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: transform 0.15s, background 0.15s;
+}
+.bonus-cta:hover {
+  transform: translateY(-1px);
+  background: rgb(var(--accent-hover));
+}
+.bonus-cta-arrow {
+  font-size: 0.95rem;
+  transition: transform 0.2s;
+}
+.bonus-cta:hover .bonus-cta-arrow {
+  transform: translateX(2px);
 }
 
 /* ─── Tracker card ─────────────────────────────────────────── */

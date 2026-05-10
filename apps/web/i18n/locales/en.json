@@ -43,6 +43,7 @@
     "settings": "Settings",
     "downloads": "Downloads",
     "invitations": "Invitations",
+    "shop": "Bonus shop",
     "signOut": "Sign out",
     "signIn": "Sign in",
     "signUp": "Sign up",
@@ -180,6 +181,12 @@
       "nothingYet": "Nothing yet",
       "totalPulled": "Total bytes pulled",
       "activeSeeds": "{n} active seed · {invites} invite | {n} active seeds · {invites} invites"
+    },
+    "bonus": {
+      "title": "Bonus reserve",
+      "availableBalance": "Available balance",
+      "caption": "Earned by seeding active swarms — rare torrents and long-haul archives pay more thanks to the operator's tier curves.",
+      "spend": "Spend in the shop"
     },
     "credentials": {
       "title": "Tracker credentials",
@@ -947,6 +954,8 @@
       "tags": "Tags",
       "hnr": "Hit & Run",
       "bonusEvents": "Bonus Events",
+      "bonusRules": "Earning Rules",
+      "shop": "Bonus Shop",
       "bannedIps": "Banned IPs",
       "invitations": "Invitations",
       "torznab": "Torznab API",
@@ -962,6 +971,8 @@
       "tags": "Manage torrent tags",
       "hnr": "Monitor and manage H&R violations",
       "bonusEvents": "Schedule Freeleech / Silverleech windows and custom multipliers",
+      "bonusRules": "Configure how users earn bonus points (seeding, milestones, daily login, …) and the tier curves",
+      "shop": "Define what users can spend their seed-bonus points on",
       "bannedIps": "View, add and remove IPs from the auth blocklist",
       "invitations": "Manage invitation system",
       "torznab": "Configure *arr integration and rate limiting",
@@ -1111,6 +1122,125 @@
         "saveFailed": "Failed to save category",
         "deleteFailed": "Failed to delete category",
         "seedFailed": "Failed to seed categories"
+      }
+    },
+    "bonusRules": {
+      "on": "On",
+      "off": "Off",
+      "addTier": "Add tier",
+      "addMilestone": "Add milestone",
+      "rules": {
+        "title": "Earning rules",
+        "intro": "Five mechanisms credit users with bonus points. Each rule has its own knob; the seeding rule additionally multiplies its base rate by the seed-count + age tier curves below."
+      },
+      "seedTiers": {
+        "title": "Seed-count tier curve",
+        "intro": "Fewer concurrent seeders ⇒ higher multiplier. Tiers are evaluated in ascending max-seeders order; the first row whose max-seeders is ≥ the current count wins. A row with a very large max-seeders acts as the catch-all tail.",
+        "empty": "No seed-count tiers configured — every seeding credit falls back to 1× until you add one."
+      },
+      "ageTiers": {
+        "title": "Age tier curve",
+        "intro": "Older torrents reward seeding more, to keep the archive alive. Tiers are evaluated in descending min-age order; the first row whose min-age ≤ the torrent's age wins.",
+        "empty": "No age tiers configured — every torrent falls back to 1× until you add one."
+      },
+      "kinds": {
+        "seeding": {
+          "name": "Seeding",
+          "description": "Credits each active seeder of every torrent on every cron tick. The base rate is multiplied by the seed-count and age tier curves so rare archive seeds reward more than mainstream ones."
+        },
+        "first_seeder": {
+          "name": "First seeder",
+          "description": "One-time reward when a user is observed as the unique seeder of a torrent. Idempotent per (user × torrent) — the audit ledger refuses double-pays."
+        },
+        "seeding_milestone": {
+          "name": "Seeding milestones",
+          "description": "Per-torrent cumulative seed-time thresholds. Each crossing emits a single grant — useful to reward long-haul seeders without changing the base rate."
+        },
+        "daily_login": {
+          "name": "Daily login",
+          "description": "Once per UTC day on the user's first authenticated request. Gated by Redis SETNX so a user hammering /api/auth/status doesn't multi-claim."
+        },
+        "account_age_monthly": {
+          "name": "Account age (monthly loyalty)",
+          "description": "Monthly bonus for staying around. The cron credits at most every 30 days per user, gated by the grants ledger."
+        }
+      },
+      "fields": {
+        "pointsPerHourPerSeed": "Points / hour / seed (base rate)",
+        "reward": "Reward (points)",
+        "rewardPerMonth": "Reward / month (points)",
+        "thresholds": "Cumulative seed-time thresholds",
+        "hours": "Hours",
+        "maxSeeders": "Max seeders",
+        "minAgeDays": "Min age (days)",
+        "multiplier": "Multiplier (×100)"
+      },
+      "toasts": {
+        "ruleUpdated": "Rule updated",
+        "tierDeleted": "Tier deleted"
+      },
+      "errors": {
+        "updateFailed": "Failed to update rule",
+        "tierAddFailed": "Failed to add tier",
+        "tierUpdateFailed": "Failed to update tier",
+        "tierDeleteFailed": "Failed to delete tier"
+      }
+    },
+    "shop": {
+      "eyebrow": "Catalogue",
+      "title": "Bonus shop",
+      "intro": "Define what users can spend their seed-bonus points on. Items are applied to the user's account atomically at purchase time — disable a row to take it out of the catalogue without losing its history.",
+      "newItem": "New item",
+      "empty": "The catalogue is unwritten.",
+      "disabled": "Disabled",
+      "enable": "Enable",
+      "disable": "Disable",
+      "unlimited": "Unlimited",
+      "stockRemaining": "{n} left",
+      "outOfStock": "Out of stock",
+      "lowStock": "Low stock",
+      "enabledOn": "Visible to users in /shop.",
+      "enabledOff": "Hidden from /shop until re-enabled.",
+      "createTitle": "New shop item",
+      "editTitle": "Edit shop item",
+      "fields": {
+        "name": "Name",
+        "namePlaceholder": "5 GiB upload credit",
+        "description": "Description",
+        "descriptionPlaceholder": "Shown on the user-facing card under the name.",
+        "type": "Effect",
+        "uploadGiB": "Bytes credited (GiB)",
+        "inviteCount": "Invitation slots",
+        "cost": "Cost (points)",
+        "stock": "Stock",
+        "unlimited": "leave empty for unlimited",
+        "enabled": "Visible on the user shop"
+      },
+      "hints": {
+        "uploadGiB": "Stored as bytes server-side (this × 1 GiB).",
+        "stock": "Empty = unlimited"
+      },
+      "types": {
+        "uploadCredit": "Upload credit",
+        "uploadCreditSub": "Adds bytes to the buyer's uploaded total — pure ratio relief, no per-torrent freeleech.",
+        "invite": "Invitation slot",
+        "inviteSub": "Bumps the buyer's invites_remaining counter so they can draft new codes."
+      },
+      "toasts": {
+        "created": "Item published",
+        "updated": "Item updated",
+        "deleted": "Item deleted"
+      },
+      "errors": {
+        "saveFailed": "Failed to save item",
+        "deleteFailed": "Failed to delete item",
+        "toggleFailed": "Failed to toggle item",
+        "uploadInvalid": "GiB must be greater than 0",
+        "inviteInvalid": "Invitation count must be greater than 0"
+      },
+      "confirm": {
+        "deleteTitle": "Delete shop item",
+        "deleteMessage": "Permanently delete \"{name}\"? Items with purchase history can't be deleted — disable them instead."
       }
     },
     "bonusEvents": {
@@ -1346,7 +1476,8 @@
         "unban": "Unban",
         "toggleModerator": "Toggle moderator",
         "toggleAdmin": "Toggle admin",
-        "manageRoles": "Manage roles ({count} attached)"
+        "manageRoles": "Manage roles ({count} attached)",
+        "adjustBonus": "Adjust bonus points (currently {n})"
       },
       "pager": {
         "of": "of",
@@ -1356,6 +1487,28 @@
         "prev": "Prev",
         "next": "Next",
         "pageOf": "Page {current} of {total}"
+      },
+      "bonusModal": {
+        "title": "Bonus points · {username}",
+        "currentBalance": "Current balance",
+        "presets": "Quick presets",
+        "delta": "Adjustment",
+        "deltaHint": "negative removes, positive grants",
+        "deltaPlaceholder": "e.g. 100 or -50",
+        "preview": "After",
+        "clamped": "Clamped — balance can't go below 0",
+        "note": "Reason",
+        "noteHint": "logged on the audit row · optional",
+        "notePlaceholder": "e.g. Compensation for the Mar 12 announce outage.",
+        "grantAction": "Grant points",
+        "removeAction": "Remove points",
+        "toasts": {
+          "granted": "Granted {n} pts to {username}.",
+          "removed": "Removed {n} pts from {username}."
+        },
+        "errors": {
+          "generic": "Could not adjust the balance. Try again."
+        }
       },
       "rolesModal": {
         "titleWithUser": "Manage roles · {username}",
@@ -2096,6 +2249,39 @@
       "errors": {
         "fileThread": "Could not file the thread"
       }
+    }
+  },
+  "shop": {
+    "headTitle": "Bonus shop",
+    "backToProfile": "Back to profile",
+    "eyebrow": "Personal · Bonus",
+    "titleMain": "Bonus",
+    "titleAccent": "shop",
+    "blurb": "Spend the points you earn from seeding on upload credit, invite slots and other operator-defined perks. Items are added to your account immediately on purchase.",
+    "balance": "Available points",
+    "points": "pts",
+    "buy": "Buy",
+    "buying": "Buying…",
+    "notEnough": "Not enough",
+    "stock": "{n} left | {n} left",
+    "empty": {
+      "headline": "The shelves are empty.",
+      "help": "An administrator hasn't published any items yet. Check back later — there's nothing to spend your points on for now."
+    },
+    "effects": {
+      "uploadCredit": "Adds {size} to your uploaded total",
+      "invite": "Adds {n} invitation slot | Adds {n} invitation slots"
+    },
+    "confirm": {
+      "title": "Confirm purchase",
+      "message": "Spend {cost} points on \"{name}\"?",
+      "action": "Buy now"
+    },
+    "toasts": {
+      "bought": "\"{name}\" added to your account."
+    },
+    "errors": {
+      "buyFailed": "Purchase failed. Try again later."
     }
   },
   "downloads": {

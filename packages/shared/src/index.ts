@@ -26,6 +26,9 @@ export interface User {
   uploaded: number;
   downloaded: number;
   invitesRemaining: number;
+  /** Seed-bonus running balance. Earned through hourly accrual on
+   * active seeds, spent in the shop. Whole points only. */
+  bonusPoints: number;
   theme: ThemePreference;
   language: LanguagePreference;
 }
@@ -39,6 +42,7 @@ export interface PublicUser {
   isModerator: boolean;
   uploaded: number;
   downloaded: number;
+  bonusPoints: number;
   theme: ThemePreference;
   language: LanguagePreference;
 }

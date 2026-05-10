@@ -21,8 +21,16 @@ const peerTTL = 30 * time.Minute
 
 // PeerData is what we store in Redis. Field names match the JSON shape used
 // by the Node implementation so callers (apps/api) keep working.
+//
+// `UserID` was added so the API's seed-bonus cron can map active
+// seeders back to their user row without a passkey round-trip. The
+// field is optional (omitempty) so old peer rows written before this
+// migration deserialise cleanly — a missing UserID just means that
+// peer doesn't qualify for bonus credit until its next announce
+// rewrites the entry.
 type PeerData struct {
 	PeerID     string `json:"peerId"`
+	UserID     string `json:"userId,omitempty"`
 	IP         string `json:"ip"`
 	IPHash     string `json:"ipHash"`
 	Port       uint16 `json:"port"`

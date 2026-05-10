@@ -174,6 +174,7 @@ export default defineEventHandler(async (event) => {
         uploaded: true,
         downloaded: true,
         invitesRemaining: true,
+        bonusPoints: true,
         createdAt: true,
         lastSeen: true,
       },

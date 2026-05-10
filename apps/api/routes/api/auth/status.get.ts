@@ -3,6 +3,7 @@ import { db } from '@trackarr/db';
 import { users, webauthnCredentials } from '@trackarr/db/schema';
 import { getSetting, SETTINGS_KEYS, isInviteEnabled } from '~~/utils/server';
 import { getRequire2FAScope, isUserRequiredFor2FA } from '~~/utils/settings';
+import { creditDailyLoginIfDue } from '~~/utils/bonusEarning';
 import type {
   LanguagePreference,
   PublicUser,
@@ -36,6 +37,7 @@ export default defineEventHandler(async (event) => {
         language: users.language,
         uploaded: users.uploaded,
         downloaded: users.downloaded,
+        bonusPoints: users.bonusPoints,
         isBanned: users.isBanned,
         isAdmin: users.isAdmin,
         isModerator: users.isModerator,
@@ -50,6 +52,19 @@ export default defineEventHandler(async (event) => {
         await clearUserSession(event);
         publicUser = null;
       } else {
+        // Daily-login bonus — gated server-side via Redis SETNX so a
+        // user hitting /api/auth/status fifty times an hour only
+        // collects once per UTC day. The credit lands before we
+        // re-read `dbUser.bonusPoints` below so the response carries
+        // the post-credit balance.
+        try {
+          const credited = await creditDailyLoginIfDue(session.user.id);
+          if (credited > 0) {
+            dbUser.bonusPoints += credited;
+          }
+        } catch (err) {
+          console.warn('[bonus] daily-login credit failed:', err);
+        }
         // Cache lookup so /auth/status is one round-trip even when
         // pulling 2FA enforcement state.
         const fullUser = await db.query.users.findFirst({
@@ -66,6 +81,8 @@ export default defineEventHandler(async (event) => {
           (session.user as { theme?: ThemePreference }).theme ?? 'dark';
         const sessionLanguage =
           (session.user as { language?: LanguagePreference }).language ?? 'en';
+        const sessionBonusPoints =
+          (session.user as { bonusPoints?: number }).bonusPoints ?? 0;
         if (
           dbUser.uploaded !== session.user.uploaded ||
           dbUser.downloaded !== session.user.downloaded ||
@@ -73,7 +90,8 @@ export default defineEventHandler(async (event) => {
           dbUser.isModerator !== session.user.isModerator ||
           dbUser.displayName !== sessionDisplayName ||
           dbUser.theme !== sessionTheme ||
-          dbUser.language !== sessionLanguage
+          dbUser.language !== sessionLanguage ||
+          dbUser.bonusPoints !== sessionBonusPoints
         ) {
           await setUserSession(event, {
             ...session,
@@ -84,6 +102,7 @@ export default defineEventHandler(async (event) => {
               language: dbUser.language as LanguagePreference,
               uploaded: dbUser.uploaded,
               downloaded: dbUser.downloaded,
+              bonusPoints: dbUser.bonusPoints,
               isAdmin: dbUser.isAdmin,
               isModerator: dbUser.isModerator,
             },
@@ -98,6 +117,7 @@ export default defineEventHandler(async (event) => {
           isModerator: dbUser.isModerator,
           uploaded: dbUser.uploaded,
           downloaded: dbUser.downloaded,
+          bonusPoints: dbUser.bonusPoints,
           theme: (dbUser.theme as ThemePreference) ?? 'dark',
           language: (dbUser.language as LanguagePreference) ?? 'en',
         };

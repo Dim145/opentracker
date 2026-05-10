@@ -43,6 +43,7 @@
     "settings": "Paramètres",
     "downloads": "Téléchargements",
     "invitations": "Invitations",
+    "shop": "Boutique bonus",
     "signOut": "Se déconnecter",
     "signIn": "Se connecter",
     "signUp": "S'inscrire",
@@ -180,6 +181,12 @@
       "nothingYet": "Rien pour l'instant",
       "totalPulled": "Total téléchargé",
       "activeSeeds": "{n} seed actif · {invites} invitation | {n} seeds actifs · {invites} invitations"
+    },
+    "bonus": {
+      "title": "Réserve bonus",
+      "availableBalance": "Solde",
+      "caption": "Gagnés en seedant des swarms actifs — les torrents rares et les archives de longue date rapportent davantage grâce aux courbes de paliers configurées par l'opérateur.",
+      "spend": "Dépenser dans la boutique"
     },
     "credentials": {
       "title": "Identifiants tracker",
@@ -947,6 +954,8 @@
       "tags": "Tags",
       "hnr": "Hit & Run",
       "bonusEvents": "Évènements bonus",
+      "bonusRules": "Règles de gain",
+      "shop": "Boutique bonus",
       "bannedIps": "IP bannies",
       "invitations": "Invitations",
       "torznab": "API Torznab",
@@ -962,6 +971,8 @@
       "tags": "Gérer les tags de torrents",
       "hnr": "Surveiller et gérer les violations H&R",
       "bonusEvents": "Planifier des fenêtres Freeleech / Silverleech et des multiplicateurs personnalisés",
+      "bonusRules": "Configurer comment les utilisateurs gagnent des points bonus (seed, paliers, connexion quotidienne, …) et les courbes de multiplicateurs",
+      "shop": "Définir ce que les utilisateurs peuvent acheter avec leurs points bonus",
       "bannedIps": "Consulter, ajouter et retirer des IP de la liste de blocage d'authentification",
       "invitations": "Gérer le système d'invitations",
       "torznab": "Configurer l'intégration *arr et la limitation de débit",
@@ -1111,6 +1122,125 @@
         "saveFailed": "Échec de l'enregistrement de la catégorie",
         "deleteFailed": "Échec de la suppression de la catégorie",
         "seedFailed": "Échec de l'initialisation des catégories"
+      }
+    },
+    "bonusRules": {
+      "on": "Activée",
+      "off": "Désactivée",
+      "addTier": "Ajouter un palier",
+      "addMilestone": "Ajouter un palier",
+      "rules": {
+        "title": "Règles de gain",
+        "intro": "Cinq mécanismes créditent les utilisateurs en points bonus. Chaque règle a son propre paramétrage ; la règle de seed multiplie en plus son taux de base par les courbes de paliers (nombre de seeders + ancienneté) ci-dessous."
+      },
+      "seedTiers": {
+        "title": "Courbe par nombre de seeders",
+        "intro": "Moins il y a de seeders simultanés, plus le multiplicateur est élevé. Les paliers sont évalués par max-seeders croissant ; la première ligne dont max-seeders est ≥ au compteur actuel gagne. Une ligne avec un max-seeders très élevé sert de queue par défaut.",
+        "empty": "Aucun palier configuré — chaque crédit de seed retombe sur ×1 tant que vous n'en ajoutez pas."
+      },
+      "ageTiers": {
+        "title": "Courbe par ancienneté",
+        "intro": "Les torrents plus anciens récompensent davantage le seed, pour garder les archives vivantes. Paliers évalués par ancienneté minimale décroissante ; la première ligne dont min-age ≤ l'âge du torrent gagne.",
+        "empty": "Aucun palier d'ancienneté configuré — chaque torrent retombe sur ×1 tant que vous n'en ajoutez pas."
+      },
+      "kinds": {
+        "seeding": {
+          "name": "Seed",
+          "description": "Crédite chaque seeder actif de chaque torrent à chaque tick du cron. Le taux de base est multiplié par les courbes de paliers (nombre de seeders + ancienneté) afin de récompenser davantage les torrents rares."
+        },
+        "first_seeder": {
+          "name": "Premier seeder",
+          "description": "Récompense unique lorsque l'utilisateur est observé comme le seul seeder d'un torrent. Idempotent par (utilisateur × torrent) — l'audit interdit les doubles versements."
+        },
+        "seeding_milestone": {
+          "name": "Paliers de seed",
+          "description": "Paliers cumulatifs de temps de seed par torrent. Chaque franchissement émet une récompense unique — utile pour saluer les seeders au long cours sans toucher au taux de base."
+        },
+        "daily_login": {
+          "name": "Connexion quotidienne",
+          "description": "Une fois par jour UTC à la première requête authentifiée de l'utilisateur. Verrouillée via Redis SETNX pour empêcher tout abus."
+        },
+        "account_age_monthly": {
+          "name": "Ancienneté du compte (fidélité mensuelle)",
+          "description": "Bonus mensuel de fidélité. Le cron crédite au plus une fois par 30 jours et par utilisateur, contrôlé par l'audit."
+        }
+      },
+      "fields": {
+        "pointsPerHourPerSeed": "Points / heure / seed (taux de base)",
+        "reward": "Récompense (points)",
+        "rewardPerMonth": "Récompense / mois (points)",
+        "thresholds": "Paliers cumulatifs de temps de seed",
+        "hours": "Heures",
+        "maxSeeders": "Seeders max",
+        "minAgeDays": "Ancienneté min (jours)",
+        "multiplier": "Multiplicateur (×100)"
+      },
+      "toasts": {
+        "ruleUpdated": "Règle mise à jour",
+        "tierDeleted": "Palier supprimé"
+      },
+      "errors": {
+        "updateFailed": "Échec de la mise à jour de la règle",
+        "tierAddFailed": "Échec de l'ajout du palier",
+        "tierUpdateFailed": "Échec de la mise à jour du palier",
+        "tierDeleteFailed": "Échec de la suppression du palier"
+      }
+    },
+    "shop": {
+      "eyebrow": "Catalogue",
+      "title": "Boutique bonus",
+      "intro": "Définissez ce que les utilisateurs peuvent acheter avec leurs points bonus accumulés en seedant. Les achats sont appliqués au compte de l'utilisateur de manière atomique — désactivez une ligne pour la retirer du catalogue sans perdre son historique.",
+      "newItem": "Nouvel article",
+      "empty": "Le catalogue est encore vierge.",
+      "disabled": "Désactivé",
+      "enable": "Activer",
+      "disable": "Désactiver",
+      "unlimited": "Illimité",
+      "stockRemaining": "{n} restant",
+      "outOfStock": "Épuisé",
+      "lowStock": "Stock faible",
+      "enabledOn": "Visible dans /shop pour les utilisateurs.",
+      "enabledOff": "Masqué de /shop tant qu'il n'est pas réactivé.",
+      "createTitle": "Nouvel article",
+      "editTitle": "Modifier l'article",
+      "fields": {
+        "name": "Nom",
+        "namePlaceholder": "Crédit d'upload de 5 Gio",
+        "description": "Description",
+        "descriptionPlaceholder": "Affichée sur la carte côté utilisateur, sous le nom.",
+        "type": "Effet",
+        "uploadGiB": "Octets crédités (Gio)",
+        "inviteCount": "Créneaux d'invitation",
+        "cost": "Coût (points)",
+        "stock": "Stock",
+        "unlimited": "vide = illimité",
+        "enabled": "Visible dans la boutique utilisateur"
+      },
+      "hints": {
+        "uploadGiB": "Stocké en octets côté serveur (× 1 Gio).",
+        "stock": "Vide = illimité"
+      },
+      "types": {
+        "uploadCredit": "Crédit d'upload",
+        "uploadCreditSub": "Ajoute des octets au total uploadé du destinataire — soulagement de ratio, pas de freeleech par torrent.",
+        "invite": "Créneau d'invitation",
+        "inviteSub": "Augmente le compteur invites_remaining pour que l'utilisateur puisse émettre de nouveaux codes."
+      },
+      "toasts": {
+        "created": "Article publié",
+        "updated": "Article mis à jour",
+        "deleted": "Article supprimé"
+      },
+      "errors": {
+        "saveFailed": "Échec de l'enregistrement",
+        "deleteFailed": "Échec de la suppression",
+        "toggleFailed": "Échec du basculement",
+        "uploadInvalid": "Le nombre de Gio doit être supérieur à 0",
+        "inviteInvalid": "Le nombre d'invitations doit être supérieur à 0"
+      },
+      "confirm": {
+        "deleteTitle": "Supprimer l'article",
+        "deleteMessage": "Supprimer définitivement « {name} » ? Les articles avec un historique d'achat ne peuvent pas être supprimés — désactivez-les à la place."
       }
     },
     "bonusEvents": {
@@ -1346,7 +1476,8 @@
         "unban": "Débannir",
         "toggleModerator": "Activer/désactiver modérateur",
         "toggleAdmin": "Activer/désactiver admin",
-        "manageRoles": "Gérer les rôles ({count} attaché(s))"
+        "manageRoles": "Gérer les rôles ({count} attaché(s))",
+        "adjustBonus": "Ajuster les points bonus (actuellement {n})"
       },
       "pager": {
         "of": "sur",
@@ -1356,6 +1487,28 @@
         "prev": "Préc.",
         "next": "Suiv.",
         "pageOf": "Page {current} sur {total}"
+      },
+      "bonusModal": {
+        "title": "Points bonus · {username}",
+        "currentBalance": "Solde actuel",
+        "presets": "Préréglages",
+        "delta": "Ajustement",
+        "deltaHint": "négatif retire, positif crédite",
+        "deltaPlaceholder": "ex. 100 ou -50",
+        "preview": "Après",
+        "clamped": "Borné — le solde ne peut pas devenir négatif",
+        "note": "Motif",
+        "noteHint": "journalisé dans l'audit · facultatif",
+        "notePlaceholder": "ex. Compensation pour la panne d'announce du 12 mars.",
+        "grantAction": "Créditer",
+        "removeAction": "Retirer",
+        "toasts": {
+          "granted": "{n} pts crédités à {username}.",
+          "removed": "{n} pts retirés à {username}."
+        },
+        "errors": {
+          "generic": "Impossible d'ajuster le solde. Réessayez."
+        }
       },
       "rolesModal": {
         "titleWithUser": "Gérer les rôles · {username}",
@@ -2096,6 +2249,39 @@
       "errors": {
         "fileThread": "Impossible de déposer le sujet"
       }
+    }
+  },
+  "shop": {
+    "headTitle": "Boutique bonus",
+    "backToProfile": "Retour au profil",
+    "eyebrow": "Personnel · Bonus",
+    "titleMain": "Boutique",
+    "titleAccent": "bonus",
+    "blurb": "Dépensez les points gagnés en seedant pour obtenir du crédit d'upload, des invitations ou d'autres avantages définis par l'opérateur. Les achats sont appliqués immédiatement à votre compte.",
+    "balance": "Points disponibles",
+    "points": "pts",
+    "buy": "Acheter",
+    "buying": "Achat…",
+    "notEnough": "Solde insuffisant",
+    "stock": "{n} restant | {n} restants",
+    "empty": {
+      "headline": "Les rayons sont vides.",
+      "help": "Aucun administrateur n'a encore publié d'articles. Revenez plus tard — il n'y a rien à dépenser pour l'instant."
+    },
+    "effects": {
+      "uploadCredit": "Ajoute {size} à votre total uploadé",
+      "invite": "Ajoute {n} créneau d'invitation | Ajoute {n} créneaux d'invitation"
+    },
+    "confirm": {
+      "title": "Confirmer l'achat",
+      "message": "Dépenser {cost} points pour « {name} » ?",
+      "action": "Acheter"
+    },
+    "toasts": {
+      "bought": "« {name} » ajouté à votre compte."
+    },
+    "errors": {
+      "buyFailed": "Échec de l'achat. Réessayez plus tard."
     }
   },
   "downloads": {
