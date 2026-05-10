@@ -177,6 +177,7 @@
       "released": "Publié",
       "noUploadsYet": "Aucun envoi pour l'instant",
       "totalShared": "Total partagé",
+      "bonusBreakdown": "dont {bonus} bonus",
       "buildSeedTime": "Faites du seed",
       "nothingYet": "Rien pour l'instant",
       "totalPulled": "Total téléchargé",

@@ -71,9 +71,29 @@
               {{ $t('me.stats.uploaded') }}
             </span>
             <span class="kpi-value">{{ formatSize(profile.uploaded) }}</span>
-            <span class="kpi-sub">{{
-              profile.uploaded === 0 ? $t('me.stats.noUploadsYet') : $t('me.stats.totalShared')
-            }}</span>
+            <!--
+              Sub-line resolution order:
+                1. nothing uploaded yet → onboarding nudge
+                2. some bonus credit applied → split breakdown so the
+                   user can tell ratio relief from real contribution
+                3. otherwise → generic "total bytes shared" caption
+              The bonus split sits on its own line with a tinted
+              accent + coin glyph so it reads as derived data, not as
+              another KPI value.
+            -->
+            <template v-if="profile.uploaded === 0">
+              <span class="kpi-sub">{{ $t('me.stats.noUploadsYet') }}</span>
+            </template>
+            <template v-else-if="profile.bonusUploaded > 0">
+              <span class="kpi-sub">{{ $t('me.stats.totalShared') }}</span>
+              <span class="kpi-sub kpi-sub--bonus">
+                <Icon name="ph:coin-fill" class="kpi-sub-icon" />
+                {{ $t('me.stats.bonusBreakdown', { bonus: formatSize(profile.bonusUploaded) }) }}
+              </span>
+            </template>
+            <template v-else>
+              <span class="kpi-sub">{{ $t('me.stats.totalShared') }}</span>
+            </template>
           </li>
           <li class="kpi kpi--ratio" :class="ratioToneClass">
             <span class="kpi-label">
@@ -562,6 +582,10 @@ interface MeProfile {
   isBanned: boolean;
   roles: MeRole[];
   uploaded: number;
+  /** Subset of `uploaded` whose bytes came from a shop purchase
+   * (`upload_credit`) rather than from real seeding. `> 0` swaps the
+   * Uploaded KPI sub-line for a "(of which X bonus)" breakdown. */
+  bonusUploaded: number;
   downloaded: number;
   ratio: number | null; // null = infinite
   invitesRemaining: number;
@@ -1310,6 +1334,28 @@ function formatDuration(seconds: number) {
   font-size: 10.5px;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.04em;
+}
+/* Second sub-line — coin tone, used for the "(of which X bonus)"
+   breakdown on the Uploaded KPI. Reads as derived data, not as a
+   second value. The colour matches the /me bonus-bar coin icon and
+   the /shop low-stock rail so the three surfaces stay threaded. */
+.kpi-sub--bonus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  /* Pull tight against the line above so the two sub-rows read as
+     a single block (caption + breakdown) rather than two
+     independent stats — the parent `.kpi` flex gap is wider than
+     we want here. */
+  margin-top: -0.25rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: #d4a734;
+}
+.kpi-sub-icon {
+  font-size: 0.85em;
+  flex-shrink: 0;
 }
 .kpi--up .kpi-value {
   color: #6cd161;

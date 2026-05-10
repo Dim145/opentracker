@@ -164,11 +164,14 @@ export async function purchaseItem(
     let updateColumns: string;
     if (itemType === 'upload_credit') {
       const { bytes } = uploadCreditPayload.parse(item.payload);
-      // Increment uploaded and decrement bonus_points in one UPDATE so
-      // they stay consistent at the row-level locked tx boundary.
+      // Increment both `uploaded` (so the user's ratio benefits) AND
+      // `bonus_uploaded` (so the /me KPI can split "real vs. bonus"
+      // bytes). Both columns + the points debit ride the same tx so
+      // they can't drift apart on a partial failure.
       await tx.execute(
         sql`UPDATE ${schema.users}
             SET uploaded = uploaded + ${bytes},
+                bonus_uploaded = bonus_uploaded + ${bytes},
                 bonus_points = bonus_points - ${item.cost}
             WHERE id = ${userId}`
       );

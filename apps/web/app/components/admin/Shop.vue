@@ -423,7 +423,7 @@
 <script setup lang="ts">
 const { t } = useI18n();
 const notifications = useNotificationStore();
-const confirmDialog = useConfirm();
+const confirm = useConfirm();
 
 interface ShopItemRow {
   id: string;
@@ -632,7 +632,7 @@ async function toggleEnabled(item: ShopItemRow) {
 }
 
 async function confirmDelete(item: ShopItemRow) {
-  const ok = await confirmDialog.confirm({
+  const ok = await confirm({
     title: t('admin.shop.confirm.deleteTitle'),
     message: t('admin.shop.confirm.deleteMessage', { name: item.name }),
     confirmText: t('common.delete'),

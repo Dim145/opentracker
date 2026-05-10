@@ -177,6 +177,7 @@
       "released": "Released",
       "noUploadsYet": "No uploads yet",
       "totalShared": "Total bytes shared",
+      "bonusBreakdown": "incl. {bonus} bonus",
       "buildSeedTime": "Build up some seed time",
       "nothingYet": "Nothing yet",
       "totalPulled": "Total bytes pulled",

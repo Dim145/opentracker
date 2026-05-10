@@ -48,6 +48,21 @@ export const users = pgTable(
     // retired with this migration — see user_roles below.
     lastIp: text('last_ip'),
     uploaded: bigint('uploaded', { mode: 'number' }).default(0).notNull(),
+    // Subset of `uploaded` whose bytes came from a shop purchase
+    // (`upload_credit` items) rather than from real seeding. The
+    // `purchaseItem` apply path increments BOTH `uploaded` and
+    // `bonus_uploaded` in the same transaction so the breakdown stays
+    // consistent at row-level granularity.
+    //
+    // Display: the /me Uploaded KPI shows
+    //   `total — (of which X bonus)`
+    // when this is > 0, so the user can tell ratio relief from real
+    // contribution at a glance. Existing announce-flow logic only
+    // touches `uploaded` — never `bonus_uploaded` — so the
+    // tracker-bumped bytes don't accidentally count as bonus.
+    bonusUploaded: bigint('bonus_uploaded', { mode: 'number' })
+      .default(0)
+      .notNull(),
     downloaded: bigint('downloaded', { mode: 'number' }).default(0).notNull(),
     invitesRemaining: integer('invites_remaining').default(0).notNull(),
     // Seed-bonus running balance (whole points). Earned through the

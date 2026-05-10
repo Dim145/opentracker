@@ -194,6 +194,11 @@ export default defineEventHandler(async (event) => {
       isModerator: false,
       lastIp: clientIp !== 'unknown' ? clientIp : null,
       uploaded: starterUpload,
+      // The starter is ratio relief, not real seeding — counted in
+      // the bonus subset so the /me Uploaded KPI shows
+      // "X — (incl. Y bonus)" out of the gate. Same invariant as
+      // the shop's `upload_credit` apply path.
+      bonusUploaded: starterUpload,
       invitesRemaining: settledFirstUser ? 10 : defaultInvites,
       panicPasswordHash,
     });

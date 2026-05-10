@@ -197,7 +197,7 @@
 <script setup lang="ts">
 const { t } = useI18n();
 const notifications = useNotificationStore();
-const confirmDialog = useConfirm();
+const confirm = useConfirm();
 const { fetch: refreshSession } = useUserSession();
 
 useHead({ title: () => t('shop.headTitle') });
@@ -268,7 +268,7 @@ async function confirmAndBuy(item: ShopItem) {
   if (pendingItemId.value !== null) return;
   if (item.cost > bonusPoints.value) return;
 
-  const ok = await confirmDialog.confirm({
+  const ok = await confirm({
     title: t('shop.confirm.title'),
     message: t('shop.confirm.message', {
       name: item.name,
