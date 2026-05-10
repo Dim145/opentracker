@@ -335,7 +335,7 @@
                 </button>
 
                 <button
-                  v-if="user?.isAdmin"
+                  v-if="user?.isAdmin && isAdminSurface"
                   type="button"
                   class="row-action"
                   :class="{ 'row-action--mod-on': u.isModerator }"
@@ -356,7 +356,7 @@
                 </button>
 
                 <button
-                  v-if="user?.isAdmin"
+                  v-if="user?.isAdmin && isAdminSurface"
                   type="button"
                   class="row-action"
                   :class="{ 'row-action--admin-on': u.isAdmin }"
@@ -377,7 +377,7 @@
                 </button>
 
                 <button
-                  v-if="user?.isAdmin && roles.length > 0"
+                  v-if="user?.isAdmin && isAdminSurface && roles.length > 0"
                   type="button"
                   class="row-action"
                   :class="{ 'row-action--has-roles': u.roles.length > 0 }"
@@ -392,12 +392,13 @@
                   >
                 </button>
 
-                <!-- Adjust bonus points — admins only. The button doubles
-                     as a balance display (shows the current pts in the
-                     count badge so the admin sees who has what at a
-                     glance without opening the modal). -->
+                <!-- Adjust bonus points — admins only, and only on the
+                     /admin/users surface. On /mod/users the button is
+                     hidden even for an admin viewer: it's a registry
+                     mutation that conceptually belongs to the admin
+                     dashboard, not to the moderation queue. -->
                 <button
-                  v-if="user?.isAdmin"
+                  v-if="user?.isAdmin && isAdminSurface"
                   type="button"
                   class="row-action"
                   :class="{ 'row-action--bonus-active': u.bonusPoints > 0 }"
@@ -821,6 +822,18 @@ const { t } = useI18n();
 const { user } = useUserSession();
 const notifications = useNotificationStore();
 const confirm = useConfirm();
+const route = useRoute();
+
+// The same component renders /admin/users (full registry, every action
+// available) and /mod/users (a moderator-scoped read-mostly view).
+// Promotion / demotion, role management and bonus-point adjustment are
+// strictly admin-only — even when the viewer is themselves an admin
+// they should perform those actions from /admin/users, not from the
+// moderation surface. We branch off the route prefix so the wiring
+// stays implicit: no prop to pass through, no second component to
+// maintain, and a future /something/users surface inherits the right
+// default.
+const isAdminSurface = computed(() => !route.path.startsWith('/mod'));
 
 // ── State ──────────────────────────────────────────────────────
 const searchInput = ref('');
