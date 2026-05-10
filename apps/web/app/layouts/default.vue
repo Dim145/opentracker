@@ -56,7 +56,7 @@
           >
             <div class="flex items-center gap-2">
               <Icon :name="link.icon" class="text-base" />
-              <span>{{ link.label }}</span>
+              <span>{{ $t(link.labelKey) }}</span>
             </div>
           </NuxtLink>
         </nav>
@@ -162,7 +162,7 @@
                       <p
                         class="text-[10px] uppercase tracking-wider text-text-muted mt-0.5"
                       >
-                        View profile
+                        {{ $t('nav.profile') }}
                       </p>
                     </div>
                     <Icon
@@ -178,13 +178,13 @@
                       v-if="user?.isAdmin"
                       class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-fg-default/10 rounded text-text-secondary"
                     >
-                      Admin
+                      {{ $t('nav.admin') }}
                     </span>
                     <span
                       v-if="user?.isModerator"
                       class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-fg-default/10 rounded text-text-secondary"
                     >
-                      Moderator
+                      {{ $t('nav.mod') }}
                     </span>
                   </div>
                 </NuxtLink>
@@ -195,7 +195,7 @@
                     @click="showUserMenu = false"
                   >
                     <Icon name="ph:download-simple-bold" />
-                    Downloads
+                    {{ $t('nav.downloads', 'Downloads') }}
                   </NuxtLink>
                   <NuxtLink
                     to="/torrents/upload"
@@ -203,7 +203,7 @@
                     @click="showUserMenu = false"
                   >
                     <Icon name="ph:upload-simple-bold" />
-                    Upload
+                    {{ $t('torrents.upload') }}
                   </NuxtLink>
                   <NuxtLink
                     to="/invites"
@@ -211,7 +211,7 @@
                     @click="showUserMenu = false"
                   >
                     <Icon name="ph:envelope-simple-bold" />
-                    Invitations
+                    {{ $t('nav.invitations', 'Invitations') }}
                   </NuxtLink>
                   <NuxtLink
                     to="/settings"
@@ -219,14 +219,14 @@
                     @click="showUserMenu = false"
                   >
                     <Icon name="ph:gear" />
-                    Settings
+                    {{ $t('nav.settings') }}
                   </NuxtLink>
                   <button
                     @click="handleLogout"
                     class="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-fg-default/5 transition-colors flex items-center gap-2"
                   >
                     <Icon name="ph:sign-out" />
-                    Sign Out
+                    {{ $t('nav.signOut') }}
                   </button>
                 </div>
               </div>
@@ -331,11 +331,11 @@
               <span
                 v-if="user?.isAdmin"
                 class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-fg-default/10 rounded text-text-secondary"
-              >Admin</span>
+              >{{ $t('nav.admin') }}</span>
               <span
                 v-if="user?.isModerator"
                 class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-fg-default/10 rounded text-text-secondary"
-              >Moderator</span>
+              >{{ $t('nav.mod') }}</span>
             </div>
           </div>
           <Icon name="ph:arrow-right-bold" class="text-text-muted text-base flex-shrink-0" />
@@ -347,19 +347,19 @@
           class="grid grid-cols-3 border-b border-border bg-bg-inset/50"
         >
           <div class="px-3 py-3 border-r border-border">
-            <p class="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-0.5">↑ Up</p>
+            <p class="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-0.5">↑ {{ $t('nav.uploaded') }}</p>
             <p class="text-xs font-mono font-bold text-success truncate">
               {{ formatSize(user.uploaded) }}
             </p>
           </div>
           <div class="px-3 py-3 border-r border-border">
-            <p class="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-0.5">↓ Down</p>
+            <p class="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-0.5">↓ {{ $t('nav.downloaded') }}</p>
             <p class="text-xs font-mono font-bold text-text-secondary truncate">
               {{ formatSize(user.downloaded) }}
             </p>
           </div>
           <div class="px-3 py-3">
-            <p class="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-0.5">Ratio</p>
+            <p class="text-[9px] uppercase tracking-widest text-text-muted font-bold mb-0.5">{{ $t('nav.ratio') }}</p>
             <p :class="['text-xs font-mono font-bold truncate', ratioColor]">
               {{ calculateRatio(user.uploaded, user.downloaded) }}
             </p>
@@ -389,7 +389,7 @@
             @click="showMobileNav = false"
           >
             <Icon name="ph:download-simple-bold" class="text-lg flex-shrink-0" />
-            <span>Downloads</span>
+            <span>{{ $t('nav.downloads', 'Downloads') }}</span>
           </NuxtLink>
           <NuxtLink
             to="/torrents/upload"
@@ -397,7 +397,7 @@
             @click="showMobileNav = false"
           >
             <Icon name="ph:upload-simple-bold" class="text-lg flex-shrink-0" />
-            <span>Upload</span>
+            <span>{{ $t('torrents.upload') }}</span>
           </NuxtLink>
           <NuxtLink
             to="/invites"
@@ -405,7 +405,7 @@
             @click="showMobileNav = false"
           >
             <Icon name="ph:envelope-simple-bold" class="text-lg flex-shrink-0" />
-            <span>Invitations</span>
+            <span>{{ $t('nav.invitations', 'Invitations') }}</span>
           </NuxtLink>
           <NuxtLink
             to="/settings"
@@ -413,7 +413,7 @@
             @click="showMobileNav = false"
           >
             <Icon name="ph:gear" class="text-lg flex-shrink-0" />
-            <span>Settings</span>
+            <span>{{ $t('nav.settings') }}</span>
           </NuxtLink>
           <button
             type="button"
@@ -421,7 +421,7 @@
             @click="onMobileLogout"
           >
             <Icon name="ph:sign-out" class="text-lg flex-shrink-0" />
-            <span>Sign Out</span>
+            <span>{{ $t('nav.signOut') }}</span>
           </button>
         </div>
       </aside>
@@ -691,23 +691,16 @@ async function refreshStats() {
   await fetch();
 }
 
+// Nav labels go through `t()` at render time. The `labelKey` lookup
+// stays in `i18n/locales/*.json` under `nav.*` so a translator only
+// has to touch the JSON, never the template.
 const navLinks = [
-  { to: '/', label: 'Dashboard', icon: 'ph:squares-four', adminOnly: false },
-  {
-    to: '/search',
-    label: 'Search',
-    icon: 'ph:magnifying-glass',
-    adminOnly: false,
-  },
-  { to: '/torrents', label: 'Torrents', icon: 'ph:files', adminOnly: false },
-  {
-    to: '/forum',
-    label: 'Forum',
-    icon: 'ph:chat-centered-text',
-    adminOnly: false,
-  },
-  { to: '/admin', label: 'Admin', icon: 'ph:shield-check', adminOnly: true },
-  { to: '/mod', label: 'Mod', icon: 'ph:shield', modOnly: true },
+  { to: '/', labelKey: 'nav.dashboard', icon: 'ph:squares-four', adminOnly: false },
+  { to: '/search', labelKey: 'nav.search', icon: 'ph:magnifying-glass', adminOnly: false },
+  { to: '/torrents', labelKey: 'nav.torrents', icon: 'ph:files', adminOnly: false },
+  { to: '/forum', labelKey: 'nav.forum', icon: 'ph:chat-centered-text', adminOnly: false },
+  { to: '/admin', labelKey: 'nav.admin', icon: 'ph:shield-check', adminOnly: true },
+  { to: '/mod', labelKey: 'nav.mod', icon: 'ph:shield', modOnly: true },
 ];
 
 const visibleNavLinks = computed(() =>

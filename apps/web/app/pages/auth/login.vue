@@ -40,7 +40,7 @@
       >
         <Icon name="ph:lock-simple" class="text-blue-400 text-lg mt-0.5 shrink-0" />
         <p class="text-blue-400 text-xs leading-relaxed">
-          Registrations are currently closed. Only existing members can sign in.
+          {{ $t('auth.login.registrationsClosed') }}
         </p>
       </div>
       <div
@@ -49,8 +49,7 @@
       >
         <Icon name="ph:envelope-simple" class="text-accent text-lg mt-0.5 shrink-0" />
         <p class="text-accent text-xs leading-relaxed">
-          Registrations are by invitation only. You'll need a code from an
-          existing member to create an account.
+          {{ $t('auth.login.registrationsInviteOnly') }}
         </p>
       </div>
 
@@ -65,7 +64,7 @@
             for="username"
             class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
           >
-            Username
+            {{ $t('auth.login.username') }}
           </label>
           <input
             id="username"
@@ -74,7 +73,7 @@
             required
             autocomplete="username"
             class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
-            placeholder="Enter your username"
+            :placeholder="$t('auth.login.usernamePlaceholder')"
           />
         </div>
 
@@ -83,7 +82,7 @@
             for="password"
             class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
           >
-            Password
+            {{ $t('auth.login.password') }}
           </label>
           <input
             id="password"
@@ -92,7 +91,7 @@
             required
             autocomplete="current-password"
             class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
-            placeholder="Enter your password"
+            :placeholder="$t('auth.login.passwordPlaceholder')"
           />
         </div>
 
@@ -114,8 +113,8 @@
           :disabled="loading"
           class="w-full bg-accent text-accent-fg font-medium py-2.5 rounded hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span v-if="loading">Signing in...</span>
-          <span v-else>Sign In</span>
+          <span v-if="loading">{{ $t('auth.login.submitting') }}</span>
+          <span v-else>{{ $t('auth.login.submit') }}</span>
         </button>
       </form>
 
@@ -138,8 +137,8 @@
         <p class="text-text-muted text-sm">
           {{
             registrationMode === 'invite-only'
-              ? 'Have an invite code?'
-              : "Don't have an account?"
+              ? $t('auth.login.haveInvite')
+              : $t('auth.login.needAccount')
           }}
           <NuxtLink
             to="/auth/register"
@@ -147,8 +146,8 @@
           >
             {{
               registrationMode === 'invite-only'
-                ? 'Redeem it'
-                : 'Create one'
+                ? $t('auth.login.redeemInvite')
+                : $t('auth.login.createAccount')
             }}
           </NuxtLink>
         </p>

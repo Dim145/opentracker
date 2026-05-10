@@ -1,0 +1,219 @@
+{
+  "common": {
+    "save": "Save",
+    "saveChanges": "Save changes",
+    "cancel": "Cancel",
+    "discard": "Discard",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "loading": "Loading…",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "yes": "Yes",
+    "no": "No",
+    "search": "Search",
+    "all": "All",
+    "none": "None",
+    "actions": "Actions",
+    "status": "Status",
+    "name": "Name",
+    "date": "Date",
+    "size": "Size",
+    "category": "Category",
+    "hash": "Hash",
+    "copy": "Copy",
+    "copied": "Copied",
+    "open": "Open",
+    "language": "Language"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "search": "Search",
+    "torrents": "Torrents",
+    "forum": "Forum",
+    "admin": "Admin",
+    "mod": "Mod",
+    "uploaded": "Uploaded",
+    "downloaded": "Downloaded",
+    "ratio": "Ratio",
+    "profile": "View profile",
+    "settings": "Settings",
+    "downloads": "Downloads",
+    "invitations": "Invitations",
+    "signOut": "Sign out",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "menu": "Menu",
+    "toggleTheme": "Toggle theme",
+    "languageSelector": "Select language"
+  },
+  "home": {
+    "trackerOnline": "Tracker online & operational",
+    "trackerOffline": "Tracker offline",
+    "tagline": "High-performance, minimalist P2P tracking engine. Search through our indexed database of verified torrents.",
+    "searchPlaceholder": "Search torrents by name, tag or infohash…",
+    "stats": {
+      "torrents": "{n} torrent | {n} torrents",
+      "peers": "{n} peer | {n} peers",
+      "lowLatency": "Ultra-low latency"
+    },
+    "recentlyIndexed": "Recently indexed",
+    "browseAll": "Browse all"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "username": "Username",
+      "usernamePlaceholder": "Enter your username",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "submit": "Sign In",
+      "submitting": "Signing in…",
+      "needAccount": "Don't have an account?",
+      "createAccount": "Create one",
+      "haveInvite": "Have an invite code?",
+      "redeemInvite": "Redeem it",
+      "registrationsClosed": "Registrations are currently closed. Only existing members can sign in.",
+      "registrationsInviteOnly": "Registrations are by invitation only. You'll need a code from an existing member to create an account.",
+      "forgotPassword": "Forgot password?",
+      "twoFactorTitle": "Two-factor authentication",
+      "twoFactorPrompt": "Enter the 6-digit code from your authenticator app, a recovery code, or use a passkey.",
+      "totpPlaceholder": "123456",
+      "useRecoveryCode": "Use a recovery code",
+      "usePasskey": "Use a passkey",
+      "trustDevice": "Trust this browser for 30 days",
+      "verifyButton": "Verify",
+      "errors": {
+        "invalidCredentials": "Invalid username or password.",
+        "invalidCode": "That code didn't match. Try again.",
+        "rateLimited": "Too many attempts. Try again later."
+      }
+    },
+    "register": {
+      "title": "Create an account",
+      "username": "Username",
+      "email": "Email (optional)",
+      "password": "Password",
+      "passwordHint": "Minimum 12 characters. Stronger is better — your password never leaves the browser.",
+      "panicPassword": "Panic password",
+      "panicPasswordHint": "A second password used to encrypt sensitive data on demand. Cannot be recovered if forgotten.",
+      "inviteCode": "Invitation code",
+      "inviteCodeHint": "Required when registrations are invite-only.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "loginInstead": "Sign in",
+      "errors": {
+        "usernameTaken": "That username is already taken.",
+        "weakPassword": "That password is too short or too predictable.",
+        "invalidInvite": "That invitation code is invalid or expired.",
+        "registrationsClosed": "Registrations are currently closed."
+      }
+    }
+  },
+  "me": {
+    "title": "Personal dossier",
+    "publish": "Publish a release",
+    "memberSince": "Member since {date}",
+    "stats": {
+      "uploaded": "Uploaded",
+      "ratio": "Ratio",
+      "downloaded": "Downloaded",
+      "released": "Released",
+      "noUploadsYet": "No uploads yet",
+      "totalShared": "Total bytes shared",
+      "buildSeedTime": "Build up some seed time",
+      "nothingYet": "Nothing yet",
+      "totalPulled": "Total bytes pulled",
+      "activeSeeds": "{n} active seed · {invites} invite | {n} active seeds · {invites} invites"
+    },
+    "credentials": {
+      "title": "Tracker credentials",
+      "passkey": "Passkey",
+      "announceUrl": "Announce URL",
+      "rotate": "Rotate",
+      "show": "Show",
+      "hide": "Hide",
+      "warning": "Never share this. Rotating it will break any torrent client still configured with the old announce URL.",
+      "useInClient": "Use this in your torrent client. Includes your passkey."
+    },
+    "activity": {
+      "title": "Activity",
+      "myUploads": "My uploads",
+      "mySeeds": "My seeds",
+      "noUploads": "You haven't published any releases yet.",
+      "noSeeds": "Nothing seeding yet."
+    }
+  },
+  "settings": {
+    "title": "Settings & controls",
+    "backToProfile": "Back to profile",
+    "allSaved": "All saved",
+    "unsavedChanges": "Unsaved changes",
+    "sections": {
+      "identity": "Identity",
+      "privacy": "Privacy",
+      "appearance": "Appearance",
+      "security": "Security",
+      "accountInfo": "Account info"
+    },
+    "identity": {
+      "username": "Username",
+      "usernameLocked": "Your username is locked — it's tied to your announce URL and moderation history. Use a display name to change how you appear on profile pages without rotating your identity.",
+      "immutable": "Immutable",
+      "displayName": "Display name",
+      "optional": "optional",
+      "bio": "Bio",
+      "bioPlaceholder": "A short blurb on your seedbox, your taste, or what you're farming this month."
+    },
+    "privacy": {
+      "showLastSeen": "Show last-seen on my public profile",
+      "showLastSeenHint": "When off, members visiting your public profile see \"Hidden\" instead of a timestamp. Mods and admins always see the real value for moderation."
+    },
+    "security": {
+      "title": "Security",
+      "twoFactor": "Two-factor authentication",
+      "twoFactorHint": "Add a second factor on top of your password. We support authenticator apps (TOTP) and platform / hardware passkeys. Configure either or both — you'll pick which one to use at sign-in.",
+      "off": "Off",
+      "on": "On",
+      "totpTitle": "Authenticator app (TOTP)",
+      "totpNotConfigured": "Not configured",
+      "totpEnable": "Enable TOTP",
+      "totpDisable": "Disable TOTP",
+      "passkeysTitle": "Passkeys",
+      "noPasskeys": "No passkeys yet",
+      "addPasskey": "Add passkey",
+      "trustedDevices": "Trusted devices",
+      "trustedDevicesHint": "Skip the second factor on browsers you've already verified (30 days). Disable to reset.",
+      "changePassword": "Change password",
+      "changePasswordHint": "Your password never leaves this device. We re-derive a fresh salt + verifier from the new password and replace the stored pair atomically.",
+      "trackerPasskey": "Tracker passkey",
+      "trackerPasskeyHint": "Reveal, copy or rotate your passkey from the tracker credentials section on your profile.",
+      "openProfile": "Open profile",
+      "signOutDevice": "Sign out of this device",
+      "signOutDeviceHint": "Ends the current session cookie and sends you back to the login page."
+    }
+  },
+  "torrents": {
+    "title": "Torrent index",
+    "objectsIndexed": "{n} object indexed in database | {n} objects indexed in database",
+    "showFilters": "Show filters",
+    "hideFilters": "Hide filters",
+    "upload": "Upload",
+    "categories": "Categories",
+    "allTorrents": "All torrents",
+    "columns": {
+      "name": "Name",
+      "category": "Category",
+      "hash": "Hash",
+      "seeders": "S",
+      "leechers": "L",
+      "completed": "C",
+      "size": "Size",
+      "age": "Age"
+    },
+    "ago": "ago"
+  }
+}

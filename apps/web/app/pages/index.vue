@@ -25,8 +25,8 @@
           :class="trackerOnline ? 'text-text-muted' : 'text-danger'"
           >{{
             trackerOnline
-              ? content?.statusBadgeText ?? 'Tracker Online & Operational'
-              : 'Tracker Offline'
+              ? content?.statusBadgeText ?? $t('home.trackerOnline')
+              : $t('home.trackerOffline')
           }}</span
         >
       </div>
@@ -36,19 +36,14 @@
       ></h1>
       <div
         class="text-sm text-text-muted font-mono max-w-xl mx-auto mb-10 hero-subtitle"
-        v-html="
-          sanitizeHtml(
-            content?.heroSubtitle ||
-            'High-performance, minimalist P2P tracking engine. Search through our indexed database of verified torrents.'
-          )
-        "
+        v-html="sanitizeHtml(content?.heroSubtitle || $t('home.tagline'))"
       ></div>
 
       <!-- Search Bar -->
       <div class="max-w-2xl mx-auto">
         <SearchBar
           v-model="search"
-          placeholder="Search torrents by name, tag or infohash..."
+          :placeholder="$t('home.searchPlaceholder')"
           size="lg"
           @search="handleSearch"
         />
@@ -57,19 +52,19 @@
             class="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-widest"
           >
             <Icon name="ph:package" />
-            <span>{{ stats?.live?.torrents ?? 0 }} Torrents</span>
+            <span>{{ $t('home.stats.torrents', { n: stats?.live?.torrents ?? 0 }) }}</span>
           </div>
           <div
             class="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-widest"
           >
             <Icon name="ph:users-three" />
-            <span>{{ stats?.cached?.peers ?? 0 }} Peers</span>
+            <span>{{ $t('home.stats.peers', { n: stats?.cached?.peers ?? 0 }) }}</span>
           </div>
           <div
             class="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-widest"
           >
             <Icon name="ph:lightning" />
-            <span>Ultra-low Latency</span>
+            <span>{{ $t('home.stats.lowLatency') }}</span>
           </div>
         </div>
       </div>
@@ -81,14 +76,14 @@
         <div class="flex items-center gap-2">
           <Icon name="ph:clock-counter-clockwise" class="text-text-muted" />
           <h3 class="text-xs font-bold uppercase tracking-wider">
-            Recently Indexed
+            {{ $t('home.recentlyIndexed') }}
           </h3>
         </div>
         <NuxtLink
           to="/torrents"
           class="text-[10px] font-bold uppercase text-text-muted hover:text-text-strong transition-colors flex items-center gap-1"
         >
-          Browse all <Icon name="ph:arrow-right" />
+          {{ $t('home.browseAll') }} <Icon name="ph:arrow-right" />
         </NuxtLink>
       </div>
       <div class="card overflow-hidden">

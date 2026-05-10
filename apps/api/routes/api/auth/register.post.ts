@@ -222,7 +222,9 @@ export default defineEventHandler(async (event) => {
     await setRegistrationOpen(false);
   }
 
-  // Set user session using nuxt-auth-utils
+  // Set user session using nuxt-auth-utils. The new user inherits the
+  // schema defaults for theme/language ('dark' / 'en'); the FE picker
+  // can change them after registration.
   await setUserSession(event, {
     user: {
       id: userId,
@@ -232,6 +234,8 @@ export default defineEventHandler(async (event) => {
       isModerator: false,
       uploaded: starterUpload,
       downloaded: 0,
+      theme: 'dark',
+      language: 'en',
     },
     loggedInAt: Date.now(),
   });

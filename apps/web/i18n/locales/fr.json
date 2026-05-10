@@ -1,0 +1,219 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "saveChanges": "Enregistrer les modifications",
+    "cancel": "Annuler",
+    "discard": "Abandonner",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "loading": "Chargement…",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "yes": "Oui",
+    "no": "Non",
+    "search": "Rechercher",
+    "all": "Tous",
+    "none": "Aucun",
+    "actions": "Actions",
+    "status": "Statut",
+    "name": "Nom",
+    "date": "Date",
+    "size": "Taille",
+    "category": "Catégorie",
+    "hash": "Hash",
+    "copy": "Copier",
+    "copied": "Copié",
+    "open": "Ouvrir",
+    "language": "Langue"
+  },
+  "nav": {
+    "dashboard": "Accueil",
+    "search": "Rechercher",
+    "torrents": "Torrents",
+    "forum": "Forum",
+    "admin": "Admin",
+    "mod": "Modération",
+    "uploaded": "Envoyé",
+    "downloaded": "Reçu",
+    "ratio": "Ratio",
+    "profile": "Voir le profil",
+    "settings": "Paramètres",
+    "downloads": "Téléchargements",
+    "invitations": "Invitations",
+    "signOut": "Se déconnecter",
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "menu": "Menu",
+    "toggleTheme": "Changer de thème",
+    "languageSelector": "Choisir la langue"
+  },
+  "home": {
+    "trackerOnline": "Tracker en ligne et opérationnel",
+    "trackerOffline": "Tracker hors ligne",
+    "tagline": "Moteur de tracking P2P haute performance et minimaliste. Cherchez dans notre base indexée de torrents vérifiés.",
+    "searchPlaceholder": "Rechercher un torrent par nom, tag ou infohash…",
+    "stats": {
+      "torrents": "{n} torrent | {n} torrents",
+      "peers": "{n} pair | {n} pairs",
+      "lowLatency": "Latence ultra-faible"
+    },
+    "recentlyIndexed": "Indexés récemment",
+    "browseAll": "Tout parcourir"
+  },
+  "auth": {
+    "login": {
+      "title": "Connexion",
+      "username": "Identifiant",
+      "usernamePlaceholder": "Entrez votre identifiant",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "Entrez votre mot de passe",
+      "submit": "Se connecter",
+      "submitting": "Connexion…",
+      "needAccount": "Pas encore de compte ?",
+      "createAccount": "En créer un",
+      "haveInvite": "Vous avez un code d'invitation ?",
+      "redeemInvite": "L'utiliser",
+      "registrationsClosed": "Les inscriptions sont fermées. Seuls les membres existants peuvent se connecter.",
+      "registrationsInviteOnly": "Les inscriptions sont sur invitation. Il vous faut un code d'un membre existant pour créer un compte.",
+      "forgotPassword": "Mot de passe oublié ?",
+      "twoFactorTitle": "Double authentification",
+      "twoFactorPrompt": "Saisissez le code à 6 chiffres de votre application d'authentification, un code de récupération, ou utilisez une passkey.",
+      "totpPlaceholder": "123456",
+      "useRecoveryCode": "Utiliser un code de récupération",
+      "usePasskey": "Utiliser une passkey",
+      "trustDevice": "Faire confiance à ce navigateur pendant 30 jours",
+      "verifyButton": "Vérifier",
+      "errors": {
+        "invalidCredentials": "Identifiant ou mot de passe invalide.",
+        "invalidCode": "Le code ne correspond pas. Réessayez.",
+        "rateLimited": "Trop de tentatives. Réessayez plus tard."
+      }
+    },
+    "register": {
+      "title": "Créer un compte",
+      "username": "Identifiant",
+      "email": "Email (optionnel)",
+      "password": "Mot de passe",
+      "passwordHint": "12 caractères minimum. Plus c'est fort, mieux c'est — votre mot de passe ne quitte jamais le navigateur.",
+      "panicPassword": "Mot de passe panique",
+      "panicPasswordHint": "Un second mot de passe utilisé pour chiffrer les données sensibles à la demande. Irrécupérable si oublié.",
+      "inviteCode": "Code d'invitation",
+      "inviteCodeHint": "Requis lorsque les inscriptions sont sur invitation.",
+      "submit": "Créer le compte",
+      "haveAccount": "Vous avez déjà un compte ?",
+      "loginInstead": "Se connecter",
+      "errors": {
+        "usernameTaken": "Cet identifiant est déjà pris.",
+        "weakPassword": "Mot de passe trop court ou trop prévisible.",
+        "invalidInvite": "Code d'invitation invalide ou expiré.",
+        "registrationsClosed": "Les inscriptions sont fermées."
+      }
+    }
+  },
+  "me": {
+    "title": "Dossier personnel",
+    "publish": "Publier un torrent",
+    "memberSince": "Membre depuis le {date}",
+    "stats": {
+      "uploaded": "Envoyé",
+      "ratio": "Ratio",
+      "downloaded": "Reçu",
+      "released": "Publié",
+      "noUploadsYet": "Aucun envoi pour l'instant",
+      "totalShared": "Total partagé",
+      "buildSeedTime": "Faites du seed",
+      "nothingYet": "Rien pour l'instant",
+      "totalPulled": "Total téléchargé",
+      "activeSeeds": "{n} seed actif · {invites} invitation | {n} seeds actifs · {invites} invitations"
+    },
+    "credentials": {
+      "title": "Identifiants tracker",
+      "passkey": "Passkey",
+      "announceUrl": "URL d'annonce",
+      "rotate": "Rotation",
+      "show": "Afficher",
+      "hide": "Masquer",
+      "warning": "Ne partagez jamais ces identifiants. Une rotation cassera tout client torrent encore configuré avec l'ancienne URL d'annonce.",
+      "useInClient": "À utiliser dans votre client torrent. Contient votre passkey."
+    },
+    "activity": {
+      "title": "Activité",
+      "myUploads": "Mes envois",
+      "mySeeds": "Mes seeds",
+      "noUploads": "Vous n'avez encore publié aucun torrent.",
+      "noSeeds": "Aucun seed pour l'instant."
+    }
+  },
+  "settings": {
+    "title": "Paramètres & contrôles",
+    "backToProfile": "Retour au profil",
+    "allSaved": "Tout est enregistré",
+    "unsavedChanges": "Modifications non enregistrées",
+    "sections": {
+      "identity": "Identité",
+      "privacy": "Confidentialité",
+      "appearance": "Apparence",
+      "security": "Sécurité",
+      "accountInfo": "Compte"
+    },
+    "identity": {
+      "username": "Identifiant",
+      "usernameLocked": "Votre identifiant est verrouillé — il est lié à votre URL d'annonce et à votre historique de modération. Utilisez un nom d'affichage pour changer l'apparence sur les pages publiques sans changer votre identité.",
+      "immutable": "Immuable",
+      "displayName": "Nom d'affichage",
+      "optional": "optionnel",
+      "bio": "Bio",
+      "bioPlaceholder": "Une courte description de votre seedbox, vos goûts, ou ce que vous farmez ce mois-ci."
+    },
+    "privacy": {
+      "showLastSeen": "Afficher ma dernière connexion sur mon profil public",
+      "showLastSeenHint": "Lorsque désactivé, les membres voient « Caché » au lieu de la date sur votre profil public. Les modérateurs et admins voient toujours la vraie valeur."
+    },
+    "security": {
+      "title": "Sécurité",
+      "twoFactor": "Double authentification",
+      "twoFactorHint": "Ajoutez un second facteur en plus de votre mot de passe. Nous supportons les applications d'authentification (TOTP) et les passkeys (matériel ou plateforme). Vous pouvez configurer l'un, l'autre, ou les deux — vous choisirez à la connexion.",
+      "off": "Désactivé",
+      "on": "Activé",
+      "totpTitle": "Application d'authentification (TOTP)",
+      "totpNotConfigured": "Non configuré",
+      "totpEnable": "Activer TOTP",
+      "totpDisable": "Désactiver TOTP",
+      "passkeysTitle": "Passkeys",
+      "noPasskeys": "Aucune passkey",
+      "addPasskey": "Ajouter une passkey",
+      "trustedDevices": "Appareils de confiance",
+      "trustedDevicesHint": "Évite la double authentification sur les navigateurs déjà vérifiés (30 jours). Désactivez pour réinitialiser.",
+      "changePassword": "Changer le mot de passe",
+      "changePasswordHint": "Votre mot de passe ne quitte pas cet appareil. Nous dérivons un nouveau salt + verifier à partir du nouveau mot de passe et remplaçons la paire stockée de manière atomique.",
+      "trackerPasskey": "Passkey tracker",
+      "trackerPasskeyHint": "Affichez, copiez ou faites tourner votre passkey depuis la section identifiants tracker de votre profil.",
+      "openProfile": "Ouvrir le profil",
+      "signOutDevice": "Se déconnecter de cet appareil",
+      "signOutDeviceHint": "Termine la session courante et vous renvoie sur la page de connexion."
+    }
+  },
+  "torrents": {
+    "title": "Index des torrents",
+    "objectsIndexed": "{n} objet indexé en base | {n} objets indexés en base",
+    "showFilters": "Afficher les filtres",
+    "hideFilters": "Masquer les filtres",
+    "upload": "Envoyer",
+    "categories": "Catégories",
+    "allTorrents": "Tous les torrents",
+    "columns": {
+      "name": "Nom",
+      "category": "Catégorie",
+      "hash": "Hash",
+      "seeders": "S",
+      "leechers": "L",
+      "completed": "C",
+      "size": "Taille",
+      "age": "Âge"
+    },
+    "ago": "il y a"
+  }
+}

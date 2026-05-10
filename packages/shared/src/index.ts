@@ -5,6 +5,15 @@
 
 export type ThemePreference = 'light' | 'dark';
 
+/**
+ * Locale codes that the web frontend bundles. Keep this in lock-step
+ * with `apps/web/i18n/locales/*.json` and the `locales` array in
+ * `apps/web/nuxt.config.ts`. The DB column is a free-form `text` so
+ * adding a new locale is purely a frontend + JSON change — no
+ * migration required.
+ */
+export type LanguagePreference = 'en' | 'fr';
+
 export interface User {
   id: string;
   username: string;
@@ -18,6 +27,7 @@ export interface User {
   downloaded: number;
   invitesRemaining: number;
   theme: ThemePreference;
+  language: LanguagePreference;
 }
 
 /** Subset of `User` safe to expose in public API responses (no passkey). */
@@ -30,6 +40,7 @@ export interface PublicUser {
   uploaded: number;
   downloaded: number;
   theme: ThemePreference;
+  language: LanguagePreference;
 }
 
 export interface UserSession {

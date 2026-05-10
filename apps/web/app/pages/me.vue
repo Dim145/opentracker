@@ -13,7 +13,7 @@
               <span>{{ profile.username.slice(0, 2).toUpperCase() }}</span>
             </div>
             <div class="hero-id-body">
-              <p class="hero-eyebrow">Personal dossier</p>
+              <p class="hero-eyebrow">{{ $t('me.title') }}</p>
               <h1 class="hero-title">
                 {{ profile.displayName || profile.username }}
               </h1>
@@ -42,7 +42,7 @@
                 />
                 <span class="hero-pill hero-pill--soft">
                   <Icon name="ph:hourglass-medium-bold" />
-                  Member since {{ memberSince }}
+                  {{ $t('me.memberSince', { date: memberSince }) }}
                 </span>
                 <span
                   v-if="profile.lastIp"
@@ -58,7 +58,7 @@
           <div class="hero-actions">
             <NuxtLink to="/torrents/upload" class="hero-btn hero-btn--primary">
               <Icon name="ph:rocket-launch-bold" />
-              <span>Publish a release</span>
+              <span>{{ $t('me.publish') }}</span>
             </NuxtLink>
           </div>
         </div>
@@ -68,17 +68,17 @@
           <li class="kpi kpi--up">
             <span class="kpi-label">
               <Icon name="ph:cloud-arrow-up-bold" />
-              Uploaded
+              {{ $t('me.stats.uploaded') }}
             </span>
             <span class="kpi-value">{{ formatSize(profile.uploaded) }}</span>
             <span class="kpi-sub">{{
-              profile.uploaded === 0 ? 'No uploads yet' : 'Total bytes shared'
+              profile.uploaded === 0 ? $t('me.stats.noUploadsYet') : $t('me.stats.totalShared')
             }}</span>
           </li>
           <li class="kpi kpi--ratio" :class="ratioToneClass">
             <span class="kpi-label">
               <Icon name="ph:scales-bold" />
-              Ratio
+              {{ $t('me.stats.ratio') }}
             </span>
             <span class="kpi-value">{{ formatRatio(profile.ratio) }}</span>
             <span class="kpi-sub">{{ ratioLegend }}</span>
@@ -86,26 +86,21 @@
           <li class="kpi kpi--down">
             <span class="kpi-label">
               <Icon name="ph:cloud-arrow-down-bold" />
-              Downloaded
+              {{ $t('me.stats.downloaded') }}
             </span>
             <span class="kpi-value">{{ formatSize(profile.downloaded) }}</span>
             <span class="kpi-sub">{{
-              profile.downloaded === 0 ? 'Nothing yet' : 'Total bytes pulled'
+              profile.downloaded === 0 ? $t('me.stats.nothingYet') : $t('me.stats.totalPulled')
             }}</span>
           </li>
           <li class="kpi kpi--torrents">
             <span class="kpi-label">
               <Icon name="ph:files-bold" />
-              Released
+              {{ $t('me.stats.released') }}
             </span>
             <span class="kpi-value">{{ profile.counts.uploads }}</span>
             <span class="kpi-sub">
-              {{ profile.counts.activeSeeds }} active seed{{
-                profile.counts.activeSeeds === 1 ? '' : 's'
-              }}
-              · {{ profile.invitesRemaining }} invite{{
-                profile.invitesRemaining === 1 ? '' : 's'
-              }}
+              {{ $t('me.stats.activeSeeds', profile.counts.activeSeeds, { n: profile.counts.activeSeeds, invites: profile.invitesRemaining }) }}
             </span>
           </li>
         </ul>
@@ -116,14 +111,14 @@
     <section v-if="profile" class="tracker-card">
       <header class="section-head">
         <span class="section-number">01</span>
-        <h2 class="section-title">Tracker credentials</h2>
+        <h2 class="section-title">{{ $t('me.credentials.title') }}</h2>
         <span class="section-rule" />
       </header>
 
       <div class="tracker-grid">
         <article class="cred">
           <div class="cred-head">
-            <span class="cred-label">Passkey</span>
+            <span class="cred-label">{{ $t('me.credentials.passkey') }}</span>
             <div class="cred-actions">
               <button
                 type="button"
@@ -188,7 +183,7 @@
 
         <article class="cred">
           <div class="cred-head">
-            <span class="cred-label">Announce URL</span>
+            <span class="cred-label">{{ $t('me.credentials.announceUrl') }}</span>
             <div class="cred-actions">
               <button
                 type="button"
@@ -232,7 +227,7 @@
     <section v-if="profile" class="tabs-shell">
       <header class="section-head">
         <span class="section-number">02</span>
-        <h2 class="section-title">Activity</h2>
+        <h2 class="section-title">{{ $t('me.activity.title') }}</h2>
         <span class="section-rule" />
       </header>
 

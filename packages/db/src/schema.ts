@@ -68,6 +68,13 @@ export const users = pgTable(
     // follows the user across devices instead of being trapped in a
     // single browser's localStorage.
     theme: text('theme').default('dark').notNull(),
+    // BCP-47-ish language code matching one of the `@nuxtjs/i18n`
+    // bundle codes (`en`, `fr`, …). Server-persisted so the choice
+    // follows the user across devices and survives the cookie flush
+    // that comes with a `clearUserSession`. The default mirrors the
+    // module's `defaultLocale`; missing keys in any locale fall back
+    // to English at render time.
+    language: text('language').default('en').notNull(),
     // ── Two-factor authentication ────────────────────────────
     // TOTP secret stored as base32 (the `otpauth://` URI form).
     // Encryption-at-rest is left to the operator's Postgres setup;

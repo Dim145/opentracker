@@ -187,28 +187,102 @@
           </header>
 
           <div class="section-body">
-            <p class="section-help">
-              Theme is stored locally on this device. Switching here is the
-              same as the toggle in the header.
-            </p>
-            <div class="theme-row">
-              <button
-                v-for="t in themes"
-                :key="t.value"
-                type="button"
-                class="theme-btn"
-                :class="{ 'theme-btn--active': themeMode === t.value }"
-                @click="setTheme(t.value)"
-              >
-                <span class="theme-btn-dot" :style="{ background: t.dot }" />
-                <span class="theme-btn-body">
-                  <span class="theme-btn-label">
-                    <Icon :name="t.icon" />
-                    {{ t.label }}
+            <!-- ── Theme picker ─────────────────────────────────── -->
+            <div class="appearance-block">
+              <div class="appearance-block-head">
+                <span class="appearance-block-eyebrow">Mode</span>
+                <h3 class="appearance-block-title">Theme</h3>
+              </div>
+              <p class="section-help">
+                Theme follows you across devices — stored on your account and
+                cached locally for a flicker-free first paint.
+              </p>
+              <div class="theme-row">
+                <button
+                  v-for="t in themes"
+                  :key="t.value"
+                  type="button"
+                  class="theme-btn"
+                  :class="{ 'theme-btn--active': themeMode === t.value }"
+                  @click="setTheme(t.value)"
+                >
+                  <span class="theme-btn-dot" :style="{ background: t.dot }" />
+                  <span class="theme-btn-body">
+                    <span class="theme-btn-label">
+                      <Icon :name="t.icon" />
+                      {{ t.label }}
+                    </span>
+                    <span class="theme-btn-sub">{{ t.sub }}</span>
                   </span>
-                  <span class="theme-btn-sub">{{ t.sub }}</span>
-                </span>
-              </button>
+                </button>
+              </div>
+            </div>
+
+            <!-- ── Language picker ──────────────────────────────────
+                 The active locale is saved on the user's account
+                 (`users.language`) so the choice survives a logout,
+                 a device swap, or a cookie flush. Switching here
+                 hits PATCH /api/me which refreshes the session, and
+                 the i18n-user.client plugin watches the session and
+                 re-applies via `setLocale()`. The cookie used by
+                 `detectBrowserLanguage` is overridden in the same
+                 call so the next anonymous visit on this browser
+                 doesn't drift back to the autodetected guess. -->
+            <div class="appearance-block">
+              <div class="appearance-block-head">
+                <span class="appearance-block-eyebrow">Locale</span>
+                <h3 class="appearance-block-title">{{ $t('common.language') }}</h3>
+              </div>
+              <p class="section-help">
+                Saved on your account so the same UI language follows you
+                across devices. New strings always fall back to English when
+                a translation isn't ready yet.
+              </p>
+              <div class="lang-row">
+                <button
+                  v-for="l in languages"
+                  :key="l.value"
+                  type="button"
+                  class="lang-btn"
+                  :class="{
+                    'lang-btn--active': languageMode === l.value,
+                    'lang-btn--saving': languageSaving && pendingLanguage === l.value,
+                  }"
+                  :disabled="languageSaving"
+                  :aria-pressed="languageMode === l.value"
+                  @click="setLanguage(l.value)"
+                >
+                  <span class="lang-btn-code" aria-hidden="true">
+                    <span class="lang-btn-bracket lang-btn-bracket--l">[</span>
+                    {{ l.value.toUpperCase() }}
+                    <span class="lang-btn-bracket lang-btn-bracket--r">]</span>
+                  </span>
+                  <span class="lang-btn-body">
+                    <span class="lang-btn-label">
+                      {{ l.native }}
+                    </span>
+                    <span class="lang-btn-sub">
+                      <span class="lang-btn-region">{{ l.region }}</span>
+                      <span
+                        v-if="languageMode === l.value"
+                        class="lang-btn-active-mark"
+                        aria-hidden="true"
+                      >
+                        <Icon name="ph:check-bold" />
+                        active
+                      </span>
+                    </span>
+                  </span>
+                </button>
+              </div>
+              <p
+                v-if="languageError"
+                class="lang-error"
+                role="alert"
+              >
+                <Icon name="ph:warning-circle-bold" />
+                {{ languageError }}
+              </p>
             </div>
           </div>
         </section>
@@ -645,6 +719,73 @@ const themes: ThemeOption[] = [
 ];
 function setTheme(value: 'light' | 'dark') {
   applyTheme(value);
+}
+
+// ── Language picker ─────────────────────────────────────────────
+//
+// `users.language` is the source of truth. The cards below mirror the
+// theme picker visually but use a typographic `[XX]` badge instead of
+// a colored dot to telegraph "language code" rather than "swatch".
+// Switching:
+//   1. optimistically update the in-memory locale + the i18n switcher
+//      so the UI reacts before the network round-trips
+//   2. PATCH /api/me with the new value
+//   3. on failure, revert and surface the error
+//
+// `languageMode` is derived from the live i18n locale so the active
+// state is correct even when the language was set elsewhere (e.g. by
+// the `i18n-user.client` plugin reacting to a session refresh).
+interface LanguageOption {
+  value: 'en' | 'fr';
+  native: string;
+  region: string;
+}
+const languages: LanguageOption[] = [
+  { value: 'en', native: 'English', region: 'English (US)' },
+  { value: 'fr', native: 'Français', region: 'French (France)' },
+];
+const { locale: i18nLocale, setLocale: setI18nLocale } = useI18n();
+// refreshSession is already destructured from useUserSession() near
+// the top of the file; we reuse it after the language PATCH so the
+// i18n-user.client plugin sees the updated `language` on the next
+// session poll instead of fighting our optimistic switch.
+const languageSaving = ref(false);
+const pendingLanguage = ref<LanguageOption['value'] | null>(null);
+const languageError = ref<string | null>(null);
+const languageMode = computed<LanguageOption['value']>(() => {
+  return (i18nLocale.value as LanguageOption['value']) ?? 'en';
+});
+async function setLanguage(value: LanguageOption['value']) {
+  if (languageSaving.value) return;
+  if (languageMode.value === value) return;
+  const previous = languageMode.value;
+  pendingLanguage.value = value;
+  languageError.value = null;
+  languageSaving.value = true;
+  try {
+    // 1) optimistic: paint the new language right away
+    await setI18nLocale(value);
+    // 2) persist to the user's account
+    await $fetch('/api/me', {
+      method: 'PATCH',
+      body: { language: value },
+    });
+    // 3) refresh the cached session so the user object's `language`
+    //    matches the DB on the next status poll, and the plugin
+    //    watcher doesn't fight with whatever was just applied.
+    await refreshSession();
+  } catch (err: any) {
+    // Revert the optimistic change so the active state matches what
+    // actually got persisted.
+    await setI18nLocale(previous);
+    languageError.value =
+      err?.data?.message ||
+      err?.message ||
+      'Could not save the language change. Please try again.';
+  } finally {
+    languageSaving.value = false;
+    pendingLanguage.value = null;
+  }
 }
 
 // ── Password change ─────────────────────────────────────────────
@@ -1187,6 +1328,215 @@ onBeforeRouteLeave((_to, _from, next) => {
   font-size: 10px;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.04em;
+}
+
+/* ─── Appearance blocks (theme + language as siblings) ──────── */
+/* The Appearance section now hosts two pickers. We give each one
+   its own header so the picker rhythm doesn't read as one giant
+   undifferentiated grid. The first block has no top border; every
+   subsequent one gets a hairline divider. */
+.appearance-block + .appearance-block {
+  margin-top: 1.6rem;
+  padding-top: 1.4rem;
+  border-top: 1px dashed rgb(var(--line-default) / 0.6);
+}
+.appearance-block-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  margin: 0 0 0.55rem;
+}
+.appearance-block-eyebrow {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  padding: 0.15rem 0.45rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.3rem;
+}
+.appearance-block-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: rgb(var(--fg-strong));
+}
+
+/* ─── Language picker ───────────────────────────────────────── */
+/* Same grid as `.theme-row` so the two cards line up vertically
+   when stacked. We keep the lang-row class distinct so future
+   evolution of either picker doesn't drag the other along. */
+.lang-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+@media (max-width: 640px) {
+  .lang-row {
+    grid-template-columns: 1fr;
+  }
+}
+.lang-btn {
+  display: flex;
+  align-items: stretch;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(var(--line-default));
+  background: rgb(var(--bg-secondary));
+  color: rgb(var(--fg-default));
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s,
+    transform 0.12s;
+  position: relative;
+  overflow: hidden;
+}
+.lang-btn::before {
+  /* Faint vertical rule between the typographic badge and the
+     body text. Reads as a structural divider rather than a
+     decorative line. */
+  content: '';
+  position: absolute;
+  top: 0.85rem;
+  bottom: 0.85rem;
+  left: calc(0.85rem + 2.6rem);
+  width: 1px;
+  background: rgb(var(--line-default));
+  transition: background 0.18s;
+}
+.lang-btn:hover {
+  border-color: rgb(var(--fg-default) / 0.3);
+  transform: translateY(-1px);
+}
+.lang-btn:active {
+  transform: translateY(0);
+}
+.lang-btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgb(var(--bg-primary)),
+    0 0 0 3px rgb(var(--fg-strong));
+}
+.lang-btn:disabled {
+  cursor: progress;
+  opacity: 0.85;
+}
+.lang-btn--active {
+  border-color: rgb(var(--fg-strong));
+  background: rgb(var(--fg-strong) / 0.04);
+  box-shadow: inset 0 0 0 1px rgb(var(--fg-strong));
+}
+.lang-btn--active::before {
+  background: rgb(var(--fg-strong) / 0.4);
+}
+.lang-btn--saving {
+  /* Subtle progress shimmer along the top edge while the PATCH
+     is in flight. CSS-only; no JS timer to clean up. */
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(var(--fg-strong) / 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 2px;
+  background-repeat: no-repeat;
+  background-position: -100% 0;
+  animation: lang-shimmer 1s linear infinite;
+}
+@keyframes lang-shimmer {
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/* The typographic badge — a mono `[EN]` / `[FR]` set in a tall
+   reserved column. The brackets are subtle and tracked open to
+   feel like a label in an editorial table-of-contents, not a
+   button affordance. */
+.lang-btn-code {
+  flex-shrink: 0;
+  width: 2.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgb(var(--fg-default));
+  transition: color 0.18s;
+}
+.lang-btn--active .lang-btn-code {
+  color: rgb(var(--fg-strong));
+}
+.lang-btn-bracket {
+  font-weight: 400;
+  color: rgb(var(--fg-muted));
+  margin: 0 0.08rem;
+  transition: color 0.18s;
+}
+.lang-btn--active .lang-btn-bracket {
+  color: rgb(var(--fg-strong));
+}
+.lang-btn-bracket--l {
+  margin-right: 0.18rem;
+}
+.lang-btn-bracket--r {
+  margin-left: 0.18rem;
+}
+
+.lang-btn-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.18rem;
+  min-width: 0;
+  padding-left: 0.05rem;
+}
+.lang-btn-label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  color: rgb(var(--fg-strong));
+}
+.lang-btn-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgb(var(--fg-muted));
+}
+.lang-btn-region {
+  text-transform: uppercase;
+}
+.lang-btn-active-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid rgb(var(--fg-strong) / 0.4);
+  border-radius: 0.25rem;
+  color: rgb(var(--fg-strong));
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.lang-error {
+  margin-top: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: rgb(220, 50, 47);
 }
 
 /* ─── Action cards ─────────────────────────────────────────── */

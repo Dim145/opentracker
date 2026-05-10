@@ -74,6 +74,7 @@ export default defineConfig({
             { text: 'Invitations', link: '/guide/invitations' },
             { text: 'Moderation', link: '/guide/moderation' },
             { text: 'Bonus Events', link: '/guide/bonus-events' },
+            { text: 'Internationalization', link: '/guide/i18n' },
           ],
         },
         {

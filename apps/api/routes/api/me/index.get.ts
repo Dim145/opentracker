@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
       showLastSeen: true,
       showAdultContent: true,
       theme: true,
+      language: true,
       createdAt: true,
       lastSeen: true,
     },
@@ -105,6 +106,7 @@ export default defineEventHandler(async (event) => {
     showLastSeen: user.showLastSeen,
     showAdultContent: user.showAdultContent,
     theme: user.theme,
+    language: user.language,
     createdAt: user.createdAt,
     lastSeen: user.lastSeen,
     counts: {

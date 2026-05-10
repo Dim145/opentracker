@@ -43,6 +43,12 @@ const bodySchema = z
     // returning adult-tagged categories / torrents.
     showAdultContent: z.boolean().optional(),
     theme: z.enum(['light', 'dark']).optional(),
+    // Language preference — must match one of the locale bundles
+    // shipped under `apps/web/i18n/locales/`. Adding a locale means
+    // adding it to this enum AND dropping a JSON file; the DB column
+    // is free-form so historical rows referencing a removed locale
+    // are still readable (they fall back to `defaultLocale` at boot).
+    language: z.enum(['en', 'fr']).optional(),
   })
   .strict();
 
@@ -59,6 +65,7 @@ export default defineEventHandler(async (event) => {
     showLastSeen: boolean;
     showAdultContent: boolean;
     theme: 'light' | 'dark';
+    language: 'en' | 'fr';
   }> = {};
 
   if (body.displayName !== undefined) {
@@ -77,6 +84,9 @@ export default defineEventHandler(async (event) => {
   if (body.theme !== undefined) {
     updates.theme = body.theme;
   }
+  if (body.language !== undefined) {
+    updates.language = body.language;
+  }
 
   if (Object.keys(updates).length === 0) {
     // Nothing to do — return 200 with current state rather than 400 so
@@ -94,22 +104,24 @@ export default defineEventHandler(async (event) => {
       showLastSeen: schema.users.showLastSeen,
       showAdultContent: schema.users.showAdultContent,
       theme: schema.users.theme,
+      language: schema.users.language,
     });
 
   if (!updated) {
     throw createError({ statusCode: 404, message: 'User not found' });
   }
 
-  // Refresh the session in place when display name or theme changed so
-  // the navbar / theme observer (which read from the session, not from
-  // /api/me) reflect the new value on the next /api/auth/status poll
-  // without waiting for a re-login.
-  if ('displayName' in updates || 'theme' in updates) {
+  // Refresh the session in place when display name, theme or language
+  // changed so the navbar / theme observer / i18n bootstrapper (which
+  // read from the session, not from /api/me) reflect the new value on
+  // the next /api/auth/status poll without waiting for a re-login.
+  if ('displayName' in updates || 'theme' in updates || 'language' in updates) {
     await setUserSession(event, {
       user: {
         ...user,
         displayName: updated.displayName,
         theme: updated.theme,
+        language: updated.language,
       },
       loggedInAt: Date.now(),
     });
@@ -123,5 +135,6 @@ export default defineEventHandler(async (event) => {
     showLastSeen: updated.showLastSeen,
     showAdultContent: updated.showAdultContent,
     theme: updated.theme,
+    language: updated.language,
   };
 });

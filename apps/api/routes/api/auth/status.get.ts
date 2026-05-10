@@ -3,7 +3,11 @@ import { db } from '@trackarr/db';
 import { users, webauthnCredentials } from '@trackarr/db/schema';
 import { getSetting, SETTINGS_KEYS, isInviteEnabled } from '~~/utils/server';
 import { getRequire2FAScope, isUserRequiredFor2FA } from '~~/utils/settings';
-import type { PublicUser, ThemePreference } from '@trackarr/shared';
+import type {
+  LanguagePreference,
+  PublicUser,
+  ThemePreference,
+} from '@trackarr/shared';
 
 /**
  * GET /api/auth/status
@@ -29,6 +33,7 @@ export default defineEventHandler(async (event) => {
       .select({
         displayName: users.displayName,
         theme: users.theme,
+        language: users.language,
         uploaded: users.uploaded,
         downloaded: users.downloaded,
         isBanned: users.isBanned,
@@ -51,20 +56,24 @@ export default defineEventHandler(async (event) => {
           where: eq(users.id, session.user.id),
           columns: { totpEnabled: true },
         });
-        // Update session if stats, roles, display name or theme changed.
-        // These fields drive the navbar / theme so a stale session
-        // would otherwise force the user to re-login to see edits.
+        // Update session if stats, roles, display name, theme or
+        // language changed. These fields drive the navbar / theme /
+        // i18n bootstrapper, so a stale session would otherwise force
+        // the user to re-login to see edits.
         const sessionDisplayName =
           (session.user as { displayName?: string | null }).displayName ?? null;
         const sessionTheme =
           (session.user as { theme?: ThemePreference }).theme ?? 'dark';
+        const sessionLanguage =
+          (session.user as { language?: LanguagePreference }).language ?? 'en';
         if (
           dbUser.uploaded !== session.user.uploaded ||
           dbUser.downloaded !== session.user.downloaded ||
           dbUser.isAdmin !== session.user.isAdmin ||
           dbUser.isModerator !== session.user.isModerator ||
           dbUser.displayName !== sessionDisplayName ||
-          dbUser.theme !== sessionTheme
+          dbUser.theme !== sessionTheme ||
+          dbUser.language !== sessionLanguage
         ) {
           await setUserSession(event, {
             ...session,
@@ -72,6 +81,7 @@ export default defineEventHandler(async (event) => {
               ...session.user,
               displayName: dbUser.displayName,
               theme: dbUser.theme as ThemePreference,
+              language: dbUser.language as LanguagePreference,
               uploaded: dbUser.uploaded,
               downloaded: dbUser.downloaded,
               isAdmin: dbUser.isAdmin,
@@ -89,6 +99,7 @@ export default defineEventHandler(async (event) => {
           uploaded: dbUser.uploaded,
           downloaded: dbUser.downloaded,
           theme: (dbUser.theme as ThemePreference) ?? 'dark',
+          language: (dbUser.language as LanguagePreference) ?? 'en',
         };
         // Decide if the FE should hard-redirect this user to
         // /settings/security. We surface enforcement state here so

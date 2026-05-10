@@ -55,7 +55,51 @@ export default defineNuxtConfig({
       }
     : {},
 
-  modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@nuxt/icon'],
+  modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@nuxt/icon', '@nuxtjs/i18n'],
+
+  // i18n — see doc/guide/i18n.md for the pattern.
+  //
+  // strategy: 'no_prefix'
+  //   URLs stay clean (`/torrents`, not `/fr/torrents`). The active locale
+  //   is persisted on the user's account; the cookie below acts as a
+  //   fast-path cache so SSR can render with the right locale on hard
+  //   reload without paying for an /api/auth/status round-trip.
+  //
+  // detectBrowserLanguage:
+  //   `useCookie: true` writes the active locale to `tk_locale` every
+  //   time `setLocale()` is called. SSR reads it on the next hard
+  //   reload and renders directly in the user's language — no flash,
+  //   no hydration mismatch.
+  //   `redirectOn: 'no prefix'` + `alwaysRedirect: false` defangs the
+  //   redirect machinery for our `no_prefix` strategy (the previous
+  //   `'root'` value triggered an SSR/CSR redirect race that crashed
+  //   vue-i18n with INVALID_ARGUMENT (code 26)).
+  //
+  // lazy: false
+  //   With only two small locale bundles (~5 KB each), shipping both
+  //   in the initial JS payload is cheaper than the round-trip cost
+  //   + race conditions of lazy locale loading during hydration.
+  //
+  // The default locale is English so any new key automatically falls
+  // back to its English value when missing in another bundle, instead
+  // of leaking the raw key into the UI.
+  i18n: {
+    defaultLocale: 'en',
+    strategy: 'no_prefix',
+    lazy: false,
+    langDir: 'locales',
+    locales: [
+      { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
+      { code: 'fr', language: 'fr-FR', name: 'Français', file: 'fr.json' },
+    ],
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'tk_locale',
+      redirectOn: 'no prefix',
+      alwaysRedirect: false,
+      fallbackLocale: 'en',
+    },
+  },
 
   // Icon module — see follow-up notes; the previous CSS mode rendering
   // and runtime icon fetching combined to break icons in Firefox/Safari.
