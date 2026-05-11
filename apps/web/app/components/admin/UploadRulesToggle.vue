@@ -1,13 +1,29 @@
 <template>
   <!--
-    Reusable toggle row for the upload-rules admin form.
+    Reusable toggle for upload-rules admin.
 
-    Layout: title + description on the left, switch on the right;
-    a default slot for any sub-fields that need to appear *below*
-    the toggle when it's switched on (e.g. the description min-
-    length input under "Description required").
+    Two variants:
+      • `default` — title + description on the left, switch on the
+        right, optional sub-fields slot under the row. Used by
+        section 02's "enforce title patterns" master toggle.
+      • `bare` — just the switch. The gate cards in section 01
+        already render their own glyph + name + description, so
+        embedding the full toggle would duplicate copy and force
+        an awkward layout.
   -->
-  <div class="urt-row">
+  <button
+    v-if="variant === 'bare'"
+    type="button"
+    class="urt-switch"
+    :class="{ 'urt-switch--on': modelValue }"
+    :aria-pressed="modelValue"
+    :aria-label="title"
+    @click="$emit('update:modelValue', !modelValue)"
+  >
+    <span class="urt-switch-thumb" />
+  </button>
+
+  <div v-else class="urt-row">
     <div class="urt-row-head">
       <div class="urt-row-text">
         <p class="urt-title">{{ title }}</p>
@@ -29,11 +45,20 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  modelValue: boolean;
-  title: string;
-  description?: string;
-}>();
+withDefaults(
+  defineProps<{
+    modelValue: boolean;
+    title: string;
+    description?: string;
+    /** `bare` strips the wrapper down to the switch only — used by
+     *  cards that supply their own title / description chrome. */
+    variant?: 'default' | 'bare';
+  }>(),
+  {
+    description: '',
+    variant: 'default',
+  },
+);
 
 defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
@@ -61,52 +86,59 @@ defineEmits<{
 .urt-title {
   margin: 0;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   color: rgb(var(--fg-strong));
+  letter-spacing: 0.01em;
 }
 .urt-desc {
   margin: 0;
   font-size: 0.75rem;
   color: rgb(var(--fg-muted));
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
+/* Switch — track + thumb. The on-state colour is coin gold to
+   thread the upload-rules surface with the other admin redesigns
+   (notifications dispatch board, bonus rules console). */
 .urt-switch {
   position: relative;
   flex-shrink: 0;
-  width: 2.4rem;
-  height: 1.3rem;
+  width: 2.45rem;
+  height: 1.35rem;
   padding: 0;
-  background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
+  background: rgb(var(--line-default));
+  border: 0;
   border-radius: 9999px;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease;
+  transition: background 0.2s ease;
 }
 .urt-switch:hover {
-  border-color: rgb(var(--line-strong));
+  background: rgb(var(--line-strong));
 }
 .urt-switch--on {
-  background: rgb(var(--accent));
-  border-color: rgb(var(--accent));
+  background: #d4a734;
+}
+.urt-switch--on:hover {
+  background: #e8b94e;
 }
 .urt-switch-thumb {
   position: absolute;
-  top: 50%;
+  top: 0.15rem;
   left: 0.15rem;
-  width: 0.95rem;
-  height: 0.95rem;
-  background: rgb(var(--fg-default));
+  width: 1.05rem;
+  height: 1.05rem;
+  background: rgb(var(--bg-elevated));
   border-radius: 50%;
-  transform: translateY(-50%);
-  transition: left 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.18s ease;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.18s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 .urt-switch--on .urt-switch-thumb {
-  left: calc(100% - 1.1rem);
-  background: rgb(var(--accent-fg));
+  transform: translateX(calc(2.45rem - 1.35rem));
+  background: rgb(var(--bg-base));
 }
 .urt-switch:focus-visible {
-  outline: 2px solid rgb(var(--accent) / 0.6);
+  outline: 2px solid rgba(212, 167, 52, 0.6);
   outline-offset: 2px;
 }
 </style>

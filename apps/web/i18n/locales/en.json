@@ -1278,6 +1278,24 @@
     },
     "uploadRules": {
       "globalRules": "Global rules",
+      "snap": {
+        "gatesArmed": "Gates armed",
+        "titlePatterns": "Title patterns",
+        "sizeCap": "Size cap",
+        "staffBypass": "Staff bypass",
+        "bypassOn": "Exempt",
+        "bypassOff": "Subject",
+        "armed": "armed",
+        "covered": "covered",
+        "noCap": "No cap"
+      },
+      "gates": {
+        "title": "Global gates",
+        "intro": "Six policy levers every upload runs through before it lands in the queue. Toggle the ones you want enforced; some carry a numeric or regex knob below."
+      },
+      "units": {
+        "chars": "chars"
+      },
       "nfo": {
         "title": "Require an NFO",
         "description": "Reject the upload when no NFO file or pasted NFO text is provided."
@@ -1285,12 +1303,13 @@
       "description": {
         "title": "Require a description",
         "description": "Reject the upload when the description field is empty or whitespace only.",
-        "minLength": "Minimum length (characters)",
+        "minLength": "Minimum length",
         "minLengthHint": "0 = no minimum. Counted after trimming whitespace."
       },
       "titleBlocklist": {
         "title": "Title blocklist",
-        "description": "A global JavaScript regex applied to every title. Useful for banning source qualities you don't accept (CAM, TS, HDCAM, …) without repeating them in every per-category pattern.",
+        "description": "A global regex applied to every title. Useful for banning source qualities you don't accept (CAM, TS, HDCAM, …) without repeating them in every per-category pattern.",
+        "regexLabel": "Blocked title regex",
         "placeholder": "e.g. .*\\b(CAM|TS|HDCAM|HDTC)\\b.*",
         "hint": "Leave empty to disable. The pattern is wrapped with ^…$ automatically and matched case-insensitively."
       },
@@ -1311,12 +1330,14 @@
       },
       "titlePattern": {
         "title": "Title pattern per category",
+        "intro": "Per-category title regex with parent → child inheritance. Set a regex once on a root category and every descendant picks it up; override on any child to deviate from the default.",
         "enabledTitle": "Enforce a title pattern per category",
         "enabledDescription": "A regex set on a parent category cascades down to every descendant. A child can override with its own regex; leaving a child's field empty means it inherits.",
         "explain": "Regex are wrapped with ^…$ automatically and matched case-insensitively. Leave a field empty to remove its own restriction (the category will then inherit from the nearest parent that has one). An invalid regex is highlighted in red and blocks save.",
         "placeholder": "e.g. .+ \\(\\d{4}\\) .+ 1080p .+",
         "overridePlaceholder": "Inherited: {pattern} — type to override",
         "inheritedFrom": "inherits from {name}",
+        "ownPattern": "own pattern",
         "toggleHint": "Enable the toggle above to expose the per-category pattern table.",
         "noCategories": "No categories defined yet. Add some from the Categories admin page first."
       },

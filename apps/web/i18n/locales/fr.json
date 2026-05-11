@@ -1278,6 +1278,24 @@
     },
     "uploadRules": {
       "globalRules": "Règles globales",
+      "snap": {
+        "gatesArmed": "Portes armées",
+        "titlePatterns": "Patterns de titre",
+        "sizeCap": "Plafond de taille",
+        "staffBypass": "Bypass staff",
+        "bypassOn": "Exempté",
+        "bypassOff": "Soumis",
+        "armed": "armées",
+        "covered": "couvertes",
+        "noCap": "Aucun"
+      },
+      "gates": {
+        "title": "Portes globales",
+        "intro": "Six leviers que chaque upload franchit avant d'atteindre la file. Active ceux que tu veux faire appliquer ; certains portent un paramètre numérique ou regex juste en dessous."
+      },
+      "units": {
+        "chars": "car."
+      },
       "nfo": {
         "title": "Exiger un NFO",
         "description": "Rejeter l'upload si aucun fichier NFO ou texte NFO collé n'est fourni."
@@ -1285,12 +1303,13 @@
       "description": {
         "title": "Exiger une description",
         "description": "Rejeter l'upload si le champ description est vide ou ne contient que des espaces.",
-        "minLength": "Longueur minimum (caractères)",
+        "minLength": "Longueur minimum",
         "minLengthHint": "0 = pas de minimum. Compté après suppression des espaces."
       },
       "titleBlocklist": {
         "title": "Mots interdits dans le titre",
-        "description": "Une regex JavaScript globale appliquée à tous les titres. Utile pour interdire les qualités sources que tu n'acceptes pas (CAM, TS, HDCAM, …) sans avoir à les répéter dans chaque regex par catégorie.",
+        "description": "Une regex globale appliquée à tous les titres. Utile pour interdire les qualités sources que tu n'acceptes pas (CAM, TS, HDCAM, …) sans avoir à les répéter dans chaque regex par catégorie.",
+        "regexLabel": "Regex de titres bloqués",
         "placeholder": "ex. .*\\b(CAM|TS|HDCAM|HDTC)\\b.*",
         "hint": "Laissez vide pour désactiver. La regex est entourée automatiquement de ^…$ et matchée sans tenir compte de la casse."
       },
@@ -1311,12 +1330,14 @@
       },
       "titlePattern": {
         "title": "Format du titre par catégorie",
+        "intro": "Regex de titre par catégorie avec héritage parent → enfant. Définis une regex une fois sur une catégorie racine et toutes ses descendantes la reprennent ; surcharge sur n'importe quel enfant pour s'écarter de la valeur par défaut.",
         "enabledTitle": "Appliquer un format de titre par catégorie",
         "enabledDescription": "Une regex posée sur une catégorie parent s'applique à toutes ses sous-catégories. Une sous-catégorie peut surcharger avec sa propre regex ; laisser le champ d'un enfant vide signifie qu'il hérite.",
         "explain": "Les regex sont entourées automatiquement de ^…$ et matchées sans tenir compte de la casse. Laissez un champ vide pour retirer sa restriction propre (la catégorie héritera alors du parent le plus proche qui en a une). Une regex invalide est surlignée en rouge et bloque la sauvegarde.",
         "placeholder": "ex. .+ \\(\\d{4}\\) .+ 1080p .+",
         "overridePlaceholder": "Hérité : {pattern} — tapez pour surcharger",
         "inheritedFrom": "hérité de {name}",
+        "ownPattern": "pattern propre",
         "toggleHint": "Activez le toggle ci-dessus pour faire apparaître le tableau des regex par catégorie.",
         "noCategories": "Aucune catégorie définie. Ajoutez-en d'abord depuis la page Catégories de l'administration."
       },
