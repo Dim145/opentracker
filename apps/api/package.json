@@ -20,6 +20,7 @@
     "ioredis": "^5.10.1",
     "marked": "^18.0.3",
     "nitropack": "^2.13.4",
+    "nodemailer": "^8.0.7",
     "otplib": "^13.4.0",
     "parse-torrent": "^11.0.19",
     "pino": "^10.3.1",
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@types/bencode": "^2.0.4",
     "@types/create-torrent": "^6.1.0",
+    "@types/nodemailer": "^8.0.0",
     "@types/parse-torrent": "^5.8.8",
     "@types/qrcode": "^1.5.6",
     "pino-pretty": "^13.1.3"

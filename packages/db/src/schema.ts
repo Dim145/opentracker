@@ -1007,6 +1007,116 @@ export const notifications = pgTable(
 export type Notification = typeof notifications.$inferSelect;
 
 // ============================================================================
+// External notification channels
+// ============================================================================
+//
+// Three tables capture the full state of "external delivery":
+//
+//   `notificationChannels` — singleton per channel TYPE. Admin enables
+//      the type and stores any server-side credentials (SMTP host,
+//      Telegram bot token, Apprise API URL…). `lastTestStatus = 'ok'`
+//      is the gate that lets users see the channel. A re-test is
+//      required after any server-side config change.
+//
+//   `userNotificationChannels` — per-user opt-in. Stores the user-side
+//      portion of the credential (their email "to", their Telegram
+//      chat_id, their Apprise URL). Server-side fields never leak into
+//      this row — the dispatcher merges them at send time.
+//
+//   `userNotificationRouting` — explicit routing of (user, type) →
+//      channelType. Default behaviour when a user enables their first
+//      channel: a full set of rows pointing every notif type at that
+//      channel (opt-out semantics, matches the user's spec). The row
+//      is deleted when the user unticks the type → no external send.
+//
+// Both `serverConfig` and `userConfig` are JSON strings encrypted at
+// rest with the same AES-GCM helper used for panic data, keyed by
+// `NUXT_SESSION_SECRET` (or a dedicated env var when set). Field
+// shapes are channel-specific and validated by the adapter's Zod
+// schema before encryption.
+export const notificationChannels = pgTable(
+  'notification_channels',
+  {
+    /** Channel type id — `smtp` / `discord` / `telegram` / …
+     *  Acts as the natural PK; we never have two rows of the same
+     *  type. The list is closed (controlled by the adapter registry). */
+    type: text('type').primaryKey(),
+    enabled: boolean('enabled').default(false).notNull(),
+    /** Encrypted JSON of the channel-specific server-side fields.
+     *  Empty string for channels that have no server-side config
+     *  (Discord/Slack/Mattermost webhooks). */
+    serverConfig: text('server_config').default('').notNull(),
+    /** `ok` = last admin test passed → users can see the channel.
+     *  `error` or null = hidden from /settings until re-test. */
+    lastTestStatus: text('last_test_status'),
+    lastTestError: text('last_test_error'),
+    lastTestedAt: timestamp('last_tested_at'),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    /** Admin who last touched the row. Null only for the initial seed. */
+    updatedBy: text('updated_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+  }
+);
+
+export type NotificationChannel = typeof notificationChannels.$inferSelect;
+
+export const userNotificationChannels = pgTable(
+  'user_notification_channels',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Mirrors `notificationChannels.type`. Not declared as a real FK
+     *  to allow lazy admin disable/re-enable without orphaning rows. */
+    channelType: text('channel_type').notNull(),
+    enabled: boolean('enabled').default(true).notNull(),
+    /** Encrypted JSON of the user-side fields (e.g. SMTP `to` email,
+     *  Telegram `chat_id`, full Apprise URL). */
+    userConfig: text('user_config').default('').notNull(),
+    lastTestStatus: text('last_test_status'),
+    lastTestError: text('last_test_error'),
+    lastTestedAt: timestamp('last_tested_at'),
+    /** Circuit-breaker counter — incremented on each delivery failure,
+     *  reset on success. At 5 consecutive failures the row is forced
+     *  to `enabled = false` and the user is notified in-app to retest. */
+    consecutiveFailures: integer('consecutive_failures').default(0).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('user_notification_channels_user_type_unique').on(
+      table.userId,
+      table.channelType
+    ),
+  ]
+);
+
+export type UserNotificationChannel =
+  typeof userNotificationChannels.$inferSelect;
+
+export const userNotificationRouting = pgTable(
+  'user_notification_routing',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Notification type key — same string the in-app notifs use. */
+    type: text('type').notNull(),
+    /** Channel type the notif is routed to. The row's existence means
+     *  "send this notif externally"; absence means in-app only. */
+    channelType: text('channel_type').notNull(),
+  },
+  (table) => [
+    uniqueIndex('user_notification_routing_pk').on(table.userId, table.type),
+    index('user_notification_routing_user_idx').on(table.userId),
+  ]
+);
+
+export type UserNotificationRouting =
+  typeof userNotificationRouting.$inferSelect;
+
+// ============================================================================
 // Upload Rules (singleton — server-enforced gates on every upload)
 // ============================================================================
 //

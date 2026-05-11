@@ -179,6 +179,12 @@ const menuItems = computed(() => [
     description: t('admin.descriptions.branding'),
   },
   {
+    label: t('admin.nav.notifications'),
+    path: '/admin/notifications',
+    icon: 'ph:bell-ringing',
+    description: t('admin.descriptions.notifications'),
+  },
+  {
     label: t('admin.nav.settings'),
     path: '/admin/settings',
     icon: 'ph:gear',

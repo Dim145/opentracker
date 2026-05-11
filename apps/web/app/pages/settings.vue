@@ -422,10 +422,28 @@
           </div>
         </section>
 
-        <!-- 05 ACCOUNT INFO -->
-        <section id="account" class="form-section">
+        <!-- 05 NOTIFICATIONS -->
+        <!--
+          External notification destinations + per-type routing.
+          Renders nothing if the admin hasn't enabled and tested any
+          channel — the component's root `v-if` handles that
+          gracefully so the section header just disappears.
+        -->
+        <section id="notifications" class="form-section">
           <header class="section-head">
             <span class="section-number">05</span>
+            <h2 class="section-title">{{ $t('settings.sections.notifications') }}</h2>
+            <span class="section-rule" />
+          </header>
+          <div class="section-body">
+            <SettingsNotificationsSection />
+          </div>
+        </section>
+
+        <!-- 06 ACCOUNT INFO -->
+        <section id="account" class="form-section">
+          <header class="section-head">
+            <span class="section-number">06</span>
             <h2 class="section-title">{{ $t('settings.sections.accountInfo') }}</h2>
             <span class="section-rule" />
           </header>
@@ -645,7 +663,8 @@ const sections = computed<
   { key: 'privacy', num: '02', label: t('settings.sections.privacy'), icon: 'ph:eye-closed' },
   { key: 'appearance', num: '03', label: t('settings.sections.appearance'), icon: 'ph:palette' },
   { key: 'security', num: '04', label: t('settings.sections.security'), icon: 'ph:lock-key' },
-  { key: 'account', num: '05', label: t('settings.sections.accountInfo'), icon: 'ph:info' },
+  { key: 'notifications', num: '05', label: t('settings.sections.notifications'), icon: 'ph:bell-ringing' },
+  { key: 'account', num: '06', label: t('settings.sections.accountInfo'), icon: 'ph:info' },
 ]);
 const activeSection = ref<SectionKey>('identity');
 onMounted(() => {

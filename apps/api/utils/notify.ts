@@ -159,7 +159,121 @@ export async function notify(
       err: (err as Error).message,
     });
   }
+
+  // Third fan-out: external channels (SMTP / Telegram / Discord / …).
+  // Fire-and-forget so a slow upstream never blocks the route handler
+  // that originally called `notify()`. The dispatcher loads the user's
+  // routing rows, picks the matching channel, and writes back the
+  // delivery state for the circuit breaker.
+  void deliverToExternalChannels(userId, type, payload ?? null, link ?? null);
+
   return id;
+}
+
+/**
+ * External-channel fan-out. Looks up the user's routing for this
+ * notif type and, if a row exists, dispatches through the matching
+ * channel. Each delivery is independent — one failing channel never
+ * blocks the others (we don't even have "others" today since the
+ * model is one-channel-per-type, but the parallelism is cheap to
+ * keep around for the day we relax that constraint).
+ *
+ * The function is intentionally non-throwing: any error gets folded
+ * into the circuit-breaker counter via `recordFailure`, never
+ * surfaced to the caller. `notify()` is best-effort by contract.
+ */
+async function deliverToExternalChannels(
+  userId: string,
+  type: NotificationType,
+  payload: Record<string, unknown> | null,
+  link: string | null
+): Promise<void> {
+  try {
+    // Lazy imports break a potential cycle with `channels/index.ts`
+    // (which in turn imports `notify.ts`'s `NotificationType` only).
+    const [
+      { db: localDb, schema: localSchema },
+      { and: andOp, eq: eqOp },
+      { sendThroughChannel },
+      { renderNotification },
+      { consumeRateBudget, recordFailure, recordSuccess },
+    ] = await Promise.all([
+      import('@trackarr/db'),
+      import('drizzle-orm'),
+      import('./channels'),
+      import('./notifyRenderer'),
+      import('./channelGuard'),
+    ]);
+
+    const routing = await localDb.query.userNotificationRouting.findFirst({
+      where: andOp(
+        eqOp(localSchema.userNotificationRouting.userId, userId),
+        eqOp(localSchema.userNotificationRouting.type, type)
+      ),
+    });
+    if (!routing) return; // no external delivery configured for this type
+
+    // User-channel row must exist + be enabled. Admin channel must
+    // be enabled + last-tested OK. Both are cheap one-row queries.
+    const userRow = await localDb.query.userNotificationChannels.findFirst({
+      where: andOp(
+        eqOp(localSchema.userNotificationChannels.userId, userId),
+        eqOp(
+          localSchema.userNotificationChannels.channelType,
+          routing.channelType
+        )
+      ),
+    });
+    if (!userRow || !userRow.enabled) return;
+
+    const adminRow = await localDb.query.notificationChannels.findFirst({
+      where: eqOp(localSchema.notificationChannels.type, routing.channelType),
+    });
+    if (!adminRow || !adminRow.enabled) return;
+    if (adminRow.lastTestStatus !== 'ok') return;
+
+    // Resolve the user's locale for rendering. Default to 'en' so a
+    // missing language column doesn't drop the delivery.
+    const userRec = await localDb.query.users.findFirst({
+      where: eqOp(localSchema.users.id, userId),
+      columns: { language: true },
+    });
+    const locale = userRec?.language ?? 'en';
+    const { title, body } = renderNotification(type, payload, locale);
+
+    const budget = await consumeRateBudget(userId, routing.channelType);
+    if (!budget.allowed) {
+      console.warn(
+        `[Notify] rate-limited user=${userId} channel=${routing.channelType}; retry in ${budget.retryAfterS}s`
+      );
+      return;
+    }
+
+    const result = await sendThroughChannel(userId, routing.channelType, {
+      type,
+      title,
+      body,
+      link,
+      meta: payload ?? {},
+    });
+
+    if (result.ok) {
+      await recordSuccess(userRow.id);
+    } else {
+      await recordFailure(
+        userRow.id,
+        userId,
+        routing.channelType,
+        result.error
+      );
+    }
+  } catch (err) {
+    console.warn('[Notify] external dispatch failed', {
+      userId,
+      type,
+      err: (err as Error).message,
+    });
+  }
 }
 
 /**

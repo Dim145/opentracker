@@ -27,7 +27,12 @@
     "copy": "Copy",
     "copied": "Copied",
     "open": "Open",
-    "language": "Language"
+    "language": "Language",
+    "add": "Add",
+    "never": "Never",
+    "justNow": "just now",
+    "minutesAgo": "{n} min ago",
+    "hoursAgo": "{n}h ago"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -345,7 +350,29 @@
       "privacy": "Privacy",
       "appearance": "Appearance",
       "security": "Security",
+      "notifications": "Notifications",
       "accountInfo": "Account info"
+    },
+    "notifications": {
+      "eyebrow": "External notifications",
+      "channelsTitle": "Notification destinations",
+      "routingTitle": "What you get notified about",
+      "routingDesc": "Pick which events you want delivered externally. Anything you leave off still appears in your in-app inbox.",
+      "routingEmpty": "Configure at least one destination above to start routing events.",
+      "routeMe": "Notify me",
+      "routeNone": "Don't send",
+      "statusOk": "Working",
+      "statusError": "Failing",
+      "statusPending": "Not tested",
+      "add": "Add",
+      "test": "Send test",
+      "remove": "Remove",
+      "saveRouting": "Save routing",
+      "keepSecret": "(unchanged — leave blank)",
+      "bulkAll": "All notifications",
+      "bulkAllOn": "Notify me for everything",
+      "bulkAllOff": "Don't notify me for anything",
+      "bulkMixed": "Customised (per row)"
     },
     "identity": {
       "username": "Username",
@@ -1026,6 +1053,7 @@
       "invitations": "Invitations",
       "torznab": "Torznab API",
       "branding": "Branding",
+      "notifications": "Notifications",
       "settings": "Settings"
     },
     "descriptions": {
@@ -1044,6 +1072,7 @@
       "invitations": "Manage invitation system",
       "torznab": "Configure *arr integration and rate limiting",
       "branding": "Customize site appearance and branding",
+      "notifications": "Configure external notification channels (email, Discord, Telegram, …)",
       "settings": "System-wide registration and tracker settings"
     },
     "notifications": {
@@ -1054,6 +1083,137 @@
         "unreadDays": "Days to keep UNREAD notifications",
         "hint": "1–3650 days. Both default to 90.",
         "daysLabel": "days"
+      },
+      "channels": {
+        "eyebrow": "External delivery",
+        "title": "Notification channels",
+        "desc": "Enable the transports your users can route notifications through. Each channel must pass a server-side test before users can pick it up.",
+        "test": "Test",
+        "statusOk": "Test passed {date}",
+        "statusError": "Last test failed",
+        "statusUntested": "Never tested",
+        "keepSecret": "(unchanged — leave blank to keep current value)",
+        "userOwned": "No admin-side configuration needed — users paste their own webhook URL."
+      }
+    },
+    "channels": {
+      "smtp": {
+        "label": "Email (SMTP)",
+        "tagline": "Deliver notifications by email.",
+        "fields": {
+          "host": "SMTP host",
+          "hostHint": "Hostname of your outgoing mail server.",
+          "port": "Port",
+          "portHint": "587 (STARTTLS) or 465 (SMTPS) on most providers.",
+          "secure": "Use TLS on connect",
+          "secureHint": "Enable for port 465. Leave off for STARTTLS on port 587.",
+          "user": "Login",
+          "userHint": "Leave blank for anonymous relays.",
+          "pass": "Password",
+          "passHint": "App-specific password recommended on Gmail/Outlook.",
+          "from": "From address",
+          "fromHint": "Header value shown to recipients (a valid email address, optionally with a display name).",
+          "to": "Email address",
+          "toHint": "Where to send your notifications."
+        }
+      },
+      "telegram": {
+        "label": "Telegram",
+        "tagline": "Push notifications to a bot you create through BotFather on Telegram.",
+        "fields": {
+          "botToken": "Bot token",
+          "botTokenHint": "Token returned by BotFather on Telegram after creating your bot.",
+          "chatId": "Chat ID",
+          "chatIdHint": "Send /start to your bot then visit api.telegram.org/bot[token]/getUpdates to find it."
+        }
+      },
+      "discord": {
+        "label": "Discord",
+        "tagline": "Post into a Discord channel through a server webhook.",
+        "fields": {
+          "webhookUrl": "Webhook URL",
+          "webhookUrlHint": "Server Settings → Integrations → Webhooks → New Webhook.",
+          "username": "Bot name override",
+          "usernameHint": "Optional. Leave blank to keep the webhook's default name."
+        }
+      },
+      "slack": {
+        "label": "Slack",
+        "tagline": "Send messages through a Slack incoming webhook.",
+        "fields": {
+          "webhookUrl": "Incoming webhook URL",
+          "webhookUrlHint": "Create one in your Slack workspace under Apps → Incoming Webhooks."
+        }
+      },
+      "mattermost": {
+        "label": "Mattermost",
+        "tagline": "Self-hosted Slack alternative. Same incoming-webhook contract.",
+        "fields": {
+          "webhookUrl": "Incoming webhook URL",
+          "webhookUrlHint": "Mattermost Integrations → Incoming Webhooks → Add."
+        }
+      },
+      "ntfy": {
+        "label": "ntfy",
+        "tagline": "HTTP push to your phone or browser via ntfy.sh or a self-hosted instance.",
+        "publicInstance": "Subscribe in your mobile app on",
+        "fields": {
+          "baseUrl": "Server base URL",
+          "baseUrlHint": "https://ntfy.sh or your own instance.",
+          "authHeader": "Authorization header",
+          "authHeaderHint": "Optional. e.g. \"Bearer …\" or \"Basic …\" for protected servers.",
+          "topic": "Topic",
+          "topicHint": "Pick a long random word to keep the topic private — you'll subscribe to it in the mobile app.",
+          "priority": "Default priority",
+          "priorityHint": "1 (min) to 5 (urgent). Default 3."
+        }
+      },
+      "gotify": {
+        "label": "Gotify",
+        "tagline": "Self-hosted push server with mobile apps.",
+        "publicServer": "Connect your Gotify app to",
+        "fields": {
+          "baseUrl": "Gotify server URL",
+          "baseUrlHint": "Base URL of your Gotify instance.",
+          "appToken": "Application token",
+          "appTokenHint": "Created in Gotify → Apps → Create Application.",
+          "priority": "Default priority",
+          "priorityHint": "0–10. Default 5."
+        }
+      },
+      "pushover": {
+        "label": "Pushover",
+        "tagline": "Paid push service with mobile, desktop and watch clients.",
+        "fields": {
+          "apiToken": "Application API token",
+          "apiTokenHint": "Create an application at pushover.net/apps/build.",
+          "userKey": "Your user key",
+          "userKeyHint": "Find it on your Pushover dashboard home.",
+          "priority": "Default priority",
+          "priorityHint": "-2 (silent) to 2 (emergency). Default 0."
+        }
+      },
+      "webhook": {
+        "label": "Generic webhook",
+        "tagline": "Stable JSON payload POSTed to any HTTP(S) endpoint.",
+        "fields": {
+          "hmacSecret": "HMAC signing secret",
+          "hmacSecretHint": "Optional. When set, requests carry X-Trackarr-Signature.",
+          "url": "Destination URL",
+          "urlHint": "Where to POST notifications. Private/loopback hosts are blocked.",
+          "headers": "Custom headers",
+          "headersHint": "One per line in \"Key: Value\" format. Up to 16 entries."
+        }
+      },
+      "apprise": {
+        "label": "Apprise",
+        "tagline": "100+ exotic services via an Apprise sidecar container.",
+        "fields": {
+          "apiUrl": "Apprise API URL",
+          "apiUrlHint": "Base URL of your apprise-api container (e.g. http://apprise:8000).",
+          "appriseUrl": "Apprise destination URL",
+          "appriseUrlHint": "URL string for your service, e.g. tgram://token/chatid."
+        }
       }
     },
     "uploadRules": {
