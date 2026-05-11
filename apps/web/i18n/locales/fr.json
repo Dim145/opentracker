@@ -2642,36 +2642,40 @@
     }
   },
   "shop": {
-    "headTitle": "Boutique bonus",
+    "headTitle": "Cabinet de curiosités",
     "backToProfile": "Retour au profil",
-    "eyebrow": "Personnel · Bonus",
-    "titleMain": "Boutique",
-    "titleAccent": "bonus",
-    "blurb": "Dépensez les points gagnés en seedant pour obtenir du crédit d'upload, des invitations ou d'autres avantages définis par l'opérateur. Les achats sont appliqués immédiatement à votre compte.",
-    "balance": "Points disponibles",
+    "eyebrow": "Cabinet bonus",
+    "titleMain": "Le cabinet",
+    "titleAccent": "de curiosités",
+    "blurb": "Dépensez les points gagnés en seedant sur une sélection restreinte d'avantages — crédit d'upload, créneaux d'invitation, et ce que l'opérateur a bien voulu poser sur les étagères. Chaque pièce est créditée à votre compte au moment de l'acquisition.",
+    "balance": "Réserve disponible",
     "points": "pts",
     "buy": "Acheter",
-    "buying": "Achat…",
-    "notEnough": "Solde insuffisant",
+    "acquire": "Acquérir",
+    "buying": "Acquisition…",
+    "notEnough": "Hors de portée",
+    "soldOut": "Épuisé",
+    "specimen": "Pièce",
+    "editionOf": "1 restant dans cette édition | {n} restants dans cette édition",
     "stock": "{n} restant | {n} restants",
     "empty": {
-      "headline": "Les rayons sont vides.",
-      "help": "Aucun administrateur n'a encore publié d'articles. Revenez plus tard — il n'y a rien à dépenser pour l'instant."
+      "headline": "Le cabinet est vide pour l'instant.",
+      "help": "Aucun administrateur n'a encore disposé de pièces sur les étagères. Repassez plus tard — vos points gardent leur valeur en attendant."
     },
     "effects": {
       "uploadCredit": "Ajoute {size} à votre total uploadé",
       "invite": "Ajoute {n} créneau d'invitation | Ajoute {n} créneaux d'invitation"
     },
     "confirm": {
-      "title": "Confirmer l'achat",
+      "title": "Confirmer l'acquisition",
       "message": "Dépenser {cost} points pour « {name} » ?",
-      "action": "Acheter"
+      "action": "Acquérir"
     },
     "toasts": {
       "bought": "« {name} » ajouté à votre compte."
     },
     "errors": {
-      "buyFailed": "Échec de l'achat. Réessayez plus tard."
+      "buyFailed": "Échec de l'acquisition. Réessayez plus tard."
     }
   },
   "downloads": {

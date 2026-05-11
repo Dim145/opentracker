@@ -2642,21 +2642,25 @@
     }
   },
   "shop": {
-    "headTitle": "Bonus shop",
+    "headTitle": "Curiosities cabinet",
     "backToProfile": "Back to profile",
-    "eyebrow": "Personal · Bonus",
-    "titleMain": "Bonus",
-    "titleAccent": "shop",
-    "blurb": "Spend the points you earn from seeding on upload credit, invite slots and other operator-defined perks. Items are added to your account immediately on purchase.",
-    "balance": "Available points",
+    "eyebrow": "Bonus cabinet",
+    "titleMain": "The cabinet",
+    "titleAccent": "of curiosities",
+    "blurb": "Spend the points you earned by seeding on a small, hand-picked selection of perks — upload credit, invitation slots, and whatever else the operator has put on the shelves. Each piece is granted to your account the moment you acquire it.",
+    "balance": "Reserve at hand",
     "points": "pts",
     "buy": "Buy",
-    "buying": "Buying…",
-    "notEnough": "Not enough",
+    "acquire": "Acquire",
+    "buying": "Acquiring…",
+    "notEnough": "Out of reach",
+    "soldOut": "Sold out",
+    "specimen": "Piece",
+    "editionOf": "1 left in this edition | {n} left in this edition",
     "stock": "{n} left | {n} left",
     "empty": {
-      "headline": "The shelves are empty.",
-      "help": "An administrator hasn't published any items yet. Check back later — there's nothing to spend your points on for now."
+      "headline": "The cabinet is bare for now.",
+      "help": "An administrator hasn't placed any pieces on the shelves yet. Come back later — your points will keep their value in the meantime."
     },
     "effects": {
       "uploadCredit": "Adds {size} to your uploaded total",
@@ -2665,7 +2669,7 @@
     "confirm": {
       "title": "Confirm purchase",
       "message": "Spend {cost} points on \"{name}\"?",
-      "action": "Buy now"
+      "action": "Acquire"
     },
     "toasts": {
       "bought": "\"{name}\" added to your account."
