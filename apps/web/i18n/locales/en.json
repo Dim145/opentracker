@@ -2535,6 +2535,50 @@
       "hnr": "Monitor and manage H&R violations"
     },
     "dashboard": {
+      "watchtower": "Watchtower · Moderation",
+      "tagline": "Survey the queue, scan the activity log, and step into whatever needs you next.",
+      "tilesAria": "Moderation snapshot",
+      "greeting": {
+        "welcome": "Welcome back,",
+        "morning": "Good morning,",
+        "afternoon": "Good afternoon,",
+        "evening": "Good evening,",
+        "night": "Still on shift,",
+        "lateNight": "Late watch,"
+      },
+      "tiles": {
+        "pending": "Pending uploads",
+        "pendingHint": "Review queue",
+        "reports": "Open reports",
+        "reportsHint": "Triage cases",
+        "hnr": "Active H&R",
+        "hnrHint": "Enforce policy",
+        "myActions": "My actions · 7 days",
+        "myActionsHint": "{n} reports closed"
+      },
+      "queue": {
+        "title": "Freshest pending",
+        "meta": "Last 5 uploads",
+        "cta": "Open queue",
+        "empty": "Queue is clear"
+      },
+      "activity": {
+        "title": "Activity log",
+        "meta": "Last 10 actions",
+        "empty": "Standing by",
+        "systemActor": "system",
+        "deletedTarget": "deleted torrent",
+        "verbs": {
+          "accepted": "Approved",
+          "rejected": "Rejected",
+          "changesRequested": "Changes requested",
+          "pending": "Returned to queue",
+          "acted": "Acted on"
+        }
+      },
+      "age": {
+        "now": "now"
+      },
       "pendingReports": {
         "title": "Pending Reports",
         "body": "Check the reports section to handle user complaints.",

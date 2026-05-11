@@ -148,7 +148,10 @@ const STATUS_FILTERS = computed<{ value: FilterValue; label: string; dot: boolea
   { value: 'rejected', label: t('admin.pendingTorrents.filters.rejected'), dot: true },
 ]);
 
-const filter = ref<FilterValue>('all');
+// Default to "pending" — the queue lands first on the active work.
+// Moderators can flip to "all" or the closed states from the
+// segmented control above.
+const filter = ref<FilterValue>('pending');
 const torrents = ref<QueueRow[]>([]);
 const loading = ref(true);
 

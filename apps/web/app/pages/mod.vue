@@ -39,7 +39,11 @@
 
     <!-- Main Content -->
     <main class="flex-1 min-w-0">
-      <div class="mb-6">
+      <!-- /mod (the dashboard root) brings its own bespoke header
+           (the watchtower greeting + live clock). For every other
+           mod sub-page we render the generic title strip so the
+           operator always knows where they are. -->
+      <div v-if="$route.path !== '/mod'" class="mb-6">
         <h1
           class="text-2xl font-bold text-text-primary tracking-tight uppercase"
         >

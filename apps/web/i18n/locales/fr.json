@@ -2535,6 +2535,50 @@
       "hnr": "Surveiller et gérer les violations H&R"
     },
     "dashboard": {
+      "watchtower": "Tour de garde · Modération",
+      "tagline": "Surveille la file, balaie le journal d'activité, et interviens sur ce qui a besoin de toi.",
+      "tilesAria": "Aperçu de modération",
+      "greeting": {
+        "welcome": "Bon retour,",
+        "morning": "Bonjour,",
+        "afternoon": "Bon après-midi,",
+        "evening": "Bonsoir,",
+        "night": "Toujours de garde,",
+        "lateNight": "Veille de nuit,"
+      },
+      "tiles": {
+        "pending": "Uploads en attente",
+        "pendingHint": "Revoir la file",
+        "reports": "Signalements ouverts",
+        "reportsHint": "Trier les dossiers",
+        "hnr": "H&R actifs",
+        "hnrHint": "Appliquer la règle",
+        "myActions": "Mes actions · 7 j",
+        "myActionsHint": "{n} signalements clos"
+      },
+      "queue": {
+        "title": "Plus frais en attente",
+        "meta": "5 derniers uploads",
+        "cta": "Ouvrir la file",
+        "empty": "File vide"
+      },
+      "activity": {
+        "title": "Journal d'activité",
+        "meta": "10 dernières actions",
+        "empty": "En veille",
+        "systemActor": "système",
+        "deletedTarget": "torrent supprimé",
+        "verbs": {
+          "accepted": "Approuvé",
+          "rejected": "Rejeté",
+          "changesRequested": "Changements demandés",
+          "pending": "Retour file",
+          "acted": "Agi sur"
+        }
+      },
+      "age": {
+        "now": "maintenant"
+      },
       "pendingReports": {
         "title": "Signalements en attente",
         "body": "Consultez la section des signalements pour traiter les plaintes des utilisateurs.",
