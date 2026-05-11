@@ -603,8 +603,8 @@
     "detail": {
       "backToIndex": "Back to index",
       "object": "Object",
-      "copyHash": "Copy Hash",
       "download": "Download",
+      "report": "Report",
       "infoHash": "Info Hash",
       "createdAt": "Created At",
       "description": "Description",
@@ -636,7 +636,6 @@
         "message": "Permanently remove “{name}” from the index? This cannot be undone."
       },
       "toasts": {
-        "hashCopied": "Info hash copied to clipboard",
         "deleted": "Torrent deleted"
       },
       "errors": {
@@ -923,16 +922,21 @@
     },
     "report": {
       "title": "Report {target}",
+      "eyebrow": "File incident",
+      "unnamedTarget": "Unnamed target",
       "reason": "Reason",
       "selectReason": "Select a reason...",
-      "detailsLabel": "Additional Details (optional)",
+      "detailsLabel": "Additional details (optional)",
       "detailsPlaceholder": "Provide any additional context...",
+      "anonymousNote": "Your identity is kept hidden from the reported party. Only moderators see who filed this report.",
       "submit": "Submit Report",
+      "fileReport": "File report",
+      "filing": "Filing…",
       "targets": {
-        "torrent": "torrent",
-        "user": "user",
-        "post": "post",
-        "comment": "comment"
+        "torrent": "Torrent",
+        "user": "User",
+        "post": "Post",
+        "comment": "Comment"
       },
       "reasons": {
         "spam": "Spam or advertising",
@@ -940,7 +944,8 @@
         "copyright": "Copyright violation",
         "inappropriate": "Inappropriate content",
         "harassment": "Harassment or abuse",
-        "other": "Other"
+        "other": "Other — see details below",
+        "otherShort": "Other"
       },
       "toasts": {
         "submitted": "Report submitted successfully"

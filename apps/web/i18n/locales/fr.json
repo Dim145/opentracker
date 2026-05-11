@@ -603,8 +603,8 @@
     "detail": {
       "backToIndex": "Retour à l'index",
       "object": "Objet",
-      "copyHash": "Copier le hash",
       "download": "Télécharger",
+      "report": "Signaler",
       "infoHash": "Infohash",
       "createdAt": "Créé le",
       "description": "Description",
@@ -636,7 +636,6 @@
         "message": "Supprimer définitivement « {name} » de l'index ? Cette action est irréversible."
       },
       "toasts": {
-        "hashCopied": "Infohash copié dans le presse-papiers",
         "deleted": "Torrent supprimé"
       },
       "errors": {
@@ -923,16 +922,21 @@
     },
     "report": {
       "title": "Signaler {target}",
+      "eyebrow": "Fiche d'incident",
+      "unnamedTarget": "Cible sans nom",
       "reason": "Motif",
       "selectReason": "Sélectionnez un motif…",
       "detailsLabel": "Détails supplémentaires (optionnel)",
       "detailsPlaceholder": "Fournissez du contexte supplémentaire…",
+      "anonymousNote": "Votre identité reste masquée vis-à-vis de la cible. Seuls les modérateurs voient l'auteur du signalement.",
       "submit": "Envoyer le signalement",
+      "fileReport": "Déposer la fiche",
+      "filing": "Dépôt en cours…",
       "targets": {
-        "torrent": "le torrent",
-        "user": "l'utilisateur",
-        "post": "le message",
-        "comment": "le commentaire"
+        "torrent": "Torrent",
+        "user": "Utilisateur",
+        "post": "Message",
+        "comment": "Commentaire"
       },
       "reasons": {
         "spam": "Spam ou publicité",
@@ -940,7 +944,8 @@
         "copyright": "Violation de droits d'auteur",
         "inappropriate": "Contenu inapproprié",
         "harassment": "Harcèlement ou abus",
-        "other": "Autre"
+        "other": "Autre — voir détails ci-dessous",
+        "otherShort": "Autre"
       },
       "toasts": {
         "submitted": "Signalement envoyé avec succès"

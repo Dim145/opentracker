@@ -220,12 +220,16 @@
               <Icon name="ph:trash-bold" />
               <span>{{ $t('common.delete') }}</span>
             </button>
+            <!-- Report Button (any authenticated user). Mods/admins
+                 and even uploaders can file — the moderation queue
+                 will sort it. -->
             <button
-              class="btn btn-secondary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider"
-              @click="copyHash"
+              v-if="canReport"
+              class="btn btn-secondary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider !text-error/85 hover:!bg-error/10 hover:!border-error/40"
+              @click="reportOpen = true"
             >
-              <Icon name="ph:copy-bold" />
-              <span>{{ $t('torrents.detail.copyHash') }}</span>
+              <Icon name="ph:flag-bold" />
+              <span>{{ $t('torrents.detail.report') }}</span>
             </button>
             <a
               :href="`/api/torrents/${torrent.infoHash}/download`"
@@ -460,6 +464,18 @@
 
     <!-- Delete confirmation now handled by the shared <ConfirmHost /> via
          useConfirm() — see confirmDelete() below. -->
+
+    <!-- Report modal — opened from the action bar above. Renders only
+         when the operator clicks the Report button (it's teleported to
+         body so it doesn't matter where in the tree it sits). -->
+    <ReportModal
+      :is-open="reportOpen"
+      target-type="torrent"
+      :target-id="torrent.id"
+      :target-label="torrent.name"
+      @close="reportOpen = false"
+      @submitted="reportOpen = false"
+    />
   </div>
 </template>
 
@@ -682,6 +698,15 @@ const canDelete = computed(() => {
   return isOwner || user.value.isAdmin || user.value.isModerator;
 });
 
+// Report a torrent — any authenticated user can file one. The
+// uploader can technically report their own upload; moderators will
+// dismiss the obvious self-reports. Keeping the gate that permissive
+// avoids confusing edge cases ("why is the button hidden?") and
+// trusts the moderation queue to filter noise.
+const canReport = computed(() => loggedIn.value && !!user.value);
+
+const reportOpen = ref(false);
+
 /**
  * Build the badge target for a TMDb id.
  *
@@ -737,11 +762,6 @@ const renderedDescription = computed(() =>
 
 if (error.value || !torrent.value) {
   throw createError({ statusCode: 404, message: t('torrents.detail.notFound') });
-}
-
-async function copyHash() {
-  await navigator.clipboard.writeText(torrent.value!.infoHash);
-  notifications.success(t('torrents.detail.toasts.hashCopied'));
 }
 
 const nfoCopied = ref(false);
