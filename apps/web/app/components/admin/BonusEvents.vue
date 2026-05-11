@@ -1235,38 +1235,47 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .onair-light {
   position: relative;
-  display: grid;
-  place-items: center;
   width: 18px;
   height: 18px;
 }
+/* Both the dot and the rings anchor on the absolute centre — a
+   grid container with two children would otherwise create two
+   implicit rows and push the dot off the rings' centre. */
 .onair-light-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 9px;
   height: 9px;
   background: #f43f5e;
   border-radius: 50%;
   box-shadow: 0 0 12px rgba(244, 63, 94, 0.8);
+  transform: translate(-50%, -50%);
   animation: light-pulse 1.4s ease-in-out infinite;
 }
 @keyframes light-pulse {
-  0%, 100% { opacity: 0.55; transform: scale(0.85); }
-  50% { opacity: 1; transform: scale(1.15); }
+  0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.85); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
 }
 .onair-light-rings::before,
 .onair-light-rings::after {
   content: '';
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
   border: 1px solid rgba(244, 63, 94, 0.6);
   border-radius: 50%;
+  transform: translate(-50%, -50%);
   animation: light-ring 2s ease-out infinite;
   pointer-events: none;
 }
 .onair-light-rings::after { animation-delay: 1s; }
 @keyframes light-ring {
-  0% { transform: scale(0.5); opacity: 0; }
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
   20% { opacity: 0.8; }
-  100% { transform: scale(2.2); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(4.4); opacity: 0; }
 }
 .onair-stamp {
   font-family: ui-monospace, SFMono-Regular, monospace;

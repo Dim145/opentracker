@@ -2995,12 +2995,20 @@
   },
   "notifications": {
     "title": "Notifications",
+    "eyebrow": "Inbox",
     "toggleLabel": "Open notifications",
     "loading": "Loading…",
     "empty": "No notifications yet",
     "emptyUnread": "You're all caught up",
     "emptyHint": "Anything worth telling you — a moderation outcome, a comment on your release, a bonus event going live — lands here.",
     "markAllRead": "Mark all read",
+    "markOne": "Mark this read",
+    "allCaughtUp": "All caught up",
+    "unreadTitle": "{n} unread",
+    "filter": {
+      "unread": "Unread",
+      "all": "All"
+    },
     "seeAll": "See all notifications",
     "showUnreadOnly": "Unread only",
     "showAll": "Show all",

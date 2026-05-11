@@ -2995,12 +2995,20 @@
   },
   "notifications": {
     "title": "Notifications",
+    "eyebrow": "Boîte de réception",
     "toggleLabel": "Ouvrir les notifications",
     "loading": "Chargement…",
     "empty": "Aucune notification pour l'instant",
     "emptyUnread": "Tout est lu",
     "emptyHint": "Toute info qui te concerne — décision de modération, commentaire sur un de tes releases, évènement bonus qui démarre — atterrit ici.",
-    "markAllRead": "Tout marquer comme lu",
+    "markAllRead": "Tout marquer lu",
+    "markOne": "Marquer comme lue",
+    "allCaughtUp": "Tout est lu",
+    "unreadTitle": "{n} non lue(s)",
+    "filter": {
+      "unread": "Non lues",
+      "all": "Toutes"
+    },
     "seeAll": "Voir toutes les notifications",
     "showUnreadOnly": "Non lues uniquement",
     "showAll": "Tout afficher",

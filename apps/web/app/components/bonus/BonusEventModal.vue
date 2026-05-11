@@ -414,39 +414,49 @@ const explainer = computed(() => {
 }
 .bb-onair {
   position: relative;
-  display: grid;
-  place-items: center;
   width: 18px;
   height: 18px;
   flex-shrink: 0;
 }
+/* Dot and rings both anchor to the centre via absolute + translate
+   so they share an exact origin. (A `display: grid` with two
+   children implicitly creates two rows, which threw the dot off
+   the rings' centre by half the container height.) */
 .bb-onair-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 9px;
   height: 9px;
   background: #f43f5e;
   border-radius: 50%;
   box-shadow: 0 0 12px rgba(244, 63, 94, 0.8);
+  transform: translate(-50%, -50%);
   animation: bb-pulse 1.4s ease-in-out infinite;
 }
 @keyframes bb-pulse {
-  0%, 100% { opacity: 0.55; transform: scale(0.85); }
-  50% { opacity: 1; transform: scale(1.15); }
+  0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.85); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
 }
 .bb-onair-rings::before,
 .bb-onair-rings::after {
   content: '';
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
   border: 1px solid rgba(244, 63, 94, 0.6);
   border-radius: 50%;
+  transform: translate(-50%, -50%);
   animation: bb-ring 2s ease-out infinite;
   pointer-events: none;
 }
 .bb-onair-rings::after { animation-delay: 1s; }
 @keyframes bb-ring {
-  0% { transform: scale(0.5); opacity: 0; }
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
   20% { opacity: 0.8; }
-  100% { transform: scale(2.2); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(4.4); opacity: 0; }
 }
 .bb-onair-stamp {
   font-family: ui-monospace, SFMono-Regular, monospace;
