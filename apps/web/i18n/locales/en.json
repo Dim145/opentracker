@@ -2062,22 +2062,42 @@
     },
     "tags": {
       "title": "Tags",
+      "intro": "Tags are short, coloured labels uploaders can attach to a torrent. Pick a hue per tag — they'll show up in search filters, on listing rows, and on the torrent detail page.",
       "addTag": "Add Tag",
-      "empty": "No tags configured",
+      "empty": "The palette is empty.",
+      "emptyHint": "Forge your first tag above. The new swatch will land here.",
       "addNew": "Add New Tag",
       "name": "Name",
-      "namePlaceholder": "e.g., 1080p",
+      "namePlaceholder": "e.g. 1080p",
       "slug": "Slug",
-      "slugPlaceholder": "e.g., 1080p",
-      "color": "Color",
-      "colorPlaceholder": "#6b7280",
-      "create": "Create",
-      "deleteConfirmTitle": "Delete tag",
+      "slugPlaceholder": "auto-derived",
+      "color": "Colour",
+      "colorPlaceholder": "#d4a734",
+      "preview": "Preview",
+      "previewPlaceholder": "(your tag)",
+      "create": "Forge",
+      "created": "“{name}” added to the palette.",
+      "createFailed": "Could not create the tag.",
+      "snapshot": {
+        "palette": "Palette",
+        "tags": "tag | tags"
+      },
+      "forge": {
+        "title": "Forge a tag",
+        "intro": "Type a name, pick a colour. The slug is derived automatically; tweak it if you want a different URL handle."
+      },
+      "palette": {
+        "title": "The palette",
+        "intro": "Every tag currently in circulation. Hover a chip to reveal its strike action."
+      },
+      "searchPlaceholder": "Filter by name, slug or hex…",
+      "noMatch": "No tag matches that filter.",
+      "deleteConfirmTitle": "Strike from the palette",
       "deleteConfirmNamed": "Remove the “{name}” tag? Torrents currently tagged with it keep their other tags.",
       "deleteConfirmGeneric": "Delete this tag?",
-      "deleteAction": "Delete tag",
-      "deleted": "Tag deleted",
-      "deleteFailed": "Failed to delete tag"
+      "deleteAction": "Strike",
+      "deleted": "Tag struck from the palette.",
+      "deleteFailed": "Failed to strike the tag."
     },
     "hnr": {
       "title": "Hit & Run Tracking",

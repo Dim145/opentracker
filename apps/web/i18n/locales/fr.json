@@ -2062,22 +2062,42 @@
     },
     "tags": {
       "title": "Tags",
+      "intro": "Les tags sont de courtes étiquettes colorées que les uploadeurs peuvent attacher à un torrent. Choisis une teinte par tag — elles apparaîtront dans les filtres de recherche, sur les lignes de listing et sur la page de détail du torrent.",
       "addTag": "Ajouter un tag",
-      "empty": "Aucun tag configuré",
+      "empty": "La palette est vide.",
+      "emptyHint": "Forge ton premier tag ci-dessus. Le nouveau pigment apparaîtra ici.",
       "addNew": "Ajouter un nouveau tag",
       "name": "Nom",
       "namePlaceholder": "ex. 1080p",
       "slug": "Slug",
-      "slugPlaceholder": "ex. 1080p",
+      "slugPlaceholder": "auto-dérivé",
       "color": "Couleur",
-      "colorPlaceholder": "#6b7280",
-      "create": "Créer",
-      "deleteConfirmTitle": "Supprimer le tag",
+      "colorPlaceholder": "#d4a734",
+      "preview": "Aperçu",
+      "previewPlaceholder": "(ton tag)",
+      "create": "Forger",
+      "created": "« {name} » ajouté à la palette.",
+      "createFailed": "Impossible de créer le tag.",
+      "snapshot": {
+        "palette": "Palette",
+        "tags": "tag | tags"
+      },
+      "forge": {
+        "title": "Forger un tag",
+        "intro": "Tape un nom, choisis une couleur. Le slug est dérivé automatiquement ; ajuste-le si tu veux un handle d'URL différent."
+      },
+      "palette": {
+        "title": "La palette",
+        "intro": "Tous les tags actuellement en circulation. Survole un pigment pour faire apparaître son action de suppression."
+      },
+      "searchPlaceholder": "Filtrer par nom, slug ou hex…",
+      "noMatch": "Aucun tag ne correspond à ce filtre.",
+      "deleteConfirmTitle": "Retirer de la palette",
       "deleteConfirmNamed": "Retirer le tag « {name} » ? Les torrents qui le portent conservent leurs autres tags.",
       "deleteConfirmGeneric": "Supprimer ce tag ?",
-      "deleteAction": "Supprimer le tag",
-      "deleted": "Tag supprimé",
-      "deleteFailed": "Échec de la suppression du tag"
+      "deleteAction": "Retirer",
+      "deleted": "Tag retiré de la palette.",
+      "deleteFailed": "Échec de la suppression du tag."
     },
     "hnr": {
       "title": "Suivi Hit & Run",
