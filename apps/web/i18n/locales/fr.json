@@ -893,11 +893,37 @@
   "bonus": {
     "modal": {
       "countdownLeft": "Reste {time}",
-      "download": "Download",
-      "upload": "Upload",
+      "onAir": "En ondes · live",
+      "endsInLong": "Se termine dans {time}",
+      "download": "Réception",
+      "upload": "Envoi",
       "eventWindow": "Fenêtre de l'événement",
       "starts": "Début",
       "ends": "Fin",
+      "progressAria": "Avancement de la fenêtre",
+      "startedAgo": "Démarré il y a {rel}",
+      "remaining": "{time} restant",
+      "whatThisMeans": "Concrètement",
+      "preset": {
+        "freeleech": "Freeleech",
+        "silverleech": "Silverleech",
+        "bonus": "Bonus"
+      },
+      "verdict": {
+        "free": "Téléchargements gratuits — rien n'est compté",
+        "discounted": "{pct}% compté contre votre ratio",
+        "normal": "Compté normalement",
+        "surcharge": "Compté ×{mult} — plus lourd que d'habitude",
+        "uploadNone": "Aucun upload compté",
+        "uploadReduced": "Seuls {pct}% de votre upload comptent",
+        "uploadBonus": "Chaque octet compte pour {mult}"
+      },
+      "rel": {
+        "seconds": "{n} s",
+        "minutes": "{n} min",
+        "hours": "{n} h",
+        "days": "{n} j"
+      },
       "whatIsThis": "Qu'est-ce que ce {preset} ?",
       "gotIt": "Compris !",
       "explainer": {
@@ -1671,11 +1697,29 @@
     },
     "bonusEvents": {
       "title": "Évènements bonus",
+      "eyebrow": "Tour Émettrice · Évènements bonus",
       "newEvent": "Nouvel évènement",
       "intro": "Fenêtres temporelles pendant lesquelles les deltas d'octets envoi / réception sont multipliés avant d'être persistés. Deux préréglages couvrent les classiques — {freeleech} (réception×0) et {silverleech} (réception×0,5) — mais toute combinaison dans [0×, 2×] réception / [0×, 10×] envoi fonctionne. Au plus une fenêtre peut être active à la fois.",
       "freeleech": "Freeleech",
       "silverleech": "Silverleech",
-      "empty": "Aucun évènement bonus pour le moment. Cliquez sur {action} pour en programmer un.",
+      "custom": "Personnalisé",
+      "loading": "Réglage en cours…",
+      "onAir": "En ondes",
+      "endsIn": "Se termine dans",
+      "progressAria": "Avancement de la fenêtre",
+      "upcoming": "À venir",
+      "paused": "En pause",
+      "archive": "Archives",
+      "startsIn": "Démarre dans {rel}",
+      "endedAgo": "Terminé il y a {rel}",
+      "rel": {
+        "seconds": "{n} s",
+        "minutes": "{n} min",
+        "hours": "{n} h",
+        "days": "{n} j"
+      },
+      "emptyTitle": "Signal muet",
+      "empty": "Aucun évènement bonus programmé. Cliquez sur {action} pour en diffuser un.",
       "emptyAction": "Nouvel évènement",
       "status": {
         "active": "Actif",
@@ -1712,9 +1756,16 @@
         "explainerHint": "Affiché dans la fenêtre destinée aux utilisateurs sous « Qu'est-ce que c'est ? ». Laissez vide pour générer automatiquement à partir des multiplicateurs.",
         "downloadLabel": "Réception ×{value}",
         "uploadLabel": "Envoi ×{value}",
+        "downloadLabelShort": "Réception",
+        "uploadLabelShort": "Envoi",
+        "multipliers": "Multiplicateurs",
+        "window": "Fenêtre",
+        "durationHint": "La fenêtre dure {duration}.",
         "startsAt": "Début",
         "endsAt": "Fin",
         "enabled": "Activé",
+        "enabledOn": "Fenêtre armée",
+        "enabledOff": "Fenêtre désactivée",
         "enabledHint": "Désactivez pour planifier la fenêtre sans l'activer.",
         "createSubmit": "Créer l'évènement",
         "saveSubmit": "Enregistrer les modifications"

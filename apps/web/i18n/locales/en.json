@@ -893,11 +893,37 @@
   "bonus": {
     "modal": {
       "countdownLeft": "{time} left",
+      "onAir": "On air · live",
+      "endsInLong": "Ends in {time}",
       "download": "Download",
       "upload": "Upload",
       "eventWindow": "Event window",
       "starts": "Starts",
       "ends": "Ends",
+      "progressAria": "Event window progress",
+      "startedAgo": "Started {rel} ago",
+      "remaining": "{time} remaining",
+      "whatThisMeans": "What this means",
+      "preset": {
+        "freeleech": "Freeleech",
+        "silverleech": "Silverleech",
+        "bonus": "Bonus"
+      },
+      "verdict": {
+        "free": "Free downloads — no bytes counted",
+        "discounted": "{pct}% counted against ratio",
+        "normal": "Counted normally",
+        "surcharge": "Counted ×{mult} — heavier than usual",
+        "uploadNone": "No upload counted",
+        "uploadReduced": "Only {pct}% of upload counted",
+        "uploadBonus": "Each byte counts as {mult}"
+      },
+      "rel": {
+        "seconds": "{n}s",
+        "minutes": "{n}m",
+        "hours": "{n}h",
+        "days": "{n}d"
+      },
       "whatIsThis": "What is this {preset}?",
       "gotIt": "Got it!",
       "explainer": {
@@ -1671,11 +1697,29 @@
     },
     "bonusEvents": {
       "title": "Bonus Events",
+      "eyebrow": "Signal Tower · Bonus Events",
       "newEvent": "New event",
       "intro": "Time-bounded windows during which upload / download byte deltas are scaled before being persisted. Two presets cover the classics — {freeleech} (download×0) and {silverleech} (download×0.5) — but any combination in [0×, 2×] download / [0×, 10×] upload works. At most one window can be active at a time.",
       "freeleech": "Freeleech",
       "silverleech": "Silverleech",
-      "empty": "No bonus events yet. Click {action} to schedule one.",
+      "custom": "Custom",
+      "loading": "Tuning in…",
+      "onAir": "On air",
+      "endsIn": "Ends in",
+      "progressAria": "Window progress",
+      "upcoming": "Upcoming",
+      "paused": "Paused",
+      "archive": "Archive",
+      "startsIn": "Starts in {rel}",
+      "endedAgo": "Ended {rel} ago",
+      "rel": {
+        "seconds": "{n}s",
+        "minutes": "{n}m",
+        "hours": "{n}h",
+        "days": "{n}d"
+      },
+      "emptyTitle": "Signal silent",
+      "empty": "No bonus events scheduled yet. Click {action} to broadcast one.",
       "emptyAction": "New event",
       "status": {
         "active": "Active",
@@ -1712,9 +1756,16 @@
         "explainerHint": "Shown in the user-facing popup under \"What is this?\". Leave blank to auto-generate from the multipliers.",
         "downloadLabel": "Download ×{value}",
         "uploadLabel": "Upload ×{value}",
+        "downloadLabelShort": "Download",
+        "uploadLabelShort": "Upload",
+        "multipliers": "Multipliers",
+        "window": "Window",
+        "durationHint": "Window lasts {duration}.",
         "startsAt": "Starts at",
         "endsAt": "Ends at",
         "enabled": "Enabled",
+        "enabledOn": "Window armed",
+        "enabledOff": "Window disabled",
         "enabledHint": "Disable to schedule the window without activating it.",
         "createSubmit": "Create event",
         "saveSubmit": "Save changes"
