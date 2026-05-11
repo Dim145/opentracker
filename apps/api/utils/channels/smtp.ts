@@ -81,7 +81,7 @@ export const smtpAdapter: ChannelAdapter<SmtpServer, SmtpUser> = {
   type: 'smtp',
   labelKey: 'admin.channels.smtp.label',
   taglineKey: 'admin.channels.smtp.tagline',
-  icon: 'ph:envelope-bold',
+  icon: 'ph:envelope-simple-bold',
   hasServerConfig: true,
   serverFields: [
     {

@@ -58,7 +58,10 @@ export const pushoverAdapter: ChannelAdapter<PushoverServer, PushoverUser> = {
   type: 'pushover',
   labelKey: 'admin.channels.pushover.label',
   taglineKey: 'admin.channels.pushover.tagline',
-  icon: 'ph:device-mobile-bold',
+  // No simple-icons entry for Pushover. Bell-simple captures the
+  // service's "push to your phone" essence without faking the brand
+  // mark.
+  icon: 'ph:bell-simple-bold',
   hasServerConfig: true,
   serverFields: [
     {

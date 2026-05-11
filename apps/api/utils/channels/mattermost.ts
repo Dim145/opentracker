@@ -59,7 +59,7 @@ export const mattermostAdapter: ChannelAdapter<Record<string, never>, Mattermost
   type: 'mattermost',
   labelKey: 'admin.channels.mattermost.label',
   taglineKey: 'admin.channels.mattermost.tagline',
-  icon: 'ph:chat-circle-dots-bold',
+  icon: 'simple-icons:mattermost',
   hasServerConfig: false,
   serverFields: [],
   userFields: [

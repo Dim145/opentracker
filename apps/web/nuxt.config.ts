@@ -157,7 +157,15 @@ export default defineNuxtConfig({
   // explicitly so they ship in the client bundle too.
   icon: {
     mode: 'svg',
-    serverBundle: 'local',
+    // Server bundles Phosphor in full (~4.5 MB) for SSR hydration.
+    // simple-icons isn't included here on purpose — pulling the
+    // whole 5 MB collection just to render 2 brand logos (ntfy,
+    // mattermost) inflates the server bundle without buying useful
+    // SSR. Those two icons live in `clientBundle.icons` below
+    // instead: the client fetches them at hydration, the only
+    // visible effect is a sub-100ms placeholder on first paint of
+    // the settings page.
+    serverBundle: { collections: ['ph'] },
     clientBundle: {
       scan: true,
       includeCustomCollections: true,
@@ -192,6 +200,45 @@ export default defineNuxtConfig({
         'ph:x-circle-bold',
         'ph:warning-bold',
         'ph:info-bold',
+        // Notification-channel logos. Passed via the channel
+        // registry's `icon` field, so the static scanner can't find
+        // them in templates — we enumerate them here to keep the
+        // SSR + client bundles self-sufficient (no /api/_nuxt_icon
+        // round-trip at first paint). Brand logos that exist in
+        // simple-icons (ntfy, Mattermost) use that collection;
+        // Gotify / Pushover / Apprise have no simple-icons entry
+        // so we fall back to semantically-close Phosphor glyphs.
+        'ph:envelope-simple-bold',
+        'ph:telegram-logo-bold',
+        'ph:discord-logo-bold',
+        'ph:slack-logo-bold',
+        'ph:webhooks-logo-bold',
+        'ph:broadcast-bold',
+        'ph:bell-simple-bold',
+        'ph:tree-structure-bold',
+        'simple-icons:ntfy',
+        'simple-icons:mattermost',
+        // Section / state glyphs used dynamically in the
+        // NotificationsSection redesign.
+        'ph:plug-charging-bold',
+        'ph:cloud-arrow-up-bold',
+        'ph:siren-bold',
+        'ph:user-circle-bold',
+        'ph:coin-bold',
+        'ph:shield-check-bold',
+        'ph:chats-circle-bold',
+        'ph:envelope-open-bold',
+        'ph:gavel-bold',
+        'ph:bell-slash-bold',
+        'ph:bell-ringing-bold',
+        'ph:sliders-bold',
+        'ph:paper-plane-tilt-bold',
+        'ph:trash-bold',
+        'ph:floppy-disk-bold',
+        'ph:check-bold',
+        'ph:plus-bold',
+        'ph:caret-down-bold',
+        'ph:circle-notch',
       ],
     },
   },

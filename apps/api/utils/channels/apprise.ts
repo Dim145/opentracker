@@ -72,7 +72,10 @@ export const appriseAdapter: ChannelAdapter<AppriseServer, AppriseUser> = {
   type: 'apprise',
   labelKey: 'admin.channels.apprise.label',
   taglineKey: 'admin.channels.apprise.tagline',
-  icon: 'ph:lightning-bold',
+  // No simple-icons entry for Apprise. The service is a fan-out
+  // router by nature — `tree-structure` reads as "one input, many
+  // outputs" which captures Apprise's role in the channel registry.
+  icon: 'ph:tree-structure-bold',
   hasServerConfig: true,
   serverFields: [
     {

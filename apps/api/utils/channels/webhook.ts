@@ -132,7 +132,7 @@ export const webhookAdapter: ChannelAdapter<WebhookServer, WebhookUser> = {
   type: 'webhook',
   labelKey: 'admin.channels.webhook.label',
   taglineKey: 'admin.channels.webhook.tagline',
-  icon: 'ph:link-bold',
+  icon: 'ph:webhooks-logo-bold',
   hasServerConfig: true,
   serverFields: [
     {

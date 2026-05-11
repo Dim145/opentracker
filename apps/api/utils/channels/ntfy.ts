@@ -79,7 +79,7 @@ export const ntfyAdapter: ChannelAdapter<NtfyServer, NtfyUser> = {
   type: 'ntfy',
   labelKey: 'admin.channels.ntfy.label',
   taglineKey: 'admin.channels.ntfy.tagline',
-  icon: 'ph:bell-ringing-bold',
+  icon: 'simple-icons:ntfy',
   hasServerConfig: true,
   serverFields: [
     {

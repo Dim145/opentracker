@@ -70,7 +70,11 @@ export const gotifyAdapter: ChannelAdapter<GotifyServer, GotifyUser> = {
   type: 'gotify',
   labelKey: 'admin.channels.gotify.label',
   taglineKey: 'admin.channels.gotify.tagline',
-  icon: 'ph:push-pin-bold',
+  // No simple-icons entry for Gotify. `ph:broadcast-bold` is a
+  // pragmatic stand-in — Gotify is a push-broadcast server, and the
+  // transmission-tower glyph reads as "fan out to devices" without
+  // pretending to be the real brand mark.
+  icon: 'ph:broadcast-bold',
   hasServerConfig: true,
   serverFields: [
     {

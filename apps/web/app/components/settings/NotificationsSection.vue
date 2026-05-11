@@ -1,262 +1,407 @@
 <template>
   <!--
-    User-facing notifications settings.
+    Notifications settings — destinations + per-category routing.
 
-    Two stacked blocks:
-      1. **Channels** — one row per channel the admin enabled +
-         tested. User adds/edits/deletes their own row. Server-side
-         secrets (SMTP password, Telegram bot token) are never
-         exposed; only the per-user fields (their email, chat_id,
-         …) show in the form.
+    Visual identity is a control-console dossier: numbered blocks,
+    hairline gold rules, status lights as physical-looking dots,
+    monospace for keys / mono-letterspaced eyebrows. The aim is to
+    make a previously dense screen scannable at a glance: which
+    transports are wired up, where each event class goes, what's
+    pending.
 
-      2. **Routing** — one row per notification type. When the user
-         has a single channel configured, each type just has a
-         checkbox ("notify me here"). With 2+ channels, the checkbox
-         pairs with a dropdown to pick which channel handles the
-         type. Default on first channel adoption: every type routed
-         to that channel (opt-out semantics, per the design).
+    Layout:
+      • 01 — Destinations: compact rows for each configured channel
+        with an inline edit drawer. Adding a new one reveals a
+        picker of available types.
+      • 02 — Routing: 8 event categories with a bulk dropdown per
+        category PLUS the existing per-event picker. Categorising
+        gets us from "36 flat checkboxes" to "8 meaningful axes".
 
-    Rendered only when at least one channel is "available" — that's
-    the gate from the spec ("section apparait if au moins un canal
-    activé et fonctionnel").
+    The whole section only renders when the API GET reports at
+    least one channel (admin-enabled + last-tested-ok), per the
+    spec — otherwise we show a clean empty state.
   -->
-  <section v-if="loaded && channels.length > 0" class="notif-section">
-    <header class="block-head">
-      <p class="block-eyebrow">{{ $t('settings.notifications.eyebrow') }}</p>
-      <h3 class="block-title">{{ $t('settings.notifications.channelsTitle') }}</h3>
-    </header>
+  <div v-if="loaded" class="ns">
+    <!-- ── Empty state ─────────────────────────────────────────── -->
+    <div v-if="availableChannels.length === 0" class="ns-empty">
+      <Icon name="ph:plug-charging-bold" class="ns-empty-icon" />
+      <h4 class="ns-empty-title">
+        {{ $t('settings.notifications.emptyTitle') }}
+      </h4>
+      <p class="ns-empty-desc">
+        {{ $t('settings.notifications.emptyDesc') }}
+      </p>
+    </div>
 
-    <ul class="channel-list">
-      <li
-        v-for="ch in channels"
-        :key="ch.type"
-        class="channel-row"
-        :class="{ 'channel-row--configured': ch.configured }"
-      >
-        <button
-          type="button"
-          class="channel-row-head"
-          @click="toggleExpand(ch.type)"
-        >
-          <Icon :name="ch.icon" class="channel-icon" />
-          <span class="channel-label">{{ $t(ch.labelKey) }}</span>
-          <span v-if="ch.configured" class="channel-state">
-            <span class="state-dot" :class="`state-dot--${ch.lastTestStatus ?? 'pending'}`" />
-            <template v-if="ch.lastTestStatus === 'ok'">
-              {{ $t('settings.notifications.statusOk') }}
-            </template>
-            <template v-else-if="ch.lastTestStatus === 'error'">
-              {{ $t('settings.notifications.statusError') }}
-            </template>
-            <template v-else>{{ $t('settings.notifications.statusPending') }}</template>
+    <template v-else>
+      <!-- ── Block 01 — Destinations ───────────────────────────── -->
+      <section class="ns-block">
+        <header class="ns-block-head">
+          <span class="ns-block-num">01</span>
+          <div class="ns-block-id">
+            <h4>{{ $t('settings.notifications.destinationsTitle') }}</h4>
+            <p>{{ $t('settings.notifications.destinationsDesc') }}</p>
+          </div>
+          <span class="ns-block-meta">
+            <strong>{{ configuredChannels.length }}</strong>
+            {{ $t('settings.notifications.configured') }}
+            <span class="ns-block-meta-sep">·</span>
+            {{ unconfiguredChannels.length }}
+            {{ $t('settings.notifications.available') }}
           </span>
-          <span v-else class="channel-state channel-state--add">
-            <Icon name="ph:plus-bold" />
-            {{ $t('settings.notifications.add') }}
-          </span>
-          <Icon
-            name="ph:caret-down-bold"
-            class="channel-chevron"
-            :class="{ 'rotate-180': expanded[ch.type] }"
-          />
-        </button>
+        </header>
 
-        <div v-if="expanded[ch.type]" class="channel-form">
-          <p class="channel-tagline">{{ $t(ch.taglineKey) }}</p>
+        <ul class="dest-list">
+          <li
+            v-for="(ch, i) in configuredChannels"
+            :key="ch.type"
+            class="dest"
+            :class="{ 'dest--open': expanded[ch.type] }"
+            :style="{ '--stagger': `${i * 40}ms` }"
+          >
+            <header class="dest-head">
+              <span class="dest-glyph" :data-status="ch.lastTestStatus ?? 'pending'">
+                <Icon :name="ch.icon" />
+                <span class="dest-glyph-dot" aria-hidden="true" />
+              </span>
+
+              <span class="dest-id">
+                <strong class="dest-name">{{ $t(ch.labelKey) }}</strong>
+                <code class="dest-target">{{ describeTarget(ch) }}</code>
+              </span>
+
+              <span class="dest-status" :class="`dest-status--${ch.lastTestStatus ?? 'pending'}`">
+                {{ statusLabel(ch) }}
+              </span>
+
+              <div class="dest-actions">
+                <button
+                  type="button"
+                  class="dest-btn"
+                  :disabled="!!busy[ch.type]"
+                  :title="$t('settings.notifications.test')"
+                  @click="testChannel(ch)"
+                >
+                  <Icon
+                    :name="busy[ch.type] === 'testing' ? 'ph:circle-notch' : 'ph:paper-plane-tilt-bold'"
+                    :class="busy[ch.type] === 'testing' ? 'spin' : ''"
+                  />
+                </button>
+                <button
+                  type="button"
+                  class="dest-btn"
+                  :class="{ 'dest-btn--active': expanded[ch.type] }"
+                  :title="$t('common.edit')"
+                  @click="toggleExpand(ch.type)"
+                >
+                  <Icon name="ph:sliders-bold" />
+                </button>
+                <button
+                  type="button"
+                  class="dest-btn dest-btn--danger"
+                  :disabled="!!busy[ch.type]"
+                  :title="$t('settings.notifications.remove')"
+                  @click="confirmRemove(ch)"
+                >
+                  <Icon name="ph:trash-bold" />
+                </button>
+              </div>
+            </header>
+
+            <Transition name="drawer">
+              <div v-if="expanded[ch.type]" class="dest-drawer">
+                <div
+                  v-if="ch.publicServerInfo && ch.publicServerInfo.length > 0"
+                  class="dest-pub"
+                >
+                  <Icon name="ph:info-bold" />
+                  <dl>
+                    <div v-for="(item, j) in ch.publicServerInfo" :key="j">
+                      <dt>{{ $t(item.labelKey) }}</dt>
+                      <dd><code>{{ item.value }}</code></dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <p class="dest-tagline">{{ $t(ch.taglineKey) }}</p>
+
+                <div class="dest-fields">
+                  <label
+                    v-for="f in ch.userFields"
+                    :key="f.key"
+                    class="field"
+                  >
+                    <span class="field-label">
+                      {{ $t(f.labelKey) }}
+                      <span v-if="!f.required" class="field-opt">{{ $t('settings.notifications.optional') }}</span>
+                    </span>
+                    <span v-if="f.hintKey" class="field-hint">{{ $t(f.hintKey) }}</span>
+                    <input
+                      v-if="f.type === 'int'"
+                      type="number"
+                      class="field-input"
+                      :placeholder="String(f.default ?? '')"
+                      :value="userConfigs[ch.type]?.[f.key]"
+                      @input="setField(ch.type, f.key, Number(($event.target as HTMLInputElement).value))"
+                    />
+                    <input
+                      v-else-if="f.type === 'password' || f.secret"
+                      type="password"
+                      autocomplete="new-password"
+                      class="field-input"
+                      :placeholder="ch.configured ? $t('settings.notifications.keepSecret') : ''"
+                      :value="userConfigs[ch.type]?.[f.key]"
+                      @input="setField(ch.type, f.key, ($event.target as HTMLInputElement).value)"
+                    />
+                    <input
+                      v-else
+                      :type="f.type === 'email' ? 'email' : f.type === 'url' ? 'url' : 'text'"
+                      class="field-input"
+                      :placeholder="f.default ? String(f.default) : ''"
+                      :value="userConfigs[ch.type]?.[f.key]"
+                      @input="setField(ch.type, f.key, ($event.target as HTMLInputElement).value)"
+                    />
+                  </label>
+                </div>
+
+                <div
+                  v-if="ch.configured && ch.lastTestStatus === 'error' && ch.lastTestError"
+                  class="dest-error"
+                >
+                  <Icon name="ph:warning-bold" />
+                  <span>{{ ch.lastTestError }}</span>
+                </div>
+
+                <div class="dest-drawer-foot">
+                  <button
+                    type="button"
+                    class="btn btn--ghost"
+                    @click="toggleExpand(ch.type)"
+                  >
+                    {{ $t('common.close') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn"
+                    :disabled="!!busy[ch.type] || !canSave(ch)"
+                    @click="saveChannel(ch)"
+                  >
+                    <Icon
+                      :name="busy[ch.type] === 'saving' ? 'ph:circle-notch' : 'ph:floppy-disk-bold'"
+                      :class="busy[ch.type] === 'saving' ? 'spin' : ''"
+                    />
+                    {{ $t('common.save') }}
+                  </button>
+                </div>
+              </div>
+            </Transition>
+          </li>
 
           <!--
-            Public server info — ntfy/Gotify expose their base URL
-            here so users can point their mobile app at the right
-            instance. The block renders only when the adapter
-            opted in via `publicServerInfo` and the admin row
-            actually has a value.
+            Add-destination slot. When `unconfiguredChannels` is
+            non-empty, render a single slot. Clicking expands it
+            into a grid of available channel types — same expand
+            interaction as a regular row so users learn one pattern.
           -->
-          <div v-if="ch.publicServerInfo && ch.publicServerInfo.length > 0" class="public-info">
-            <Icon name="ph:info-bold" />
-            <dl class="public-info-list">
-              <div v-for="(item, i) in ch.publicServerInfo" :key="i">
-                <dt>{{ $t(item.labelKey) }}</dt>
-                <dd><code>{{ item.value }}</code></dd>
-              </div>
-            </dl>
-          </div>
-
-          <label v-for="f in ch.userFields" :key="f.key" class="field">
-            <span class="field-label">{{ $t(f.labelKey) }}</span>
-            <span v-if="f.hintKey" class="field-hint">{{ $t(f.hintKey) }}</span>
-            <input
-              v-if="f.type === 'int'"
-              type="number"
-              :placeholder="String(f.default ?? '')"
-              :value="userConfigs[ch.type]?.[f.key]"
-              @input="setField(ch.type, f.key, Number(($event.target as HTMLInputElement).value))"
-            />
-            <input
-              v-else-if="f.type === 'password' || f.secret"
-              type="password"
-              autocomplete="new-password"
-              :placeholder="ch.configured ? $t('settings.notifications.keepSecret') : ''"
-              :value="userConfigs[ch.type]?.[f.key]"
-              @input="setField(ch.type, f.key, ($event.target as HTMLInputElement).value)"
-            />
-            <input
-              v-else
-              :type="f.type === 'email' ? 'email' : f.type === 'url' ? 'url' : 'text'"
-              :placeholder="f.default ? String(f.default) : ''"
-              :value="userConfigs[ch.type]?.[f.key]"
-              @input="setField(ch.type, f.key, ($event.target as HTMLInputElement).value)"
-            />
-          </label>
-
-          <div v-if="ch.configured && ch.lastTestStatus === 'error' && ch.lastTestError" class="error-detail">
-            <Icon name="ph:warning-bold" />
-            {{ ch.lastTestError }}
-          </div>
-
-          <div class="form-actions">
-            <button
-              v-if="ch.configured"
-              type="button"
-              class="btn btn--ghost btn--danger"
-              :disabled="!!busy[ch.type]"
-              @click="removeChannel(ch)"
-            >
-              <Icon name="ph:trash-bold" />
-              {{ $t('settings.notifications.remove') }}
-            </button>
-            <button
-              type="button"
-              class="btn"
-              :disabled="!!busy[ch.type] || !canTest(ch)"
-              @click="testChannel(ch)"
-            >
+          <li
+            v-if="unconfiguredChannels.length > 0"
+            class="dest dest--add"
+            :class="{ 'dest--open': addMenuOpen }"
+            :style="{ '--stagger': `${configuredChannels.length * 40}ms` }"
+          >
+            <header class="dest-head" @click="addMenuOpen = !addMenuOpen" role="button" tabindex="0" @keydown.enter.prevent="addMenuOpen = !addMenuOpen" @keydown.space.prevent="addMenuOpen = !addMenuOpen">
+              <span class="dest-glyph dest-glyph--add">
+                <Icon name="ph:plus-bold" />
+              </span>
+              <span class="dest-id">
+                <strong class="dest-name">{{ $t('settings.notifications.addDestination') }}</strong>
+                <span class="dest-target dest-target--soft">
+                  {{ $t('settings.notifications.availablePicker', unconfiguredChannels.length, { n: unconfiguredChannels.length }) }}
+                </span>
+              </span>
               <Icon
-                :name="busy[ch.type] === 'testing' ? 'ph:circle-notch' : 'ph:paper-plane-tilt-bold'"
-                :class="busy[ch.type] === 'testing' ? 'animate-spin' : ''"
+                name="ph:caret-down-bold"
+                class="dest-add-chevron"
+                :class="{ 'rotate-180': addMenuOpen }"
               />
-              {{ $t('settings.notifications.test') }}
+            </header>
+
+            <Transition name="drawer">
+              <div v-if="addMenuOpen" class="dest-drawer">
+                <p class="dest-add-help">
+                  {{ $t('settings.notifications.addPickerHelp') }}
+                </p>
+                <ul class="dest-add-grid">
+                  <li v-for="ch in unconfiguredChannels" :key="ch.type">
+                    <button
+                      type="button"
+                      class="dest-add-tile"
+                      @click="startAdding(ch)"
+                    >
+                      <Icon :name="ch.icon" class="dest-add-tile-icon" />
+                      <span class="dest-add-tile-name">{{ $t(ch.labelKey) }}</span>
+                      <span class="dest-add-tile-tagline">{{ $t(ch.taglineKey) }}</span>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </Transition>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ── Block 02 — Routing ──────────────────────────────────── -->
+      <section v-if="configuredChannels.length > 0" class="ns-block">
+        <header class="ns-block-head">
+          <span class="ns-block-num">02</span>
+          <div class="ns-block-id">
+            <h4>{{ $t('settings.notifications.routingTitle') }}</h4>
+            <p>{{ $t('settings.notifications.routingDesc') }}</p>
+          </div>
+          <span class="ns-block-meta">
+            <strong>{{ activeRouteCount }}</strong>
+            {{ $t('settings.notifications.eventsRouted', { total: notifTypes.length }) }}
+          </span>
+        </header>
+
+        <!--
+          Global quick actions — one button per configured channel
+          ("route all to <name>"), plus a destructive mute-all. The
+          row is the at-a-glance "set the whole pipeline" control;
+          per-category bulk lives inside each accordion below.
+        -->
+        <div class="route-quick">
+          <button
+            v-for="ch in configuredChannels"
+            :key="ch.type"
+            type="button"
+            class="route-quick-btn"
+            @click="routeAllTo(ch.type)"
+          >
+            <Icon :name="ch.icon" />
+            <span>{{ $t('settings.notifications.routeAllTo', { name: $t(ch.labelKey) }) }}</span>
+          </button>
+          <button
+            type="button"
+            class="route-quick-btn route-quick-btn--mute"
+            @click="routeAllTo(null)"
+          >
+            <Icon name="ph:bell-slash-bold" />
+            <span>{{ $t('settings.notifications.muteAll') }}</span>
+          </button>
+        </div>
+
+        <div class="route-cats">
+          <details
+            v-for="(cat, i) in categories"
+            :key="cat.key"
+            class="cat"
+            :open="i < 2"
+            :style="{ '--cat-color': cat.color, '--stagger': `${i * 40}ms` }"
+          >
+            <summary class="cat-head">
+              <span class="cat-glyph">
+                <Icon :name="cat.icon" />
+              </span>
+              <div class="cat-id">
+                <h5>{{ $t(`settings.notifications.categories.${cat.key}`) }}</h5>
+                <span class="cat-stat">
+                  <strong>{{ countRoutedInCat(cat) }}</strong>
+                  / {{ cat.types.length }}
+                  {{ $t('settings.notifications.eventsShort') }}
+                </span>
+              </div>
+              <span class="cat-bulk-wrap" @click.stop>
+                <select
+                  class="cat-bulk"
+                  :value="catBulkValue(cat)"
+                  @change="catBulkApply(cat, ($event.target as HTMLSelectElement).value)"
+                >
+                  <option value="">{{ $t('settings.notifications.routeNone') }}</option>
+                  <option v-for="c in configuredChannels" :key="c.type" :value="c.type">
+                    {{ $t(c.labelKey) }}
+                  </option>
+                  <option
+                    v-if="catBulkValue(cat) === '__mixed__'"
+                    value="__mixed__"
+                    disabled
+                  >
+                    {{ $t('settings.notifications.bulkMixed') }}
+                  </option>
+                </select>
+              </span>
+              <Icon name="ph:caret-down-bold" class="cat-chevron" />
+            </summary>
+
+            <ul class="cat-events">
+              <li v-for="type in cat.types" :key="type" class="event">
+                <span class="event-id">
+                  <span class="event-title">{{ $t(`notifications.types.${type}.title`) }}</span>
+                  <span class="event-desc">{{ $t(`notifications.types.${type}.desc`, samplePayload) }}</span>
+                </span>
+                <span class="event-route">
+                  <span
+                    class="event-target"
+                    :class="{ 'event-target--muted': !routing[type] }"
+                  >
+                    <span class="event-target-dot" />
+                    <span>{{ routing[type] ? $t(channelLabelOf(routing[type])) : $t('settings.notifications.routeNone') }}</span>
+                  </span>
+                  <select
+                    :value="routing[type] ?? ''"
+                    @change="setRoute(type, ($event.target as HTMLSelectElement).value || null)"
+                  >
+                    <option value="">{{ $t('settings.notifications.routeNone') }}</option>
+                    <option
+                      v-for="c in configuredChannels"
+                      :key="c.type"
+                      :value="c.type"
+                    >
+                      {{ $t(c.labelKey) }}
+                    </option>
+                  </select>
+                </span>
+              </li>
+            </ul>
+          </details>
+        </div>
+
+        <!--
+          Floating save bar — only materialises when there's a diff
+          versus the last server snapshot. Discards revert to that
+          snapshot; save commits and refreshes.
+        -->
+        <Transition name="save-bar">
+          <div v-if="routingDirty" class="route-save">
+            <span class="route-save-info">
+              <Icon name="ph:floppy-disk-bold" />
+              <span>{{ $t('settings.notifications.changesPending', routingDiffCount, { n: routingDiffCount }) }}</span>
+            </span>
+            <button
+              type="button"
+              class="btn btn--ghost"
+              :disabled="routingSaving"
+              @click="discardRouting"
+            >
+              {{ $t('common.discard') }}
             </button>
             <button
               type="button"
               class="btn btn--primary"
-              :disabled="!!busy[ch.type] || !canSave(ch)"
-              @click="saveChannel(ch)"
+              :disabled="!routingDirty || routingSaving"
+              @click="() => saveRouting()"
             >
               <Icon
-                :name="busy[ch.type] === 'saving' ? 'ph:circle-notch' : 'ph:floppy-disk-bold'"
-                :class="busy[ch.type] === 'saving' ? 'animate-spin' : ''"
+                :name="routingSaving ? 'ph:circle-notch' : 'ph:check-bold'"
+                :class="routingSaving ? 'spin' : ''"
               />
-              {{ ch.configured ? $t('common.save') : $t('common.add') }}
+              {{ $t('settings.notifications.saveRouting') }}
             </button>
           </div>
-        </div>
-      </li>
-    </ul>
-
-    <!-- Routing -->
-    <header class="block-head block-head--secondary">
-      <h3 class="block-title">{{ $t('settings.notifications.routingTitle') }}</h3>
-      <p class="block-desc">{{ $t('settings.notifications.routingDesc') }}</p>
-    </header>
-
-    <div v-if="activeChannels.length === 0" class="empty">
-      <Icon name="ph:info" />
-      <span>{{ $t('settings.notifications.routingEmpty') }}</span>
-    </div>
-
-    <!--
-      Bulk control row — lets the user flip every notification type
-      at once instead of clicking 37 checkboxes / dropdowns. Sits
-      above the per-type list with a slightly emphasised border so
-      it reads as a global control, not just another row.
-
-      Single-channel layout: a tri-state checkbox (off / mixed /
-      all-routed). Clicking it routes every type to the one
-      channel, or clears every routing entry.
-
-      Multi-channel layout: a dropdown — "Don't send any", then
-      one option per active channel. Selecting a channel routes
-      every type to it; selecting "Don't send any" wipes all
-      routings. When the per-row picks are mixed (≥2 different
-      channels in use), the dropdown shows a disabled "Mixed"
-      sentinel so the user knows they're not in a uniform state.
-    -->
-    <div v-if="activeChannels.length > 0" class="bulk-row">
-      <span class="bulk-label">{{ $t('settings.notifications.bulkAll') }}</span>
-      <template v-if="activeChannels.length === 1">
-        <label class="check">
-          <input
-            type="checkbox"
-            :checked="bulkAllChecked"
-            :indeterminate.prop="bulkMixed"
-            @change="bulkApply(($event.target as HTMLInputElement).checked ? activeChannels[0]!.type : null)"
-          />
-          <span>
-            {{ bulkAllChecked
-              ? $t('settings.notifications.bulkAllOn')
-              : $t('settings.notifications.bulkAllOff') }}
-          </span>
-        </label>
-      </template>
-      <template v-else>
-        <select :value="bulkValue" @change="bulkApply(($event.target as HTMLSelectElement).value || null)">
-          <option value="">{{ $t('settings.notifications.routeNone') }}</option>
-          <option v-for="c in activeChannels" :key="c.type" :value="c.type">
-            {{ $t(c.labelKey) }}
-          </option>
-          <option v-if="bulkValue === '__mixed__'" value="__mixed__" disabled>
-            {{ $t('settings.notifications.bulkMixed') }}
-          </option>
-        </select>
-      </template>
-    </div>
-
-    <ul v-if="activeChannels.length > 0" class="routing-list">
-      <li v-for="t in notifTypes" :key="t" class="routing-row">
-        <span class="routing-label">
-          <span class="routing-title">{{ $t(`notifications.types.${t}.title`) }}</span>
-          <span class="routing-desc">{{ $t(`notifications.types.${t}.desc`, samplePayload) }}</span>
-        </span>
-        <span class="routing-control">
-          <!-- Single-channel UX: just a checkbox -->
-          <label v-if="activeChannels.length === 1" class="check">
-            <input
-              type="checkbox"
-              :checked="routing[t] === activeChannels[0]!.type"
-              @change="setRoute(t, ($event.target as HTMLInputElement).checked ? activeChannels[0]!.type : null)"
-            />
-            <span>{{ $t('settings.notifications.routeMe') }}</span>
-          </label>
-          <!-- Multi-channel UX: dropdown w/ "none" + each channel -->
-          <select
-            v-else
-            :value="routing[t] ?? ''"
-            @change="setRoute(t, ($event.target as HTMLSelectElement).value || null)"
-          >
-            <option value="">{{ $t('settings.notifications.routeNone') }}</option>
-            <option v-for="c in activeChannels" :key="c.type" :value="c.type">
-              {{ $t(c.labelKey) }}
-            </option>
-          </select>
-        </span>
-      </li>
-    </ul>
-
-    <div class="block-foot">
-      <button
-        type="button"
-        class="btn btn--primary"
-        :disabled="!routingDirty || routingSaving"
-        @click="() => saveRouting()"
-      >
-        <Icon
-          :name="routingSaving ? 'ph:circle-notch' : 'ph:floppy-disk-bold'"
-          :class="routingSaving ? 'animate-spin' : ''"
-        />
-        {{ $t('settings.notifications.saveRouting') }}
-      </button>
-    </div>
-  </section>
+        </Transition>
+      </section>
+    </template>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -265,25 +410,34 @@ interface UserChannel {
   labelKey: string;
   taglineKey: string;
   icon: string;
-  userFields: { key: string; labelKey: string; hintKey?: string; type: string; required: boolean; secret?: boolean; default?: unknown }[];
+  userFields: {
+    key: string;
+    labelKey: string;
+    hintKey?: string;
+    type: string;
+    required: boolean;
+    secret?: boolean;
+    default?: unknown;
+  }[];
   configured: boolean;
   enabled: boolean;
   lastTestStatus: 'ok' | 'error' | null;
   lastTestError: string | null;
   lastTestedAt: string | null;
-  /** Decrypted user values for non-secret fields, so the form
-   *  re-hydrates with what the user previously saved (ntfy topic,
-   *  SMTP "to", Gotify priority…). Secret fields are filtered
-   *  server-side. */
   userValues?: Record<string, unknown>;
-  /** Read-only server-side info the user needs to see (ntfy /
-   *  Gotify base URL — required to subscribe from the mobile app). */
   publicServerInfo?: Array<{ labelKey: string; value: string }>;
 }
 
 interface RoutingEntry {
   type: string;
   channelType: string;
+}
+
+interface EventCategory {
+  key: string;
+  icon: string;
+  color: string;
+  types: string[];
 }
 
 const channels = ref<UserChannel[]>([]);
@@ -294,10 +448,13 @@ const busy = reactive<Record<string, 'saving' | 'testing' | null>>({});
 const userConfigs = reactive<Record<string, Record<string, any>>>({});
 const loaded = ref(false);
 const routingSaving = ref(false);
+const addMenuOpen = ref(false);
 
-// 37 notification types — kept in sync with the NotificationType
-// union in apps/api/utils/notify.ts. Listed exhaustively so the
-// routing matrix shows every event the system can emit.
+const confirm = useConfirm();
+const { t } = useI18n();
+
+// Exhaustive list of every notification type the API can emit.
+// Kept in sync with the union in apps/api/utils/notify.ts.
 const notifTypes = [
   'upload_accepted',
   'upload_rejected',
@@ -337,9 +494,96 @@ const notifTypes = [
   'trusted_device_added',
 ];
 
-// Sample payload so the desc previews show real-looking content
-// instead of `{torrentName}` placeholders. Mirrors the test payload
-// the server uses for /test calls.
+// 8 categories grouping the 35 events. Each carries an icon + a
+// hint colour used to tint the category badge — visual anchoring
+// is more important than scanning 35 flat rows.
+const categories: EventCategory[] = [
+  {
+    key: 'uploads',
+    icon: 'ph:cloud-arrow-up-bold',
+    color: '#34d4d8',
+    types: [
+      'upload_accepted',
+      'upload_rejected',
+      'upload_changes_requested',
+      'upload_reset',
+      'moderation_message_received',
+      'torrent_deleted_by_staff',
+    ],
+  },
+  {
+    key: 'hnr',
+    icon: 'ph:siren-bold',
+    color: '#ff6b6b',
+    types: ['hnr_violation_marked', 'hnr_cleared', 'hnr_exempted'],
+  },
+  {
+    key: 'account',
+    icon: 'ph:user-circle-bold',
+    color: '#a78bfa',
+    types: [
+      'account_banned',
+      'account_unbanned',
+      'role_attached_manually',
+      'role_detached',
+      'staff_status_changed',
+    ],
+  },
+  {
+    key: 'bonus',
+    icon: 'ph:coin-bold',
+    color: '#d4a734',
+    types: [
+      'bonus_points_adjusted',
+      'bonus_event_started',
+      'first_seeder_reward',
+      'seeding_milestone_reached',
+    ],
+  },
+  {
+    key: 'security',
+    icon: 'ph:shield-check-bold',
+    color: '#6cd161',
+    types: [
+      'password_changed',
+      'totp_enabled',
+      'totp_disabled',
+      'passkey_added',
+      'passkey_removed',
+      'recovery_codes_regenerated',
+      'recovery_code_used',
+      'login_new_ip',
+      'trusted_device_added',
+    ],
+  },
+  {
+    key: 'social',
+    icon: 'ph:chats-circle-bold',
+    color: '#f472b6',
+    types: [
+      'comment_on_my_upload',
+      'forum_reply_on_my_topic',
+      'comment_deleted_by_staff',
+      'forum_post_deleted_by_staff',
+    ],
+  },
+  {
+    key: 'invites',
+    icon: 'ph:envelope-open-bold',
+    color: '#fb923c',
+    types: ['invite_redeemed', 'invitee_banned'],
+  },
+  {
+    key: 'moderator',
+    icon: 'ph:gavel-bold',
+    color: '#f5c518',
+    types: ['new_pending_upload', 'new_report_filed', 'report_actioned'],
+  },
+];
+
+// Synthetic placeholders so the desc previews read like real
+// notifs instead of `{torrentName}` literals. Mirrors the test
+// payload the server uses for /test calls.
 const samplePayload = {
   torrentName: 'Sample.Release.2026.1080p.WEB-DL',
   moderatorUsername: 'mod_alice',
@@ -365,72 +609,19 @@ const samplePayload = {
   previousIp: '192.0.2.42',
 };
 
+// ── Channel sets ──────────────────────────────────────────────
+const availableChannels = computed(() => channels.value);
+const configuredChannels = computed(() =>
+  channels.value.filter((c) => c.configured),
+);
+const unconfiguredChannels = computed(() =>
+  channels.value.filter((c) => !c.configured),
+);
 const activeChannels = computed(() =>
-  channels.value.filter((c) => c.configured && c.enabled)
+  channels.value.filter((c) => c.configured && c.enabled),
 );
 
-// ── Bulk-edit helpers ────────────────────────────────────────────
-//
-// `routing` carries one entry per type → channelType. We expose a few
-// computed views so the bulk control row at the top of the routing
-// table can show a sensible state and toggle every type at once.
-
-/** True when every notif type is routed to the single active
- *  channel (single-channel layout only). */
-const bulkAllChecked = computed(() => {
-  if (activeChannels.value.length !== 1) return false;
-  const target = activeChannels.value[0]!.type;
-  return notifTypes.every((t) => routing[t] === target);
-});
-
-/** Single-channel UX: "mixed" means some types are routed and some
- *  aren't. The checkbox renders indeterminate to flag this. */
-const bulkMixed = computed(() => {
-  if (activeChannels.value.length !== 1) return false;
-  const target = activeChannels.value[0]!.type;
-  let on = 0;
-  let off = 0;
-  for (const t of notifTypes) {
-    if (routing[t] === target) on += 1;
-    else off += 1;
-  }
-  return on > 0 && off > 0;
-});
-
-/** Multi-channel UX: the dropdown value the master select shows.
- *   '' = every type is "don't send" (no routing rows at all);
- *   '<channelType>' = every routed type points at the same channel
- *     AND no type is in "don't send" — uniform state;
- *   '__mixed__' = anything else (some types unrouted, some routed to
- *     different channels, etc.). The dropdown surfaces this as a
- *     disabled sentinel so the user knows they're customising
- *     individual rows. */
-const bulkValue = computed<string>(() => {
-  if (activeChannels.value.length < 2) return '';
-  const targets = new Set<string>();
-  let unrouted = 0;
-  for (const t of notifTypes) {
-    const v = routing[t];
-    if (v) targets.add(v);
-    else unrouted += 1;
-  }
-  if (targets.size === 0 && unrouted === notifTypes.length) return '';
-  if (targets.size === 1 && unrouted === 0) {
-    return targets.values().next().value as string;
-  }
-  return '__mixed__';
-});
-
-/** Apply one value to every notif type. `null` clears all routings
- *  (equivalent to "don't send any"). Doesn't auto-save — the
- *  existing "Save routing" button still gates the commit. */
-function bulkApply(channelType: string | null) {
-  for (const t of notifTypes) {
-    if (channelType) routing[t] = channelType;
-    else delete routing[t];
-  }
-}
-
+// ── Routing diff & helpers ────────────────────────────────────
 const routingDirty = computed(() => {
   const keys = new Set([
     ...Object.keys(routing),
@@ -441,7 +632,91 @@ const routingDirty = computed(() => {
   }
   return false;
 });
+const routingDiffCount = computed(() => {
+  let n = 0;
+  const keys = new Set([
+    ...Object.keys(routing),
+    ...Object.keys(initialRouting),
+  ]);
+  for (const k of keys) {
+    if ((routing[k] ?? '') !== (initialRouting[k] ?? '')) n += 1;
+  }
+  return n;
+});
+const activeRouteCount = computed(() =>
+  notifTypes.reduce((n, t) => (routing[t] ? n + 1 : n), 0),
+);
 
+function channelLabelOf(type: string): string {
+  const ch = channels.value.find((c) => c.type === type);
+  return ch?.labelKey ?? type;
+}
+
+function countRoutedInCat(cat: EventCategory): number {
+  return cat.types.reduce((n, t) => (routing[t] ? n + 1 : n), 0);
+}
+
+/** Compact bulk-state for a category's master select. */
+function catBulkValue(cat: EventCategory): string {
+  const targets = new Set<string>();
+  let unrouted = 0;
+  for (const t of cat.types) {
+    const v = routing[t];
+    if (v) targets.add(v);
+    else unrouted += 1;
+  }
+  if (targets.size === 0 && unrouted === cat.types.length) return '';
+  if (targets.size === 1 && unrouted === 0) {
+    return targets.values().next().value as string;
+  }
+  return '__mixed__';
+}
+
+function catBulkApply(cat: EventCategory, value: string) {
+  if (value === '__mixed__') return;
+  for (const t of cat.types) {
+    if (value) routing[t] = value;
+    else delete routing[t];
+  }
+}
+
+/** Global bulk: route every type to one destination (or mute all). */
+function routeAllTo(channelType: string | null) {
+  for (const t of notifTypes) {
+    if (channelType) routing[t] = channelType;
+    else delete routing[t];
+  }
+}
+
+function discardRouting() {
+  for (const k of Object.keys(routing)) delete routing[k];
+  for (const [k, v] of Object.entries(initialRouting)) routing[k] = v;
+}
+
+// ── Channel target description ────────────────────────────────
+/**
+ * The first non-secret user value, formatted for at-a-glance
+ * scanning. Falls back to a hint that the row is configured.
+ * Secrets are never echoed back from the API, so this only ever
+ * shows public-ish data (email "to", ntfy topic, …).
+ */
+function describeTarget(ch: UserChannel): string {
+  const v = ch.userValues || {};
+  for (const f of ch.userFields) {
+    if (f.secret) continue;
+    if (v[f.key] != null && v[f.key] !== '') return String(v[f.key]);
+  }
+  return t('settings.notifications.targetMasked');
+}
+
+function statusLabel(ch: UserChannel): string {
+  if (ch.lastTestStatus === 'ok') return t('settings.notifications.statusOk');
+  if (ch.lastTestStatus === 'error')
+    return t('settings.notifications.statusError');
+  return t('settings.notifications.statusPending');
+}
+
+// ── Data load & mutations ─────────────────────────────────────
 async function refresh() {
   const res = await $fetch<{
     channels: UserChannel[];
@@ -449,13 +724,8 @@ async function refresh() {
   }>('/api/me/notification-channels');
   channels.value = res.channels;
   for (const ch of res.channels) {
-    // Hydrate the form with the user's previously-saved non-secret
-    // values so a re-open shows what's actually stored. Secret
-    // fields stay empty — the "(unchanged — leave blank)"
-    // placeholder hints at preservation semantics.
     userConfigs[ch.type] = { ...(ch.userValues || {}) };
   }
-  // Replace routing in-place so reactivity tracks the right keys.
   for (const k of Object.keys(routing)) delete routing[k];
   for (const k of Object.keys(initialRouting)) delete initialRouting[k];
   for (const r of res.routing) {
@@ -465,9 +735,6 @@ async function refresh() {
   loaded.value = true;
 }
 
-// Defer the initial fetch to client mount — `$fetch` skips the auth
-// cookie during SSR, which would 401 on a top-level await even
-// though the user *is* logged in. Matches the admin page pattern.
 onMounted(() => {
   void refresh();
 });
@@ -485,14 +752,30 @@ function canSave(ch: UserChannel): boolean {
   const cfg = userConfigs[ch.type] || {};
   for (const f of ch.userFields) {
     if (!f.required) continue;
-    if (f.secret && ch.configured) continue; // can keep old value
+    if (f.secret && ch.configured) continue;
     if (cfg[f.key] == null || cfg[f.key] === '') return false;
   }
   return true;
 }
 
-function canTest(ch: UserChannel): boolean {
-  return ch.configured && ch.enabled;
+function startAdding(ch: UserChannel) {
+  addMenuOpen.value = false;
+  // Optimistically expand the row so the form is ready. The channel
+  // technically isn't `configured` yet — the next save creates it.
+  expanded[ch.type] = true;
+  userConfigs[ch.type] = {};
+  // Move the soon-to-be-configured channel to the top of the list
+  // by flipping its `configured` flag in the local copy. The server
+  // round-trip will overwrite this in `refresh()` after save.
+  const found = channels.value.find((c) => c.type === ch.type);
+  if (found) {
+    found.configured = true;
+    // bring it to the front of the configured slice
+    const list = channels.value;
+    const idx = list.indexOf(found);
+    list.splice(idx, 1);
+    list.unshift(found);
+  }
 }
 
 async function saveChannel(ch: UserChannel) {
@@ -510,24 +793,34 @@ async function saveChannel(ch: UserChannel) {
       body: { enabled: true, userConfig: cleaned },
     });
 
-    // First-time adoption: opt-out semantics — pre-route every type
-    // to the channel. The user can untick later.
-    const wasFirst = !channels.value.some((c) => c.configured);
+    // First-channel adoption: opt-out semantics — pre-route every
+    // type to the new channel so the user sees a complete pipeline
+    // out of the box. They can later untick or re-route per row.
+    const wasFirst = !channels.value.some(
+      (c) => c.configured && c.type !== ch.type,
+    );
     if (wasFirst) {
       for (const ty of notifTypes) routing[ty] = ch.type;
       await saveRouting(true);
     }
-    // refresh() re-populates userConfigs with the server's view
-    // (non-secret fields only — secrets are stripped server-side),
-    // so any pasted token the user typed naturally drops out of
-    // memory without us wiping it manually.
+    expanded[ch.type] = false;
     await refresh();
   } finally {
     busy[ch.type] = null;
   }
 }
 
-async function removeChannel(ch: UserChannel) {
+async function confirmRemove(ch: UserChannel) {
+  const ok = await confirm({
+    title: t('settings.notifications.removeConfirmTitle', {
+      name: t(ch.labelKey),
+    }),
+    message: t('settings.notifications.removeConfirmMessage'),
+    confirmText: t('settings.notifications.remove'),
+    cancelText: t('common.cancel'),
+    destructive: true,
+  });
+  if (!ok) return;
   busy[ch.type] = 'saving';
   try {
     await $fetch(`/api/me/notification-channels/${ch.type}`, {
@@ -569,14 +862,9 @@ async function saveRouting(silent = false) {
       method: 'PUT',
       body: { entries },
     });
-    // Snapshot the new baseline.
     for (const k of Object.keys(initialRouting)) delete initialRouting[k];
     for (const [k, v] of Object.entries(routing)) initialRouting[k] = v;
-    if (!silent) {
-      // refresh keeps state consistent if the server filtered any
-      // entries (e.g. user-channel no longer enabled).
-      await refresh();
-    }
+    if (!silent) await refresh();
   } finally {
     routingSaving.value = false;
   }
@@ -584,177 +872,391 @@ async function saveRouting(silent = false) {
 </script>
 
 <style scoped>
-.notif-section {
+/* ── Container ────────────────────────────────────────────── */
+.ns {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 2rem;
+  position: relative;
+}
+.ns::before {
+  /* Hairline gold rule along the left edge of the section — same
+     thread the /me bonus tile uses, signalling "this is the
+     notifications surface". Doesn't shift layout because the
+     pseudo is absolute. */
+  content: '';
+  position: absolute;
+  left: -1rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    rgba(212, 167, 52, 0) 0%,
+    rgba(212, 167, 52, 0.4) 15%,
+    rgba(212, 167, 52, 0.4) 85%,
+    rgba(212, 167, 52, 0) 100%
+  );
+  pointer-events: none;
 }
 
-.block-head {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+.ns-empty {
+  text-align: center;
+  padding: 2.5rem 2rem;
+  border: 1px dashed rgb(var(--line-default));
+  border-radius: var(--radius-md);
+  background: rgb(var(--bg-elevated));
 }
-.block-head--secondary {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgb(var(--line-default));
-}
-.block-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+.ns-empty-icon {
+  font-size: 2rem;
   color: rgb(var(--fg-muted));
-  margin: 0;
+  margin-bottom: 0.75rem;
 }
-.block-title {
+.ns-empty-title {
+  margin: 0 0 0.4rem;
   font-size: 0.95rem;
   font-weight: 700;
-  margin: 0;
   color: rgb(var(--fg-strong));
 }
-.block-desc {
+.ns-empty-desc {
   margin: 0;
-  font-size: 0.78rem;
+  max-width: 38ch;
+  margin-inline: auto;
+  font-size: 0.82rem;
+  line-height: 1.5;
   color: rgb(var(--fg-muted));
 }
 
-.channel-list {
+/* ── Block scaffolding ───────────────────────────────────── */
+.ns-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.ns-block-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgb(var(--line-default));
+}
+.ns-block-num {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #d4a734;
+  background: rgb(var(--bg-elevated));
+  border: 1px solid rgba(212, 167, 52, 0.35);
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-sm);
+}
+.ns-block-id h4 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-strong));
+}
+.ns-block-id p {
+  margin: 0.18rem 0 0;
+  font-size: 0.75rem;
+  color: rgb(var(--fg-muted));
+  letter-spacing: 0.01em;
+}
+.ns-block-meta {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgb(var(--fg-muted));
+  text-transform: uppercase;
+}
+.ns-block-meta strong {
+  color: rgb(var(--fg-strong));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ns-block-meta-sep {
+  margin: 0 0.25rem;
+  color: rgb(var(--fg-faint));
+}
+@media (max-width: 640px) {
+  .ns-block-head {
+    grid-template-columns: auto 1fr;
+  }
+  .ns-block-meta {
+    grid-column: 1 / -1;
+    margin-top: 0.4rem;
+  }
+}
+
+/* ── Destinations ────────────────────────────────────────── */
+.dest-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
-.channel-row {
+.dest {
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
+  background: rgb(var(--bg-elevated));
+  overflow: hidden;
+  transition: border-color 0.18s ease, background 0.18s ease;
+  /* Staggered fade-in on mount — `--stagger` set inline as the row
+     index × 40ms. Cheap orchestration, plays once. */
+  animation: dest-in 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation-delay: var(--stagger, 0ms);
+}
+@keyframes dest-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.dest:hover {
+  border-color: rgb(var(--line-strong));
+}
+.dest--open {
+  border-color: rgba(212, 167, 52, 0.45);
   background: rgb(var(--bg-elevated));
 }
-.channel-row--configured {
-  border-color: rgb(212, 167, 52, 0.4);
-}
-.channel-row-head {
-  width: 100%;
-  display: flex;
+.dest-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
-  gap: 0.7rem;
-  padding: 0.75rem 1rem;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  color: inherit;
-  text-align: left;
-  font: inherit;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  cursor: default;
 }
-.channel-icon {
-  font-size: 1.15rem;
+.dest--add .dest-head {
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.dest--add .dest-head:hover {
+  background: rgb(var(--bg-hover) / 0.4);
+}
+
+.dest-glyph {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: rgb(var(--bg-inset));
+  border: 1px solid rgb(var(--line-default));
+  font-size: 1rem;
   color: rgb(var(--fg-strong));
   flex-shrink: 0;
 }
-.channel-label {
-  flex: 1;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: rgb(var(--fg-strong));
+.dest-glyph--add {
+  border-style: dashed;
+  color: rgb(var(--fg-muted));
 }
-.channel-state {
+.dest-glyph-dot {
+  position: absolute;
+  right: -3px;
+  top: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid rgb(var(--bg-elevated));
+  background: rgb(var(--fg-faint));
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+.dest-glyph[data-status='ok'] .dest-glyph-dot {
+  background: rgb(var(--online));
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.18);
+}
+.dest-glyph[data-status='error'] .dest-glyph-dot {
+  background: rgb(var(--danger));
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.22);
+}
+.dest-glyph[data-status='pending'] .dest-glyph-dot {
+  background: rgb(var(--warning));
+  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.22);
+}
+
+.dest-id {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.dest-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: rgb(var(--fg-strong));
+  letter-spacing: 0.01em;
+}
+.dest-target {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11.5px;
+  color: rgb(var(--fg-muted));
+  background: transparent;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.dest-target--soft {
+  font-style: italic;
+}
+
+.dest-status {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.dest-status--ok {
+  color: rgb(var(--online));
+  background: rgba(34, 197, 94, 0.06);
+}
+.dest-status--error {
+  color: rgb(var(--danger));
+  background: rgba(239, 68, 68, 0.08);
+}
+.dest-status--pending {
+  color: rgb(var(--warning));
+  background: rgba(234, 179, 8, 0.06);
+}
+
+.dest-actions {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+.dest-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgb(var(--fg-muted));
+  padding: 0.4rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.72rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  color: rgb(var(--fg-muted));
+  justify-content: center;
+  font-size: 0.95rem;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
 }
-.state-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: rgb(var(--line-default));
+.dest-btn:hover:not(:disabled) {
+  background: rgb(var(--bg-hover) / 0.5);
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--line-default));
 }
-.state-dot--ok {
-  background: #6cd161;
-}
-.state-dot--error {
-  background: #ff6b6b;
-}
-.channel-state--add {
+.dest-btn--active {
+  background: rgba(212, 167, 52, 0.12);
   color: #d4a734;
+  border-color: rgba(212, 167, 52, 0.4);
 }
-.channel-chevron {
-  font-size: 0.85rem;
+.dest-btn--danger:hover:not(:disabled) {
+  color: rgb(var(--danger));
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.06);
+}
+.dest-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dest-add-chevron {
+  font-size: 0.95rem;
   color: rgb(var(--fg-muted));
-  transition: transform 0.2s ease;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .rotate-180 {
   transform: rotate(180deg);
 }
 
-.channel-form {
-  padding: 0.85rem 1rem 1rem;
+/* Drawer (edit form for a row) */
+.dest-drawer {
+  padding: 0 1rem 1rem;
   border-top: 1px dashed rgb(var(--line-default));
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.85rem;
 }
-.channel-tagline {
-  margin: 0;
-  font-size: 0.74rem;
+.dest-tagline {
+  margin: 0.75rem 0 0;
+  font-size: 0.78rem;
   color: rgb(var(--fg-muted));
+  line-height: 1.5;
 }
 
-/* Read-only server info (ntfy / Gotify base URL — users need it to
-   subscribe from their mobile app). Sits above the form, tinted
-   amber to read as "from the admin, not editable". */
-.public-info {
+.dest-pub {
+  margin-top: 0.85rem;
   display: flex;
   align-items: flex-start;
-  gap: 0.55rem;
-  background: rgba(212, 167, 52, 0.08);
+  gap: 0.6rem;
+  background: rgba(212, 167, 52, 0.07);
   border: 1px solid rgba(212, 167, 52, 0.25);
-  border-radius: 0.35rem;
-  padding: 0.55rem 0.75rem;
-  font-size: 0.74rem;
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.85rem;
+  font-size: 0.78rem;
   color: rgb(var(--fg-strong));
 }
-.public-info > svg {
+.dest-pub > svg {
   color: #d4a734;
-  font-size: 0.95rem;
+  font-size: 1rem;
   flex-shrink: 0;
   margin-top: 0.1rem;
 }
-.public-info-list {
+.dest-pub dl {
   margin: 0;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  min-width: 0;
 }
-.public-info-list > div {
+.dest-pub dl > div {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem;
-  flex-wrap: wrap;
 }
-.public-info-list dt {
+.dest-pub dt {
   font-weight: 600;
   color: rgb(var(--fg-strong));
   margin: 0;
 }
-.public-info-list dd {
+.dest-pub dd {
   margin: 0;
-  min-width: 0;
 }
-.public-info-list code {
+.dest-pub code {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 0.72rem;
-  background: rgba(var(--bg-base), 0.4);
-  padding: 0.1rem 0.35rem;
-  border-radius: 0.25rem;
+  font-size: 11.5px;
+  background: rgb(var(--bg-base) / 0.6);
+  padding: 0.12rem 0.4rem;
+  border-radius: var(--radius-sm);
   word-break: break-all;
+}
+
+.dest-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+@media (min-width: 640px) {
+  .dest-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dest-fields .field--full {
+    grid-column: 1 / -1;
+  }
 }
 .field {
   display: flex;
@@ -762,181 +1264,466 @@ async function saveRouting(silent = false) {
   gap: 0.2rem;
 }
 .field-label {
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: rgb(var(--fg-strong));
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.field-opt {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+  font-weight: 500;
 }
 .field-hint {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   color: rgb(var(--fg-muted));
+  line-height: 1.45;
 }
-.field input {
+.field-input {
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
-  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.7rem;
   color: rgb(var(--fg-strong));
-  font-size: 0.82rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
-.form-actions {
-  display: flex;
-  gap: 0.4rem;
-  justify-content: flex-end;
-  margin-top: 0.4rem;
+.field-input:focus {
+  outline: none;
+  border-color: rgba(212, 167, 52, 0.6);
+  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
 }
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.7rem;
-  border-radius: 0.3rem;
-  border: 1px solid rgb(var(--line-default));
-  background: rgb(var(--bg-base));
-  color: rgb(var(--fg-strong));
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
+.field-input::placeholder {
+  color: rgb(var(--fg-faint));
+  font-style: italic;
 }
-.btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-.btn--primary {
-  background: rgb(var(--accent));
-  color: rgb(var(--accent-fg));
-  border-color: rgb(var(--accent));
-}
-.btn--ghost {
-  background: transparent;
-  border-color: rgb(var(--line-default));
-}
-.btn--danger {
-  color: #ff6b6b;
-  border-color: rgba(255, 107, 107, 0.4);
-}
-.error-detail {
+
+.dest-error {
   display: flex;
   align-items: flex-start;
-  gap: 0.35rem;
-  font-size: 0.72rem;
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.07);
-  border-radius: 0.3rem;
-  padding: 0.45rem 0.6rem;
+  gap: 0.4rem;
+  font-size: 0.74rem;
+  color: rgb(var(--danger));
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.7rem;
   word-break: break-word;
 }
 
-.empty {
+.dest-drawer-foot {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.85rem 1rem;
-  border-radius: 0.4rem;
-  background: rgb(var(--bg-elevated));
-  border: 1px dashed rgb(var(--line-default));
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+/* Add-destination picker */
+.dest-add-help {
+  margin: 0.75rem 0 0;
   font-size: 0.78rem;
   color: rgb(var(--fg-muted));
 }
-
-/* Bulk-edit row — sits flush above the per-type list, sharing the
-   same horizontal rhythm but with a heavier border so it reads as
-   a global control rather than another routing entry. */
-.bulk-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.65rem 0.85rem;
-  background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
-  border-bottom-width: 2px;
-  border-bottom-color: rgba(212, 167, 52, 0.5);
-  border-radius: 0.35rem 0.35rem 0 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-.bulk-label {
-  font-weight: 700;
-  color: rgb(var(--fg-strong));
-}
-.bulk-row select {
-  background: rgb(var(--bg-base));
-  border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
-  padding: 0.35rem 0.55rem;
-  font-size: 0.78rem;
-  color: rgb(var(--fg-strong));
-  text-transform: none;
-  letter-spacing: 0;
-}
-.bulk-row .check {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  text-transform: none;
-  letter-spacing: 0;
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.routing-list {
+.dest-add-grid {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-.routing-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+@media (min-width: 640px) {
+  .dest-add-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (min-width: 900px) {
+  .dest-add-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+.dest-add-tile {
+  width: 100%;
+  background: rgb(var(--bg-base));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-sm);
+  padding: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease,
+    transform 0.18s ease;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 0.7rem;
+  row-gap: 0.1rem;
+  font-family: inherit;
+  color: inherit;
+}
+.dest-add-tile:hover {
+  border-color: rgba(212, 167, 52, 0.45);
+  background: rgb(var(--bg-hover) / 0.45);
+  transform: translateY(-1px);
+}
+.dest-add-tile-icon {
+  grid-row: 1 / 3;
+  font-size: 1.3rem;
+  color: rgb(var(--fg-strong));
+  align-self: center;
+}
+.dest-add-tile-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgb(var(--fg-strong));
+}
+.dest-add-tile-tagline {
+  font-size: 0.7rem;
+  color: rgb(var(--fg-muted));
+  line-height: 1.4;
+}
+
+/* ── Routing — quick actions ─────────────────────────────── */
+.route-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.route-quick-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.55rem 0.85rem;
+  gap: 0.4rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: rgb(var(--fg-muted));
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
 }
-.routing-label {
+.route-quick-btn:hover {
+  color: rgb(var(--fg-strong));
+  border-color: rgba(212, 167, 52, 0.4);
+  background: rgba(212, 167, 52, 0.06);
+}
+.route-quick-btn--mute {
+  margin-left: auto;
+}
+.route-quick-btn--mute:hover {
+  color: rgb(var(--danger));
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+/* ── Routing — categories ─────────────────────────────────── */
+.route-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.cat {
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-md);
+  background: rgb(var(--bg-elevated));
+  overflow: hidden;
+  animation: dest-in 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation-delay: var(--stagger, 0ms);
+}
+.cat[open] {
+  border-color: rgb(var(--line-strong));
+}
+.cat-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.7rem 0.95rem;
+  cursor: pointer;
+  list-style: none;
+  transition: background 0.16s ease;
+}
+.cat-head::-webkit-details-marker {
+  display: none;
+}
+.cat-head:hover {
+  background: rgb(var(--bg-hover) / 0.4);
+}
+.cat-glyph {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  color: var(--cat-color);
+  background: color-mix(in srgb, var(--cat-color) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cat-color) 30%, transparent);
+}
+.cat-id {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
   min-width: 0;
 }
-.routing-title {
-  font-size: 0.8rem;
+.cat-id h5 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgb(var(--fg-strong));
+  letter-spacing: 0.01em;
+}
+.cat-stat {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: rgb(var(--fg-muted));
+  text-transform: uppercase;
+}
+.cat-stat strong {
+  color: var(--cat-color);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.cat-bulk-wrap {
+  /* Wrapper exists so the `@click.stop` we attach prevents the
+     surrounding `<summary>` from toggling when the user fiddles
+     with the select. */
+}
+.cat-bulk {
+  background: rgb(var(--bg-base));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-sm);
+  padding: 0.32rem 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: rgb(var(--fg-strong));
+  font-family: inherit;
+  min-width: 140px;
+  cursor: pointer;
+  transition: border-color 0.18s ease;
+}
+.cat-bulk:hover {
+  border-color: rgba(212, 167, 52, 0.45);
+}
+.cat-chevron {
+  font-size: 0.9rem;
+  color: rgb(var(--fg-muted));
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cat[open] .cat-chevron {
+  transform: rotate(180deg);
+  color: #d4a734;
+}
+@media (max-width: 640px) {
+  .cat-head {
+    grid-template-columns: auto 1fr auto;
+  }
+  .cat-bulk-wrap {
+    grid-column: 1 / -1;
+    margin-top: 0.4rem;
+  }
+  .cat-bulk {
+    width: 100%;
+  }
+}
+
+.cat-events {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.5rem 0.5rem;
+  border-top: 1px dashed rgb(var(--line-default));
+}
+.event {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid rgb(var(--line-default) / 0.5);
+  transition: background 0.16s ease;
+}
+.event:last-child {
+  border-bottom: 0;
+}
+.event:hover {
+  background: rgb(var(--bg-hover) / 0.3);
+}
+.event-id {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.event-title {
+  font-size: 0.82rem;
   font-weight: 600;
   color: rgb(var(--fg-strong));
 }
-.routing-desc {
-  font-size: 0.7rem;
+.event-desc {
+  font-size: 0.72rem;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
-.routing-control select {
-  background: rgb(var(--bg-base));
-  border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
-  padding: 0.35rem 0.55rem;
-  font-size: 0.8rem;
-  color: rgb(var(--fg-strong));
+.event-route {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
 }
-.check {
+.event-target {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.78rem;
+  gap: 0.4rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--bg-base));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 999px;
+  padding: 0.22rem 0.55rem 0.22rem 0.5rem;
+  pointer-events: none;
+}
+.event-target--muted {
+  color: rgb(var(--fg-faint));
+  border-style: dashed;
+}
+.event-target-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d4a734;
+}
+.event-target--muted .event-target-dot {
+  background: rgb(var(--fg-faint));
+}
+/* The select sits ON TOP of the chip (invisible) so the chip is
+   the visual affordance and the select is the interaction. */
+.event-route select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
   cursor: pointer;
+  font-family: inherit;
+}
+@media (max-width: 480px) {
+  .event-desc {
+    display: none;
+  }
 }
 
-.block-foot {
-  display: flex;
-  justify-content: flex-end;
+/* ── Floating save bar ────────────────────────────────────── */
+.route-save {
+  position: sticky;
+  bottom: 1rem;
   margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  background: rgb(var(--bg-elevated));
+  border: 1px solid rgba(212, 167, 52, 0.55);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-overlay);
+  backdrop-filter: blur(8px);
+  z-index: 3;
+}
+.route-save-info {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: rgb(var(--fg-strong));
+  font-weight: 600;
+}
+.route-save-info > svg {
+  color: #d4a734;
+}
+
+/* ── Generic buttons ──────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgb(var(--line-default));
+  background: rgb(var(--bg-base));
+  color: rgb(var(--fg-strong));
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.btn:hover:not(:disabled) {
+  border-color: rgba(212, 167, 52, 0.55);
+  background: rgba(212, 167, 52, 0.06);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn--ghost {
+  background: transparent;
+}
+.btn--primary {
+  background: #d4a734;
+  border-color: #d4a734;
+  color: #1a1a1a;
+}
+.btn--primary:hover:not(:disabled) {
+  background: #e8b94e;
+  border-color: #e8b94e;
+}
+
+/* ── Transitions ──────────────────────────────────────────── */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: max-height 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 0.22s ease;
+  overflow: hidden;
+}
+.drawer-enter-from,
+.drawer-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+.drawer-enter-to,
+.drawer-leave-from {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+.save-bar-enter-active,
+.save-bar-leave-active {
+  transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 0.22s ease;
+}
+.save-bar-enter-from,
+.save-bar-leave-to {
+  transform: translateY(120%);
+  opacity: 0;
+}
+
+.spin {
+  animation: ns-spin 1s linear infinite;
+}
+@keyframes ns-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
