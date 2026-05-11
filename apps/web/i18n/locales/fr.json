@@ -1431,15 +1431,38 @@
       }
     },
     "categories": {
-      "title": "Gestion des catégories",
+      "title": "Catégories",
+      "eyebrow": "Atlas · Catégories",
+      "intro": "Chaque catégorie est une entrée de l'atlas — nom, slug, cote Newznab et type de média optionnel. Les racines regroupent leurs sous-catégories sous un filet doré ; les lignes XXX portent la trame d'avertissement.",
       "newCategory": "Nouvelle catégorie",
+      "searchPlaceholder": "Rechercher par nom, slug ou ID Newznab…",
+      "searchAria": "Rechercher des catégories",
+      "searchClear": "Effacer la recherche",
+      "searchResults": "{n} résultat | {n} résultats",
+      "noResults": "Aucune catégorie ne correspond à « {q} ».",
+      "stats": {
+        "roots": "racines",
+        "subs": "sous-cat.",
+        "movies": "films",
+        "tv": "TV",
+        "adult": "XXX"
+      },
       "empty": {
+        "title": "Atlas vide",
+        "hint": "Initialise le jeu de catégories Torznab recommandé, ou ajoute une catégorie de zéro.",
         "noCategories": "Aucune catégorie définie",
         "seedCta": "Initialiser les catégories Torznab"
       },
       "editTitles": {
         "edit": "Modifier la catégorie",
         "create": "Nouvelle catégorie"
+      },
+      "modal": {
+        "previewEditing": "Modification d'entrée",
+        "previewCreating": "Nouvelle entrée",
+        "previewUntitled": "Sans titre",
+        "adultOn": "Contenu adulte — filtré",
+        "adultOff": "Marquer comme contenu adulte"
       },
       "fields": {
         "name": "Nom",
@@ -1451,8 +1474,10 @@
         "newznabId": "ID Newznab",
         "newznabIdPlaceholder": "ex. 5070 ou 105070",
         "newznabIdHint": "ID de catégorie Torznab utilisé par les clients *Arr. Les IDs standards vivent dans 1000–8999 ; la plage personnalisée Prowlarr/Jackett (100000–199999) est également acceptée pour les catégories spécifiques au tracker. Laissez vide pour retomber sur un ID synthétique stable dérivé du slug de la catégorie.",
+        "newznabIdHintShort": "Plage standard 1000–8999 · personnalisée 100000–199999. Vide = ID synthétique.",
         "mediaType": "Type de média",
-        "mediaTypeHint": "Détermine l'espace TMDb. Auto se rabat sur l'heuristique slug + Newznab."
+        "mediaTypeHint": "Détermine l'espace TMDb. Auto se rabat sur l'heuristique slug + Newznab.",
+        "mediaTypeHintShort": "Espace TMDb. Auto = heuristique slug + Newznab."
       },
       "type": {
         "auto": "Auto",
@@ -1467,9 +1492,11 @@
         "subPart1": "Masqué pour les utilisateurs n'ayant pas activé XXX dans leurs paramètres — s'applique aux listes, à la recherche, au RSS, à Torznab et au fil d'accueil."
       },
       "row": {
-        "subCount": "· {n} sous-catégorie(s)",
+        "subCount": "{n} sous-cat. | {n} sous-cat.",
         "editCategory": "Modifier la catégorie",
         "deleteCategory": "Supprimer la catégorie",
+        "addChild": "Ajouter une sous-catégorie",
+        "toggleChildren": "Plier/déplier les sous-catégories",
         "editSubcategory": "Modifier la sous-catégorie",
         "deleteSubcategory": "Supprimer la sous-catégorie",
         "adultBadge": "XXX"

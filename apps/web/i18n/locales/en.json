@@ -1431,15 +1431,38 @@
       }
     },
     "categories": {
-      "title": "Category Management",
+      "title": "Categories",
+      "eyebrow": "Atlas · Categories",
+      "intro": "Each category is an entry in the atlas — name, slug, Newznab call number, and optional media type. Roots group their subcategories below a gold thread; adult rows carry the warning hatch.",
       "newCategory": "New category",
+      "searchPlaceholder": "Search by name, slug or Newznab id…",
+      "searchAria": "Search categories",
+      "searchClear": "Clear search",
+      "searchResults": "{n} match | {n} matches",
+      "noResults": "No category matches “{q}”.",
+      "stats": {
+        "roots": "roots",
+        "subs": "subs",
+        "movies": "movies",
+        "tv": "TV",
+        "adult": "XXX"
+      },
       "empty": {
+        "title": "Atlas is empty",
+        "hint": "Seed the recommended Torznab-compatible category set, or add a category from scratch.",
         "noCategories": "No categories defined",
         "seedCta": "Seed Torznab Categories"
       },
       "editTitles": {
         "edit": "Edit category",
         "create": "New category"
+      },
+      "modal": {
+        "previewEditing": "Editing entry",
+        "previewCreating": "New entry",
+        "previewUntitled": "Untitled",
+        "adultOn": "Adult content — filtered",
+        "adultOff": "Mark as adult content"
       },
       "fields": {
         "name": "Name",
@@ -1451,8 +1474,10 @@
         "newznabId": "Newznab id",
         "newznabIdPlaceholder": "e.g. 5070 or 105070",
         "newznabIdHint": "Torznab category id used by *Arr clients. Standard ids live in 1000–8999; the Prowlarr/Jackett custom range (100000–199999) is also accepted for tracker-specific categories. Leave empty to fall back to a stable synthetic id derived from the category slug.",
+        "newznabIdHintShort": "Standard range 1000–8999 · custom 100000–199999. Empty falls back to a synthetic id.",
         "mediaType": "Media type",
-        "mediaTypeHint": "Drives the TMDb namespace hint. Auto falls back to the slug + Newznab heuristic."
+        "mediaTypeHint": "Drives the TMDb namespace hint. Auto falls back to the slug + Newznab heuristic.",
+        "mediaTypeHintShort": "TMDb namespace. Auto = slug + Newznab heuristic."
       },
       "type": {
         "auto": "Auto",
@@ -1467,9 +1492,11 @@
         "subPart1": "Hidden from users who haven't enabled XXX in their profile settings — applies to listings, search, RSS, Torznab and the homepage feed."
       },
       "row": {
-        "subCount": "· {n} sub",
+        "subCount": "{n} sub | {n} subs",
         "editCategory": "Edit category",
         "deleteCategory": "Delete category",
+        "addChild": "Add subcategory",
+        "toggleChildren": "Toggle subcategories",
         "editSubcategory": "Edit subcategory",
         "deleteSubcategory": "Delete subcategory",
         "adultBadge": "XXX"
