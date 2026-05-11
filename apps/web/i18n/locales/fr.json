@@ -1120,7 +1120,41 @@
         "statusUntested": "Jamais testé",
         "keepSecret": "(inchangé — laissez vide pour conserver la valeur actuelle)",
         "userOwned": "Aucune configuration admin requise — les utilisateurs collent leur propre URL de webhook."
-      }
+      },
+      "fleet": {
+        "live": "Opérationnels",
+        "action": "Action requise",
+        "available": "Disponibles",
+        "total": "Canaux totaux",
+        "channels": "canal | canaux"
+      },
+      "live": {
+        "title": "Opérationnels",
+        "desc": "Activés et validés. Les utilisateurs peuvent dès maintenant router leurs notifications sur ces canaux."
+      },
+      "action": {
+        "title": "Action requise",
+        "desc": "Activés mais le dernier test serveur a échoué ou n'a jamais été lancé. Re-teste après toute modification d'identifiants pour exposer le canal aux utilisateurs."
+      },
+      "available": {
+        "title": "Disponibles",
+        "desc": "Désactivés ou jamais configurés. Bascule l'interrupteur pour mettre un transport en ligne — il restera invisible aux utilisateurs tant que son test n'aura pas réussi."
+      },
+      "statusLive": "Opérationnel",
+      "statusFailing": "En échec",
+      "statusUntested": "Pas testé",
+      "statusDisabled": "Désactivé",
+      "contextDelivering": "Distribue les notifications.",
+      "contextRetestNeeded": "Dernier test échoué — re-teste après correction.",
+      "contextUntested": "Configuration modifiée — un test est nécessaire.",
+      "contextDisabled": "Désactivé. Bascule pour activer.",
+      "contextNeverConfigured": "Pas encore configuré. Ouvre pour saisir les identifiants.",
+      "lastFailure": "Dernier échec",
+      "test": "Tester",
+      "configure": "Configurer",
+      "cardToggle": "Activer / désactiver ce canal",
+      "daysAgo": "il y a {n}j",
+      "optional": "optionnel"
     },
     "channels": {
       "smtp": {

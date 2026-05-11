@@ -1120,7 +1120,41 @@
         "statusUntested": "Never tested",
         "keepSecret": "(unchanged — leave blank to keep current value)",
         "userOwned": "No admin-side configuration needed — users paste their own webhook URL."
-      }
+      },
+      "fleet": {
+        "live": "Live",
+        "action": "Action required",
+        "available": "Available",
+        "total": "Total channels",
+        "channels": "channel | channels"
+      },
+      "live": {
+        "title": "Live",
+        "desc": "Enabled and validated. Users can route notifications through these right now."
+      },
+      "action": {
+        "title": "Action required",
+        "desc": "Enabled but the last server test failed or has never run. Re-test after any credential change to expose the channel to users."
+      },
+      "available": {
+        "title": "Available",
+        "desc": "Disabled or never set up. Flip the switch to bring a transport online — users won't see it until its test passes."
+      },
+      "statusLive": "Live",
+      "statusFailing": "Failing",
+      "statusUntested": "Untested",
+      "statusDisabled": "Disabled",
+      "contextDelivering": "Delivering notifications.",
+      "contextRetestNeeded": "Last test failed — re-test after fixing the config.",
+      "contextUntested": "Configuration changed — needs a fresh test.",
+      "contextDisabled": "Disabled. Toggle on to enable.",
+      "contextNeverConfigured": "Not configured yet. Open to set up credentials.",
+      "lastFailure": "Last failure",
+      "test": "Test",
+      "configure": "Configure",
+      "cardToggle": "Enable / disable this channel",
+      "daysAgo": "{n}d ago",
+      "optional": "optional"
     },
     "channels": {
       "smtp": {
