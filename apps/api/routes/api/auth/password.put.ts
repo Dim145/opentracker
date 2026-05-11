@@ -32,6 +32,7 @@ import { db, schema } from '@trackarr/db';
 import { redis } from '~~/utils/server';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { z } from 'zod';
+import { notify } from '~~/utils/notify';
 
 const bodySchema = z.object({
   challenge: z.string().length(64, 'Invalid challenge'),
@@ -86,6 +87,8 @@ export default defineEventHandler(async (event) => {
       authVerifier: body.newVerifier,
     })
     .where(eq(schema.users.id, user.id));
+
+  void notify(user.id, 'password_changed', null, '/settings');
 
   return { success: true };
 });

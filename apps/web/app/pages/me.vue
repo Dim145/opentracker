@@ -44,6 +44,18 @@
                   <Icon name="ph:hourglass-medium-bold" />
                   {{ $t('me.memberSince', { date: memberSince }) }}
                 </span>
+                <!-- Invites pill — moved here from the old "Released" KPI
+                     sub-line so we don't lose the at-a-glance invite count
+                     when that tile got dropped (the count was redundant
+                     with the Seeds-tab badge but the invites figure had
+                     nowhere else to live). -->
+                <span
+                  v-if="profile.invitesRemaining > 0"
+                  class="hero-pill hero-pill--soft"
+                >
+                  <Icon name="ph:envelope-simple-bold" />
+                  {{ $t('me.stats.invitesPill', profile.invitesRemaining, { n: profile.invitesRemaining }) }}
+                </span>
                 <span
                   v-if="profile.lastIp"
                   class="hero-pill hero-pill--soft hero-pill--mono"
@@ -113,77 +125,74 @@
               profile.downloaded === 0 ? $t('me.stats.nothingYet') : $t('me.stats.totalPulled')
             }}</span>
           </li>
-          <li class="kpi kpi--torrents">
+          <!--
+            Bonus points KPI. Replaces the old "Released" tile, whose
+            value (uploads count) was already shown by the Uploads-tab
+            badge below and whose sub-line (active seeds) duplicated the
+            Seeds-tab badge — pure redundancy.
+            Living in the strip rather than in a dedicated card pulls the
+            balance back into a normal stat among peers: same row, same
+            label cadence, no decorative gold accents pulling the eye.
+            The deep link to /shop replaces the old standalone CTA.
+          -->
+          <li class="kpi kpi--bonus">
             <span class="kpi-label">
-              <Icon name="ph:files-bold" />
-              {{ $t('me.stats.released') }}
+              <Icon name="ph:coin-bold" />
+              {{ $t('me.stats.bonus') }}
             </span>
-            <span class="kpi-value">{{ profile.counts.uploads }}</span>
-            <span class="kpi-sub">
-              {{ $t('me.stats.activeSeeds', profile.counts.activeSeeds, { n: profile.counts.activeSeeds, invites: profile.invitesRemaining }) }}
+            <span class="kpi-value kpi-value--bonus tabular-nums">
+              {{ animatedBalance }}
+              <span class="kpi-value-unit">{{ $t('shop.points') }}</span>
             </span>
+            <NuxtLink to="/shop" class="kpi-sub kpi-sub--link">
+              {{ $t('me.bonus.spendShort') }}
+              <Icon name="ph:arrow-right-bold" />
+            </NuxtLink>
           </li>
         </ul>
       </div>
     </section>
 
-    <!-- ── Bonus reserve card ──────────────────────────────────── -->
+    <!-- ── Bonus history (collapsed by default) ─────────────────── -->
     <!--
-      The user's seed-bonus balance, displayed as the focal asset of
-      the dossier. Animated counter on mount (rAF, ease-out), strong
-      typographic anchor on the left, action panel + caption on the
-      right. Grid collapses to a single column below 720 px.
+      The balance now lives in the hero KPI strip (kpi--bonus), so this
+      section reduces to *just* the ledger access. A single toggle row
+      expands the credit/debit history on demand — same lazy fetch
+      behaviour as before, no eager round-trip on page load.
+
+      Why keep it as its own section? The ledger is a long, dense
+      element when open; folding it under the Activity tabs would
+      compete with Uploads/Seeds for vertical real estate. As its own
+      section above Credentials it stays one click away without
+      shoving the rest of the page down.
     -->
     <section v-if="profile" class="bonus-vault">
       <header class="section-head">
         <span class="section-number">01</span>
-        <h2 class="section-title">{{ $t('me.bonus.title') }}</h2>
+        <h2 class="section-title">{{ $t('me.bonus.historyTitle') }}</h2>
         <span class="section-rule" />
       </header>
 
-      <!--
-        Compact "wallet readout" — single row that reads like an asset
-        line in a financial dashboard:
-          [coin] [balance] PTS   |   one-line caption   →   [Spend ↗]
-
-        No more redundant mini-stats (the hero KPI strip already has
-        active-seeds + released). No more decorative tick marks. The
-        emphasis is on the *number*, not on the visual real estate.
-      -->
-      <div class="bonus-bar" :class="{ 'bonus-bar--open': historyOpen }">
-        <button
-          type="button"
-          class="bonus-toggle"
-          :aria-expanded="historyOpen"
-          aria-controls="bonus-history-panel"
-          :title="historyOpen ? $t('me.bonus.collapseHint') : $t('me.bonus.expandHint')"
-          @click="toggleHistory"
-        >
-          <span class="bonus-readout" aria-live="polite">
-            <Icon name="ph:coin-fill" class="bonus-icon" aria-hidden="true" />
-            <span class="bonus-readout-stack">
-              <span class="bonus-eyebrow">{{ $t('me.bonus.availableBalance') }}</span>
-              <span class="bonus-figure-row">
-                <span class="bonus-figure">{{ animatedBalance }}</span>
-                <span class="bonus-unit">{{ $t('shop.points') }}</span>
-              </span>
-            </span>
-          </span>
-          <span class="bonus-caption">{{ $t('me.bonus.caption') }}</span>
-          <Icon
-            name="ph:caret-down-bold"
-            class="bonus-chevron"
-            :class="{ 'bonus-chevron--open': historyOpen }"
-            aria-hidden="true"
-          />
-        </button>
-
-        <NuxtLink to="/shop" class="bonus-cta">
-          <Icon name="ph:storefront-bold" />
-          <span>{{ $t('me.bonus.spend') }}</span>
-          <Icon name="ph:arrow-right-bold" class="bonus-cta-arrow" />
-        </NuxtLink>
-      </div>
+      <button
+        type="button"
+        class="bonus-history-toggle"
+        :class="{ 'bonus-history-toggle--open': historyOpen }"
+        :aria-expanded="historyOpen"
+        aria-controls="bonus-history-panel"
+        @click="toggleHistory"
+      >
+        <Icon name="ph:scroll-bold" class="bv-trigger-icon" aria-hidden="true" />
+        <span class="bv-trigger-label">
+          {{ historyOpen ? $t('me.bonus.collapseHint') : $t('me.bonus.expandHint') }}
+        </span>
+        <span class="bv-trigger-caption">{{ $t('me.bonus.caption') }}</span>
+        <Icon
+          name="ph:caret-down-bold"
+          class="bonus-chevron"
+          :class="{ 'bonus-chevron--open': historyOpen }"
+          aria-hidden="true"
+        />
+      </button>
 
       <!--
         Transaction ledger — one row per credit (`bonus_grants`) or
@@ -1553,8 +1562,8 @@ function formatDuration(seconds: number) {
 }
 /* Second sub-line — coin tone, used for the "(of which X bonus)"
    breakdown on the Uploaded KPI. Reads as derived data, not as a
-   second value. The colour matches the /me bonus-bar coin icon and
-   the /shop low-stock rail so the three surfaces stay threaded. */
+   second value. The colour matches the kpi--bonus tile and the
+   /shop low-stock rail so the three surfaces stay threaded. */
 .kpi-sub--bonus {
   display: inline-flex;
   align-items: center;
@@ -1579,9 +1588,6 @@ function formatDuration(seconds: number) {
 .kpi--down .kpi-value {
   color: rgb(var(--fg-strong));
 }
-.kpi--torrents .kpi-value {
-  color: #34d4d8;
-}
 .kpi--ratio-great .kpi-value {
   color: #6cd161;
 }
@@ -1593,6 +1599,55 @@ function formatDuration(seconds: number) {
 }
 .kpi--ratio-zero .kpi-value {
   color: #ff6b6b;
+}
+
+/* Bonus KPI — replaces the old "Released" tile. The value is
+   deliberately a hair smaller than its peers (the points balance is
+   a derived stat, not a tracker-of-record number), and the tile gets
+   the same coin-gold accent that threads /shop and the ledger
+   toggle below. The inline "PTS" unit lives on the same line as the
+   number with a smaller, muted treatment. */
+.kpi--bonus .kpi-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.32rem;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  color: #d4a734;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.kpi-value-unit {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.kpi-sub--link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: rgb(var(--fg-muted));
+  text-decoration: none;
+  letter-spacing: 0.1em;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  transition: color 0.16s ease, gap 0.2s ease;
+}
+.kpi-sub--link:hover {
+  color: #d4a734;
+  gap: 0.4rem;
+}
+.kpi-sub--link :deep(svg),
+.kpi-sub--link svg {
+  font-size: 0.85em;
+  transition: transform 0.2s;
+}
+.kpi-sub--link:hover :deep(svg),
+.kpi-sub--link:hover svg {
+  transform: translateX(1px);
 }
 
 /* ─── Sections ────────────────────────────────────────────── */
@@ -1646,209 +1701,90 @@ function formatDuration(seconds: number) {
 .bonus-vault {
   margin-bottom: 1.75rem;
 }
-.bonus-bar {
-  position: relative;
+
+/*
+ * Compact ledger trigger — a single-line button that replaces the old
+ * "wallet bar". The balance lives in the KPI strip now, so this is
+ * pure affordance: icon, label, optional caption, chevron. Hover
+ * pulls the row forward subtly; open state tints the border + chevron
+ * gold so the user can see at a glance that the panel below belongs
+ * to this control.
+ */
+.bonus-history-toggle {
   display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
-  padding: 0;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
   background: rgb(var(--bg-elevated));
-  overflow: hidden;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
-}
-.bonus-bar:hover {
-  border-color: rgb(212, 167, 52, 0.5);
-}
-.bonus-bar--open {
-  border-color: rgb(212, 167, 52, 0.7);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
-}
-.bonus-bar::before {
-  /* Hairline coin/gold accent at the top — same tone the /shop page
-     uses for low-stock warnings, threading the two surfaces visually. */
-  content: '';
-  position: absolute;
-  inset-inline: 1rem;
-  top: 0;
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    rgba(212, 167, 52, 0.55) 0%,
-    rgba(212, 167, 52, 0.15) 50%,
-    rgba(212, 167, 52, 0) 100%
-  );
-}
-@media (max-width: 720px) {
-  .bonus-bar {
-    flex-wrap: wrap;
-    align-items: stretch;
-  }
-}
-
-/* Toggle button — fills most of the bar; the CTA stays as a sibling
-   on the right. Reset native button chrome so the visual matches the
-   surrounding card surface, then re-add a subtle hover state to
-   communicate that the row is interactive. */
-.bonus-toggle {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  padding: 0.85rem 1rem;
-  background: transparent;
-  border: 0;
-  margin: 0;
   font: inherit;
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.16s ease;
-  min-width: 0;
+  transition: border-color 0.18s ease, background 0.16s ease;
 }
-.bonus-toggle:hover {
-  background: rgb(var(--fg-default) / 0.04);
+.bonus-history-toggle:hover {
+  border-color: rgb(212, 167, 52, 0.45);
+  background: rgb(var(--fg-default) / 0.03);
 }
-.bonus-toggle:focus-visible {
-  outline: 2px solid rgb(212, 167, 52, 0.6);
+.bonus-history-toggle:focus-visible {
+  outline: 2px solid rgb(212, 167, 52, 0.55);
   outline-offset: -2px;
 }
+.bonus-history-toggle--open {
+  border-color: rgb(212, 167, 52, 0.6);
+}
+
+.bv-trigger-icon {
+  flex-shrink: 0;
+  font-size: 1.05rem;
+  color: #d4a734;
+}
+.bv-trigger-label {
+  flex-shrink: 0;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-strong));
+}
+.bv-trigger-caption {
+  flex: 1;
+  font-size: 0.72rem;
+  color: rgb(var(--fg-muted));
+  line-height: 1.45;
+  border-left: 1px dashed rgb(var(--line-default) / 0.7);
+  padding-left: 0.85rem;
+  min-width: 0;
+  /* Two-line clamp so a long caption doesn't blow the row open on
+     narrow viewports — the user can still see the full text in the
+     hero KPI tooltip / shop page. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 @media (max-width: 720px) {
-  .bonus-toggle {
-    flex-wrap: wrap;
-    flex: 1 1 100%;
-    align-items: stretch;
+  .bv-trigger-caption {
+    display: none;
   }
 }
 
 .bonus-chevron {
   flex-shrink: 0;
-  margin-left: auto;
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: rgb(var(--fg-muted));
   transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), color 0.16s ease;
 }
-.bonus-toggle:hover .bonus-chevron {
+.bonus-history-toggle:hover .bonus-chevron {
   color: rgb(var(--fg-strong));
 }
 .bonus-chevron--open {
   transform: rotate(-180deg);
   color: #d4a734;
-}
-
-.bonus-readout {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  flex-shrink: 0;
-}
-.bonus-icon {
-  font-size: 1.5rem;
-  color: #d4a734;
-  flex-shrink: 0;
-  /* Slow rotation to signal that the balance is "live"; barely
-     perceptible at 12 s per turn but adds the right kind of life. */
-  animation: bonus-coin-spin 12s linear infinite;
-}
-@keyframes bonus-coin-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-.bonus-readout-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-.bonus-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-}
-.bonus-figure-row {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-.bonus-figure {
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: rgb(var(--fg-strong));
-  /* Min-width keeps the layout stable while the counter animates
-     from 0 (icon would otherwise creep right as digits land). */
-  min-width: 3ch;
-  text-align: left;
-}
-.bonus-unit {
-  font-size: 9px;
-  font-weight: 400;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-}
-
-.bonus-caption {
-  flex: 1;
-  margin: 0;
-  font-size: 0.75rem;
-  color: rgb(var(--fg-muted));
-  line-height: 1.5;
-  /* Hairline divider on the left when the row is wide enough.
-     Falls through cleanly when the layout wraps. */
-  border-left: 1px dashed rgb(var(--line-default) / 0.7);
-  padding-left: 1.1rem;
-}
-@media (max-width: 720px) {
-  .bonus-caption {
-    border-left: 0;
-    padding-left: 0;
-    flex: 1 1 100%;
-  }
-}
-
-.bonus-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 0.85rem;
-  border-radius: 0.4rem;
-  background: rgb(var(--accent));
-  color: rgb(var(--accent-fg));
-  text-decoration: none;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  flex-shrink: 0;
-  align-self: center;
-  margin-right: 0.7rem;
-  transition: transform 0.15s, background 0.15s;
-}
-@media (max-width: 720px) {
-  .bonus-cta {
-    margin: 0 0.7rem 0.7rem;
-    align-self: stretch;
-    justify-content: center;
-  }
-}
-.bonus-cta:hover {
-  transform: translateY(-1px);
-  background: rgb(var(--accent-hover));
-}
-.bonus-cta-arrow {
-  font-size: 0.95rem;
-  transition: transform 0.2s;
-}
-.bonus-cta:hover .bonus-cta-arrow {
-  transform: translateX(2px);
 }
 
 /* ─── Bonus transaction ledger (expandable) ────────────────────

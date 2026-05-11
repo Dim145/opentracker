@@ -122,6 +122,13 @@
                window is in flight. Renders nothing while idle. -->
           <BonusEventIcon v-if="user" />
 
+          <!-- Notifications bell + dropdown. Renders nothing for
+               anonymous viewers. The composable opens its own SSE
+               stream as soon as the session is live, so the badge
+               count and the recent-notifications list refresh
+               without manual polling. -->
+          <NotificationBell v-if="user" />
+
           <!-- User Stats — desktop only -->
           <div
             v-if="user"

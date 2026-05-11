@@ -21,6 +21,7 @@ import {
   adminBanSchema,
   uuidSchema,
 } from '~~/utils/schemas';
+import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   const { user: actor } = await requireModeratorSession(event);
@@ -68,6 +69,30 @@ export default defineEventHandler(async (event) => {
         target: bannedIps.ip,
         set: { reason: banReason },
       });
+  }
+
+  // Notify the banned user. They won't see it until they try to log
+  // back in (auth middleware blocks the session) — but it'll be
+  // there when they're unbanned. Also notify the inviter if the
+  // ban targets one of their invitees.
+  void notify(target.id, 'account_banned', {
+    reason,
+    actorUsername: actor.username,
+  });
+  try {
+    const invite = await db.query.invitations.findFirst({
+      where: (i, { eq }) => eq(i.usedBy, target.id),
+      columns: { generatedBy: true, code: true },
+    });
+    if (invite?.generatedBy && invite.generatedBy !== actor.id) {
+      void notify(invite.generatedBy, 'invitee_banned', {
+        inviteeUsername: target.username,
+        inviteCode: invite.code,
+        reason,
+      });
+    }
+  } catch (err) {
+    console.warn('[Ban] invitee notify failed:', (err as Error).message);
   }
 
   return { success: true };

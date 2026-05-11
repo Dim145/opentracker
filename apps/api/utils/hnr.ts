@@ -132,6 +132,35 @@ export async function checkAndMarkHnrs(): Promise<number> {
     )
     .returning();
 
+  // Notify each flagged user. Late-bound import keeps the cycle
+  // between `utils/hnr.ts` and `utils/notify.ts` lazy — notify reads
+  // settings which transitively imports back into the HnR space.
+  if (result.length > 0) {
+    try {
+      const { notify } = await import('./notify');
+      for (const entry of result) {
+        // Resolve the torrent name so the dropdown can render
+        // something meaningful — falls back to "(torrent removed)"
+        // if the row was deleted out from under the sweep.
+        const torrent = await db.query.torrents.findFirst({
+          where: eq(schema.torrents.id, entry.torrentId),
+          columns: { name: true, infoHash: true },
+        });
+        void notify(
+          entry.userId,
+          'hnr_violation_marked',
+          {
+            torrentName: torrent?.name ?? null,
+            hnrId: entry.id,
+          },
+          torrent ? `/torrents/${torrent.infoHash}` : null,
+        );
+      }
+    } catch (err) {
+      console.warn('[HnR] notification fan-out failed:', (err as Error).message);
+    }
+  }
+
   return result.length;
 }
 
@@ -168,6 +197,27 @@ export async function exemptHnr(entryId: string): Promise<boolean> {
     .where(eq(schema.hnrTracking.id, entryId))
     .returning();
 
+  if (result.length > 0 && result[0]) {
+    try {
+      const { notify } = await import('./notify');
+      const torrent = await db.query.torrents.findFirst({
+        where: eq(schema.torrents.id, result[0].torrentId),
+        columns: { name: true, infoHash: true },
+      });
+      void notify(
+        result[0].userId,
+        'hnr_exempted',
+        {
+          torrentName: torrent?.name ?? null,
+          hnrId: result[0].id,
+        },
+        torrent ? `/torrents/${torrent.infoHash}` : null,
+      );
+    } catch (err) {
+      console.warn('[HnR] exempt notify failed:', (err as Error).message);
+    }
+  }
+
   return result.length > 0;
 }
 
@@ -177,6 +227,27 @@ export async function clearHnr(entryId: string): Promise<boolean> {
     .set({ isHnr: false, completedAt: new Date() })
     .where(eq(schema.hnrTracking.id, entryId))
     .returning();
+
+  if (result.length > 0 && result[0]) {
+    try {
+      const { notify } = await import('./notify');
+      const torrent = await db.query.torrents.findFirst({
+        where: eq(schema.torrents.id, result[0].torrentId),
+        columns: { name: true, infoHash: true },
+      });
+      void notify(
+        result[0].userId,
+        'hnr_cleared',
+        {
+          torrentName: torrent?.name ?? null,
+          hnrId: result[0].id,
+        },
+        torrent ? `/torrents/${torrent.infoHash}` : null,
+      );
+    } catch (err) {
+      console.warn('[HnR] clear notify failed:', (err as Error).message);
+    }
+  }
 
   return result.length > 0;
 }

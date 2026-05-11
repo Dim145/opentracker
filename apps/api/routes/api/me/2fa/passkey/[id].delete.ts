@@ -15,6 +15,7 @@ import { db, schema } from '@trackarr/db';
 import { and, eq } from 'drizzle-orm';
 import { count } from 'drizzle-orm';
 import { isFreshAuth } from '~~/utils/twoFactor';
+import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event);
@@ -69,6 +70,8 @@ export default defineEventHandler(async (event) => {
   await db
     .delete(schema.webauthnCredentials)
     .where(eq(schema.webauthnCredentials.id, id));
+
+  void notify(session.user.id, 'passkey_removed', { passkeyId: id }, '/settings');
 
   return { deleted: id };
 });

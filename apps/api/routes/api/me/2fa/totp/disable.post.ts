@@ -24,6 +24,7 @@ import {
   verifyTotp,
 } from '~~/utils/twoFactor';
 import { validateBody } from '~~/utils/schemas';
+import { notify } from '~~/utils/notify';
 
 const bodySchema = z
   .object({
@@ -106,6 +107,8 @@ export default defineEventHandler(async (event) => {
       .delete(schema.recoveryCodes)
       .where(eq(schema.recoveryCodes.userId, session.user.id));
   });
+
+  void notify(session.user.id, 'totp_disabled', null, '/settings');
 
   return { enabled: false };
 });

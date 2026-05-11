@@ -3,6 +3,7 @@ import { forumPosts, forumTopics } from '@trackarr/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { validateBody, forumPostSchema } from '~~/utils/schemas';
+import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event);
@@ -28,7 +29,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  return await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const post = await tx
       .insert(forumPosts)
       .values({
@@ -47,4 +48,22 @@ export default defineEventHandler(async (event) => {
 
     return post[0];
   });
+
+  // Notify the topic author when someone else replies. Self-reply
+  // (the author following up their own thread) is silenced.
+  if (topic.authorId && topic.authorId !== session.user.id) {
+    void notify(
+      topic.authorId,
+      'forum_reply_on_my_topic',
+      {
+        topicTitle: topic.title,
+        topicId: topic.id,
+        actorUsername: session.user.username,
+        preview: body.content.slice(0, 200),
+      },
+      `/forum/topic/${topic.id}`,
+    );
+  }
+
+  return result;
 });

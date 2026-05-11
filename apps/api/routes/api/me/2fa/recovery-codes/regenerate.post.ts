@@ -18,6 +18,7 @@ import {
   verifyTotp,
 } from '~~/utils/twoFactor';
 import { validateBody } from '~~/utils/schemas';
+import { notify } from '~~/utils/notify';
 
 const bodySchema = z.object({
   code: z.string().regex(/^\d{6}$/, 'A 6-digit TOTP code is required'),
@@ -63,6 +64,13 @@ export default defineEventHandler(async (event) => {
       }))
     );
   });
+
+  void notify(
+    session.user.id,
+    'recovery_codes_regenerated',
+    null,
+    '/settings',
+  );
 
   return { recoveryCodes: codes };
 });

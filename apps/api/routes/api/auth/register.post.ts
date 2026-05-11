@@ -10,6 +10,7 @@ import {
   getDefaultInvites,
 } from '~~/utils/server';
 import { validateBody, registerSchema } from '~~/utils/schemas';
+import { notify } from '~~/utils/notify';
 import { verifyPoWSolution } from '~~/utils/pow';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
@@ -217,6 +218,21 @@ export default defineEventHandler(async (event) => {
 
     return settledFirstUser;
   });
+
+  // Notify the inviter when their code was redeemed. Sits outside
+  // the transaction so a notification glitch doesn't roll back a
+  // genuine signup.
+  if (validInvite && validInvite.generatedBy) {
+    void notify(
+      validInvite.generatedBy,
+      'invite_redeemed',
+      {
+        inviteeUsername: body.username,
+        inviteCode: validInvite.code,
+      },
+      '/invites',
+    );
+  }
 
   // If first user, close registration by default. Outside the
   // transaction because `setSetting` writes to a different table

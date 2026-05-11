@@ -3,6 +3,7 @@
     <AdminSystem />
     <AdminAnnouncements />
     <AdminRegistration />
+    <AdminNotificationRetention />
     <AdminPanic />
   </div>
 </template>

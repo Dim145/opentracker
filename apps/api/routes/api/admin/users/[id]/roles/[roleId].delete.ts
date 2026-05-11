@@ -18,6 +18,7 @@ import { reevaluateUserRole } from '~~/utils/roleRules';
 import { invalidateBypassCache } from '~~/utils/torrentModeration';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { notify } from '~~/utils/notify';
 
 const paramsSchema = z.object({
   id: z.string().uuid(),
@@ -25,7 +26,7 @@ const paramsSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  await requireAdminSession(event);
+  const { user: actor } = await requireAdminSession(event);
   const { id, roleId } = paramsSchema.parse(getRouterParams(event));
 
   const [removed] = await db
@@ -53,6 +54,19 @@ export default defineEventHandler(async (event) => {
   // The detached role may have carried `canUploadWithoutModeration`;
   // invalidate the cached bypass flag so the next upload re-checks.
   await invalidateBypassCache(id);
+
+  // Resolve the role name for the notification — best-effort so a
+  // race with role deletion just lands a generic message.
+  const [role] = await db
+    .select({ name: schema.roles.name })
+    .from(schema.roles)
+    .where(eq(schema.roles.id, roleId))
+    .limit(1);
+  void notify(id, 'role_detached', {
+    roleName: role?.name ?? null,
+    roleId,
+    actorUsername: actor.username,
+  });
 
   return { success: true };
 });

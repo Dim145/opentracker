@@ -210,6 +210,8 @@
       "ratio": "Ratio",
       "downloaded": "Downloaded",
       "released": "Released",
+      "bonus": "Bonus",
+      "invitesPill": "{n} invite | {n} invites",
       "noUploadsYet": "No uploads yet",
       "totalShared": "Total bytes shared",
       "bonusBreakdown": "incl. {bonus} bonus",
@@ -220,11 +222,13 @@
     },
     "bonus": {
       "title": "Bonus reserve",
+      "historyTitle": "Bonus history",
       "availableBalance": "Available balance",
       "caption": "Earned by seeding active swarms — rare torrents and long-haul archives pay more thanks to the operator's tier curves.",
       "spend": "Spend in the shop",
-      "expandHint": "Click to view transaction history",
-      "collapseHint": "Click to collapse history",
+      "spendShort": "Shop",
+      "expandHint": "Show transaction history",
+      "collapseHint": "Hide history",
       "history": {
         "title": "Transaction ledger",
         "loading": "Reading the ledger…",
@@ -1041,6 +1045,16 @@
       "torznab": "Configure *arr integration and rate limiting",
       "branding": "Customize site appearance and branding",
       "settings": "System-wide registration and tracker settings"
+    },
+    "notifications": {
+      "retention": {
+        "title": "Notification retention",
+        "description": "How long delivered notifications live on disk before the daily sweep deletes them. Two separate TTLs so unread items can survive longer than already-read archives.",
+        "readDays": "Days to keep READ notifications",
+        "unreadDays": "Days to keep UNREAD notifications",
+        "hint": "1–3650 days. Both default to 90.",
+        "daysLabel": "days"
+      }
     },
     "uploadRules": {
       "globalRules": "Global rules",
@@ -2496,6 +2510,168 @@
       "copy": "Could not copy.",
       "copyManual": "Could not copy. Select and copy manually.",
       "strike": "Failed to strike entry."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "toggleLabel": "Open notifications",
+    "loading": "Loading…",
+    "empty": "No notifications yet",
+    "emptyUnread": "You're all caught up",
+    "emptyHint": "Anything worth telling you — a moderation outcome, a comment on your release, a bonus event going live — lands here.",
+    "markAllRead": "Mark all read",
+    "seeAll": "See all notifications",
+    "showUnreadOnly": "Unread only",
+    "showAll": "Show all",
+    "loadMore": "Older entries",
+    "markedReadAt": "read {time}",
+    "pageEyebrow": "Inbox · activity feed",
+    "pageTitle": "Notifications",
+    "types": {
+      "upload_accepted": {
+        "title": "Upload accepted",
+        "desc": "“{torrentName}” was approved by {moderatorUsername}."
+      },
+      "upload_rejected": {
+        "title": "Upload rejected",
+        "desc": "“{torrentName}” was rejected by {moderatorUsername}: {message}"
+      },
+      "upload_changes_requested": {
+        "title": "Changes requested",
+        "desc": "{moderatorUsername} wants edits on “{torrentName}”."
+      },
+      "upload_reset": {
+        "title": "Upload re-opened",
+        "desc": "“{torrentName}” is back in moderation as {newStatus}."
+      },
+      "moderation_message_received": {
+        "title": "New moderation message",
+        "desc": "{actorUsername} replied on “{torrentName}”: {preview}"
+      },
+      "torrent_deleted_by_staff": {
+        "title": "Torrent removed by staff",
+        "desc": "{actorUsername} deleted “{torrentName}”."
+      },
+      "hnr_violation_marked": {
+        "title": "Hit & Run flagged",
+        "desc": "“{torrentName}” crossed the grace period without enough seeding."
+      },
+      "hnr_cleared": {
+        "title": "Hit & Run cleared",
+        "desc": "“{torrentName}” is no longer flagged."
+      },
+      "hnr_exempted": {
+        "title": "Hit & Run exempted",
+        "desc": "“{torrentName}” was exempted from H&R tracking."
+      },
+      "account_banned": {
+        "title": "Account suspended",
+        "desc": "{actorUsername} suspended your account: {reason}"
+      },
+      "account_unbanned": {
+        "title": "Account restored",
+        "desc": "{actorUsername} lifted the suspension on your account."
+      },
+      "role_attached_manually": {
+        "title": "Role granted",
+        "desc": "{actorUsername} granted you the “{roleName}” role."
+      },
+      "role_detached": {
+        "title": "Role removed",
+        "desc": "{actorUsername} removed the “{roleName}” role from your account."
+      },
+      "staff_status_changed": {
+        "title": "Staff status changed",
+        "desc": "{actorUsername} updated your staff privileges."
+      },
+      "bonus_points_adjusted": {
+        "title": "Bonus balance adjusted",
+        "desc": "{actorUsername} adjusted your balance by {delta} points."
+      },
+      "password_changed": {
+        "title": "Password changed",
+        "desc": "Your password was changed. If this wasn't you, rotate it now."
+      },
+      "totp_enabled": {
+        "title": "TOTP enabled",
+        "desc": "Two-factor authenticator app is now active."
+      },
+      "totp_disabled": {
+        "title": "TOTP disabled",
+        "desc": "Two-factor authenticator app was turned off."
+      },
+      "passkey_added": {
+        "title": "Passkey added",
+        "desc": "New passkey “{passkeyName}” registered on your account."
+      },
+      "passkey_removed": {
+        "title": "Passkey removed",
+        "desc": "A passkey was removed from your account."
+      },
+      "recovery_codes_regenerated": {
+        "title": "Recovery codes regenerated",
+        "desc": "A new batch of recovery codes was minted. Store them safely."
+      },
+      "recovery_code_used": {
+        "title": "Recovery code used",
+        "desc": "A recovery code was consumed to sign in. Investigate if it wasn't you."
+      },
+      "login_new_ip": {
+        "title": "Sign-in from new IP",
+        "desc": "We saw a login from {currentIp} (previous: {previousIp})."
+      },
+      "comment_on_my_upload": {
+        "title": "New comment on your upload",
+        "desc": "{actorUsername} on “{torrentName}”: {preview}"
+      },
+      "forum_reply_on_my_topic": {
+        "title": "New reply in your topic",
+        "desc": "{actorUsername} on “{topicTitle}”: {preview}"
+      },
+      "comment_deleted_by_staff": {
+        "title": "Your comment was removed",
+        "desc": "{actorUsername} removed your comment: {preview}"
+      },
+      "forum_post_deleted_by_staff": {
+        "title": "Your forum post was removed",
+        "desc": "{actorUsername} removed your post: {preview}"
+      },
+      "bonus_event_started": {
+        "title": "Bonus event started",
+        "desc": "“{title}” is live — go grab the multipliers."
+      },
+      "first_seeder_reward": {
+        "title": "First seeder reward",
+        "desc": "You earned {amount} points as the first seeder."
+      },
+      "seeding_milestone_reached": {
+        "title": "Seeding milestone reached",
+        "desc": "Another {amount} bonus points credited from a seeding milestone."
+      },
+      "invite_redeemed": {
+        "title": "Invite redeemed",
+        "desc": "{inviteeUsername} joined using your invite code."
+      },
+      "invitee_banned": {
+        "title": "Your invitee was banned",
+        "desc": "{inviteeUsername} was suspended. Reason: {reason}"
+      },
+      "new_pending_upload": {
+        "title": "New upload pending review",
+        "desc": "{uploaderUsername} uploaded “{torrentName}”."
+      },
+      "new_report_filed": {
+        "title": "New report filed",
+        "desc": "{reporterUsername} reported a {targetType}: {reasonPreview}"
+      },
+      "report_actioned": {
+        "title": "Your report was actioned",
+        "desc": "Status: {status}. {resolution}"
+      },
+      "trusted_device_added": {
+        "title": "Trusted device added",
+        "desc": "A new device was marked as trusted on your account."
+      }
     }
   }
 }

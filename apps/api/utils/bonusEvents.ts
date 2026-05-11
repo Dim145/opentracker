@@ -108,6 +108,28 @@ export async function resolveActive(
  * When nothing is active we delete the key (simpler for the tracker:
  * "key missing → no multiplier" rather than a sentinel value).
  */
+/**
+ * Idempotency marker for the `bonus_event_started` fan-out.
+ *
+ * `ACTIVE_KEY` carries a short 5-min TTL so the snapshot self-heals
+ * quickly between mutations — but that means `previous` becomes
+ * `null` on every expiry, and a naive "previously none → now
+ * active" check would re-broadcast every time the cache turns over.
+ *
+ * Per-event markers fix that. We `SET NX` `bonus:notified:<id>` the
+ * first time we'd broadcast for a given event; subsequent syncs
+ * see the marker exists and skip. The marker survives Redis
+ * restarts (when persistence is enabled) and outlives the event
+ * itself by far so a long-running event never re-fires.
+ *
+ * Cross-replica safety: `SET NX` is atomic. Even if two Nitro
+ * replicas hit `syncActiveSnapshot` simultaneously for a fresh
+ * event, exactly one wins the SET and broadcasts; the other gets
+ * `null` back and skips.
+ */
+const NOTIFY_MARKER_PREFIX = 'bonus:notified:';
+const NOTIFY_MARKER_TTL_S = 30 * 24 * 60 * 60; // 30 days
+
 export async function syncActiveSnapshot(): Promise<ActiveBonusEventSnapshot | null> {
   const snap = await resolveActive();
   if (snap) {
@@ -115,6 +137,53 @@ export async function syncActiveSnapshot(): Promise<ActiveBonusEventSnapshot | n
   } else {
     await redis.del(ACTIVE_KEY);
   }
+
+  // Fire-and-forget broadcast guarded by the per-event marker.
+  // Lazy import avoids a module-graph cycle with `notify` (notify
+  // reads settings, which transitively touches… everything).
+  if (snap) {
+    try {
+      const markerKey = `${NOTIFY_MARKER_PREFIX}${snap.id}`;
+      // ioredis's `SET key value EX seconds NX` returns 'OK' on the
+      // winner, null on every loser. Exactly one fan-out per event.
+      const acquired = await redis.set(
+        markerKey,
+        '1',
+        'EX',
+        NOTIFY_MARKER_TTL_S,
+        'NX',
+      );
+      if (acquired === 'OK') {
+        const [{ notifyMany }, dbMod] = await Promise.all([
+          import('./notify'),
+          import('@trackarr/db'),
+        ]);
+        const userRows = await dbMod.db
+          .select({ id: dbMod.schema.users.id })
+          .from(dbMod.schema.users)
+          .where(eq(dbMod.schema.users.isBanned, false));
+        const ids = userRows.map((u) => u.id);
+        void notifyMany(
+          ids,
+          'bonus_event_started',
+          {
+            eventId: snap.id,
+            title: snap.title,
+            downloadMultiplier: snap.downloadMultiplier,
+            uploadMultiplier: snap.uploadMultiplier,
+            endsAtMs: snap.endsAtMs,
+          },
+          // No deep link — the navbar's BonusEventIcon already
+          // shows the live remain counter; there's no public
+          // bonus-events page to navigate to.
+          null,
+        );
+      }
+    } catch (err) {
+      console.warn('[BonusEvents] notify failed:', (err as Error).message);
+    }
+  }
+
   return snap;
 }
 

@@ -20,6 +20,7 @@ import { db, schema } from '@trackarr/db';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { notify } from '~~/utils/notify';
 
 const bodySchema = z
   .object({
@@ -95,6 +96,19 @@ export default defineEventHandler(async (event) => {
 
     return { before, after, appliedDelta };
   });
+
+  void notify(
+    userId,
+    'bonus_points_adjusted',
+    {
+      delta: result.appliedDelta,
+      before: result.before,
+      after: result.after,
+      note: body.note ?? null,
+      actorUsername: actor.username,
+    },
+    '/me',
+  );
 
   return { success: true, ...result };
 });

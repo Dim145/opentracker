@@ -7,6 +7,7 @@ import { redis } from '~~/utils/server';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { mintChallengeToken, markFreshAuth } from '~~/utils/twoFactor';
 import { consumeTrustedDevice } from '~~/utils/trustedDevices';
+import { notify } from '~~/utils/notify';
 
 /**
  * POST /api/auth/login
@@ -102,12 +103,27 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Detect login from a new IP — emitted *before* the row is
+  // updated so we can compare against the previous value. A null
+  // previous IP (fresh account) doesn't fire the notification:
+  // the very first login isn't "new", it's just first.
+  const previousIp = user.lastIp;
+  const currentIp = clientIp !== 'unknown' ? clientIp : null;
+  if (previousIp && currentIp && previousIp !== currentIp) {
+    void notify(
+      user.id,
+      'login_new_ip',
+      { previousIp, currentIp },
+      '/settings',
+    );
+  }
+
   // Update last seen and IP
   await db
     .update(users)
     .set({
       lastSeen: new Date(),
-      lastIp: clientIp !== 'unknown' ? clientIp : null,
+      lastIp: currentIp,
     })
     .where(eq(users.id, user.id));
 

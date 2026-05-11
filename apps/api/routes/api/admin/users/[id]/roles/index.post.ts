@@ -19,6 +19,7 @@ import { invalidateBypassCache } from '~~/utils/torrentModeration';
 import { validateBody } from '~~/utils/schemas';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { notify } from '~~/utils/notify';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 const bodySchema = z.object({
@@ -26,7 +27,7 @@ const bodySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  await requireAdminSession(event);
+  const { user: actor } = await requireAdminSession(event);
   const { id } = paramsSchema.parse(getRouterParams(event));
   const body = await validateBody(event, bodySchema);
 
@@ -40,7 +41,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const [role] = await db
-    .select({ id: schema.roles.id })
+    .select({ id: schema.roles.id, name: schema.roles.name })
     .from(schema.roles)
     .where(eq(schema.roles.id, body.roleId))
     .limit(1);
@@ -67,6 +68,12 @@ export default defineEventHandler(async (event) => {
   // `canUploadWithoutModeration` status — invalidate the cached
   // bypass flag so the next upload sees the new value.
   await invalidateBypassCache(id);
+
+  void notify(id, 'role_attached_manually', {
+    roleName: role.name,
+    roleId: role.id,
+    actorUsername: actor.username,
+  });
 
   return row;
 });

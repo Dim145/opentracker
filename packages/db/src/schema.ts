@@ -11,7 +11,7 @@ import {
   primaryKey,
   customType,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 // Custom type for bytea (binary data)
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
@@ -944,6 +944,67 @@ export const panicState = pgTable('panic_state', {
   encryptionSalt: text('encryption_salt'), // For key derivation (base64)
   encryptionIv: text('encryption_iv'), // AES-GCM IV (base64)
 });
+
+// ============================================================================
+// Notifications (persistent in-app inbox)
+// ============================================================================
+//
+// One polymorphic row per delivered notification. The `type` column
+// is a snake_case event key (e.g. `upload_accepted`, `comment_on_my_upload`)
+// and `payload` carries the type-specific context (actor name, target
+// title, …) used to render the toast / row at display time.
+//
+// Render contract is shared across every event: icon + actor + target +
+// verb + link. The frontend resolves the i18n label from `type` and
+// interpolates `payload` fields into it.
+//
+// Read tracking via `readAt` timestamp (not a boolean) — preserves the
+// "marked read at" moment for analytics and lets the bell dropdown
+// surface "5 new since your last visit" without an extra column.
+//
+// Retention is policy-driven (settings keys `notifications_retention_read_days`
+// and `notifications_retention_unread_days`, both 90 by default). A
+// boot-mounted cron sweeps rows past those thresholds; see
+// `apps/api/plugins/notification-retention.ts`.
+//
+// Indexes:
+//   - `(user_id, created_at desc)` powers the dropdown + /notifications page
+//   - partial `(user_id) WHERE read_at IS NULL` keeps the bell-badge
+//     count query O(1) for the typical "user has a few unread" case
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Snake_case event key. Stable wire identifier; the frontend
+     *  maps it to the localised label. */
+    type: text('type').notNull(),
+    /** Type-specific bag — actor username, target title, ids, etc.
+     *  Free-form on purpose; each emitter picks the shape it needs.
+     *  Never contains secrets (passkeys, IPs, tokens). */
+    payload: jsonb('payload'),
+    /** Optional deep link the dropdown row uses. Stored at emission
+     *  time so a later route refactor doesn't desync historic rows. */
+    link: text('link'),
+    /** When the user marked this row read. Null = still unread.
+     *  Drives both the badge count and the row tint in the UI. */
+    readAt: timestamp('read_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('notifications_user_created_idx').on(
+      table.userId,
+      table.createdAt.desc()
+    ),
+    index('notifications_user_unread_idx')
+      .on(table.userId)
+      .where(sql`read_at IS NULL`),
+  ]
+);
+
+export type Notification = typeof notifications.$inferSelect;
 
 // ============================================================================
 // Upload Rules (singleton — server-enforced gates on every upload)

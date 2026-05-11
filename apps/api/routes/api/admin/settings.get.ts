@@ -31,7 +31,11 @@ import {
   isInviteEnabled,
   getDefaultInvites,
 } from '~~/utils/server';
-import { getRequire2FAScope } from '~~/utils/settings';
+import {
+  getRequire2FAScope,
+  getNotificationsRetentionReadDays,
+  getNotificationsRetentionUnreadDays,
+} from '~~/utils/settings';
 
 /**
  * GET /api/admin/settings
@@ -71,6 +75,10 @@ export default defineEventHandler(async (event) => {
   const inviteEnabled = await isInviteEnabled();
   const defaultInvites = await getDefaultInvites();
   const require2FAScope = await getRequire2FAScope();
+  const notificationsRetentionReadDays =
+    await getNotificationsRetentionReadDays();
+  const notificationsRetentionUnreadDays =
+    await getNotificationsRetentionUnreadDays();
 
   return {
     registrationOpen,
@@ -104,5 +112,7 @@ export default defineEventHandler(async (event) => {
     inviteEnabled,
     defaultInvites,
     require2FAScope,
+    notificationsRetentionReadDays,
+    notificationsRetentionUnreadDays,
   };
 });

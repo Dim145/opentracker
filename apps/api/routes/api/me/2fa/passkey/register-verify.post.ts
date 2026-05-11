@@ -20,6 +20,7 @@ import {
 } from '~~/utils/webauthn';
 import { markFreshAuth } from '~~/utils/twoFactor';
 import { validateBody } from '~~/utils/schemas';
+import { notify } from '~~/utils/notify';
 
 const bodySchema = z.object({
   name: z.string().min(1).max(64),
@@ -98,6 +99,13 @@ export default defineEventHandler(async (event) => {
   if (session.id) {
     await markFreshAuth(String(session.id));
   }
+
+  void notify(
+    session.user.id,
+    'passkey_added',
+    { passkeyName: body.name },
+    '/settings',
+  );
 
   return { name: body.name, credentialId };
 });

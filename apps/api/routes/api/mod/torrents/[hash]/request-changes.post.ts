@@ -13,6 +13,7 @@ import { z } from 'zod/v4';
 import { requireModeratorSession } from '~~/utils/adminAuth';
 import { validateBody } from '~~/utils/schemas';
 import { transitionStatus } from '~~/utils/torrentModeration';
+import { notify } from '~~/utils/notify';
 
 const bodySchema = z.object({
   message: z.string().trim().min(1, 'A note explaining what to change is required').max(4000),
@@ -40,6 +41,19 @@ export default defineEventHandler(async (event) => {
     actorId: session.user.id,
     body: body.message,
   });
+
+  if (updated.uploaderId) {
+    void notify(
+      updated.uploaderId,
+      'upload_changes_requested',
+      {
+        torrentName: updated.name,
+        moderatorUsername: session.user.username,
+        message: body.message,
+      },
+      `/torrents/${hash.toLowerCase()}/edit`,
+    );
+  }
 
   return { success: true, torrent: updated };
 });

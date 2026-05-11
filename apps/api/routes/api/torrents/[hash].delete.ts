@@ -9,6 +9,7 @@ import { torrents } from '@trackarr/db/schema';
 import { redis } from '~~/utils/server';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   // Rate limit mutations
@@ -60,6 +61,22 @@ export default defineEventHandler(async (event) => {
     await redis.del(`stats:${infoHash}`);
   } catch {
     // Redis errors are non-fatal
+  }
+
+  // Notify the uploader when staff deleted someone else's torrent.
+  // A user deleting their own row is a deliberate self-action — no
+  // notification needed for that case.
+  const deletedByStaff = !isOwner && (user.isAdmin || user.isModerator);
+  if (deletedByStaff && existing.uploaderId) {
+    void notify(
+      existing.uploaderId,
+      'torrent_deleted_by_staff',
+      {
+        torrentName: existing.name,
+        actorUsername: user.username,
+      },
+      null,
+    );
   }
 
   return {

@@ -6,6 +6,7 @@ import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { resolveTagsByName, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
 import { normalizeMediaId } from '~~/utils/mediaIds';
 import { getUploadRules, evaluateUpload } from '~~/utils/uploadRules';
+import { notifyMany, listStaffRecipients } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   // Require authentication
@@ -278,6 +279,34 @@ export default defineEventHandler(async (event) => {
     createdAt: now.toISOString(),
     magnetLink: generateMagnetLink(infoHash, name),
   };
+
+  // Tell every staff member when a new torrent lands in the
+  // pending queue. Skipped on bypass paths (the row never enters
+  // moderation in that case so there's nothing to review).
+  if (!canBypassModeration) {
+    void (async () => {
+      try {
+        const staff = await listStaffRecipients();
+        // Exclude the uploader if they're also staff — they
+        // already know they just uploaded.
+        const recipients = staff.filter((sid) => sid !== user.id);
+        await notifyMany(
+          recipients,
+          'new_pending_upload',
+          {
+            torrentName: name,
+            uploaderUsername: user.username,
+          },
+          `/torrents/${infoHash}`,
+        );
+      } catch (err) {
+        console.warn(
+          '[Upload] mod notify fan-out failed:',
+          (err as Error).message,
+        );
+      }
+    })();
+  }
 
   return {
     success: true,

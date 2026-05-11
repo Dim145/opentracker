@@ -2,6 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { notify } from '~~/utils/notify';
 
 const resolveReportSchema = z.object({
   status: z.enum(['resolved', 'dismissed']),
@@ -37,6 +38,21 @@ export default defineEventHandler(async (event) => {
     })
     .where(eq(schema.reports.id, id))
     .returning();
+
+  // Tell the reporter their submission was handled. Skip if the
+  // staffer was also the reporter (unusual but possible).
+  if (report.reporterId && report.reporterId !== user.id) {
+    void notify(
+      report.reporterId,
+      'report_actioned',
+      {
+        status: data.status,
+        resolution: data.resolution ?? null,
+        targetType: report.targetType,
+      },
+      null,
+    );
+  }
 
   return updated[0];
 });

@@ -198,6 +198,21 @@ export const adminSettingsSchema = z.object({
   // logged-in user. The middleware redirects to /settings/security
   // until they comply.
   require2FAScope: z.enum(['off', 'staff', 'all']).optional(),
+  // Notification retention TTLs in days. Both default to 90 in the
+  // settings getter. Bounded 1–3650 here; the PUT handler also
+  // clamps before writing as a defence-in-depth.
+  notificationsRetentionReadDays: z
+    .number()
+    .int()
+    .min(1)
+    .max(3650)
+    .optional(),
+  notificationsRetentionUnreadDays: z
+    .number()
+    .int()
+    .min(1)
+    .max(3650)
+    .optional(),
 });
 
 // ============================================================================

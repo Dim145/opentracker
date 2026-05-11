@@ -20,6 +20,7 @@ import {
 import { issueTrustedDevice } from '~~/utils/trustedDevices';
 import { validateBody } from '~~/utils/schemas';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { notify } from '~~/utils/notify';
 
 const bodySchema = z
   .object({
@@ -104,6 +105,9 @@ export default defineEventHandler(async (event) => {
       .update(recoveryCodes)
       .set({ usedAt: new Date() })
       .where(eq(recoveryCodes.id, match.id));
+    // Recovery code consumed — high-signal security event.
+    // No payload (we don't want to leak which code was burned).
+    void notify(user.id, 'recovery_code_used', null, '/settings');
   }
 
   // Open the session — same shape as the post-SRP path so the FE

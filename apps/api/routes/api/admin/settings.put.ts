@@ -177,6 +177,31 @@ export default defineEventHandler(async (event) => {
     await setSetting(SETTINGS_KEYS.REQUIRE_2FA_SCOPE, body.require2FAScope);
   }
 
+  // Notification retention TTLs. Clamped 1–3650 days; out-of-range
+  // input is dropped silently rather than 400ing so a sloppy
+  // payload from a multi-section save doesn't reject the whole
+  // request.
+  if (
+    typeof body.notificationsRetentionReadDays === 'number' &&
+    body.notificationsRetentionReadDays >= 1 &&
+    body.notificationsRetentionReadDays <= 3650
+  ) {
+    await setSetting(
+      SETTINGS_KEYS.NOTIFICATIONS_RETENTION_READ_DAYS,
+      String(Math.floor(body.notificationsRetentionReadDays)),
+    );
+  }
+  if (
+    typeof body.notificationsRetentionUnreadDays === 'number' &&
+    body.notificationsRetentionUnreadDays >= 1 &&
+    body.notificationsRetentionUnreadDays <= 3650
+  ) {
+    await setSetting(
+      SETTINGS_KEYS.NOTIFICATIONS_RETENTION_UNREAD_DAYS,
+      String(Math.floor(body.notificationsRetentionUnreadDays)),
+    );
+  }
+
   return {
     success: true,
     ...body,

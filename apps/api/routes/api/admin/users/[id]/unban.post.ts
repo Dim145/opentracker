@@ -17,6 +17,7 @@ import { db } from '@trackarr/db';
 import { users, bannedIps } from '@trackarr/db/schema';
 import { invalidateBanCache, requireModeratorSession } from '~~/utils/adminAuth';
 import { validateParam, uuidSchema } from '~~/utils/schemas';
+import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   const { user: actor } = await requireModeratorSession(event);
@@ -49,6 +50,10 @@ export default defineEventHandler(async (event) => {
   if (target.lastIp) {
     await db.delete(bannedIps).where(eq(bannedIps.ip, target.lastIp));
   }
+
+  void notify(target.id, 'account_unbanned', {
+    actorUsername: actor.username,
+  });
 
   return { success: true };
 });

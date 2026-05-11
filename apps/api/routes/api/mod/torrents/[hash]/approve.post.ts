@@ -13,6 +13,7 @@ import { requireModeratorSession } from '~~/utils/adminAuth';
 import { reevaluateUserRole } from '~~/utils/roleRules';
 import { validateBody } from '~~/utils/schemas';
 import { transitionStatus } from '~~/utils/torrentModeration';
+import { notify } from '~~/utils/notify';
 
 const bodySchema = z
   .object({
@@ -60,6 +61,19 @@ export default defineEventHandler(async (event) => {
     void reevaluateUserRole(updated.uploaderId).catch((err) => {
       console.error('[Roles] post-approve sweep failed:', err);
     });
+    // Tell the uploader their release is live. The deep link points
+    // at the torrent detail page so they can jump in directly from
+    // the bell dropdown.
+    void notify(
+      updated.uploaderId,
+      'upload_accepted',
+      {
+        torrentName: updated.name,
+        moderatorUsername: session.user.username,
+        message: message ?? null,
+      },
+      `/torrents/${hash.toLowerCase()}`,
+    );
   }
 
   return { success: true, torrent: updated };

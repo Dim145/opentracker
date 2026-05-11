@@ -128,6 +128,14 @@ export const SETTINGS_KEYS = {
   FEATURE_2_DESC: 'feature_2_desc',
   FEATURE_3_TITLE: 'feature_3_title',
   FEATURE_3_DESC: 'feature_3_desc',
+  // ── Notification retention (days) ───────────────────────────
+  // Two separate TTLs because read and unread rows carry different
+  // weight: a read row is just an archive entry; an unread row is
+  // information the user hasn't acknowledged yet. Defaults match
+  // (90 / 90) but operators typically bump unread → 180+ once
+  // they've observed real usage.
+  NOTIFICATIONS_RETENTION_READ_DAYS: 'notifications_retention_read_days',
+  NOTIFICATIONS_RETENTION_UNREAD_DAYS: 'notifications_retention_unread_days',
 } as const;
 
 const settingsCache = new Map<
@@ -400,5 +408,52 @@ export async function getFeature3Desc(): Promise<string> {
   return (
     value ||
     'Fully transparent and community-driven. Designed for privacy and efficiency in the P2P ecosystem.'
+  );
+}
+
+
+// ── Notification retention helpers ──────────────────────────────
+//
+// Both default to 90 days. The retention sweep (cron) reads these
+// each tick so an operator who bumps the value mid-run gets the
+// new TTL applied on the next pass without a restart.
+//
+// Bounds: 1–3650 days at the validator; we clamp parses too so a
+// hand-edited Redis cache (rare but possible) can't paralyze the
+// sweep with a bogus negative.
+
+export async function getNotificationsRetentionReadDays(): Promise<number> {
+  const value = await getSetting(
+    SETTINGS_KEYS.NOTIFICATIONS_RETENTION_READ_DAYS,
+  );
+  const parsed = value ? parseInt(value, 10) : 90;
+  if (Number.isNaN(parsed) || parsed < 1 || parsed > 3650) return 90;
+  return parsed;
+}
+
+export async function setNotificationsRetentionReadDays(
+  days: number,
+): Promise<void> {
+  await setSetting(
+    SETTINGS_KEYS.NOTIFICATIONS_RETENTION_READ_DAYS,
+    String(days),
+  );
+}
+
+export async function getNotificationsRetentionUnreadDays(): Promise<number> {
+  const value = await getSetting(
+    SETTINGS_KEYS.NOTIFICATIONS_RETENTION_UNREAD_DAYS,
+  );
+  const parsed = value ? parseInt(value, 10) : 90;
+  if (Number.isNaN(parsed) || parsed < 1 || parsed > 3650) return 90;
+  return parsed;
+}
+
+export async function setNotificationsRetentionUnreadDays(
+  days: number,
+): Promise<void> {
+  await setSetting(
+    SETTINGS_KEYS.NOTIFICATIONS_RETENTION_UNREAD_DAYS,
+    String(days),
   );
 }

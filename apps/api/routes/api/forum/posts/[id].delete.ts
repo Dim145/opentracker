@@ -2,6 +2,7 @@ import { db } from '@trackarr/db';
 import { forumPosts, forumTopics } from '@trackarr/db/schema';
 import { eq, count } from 'drizzle-orm';
 import { requireAuthSession } from '~~/utils/adminAuth';
+import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
@@ -60,6 +61,18 @@ export default defineEventHandler(async (event) => {
   }
 
   await db.delete(forumPosts).where(eq(forumPosts.id, id));
+
+  if (!isAuthor && isModerator) {
+    void notify(
+      post.authorId,
+      'forum_post_deleted_by_staff',
+      {
+        actorUsername: session.user.username,
+        preview: post.content.slice(0, 200),
+      },
+      null,
+    );
+  }
 
   return { message: 'Post deleted' };
 });

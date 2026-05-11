@@ -21,6 +21,7 @@ import {
   transitionStatus,
   type ModerationStatus,
 } from '~~/utils/torrentModeration';
+import { notify, type NotificationType } from '~~/utils/notify';
 
 const bodySchema = z.object({
   message: z.string().trim().min(1, 'A note is required').max(4000),
@@ -67,6 +68,26 @@ export default defineEventHandler(async (event) => {
     void reevaluateUserRole(updated.uploaderId).catch((err) => {
       console.error('[Roles] post-reset sweep failed:', err);
     });
+  }
+
+  // Notify the uploader. The event type depends on where the reset
+  // lands — `accepted` reuses the regular approval event so the bell
+  // shows a single positive entry; otherwise emit the generic
+  // `upload_reset` so the user knows the row is no longer rejected.
+  if (updated.uploaderId) {
+    const type: NotificationType =
+      body.to === 'accepted' ? 'upload_accepted' : 'upload_reset';
+    void notify(
+      updated.uploaderId,
+      type,
+      {
+        torrentName: updated.name,
+        moderatorUsername: session.user.username,
+        message: body.message,
+        newStatus: body.to,
+      },
+      `/torrents/${hash.toLowerCase()}`,
+    );
   }
 
   return { success: true, torrent: updated };

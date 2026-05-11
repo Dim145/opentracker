@@ -16,6 +16,7 @@ import { requireModeratorSession } from '~~/utils/adminAuth';
 import { reevaluateUserRole } from '~~/utils/roleRules';
 import { validateBody } from '~~/utils/schemas';
 import { transitionStatus } from '~~/utils/torrentModeration';
+import { notify } from '~~/utils/notify';
 
 const bodySchema = z.object({
   message: z.string().trim().min(1, 'A reason is required').max(4000),
@@ -52,6 +53,20 @@ export default defineEventHandler(async (event) => {
     void reevaluateUserRole(updated.uploaderId).catch((err) => {
       console.error('[Roles] post-reject sweep failed:', err);
     });
+    // High-signal notification — a rejected uploader needs to know
+    // why. The moderator's reason is mandatory upstream, so we pass
+    // it through verbatim. Link to the torrent so they can see the
+    // status banner + moderation thread.
+    void notify(
+      updated.uploaderId,
+      'upload_rejected',
+      {
+        torrentName: updated.name,
+        moderatorUsername: session.user.username,
+        message: body.message,
+      },
+      `/torrents/${hash.toLowerCase()}`,
+    );
   }
 
   return { success: true, torrent: updated };

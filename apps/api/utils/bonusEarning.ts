@@ -270,6 +270,31 @@ export async function creditPoints(args: {
       metadata: args.metadata ?? null,
     });
   });
+
+  // Surface the two high-signal one-off grants as notifications.
+  // `seeding`, `account_age_monthly`, `daily_login` are intentionally
+  // skipped — they're recurring background credits and would flood
+  // the bell. Lazy import avoids cycling notify.ts → settings.ts →
+  // bonusEarning.ts at module-graph load time.
+  if (args.source === 'first_seeder' || args.source === 'seeding_milestone') {
+    try {
+      const { notify } = await import('./notify');
+      void notify(
+        args.userId,
+        args.source === 'first_seeder'
+          ? 'first_seeder_reward'
+          : 'seeding_milestone_reached',
+        {
+          amount: args.amount,
+          torrentId: args.torrentId ?? null,
+          ...(args.metadata ?? {}),
+        },
+        args.torrentId ? null : '/me',
+      );
+    } catch (err) {
+      console.warn('[BonusEarning] notify failed:', (err as Error).message);
+    }
+  }
 }
 
 /**

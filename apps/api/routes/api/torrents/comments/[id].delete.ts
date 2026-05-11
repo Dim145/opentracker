@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { torrentComments } from '@trackarr/db/schema';
 import { requireAuthSession } from '~~/utils/adminAuth';
+import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
@@ -39,6 +40,21 @@ export default defineEventHandler(async (event) => {
   }
 
   await db.delete(torrentComments).where(eq(torrentComments.id, commentId));
+
+  // When staff (mod/admin) deletes someone else's comment, notify
+  // the original author. Self-deletion doesn't fire — that's a
+  // deliberate user action.
+  if (!isAuthor && isModerator) {
+    void notify(
+      comment.authorId,
+      'comment_deleted_by_staff',
+      {
+        actorUsername: session.user.username,
+        preview: comment.content.slice(0, 200),
+      },
+      null,
+    );
+  }
 
   return { success: true };
 });

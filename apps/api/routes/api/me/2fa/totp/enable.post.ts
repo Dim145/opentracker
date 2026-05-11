@@ -21,6 +21,7 @@ import {
   verifyTotp,
 } from '~~/utils/twoFactor';
 import { validateBody } from '~~/utils/schemas';
+import { notify } from '~~/utils/notify';
 
 const bodySchema = z.object({
   code: z.string().regex(/^\d{6}$/, 'Code must be 6 digits'),
@@ -83,6 +84,8 @@ export default defineEventHandler(async (event) => {
   if (session.id) {
     await markFreshAuth(String(session.id));
   }
+
+  void notify(session.user.id, 'totp_enabled', null, '/settings');
 
   return {
     enabled: true,

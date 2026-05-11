@@ -15,6 +15,7 @@ import { requireAdminSession } from '~~/utils/adminAuth';
 import { validateBody } from '~~/utils/schemas';
 import { eq, and, ne, count } from 'drizzle-orm';
 import { z } from 'zod';
+import { notify } from '~~/utils/notify';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 const bodySchema = z
@@ -74,6 +75,19 @@ export default defineEventHandler(async (event) => {
     })
     .where(eq(schema.users.id, id))
     .returning();
+
+  // Notify the affected user when their staff status actually
+  // changed in either direction. The payload carries both before
+  // and after flags so the bell can render a precise label.
+  const adminChanged = target.isAdmin !== body.isAdmin;
+  const modChanged = target.isModerator !== body.isModerator;
+  if (adminChanged || modChanged) {
+    void notify(target.id, 'staff_status_changed', {
+      before: { isAdmin: target.isAdmin, isModerator: target.isModerator },
+      after: { isAdmin: body.isAdmin, isModerator: body.isModerator },
+      actorUsername: actor.username,
+    });
+  }
 
   return updated;
 });

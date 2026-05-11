@@ -8,6 +8,7 @@ import {
   infoHashSchema,
   torrentCommentSchema,
 } from '~~/utils/schemas';
+import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
@@ -39,6 +40,21 @@ export default defineEventHandler(async (event) => {
       content: body.content,
     })
     .returning();
+
+  // Notify the uploader — but never self-notify (a user commenting on
+  // their own release doesn't need a bell ping).
+  if (torrent.uploaderId && torrent.uploaderId !== session.user.id) {
+    void notify(
+      torrent.uploaderId,
+      'comment_on_my_upload',
+      {
+        torrentName: torrent.name,
+        actorUsername: session.user.username,
+        preview: body.content.slice(0, 200),
+      },
+      `/torrents/${hash.toLowerCase()}`,
+    );
+  }
 
   return comment[0];
 });

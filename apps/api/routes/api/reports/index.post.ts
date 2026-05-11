@@ -2,6 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { notifyMany, listStaffRecipients } from '~~/utils/notify';
 
 const reportSchema = z.object({
   targetType: z.enum(['torrent', 'user', 'post', 'comment']),
@@ -66,6 +67,29 @@ export default defineEventHandler(async (event) => {
       status: 'pending',
     })
     .returning();
+
+  // Tell every staff member there's a new report to triage.
+  void (async () => {
+    try {
+      const staff = await listStaffRecipients();
+      const recipients = staff.filter((sid) => sid !== user.id);
+      await notifyMany(
+        recipients,
+        'new_report_filed',
+        {
+          targetType: data.targetType,
+          reporterUsername: user.username,
+          reasonPreview: data.reason.slice(0, 200),
+        },
+        '/mod/reports',
+      );
+    } catch (err) {
+      console.warn(
+        '[Reports] mod notify fan-out failed:',
+        (err as Error).message,
+      );
+    }
+  })();
 
   return {
     success: true,
