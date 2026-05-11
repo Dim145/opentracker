@@ -478,7 +478,11 @@
         "pickCategory": "Choisir une catégorie",
         "awaitingFile": "En attente du fichier source",
         "titleRequired": "Titre requis",
+        "titleBlocklisted": "Le titre contient un terme interdit",
+        "titlePatternMismatch": "Le titre ne respecte pas le format de la catégorie",
+        "nfoRequired": "NFO requis par les règles du tracker",
         "descriptionRequired": "Description requise",
+        "tmdbRequired": "ID TMDb requis par les règles du tracker",
         "readyToPublish": "Prêt à publier"
       },
       "toasts": {
@@ -1014,6 +1018,7 @@
       "bonusRules": "Règles de gain",
       "shop": "Boutique bonus",
       "bannedIps": "IP bannies",
+      "uploadRules": "Règles d'upload",
       "invitations": "Invitations",
       "torznab": "API Torznab",
       "branding": "Identité visuelle",
@@ -1031,10 +1036,61 @@
       "bonusRules": "Configurer comment les utilisateurs gagnent des points bonus (seed, paliers, connexion quotidienne, …) et les courbes de multiplicateurs",
       "shop": "Définir ce que les utilisateurs peuvent acheter avec leurs points bonus",
       "bannedIps": "Consulter, ajouter et retirer des IP de la liste de blocage d'authentification",
+      "uploadRules": "Garde-fous appliqués côté serveur sur chaque upload de torrent",
       "invitations": "Gérer le système d'invitations",
       "torznab": "Configurer l'intégration *arr et la limitation de débit",
       "branding": "Personnaliser l'apparence et l'identité visuelle du site",
       "settings": "Paramètres globaux d'inscription et de tracker"
+    },
+    "uploadRules": {
+      "globalRules": "Règles globales",
+      "nfo": {
+        "title": "Exiger un NFO",
+        "description": "Rejeter l'upload si aucun fichier NFO ou texte NFO collé n'est fourni."
+      },
+      "description": {
+        "title": "Exiger une description",
+        "description": "Rejeter l'upload si le champ description est vide ou ne contient que des espaces.",
+        "minLength": "Longueur minimum (caractères)",
+        "minLengthHint": "0 = pas de minimum. Compté après suppression des espaces."
+      },
+      "titleBlocklist": {
+        "title": "Mots interdits dans le titre",
+        "description": "Une regex JavaScript globale appliquée à tous les titres. Utile pour interdire les qualités sources que tu n'acceptes pas (CAM, TS, HDCAM, …) sans avoir à les répéter dans chaque regex par catégorie.",
+        "placeholder": "ex. .*\\b(CAM|TS|HDCAM|HDTC)\\b.*",
+        "hint": "Laissez vide pour désactiver. La regex est entourée automatiquement de ^…$ et matchée sans tenir compte de la casse."
+      },
+      "tmdb": {
+        "title": "Exiger un ID TMDb",
+        "description": "Rejeter l'upload si aucun ID TMDb n'est renseigné. Utile pour les trackers qui veulent une couverture métadonnées sur chaque entrée."
+      },
+      "maxSize": {
+        "title": "Taille maximum du torrent",
+        "description": "Plafond catastrophe. Bloque les uploads accidentels de plusieurs téraoctets avant qu'ils n'atteignent la file de modération.",
+        "placeholder": "ex. 500",
+        "hint": "Calculé depuis le .torrent parsé (fichier unique ou somme des fichiers). Laissez vide pour désactiver.",
+        "clear": "Retirer le plafond"
+      },
+      "staffBypass": {
+        "title": "Bypass pour le staff",
+        "description": "Quand activé, les admins et modérateurs sont exemptés de toutes les règles ci-dessus. Indépendant de la permission de rôle canUploadWithoutModeration, qui contrôle uniquement si l'upload passe par la file de modération."
+      },
+      "titlePattern": {
+        "title": "Format du titre par catégorie",
+        "enabledTitle": "Appliquer un format de titre par catégorie",
+        "enabledDescription": "Une regex posée sur une catégorie parent s'applique à toutes ses sous-catégories. Une sous-catégorie peut surcharger avec sa propre regex ; laisser le champ d'un enfant vide signifie qu'il hérite.",
+        "explain": "Les regex sont entourées automatiquement de ^…$ et matchées sans tenir compte de la casse. Laissez un champ vide pour retirer sa restriction propre (la catégorie héritera alors du parent le plus proche qui en a une). Une regex invalide est surlignée en rouge et bloque la sauvegarde.",
+        "placeholder": "ex. .+ \\(\\d{4}\\) .+ 1080p .+",
+        "overridePlaceholder": "Hérité : {pattern} — tapez pour surcharger",
+        "inheritedFrom": "hérité de {name}",
+        "toggleHint": "Activez le toggle ci-dessus pour faire apparaître le tableau des regex par catégorie.",
+        "noCategories": "Aucune catégorie définie. Ajoutez-en d'abord depuis la page Catégories de l'administration."
+      },
+      "invalidRegex": "Regex invalide",
+      "fixErrorsFirst": "Corrigez les regex en rouge avant de sauvegarder",
+      "unsavedChanges": "Modifications non sauvegardées",
+      "saved": "Règles d'upload sauvegardées.",
+      "saveFailed": "Impossible de sauvegarder les règles d'upload."
     },
     "dashboard": {
       "noHistoryTitle": "Aucune donnée historique pour l'instant",

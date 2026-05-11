@@ -478,7 +478,11 @@
         "pickCategory": "Pick a category",
         "awaitingFile": "Awaiting source file",
         "titleRequired": "Title required",
+        "titleBlocklisted": "Title contains a forbidden term",
+        "titlePatternMismatch": "Title doesn't match the category pattern",
+        "nfoRequired": "NFO required by tracker rules",
         "descriptionRequired": "Description required",
+        "tmdbRequired": "TMDb id required by tracker rules",
         "readyToPublish": "Ready to publish"
       },
       "toasts": {
@@ -1014,6 +1018,7 @@
       "bonusRules": "Earning Rules",
       "shop": "Bonus Shop",
       "bannedIps": "Banned IPs",
+      "uploadRules": "Upload Rules",
       "invitations": "Invitations",
       "torznab": "Torznab API",
       "branding": "Branding",
@@ -1031,10 +1036,61 @@
       "bonusRules": "Configure how users earn bonus points (seeding, milestones, daily login, …) and the tier curves",
       "shop": "Define what users can spend their seed-bonus points on",
       "bannedIps": "View, add and remove IPs from the auth blocklist",
+      "uploadRules": "Server-enforced gates every torrent upload must pass",
       "invitations": "Manage invitation system",
       "torznab": "Configure *arr integration and rate limiting",
       "branding": "Customize site appearance and branding",
       "settings": "System-wide registration and tracker settings"
+    },
+    "uploadRules": {
+      "globalRules": "Global rules",
+      "nfo": {
+        "title": "Require an NFO",
+        "description": "Reject the upload when no NFO file or pasted NFO text is provided."
+      },
+      "description": {
+        "title": "Require a description",
+        "description": "Reject the upload when the description field is empty or whitespace only.",
+        "minLength": "Minimum length (characters)",
+        "minLengthHint": "0 = no minimum. Counted after trimming whitespace."
+      },
+      "titleBlocklist": {
+        "title": "Title blocklist",
+        "description": "A global JavaScript regex applied to every title. Useful for banning source qualities you don't accept (CAM, TS, HDCAM, …) without repeating them in every per-category pattern.",
+        "placeholder": "e.g. .*\\b(CAM|TS|HDCAM|HDTC)\\b.*",
+        "hint": "Leave empty to disable. The pattern is wrapped with ^…$ automatically and matched case-insensitively."
+      },
+      "tmdb": {
+        "title": "Require a TMDb id",
+        "description": "Reject the upload when no TMDb id is filled in. Useful for trackers that want metadata coverage on every entry."
+      },
+      "maxSize": {
+        "title": "Maximum torrent size",
+        "description": "Catastrophe cap. Block accidental multi-terabyte uploads before they hit the moderation queue.",
+        "placeholder": "e.g. 500",
+        "hint": "Computed from the parsed .torrent (single file or sum of files). Leave empty to disable.",
+        "clear": "Clear cap"
+      },
+      "staffBypass": {
+        "title": "Staff bypass",
+        "description": "When on, admins and moderators are exempt from every rule above. Independent of the canUploadWithoutModeration role permission, which only controls whether the upload lands in the moderation queue."
+      },
+      "titlePattern": {
+        "title": "Title pattern per category",
+        "enabledTitle": "Enforce a title pattern per category",
+        "enabledDescription": "A regex set on a parent category cascades down to every descendant. A child can override with its own regex; leaving a child's field empty means it inherits.",
+        "explain": "Regex are wrapped with ^…$ automatically and matched case-insensitively. Leave a field empty to remove its own restriction (the category will then inherit from the nearest parent that has one). An invalid regex is highlighted in red and blocks save.",
+        "placeholder": "e.g. .+ \\(\\d{4}\\) .+ 1080p .+",
+        "overridePlaceholder": "Inherited: {pattern} — type to override",
+        "inheritedFrom": "inherits from {name}",
+        "toggleHint": "Enable the toggle above to expose the per-category pattern table.",
+        "noCategories": "No categories defined yet. Add some from the Categories admin page first."
+      },
+      "invalidRegex": "Invalid regex",
+      "fixErrorsFirst": "Fix the highlighted regex before saving",
+      "unsavedChanges": "Unsaved changes",
+      "saved": "Upload rules saved.",
+      "saveFailed": "Could not save upload rules."
     },
     "dashboard": {
       "noHistoryTitle": "No historical data yet",

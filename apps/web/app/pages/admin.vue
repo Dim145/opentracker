@@ -155,6 +155,12 @@ const menuItems = computed(() => [
     description: t('admin.descriptions.bannedIps'),
   },
   {
+    label: t('admin.nav.uploadRules'),
+    path: '/admin/upload-rules',
+    icon: 'ph:check-square',
+    description: t('admin.descriptions.uploadRules'),
+  },
+  {
     label: t('admin.nav.invitations'),
     path: '/admin/invites',
     icon: 'ph:envelope-simple',

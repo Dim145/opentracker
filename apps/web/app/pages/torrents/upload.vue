@@ -525,6 +525,35 @@ const NFO_MAX_BYTES = 256 * 1024;
 
 const { data: categories } = await useFetch<CategoryNode[]>('/api/categories');
 
+// Server-enforced upload rules — loaded once at mount, mirrored
+// client-side to drive the "ready to publish" pill + the submit
+// gate so the user isn't told at the last second that a field was
+// missing. The server still validates on POST; this is purely UX.
+interface UploadRulesPayload {
+  nfoRequired: boolean;
+  descriptionRequired: boolean;
+  descriptionMinLength: number;
+  titlePatternEnforced: boolean;
+  titleBlocklist: string | null;
+  tmdbIdRequired: boolean;
+  maxTorrentSize: number | null;
+  staffBypass: boolean;
+  /** Raw patterns — categories with an explicit own regex. */
+  categoryPatterns: Record<string, string>;
+  /** Inheritance-resolved patterns — covers categories that
+   *  inherit from an ancestor too. The form uses this map to
+   *  test the title against the rule that will actually apply. */
+  effectiveCategoryPatterns: Record<string, string>;
+  bypassed: boolean; // true if rules are bypassed for the current viewer (staff)
+}
+const { data: rules } = await useFetch<UploadRulesPayload>('/api/upload-rules', {
+  // No default — when null we treat every rule as off, same as a
+  // fresh install. The endpoint only fails on auth, so a null here
+  // means the user isn't signed in (which never reaches this page
+  // because the middleware bounces unauthenticated visitors).
+  default: () => null as unknown as UploadRulesPayload,
+});
+
 const flatCategories = computed(() => getFlattenedCategories(categories.value));
 
 const selectedCategory = computed(() =>
@@ -546,9 +575,78 @@ const searchTypeHint = computed(() => {
 
 const categoryLabel = computed(() => selectedCategory.value?.name ?? null);
 
-const descriptionFilled = computed(
-  () => description.value.trim().length > 0
-);
+// Honour the server-side description rule: when the rule says the
+// field is required, the form gate requires non-empty AND respects
+// the configured minimum length; when staff bypass is on for the
+// current viewer (admin/mod), the gate degrades to "free-form".
+const descriptionFilled = computed(() => {
+  const required =
+    !!rules.value && !rules.value.bypassed && rules.value.descriptionRequired;
+  const trimmed = description.value.trim();
+  if (!required) return true;
+  if (trimmed.length === 0) return false;
+  const min = rules.value?.descriptionMinLength ?? 0;
+  return min === 0 || trimmed.length >= min;
+});
+
+// NFO rule — same shape: required only when the active rules say
+// so AND staff bypass isn't lifting them. An NFO can land via a
+// file part (drag-drop) or the textarea fallback; we accept either.
+const nfoFilled = computed(() => {
+  const required =
+    !!rules.value && !rules.value.bypassed && rules.value.nfoRequired;
+  return !required || !!nfoFile.value;
+});
+
+const tmdbFilled = computed(() => {
+  const required =
+    !!rules.value && !rules.value.bypassed && rules.value.tmdbIdRequired;
+  return !required || tmdbId.value.trim().length > 0;
+});
+
+// Live title check — runs both the global blocklist and the
+// per-category pattern. Returns either null (pass) or a key the
+// readyState pill maps to a localised hint.
+//
+// Size cap is deliberately NOT validated here — the actual content
+// size lives inside the .torrent's bencode and the client form
+// doesn't pre-decode the file (only the filename is parsed for tag
+// hints). The server enforces the cap on submit and surfaces the
+// failure via the standard error toast.
+const titleRuleFailure = computed<null | 'blocklist' | 'pattern'>(() => {
+  if (!rules.value || rules.value.bypassed) return null;
+  const t = title.value.trim();
+  if (!t) return null; // Empty handled by the existing titleRequired gate.
+
+  if (rules.value.titleBlocklist) {
+    try {
+      const re = new RegExp(rules.value.titleBlocklist, 'i');
+      if (re.test(t)) return 'blocklist';
+    } catch {
+      // Malformed pattern shouldn't crash the form; the server
+      // would have rejected it at save time anyway.
+    }
+  }
+  if (
+    rules.value.titlePatternEnforced &&
+    selectedCategoryId.value &&
+    rules.value.effectiveCategoryPatterns[selectedCategoryId.value]
+  ) {
+    // Use the resolved map — covers both the category's own
+    // regex AND any inherited from an ancestor. The server walks
+    // the same map on submit, so the gate matches the server.
+    try {
+      const re = new RegExp(
+        rules.value.effectiveCategoryPatterns[selectedCategoryId.value],
+        'i',
+      );
+      if (!re.test(t)) return 'pattern';
+    } catch {
+      // See above — admin save path validates regex.
+    }
+  }
+  return null;
+});
 
 // Derived release info from the chosen file. Re-computed whenever the
 // title or filename changes so the live preview stays in sync.
@@ -712,10 +810,36 @@ const readyState = computed<ReadyHint | null>(() => {
     return { icon: 'ph:cassette-tape', label: t('torrents.uploadForm.ready.awaitingFile'), tone: 'partial' };
   if (!title.value.trim())
     return { icon: 'ph:textbox-bold', label: t('torrents.uploadForm.ready.titleRequired'), tone: 'partial' };
+  // Server-driven rules — ordered cheapest → most expensive so the
+  // hint matches what the user can fix without re-reading the form.
+  if (titleRuleFailure.value === 'blocklist')
+    return {
+      icon: 'ph:prohibit-bold',
+      label: t('torrents.uploadForm.ready.titleBlocklisted'),
+      tone: 'partial',
+    };
+  if (titleRuleFailure.value === 'pattern')
+    return {
+      icon: 'ph:textbox-bold',
+      label: t('torrents.uploadForm.ready.titlePatternMismatch'),
+      tone: 'partial',
+    };
+  if (!nfoFilled.value)
+    return {
+      icon: 'ph:file-text-bold',
+      label: t('torrents.uploadForm.ready.nfoRequired'),
+      tone: 'partial',
+    };
   if (!descriptionFilled.value)
     return {
       icon: 'ph:article-bold',
       label: t('torrents.uploadForm.ready.descriptionRequired'),
+      tone: 'partial',
+    };
+  if (!tmdbFilled.value)
+    return {
+      icon: 'ph:popcorn-bold',
+      label: t('torrents.uploadForm.ready.tmdbRequired'),
       tone: 'partial',
     };
   return {
@@ -730,7 +854,10 @@ const canPublish = computed(
     !!selectedFile.value &&
     !!selectedCategoryId.value &&
     !!title.value.trim() &&
-    descriptionFilled.value
+    titleRuleFailure.value === null &&
+    nfoFilled.value &&
+    descriptionFilled.value &&
+    tmdbFilled.value,
 );
 
 async function upload() {

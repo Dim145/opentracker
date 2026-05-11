@@ -5,6 +5,7 @@ import parseTorrent from 'parse-torrent';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { resolveTagsByName, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
 import { normalizeMediaId } from '~~/utils/mediaIds';
+import { getUploadRules, evaluateUpload } from '~~/utils/uploadRules';
 
 export default defineEventHandler(async (event) => {
   // Require authentication
@@ -119,6 +120,40 @@ export default defineEventHandler(async (event) => {
     totalSize = parsed.length;
   } else if (parsed.files && Array.isArray(parsed.files)) {
     totalSize = parsed.files.reduce((sum, f) => sum + (f.length || 0), 0);
+  }
+
+  // ── Server-side upload-rule enforcement ───────────────────────
+  //
+  // Runs *after* we've parsed the .torrent (we need the title and
+  // size) but *before* the duplicate check, so a rejected payload
+  // never even gets compared against the existing index. Defaults
+  // are all-off so a fresh install behaves exactly as before; the
+  // admin opts in to each rule from /admin/upload-rules.
+  //
+  // `categoryId` may be undefined here (the upload form normally
+  // sends one, but defensive code paths exist); the per-category
+  // pattern rule short-circuits cleanly in that case via `null`.
+  const rules = await getUploadRules();
+  const ruleOutcome = evaluateUpload(rules, {
+    title: customName?.slice(0, 256) || parsed.name || file.filename || '',
+    description: description ?? null,
+    nfo,
+    tmdbId,
+    categoryId: categoryId ?? null,
+    sizeBytes: totalSize,
+    isStaff: !!(user.isAdmin || user.isModerator),
+  });
+  if (!ruleOutcome.ok) {
+    // The `reason` is a stable machine-readable key the client
+    // already knows how to localise. We pass it through both the
+    // statusMessage (for clients that read only that) and the
+    // `data.reason` field (for the rich rejection toast).
+    throw createError({
+      statusCode: 422,
+      statusMessage: ruleOutcome.reason,
+      message: ruleOutcome.reason ?? 'Upload rejected by tracker rules',
+      data: { reason: ruleOutcome.reason, detail: ruleOutcome.detail },
+    });
   }
 
   // Check if torrent already exists. We branch on its moderation

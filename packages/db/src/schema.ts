@@ -946,6 +946,78 @@ export const panicState = pgTable('panic_state', {
 });
 
 // ============================================================================
+// Upload Rules (singleton — server-enforced gates on every upload)
+// ============================================================================
+//
+// All the toggles + numeric thresholds live on one row, same idiom as
+// `panic_state`. Per-category title regex live in a sibling table so
+// they get FK-cascaded on category deletion (and so we don't end up
+// shoving a freeform jsonb map into the settings KV).
+//
+// The rules are loaded with a Redis-backed cache by
+// `utils/uploadRules.ts` and re-fetched whenever an admin PUTs the
+// admin endpoint (cache busted by key).
+//
+// Boolean fields default to `false` (rule off) except `staffBypass`
+// which defaults to `true` — the most common operator expectation is
+// "admins/mods aren't subject to the same friction as normal users".
+export const uploadRules = pgTable('upload_rules', {
+  id: text('id').primaryKey().default('singleton'),
+  /** Reject the upload if no NFO was attached (file or pasted text). */
+  nfoRequired: boolean('nfo_required').default(false).notNull(),
+  /** Reject the upload if the description is empty / whitespace. */
+  descriptionRequired: boolean('description_required').default(false).notNull(),
+  /** Minimum description length in characters (post-trim).
+   *  Ignored when `descriptionRequired = false`. 0 = no minimum. */
+  descriptionMinLength: integer('description_min_length')
+    .default(0)
+    .notNull(),
+  /** Enable the per-category title pattern check. The actual
+   *  patterns live in `upload_rule_category_patterns`; categories
+   *  without a row pass through with no restriction. */
+  titlePatternEnforced: boolean('title_pattern_enforced')
+    .default(false)
+    .notNull(),
+  /** Global forbidden-words regex applied to every title — for
+   *  banned source qualities ("CAM", "TS", "HDCAM", …) the operator
+   *  doesn't want to repeat in every per-category pattern. Stored
+   *  pre-anchored ; null = no blocklist. */
+  titleBlocklist: text('title_blocklist'),
+  /** Require an external TMDb id on every upload, regardless of
+   *  category. Useful when the operator wants metadata coverage
+   *  across the whole index. */
+  tmdbIdRequired: boolean('tmdb_id_required').default(false).notNull(),
+  /** Catastrophe cap — bytes. Null = no cap. Computed against the
+   *  parsed `.torrent` total size (single file or sum of files). */
+  maxTorrentSize: bigint('max_torrent_size', { mode: 'number' }),
+  /** When true, users with `isAdmin` or `isModerator` skip every
+   *  rule above. Independent of the `canUploadWithoutModeration`
+   *  role permission, which only controls whether the upload lands
+   *  in the moderation queue. */
+  staffBypass: boolean('staff_bypass').default(true).notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Per-leaf-category title regex. The admin UI only exposes leaf
+// categories (no children); intermediate / root categories never
+// hold a row here. The pattern is already wrapped with ^…$ at save
+// time, so the runtime check is a straight `new RegExp(pattern, 'i')
+// .test(title)`.
+//
+// FK cascade so removing a category from /admin/categories
+// auto-cleans its rule — no orphaned constraints to GC by hand.
+export const uploadRuleCategoryPatterns = pgTable(
+  'upload_rule_category_patterns',
+  {
+    categoryId: text('category_id')
+      .primaryKey()
+      .references(() => categories.id, { onDelete: 'cascade' }),
+    pattern: text('pattern').notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  }
+);
+
+// ============================================================================
 // Tags (Flexible labels for torrents: resolution, codec, source, etc.)
 // ============================================================================
 export const tags = pgTable('tags', {
