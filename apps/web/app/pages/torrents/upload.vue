@@ -13,20 +13,9 @@
             {{ $t('torrents.uploadForm.titleMain') }} <span class="page-title-accent">{{ $t('torrents.uploadForm.titleAccent') }}</span>
           </h1>
         </div>
-        <div
-          v-if="readyState && !result"
-          class="ready-state"
-          :class="readyState.tone"
-        >
-          <Icon :name="readyState.icon" />
-          <span>{{ readyState.label }}</span>
-        </div>
-        <div v-else-if="result" class="ready-state ready">
-          <Icon name="ph:check-circle-fill" />
-          <span>{{ $t('torrents.uploadForm.indexed') }}</span>
-        </div>
       </div>
     </div>
+
 
     <!-- Result panel — replaces the form once the upload succeeds. -->
     <div v-if="result" class="result-shell">
@@ -326,6 +315,33 @@
 
       <!-- ─────────────────────────  ASIDE  ───────────────────────── -->
       <aside class="upload-aside">
+        <!--
+          Status pill — sits at the top of the aside column so it
+          shares the same right-edge alignment as the preview card
+          below it. Both are sticky with different `top` offsets so
+          they stack vertically when scrolled: the pill stays at the
+          very top, the preview card slides up to just below it.
+          On narrow viewports (< 1024px) the grid collapses to a
+          single column and they stack normally with the form above.
+        -->
+        <div
+          v-if="(readyState && !result) || result"
+          class="upload-status-pin"
+        >
+          <div
+            v-if="readyState && !result"
+            class="ready-state"
+            :class="readyState.tone"
+          >
+            <Icon :name="readyState.icon" />
+            <span>{{ readyState.label }}</span>
+          </div>
+          <div v-else-if="result" class="ready-state ready">
+            <Icon name="ph:check-circle-fill" />
+            <span>{{ $t('torrents.uploadForm.indexed') }}</span>
+          </div>
+        </div>
+
         <div class="aside-card">
           <p class="page-eyebrow">{{ $t('forum.newTopic.preview.eyebrow') }}</p>
 
