@@ -1476,6 +1476,20 @@
       "off": "Off",
       "addTier": "Add tier",
       "addMilestone": "Add milestone",
+      "snap": {
+        "rulesActive": "Rules armed",
+        "seedTiers": "Seed-count tiers",
+        "ageTiers": "Age tiers",
+        "range": "Multiplier range",
+        "armed": "armed",
+        "tiers": "tier | tiers"
+      },
+      "units": {
+        "seeders": "seeders",
+        "seedersOrFewer": "seeders or fewer",
+        "days": "days",
+        "daysOrMore": "days or more"
+      },
       "rules": {
         "title": "Earning rules",
         "intro": "Five mechanisms credit users with bonus points. Each rule has its own knob; the seeding rule additionally multiplies its base rate by the seed-count + age tier curves below."
@@ -1483,44 +1497,52 @@
       "seedTiers": {
         "title": "Seed-count tier curve",
         "intro": "Fewer concurrent seeders ⇒ higher multiplier. Tiers are evaluated in ascending max-seeders order; the first row whose max-seeders is ≥ the current count wins. A row with a very large max-seeders acts as the catch-all tail.",
-        "empty": "No seed-count tiers configured — every seeding credit falls back to 1× until you add one."
+        "editLabel": "Tier thresholds",
+        "empty": "No seed-count tiers configured — every seeding credit falls back to 1× until you add one.",
+        "curveHidden": "1 catch-all tier (≥1M seeders) hidden from the chart for readability. | {n} catch-all tiers (≥1M seeders) hidden from the chart for readability."
       },
       "ageTiers": {
         "title": "Age tier curve",
         "intro": "Older torrents reward seeding more, to keep the archive alive. Tiers are evaluated in descending min-age order; the first row whose min-age ≤ the torrent's age wins.",
+        "editLabel": "Tier thresholds",
         "empty": "No age tiers configured — every torrent falls back to 1× until you add one."
       },
       "kinds": {
         "seeding": {
           "name": "Seeding",
-          "description": "Credits each active seeder of every torrent on every cron tick. The base rate is multiplied by the seed-count and age tier curves so rare archive seeds reward more than mainstream ones."
+          "description": "Credits each active seeder of every torrent on every cron tick. The base rate is multiplied by the seed-count and age tier curves so rare archive seeds reward more than mainstream ones.",
+          "hint": "Base rate: {value} points / hour / seed, before the tier curve multipliers below."
         },
         "first_seeder": {
           "name": "First seeder",
-          "description": "One-time reward when a user is observed as the unique seeder of a torrent. Idempotent per (user × torrent) — the audit ledger refuses double-pays."
+          "description": "One-time reward when a user is observed as the unique seeder of a torrent. Idempotent per (user × torrent) — the audit ledger refuses double-pays.",
+          "hint": "Awarded once per (user, torrent) — never double-paid even on tracker restart."
         },
         "seeding_milestone": {
           "name": "Seeding milestones",
-          "description": "Per-torrent cumulative seed-time thresholds. Each crossing emits a single grant — useful to reward long-haul seeders without changing the base rate."
+          "description": "Per-torrent cumulative seed-time thresholds. Each crossing emits a single grant — useful to reward long-haul seeders without changing the base rate.",
+          "empty": "No milestones yet — add one to start rewarding long-haul seeders."
         },
         "daily_login": {
           "name": "Daily login",
-          "description": "Once per UTC day on the user's first authenticated request. Gated by Redis SETNX so a user hammering /api/auth/status doesn't multi-claim."
+          "description": "Once per UTC day on the user's first authenticated request. Gated by Redis SETNX so a user hammering /api/auth/status doesn't multi-claim.",
+          "hint": "Credited at most once per UTC day per user."
         },
         "account_age_monthly": {
           "name": "Account age (monthly loyalty)",
-          "description": "Monthly bonus for staying around. The cron credits at most every 30 days per user, gated by the grants ledger."
+          "description": "Monthly bonus for staying around. The cron credits at most every 30 days per user, gated by the grants ledger.",
+          "hint": "Credited every 30 days per user — loyalty pays."
         }
       },
       "fields": {
-        "pointsPerHourPerSeed": "Points / hour / seed (base rate)",
-        "reward": "Reward (points)",
-        "rewardPerMonth": "Reward / month (points)",
+        "pointsPerHourPerSeed": "Points / hour / seed",
+        "reward": "Reward",
+        "rewardPerMonth": "Reward / month",
         "thresholds": "Cumulative seed-time thresholds",
         "hours": "Hours",
         "maxSeeders": "Max seeders",
         "minAgeDays": "Min age (days)",
-        "multiplier": "Multiplier (×100)"
+        "multiplier": "Multiplier"
       },
       "toasts": {
         "ruleUpdated": "Rule updated",

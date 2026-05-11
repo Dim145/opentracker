@@ -1476,6 +1476,20 @@
       "off": "Désactivée",
       "addTier": "Ajouter un palier",
       "addMilestone": "Ajouter un palier",
+      "snap": {
+        "rulesActive": "Règles armées",
+        "seedTiers": "Paliers seeders",
+        "ageTiers": "Paliers d'âge",
+        "range": "Plage de multiplicateurs",
+        "armed": "armées",
+        "tiers": "palier | paliers"
+      },
+      "units": {
+        "seeders": "seeders",
+        "seedersOrFewer": "seeders ou moins",
+        "days": "jours",
+        "daysOrMore": "jours ou plus"
+      },
       "rules": {
         "title": "Règles de gain",
         "intro": "Cinq mécanismes créditent les utilisateurs en points bonus. Chaque règle a son propre paramétrage ; la règle de seed multiplie en plus son taux de base par les courbes de paliers (nombre de seeders + ancienneté) ci-dessous."
@@ -1483,44 +1497,52 @@
       "seedTiers": {
         "title": "Courbe par nombre de seeders",
         "intro": "Moins il y a de seeders simultanés, plus le multiplicateur est élevé. Les paliers sont évalués par max-seeders croissant ; la première ligne dont max-seeders est ≥ au compteur actuel gagne. Une ligne avec un max-seeders très élevé sert de queue par défaut.",
-        "empty": "Aucun palier configuré — chaque crédit de seed retombe sur ×1 tant que vous n'en ajoutez pas."
+        "editLabel": "Paliers de seuil",
+        "empty": "Aucun palier configuré — chaque crédit de seed retombe sur ×1 tant que vous n'en ajoutez pas.",
+        "curveHidden": "1 palier catch-all (≥1 M seeders) masqué de la courbe pour rester lisible. | {n} paliers catch-all (≥1 M seeders) masqués de la courbe pour rester lisible."
       },
       "ageTiers": {
         "title": "Courbe par ancienneté",
         "intro": "Les torrents plus anciens récompensent davantage le seed, pour garder les archives vivantes. Paliers évalués par ancienneté minimale décroissante ; la première ligne dont min-age ≤ l'âge du torrent gagne.",
+        "editLabel": "Paliers de seuil",
         "empty": "Aucun palier d'ancienneté configuré — chaque torrent retombe sur ×1 tant que vous n'en ajoutez pas."
       },
       "kinds": {
         "seeding": {
           "name": "Seed",
-          "description": "Crédite chaque seeder actif de chaque torrent à chaque tick du cron. Le taux de base est multiplié par les courbes de paliers (nombre de seeders + ancienneté) afin de récompenser davantage les torrents rares."
+          "description": "Crédite chaque seeder actif de chaque torrent à chaque tick du cron. Le taux de base est multiplié par les courbes de paliers (nombre de seeders + ancienneté) afin de récompenser davantage les torrents rares.",
+          "hint": "Taux de base : {value} points / heure / seed, avant application des multiplicateurs des courbes."
         },
         "first_seeder": {
           "name": "Premier seeder",
-          "description": "Récompense unique lorsque l'utilisateur est observé comme le seul seeder d'un torrent. Idempotent par (utilisateur × torrent) — l'audit interdit les doubles versements."
+          "description": "Récompense unique lorsque l'utilisateur est observé comme le seul seeder d'un torrent. Idempotent par (utilisateur × torrent) — l'audit interdit les doubles versements.",
+          "hint": "Versé une seule fois par (utilisateur, torrent), même en cas de redémarrage du tracker."
         },
         "seeding_milestone": {
           "name": "Paliers de seed",
-          "description": "Paliers cumulatifs de temps de seed par torrent. Chaque franchissement émet une récompense unique — utile pour saluer les seeders au long cours sans toucher au taux de base."
+          "description": "Paliers cumulatifs de temps de seed par torrent. Chaque franchissement émet une récompense unique — utile pour saluer les seeders au long cours sans toucher au taux de base.",
+          "empty": "Aucun palier — ajoutez-en pour récompenser les seeders au long cours."
         },
         "daily_login": {
           "name": "Connexion quotidienne",
-          "description": "Une fois par jour UTC à la première requête authentifiée de l'utilisateur. Verrouillée via Redis SETNX pour empêcher tout abus."
+          "description": "Une fois par jour UTC à la première requête authentifiée de l'utilisateur. Verrouillée via Redis SETNX pour empêcher tout abus.",
+          "hint": "Crédité au plus une fois par jour UTC et par utilisateur."
         },
         "account_age_monthly": {
           "name": "Ancienneté du compte (fidélité mensuelle)",
-          "description": "Bonus mensuel de fidélité. Le cron crédite au plus une fois par 30 jours et par utilisateur, contrôlé par l'audit."
+          "description": "Bonus mensuel de fidélité. Le cron crédite au plus une fois par 30 jours et par utilisateur, contrôlé par l'audit.",
+          "hint": "Crédité tous les 30 jours par utilisateur — la fidélité paie."
         }
       },
       "fields": {
-        "pointsPerHourPerSeed": "Points / heure / seed (taux de base)",
-        "reward": "Récompense (points)",
-        "rewardPerMonth": "Récompense / mois (points)",
+        "pointsPerHourPerSeed": "Points / heure / seed",
+        "reward": "Récompense",
+        "rewardPerMonth": "Récompense / mois",
         "thresholds": "Paliers cumulatifs de temps de seed",
         "hours": "Heures",
         "maxSeeders": "Seeders max",
         "minAgeDays": "Ancienneté min (jours)",
-        "multiplier": "Multiplicateur (×100)"
+        "multiplier": "Multiplicateur"
       },
       "toasts": {
         "ruleUpdated": "Règle mise à jour",
