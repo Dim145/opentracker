@@ -32,7 +32,8 @@
     "never": "Jamais",
     "justNow": "à l'instant",
     "minutesAgo": "il y a {n} min",
-    "hoursAgo": "il y a {n} h"
+    "hoursAgo": "il y a {n} h",
+    "clear": "Effacer"
   },
   "nav": {
     "dashboard": "Accueil",
@@ -1357,11 +1358,18 @@
       "introLink": "/invites",
       "introAction": "renflouer leur quota",
       "grant": {
+        "title": "Octroyer des créneaux",
+        "intro": "Renflouez le quota d'invitations d'un utilisateur précis. Il génèrera lui-même les codes depuis /invites.",
         "userLabel": "Utilisateur",
         "userPlaceholder": "Rechercher par identifiant…",
         "addLabel": "Ajouter",
         "submit": "Accorder",
         "suggestionLeft": "{n} restante(s)"
+      },
+      "ledger": {
+        "title": "Registre",
+        "intro": "Chaque invitation jamais émise, du plus ancien au plus récent. Filtrez par état ou rayez un code qui ne devrait plus être valable.",
+        "shownOf": "affichée(s)"
       },
       "kpi": {
         "totalEmitted": "Total émis",

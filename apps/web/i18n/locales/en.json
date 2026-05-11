@@ -32,7 +32,8 @@
     "never": "Never",
     "justNow": "just now",
     "minutesAgo": "{n} min ago",
-    "hoursAgo": "{n}h ago"
+    "hoursAgo": "{n}h ago",
+    "clear": "Clear"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -1357,11 +1358,18 @@
       "introLink": "/invites",
       "introAction": "top up their quota",
       "grant": {
+        "title": "Grant slots",
+        "intro": "Top up a specific user's invitation quota. They'll generate the codes themselves from /invites.",
         "userLabel": "User",
         "userPlaceholder": "Search by username…",
         "addLabel": "Add",
         "submit": "Grant",
         "suggestionLeft": "{n} left"
+      },
+      "ledger": {
+        "title": "Registry",
+        "intro": "Every invitation ever emitted, oldest first. Filter by state or strike a code that should no longer be valid.",
+        "shownOf": "shown"
       },
       "kpi": {
         "totalEmitted": "Total emitted",
