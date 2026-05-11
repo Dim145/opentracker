@@ -1,3 +1,0 @@
-<template>
-  <AdminReports />
-</template>

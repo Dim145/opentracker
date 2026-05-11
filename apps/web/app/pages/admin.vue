@@ -107,12 +107,6 @@ const menuItems = computed(() => [
     description: t('admin.descriptions.roles'),
   },
   {
-    label: t('admin.nav.reports'),
-    path: '/admin/reports',
-    icon: 'ph:flag',
-    description: t('admin.descriptions.reports'),
-  },
-  {
     label: t('admin.nav.categories'),
     path: '/admin/categories',
     icon: 'ph:folders',
@@ -123,12 +117,6 @@ const menuItems = computed(() => [
     path: '/admin/tags',
     icon: 'ph:tag',
     description: t('admin.descriptions.tags'),
-  },
-  {
-    label: t('admin.nav.hnr'),
-    path: '/admin/hnr',
-    icon: 'ph:lightning',
-    description: t('admin.descriptions.hnr'),
   },
   {
     label: t('admin.nav.bonusEvents'),
