@@ -2137,6 +2137,26 @@
       "dbSize": "Taille BDD"
     },
     "branding": {
+      "intro": "Façonnez l'apparence du site — logo, textes et page d'accueil. Tout se met à jour en direct dans l'aperçu ci-dessus.",
+      "identity": {
+        "title": "Identité",
+        "intro": "Nom, logo et favicon — les marques que les visiteurs voient en premier."
+      },
+      "copy": {
+        "title": "Textes",
+        "intro": "Textes affichés à travers le site : connexion, pied de page, règlement."
+      },
+      "homepage": {
+        "title": "Accueil",
+        "intro": "Bloc hero et cartes de fonctionnalités de la page de destination."
+      },
+      "unsavedChanges": "aucun changement | 1 changement non enregistré | {n} changements non enregistrés",
+      "uploadFailed": "Échec du téléversement",
+      "saveFailed": "Échec de l'enregistrement",
+      "previewHeader": "En-tête du site",
+      "previewTab": "Onglet du navigateur",
+      "previewHero": "Hero d'accueil",
+      "previewTabSampleTitle": "Tableau de bord",
       "siteBranding": "Identité visuelle",
       "livePreview": "Aperçu en direct",
       "logoAlt": "Logo",

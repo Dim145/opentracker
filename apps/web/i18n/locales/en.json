@@ -2137,6 +2137,26 @@
       "dbSize": "DB Size"
     },
     "branding": {
+      "intro": "Shape the look and feel of the entire site — logo, copy, and the homepage. Everything updates live in the preview above.",
+      "identity": {
+        "title": "Identity",
+        "intro": "Site name, logo, and favicon — the marks visitors see first."
+      },
+      "copy": {
+        "title": "Copy",
+        "intro": "Text that appears across the site: login screen, footer, rules."
+      },
+      "homepage": {
+        "title": "Homepage",
+        "intro": "Hero block and feature cards on the landing page."
+      },
+      "unsavedChanges": "no changes | 1 unsaved change | {n} unsaved changes",
+      "uploadFailed": "Upload failed",
+      "saveFailed": "Failed to save branding",
+      "previewHeader": "Site header",
+      "previewTab": "Browser tab",
+      "previewHero": "Homepage hero",
+      "previewTabSampleTitle": "Dashboard",
       "siteBranding": "Site Branding",
       "livePreview": "Live Preview",
       "logoAlt": "Logo",
