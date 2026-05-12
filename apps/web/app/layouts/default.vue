@@ -2,6 +2,25 @@
   <div
     class="min-h-screen flex flex-col bg-bg-primary text-text-primary selection:bg-accent selection:text-accent-fg"
   >
+    <!--
+      Top-of-page progress bar that lights up while a route's
+      setup blocks on its `await useFetch(...)` calls. Without
+      it the SPA build (Dockerfile.static) feels frozen between
+      a link click and the new page's first paint — the new
+      route's fetches run client-side and the old page sits
+      there silently until they resolve.
+
+      `throttle` keeps the bar from flashing on cache-hit
+      navigations; `duration` is the fake-progress ceiling we
+      hit when a fetch is genuinely slow.
+    -->
+    <NuxtLoadingIndicator
+      color="#d4a734"
+      :height="2"
+      :duration="2500"
+      :throttle="180"
+    />
+
     <!-- Header — z-30 so dropdowns (z-40) and modals (z-50) layer above it.
          Below md the header keeps just the brand + a hamburger; the rest of
          the chrome (nav, user stats, account dropdown) folds into a drawer
