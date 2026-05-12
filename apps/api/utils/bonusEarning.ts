@@ -328,8 +328,17 @@ export async function applySeedingRule(args: {
   // operator's curve is wrong — refuse to compound the mistake.
   const PER_TICK_PER_PAIR_CAP = 10_000;
 
-  const userTouched = new Set<string>();
-  let totalAwarded = 0;
+  // Group per-pair points by user so each tick produces ONE grant
+  // row per seeder — not one per (user, torrent) pair. A user
+  // seeding 17 torrents otherwise floods their ledger with 17
+  // identical-timestamp rows every tick; the user-facing /me
+  // history page would become unreadable. The summary metadata
+  // keeps the torrent count so the UI can render the line as
+  // "seed cadence for N torrents".
+  const perUser = new Map<
+    string,
+    { total: number; torrentCount: number; pairs: number }
+  >();
   for (const row of seederTorrentRows) {
     const seedMul = resolveSeedCountMultiplier(
       row.seedersForTorrent,
@@ -347,22 +356,32 @@ export async function applySeedingRule(args: {
       PER_TICK_PER_PAIR_CAP
     );
     if (points <= 0) continue;
+    const bucket = perUser.get(row.userId) ?? {
+      total: 0,
+      torrentCount: 0,
+      pairs: 0,
+    };
+    bucket.total += points;
+    bucket.torrentCount += 1;
+    bucket.pairs += 1;
+    perUser.set(row.userId, bucket);
+  }
+
+  let totalAwarded = 0;
+  for (const [userId, bucket] of perUser) {
+    if (bucket.total <= 0) continue;
     await creditPoints({
-      userId: row.userId,
+      userId,
       source: 'seeding',
-      torrentId: row.torrentId,
-      amount: points,
+      torrentId: null,
+      amount: bucket.total,
       metadata: {
-        seedCountMul: seedMul,
-        ageMul,
-        seeders: row.seedersForTorrent,
-        ageDays: row.ageDays,
+        torrentCount: bucket.torrentCount,
       },
     });
-    userTouched.add(row.userId);
-    totalAwarded += points;
+    totalAwarded += bucket.total;
   }
-  return { usersCredited: userTouched.size, pointsAwarded: totalAwarded };
+  return { usersCredited: perUser.size, pointsAwarded: totalAwarded };
 }
 
 /**

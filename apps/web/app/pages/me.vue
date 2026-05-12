@@ -250,7 +250,7 @@
                     : $t('me.bonus.history.spend') }}
               </span>
 
-              <span class="bv-source">{{ sourceLabel(entry.source) }}</span>
+              <span class="bv-source">{{ sourceLabel(entry) }}</span>
 
               <span class="bv-amount" :class="`bv-amount--${entry.type}`">
                 <span class="bv-amount-sign">{{ entry.type === 'gain' ? '+' : '−' }}</span>
@@ -789,6 +789,7 @@ interface BonusEntry {
   amount: number;
   source: string;
   message: string | null;
+  torrentCount: number | null;
   createdAt: string;
 }
 
@@ -844,7 +845,7 @@ function loadMoreHistory() {
   loadHistory(bonusHistoryCursor.value);
 }
 
-function sourceLabel(source: string): string {
+function sourceLabel(entry: BonusEntry): string {
   // Whitelist the keys we have explicit translations for; anything
   // else falls back to a generic "Adjustment" label so a future
   // bonus-rule kind never renders as a raw snake_case string.
@@ -857,12 +858,17 @@ function sourceLabel(source: string): string {
     'admin_adjust',
     'shop_purchase',
   ]);
-  const key = known.has(source)
-    ? `me.bonus.history.source.${source}`
+  // Seeding rows roll up every torrent the user was seeding into a
+  // single per-tick line. Suffix the count so the operator sees
+  // "seed cadence for 17 torrents" instead of 17 identical rows.
+  if (entry.source === 'seeding' && entry.torrentCount && entry.torrentCount > 1) {
+    return t('me.bonus.history.source.seedingMany', {
+      n: entry.torrentCount,
+    });
+  }
+  const key = known.has(entry.source)
+    ? `me.bonus.history.source.${entry.source}`
     : 'me.bonus.history.source.unknown';
-  // Reuse the page-level `t` from useI18n (declared earlier in the
-  // setup block); calling useI18n() again would just create another
-  // composable instance with the same store.
   return t(key);
 }
 

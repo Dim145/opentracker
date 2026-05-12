@@ -48,6 +48,10 @@ interface BonusEntry {
    *  shop purchases surface the item name snapshot; rule grants leave
    *  it empty (the source key is enough to label them). */
   message: string | null;
+  /** When `source === 'seeding'`, the number of torrents the user was
+   *  seeding when the tick ran. Drives the "for N torrents" suffix on
+   *  the per-tick summary line. Null on all other sources. */
+  torrentCount: number | null;
   /** ISO timestamp. */
   createdAt: string;
 }
@@ -109,13 +113,20 @@ export default defineEventHandler(async (event) => {
   // Normalise both into the wire shape, then merge-sort.
   const entries: BonusEntry[] = [
     ...grants.map<BonusEntry>((g) => {
-      const meta = (g.metadata ?? {}) as { note?: string | null };
+      const meta = (g.metadata ?? {}) as {
+        note?: string | null;
+        torrentCount?: number | null;
+      };
       return {
         id: `g:${g.id}`,
         type: g.amount >= 0 ? 'gain' : 'spend',
         amount: Math.abs(g.amount),
         source: g.source,
         message: typeof meta.note === 'string' && meta.note ? meta.note : null,
+        torrentCount:
+          g.source === 'seeding' && typeof meta.torrentCount === 'number'
+            ? meta.torrentCount
+            : null,
         createdAt: g.createdAt.toISOString(),
       };
     }),
@@ -128,6 +139,7 @@ export default defineEventHandler(async (event) => {
       // the right human-readable label and survives a later rename of
       // the catalogue item.
       message: p.itemNameSnapshot,
+      torrentCount: null,
       createdAt: p.createdAt.toISOString(),
     })),
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));

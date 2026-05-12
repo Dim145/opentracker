@@ -245,6 +245,7 @@
         "spend": "Dépense",
         "source": {
           "seeding": "Cadence de seed",
+          "seedingMany": "Cadence de seed pour {n} torrents",
           "first_seeder": "Premier seeder",
           "milestone": "Palier de seed",
           "account_age_monthly": "Bonus de fidélité",

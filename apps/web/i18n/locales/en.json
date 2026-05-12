@@ -245,6 +245,7 @@
         "spend": "Spent",
         "source": {
           "seeding": "Seeding rate",
+          "seedingMany": "Seeding rate for {n} torrents",
           "first_seeder": "First seeder bonus",
           "milestone": "Seeding milestone",
           "account_age_monthly": "Loyalty bonus",
