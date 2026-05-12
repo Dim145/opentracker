@@ -1376,6 +1376,20 @@
       "saveFailed": "Could not save upload rules."
     },
     "dashboard": {
+      "eyebrow": "Operations · Control Room",
+      "title": "Dashboard",
+      "intro": "Live snapshot of the tracker's vital signs — torrents, peers, protocols, and announce endpoints — at a glance.",
+      "statusOnline": "Tracker · online",
+      "statusOffline": "Tracker · offline",
+      "metricsTitle": "Live metrics",
+      "chartsTitle": "Activity over time",
+      "refreshedAgo": "Refreshed {rel} ago",
+      "samplesCount": "{n} samples",
+      "rel": {
+        "seconds": "{n}s",
+        "minutes": "{n}m",
+        "hours": "{n}h"
+      },
       "noHistoryTitle": "No historical data yet",
       "noHistoryHint": "Stats collection has just started. Check back in an hour."
     },
@@ -2426,20 +2440,28 @@
     },
     "endpoints": {
       "title": "Endpoints",
+      "subtitle": "Announce URLs",
       "httpAnnounce": "HTTP Announce",
       "udpAnnounce": "UDP Announce",
-      "websocket": "WebSocket"
+      "websocket": "WebSocket",
+      "copy": "Copy URL"
     },
     "stats": {
       "activeTorrents": "Active Torrents",
       "totalPeers": "Total Peers",
       "seeders": "Seeders",
+      "leechers": "Leechers",
+      "torrentsFoot": "in the index",
+      "peersFoot": "unique peers",
+      "seedersFoot": "{pct}% of peers",
+      "leechersFoot": "{pct}% of peers",
       "trackerStatus": "Tracker Status",
       "operational": "Operational",
       "offline": "Offline"
     },
     "protocols": {
       "title": "Protocols",
+      "activeCount": "{n} of {total} active",
       "active": "ACTIVE",
       "inactive": "INACTIVE"
     },

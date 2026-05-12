@@ -1376,6 +1376,20 @@
       "saveFailed": "Impossible de sauvegarder les règles d'upload."
     },
     "dashboard": {
+      "eyebrow": "Opérations · Salle de contrôle",
+      "title": "Tableau de bord",
+      "intro": "Aperçu en direct des signes vitaux du tracker — torrents, pairs, protocoles et points d'annonce — d'un coup d'œil.",
+      "statusOnline": "Tracker · en ligne",
+      "statusOffline": "Tracker · hors ligne",
+      "metricsTitle": "Métriques en direct",
+      "chartsTitle": "Activité dans le temps",
+      "refreshedAgo": "Rafraîchi il y a {rel}",
+      "samplesCount": "{n} échantillons",
+      "rel": {
+        "seconds": "{n} s",
+        "minutes": "{n} min",
+        "hours": "{n} h"
+      },
       "noHistoryTitle": "Aucune donnée historique pour l'instant",
       "noHistoryHint": "La collecte des statistiques vient de commencer. Revenez dans une heure."
     },
@@ -2426,20 +2440,28 @@
     },
     "endpoints": {
       "title": "Points d'accès",
+      "subtitle": "URLs d'annonce",
       "httpAnnounce": "Annonce HTTP",
       "udpAnnounce": "Annonce UDP",
-      "websocket": "WebSocket"
+      "websocket": "WebSocket",
+      "copy": "Copier l'URL"
     },
     "stats": {
       "activeTorrents": "Torrents actifs",
       "totalPeers": "Pairs total",
       "seeders": "Seeders",
+      "leechers": "Leechers",
+      "torrentsFoot": "indexés",
+      "peersFoot": "pairs uniques",
+      "seedersFoot": "{pct}% des pairs",
+      "leechersFoot": "{pct}% des pairs",
       "trackerStatus": "État du tracker",
       "operational": "Opérationnel",
       "offline": "Hors ligne"
     },
     "protocols": {
       "title": "Protocoles",
+      "activeCount": "{n} sur {total} actifs",
       "active": "ACTIF",
       "inactive": "INACTIF"
     },

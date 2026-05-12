@@ -63,7 +63,12 @@
 
     <!-- Main Content -->
     <main class="flex-1 min-w-0">
-      <div class="mb-6">
+      <!-- /admin (the dashboard root) brings its own bespoke
+           header (the control-room banner with a live "tracker
+           online" pulse). For every other admin sub-page we
+           render the generic title strip so the operator always
+           knows where they are. -->
+      <div v-if="$route.path !== '/admin'" class="mb-6">
         <h1
           class="text-2xl font-bold text-text-primary tracking-tight uppercase"
         >
