@@ -2,10 +2,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { settings } from '@trackarr/db/schema';
 import { redis } from '../redis/client';
+import pkg from '../package.json';
 
-// Version is injected by the running app via env (each app has its own
-// package.json now that we're in a monorepo).
-const appVersion = process.env.APP_VERSION || 'dev';
+// Version is injected by the running app via env when available, but
+// the API also ships with its own package.json — fall back to that so
+// the subtitle/footer surfaces never read "vdev" in a normal dev run.
+const appVersion = process.env.APP_VERSION || pkg.version || 'dev';
 
 // ============================================================================
 // Cross-instance cache invalidation via Redis pub/sub

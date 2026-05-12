@@ -418,7 +418,10 @@
                     class="nav-subtitle"
                     v-html="sanitizeHtml(form.siteSubtitle)"
                   />
-                  <span v-else class="nav-subtitle nav-subtitle--ghost">v{{ runtimeVersion }}</span>
+                  <span
+                    v-else-if="runtimeVersion"
+                    class="nav-subtitle nav-subtitle--ghost"
+                  >v{{ runtimeVersion }}</span>
                 </div>
               </div>
             </div>
@@ -585,7 +588,13 @@ const runtimeHost = computed(() => {
   if (typeof window === 'undefined') return 'trackarr.local';
   return window.location.host || 'trackarr.local';
 });
-const runtimeVersion = useRuntimeConfig().public.appVersion || 'dev';
+// Reactive — the client plugin patches `appVersion` into the
+// runtime config after a short fetch, so reading it as a non-
+// reactive `const` would snapshot the empty fallback and never
+// update. The computed picks the value up the moment it lands.
+const runtimeVersion = computed(
+  () => (useRuntimeConfig().public.appVersion as string | undefined) || ''
+);
 
 const commonIcons = [
   'ph:broadcast-bold',
