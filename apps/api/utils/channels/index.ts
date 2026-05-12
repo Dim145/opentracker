@@ -149,4 +149,7 @@ export async function sendThroughChannel(
   }
 }
 
-export type { ChannelAdapter, ChannelMeta, NotificationPayload, TestResult } from './types';
+// Types live in ./types — import them from there directly. Re-
+// exporting here would have Nitro's auto-import scanner register
+// the same name from two files and emit a "Duplicated imports"
+// warning at build time.
