@@ -612,9 +612,34 @@ const commonIcons = [
 ];
 
 // ── Load settings ────────────────────────────────────────────
+interface SettingsResponse {
+  siteName?: string;
+  siteLogo?: string;
+  siteLogoImage?: string | null;
+  siteFavicon?: string | null;
+  siteSubtitle?: string | null;
+  siteNameColor?: string | null;
+  siteNameBold?: boolean;
+  authTitle?: string | null;
+  authSubtitle?: string | null;
+  footerText?: string | null;
+  pageTitleSuffix?: string | null;
+  welcomeMessage?: string | null;
+  siteRules?: string | null;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  statusBadgeText?: string;
+  feature1Title?: string;
+  feature1Desc?: string;
+  feature2Title?: string;
+  feature2Desc?: string;
+  feature3Title?: string;
+  feature3Desc?: string;
+}
+
 onMounted(async () => {
   try {
-    const settings = await $fetch<Record<string, any>>('/api/admin/settings');
+    const settings = await $fetch<SettingsResponse>('/api/admin/settings');
     Object.assign(form, {
       siteName: settings.siteName || form.siteName,
       siteLogo: settings.siteLogo || form.siteLogo,
@@ -640,13 +665,31 @@ onMounted(async () => {
     });
     useCustomImage.value = !!settings.siteLogoImage;
     snapshot.value = structuredClone(toRaw(form));
+    // The initial hydrate above tripped the deep watcher — clear
+    // the flag on the next tick so the savebar doesn't show up at
+    // page load.
+    await nextTick();
+    dirty.value = false;
   } catch (error) {
     console.error('Failed to load branding settings:', error);
   }
 });
 
 // ── Dirty tracking ──────────────────────────────────────────
-const dirty = computed(() => JSON.stringify(form) !== JSON.stringify(snapshot.value));
+// A deep watcher flips the flag the first time any form field
+// changes after a snapshot reset. The previous implementation ran
+// `JSON.stringify(form) !== JSON.stringify(snapshot)` from a
+// `computed` — Vue re-evaluated it on every reactive read (so
+// every keystroke), and with three WYSIWYG fields it dominated
+// the per-keystroke cost. The flag is reset to false on save +
+// discard + initial load.
+const dirty = ref(false);
+watch(form, () => { dirty.value = true; }, { deep: true });
+
+// dirtyCount is only evaluated when the savebar is actually
+// rendered (computed is lazy). Each `dirty: true` keystroke
+// re-renders the savebar so this still gets a fresh count, but
+// it only does work when the bar is visible.
 const dirtyCount = computed(() => {
   if (!dirty.value) return 0;
   let n = 0;
@@ -663,18 +706,11 @@ const dirtyCount = computed(() => {
   return n;
 });
 
-// ── HTML sanitization for the live preview ──────────────────
-//
-// `v-html` in the preview renders WYSIWYG output; sanitiser kept
-// minimal but tight so the admin's own session can't be hijacked
-// by a leaked tag.
-function sanitizeHtml(input: string | null | undefined): string {
-  if (!input) return '';
-  return input
-    .replace(/<\/?(?!(?:b|i|strong|em|span|br)(?:\s|>|\/>))[a-z][^>]*>/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on[a-z]+="[^"]*"/gi, '');
-}
+// The DOMPurify-backed `sanitizeHtml` from `~/utils/markdown` is
+// auto-imported by Nuxt and used in v-html bindings throughout the
+// preview. We avoid declaring a local regex variant — it would let
+// `<b onmouseover=alert(1)>` slip through because the `on…=`
+// strip only matches double-quoted attribute values.
 
 function stripTags(input: string | null | undefined): string {
   if (!input) return '';
@@ -773,6 +809,10 @@ async function saveAll() {
       },
     });
     snapshot.value = structuredClone(toRaw(form));
+    // Wait one tick so the watcher's queued tick (from the value
+    // assignment above) settles before we clear the flag.
+    await nextTick();
+    dirty.value = false;
     notifications.success(t('admin.branding.saved'));
   } catch (err) {
     console.error('Failed to save branding:', err);
@@ -782,9 +822,11 @@ async function saveAll() {
   }
 }
 
-function discard() {
+async function discard() {
   Object.assign(form, structuredClone(toRaw(snapshot.value)));
   useCustomImage.value = !!form.siteLogoImage;
+  await nextTick();
+  dirty.value = false;
 }
 </script>
 

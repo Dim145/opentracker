@@ -192,6 +192,7 @@
             <button
               type="button"
               class="entry-act entry-act--edit"
+              :aria-label="$t('admin.categories.row.editCategory')"
               :title="$t('admin.categories.row.editCategory')"
               @click="openEdit(category)"
             >
@@ -200,6 +201,7 @@
             <button
               type="button"
               class="entry-act entry-act--add"
+              :aria-label="$t('admin.categories.row.addChild')"
               :title="$t('admin.categories.row.addChild')"
               @click="openCreate(category.id)"
             >
@@ -208,6 +210,7 @@
             <button
               type="button"
               class="entry-act entry-act--delete"
+              :aria-label="$t('admin.categories.row.deleteCategory')"
               :title="$t('admin.categories.row.deleteCategory')"
               @click="deleteCategory(category.id)"
             >
@@ -258,6 +261,7 @@
                   <button
                     type="button"
                     class="entry-act entry-act--edit"
+                    :aria-label="$t('admin.categories.row.editSubcategory')"
                     :title="$t('admin.categories.row.editSubcategory')"
                     @click="openEdit(sub)"
                   >
@@ -266,6 +270,7 @@
                   <button
                     type="button"
                     class="entry-act entry-act--delete"
+                    :aria-label="$t('admin.categories.row.deleteSubcategory')"
                     :title="$t('admin.categories.row.deleteSubcategory')"
                     @click="deleteCategory(sub.id)"
                   >
@@ -717,7 +722,10 @@ function slugify(s: string): string {
   return s
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    // Strip combining diacritical marks (U+0300..U+036F) using the
+    // explicit unicode escape so the regex isn't sensitive to how an
+    // editor stores the literal characters.
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 }
@@ -774,7 +782,13 @@ async function submit() {
   }
 }
 
+// Pending-delete guard: rapid double-clicks on a delete button
+// would otherwise pop two confirm dialogs against the same row
+// (the second one races against a stale `target`).
+const deletingIds = ref(new Set<string>());
+
 async function deleteCategory(id: string) {
+  if (deletingIds.value.has(id)) return;
   let target: { name: string } | undefined;
   for (const cat of categories.value || []) {
     if (cat.id === id) {
@@ -784,21 +798,24 @@ async function deleteCategory(id: string) {
     target = cat.subcategories?.find((s) => s.id === id);
     if (target) break;
   }
-  const ok = await confirm({
-    title: t('admin.categories.deleteConfirm.title'),
-    message: target
-      ? t('admin.categories.deleteConfirm.messageNamed', { name: target.name })
-      : t('admin.categories.deleteConfirm.messageGeneric'),
-    confirmText: t('admin.categories.deleteConfirm.action'),
-    destructive: true,
-  });
-  if (!ok) return;
+  deletingIds.value.add(id);
   try {
+    const ok = await confirm({
+      title: t('admin.categories.deleteConfirm.title'),
+      message: target
+        ? t('admin.categories.deleteConfirm.messageNamed', { name: target.name })
+        : t('admin.categories.deleteConfirm.messageGeneric'),
+      confirmText: t('admin.categories.deleteConfirm.action'),
+      destructive: true,
+    });
+    if (!ok) return;
     await $fetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
     await refresh();
     notifications.success(t('admin.categories.toasts.deleted'));
   } catch (error: any) {
     notifications.error(error.data?.message || t('admin.categories.errors.deleteFailed'));
+  } finally {
+    deletingIds.value.delete(id);
   }
 }
 
@@ -1145,6 +1162,28 @@ async function seedCategories() {
   transition: border-color 0.2s ease, transform 0.2s ease,
     box-shadow 0.2s ease;
 }
+/* On narrow viewports the 3-col grid + the 64px call-number panel
+   + the 4-button action cluster overflowed sideways. Stack the
+   action row beneath the identity column and let the code panel
+   sit inline with the name. */
+@media (max-width: 640px) {
+  .entry-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'code id'
+      'actions actions';
+    gap: 0.6rem 0.75rem;
+    padding: 0.7rem 0.85rem;
+  }
+  .entry-row > .entry-code { grid-area: code; }
+  .entry-row > .entry-id { grid-area: id; }
+  .entry-row > .entry-actions {
+    grid-area: actions;
+    justify-content: flex-end;
+    padding-top: 0.15rem;
+    border-top: 1px solid rgb(var(--line-default));
+  }
+}
 .entry-row:hover {
   border-color: rgba(212, 167, 52, 0.4);
   transform: translateY(-1px);
@@ -1308,8 +1347,8 @@ async function seedCategories() {
 .entry-toggle {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
   border-radius: var(--radius-sm);
@@ -1331,8 +1370,8 @@ async function seedCategories() {
 .entry-act {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: 0;
   color: rgb(var(--fg-muted));

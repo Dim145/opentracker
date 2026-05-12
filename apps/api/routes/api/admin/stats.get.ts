@@ -13,51 +13,75 @@ export default defineEventHandler(async (event) => {
     .from(schema.torrents);
   const totalTorrents = torrentsCountResult[0]?.count || 0;
 
-  // Get total unique peers and seeders from Redis using SCAN for safety
-  // Note: ioredis with keyPrefix - SCAN returns full keys with prefix,
-  // but we need to strip the prefix before passing to other commands
-  // We use Sets to count unique peers by ip:port (a peer seeding multiple torrents counts as 1)
+  // Peer/seeder counts come from Redis. The SCAN+HGETALL walk
+  // can be expensive on a live tracker (thousands of `peers:*`
+  // keys, each an HGETALL round-trip), so we cache the rolled-up
+  // counts in Redis for STATS_TTL_S. The dashboard tile ticks
+  // every 30s; second-level precision isn't worth a fresh scan
+  // on every poll.
   const keyPrefix = process.env.REDIS_KEY_PREFIX || 'ot:';
-  const uniquePeers = new Set<string>();
-  const uniqueSeeders = new Set<string>();
-  let cursor = '0';
-  let scannedKeys = 0;
+  const STATS_TTL_S = 30;
+  const CACHE_KEY = 'stats:peers';
+
+  let totalPeers = 0;
+  let totalSeeders = 0;
   try {
-    do {
-      const [nextCursor, keys] = await redis.scan(
-        cursor,
-        'MATCH',
-        `${keyPrefix}peers:*`,
-        'COUNT',
-        100
-      );
-      cursor = nextCursor;
-      scannedKeys += keys.length;
-      for (const fullKey of keys) {
-        // Strip the prefix from the key returned by SCAN to avoid double-prefixing
-        const key = fullKey.startsWith(keyPrefix)
-          ? fullKey.slice(keyPrefix.length)
-          : fullKey;
-        const peersData = await redis.hgetall(key);
-        for (const json of Object.values(peersData)) {
-          try {
-            const peer = JSON.parse(json as string);
-            // Use ip:port as unique identifier for a peer
-            const peerKey = `${peer.ip}:${peer.port}`;
-            uniquePeers.add(peerKey);
-            if (peer.isSeeder) uniqueSeeders.add(peerKey);
-          } catch (e) {
-            // Ignore invalid JSON
+    const cached = await redis.get(CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      totalPeers = parsed.peers ?? 0;
+      totalSeeders = parsed.seeders ?? 0;
+    } else {
+      const uniquePeers = new Set<string>();
+      const uniqueSeeders = new Set<string>();
+      let cursor = '0';
+      do {
+        const [nextCursor, keys] = await redis.scan(
+          cursor,
+          'MATCH',
+          `${keyPrefix}peers:*`,
+          'COUNT',
+          100
+        );
+        cursor = nextCursor;
+        if (keys.length === 0) continue;
+        // Pipeline the HGETALLs for this scan batch so we pay one
+        // round-trip per ~100 keys instead of one per key.
+        const pipeline = redis.pipeline();
+        const localKeys = keys.map((fullKey) =>
+          fullKey.startsWith(keyPrefix)
+            ? fullKey.slice(keyPrefix.length)
+            : fullKey
+        );
+        for (const key of localKeys) pipeline.hgetall(key);
+        const results = await pipeline.exec();
+        if (!results) continue;
+        for (const [err, peersData] of results) {
+          if (err) continue;
+          for (const json of Object.values(peersData as Record<string, string>)) {
+            try {
+              const peer = JSON.parse(json);
+              const peerKey = `${peer.ip}:${peer.port}`;
+              uniquePeers.add(peerKey);
+              if (peer.isSeeder) uniqueSeeders.add(peerKey);
+            } catch {
+              /* invalid JSON — skip */
+            }
           }
         }
-      }
-    } while (cursor !== '0');
+      } while (cursor !== '0');
+      totalPeers = uniquePeers.size;
+      totalSeeders = uniqueSeeders.size;
+      await redis.set(
+        CACHE_KEY,
+        JSON.stringify({ peers: totalPeers, seeders: totalSeeders }),
+        'EX',
+        STATS_TTL_S
+      );
+    }
   } catch (err) {
     console.error('[Stats] Failed to fetch peer count from Redis:', err);
   }
-
-  const totalPeers = uniquePeers.size;
-  const totalSeeders = uniqueSeeders.size;
 
   // Protocol matrix mirrored from the tracker container's env. HTTP
   // is always on; UDP toggles via `TRACKER_UDP_ENABLED` (default true,

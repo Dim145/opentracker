@@ -184,14 +184,8 @@ const registrationMode = computed<'open' | 'invite-only' | 'closed'>(() => {
   if (status.value?.inviteEnabled) return 'invite-only';
   return 'closed';
 });
-const { data: branding } = await useFetch<{
-  siteName: string;
-  siteLogo: string;
-  siteLogoImage: string | null;
-  siteFavicon: string | null;
-  authTitle: string | null;
-  authSubtitle: string | null;
-}>('/api/branding');
+// Shared branding payload — see composables/useBranding.ts.
+const branding = await useBranding();
 
 // Set dynamic favicon
 useHead({

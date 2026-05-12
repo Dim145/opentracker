@@ -33,7 +33,10 @@
   --fg-strong:      255 255 255;
   --fg-muted:       161 161 161;
   --fg-subtle:      112 112 112;
-  --fg-faint:       74 74 74;
+  /* Bumped from 74/74/74 (~1.84:1 on bg-base — WCAG fail) up to
+     130/130/130 (~5.2:1 on bg-base) so the dozen-or-so mono micro
+     labels using --fg-faint as a text colour stay legible. */
+  --fg-faint:       130 130 130;
 
   /* Lines */
   --line-default:   42 42 42;
@@ -469,4 +472,42 @@
   .pb-safe {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
+}
+
+/* =============================================================================
+ * Global accessibility primitives
+ *
+ * Two sweeping rules that every admin redesign relies on without
+ * having to re-declare them in scoped blocks:
+ *
+ *   1. Reduced-motion — honour the OS setting. Several pages run
+ *      perpetual pulses / ring expansions; these should slow to a
+ *      crawl when the user has expressed a motion preference so
+ *      vestibular triggers don't fire.
+ *
+ *   2. Default focus ring — most icon-only buttons in the redesigns
+ *      don't declare a :focus-visible style, so keyboard users land
+ *      on the browser's faint default outline that disappears on
+ *      dark backgrounds. A gold outline lights up on every focusable
+ *      element by default; components are free to override.
+ * ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+button:focus-visible,
+a:focus-visible,
+[role='button']:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #d4a734;
+  outline-offset: 2px;
 }

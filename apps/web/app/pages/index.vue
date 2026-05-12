@@ -357,12 +357,10 @@ const { data: torrentsData } = await useFetch<{ data: TorrentWithStats[] }>(
   { query: { limit: 12 } },
 );
 
-// Branding — operator-customisable site name. We use it as the
-// fallback hero headline when /api/homepage-content didn't ship one.
-const { data: branding } = useFetch<{ siteName: string | null }>(
-  '/api/branding',
-  { lazy: true },
-);
+// Branding — shared via the `useBranding` composable so the
+// homepage doesn't fire its own /api/branding fetch on top of
+// the one the default layout already issued.
+const branding = await useBranding();
 const displaySiteName = computed(() =>
   stripTags(branding.value?.siteName) || 'TRACKARR',
 );

@@ -43,9 +43,12 @@ interface NotificationsState {
 }
 
 const MAX_IN_MEMORY = 50;
-// Module-level singletons so every component sees the same state.
-let store: NotificationsState | null = null;
-let storeRef: Ref<NotificationsState> | null = null;
+
+// Browser-only singletons. EventSource, timers, and window listeners
+// only exist client-side, so a single module-level handle is fine
+// here — each user runs one tab → one connection. SSR never reaches
+// these because every code path that touches them is gated on
+// `typeof window !== 'undefined'`.
 let eventSource: EventSource | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let pollFallback: ReturnType<typeof setInterval> | null = null;
@@ -61,11 +64,11 @@ function makeStore(): NotificationsState {
 }
 
 export function useNotifications() {
-  if (!storeRef) {
-    store = makeStore();
-    storeRef = ref(store);
-  }
-  const state = storeRef;
+  // `useState` gives each SSR request its own state bucket so two
+  // simultaneous server-side renders don't share the same store
+  // ref. On the client `useState` returns the same ref each call,
+  // matching the singleton semantics consumers expect.
+  const state = useState<NotificationsState>('notifications', makeStore);
   const { loggedIn } = useUserSession();
 
   /** Pull the initial page. Called on first mount and after every

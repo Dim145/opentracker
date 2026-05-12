@@ -12,13 +12,14 @@
         v-if="modelValue"
         class="modal-overlay"
         @click.self="onBackdropClick"
-        @keydown.esc.stop="onEscape"
       >
         <div
+          ref="panelRef"
           class="modal-panel"
           :class="sizeClass"
           role="dialog"
           aria-modal="true"
+          tabindex="-1"
           :aria-labelledby="titleId"
           @click.stop
         >
@@ -119,8 +120,38 @@ function onBackdropClick() {
   close();
 }
 
-function onEscape() {
-  if (props.persistent) return;
-  close();
+// ── Focus management + window-level Esc handler ─────────────
+// Scoped Esc handlers (e.g. on the backdrop) only fire when the
+// focus is already inside the modal. We bind on `window` so a
+// keyboard user who tabs OUT of the modal can still press Esc to
+// dismiss it. The panel auto-focuses on mount so the very first
+// keystroke after open is captured.
+const panelRef = ref<HTMLElement | null>(null);
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && !props.persistent) {
+    e.preventDefault();
+    close();
+  }
 }
+
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (typeof window === 'undefined') return;
+    if (open) {
+      window.addEventListener('keydown', onKeydown);
+      // Wait one tick so the teleport mounts before we steal focus.
+      nextTick(() => panelRef.value?.focus());
+    } else {
+      window.removeEventListener('keydown', onKeydown);
+    }
+  }
+);
+
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('keydown', onKeydown);
+  }
+});
 </script>

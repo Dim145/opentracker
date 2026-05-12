@@ -36,7 +36,14 @@
         @click.self="close"
         @keydown.esc="close"
       >
-        <div class="slip" role="dialog" :aria-labelledby="titleId">
+        <div
+          ref="slipRef"
+          class="slip"
+          role="dialog"
+          aria-modal="true"
+          tabindex="-1"
+          :aria-labelledby="titleId"
+        >
           <!-- ── Header ───────────────────────────────────────── -->
           <header class="slip-head">
             <span class="slip-eyebrow">
@@ -254,28 +261,34 @@ async function submitReport() {
   }
 }
 
-// Esc key handler — listen at the document level when the slip is
-// open so the user can dismiss without aiming for the X button.
-if (typeof window !== 'undefined') {
-  watch(
-    () => props.isOpen,
-    (open) => {
-      if (open) {
-        document.addEventListener('keydown', handleEsc);
-      } else {
-        document.removeEventListener('keydown', handleEsc);
-      }
-    }
-  );
-}
+// Focus + Esc management. The window-level listener fires even
+// when the user has tabbed outside the slip, and the panel auto-
+// focuses on open so the very first keystroke is captured.
+const slipRef = ref<HTMLElement | null>(null);
 
 function handleEsc(e: KeyboardEvent) {
-  if (e.key === 'Escape') close();
+  if (e.key === 'Escape' && props.isOpen) {
+    e.preventDefault();
+    close();
+  }
 }
+
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (typeof window === 'undefined') return;
+    if (open) {
+      window.addEventListener('keydown', handleEsc);
+      nextTick(() => slipRef.value?.focus());
+    } else {
+      window.removeEventListener('keydown', handleEsc);
+    }
+  }
+);
 
 onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
-    document.removeEventListener('keydown', handleEsc);
+    window.removeEventListener('keydown', handleEsc);
   }
 });
 </script>
@@ -361,8 +374,8 @@ onBeforeUnmount(() => {
 .slip-close {
   background: transparent;
   border: 0;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   border-radius: var(--radius-sm);

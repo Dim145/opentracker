@@ -213,31 +213,31 @@ async function deliverToExternalChannels(
     });
     if (!routing) return; // no external delivery configured for this type
 
-    // User-channel row must exist + be enabled. Admin channel must
-    // be enabled + last-tested OK. Both are cheap one-row queries.
-    const userRow = await localDb.query.userNotificationChannels.findFirst({
-      where: andOp(
-        eqOp(localSchema.userNotificationChannels.userId, userId),
-        eqOp(
-          localSchema.userNotificationChannels.channelType,
-          routing.channelType
-        )
-      ),
-    });
+    // User-channel + admin-channel rows are independent — fetch them in
+    // parallel along with the user locale lookup so a fan-out
+    // notification (notifyMany to N staff members) doesn't serialise
+    // three round-trips per recipient.
+    const [userRow, adminRow, userRec] = await Promise.all([
+      localDb.query.userNotificationChannels.findFirst({
+        where: andOp(
+          eqOp(localSchema.userNotificationChannels.userId, userId),
+          eqOp(
+            localSchema.userNotificationChannels.channelType,
+            routing.channelType
+          )
+        ),
+      }),
+      localDb.query.notificationChannels.findFirst({
+        where: eqOp(localSchema.notificationChannels.type, routing.channelType),
+      }),
+      localDb.query.users.findFirst({
+        where: eqOp(localSchema.users.id, userId),
+        columns: { language: true },
+      }),
+    ]);
     if (!userRow || !userRow.enabled) return;
-
-    const adminRow = await localDb.query.notificationChannels.findFirst({
-      where: eqOp(localSchema.notificationChannels.type, routing.channelType),
-    });
     if (!adminRow || !adminRow.enabled) return;
     if (adminRow.lastTestStatus !== 'ok') return;
-
-    // Resolve the user's locale for rendering. Default to 'en' so a
-    // missing language column doesn't drop the delivery.
-    const userRec = await localDb.query.users.findFirst({
-      where: eqOp(localSchema.users.id, userId),
-      columns: { language: true },
-    });
     const locale = userRec?.language ?? 'en';
     const { title, body } = renderNotification(type, payload, locale);
 

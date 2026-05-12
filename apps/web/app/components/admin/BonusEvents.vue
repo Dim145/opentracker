@@ -146,6 +146,7 @@
             <button
               type="button"
               class="act act--pause"
+              :aria-label="$t('admin.bonusEvents.row.disable')"
               :title="$t('admin.bonusEvents.row.disable')"
               @click="toggle(ev)"
             >
@@ -154,6 +155,7 @@
             <button
               type="button"
               class="act"
+              :aria-label="$t('admin.bonusEvents.row.edit')"
               :title="$t('admin.bonusEvents.row.edit')"
               @click="openEdit(ev)"
             >
@@ -162,6 +164,7 @@
             <button
               type="button"
               class="act act--delete"
+              :aria-label="$t('admin.bonusEvents.row.delete')"
               :title="$t('admin.bonusEvents.row.delete')"
               @click="askDelete(ev)"
             >
@@ -183,7 +186,7 @@
             v-for="(ev, i) in upcomingEvents"
             :key="ev.id"
             class="slot slot--scheduled"
-            :style="{ '--stagger': `${i * 50}ms` }"
+            :style="{ '--stagger': `${Math.min(i, 8) * 50}ms` }"
           >
             <span class="slot-rail" aria-hidden="true" />
             <div class="slot-id">
@@ -224,7 +227,8 @@
               <button
                 type="button"
                 class="act"
-                :title="$t('admin.bonusEvents.row.disable')"
+                :aria-label="$t('admin.bonusEvents.row.disable')"
+              :title="$t('admin.bonusEvents.row.disable')"
                 @click="toggle(ev)"
               >
                 <Icon name="ph:pause" />
@@ -232,7 +236,8 @@
               <button
                 type="button"
                 class="act"
-                :title="$t('admin.bonusEvents.row.edit')"
+                :aria-label="$t('admin.bonusEvents.row.edit')"
+              :title="$t('admin.bonusEvents.row.edit')"
                 @click="openEdit(ev)"
               >
                 <Icon name="ph:pencil-simple-bold" />
@@ -240,7 +245,8 @@
               <button
                 type="button"
                 class="act act--delete"
-                :title="$t('admin.bonusEvents.row.delete')"
+                :aria-label="$t('admin.bonusEvents.row.delete')"
+              :title="$t('admin.bonusEvents.row.delete')"
                 @click="askDelete(ev)"
               >
                 <Icon name="ph:trash-bold" />
@@ -262,7 +268,7 @@
             v-for="(ev, i) in disabledEvents"
             :key="ev.id"
             class="slot slot--disabled"
-            :style="{ '--stagger': `${i * 50}ms` }"
+            :style="{ '--stagger': `${Math.min(i, 8) * 50}ms` }"
           >
             <span class="slot-rail" aria-hidden="true" />
             <div class="slot-id">
@@ -297,7 +303,8 @@
               <button
                 type="button"
                 class="act act--resume"
-                :title="$t('admin.bonusEvents.row.enable')"
+                :aria-label="$t('admin.bonusEvents.row.enable')"
+              :title="$t('admin.bonusEvents.row.enable')"
                 @click="toggle(ev)"
               >
                 <Icon name="ph:play-fill" />
@@ -305,7 +312,8 @@
               <button
                 type="button"
                 class="act"
-                :title="$t('admin.bonusEvents.row.edit')"
+                :aria-label="$t('admin.bonusEvents.row.edit')"
+              :title="$t('admin.bonusEvents.row.edit')"
                 @click="openEdit(ev)"
               >
                 <Icon name="ph:pencil-simple-bold" />
@@ -313,7 +321,8 @@
               <button
                 type="button"
                 class="act act--delete"
-                :title="$t('admin.bonusEvents.row.delete')"
+                :aria-label="$t('admin.bonusEvents.row.delete')"
+              :title="$t('admin.bonusEvents.row.delete')"
                 @click="askDelete(ev)"
               >
                 <Icon name="ph:trash-bold" />
@@ -372,7 +381,8 @@
               <button
                 type="button"
                 class="act"
-                :title="$t('admin.bonusEvents.row.edit')"
+                :aria-label="$t('admin.bonusEvents.row.edit')"
+              :title="$t('admin.bonusEvents.row.edit')"
                 @click="openEdit(ev)"
               >
                 <Icon name="ph:pencil-simple-bold" />
@@ -380,7 +390,8 @@
               <button
                 type="button"
                 class="act act--delete"
-                :title="$t('admin.bonusEvents.row.delete')"
+                :aria-label="$t('admin.bonusEvents.row.delete')"
+              :title="$t('admin.bonusEvents.row.delete')"
                 @click="askDelete(ev)"
               >
                 <Icon name="ph:trash-bold" />
@@ -659,10 +670,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import Modal from '~/components/Modal.vue';
 
 const { t, locale } = useI18n();
+const notifications = useNotificationStore();
 
 interface BonusEvent {
   id: string;
@@ -677,8 +689,13 @@ interface BonusEvent {
   status: 'active' | 'scheduled' | 'ended' | 'disabled';
 }
 
-const events = ref<BonusEvent[]>([]);
-const loading = ref(true);
+// `useFetch` gives us SSR-correct cookie forwarding for the
+// initial render and a `refresh()` we can call after every
+// mutation without blanking the list under a full-page spinner.
+const { data: eventsResponse, refresh, pending: loading } = await useFetch<{
+  events: BonusEvent[];
+}>('/api/admin/bonus-events');
+const events = computed(() => eventsResponse.value?.events ?? []);
 
 const formOpen = ref(false);
 const editing = ref<BonusEvent | null>(null);
@@ -938,7 +955,7 @@ async function submitForm() {
       await $fetch('/api/admin/bonus-events', { method: 'POST', body });
     }
     formOpen.value = false;
-    await load();
+    await refresh();
   } catch (err: unknown) {
     formError.value =
       (err as { data?: { message?: string } })?.data?.message ??
@@ -952,9 +969,9 @@ async function submitForm() {
 async function toggle(ev: BonusEvent) {
   try {
     await $fetch(`/api/admin/bonus-events/${ev.id}/toggle`, { method: 'POST' });
-    await load();
+    await refresh();
   } catch (err: unknown) {
-    alert(
+    notifications.error(
       (err as { data?: { message?: string } })?.data?.message ??
         t('admin.bonusEvents.errors.toggleFailed')
     );
@@ -975,9 +992,9 @@ async function confirmDelete() {
     });
     deleteOpen.value = false;
     pendingDelete.value = null;
-    await load();
+    await refresh();
   } catch (err: unknown) {
-    alert(
+    notifications.error(
       (err as { data?: { message?: string } })?.data?.message ??
         t('admin.bonusEvents.errors.deleteFailed')
     );
@@ -986,29 +1003,21 @@ async function confirmDelete() {
   }
 }
 
-async function load() {
-  loading.value = true;
-  try {
-    const res = await $fetch<{ events: BonusEvent[] }>(
-      '/api/admin/bonus-events'
-    );
-    events.value = res.events;
-  } catch (err) {
-    console.error('Failed to load bonus events:', err);
-  } finally {
-    loading.value = false;
-    // Only tick when there's actually something live to count down.
-    if (activeEvents.value.length > 0) {
+// ── Ticker lifecycle ──────────────────────────────────────────
+// Drive the wall-clock tick from a watcher on the buckets — the
+// old "check once after load" approach left the ticker dormant
+// when a scheduled event flipped to active mid-session.
+watch(
+  [activeEvents, upcomingEvents],
+  ([active, upcoming]) => {
+    if (active.length || upcoming.length) {
       startTicker();
     } else {
       stopTicker();
     }
-  }
-}
-
-onMounted(() => {
-  load();
-});
+  },
+  { immediate: true }
+);
 
 onBeforeUnmount(() => {
   stopTicker();
@@ -1664,8 +1673,8 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 .act {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);

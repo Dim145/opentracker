@@ -740,20 +740,10 @@ const appVersion = computed(
   () => useRuntimeConfig().public.appVersion as string | undefined
 );
 
-// Fetch site branding
-const { data: branding } = await useFetch<{
-  siteName: string;
-  siteLogo: string;
-  siteLogoImage: string | null;
-  siteFavicon: string | null;
-  siteSubtitle: string | null;
-  siteNameColor: string | null;
-  siteNameBold: boolean | undefined;
-  authTitle: string | null;
-  authSubtitle: string | null;
-  footerText: string | null;
-  pageTitleSuffix: string | null;
-}>('/api/branding');
+// Site branding — shared composable that dedupes across the
+// layout, the homepage hero, and the auth pages so we don't
+// fetch the same payload 3-4 times per SSR request.
+const branding = await useBranding();
 
 // Set dynamic favicon and title template
 useHead({

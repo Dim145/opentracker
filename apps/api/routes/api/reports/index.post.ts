@@ -18,6 +18,16 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   const data = reportSchema.parse(body);
 
+  // Self-reports are noise. A torrent uploader can already edit
+  // or delete their own row, and a user reporting themselves has
+  // no plausible legitimate use. Reject before we hit the DB.
+  if (data.targetType === 'user' && data.targetId === user.id) {
+    throw createError({
+      statusCode: 400,
+      message: 'You cannot report yourself',
+    });
+  }
+
   // Verify target exists
   let targetExists = false;
   switch (data.targetType) {

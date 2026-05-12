@@ -64,7 +64,7 @@
         :key="report.id"
         class="dossier"
         :class="`dossier--${report.status}`"
-        :style="{ '--stagger': `${index * 45}ms` }"
+        :style="{ '--stagger': `${Math.min(index, 8) * 45}ms` }"
       >
         <!-- Status rail on the left edge — color signals the state
              at a glance even when the moderator is scrolling fast. -->
@@ -106,7 +106,7 @@
                   {{ targetTypeLabel(report.targetType) }}
                 </span>
                 <NuxtLink
-                  v-if="report.target"
+                  v-if="report.target && report.target.link"
                   :to="report.target.link"
                   class="target-link"
                   :title="report.target.name"

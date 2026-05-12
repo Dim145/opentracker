@@ -715,22 +715,25 @@ function humanise(s: string): string {
   color: rgb(var(--fg-faint));
 }
 
-/* Per-row "mark this read" — hover-revealed on pointer. The
-   button is always rendered (so keyboard users can tab to it),
-   just opacity-faded out of the way until hover/focus. */
+/* Per-row "mark this read". Sits at a low opacity by default so
+   the row stays visually calm, but never invisible — the previous
+   `opacity:0` version left the button in the tab order while
+   completely hidden, which disoriented keyboard users tabbing
+   through the popover. Touch targets bumped to 36px to clear the
+   WCAG 2.5.5 minimum. */
 .nbell-row-clear {
   align-self: center;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   background: rgba(212, 167, 52, 0.08);
   border: 1px solid rgba(212, 167, 52, 0.35);
   border-radius: var(--radius-sm);
   color: #d4a734;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.45;
   transition: opacity 0.18s ease, background 0.15s ease,
     border-color 0.15s ease;
 }
@@ -742,11 +745,7 @@ function humanise(s: string): string {
 .nbell-row-clear:hover {
   background: rgba(212, 167, 52, 0.18);
   border-color: rgba(212, 167, 52, 0.6);
-}
-/* Touch devices have no hover — show the button by default so the
-   action stays reachable. */
-@media (hover: none) {
-  .nbell-row-clear { opacity: 1; }
+  opacity: 1;
 }
 
 /* ── Footer ────────────────────────────────────────────── */

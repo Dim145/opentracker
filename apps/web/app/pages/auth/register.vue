@@ -293,14 +293,8 @@ const initialInviteCode = (() => {
   if (typeof raw !== 'string') return '';
   return raw.trim().toUpperCase();
 })();
-const { data: branding } = await useFetch<{
-  siteName: string;
-  siteLogo: string;
-  siteLogoImage: string | null;
-  siteFavicon: string | null;
-  authTitle: string | null;
-  authSubtitle: string | null;
-}>('/api/branding');
+// Shared branding payload — see composables/useBranding.ts.
+const branding = await useBranding();
 
 // Set dynamic favicon
 useHead({
