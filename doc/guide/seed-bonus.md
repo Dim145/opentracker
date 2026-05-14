@@ -128,6 +128,90 @@ The split is informational — ratio and HnR enforcement still operate
 on `users.uploaded` alone. There's no concept of "real ratio"; the
 distinction exists for the user's own situational awareness.
 
+## The shop
+
+Users spend `bonus_points` from `/shop`. The catalogue lives in
+`shop_items` and is curated from `/admin/shop`; every purchase writes
+a row in `shop_purchases` so the operator has a full audit ledger.
+
+### Item types
+
+The `type` column is a closed enum — adding a type is a three-step
+contract in `apps/api/utils/shop.ts` (extend the union, add a Zod
+payload schema, add the handler). Today two are shipped:
+
+| Type             | Payload                          | Effect                                                                                          |
+| ---------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `upload_credit`  | `{ bytes: integer ≤ 10 TiB }`    | Adds `bytes` to **both** `users.uploaded` and `users.bonusUploaded`. Pure ratio relief.        |
+| `invite`         | `{ count: integer ≤ 10 }`        | Bumps `users.invites_remaining` by `count` slots.                                              |
+
+The per-purchase caps (10 TiB, 10 invites) are hard-coded — they exist
+so a typo in `/admin/shop` can't gift petabyte-scale ratio or
+hundreds of invite slots. If you need a bigger bundle, create a second
+item.
+
+### Catalogue fields
+
+| Field         | Notes                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| `name`        | Shown on the shop card.                                                                     |
+| `description` | Markdown body, rendered below the title.                                                    |
+| `icon`        | Phosphor icon id (e.g. `ph:gift-bold`). Optional.                                           |
+| `cost`        | Whole points (same unit as `users.bonus_points`).                                           |
+| `stock`       | `null` = unlimited. When set, decrements per purchase and the item disappears from `/shop` at 0. |
+| `enabled`     | Lets an admin pause an item without losing its config.                                      |
+
+### Purchase flow
+
+```
+              /shop                              POST /api/shop/buy
+   ┌─────────────────────────┐                  ┌──────────────────┐
+   │ user browses items      │ ───── buy ─────► │ purchaseItem()   │
+   │ /api/shop/items         │                  │ (utils/shop.ts)  │
+   └─────────────────────────┘                  └────────┬─────────┘
+                                                         │
+                                                         ▼
+                                              ┌────────────────────┐
+                                              │ DB transaction:    │
+                                              │  - FOR UPDATE row  │
+                                              │    lock on item    │
+                                              │  - FOR UPDATE row  │
+                                              │    lock on user    │
+                                              │  - check balance   │
+                                              │  - check stock     │
+                                              │  - decrement both  │
+                                              │  - apply effect    │
+                                              │  - insert row in   │
+                                              │    shop_purchases  │
+                                              └────────────────────┘
+```
+
+The `FOR UPDATE` locks make race conditions on stock or balance
+impossible. `POST /api/shop/buy` is rate-limited as a mutation, so a
+hijacked session can't churn the ledger faster than the bucket
+allows.
+
+### Errors
+
+| HTTP | Cause                                                                |
+| ---- | -------------------------------------------------------------------- |
+| 400  | Malformed `payload` (typically a stale admin-form submission).       |
+| 403  | Item exists but `enabled = false` (paused by admin).                 |
+| 404  | Item id doesn't exist.                                               |
+| 409  | Stock hit zero between the listing and the buy click.                |
+| 402  | Not enough `bonus_points`.                                           |
+
+Every error returns the post-balance + a structured reason so the FE
+can render a precise toast.
+
+### Audit ledger (`shop_purchases`)
+
+Each purchase row preserves a **snapshot of the item at buy time** —
+`cost`, `name`, `payload` — so renaming or reconfiguring an item later
+doesn't rewrite history. Useful for refund flows or compliance
+questions: an admin can always answer "what did this user actually
+spend their points on?" from the ledger alone.
+
 ## Implementation reference
 
 | Concern                                          | File                                                                                |

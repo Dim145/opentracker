@@ -72,8 +72,13 @@ export default defineConfig({
         {
           text: 'Operations',
           items: [
+            { text: 'Branding & Site Settings', link: '/guide/branding' },
+            { text: 'Roles & Permissions', link: '/guide/roles-and-permissions' },
             { text: 'Invitations', link: '/guide/invitations' },
             { text: 'Moderation', link: '/guide/moderation' },
+            { text: 'Upload Rules', link: '/guide/upload-rules' },
+            { text: 'Forum', link: '/guide/forum' },
+            { text: 'Hit-and-Run', link: '/guide/hit-and-run' },
             { text: 'Bonus Events', link: '/guide/bonus-events' },
             { text: 'Seed Bonus Economy', link: '/guide/seed-bonus' },
             { text: 'UDP Tracker (BEP 15)', link: '/guide/udp-tracker' },

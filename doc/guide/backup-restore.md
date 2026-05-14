@@ -72,18 +72,19 @@ scp backup_20260102_120000.sql.gz user@new-server:/opt/trackarr/
 
 ```bash
 cd /opt/trackarr
-docker compose -f docker-compose.prod.yml up -d db
+docker compose -f docker-compose.prod.yml up -d postgres
 ```
 
 **5. Restore the backup**
 
 ```bash
 # Drop and recreate the database
-docker compose exec postgres dropdb -U tracker trackarr
-docker compose exec postgres createdb -U tracker trackarr
+docker compose -f docker-compose.prod.yml exec postgres dropdb -U tracker trackarr
+docker compose -f docker-compose.prod.yml exec postgres createdb -U tracker trackarr
 
 # Restore from backup
-gunzip -c backup_20260102_120000.sql.gz | docker compose exec -T db psql -U tracker trackarr
+gunzip -c backup_20260102_120000.sql.gz | \
+  docker compose -f docker-compose.prod.yml exec -T postgres psql -U tracker trackarr
 ```
 
 **6. Start all services**
@@ -122,9 +123,16 @@ Update these values:
 
 ```env
 DOMAIN=new-domain.com
-NUXT_PUBLIC_SITE_URL=https://tracker.new-domain.com
-NUXT_PUBLIC_ANNOUNCE_URL=https://announce.new-domain.com
+TRACKER_DOMAIN=tracker.new-domain.com
+NUXT_PUBLIC_TRACKER_HTTP_URL=https://tracker.new-domain.com/announce
+NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.new-domain.com:6969/announce
 ```
+
+::: tip Site title / tagline aren't env-driven
+The display name and tagline are stored in the `settings` table and edited
+from `/admin/branding`. They follow the database when you restore — no need
+to set them in `.env`.
+:::
 
 **3. Regenerate SSL certificates**
 

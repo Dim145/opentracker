@@ -1,175 +1,249 @@
-# Environment Variables
+# Environment variables
 
-Complete reference for all environment variables used by Trackarr.
+Authoritative list of every environment variable read by Trackarr at runtime —
+sourced directly from the three application binaries (`apps/api`, `apps/web`,
+`apps/tracker`) and the shared `packages/db` connector.
 
-## Required Variables
+The compose files (`docker-compose.prod.yml`, `docker-compose.loadtest.yml`,
+`docker-compose.static.yml`) and the Caddyfile read a few **operator-side**
+variables on top — those are flagged in the *Read by* column.
 
-These must be set for the application to run:
+::: tip Generate secrets
+Anything marked *required* in the *Default* column must be set explicitly. The
+recommended way is `openssl rand -hex 32` (32-byte hex string, 64 chars).
+:::
 
-| Variable                | Description                                                                                       | Example                               |
-| ----------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `DATABASE_URL`          | PostgreSQL connection string                                                                      | `postgresql://user:pass@host:5432/db` |
-| `REDIS_URL`             | Redis connection string                                                                           | `redis://:password@host:6379`         |
-| `NUXT_SESSION_SECRET`   | Session encryption key (32+ chars). Generate with `openssl rand -hex 32`.                         | Random string                         |
-| `IP_HASH_SECRET`        | Secret used to hash peer IPs in the tracker (privacy-preserving correlation across announces).    | Random string                         |
+## Required
 
-## Application Settings
+The application refuses to start without these. The tracker (Go binary) prints
+`FATAL: <var> is required` and exits non-zero; the API throws on boot.
 
-| Variable                   | Description                  | Default       |
-| -------------------------- | ---------------------------- | ------------- |
-| `NUXT_PUBLIC_SITE_NAME`    | Display name of your tracker | `Trackarr`    |
-| `NUXT_PUBLIC_SITE_URL`     | Public URL                   | —             |
-| `NUXT_PUBLIC_ANNOUNCE_URL` | Announce URL for torrents    | —             |
-| `NODE_ENV`                 | Environment mode             | `development` |
-| `PORT`                     | Application port             | `3000`        |
+| Variable                | Read by         | Purpose                                                                                       |
+| ----------------------- | --------------- | --------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`          | api, tracker    | PostgreSQL DSN. In compose this points at PgBouncer (`postgres://…@pgbouncer:6432/…`).        |
+| `REDIS_URL`             | api, tracker    | Redis DSN. `redis://` or `rediss://` for TLS. Pair with `REDIS_PASSWORD` when needed.         |
+| `IP_HASH_SECRET`        | api, tracker    | Daily-rotated salt for SHA-256 peer-IP fingerprinting. Also keys the UDP `connection_id` HMAC.|
+| `NUXT_SESSION_SECRET`   | api, web        | h3 sealed-cookie key (iron-webcrypto). 32+ chars. Fallback for `CHANNEL_ENCRYPTION_KEY`.      |
+| `ADMIN_API_KEY`         | api             | Bearer token for internal admin endpoints. The API returns `503` while it is unset.           |
 
-## Database
+## Application & runtime
 
-| Variable            | Description         | Default     |
-| ------------------- | ------------------- | ----------- |
-| `POSTGRES_USER`     | PostgreSQL username | `tracker`   |
-| `POSTGRES_PASSWORD` | PostgreSQL password | —           |
-| `POSTGRES_DB`       | Database name       | `trackarr`  |
-| `POSTGRES_HOST`     | Database host       | `localhost` |
-| `POSTGRES_PORT`     | Database port       | `5432`      |
+| Variable           | Read by             | Default                  | Purpose                                                              |
+| ------------------ | ------------------- | ------------------------ | -------------------------------------------------------------------- |
+| `NODE_ENV`         | api, web, compose   | `development`            | Toggles production-grade defaults (log level, error masking, TLS).   |
+| `NITRO_PORT`       | api (compose)       | `4000`                   | Nitro listener port inside the API container.                        |
+| `NITRO_HOST`       | api (compose)       | `0.0.0.0`                | Bind interface.                                                      |
+| `TZ`               | api (compose)       | `Europe/Paris`           | Container timezone — used for `bonus_grants.created_at` and similar. |
+| `LOG_LEVEL`        | api                 | `info` (prod), `debug`   | `trace`/`debug`/`info`/`warn`/`error`. Wires into the slog handler.  |
+| `UPLOADS_DIR`      | api                 | `./data/uploads`         | Filesystem root for logos, favicons, NFOs. Inside the API container. |
+| `API_INTERNAL_URL` | web                 | `http://api:4000`        | Used by Nuxt SSR to fetch from the API across the docker network.    |
+| `IMAGE_TAG`        | compose             | `latest`                 | GHCR tag pulled by `docker-compose.prod.yml`. Pin in production.     |
+
+## Database (PostgreSQL)
+
+`DATABASE_URL` is the canonical DSN. The split `DB_*` variables are read only
+by **compose** to render the URL and pass `POSTGRES_*` to the postgres image —
+the running app never reads them directly.
+
+| Variable                      | Read by   | Default       | Purpose                                                                |
+| ----------------------------- | --------- | ------------- | ---------------------------------------------------------------------- |
+| `DATABASE_URL`                | api, tracker | —          | PostgreSQL DSN. **Required**.                                          |
+| `MIGRATIONS_DATABASE_URL`     | api       | `DATABASE_URL`| Direct postgres DSN (bypasses PgBouncer) used by `drizzle-kit push`.   |
+| `DB_USER`                     | compose   | `tracker`     | Postgres role; renders into the DSN.                                   |
+| `DB_PASSWORD`                 | compose   | `tracker`     | Postgres password; renders into the DSN.                               |
+| `DB_NAME`                     | compose   | `trackarr`    | Database name.                                                         |
+| `DB_PORT`                     | compose   | `5432`        | Listener port (host side).                                             |
+| `DB_POOL_MAX`                 | api       | `10`          | `pg.Pool` size per Nitro worker.                                       |
+| `DB_SSL`                      | api       | `true` (prod) | `true`/`false`. Forces `pg.ssl` regardless of `NODE_ENV`.              |
+| `DB_SSL_REJECT_UNAUTHORIZED`  | api       | `true`        | Disable cert validation when set to `false`.                           |
+| `DB_SSL_CA`                   | api       | unset         | Inline PEM CA bundle (escape newlines as `\n`).                        |
+| `DB_DEBUG`                    | api       | `false`       | When `true`, Drizzle logs every query.                                 |
 
 ## Redis
 
-| Variable         | Description    | Default     |
-| ---------------- | -------------- | ----------- |
-| `REDIS_HOST`     | Redis host     | `localhost` |
-| `REDIS_PORT`     | Redis port     | `6379`      |
-| `REDIS_PASSWORD` | Redis password | —           |
+| Variable                        | Read by      | Default                    | Purpose                                                              |
+| ------------------------------- | ------------ | -------------------------- | -------------------------------------------------------------------- |
+| `REDIS_URL`                     | api, tracker | —                          | DSN. **Required**.                                                   |
+| `REDIS_PASSWORD`                | api, tracker | unset                      | When set, used in the URL or as an `AUTH` argument.                  |
+| `REDIS_KEY_PREFIX`              | api, tracker | `ot:`                      | Namespace for every key. Must match across api ⇄ tracker.            |
+| `REDIS_TLS`                     | api          | `false`                    | `true` forces TLS even when the URL scheme is `redis://`.            |
+| `REDIS_TLS_REJECT_UNAUTHORIZED` | api          | `true`                     | Disable cert validation when set to `false`.                         |
+| `REDIS_TLS_CA`                  | api          | unset                      | Inline PEM CA bundle for Redis TLS.                                  |
+| `REDIS_TLS_CA_FILE`             | api          | unset                      | Path to a CA bundle file (overrides `REDIS_TLS_CA`).                 |
+| `REDIS_TLS_CERT_FILE`           | api          | unset                      | Path to a client certificate (mTLS).                                 |
+| `REDIS_TLS_KEY_FILE`            | api          | unset                      | Path to the matching client key (mTLS).                              |
 
-## Tracker
+## Tracker (Go binary)
 
-| Variable               | Description                                                                                       | Default |
-| ---------------------- | ------------------------------------------------------------------------------------------------- | ------- |
-| `TRACKER_HTTP_PORT`    | HTTP listener port (BEP 3 announce)                                                               | `8080`  |
-| `TRACKER_UDP_PORT`     | UDP listener port (BEP 15 announce)                                                               | `6969`  |
-| `TRACKER_UDP_ENABLED`  | Toggle the UDP listener. Read by **three** processes: the tracker (controls the listener), the API stats endpoint (drives the homepage Protocol-health tile), and the `.torrent` download endpoint (only adds the UDP tier when this is true). | `true` |
-| `TRACKER_DEBUG`        | Enables `debug` logs on the tracker container (announce successes, UDP packet dispatch, …).       | `false` |
-| `TRUST_PROXY`          | Honour `X-Forwarded-For` for client IP. Set to `true` only when a trusted reverse proxy is in front of the tracker. The rightmost `X-Forwarded-For` token (the one the trusted proxy appended) is used. | `false` |
-| `REDIS_KEY_PREFIX`     | Prefix every Redis key with this string. Must match between the API (ioredis) and the Go tracker. | `ot:`   |
+| Variable                       | Read by      | Default                          | Purpose                                                                |
+| ------------------------------ | ------------ | -------------------------------- | ---------------------------------------------------------------------- |
+| `TRACKER_HTTP_PORT`            | tracker      | `8080`                           | BEP 3 (HTTP) announce port.                                            |
+| `TRACKER_UDP_PORT`             | tracker      | `6969`                           | BEP 15 (UDP) announce port.                                            |
+| `TRACKER_UDP_ENABLED`          | tracker, api | `true`                           | Toggles the UDP listener **and** UDP-tier inclusion in `.torrent` downloads. Three processes read this: the tracker (listener), the API stats endpoint (`/api/stats/public`), and `/api/torrents/:hash/download`. |
+| `TRACKER_DEBUG`                | tracker      | `false`                          | Verbose announce + dispatch logging.                                   |
+| `TRACKER_INTERNAL_URL`         | api          | `http://tracker:8080`            | Internal URL the API hits for `/api/tracker-health`.                   |
+| `TRACKER_HEALTH_URL`           | api          | `TRACKER_INTERNAL_URL`           | Override the health-probe URL specifically.                            |
+| `TRUST_PROXY`                  | api, tracker | `false`                          | Honour `X-Forwarded-For` for client IP. Set to `true` only behind a *trusted* reverse proxy. The rightmost token is used (the one your proxy appended). |
+| `NUXT_PUBLIC_TRACKER_HTTP_URL` | api, web     | `http://localhost:8080/announce` | Announce URL embedded in `.torrent` files (runtime).                   |
+| `NUXT_PUBLIC_TRACKER_UDP_URL`  | api, web     | unset                            | UDP tier added when `TRACKER_UDP_ENABLED=true` and this URL is set.    |
+| `NUXT_PUBLIC_TRACKER_WS_URL`   | api, web     | unset                            | Reserved; WebTorrent (wss) is **not** implemented yet — don't advertise it. |
 
-::: tip Tracker tunables
-Announce interval (`1800` s), min interval (`900` s) and per-
-response peer cap (`50` HTTP / `100` UDP) are **hard-coded** in
-`apps/tracker/internal/server/response.go`. They aren't read from
-the env today — rebuild the tracker binary if you need to change
-them.
+::: tip Tracker tunables aren't env-driven
+Announce interval (`1800` s), min interval (`900` s) and per-response peer cap
+(`50` HTTP / `100` UDP) are hard-coded in
+`apps/tracker/internal/server/response.go`. Rebuild the binary if you need to
+change them.
 :::
 
-::: tip UDP frontend
-Disabling UDP at the tracker (`TRACKER_UDP_ENABLED=false`) automatically
-keeps the UDP tier out of newly downloaded `.torrent` files — the API
-reads the same env. See the [UDP Tracker guide](../guide/udp-tracker)
-for the protocol details, the BEP 41 passkey scheme, and reverse-proxy
-caveats.
-:::
+## Security & sessions
 
-## Static SPA build (optional)
+| Variable                  | Read by | Default                          | Purpose                                                              |
+| ------------------------- | ------- | -------------------------------- | -------------------------------------------------------------------- |
+| `NUXT_SESSION_SECRET`     | api, web| —                                | **Required**. h3 sealed-cookie key. 32+ chars.                       |
+| `IP_HASH_SECRET`          | api, tracker | —                           | **Required**. Salt for IP fingerprints + UDP connection-id HMAC.    |
+| `ADMIN_API_KEY`           | api     | —                                | **Required**. Bearer token for internal admin endpoints.            |
+| `CHANNEL_ENCRYPTION_KEY`  | api     | falls back to `NUXT_SESSION_SECRET` | AES key for notification-channel configs at rest (SMTP password, Telegram token, VAPID private key). Generate with `openssl rand -hex 32`. |
+| `TRUST_PROXY`             | api, tracker | `false`                     | See *Tracker* — same flag, same semantics, same caveats.            |
 
-Set when building the Nuxt static bundle (`apps/web/Dockerfile.static`):
+## Two-factor auth & WebAuthn
 
-| Variable                     | Description                                                          | Default |
-| ---------------------------- | -------------------------------------------------------------------- | ------- |
-| `NUXT_STATIC_BUILD`          | When `true`, `nuxi generate` produces a fully static SPA (no SSR).    | `false` |
-| `NUXT_PUBLIC_TRACKER_HTTP_URL` | Tracker HTTP announce URL surfaced in the user's announce URL.    | —       |
-| `NUXT_PUBLIC_TRACKER_UDP_URL`  | UDP announce URL.                                                  | —       |
-| `NUXT_PUBLIC_TRACKER_WS_URL`   | WebSocket announce URL.                                            | —       |
+| Variable          | Read by | Default                | Purpose                                                                  |
+| ----------------- | ------- | ---------------------- | ------------------------------------------------------------------------ |
+| `TRACKARR_NAME`   | api     | `Trackarr`             | Display name shown by authenticator apps as the TOTP issuer **and** the WebAuthn RP name. |
+| `WEBAUTHN_RP_ID`  | api     | inferred from `Origin` | Passkey-bound hostname. Pin explicitly behind a load balancer.           |
+| `WEBAUTHN_ORIGIN` | api     | inferred from `Origin` | Origin allow-list for assertions.                                        |
 
-The static bundle reads the runtime tracker URLs from `/api/runtime-config` on
-boot, so the build-time values above are only fallbacks. The same image is
-portable across domains.
+The *Force 2FA* enforcement scope (off / staff / all) is configured at runtime
+in `/admin/settings` and persisted to the `settings` table, not via env.
 
-## Prometheus metrics
+## Metadata providers
 
-| Variable                 | Description                                                  | Default     |
-| ------------------------ | ------------------------------------------------------------ | ----------- |
-| `METRICS_ENABLED`        | Master switch. `true`/`1`/`on`/`yes` enables the listener.   | `false`     |
-| `METRICS_HOST`           | Bind address.                                                | `0.0.0.0`   |
-| `METRICS_PORT`           | Bind port.                                                   | `9090`      |
-| `METRICS_PATH`           | Scrape path.                                                 | `/metrics`  |
-| `METRICS_AUTH_TOKEN`     | Optional. When set, scrapes must present `Authorization: Bearer <token>`. | unset |
-| `METRICS_PEER_CACHE_MS`  | TTL of the cached Redis SCAN over `peers:*`.                 | `30000`     |
+All optional. Without a key, the matching source returns `503` for lookup
+routes and the upload picker simply hides the column.
 
-See the [Prometheus Metrics reference](./metrics.md) for the full list of
-exposed gauges and example queries.
-
-## Media metadata
-
-All three providers are optional. Without them, torrents still get a
-poster + title from the user-supplied filename — the metadata cards
-simply stay empty.
-
-| Variable                | Description                                                                                       | Default |
-| ----------------------- | ------------------------------------------------------------------------------------------------- | ------- |
-| `TMDB_API_KEY`          | TMDb v3 API key **or** v4 Read-Only Access Token (auto-detected). Used for films + TV.            | unset   |
-| `IGDB_ID`               | Twitch Client ID for IGDB (video games). Pair with `IGDB_SECRET`. Both required to enable IGDB.   | unset   |
-| `IGDB_SECRET`           | Twitch Client Secret. Used to mint the IGDB app-access token (cached for ~60 days).               | unset   |
-| `GOOGLE_BOOKS_API_KEY`  | Optional Google Books fallback for the Open Library source. Open Library itself needs no key.     | unset   |
-
-::: tip Per-source enablement
-A missing key returns a clean 503 only for the routes that need that
-source — the others keep serving. Disabling all three turns the
-"metadata lookup" feature off without affecting uploads.
-:::
-
-See the [Metadata providers](../guide/metadata-providers.md) guide
-for the operator setup (where to register an API key, what each
-provider does, fallback behaviour).
+| Variable               | Read by | Default | Purpose                                                                                     |
+| ---------------------- | ------- | ------- | ------------------------------------------------------------------------------------------- |
+| `TMDB_API_KEY`         | api     | unset   | TMDb v3 key **or** v4 Read-Only Access Token (auto-detected). Films + TV.                   |
+| `IGDB_ID`              | api     | unset   | Twitch Client ID. Required to enable the IGDB games source. Pair with `IGDB_SECRET`.        |
+| `IGDB_SECRET`          | api     | unset   | Twitch Client Secret. Used to mint the IGDB app-access token (cached ~60 days).             |
+| `GOOGLE_BOOKS_API_KEY` | api     | unset   | Fallback for the Open Library books source. Open Library itself needs no key.               |
 
 ## Notifications
 
-The in-app notification feed (bell + `/notifications`) always works.
-External channels (SMTP, Telegram, Discord, ntfy, browser push, …)
-are configured per-instance in `/admin/notifications` — they don't
-need env vars beyond the encryption secret below.
+The in-app feed (`/notifications` + bell) always works. External transports
+(SMTP, Telegram, Discord, ntfy, Web Push, …) are configured in
+`/admin/notifications` and persisted encrypted in `notification_channels` —
+no env vars beyond `CHANNEL_ENCRYPTION_KEY`.
 
-| Variable                  | Description                                                                                                   | Default |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------- | ------- |
-| `CHANNEL_ENCRYPTION_KEY`  | AES key used to encrypt notification-channel configs at rest (SMTP password, Telegram token, VAPID private key, …). When unset, falls back to `NUXT_SESSION_SECRET`. Generate with `openssl rand -hex 32`. | falls back to `NUXT_SESSION_SECRET` |
+The three webhook URLs below are **operator alerts** for the API process
+itself (admin/security events), not user-facing notification channels.
 
-For Web Push specifically: VAPID keys are generated automatically
-when the admin saves the channel for the first time — no env var
-required. See the [Notifications](../guide/notifications.md) guide.
+| Variable                 | Read by | Default | Purpose                                                                  |
+| ------------------------ | ------- | ------- | ------------------------------------------------------------------------ |
+| `DISCORD_WEBHOOK_URL`    | api     | unset   | Webhook target for operator alerts emitted by `apps/api/utils/alerts.ts`. |
+| `SLACK_WEBHOOK_URL`      | api     | unset   | Same, Slack-shaped payload.                                              |
+| `SECURITY_WEBHOOK_URL`   | api     | unset   | Same, generic security webhook (custom integrations).                    |
+| `ENABLE_DEV_ALERTS`      | api     | `false` | When `NODE_ENV !== 'production'`, alerts are dropped unless this is `true`. |
 
-## Two-factor auth & sessions
+## Background jobs
 
-| Variable                 | Description                                              | Default |
-| ------------------------ | -------------------------------------------------------- | ------- |
-| `TRACKARR_NAME`          | Public name used as the WebAuthn relying-party name AND the TOTP issuer label shown in authenticator apps. | `Trackarr` |
-| `WEBAUTHN_RP_ID`         | RP id (the host the passkey is bound to). Inferred from `Origin` when unset; pin explicitly behind a load balancer. | inferred |
-| `WEBAUTHN_ORIGIN`        | Origin allow-list for assertions. Inferred when unset.   | inferred |
+| Variable                     | Read by | Default      | Purpose                                                                |
+| ---------------------------- | ------- | ------------ | ---------------------------------------------------------------------- |
+| `BONUS_COLLECTION_INTERVAL`  | api     | `3600000`    | Bonus-collector tick period (ms). Cross-replica SETNX lock; persisted last-tick timestamp ensures exactly one tick across the fleet. |
+| `STATS_COLLECTION_INTERVAL`  | api     | `3600000`    | `site_stats` snapshot period (ms). Same lock model.                    |
 
-(2FA is enabled per-user from `/settings#security`. Force-enrolment is configured live via `/admin/settings`, not via env.)
+## Prometheus metrics
 
-## Example `.env` File
+The metrics listener is opt-in and binds its **own port** — firewall it
+independently of the public API.
+
+| Variable                | Read by | Default     | Purpose                                                              |
+| ----------------------- | ------- | ----------- | -------------------------------------------------------------------- |
+| `METRICS_ENABLED`       | api     | `false`     | Master switch (`true`/`1`/`on`/`yes`).                               |
+| `METRICS_HOST`          | api     | `0.0.0.0`   | Bind address.                                                        |
+| `METRICS_PORT`          | api     | `9090`      | Bind port.                                                           |
+| `METRICS_PATH`          | api     | `/metrics`  | Scrape path.                                                         |
+| `METRICS_AUTH_TOKEN`    | api     | unset       | When set, scrapes must present `Authorization: Bearer <token>`.      |
+| `METRICS_PEER_CACHE_MS` | api     | `30000`     | TTL of the cached Redis SCAN over `peers:*` used by the gauge.       |
+
+See [Prometheus Metrics reference](./metrics.md) for the gauge list and example
+PromQL.
+
+## System metadata (`/api/admin/system/*`)
+
+| Variable           | Read by | Default          | Purpose                                                              |
+| ------------------ | ------- | ---------------- | -------------------------------------------------------------------- |
+| `TRACKARR_REPO`    | api     | `Dim145/opentracker` | Git repo (`owner/repo`) used by `/api/admin/system/update` to query GitHub for newer tags. |
+| `TRACKARR_RUNTIME` | api     | `native`         | Set to `docker` inside containers so the admin dashboard renders the right "running in" badge. |
+| `APP_VERSION`      | api     | inherited from `package.json` | Override the version reported by `/api/admin/system/version`. |
+
+## Static SPA build (build-time)
+
+When building the static frontend (`apps/web/Dockerfile.static`,
+`docker-compose.static.yml`):
+
+| Variable                       | Default | Purpose                                                              |
+| ------------------------------ | ------- | -------------------------------------------------------------------- |
+| `NUXT_STATIC_BUILD`            | `false` | When `true`, `nuxi generate` produces the SPA bundle (no SSR).       |
+| `NUXT_PUBLIC_TRACKER_HTTP_URL` | unset   | Build-time fallback. The runtime value is fetched from `/api/runtime-config` on boot, so the same image works across domains. |
+| `NUXT_PUBLIC_TRACKER_UDP_URL`  | unset   | Build-time fallback (same mechanism).                                |
+
+## Caddy & TLS (compose-only)
+
+| Variable          | Read by | Default            | Purpose                                                              |
+| ----------------- | ------- | ------------------ | -------------------------------------------------------------------- |
+| `DOMAIN`          | caddy   | `localhost`        | Main hostname; renders into the Caddyfile vhost block.               |
+| `TRACKER_DOMAIN`  | caddy   | `tracker.localhost`| Subdomain dedicated to announce traffic (also serves `/announce`).   |
+| `ACME_EMAIL`      | caddy   | `admin@example.com`| Let's Encrypt registration email.                                    |
+
+## Removed / deprecated
+
+These were read by previous versions and **no longer have any effect**. If
+you carry them over from a `<= v0.5.x` `.env`, delete them — the new code
+ignores them silently and that's confusing.
+
+- `TRACKER_HTTP_URL`, `TRACKER_UDP_URL`, `TRACKER_WS_URL` → replaced by the `NUXT_PUBLIC_*` variants
+- `NUXT_PUBLIC_SITE_NAME`, `NUXT_PUBLIC_SITE_URL` → site title/URL are now in the `settings` table, edited from `/admin/settings`
+- `NUXT_PUBLIC_ANNOUNCE_URL` → use `NUXT_PUBLIC_TRACKER_HTTP_URL`
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` → renamed to `DB_*` to match the compose surface
+- `PORT` → was never a real default; the API binds `NITRO_PORT` (`4000`)
+
+## Example `.env`
+
+A minimum-viable production `.env`:
 
 ```bash
-# Application
-NUXT_PUBLIC_SITE_NAME="My Private Tracker"
-NUXT_PUBLIC_SITE_URL="https://tracker.example.com"
-NUXT_PUBLIC_ANNOUNCE_URL="https://announce.example.com/announce"
-NODE_ENV=production
+# Domain + TLS
+DOMAIN=tracker.example.com
+TRACKER_DOMAIN=tracker.example.com
+ACME_EMAIL=admin@example.com
+
+# Secrets — generate each with `openssl rand -hex 32`
+NUXT_SESSION_SECRET=...
+IP_HASH_SECRET=...
+ADMIN_API_KEY=...
+CHANNEL_ENCRYPTION_KEY=...
 
 # Database
-DATABASE_URL="postgresql://tracker:secretpassword@db:5432/trackarr"
-POSTGRES_USER=tracker
-POSTGRES_PASSWORD=secretpassword
-POSTGRES_DB=trackarr
+DB_USER=tracker
+DB_PASSWORD=...
+DB_NAME=trackarr
 
 # Redis
-REDIS_URL="redis://:redispassword@redis:6379"
-REDIS_PASSWORD=redispassword
+REDIS_PASSWORD=...
 
-# Security — generate each one with `openssl rand -hex 32`
-NUXT_SESSION_SECRET="your-32-character-session-password-here"
-IP_HASH_SECRET="your-ip-hashing-secret"
-CHANNEL_ENCRYPTION_KEY="your-channel-config-encryption-key"
+# Announce URLs surfaced in .torrent files
+NUXT_PUBLIC_TRACKER_HTTP_URL=https://tracker.example.com/announce
+NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.example.com:6969/announce
+
+# Optional metadata sources
+# TMDB_API_KEY=...
+# IGDB_ID=...
+# IGDB_SECRET=...
+# GOOGLE_BOOKS_API_KEY=...
 ```
 
-::: warning
-Never commit `.env` files to version control. Use `.env.example` as a template.
+::: warning Never commit `.env`
+Add it to `.gitignore` (already done in the repo). Use `.env.example` as the
+template for documentation and CI.
 :::

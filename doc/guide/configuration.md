@@ -1,178 +1,80 @@
 # Configuration
 
-Trackarr is configured primarily through environment variables. This page covers all available options.
+Trackarr separates configuration into three layers:
 
-## Environment Variables
+1. **Environment variables** — what each container reads at boot (DSNs, secrets, ports, feature flags). The canonical list lives in the [Environment variables reference](../reference/env.md).
+2. **Runtime settings** — site title, tagline, force-2FA scope, upload constraints, branding assets. Operators edit these from `/admin/*` pages; they are persisted in the `settings` table and served live to every container.
+3. **Compose / Caddy** — what `docker-compose.prod.yml` and `docker/caddy/Caddyfile` build on top: image tags, port mappings, vhost routing, TLS certs.
 
-### Core Settings
+This page describes the *layering* and the production layout. For every individual env var, jump to the [reference](../reference/env.md).
 
-| Variable                | Description                                                                | Default    |
-| ----------------------- | -------------------------------------------------------------------------- | ---------- |
-| `NUXT_PUBLIC_SITE_NAME` | Your tracker's display name                                                | `Trackarr` |
-| `NUXT_PUBLIC_SITE_URL`  | Public URL of your tracker                                                 | —          |
-| `NUXT_SESSION_SECRET`   | Session encryption key (32+ chars). Generate with `openssl rand -hex 32`.  | —          |
-| `TRACKARR_NAME`         | Display name used as the WebAuthn relying-party name and the TOTP issuer.  | `Trackarr` |
+## What goes where
 
-### Database
+| Concern                            | Layer                | Where it lives                                            |
+| ---------------------------------- | -------------------- | --------------------------------------------------------- |
+| Database / Redis DSN, secrets      | Env                  | `.env` → loaded by `docker-compose.prod.yml`              |
+| Announce URL, UDP toggle           | Env (runtime)        | `NUXT_PUBLIC_TRACKER_*`, `TRACKER_UDP_ENABLED`            |
+| Metadata API keys (TMDb/IGDB/…)    | Env                  | `TMDB_API_KEY`, `IGDB_ID`, …                              |
+| **Site title, tagline, logo, favicon** | Runtime          | `/admin/branding` + `/admin/settings`                     |
+| **Upload rules** (NFO, regex, …)   | Runtime              | `/admin/upload-rules`                                     |
+| **Force-2FA scope**                | Runtime              | `/admin/settings`                                         |
+| **Bonus rules + tiers**            | Runtime              | `/admin/bonus-rules`                                      |
+| **Bonus events** (freeleech, …)    | Runtime              | `/admin/bonus-events`                                     |
+| **Notification channels** (SMTP, Telegram, …) | Runtime   | `/admin/notifications`                                    |
+| **Roles + auto-assignment**        | Runtime              | `/admin/roles`                                            |
+| TLS, domain, ACME email            | Compose / Caddy      | `DOMAIN`, `TRACKER_DOMAIN`, `ACME_EMAIL` + Caddyfile      |
 
-| Variable            | Description                  | Default    |
-| ------------------- | ---------------------------- | ---------- |
-| `DATABASE_URL`      | PostgreSQL connection string | —          |
-| `POSTGRES_USER`     | Database username            | `tracker`  |
-| `POSTGRES_PASSWORD` | Database password            | —          |
-| `POSTGRES_DB`       | Database name                | `trackarr` |
-
-### Redis
-
-| Variable         | Description             | Default                  |
-| ---------------- | ----------------------- | ------------------------ |
-| `REDIS_URL`      | Redis connection string | `redis://localhost:6379` |
-| `REDIS_PASSWORD` | Redis password          | —                        |
-
-### Tracker
-
-| Variable                       | Description                                 | Default                          |
-| ------------------------------ | ------------------------------------------- | -------------------------------- |
-| `IP_HASH_SECRET`               | Secret for hashing peer IPs                 | —                                |
-| `NUXT_PUBLIC_TRACKER_HTTP_URL` | HTTP announce URL (shown in .torrent files) | `http://localhost:8080/announce` |
-| `NUXT_PUBLIC_TRACKER_UDP_URL`  | UDP announce URL                            | `udp://localhost:6969/announce`  |
-| `TRACKER_DEBUG`                | Enable verbose tracker logging              | `false`                          |
-
-::: tip Tracker tunables aren't env-driven
-Announce interval, min interval and the per-response peer cap are
-hard-coded in `apps/tracker/internal/server/response.go`. They
-aren't read from the environment today — rebuild the tracker
-binary if you need to change them.
+::: tip Why not env-everything?
+Anything an admin would reasonably tune without a redeploy lives in the
+database. The env layer is for things that must be set before the
+process boots (secrets, DSNs, ports) or that are intrinsically
+build-time (static-SPA URLs).
 :::
 
-::: warning WebSocket announces are not implemented
-A WebSocket / WebTorrent announce path is on the roadmap but not
-in the build yet. Don't advertise a `wss://` URL in your `.torrent`
-files — clients will hang trying to connect.
-:::
+## Docker compose layout
 
-::: tip Configuring Tracker URLs
-These URLs are embedded in `.torrent` files and displayed in the admin dashboard. They are read at **runtime** by Nuxt — the `NUXT_PUBLIC_` prefix is required so the same Docker image can be reused by anyone with their own domain (no rebuild needed).
+The production stack ships **three independent application containers** behind Caddy, plus the standard data layer:
+
+| Container      | Role                                                                              |
+| -------------- | --------------------------------------------------------------------------------- |
+| `web` (`front-ssr`) | Nuxt 4 SSR — UI shell + page chunks                                          |
+| `api`          | Nitro 4 standalone — every `/api/*`, `/uploads/*`, SSE notifications              |
+| `tracker`      | Go 1.25 — BEP 3 HTTP announce on `:8080`, BEP 15 UDP announce on `:6969`          |
+| `postgres`     | PostgreSQL 16                                                                     |
+| `pgbouncer`    | Transaction-mode pool between `api`/`tracker` and `postgres`                      |
+| `redis`        | Redis 7 — peer hashes, sessions, rate-limit windows, pub/sub bus                  |
+| `caddy`        | Reverse proxy + automatic Let's Encrypt HTTPS                                     |
 
 ```bash
-# In your .env file
-NUXT_PUBLIC_TRACKER_HTTP_URL=https://tracker.your-domain.com/announce
-NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.your-domain.com:6969/announce
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-Replace `your-domain.com` with your actual tracker domain. UDP is
-served on port `6969` (BEP 15 convention).
-:::
+### Static-SPA overlay
 
-::: warning Breaking change since v0.5.7
-Previous versions used unprefixed `TRACKER_HTTP_URL`, `TRACKER_UDP_URL`, `TRACKER_WS_URL`. Those are no longer read — rename them in your `.env` file when upgrading.
-:::
-
-### Security
-
-| Variable            | Description                                                                                              | Default |
-| ------------------- | -------------------------------------------------------------------------------------------------------- | ------- |
-| `TRUST_PROXY`       | Honour `X-Forwarded-For` for client IP. Set to `true` only when a trusted reverse proxy is in front. The rightmost token (the one the proxy appended) is used. | `false` |
-| `REDIS_KEY_PREFIX`  | Prefix every Redis key. Must match between the API (ioredis) and the Go tracker.                          | `ot:`   |
-
-::: tip Hand-tuned security defaults
-PoW difficulty, rate-limit window and rate-limit max are not env-
-driven today — they live as constants in
-`apps/api/utils/{pow,rateLimit}.ts`. Adjust those files and
-rebuild if you need to retune them.
-:::
-
-### Observability
-
-The Prometheus scrape endpoint is opt-in and listens on its own port —
-firewall it independently of the public API.
-
-| Variable            | Description                                                              | Default     |
-| ------------------- | ------------------------------------------------------------------------ | ----------- |
-| `METRICS_ENABLED`   | Master switch (`true`/`1`/`on`/`yes`).                                   | `false`     |
-| `METRICS_HOST`      | Bind address.                                                            | `0.0.0.0`   |
-| `METRICS_PORT`      | Bind port.                                                               | `9090`      |
-| `METRICS_PATH`      | Scrape path.                                                             | `/metrics`  |
-| `METRICS_AUTH_TOKEN`| Optional `Authorization: Bearer <token>` requirement on the endpoint.    | unset       |
-
-See the dedicated [Prometheus Metrics reference](../reference/metrics.md) for the full list.
-
-### Two-factor / WebAuthn
-
-| Variable            | Description                                              | Default      |
-| ------------------- | -------------------------------------------------------- | ------------ |
-| `TRACKARR_NAME`     | Public name shown by the browser at WebAuthn registration AND by authenticator apps as the TOTP issuer label. | `Trackarr` |
-| `WEBAUTHN_RP_ID`    | RP id (host the passkey is bound to). Inferred when unset. | inferred   |
-| `WEBAUTHN_ORIGIN`   | Origin allow-list for assertions. Inferred when unset.   | inferred     |
-
-Most 2FA configuration is **runtime** rather than env-driven — the *Force 2FA* enforcement scope (off / staff / all) is set by an admin from `/admin/settings` and stored in the `settings` table. See the [Two-Factor Auth guide](./two-factor-auth.md).
-
-## Docker Compose Configuration
-
-### Production (`docker-compose.prod.yml`)
-
-The production compose file ships **three independent application
-containers** behind Caddy, plus the standard data layer:
-
-- **web** — Nuxt 4 web app (SSR / static SPA)
-- **api** — Nitro API (REST + SSE notifications)
-- **tracker** — Go BitTorrent tracker (HTTP + UDP announces)
-- **postgres** — PostgreSQL 16 database
-- **pgbouncer** — Connection pooling between the API and Postgres
-- **redis** — Redis 7 cache (peer store, sessions, rate limiting, pub/sub)
-- **caddy** — Reverse proxy with automatic HTTPS
-
-### Development (`docker-compose.yml`)
-
-The repo's `docker-compose.yml` only brings up the **data layer**
-(Postgres + Redis); the app processes run on the host via
-`pnpm dev`. This keeps the local feedback loop tight without
-rebuilding container images on every change.
-
-```yaml
-# Bring up Postgres + Redis only — the app processes run on the host.
-services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      - POSTGRES_USER=tracker
-      - POSTGRES_PASSWORD=tracker
-      - POSTGRES_DB=trackarr
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    command: ['redis-server', '--requirepass', 'devpassword']
-    volumes:
-      - redis_data:/data
-```
-
-Then in another terminal:
+When you don't need SSR, swap the `web` container for a distroless
+nginx serving the static SPA bundle (~28 MB image, ~7 MB resident
+memory):
 
 ```bash
-docker compose up -d        # postgres + redis
-pnpm install
-pnpm dev                    # starts api + web + tracker on the host
+docker compose \
+  -f docker-compose.prod.yml \
+  -f docker-compose.static.yml \
+  --env-file .env \
+  up -d
 ```
 
-## Caddy Configuration
+See [Local Production — Static SPA variant](./local-production.md#static-spa-variant).
 
-The production setup uses Caddy for automatic HTTPS. The bundled
-config (`docker/caddy/Caddyfile`) splits traffic across the three
-app containers by path:
+## Caddy routing
 
-```
+`docker/caddy/Caddyfile` splits traffic by path on the main domain and uses a dedicated subdomain for the tracker:
+
+```caddyfile
 {$DOMAIN} {
-    handle_path /api/* {
-        reverse_proxy api:4000
-    }
-    handle_path /uploads/* {
-        reverse_proxy api:4000
-    }
-    handle / {
-        reverse_proxy web:3000
-    }
+    handle /announce*  { reverse_proxy tracker:8080 }
+    handle /api/*      { reverse_proxy api:4000 }
+    handle /uploads/*  { reverse_proxy api:4000 }
+    handle             { reverse_proxy web:3000 }
 }
 
 {$TRACKER_DOMAIN} {
@@ -180,16 +82,33 @@ app containers by path:
 }
 ```
 
-UDP announces bypass Caddy entirely — Caddy can't reverse-proxy UDP
-and BEP 15 doesn't need TLS termination. Expose `6969/udp` from the
-`tracker` container directly.
+UDP announces bypass Caddy entirely — Caddy doesn't reverse-proxy UDP, and BEP 15 needs no TLS termination. The `tracker` container binds `6969/udp` directly on the host (see `docker-compose.prod.yml`).
 
-## Security Recommendations
+Caddy is also configured to **scrub the `passkey` query parameter** from access logs before they hit disk — the tracker needs the passkey in the URL by BitTorrent protocol, but it must never end up persisted in a log file.
 
-For production deployments, ensure:
+## Build-time vs runtime config in `apps/web`
 
-1. All secrets are at least 32 characters (generate with `openssl rand -hex 32`)
-2. `IP_HASH_SECRET` is set — the app refuses to start without it
-3. Database and Redis ports are not exposed to the host
-4. HTTPS is enforced on all endpoints (Caddy handles this automatically)
-5. `TRUST_PROXY=true` is set when behind a reverse proxy you control
+The static-SPA build patches `useRuntimeConfig().public` from `/api/runtime-config` on first paint. That endpoint reads the live tracker URLs from the `api` container's environment (`NUXT_PUBLIC_TRACKER_*`), which means a single image is portable across domains — only the `api` container needs the announce URLs.
+
+## Tuning that *isn't* env-driven
+
+A few constants are hand-tuned in source and need a rebuild:
+
+- **Announce interval / min interval / peer cap** — `apps/tracker/internal/server/response.go`.
+- **PoW difficulty + rate-limit windows** — `apps/api/utils/{pow,rateLimit}.ts`.
+
+If you change them, rebuild the affected container (`api` or `tracker`) and redeploy.
+
+## Production checklist
+
+Before going live, verify:
+
+1. Every secret is 32+ chars (`openssl rand -hex 32`).
+2. `IP_HASH_SECRET`, `NUXT_SESSION_SECRET`, `ADMIN_API_KEY` are all set — the app refuses to start without them.
+3. `DOMAIN` + `TRACKER_DOMAIN` resolve to the VPS, port 80/443 inbound is open.
+4. `TRUST_PROXY=true` (already on in `docker-compose.prod.yml`) so the rate limiter sees the real client IP through Caddy.
+5. Postgres and Redis ports are **not** exposed on the host (compose `expose:` not `ports:`).
+6. A backup cron is in place — see [Backup & Restore](./backup-restore.md).
+7. If you enabled `METRICS_ENABLED`, firewall the metrics port (default `:9090`) separately from `:80/:443`.
+
+For per-feature setup, jump to the right guide from the sidebar: [Notifications](./notifications.md), [Metadata Providers](./metadata-providers.md), [UDP Tracker](./udp-tracker.md), [Two-Factor Auth](./two-factor-auth.md), [Panic Mode](./panic-mode.md), and so on.
