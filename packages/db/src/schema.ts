@@ -556,13 +556,14 @@ export const categories = pgTable(
     // `users.showAdultContent` flag gates whether these rows are
     // returned at all in non-admin surfaces.
     isAdult: boolean('is_adult').default(false).notNull(),
-    // Drives which TMDb namespace (movies vs series) the upload/edit
-    // forms hint, so a category like XXX/Hentai can opt into the TV
-    // path even though its newznab id sits in 6000-range. Stored as
-    // text to leave room for future buckets ('music', 'book', …)
-    // without a schema migration. Null = use the existing newznab
-    // / slug heuristic.
-    type: text('type'), // 'movie' | 'tv' | null
+    // Drives which external metadata source the upload/edit form
+    // hints at — 'movie' / 'tv' route to TMDb, 'game' routes to
+    // IGDB. So a category like XXX/Hentai can opt into the TV
+    // path even though its newznab id sits in the 6000-range.
+    // Stored as text to leave room for future buckets ('music',
+    // 'book', …) without a schema migration. Null = use the
+    // existing newznab / slug heuristic.
+    type: text('type'), // 'movie' | 'tv' | 'game' | null
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [index('categories_parent_idx').on(table.parentId)]
@@ -583,13 +584,15 @@ export const torrents = pgTable(
     torrentData: bytea('torrent_data'), // Raw .torrent file for download
     uploaderId: text('uploader_id').references(() => users.id),
     categoryId: text('category_id').references(() => categories.id),
-    // External media-database tags (issue #47). Stored as canonical ids
-    // — `imdb_id` keeps the `tt` prefix, `tmdb_id` and `tvdb_id` are
-    // pure digits. *Arr clients use these to match torrents against
-    // their library; the upload form normalises raw URLs into these.
+    // External media-database tags (issue #47). Stored as canonical
+    // ids — `imdb_id` keeps the `tt` prefix; `tmdb_id`, `tvdb_id`
+    // and `igdb_id` are pure digits. *Arr clients use these to match
+    // torrents against their library; the upload form normalises raw
+    // URLs / slugs into these.
     imdbId: text('imdb_id'),
     tmdbId: text('tmdb_id'),
     tvdbId: text('tvdb_id'),
+    igdbId: text('igdb_id'),
     isActive: boolean('is_active').default(true).notNull(),
     // Moderation pipeline. Replaces the legacy `is_approved` boolean.
     //   pending             — first state, awaiting a moderator's call
@@ -617,6 +620,7 @@ export const torrents = pgTable(
     index('torrents_imdb_idx').on(table.imdbId),
     index('torrents_tmdb_idx').on(table.tmdbId),
     index('torrents_tvdb_idx').on(table.tvdbId),
+    index('torrents_igdb_idx').on(table.igdbId),
     index('torrents_moderation_status_idx').on(table.moderationStatus),
     index('torrents_name_trgm_idx').using(
       'gist',

@@ -124,11 +124,13 @@
               :imdb-id="imdbId"
               :tmdb-id="tmdbId"
               :tvdb-id="tvdbId"
+              :igdb-id="igdbId"
               @select="onMediaSelected"
               @clear="clearMediaSelection"
               @update:imdb-id="imdbId = $event"
               @update:tmdb-id="tmdbId = $event"
               @update:tvdb-id="tvdbId = $event"
+              @update:igdb-id="igdbId = $event"
             />
           </div>
         </section>
@@ -352,14 +354,16 @@ interface TorrentDetail {
   imdbId?: string | null;
   tmdbId?: string | null;
   tvdbId?: string | null;
+  igdbId?: string | null;
 }
 
 interface MediaMetadata {
-  source: 'tmdb';
-  type: 'movie' | 'tv';
-  tmdbId: number;
-  imdbId: string | null;
-  tvdbId: number | null;
+  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb';
+  type: 'movie' | 'tv' | 'game';
+  tmdbId?: number | null;
+  imdbId?: string | null;
+  tvdbId?: number | null;
+  igdbId?: number | null;
   title: string;
   year: number | null;
   posterUrl: string | null;
@@ -390,6 +394,7 @@ const tagNames = ref<string[]>([]);
 const imdbId = ref('');
 const tmdbId = ref('');
 const tvdbId = ref('');
+const igdbId = ref('');
 const isSaving = ref(false);
 const error = ref<string | null>(null);
 const NFO_MAX_BYTES = 256 * 1024;
@@ -404,6 +409,7 @@ interface Snapshot {
   imdb: string;
   tmdb: string;
   tvdb: string;
+  igdb: string;
 }
 const snapshot = ref<Snapshot | null>(null);
 
@@ -419,6 +425,7 @@ watch(
     imdbId.value = t.imdbId || '';
     tmdbId.value = t.tmdbId || '';
     tvdbId.value = t.tvdbId || '';
+    igdbId.value = t.igdbId || '';
     snapshot.value = {
       name: title.value,
       category: selectedCategoryId.value,
@@ -428,6 +435,7 @@ watch(
       imdb: imdbId.value,
       tmdb: tmdbId.value,
       tvdb: tvdbId.value,
+      igdb: igdbId.value,
     };
   },
   { immediate: true }
@@ -484,6 +492,7 @@ const dirtyCount = computed(() => {
   if (s.imdb !== imdbId.value) n++;
   if (s.tmdb !== tmdbId.value) n++;
   if (s.tvdb !== tvdbId.value) n++;
+  if (s.igdb !== igdbId.value) n++;
   return n;
 });
 
@@ -516,15 +525,22 @@ const existingMetadata = ref<MediaMetadata | null>(null);
 async function loadExistingMetadata() {
   const t = torrent.value;
   if (!t) return;
-  const params: Record<string, string> | null = t.tmdbId
-    ? { source: 'tmdb', id: t.tmdbId }
-    : t.imdbId
-      ? { source: 'imdb', id: t.imdbId }
-      : t.tvdbId
-        ? { source: 'tvdb', id: t.tvdbId }
-        : null;
-  if (!params) return;
   const type = resolveCategoryTypeHint(selectedCategory.value);
+  // Game-hinted categories prefer the IGDB id even when other ids
+  // are stored; movie/TV categories prefer TMDb.
+  const params: Record<string, string> | null =
+    type === 'game' && t.igdbId
+      ? { source: 'igdb', id: t.igdbId }
+      : t.tmdbId
+        ? { source: 'tmdb', id: t.tmdbId }
+        : t.imdbId
+          ? { source: 'imdb', id: t.imdbId }
+          : t.tvdbId
+            ? { source: 'tvdb', id: t.tvdbId }
+            : t.igdbId
+              ? { source: 'igdb', id: t.igdbId }
+              : null;
+  if (!params) return;
   if (type) params.type = type;
   try {
     const res = await $fetch<{ enabled: boolean; metadata: MediaMetadata | null }>(
@@ -544,8 +560,12 @@ watch(torrent, () => {
 function onMediaSelected(metadata: MediaMetadata) {
   lookupResult.value = metadata;
   imdbId.value = metadata.imdbId ?? '';
-  tmdbId.value = metadata.tmdbId ? `${metadata.type}/${metadata.tmdbId}` : '';
+  tmdbId.value =
+    metadata.tmdbId && (metadata.type === 'movie' || metadata.type === 'tv')
+      ? `${metadata.type}/${metadata.tmdbId}`
+      : '';
   tvdbId.value = metadata.tvdbId != null ? String(metadata.tvdbId) : '';
+  igdbId.value = metadata.igdbId != null ? String(metadata.igdbId) : '';
 }
 function clearMediaSelection() {
   lookupResult.value = null;
@@ -553,6 +573,7 @@ function clearMediaSelection() {
   imdbId.value = '';
   tmdbId.value = '';
   tvdbId.value = '';
+  igdbId.value = '';
 }
 
 function triggerNfoInput() {
@@ -586,11 +607,12 @@ async function save() {
     // doesn't survive a recategorisation to e.g. Audio.
     const idPayload =
       categoryKindValue.value === 'other'
-        ? { imdbId: null, tmdbId: null, tvdbId: null }
+        ? { imdbId: null, tmdbId: null, tvdbId: null, igdbId: null }
         : {
             imdbId: imdbId.value.trim() || null,
             tmdbId: tmdbId.value.trim() || null,
             tvdbId: tvdbId.value.trim() || null,
+            igdbId: igdbId.value.trim() || null,
           };
 
     const res = await fetch(

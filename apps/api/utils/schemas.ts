@@ -151,10 +151,10 @@ export const adminCategorySchema = z.object({
   icon: z.string().max(50).optional(),
   // Marks the row as part of the gated XXX subtree.
   isAdult: z.boolean().optional(),
-  // Canonical media type. 'movie' / 'tv' force the TMDb-namespace
-  // hint in the upload/edit forms; null clears any earlier choice
-  // and falls back to the heuristics in apps/web/app/utils/categories.ts.
-  type: z.enum(['movie', 'tv']).nullable().optional(),
+  // Canonical media type. 'movie' / 'tv' route to TMDb; 'game'
+  // routes to IGDB. Null clears any earlier choice and falls back
+  // to the heuristics in apps/web/app/utils/categories.ts.
+  type: z.enum(['movie', 'tv', 'game']).nullable().optional(),
 });
 
 export const adminSettingsSchema = z.object({

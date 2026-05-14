@@ -2,11 +2,12 @@
  * Shared category helpers for the upload + edit forms (and any other
  * page that needs to reason about a torrent's category). The same
  * findCategory + kind-detection logic used to be duplicated; centralising
- * it keeps "movie", "tv" and "other" classifications consistent so the
- * Identity (IMDb/TMDb/TVDB) section appears or hides on both pages by
- * exactly the same rule.
+ * it keeps "movie", "tv", "game" and "other" classifications consistent
+ * so the Identity (IMDb/TMDb/TVDB/IGDB) section appears or hides on both
+ * pages by exactly the same rule.
  *
  * "Kind" rules:
+ *   - newznabId in 1000-1999 (console) or 4000-4999 (PC) → game
  *   - newznabId in 2000-2999 → movie
  *   - newznabId in 5000-5999 → tv (covers anime + tv shows)
  *   - else, fall back to a slug/name keyword match (handles installs that
@@ -22,11 +23,11 @@ export interface CategoryNode {
   // Operator-set canonical type — preferred over heuristics when
   // present. Lets, e.g., XXX/Hentai opt into the TV namespace even
   // though its newznab id sits outside the 5000-range.
-  type?: 'movie' | 'tv' | null;
+  type?: 'movie' | 'tv' | 'game' | null;
   subcategories?: CategoryNode[];
 }
 
-export type CategoryKind = 'movie' | 'tv' | 'other';
+export type CategoryKind = 'movie' | 'tv' | 'game' | 'other';
 
 export function findCategory(
   cats: CategoryNode[] | null | undefined,
@@ -55,11 +56,15 @@ export function findCategory(
  */
 export function categoryKind(cat: CategoryNode | null | undefined): CategoryKind {
   if (!cat) return 'other';
-  if (cat.type === 'movie' || cat.type === 'tv') return cat.type;
+  if (cat.type === 'movie' || cat.type === 'tv' || cat.type === 'game') {
+    return cat.type;
+  }
   const nz = cat.newznabId;
   if (typeof nz === 'number') {
     if (nz >= 2000 && nz < 3000) return 'movie';
     if (nz >= 5000 && nz < 6000) return 'tv';
+    // Newznab 1xxx (console) + 4xxx (PC) both map to IGDB.
+    if ((nz >= 1000 && nz < 2000) || (nz >= 4000 && nz < 5000)) return 'game';
   }
   // Strip diacritics so "séries" matches "seri".
   const text = `${cat.slug || ''} ${cat.name || ''}`
@@ -68,13 +73,17 @@ export function categoryKind(cat: CategoryNode | null | undefined): CategoryKind
     .replace(/[̀-ͯ]/g, '');
   if (/\b(?:tv|seri|episod|saison|season|show|anime)/.test(text)) return 'tv';
   if (/\b(?:movie|film|cinema|cine)/.test(text)) return 'movie';
+  if (/\b(?:game|games|jeu|jeux|console|playstation|xbox|nintendo|switch)/.test(text)) {
+    return 'game';
+  }
   return 'other';
 }
 
-/** Convenience: 'movie' | 'tv' (the `MediaTypeHint` shape) or undefined. */
+/** Convenience: 'movie' | 'tv' | 'game' (the `MediaTypeHint` shape)
+ *  or undefined when the category is 'other'. */
 export function categoryTypeHint(
   cat: CategoryNode | null | undefined
-): 'movie' | 'tv' | undefined {
+): 'movie' | 'tv' | 'game' | undefined {
   const kind = categoryKind(cat);
   return kind === 'other' ? undefined : kind;
 }

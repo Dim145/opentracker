@@ -274,11 +274,17 @@
       </div>
     </div>
 
-    <!-- Rich metadata card (TMDb integration). Only renders when at
-         least one external id is set AND the lookup succeeded — silent
-         no-op when integration is disabled or the id was wrong. -->
+    <!-- Rich metadata card. We pick the renderer by source so a
+         game lands on the IGDB-specific card (cover + platforms +
+         modes) and a movie/TV lands on the TMDb one. Silent no-op
+         when integration is disabled or the lookup missed. -->
+    <GameMetadataCard
+      v-if="metadata && metadata.source === 'igdb'"
+      :metadata="metadata"
+      class="mb-6"
+    />
     <MediaMetadataCard
-      v-if="metadata"
+      v-else-if="metadata"
       :metadata="metadata"
       class="mb-6"
     />
@@ -520,6 +526,7 @@ interface TorrentDetail {
   imdbId?: string | null;
   tmdbId?: string | null;
   tvdbId?: string | null;
+  igdbId?: string | null;
   createdAt: string;
   // Moderation pipeline status. Sent on every detail fetch so the
   // header badge + the inline panel can render without an extra
@@ -592,14 +599,16 @@ const moderationOnTop = computed(() => {
   return status === 'pending' || status === 'changes_requested';
 });
 
-// Pick whichever external id the uploader supplied — TMDb's /find
-// resolves all three. Order matters: TMDb's own id is the most direct
-// (skips the /find redirect), IMDb is the most universally available.
+// Pick whichever external id the uploader supplied. TMDb's /find
+// covers IMDb / TVDB; IGDB serves video games. Order in
+// `lookupParams` matters: a movie/TV-hinted torrent prefers TMDb
+// even when an IGDB id is also stored.
 interface MediaMetadataResponse {
   enabled: boolean;
   found: boolean;
   metadata: {
-    type: 'movie' | 'tv';
+    source?: 'tmdb' | 'imdb' | 'tvdb' | 'igdb';
+    type: 'movie' | 'tv' | 'game';
     title: string;
     originalTitle: string | null;
     tagline: string | null;
@@ -613,26 +622,38 @@ interface MediaMetadataResponse {
     voteCount: number | null;
     imdbId: string | null;
     url: string;
+    // IGDB-only fields. Optional so the existing TMDb shape is
+    // unchanged; the GameMetadataCard reads them when present.
+    igdbId?: number | null;
+    platforms?: string[];
+    gameModes?: string[];
+    screenshots?: string[];
+    firstReleaseDate?: string | null;
   } | null;
 }
 
-// Derive a TMDb namespace hint from the torrent's category — a
-// category mapped under the Newznab `Movies` parent (2xxx) implies a
-// movie, `TV` (5xxx) implies a series. The hint stops the lookup from
+// Derive an external metadata hint from the torrent's category — a
+// category mapped under the Newznab `Movies` parent (2xxx) implies
+// a movie, `TV` (5xxx) implies a series, Console (1xxx) or PC games
+// (4xxx) imply a video game. The hint stops the lookup from
 // guessing the wrong namespace when the same numeric id exists in
 // both. Falls back to a slug/name heuristic so custom French
-// categories (`Films Français`, `Séries Françaises`, …) are still
-// classified even when the operator hasn't set a newznab_id.
+// categories (`Films Français`, `Séries Françaises`, `Jeux`, …)
+// stay classified even without a newznab_id.
 function deriveTypeHint(
   cat:
     | { newznabId?: number | null; slug?: string; name?: string }
     | null
     | undefined
-): 'movie' | 'tv' | undefined {
+): 'movie' | 'tv' | 'game' | undefined {
   const id = cat?.newznabId;
   if (typeof id === 'number') {
     if (id >= 5000 && id < 6000) return 'tv';
     if (id >= 2000 && id < 3000) return 'movie';
+    // Newznab buckets 1xxx (Console games) and 4xxx (PC) both map
+    // to IGDB. We treat them as the same `game` hint — IGDB indexes
+    // every platform under one game id.
+    if ((id >= 1000 && id < 2000) || (id >= 4000 && id < 5000)) return 'game';
   }
   const text = `${cat?.slug || ''} ${cat?.name || ''}`
     .toLowerCase()
@@ -640,6 +661,7 @@ function deriveTypeHint(
     .replace(/[̀-ͯ]/g, '');
   if (/\b(?:tv|seri|episod|saison|season|show|anime)/.test(text)) return 'tv';
   if (/\b(?:movie|film|cinema|cine)/.test(text)) return 'movie';
+  if (/\b(?:game|games|jeu|jeux|console|playstation|xbox|nintendo|switch|pc-?game)/.test(text)) return 'game';
   return undefined;
 }
 
@@ -647,9 +669,16 @@ const lookupParams = computed(() => {
   const t = torrent.value;
   if (!t) return null;
   const type = deriveTypeHint(t.category);
+  // Prefer the source that matches the category hint when we have
+  // multiple ids stored — a TV box with both a TMDB id and an IGDB
+  // id should hit TMDb, and vice versa.
+  if (type === 'game' && t.igdbId) {
+    return { source: 'igdb', id: t.igdbId, type };
+  }
   if (t.tmdbId) return { source: 'tmdb', id: t.tmdbId, type };
   if (t.imdbId) return { source: 'imdb', id: t.imdbId, type };
   if (t.tvdbId) return { source: 'tvdb', id: t.tvdbId, type };
+  if (t.igdbId) return { source: 'igdb', id: t.igdbId, type };
   return null;
 });
 

@@ -1058,18 +1058,22 @@
       "placeholderTv": "Rechercher des séries TV sur TMDb…",
       "placeholderMovie": "Rechercher des films sur TMDb…",
       "placeholderAny": "Rechercher sur TMDb (films + TV)…",
+      "placeholderGame": "Rechercher un jeu vidéo sur IGDB…",
       "noMatchesPrefix": "Aucun résultat pour",
       "kbdHint": "pour parcourir",
       "kbdHintPick": "pour choisir",
       "movie": "Film",
       "tv": "TV",
+      "game": "Jeu",
       "tmdbBadge": "TMDb {id}",
       "tvdbBadge": "TVDB {id}",
+      "igdbBadge": "IGDB {id}",
       "clear": "Effacer",
       "manualToggle": "Ou collez un ID manuellement",
       "imdb": "IMDb",
       "tmdb": "TMDb",
       "tvdb": "TVDB",
+      "igdb": "IGDB",
       "resolving": "Résolution…",
       "resolveAndPreview": "Résoudre et prévisualiser",
       "errors": {
@@ -1091,6 +1095,14 @@
       "minutes": "{n} min",
       "hoursMinutes": "{h}h {m}min",
       "hoursOnly": "{h}h"
+    },
+    "gameMetadata": {
+      "platforms": "Plateformes",
+      "platformsCount": "{n} plateformes",
+      "modes": "Modes",
+      "screenshots": "Captures d'écran",
+      "viewOnIgdb": "Voir sur IGDB",
+      "votesOnIgdb": "{n} votes sur IGDB"
     }
   },
   "admin": {
@@ -1486,6 +1498,7 @@
         "subs": "sous-cat.",
         "movies": "films",
         "tv": "TV",
+        "games": "jeux",
         "adult": "XXX"
       },
       "empty": {
@@ -1526,7 +1539,9 @@
         "movie": "Film",
         "movieSub": "TMDb /movie",
         "tv": "TV / Séries",
-        "tvSub": "TMDb /tv"
+        "tvSub": "TMDb /tv",
+        "game": "Jeu vidéo",
+        "gameSub": "IGDB"
       },
       "adult": {
         "title": "Marquer comme contenu adulte",

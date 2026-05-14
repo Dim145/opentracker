@@ -5,12 +5,18 @@
        /movie vs /tv on the upload form. Hidden when the type is null
        (i.e. the heuristic decides). -->
   <span
-    v-if="type === 'movie' || type === 'tv'"
+    v-if="type === 'movie' || type === 'tv' || type === 'game'"
     class="type-badge"
     :class="`type-badge--${type}`"
   >
     <Icon
-      :name="type === 'movie' ? 'ph:film-strip-fill' : 'ph:television-fill'"
+      :name="
+        type === 'movie'
+          ? 'ph:film-strip-fill'
+          : type === 'tv'
+            ? 'ph:television-fill'
+            : 'ph:game-controller-fill'
+      "
       class="type-badge__icon"
     />
     {{ type }}
@@ -19,7 +25,7 @@
 
 <script setup lang="ts">
 defineProps<{
-  type?: 'movie' | 'tv' | null;
+  type?: 'movie' | 'tv' | 'game' | null;
 }>();
 </script>
 
@@ -54,5 +60,10 @@ defineProps<{
   color: #34d4d8;
   border-color: rgba(52, 212, 216, 0.4);
   background: rgba(52, 212, 216, 0.08);
+}
+.type-badge--game {
+  color: #a78bfa;
+  border-color: rgba(167, 139, 250, 0.4);
+  background: rgba(167, 139, 250, 0.08);
 }
 </style>

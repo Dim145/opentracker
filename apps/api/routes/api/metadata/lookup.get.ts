@@ -1,50 +1,62 @@
 /**
- * GET /api/metadata/lookup?source=imdb|tmdb|tvdb&id=…
+ * GET /api/metadata/lookup?source=imdb|tmdb|tvdb|igdb&id=…
  *
  * Returns a normalised metadata payload (poster, overview, genres,
- * year, …) for the supplied external id. Looks up via TMDb; the input
- * id is normalised first so the user can paste a full URL or a bare id.
+ * year, …) for the supplied external id. Dispatches to the source
+ * registry — TMDb for movies / TV (via imdb / tmdb / tvdb sources),
+ * IGDB for video games. The input id is normalised first so the
+ * user can paste a full URL, a slug (IGDB), or a bare id.
  *
- * Auth: any logged-in user. The lookup is rate-limited by Redis cache
- * + TMDb's own quota; we don't expose the API key to the browser.
+ * Auth: any logged-in user. Rate-limited by Redis cache + the
+ * provider's own quota; we never expose API credentials to the
+ * browser.
  */
 import { z } from 'zod';
 import {
-  lookupMetadata,
+  ALL_SOURCE_IDS,
   isMetadataEnabled,
+  isSourceEnabled,
+  lookupMetadata,
+  normalizeSourceId,
   type LookupSource,
   type MediaTypeHint,
 } from '~~/utils/metadata';
-import { normalizeMediaId } from '~~/utils/mediaIds';
 
 const querySchema = z.object({
-  source: z.enum(['imdb', 'tmdb', 'tvdb']),
-  id: z.string().min(1).max(64),
-  // Optional type hint. The frontend derives this from the torrent's
-  // category (Newznab 2xxx → movie, 5xxx → tv); the operator can also
-  // bake it into a TMDb id directly as `tv/N` / `movie/N`.
-  type: z.enum(['movie', 'tv']).optional(),
+  source: z.enum(ALL_SOURCE_IDS as [LookupSource, ...LookupSource[]]),
+  id: z.string().min(1).max(128),
+  // Optional type hint. The frontend derives this from the
+  // torrent's category (Newznab 2xxx → movie, 5xxx → tv, 1xxx /
+  // 4xxx → game).
+  type: z.enum(['movie', 'tv', 'game']).optional(),
 });
 
 export default defineEventHandler(async (event) => {
   await requireUserSession(event);
 
-  // Don't even validate inputs if integration is off — keeps the
-  // 503 response message readable in browser devtools.
   if (!isMetadataEnabled()) {
     setResponseStatus(event, 503);
     return {
       enabled: false,
       message:
-        'Metadata lookup is not configured. Ask the operator to set TMDB_API_KEY.',
+        'Metadata lookup is not configured. Ask the operator to set TMDB_API_KEY (movies/TV) or IGDB_ID + IGDB_SECRET (games).',
     };
   }
 
   const { source, id, type } = querySchema.parse(getQuery(event));
 
-  // Normalise via the shared util so URL forms ("https://imdb.com/…") and
-  // bare digits all collapse to the canonical id before we hit Redis.
-  const canonical = normalizeMediaId(source as LookupSource, id);
+  if (!isSourceEnabled(source)) {
+    setResponseStatus(event, 503);
+    return {
+      enabled: false,
+      message: `The ${source.toUpperCase()} integration is not configured.`,
+    };
+  }
+
+  // Resolve raw URL / slug / id to the source-side canonical
+  // form. IGDB does a network round-trip for slug→id; TMDb /
+  // IMDb / TVDB resolve synchronously inside the call.
+  const canonical = await normalizeSourceId(source, id);
   if (!canonical) {
     throw createError({
       statusCode: 400,
@@ -53,7 +65,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const metadata = await lookupMetadata(
-    source as LookupSource,
+    source,
     canonical,
     type as MediaTypeHint | undefined
   );

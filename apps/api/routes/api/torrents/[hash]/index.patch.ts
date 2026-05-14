@@ -87,8 +87,16 @@ export default defineEventHandler(async (event) => {
 
   // Read body
   const body = await readBody(event);
-  const { name, description, categoryId, nfo, imdbId, tmdbId, tvdbId } =
-    body || {};
+  const {
+    name,
+    description,
+    categoryId,
+    nfo,
+    imdbId,
+    tmdbId,
+    tvdbId,
+    igdbId,
+  } = body || {};
 
   // Validate categoryId if provided
   if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
@@ -126,6 +134,7 @@ export default defineEventHandler(async (event) => {
     imdbId?: string | null;
     tmdbId?: string | null;
     tvdbId?: string | null;
+    igdbId?: string | null;
   } = {};
 
   // Allow renaming the release. We require non-empty when provided so a
@@ -164,6 +173,30 @@ export default defineEventHandler(async (event) => {
   }
   if (tvdbId !== undefined) {
     updateData.tvdbId = tvdbId ? normalizeMediaId('tvdb', tvdbId) : null;
+  }
+  // IGDB normalisation goes through the metadata façade because the
+  // slug→id resolve is asynchronous. Null/empty clears the column;
+  // a network failure during resolve falls back to null rather than
+  // blocking the edit.
+  if (igdbId !== undefined) {
+    if (!igdbId) {
+      updateData.igdbId = null;
+    } else {
+      try {
+        const { normalizeSourceId, isSourceEnabled } = await import(
+          '~~/utils/metadata'
+        );
+        updateData.igdbId = isSourceEnabled('igdb')
+          ? await normalizeSourceId('igdb', igdbId)
+          : null;
+      } catch (err) {
+        console.warn(
+          '[torrents] IGDB normalize failed:',
+          (err as Error).message
+        );
+        updateData.igdbId = null;
+      }
+    }
   }
 
   // Decide whether the edit triggers an auto-revert to pending.

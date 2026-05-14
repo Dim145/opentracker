@@ -147,6 +147,8 @@ services:
       # probes. Override only if the tracker lives outside this stack.
       TRACKER_INTERNAL_URL: ${TRACKER_INTERNAL_URL:-http://tracker:8080}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
+      IGDB_ID: ${IGDB_ID:-}
+      IGDB_SECRET: ${IGDB_SECRET:-}
     expose:
       - "4000"
     volumes:

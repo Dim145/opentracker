@@ -58,6 +58,24 @@ export default defineEventHandler(async (event) => {
     'tvdb',
     formData.find((f) => f.name === 'tvdbId')?.data.toString()
   );
+  // IGDB accepts URL / slug / id input — slug→id resolves via a
+  // single IGDB ping, so we always store the canonical numeric id.
+  // Failures (network down, IGDB key missing) drop to null silently
+  // rather than blocking the upload — the user can fix it later.
+  let igdbId: string | null = null;
+  const igdbInput = formData.find((f) => f.name === 'igdbId')?.data.toString();
+  if (igdbInput) {
+    try {
+      const { normalizeSourceId, isSourceEnabled } = await import(
+        '~~/utils/metadata'
+      );
+      if (isSourceEnabled('igdb')) {
+        igdbId = await normalizeSourceId('igdb', igdbInput);
+      }
+    } catch (err) {
+      console.warn('[torrents] IGDB normalize failed:', (err as Error).message);
+    }
+  }
   // NFO can arrive either as a `.nfo` file part or as a plain `nfo` string
   // (e.g. user pasted the contents into a textarea). Cap at 256KB so we
   // can't be used to dump arbitrary blobs into the row.
@@ -214,6 +232,7 @@ export default defineEventHandler(async (event) => {
     imdbId,
     tmdbId,
     tvdbId,
+    igdbId,
     isActive: true,
     moderationStatus: canBypassModeration ? 'accepted' : 'pending',
     moderatedById: canBypassModeration ? user.id : null,

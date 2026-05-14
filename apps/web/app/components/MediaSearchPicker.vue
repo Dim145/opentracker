@@ -13,7 +13,9 @@
               ? t('components.mediaSearch.placeholderTv')
               : typeHint === 'movie'
                 ? t('components.mediaSearch.placeholderMovie')
-                : t('components.mediaSearch.placeholderAny')
+                : typeHint === 'game'
+                  ? t('components.mediaSearch.placeholderGame')
+                  : t('components.mediaSearch.placeholderAny')
           "
           @focus="open = true"
           @keydown.escape="open = false"
@@ -50,7 +52,7 @@
           <ul v-else class="picker-list">
             <li
               v-for="(hit, i) in results"
-              :key="`${hit.type}-${hit.tmdbId}`"
+              :key="`${hit.source}-${hit.type}-${hit.id}`"
               class="picker-item"
               :class="{ 'picker-item--focused': focusIndex === i }"
               @mouseenter="focusIndex = i"
@@ -76,10 +78,18 @@
                       :name="
                         hit.type === 'movie'
                           ? 'ph:film-strip-bold'
-                          : 'ph:television-simple-bold'
+                          : hit.type === 'tv'
+                            ? 'ph:television-simple-bold'
+                            : 'ph:game-controller-bold'
                       "
                     />
-                    {{ hit.type === 'movie' ? t('components.mediaSearch.movie') : t('components.mediaSearch.tv') }}
+                    {{
+                      hit.type === 'movie'
+                        ? t('components.mediaSearch.movie')
+                        : hit.type === 'tv'
+                          ? t('components.mediaSearch.tv')
+                          : t('components.mediaSearch.game')
+                    }}
                   </span>
                   <span v-if="hit.voteAverage" class="picker-rating">
                     <Icon name="ph:star-fill" />
@@ -117,7 +127,7 @@
           >
         </p>
         <div class="picker-selected-ids">
-          <span class="id-tag id-tag--tmdb"
+          <span v-if="selected.tmdbId" class="id-tag id-tag--tmdb"
             >{{ t('components.mediaSearch.tmdbBadge', { id: selected.tmdbId }) }}</span
           >
           <span v-if="selected.imdbId" class="id-tag id-tag--imdb">{{
@@ -125,6 +135,9 @@
           }}</span>
           <span v-if="selected.tvdbId" class="id-tag id-tag--tvdb"
             >{{ t('components.mediaSearch.tvdbBadge', { id: selected.tvdbId }) }}</span
+          >
+          <span v-if="selected.igdbId" class="id-tag id-tag--igdb"
+            >{{ t('components.mediaSearch.igdbBadge', { id: selected.igdbId }) }}</span
           >
         </div>
       </div>
@@ -171,6 +184,16 @@
             @input="$emit('update:tvdbId', ($event.target as HTMLInputElement).value)"
           />
         </label>
+        <label>
+          <span class="id-tag id-tag--igdb">{{ t('components.mediaSearch.igdb') }}</span>
+          <input
+            :value="igdbId"
+            type="text"
+            class="input id-input"
+            placeholder="7346 or zelda-breath-of-the-wild"
+            @input="$emit('update:igdbId', ($event.target as HTMLInputElement).value)"
+          />
+        </label>
       </div>
       <button
         type="button"
@@ -190,8 +213,11 @@
 
 <script setup lang="ts">
 interface MediaSearchHit {
-  type: 'movie' | 'tv';
-  tmdbId: number;
+  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb';
+  type: 'movie' | 'tv' | 'game';
+  /** Source-side canonical id (string for portability — TMDb numeric,
+   *  IGDB numeric, IMDb tt-prefixed). */
+  id: string;
   title: string;
   year: number | null;
   overview: string | null;
@@ -202,11 +228,12 @@ interface MediaSearchHit {
 
 /** Full normalised metadata returned by /api/metadata/lookup. */
 interface MediaMetadata {
-  source: 'tmdb';
-  type: 'movie' | 'tv';
-  tmdbId: number;
-  imdbId: string | null;
-  tvdbId: number | null;
+  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb';
+  type: 'movie' | 'tv' | 'game';
+  tmdbId?: number | null;
+  imdbId?: string | null;
+  tvdbId?: number | null;
+  igdbId?: number | null;
   title: string;
   year: number | null;
   posterUrl: string | null;
@@ -218,8 +245,10 @@ const { t } = useI18n();
 const props = defineProps<{
   initialQuery?: string;
   initialYear?: number | null;
-  /** 'movie' | 'tv' from the category. Constrains the search. */
-  typeHint?: 'movie' | 'tv';
+  /** Type hint from the category. Drives both the search-source
+   *  pick ('game' → IGDB, else TMDb) and the constrained type
+   *  filter inside the source. */
+  typeHint?: 'movie' | 'tv' | 'game';
   /** Auto-fire a search for `initialQuery` when it lands non-empty. */
   autoSearch?: boolean;
   /** Currently-resolved metadata (so the chip survives parent re-renders). */
@@ -228,6 +257,7 @@ const props = defineProps<{
   imdbId?: string;
   tmdbId?: string;
   tvdbId?: string;
+  igdbId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -239,7 +269,14 @@ const emit = defineEmits<{
   (e: 'update:imdbId', value: string): void;
   (e: 'update:tmdbId', value: string): void;
   (e: 'update:tvdbId', value: string): void;
+  (e: 'update:igdbId', value: string): void;
 }>();
+
+/** Game categories route to IGDB; everything else goes to TMDb.
+ *  The endpoint dedupes when both are configured by source param. */
+const searchSource = computed<'tmdb' | 'igdb'>(() =>
+  props.typeHint === 'game' ? 'igdb' : 'tmdb'
+);
 
 const rawQuery = ref(props.initialQuery ?? '');
 const debouncedQuery = ref('');
@@ -280,9 +317,16 @@ watch(debouncedQuery, async (q) => {
   loading.value = true;
   error.value = null;
   try {
-    const params: Record<string, string | number> = { query: q };
+    const params: Record<string, string | number> = {
+      query: q,
+      source: searchSource.value,
+    };
     if (props.typeHint) params.type = props.typeHint;
-    if (props.initialYear) params.year = props.initialYear;
+    // IGDB ignores year filtering at the API layer; only pass it
+    // through for TMDb where /search/{movie,tv} honour it.
+    if (props.initialYear && searchSource.value === 'tmdb') {
+      params.year = props.initialYear;
+    }
     const res = await $fetch<{
       enabled: boolean;
       message?: string;
@@ -341,17 +385,21 @@ function confirmFocus() {
 async function selectHit(hit: MediaSearchHit) {
   open.value = false;
   rawQuery.value = '';
-  // Pull the full record (with cross-database ids) so the parent gets
-  // imdbId + tvdbId in one go.
+  // Pull the full record so the parent gets every cross-database
+  // id IGDB or TMDb know about in one go. TMDb needs the type-
+  // prefixed id (`movie/123`) to skip its namespace guess; IGDB
+  // takes the bare numeric id.
   resolving.value = true;
   error.value = null;
   try {
+    const lookupId =
+      hit.source === 'tmdb' ? `${hit.type}/${hit.id}` : hit.id;
     const res = await $fetch<{
       enabled: boolean;
       found: boolean;
       metadata: MediaMetadata | null;
     }>('/api/metadata/lookup', {
-      query: { source: 'tmdb', id: `${hit.type}/${hit.tmdbId}` },
+      query: { source: hit.source, id: lookupId },
     });
     if (res.enabled && res.found && res.metadata) {
       emit('select', res.metadata);
@@ -380,18 +428,21 @@ const hasAnyManualId = computed(
     !!(
       (props.imdbId ?? '').trim() ||
       (props.tmdbId ?? '').trim() ||
-      (props.tvdbId ?? '').trim()
+      (props.tvdbId ?? '').trim() ||
+      (props.igdbId ?? '').trim()
     )
 );
 
 async function resolveManual() {
-  const params: Record<string, string> | null = (props.tmdbId ?? '').trim()
-    ? { source: 'tmdb', id: (props.tmdbId ?? '').trim() }
-    : (props.imdbId ?? '').trim()
-      ? { source: 'imdb', id: (props.imdbId ?? '').trim() }
-      : (props.tvdbId ?? '').trim()
-        ? { source: 'tvdb', id: (props.tvdbId ?? '').trim() }
-        : null;
+  const params: Record<string, string> | null = (props.igdbId ?? '').trim()
+    ? { source: 'igdb', id: (props.igdbId ?? '').trim() }
+    : (props.tmdbId ?? '').trim()
+      ? { source: 'tmdb', id: (props.tmdbId ?? '').trim() }
+      : (props.imdbId ?? '').trim()
+        ? { source: 'imdb', id: (props.imdbId ?? '').trim() }
+        : (props.tvdbId ?? '').trim()
+          ? { source: 'tvdb', id: (props.tvdbId ?? '').trim() }
+          : null;
   if (!params) return;
   if (props.typeHint) (params as Record<string, string>).type = props.typeHint;
   resolving.value = true;
@@ -593,6 +644,11 @@ async function resolveManual() {
   color: #6cd161;
   background: rgba(108, 209, 97, 0.08);
 }
+.picker-kind--game {
+  border-color: rgba(167, 139, 250, 0.45);
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.08);
+}
 .picker-rating {
   display: inline-flex;
   align-items: center;
@@ -673,6 +729,7 @@ async function resolveManual() {
 .picker-selected-ids .id-tag--imdb { color: #f5c518; }
 .picker-selected-ids .id-tag--tmdb { color: #01b4e4; }
 .picker-selected-ids .id-tag--tvdb { color: #6cd161; }
+.picker-selected-ids .id-tag--igdb { color: #a78bfa; }
 
 .picker-clear {
   display: inline-flex;
@@ -743,6 +800,7 @@ async function resolveManual() {
 .picker-manual .id-tag--imdb { color: #f5c518; }
 .picker-manual .id-tag--tmdb { color: #01b4e4; }
 .picker-manual .id-tag--tvdb { color: #6cd161; }
+.picker-manual .id-tag--igdb { color: #a78bfa; }
 .picker-manual .id-input {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.8rem;

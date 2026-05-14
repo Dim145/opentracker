@@ -212,11 +212,13 @@
               :imdb-id="imdbId"
               :tmdb-id="tmdbId"
               :tvdb-id="tvdbId"
+              :igdb-id="igdbId"
               @select="onMediaSelected"
               @clear="clearMediaSelection"
               @update:imdb-id="imdbId = $event"
               @update:tmdb-id="tmdbId = $event"
               @update:tvdb-id="tvdbId = $event"
+              @update:igdb-id="igdbId = $event"
             />
           </div>
         </section>
@@ -498,11 +500,12 @@ interface TorrentResult {
 }
 
 interface MediaMetadata {
-  source: 'tmdb';
-  type: 'movie' | 'tv';
-  tmdbId: number;
-  imdbId: string | null;
-  tvdbId: number | null;
+  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb';
+  type: 'movie' | 'tv' | 'game';
+  tmdbId?: number | null;
+  imdbId?: string | null;
+  tvdbId?: number | null;
+  igdbId?: number | null;
   title: string;
   year: number | null;
   posterUrl: string | null;
@@ -528,6 +531,7 @@ const tags = ref<string[]>([]);
 const imdbId = ref('');
 const tmdbId = ref('');
 const tvdbId = ref('');
+const igdbId = ref('');
 const isUploading = ref(false);
 const result = ref<TorrentResult | null>(null);
 const error = ref<string | null>(null);
@@ -732,14 +736,21 @@ function onMediaSelected(metadata: MediaMetadata) {
   // Mirror the resolved ids into the manual fallback fields so they
   // submit with the form even though the user picked via the search UI.
   imdbId.value = metadata.imdbId ?? '';
-  tmdbId.value = metadata.tmdbId ? `${metadata.type}/${metadata.tmdbId}` : '';
+  // TMDb stores the prefix to disambiguate movie/tv namespaces; the
+  // other ids are bare integers / strings.
+  tmdbId.value =
+    metadata.tmdbId && (metadata.type === 'movie' || metadata.type === 'tv')
+      ? `${metadata.type}/${metadata.tmdbId}`
+      : '';
   tvdbId.value = metadata.tvdbId != null ? String(metadata.tvdbId) : '';
+  igdbId.value = metadata.igdbId != null ? String(metadata.igdbId) : '';
 }
 function clearMediaSelection() {
   lookupResult.value = null;
   imdbId.value = '';
   tmdbId.value = '';
   tvdbId.value = '';
+  igdbId.value = '';
 }
 
 // File handling
@@ -900,6 +911,8 @@ async function upload() {
         formData.append('tmdbId', tmdbId.value.trim());
       if (tvdbId.value.trim())
         formData.append('tvdbId', tvdbId.value.trim());
+      if (igdbId.value.trim())
+        formData.append('igdbId', igdbId.value.trim());
     }
 
     const response = await $fetch<TorrentResult>('/api/torrents', {
@@ -933,6 +946,7 @@ function resetForm() {
   imdbId.value = '';
   tmdbId.value = '';
   tvdbId.value = '';
+  igdbId.value = '';
   parsed.value = null;
   lookupResult.value = null;
   error.value = null;
