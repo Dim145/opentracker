@@ -14,9 +14,16 @@ import { and, eq } from 'drizzle-orm';
 import { decryptJson } from '~~/utils/channelSecrets';
 import { getAdapter } from '~~/utils/channels';
 import { renderNotification, buildTestPayload } from '~~/utils/notifyRenderer';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
+  // Every test is a real send. Without a budget, a signed-in user
+  // could flood SMTP / Telegram / a third-party webhook URL they
+  // own — abusing the upstream's rate limits at our IP's expense,
+  // and exfiltrating internal probe results via the `lastTestError`
+  // field the UI surfaces back to them.
+  await rateLimit(event, RATE_LIMITS.mutation);
   const type = getRouterParam(event, 'type') ?? '';
   const adapter = getAdapter(type);
   if (!adapter) {

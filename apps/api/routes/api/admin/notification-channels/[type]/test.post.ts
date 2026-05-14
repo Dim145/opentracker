@@ -15,9 +15,16 @@ import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
 import { decryptJson } from '~~/utils/channelSecrets';
 import { getAdapter } from '~~/utils/channels';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
+  // Same reasoning as the user-side test: every press is a real
+  // outbound call. Without a budget a compromised admin session
+  // can hammer the configured upstream (SMTP login attempts,
+  // probe internal infra through the channel adapters, fan out
+  // SSRF retries against the SafeFetch guard).
+  await rateLimit(event, RATE_LIMITS.admin);
   const type = getRouterParam(event, 'type') ?? '';
   const adapter = getAdapter(type);
   if (!adapter) {

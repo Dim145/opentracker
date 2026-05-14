@@ -18,7 +18,7 @@ import parseTorrent from 'parse-torrent';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event);
+  const { user } = await requireUserSession(event);
   // Same bucket as the upload itself — a flood of "check" calls would
   // otherwise let a logged-in account probe the index for hashes
   // unrelated to a real intent to upload.
@@ -60,12 +60,36 @@ export default defineEventHandler(async (event) => {
       name: true,
       moderationStatus: true,
       createdAt: true,
+      uploaderId: true,
     },
   });
 
+  // Mirror the gate from `routes/api/torrents/[hash].get.ts` — a
+  // non-accepted torrent is invisible to anyone who isn't the
+  // uploader OR a staff member. Without this, the preflight would
+  // confirm which info-hashes have ever been submitted (including
+  // rejected uploads) to any logged-in user willing to repeatedly
+  // POST crafted `.torrent` files.
+  const isStaff = !!(user.isAdmin || user.isModerator);
+  const visible =
+    existing &&
+    (existing.moderationStatus === 'accepted' ||
+      isStaff ||
+      existing.uploaderId === user.id);
+
+  if (!visible) {
+    return { infoHash, exists: false, existing: null };
+  }
+
   return {
     infoHash,
-    exists: !!existing,
-    existing: existing ?? null,
+    exists: true,
+    existing: {
+      id: existing.id,
+      infoHash: existing.infoHash,
+      name: existing.name,
+      moderationStatus: existing.moderationStatus,
+      createdAt: existing.createdAt,
+    },
   };
 });

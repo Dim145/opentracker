@@ -87,24 +87,29 @@ export default defineEventHandler(async (event) => {
     }
   } else if (body.recoveryCode) {
     const hash = hashRecoveryCode(body.recoveryCode);
-    const match = await db.query.recoveryCodes.findFirst({
-      where: and(
-        eq(recoveryCodes.userId, user.id),
-        eq(recoveryCodes.codeHash, hash),
-        isNull(recoveryCodes.usedAt)
-      ),
-      columns: { id: true },
-    });
-    if (!match) {
+    // Atomic claim — the previous "SELECT then UPDATE by id" was
+    // racy: two concurrent requests with the same code could both
+    // pass the SELECT (because neither UPDATE had committed yet)
+    // and each open a session. A single `UPDATE … WHERE usedAt IS
+    // NULL RETURNING id` takes a row lock and serialises; only the
+    // first request to commit gets a row back.
+    const consumed = await db
+      .update(recoveryCodes)
+      .set({ usedAt: new Date() })
+      .where(
+        and(
+          eq(recoveryCodes.userId, user.id),
+          eq(recoveryCodes.codeHash, hash),
+          isNull(recoveryCodes.usedAt)
+        )
+      )
+      .returning({ id: recoveryCodes.id });
+    if (consumed.length === 0) {
       throw createError({
         statusCode: 400,
         message: 'Invalid or already-used recovery code.',
       });
     }
-    await db
-      .update(recoveryCodes)
-      .set({ usedAt: new Date() })
-      .where(eq(recoveryCodes.id, match.id));
     // Recovery code consumed — high-signal security event.
     // No payload (we don't want to leak which code was burned).
     void notify(user.id, 'recovery_code_used', null, '/settings');
