@@ -10,18 +10,22 @@
 import { imdbSource, tmdbSource, tvdbSource } from './tmdb';
 import { igdbSource } from './igdb';
 import type {
+  LookupOptions,
   MediaMetadata,
   MediaSearchHit,
   MediaSource,
   MediaSourceId,
   MediaTypeHint,
+  SearchOptions,
 } from './types';
 
 export type {
+  LookupOptions,
   MediaMetadata,
   MediaSearchHit,
   MediaSourceId,
   MediaTypeHint,
+  SearchOptions,
 } from './types';
 
 const REGISTRY: Record<MediaSourceId, MediaSource> = {
@@ -71,10 +75,11 @@ export function isSourceEnabled(id: MediaSourceId): boolean {
 export async function lookupMetadata(
   source: MediaSourceId,
   id: string,
-  hint?: MediaTypeHint
+  hint?: MediaTypeHint,
+  options?: LookupOptions
 ): Promise<MediaMetadata | null> {
   const src = getSource(source);
-  return src.lookup(id, hint);
+  return src.lookup(id, hint, options);
 }
 
 /**
@@ -86,7 +91,7 @@ export async function searchMetadata(
   source: MediaSourceId,
   query: string,
   hint?: MediaTypeHint,
-  options?: { year?: number; includeAdult?: boolean }
+  options?: SearchOptions
 ): Promise<MediaSearchHit[]> {
   const src = getSource(source);
   return src.search(query, hint, options);

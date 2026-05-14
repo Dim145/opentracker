@@ -62,8 +62,12 @@ interface MetadataLookupResponse {
   } | null;
 }
 
-function cacheKey(externalId: string, type: PosterTypeHint): string {
-  return `${type ?? 'auto'}:${externalId}`;
+function cacheKey(
+  language: string,
+  externalId: string,
+  type: PosterTypeHint
+): string {
+  return `${language}:${type ?? 'auto'}:${externalId}`;
 }
 
 function sourceFor(type: PosterTypeHint): 'tmdb' | 'igdb' {
@@ -71,6 +75,17 @@ function sourceFor(type: PosterTypeHint): 'tmdb' | 'igdb' {
 }
 
 export function useMediaPosters() {
+  // The server reads the locale off the session (set at login,
+  // updated through /api/me) — but the user can switch language
+  // from /settings without a reload, which keeps the same Map
+  // around. Including the active locale in the cache key sidesteps
+  // that staleness: fr entries and en entries live side by side
+  // and a switch surfaces a fresh fetch instead of yesterday's
+  // English copy. Logged-out callers fall through to 'auto' so the
+  // route's default locale still gets a stable namespace.
+  const { user } = useUserSession();
+  const language = computed(() => (user.value?.language as string) || 'auto');
+
   // useState keeps the cache shared across components on the same page
   // load (and across the SSR/client hydration boundary). Each call site
   // observes the same Map.
@@ -113,7 +128,7 @@ export function useMediaPosters() {
     // on the client, with a session cookie attached.
     if (import.meta.server) return;
     if (isSourceDisabled(type)) return;
-    const key = cacheKey(externalId, type);
+    const key = cacheKey(language.value, externalId, type);
     if (postersMap.value.has(key)) return;
     setPoster(key, { kind: 'loading' });
     try {
@@ -171,7 +186,9 @@ export function useMediaPosters() {
   ): PosterState | null {
     if (!externalId) return null;
     if (isSourceDisabled(type)) return { kind: 'missing' };
-    return postersMap.value.get(cacheKey(externalId, type)) ?? null;
+    return (
+      postersMap.value.get(cacheKey(language.value, externalId, type)) ?? null
+    );
   }
 
   function posterFor(

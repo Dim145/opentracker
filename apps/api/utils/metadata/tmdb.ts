@@ -19,16 +19,38 @@
 import { redis } from '../server';
 import { normalizeImdbId, normalizeTmdbId, normalizeTvdbId } from '../mediaIds';
 import type {
+  LookupOptions,
   MediaMetadata,
   MediaSearchHit,
   MediaSource,
   MediaTypeHint,
+  SearchOptions,
 } from './types';
 import { META_TTL, NEG_SENTINEL } from './types';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const POSTER_SIZE = 'w500';
 const BACKDROP_SIZE = 'w1280';
+const DEFAULT_LOCALE = 'en-US';
+
+/**
+ * Map the app's BCP-47-ish bundle code (`en`, `fr`, …) onto TMDb's
+ * expected `xx-YY` form. Unknown locales fall back to `en-US` so a
+ * future bundle whose code isn't in the table still gets metadata —
+ * just in English until we extend the map.
+ *
+ * The cache key uses the resolved locale so the same `en` and
+ * `en-US` user share one entry.
+ */
+const TMDB_LOCALE_MAP: Record<string, string> = {
+  en: 'en-US',
+  fr: 'fr-FR',
+};
+function tmdbLocale(language?: string): string {
+  if (!language) return DEFAULT_LOCALE;
+  const lc = language.toLowerCase();
+  return TMDB_LOCALE_MAP[lc] ?? DEFAULT_LOCALE;
+}
 
 /**
  * TMDb supports two credential shapes — legacy v3 API key (32-char
@@ -138,11 +160,12 @@ function normalizeDetail(type: 'movie' | 'tv', data: any): MediaMetadata {
 async function fetchDetail(
   type: 'movie' | 'tv',
   id: string | number,
-  cred: Credential
+  cred: Credential,
+  locale: string
 ): Promise<MediaMetadata | null> {
   const data = await tmdbGet<any>(
     `/${type}/${id}`,
-    { append_to_response: 'external_ids', language: 'en-US' },
+    { append_to_response: 'external_ids', language: locale },
     cred
   );
   if (!data) return null;
@@ -159,10 +182,12 @@ async function fetchDetail(
  */
 async function lookupByTmdb(
   id: string,
-  hint?: MediaTypeHint
+  hint?: MediaTypeHint,
+  options?: LookupOptions
 ): Promise<MediaMetadata | null> {
   const cred = getCredential();
-  const cacheKey = `meta:v1:tmdb:${hint ?? 'auto'}:${id}`;
+  const locale = tmdbLocale(options?.language);
+  const cacheKey = `meta:v1:tmdb:${locale}:${hint ?? 'auto'}:${id}`;
   try {
     const cached = await redis.get(cacheKey);
     if (cached === NEG_SENTINEL) return null;
@@ -179,10 +204,10 @@ async function lookupByTmdb(
 
   let result: MediaMetadata | null = null;
   if (tmdbType) {
-    result = await fetchDetail(tmdbType, bareId, cred);
+    result = await fetchDetail(tmdbType, bareId, cred, locale);
   } else {
-    result = await fetchDetail('movie', bareId, cred);
-    result ??= await fetchDetail('tv', bareId, cred);
+    result = await fetchDetail('movie', bareId, cred, locale);
+    result ??= await fetchDetail('tv', bareId, cred, locale);
   }
 
   try {
@@ -205,10 +230,12 @@ async function lookupByTmdb(
 async function lookupByExternal(
   externalSource: 'imdb' | 'tvdb',
   id: string,
-  hint?: MediaTypeHint
+  hint?: MediaTypeHint,
+  options?: LookupOptions
 ): Promise<MediaMetadata | null> {
   const cred = getCredential();
-  const cacheKey = `meta:v1:${externalSource}:${hint ?? 'auto'}:${id}`;
+  const locale = tmdbLocale(options?.language);
+  const cacheKey = `meta:v1:${externalSource}:${locale}:${hint ?? 'auto'}:${id}`;
   try {
     const cached = await redis.get(cacheKey);
     if (cached === NEG_SENTINEL) return null;
@@ -221,6 +248,7 @@ async function lookupByExternal(
     `/find/${id}`,
     {
       external_source: externalSource === 'imdb' ? 'imdb_id' : 'tvdb_id',
+      language: locale,
     },
     cred
   );
@@ -229,13 +257,13 @@ async function lookupByExternal(
 
   let result: MediaMetadata | null = null;
   if (hint === 'tv' && tvMatch?.id) {
-    result = await fetchDetail('tv', tvMatch.id, cred);
+    result = await fetchDetail('tv', tvMatch.id, cred, locale);
   } else if (hint === 'movie' && movieMatch?.id) {
-    result = await fetchDetail('movie', movieMatch.id, cred);
+    result = await fetchDetail('movie', movieMatch.id, cred, locale);
   } else if (movieMatch?.id) {
-    result = await fetchDetail('movie', movieMatch.id, cred);
+    result = await fetchDetail('movie', movieMatch.id, cred, locale);
   } else if (tvMatch?.id) {
-    result = await fetchDetail('tv', tvMatch.id, cred);
+    result = await fetchDetail('tv', tvMatch.id, cred, locale);
   }
 
   try {
@@ -278,18 +306,19 @@ function normaliseHit(type: 'movie' | 'tv', data: any): MediaSearchHit {
 async function searchTmdb(
   query: string,
   hint?: MediaTypeHint,
-  options?: { year?: number; includeAdult?: boolean }
+  options?: SearchOptions
 ): Promise<MediaSearchHit[]> {
   // Movie / TV constrained search; game hint is a no-op (TMDb
   // doesn't serve games).
   const type = hint === 'movie' || hint === 'tv' ? hint : undefined;
   const year = options?.year;
   const includeAdult = options?.includeAdult ?? false;
+  const locale = tmdbLocale(options?.language);
   const cred = getCredential();
   const trimmed = query.trim();
   if (!trimmed) return [];
 
-  const cacheKey = `meta:v1:search:tmdb:${type ?? 'auto'}:${
+  const cacheKey = `meta:v1:search:tmdb:${locale}:${type ?? 'auto'}:${
     includeAdult ? 'adult' : 'sfw'
   }:${year ?? '-'}:${trimmed.toLowerCase()}`;
   try {
@@ -303,7 +332,7 @@ async function searchTmdb(
   const params: Record<string, string> = {
     query: trimmed,
     include_adult: includeAdult ? 'true' : 'false',
-    language: 'en-US',
+    language: locale,
     page: '1',
   };
   const movieParams = { ...params };
@@ -387,7 +416,7 @@ export const imdbSource: MediaSource = {
   handles: ['movie', 'tv'],
   isEnabled,
   normalizeId: async (input) => normalizeImdbId(input),
-  lookup: (id, hint) => lookupByExternal('imdb', id, hint),
+  lookup: (id, hint, options) => lookupByExternal('imdb', id, hint, options),
   // IMDb has no free-text search exposed through TMDb's /find.
   search: async () => [],
 };
@@ -398,6 +427,6 @@ export const tvdbSource: MediaSource = {
   handles: ['movie', 'tv'],
   isEnabled,
   normalizeId: async (input) => normalizeTvdbId(input),
-  lookup: (id, hint) => lookupByExternal('tvdb', id, hint),
+  lookup: (id, hint, options) => lookupByExternal('tvdb', id, hint, options),
   search: async () => [],
 };

@@ -62,16 +62,19 @@ export default defineEventHandler(async (event) => {
   // from the row so flipping the toggle takes effect on the next
   // search without waiting for the cookie to refresh. Only TMDb
   // honours `include_adult` (IGDB has no equivalent flag), but we
-  // still pass it through so a future provider can respect it.
+  // still pass it through so a future provider can respect it. We
+  // pick up the language from the row too — same reasoning.
   const me = await db.query.users.findFirst({
     where: eq(schema.users.id, session.id),
-    columns: { showAdultContent: true },
+    columns: { showAdultContent: true, language: true },
   });
   const includeAdult = me?.showAdultContent ?? false;
+  const language = me?.language;
 
   const results = await searchMetadata(source, query, type, {
     year,
     includeAdult,
+    language,
   });
 
   return {

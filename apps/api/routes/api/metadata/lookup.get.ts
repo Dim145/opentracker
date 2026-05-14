@@ -32,7 +32,7 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event);
+  const { user: session } = await requireUserSession(event);
 
   if (!isMetadataEnabled()) {
     setResponseStatus(event, 503);
@@ -64,10 +64,18 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Language comes from the session row (set at login / updated
+  // through /api/me) so we never trust a client-supplied locale —
+  // it stays server-authoritative and lines up with what the user
+  // sees in the UI. TMDb honours it; IGDB ignores it.
+  const language =
+    typeof session.language === 'string' ? session.language : undefined;
+
   const metadata = await lookupMetadata(
     source,
     canonical,
-    type as MediaTypeHint | undefined
+    type as MediaTypeHint | undefined,
+    { language }
   );
 
   return {

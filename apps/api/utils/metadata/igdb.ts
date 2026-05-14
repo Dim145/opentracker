@@ -24,10 +24,12 @@
  */
 import { redis } from '../server';
 import type {
+  LookupOptions,
   MediaMetadata,
   MediaSearchHit,
   MediaSource,
   MediaTypeHint,
+  SearchOptions,
 } from './types';
 import { META_TTL, NEG_SENTINEL } from './types';
 
@@ -236,7 +238,13 @@ function normalizeDetail(game: IgdbGame): MediaMetadata {
 
 async function lookupGame(
   id: string,
-  _hint?: MediaTypeHint
+  _hint?: MediaTypeHint,
+  // IGDB's `/games` endpoint has no response-language axis — the
+  // summary / name fields are English-only on the canonical record.
+  // Accept the option for protocol parity with TMDb but don't fan
+  // it out into the cache key: every locale would share the same
+  // payload.
+  _options?: LookupOptions
 ): Promise<MediaMetadata | null> {
   // Numeric id only at this layer — `normalizeId` already
   // resolved any slug / URL upstream.
@@ -272,7 +280,9 @@ async function lookupGame(
 async function searchGames(
   query: string,
   _hint?: MediaTypeHint,
-  _options?: { year?: number; includeAdult?: boolean }
+  // `language` / `year` / `includeAdult` all accepted for protocol
+  // parity; IGDB's `/games` search ignores them on the wire.
+  _options?: SearchOptions
 ): Promise<MediaSearchHit[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];

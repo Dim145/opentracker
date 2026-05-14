@@ -89,6 +89,24 @@ export interface MediaSearchHit {
 }
 
 /**
+ * Provider-side request options shared by both `lookup` and `search`.
+ * Optional throughout — providers that don't speak the relevant axis
+ * (e.g. IGDB has no response-language knob) silently no-op while
+ * keeping the wire shape consistent.
+ */
+export interface LookupOptions {
+  /** Bundle locale of the requesting user (`en`, `fr`, …). TMDb
+   *  honours this via its `language` query param; IGDB ignores it
+   *  for now (no response-language axis on `/games`). */
+  language?: string;
+}
+
+export interface SearchOptions extends LookupOptions {
+  year?: number;
+  includeAdult?: boolean;
+}
+
+/**
  * Every provider implements this contract. The façade only ever
  * calls these methods — `lookup` and `search` decide internally
  * whether to hit the network, the cache, or both.
@@ -108,11 +126,15 @@ export interface MediaSource {
    *  May hit the network for slug→id resolves; callers should
    *  treat the call as async. */
   normalizeId(input: unknown): Promise<string | null>;
-  lookup(id: string, hint?: MediaTypeHint): Promise<MediaMetadata | null>;
+  lookup(
+    id: string,
+    hint?: MediaTypeHint,
+    options?: LookupOptions
+  ): Promise<MediaMetadata | null>;
   search(
     query: string,
     hint?: MediaTypeHint,
-    options?: { year?: number; includeAdult?: boolean }
+    options?: SearchOptions
   ): Promise<MediaSearchHit[]>;
 }
 
