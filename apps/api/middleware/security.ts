@@ -13,26 +13,17 @@ import { users, bannedIps } from '@trackarr/db/schema';
 // Security Configuration
 // ============================================================================
 
-const SUSPICIOUS_PATTERNS = [
-  // SQL Injection patterns
-  /(\bunion\b.*\bselect\b|\bselect\b.*\bfrom\b.*\bwhere\b)/i,
-  /(\bdrop\b.*\btable\b|\bdelete\b.*\bfrom\b)/i,
-  /('|"|;|--|\bor\b.*=.*\bor\b)/i,
-
-  // XSS patterns
-  /<script[^>]*>/i,
-  /javascript:/i,
-  /on\w+\s*=/i,
-
-  // Path traversal
-  /\.\.\//,
-  /\.\.%2f/i,
-
-  // Common attack tools
-  /sqlmap/i,
-  /nikto/i,
-  /nmap/i,
-];
+// The previous `SUSPICIOUS_PATTERNS` WAF regex used to match every
+// request against a hand-rolled SQL-injection / XSS / path-traversal
+// blocklist. It produced false positives on legitimate inputs (forum
+// posts about SQL training, search queries like "drop table", torrent
+// titles containing `<script` tags as scene flags, …) without adding
+// any defence in depth: routes use Drizzle parameterised queries +
+// Zod schemas end-to-end, and the v-html sinks on the FE go through
+// DOMPurify. Path traversal stays gated by `isValidPath` below.
+//
+// Keeping the user-agent blocklist — that's still a cheap, low-noise
+// filter against known automated scanners (sqlmap, nikto, masscan).
 
 const BLOCKED_USER_AGENTS = [
   'sqlmap',
@@ -49,13 +40,6 @@ const BLOCKED_USER_AGENTS = [
 // ============================================================================
 // Request Validation
 // ============================================================================
-
-/**
- * Check for suspicious patterns in request
- */
-function hasSuspiciousPatterns(value: string): boolean {
-  return SUSPICIOUS_PATTERNS.some((pattern) => pattern.test(value));
-}
 
 /**
  * Check for blocked user agents
@@ -89,15 +73,16 @@ function isValidPath(path: string): boolean {
 }
 
 /**
- * Validate query parameters
+ * Validate query parameters — only the size cap remains. Type-safe
+ * routes use Zod / Drizzle so injection-shape strings reaching a SQL
+ * query are already neutralised; rejecting them here was just a
+ * false-positive magnet against innocent inputs.
  */
 function validateQueryParams(query: Record<string, unknown>): boolean {
-  for (const [key, value] of Object.entries(query)) {
+  for (const [, value] of Object.entries(query)) {
     if (typeof value === 'string') {
-      if (hasSuspiciousPatterns(value)) return false;
       if (value.length > 10000) return false; // Prevent oversized params
     }
-    if (hasSuspiciousPatterns(key)) return false;
   }
   return true;
 }

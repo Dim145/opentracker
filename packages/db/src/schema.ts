@@ -432,6 +432,19 @@ export const bonusGrants = pgTable(
       table.userId,
       table.torrentId
     ),
+    // Partial unique index — only one `first_seeder` grant per
+    // torrent is ever allowed. The collector's gate already checks
+    // existence per torrent before inserting (see
+    // `applyFirstSeederRule`), but a race between two Nitro
+    // replicas that both held a stale cross-replica lock view
+    // would still let two inserts slip through; the DB-level
+    // constraint catches that path as well. `WHERE` keeps the
+    // index narrow — it doesn't apply to seeding / milestone /
+    // account_age_monthly rows where multiple grants per torrent
+    // are the whole point.
+    uniqueIndex('bonus_grants_first_seeder_unique_idx')
+      .on(table.torrentId)
+      .where(sql`source = 'first_seeder' AND torrent_id IS NOT NULL`),
   ]
 );
 

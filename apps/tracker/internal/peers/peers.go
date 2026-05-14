@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -48,9 +49,31 @@ type PeerData struct {
 //      the same physical Redis entries.
 //   2. Mutating in-flight command args from a hook is fragile in go-redis;
 //      string concat is trivial and unambiguous.
+// countsCacheTTL bounds how stale `Counts` is allowed to go. Each
+// `(seeders, leechers)` lookup HGETALL-s the whole swarm hash and
+// JSON-unmarshals every peer; a busy torrent can hold thousands of
+// peers, and `handleAnnounce` calls `Counts` on every dedup hit
+// AND every `event=stopped`. The cache keeps the cost flat at one
+// fetch per swarm per `countsCacheTTL`, at the price of the swarm
+// view being out of date by up to that interval. Clients re-
+// announce on a 30-minute interval anyway, so 5 s of staleness is
+// invisible end-to-end.
+const countsCacheTTL = 5 * time.Second
+
+type countsCacheEntry struct {
+	seeders   int
+	leechers  int
+	expiresAt time.Time
+}
+
 type Store struct {
 	client *redis.Client
 	prefix string
+	// countsCache is process-local — each Go replica maintains its
+	// own. The hot announce path lives behind this, so per-replica
+	// caching is fine; we accept that a peer joining replica A may
+	// not show up in replica B's `Counts` for up to `countsCacheTTL`.
+	countsCache sync.Map // string → *countsCacheEntry
 }
 
 // New returns a Store. `keyPrefix` typically comes from REDIS_KEY_PREFIX
@@ -75,6 +98,10 @@ func (s *Store) Set(ctx context.Context, infoHashHex string, p *PeerData) error 
 	pipe.HSet(ctx, key, p.PeerID, data)
 	pipe.Expire(ctx, key, peerTTL)
 	_, err = pipe.Exec(ctx)
+	// Invalidate the (seeders, leechers) cache for this swarm so a
+	// stopped-and-restarted peer surfaces in counts immediately
+	// instead of waiting out the cache TTL.
+	s.invalidateCounts(infoHashHex)
 	return err
 }
 
@@ -102,7 +129,9 @@ func (s *Store) Get(ctx context.Context, infoHashHex, peerIDHex string) (*PeerDa
 
 // Remove deletes a single peer from the swarm.
 func (s *Store) Remove(ctx context.Context, infoHashHex, peerIDHex string) error {
-	return s.client.HDel(ctx, s.peerKey(infoHashHex), peerIDHex).Err()
+	err := s.client.HDel(ctx, s.peerKey(infoHashHex), peerIDHex).Err()
+	s.invalidateCounts(infoHashHex)
+	return err
 }
 
 // List returns all live peers in a swarm. Stale peers are pruned in-band.
@@ -129,12 +158,24 @@ func (s *Store) List(ctx context.Context, infoHashHex string) ([]*PeerData, erro
 	}
 	if len(stale) > 0 {
 		_ = s.client.HDel(ctx, key, stale...).Err()
+		// Stale-prune changed the swarm view — drop the cached
+		// counts so the next `Counts` call reflects the prune.
+		s.invalidateCounts(infoHashHex)
 	}
 	return out, nil
 }
 
-// Counts returns (seeders, leechers) for a swarm by walking List once.
+// Counts returns (seeders, leechers) for a swarm. Walks List once
+// per `countsCacheTTL` per swarm; concurrent callers either share
+// the cached value or — if the cache is cold/expired — race to
+// repopulate it (acceptable; the duplicate work is bounded).
 func (s *Store) Counts(ctx context.Context, infoHashHex string) (seeders, leechers int, err error) {
+	if v, ok := s.countsCache.Load(infoHashHex); ok {
+		entry := v.(*countsCacheEntry)
+		if time.Now().Before(entry.expiresAt) {
+			return entry.seeders, entry.leechers, nil
+		}
+	}
 	peers, err := s.List(ctx, infoHashHex)
 	if err != nil {
 		return 0, 0, err
@@ -146,7 +187,20 @@ func (s *Store) Counts(ctx context.Context, infoHashHex string) (seeders, leeche
 			leechers++
 		}
 	}
+	s.countsCache.Store(infoHashHex, &countsCacheEntry{
+		seeders:   seeders,
+		leechers:  leechers,
+		expiresAt: time.Now().Add(countsCacheTTL),
+	})
 	return seeders, leechers, nil
+}
+
+// invalidateCounts drops the cached count entry for a swarm so the
+// next `Counts` call is forced to refresh. Called by `Set` and
+// `Remove` so a write surfaces in the count without waiting out
+// the TTL. Cheap: a `sync.Map.Delete` is lock-free.
+func (s *Store) invalidateCounts(infoHashHex string) {
+	s.countsCache.Delete(infoHashHex)
 }
 
 // statsTTL keeps stats:* hashes alive long enough for live charts to

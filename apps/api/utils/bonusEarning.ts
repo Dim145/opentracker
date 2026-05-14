@@ -426,20 +426,31 @@ export async function applyFirstSeederRule(args: {
       lockedTorrents.add(pair.torrentId);
       continue;
     }
-    await creditPoints({
-      userId: pair.userId,
-      source: 'first_seeder',
-      torrentId: pair.torrentId,
-      amount: config.reward,
-    });
+    try {
+      await creditPoints({
+        userId: pair.userId,
+        source: 'first_seeder',
+        torrentId: pair.torrentId,
+        amount: config.reward,
+      });
+      credited++;
+      awarded += config.reward;
+    } catch (err) {
+      // Partial unique index `bonus_grants_first_seeder_unique_idx`
+      // makes the INSERT fail with code 23505 if another replica
+      // (or a stale SETNX lock view) slipped a row through between
+      // our SELECT and INSERT. The duplicate is exactly what we
+      // want to block, so swallow it — the torrent is now locked
+      // for everyone.
+      const code = (err as { code?: string }).code;
+      if (code !== '23505') throw err;
+    }
     // Lock the torrent in this tick too so the loop doesn't re-pay
     // when the SCAN happens to surface multiple users in the same
     // torrent's "unique" window across two scan rounds. The cross-
     // replica SETNX lock in bonus-collector already prevents two
     // ticks from racing each other.
     lockedTorrents.add(pair.torrentId);
-    credited++;
-    awarded += config.reward;
   }
   return { usersCredited: credited, pointsAwarded: awarded };
 }
@@ -560,34 +571,36 @@ export async function applyAccountAgeMonthlyRule(args: {
   // first credit fires on the first cron tick after their 30 d
   // anniversary.
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  // Pull every non-banned user older than the cutoff.
-  const users = await db
-    .select({ id: schema.users.id, createdAt: schema.users.createdAt })
-    .from(schema.users)
-    .where(
-      and(
-        lt(schema.users.createdAt, cutoff),
-        eq(schema.users.isBanned, false)
-      )
-    );
-
+  // One round-trip to find every user who's due: a LEFT JOIN LATERAL
+  // pulls each user's latest `account_age_monthly` grant (if any)
+  // alongside the user row, and the WHERE clause filters down to
+  // users whose last grant is older than the cutoff (or who have
+  // never been credited). The previous implementation walked every
+  // non-banned user older than 30 d and ran one extra SELECT per
+  // user — 50k users on a moderately-sized tracker meant 50k +1
+  // round-trips through pgbouncer per cron tick.
+  const dueUsers = await db.execute<{ id: string }>(sql`
+    SELECT u.id
+      FROM ${schema.users} u
+      LEFT JOIN LATERAL (
+        SELECT created_at
+          FROM ${schema.bonusGrants}
+          WHERE source = 'account_age_monthly'
+            AND user_id = u.id
+          ORDER BY created_at DESC
+          LIMIT 1
+      ) g ON true
+      WHERE u.created_at < ${cutoff}
+        AND u.is_banned = false
+        AND (g.created_at IS NULL OR g.created_at <= ${cutoff})
+  `);
+  const rows = (dueUsers as { rows?: Array<{ id: string }> }).rows
+    ?? (dueUsers as unknown as Array<{ id: string }>);
   let credited = 0;
   let awarded = 0;
-  for (const u of users) {
-    const [latest] = await db
-      .select({ createdAt: schema.bonusGrants.createdAt })
-      .from(schema.bonusGrants)
-      .where(
-        and(
-          eq(schema.bonusGrants.source, 'account_age_monthly'),
-          eq(schema.bonusGrants.userId, u.id)
-        )
-      )
-      .orderBy(desc(schema.bonusGrants.createdAt))
-      .limit(1);
-    if (latest && latest.createdAt > cutoff) continue;
+  for (const row of rows) {
     await creditPoints({
-      userId: u.id,
+      userId: row.id,
       source: 'account_age_monthly',
       amount: config.rewardPerMonth,
     });

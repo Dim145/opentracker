@@ -690,19 +690,45 @@ watch(form, () => { dirty.value = true; }, { deep: true });
 // rendered (computed is lazy). Each `dirty: true` keystroke
 // re-renders the savebar so this still gets a fresh count, but
 // it only does work when the bar is visible.
+//
+// Comparison is strict-equality per field rather than
+// `JSON.stringify(form) !== JSON.stringify(snapshot)`. Every field
+// except `features` is a primitive (string / boolean / null) where
+// `===` already works; for `features` we walk the array once
+// (length + per-row title/description) instead of allocating two
+// stringified copies of the whole tree on every render. The
+// previous implementation ran ~17 × JSON.stringify on every
+// re-render of the savebar — cheap individually, but the savebar
+// re-renders on every keystroke, so the saving adds up.
+const FORM_KEYS: (keyof BrandingForm)[] = [
+  'siteName', 'siteLogo', 'siteLogoImage', 'siteFavicon', 'siteSubtitle',
+  'siteNameColor', 'siteNameBold', 'authTitle', 'authSubtitle', 'footerText',
+  'pageTitleSuffix', 'welcomeMessage', 'siteRules', 'heroTitle', 'heroSubtitle',
+  'statusBadgeText',
+];
 const dirtyCount = computed(() => {
   if (!dirty.value) return 0;
+  const snap = snapshot.value;
   let n = 0;
-  const keys: (keyof BrandingForm)[] = [
-    'siteName', 'siteLogo', 'siteLogoImage', 'siteFavicon', 'siteSubtitle',
-    'siteNameColor', 'siteNameBold', 'authTitle', 'authSubtitle', 'footerText',
-    'pageTitleSuffix', 'welcomeMessage', 'siteRules', 'heroTitle', 'heroSubtitle',
-    'statusBadgeText',
-  ];
-  for (const k of keys) {
-    if (JSON.stringify(form[k]) !== JSON.stringify(snapshot.value[k])) n += 1;
+  for (const k of FORM_KEYS) {
+    if (form[k] !== snap[k]) n += 1;
   }
-  if (JSON.stringify(form.features) !== JSON.stringify(snapshot.value.features)) n += 1;
+  // `features` is the only nested structure — three entries, each
+  // with two string fields. Shallow per-field compare is enough.
+  let featuresChanged = false;
+  if (form.features.length !== snap.features.length) {
+    featuresChanged = true;
+  } else {
+    for (let i = 0; i < form.features.length; i++) {
+      const a = form.features[i];
+      const b = snap.features[i];
+      if (!a || !b || a.title !== b.title || a.description !== b.description) {
+        featuresChanged = true;
+        break;
+      }
+    }
+  }
+  if (featuresChanged) n += 1;
   return n;
 });
 
