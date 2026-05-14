@@ -149,6 +149,7 @@ services:
       TMDB_API_KEY: ${TMDB_API_KEY:-}
       IGDB_ID: ${IGDB_ID:-}
       IGDB_SECRET: ${IGDB_SECRET:-}
+      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
     expose:
       - "4000"
     volumes:

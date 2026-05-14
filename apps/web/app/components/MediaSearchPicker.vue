@@ -15,7 +15,9 @@
                 ? t('components.mediaSearch.placeholderMovie')
                 : typeHint === 'game'
                   ? t('components.mediaSearch.placeholderGame')
-                  : t('components.mediaSearch.placeholderAny')
+                  : typeHint === 'book'
+                    ? t('components.mediaSearch.placeholderBook')
+                    : t('components.mediaSearch.placeholderAny')
           "
           @focus="open = true"
           @keydown.escape="open = false"
@@ -80,7 +82,9 @@
                           ? 'ph:film-strip-bold'
                           : hit.type === 'tv'
                             ? 'ph:television-simple-bold'
-                            : 'ph:game-controller-bold'
+                            : hit.type === 'game'
+                              ? 'ph:game-controller-bold'
+                              : 'ph:book-open-text-bold'
                       "
                     />
                     {{
@@ -88,7 +92,9 @@
                         ? t('components.mediaSearch.movie')
                         : hit.type === 'tv'
                           ? t('components.mediaSearch.tv')
-                          : t('components.mediaSearch.game')
+                          : hit.type === 'game'
+                            ? t('components.mediaSearch.game')
+                            : t('components.mediaSearch.book')
                     }}
                   </span>
                   <span v-if="hit.voteAverage" class="picker-rating">
@@ -139,6 +145,18 @@
           <span v-if="selected.igdbId" class="id-tag id-tag--igdb"
             >{{ t('components.mediaSearch.igdbBadge', { id: selected.igdbId }) }}</span
           >
+          <span
+            v-if="selected.openlibraryId || selected.isbn13 || selected.isbn10"
+            class="id-tag id-tag--openlibrary"
+          >{{
+            t('components.mediaSearch.openlibraryBadge', {
+              id:
+                selected.isbn13 ??
+                selected.isbn10 ??
+                selected.openlibraryId ??
+                ''
+            })
+          }}</span>
         </div>
       </div>
       <button type="button" class="picker-clear" @click="clearSelection">
@@ -155,10 +173,10 @@
       </summary>
       <div class="id-grid">
         <!-- Movie / TV / null category: surface the TMDb-family IDs.
-             Hiding IGDB here keeps the operator from mistakenly
-             pasting an IGDB slug into a film row (and vice versa
-             for the game branch below). -->
-        <template v-if="typeHint !== 'game'">
+             Hiding IGDB / Open Library here keeps the operator from
+             mistakenly pasting the wrong namespace into a film row
+             (and vice versa for the game / book branches below). -->
+        <template v-if="typeHint !== 'game' && typeHint !== 'book'">
           <label>
             <span class="id-tag id-tag--imdb">{{ t('components.mediaSearch.imdb') }}</span>
             <input
@@ -203,6 +221,20 @@
             />
           </label>
         </template>
+        <!-- Book category: only Open Library. ISBN-10, ISBN-13 and
+             OL work ids are all accepted; the API normalises. -->
+        <template v-if="typeHint === 'book'">
+          <label>
+            <span class="id-tag id-tag--openlibrary">{{ t('components.mediaSearch.openlibrary') }}</span>
+            <input
+              :value="openlibraryId"
+              type="text"
+              class="input id-input"
+              placeholder="9780553573404 or OL27448W"
+              @input="$emit('update:openlibraryId', ($event.target as HTMLInputElement).value)"
+            />
+          </label>
+        </template>
       </div>
       <button
         type="button"
@@ -222,10 +254,10 @@
 
 <script setup lang="ts">
 interface MediaSearchHit {
-  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb';
-  type: 'movie' | 'tv' | 'game';
+  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb' | 'openlibrary';
+  type: 'movie' | 'tv' | 'game' | 'book';
   /** Source-side canonical id (string for portability — TMDb numeric,
-   *  IGDB numeric, IMDb tt-prefixed). */
+   *  IGDB numeric, IMDb tt-prefixed, ISBN-13 / OL work id for books). */
   id: string;
   title: string;
   year: number | null;
@@ -237,12 +269,15 @@ interface MediaSearchHit {
 
 /** Full normalised metadata returned by /api/metadata/lookup. */
 interface MediaMetadata {
-  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb';
-  type: 'movie' | 'tv' | 'game';
+  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb' | 'openlibrary';
+  type: 'movie' | 'tv' | 'game' | 'book';
   tmdbId?: number | null;
   imdbId?: string | null;
   tvdbId?: number | null;
   igdbId?: number | null;
+  openlibraryId?: string | null;
+  isbn13?: string | null;
+  isbn10?: string | null;
   title: string;
   year: number | null;
   posterUrl: string | null;
@@ -255,9 +290,9 @@ const props = defineProps<{
   initialQuery?: string;
   initialYear?: number | null;
   /** Type hint from the category. Drives both the search-source
-   *  pick ('game' → IGDB, else TMDb) and the constrained type
-   *  filter inside the source. */
-  typeHint?: 'movie' | 'tv' | 'game';
+   *  pick ('game' → IGDB, 'book' → Open Library, else TMDb) and
+   *  the constrained type filter inside the source. */
+  typeHint?: 'movie' | 'tv' | 'game' | 'book';
   /** Auto-fire a search for `initialQuery` when it lands non-empty. */
   autoSearch?: boolean;
   /** Currently-resolved metadata (so the chip survives parent re-renders). */
@@ -267,6 +302,7 @@ const props = defineProps<{
   tmdbId?: string;
   tvdbId?: string;
   igdbId?: string;
+  openlibraryId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -279,13 +315,17 @@ const emit = defineEmits<{
   (e: 'update:tmdbId', value: string): void;
   (e: 'update:tvdbId', value: string): void;
   (e: 'update:igdbId', value: string): void;
+  (e: 'update:openlibraryId', value: string): void;
 }>();
 
-/** Game categories route to IGDB; everything else goes to TMDb.
- *  The endpoint dedupes when both are configured by source param. */
-const searchSource = computed<'tmdb' | 'igdb'>(() =>
-  props.typeHint === 'game' ? 'igdb' : 'tmdb'
-);
+/** Game → IGDB, book → Open Library, everything else → TMDb. The
+ *  endpoint dispatches on the source param so disabled providers
+ *  surface a clean 503 instead of degrading silently. */
+const searchSource = computed<'tmdb' | 'igdb' | 'openlibrary'>(() => {
+  if (props.typeHint === 'game') return 'igdb';
+  if (props.typeHint === 'book') return 'openlibrary';
+  return 'tmdb';
+});
 
 const rawQuery = ref(props.initialQuery ?? '');
 const debouncedQuery = ref('');
@@ -331,9 +371,13 @@ watch(debouncedQuery, async (q) => {
       source: searchSource.value,
     };
     if (props.typeHint) params.type = props.typeHint;
-    // IGDB ignores year filtering at the API layer; only pass it
-    // through for TMDb where /search/{movie,tv} honour it.
-    if (props.initialYear && searchSource.value === 'tmdb') {
+    // IGDB ignores year filtering; TMDb honours it via /search/* and
+    // Open Library honours it via `first_publish_year`. Skip the
+    // round-trip when it would be ignored anyway.
+    if (
+      props.initialYear &&
+      (searchSource.value === 'tmdb' || searchSource.value === 'openlibrary')
+    ) {
       params.year = props.initialYear;
     }
     const res = await $fetch<{
@@ -438,20 +482,23 @@ const hasAnyManualId = computed(
       (props.imdbId ?? '').trim() ||
       (props.tmdbId ?? '').trim() ||
       (props.tvdbId ?? '').trim() ||
-      (props.igdbId ?? '').trim()
+      (props.igdbId ?? '').trim() ||
+      (props.openlibraryId ?? '').trim()
     )
 );
 
 async function resolveManual() {
-  const params: Record<string, string> | null = (props.igdbId ?? '').trim()
-    ? { source: 'igdb', id: (props.igdbId ?? '').trim() }
-    : (props.tmdbId ?? '').trim()
-      ? { source: 'tmdb', id: (props.tmdbId ?? '').trim() }
-      : (props.imdbId ?? '').trim()
-        ? { source: 'imdb', id: (props.imdbId ?? '').trim() }
-        : (props.tvdbId ?? '').trim()
-          ? { source: 'tvdb', id: (props.tvdbId ?? '').trim() }
-          : null;
+  const params: Record<string, string> | null = (props.openlibraryId ?? '').trim()
+    ? { source: 'openlibrary', id: (props.openlibraryId ?? '').trim() }
+    : (props.igdbId ?? '').trim()
+      ? { source: 'igdb', id: (props.igdbId ?? '').trim() }
+      : (props.tmdbId ?? '').trim()
+        ? { source: 'tmdb', id: (props.tmdbId ?? '').trim() }
+        : (props.imdbId ?? '').trim()
+          ? { source: 'imdb', id: (props.imdbId ?? '').trim() }
+          : (props.tvdbId ?? '').trim()
+            ? { source: 'tvdb', id: (props.tvdbId ?? '').trim() }
+            : null;
   if (!params) return;
   if (props.typeHint) (params as Record<string, string>).type = props.typeHint;
   resolving.value = true;
@@ -739,6 +786,7 @@ async function resolveManual() {
 .picker-selected-ids .id-tag--tmdb { color: #01b4e4; }
 .picker-selected-ids .id-tag--tvdb { color: #6cd161; }
 .picker-selected-ids .id-tag--igdb { color: #a78bfa; }
+.picker-selected-ids .id-tag--openlibrary { color: #d97706; }
 
 .picker-clear {
   display: inline-flex;
@@ -810,6 +858,7 @@ async function resolveManual() {
 .picker-manual .id-tag--tmdb { color: #01b4e4; }
 .picker-manual .id-tag--tvdb { color: #6cd161; }
 .picker-manual .id-tag--igdb { color: #a78bfa; }
+.picker-manual .id-tag--openlibrary { color: #d97706; }
 .picker-manual .id-input {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.8rem;

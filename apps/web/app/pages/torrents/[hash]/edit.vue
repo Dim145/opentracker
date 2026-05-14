@@ -125,12 +125,14 @@
               :tmdb-id="tmdbId"
               :tvdb-id="tvdbId"
               :igdb-id="igdbId"
+              :openlibrary-id="openlibraryId"
               @select="onMediaSelected"
               @clear="clearMediaSelection"
               @update:imdb-id="imdbId = $event"
               @update:tmdb-id="tmdbId = $event"
               @update:tvdb-id="tvdbId = $event"
               @update:igdb-id="igdbId = $event"
+              @update:openlibrary-id="openlibraryId = $event"
             />
           </div>
         </section>
@@ -355,15 +357,19 @@ interface TorrentDetail {
   tmdbId?: string | null;
   tvdbId?: string | null;
   igdbId?: string | null;
+  openlibraryId?: string | null;
 }
 
 interface MediaMetadata {
-  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb';
-  type: 'movie' | 'tv' | 'game';
+  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb' | 'openlibrary';
+  type: 'movie' | 'tv' | 'game' | 'book';
   tmdbId?: number | null;
   imdbId?: string | null;
   tvdbId?: number | null;
   igdbId?: number | null;
+  openlibraryId?: string | null;
+  isbn13?: string | null;
+  isbn10?: string | null;
   title: string;
   year: number | null;
   posterUrl: string | null;
@@ -395,6 +401,7 @@ const imdbId = ref('');
 const tmdbId = ref('');
 const tvdbId = ref('');
 const igdbId = ref('');
+const openlibraryId = ref('');
 const isSaving = ref(false);
 const error = ref<string | null>(null);
 const NFO_MAX_BYTES = 256 * 1024;
@@ -410,6 +417,7 @@ interface Snapshot {
   tmdb: string;
   tvdb: string;
   igdb: string;
+  openlibrary: string;
 }
 const snapshot = ref<Snapshot | null>(null);
 
@@ -426,6 +434,7 @@ watch(
     tmdbId.value = t.tmdbId || '';
     tvdbId.value = t.tvdbId || '';
     igdbId.value = t.igdbId || '';
+    openlibraryId.value = t.openlibraryId || '';
     snapshot.value = {
       name: title.value,
       category: selectedCategoryId.value,
@@ -436,6 +445,7 @@ watch(
       tmdb: tmdbId.value,
       tvdb: tvdbId.value,
       igdb: igdbId.value,
+      openlibrary: openlibraryId.value,
     };
   },
   { immediate: true }
@@ -493,6 +503,7 @@ const dirtyCount = computed(() => {
   if (s.tmdb !== tmdbId.value) n++;
   if (s.tvdb !== tvdbId.value) n++;
   if (s.igdb !== igdbId.value) n++;
+  if (s.openlibrary !== openlibraryId.value) n++;
   return n;
 });
 
@@ -529,17 +540,21 @@ async function loadExistingMetadata() {
   // Game-hinted categories prefer the IGDB id even when other ids
   // are stored; movie/TV categories prefer TMDb.
   const params: Record<string, string> | null =
-    type === 'game' && t.igdbId
-      ? { source: 'igdb', id: t.igdbId }
-      : t.tmdbId
-        ? { source: 'tmdb', id: t.tmdbId }
-        : t.imdbId
-          ? { source: 'imdb', id: t.imdbId }
-          : t.tvdbId
-            ? { source: 'tvdb', id: t.tvdbId }
-            : t.igdbId
-              ? { source: 'igdb', id: t.igdbId }
-              : null;
+    type === 'book' && t.openlibraryId
+      ? { source: 'openlibrary', id: t.openlibraryId }
+      : type === 'game' && t.igdbId
+        ? { source: 'igdb', id: t.igdbId }
+        : t.tmdbId
+          ? { source: 'tmdb', id: t.tmdbId }
+          : t.imdbId
+            ? { source: 'imdb', id: t.imdbId }
+            : t.tvdbId
+              ? { source: 'tvdb', id: t.tvdbId }
+              : t.igdbId
+                ? { source: 'igdb', id: t.igdbId }
+                : t.openlibraryId
+                  ? { source: 'openlibrary', id: t.openlibraryId }
+                  : null;
   if (!params) return;
   if (type) params.type = type;
   try {
@@ -566,6 +581,8 @@ function onMediaSelected(metadata: MediaMetadata) {
       : '';
   tvdbId.value = metadata.tvdbId != null ? String(metadata.tvdbId) : '';
   igdbId.value = metadata.igdbId != null ? String(metadata.igdbId) : '';
+  openlibraryId.value =
+    metadata.isbn13 ?? metadata.isbn10 ?? metadata.openlibraryId ?? '';
 }
 function clearMediaSelection() {
   lookupResult.value = null;
@@ -574,6 +591,7 @@ function clearMediaSelection() {
   tmdbId.value = '';
   tvdbId.value = '';
   igdbId.value = '';
+  openlibraryId.value = '';
 }
 
 function triggerNfoInput() {
@@ -607,12 +625,19 @@ async function save() {
     // doesn't survive a recategorisation to e.g. Audio.
     const idPayload =
       categoryKindValue.value === 'other'
-        ? { imdbId: null, tmdbId: null, tvdbId: null, igdbId: null }
+        ? {
+            imdbId: null,
+            tmdbId: null,
+            tvdbId: null,
+            igdbId: null,
+            openlibraryId: null,
+          }
         : {
             imdbId: imdbId.value.trim() || null,
             tmdbId: tmdbId.value.trim() || null,
             tvdbId: tvdbId.value.trim() || null,
             igdbId: igdbId.value.trim() || null,
+            openlibraryId: openlibraryId.value.trim() || null,
           };
 
     const res = await fetch(

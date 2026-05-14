@@ -213,12 +213,14 @@
               :tmdb-id="tmdbId"
               :tvdb-id="tvdbId"
               :igdb-id="igdbId"
+              :openlibrary-id="openlibraryId"
               @select="onMediaSelected"
               @clear="clearMediaSelection"
               @update:imdb-id="imdbId = $event"
               @update:tmdb-id="tmdbId = $event"
               @update:tvdb-id="tvdbId = $event"
               @update:igdb-id="igdbId = $event"
+              @update:openlibrary-id="openlibraryId = $event"
             />
           </div>
         </section>
@@ -500,12 +502,15 @@ interface TorrentResult {
 }
 
 interface MediaMetadata {
-  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb';
-  type: 'movie' | 'tv' | 'game';
+  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb' | 'openlibrary';
+  type: 'movie' | 'tv' | 'game' | 'book';
   tmdbId?: number | null;
   imdbId?: string | null;
   tvdbId?: number | null;
   igdbId?: number | null;
+  openlibraryId?: string | null;
+  isbn13?: string | null;
+  isbn10?: string | null;
   title: string;
   year: number | null;
   posterUrl: string | null;
@@ -532,6 +537,7 @@ const imdbId = ref('');
 const tmdbId = ref('');
 const tvdbId = ref('');
 const igdbId = ref('');
+const openlibraryId = ref('');
 const isUploading = ref(false);
 const result = ref<TorrentResult | null>(null);
 const error = ref<string | null>(null);
@@ -744,6 +750,10 @@ function onMediaSelected(metadata: MediaMetadata) {
       : '';
   tvdbId.value = metadata.tvdbId != null ? String(metadata.tvdbId) : '';
   igdbId.value = metadata.igdbId != null ? String(metadata.igdbId) : '';
+  // Books: prefer the ISBN-13 (universal across providers) and fall
+  // back to the OL work id when no ISBN was indexed.
+  openlibraryId.value =
+    metadata.isbn13 ?? metadata.isbn10 ?? metadata.openlibraryId ?? '';
 }
 function clearMediaSelection() {
   lookupResult.value = null;
@@ -751,6 +761,7 @@ function clearMediaSelection() {
   tmdbId.value = '';
   tvdbId.value = '';
   igdbId.value = '';
+  openlibraryId.value = '';
 }
 
 // File handling
@@ -902,8 +913,8 @@ async function upload() {
     if (nfoFile.value) formData.append('nfoFile', nfoFile.value);
     if (tags.value.length > 0)
       formData.append('tags', JSON.stringify(tags.value));
-    // Only submit IDs when the category supports them — keeps `other`
-    // categories (audio/books/etc.) from accidentally storing stray ids.
+    // Only submit IDs when the category supports them — keeps the
+    // `other` bucket (audio, software, …) from storing stray ids.
     if (categoryKindValue.value !== 'other') {
       if (imdbId.value.trim())
         formData.append('imdbId', imdbId.value.trim());
@@ -913,6 +924,8 @@ async function upload() {
         formData.append('tvdbId', tvdbId.value.trim());
       if (igdbId.value.trim())
         formData.append('igdbId', igdbId.value.trim());
+      if (openlibraryId.value.trim())
+        formData.append('openlibraryId', openlibraryId.value.trim());
     }
 
     const response = await $fetch<TorrentResult>('/api/torrents', {
@@ -947,6 +960,7 @@ function resetForm() {
   tmdbId.value = '';
   tvdbId.value = '';
   igdbId.value = '';
+  openlibraryId.value = '';
   parsed.value = null;
   lookupResult.value = null;
   error.value = null;

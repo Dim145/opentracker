@@ -276,10 +276,17 @@
 
     <!-- Rich metadata card. We pick the renderer by source so a
          game lands on the IGDB-specific card (cover + platforms +
-         modes) and a movie/TV lands on the TMDb one. Silent no-op
-         when integration is disabled or the lookup missed. -->
+         modes), a book on the Open Library / Google Books card
+         (authors + publisher + pages) and a movie/TV on the TMDb
+         one. Silent no-op when integration is disabled or the
+         lookup missed. -->
     <GameMetadataCard
       v-if="metadata && metadata.source === 'igdb'"
+      :metadata="metadata"
+      class="mb-6"
+    />
+    <BookMetadataCard
+      v-else-if="metadata && metadata.source === 'openlibrary'"
       :metadata="metadata"
       class="mb-6"
     />
@@ -527,6 +534,7 @@ interface TorrentDetail {
   tmdbId?: string | null;
   tvdbId?: string | null;
   igdbId?: string | null;
+  openlibraryId?: string | null;
   createdAt: string;
   // Moderation pipeline status. Sent on every detail fetch so the
   // header badge + the inline panel can render without an extra
@@ -607,8 +615,8 @@ interface MediaMetadataResponse {
   enabled: boolean;
   found: boolean;
   metadata: {
-    source?: 'tmdb' | 'imdb' | 'tvdb' | 'igdb';
-    type: 'movie' | 'tv' | 'game';
+    source?: 'tmdb' | 'imdb' | 'tvdb' | 'igdb' | 'openlibrary';
+    type: 'movie' | 'tv' | 'game' | 'book';
     title: string;
     originalTitle: string | null;
     tagline: string | null;
@@ -629,6 +637,15 @@ interface MediaMetadataResponse {
     gameModes?: string[];
     screenshots?: string[];
     firstReleaseDate?: string | null;
+    // Open Library / Google Books fields. Optional so the existing
+    // shapes are unchanged; BookMetadataCard reads them when set.
+    openlibraryId?: string | null;
+    authors?: string[];
+    publisher?: string | null;
+    pageCount?: number | null;
+    isbn13?: string | null;
+    isbn10?: string | null;
+    bookProvider?: 'openlibrary' | 'googlebooks';
   } | null;
 }
 
@@ -645,7 +662,7 @@ function deriveTypeHint(
     | { newznabId?: number | null; slug?: string; name?: string }
     | null
     | undefined
-): 'movie' | 'tv' | 'game' | undefined {
+): 'movie' | 'tv' | 'game' | 'book' | undefined {
   const id = cat?.newznabId;
   if (typeof id === 'number') {
     if (id >= 5000 && id < 6000) return 'tv';
@@ -654,6 +671,8 @@ function deriveTypeHint(
     // to IGDB. We treat them as the same `game` hint — IGDB indexes
     // every platform under one game id.
     if ((id >= 1000 && id < 2000) || (id >= 4000 && id < 5000)) return 'game';
+    // 7xxx is the book/ebook/comic/magazine decade.
+    if (id >= 7000 && id < 8000) return 'book';
   }
   const text = `${cat?.slug || ''} ${cat?.name || ''}`
     .toLowerCase()
@@ -662,6 +681,7 @@ function deriveTypeHint(
   if (/\b(?:tv|seri|episod|saison|season|show|anime)/.test(text)) return 'tv';
   if (/\b(?:movie|film|cinema|cine)/.test(text)) return 'movie';
   if (/\b(?:game|games|jeu|jeux|console|playstation|xbox|nintendo|switch|pc-?game)/.test(text)) return 'game';
+  if (/\b(?:book|ebook|e-book|epub|mobi|azw3|livre|livres|comics?|bd|manga|magazine|revue)/.test(text)) return 'book';
   return undefined;
 }
 
@@ -670,8 +690,12 @@ const lookupParams = computed(() => {
   if (!t) return null;
   const type = deriveTypeHint(t.category);
   // Prefer the source that matches the category hint when we have
-  // multiple ids stored — a TV box with both a TMDB id and an IGDB
-  // id should hit TMDb, and vice versa.
+  // multiple ids stored — a TV box with both a TMDb and an IGDB id
+  // should hit TMDb, a book box with both an Open Library and TMDb
+  // id should hit Open Library, and so on.
+  if (type === 'book' && t.openlibraryId) {
+    return { source: 'openlibrary', id: t.openlibraryId, type };
+  }
   if (type === 'game' && t.igdbId) {
     return { source: 'igdb', id: t.igdbId, type };
   }
@@ -679,6 +703,8 @@ const lookupParams = computed(() => {
   if (t.imdbId) return { source: 'imdb', id: t.imdbId, type };
   if (t.tvdbId) return { source: 'tvdb', id: t.tvdbId, type };
   if (t.igdbId) return { source: 'igdb', id: t.igdbId, type };
+  if (t.openlibraryId)
+    return { source: 'openlibrary', id: t.openlibraryId, type };
   return null;
 });
 

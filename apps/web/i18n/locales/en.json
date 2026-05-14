@@ -1059,21 +1059,25 @@
       "placeholderMovie": "Search movies on TMDb…",
       "placeholderAny": "Search TMDb (movies + TV)…",
       "placeholderGame": "Search video games on IGDB…",
+      "placeholderBook": "Search books on Open Library…",
       "noMatchesPrefix": "No matches for",
       "kbdHint": "to browse",
       "kbdHintPick": "to pick",
       "movie": "Movie",
       "tv": "TV",
       "game": "Game",
+      "book": "Book",
       "tmdbBadge": "TMDb {id}",
       "tvdbBadge": "TVDB {id}",
       "igdbBadge": "IGDB {id}",
+      "openlibraryBadge": "Open Library {id}",
       "clear": "Clear",
       "manualToggle": "Or paste an ID manually",
       "imdb": "IMDb",
       "tmdb": "TMDb",
       "tvdb": "TVDB",
       "igdb": "IGDB",
+      "openlibrary": "ISBN / OL ID",
       "resolving": "Resolving…",
       "resolveAndPreview": "Resolve & preview",
       "errors": {
@@ -1103,6 +1107,17 @@
       "screenshots": "Screenshots",
       "viewOnIgdb": "View on IGDB",
       "votesOnIgdb": "{n} votes on IGDB"
+    },
+    "bookMetadata": {
+      "openLibrary": "OPEN LIBRARY",
+      "googleBooks": "GOOGLE BOOKS",
+      "by": "by",
+      "pages": "{n} pages",
+      "isbn13": "ISBN-13",
+      "isbn10": "ISBN-10",
+      "viewOnOpenLibrary": "View on Open Library",
+      "viewOnGoogle": "View on Google Books",
+      "votesOnGoogle": "{n} ratings on Google Books"
     }
   },
   "admin": {
@@ -1499,6 +1514,7 @@
         "movies": "movies",
         "tv": "TV",
         "games": "games",
+        "books": "books",
         "adult": "XXX"
       },
       "empty": {
@@ -1541,7 +1557,9 @@
         "tv": "TV / Series",
         "tvSub": "TMDb /tv",
         "game": "Video game",
-        "gameSub": "IGDB"
+        "gameSub": "IGDB",
+        "book": "Book / eBook",
+        "bookSub": "Open Library (+ Google Books fallback)"
       },
       "adult": {
         "title": "Mark as adult content",

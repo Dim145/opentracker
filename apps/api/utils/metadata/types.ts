@@ -18,11 +18,16 @@
  *   - how the upload form's media-id picker pre-selects a tab,
  *   - which metadata card the torrent detail page renders.
  */
-export type MediaTypeHint = 'movie' | 'tv' | 'game';
+export type MediaTypeHint = 'movie' | 'tv' | 'game' | 'book';
 
 /** Stable identifiers for every source. Add a literal here when
  *  you wire a new provider into `index.ts`. */
-export type MediaSourceId = 'tmdb' | 'imdb' | 'tvdb' | 'igdb';
+export type MediaSourceId =
+  | 'tmdb'
+  | 'imdb'
+  | 'tvdb'
+  | 'igdb'
+  | 'openlibrary';
 
 /**
  * Normalised detail payload returned by `lookup()`. Every provider
@@ -61,6 +66,8 @@ export interface MediaMetadata {
   imdbId?: string | null;
   tvdbId?: number | null;
   igdbId?: number | null;
+  /** Book-only — canonical Open Library work id (`OL\d+W`). */
+  openlibraryId?: string | null;
   /** Game-only — release platform names ("PlayStation 5", "PC", …). */
   platforms?: string[];
   /** Game-only — single-player / multiplayer / co-operative tags. */
@@ -70,6 +77,20 @@ export interface MediaMetadata {
   /** Game-only — IGDB-side first-release date as ISO if any
    *  region has shipped. */
   firstReleaseDate?: string | null;
+  /** Book-only — surfaced author names in publication order. */
+  authors?: string[];
+  /** Book-only — publisher name (best-effort across providers). */
+  publisher?: string | null;
+  /** Book-only — page count for the canonical edition. */
+  pageCount?: number | null;
+  /** Book-only — ISBN-13 if Open Library / Google Books had it. */
+  isbn13?: string | null;
+  /** Book-only — ISBN-10 if available; useful for legacy catalogues. */
+  isbn10?: string | null;
+  /** Book-only — which provider actually resolved this record
+   *  ('openlibrary' or 'googlebooks'). Lets the UI surface the
+   *  origin alongside the canonical 'source: openlibrary' header. */
+  bookProvider?: 'openlibrary' | 'googlebooks';
 }
 
 /** Lighter shape returned by `search()` for the upload-form picker. */

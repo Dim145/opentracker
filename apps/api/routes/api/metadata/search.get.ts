@@ -30,7 +30,7 @@ const querySchema = z.object({
   source: z
     .enum(ALL_SOURCE_IDS as [LookupSource, ...LookupSource[]])
     .default('tmdb'),
-  type: z.enum(['movie', 'tv', 'game']).optional(),
+  type: z.enum(['movie', 'tv', 'game', 'book']).optional(),
   year: z.coerce.number().int().min(1900).max(2100).optional(),
 });
 
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     return {
       enabled: false,
       message:
-        'Metadata search is not configured. Ask the operator to set TMDB_API_KEY (movies/TV) or IGDB_ID + IGDB_SECRET (games).',
+        'Metadata search is not configured. Ask the operator to set TMDB_API_KEY (movies/TV), IGDB_ID + IGDB_SECRET (games), or rely on Open Library / Google Books (books).',
       results: [],
     };
   }

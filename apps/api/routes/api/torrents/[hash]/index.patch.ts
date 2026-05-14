@@ -96,6 +96,7 @@ export default defineEventHandler(async (event) => {
     tmdbId,
     tvdbId,
     igdbId,
+    openlibraryId,
   } = body || {};
 
   // Validate categoryId if provided
@@ -135,6 +136,7 @@ export default defineEventHandler(async (event) => {
     tmdbId?: string | null;
     tvdbId?: string | null;
     igdbId?: string | null;
+    openlibraryId?: string | null;
   } = {};
 
   // Allow renaming the release. We require non-empty when provided so a
@@ -195,6 +197,28 @@ export default defineEventHandler(async (event) => {
           (err as Error).message
         );
         updateData.igdbId = null;
+      }
+    }
+  }
+  // Open Library never gates on env vars (no auth) — empty input
+  // still clears the column; normalisation rejects garbage by
+  // returning null, same as the upload route.
+  if (openlibraryId !== undefined) {
+    if (!openlibraryId) {
+      updateData.openlibraryId = null;
+    } else {
+      try {
+        const { normalizeSourceId } = await import('~~/utils/metadata');
+        updateData.openlibraryId = await normalizeSourceId(
+          'openlibrary',
+          openlibraryId
+        );
+      } catch (err) {
+        console.warn(
+          '[torrents] Open Library normalize failed:',
+          (err as Error).message
+        );
+        updateData.openlibraryId = null;
       }
     }
   }

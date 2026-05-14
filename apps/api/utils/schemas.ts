@@ -152,9 +152,10 @@ export const adminCategorySchema = z.object({
   // Marks the row as part of the gated XXX subtree.
   isAdult: z.boolean().optional(),
   // Canonical media type. 'movie' / 'tv' route to TMDb; 'game'
-  // routes to IGDB. Null clears any earlier choice and falls back
-  // to the heuristics in apps/web/app/utils/categories.ts.
-  type: z.enum(['movie', 'tv', 'game']).nullable().optional(),
+  // routes to IGDB; 'book' routes to Open Library (with optional
+  // Google Books fallback). Null clears any earlier choice and
+  // falls back to the heuristics in apps/web/app/utils/categories.ts.
+  type: z.enum(['movie', 'tv', 'game', 'book']).nullable().optional(),
 });
 
 export const adminSettingsSchema = z.object({

@@ -2,17 +2,19 @@
  * Shared category helpers for the upload + edit forms (and any other
  * page that needs to reason about a torrent's category). The same
  * findCategory + kind-detection logic used to be duplicated; centralising
- * it keeps "movie", "tv", "game" and "other" classifications consistent
- * so the Identity (IMDb/TMDb/TVDB/IGDB) section appears or hides on both
- * pages by exactly the same rule.
+ * it keeps "movie", "tv", "game", "book" and "other" classifications
+ * consistent so the Identity (IMDb/TMDb/TVDB/IGDB/Open Library)
+ * section appears or hides on both pages by exactly the same rule.
  *
  * "Kind" rules:
  *   - newznabId in 1000-1999 (console) or 4000-4999 (PC) → game
  *   - newznabId in 2000-2999 → movie
  *   - newznabId in 5000-5999 → tv (covers anime + tv shows)
+ *   - newznabId in 7000-7999 → book (ebooks, comics, mags — Newznab
+ *     groups them under one decade)
  *   - else, fall back to a slug/name keyword match (handles installs that
  *     haven't filled in newznabId yet)
- *   - else → 'other' (audio, books, software, …) — IDs section hidden.
+ *   - else → 'other' (audio, software, …) — IDs section hidden.
  */
 
 export interface CategoryNode {
@@ -23,11 +25,11 @@ export interface CategoryNode {
   // Operator-set canonical type — preferred over heuristics when
   // present. Lets, e.g., XXX/Hentai opt into the TV namespace even
   // though its newznab id sits outside the 5000-range.
-  type?: 'movie' | 'tv' | 'game' | null;
+  type?: 'movie' | 'tv' | 'game' | 'book' | null;
   subcategories?: CategoryNode[];
 }
 
-export type CategoryKind = 'movie' | 'tv' | 'game' | 'other';
+export type CategoryKind = 'movie' | 'tv' | 'game' | 'book' | 'other';
 
 export function findCategory(
   cats: CategoryNode[] | null | undefined,
@@ -56,7 +58,12 @@ export function findCategory(
  */
 export function categoryKind(cat: CategoryNode | null | undefined): CategoryKind {
   if (!cat) return 'other';
-  if (cat.type === 'movie' || cat.type === 'tv' || cat.type === 'game') {
+  if (
+    cat.type === 'movie' ||
+    cat.type === 'tv' ||
+    cat.type === 'game' ||
+    cat.type === 'book'
+  ) {
     return cat.type;
   }
   const nz = cat.newznabId;
@@ -65,6 +72,8 @@ export function categoryKind(cat: CategoryNode | null | undefined): CategoryKind
     if (nz >= 5000 && nz < 6000) return 'tv';
     // Newznab 1xxx (console) + 4xxx (PC) both map to IGDB.
     if ((nz >= 1000 && nz < 2000) || (nz >= 4000 && nz < 5000)) return 'game';
+    // Newznab 7xxx is the book/ebook/comic/magazine decade.
+    if (nz >= 7000 && nz < 8000) return 'book';
   }
   // Strip diacritics so "séries" matches "seri".
   const text = `${cat.slug || ''} ${cat.name || ''}`
@@ -76,14 +85,21 @@ export function categoryKind(cat: CategoryNode | null | undefined): CategoryKind
   if (/\b(?:game|games|jeu|jeux|console|playstation|xbox|nintendo|switch)/.test(text)) {
     return 'game';
   }
+  if (
+    /\b(?:book|ebook|e-book|epub|mobi|azw3|livre|livres|comics?|bd|manga|magazine|revue)/.test(
+      text
+    )
+  ) {
+    return 'book';
+  }
   return 'other';
 }
 
-/** Convenience: 'movie' | 'tv' | 'game' (the `MediaTypeHint` shape)
- *  or undefined when the category is 'other'. */
+/** Convenience: 'movie' | 'tv' | 'game' | 'book' (the `MediaTypeHint`
+ *  shape) or undefined when the category is 'other'. */
 export function categoryTypeHint(
   cat: CategoryNode | null | undefined
-): 'movie' | 'tv' | 'game' | undefined {
+): 'movie' | 'tv' | 'game' | 'book' | undefined {
   const kind = categoryKind(cat);
   return kind === 'other' ? undefined : kind;
 }

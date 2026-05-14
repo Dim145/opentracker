@@ -9,6 +9,7 @@
  */
 import { imdbSource, tmdbSource, tvdbSource } from './tmdb';
 import { igdbSource } from './igdb';
+import { openlibrarySource } from './openlibrary';
 import type {
   LookupOptions,
   MediaMetadata,
@@ -33,6 +34,7 @@ const REGISTRY: Record<MediaSourceId, MediaSource> = {
   imdb: imdbSource,
   tvdb: tvdbSource,
   igdb: igdbSource,
+  openlibrary: openlibrarySource,
 };
 
 export const ALL_SOURCE_IDS = Object.keys(REGISTRY) as MediaSourceId[];

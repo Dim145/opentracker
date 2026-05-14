@@ -230,6 +230,7 @@
               'release-group--solo': !group.externalId,
               'release-group--open': expandedGroups.has(group.key),
               'release-group--game': group.hint === 'game',
+              'release-group--book': group.hint === 'book',
             }"
           >
             <component
@@ -256,7 +257,10 @@
               <figure
                 v-if="group.externalId && (isPosterLoading(group) || posterFor(group))"
                 class="release-poster"
-                :class="{ 'release-poster--game': group.hint === 'game' }"
+                :class="{
+                  'release-poster--game': group.hint === 'game',
+                  'release-poster--book': group.hint === 'book',
+                }"
               >
                 <img
                   v-if="posterFor(group)?.posterUrl"
@@ -287,6 +291,13 @@
                     >
                       <Icon name="ph:game-controller-fill" class="release-group-src-icon" />
                       IGDB · GAME
+                    </span>
+                    <span
+                      v-else-if="group.hint === 'book'"
+                      class="release-group-src release-group-src--openlibrary"
+                    >
+                      <Icon name="ph:book-open-text-fill" class="release-group-src-icon" />
+                      OPEN LIBRARY · BOOK
                     </span>
                     <span v-else class="release-group-src release-group-src--tmdb">
                       <Icon name="ph:popcorn-fill" class="release-group-src-icon" />
@@ -447,18 +458,19 @@ interface TorrentWithStats {
   size: number;
   createdAt: string;
   // External-database ids — the grouped view buckets by tmdbId for
-  // movies/series and by igdbId for games so siblings cluster into
-  // one card with a poster. The other ids are kept for the chips in
-  // the row body.
+  // movies/series, igdbId for games and openlibraryId for books so
+  // siblings cluster into one card with a poster. The other ids are
+  // kept for the chips in the row body.
   imdbId: string | null;
   tmdbId: string | null;
   tvdbId: string | null;
   igdbId: string | null;
+  openlibraryId: string | null;
   category?: {
     id: string;
     name: string;
     slug: string;
-    type: 'movie' | 'tv' | 'game' | null;
+    type: 'movie' | 'tv' | 'game' | 'book' | null;
   };
   tags?: TorrentTag[];
   stats: {
@@ -660,16 +672,17 @@ function tmdbBucketKey(tmdbId: string | null | undefined): string | null {
   return `tmdb:${bare}`;
 }
 
-type GroupHint = 'movie' | 'tv' | 'game' | null;
+type GroupHint = 'movie' | 'tv' | 'game' | 'book' | null;
 
 /**
  * Pick the right bucket for a torrent. The mere presence of an
- * `igdbId` is the authoritative "this is a game" signal — the upload
- * flow only writes that field when the operator picks an IGDB hit
- * (or when the auto-detect resolves a console/PC release), so we
- * prefer it unconditionally over any stale TMDb id that may also
- * happen to be set. Falls back to TMDb, then to a "solo" bucket
- * keyed by torrent id for rows with neither.
+ * `igdbId` / `openlibraryId` is the authoritative "this is a game"
+ * / "this is a book" signal — the upload flow only writes those
+ * fields when the operator picks a matching hit (or when the
+ * auto-detect resolves a console / PC / ebook release), so we
+ * prefer them unconditionally over any stale TMDb id that may
+ * also happen to be set. Falls back to TMDb, then to a "solo"
+ * bucket keyed by torrent id for rows with none.
  */
 function bucketFor(t: TorrentWithStats): {
   key: string;
@@ -678,6 +691,13 @@ function bucketFor(t: TorrentWithStats): {
 } {
   if (t.igdbId) {
     return { key: `igdb:${t.igdbId}`, externalId: t.igdbId, hint: 'game' };
+  }
+  if (t.openlibraryId) {
+    return {
+      key: `openlibrary:${t.openlibraryId}`,
+      externalId: t.openlibraryId,
+      hint: 'book',
+    };
   }
   const tmdbKey = tmdbBucketKey(t.tmdbId);
   if (tmdbKey) {
@@ -1456,23 +1476,42 @@ button.release-group-head:hover {
   color: #a26bff;
   filter: drop-shadow(0 0 4px rgba(162, 107, 255, 0.45));
 }
+.release-group-src--openlibrary {
+  color: #f59e0b;
+}
+.release-group-src--openlibrary .release-group-src-icon {
+  color: #d97706;
+  filter: drop-shadow(0 0 4px rgba(217, 119, 6, 0.45));
+}
 
-/* Game-grouped card — a whisper of IGDB violet along the lead edge
-   so it's distinguishable from a TMDb cluster at a glance, without
-   shouting over the row body. */
+/* Game / book cards — a whisper of source-coloured ink along the
+   lead edge so the cluster's origin is legible while scanning the
+   list, without shouting over the row body. */
 .release-group--game {
   box-shadow: inset 3px 0 0 0 rgba(162, 107, 255, 0.5);
 }
 .release-group--game:hover {
   box-shadow: inset 3px 0 0 0 rgba(162, 107, 255, 0.85);
 }
+.release-group--book {
+  box-shadow: inset 3px 0 0 0 rgba(217, 119, 6, 0.5);
+}
+.release-group--book:hover {
+  box-shadow: inset 3px 0 0 0 rgba(217, 119, 6, 0.85);
+}
 
 /* IGDB cover art is portrait 3:4 (Twitch's `t_cover_big_2x` source)
-   whereas TMDb posters are the classic 2:3 cinematic. Swap the
-   aspect ratio so we never letterbox or crop a game cover. */
+   whereas TMDb posters are the classic 2:3 cinematic. Open Library
+   covers don't have a fixed aspect ratio — most book covers are
+   taller-than-wide so 2:3 is a safe default that still hosts most
+   inputs without crops; we just tint the border. Swap aspect on
+   game covers so we never letterbox a Twitch poster. */
 .release-poster--game {
   aspect-ratio: 3 / 4;
   border-color: rgba(162, 107, 255, 0.35);
+}
+.release-poster--book {
+  border-color: rgba(217, 119, 6, 0.35);
 }
 .release-group-title {
   margin: 0;

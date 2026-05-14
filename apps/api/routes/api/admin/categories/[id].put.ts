@@ -18,9 +18,9 @@ const updateCategorySchema = z.object({
     .nullable()
     .optional(),
   isAdult: z.boolean().optional(),
-  // 'movie' / 'tv' / 'game' / null. Sent explicitly null to clear a
-  // previously set type and fall back to the heuristic.
-  type: z.enum(['movie', 'tv', 'game']).nullable().optional(),
+  // 'movie' / 'tv' / 'game' / 'book' / null. Sent explicitly null
+  // to clear a previously set type and fall back to the heuristic.
+  type: z.enum(['movie', 'tv', 'game', 'book']).nullable().optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -78,7 +78,7 @@ export default defineEventHandler(async (event) => {
       slug: string;
       newznabId?: number | null;
       isAdult?: boolean;
-      type?: 'movie' | 'tv' | null;
+      type?: 'movie' | 'tv' | 'game' | 'book' | null;
     } = {
       name,
       slug,

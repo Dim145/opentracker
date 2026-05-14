@@ -27,8 +27,8 @@ const querySchema = z.object({
   id: z.string().min(1).max(128),
   // Optional type hint. The frontend derives this from the
   // torrent's category (Newznab 2xxx → movie, 5xxx → tv, 1xxx /
-  // 4xxx → game).
-  type: z.enum(['movie', 'tv', 'game']).optional(),
+  // 4xxx → game, 7xxx → book).
+  type: z.enum(['movie', 'tv', 'game', 'book']).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
     return {
       enabled: false,
       message:
-        'Metadata lookup is not configured. Ask the operator to set TMDB_API_KEY (movies/TV) or IGDB_ID + IGDB_SECRET (games).',
+        'Metadata lookup is not configured. Ask the operator to set TMDB_API_KEY (movies/TV), IGDB_ID + IGDB_SECRET (games), or rely on Open Library / Google Books (books).',
     };
   }
 

@@ -76,6 +76,24 @@ export default defineEventHandler(async (event) => {
       console.warn('[torrents] IGDB normalize failed:', (err as Error).message);
     }
   }
+  // Open Library accepts ISBN (10/13) / Open Library work id / URL.
+  // The source is always enabled (no auth) so we don't gate on
+  // `isSourceEnabled`; only network failures drop to null.
+  let openlibraryId: string | null = null;
+  const openlibraryInput = formData
+    .find((f) => f.name === 'openlibraryId')
+    ?.data.toString();
+  if (openlibraryInput) {
+    try {
+      const { normalizeSourceId } = await import('~~/utils/metadata');
+      openlibraryId = await normalizeSourceId('openlibrary', openlibraryInput);
+    } catch (err) {
+      console.warn(
+        '[torrents] Open Library normalize failed:',
+        (err as Error).message
+      );
+    }
+  }
   // NFO can arrive either as a `.nfo` file part or as a plain `nfo` string
   // (e.g. user pasted the contents into a textarea). Cap at 256KB so we
   // can't be used to dump arbitrary blobs into the row.
@@ -233,6 +251,7 @@ export default defineEventHandler(async (event) => {
     tmdbId,
     tvdbId,
     igdbId,
+    openlibraryId,
     isActive: true,
     moderationStatus: canBypassModeration ? 'accepted' : 'pending',
     moderatedById: canBypassModeration ? user.id : null,

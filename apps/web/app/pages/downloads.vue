@@ -193,11 +193,12 @@ interface DownloadItem {
   tmdbId: string | null;
   tvdbId: string | null;
   igdbId: string | null;
+  openlibraryId: string | null;
   category: {
     id: string;
     name: string;
     slug: string;
-    type: 'movie' | 'tv' | 'game' | null;
+    type: 'movie' | 'tv' | 'game' | 'book' | null;
   } | null;
   downloadedAt: string;
   completedAt: string | null;
@@ -241,18 +242,21 @@ const { data, pending } = await useFetch<DownloadsPayload>(
 const posters = useMediaPosters();
 
 // Pick the right external id + hint for one row. The presence of an
-// `igdbId` is the authoritative "this is a game" signal — same rule
-// as the grouped /torrents view, so a row with both ids (game + a
-// stale auto-detected tmdbId) still resolves to IGDB. Falls back to
-// the stored TMDb id for movies/series.
-type PosterHint = 'movie' | 'tv' | 'game' | null;
+// `igdbId` / `openlibraryId` is the authoritative "this is a game" /
+// "this is a book" signal — same rule as the grouped /torrents view,
+// so a row with both ids (e.g. a game + a stale auto-detected
+// tmdbId) still resolves to IGDB. Falls back to the stored TMDb id
+// for movies/series.
+type PosterHint = 'movie' | 'tv' | 'game' | 'book' | null;
 
 function posterBareFor(item: DownloadItem): string | null {
   if (item.igdbId) return item.igdbId;
+  if (item.openlibraryId) return item.openlibraryId;
   return posters.tmdbBare(item.tmdbId);
 }
 function posterTypeFor(item: DownloadItem): PosterHint {
   if (item.igdbId) return 'game';
+  if (item.openlibraryId) return 'book';
   const prefix = posters.typeFromTmdbId(item.tmdbId);
   if (prefix) return prefix;
   return item.category?.type === 'movie' || item.category?.type === 'tv'

@@ -563,7 +563,7 @@ export const categories = pgTable(
     // Stored as text to leave room for future buckets ('music',
     // 'book', …) without a schema migration. Null = use the
     // existing newznab / slug heuristic.
-    type: text('type'), // 'movie' | 'tv' | 'game' | null
+    type: text('type'), // 'movie' | 'tv' | 'game' | 'book' | null
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [index('categories_parent_idx').on(table.parentId)]
@@ -586,13 +586,16 @@ export const torrents = pgTable(
     categoryId: text('category_id').references(() => categories.id),
     // External media-database tags (issue #47). Stored as canonical
     // ids — `imdb_id` keeps the `tt` prefix; `tmdb_id`, `tvdb_id`
-    // and `igdb_id` are pure digits. *Arr clients use these to match
-    // torrents against their library; the upload form normalises raw
-    // URLs / slugs into these.
+    // and `igdb_id` are pure digits. `openlibrary_id` stores either
+    // a 13-digit ISBN, a 10-digit ISBN, or an Open Library work id
+    // (`OL\d+W`) — whichever the upload form resolved. *Arr clients
+    // use these to match torrents against their library; the upload
+    // form normalises raw URLs / slugs into these.
     imdbId: text('imdb_id'),
     tmdbId: text('tmdb_id'),
     tvdbId: text('tvdb_id'),
     igdbId: text('igdb_id'),
+    openlibraryId: text('openlibrary_id'),
     isActive: boolean('is_active').default(true).notNull(),
     // Moderation pipeline. Replaces the legacy `is_approved` boolean.
     //   pending             — first state, awaiting a moderator's call
@@ -621,6 +624,7 @@ export const torrents = pgTable(
     index('torrents_tmdb_idx').on(table.tmdbId),
     index('torrents_tvdb_idx').on(table.tvdbId),
     index('torrents_igdb_idx').on(table.igdbId),
+    index('torrents_openlibrary_idx').on(table.openlibraryId),
     index('torrents_moderation_status_idx').on(table.moderationStatus),
     index('torrents_name_trgm_idx').using(
       'gist',

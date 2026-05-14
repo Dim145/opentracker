@@ -65,6 +65,7 @@ export default defineEventHandler(async (event) => {
     tmdbId: row.torrent.tmdbId,
     tvdbId: row.torrent.tvdbId,
     igdbId: row.torrent.igdbId,
+    openlibraryId: row.torrent.openlibraryId,
     category: row.torrent.category
       ? {
           id: row.torrent.category.id,

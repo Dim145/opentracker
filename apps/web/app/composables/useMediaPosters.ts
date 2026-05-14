@@ -36,11 +36,11 @@ export interface MediaPoster {
   backdropUrl: string | null;
   overview: string | null;
   voteAverage: number | null;
-  type: 'movie' | 'tv' | 'game';
+  type: 'movie' | 'tv' | 'game' | 'book';
   url: string;
 }
 
-export type PosterTypeHint = 'movie' | 'tv' | 'game' | null;
+export type PosterTypeHint = 'movie' | 'tv' | 'game' | 'book' | null;
 
 type PosterState =
   | { kind: 'loading' }
@@ -57,7 +57,7 @@ interface MetadataLookupResponse {
     backdropUrl: string | null;
     overview: string | null;
     voteAverage: number | null;
-    type: 'movie' | 'tv' | 'game';
+    type: 'movie' | 'tv' | 'game' | 'book';
     url: string;
   } | null;
 }
@@ -70,8 +70,10 @@ function cacheKey(
   return `${language}:${type ?? 'auto'}:${externalId}`;
 }
 
-function sourceFor(type: PosterTypeHint): 'tmdb' | 'igdb' {
-  return type === 'game' ? 'igdb' : 'tmdb';
+function sourceFor(type: PosterTypeHint): 'tmdb' | 'igdb' | 'openlibrary' {
+  if (type === 'game') return 'igdb';
+  if (type === 'book') return 'openlibrary';
+  return 'tmdb';
 }
 
 export function useMediaPosters() {
@@ -94,18 +96,28 @@ export function useMediaPosters() {
     () => new Map()
   );
   // Per-source sticky "disabled" flags — the route fans out 503s
-  // separately for TMDb and IGDB depending on which env vars are
-  // unset. Once one source returns enabled:false we stop pinging
-  // it for the rest of the session, but the other source keeps
-  // running.
+  // separately for TMDb, IGDB and Open Library depending on which
+  // env vars are unset. Once one source returns enabled:false we
+  // stop pinging it for the rest of the session, but the other
+  // sources keep running. Open Library has no auth and is always
+  // enabled in practice — the flag is wired anyway in case the
+  // host network blocks `openlibrary.org` and we want to give up
+  // after one failure.
   const tmdbDisabled = useState<boolean>('tmdb-disabled', () => false);
   const igdbDisabled = useState<boolean>('igdb-disabled', () => false);
+  const openlibraryDisabled = useState<boolean>(
+    'openlibrary-disabled',
+    () => false
+  );
 
   function isSourceDisabled(type: PosterTypeHint): boolean {
-    return type === 'game' ? igdbDisabled.value : tmdbDisabled.value;
+    if (type === 'game') return igdbDisabled.value;
+    if (type === 'book') return openlibraryDisabled.value;
+    return tmdbDisabled.value;
   }
   function markSourceDisabled(type: PosterTypeHint) {
     if (type === 'game') igdbDisabled.value = true;
+    else if (type === 'book') openlibraryDisabled.value = true;
     else tmdbDisabled.value = true;
   }
 
@@ -151,11 +163,11 @@ export function useMediaPosters() {
       if (res.metadata) {
         const m = res.metadata;
         // TMDb ships w500 → downscale to w342 so grid cells stay
-        // light on the wire (~60% smaller). IGDB serves a single
-        // size per request (we already ask for t_cover_big_2x at
-        // the source) so no rewrite needed.
+        // light on the wire (~60% smaller). IGDB and Open Library /
+        // Google Books all serve a single, already-sized image per
+        // request so the rewrite is a no-op for them.
         const posterUrl =
-          type === 'game'
+          type === 'game' || type === 'book'
             ? m.posterUrl
             : (m.posterUrl?.replace('/w500/', '/w342/') ?? null);
         setPoster(key, {
@@ -237,6 +249,7 @@ export function useMediaPosters() {
     stateFor,
     tmdbDisabled,
     igdbDisabled,
+    openlibraryDisabled,
     tmdbBare,
     typeFromTmdbId,
   };

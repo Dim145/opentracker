@@ -64,6 +64,11 @@
         <span class="stat-num tabular-nums">{{ stats.games }}</span>
         <span class="stat-label">{{ $t('admin.categories.stats.games') }}</span>
       </div>
+      <div class="stat stat--book">
+        <Icon name="ph:book-open-text-bold" class="stat-icon" />
+        <span class="stat-num tabular-nums">{{ stats.books }}</span>
+        <span class="stat-label">{{ $t('admin.categories.stats.books') }}</span>
+      </div>
       <div v-if="stats.adult > 0" class="stat stat--adult">
         <Icon name="ph:eye-slash-bold" class="stat-icon" />
         <span class="stat-num tabular-nums">{{ stats.adult }}</span>
@@ -522,12 +527,12 @@ interface Category {
   parentId: string | null;
   newznabId: number | null;
   isAdult?: boolean;
-  type?: 'movie' | 'tv' | 'game' | null;
+  type?: 'movie' | 'tv' | 'game' | 'book' | null;
   createdAt: string;
   subcategories?: Category[];
 }
 
-type MediaType = 'movie' | 'tv' | 'game' | null;
+type MediaType = 'movie' | 'tv' | 'game' | 'book' | null;
 
 const TYPE_OPTIONS = computed<Array<{
   value: MediaType;
@@ -558,6 +563,12 @@ const TYPE_OPTIONS = computed<Array<{
     label: t('admin.categories.type.game'),
     sub: t('admin.categories.type.gameSub'),
     icon: 'ph:game-controller',
+  },
+  {
+    value: 'book',
+    label: t('admin.categories.type.book'),
+    sub: t('admin.categories.type.bookSub'),
+    icon: 'ph:book-open-text',
   },
 ]);
 
@@ -656,22 +667,25 @@ const stats = computed(() => {
   let movies = 0;
   let tv = 0;
   let games = 0;
+  let books = 0;
   let adult = 0;
   for (const root of all) {
     roots += 1;
     if (root.type === 'movie') movies += 1;
     if (root.type === 'tv') tv += 1;
     if (root.type === 'game') games += 1;
+    if (root.type === 'book') books += 1;
     if (root.isAdult) adult += 1;
     for (const sub of root.subcategories ?? []) {
       subs += 1;
       if (sub.type === 'movie') movies += 1;
       if (sub.type === 'tv') tv += 1;
       if (sub.type === 'game') games += 1;
+      if (sub.type === 'book') books += 1;
       if (sub.isAdult) adult += 1;
     }
   }
-  return { roots, subs, movies, tv, games, adult };
+  return { roots, subs, movies, tv, games, books, adult };
 });
 
 // ── Modal state ─────────────────────────────────────────────────
@@ -991,6 +1005,7 @@ async function seedCategories() {
 .stat--movie .stat-icon { color: #60a5fa; }
 .stat--tv .stat-icon { color: #c084fc; }
 .stat--game .stat-icon { color: #a78bfa; }
+.stat--book .stat-icon { color: #d97706; }
 .stat--adult .stat-icon { color: #f43f5e; }
 .stat--adult .stat-num { color: #f43f5e; }
 
