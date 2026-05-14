@@ -65,6 +65,16 @@ import {
  */
 const LAST_TICK_KEY = 'bonus:collector:last_tick_ms';
 const LOCK_KEY = 'bonus:collector:lock';
+/**
+ * Persisted SCAN cursor — the position to resume the `peers:*` walk
+ * from on the next tick. Without it, a sweep that times out always
+ * starts back at cursor=0, so torrents whose hash lands early in
+ * Redis's hash-table order get scanned every tick while the tail
+ * sits unvisited forever. Persisting the cursor and resuming on
+ * the next tick gives even coverage across all torrents at the cost
+ * of stretching the time-to-credit for the tail.
+ */
+const SCAN_CURSOR_KEY = 'bonus:collector:scan_cursor';
 /** Lock TTL — generous so a 30 s SCAN budget doesn't trip the
  *  lock, but short enough that a crashed replica releases the slot
  *  before the next scheduled tick. */
@@ -119,7 +129,10 @@ export default defineNitroPlugin(async () => {
       let truncated = false;
       const keyPrefix = process.env.REDIS_KEY_PREFIX || 'ot:';
       const torrentSeederUsers = new Map<string, Set<string>>(); // infoHash → set of userIds seeding
-      let cursor = '0';
+      // Resume the SCAN where the previous tick stopped. Persisting
+      // the cursor means tail torrents get scanned in subsequent
+      // ticks instead of permanently sitting past the budget.
+      let cursor = (await redis.get(SCAN_CURSOR_KEY)) ?? '0';
       do {
         if (Date.now() > deadline) {
           truncated = true;
@@ -159,6 +172,21 @@ export default defineNitroPlugin(async () => {
           }
         }
       } while (cursor !== '0');
+
+      // Persist the cursor for the next tick. On a clean sweep
+      // `cursor === '0'` and we wipe the key so future ticks start
+      // fresh; on a truncated sweep we keep wherever we stopped so
+      // the next run picks up the tail. Best-effort — a Redis blip
+      // here just means the next tick starts at 0 again.
+      try {
+        if (cursor === '0') {
+          await redis.del(SCAN_CURSOR_KEY);
+        } else {
+          await redis.set(SCAN_CURSOR_KEY, cursor);
+        }
+      } catch {
+        /* non-fatal */
+      }
 
       if (torrentSeederUsers.size === 0) {
         // Nothing seeding — only the account-age sweep is worth

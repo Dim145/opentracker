@@ -388,7 +388,15 @@ export async function applySeedingRule(args: {
  * `first_seeder` applicator. For each (userId, torrentId) row whose
  * torrent currently has exactly one seeder (and that one is `userId`),
  * credit the one-time reward — but only if the grants ledger doesn't
- * already record a credit for this pair.
+ * already record ANY credit for this torrent (regardless of user).
+ *
+ * The gate is per-torrent on purpose: scenarios where the bug used
+ * to bite were "Alice is the only seeder at tick T → credited; Alice
+ * leaves; Bob shows up alone at tick T+1 → credited again". The
+ * previous gate keyed on `(user, torrent)` so each subsequent
+ * "lonely seeder" earned the prize too. A first-seeder reward is by
+ * definition one-per-torrent — once it's been paid out we lock the
+ * row even if the seeder set churns later.
  */
 export async function applyFirstSeederRule(args: {
   config: z.infer<typeof firstSeederConfig>;
@@ -401,25 +409,35 @@ export async function applyFirstSeederRule(args: {
   }
   let credited = 0;
   let awarded = 0;
+  const lockedTorrents = new Set<string>();
   for (const pair of uniqueSeederPairs) {
+    if (lockedTorrents.has(pair.torrentId)) continue;
     const [existing] = await db
       .select({ id: schema.bonusGrants.id })
       .from(schema.bonusGrants)
       .where(
         and(
           eq(schema.bonusGrants.source, 'first_seeder'),
-          eq(schema.bonusGrants.userId, pair.userId),
           eq(schema.bonusGrants.torrentId, pair.torrentId)
         )
       )
       .limit(1);
-    if (existing) continue;
+    if (existing) {
+      lockedTorrents.add(pair.torrentId);
+      continue;
+    }
     await creditPoints({
       userId: pair.userId,
       source: 'first_seeder',
       torrentId: pair.torrentId,
       amount: config.reward,
     });
+    // Lock the torrent in this tick too so the loop doesn't re-pay
+    // when the SCAN happens to surface multiple users in the same
+    // torrent's "unique" window across two scan rounds. The cross-
+    // replica SETNX lock in bonus-collector already prevents two
+    // ticks from racing each other.
+    lockedTorrents.add(pair.torrentId);
     credited++;
     awarded += config.reward;
   }
