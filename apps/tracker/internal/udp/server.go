@@ -6,8 +6,10 @@ import (
 	"errors"
 	"log/slog"
 	"net"
+	"runtime"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/florianjs/trackarr/apps/tracker/internal/announce"
@@ -22,6 +24,22 @@ import (
 // what every public BT tracker listens for; anything larger is almost
 // certainly a probe/junk packet and we let the kernel truncate.
 const maxUDPPacket = 1500
+
+// maxResponsePeers clamps the size of the peer list returned in any
+// UDP announce response. Mirrors the HTTP path's MaxPeers cap and
+// stops a client-supplied `numwant` from triggering a multi-KB
+// reflection back to the (potentially spoofed) source IP. 100 is
+// what the rest of the codebase already uses as the upper bound
+// inside `AnnounceRequestUDP.ToAnnounceRequest`.
+const maxResponsePeers = 100
+
+// workerSlotsPerCPU sizes the concurrent-goroutine semaphore at
+// boot. 16× CPU is comfortably more than enough for a healthy
+// tracker — a thousand active announces in flight on a 4-core box
+// is already ten times realistic peak — while still being a hard
+// upper bound so a flood can't spawn a goroutine per datagram and
+// burn through process memory.
+const workerSlotsPerCPU = 16
 
 // Server runs the UDP listener, dispatches packets to the right
 // action handler, and adapts announces into the wire-agnostic
@@ -39,6 +57,17 @@ type Server struct {
 	store   *peers.Store
 	logger  *slog.Logger
 	bufPool sync.Pool
+	// workerSem caps the number of in-flight handler goroutines.
+	// Without this, a UDP flood (cheap to source, unauthenticated
+	// for the connect action) spawns one goroutine per datagram —
+	// each holding a 1500-byte buffer plus a stack — until the
+	// runtime OOMs. Sized to 16× GOMAXPROCS at boot; full → drop.
+	workerSem chan struct{}
+	// droppedFlood counts datagrams that hit a full workerSem. The
+	// counter is plumbed into Prometheus elsewhere; we log a one-
+	// liner every ~10 k drops so an operator notices a sustained
+	// flood even without metrics.
+	droppedFlood atomic.Uint64
 }
 
 // New builds a UDP server bound to `addr` and ready to dispatch
@@ -56,13 +85,18 @@ func New(addr string, secret string, proc *server.Server, store *peers.Store) (*
 	if err != nil {
 		return nil, err
 	}
+	cpus := runtime.GOMAXPROCS(0)
+	if cpus < 1 {
+		cpus = 1
+	}
 	s := &Server{
-		conn:   conn,
-		connID: NewConnIDIssuer(secret),
-		addr:   udpAddr,
-		proc:   proc,
-		store:  store,
-		logger: slog.Default(),
+		conn:      conn,
+		connID:    NewConnIDIssuer(secret),
+		addr:      udpAddr,
+		proc:      proc,
+		store:     store,
+		logger:    slog.Default(),
+		workerSem: make(chan struct{}, cpus*workerSlotsPerCPU),
 	}
 	s.bufPool = sync.Pool{
 		New: func() any {
@@ -109,7 +143,29 @@ func (s *Server) Serve(ctx context.Context) error {
 		}
 		// Hand the packet off; the goroutine returns the buffer to
 		// the pool when done.
-		go s.handlePacket(ctx, bufp, n, raddr)
+		//
+		// Try to claim a worker slot. The non-blocking select means
+		// a packet that arrives while every worker is busy gets
+		// dropped immediately instead of queueing, which is the
+		// right call for UDP — a backlog would let attackers
+		// trade memory for time, and a legitimate client will
+		// re-announce on its own interval. The buffer goes back to
+		// the pool on drop so memory pressure stays flat.
+		select {
+		case s.workerSem <- struct{}{}:
+			go func(bufp *[]byte, n int, raddr *net.UDPAddr) {
+				defer func() { <-s.workerSem }()
+				s.handlePacket(ctx, bufp, n, raddr)
+			}(bufp, n, raddr)
+		default:
+			s.bufPool.Put(bufp)
+			if dropped := s.droppedFlood.Add(1); dropped%10_000 == 1 {
+				s.logger.Warn("udp worker pool saturated — dropping packet",
+					"total_drops", dropped,
+					"slots", cap(s.workerSem),
+				)
+			}
+		}
 	}
 }
 
@@ -248,6 +304,17 @@ func (s *Server) handleAnnounce(ctx context.Context, data []byte, raddr *net.UDP
 	// peer store uses internally, so the encoder can skip its own
 	// row when fanning out the swarm.
 	excludeHex := hexBytes(req.PeerID[:])
+	// Clamp `numwant` BEFORE handing it to the encoder. The raw
+	// wire value is an int32 directly controlled by the client; the
+	// upstream cap in `ToAnnounceRequest` only writes to
+	// `apiReq.NumWant` (which we don't use here). Without this clamp
+	// a client sending `numwant = 0x7FFFFFFF` against a popular
+	// swarm pulls the entire peer list back — a ~100× UDP
+	// amplification at our expense.
+	numWant := int(req.NumWant)
+	if numWant <= 0 || numWant > maxResponsePeers {
+		numWant = maxResponsePeers
+	}
 	resp := EncodeAnnounceResponse(
 		nil,
 		req.TransactionID,
@@ -256,7 +323,7 @@ func (s *Server) handleAnnounce(ctx context.Context, data []byte, raddr *net.UDP
 		out.Seeders,
 		out.Peers,
 		excludeHex,
-		int(req.NumWant),
+		numWant,
 	)
 	_, _ = s.conn.WriteToUDP(resp, raddr)
 	s.logger.Debug("udp announce ok",
