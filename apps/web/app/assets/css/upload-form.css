@@ -437,6 +437,18 @@
   align-items: center;
   gap: 0.4rem;
 }
+.action-error-link {
+  color: rgb(var(--danger));
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  font-weight: 700;
+  margin-left: 0.25rem;
+  transition: opacity 0.15s ease;
+}
+.action-error-link:hover {
+  opacity: 0.8;
+}
 .action-submit {
   min-width: 11rem;
   justify-content: center;

@@ -233,8 +233,22 @@
         <div class="aside-card">
           <p class="page-eyebrow">{{ $t('forum.newTopic.preview.eyebrow') }}</p>
 
+          <!-- Source-aware preview dispatch — mirrors the torrent
+               detail page so the chip + "View on …" link match the
+               upstream that actually served the metadata instead of
+               always reading TMDb. -->
+          <GameMetadataCard
+            v-if="(lookupResult ?? existingMetadata)?.source === 'igdb'"
+            :metadata="(lookupResult ?? existingMetadata)!"
+            class="aside-metadata"
+          />
+          <BookMetadataCard
+            v-else-if="(lookupResult ?? existingMetadata)?.source === 'openlibrary'"
+            :metadata="(lookupResult ?? existingMetadata)!"
+            class="aside-metadata"
+          />
           <MediaMetadataCard
-            v-if="lookupResult || existingMetadata"
+            v-else-if="lookupResult || existingMetadata"
             :metadata="lookupResult ?? existingMetadata"
             size="compact"
             class="aside-metadata"
@@ -453,12 +467,25 @@ watch(
 
 // Parsed release info from the saved name — used to seed the search
 // picker with a sensible default query when the operator first opens
-// the Identity section.
+// the Identity section. We pass the category's kind as a hint so the
+// parser uses the right token table (game / book / video).
 const parsedFromName = computed(() =>
-  torrent.value ? parseReleaseName(torrent.value.name) : null
+  torrent.value
+    ? parseReleaseName(torrent.value.name, parserKindHint.value)
+    : null
 );
 const parsedTitle = computed(() => parsedFromName.value?.title ?? '');
 const parsedYear = computed(() => parsedFromName.value?.year ?? null);
+
+/** Same idea as `searchTypeHint` but for the release parser — books
+ *  and games are valid hints too. Returns null on `other` so the
+ *  parser falls back to filename inference. */
+const parserKindHint = computed<
+  'movie' | 'tv' | 'game' | 'book' | null
+>(() => {
+  const k = categoryKindValue.value;
+  return k === 'other' ? null : k;
+});
 
 /**
  * "Parse title" button handler — same logic as the upload page.
@@ -470,7 +497,7 @@ const parsedYear = computed(() => parsedFromName.value?.year ?? null);
 function parseTitleNow() {
   const value = title.value.trim();
   if (!value) return;
-  const r = parseReleaseName(value);
+  const r = parseReleaseName(value, parserKindHint.value);
   if (r.tags.length === 0) {
     notifications.info(t('torrents.uploadForm.toasts.noTagsDetected'));
     return;

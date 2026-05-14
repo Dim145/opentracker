@@ -349,9 +349,22 @@
         <div class="aside-card">
           <p class="page-eyebrow">{{ $t('forum.newTopic.preview.eyebrow') }}</p>
 
-          <!-- Metadata preview if fetched -->
+          <!-- Metadata preview if fetched. Same source-aware dispatch
+               as the torrent detail page: a game / book hit gets its
+               own renderer so the chip + "View on …" link match the
+               actual upstream instead of always reading TMDb. -->
+          <GameMetadataCard
+            v-if="lookupResult && lookupResult.source === 'igdb'"
+            :metadata="lookupResult"
+            class="aside-metadata"
+          />
+          <BookMetadataCard
+            v-else-if="lookupResult && lookupResult.source === 'openlibrary'"
+            :metadata="lookupResult"
+            class="aside-metadata"
+          />
           <MediaMetadataCard
-            v-if="lookupResult"
+            v-else-if="lookupResult"
             :metadata="lookupResult"
             size="compact"
             class="aside-metadata"
@@ -437,6 +450,22 @@
           <span v-if="error" class="action-error">
             <Icon name="ph:warning-circle-fill" />
             {{ error }}
+          </span>
+          <span v-else-if="duplicateFound" class="action-error">
+            <Icon name="ph:copy-simple-fill" />
+            <span>
+              {{ $t('torrents.uploadForm.duplicateWarning') }}
+              <NuxtLink
+                :to="`/torrents/${duplicateFound.infoHash}`"
+                class="action-error-link"
+              >
+                {{ duplicateFound.name || duplicateFound.infoHash.slice(0, 12) + '…' }}
+              </NuxtLink>
+            </span>
+          </span>
+          <span v-else-if="duplicateChecking" class="action-hint">
+            <Icon name="ph:circle-notch" class="animate-spin" />
+            {{ $t('torrents.uploadForm.duplicateChecking') }}
           </span>
           <span v-else-if="!selectedFile" class="action-hint">
             {{ $t('torrents.uploadForm.hintDropFilePrefix') }} <code>.torrent</code> {{ $t('torrents.uploadForm.hintDropFileSuffix') }}
@@ -530,6 +559,19 @@ const nfoInput = ref<HTMLInputElement | null>(null);
 const selectedFile = ref<File | null>(null);
 const nfoFile = ref<File | null>(null);
 const selectedCategoryId = ref(initialCategoryId);
+// Track the initial id so the watcher below doesn't fire on the URL-
+// prefilled value and wipe a freshly resolved lookup. We only want to
+// reset when the *user* changes category, not on page load.
+const lastCategoryId = ref(initialCategoryId);
+// Duplicate-infohash preflight state — populated on file pick and
+// gates the submit button when a match is found.
+interface DuplicateInfo {
+  infoHash: string;
+  name: string | null;
+  moderationStatus: string | null;
+}
+const duplicateFound = ref<DuplicateInfo | null>(null);
+const duplicateChecking = ref(false);
 const title = ref('');
 const description = ref('');
 const tags = ref<string[]>([]);
@@ -588,15 +630,60 @@ const selectedCategory = computed(() =>
 
 const categoryKindValue = computed(() => categoryKind(selectedCategory.value));
 
+/** Same idea as `searchTypeHint` but for the release-name parser:
+ *  returns the picked category's kind when it's a typed bucket
+ *  (movie / tv / game / book), null otherwise so the parser falls
+ *  back to its own filename-based inference. Separate from the
+ *  picker hint because the parser accepts game / book as well. */
+const categoryKindHint = computed<
+  'movie' | 'tv' | 'game' | 'book' | null
+>(() => {
+  const k = categoryKindValue.value;
+  return k === 'other' ? null : k;
+});
+
 const searchTypeHint = computed(() => {
   // Prefer the category's hint; if the category is "other" we don't
-  // show the picker at all, so this is only consulted for movie/tv.
+  // show the picker at all, so this is only consulted for the typed
+  // kinds (movie / tv / game / book).
   const fromCategory = resolveCategoryTypeHint(selectedCategory.value);
   if (fromCategory) return fromCategory;
   // Fall back to the filename-derived kind (so a strong S01E01 signal
   // still narrows the search even before a category is set — this only
   // matters if the picker is visible, but `categoryKindValue` gates that).
+  // The parser may now also produce 'game' / 'book'; both are valid
+  // hints for the picker.
   return parsed.value?.kind ?? undefined;
+});
+
+// When the user changes the category, drop any previously resolved
+// metadata + manual ids so we don't end up shipping a TMDb id with a
+// "game" category (or vice versa) just because the picker happened
+// to be populated when they switched buckets. We also re-run the
+// title parser so the tag suggestions update to the new kind. The
+// initial set (URL prefill / page load) is skipped via lastCategoryId
+// so we don't wipe a freshly resolved row mid-mount.
+watch(selectedCategoryId, (next) => {
+  if (next === lastCategoryId.value) return;
+  lastCategoryId.value = next;
+  lookupResult.value = null;
+  imdbId.value = '';
+  tmdbId.value = '';
+  tvdbId.value = '';
+  igdbId.value = '';
+  openlibraryId.value = '';
+  // Re-parse the current filename / title with the new kind so the
+  // tag suggestions track. We only touch tags when the parser auto-
+  // filled them in the first place (autoTagApplied flag) — a user
+  // who already curated the chip row should keep their work.
+  const source = selectedFile.value?.name ?? title.value;
+  if (source) {
+    const r = parseReleaseName(source, categoryKindHint.value);
+    parsed.value = r;
+    if (autoTagApplied.value && r.tags.length > 0) {
+      tags.value = r.tags;
+    }
+  }
 });
 
 const categoryLabel = computed(() => selectedCategory.value?.name ?? null);
@@ -680,12 +767,18 @@ const parsed = ref<ParsedRelease | null>(null);
 
 const extractedTitle = computed(() => parsed.value?.title ?? '');
 
-watch(selectedFile, (file) => {
+watch(selectedFile, async (file) => {
   if (!file) {
     parsed.value = null;
+    duplicateFound.value = null;
     return;
   }
-  const r = parseReleaseName(file.name);
+  // Parse the filename with the current category's kind as a hint —
+  // a `book` category lets the parser pick up `[CBZ]` / `T01-T05`
+  // instead of treating those tokens as video metadata. When no
+  // category is set yet, the parser falls back to its filename-only
+  // inference.
+  const r = parseReleaseName(file.name, categoryKindHint.value);
   parsed.value = r;
   // Default the title field to the parsed clean title (or fall back to
   // the filename without extension). The user can still edit it.
@@ -697,6 +790,40 @@ watch(selectedFile, (file) => {
   if (tags.value.length === 0 && r.tags.length > 0) {
     tags.value = r.tags;
     autoTagApplied.value = true;
+  }
+
+  // Duplicate-infohash preflight. Server-side authoritative check
+  // still runs at upload time; this is purely an early warning so
+  // the user doesn't fill in the rest of the form for nothing.
+  duplicateFound.value = null;
+  duplicateChecking.value = true;
+  try {
+    const fd = new FormData();
+    fd.append('torrent', file);
+    const res = await $fetch<{
+      infoHash: string;
+      exists: boolean;
+      existing: {
+        id: string;
+        infoHash: string;
+        name: string;
+        moderationStatus: string;
+        createdAt: string;
+      } | null;
+    }>('/api/torrents/check', { method: 'POST', body: fd });
+    if (res.exists && res.existing) {
+      duplicateFound.value = {
+        infoHash: res.existing.infoHash,
+        name: res.existing.name,
+        moderationStatus: res.existing.moderationStatus,
+      };
+    }
+  } catch {
+    // Preflight failures are non-fatal — the upload route will
+    // re-validate. Drop silently rather than show a noisy error
+    // for what is just a UX hint.
+  } finally {
+    duplicateChecking.value = false;
   }
 });
 
@@ -717,7 +844,7 @@ const notifications = useNotificationStore();
 function parseTitleNow() {
   const value = title.value.trim();
   if (!value) return;
-  const r = parseReleaseName(value);
+  const r = parseReleaseName(value, categoryKindHint.value);
   if (r.tags.length === 0) {
     notifications.info(t('torrents.uploadForm.toasts.noTagsDetected'));
     return;
@@ -895,7 +1022,11 @@ const canPublish = computed(
     titleRuleFailure.value === null &&
     nfoFilled.value &&
     descriptionFilled.value &&
-    tmdbFilled.value,
+    tmdbFilled.value &&
+    // Block the submit when the preflight surfaced an existing
+    // infohash. The server rejects duplicates anyway, but failing
+    // late after the operator's typed a description is unkind.
+    duplicateFound.value === null,
 );
 
 async function upload() {

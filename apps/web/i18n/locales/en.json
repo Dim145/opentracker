@@ -531,6 +531,8 @@
       "hintPickCategory": "Pick a category first",
       "hintWriteDescription": "Write a description to publish",
       "readyToPublish": "{size} ready to publish",
+      "duplicateChecking": "Checking the index…",
+      "duplicateWarning": "This torrent is already on the tracker:",
       "publishing": "Publishing…",
       "publishRelease": "Publish release",
       "ready": {
