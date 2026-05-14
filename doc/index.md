@@ -68,11 +68,24 @@ This documentation covers the [`Dim145/opentracker`](https://github.com/Dim145/o
 # Clone the repository
 git clone https://github.com/Dim145/opentracker.git
 cd opentracker
+cp .env.example .env
 
-# Spin up the full stack (API + tracker + web + Postgres + Redis + Caddy)
+# Generate the secrets that have no usable defaults
+echo "IP_HASH_SECRET=$(openssl rand -hex 32)" >> .env
+echo "NUXT_SESSION_SECRET=$(openssl rand -hex 32)" >> .env
+
+# Bring up the data layer (Postgres + Redis)
 docker compose up -d
 
-# Open https://localhost in your browser and create the first admin
+# Start the app processes on the host (web + api + tracker)
+pnpm install
+pnpm dev
+
+# Open http://localhost:3000 and register the first admin
 ```
+
+For a production setup (Caddy + HTTPS + the three app containers
+together), see the [Getting Started](/guide/getting-started)
+guide.
 
 See the [Getting Started](/guide/getting-started) guide for a deeper walk-through, or jump straight into the [Configuration](/guide/configuration) reference.

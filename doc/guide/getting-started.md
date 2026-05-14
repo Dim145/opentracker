@@ -29,26 +29,33 @@ git clone https://github.com/Dim145/opentracker.git
 cd opentracker
 cp .env.example .env
 
-# Generate the one secret that has no usable default
+# Generate the secrets that have no usable defaults
 echo "IP_HASH_SECRET=$(openssl rand -hex 32)" >> .env
+echo "NUXT_SESSION_SECRET=$(openssl rand -hex 32)" >> .env
 
-# Start postgres + redis + the dev server
+# 1) Bring up the data layer (postgres + redis)
 docker compose up -d
+
+# 2) Install JS deps + start the app processes on the host (web + api + tracker)
+pnpm install
+pnpm dev
 ```
 
-Open **[http://localhost:3000](http://localhost:3000)**. The first user that
-registers is automatically promoted to admin.
+Open **[http://localhost:3000](http://localhost:3000)** once `pnpm dev` is
+ready. The first user that registers is automatically promoted to admin.
 
 ::: tip
-The dev compose file uses `npm run dev` and bind-mounts your source tree, so
-saves trigger HMR. PostgreSQL and Redis listen on `localhost:5432` and
-`localhost:6379` if you want to attach with a GUI client.
+`docker-compose.yml` only spins up Postgres and Redis — the app processes
+(`web`, `api`, `tracker`) run on the host via `pnpm dev` so saves trigger
+HMR without rebuilding containers. The data services listen on
+`localhost:5432` and `localhost:6379` if you want to attach with a GUI
+client.
 :::
 
-To follow the logs:
+To follow the data-layer logs:
 
 ```bash
-docker compose logs -f app
+docker compose logs -f postgres redis
 ```
 
 To wipe everything (including the database):
@@ -115,7 +122,7 @@ DB_PASSWORD=$(openssl rand -base64 24)
 REDIS_PASSWORD=$(openssl rand -base64 24)
 
 NUXT_PUBLIC_TRACKER_HTTP_URL=https://tracker.your-domain.com/announce
-NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.your-domain.com:8081/announce
+NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.your-domain.com:6969/announce
 NUXT_PUBLIC_TRACKER_WS_URL=wss://tracker.your-domain.com/ws
 EOF
 ```

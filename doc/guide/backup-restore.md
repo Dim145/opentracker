@@ -19,7 +19,7 @@ It is **strongly recommended** to back up your PostgreSQL database to **multiple
 
 ```bash
 cd /opt/trackarr
-docker compose exec db pg_dump -U tracker trackarr | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
+docker compose exec postgres pg_dump -U tracker trackarr | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
 ```
 
 ### Backing Up Secrets
@@ -37,11 +37,11 @@ cp .env .env.backup_$(date +%Y%m%d_%H%M%S)
 
 Key secrets to preserve:
 
-| Variable                | Purpose                                                                |
-| ----------------------- | ---------------------------------------------------------------------- |
-| `TRACKER_SECRET`        | Generates user passkeys — losing this invalidates all `.torrent` files |
-| `IP_HASH_SECRET`        | Hashes peer IPs — losing this breaks peer tracking continuity          |
-| `NUXT_SESSION_PASSWORD` | Encrypts sessions — losing this logs out all users                     |
+| Variable                  | Purpose                                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `IP_HASH_SECRET`          | Hashes peer IPs in the tracker — losing this breaks peer tracking continuity but doesn't compromise security                   |
+| `NUXT_SESSION_SECRET`     | Encrypts sessions and (as fallback) notification-channel configs — losing this logs out all users and breaks every channel row |
+| `CHANNEL_ENCRYPTION_KEY`  | Optional dedicated key for notification-channel configs. When set, this is the variable that must survive the move (not the session secret). |
 
 Store a copy of your `.env` file in a secure location (password manager, encrypted storage) separate from your database backups.
 
@@ -79,8 +79,8 @@ docker compose -f docker-compose.prod.yml up -d db
 
 ```bash
 # Drop and recreate the database
-docker compose exec db dropdb -U tracker trackarr
-docker compose exec db createdb -U tracker trackarr
+docker compose exec postgres dropdb -U tracker trackarr
+docker compose exec postgres createdb -U tracker trackarr
 
 # Restore from backup
 gunzip -c backup_20260102_120000.sql.gz | docker compose exec -T db psql -U tracker trackarr
@@ -93,7 +93,7 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 ::: tip
-Make sure to update your `.env` file on the new server with the same secrets (`TRACKER_SECRET`, `IP_HASH_SECRET`, `NUXT_SESSION_PASSWORD`) from your old installation, otherwise existing passkeys and sessions will be invalidated.
+Make sure to update your `.env` file on the new server with the same secrets (`IP_HASH_SECRET`, `NUXT_SESSION_SECRET`, `CHANNEL_ENCRYPTION_KEY` if set) from your old installation. Without them the existing session cookies invalidate at the next login and every encrypted notification-channel config becomes unreadable.
 :::
 
 ## Changing Domains

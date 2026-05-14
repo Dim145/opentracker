@@ -46,20 +46,12 @@ GET /scrape?info_hash={info_hash}
 d5:filesd20:{info_hash}d8:completei10e10:downloadedi50e10:incompletei5eeee
 ```
 
-## WebSocket Announces
-
-Trackarr supports WebSocket announces for WebTorrent clients:
-
-```javascript
-const ws = new WebSocket('wss://announce.your-domain.com')
-
-ws.send(JSON.stringify({
-  action: 'announce',
-  info_hash: '...',
-  peer_id: '...',
-  // ... other parameters
-}))
-```
+::: warning WebSocket / WebTorrent announces
+WebTorrent (WSS) announces are **not implemented** in the current
+tracker. The Go binary ships only the BEP 3 HTTP and BEP 15 UDP
+front-ends; advertising a `wss://` URL in your `.torrent` files
+will make WebTorrent clients hang on connect.
+:::
 
 ## REST API
 

@@ -6,13 +6,12 @@ Complete reference for all environment variables used by Trackarr.
 
 These must be set for the application to run:
 
-| Variable                | Description                        | Example                               |
-| ----------------------- | ---------------------------------- | ------------------------------------- |
-| `DATABASE_URL`          | PostgreSQL connection string       | `postgresql://user:pass@host:5432/db` |
-| `REDIS_URL`             | Redis connection string            | `redis://:password@host:6379`         |
-| `NUXT_SESSION_PASSWORD` | Session encryption key (32+ chars) | Random string                         |
-| `TRACKER_SECRET`        | Secret for passkey generation      | Random string                         |
-| `IP_HASH_SECRET`        | Secret for IP hashing              | Random string                         |
+| Variable                | Description                                                                                       | Example                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `DATABASE_URL`          | PostgreSQL connection string                                                                      | `postgresql://user:pass@host:5432/db` |
+| `REDIS_URL`             | Redis connection string                                                                           | `redis://:password@host:6379`         |
+| `NUXT_SESSION_SECRET`   | Session encryption key (32+ chars). Generate with `openssl rand -hex 32`.                         | Random string                         |
+| `IP_HASH_SECRET`        | Secret used to hash peer IPs in the tracker (privacy-preserving correlation across announces).    | Random string                         |
 
 ## Application Settings
 
@@ -42,28 +41,24 @@ These must be set for the application to run:
 | `REDIS_PORT`     | Redis port     | `6379`      |
 | `REDIS_PASSWORD` | Redis password | —           |
 
-## Security
-
-| Variable            | Description                     | Default           |
-| ------------------- | ------------------------------- | ----------------- |
-| `POW_DIFFICULTY`    | Proof of Work difficulty (1-10) | `5`               |
-| `RATE_LIMIT_WINDOW` | Rate limit window (seconds)     | `60`              |
-| `RATE_LIMIT_MAX`    | Max requests per window         | `100`             |
-| `SESSION_MAX_AGE`   | Session lifetime (seconds)      | `604800` (7 days) |
-
 ## Tracker
 
-| Variable               | Description                     | Default |
-| ---------------------- | ------------------------------- | ------- |
-| `TRACKER_HTTP_PORT`    | HTTP listener port (BEP 3 announce) | `8080` |
-| `TRACKER_UDP_PORT`     | UDP listener port (BEP 15 announce) | `6969` |
+| Variable               | Description                                                                                       | Default |
+| ---------------------- | ------------------------------------------------------------------------------------------------- | ------- |
+| `TRACKER_HTTP_PORT`    | HTTP listener port (BEP 3 announce)                                                               | `8080`  |
+| `TRACKER_UDP_PORT`     | UDP listener port (BEP 15 announce)                                                               | `6969`  |
 | `TRACKER_UDP_ENABLED`  | Toggle the UDP listener. Read by **three** processes: the tracker (controls the listener), the API stats endpoint (drives the homepage Protocol-health tile), and the `.torrent` download endpoint (only adds the UDP tier when this is true). | `true` |
-| `TRACKER_INTERVAL`     | Announce interval (seconds)     | `1800`  |
-| `TRACKER_MIN_INTERVAL` | Minimum announce interval       | `900`   |
-| `TRACKER_MAX_PEERS`    | Max peers returned per announce | `50`    |
-| `TRACKER_DEBUG`        | Enables `debug` logs on the tracker container (announce successes, UDP packet dispatch, …). | `false` |
-| `TRUST_PROXY`          | Honour `X-Forwarded-For` for client IP. Set to `true` only when a trusted reverse proxy is in front of the tracker. | `false` |
+| `TRACKER_DEBUG`        | Enables `debug` logs on the tracker container (announce successes, UDP packet dispatch, …).       | `false` |
+| `TRUST_PROXY`          | Honour `X-Forwarded-For` for client IP. Set to `true` only when a trusted reverse proxy is in front of the tracker. The rightmost `X-Forwarded-For` token (the one the trusted proxy appended) is used. | `false` |
 | `REDIS_KEY_PREFIX`     | Prefix every Redis key with this string. Must match between the API (ioredis) and the Go tracker. | `ot:`   |
+
+::: tip Tracker tunables
+Announce interval (`1800` s), min interval (`900` s) and per-
+response peer cap (`50` HTTP / `100` UDP) are **hard-coded** in
+`apps/tracker/internal/server/response.go`. They aren't read from
+the env today — rebuild the tracker binary if you need to change
+them.
+:::
 
 ::: tip UDP frontend
 Disabling UDP at the tracker (`TRACKER_UDP_ENABLED=false`) automatically
@@ -144,7 +139,7 @@ required. See the [Notifications](../guide/notifications.md) guide.
 
 | Variable                 | Description                                              | Default |
 | ------------------------ | -------------------------------------------------------- | ------- |
-| `WEBAUTHN_RP_NAME`       | Relying-party name shown by the browser at registration. | `Trackarr` |
+| `TRACKARR_NAME`          | Public name used as the WebAuthn relying-party name AND the TOTP issuer label shown in authenticator apps. | `Trackarr` |
 | `WEBAUTHN_RP_ID`         | RP id (the host the passkey is bound to). Inferred from `Origin` when unset; pin explicitly behind a load balancer. | inferred |
 | `WEBAUTHN_ORIGIN`        | Origin allow-list for assertions. Inferred when unset.   | inferred |
 
@@ -169,15 +164,10 @@ POSTGRES_DB=trackarr
 REDIS_URL="redis://:redispassword@redis:6379"
 REDIS_PASSWORD=redispassword
 
-# Security
-NUXT_SESSION_PASSWORD="your-32-character-session-password-here"
-TRACKER_SECRET="your-tracker-secret-for-passkeys"
+# Security — generate each one with `openssl rand -hex 32`
+NUXT_SESSION_SECRET="your-32-character-session-password-here"
 IP_HASH_SECRET="your-ip-hashing-secret"
-POW_DIFFICULTY=5
-
-# Tracker
-TRACKER_INTERVAL=1800
-TRACKER_MIN_INTERVAL=900
+CHANNEL_ENCRYPTION_KEY="your-channel-config-encryption-key"
 ```
 
 ::: warning

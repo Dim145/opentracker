@@ -4,6 +4,21 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 
 ## Released
 
+### v0.17.x — Metadata layer, Web Push, upload polish
+
+- [x] **Pluggable metadata providers** — TMDb (films / TV), IGDB (games), Open Library + Google Books fallback (books). One registry, one `MediaSource` contract; new sources slot in with one file.
+- [x] **Locale-aware lookups** — User's `/settings` language drives the TMDb `language` query and is part of the Redis cache key
+- [x] **Browser push notifications (Web Push)** — VAPID-signed system notifications via a service worker, plugged into the existing channel registry alongside SMTP / Telegram / Discord / ntfy / Gotify / Pushover / webhook / Apprise
+- [x] **Upload form refinements** — Category-aware release-name parser (game / book / film / TV token tables), duplicate-infohash preflight, source-aware metadata preview, automatic id reset on category change
+- [x] **Bonus collector restart safety** — Cross-replica Redis lock and persisted last-tick timestamp; restarts no longer hand out a free hourly credit
+
+### v0.14–v0.16 — Notifications + i18n
+
+- [x] **In-app notifications** — Bell icon + `/notifications` feed, polymorphic event table, Redis pub/sub fan-out across Nitro replicas, retention sweeper
+- [x] **External notification channels** — SMTP, Telegram, Discord, Slack, Mattermost, ntfy, Gotify, Pushover, generic webhook, Apprise
+- [x] **Seed-bonus economy** — Customisable per-minute earning rules (rate × age × rarity curves), bonus shop, transactional buy flow, ledger-deduped grants
+- [x] **Internationalization** — `vue-i18n` + `@nuxtjs/i18n` with English + French bundles; user-saved preference on `users.language`
+
 ### v0.13.x — Moderation, 2FA, bonus events
 
 - [x] **Two-Factor Auth** — TOTP with recovery codes, WebAuthn passkeys, trusted-device cookies, A+C re-auth pattern, admin-controlled enforcement scope (off / staff / all)
@@ -30,9 +45,7 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 ## In progress / next
 
 - [ ] **Favorites / Watchlist** — Save torrents to personal list
-- [ ] **Bonus Points** — Reward seeders with exchangeable points (groundwork already laid by the bonus-events multiplier engine)
 - [ ] **User Classes** — Power User, VIP with granular permissions on top of the existing role engine
-- [ ] **Notifications** — In-app alerts for replies, moderation actions, requests
 - [ ] **Torrent Requests** — Request content with bounty system
 
 ---
@@ -43,7 +56,6 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 - [ ] **Private Messages** — User-to-user inbox system
 - [ ] **Collages / Collections** — Group torrents by theme
 - [ ] **Theme System** — Custom theme support beyond the built-in dark/light pair
-- [ ] **i18n** — Multi-language support
 - [ ] **E2E Tests** — Complete functional test suite
 - [ ] **API Documentation** — OpenAPI/Swagger at `/api/docs`
 
@@ -51,7 +63,6 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 
 ## Future (v1.x+)
 
-- [ ] WebSocket announces for real-time updates
 - [ ] Federation — Inter-tracker communication
 - [ ] Mobile app companion
 - [ ] CLI tool for tracker management

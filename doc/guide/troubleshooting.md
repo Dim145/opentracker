@@ -77,7 +77,7 @@ Common issues and how to resolve them.
 1. Check container logs:
 
    ```bash
-   docker compose -f docker-compose.prod.yml logs -f app
+   docker compose -f docker-compose.prod.yml logs -f api web tracker
    ```
 
 2. Verify environment variables are set:
@@ -94,7 +94,7 @@ Common issues and how to resolve them.
 
 4. Check Redis connectivity:
    ```bash
-   docker exec trackarr-redis redis-cli ping
+   docker exec trackarr-redis redis-cli -a "$REDIS_PASSWORD" ping
    ```
 
 ---
@@ -114,13 +114,13 @@ Common issues and how to resolve them.
 2. Check database logs:
 
    ```bash
-   docker compose -f docker-compose.prod.yml logs db
+   docker compose -f docker-compose.prod.yml logs postgres
    ```
 
 3. Restart the database:
 
    ```bash
-   docker compose -f docker-compose.prod.yml restart db
+   docker compose -f docker-compose.prod.yml restart postgres
    ```
 
 4. Verify `DATABASE_URL` format:
@@ -174,7 +174,7 @@ e21V5@postgres:5432/trackarr = host=postgres port=5432 auth_user=tracker
 
 4. **Restart affected services**:
    ```bash
-   docker compose -f docker-compose.prod.yml restart postgres pgbouncer app
+   docker compose -f docker-compose.prod.yml restart postgres pgbouncer api web tracker
    ```
 
 **Alternative:** Regenerate `.env` from `.env.example` and use `openssl rand -hex 32` to produce safe secrets.
@@ -196,7 +196,7 @@ e21V5@postgres:5432/trackarr = host=postgres port=5432 auth_user=tracker
 2. Test Redis connection:
 
    ```bash
-   docker exec trackarr-redis redis-cli ping
+   docker exec trackarr-redis redis-cli -a "$REDIS_PASSWORD" ping
    # Should return: PONG
    ```
 
@@ -226,12 +226,12 @@ e21V5@postgres:5432/trackarr = host=postgres port=5432 auth_user=tracker
 2. Restart the application:
 
    ```bash
-   docker compose -f docker-compose.prod.yml restart app
+   docker compose -f docker-compose.prod.yml restart api web tracker
    ```
 
 3. Check tracker logs for announce activity:
    ```bash
-   docker compose -f docker-compose.prod.yml logs -f app | grep tracker
+   docker compose -f docker-compose.prod.yml logs -f api web tracker | grep tracker
    ```
 
 ---
@@ -301,7 +301,7 @@ e21V5@postgres:5432/trackarr = host=postgres port=5432 auth_user=tracker
 
 3. Verify the PoW challenge is completing:
    ```bash
-   docker compose -f docker-compose.prod.yml logs -f app | grep challenge
+   docker compose -f docker-compose.prod.yml logs -f api web tracker | grep challenge
    ```
 
 ---
@@ -377,8 +377,8 @@ docker compose -f docker-compose.prod.yml logs -f
 ### View Specific Service Logs
 
 ```bash
-docker compose -f docker-compose.prod.yml logs -f app    # Application
-docker compose -f docker-compose.prod.yml logs -f db     # PostgreSQL
+docker compose -f docker-compose.prod.yml logs -f api web tracker    # Application
+docker compose -f docker-compose.prod.yml logs -f postgres     # PostgreSQL
 docker compose -f docker-compose.prod.yml logs -f redis  # Redis
 docker compose -f docker-compose.prod.yml logs -f caddy  # Reverse proxy
 ```
