@@ -336,6 +336,17 @@ const error = ref<string | null>(null);
 const results = ref<MediaSearchHit[]>([]);
 const focusIndex = ref(-1);
 
+// Monotonic tokens guard the search + lookup flows against
+// out-of-order resolutions. Each in-flight call captures the value
+// of the relevant ref at request time and bails when it no longer
+// matches at resolve time. Without these tokens a user clicking
+// result A then result B (with A's lookup slower than B's) would
+// end up with A's metadata stuck in the parent — the bug the
+// previous code-review pass flagged for picker + preflight + the
+// category-change clear path.
+let searchToken = 0;
+let resolveToken = 0;
+
 watch(
   () => props.initialQuery,
   (q) => {
@@ -363,6 +374,7 @@ watch(rawQuery, (val) => {
 
 watch(debouncedQuery, async (q) => {
   if (!q) return;
+  const myToken = ++searchToken;
   loading.value = true;
   error.value = null;
   try {
@@ -385,6 +397,7 @@ watch(debouncedQuery, async (q) => {
       message?: string;
       results: MediaSearchHit[];
     }>('/api/metadata/search', { query: params });
+    if (myToken !== searchToken) return; // a newer query took over
     if (!res.enabled) {
       error.value = res.message || t('components.mediaSearch.errors.metadataNotConfigured');
       results.value = [];
@@ -393,11 +406,12 @@ watch(debouncedQuery, async (q) => {
       focusIndex.value = res.results.length > 0 ? 0 : -1;
     }
   } catch (err: any) {
+    if (myToken !== searchToken) return;
     error.value =
       err?.data?.message || err?.message || t('components.mediaSearch.errors.searchFailed');
     results.value = [];
   } finally {
-    loading.value = false;
+    if (myToken === searchToken) loading.value = false;
   }
 });
 
@@ -442,6 +456,7 @@ async function selectHit(hit: MediaSearchHit) {
   // id IGDB or TMDb know about in one go. TMDb needs the type-
   // prefixed id (`movie/123`) to skip its namespace guess; IGDB
   // takes the bare numeric id.
+  const myToken = ++resolveToken;
   resolving.value = true;
   error.value = null;
   try {
@@ -454,15 +469,17 @@ async function selectHit(hit: MediaSearchHit) {
     }>('/api/metadata/lookup', {
       query: { source: hit.source, id: lookupId },
     });
+    if (myToken !== resolveToken) return;
     if (res.enabled && res.found && res.metadata) {
       emit('select', res.metadata);
     } else {
       error.value = t('components.mediaSearch.errors.couldNotLoadDetails');
     }
   } catch (err: any) {
+    if (myToken !== resolveToken) return;
     error.value = err?.data?.message || err?.message || t('components.mediaSearch.errors.lookupFailed');
   } finally {
-    resolving.value = false;
+    if (myToken === resolveToken) resolving.value = false;
   }
 }
 
@@ -501,6 +518,7 @@ async function resolveManual() {
             : null;
   if (!params) return;
   if (props.typeHint) (params as Record<string, string>).type = props.typeHint;
+  const myToken = ++resolveToken;
   resolving.value = true;
   error.value = null;
   try {
@@ -509,6 +527,7 @@ async function resolveManual() {
       found: boolean;
       metadata: MediaMetadata | null;
     }>('/api/metadata/lookup', { query: params });
+    if (myToken !== resolveToken) return;
     if (!res.enabled) {
       error.value = t('components.mediaSearch.errors.metadataLookupNotConfigured');
     } else if (!res.found) {
@@ -517,9 +536,10 @@ async function resolveManual() {
       emit('select', res.metadata);
     }
   } catch (err: any) {
+    if (myToken !== resolveToken) return;
     error.value = err?.data?.message || err?.message || t('components.mediaSearch.errors.lookupFailed');
   } finally {
-    resolving.value = false;
+    if (myToken === resolveToken) resolving.value = false;
   }
 }
 </script>

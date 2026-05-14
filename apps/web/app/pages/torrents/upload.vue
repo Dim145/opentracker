@@ -572,6 +572,16 @@ interface DuplicateInfo {
 }
 const duplicateFound = ref<DuplicateInfo | null>(null);
 const duplicateChecking = ref(false);
+// Monotonic tokens guard the file-drop preflight + the category-
+// triggered lookup-clear against out-of-order resolutions. The
+// previous flow could land a stale duplicate result over a fresh
+// file pick (drop A, drop B faster than A's check completes → A
+// overwrites B's result) and a stale `select` emission could
+// repopulate `lookupResult` after a category change had cleared it.
+// Capturing the token at request time and bailing on resolve when
+// it no longer matches closes both races.
+let duplicateCheckToken = 0;
+let lookupSelectionToken = 0;
 const title = ref('');
 const description = ref('');
 const tags = ref<string[]>([]);
@@ -666,6 +676,10 @@ const searchTypeHint = computed(() => {
 watch(selectedCategoryId, (next) => {
   if (next === lastCategoryId.value) return;
   lastCategoryId.value = next;
+  // Invalidate every in-flight picker lookup so an emission that
+  // started under the old category doesn't repopulate `lookupResult`
+  // a second later — that race was the H-W3 finding.
+  lookupSelectionToken++;
   lookupResult.value = null;
   imdbId.value = '';
   tmdbId.value = '';
@@ -795,6 +809,7 @@ watch(selectedFile, async (file) => {
   // Duplicate-infohash preflight. Server-side authoritative check
   // still runs at upload time; this is purely an early warning so
   // the user doesn't fill in the rest of the form for nothing.
+  const myToken = ++duplicateCheckToken;
   duplicateFound.value = null;
   duplicateChecking.value = true;
   try {
@@ -811,6 +826,7 @@ watch(selectedFile, async (file) => {
         createdAt: string;
       } | null;
     }>('/api/torrents/check', { method: 'POST', body: fd });
+    if (myToken !== duplicateCheckToken) return;
     if (res.exists && res.existing) {
       duplicateFound.value = {
         infoHash: res.existing.infoHash,
@@ -823,7 +839,7 @@ watch(selectedFile, async (file) => {
     // re-validate. Drop silently rather than show a noisy error
     // for what is just a UX hint.
   } finally {
-    duplicateChecking.value = false;
+    if (myToken === duplicateCheckToken) duplicateChecking.value = false;
   }
 });
 
@@ -865,6 +881,29 @@ function parseTitleNow() {
 const lookupResult = ref<MediaMetadata | null>(null);
 
 function onMediaSelected(metadata: MediaMetadata) {
+  // Source / category alignment guard. The picker resolves
+  // asynchronously, so a click on a TMDb hit followed by a category
+  // change to "game" can still emit a TMDb metadata payload a moment
+  // later — that's the H-W3 race. We refuse mismatched payloads here
+  // rather than passing them through to the picker; the user's
+  // current category wins.
+  const k = categoryKindHint.value;
+  if (k === 'game' && metadata.source !== 'igdb') return;
+  if (k === 'book' && metadata.source !== 'openlibrary') return;
+  if (
+    (k === 'movie' || k === 'tv') &&
+    metadata.source !== 'tmdb' &&
+    metadata.source !== 'imdb' &&
+    metadata.source !== 'tvdb'
+  ) {
+    return;
+  }
+  // Snapshot the token so a fast follow-up category change while
+  // this synchronous handler is mid-write still wipes everything
+  // through the watcher above — the token bump there happens
+  // before any new emission could land.
+  void lookupSelectionToken;
+
   lookupResult.value = metadata;
   // Mirror the resolved ids into the manual fallback fields so they
   // submit with the form even though the user picked via the search UI.

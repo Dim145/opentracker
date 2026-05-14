@@ -90,11 +90,27 @@ export function useMediaPosters() {
 
   // useState keeps the cache shared across components on the same page
   // load (and across the SSR/client hydration boundary). Each call site
-  // observes the same Map.
+  // observes the same Map. We rely on the fact that JS `Map` preserves
+  // insertion order: when the cache grows past `MAX_ENTRIES` we evict
+  // the oldest insertion (poor-man's LRU; "set" on an existing key
+  // re-inserts at the tail via the `delete` + `set` pattern in
+  // `setPoster`, so a still-active poster won't get pruned).
+  //
+  // Without an upper bound, the Map grew one entry per
+  // (language, type, id) tuple visited on a long-lived tab; every
+  // `setPoster` cloned the entire Map, so the per-write cost was also
+  // O(n). For a power user navigating 100s of torrent / download
+  // pages this turned into a noticeable allocation storm.
+  const MAX_ENTRIES = 500;
   const postersMap = useState<Map<string, PosterState>>(
     'tmdb-posters',
     () => new Map()
   );
+  // Tick a shallow ref to force consumers to recompute when the Map
+  // mutates in place. Vue 3 doesn't track Map writes deeply by
+  // default; bumping this counter is much cheaper than cloning the
+  // whole Map on every set.
+  const cacheBust = useState<number>('tmdb-posters-bust', () => 0);
   // Per-source sticky "disabled" flags — the route fans out 503s
   // separately for TMDb, IGDB and Open Library depending on which
   // env vars are unset. Once one source returns enabled:false we
@@ -122,11 +138,27 @@ export function useMediaPosters() {
   }
 
   function setPoster(key: string, state: PosterState) {
-    // Re-create the Map so consumers re-render — Map mutations are
-    // not deeply reactive in Vue 3.
-    const next = new Map(postersMap.value);
-    next.set(key, state);
-    postersMap.value = next;
+    const map = postersMap.value;
+    // `delete` + `set` re-inserts at the tail so the LRU eviction
+    // below targets the genuinely oldest entry — without this an
+    // active poster that gets re-fetched (e.g. loading → hit) keeps
+    // its original insertion position and risks being evicted under
+    // pressure.
+    map.delete(key);
+    map.set(key, state);
+    // Evict in a tight loop so the map never grows past the cap.
+    // For-of-keys is ordered insertion-oldest-first so the first
+    // iteration is the LRU.
+    while (map.size > MAX_ENTRIES) {
+      const oldest = map.keys().next().value;
+      if (oldest === undefined) break;
+      map.delete(oldest);
+    }
+    // Bump a separate counter to invalidate downstream computeds
+    // instead of cloning the whole Map on every set. Reads through
+    // `stateFor` touch `cacheBust.value` so the dependency graph
+    // refreshes.
+    cacheBust.value++;
   }
 
   async function fetchOne(externalId: string, type: PosterTypeHint) {
@@ -198,6 +230,13 @@ export function useMediaPosters() {
   ): PosterState | null {
     if (!externalId) return null;
     if (isSourceDisabled(type)) return { kind: 'missing' };
+    // Touch `cacheBust.value` so downstream computeds register a
+    // dependency on it — that's how a `setPoster` from a sibling
+    // component bubbles up to this caller without cloning the Map.
+    // The ESLint disable is intentional: reading a reactive ref is
+    // exactly the point.
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    cacheBust.value;
     return (
       postersMap.value.get(cacheKey(language.value, externalId, type)) ?? null
     );
