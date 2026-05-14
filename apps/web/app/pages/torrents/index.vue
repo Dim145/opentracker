@@ -218,24 +218,26 @@
         <!-- Grouped: cluster releases by TMDb id, fall back to solo for
              un-tagged torrents. The whole card is the toggle when there's
              more than one release; solo cards behave like a normal row
-             link. Poster comes from TMDb (cached); we soft-fade it in once
-             the lookup resolves so the layout doesn't jump. -->
+             link. Poster comes from TMDb for movies/series and IGDB for
+             games (cached); we soft-fade it in once the lookup resolves
+             so the layout doesn't jump. -->
         <div v-else class="grouped-list">
           <article
             v-for="group in groupedResults"
             :key="group.key"
             class="release-group"
             :class="{
-              'release-group--solo': !group.tmdbBare,
+              'release-group--solo': !group.externalId,
               'release-group--open': expandedGroups.has(group.key),
+              'release-group--game': group.hint === 'game',
             }"
           >
             <component
-              :is="group.tmdbBare && group.releases.length > 1 ? 'button' : 'div'"
-              :type="group.tmdbBare && group.releases.length > 1 ? 'button' : undefined"
+              :is="group.externalId && group.releases.length > 1 ? 'button' : 'div'"
+              :type="group.externalId && group.releases.length > 1 ? 'button' : undefined"
               class="release-group-head"
               :aria-expanded="
-                group.tmdbBare && group.releases.length > 1
+                group.externalId && group.releases.length > 1
                   ? expandedGroups.has(group.key)
                   : undefined
               "
@@ -245,15 +247,16 @@
                   : navigateTo(`/torrents/${group.lead.infoHash}`)
               "
             >
-              <!-- Poster slot — only renders when we have a TMDb id and
-                   the lookup is configured. While the lookup is in
+              <!-- Poster slot — only renders when we have an external id
+                   and the lookup is configured. While the lookup is in
                    flight we show a shimmering skeleton; on success the
-                   image fades in; on miss / TMDb-disabled we drop the
+                   image fades in; on miss / source disabled we drop the
                    poster column entirely so the head reflows full-width
                    like a solo card. -->
               <figure
-                v-if="group.tmdbBare && (isPosterLoading(group) || posterFor(group))"
+                v-if="group.externalId && (isPosterLoading(group) || posterFor(group))"
                 class="release-poster"
+                :class="{ 'release-poster--game': group.hint === 'game' }"
               >
                 <img
                   v-if="posterFor(group)?.posterUrl"
@@ -276,11 +279,18 @@
                     :name="categoryIcon(group.lead.category?.slug || 'other')"
                   />
                   {{ group.lead.category?.name || $t('search.uncategorised') }}
-                  <template v-if="group.tmdbBare">
+                  <template v-if="group.externalId">
                     <span class="results-stat-sep" />
-                    <span class="release-group-tmdb">
-                      <Icon name="ph:popcorn-fill" class="release-group-tmdb-icon" />
-                      TMDb {{ group.tmdbType ? `· ${group.tmdbType.toUpperCase()}` : '' }}
+                    <span
+                      v-if="group.hint === 'game'"
+                      class="release-group-src release-group-src--igdb"
+                    >
+                      <Icon name="ph:game-controller-fill" class="release-group-src-icon" />
+                      IGDB · GAME
+                    </span>
+                    <span v-else class="release-group-src release-group-src--tmdb">
+                      <Icon name="ph:popcorn-fill" class="release-group-src-icon" />
+                      TMDb {{ group.hint ? `· ${group.hint.toUpperCase()}` : '' }}
                     </span>
                   </template>
                 </span>
@@ -295,7 +305,7 @@
                     >
                   </template>
                   <template
-                    v-else-if="group.tmdbBare && isPosterLoading(group)"
+                    v-else-if="group.externalId && isPosterLoading(group)"
                   >
                     <span class="release-group-title-loading">
                       {{ $t('search.loadingTitle') }}
@@ -356,16 +366,16 @@
             <Transition name="releases">
               <ul
                 v-if="
-                  !group.tmdbBare ||
+                  !group.externalId ||
                   expandedGroups.has(group.key) ||
                   group.releases.length === 1
                 "
                 class="release-list"
               >
                 <li
-                  v-for="t in group.tmdbBare && expandedGroups.has(group.key)
+                  v-for="t in group.externalId && expandedGroups.has(group.key)
                     ? group.releases
-                    : !group.tmdbBare
+                    : !group.externalId
                       ? group.releases
                       : group.releases.slice(0, 1)"
                   :key="t.id"
@@ -436,17 +446,19 @@ interface TorrentWithStats {
   name: string;
   size: number;
   createdAt: string;
-  // External-database ids — the grouped view buckets by tmdbId so two
-  // releases of the same movie / series cluster together. The other ids
-  // are kept for the chips in the row body.
+  // External-database ids — the grouped view buckets by tmdbId for
+  // movies/series and by igdbId for games so siblings cluster into
+  // one card with a poster. The other ids are kept for the chips in
+  // the row body.
   imdbId: string | null;
   tmdbId: string | null;
   tvdbId: string | null;
+  igdbId: string | null;
   category?: {
     id: string;
     name: string;
     slug: string;
-    type: 'movie' | 'tv' | null;
+    type: 'movie' | 'tv' | 'game' | null;
   };
   tags?: TorrentTag[];
   stats: {
@@ -456,11 +468,11 @@ interface TorrentWithStats {
   };
 }
 
-// `TmdbPoster` is exported by the `useTmdbPosters` composable; we
+// `MediaPoster` is exported by the `useMediaPosters` composable; we
 // import the type when we need to lean on it directly. The previous
 // inline copy duplicated the same fields and went stale every time
 // the composable shape evolved.
-import type { TmdbPoster } from '~/composables/useTmdbPosters';
+import type { MediaPoster } from '~/composables/useMediaPosters';
 
 interface Category {
   id: string;
@@ -633,13 +645,14 @@ const hasActiveQuery = computed(
 
 // ── Grouping (client-side) ───────────────────────────────────
 //
-// We bucket torrents by their TMDb id so every release of the same
-// movie / series clusters into one card with a poster from TMDb. A
-// torrent without a TMDb id has nothing to cluster against, so it gets
+// We bucket torrents by whichever external id makes sense for their
+// kind — TMDb for movies/series, IGDB for games — so every release of
+// the same title clusters into one card with a poster. A torrent
+// without any cluster id has nothing to cluster against, so it gets
 // its own one-element bucket and renders as a plain row (no poster,
-// just the filename). The `bare` form normalises the stored id (which
-// may carry a `movie/` or `tv/` prefix) so two siblings stored the
-// same way still match.
+// just the filename). The TMDb `bare` form normalises the stored id
+// (which may carry a `movie/` or `tv/` prefix) so two siblings stored
+// the same way still match.
 function tmdbBucketKey(tmdbId: string | null | undefined): string | null {
   if (!tmdbId) return null;
   const m = tmdbId.match(/^(?:movie|tv)\/(\d+)$/);
@@ -647,14 +660,46 @@ function tmdbBucketKey(tmdbId: string | null | undefined): string | null {
   return `tmdb:${bare}`;
 }
 
+type GroupHint = 'movie' | 'tv' | 'game' | null;
+
+/**
+ * Pick the right bucket for a torrent. The mere presence of an
+ * `igdbId` is the authoritative "this is a game" signal — the upload
+ * flow only writes that field when the operator picks an IGDB hit
+ * (or when the auto-detect resolves a console/PC release), so we
+ * prefer it unconditionally over any stale TMDb id that may also
+ * happen to be set. Falls back to TMDb, then to a "solo" bucket
+ * keyed by torrent id for rows with neither.
+ */
+function bucketFor(t: TorrentWithStats): {
+  key: string;
+  externalId: string | null;
+  hint: GroupHint;
+} {
+  if (t.igdbId) {
+    return { key: `igdb:${t.igdbId}`, externalId: t.igdbId, hint: 'game' };
+  }
+  const tmdbKey = tmdbBucketKey(t.tmdbId);
+  if (tmdbKey) {
+    const prefixMatch = t.tmdbId?.match(/^(movie|tv)\//);
+    const hint: GroupHint =
+      (prefixMatch?.[1] as 'movie' | 'tv' | undefined) ??
+      (t.category?.type === 'movie' || t.category?.type === 'tv'
+        ? t.category.type
+        : null);
+    return { key: tmdbKey, externalId: tmdbKey.slice(5), hint };
+  }
+  return { key: `solo:${t.id}`, externalId: null, hint: null };
+}
+
 interface ReleaseGroup {
   key: string;
-  /** Filename of the lead release — used as fallback title when no TMDb metadata. */
+  /** Filename of the lead release — used as fallback title when no external metadata. */
   fallbackTitle: string;
-  /** TMDb id without `movie/` / `tv/` prefix; null for solo (un-tagged) torrents. */
-  tmdbBare: string | null;
-  /** TMDb namespace for the lookup endpoint. Null when we genuinely don't know. */
-  tmdbType: 'movie' | 'tv' | null;
+  /** External id (TMDb bare or IGDB id); null for solo (un-tagged) torrents. */
+  externalId: string | null;
+  /** Source/type hint passed to the metadata lookup endpoint. */
+  hint: GroupHint;
   releases: TorrentWithStats[];
   lead: TorrentWithStats;
   totalSize: number;
@@ -664,28 +709,20 @@ interface ReleaseGroup {
 const groupedResults = computed<ReleaseGroup[]>(() => {
   const buckets = new Map<string, ReleaseGroup>();
   for (const t of torrents.value) {
-    const bucketKey = tmdbBucketKey(t.tmdbId) ?? `solo:${t.id}`;
-    let group = buckets.get(bucketKey);
+    const slot = bucketFor(t);
+    let group = buckets.get(slot.key);
     if (!group) {
-      // Pull a type hint from either the stored tmdbId prefix or the
-      // category type. Both can be null; the lookup endpoint is happy
-      // with null and probes movie-then-tv as a fallback.
-      const prefixMatch = t.tmdbId?.match(/^(movie|tv)\//);
-      const tmdbType =
-        (prefixMatch?.[1] as 'movie' | 'tv' | undefined) ??
-        t.category?.type ??
-        null;
       group = {
-        key: bucketKey,
+        key: slot.key,
         fallbackTitle: t.name,
-        tmdbBare: bucketKey.startsWith('tmdb:') ? bucketKey.slice(5) : null,
-        tmdbType,
+        externalId: slot.externalId,
+        hint: slot.hint,
         releases: [],
         lead: t,
         totalSize: 0,
         totalSeeders: 0,
       };
-      buckets.set(bucketKey, group);
+      buckets.set(slot.key, group);
     }
     group.releases.push(t);
     group.totalSize += t.size || 0;
@@ -698,37 +735,39 @@ const groupedResults = computed<ReleaseGroup[]>(() => {
     );
     g.lead = g.releases[0];
   }
-  // Sort: TMDb-clustered groups first (newest activity first), then solo
-  // torrents — that way browsing the grouped view always feels organised
-  // around real titles rather than orphan releases.
+  // Sort: clustered groups first (most active by seed count first), then
+  // solo torrents — that way browsing the grouped view always feels
+  // organised around real titles rather than orphan releases.
   return Array.from(buckets.values()).sort((a, b) => {
-    if (!!a.tmdbBare !== !!b.tmdbBare) return a.tmdbBare ? -1 : 1;
+    if (!!a.externalId !== !!b.externalId) return a.externalId ? -1 : 1;
     return b.totalSeeders - a.totalSeeders;
   });
 });
 
-// ── TMDb metadata fetch (grouped view only) ────────────────
+// ── External metadata fetch (grouped view only) ────────────
 //
-// All the state machinery (loading / hit / missing, sticky disabled
-// flag, w500→w342 downscale) lives in `useTmdbPosters` so this page,
-// /downloads, and any future surface share one cache. Local helpers
-// adapt the group-shaped API to the composable's bare-id input.
-const postersComposable = useTmdbPosters();
+// All the state machinery (loading / hit / missing, per-source sticky
+// disabled flag, w500→w342 downscale for TMDb) lives in
+// `useMediaPosters` so this page, /downloads, and any future surface
+// share one cache. The composable routes to TMDb for `movie`/`tv` and
+// IGDB for `game`; local helpers adapt the group-shaped API to its
+// `(externalId, hint)` input.
+const postersComposable = useMediaPosters();
 
-function posterFor(group: ReleaseGroup): TmdbPoster | null {
-  return postersComposable.posterFor(group.tmdbBare, group.tmdbType);
+function posterFor(group: ReleaseGroup): MediaPoster | null {
+  return postersComposable.posterFor(group.externalId, group.hint);
 }
 function isPosterLoading(group: ReleaseGroup): boolean {
-  return postersComposable.isPosterLoading(group.tmdbBare, group.tmdbType);
+  return postersComposable.isPosterLoading(group.externalId, group.hint);
 }
 
-// Trigger fetches whenever the grouped view shows new TMDb-tagged groups.
+// Trigger fetches whenever the grouped view shows new clustered groups.
 watch(
   [groupedResults, view],
   () => {
     if (view.value !== 'grouped') return;
     for (const g of groupedResults.value) {
-      postersComposable.register(g.tmdbBare, g.tmdbType);
+      postersComposable.register(g.externalId, g.hint);
     }
   },
   { immediate: true }
@@ -1394,15 +1433,46 @@ button.release-group-head:hover {
   color: rgb(var(--fg-subtle));
   flex-wrap: wrap;
 }
-.release-group-tmdb {
+/* Source pill — TMDb cyan for films/TV, IGDB violet for games. The
+   colour-coded icon makes the kind of cluster legible at a glance
+   while the label keeps the same monospace voice as the rest of the
+   eyebrow. */
+.release-group-src {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   color: rgb(var(--fg-muted));
 }
-.release-group-tmdb-icon {
-  color: #01b4e4;
+.release-group-src-icon {
   font-size: 10.5px;
+}
+.release-group-src--tmdb .release-group-src-icon {
+  color: #01b4e4;
+}
+.release-group-src--igdb {
+  color: #b48cff;
+}
+.release-group-src--igdb .release-group-src-icon {
+  color: #a26bff;
+  filter: drop-shadow(0 0 4px rgba(162, 107, 255, 0.45));
+}
+
+/* Game-grouped card — a whisper of IGDB violet along the lead edge
+   so it's distinguishable from a TMDb cluster at a glance, without
+   shouting over the row body. */
+.release-group--game {
+  box-shadow: inset 3px 0 0 0 rgba(162, 107, 255, 0.5);
+}
+.release-group--game:hover {
+  box-shadow: inset 3px 0 0 0 rgba(162, 107, 255, 0.85);
+}
+
+/* IGDB cover art is portrait 3:4 (Twitch's `t_cover_big_2x` source)
+   whereas TMDb posters are the classic 2:3 cinematic. Swap the
+   aspect ratio so we never letterbox or crop a game cover. */
+.release-poster--game {
+  aspect-ratio: 3 / 4;
+  border-color: rgba(162, 107, 255, 0.35);
 }
 .release-group-title {
   margin: 0;

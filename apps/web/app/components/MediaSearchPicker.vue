@@ -154,46 +154,55 @@
         {{ t('components.mediaSearch.manualToggle') }}
       </summary>
       <div class="id-grid">
-        <label>
-          <span class="id-tag id-tag--imdb">{{ t('components.mediaSearch.imdb') }}</span>
-          <input
-            :value="imdbId"
-            type="text"
-            class="input id-input"
-            placeholder="tt1234567"
-            @input="$emit('update:imdbId', ($event.target as HTMLInputElement).value)"
-          />
-        </label>
-        <label>
-          <span class="id-tag id-tag--tmdb">{{ t('components.mediaSearch.tmdb') }}</span>
-          <input
-            :value="tmdbId"
-            type="text"
-            class="input id-input"
-            placeholder="12345 or tv/12345"
-            @input="$emit('update:tmdbId', ($event.target as HTMLInputElement).value)"
-          />
-        </label>
-        <label>
-          <span class="id-tag id-tag--tvdb">{{ t('components.mediaSearch.tvdb') }}</span>
-          <input
-            :value="tvdbId"
-            type="text"
-            class="input id-input"
-            placeholder="78804"
-            @input="$emit('update:tvdbId', ($event.target as HTMLInputElement).value)"
-          />
-        </label>
-        <label>
-          <span class="id-tag id-tag--igdb">{{ t('components.mediaSearch.igdb') }}</span>
-          <input
-            :value="igdbId"
-            type="text"
-            class="input id-input"
-            placeholder="7346 or zelda-breath-of-the-wild"
-            @input="$emit('update:igdbId', ($event.target as HTMLInputElement).value)"
-          />
-        </label>
+        <!-- Movie / TV / null category: surface the TMDb-family IDs.
+             Hiding IGDB here keeps the operator from mistakenly
+             pasting an IGDB slug into a film row (and vice versa
+             for the game branch below). -->
+        <template v-if="typeHint !== 'game'">
+          <label>
+            <span class="id-tag id-tag--imdb">{{ t('components.mediaSearch.imdb') }}</span>
+            <input
+              :value="imdbId"
+              type="text"
+              class="input id-input"
+              placeholder="tt1234567"
+              @input="$emit('update:imdbId', ($event.target as HTMLInputElement).value)"
+            />
+          </label>
+          <label>
+            <span class="id-tag id-tag--tmdb">{{ t('components.mediaSearch.tmdb') }}</span>
+            <input
+              :value="tmdbId"
+              type="text"
+              class="input id-input"
+              placeholder="12345 or tv/12345"
+              @input="$emit('update:tmdbId', ($event.target as HTMLInputElement).value)"
+            />
+          </label>
+          <label>
+            <span class="id-tag id-tag--tvdb">{{ t('components.mediaSearch.tvdb') }}</span>
+            <input
+              :value="tvdbId"
+              type="text"
+              class="input id-input"
+              placeholder="78804"
+              @input="$emit('update:tvdbId', ($event.target as HTMLInputElement).value)"
+            />
+          </label>
+        </template>
+        <!-- Game category: only IGDB. -->
+        <template v-if="typeHint === 'game'">
+          <label>
+            <span class="id-tag id-tag--igdb">{{ t('components.mediaSearch.igdb') }}</span>
+            <input
+              :value="igdbId"
+              type="text"
+              class="input id-input"
+              placeholder="7346 or zelda-breath-of-the-wild"
+              @input="$emit('update:igdbId', ($event.target as HTMLInputElement).value)"
+            />
+          </label>
+        </template>
       </div>
       <button
         type="button"

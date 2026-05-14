@@ -1,13 +1,13 @@
 <template>
   <!-- Three render branches, in order:
-       1. We have a TMDb id and a resolved hit with a poster URL → image.
-       2. We have a TMDb id but the lookup is in flight → skeleton.
-       3. Anything else (no TMDb id, miss, or TMDb disabled) → status icon.
+       1. We have an external id and a resolved hit with a poster URL → image.
+       2. We have an external id but the lookup is in flight → skeleton.
+       3. Anything else (no id, miss, or source disabled) → status icon.
        Branch 1 also covers the "hit but no poster" miss by falling back
        to a broken-image glyph inside the same figure footprint, so the
        layout stays stable across loading → resolved transitions. -->
   <figure
-    v-if="tmdbId && (loading || poster)"
+    v-if="externalId && (loading || poster)"
     class="dl-row-poster"
   >
     <img
@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import type { TmdbPoster } from '~/composables/useTmdbPosters';
+import type { MediaPoster } from '~/composables/useMediaPosters';
 
 interface Item {
   name: string;
@@ -43,9 +43,9 @@ interface Item {
 
 const props = defineProps<{
   item: Item;
-  poster: TmdbPoster | null;
+  poster: MediaPoster | null;
   loading: boolean;
-  tmdbId: string | null;
+  externalId: string | null;
 }>();
 
 const statusIcon = computed(() => {

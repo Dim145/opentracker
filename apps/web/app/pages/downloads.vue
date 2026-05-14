@@ -61,7 +61,7 @@
             :item="item"
             :poster="posters.posterFor(posterBareFor(item), posterTypeFor(item))"
             :loading="posters.isPosterLoading(posterBareFor(item), posterTypeFor(item))"
-            :tmdb-id="posterBareFor(item)"
+            :external-id="posterBareFor(item)"
           />
 
           <div class="dl-row-body">
@@ -192,11 +192,12 @@ interface DownloadItem {
   imdbId: string | null;
   tmdbId: string | null;
   tvdbId: string | null;
+  igdbId: string | null;
   category: {
     id: string;
     name: string;
     slug: string;
-    type: 'movie' | 'tv' | null;
+    type: 'movie' | 'tv' | 'game' | null;
   } | null;
   downloadedAt: string;
   completedAt: string | null;
@@ -232,22 +233,37 @@ const { data, pending } = await useFetch<DownloadsPayload>(
   }
 );
 
-// TMDb posters — shared composable, batches /api/metadata/lookup with
-// a 3-state machine (loading / hit / missing). The Redis cache on the
-// server keeps the upstream load tiny even for big pages.
-const posters = useTmdbPosters();
+// Media posters — shared composable, batches /api/metadata/lookup
+// with a 3-state machine (loading / hit / missing). Routes to TMDb
+// for movies/TV and IGDB for games based on the picked hint. The
+// Redis cache on the server keeps the upstream load tiny even for
+// big pages.
+const posters = useMediaPosters();
+
+// Pick the right external id + hint for one row. The presence of an
+// `igdbId` is the authoritative "this is a game" signal — same rule
+// as the grouped /torrents view, so a row with both ids (game + a
+// stale auto-detected tmdbId) still resolves to IGDB. Falls back to
+// the stored TMDb id for movies/series.
+type PosterHint = 'movie' | 'tv' | 'game' | null;
 
 function posterBareFor(item: DownloadItem): string | null {
+  if (item.igdbId) return item.igdbId;
   return posters.tmdbBare(item.tmdbId);
 }
-function posterTypeFor(item: DownloadItem): 'movie' | 'tv' | null {
-  return posters.typeFromTmdbId(item.tmdbId) ?? item.category?.type ?? null;
+function posterTypeFor(item: DownloadItem): PosterHint {
+  if (item.igdbId) return 'game';
+  const prefix = posters.typeFromTmdbId(item.tmdbId);
+  if (prefix) return prefix;
+  return item.category?.type === 'movie' || item.category?.type === 'tv'
+    ? item.category.type
+    : null;
 }
 
-// Trigger a fetch for every TMDb-tagged item in the current page. The
+// Trigger a fetch for every clustered item in the current page. The
 // composable dedupes; switching pages just enqueues new ids. We gate
-// on a known type hint (movie/tv) so a stray tmdbId on a music or
-// games upload doesn't burn a TMDb call that's guaranteed to miss.
+// on a known type hint so a stray tmdbId on a music upload doesn't
+// burn a lookup call that's guaranteed to miss.
 watch(
   () => data.value?.items ?? [],
   (items) => {

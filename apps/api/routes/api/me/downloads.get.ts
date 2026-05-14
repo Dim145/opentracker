@@ -52,9 +52,10 @@ export default defineEventHandler(async (event) => {
   // Project to a clean public shape — the FE doesn't need the seed-
   // time bookkeeping fields the HnR job writes, just the identity
   // (torrent + category) and the user-facing counters. We surface
-  // the stored TMDb id (and the category's `type` hint) so the page
-  // can show a poster next to each entry — same composable pattern
-  // as the grouped /search view.
+  // the stored external ids (TMDb for movies/TV, IGDB for games)
+  // alongside the category's `type` hint so the page can show a
+  // poster next to each entry — same composable pattern as the
+  // grouped /torrents view.
   const items = rows.map((row) => ({
     id: row.id,
     infoHash: row.torrent.infoHash,
@@ -63,6 +64,7 @@ export default defineEventHandler(async (event) => {
     imdbId: row.torrent.imdbId,
     tmdbId: row.torrent.tmdbId,
     tvdbId: row.torrent.tvdbId,
+    igdbId: row.torrent.igdbId,
     category: row.torrent.category
       ? {
           id: row.torrent.category.id,
