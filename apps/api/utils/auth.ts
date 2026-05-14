@@ -15,19 +15,19 @@ export function requireAdmin(event: any): void {
     getHeader(event, 'x-admin-key') ||
     getHeader(event, 'authorization')?.replace('Bearer ', '');
 
+  // No key configured → admin routes are unavailable, regardless of
+  // NODE_ENV. The previous behaviour passed-through in development /
+  // staging, which silently opened admin routes whenever an operator
+  // forgot to set the env var (or whenever NODE_ENV happened to read
+  // as `development` / `test` — e.g. on a CI box where the env was
+  // never propagated). 503 is the right answer everywhere: a route
+  // that requires an unconfigured credential is simply not available.
   if (!ADMIN_API_KEY) {
-    // Refuse to gate anything in production without a configured key —
-    // returning 200 there would silently expose admin routes.
-    if (process.env.NODE_ENV === 'production') {
-      throw createError({
-        statusCode: 503,
-        message: 'Admin API not configured',
-      });
-    }
-    console.warn(
-      '[Security] Admin endpoint accessed without ADMIN_API_KEY configured'
-    );
-    return;
+    throw createError({
+      statusCode: 503,
+      message:
+        'Admin API not configured — set ADMIN_API_KEY in the environment to enable header-auth admin routes.',
+    });
   }
 
   if (!apiKey) {
