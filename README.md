@@ -38,8 +38,8 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 
 | Feature              | Notes                                                                                              |
 | -------------------- | -------------------------------------------------------------------------------------------------- |
-| Smart media-id paste | Paste an IMDb / TMDb / TVDB URL or bare id into search → filtered listing                          |
-| TMDb metadata lookup | Posters, year, ratings, overview pulled from TMDb (operator API key)                               |
+| Smart media-id paste | Paste an IMDb / TMDb / TVDB / IGDB slug or Open Library / ISBN id into search → filtered listing   |
+| Rich media metadata  | TMDb (films + TV), IGDB (games) and Open Library + Google Books (books); user locale drives the lookup language |
 | User-facing tags     | Per-torrent tag chips with autocomplete + filter panel                                             |
 | Categories           | Hierarchical with Newznab ids — *Arr clients consume the Torznab feed                              |
 | Full-text search     | PostgreSQL `gin_trgm_ops` on torrent name                                                          |
@@ -51,8 +51,10 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Dedicated upload page       | Replaces the cramped modal — numbered sections, sticky action bar, live preview sidebar              |
 | Auto title + tags           | Filename is parsed: clean title, year, S/E, resolution, source, codec, audio, lang flags             |
-| TMDb search picker          | Auto-searches the parsed title (debounced, ↑↓+Enter); results pre-fill IMDb / TMDb / TVDB ids        |
-| Conditional ID block        | IDs section only renders for movie/tv categories — hidden for audio, books, etc.                     |
+| Multi-source search picker  | Auto-searches the parsed title against TMDb / IGDB / Open Library based on the category type        |
+| Category-aware parser       | Filename → category-specific tag set: `[PS5]`, `[CBZ]`, `[T01-T05]`, `v1.0.5`, `1080p`, `VOSTFR`, …  |
+| Duplicate preflight         | File drop runs an infohash check before the upload form opens — a known torrent is flagged with a link to the existing row |
+| Conditional ID block        | The Identity block adapts to the category — IMDb/TMDb/TVDB for film/TV, IGDB for games, Open Library for books, hidden for audio/software/etc. |
 | WYSIWYG description         | Tiptap-based editor; pasted BBCode/HTML/Markdown converts cleanly                                    |
 | NFO support                 | Drag-drop or paste; CP437 → UTF-8 fallback for ASCII-art                                             |
 | Required description        | Soft-enforced client-side — red asterisk, status-bar gate, disabled submit until non-empty          |
@@ -64,6 +66,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 | -------------------- | ---------------------------------------------------------------------------------------------------- |
 | `/admin/users`       | Paginated registry: KPI strip, role / activity / status filters, sortable columns, inline ban/role   |
 | `/admin/...`         | Categories, roles, invites, branding, panic, tags, Torznab settings, reports, HnR                    |
+| Notification channels | `/admin/notifications` configures the server-side of every transport (SMTP, Telegram, Discord, ntfy, Gotify, Pushover, Slack, Mattermost, webhook, Apprise, **Web Push**); each user picks where each event goes from `/settings` |
 | Prometheus metrics   | Dedicated port; tracker swarm + API request stats                                                    |
 | Settings (per-user)  | Display name, bio, last-seen privacy toggle, theme, change password, sign-out                        |
 
@@ -507,7 +510,11 @@ Trackarr is built on the shoulders of giants. Thanks to the following open-sourc
 | [Vitest](https://vitest.dev)                                           | Testing framework           |
 | [Pinia](https://pinia.vuejs.org)                                       | State management            |
 | [Zod](https://zod.dev)                                                 | Schema validation           |
-| [TMDb](https://www.themoviedb.org)                                     | Media metadata source       |
+| [TMDb](https://www.themoviedb.org)                                     | Films + TV metadata         |
+| [IGDB](https://www.igdb.com)                                           | Video-game metadata         |
+| [Open Library](https://openlibrary.org)                                | Books + ebook metadata      |
+| [Google Books API](https://developers.google.com/books)                | Books metadata (fallback)   |
+| [web-push](https://github.com/web-push-libs/web-push)                  | RFC 8291 / 8292 push delivery |
 
 ---
 

@@ -76,6 +76,8 @@ export default defineConfig({
             { text: 'Bonus Events', link: '/guide/bonus-events' },
             { text: 'Seed Bonus Economy', link: '/guide/seed-bonus' },
             { text: 'UDP Tracker (BEP 15)', link: '/guide/udp-tracker' },
+            { text: 'Metadata Providers', link: '/guide/metadata-providers' },
+            { text: 'Notifications', link: '/guide/notifications' },
             { text: 'Internationalization', link: '/guide/i18n' },
           ],
         },

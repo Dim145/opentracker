@@ -36,13 +36,17 @@ features:
     details: Prometheus metrics for moderation queue depth, 2FA adoption, bonus events, invitations funnel, registration mode, and more — exposed on a dedicated port.
   - title: Hit-and-Run tracking
     details: Built-in seeding requirements, exemption controls and moderator dashboards keep the swarm healthy.
+  - title: Rich media metadata
+    details: Pluggable provider abstraction with TMDb (movies/TV), IGDB (games) and Open Library + Google Books (books). The user's locale drives the lookup language so French users get French titles out of the box.
+  - title: Multi-channel notifications
+    details: In-app feed plus optional fan-out to SMTP, Telegram, Discord, Slack, Mattermost, ntfy, Gotify, Pushover, Webhook, Apprise — or system-level browser push via the Push API + service worker.
 ---
 
 ## Why Trackarr?
 
 Trackarr is designed for communities that value **privacy** and **security** above all else. Unlike traditional trackers that store passwords and personal data in plaintext or with reversible encryption, Trackarr uses cryptographic proofs that make it mathematically impossible to recover user credentials — even for administrators.
 
-This documentation covers the [`Dim145/opentracker`](https://github.com/Dim145/opentracker) fork, which adds two-factor auth, user-managed invitations, the moderation pipeline, bonus events, the [seed-bonus economy](/guide/seed-bonus) (per-user points + shop), the [UDP tracker frontend](/guide/udp-tracker) (BEP 15 alongside HTTP), the three-state registration mode, and a hardened announce hot path on top of the original feature set.
+This documentation covers the [`Dim145/opentracker`](https://github.com/Dim145/opentracker) fork, which adds two-factor auth, user-managed invitations, the moderation pipeline, bonus events, the [seed-bonus economy](/guide/seed-bonus) (per-user points + shop), the [UDP tracker frontend](/guide/udp-tracker) (BEP 15 alongside HTTP), the three-state registration mode, [pluggable media metadata](/guide/metadata-providers) (TMDb / IGDB / Open Library), [multi-channel notifications](/guide/notifications) (SMTP, Telegram, Discord, Web Push, …), and a hardened announce hot path on top of the original feature set.
 
 ### Tech Stack
 

@@ -102,6 +102,44 @@ portable across domains.
 See the [Prometheus Metrics reference](./metrics.md) for the full list of
 exposed gauges and example queries.
 
+## Media metadata
+
+All three providers are optional. Without them, torrents still get a
+poster + title from the user-supplied filename — the metadata cards
+simply stay empty.
+
+| Variable                | Description                                                                                       | Default |
+| ----------------------- | ------------------------------------------------------------------------------------------------- | ------- |
+| `TMDB_API_KEY`          | TMDb v3 API key **or** v4 Read-Only Access Token (auto-detected). Used for films + TV.            | unset   |
+| `IGDB_ID`               | Twitch Client ID for IGDB (video games). Pair with `IGDB_SECRET`. Both required to enable IGDB.   | unset   |
+| `IGDB_SECRET`           | Twitch Client Secret. Used to mint the IGDB app-access token (cached for ~60 days).               | unset   |
+| `GOOGLE_BOOKS_API_KEY`  | Optional Google Books fallback for the Open Library source. Open Library itself needs no key.     | unset   |
+
+::: tip Per-source enablement
+A missing key returns a clean 503 only for the routes that need that
+source — the others keep serving. Disabling all three turns the
+"metadata lookup" feature off without affecting uploads.
+:::
+
+See the [Metadata providers](../guide/metadata-providers.md) guide
+for the operator setup (where to register an API key, what each
+provider does, fallback behaviour).
+
+## Notifications
+
+The in-app notification feed (bell + `/notifications`) always works.
+External channels (SMTP, Telegram, Discord, ntfy, browser push, …)
+are configured per-instance in `/admin/notifications` — they don't
+need env vars beyond the encryption secret below.
+
+| Variable                  | Description                                                                                                   | Default |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------- | ------- |
+| `CHANNEL_ENCRYPTION_KEY`  | AES key used to encrypt notification-channel configs at rest (SMTP password, Telegram token, VAPID private key, …). When unset, falls back to `NUXT_SESSION_SECRET`. Generate with `openssl rand -hex 32`. | falls back to `NUXT_SESSION_SECRET` |
+
+For Web Push specifically: VAPID keys are generated automatically
+when the admin saves the channel for the first time — no env var
+required. See the [Notifications](../guide/notifications.md) guide.
+
 ## Two-factor auth & sessions
 
 | Variable                 | Description                                              | Default |
