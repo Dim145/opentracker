@@ -167,6 +167,7 @@
 
 <script setup lang="ts">
 import { formatAge } from '~/utils/format';
+import { safeInAppPath } from '~/utils/safePath';
 import { useNotifications, type NotificationRow } from '~/composables/useNotifications';
 
 const { t } = useI18n();
@@ -221,7 +222,12 @@ function onRowClick(row: NotificationRow) {
   void markRead(row.id);
   open.value = false;
   if (row.link) {
-    void router.push(row.link);
+    // Notification rows carry a server-supplied link string. Router
+    // will treat bare strings as in-app paths, but `//evil.tld/...`
+    // or `https://evil.tld/...` would still navigate off-origin.
+    // `safeInAppPath` coerces anything not matching our origin to
+    // '/' so a poisoned row can't be used to phish the user.
+    void router.push(safeInAppPath(row.link));
   }
 }
 

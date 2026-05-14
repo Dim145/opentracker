@@ -52,9 +52,25 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+// Coerce a server-supplied `link` to a same-origin URL before
+// handing it to `client.navigate` / `openWindow`. Without this guard
+// a malicious / compromised push payload could navigate every
+// open tab to an off-origin phishing page, since both APIs accept
+// any string. Anything off-origin (or unparseable) collapses to
+// '/'.
+function sameOriginOrRoot(link) {
+  try {
+    const u = new URL(link, self.location.origin);
+    return u.origin === self.location.origin ? u.pathname + u.search + u.hash : '/';
+  } catch {
+    return '/';
+  }
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const link = (event.notification.data && event.notification.data.link) || '/';
+  const raw = (event.notification.data && event.notification.data.link) || '/';
+  const link = sameOriginOrRoot(raw);
   event.waitUntil(
     (async () => {
       const all = await self.clients.matchAll({

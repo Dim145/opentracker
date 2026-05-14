@@ -23,11 +23,20 @@ export default defineEventHandler(async (event) => {
   // download-history row immediately after — this lets the /downloads
   // page surface a torrent the moment the user clicked "Download",
   // before the BitTorrent client has even announced.
+  //
+  // Moderation gate: only `accepted` rows are served to plain users;
+  // staff and the original uploader can still pull pending /
+  // changes_requested rows so they can verify the file from within
+  // the moderation thread. Rejected rows are never served. Without
+  // this gate, knowing a pending hash (e.g. via `/api/torrents/check`)
+  // would have let a non-owner pull the `.torrent` directly.
   const torrents = await db
     .select({
       id: schema.torrents.id,
       name: schema.torrents.name,
       torrentData: schema.torrents.torrentData,
+      moderationStatus: schema.torrents.moderationStatus,
+      uploaderId: schema.torrents.uploaderId,
     })
     .from(schema.torrents)
     .where(eq(schema.torrents.infoHash, infoHash))
@@ -36,6 +45,22 @@ export default defineEventHandler(async (event) => {
   const torrent = torrents[0];
 
   if (!torrent || !torrent.torrentData) {
+    throw createError({
+      statusCode: 404,
+      message: 'Torrent not found',
+    });
+  }
+
+  const isStaff = !!(user.isAdmin || user.isModerator);
+  const isOwner = torrent.uploaderId === user.id;
+  if (
+    torrent.moderationStatus !== 'accepted' &&
+    !isStaff &&
+    !isOwner
+  ) {
+    // 404 (not 403) so a probe can't distinguish "doesn't exist"
+    // from "exists but not accepted". Mirrors the gate on the
+    // detail route + the new gate in `/api/torrents/check`.
     throw createError({
       statusCode: 404,
       message: 'Torrent not found',

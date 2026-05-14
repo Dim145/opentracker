@@ -24,7 +24,13 @@ interface DiscordUser {
   username?: string;
 }
 
-const WEBHOOK_RE = /^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+/;
+// Anchored at both ends. The previous version was missing the
+// trailing `$`, which accepted strings like
+// `https://discord.com/api/webhooks/123/abc.attacker.com/...` —
+// the request still routed to discord.com (good), but any logged
+// substring of the matched URL leaked attacker-controlled trailing
+// characters into the operator's logs / audit trail (bad).
+const WEBHOOK_RE = /^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
 
 async function postEmbed(
   url: string,

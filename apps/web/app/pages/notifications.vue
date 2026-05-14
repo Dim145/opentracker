@@ -89,6 +89,7 @@
 
 <script setup lang="ts">
 import { formatAge } from '~/utils/format';
+import { safeInAppPath } from '~/utils/safePath';
 import { useNotifications, type NotificationRow } from '~/composables/useNotifications';
 
 const { t } = useI18n();
@@ -158,7 +159,9 @@ async function onMarkAllRead() {
 function onRowClick(row: NotificationRow) {
   void markRead(row.id);
   if (row.link) {
-    void router.push(row.link);
+    // Coerce the server-supplied link to a same-origin in-app path
+    // so a poisoned row can't phish via `//evil.tld/...`.
+    void router.push(safeInAppPath(row.link));
   }
 }
 
