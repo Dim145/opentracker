@@ -16,6 +16,7 @@
  * Stateless mode: we never use Apprise's stash storage — secrets stay
  * in our DB (encrypted), Apprise just delivers.
  */
+import { safeFetch, SafeFetchError } from '../safeFetch';
 import type { ChannelAdapter, NotificationPayload, TestResult } from './types';
 
 interface AppriseServer {
@@ -42,7 +43,7 @@ async function sendApprise(
     return { ok: false, error: 'Missing Apprise destination URL' };
   }
   try {
-    const res = await fetch(`${stripTrailingSlash(server.apiUrl)}/notify`, {
+    const res = await safeFetch(`${stripTrailingSlash(server.apiUrl)}/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -64,6 +65,7 @@ async function sendApprise(
     }
     return { ok: true };
   } catch (err) {
+    if (err instanceof SafeFetchError) return { ok: false, error: err.message };
     return { ok: false, error: (err as Error).message };
   }
 }
@@ -101,7 +103,7 @@ export const appriseAdapter: ChannelAdapter<AppriseServer, AppriseUser> = {
       return { ok: false, error: 'Apprise API URL must start with http(s)://' };
     }
     try {
-      const res = await fetch(
+      const res = await safeFetch(
         `${stripTrailingSlash(server.apiUrl)}/status`,
         { method: 'GET' }
       );
@@ -109,12 +111,13 @@ export const appriseAdapter: ChannelAdapter<AppriseServer, AppriseUser> = {
       // a HEAD on the root which always responds when the server is
       // up.
       if (res.ok) return { ok: true };
-      const head = await fetch(stripTrailingSlash(server.apiUrl), {
+      const head = await safeFetch(stripTrailingSlash(server.apiUrl), {
         method: 'HEAD',
       });
       if (head.ok) return { ok: true };
       return { ok: false, error: `Server returned ${res.status}` };
     } catch (err) {
+      if (err instanceof SafeFetchError) return { ok: false, error: err.message };
       return { ok: false, error: (err as Error).message };
     }
   },

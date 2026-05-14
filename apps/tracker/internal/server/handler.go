@@ -596,21 +596,38 @@ func SetTrustProxy(b bool) { trustProxy = b }
 
 // clientIP extracts the announcing peer's IP. We only honor proxy headers
 // when explicitly enabled, otherwise an attacker behind a proxy could
-// forge any IP. Header values are validated as real IP literals so a
-// malformed/garbage header just falls through to RemoteAddr.
+// forge any IP.
+//
+// `X-Forwarded-For` semantics: an upstream proxy APPENDS the peer it
+// observed to the right of the existing list. The leftmost entry is
+// therefore always client-supplied (any earlier hop or a malicious
+// client can set it). The RIGHTMOST entry is the one the trusted
+// proxy added — that's the only value we can rely on.
+//
+// Prior versions read the leftmost value, which let any client spoof
+// their announce IP by sending `X-Forwarded-For: 1.2.3.4` (poisoning
+// the swarm view, bypassing IP-bound abuse controls, and breaking
+// `ip_hash` analytics). The fix here takes the rightmost token and
+// falls back to `X-Real-IP` only when XFF is absent.
+//
+// Header values are validated as real IP literals so a malformed /
+// garbage header just falls through to RemoteAddr.
 func (s *Server) clientIP(r *http.Request) string {
 	if trustProxy {
-		if v := r.Header.Get("X-Real-IP"); v != "" {
-			if ip := net.ParseIP(strings.TrimSpace(v)); ip != nil {
+		if v := r.Header.Get("X-Forwarded-For"); v != "" {
+			// Walk the list right-to-left, taking the last well-formed
+			// entry. Trusted proxies append, so the rightmost value is
+			// the one our direct upstream observed.
+			candidate := v
+			if i := strings.LastIndexByte(v, ','); i >= 0 {
+				candidate = v[i+1:]
+			}
+			if ip := net.ParseIP(strings.TrimSpace(candidate)); ip != nil {
 				return ip.String()
 			}
 		}
-		if v := r.Header.Get("X-Forwarded-For"); v != "" {
-			candidate := v
-			if i := strings.IndexByte(v, ','); i >= 0 {
-				candidate = v[:i]
-			}
-			if ip := net.ParseIP(strings.TrimSpace(candidate)); ip != nil {
+		if v := r.Header.Get("X-Real-IP"); v != "" {
+			if ip := net.ParseIP(strings.TrimSpace(v)); ip != nil {
 				return ip.String()
 			}
 		}

@@ -15,6 +15,7 @@
  * Admin test: HEAD on the base URL to confirm it responds.
  * User test: POST a "hello" notification to the user's topic.
  */
+import { safeFetch, SafeFetchError } from '../safeFetch';
 import type { ChannelAdapter, NotificationPayload, TestResult } from './types';
 
 interface NtfyServer {
@@ -57,7 +58,7 @@ async function sendNtfy(
   if (payload.link) headers.Click = payload.link;
   if (server.authHeader) headers.Authorization = server.authHeader;
   try {
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       method: 'POST',
       headers,
       body: payload.body,
@@ -71,6 +72,7 @@ async function sendNtfy(
     }
     return { ok: true };
   } catch (err) {
+    if (err instanceof SafeFetchError) return { ok: false, error: err.message };
     return { ok: false, error: (err as Error).message };
   }
 }
@@ -129,7 +131,7 @@ export const ntfyAdapter: ChannelAdapter<NtfyServer, NtfyUser> = {
       return { ok: false, error: 'Base URL must start with http(s)://' };
     }
     try {
-      const res = await fetch(stripTrailingSlash(server.baseUrl) + '/v1/health', {
+      const res = await safeFetch(stripTrailingSlash(server.baseUrl) + '/v1/health', {
         method: 'GET',
         headers: server.authHeader
           ? { Authorization: server.authHeader }
@@ -139,13 +141,14 @@ export const ntfyAdapter: ChannelAdapter<NtfyServer, NtfyUser> = {
       // ntfy.sh has the endpoint; self-hosted instances may not — fall
       // back to a HEAD on the root which always answers if the
       // server is up.
-      const head = await fetch(stripTrailingSlash(server.baseUrl), {
+      const head = await safeFetch(stripTrailingSlash(server.baseUrl), {
         method: 'HEAD',
       });
       return head.ok
         ? { ok: true }
         : { ok: false, error: `Server returned ${head.status}` };
     } catch (err) {
+      if (err instanceof SafeFetchError) return { ok: false, error: err.message };
       return { ok: false, error: (err as Error).message };
     }
   },

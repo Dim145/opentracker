@@ -19,12 +19,16 @@
  * header containing the hex SHA-256 HMAC of the body — receivers
  * can verify the request really came from this Trackarr instance.
  *
- * SSRF caveat: we deliberately allow any http(s) URL since the user
- * pastes it themselves (the same user owns the destination). We
- * still block `localhost`/`127.0.0.1`/private-range hosts to avoid a
- * user accidentally pointing at internal infra — fail closed.
+ * SSRF surface is closed by routing every outbound call through
+ * `safeFetch`, which resolves the hostname, refuses every private
+ * / loopback / link-local / metadata / CGNAT range, and re-checks
+ * every redirect hop. A user pasting a public domain that resolves
+ * to (or 30x-redirects to) 169.254.169.254 / 127.0.0.1 / 10.0.0.0/8
+ * gets a clean "Refused" instead of silently exfiltrating to
+ * internal infra.
  */
 import { createHmac } from 'crypto';
+import { safeFetch, SafeFetchError } from '../safeFetch';
 import type { ChannelAdapter, NotificationPayload, TestResult } from './types';
 
 interface WebhookServer {
@@ -36,17 +40,6 @@ interface WebhookUser {
   /** Pasted as `Key: Value` lines. Parsed at send time, capped at
    *  16 entries. Surface the parsing error to the user on test. */
   headers?: string;
-}
-
-function isPrivateHost(host: string): boolean {
-  if (host === 'localhost' || host === '0.0.0.0') return true;
-  if (/^127\./.test(host)) return true;
-  if (/^10\./.test(host)) return true;
-  if (/^192\.168\./.test(host)) return true;
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return true;
-  // IPv6 loopback + link-local
-  if (host === '::1' || /^fe80:/i.test(host) || /^fc/i.test(host)) return true;
-  return false;
 }
 
 function parseHeaders(raw: string | undefined): Record<string, string> | string {
@@ -71,21 +64,6 @@ async function sendWebhook(
   user: WebhookUser,
   payload: NotificationPayload
 ): Promise<TestResult> {
-  let parsed: URL;
-  try {
-    parsed = new URL(user.url);
-  } catch {
-    return { ok: false, error: 'Invalid URL' };
-  }
-  if (!/^https?:$/.test(parsed.protocol)) {
-    return { ok: false, error: 'URL must be http or https' };
-  }
-  if (isPrivateHost(parsed.hostname)) {
-    return {
-      ok: false,
-      error: 'Refused: webhook URL points to a private/loopback address',
-    };
-  }
   const headers = parseHeaders(user.headers);
   if (typeof headers === 'string') return { ok: false, error: headers };
 
@@ -110,7 +88,7 @@ async function sendWebhook(
   }
 
   try {
-    const res = await fetch(user.url, {
+    const res = await safeFetch(user.url, {
       method: 'POST',
       headers: reqHeaders,
       body,
@@ -124,6 +102,7 @@ async function sendWebhook(
     }
     return { ok: true };
   } catch (err) {
+    if (err instanceof SafeFetchError) return { ok: false, error: err.message };
     return { ok: false, error: (err as Error).message };
   }
 }

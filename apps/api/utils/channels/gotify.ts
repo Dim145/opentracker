@@ -13,6 +13,7 @@
  * Admin test: GET /version on the base URL. User test: POST a hello
  * message with priority 5 (default) so the user sees it pop.
  */
+import { safeFetch, SafeFetchError } from '../safeFetch';
 import type { ChannelAdapter, NotificationPayload, TestResult } from './types';
 
 interface GotifyServer {
@@ -39,7 +40,7 @@ async function sendGotify(
   if (!user.appToken) return { ok: false, error: 'Missing app token' };
   const url = `${stripTrailingSlash(server.baseUrl)}/message?token=${encodeURIComponent(user.appToken)}`;
   try {
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -62,6 +63,7 @@ async function sendGotify(
     }
     return { ok: true };
   } catch (err) {
+    if (err instanceof SafeFetchError) return { ok: false, error: err.message };
     return { ok: false, error: (err as Error).message };
   }
 }
@@ -113,7 +115,7 @@ export const gotifyAdapter: ChannelAdapter<GotifyServer, GotifyUser> = {
       return { ok: false, error: 'Base URL must start with http(s)://' };
     }
     try {
-      const res = await fetch(
+      const res = await safeFetch(
         `${stripTrailingSlash(server.baseUrl)}/version`,
         { method: 'GET' }
       );
@@ -122,6 +124,7 @@ export const gotifyAdapter: ChannelAdapter<GotifyServer, GotifyUser> = {
       }
       return { ok: true };
     } catch (err) {
+      if (err instanceof SafeFetchError) return { ok: false, error: err.message };
       return { ok: false, error: (err as Error).message };
     }
   },
