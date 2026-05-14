@@ -49,6 +49,27 @@ import {
   type BonusRuleKind,
 } from '~~/utils/bonusEarning';
 
+/**
+ * Redis key holding the unix-ms timestamp of the last successful
+ * tick. Surviving restarts is the whole point: without persistence,
+ * every API reboot crashed the timer into "fire 30 s after boot",
+ * which handed out a full-interval credit on every redeploy — a
+ * 10-minute rolling restart loop would have credited 10× per hour
+ * for `seeding`. With the key, the first tick after a restart only
+ * fires once the original cadence has caught back up.
+ *
+ * Lives in the shared Redis instance so all replicas in a horizontal
+ * deployment agree on the schedule — only one tick fires per interval
+ * across the fleet, picked up by whichever replica wakes the timer
+ * first (we acquire a short SETNX lock right before crediting).
+ */
+const LAST_TICK_KEY = 'bonus:collector:last_tick_ms';
+const LOCK_KEY = 'bonus:collector:lock';
+/** Lock TTL — generous so a 30 s SCAN budget doesn't trip the
+ *  lock, but short enough that a crashed replica releases the slot
+ *  before the next scheduled tick. */
+const LOCK_TTL_S = 5 * 60;
+
 export default defineNitroPlugin(async () => {
   const INTERVAL_MS = parseInt(
     process.env.BONUS_COLLECTION_INTERVAL || '3600000',
@@ -69,7 +90,27 @@ export default defineNitroPlugin(async () => {
     const start = Date.now();
     let totalUsers = 0;
     let totalPoints = 0;
+    // Cross-replica lock — only one API instance credits per tick.
+    // The second arg is a per-process owner so a stale lock we
+    // didn't put down doesn't get released by us either. Released
+    // only on the happy path; on crash the TTL takes care of it.
+    const owner = `${process.pid}:${start}`;
+    let holdsLock = false;
     try {
+      const acquired = await redis.set(
+        LOCK_KEY,
+        owner,
+        'EX',
+        LOCK_TTL_S,
+        'NX'
+      );
+      if (acquired !== 'OK') {
+        console.log(
+          '[Bonus Collector] Another replica is mid-tick; skipping this run.'
+        );
+        return;
+      }
+      holdsLock = true;
       // 1. Walk Redis to build (userId, torrentInfoHash) → seed count
       //    and unique (torrent → seeder set) so we can compute
       //    seedersForTorrent and identify unique-seeder pairs.
@@ -247,13 +288,83 @@ export default defineNitroPlugin(async () => {
           `(${seederRows.length} seeder rows, ${uniqueSeederPairs.length} unique seeders` +
           `${truncated ? ', SCAN truncated' : ''}, ${Date.now() - start}ms)`
       );
+      // Persist the tick timestamp ONLY on the success path so a
+      // mid-tick crash doesn't shift the next scheduled run by an
+      // hour — the next replica retries on its next wake-up.
+      try {
+        await redis.set(LAST_TICK_KEY, String(Date.now()));
+      } catch (err) {
+        console.warn(
+          '[Bonus Collector] Failed to persist last-tick timestamp:',
+          (err as Error).message
+        );
+      }
     } catch (err) {
       console.error('[Bonus Collector] Tick failed:', err);
+    } finally {
+      if (holdsLock) {
+        // Lua CAS so we don't release a lock another replica took
+        // after our TTL expired.
+        try {
+          await redis.eval(
+            `if redis.call('GET', KEYS[1]) == ARGV[1] then
+               return redis.call('DEL', KEYS[1])
+             else
+               return 0
+             end`,
+            1,
+            LOCK_KEY,
+            owner
+          );
+        } catch {
+          /* TTL will release it */
+        }
+      }
     }
   };
 
-  // First tick a bit after boot so the rest of the stack settles.
-  setTimeout(collect, 30_000).unref?.();
+  // Schedule the first tick relative to the last persisted run
+  // rather than the boot time. Three cases:
+  //
+  //   - no key yet (fresh install / first deploy) → run after a
+  //     short settle delay, same UX as before.
+  //   - last tick was < INTERVAL_MS ago → wait the remainder so a
+  //     redeploy in the middle of an hour doesn't double-credit.
+  //   - last tick was ≥ INTERVAL_MS ago (long outage, missed
+  //     window) → run after the settle delay to catch up. Exactly
+  //     one tick fires — we don't compound missed hours.
+  const SETTLE_DELAY_MS = 30_000;
+  let firstDelay = SETTLE_DELAY_MS;
+  try {
+    const raw = await redis.get(LAST_TICK_KEY);
+    const last = raw ? parseInt(raw, 10) : 0;
+    if (Number.isFinite(last) && last > 0) {
+      const elapsed = Date.now() - last;
+      if (elapsed < INTERVAL_MS) {
+        firstDelay = INTERVAL_MS - elapsed;
+        console.log(
+          `[Bonus Collector] Last tick was ${(elapsed / 60_000).toFixed(1)} min ago; ` +
+            `waiting ${(firstDelay / 60_000).toFixed(1)} min before the next run.`
+        );
+      } else {
+        console.log(
+          `[Bonus Collector] Last tick was ${(elapsed / 60_000).toFixed(1)} min ago (≥ interval); ` +
+            `running shortly after boot to catch up.`
+        );
+      }
+    } else {
+      console.log(
+        '[Bonus Collector] No prior tick recorded — first run after settle delay.'
+      );
+    }
+  } catch (err) {
+    console.warn(
+      '[Bonus Collector] Could not read last-tick timestamp; falling back to default delay:',
+      (err as Error).message
+    );
+  }
+
+  setTimeout(collect, firstDelay).unref?.();
   setInterval(collect, INTERVAL_MS).unref?.();
 });
 
