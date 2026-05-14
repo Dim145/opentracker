@@ -28,6 +28,7 @@ import { slackAdapter } from './slack';
 import { smtpAdapter } from './smtp';
 import { telegramAdapter } from './telegram';
 import { webhookAdapter } from './webhook';
+import { webpushAdapter } from './webpush';
 import type {
   ChannelAdapter,
   ChannelMeta,
@@ -46,6 +47,7 @@ export const ADAPTERS = {
   pushover: pushoverAdapter,
   webhook: webhookAdapter,
   apprise: appriseAdapter,
+  web_push: webpushAdapter,
 } as const satisfies Record<string, ChannelAdapter<any, any>>;
 
 export type ChannelType = keyof typeof ADAPTERS;

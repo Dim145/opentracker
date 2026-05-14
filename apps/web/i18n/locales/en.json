@@ -371,6 +371,17 @@
       "addPickerHelp": "Pick a transport. You'll set up your credentials right after.",
       "targetMasked": "Configured",
       "optional": "optional",
+      "webPush": {
+        "enable": "Enable in this browser",
+        "disable": "Disable in this browser",
+        "enabledHere": "Active in this browser — system notifications will land here.",
+        "disabledHere": "Not enabled in this browser yet.",
+        "enabling": "Asking the browser for permission…",
+        "blocked": "Permission denied in browser. Re-enable it in the site settings of your browser to subscribe.",
+        "unsupported": "This browser doesn't support Web Push.",
+        "error": "The browser couldn't subscribe. Try again or check site permissions.",
+        "missingPublicKey": "The administrator hasn't finished setting up Web Push (VAPID key missing)."
+      },
       "routeMe": "Notify me",
       "routeNone": "Mute",
       "muteAll": "Mute everything",
@@ -1331,6 +1342,20 @@
           "apiUrlHint": "Base URL of your apprise-api container (e.g. http://apprise:8000).",
           "appriseUrl": "Apprise destination URL",
           "appriseUrlHint": "URL string for your service, e.g. tgram://token/chatid."
+        }
+      },
+      "web_push": {
+        "label": "Browser push",
+        "tagline": "System-level notifications delivered to the user's browser, even when the tab is closed.",
+        "publicSubject": "VAPID subject",
+        "publicKey": "VAPID public key",
+        "fields": {
+          "subject": "Contact (VAPID subject)",
+          "subjectHint": "mailto: or https:// URL the push service can reach you on. Required by RFC 8292.",
+          "publicKey": "VAPID public key",
+          "publicKeyHint": "Auto-generated. Browsers use it to authenticate the push subscription.",
+          "privateKey": "VAPID private key",
+          "privateKeyHint": "Auto-generated, kept on the server. Sign the push JWT — never share."
         }
       }
     },

@@ -370,6 +370,17 @@
       "availablePicker": "1 canal disponible | {n} canaux disponibles",
       "addPickerHelp": "Choisis un transport. Tu pourras renseigner tes identifiants juste après.",
       "targetMasked": "Configuré",
+      "webPush": {
+        "enable": "Activer dans ce navigateur",
+        "disable": "Désactiver dans ce navigateur",
+        "enabledHere": "Actif dans ce navigateur — les notifications système atterriront ici.",
+        "disabledHere": "Pas encore activé dans ce navigateur.",
+        "enabling": "Demande de permission au navigateur…",
+        "blocked": "Permission refusée dans le navigateur. Réactivez-la dans les réglages du site pour vous abonner.",
+        "unsupported": "Ce navigateur ne prend pas en charge Web Push.",
+        "error": "Le navigateur n'a pas réussi à s'abonner. Réessayez ou vérifiez les permissions du site.",
+        "missingPublicKey": "L'administrateur n'a pas fini la configuration Web Push (clé VAPID absente)."
+      },
       "optional": "optionnel",
       "routeMe": "Me notifier",
       "routeNone": "Muet",
@@ -1331,6 +1342,20 @@
           "apiUrlHint": "URL de base de votre conteneur apprise-api (ex. http://apprise:8000).",
           "appriseUrl": "URL Apprise de destination",
           "appriseUrlHint": "URL spécifique au service, ex. tgram://token/chatid."
+        }
+      },
+      "web_push": {
+        "label": "Notifications navigateur",
+        "tagline": "Notifications système livrées au navigateur de l'utilisateur, même quand l'onglet est fermé.",
+        "publicSubject": "Sujet VAPID",
+        "publicKey": "Clé publique VAPID",
+        "fields": {
+          "subject": "Contact (sujet VAPID)",
+          "subjectHint": "URL mailto: ou https:// que le service de push peut joindre. Requis par RFC 8292.",
+          "publicKey": "Clé publique VAPID",
+          "publicKeyHint": "Auto-générée. Les navigateurs l'utilisent pour authentifier l'abonnement push.",
+          "privateKey": "Clé privée VAPID",
+          "privateKeyHint": "Auto-générée, reste sur le serveur. Signe le JWT du push — ne jamais partager."
         }
       }
     },

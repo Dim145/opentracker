@@ -110,8 +110,20 @@
 
             <Transition name="drawer">
               <div v-if="expanded[ch.type]" class="dest-drawer">
+                <!-- Public server info — hostname/instance URL for
+                     transports where the user has to point an app at
+                     a specific instance (ntfy, Gotify). We hide the
+                     block for `web_push`: its `publicServerInfo`
+                     carries the VAPID subject + public key, which
+                     the composable still reads from props to call
+                     `pushManager.subscribe`, but neither value is
+                     actionable for the end user. -->
                 <div
-                  v-if="ch.publicServerInfo && ch.publicServerInfo.length > 0"
+                  v-if="
+                    ch.type !== 'web_push' &&
+                      ch.publicServerInfo &&
+                      ch.publicServerInfo.length > 0
+                  "
                   class="dest-pub"
                 >
                   <Icon name="ph:info-bold" />
@@ -125,7 +137,25 @@
 
                 <p class="dest-tagline">{{ $t(ch.taglineKey) }}</p>
 
-                <div class="dest-fields">
+                <!-- Web Push has no manual fields — the subscription
+                     JSON is captured straight from the browser. We
+                     replace the field grid + Save button with a
+                     single permission-aware toggle. -->
+                <div v-if="ch.type === 'web_push'" class="dest-webpush">
+                  <p class="dest-webpush-state">
+                    <Icon :name="webPushIcon" />
+                    {{ webPushStateLabel }}
+                  </p>
+                  <p
+                    v-if="webPush.error.value"
+                    class="dest-webpush-error"
+                  >
+                    <Icon name="ph:warning-bold" />
+                    {{ webPush.error.value }}
+                  </p>
+                </div>
+
+                <div v-else class="dest-fields">
                   <label
                     v-for="f in ch.userFields"
                     :key="f.key"
@@ -181,6 +211,24 @@
                     {{ $t('common.close') }}
                   </button>
                   <button
+                    v-if="ch.type === 'web_push'"
+                    type="button"
+                    class="btn"
+                    :disabled="!!busy[ch.type] || webPushBusy || webPushStatus === 'unsupported' || webPushStatus === 'blocked'"
+                    @click="toggleWebPush(ch)"
+                  >
+                    <Icon
+                      :name="webPushBusy ? 'ph:circle-notch' : webPushStatus === 'enabled' ? 'ph:bell-slash-bold' : 'ph:bell-ringing-bold'"
+                      :class="webPushBusy ? 'spin' : ''"
+                    />
+                    {{
+                      webPushStatus === 'enabled'
+                        ? $t('settings.notifications.webPush.disable')
+                        : $t('settings.notifications.webPush.enable')
+                    }}
+                  </button>
+                  <button
+                    v-else
                     type="button"
                     class="btn"
                     :disabled="!!busy[ch.type] || !canSave(ch)"
@@ -452,6 +500,81 @@ const addMenuOpen = ref(false);
 
 const confirm = useConfirm();
 const { t } = useI18n();
+
+// ── Web Push lifecycle ────────────────────────────────────────
+// The Web Push channel has no manual form — the subscription is
+// captured straight from the browser via `useWebPush()`. The
+// composable owns the permission / SW / subscribe ceremonies; this
+// section only renders state + an enable/disable button.
+const webPush = useWebPush();
+const webPushBusy = ref(false);
+const webPushStatus = computed(() => webPush.status.value);
+
+const webPushIcon = computed(() => {
+  switch (webPushStatus.value) {
+    case 'enabled':
+      return 'ph:bell-ringing-fill';
+    case 'blocked':
+      return 'ph:bell-slash-fill';
+    case 'unsupported':
+      return 'ph:prohibit-bold';
+    case 'enabling':
+      return 'ph:circle-notch';
+    default:
+      return 'ph:bell-bold';
+  }
+});
+
+const webPushStateLabel = computed(() => {
+  switch (webPushStatus.value) {
+    case 'enabled':
+      return t('settings.notifications.webPush.enabledHere');
+    case 'blocked':
+      return t('settings.notifications.webPush.blocked');
+    case 'unsupported':
+      return t('settings.notifications.webPush.unsupported');
+    case 'enabling':
+      return t('settings.notifications.webPush.enabling');
+    case 'error':
+      return t('settings.notifications.webPush.error');
+    default:
+      return t('settings.notifications.webPush.disabledHere');
+  }
+});
+
+onMounted(() => {
+  void webPush.refresh();
+});
+
+async function toggleWebPush(ch: UserChannel) {
+  if (webPushBusy.value) return;
+  webPushBusy.value = true;
+  try {
+    if (webPushStatus.value === 'enabled') {
+      await webPush.disable();
+    } else {
+      // Pull the VAPID public key from the admin server config. It
+      // ships in `publicServerInfo` keyed by labelKey so the SETUP
+      // path stays declarative.
+      const pub = (ch.publicServerInfo ?? []).find(
+        (i) => i.labelKey === 'admin.channels.web_push.publicKey'
+      )?.value;
+      if (!pub) {
+        webPush.error.value = t(
+          'settings.notifications.webPush.missingPublicKey'
+        );
+        return;
+      }
+      await webPush.enable(pub);
+    }
+    // Force a fresh fetch of the channel rows so the UI tracks the
+    // server-side state (configured: true → row appears; trash →
+    // row leaves).
+    await refresh();
+  } finally {
+    webPushBusy.value = false;
+  }
+}
 
 // Exhaustive list of every notification type the API can emit.
 // Kept in sync with the union in apps/api/utils/notify.ts.
@@ -1314,6 +1437,39 @@ async function saveRouting(silent = false) {
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.7rem;
   word-break: break-word;
+}
+
+/* Web Push has no manual form — surface the browser permission
+   state in lieu of fields so the operator sees what's happening
+   before they click. */
+.dest-webpush {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.7rem 0.85rem;
+  background: rgb(var(--bg-elevated));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-sm);
+}
+.dest-webpush-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 0.84rem;
+  color: rgb(var(--fg-default));
+}
+.dest-webpush-state > svg {
+  font-size: 1rem;
+  color: rgb(var(--fg-muted));
+}
+.dest-webpush-error {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.74rem;
+  color: rgb(var(--danger));
 }
 
 .dest-drawer-foot {
