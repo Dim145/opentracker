@@ -147,6 +147,22 @@ function igdbImageUrl(imageId: string, size: string): string {
   return `https://images.igdb.com/igdb/image/upload/${size}/${imageId}.jpg`;
 }
 
+/**
+ * Escape a user-supplied string for interpolation inside an
+ * Apicalypse double-quoted literal. Backslashes are doubled BEFORE
+ * quotes so a literal `\` in the input doesn't combine with the
+ * escape we add for `"` to produce a malformed `\\"` sequence (which
+ * IGDB would read as a backslash followed by an unescaped quote and
+ * happily terminate the literal). Order matters — never invert.
+ *
+ * Called by `searchGames` and `resolveSlug`; both paths receive
+ * already-validated input (URL/slug regex + trim) so this is
+ * defense-in-depth more than a primary control.
+ */
+function escapeApicalypseString(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 /** IGDB's query language is "Apicalypse" — a tiny DSL passed in
  *  the POST body. We always select the same field set so the
  *  normalised shape is deterministic. */
@@ -300,7 +316,7 @@ async function searchGames(
   // result set returns empty if we combine `search` with a `where`
   // filter — so we run the raw search and rank-filter client-side
   // below to push DLCs / mods / expansion-packs down the list.
-  const escaped = trimmed.replace(/"/g, '\\"');
+  const escaped = escapeApicalypseString(trimmed);
   const results = await igdbPost<
     Array<IgdbGame & { category?: number; version_parent?: number }>
   >(
@@ -378,7 +394,7 @@ async function resolveSlug(slug: string): Promise<string | null> {
     /* Redis hiccup */
   }
 
-  const escaped = slug.replace(/"/g, '\\"');
+  const escaped = escapeApicalypseString(slug);
   const results = await igdbPost<Array<{ id: number }>>(
     '/games',
     `fields id; where slug = "${escaped}"; limit 1;`

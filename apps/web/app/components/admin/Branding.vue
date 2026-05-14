@@ -712,9 +712,27 @@ const dirtyCount = computed(() => {
 // `<b onmouseover=alert(1)>` slip through because the `on…=`
 // strip only matches double-quoted attribute values.
 
+/**
+ * Strip every `<…>` tag from `input` for inclusion in non-HTML
+ * contexts (placeholders, page-title concatenation). The single-
+ * pass form `s.replace(/<[^>]+>/g, '')` is vulnerable to nested-tag
+ * smuggling: `<<script>script>` survives one pass and reassembles
+ * into `<script>`. We loop until the output is stable so an
+ * attacker can't smuggle a tag back in by interleaving extra `<`s
+ * and the result is safe even if a caller forwards it to an HTML
+ * sink. The text we strip from is bounded (siteName / footer
+ * fields, capped at a few hundred chars) so the loop runs O(1)
+ * passes in practice.
+ */
 function stripTags(input: string | null | undefined): string {
   if (!input) return '';
-  return input.replace(/<[^>]+>/g, '').trim();
+  let out = input;
+  let prev: string;
+  do {
+    prev = out;
+    out = out.replace(/<[^>]+>/g, '');
+  } while (out !== prev);
+  return out.trim();
 }
 
 // ── File uploads (logo) ──────────────────────────────────────
