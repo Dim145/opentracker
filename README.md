@@ -12,7 +12,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat)](LICENSE)
 
-[Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [Static deployment](#-static-deployment-no-ssr) • [Security](#-security-architecture) • [Live Demo](https://tracker.florianargaud.com/)
+[Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [Static deployment](#-static-deployment-no-ssr) • [Documentation](https://dim145.github.io/opentracker/) • [Live Demo](https://tracker.florianargaud.com/)
 
 ![Trackarr Homepage](apps/web/public/images/image%20copy%203.png)
 
@@ -24,256 +24,81 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 
 ### Privacy & authentication
 
-| Feature                       | Notes                                                                  |
-| ----------------------------- | ---------------------------------------------------------------------- |
-| Zero-Knowledge auth (ZKE)     | PBKDF2-600k + SHA-256 verifier; password never leaves the browser      |
-| Passkey rotation              | One-click rotate from `/me`; sessions stay valid until manual sign-out |
-| Self-service password change  | Same ZK flow as login — server only sees a fresh salt + verifier       |
-| Privacy toggles               | Hide last-seen on public profile (mods/admins always see the truth)    |
-| Proof of Work on registration | Stops drive-by signup spam                                             |
-| Hashed IPs                    | SHA-256 with daily-rotating salt — no raw IP persistence               |
-| Auto IP banlist               | Banning a user atomically banlists their last-known IP                 |
+- **Zero-Knowledge auth** — PBKDF2-600k + SHA-256 verifier; the password never leaves the browser. Same flow drives sign-in, passkey rotation, and change-password.
+- **Proof of Work on registration** stops drive-by signup spam.
+- **Hashed IPs** — SHA-256 with daily-rotating salt; no raw IP persisted. Banning a user atomically banlists their last-known IP.
+- **Privacy toggles** — hide last-seen on public profile (mods/admins always see the truth).
 
-### Browse & discover
+### Browse, upload & operate
 
-| Feature              | Notes                                                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------------- |
-| Smart media-id paste | Paste an IMDb / TMDb / TVDB / IGDB slug or Open Library / ISBN id into search → filtered listing   |
-| Rich media metadata  | TMDb (films + TV), IGDB (games) and Open Library + Google Books (books); user locale drives the lookup language |
-| User-facing tags     | Per-torrent tag chips with autocomplete + filter panel                                             |
-| Categories           | Hierarchical with Newznab ids — *Arr clients consume the Torznab feed                              |
-| Full-text search     | PostgreSQL `gin_trgm_ops` on torrent name                                                          |
-| Forum                | Pinned + locked topics, BBCode-friendly editor                                                     |
-
-### Upload workflow
-
-| Feature                     | Notes                                                                                                |
-| --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Dedicated upload page       | Replaces the cramped modal — numbered sections, sticky action bar, live preview sidebar              |
-| Auto title + tags           | Filename is parsed: clean title, year, S/E, resolution, source, codec, audio, lang flags             |
-| Multi-source search picker  | Auto-searches the parsed title against TMDb / IGDB / Open Library based on the category type        |
-| Category-aware parser       | Filename → category-specific tag set: `[PS5]`, `[CBZ]`, `[T01-T05]`, `v1.0.5`, `1080p`, `VOSTFR`, …  |
-| Duplicate preflight         | File drop runs an infohash check before the upload form opens — a known torrent is flagged with a link to the existing row |
-| Conditional ID block        | The Identity block adapts to the category — IMDb/TMDb/TVDB for film/TV, IGDB for games, Open Library for books, hidden for audio/software/etc. |
-| WYSIWYG description         | Tiptap-based editor; pasted BBCode/HTML/Markdown converts cleanly                                    |
-| NFO support                 | Drag-drop or paste; CP437 → UTF-8 fallback for ASCII-art                                             |
-| Required description        | Soft-enforced client-side — red asterisk, status-bar gate, disabled submit until non-empty          |
-| Editable release name       | Override the parsed `.torrent` name without rotating the file                                        |
-
-### Operator console
-
-| Surface              | Notes                                                                                                |
-| -------------------- | ---------------------------------------------------------------------------------------------------- |
-| `/admin/users`       | Paginated registry: KPI strip, role / activity / status filters, sortable columns, inline ban/role   |
-| `/admin/...`         | Categories, roles, invites, branding, panic, tags, Torznab settings, reports, HnR                    |
-| Notification channels | `/admin/notifications` configures the server-side of every transport (SMTP, Telegram, Discord, ntfy, Gotify, Pushover, Slack, Mattermost, webhook, Apprise, **Web Push**); each user picks where each event goes from `/settings` |
-| Prometheus metrics   | Dedicated port; tracker swarm + API request stats                                                    |
-| Settings (per-user)  | Display name, bio, last-seen privacy toggle, theme, change password, sign-out                        |
-
-### Personal pages
-
-| Page          | Notes                                                                                                |
-| ------------- | ---------------------------------------------------------------------------------------------------- |
-| `/me`         | Hero with KPI strip (Uploaded / Ratio / Downloaded / Released), tracker credentials, activity tabs   |
-| `/me` tabs    | "My uploads" + "My seeds" (Active / Pending / Met / HnR), each with live swarm enrichment            |
-| `/users/[id]` | Public profile — uses display name, bio, redacts last-seen when the user opted out                   |
-| `/settings`   | Editorial layout with anchor sidebar, sticky save bar, theme picker, change-password ZK flow         |
+- **Rich media metadata** — TMDb (films + TV), IGDB (games), Open Library + Google Books (books); user locale drives the lookup language.
+- **Smart media-id paste** — drop an IMDb / TMDb / TVDB / IGDB slug or ISBN into search to filter the listing.
+- **Dedicated upload page** — auto title + tags from filename, multi-source search picker, duplicate preflight, conditional ID block per category, Tiptap WYSIWYG description, NFO drag-drop (CP437 → UTF-8).
+- **Operator console** — `/admin` covers users, categories, roles, invites, branding, panic, tags, Torznab, reports, HnR.
+- **Notification fan-out** — every event-emitting route hits Postgres + Redis pub/sub + the user's chosen external transport (SMTP, Telegram, Discord, ntfy, Gotify, Pushover, Slack, Mattermost, webhook, Apprise, **Web Push**).
 
 ### Tracker protocols
 
-| Feature                       | Notes                                                                                    |
-| ----------------------------- | ---------------------------------------------------------------------------------------- |
-| HTTP announce (BEP 3)         | Default `8080/tcp`; sub-ms p99; the bencode response path is alloc-friendly             |
-| **UDP announce (BEP 15)**     | Default `6969/udp`; ~6×–8× cheaper on the wire, supported by every modern client         |
-| BEP 41 URL_DATA passkey        | UDP carries the passkey path-style — `udp://host:6969/announce/PASSKEY` works as-is     |
-| Stateless connection_id        | HMAC-SHA256(secret, ip ‖ minute) folded to 8 B; ~2-min validity, no per-id memory       |
-| Multi-tier `.torrent` files    | Generator advertises HTTP + UDP independently when UDP is enabled                       |
-| Single env switch              | `TRACKER_UDP_ENABLED=false` disables UDP + drops it from new `.torrent` files in one go |
+- **HTTP announce (BEP 3)** on `8080/tcp`; sub-ms p99; alloc-friendly bencode path.
+- **UDP announce (BEP 15)** on `6969/udp`; ~6×–8× cheaper on the wire than HTTP; stateless `connection_id` = HMAC-SHA256(secret, ip ‖ minute), so no per-id memory.
+- **BEP 41 URL_DATA passkey** — `udp://host:6969/announce/PASSKEY` works as-is in every modern client.
+- **Multi-tier `.torrent` files** — generator advertises HTTP + UDP independently. `TRACKER_UDP_ENABLED=false` disables UDP and drops it from new `.torrent` files in one go.
 
-### Bonus economy
+### Bonus economy & resilience
 
-| Feature                  | Notes                                                                                       |
-| ------------------------ | ------------------------------------------------------------------------------------------- |
-| **Seed-bonus points**    | Customisable per-minute rules (time, torrent age, rarity); tiered curves with live preview |
-| Bonus shop               | Operator-curated catalogue; built-in `upload_credit` and `invite` effects, transactional buy |
-| Bonus uploaded tracking  | `users.bonusUploaded` distinct from real seeded bytes — `/me` shows `X (incl. Y bonus)`     |
-| Admin point adjustment   | Add / remove points from `/admin/users` with audit-logged reason                             |
-| Bonus events (windows)   | Time-bounded Freeleech / Silverleech / custom multipliers, applied on the announce hot path |
-
-### Performance & resilience
-
-| Feature                     | Notes                                                                       |
-| --------------------------- | --------------------------------------------------------------------------- |
-| Distributed rate limiting   | Redis-backed sliding windows; progressive penalties; auto IP bans           |
-| **Panic Mode**              | Instant AES-256-GCM encryption of torrent data + user fields                |
-| Memory-tuned containers     | V8 heap caps + glibc arena caps halve runtime RAM                           |
-| Optional static deployment  | Distroless nginx serves a CSR bundle in **~28 MB** — see below              |
+- **Seed-bonus points** — customisable per-minute rules (time, torrent age, rarity); tiered curves with live preview; ledger-backed.
+- **Bonus shop** — operator-curated catalogue with built-in `upload_credit` and `invite` effects.
+- **Bonus events** — time-bounded Freeleech / Silverleech / custom multipliers, applied on the announce hot path.
+- **Panic Mode** — instant AES-256-GCM encryption of torrent data + user fields; recovery requires the original Panic Password. See [Panic Mode](doc/guide/panic-mode.md).
+- **Distributed rate limiting** — Redis-backed sliding windows; progressive penalties; auto IP bans.
+- **Optional static deployment** — distroless nginx serves a CSR bundle in **~28 MB** (see below).
 
 ---
 
 ## 🏗️ Architecture
 
-Trackarr ships as **three independent containers** behind Caddy, plus the usual Postgres + Redis pair. They share zero process state — Redis is the only cross-cutting bus.
+Three independent containers behind Caddy, plus the usual Postgres + Redis. They share zero process state — Redis is the only cross-cutting bus.
 
 ```
-                              ┌───────────────────────────────────┐
-   Browser ──HTTPS──►   Caddy │ /announce  → tracker (Go) :8080   │
-                              │ /api/*     → api (Nitro)          │
-                              │ /uploads/* → api (Nitro)          │
-                              │ /*         → web (Nuxt SSR)       │
-                              └───────────────────────────────────┘
-   BT client  ──UDP──► tracker :6969  (BEP 15, bypasses Caddy — UDP can't be reverse-proxied)
-                                  │            │           │
-                                  ▼            ▼           ▼
-                       ┌─────────────┐ ┌─────────────┐ ┌──────────────┐
-                       │  apps/web   │ │  apps/api   │ │ apps/tracker │
-                       │  Nuxt 4 SSR │ │ Nitro 4     │ │ Go 1.25      │
-                       │  Vue 3      │ │ Drizzle ORM │ │ sqlc         │
-                       │  TypeScript │ │ Zod, h3     │ │ HTTP + UDP   │
-                       └─────────────┘ └──────┬──────┘ └──────┬───────┘
-                                              │              │
-                                              ▼              ▼
-                                       ┌─────────────────────────┐
-                                       │   PgBouncer (pool)      │
-                                       └────────────┬────────────┘
-                                                    │
-                                              ┌─────▼─────┐
-                                              │ Postgres  │
-                                              └───────────┘
-                                              ┌───────────┐
-                                              │   Redis   │ ◄── tracker peers,
-                                              └───────────┘     sessions, rate limit,
-                                                                seed-bonus accumulator
+                          ┌─────────────────────────────────────────────┐
+   Browser ──HTTPS──►     │ Caddy   :80 / :443 / :443/udp (HTTP/3)      │
+                          │   /announce*  →  tracker  :8080   (BEP 3)   │
+                          │   /api/*      →  api      :4000             │
+                          │   /uploads/*  →  api      :4000             │
+                          │   /*          →  web      :3000   (Nuxt SSR)│
+                          └─────────────────────────────────────────────┘
+   BT client ──UDP──►   tracker :6969   (BEP 15, bypasses Caddy — UDP can't be reverse-proxied)
+
+           ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+           │  apps/web    │    │  apps/api    │    │ apps/tracker │
+           │  Nuxt 4 SSR  │    │  Nitro 4     │    │  Go 1.25     │
+           │  Vue 3 / TS  │    │  Drizzle ORM │    │  sqlc        │
+           │  (stateless) │    │  Zod, h3     │    │  HTTP + UDP  │
+           └──────────────┘    └──────┬───────┘    └──────┬───────┘
+                                      │                   │
+                                      ▼                   ▼
+                              ┌────────────────────────────────┐
+                              │       PgBouncer  :6432         │
+                              └────────────────┬───────────────┘
+                                               ▼
+                              ┌────────────────────────────────┐
+                              │       PostgreSQL :5432         │
+                              └────────────────────────────────┘
+
+                              ┌────────────────────────────────┐
+                       api ──►│       Redis    :6379           │◄── tracker
+                              │  peers, sessions, rate-limit,  │
+                              │  seed-bonus, notification bus  │
+                              └────────────────────────────────┘
 ```
 
 **Why three containers**
 
-- **The tracker is its own thing.** It's the hot path — every BitTorrent client in the swarm hits `/announce` every few minutes. Rewriting it from Node.js to a static Go binary on `scratch` (~10 MB image, sub-ms p99) means a single broken Nuxt deploy can't take down announces, and the announce path doesn't pay V8 startup costs. The Go module uses `sqlc` for type-safe DB access; the announce protocol talks to the same Redis hashes Node used to write, so callers don't change. **Two transports**: BEP 3 over HTTP/8080 and BEP 15 over UDP/6969 — same wire-agnostic processor, different parsers/encoders. The UDP frontend uses a stateless HMAC-bound `connection_id` and pulls the passkey out of the BEP 41 URL_DATA option (`udp://host:6969/announce/PASSKEY`). See the [UDP tracker guide](doc/guide/udp-tracker.md).
-- **The API and the web are split.** `apps/api` is Nitro standalone — every `/api/*` route, the upload endpoints, the metadata lookups, the admin tools. `apps/web` is Nuxt SSR — the rendered shell + page chunks. The split lets each scale and redeploy independently, and the static-build alternative below replaces only `apps/web`.
-- **Distroless everywhere.** `apps/web` and `apps/api` run on `gcr.io/distroless/nodejs24-debian13:nonroot`. The tracker runs on `scratch`. The optional static frontend runs on `cgr.dev/chainguard/nginx`. No shells, no package managers, signed images, non-root by default.
+- **The tracker is its own thing.** It's the hot path — every BitTorrent client in the swarm hits `/announce` every few minutes. A static Go binary on `scratch` (~10 MB image, sub-ms p99) means a single broken Nuxt deploy can't take down announces. Two transports — BEP 3 over HTTP/8080 and BEP 15 over UDP/6969 — share one wire-agnostic processor.
+- **API and web are split.** `apps/api` (Nitro standalone) owns every `/api/*` route, upload endpoints, metadata lookups, admin tools. `apps/web` is Nuxt SSR — rendered shell + page chunks. They scale and redeploy independently.
+- **Distroless everywhere.** `apps/web` + `apps/api` run on `gcr.io/distroless/nodejs24-debian13:nonroot`; `apps/tracker` runs on `scratch`; the static frontend runs on `cgr.dev/chainguard/nginx`. No shells, no package managers, non-root by default.
 
----
-
-## 🔐 Security architecture
-
-### Zero-Knowledge authentication
-
-Trackarr's auth is **zero-knowledge**: the server never sees or stores your password. All cryptographic operations happen in the browser.
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        REGISTRATION FLOW                            │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌─────────────┐                              ┌─────────────────┐  │
-│  │   CLIENT    │                              │     SERVER      │  │
-│  └──────┬──────┘                              └────────┬────────┘  │
-│         │                                              │           │
-│         │ 1. Solve PoW Challenge (anti-spam)           │           │
-│         │ ◄────────────────────────────────────────────┤           │
-│         │                                              │           │
-│         │ 2. Generate random salt (32 bytes)           │           │
-│         │ 3. Derive key = PBKDF2(password, salt)       │           │
-│         │ 4. Compute verifier = SHA256(key)            │           │
-│         │                                              │           │
-│         │ 5. Send {username, salt, verifier} ─────────►│           │
-│         │    Password NEVER leaves client              │           │
-│         │                                              │           │
-│         │                              6. Store salt + │           │
-│         │                                 verifier     │           │
-│         │                              7. Create session           │
-│         │ ◄──────────────────────────────── 8. OK ─────┤           │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                          LOGIN FLOW                                 │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌─────────────┐                              ┌─────────────────┐  │
-│  │   CLIENT    │                              │     SERVER      │  │
-│  └──────┬──────┘                              └────────┬────────┘  │
-│         │                                              │           │
-│         │ 1. Request challenge ───────────────────────►│           │
-│         │                                              │           │
-│         │ ◄──────── 2. Return {salt, challenge} ───────┤           │
-│         │                                              │           │
-│         │ 3. Derive key = PBKDF2(password, salt)       │           │
-│         │ 4. Compute verifier = SHA256(key)            │           │
-│         │ 5. Generate proof = SHA256(verifier+challenge)           │
-│         │                                              │           │
-│         │ 6. Send {username, proof, challenge} ───────►│           │
-│         │    Password NEVER leaves client              │           │
-│         │                                              │           │
-│         │                       7. Compute expected =  │           │
-│         │                          SHA256(storedVerifier+challenge)│
-│         │                       8. Verify proof == expected        │
-│         │ ◄──────────────────────────────── 9. Session ┤           │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-The same primitives drive **password change** in `/settings` — the client requests a fresh challenge, proves knowledge of the *current* password, then ships a new salt + verifier derived from the new one. The server validates the proof and rotates atomically.
-
-**Key properties**
-
-- Password never transmitted — only cryptographic proofs
-- PBKDF2 with **600k** iterations (OWASP 2023) — brute-force resistant
-- Unique challenge per login, single-use, 5-minute Redis TTL — prevents replay
-- Proof of Work on registration — stops automated signup attacks
-- Constant-time proof comparison server-side
-
----
-
-### 🚨 Panic Mode
-
-The Panic Button lets administrators **instantly encrypt all sensitive data**. Once activated, .torrent files are unusable and user data is unreadable.
-
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                       NORMAL STATE                                │
-│  • Torrents downloadable                                          │
-│  • User data readable                                             │
-│  • Posts & comments visible                                       │
-└───────────────────────────────────────────────────────────────────┘
-                              │
-                    PANIC ACTIVATED
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────────────┐
-│                      ENCRYPTED STATE                              │
-│  • .torrent files → AES-256-GCM encrypted (unusable)              │
-│  • Torrent names  → [ENCRYPTED]                                   │
-│  • Torrent sizes  → 0                                             │
-│  • User credentials → Encrypted                                   │
-│  • Forum posts    → Encrypted                                     │
-└───────────────────────────────────────────────────────────────────┘
-                              │
-                    RESTORE (with password)
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────────────┐
-│                       RESTORED STATE                              │
-│  All data restored to original state                              │
-└───────────────────────────────────────────────────────────────────┘
-```
-
-| Step | Detail                                                                |
-| ---- | --------------------------------------------------------------------- |
-| 1    | First admin sets a Panic Password during registration (12+ chars)     |
-| 2    | Panic password is hashed and stored — never plaintext                 |
-| 3    | Activate: Admin → Settings → Panic → type `ENCRYPT_ALL_DATA`          |
-| 4    | Restore: enter the original Panic Password                            |
-
-| Component       | Algorithm                       |
-| --------------- | ------------------------------- |
-| Key Derivation  | scrypt (32 bytes)               |
-| Encryption      | AES-256-GCM                     |
-| IV              | 16 bytes random (per session)   |
-
-> ⚠️ Without the Panic Password, encrypted data is **permanently lost**. There is no recovery mechanism.
-
-See the full guide: [doc/guide/panic-mode.md](doc/guide/panic-mode.md)
+More details: [Architecture guide](doc/guide/architecture.md).
 
 ---
 
@@ -282,35 +107,66 @@ See the full guide: [doc/guide/panic-mode.md](doc/guide/panic-mode.md)
 ### Prerequisites
 
 - **Docker** 20+ and **Docker Compose v2**
+- For production: a domain name, ports `80/443` open, an `ACME_EMAIL` for Let's Encrypt.
 
-### Local development (one command)
+### Pre-built images
 
-```bash
-git clone https://github.com/florianjs/trackarr.git && cd trackarr
-cp .env.example .env
-docker compose up -d
-```
+Trackarr publishes signed multi-arch images to GHCR — no need to build anything locally:
 
-Open **[http://localhost:3000](http://localhost:3000)** — the first user to register becomes the admin.
+| Image                                                                  | Role                              |
+| ---------------------------------------------------------------------- | --------------------------------- |
+| `ghcr.io/dim145/opentracker/api:latest`                                | Nitro API                         |
+| `ghcr.io/dim145/opentracker/front-ssr:latest`                          | Nuxt SSR web                      |
+| `ghcr.io/dim145/opentracker/front:latest`                              | Static SPA (overlay)              |
+| `ghcr.io/dim145/opentracker/tracker:latest`                            | Go BitTorrent tracker             |
+
+Full list & tags: <https://github.com/Dim145?tab=packages&repo_name=opentracker>.
+
+`docker-compose.prod.yml` pulls these by default; pin a specific tag with `IMAGE_TAG=v0.17.0`.
 
 ### Production deployment
 
-For a real VPS deployment with HTTPS via Caddy, follow the **[Docker deployment guide](doc/guide/getting-started.md)**. It covers:
+```bash
+git clone https://github.com/Dim145/opentracker.git /opt/trackarr
+cd /opt/trackarr
+cp .env.example .env
 
-- DNS records you need to set up
-- Generating secrets with `openssl`
-- The interactive `scripts/setup.sh` helper for production
-- Starting and updating the stack
-- Backups and operational commands
+cat >> .env <<EOF
+NODE_ENV=production
+DOMAIN=your-domain.com
+TRACKER_DOMAIN=tracker.your-domain.com
+ACME_EMAIL=admin@your-domain.com
 
-![Torrent List](apps/web/public/images/image.png)
-![Torrent Details](apps/web/public/images/image%20copy%202.png)
+NUXT_SESSION_SECRET=$(openssl rand -hex 32)
+ADMIN_API_KEY=$(openssl rand -hex 32)
+IP_HASH_SECRET=$(openssl rand -hex 32)
+CHANNEL_ENCRYPTION_KEY=$(openssl rand -hex 32)
+DB_PASSWORD=$(openssl rand -base64 24)
+REDIS_PASSWORD=$(openssl rand -base64 24)
+
+NUXT_PUBLIC_TRACKER_HTTP_URL=https://tracker.your-domain.com/announce
+NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.your-domain.com:6969/announce
+EOF
+
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Point `your-domain.com` + `tracker.your-domain.com` at the VPS IP, then open
+**`https://your-domain.com`** — the first user to register becomes the admin
+and is prompted to set a **panic password**.
+
+Updates are a `git pull && docker compose -f docker-compose.prod.yml pull && up -d`
+(or pin `IMAGE_TAG` to a release). Volumes (`postgres_data`, `redis_data`,
+`uploads_data`, `caddy_data`) survive rebuilds.
+
+Full walk-through, env reference, and operations: [doc/guide/getting-started.md](doc/guide/getting-started.md).
 
 ---
 
 ## 🪶 Static deployment (no SSR)
 
-For deployments where SSR overhead isn't worth it, a second image — built from `apps/web/Dockerfile.static` — serves a fully static SPA from **distroless Chainguard nginx** (~28 MB image, ~7 MB resident memory).
+A second image — `ghcr.io/dim145/opentracker/front` — serves a fully static SPA
+from **distroless Chainguard nginx**:
 
 | | SSR (default) | **Static** |
 | --- | ---: | ---: |
@@ -325,153 +181,41 @@ docker compose \
   -f docker-compose.prod.yml \
   -f docker-compose.static.yml \
   --env-file .env \
-  up -d --build
+  up -d
 ```
 
-**Runtime URLs**: the static bundle has no env-var injection. On boot the SPA fetches `GET /api/runtime-config` and patches `useRuntimeConfig().public` from the response, so the same image is portable across domains — only the API container needs the `NUXT_PUBLIC_TRACKER_*_URL` vars set. See [`apps/web/app/plugins/runtime-config.client.ts`](apps/web/app/plugins/runtime-config.client.ts).
-
-The static container listens on `:3000` to match the existing Caddy upstream — no Caddyfile change needed when switching between the two images.
-
----
-
-## 🔒 Security
-
-> **For production, always generate strong secrets** (see the [deployment guide](doc/guide/getting-started.md)) and put the app behind a reverse proxy. Caddy is included.
-
-### Defense in depth
-
-| Layer              | Protection                                                  |
-| ------------------ | ----------------------------------------------------------- |
-| **Authentication** | ZKE, PoW anti-abuse, sealed-cookie sessions, CSRF protection |
-| **Database**       | SCRAM-SHA-256 auth, TLS, prepared statements, pool limits   |
-| **Redis**          | Password auth, command restrictions, memory limits          |
-| **Network**        | Rate limiting, auto IP bans, attack pattern detection       |
-| **Privacy**        | SHA-256 hashed IPs, no raw IP persistence, minimal logging  |
-| **Container**      | Distroless bases, non-root users, dropped capabilities      |
-
-### Rate limits
-
-| Endpoint   | Limit   | Ban on abuse                    |
-| ---------- | ------- | ------------------------------- |
-| Public API | 100/min | 100+ req/10s → auto-block       |
-| Mutations  | 10/min  | Progressive penalties           |
-| Auth       | 5/5min  | IP blacklisted after violations |
-| Tracker    | 200/min | Distributed sliding window      |
-
-### Production checklist
-
-- [ ] Generate cryptographic secrets (32+ chars) — `NUXT_SESSION_SECRET`, `IP_HASH_SECRET`, `ADMIN_API_KEY`
-- [ ] Set strong passwords for `DB_PASSWORD` and `REDIS_PASSWORD`
-- [ ] Configure TLS — Caddy handles Let's Encrypt automatically
-- [ ] Restrict firewall to ports 80/443 only
-- [ ] Set `TRUST_PROXY=true` (already on in `docker-compose.prod.yml`)
-- [ ] Set up automated PostgreSQL backups (see [doc/guide/backup-restore.md](doc/guide/backup-restore.md))
+The static bundle fetches `GET /api/runtime-config` on boot and patches
+`useRuntimeConfig().public`, so the same image is portable across domains —
+only the API container needs the `NUXT_PUBLIC_TRACKER_*_URL` vars.
 
 ---
 
 ## 🏗️ Tech stack
 
-| Layer            | Technology                                | Notes                                          |
-| ---------------- | ----------------------------------------- | ---------------------------------------------- |
-| Frontend         | Nuxt 4, Vue 3, Tailwind CSS, Tiptap        | SSR by default, opt-in static SPA build        |
-| API              | Nitro 4 (Node 24), Drizzle ORM, Zod       | Standalone container, distroless runtime       |
-| Tracker          | Go 1.25, sqlc                             | `scratch`-based image, sub-ms announce p99     |
-| Database         | PostgreSQL 16                             | `gin_trgm_ops` full-text, drizzle-kit migrations |
-| Connection pool  | PgBouncer                                 | Transaction-mode pooling                       |
-| Cache / queue    | Redis 7                                   | Peer hashes, sessions, rate-limit windows      |
-| Reverse proxy    | Caddy 2                                   | Auto-HTTPS, HTTP/3                             |
-| Crypto           | Web Crypto API, scrypt, AES-256-GCM       | ZKE auth, Panic encryption                     |
-| Observability    | Prometheus `/metrics`                     | Dedicated port on the API container            |
-| Monorepo         | pnpm workspaces                           | `packages/{shared,db}` + `apps/{web,api,tracker}` |
+| Layer            | Technology                                | Notes                                              |
+| ---------------- | ----------------------------------------- | -------------------------------------------------- |
+| Frontend         | Nuxt 4, Vue 3, Tailwind CSS, Tiptap       | SSR by default, opt-in static SPA build            |
+| API              | Nitro 4 (Node 24), Drizzle ORM, Zod       | Standalone container, distroless runtime           |
+| Tracker          | Go 1.25, sqlc                             | `scratch`-based image, sub-ms announce p99         |
+| Database         | PostgreSQL 16                             | `gin_trgm_ops` full-text, drizzle-kit `push`       |
+| Connection pool  | PgBouncer                                 | Transaction-mode pooling                           |
+| Cache / queue    | Redis 7                                   | Peer hashes, sessions, rate-limit windows, pub/sub |
+| Reverse proxy    | Caddy 2                                   | Auto-HTTPS, HTTP/3                                 |
+| Crypto           | Web Crypto API, scrypt, AES-256-GCM       | ZKE auth, Panic encryption                         |
+| Observability    | Prometheus `/metrics`                     | Dedicated port on the API container                |
+| Monorepo         | pnpm workspaces                           | `packages/{shared,db}` + `apps/{web,api,tracker}`  |
+
+Security deep-dive: [doc/guide/security.md](doc/guide/security.md), [doc/guide/zero-knowledge-auth.md](doc/guide/zero-knowledge-auth.md), [doc/guide/panic-mode.md](doc/guide/panic-mode.md).
 
 ---
 
-## 🐳 Docker commands
+## 📸 Screenshots
 
-The repo ships three compose files:
-
-| File                          | Purpose                                                        |
-| ----------------------------- | -------------------------------------------------------------- |
-| `docker-compose.yml`          | Local development — mounts source, hot-reload                  |
-| `docker-compose.prod.yml`     | Production — Caddy, distroless images, hardened defaults       |
-| `docker-compose.static.yml`   | Overlay — swaps the SSR `web` for the static SPA + nginx       |
-| `docker-compose.local.yml`    | Local prod-like — same images as prod, no TLS                  |
-
-```bash
-docker compose up -d                                   # Local dev
-docker compose -f docker-compose.prod.yml up -d        # Production SSR
-docker compose -f docker-compose.prod.yml \
-               -f docker-compose.static.yml up -d      # Production static
-docker compose down                                    # Stop services
-docker compose logs -f                                 # View logs
-docker compose down -v                                 # Stop + remove volumes
-```
-
-### Health probes
-
-```bash
-docker exec trackarr-db pg_isready                     # PostgreSQL
-docker exec trackarr-redis redis-cli ping              # Redis
-curl -fk https://localhost/api/health                  # API
-```
-
-### Updating
-
-```bash
-git pull origin main
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-> Data persists in Docker volumes (`postgres_data`, `redis_data`, `uploads_data`, `caddy_data`) and survives rebuilds.
-
-### Troubleshooting
-
-```bash
-# Full restart (no rebuild)
-docker compose -f docker-compose.prod.yml restart
-
-# Rebuild after pulling new code
-docker compose -f docker-compose.prod.yml up -d --build --force-recreate
-
-# Tail per-service logs
-docker compose -f docker-compose.prod.yml logs -f web
-docker compose -f docker-compose.prod.yml logs -f api
-docker compose -f docker-compose.prod.yml logs -f tracker
-```
-
-More: [doc/guide/troubleshooting.md](doc/guide/troubleshooting.md)
-
----
-
-## 🧪 Development
-
-The repo is a **pnpm monorepo**. Each app builds independently.
-
-```bash
-pnpm install                                # Install all workspace deps
-pnpm -r --parallel run dev                  # Web + API in parallel (HMR)
-pnpm --filter @trackarr/web run dev         # Just the web
-pnpm --filter @trackarr/api run dev         # Just the API
-
-pnpm -r run build                           # Build everything
-pnpm db:push                                # drizzle-kit push (dev DB)
-pnpm db:studio                              # Database GUI
-```
-
-The Go tracker:
-
-```bash
-cd apps/tracker
-go run ./cmd/tracker                        # Run locally
-go test ./...                                # Tests
-```
-
+![Torrent List](apps/web/public/images/image.png)
+![Torrent Details](apps/web/public/images/image%20copy%202.png)
 ![Forum](apps/web/public/images/screens/forum.png)
-
 ![User profile](apps/web/public/images/screens/me.png)
-
 ![Admin dashboard](apps/web/public/images/screens/admin-dashboard.png)
-
 ![Moderation queue](apps/web/public/images/screens/mod-pending.png)
 
 ---
@@ -484,36 +228,37 @@ go test ./...                                # Tests
 4. Push to the branch (`git push origin feature/amazing`)
 5. Open a Pull Request
 
+The repo is a **pnpm monorepo**. For local hacking, see [Getting Started — Local development](doc/guide/getting-started.md#local-development); for running the full container stack on your laptop, see [Local Production](doc/guide/local-production.md).
+
 ---
 
 ## 🙏 Acknowledgements
 
 Trackarr is built on the shoulders of giants. Thanks to the following open-source projects:
 
-| Project                                                                | Role                        |
-| ---------------------------------------------------------------------- | --------------------------- |
-| [Nuxt](https://nuxt.com)                                               | Fullstack Vue framework     |
-| [Vue.js](https://vuejs.org)                                            | Reactive frontend framework |
-| [Nitro](https://nitro.build)                                           | Universal JS server engine  |
-| [Drizzle ORM](https://orm.drizzle.team)                                | TypeScript ORM              |
+| Project                                                                | Role                          |
+| ---------------------------------------------------------------------- | ----------------------------- |
+| [Nuxt](https://nuxt.com)                                               | Fullstack Vue framework       |
+| [Vue.js](https://vuejs.org)                                            | Reactive frontend framework   |
+| [Nitro](https://nitro.build)                                           | Universal JS server engine    |
+| [Drizzle ORM](https://orm.drizzle.team)                                | TypeScript ORM                |
 | [sqlc](https://sqlc.dev)                                               | Go DB codegen for the tracker |
-| [PostgreSQL](https://www.postgresql.org)                               | Database                    |
-| [Redis](https://redis.io)                                              | In-memory cache             |
-| [ioredis](https://github.com/redis/ioredis)                            | Redis client for Node.js    |
-| [Caddy](https://caddyserver.com)                                       | Reverse proxy + HTTPS       |
-| [Chainguard](https://www.chainguard.dev)                               | Distroless container images |
-| [Tailwind CSS](https://tailwindcss.com)                                | Utility-first CSS           |
-| [Tiptap](https://tiptap.dev)                                           | WYSIWYG editor              |
-| [Chart.js](https://www.chartjs.org)                                    | Charts & visualizations     |
+| [PostgreSQL](https://www.postgresql.org)                               | Database                      |
+| [Redis](https://redis.io)                                              | In-memory cache               |
+| [ioredis](https://github.com/redis/ioredis)                            | Redis client for Node.js      |
+| [Caddy](https://caddyserver.com)                                       | Reverse proxy + HTTPS         |
+| [Chainguard](https://www.chainguard.dev)                               | Distroless container images   |
+| [Tailwind CSS](https://tailwindcss.com)                                | Utility-first CSS             |
+| [Tiptap](https://tiptap.dev)                                           | WYSIWYG editor                |
+| [Chart.js](https://www.chartjs.org)                                    | Charts & visualizations       |
 | [Iconify](https://iconify.design)                                      | Icon framework (Phosphor set) |
-| [VitePress](https://vitepress.dev)                                     | Documentation framework     |
-| [Vitest](https://vitest.dev)                                           | Testing framework           |
-| [Pinia](https://pinia.vuejs.org)                                       | State management            |
-| [Zod](https://zod.dev)                                                 | Schema validation           |
-| [TMDb](https://www.themoviedb.org)                                     | Films + TV metadata         |
-| [IGDB](https://www.igdb.com)                                           | Video-game metadata         |
-| [Open Library](https://openlibrary.org)                                | Books + ebook metadata      |
-| [Google Books API](https://developers.google.com/books)                | Books metadata (fallback)   |
+| [VitePress](https://vitepress.dev)                                     | Documentation framework       |
+| [Pinia](https://pinia.vuejs.org)                                       | State management              |
+| [Zod](https://zod.dev)                                                 | Schema validation             |
+| [TMDb](https://www.themoviedb.org)                                     | Films + TV metadata           |
+| [IGDB](https://www.igdb.com)                                           | Video-game metadata           |
+| [Open Library](https://openlibrary.org)                                | Books + ebook metadata        |
+| [Google Books API](https://developers.google.com/books)                | Books metadata (fallback)     |
 | [web-push](https://github.com/web-push-libs/web-push)                  | RFC 8291 / 8292 push delivery |
 
 ---

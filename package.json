@@ -8,6 +8,7 @@
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
+    "test:load": "tsx tests/load/load-test.ts",
     "db:push": "pnpm --filter @trackarr/db run db:push",
     "db:generate": "pnpm --filter @trackarr/db run db:generate",
     "db:studio": "pnpm --filter @trackarr/db run db:studio",
@@ -16,8 +17,7 @@
   "devDependencies": {
     "@types/node": "^25.6.2",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.5"
+    "typescript": "^6.0.3"
   },
   "pnpm": {
     "overrides": {

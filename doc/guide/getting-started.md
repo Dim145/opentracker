@@ -93,18 +93,7 @@ git clone https://github.com/Dim145/opentracker.git /opt/trackarr
 cd /opt/trackarr
 ```
 
-You have two ways to populate `.env`:
-
-**Option A — interactive helper:**
-
-```bash
-./scripts/setup.sh
-```
-
-It prompts you for the domain, the tracker subdomain, and an ACME email,
-generates all the secrets, and writes a ready-to-use `.env`.
-
-**Option B — manual:**
+Populate `.env` from the example file and generate the secrets:
 
 ```bash
 cp .env.example .env

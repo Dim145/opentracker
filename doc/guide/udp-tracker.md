@@ -107,9 +107,8 @@ So flipping the env var in one place keeps all three honest.
 ### Reverse-proxy reality
 
 UDP can't go through Caddy (no L4 reverse-proxy in the default stack), so
-the tracker container binds `6969/udp` directly on the host. Both compose
-files (`docker-compose.local.yml`, `docker-compose.prod.yml`) already map
-the port:
+the tracker container binds `6969/udp` directly on the host.
+`docker-compose.prod.yml` already maps the port:
 
 ```yaml
 ports:

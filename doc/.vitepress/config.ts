@@ -53,6 +53,7 @@ export default defineConfig({
           text: 'Introduction',
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
+            { text: 'Architecture', link: '/guide/architecture' },
             { text: 'Configuration', link: '/guide/configuration' },
             { text: 'Backup & Restore', link: '/guide/backup-restore' },
             { text: 'Local Production', link: '/guide/local-production' },
