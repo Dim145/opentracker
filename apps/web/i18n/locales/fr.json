@@ -645,6 +645,13 @@
         "seeder": "Seeder",
         "leecher": "Leecher"
       },
+      "crossSeeds": {
+        "title": "Cross-seeds ({n})",
+        "name": "Torrent",
+        "category": "Catégorie",
+        "size": "Taille",
+        "uploaded": "Uploadé"
+      },
       "deleteConfirm": {
         "title": "Supprimer le torrent",
         "message": "Supprimer définitivement « {name} » de l'index ? Cette action est irréversible."

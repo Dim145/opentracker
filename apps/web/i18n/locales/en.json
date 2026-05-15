@@ -645,6 +645,13 @@
         "seeder": "Seeder",
         "leecher": "Leecher"
       },
+      "crossSeeds": {
+        "title": "Cross-seeds ({n})",
+        "name": "Torrent",
+        "category": "Category",
+        "size": "Size",
+        "uploaded": "Uploaded"
+      },
       "deleteConfirm": {
         "title": "Delete torrent",
         "message": "Permanently remove “{name}” from the index? This cannot be undone."

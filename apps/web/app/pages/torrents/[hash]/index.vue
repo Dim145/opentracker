@@ -463,6 +463,54 @@
       </div>
     </div>
 
+    <!-- Cross-seeds — sibling torrents that ship the same files
+         under a different info_hash (different piece size, different
+         private flag, different announce list). Hidden when the
+         backend hasn't found any siblings; visible to everyone so a
+         member can swap to a different `.torrent` of the same
+         content if their current one is sparse. -->
+    <div v-if="crossSeeds && crossSeeds.items.length > 0" class="card">
+      <div class="card-header">
+        <div class="flex items-center gap-2">
+          <Icon name="ph:arrows-left-right-bold" class="text-text-muted" />
+          <h3
+            class="text-xs font-bold uppercase tracking-wider text-text-primary"
+          >
+            {{ $t('torrents.detail.crossSeeds.title', { n: crossSeeds.items.length }) }}
+          </h3>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{{ $t('torrents.detail.crossSeeds.name') }}</th>
+              <th>{{ $t('torrents.detail.crossSeeds.category') }}</th>
+              <th class="text-right">{{ $t('torrents.detail.crossSeeds.size') }}</th>
+              <th class="text-right">{{ $t('torrents.detail.crossSeeds.uploaded') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="sibling in crossSeeds.items" :key="sibling.id">
+              <td>
+                <NuxtLink
+                  :to="`/torrents/${sibling.infoHash}`"
+                  class="text-text-primary hover:text-accent transition-colors"
+                >
+                  {{ sibling.name }}
+                </NuxtLink>
+              </td>
+              <td class="text-text-muted">
+                {{ sibling.category?.name ?? '—' }}
+              </td>
+              <td class="text-right">{{ formatSize(sibling.size) }}</td>
+              <td class="text-right text-text-muted">{{ formatAge(sibling.createdAt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Moderation panel (bottom placement) — only when the row is
          in a final state. For pending / changes_requested rows the
          panel renders at the top instead, before the metadata. -->
@@ -573,6 +621,28 @@ const {
   error,
   refresh,
 } = await useFetch<TorrentDetail>(`/api/torrents/${hash}`);
+
+// Cross-seed companions — sibling torrents with the same canonical
+// file list. Empty / 404 just means "no cross-seeds known" → the
+// section hides itself. We do this in a side useFetch rather than
+// embedding it into the main detail payload so a slow signature
+// lookup never blocks the page render.
+interface CrossSeedItem {
+  id: string;
+  infoHash: string;
+  name: string;
+  size: number;
+  moderationStatus: string;
+  createdAt: string;
+  category: { id: string; name: string; slug: string; type: string | null } | null;
+  uploader: { id: string; username: string } | null;
+}
+const { data: crossSeeds } = await useFetch<{
+  items: CrossSeedItem[];
+  total: number;
+}>(`/api/torrents/${hash}/cross-seeds`, {
+  default: () => ({ items: [], total: 0 }),
+});
 
 /**
  * Sync the local torrent reactive when the moderation panel pushes a
