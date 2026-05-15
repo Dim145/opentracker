@@ -107,6 +107,13 @@
             }}</span>
           </span>
           <span class="mc-kpi-label">{{ $t('home.kpi.volume') }}</span>
+          <span
+            v-if="last24hLabel"
+            class="mc-kpi-sub"
+            :title="$t('home.kpi.volumeLast24hTooltip')"
+          >
+            +{{ last24hLabel }} · 24 h
+          </span>
         </li>
       </ul>
 
@@ -352,6 +359,19 @@ const { data: content } = await useFetch<HomepageContent>(
   '/api/homepage-content',
 );
 const { data: stats } = await useFetch<TrackerStats>('/api/stats/public');
+
+// Traffic — cumulative + 24 h / 7 d windows, fed by the hourly
+// `stats-collector` snapshots. Lazy so a brand-new tracker (no
+// snapshots yet) doesn't block SSR while the cron warms up; an
+// empty response just hides the "+ 24 h" sub-label.
+interface TrafficPoint { at: number; totalUploaded: string }
+interface TrafficStats {
+  totalUploaded: string;
+  last24h: string;
+  last7d: string;
+  history: TrafficPoint[];
+}
+const { data: traffic } = useLazyFetch<TrafficStats>('/api/stats/traffic');
 const { data: torrentsData } = await useFetch<{ data: TorrentWithStats[] }>(
   '/api/torrents',
   { query: { limit: 12 } },
@@ -470,6 +490,22 @@ function splitBigBytes(bytes: bigint): VolumeParts {
 const kpiVolumeSplit = computed<VolumeParts>(() =>
   splitBigBytes(targetVolumeBytes.value),
 );
+
+// "+ N Go · 24 h" sub-label. Empty string when traffic isn't loaded
+// yet, when there's no 24 h-old snapshot, or when the diff is zero —
+// the template hides the line via `v-if` in those cases.
+const last24hLabel = computed(() => {
+  const raw = traffic.value?.last24h ?? '0';
+  let n: bigint;
+  try {
+    n = BigInt(raw);
+  } catch {
+    return '';
+  }
+  if (n <= 0n) return '';
+  const parts = splitBigBytes(n);
+  return `${parts.value} ${parts.unit}`;
+});
 
 // Strict equality with `true` so an absent `protocols` field reads as
 // "down" rather than "up by default". The previous `!== false` was
@@ -949,6 +985,18 @@ function useCounter(target: Ref<number>) {
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
+}
+
+/* Optional traffic-velocity hint under the Volume tile. Quieter than
+   the label so it reads as a qualifier ("+31.0 GiB · 24h") rather
+   than a second KPI. Hidden by `v-if` until the snapshot is ready. */
+.mc-kpi-sub {
+  margin-top: 0.25rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgb(var(--accent));
 }
 
 .mc-hero-tip {

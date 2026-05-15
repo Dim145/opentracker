@@ -48,6 +48,7 @@
     "settings": "Paramètres",
     "downloads": "Téléchargements",
     "invitations": "Invitations",
+    "reports": "Mes signalements",
     "shop": "Boutique bonus",
     "signOut": "Se déconnecter",
     "signIn": "Se connecter",
@@ -84,7 +85,8 @@
       "peers": "Pairs",
       "seeders": "Seeders",
       "protocols": "Protocoles",
-      "volume": "Volume échangé"
+      "volume": "Volume échangé",
+      "volumeLast24hTooltip": "Octets uploadés sur le swarm dans les dernières 24 heures"
     },
     "tip": "Appuyer sur {kbd} n'importe où pour cibler la recherche.",
     "ledger": {
@@ -3252,6 +3254,59 @@
         "title": "Appareil de confiance ajouté",
         "desc": "Un nouvel appareil a été marqué comme de confiance sur ton compte."
       }
+    }
+  },
+  "reports": {
+    "title": "Mes signalements",
+    "titleLine1": "Mes",
+    "titleLine2": "Signalements",
+    "eyebrow": "Journal des signalements",
+    "subtitle": "Tous les signalements que vous avez envoyés — en attente, traités ou rejetés. La décision du modérateur apparaît ici aussi.",
+    "filterLineLabel": "Filtre",
+    "kpi": {
+      "total": "Envoyés",
+      "pending": "En attente",
+      "resolved": "Traités",
+      "dismissed": "Rejetés"
+    },
+    "tab": {
+      "all": "Tous",
+      "pending": "En attente",
+      "resolved": "Traités",
+      "dismissed": "Rejetés"
+    },
+    "status": {
+      "pending": "En attente",
+      "resolved": "Traité",
+      "dismissed": "Rejeté"
+    },
+    "targetKind": {
+      "torrent": "Torrent",
+      "user": "Utilisateur",
+      "post": "Post du forum",
+      "comment": "Commentaire"
+    },
+    "targetGone": "Cible indisponible",
+    "resolvedBy": "par",
+    "relative": {
+      "now": "à l'instant",
+      "minutes": "il y a {n} min",
+      "hours": "il y a {n} h",
+      "days": "il y a {n} j"
+    },
+    "pager": {
+      "prev": "Précédent",
+      "next": "Suivant"
+    },
+    "empty": {
+      "allTitle": "Aucun signalement",
+      "allSub": "Quand vous signalez un torrent, utilisateur, post ou commentaire, il apparaîtra ici.",
+      "pendingTitle": "Rien en attente",
+      "pendingSub": "Tous vos signalements ont été triés.",
+      "resolvedTitle": "Aucun signalement traité",
+      "resolvedSub": "Les signalements validés par un modérateur apparaîtront ici.",
+      "dismissedTitle": "Aucun signalement rejeté",
+      "dismissedSub": "Les signalements jugés invalides par un modérateur apparaîtront ici."
     }
   }
 }

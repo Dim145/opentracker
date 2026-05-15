@@ -48,6 +48,7 @@
     "settings": "Settings",
     "downloads": "Downloads",
     "invitations": "Invitations",
+    "reports": "My reports",
     "shop": "Bonus shop",
     "signOut": "Sign out",
     "signIn": "Sign in",
@@ -84,7 +85,8 @@
       "peers": "Peers",
       "seeders": "Seeders",
       "protocols": "Protocols",
-      "volume": "Volume exchanged"
+      "volume": "Volume exchanged",
+      "volumeLast24hTooltip": "Bytes uploaded across the swarm in the last 24 hours"
     },
     "tip": "Press {kbd} from anywhere to search.",
     "ledger": {
@@ -3252,6 +3254,59 @@
         "title": "Trusted device added",
         "desc": "A new device was marked as trusted on your account."
       }
+    }
+  },
+  "reports": {
+    "title": "My reports",
+    "titleLine1": "My",
+    "titleLine2": "Reports",
+    "eyebrow": "Report log",
+    "subtitle": "Every report you've filed — pending, resolved, or dismissed. A moderator's decision lands here too.",
+    "filterLineLabel": "Filter",
+    "kpi": {
+      "total": "Filed",
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "dismissed": "Dismissed"
+    },
+    "tab": {
+      "all": "All",
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "dismissed": "Dismissed"
+    },
+    "status": {
+      "pending": "Pending",
+      "resolved": "Resolved",
+      "dismissed": "Dismissed"
+    },
+    "targetKind": {
+      "torrent": "Torrent",
+      "user": "User",
+      "post": "Forum post",
+      "comment": "Comment"
+    },
+    "targetGone": "Target no longer available",
+    "resolvedBy": "by",
+    "relative": {
+      "now": "just now",
+      "minutes": "{n} min ago",
+      "hours": "{n}h ago",
+      "days": "{n}d ago"
+    },
+    "pager": {
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "empty": {
+      "allTitle": "No reports yet",
+      "allSub": "When you flag a torrent, user, post or comment, it will land here.",
+      "pendingTitle": "Nothing pending",
+      "pendingSub": "Every report you sent has been triaged.",
+      "resolvedTitle": "No resolved reports yet",
+      "resolvedSub": "Resolved reports — those a moderator agreed with — will be listed here.",
+      "dismissedTitle": "No dismissed reports",
+      "dismissedSub": "Reports a moderator judged invalid will appear here."
     }
   }
 }

@@ -1352,6 +1352,16 @@ export const siteStats = pgTable(
       mode: 'number',
     }).notNull(),
     dbSize: bigint('db_size', { mode: 'number' }).notNull(),
+    // Cumulative `SUM(users.uploaded)` at snapshot time. Lets the
+    // public stats endpoint compute "last 24 h / 7 d traffic"
+    // without a per-row scan by diffing two snapshots. Same `number`
+    // mode as `users.uploaded` for arithmetic-friendliness — both
+    // round once the value crosses ~9 PiB. A long-running tracker
+    // that drifts past that should switch both columns to bigint
+    // mode + string transport in one go.
+    totalUploadedBytes: bigint('total_uploaded_bytes', {
+      mode: 'number',
+    }).default(0).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [index('site_stats_created_at_idx').on(table.createdAt)]

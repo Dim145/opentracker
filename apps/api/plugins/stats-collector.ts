@@ -88,6 +88,19 @@ export default defineNitroPlugin((nitroApp) => {
       );
       const dbSize = Number(dbSizeResult[0]?.pg_database_size) || 0;
 
+      // 6. Cumulative traffic — bytes that *actually transited* the
+      //    swarm, i.e. came from announce deltas. `users.uploaded`
+      //    also accumulates shop `upload_credit` purchases and the
+      //    starter upload bonus credited at registration, so we
+      //    subtract `bonus_uploaded` (the column that tracks exactly
+      //    those non-traffic credits) to keep the public KPI honest.
+      const uploadedSumResult = await db
+        .select({
+          total: sql<string>`COALESCE(SUM(${schema.users.uploaded} - ${schema.users.bonusUploaded}), 0)::text`,
+        })
+        .from(schema.users);
+      const totalUploadedBytes = Number(uploadedSumResult[0]?.total ?? '0');
+
       // Save to DB
       await db.insert(schema.siteStats).values({
         id: uuidv4(),
@@ -97,11 +110,12 @@ export default defineNitroPlugin((nitroApp) => {
         seedersCount,
         redisMemoryUsage,
         dbSize,
+        totalUploadedBytes,
         createdAt: new Date(),
       });
 
       console.log(
-        `[Stats Collector] Stats collected successfully. Peers: ${peersCount}, Seeders: ${seedersCount}`
+        `[Stats Collector] Stats collected successfully. Peers: ${peersCount}, Seeders: ${seedersCount}, Uploaded: ${totalUploadedBytes}`
       );
     } catch (err) {
       console.error('[Stats Collector] Failed to collect stats:', err);

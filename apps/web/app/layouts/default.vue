@@ -311,6 +311,14 @@
                     </span>
                   </NuxtLink>
                   <NuxtLink
+                    to="/reports"
+                    class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
+                    @click="showUserMenu = false"
+                  >
+                    <Icon name="ph:flag-bold" />
+                    {{ $t('nav.reports', 'My reports') }}
+                  </NuxtLink>
+                  <NuxtLink
                     to="/settings"
                     class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
                     @click="showUserMenu = false"
@@ -553,6 +561,14 @@
           >
             <Icon name="ph:envelope-simple-bold" class="text-lg flex-shrink-0" />
             <span>{{ $t('nav.invitations', 'Invitations') }}</span>
+          </NuxtLink>
+          <NuxtLink
+            to="/reports"
+            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
+            @click="showMobileNav = false"
+          >
+            <Icon name="ph:flag-bold" class="text-lg flex-shrink-0" />
+            <span>{{ $t('nav.reports', 'My reports') }}</span>
           </NuxtLink>
           <NuxtLink
             to="/settings"

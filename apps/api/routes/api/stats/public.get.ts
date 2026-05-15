@@ -62,15 +62,21 @@ async function computeStats(): Promise<PublicStats> {
     .from(schema.torrents);
   const totalTorrents = torrentsCountResult[0]?.count || 0;
 
-  // Total seeded volume — sum of every user's `uploaded` counter. We pull
-  // it as a string straight from Postgres because the value can outgrow
-  // `Number.MAX_SAFE_INTEGER` on a long-running tracker (≈9 PiB), and a
-  // silent precision loss would make the KPI quietly wrong as soon as the
-  // site crosses that threshold. The frontend parses it with `BigInt`
-  // when it needs arithmetic; for display we round to the nearest unit.
+  // Total seeded volume — bytes that actually transited the swarm
+  // (announce deltas). We subtract `bonus_uploaded` from `uploaded`
+  // so shop `upload_credit` purchases and the starter bonus
+  // credited at registration don't inflate the public KPI; the two
+  // columns are kept in lock-step by `purchaseItem`, so a clean
+  // subtraction yields the "real" traffic counter.
+  //
+  // String transport: a long-running tracker can outgrow
+  // `Number.MAX_SAFE_INTEGER` (~9 PiB), and a silent precision
+  // loss would make the KPI quietly wrong as soon as the site
+  // crosses that threshold. The frontend parses with BigInt for
+  // arithmetic and rounds to the nearest unit for display.
   const totalUploadedResult = await db
     .select({
-      total: sql<string>`COALESCE(SUM(${schema.users.uploaded}), 0)::text`,
+      total: sql<string>`COALESCE(SUM(${schema.users.uploaded} - ${schema.users.bonusUploaded}), 0)::text`,
     })
     .from(schema.users);
   const totalUploaded = totalUploadedResult[0]?.total ?? '0';
