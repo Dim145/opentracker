@@ -81,11 +81,18 @@
     </div>
   </section>
 
-  <div v-else-if="torrent">
-    <NuxtLink
-      to="/torrents"
-      class="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong mb-6 transition-colors"
-    >
+  <div v-else-if="torrent" class="release-page">
+    <!-- ── Decorative atmosphere ──────────────────────────────────
+         Two soft gradient blobs (accent + warning hues) plus a grain
+         overlay live behind the content. Same vocabulary as
+         /reports so the app reads as one editorial product. -->
+    <div class="release-aura" aria-hidden="true">
+      <span class="aura-blob aura-blob--a" />
+      <span class="aura-blob aura-blob--b" />
+      <span class="aura-grain" />
+    </div>
+
+    <NuxtLink to="/torrents" class="release-back">
       <Icon name="ph:arrow-left-bold" />
       {{ $t('torrents.detail.backToIndex') }}
     </NuxtLink>
@@ -97,7 +104,7 @@
          metadata. Final states (accepted / rejected) keep the panel
          at the bottom of the page so the conversation doesn't push
          the public-facing content down. -->
-    <div v-if="moderationOnTop" class="mb-6">
+    <div v-if="moderationOnTop" class="mb-8">
       <TorrentModerationPanel
         :hash="torrent.infoHash"
         :status="(torrent.moderationStatus as 'pending' | 'accepted' | 'changes_requested' | 'rejected')"
@@ -106,346 +113,373 @@
       />
     </div>
 
-    <!-- Torrent Header -->
-    <div class="card mb-6 overflow-hidden">
-      <div class="card-body !p-6">
-        <div
-          class="flex flex-col md:flex-row md:items-center justify-between gap-4"
+    <!-- ╔══════════════════════════════════════════════════════════╗
+         ║  HERO — release press-sheet                              ║
+         ║  Eyebrow · big mono title · chips · primary CTA · meta   ║
+         ║  Vertical status-coloured tab on the left edge gives the ║
+         ║  card the feel of a physical document.                    ║
+         ╚══════════════════════════════════════════════════════════╝ -->
+    <section
+      class="hero"
+      :class="[`hero--status-${torrent.moderationStatus || 'accepted'}`]"
+    >
+      <header class="hero-eyebrow">
+        <span class="hero-eyebrow-mark" aria-hidden="true">§</span>
+        <span class="hero-eyebrow-label">{{ $t('torrents.detail.hero.case') }}</span>
+        <span class="hero-eyebrow-sep">·</span>
+        <time class="hero-eyebrow-date" :datetime="torrent.createdAt">
+          {{ formatLongDate(torrent.createdAt) }}
+        </time>
+        <span
+          v-if="torrent.moderationStatus && torrent.moderationStatus !== 'accepted'"
+          class="hero-eyebrow-sep"
+        >·</span>
+        <TorrentModerationBadge
+          v-if="torrent.moderationStatus && torrent.moderationStatus !== 'accepted'"
+          :status="torrent.moderationStatus"
+          size="sm"
+        />
+        <span class="hero-eyebrow-spacer" aria-hidden="true" />
+        <span class="hero-eyebrow-ref" :title="torrent.infoHash">
+          {{ $t('torrents.detail.hero.ref') }} {{ torrent.infoHash.slice(0, 8) }}
+        </span>
+      </header>
+
+      <h1
+        class="hero-title"
+        :data-len="heroTitleLen"
+        :title="torrent.name"
+      >
+        {{ withWrapHints(torrent.name) }}
+      </h1>
+
+      <div
+        v-if="
+          torrent.category ||
+          torrent.tags?.length ||
+          torrent.imdbId ||
+          torrent.tmdbId ||
+          torrent.tvdbId
+        "
+        class="hero-chips"
+      >
+        <span v-if="torrent.category" class="chip chip--cat">
+          <Icon name="ph:folder-bold" class="chip-icon" />
+          {{ torrent.category.name }}
+        </span>
+        <NuxtLink
+          v-for="tag in torrent.tags"
+          :key="tag.id"
+          :to="`/torrents?tag=${encodeURIComponent(tag.slug)}`"
+          class="chip chip--tag"
+          :style="tagBadgeStyle(tag)"
         >
-          <div>
-            <!-- Surfaced for the uploader and any staff member: the
-                 row's moderation state. The badge itself returns nothing
-                 when the row is `accepted`, so the wrapper only shows
-                 when it actually carries information. -->
-            <div
-              v-if="torrent.moderationStatus && torrent.moderationStatus !== 'accepted'"
-              class="mb-1"
-            >
-              <TorrentModerationBadge :status="torrent.moderationStatus" />
-            </div>
-            <h2
-              class="font-bold text-text-primary tracking-tight break-words [overflow-wrap:anywhere] [text-wrap:pretty]"
-              :class="titleSizeClass(torrent.name)"
-              :title="torrent.name"
-            >
-              {{ withWrapHints(torrent.name) }}
-            </h2>
-            <!-- Category + Tag + Media-id Badges -->
-            <div
-              v-if="
-                torrent.category ||
-                torrent.tags?.length ||
-                torrent.imdbId ||
-                torrent.tmdbId ||
-                torrent.tvdbId
-              "
-              class="mt-2 flex flex-wrap items-center gap-2"
-            >
-              <span
-                v-if="torrent.category"
-                class="text-[10px] font-bold bg-bg-tertiary border border-border px-2 py-1 rounded-sm text-text-secondary uppercase tracking-wider"
-              >
-                {{ torrent.category.name }}
-              </span>
-              <NuxtLink
-                v-for="tag in torrent.tags"
-                :key="tag.id"
-                :to="`/torrents?tag=${encodeURIComponent(tag.slug)}`"
-                class="text-[10px] font-bold border px-2 py-1 rounded-sm uppercase tracking-wider hover:opacity-80 transition-opacity flex items-center gap-1.5"
-                :style="tagBadgeStyle(tag)"
-              >
-                <span
-                  class="inline-block w-2 h-2 rounded-full"
-                  :style="{ backgroundColor: tag.color }"
-                />
-                {{ tag.name }}
-              </NuxtLink>
+          <span class="chip-dot" :style="{ backgroundColor: tag.color }" />
+          {{ tag.name }}
+        </NuxtLink>
 
-              <!-- Media-database links — clickable badges that open the
-                   official IMDb / TMDb / TVDB page in a new tab. -->
-              <a
-                v-if="torrent.imdbId"
-                :href="`https://www.imdb.com/title/${torrent.imdbId}/`"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="media-id-badge media-id-badge--imdb"
-                :title="`IMDb · ${torrent.imdbId}`"
-              >
-                <span class="media-id-badge-tag">IMDb</span>
-                <span class="media-id-badge-id">{{ torrent.imdbId }}</span>
-                <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
-              </a>
-              <a
-                v-if="tmdbLink"
-                :href="tmdbLink.href"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="media-id-badge media-id-badge--tmdb"
-                :title="`TMDb · ${tmdbLink.label}`"
-              >
-                <span class="media-id-badge-tag">TMDb</span>
-                <span class="media-id-badge-id">{{ tmdbLink.label }}</span>
-                <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
-              </a>
-              <a
-                v-if="torrent.tvdbId"
-                :href="`https://thetvdb.com/dereferrer/series/${torrent.tvdbId}`"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="media-id-badge media-id-badge--tvdb"
-                :title="`TVDB · ${torrent.tvdbId}`"
-              >
-                <span class="media-id-badge-tag">TVDB</span>
-                <span class="media-id-badge-id">{{ torrent.tvdbId }}</span>
-                <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
-              </a>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <!-- Edit Button (owner/mod/admin only) -->
-            <NuxtLink
-              v-if="canEdit"
-              :to="`/torrents/${torrent.infoHash}/edit`"
-              class="btn btn-secondary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider"
-            >
-              <Icon name="ph:pencil-simple-bold" />
-              <span>{{ $t('common.edit') }}</span>
-            </NuxtLink>
-            <!-- Delete Button (owner/mod/admin only) -->
-            <button
-              v-if="canDelete"
-              class="btn btn-secondary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider text-error hover:bg-error/10"
-              @click="confirmDelete"
-            >
-              <Icon name="ph:trash-bold" />
-              <span>{{ $t('common.delete') }}</span>
-            </button>
-            <!-- Report Button (any authenticated user). Mods/admins
-                 and even uploaders can file — the moderation queue
-                 will sort it. -->
-            <button
-              v-if="canReport"
-              class="btn btn-secondary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider !text-error/85 hover:!bg-error/10 hover:!border-error/40"
-              @click="reportOpen = true"
-            >
-              <Icon name="ph:flag-bold" />
-              <span>{{ $t('torrents.detail.report') }}</span>
-            </button>
-            <a
-              :href="`/api/torrents/${torrent.infoHash}/download`"
-              class="btn btn-primary flex items-center gap-2 !py-2 text-xs font-bold uppercase tracking-wider"
-              download
-            >
-              <Icon name="ph:download-simple-bold" />
-              <span>{{ $t('torrents.detail.download') }}</span>
-            </a>
-          </div>
+        <a
+          v-if="torrent.imdbId"
+          :href="`https://www.imdb.com/title/${torrent.imdbId}/`"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="media-id-badge media-id-badge--imdb"
+          :title="`IMDb · ${torrent.imdbId}`"
+        >
+          <span class="media-id-badge-tag">IMDb</span>
+          <span class="media-id-badge-id">{{ torrent.imdbId }}</span>
+          <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
+        </a>
+        <a
+          v-if="tmdbLink"
+          :href="tmdbLink.href"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="media-id-badge media-id-badge--tmdb"
+          :title="`TMDb · ${tmdbLink.label}`"
+        >
+          <span class="media-id-badge-tag">TMDb</span>
+          <span class="media-id-badge-id">{{ tmdbLink.label }}</span>
+          <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
+        </a>
+        <a
+          v-if="torrent.tvdbId"
+          :href="`https://thetvdb.com/dereferrer/series/${torrent.tvdbId}`"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="media-id-badge media-id-badge--tvdb"
+          :title="`TVDB · ${torrent.tvdbId}`"
+        >
+          <span class="media-id-badge-tag">TVDB</span>
+          <span class="media-id-badge-id">{{ torrent.tvdbId }}</span>
+          <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
+        </a>
+      </div>
+
+      <!-- One bold primary action (Download) flanked by mono ghosts
+           for the destructive / reporting paths. The size carries the
+           weight of the file so a user can decide before clicking. -->
+      <div class="hero-cta">
+        <a
+          :href="`/api/torrents/${torrent.infoHash}/download`"
+          class="cta-primary"
+          download
+        >
+          <Icon name="ph:download-simple-bold" class="cta-primary-icon" />
+          <span class="cta-primary-stack">
+            <span class="cta-primary-label">{{ $t('torrents.detail.download') }}</span>
+            <span class="cta-primary-sub">
+              {{ formatSize(torrent.size) }} ·
+              {{ $t('torrents.detail.hero.downloadHint') }}
+            </span>
+          </span>
+        </a>
+
+        <div class="hero-cta-aux">
+          <NuxtLink
+            v-if="canEdit"
+            :to="`/torrents/${torrent.infoHash}/edit`"
+            class="cta-ghost"
+          >
+            <Icon name="ph:pencil-simple-bold" />
+            <span>{{ $t('common.edit') }}</span>
+          </NuxtLink>
+          <button
+            v-if="canDelete"
+            type="button"
+            class="cta-ghost cta-ghost--danger"
+            @click="confirmDelete"
+          >
+            <Icon name="ph:trash-bold" />
+            <span>{{ $t('common.delete') }}</span>
+          </button>
+          <button
+            v-if="canReport"
+            type="button"
+            class="cta-ghost cta-ghost--danger"
+            @click="reportOpen = true"
+          >
+            <Icon name="ph:flag-bold" />
+            <span>{{ $t('torrents.detail.report') }}</span>
+          </button>
         </div>
+      </div>
 
-        <div class="mt-6 pt-6 border-t border-border/50 flex flex-wrap gap-6">
-          <div class="flex flex-col">
-            <span
-              class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1"
-              >{{ $t('torrents.detail.infoHash') }}</span
-            >
-            <code
-              class="text-xs font-mono text-text-secondary bg-bg-tertiary/50 px-2 py-1 rounded border border-border/50"
-            >
-              {{ torrent.infoHash }}
-            </code>
-          </div>
-          <div class="flex flex-col">
-            <span
-              class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1"
-              >{{ $t('torrents.detail.createdAt') }}</span
-            >
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-mono text-text-secondary">{{
-                formatDate(torrent.createdAt)
-              }}</span>
-              <span
-                class="text-[10px] bg-bg-tertiary border border-border px-1.5 py-0.5 rounded-sm text-text-muted font-bold"
-              >
-                {{ formatAge(torrent.createdAt) }}
-              </span>
-            </div>
-          </div>
-          <div class="flex flex-col">
-            <span
-              class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1"
-              >{{ $t('torrents.detail.uploadedBy') }}</span
-            >
+      <!-- Inline meta ribbon: hash · uploader · age. Replaces the
+           old three-card strip with a single horizontal data row,
+           dividers between cells, monospace throughout. -->
+      <dl class="hero-meta">
+        <div class="hero-meta-cell hero-meta-cell--hash">
+          <dt>{{ $t('torrents.detail.infoHash') }}</dt>
+          <dd>
+            <code class="hero-meta-hash">{{ torrent.infoHash }}</code>
+          </dd>
+        </div>
+        <div class="hero-meta-cell">
+          <dt>{{ $t('torrents.detail.uploadedBy') }}</dt>
+          <dd>
             <NuxtLink
               v-if="torrent.uploader"
               :to="`/users/${torrent.uploader.id}`"
-              class="inline-flex items-center gap-1.5 text-xs font-mono text-text-secondary hover:text-accent transition-colors"
+              class="hero-meta-user"
             >
-              <Icon name="ph:user-bold" class="text-[11px] text-text-muted" />
-              <span>@{{ torrent.uploader.username }}</span>
+              <Icon name="ph:user-bold" class="hero-meta-user-icon" />
+              @{{ torrent.uploader.username }}
             </NuxtLink>
             <span
               v-else
-              class="inline-flex items-center gap-1.5 text-xs font-mono text-text-faint italic"
+              class="hero-meta-user hero-meta-user--gone"
               :title="$t('torrents.detail.uploaderGoneTooltip')"
             >
-              <Icon name="ph:user-bold" class="text-[11px]" />
+              <Icon name="ph:user-bold" class="hero-meta-user-icon" />
               {{ $t('torrents.detail.uploaderGone') }}
             </span>
-          </div>
+          </dd>
         </div>
-      </div>
-    </div>
+        <div class="hero-meta-cell">
+          <dt>{{ $t('torrents.detail.createdAt') }}</dt>
+          <dd class="hero-meta-time">
+            <span>{{ formatDate(torrent.createdAt) }}</span>
+            <span class="hero-meta-age">{{ formatAge(torrent.createdAt) }}</span>
+          </dd>
+        </div>
+      </dl>
+    </section>
 
-    <!-- Rich metadata card. We pick the renderer by source so a
-         game lands on the IGDB-specific card (cover + platforms +
-         modes), a book on the Open Library / Google Books card
-         (authors + publisher + pages) and a movie/TV on the TMDb
-         one. Silent no-op when integration is disabled or the
-         lookup missed. -->
+    <!-- Rich metadata card. Picked by source so a game lands on the
+         IGDB card, a book on Open Library / Google Books, and a
+         movie/TV on TMDb. Silent no-op when the lookup missed. -->
     <GameMetadataCard
       v-if="metadata && metadata.source === 'igdb'"
       :metadata="metadata"
-      class="mb-6"
+      class="release-metadata"
     />
     <BookMetadataCard
       v-else-if="metadata && metadata.source === 'openlibrary'"
       :metadata="metadata"
-      class="mb-6"
+      class="release-metadata"
     />
     <MediaMetadataCard
       v-else-if="metadata"
       :metadata="metadata"
-      class="mb-6"
+      class="release-metadata"
     />
 
-    <!-- Stats Grid — 4 base KPIs + an optional 5th `volume exchanged`
-         card that appears only once swarm activity has produced
-         actual byte transfers (otherwise it's just "0 echanged",
-         which adds noise without value). The seeders + leechers
-         tiles carry a small accent chip ("· N x-seed") whenever
-         a chunk of the swarm is also active on a cross-seed of
-         the same content. -->
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
-      <StatsCard
-        :title="$t('torrents.detail.stats.seeders')"
-        :value="torrent.stats.seeders"
-        icon="ph:arrow-up-bold"
-        variant="success"
-        :sub="xSeedSeederSub"
-      />
-      <StatsCard
-        :title="$t('torrents.detail.stats.leechers')"
-        :value="torrent.stats.leechers"
-        icon="ph:arrow-down-bold"
-        variant="warning"
-        :sub="xSeedLeecherSub"
-      />
-      <StatsCard
-        :title="$t('torrents.detail.stats.completed')"
-        :value="torrent.stats.completed"
-        icon="ph:check-circle-bold"
-      />
-      <StatsCard
-        :title="$t('torrents.detail.stats.totalSize')"
-        :value="formatSize(torrent.size)"
-        icon="ph:database-bold"
-      />
-      <StatsCard
-        v-if="showVolumeCard"
-        :title="$t('torrents.detail.stats.exchanged')"
-        :value="totalUploadedDisplay"
-        icon="ph:cloud-arrow-up-bold"
-        :sub="xSeedVolumeSub"
-      />
-    </div>
-
-    <!-- Description -->
-    <div v-if="torrent.description" class="card mb-6">
-      <div class="card-header">
-        <div class="flex items-center gap-2">
-          <Icon name="ph:article-bold" class="text-text-muted" />
-          <h3
-            class="text-xs font-bold uppercase tracking-wider text-text-primary"
-          >
-            {{ $t('torrents.detail.description') }}
-          </h3>
-        </div>
-      </div>
-      <div class="card-body !p-6">
-        <div
-          class="prose prose-invert prose-xs max-w-none description-content"
-          v-html="renderedDescription"
-        ></div>
-      </div>
-    </div>
-
-    <!-- NFO (collapsed by default — releases can be huge) -->
-    <div v-if="torrent.nfo" class="card mb-6">
-      <div class="card-header flex items-stretch gap-0 !p-0">
+    <!-- § NFO — sits right under the rich-metadata card so the technical
+         summary is one click away without scrolling past the stats. The
+         section uses the compact header variant: smaller `§` mark, a
+         single-line bar, no editorial display weight. The NFO is a
+         release-engineering artefact, not a piece of writing — it
+         shouldn't compete visually with the description below. -->
+    <section v-if="torrent.nfo" class="section section--compact">
+      <header class="section-head section-head--compact section-head--toggle">
         <button
           type="button"
-          class="flex-1 flex items-center gap-2 text-left px-4 py-3 hover:bg-fg-default/5 transition-colors min-w-0"
+          class="section-head-button"
           :aria-expanded="nfoExpanded"
           aria-controls="nfo-body"
           @click="nfoExpanded = !nfoExpanded"
         >
+          <span class="section-head-mark" aria-hidden="true">§</span>
+          <h2 class="section-head-title">{{ $t('torrents.detail.sections.nfo') }}</h2>
+          <span class="section-head-meta">{{ nfoMeta }}</span>
           <Icon
             name="ph:caret-right-bold"
-            class="text-text-muted text-[10px] transition-transform shrink-0"
-            :class="{ 'rotate-90': nfoExpanded }"
+            class="section-head-caret"
+            :class="{ 'is-expanded': nfoExpanded }"
           />
-          <Icon name="ph:scroll-bold" class="text-text-muted shrink-0" />
-          <h3
-            class="text-xs font-bold uppercase tracking-wider text-text-primary shrink-0"
-          >
-            NFO
-          </h3>
-          <span
-            class="text-[10px] text-text-muted font-mono uppercase tracking-widest truncate"
-          >
-            · {{ nfoMeta }}
-          </span>
         </button>
         <button
           v-if="nfoExpanded"
           type="button"
-          class="px-4 py-3 border-l border-border text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text-strong hover:bg-fg-default/5 transition-colors flex items-center gap-1 shrink-0"
+          class="section-head-action"
           @click="copyNfo"
         >
           <Icon :name="nfoCopied ? 'ph:check-bold' : 'ph:copy-bold'" />
           {{ nfoCopied ? $t('common.copied') : $t('common.copy') }}
         </button>
-      </div>
+      </header>
       <div v-show="nfoExpanded" id="nfo-body" class="nfo-frame">
         <pre class="nfo-body">{{ torrent.nfo }}</pre>
       </div>
-    </div>
+    </section>
 
-    <!-- Peer List — admin-only.
-         The raw peer list (anonymised endpoints, port, byte counts,
-         last-seen timestamps) is operational data: useful to debug a
-         peer that's mis-reporting, not to a regular member. We hide
-         the whole card from non-admins to keep the public detail
-         page focused on the release itself. -->
-    <div v-if="user?.isAdmin" class="card">
-      <div class="card-header">
-        <div class="flex items-center gap-2">
-          <Icon name="ph:users-bold" class="text-text-muted" />
-          <h3
-            class="text-xs font-bold uppercase tracking-wider text-text-primary"
-          >
-            {{ $t('torrents.detail.swarm.title', { n: torrent.peers.length }) }}
-          </h3>
-          <span
-            class="ml-auto text-[9px] font-mono uppercase tracking-widest text-text-muted px-1.5 py-0.5 rounded border border-border bg-bg-tertiary"
-            :title="$t('torrents.detail.swarm.adminOnlyTooltip')"
-          >
-            {{ $t('torrents.detail.swarm.adminOnly') }}
-          </span>
-        </div>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="data-table">
+    <!-- ╔══════════════ § ACTIVITY ═══════════════╗
+         Instrument cluster — one continuous strip with five (or four)
+         metric cells, status-coloured numbers, inline x-seed sub
+         lines. Replaces the previous five-card grid which read as
+         five competing islands. -->
+    <section class="section">
+      <header class="section-head">
+        <span class="section-head-mark" aria-hidden="true">§</span>
+        <h2 class="section-head-title">{{ $t('torrents.detail.sections.activity') }}</h2>
+        <span class="section-head-line" aria-hidden="true" />
+      </header>
+      <ul class="stats-cluster">
+        <li class="stat stat--seeders" :class="{ 'is-zero': torrent.stats.seeders === 0 }">
+          <Icon name="ph:arrow-up-bold" class="stat-icon" />
+          <span class="stat-num tabular-nums">{{ torrent.stats.seeders }}</span>
+          <span class="stat-label">{{ $t('torrents.detail.stats.seeders') }}</span>
+          <span v-if="xSeedSeederSub" class="stat-sub">{{ xSeedSeederSub }}</span>
+        </li>
+        <li class="stat stat--leechers" :class="{ 'is-zero': torrent.stats.leechers === 0 }">
+          <Icon name="ph:arrow-down-bold" class="stat-icon" />
+          <span class="stat-num tabular-nums">{{ torrent.stats.leechers }}</span>
+          <span class="stat-label">{{ $t('torrents.detail.stats.leechers') }}</span>
+          <span v-if="xSeedLeecherSub" class="stat-sub">{{ xSeedLeecherSub }}</span>
+        </li>
+        <li class="stat stat--completed">
+          <Icon name="ph:check-circle-bold" class="stat-icon" />
+          <span class="stat-num tabular-nums">{{ torrent.stats.completed }}</span>
+          <span class="stat-label">{{ $t('torrents.detail.stats.completed') }}</span>
+        </li>
+        <li class="stat stat--size">
+          <Icon name="ph:database-bold" class="stat-icon" />
+          <span class="stat-num">{{ formatSize(torrent.size) }}</span>
+          <span class="stat-label">{{ $t('torrents.detail.stats.totalSize') }}</span>
+        </li>
+        <li v-if="showVolumeCard" class="stat stat--volume">
+          <Icon name="ph:cloud-arrow-up-bold" class="stat-icon" />
+          <span class="stat-num">{{ totalUploadedDisplay }}</span>
+          <span class="stat-label">{{ $t('torrents.detail.stats.exchanged') }}</span>
+          <span v-if="xSeedVolumeSub" class="stat-sub">{{ xSeedVolumeSub }}</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- § NOTE — uploader's description, when present. Treated as an
+         editorial pull-block: serif italic opening character, generous
+         line-height, no surrounding "card" frame. -->
+    <section v-if="torrent.description" class="section">
+      <header class="section-head">
+        <span class="section-head-mark" aria-hidden="true">§</span>
+        <h2 class="section-head-title">{{ $t('torrents.detail.sections.note') }}</h2>
+        <span class="section-head-line" aria-hidden="true" />
+      </header>
+      <article class="note-block">
+        <div
+          class="prose prose-invert prose-sm max-w-none description-content"
+          v-html="renderedDescription"
+        />
+      </article>
+    </section>
+
+    <!-- § CROSS-SEEDS — sibling rips of the same content. Was a table,
+         now a list of compact rows so it reads as "related releases"
+         rather than tabular data. -->
+    <section
+      v-if="crossSeeds && crossSeeds.items.length > 0"
+      class="section"
+    >
+      <header class="section-head">
+        <span class="section-head-mark" aria-hidden="true">§</span>
+        <h2 class="section-head-title">
+          {{ $t('torrents.detail.sections.crossSeeds') }}
+        </h2>
+        <span class="section-head-count">{{ crossSeeds.items.length }}</span>
+        <span class="section-head-line" aria-hidden="true" />
+      </header>
+      <ul class="cross-list">
+        <li
+          v-for="sib in crossSeeds.items"
+          :key="sib.id"
+          class="cross-item"
+        >
+          <NuxtLink :to="`/torrents/${sib.infoHash}`" class="cross-link">
+            <Icon name="ph:arrows-left-right-bold" class="cross-icon" />
+            <span class="cross-name">{{ sib.name }}</span>
+            <span class="cross-meta">
+              <span class="cross-meta-cat">{{ sib.category?.name ?? '—' }}</span>
+              <span class="cross-meta-sep">·</span>
+              <span class="cross-meta-size">{{ formatSize(sib.size) }}</span>
+              <span class="cross-meta-sep">·</span>
+              <span class="cross-meta-age">{{ formatAge(sib.createdAt) }}</span>
+            </span>
+            <Icon name="ph:arrow-right-bold" class="cross-arrow" />
+          </NuxtLink>
+        </li>
+      </ul>
+    </section>
+
+    <!-- § SWARM — admin-only peer list. Operational data, kept as a
+         table because that's the format that scans best. -->
+    <section v-if="user?.isAdmin" class="section">
+      <header class="section-head">
+        <span class="section-head-mark" aria-hidden="true">§</span>
+        <h2 class="section-head-title">
+          {{ $t('torrents.detail.sections.swarm') }}
+        </h2>
+        <span class="section-head-count">{{ torrent.peers.length }}</span>
+        <span
+          class="section-head-tag"
+          :title="$t('torrents.detail.swarm.adminOnlyTooltip')"
+        >
+          {{ $t('torrents.detail.swarm.adminOnly') }}
+        </span>
+        <span class="section-head-line" aria-hidden="true" />
+      </header>
+      <div class="swarm-frame">
+        <table class="swarm-table">
           <thead>
             <tr>
               <th>{{ $t('torrents.detail.swarm.endpoint') }}</th>
@@ -457,101 +491,40 @@
           </thead>
           <tbody>
             <tr v-if="torrent.peers.length === 0">
-              <td
-                colspan="5"
-                class="text-center text-text-muted py-12 font-mono text-xs uppercase tracking-widest"
-              >
+              <td colspan="5" class="swarm-empty">
                 {{ $t('torrents.detail.swarm.empty') }}
               </td>
             </tr>
             <tr v-for="peer in torrent.peers" :key="peer.id">
-              <td class="font-mono text-xs">
-                <span class="text-text-muted"
-                  >{{ peer.id.slice(0, 12) }}...</span
-                >
-                <span class="text-text-muted">:{{ peer.port }}</span>
+              <td>
+                <span class="swarm-endpoint">{{ peer.id.slice(0, 12) }}…</span>
+                <span class="swarm-port">:{{ peer.port }}</span>
               </td>
               <td>
                 <span
-                  class="stat-badge"
-                  :class="peer.isSeeder ? 'stat-seeders' : 'stat-leechers'"
+                  class="swarm-type"
+                  :class="peer.isSeeder ? 'swarm-type--seeder' : 'swarm-type--leecher'"
                 >
                   <Icon
-                    :name="
-                      peer.isSeeder ? 'ph:arrow-up-bold' : 'ph:arrow-down-bold'
-                    "
+                    :name="peer.isSeeder ? 'ph:arrow-up-bold' : 'ph:arrow-down-bold'"
                     class="text-[8px]"
                   />
                   {{ peer.isSeeder ? $t('torrents.detail.swarm.seeder') : $t('torrents.detail.swarm.leecher') }}
                 </span>
               </td>
-              <td class="text-text-secondary font-mono text-[10px]">
-                {{ formatSize(peer.uploaded) }}
-              </td>
-              <td class="text-text-secondary font-mono text-[10px]">
-                {{ formatSize(peer.downloaded) }}
-              </td>
-              <td class="text-text-muted font-mono text-[10px] text-right">
-                {{ formatAge(peer.lastSeen) }}
-              </td>
+              <td class="swarm-num">{{ formatSize(peer.uploaded) }}</td>
+              <td class="swarm-num">{{ formatSize(peer.downloaded) }}</td>
+              <td class="swarm-num text-right">{{ formatAge(peer.lastSeen) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
-
-    <!-- Cross-seeds — sibling torrents that ship the same files
-         under a different info_hash (different piece size, different
-         private flag, different announce list). Hidden when the
-         backend hasn't found any siblings; visible to everyone so a
-         member can swap to a different `.torrent` of the same
-         content if their current one is sparse. -->
-    <div v-if="crossSeeds && crossSeeds.items.length > 0" class="card">
-      <div class="card-header">
-        <div class="flex items-center gap-2">
-          <Icon name="ph:arrows-left-right-bold" class="text-text-muted" />
-          <h3
-            class="text-xs font-bold uppercase tracking-wider text-text-primary"
-          >
-            {{ $t('torrents.detail.crossSeeds.title', { n: crossSeeds.items.length }) }}
-          </h3>
-        </div>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>{{ $t('torrents.detail.crossSeeds.name') }}</th>
-              <th>{{ $t('torrents.detail.crossSeeds.category') }}</th>
-              <th class="text-right">{{ $t('torrents.detail.crossSeeds.size') }}</th>
-              <th class="text-right">{{ $t('torrents.detail.crossSeeds.uploaded') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="sibling in crossSeeds.items" :key="sibling.id">
-              <td>
-                <NuxtLink
-                  :to="`/torrents/${sibling.infoHash}`"
-                  class="text-text-primary hover:text-accent transition-colors"
-                >
-                  {{ sibling.name }}
-                </NuxtLink>
-              </td>
-              <td class="text-text-muted">
-                {{ sibling.category?.name ?? '—' }}
-              </td>
-              <td class="text-right">{{ formatSize(sibling.size) }}</td>
-              <td class="text-right text-text-muted">{{ formatAge(sibling.createdAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </section>
 
     <!-- Moderation panel (bottom placement) — only when the row is
          in a final state. For pending / changes_requested rows the
          panel renders at the top instead, before the metadata. -->
-    <div v-if="!moderationOnTop" class="mt-6">
+    <div v-if="!moderationOnTop" class="mt-8">
       <TorrentModerationPanel
         :hash="torrent.infoHash"
         :status="(torrent.moderationStatus as 'pending' | 'accepted' | 'changes_requested' | 'rejected')"
@@ -560,12 +533,10 @@
       />
     </div>
 
-    <!-- Delete confirmation now handled by the shared <ConfirmHost /> via
-         useConfirm() — see confirmDelete() below. -->
-
-    <!-- Report modal — opened from the action bar above. Renders only
-         when the operator clicks the Report button (it's teleported to
-         body so it doesn't matter where in the tree it sits). -->
+    <!-- Report modal — opened from the action bar above. Renders
+         only when the operator clicks the Report button (it's
+         teleported to body so it doesn't matter where in the tree
+         it sits). -->
     <ReportModal
       :is-open="reportOpen"
       target-type="torrent"
@@ -580,7 +551,7 @@
 <script setup lang="ts">
 import TorrentModerationBadge from '~/components/torrent/TorrentModerationBadge.vue';
 import TorrentModerationPanel from '~/components/torrent/TorrentModerationPanel.vue';
-import { withWrapHints, titleSizeClass } from '~/utils/displayTitle';
+import { withWrapHints } from '~/utils/displayTitle';
 
 interface Peer {
   id: string;
@@ -613,6 +584,10 @@ interface TorrentDetail {
   description: string | null;
   nfo: string | null;
   uploaderId: string | null;
+  // Eager-loaded by the detail endpoint, projected down to id +
+  // username so the header strip can render an @-link without
+  // leaking email / role bits onto the public payload.
+  uploader: { id: string; username: string } | null;
   categoryId: string | null;
   category: Category | null;
   tags?: Tag[];
@@ -639,9 +614,30 @@ interface TorrentDetail {
   gatedAdult?: boolean;
 }
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const route = useRoute();
 const hash = route.params.hash as string;
+
+// Long-form date for the hero eyebrow ("16 MAI 2026") — a magazine
+// dateline rather than the compact `formatDate` value, which is also
+// shown lower down in the meta ribbon. Uppercased so it sits flush
+// with the other mono labels in the eyebrow row.
+function formatLongDate(iso: string): string {
+  return new Date(iso)
+    .toLocaleDateString(locale.value, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+    .toUpperCase();
+}
+
+// Length-based size bucket for the hero title. Scene release names
+// span a wide range (from "Cats.Eye.S02.MULTI.1080p..." at ~40 chars
+// to "ReZERO.Starting.Life...HAPPYRAT" at 100+), and the same `clamp`
+// value can't serve both. The bucket attribute drives a different
+// `clamp` per length tier in the scoped CSS — short titles get the
+// magazine treatment, long ones shrink so the line never overflows.
 
 // Render the gate's faux file path with the middle of the hash blacked
 // out. Showing the full hash would let a determined operator copy it
@@ -659,6 +655,18 @@ const {
   error,
   refresh,
 } = await useFetch<TorrentDetail>(`/api/torrents/${hash}`);
+
+// Length bucket for the hero title's `data-len` attribute. Drives a
+// different `clamp` per tier in the scoped CSS so scene names (which
+// can run 100+ characters) shrink rather than overflow, while a tidy
+// "Cat's Eye" gets the full magazine treatment.
+const heroTitleLen = computed<'sm' | 'md' | 'lg' | 'xl'>(() => {
+  const len = (torrent.value && !torrent.value.gatedAdult ? torrent.value.name : '').length;
+  if (len >= 90) return 'xl';
+  if (len >= 60) return 'lg';
+  if (len >= 35) return 'md';
+  return 'sm';
+});
 
 // Cross-seed companions — sibling torrents with the same canonical
 // file list. Empty / 404 just means "no cross-seeds known" → the
@@ -1029,6 +1037,887 @@ async function confirmDelete() {
 </script>
 
 <style scoped>
+/* ╔══════════════════════════════════════════════════════════════╗
+   ║  RELEASE PRESS SHEET — torrent detail page                  ║
+   ║  Type pairing: Source Serif 4 (display) + JetBrains Mono    ║
+   ║                (every label / number / chip)                ║
+   ║  Color discipline: --accent dominant, --online / --warning  ║
+   ║                /--danger reserved for status semantics       ║
+   ╚══════════════════════════════════════════════════════════════╝ */
+
+.release-page {
+  position: relative;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 5rem;
+  isolation: isolate;
+}
+
+/* ── Atmospheric background ────────────────────────────────────── */
+.release-aura {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.aura-blob {
+  position: absolute;
+  display: block;
+  filter: blur(90px);
+  opacity: 0.32;
+  border-radius: 50%;
+}
+.aura-blob--a {
+  width: 480px;
+  height: 480px;
+  top: -160px;
+  left: -120px;
+  background: radial-gradient(
+    circle,
+    rgba(var(--accent), 0.65),
+    transparent 65%
+  );
+}
+.aura-blob--b {
+  width: 380px;
+  height: 380px;
+  top: 80px;
+  right: -140px;
+  background: radial-gradient(
+    circle,
+    rgba(var(--warning), 0.4),
+    transparent 65%
+  );
+}
+.aura-grain {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 3px 3px;
+  opacity: 0.6;
+  mix-blend-mode: overlay;
+}
+
+.release-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  transition: color 0.15s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.release-back:hover {
+  color: rgb(var(--fg-strong));
+  transform: translateX(-2px);
+}
+
+/* ╔═══════════════════════════════════════════════════════════════╗
+   ║  HERO                                                          ║
+   ╚═══════════════════════════════════════════════════════════════╝ */
+.hero {
+  position: relative;
+  margin-bottom: 2.5rem;
+  padding: 1.75rem 1.85rem 1.5rem;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--bg-elevated), 0.72),
+    rgba(var(--bg-surface), 0.55)
+  );
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.6rem;
+  overflow: hidden;
+  animation: heroRise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes heroRise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Vertical status tab on the left edge — accent for accepted rows
+   (the common case), warning amber for pending / changes_requested,
+   danger red for rejected. Gives the hero the feel of a tabbed
+   physical document. */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: rgb(var(--hero-tab, var(--accent)));
+  opacity: 0.9;
+}
+.hero--status-pending,
+.hero--status-changes_requested { --hero-tab: var(--warning); }
+.hero--status-rejected { --hero-tab: var(--danger); }
+.hero--status-accepted { --hero-tab: var(--accent); }
+
+.hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.1rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  animation: heroFadeIn 0.55s 0.05s ease-out both;
+}
+.hero-eyebrow-mark {
+  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-style: italic;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgb(var(--accent));
+  line-height: 0;
+  transform: translateY(2px);
+}
+.hero-eyebrow-label {
+  color: rgb(var(--accent));
+  font-weight: 800;
+}
+.hero-eyebrow-sep { opacity: 0.5; }
+.hero-eyebrow-date {
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--fg-default));
+  font-weight: 700;
+}
+.hero-eyebrow-spacer {
+  flex: 1 1 auto;
+  min-width: 1ch;
+}
+.hero-eyebrow-ref {
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: rgb(var(--fg-faint));
+  padding: 0.18rem 0.55rem;
+  border: 1px dashed rgb(var(--line-default));
+  border-radius: 0.2rem;
+  font-variant-numeric: tabular-nums;
+  user-select: all;
+}
+
+.hero-title {
+  margin: 0 0 1rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: rgb(var(--fg-strong));
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  animation: heroFadeIn 0.55s 0.15s ease-out both;
+  /* Length-based size buckets: scene names span ~15→110 chars and a
+     single `clamp` can't serve both ends. Each tier picks a bigger or
+     smaller clamp range so the line never spills the hero. */
+  font-size: clamp(2rem, 5.4vw, 3rem); /* default = sm bucket */
+}
+.hero-title[data-len='md'] { font-size: clamp(1.5rem, 3.6vw, 2.25rem); }
+.hero-title[data-len='lg'] { font-size: clamp(1.25rem, 2.6vw, 1.75rem); }
+.hero-title[data-len='xl'] { font-size: clamp(1.05rem, 2vw, 1.4rem); }
+
+@keyframes heroFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.4rem;
+  animation: heroFadeIn 0.55s 0.22s ease-out both;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.3rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: 1px solid rgb(var(--line-default));
+  color: rgb(var(--fg-default));
+  background: rgba(var(--bg-elevated), 0.45);
+  transition: background 0.15s, border-color 0.15s, transform 0.2s;
+}
+.chip:hover {
+  background: rgba(var(--bg-elevated), 0.75);
+  border-color: rgba(var(--fg-default), 0.25);
+}
+.chip-icon {
+  font-size: 11px;
+  opacity: 0.75;
+}
+.chip--cat {
+  color: rgb(var(--fg-default));
+}
+.chip--tag {
+  text-decoration: none;
+}
+.chip--tag:hover {
+  transform: translateY(-1px);
+}
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.6rem 0.85rem;
+  margin-bottom: 1.5rem;
+  animation: heroFadeIn 0.55s 0.3s ease-out both;
+}
+.cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 1.35rem 0.85rem 1.1rem;
+  background: linear-gradient(
+    135deg,
+    rgb(var(--accent)),
+    rgb(var(--accent-hover, var(--accent)))
+  );
+  color: rgb(var(--accent-fg, var(--bg-base)));
+  border-radius: 0.45rem;
+  text-decoration: none;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  box-shadow:
+    0 14px 40px -22px rgba(var(--accent), 0.85),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease,
+    filter 0.18s ease;
+}
+.cta-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow:
+    0 18px 46px -20px rgba(var(--accent), 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.cta-primary:active { transform: translateY(0); }
+.cta-primary-icon { font-size: 1.45rem; }
+.cta-primary-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.05;
+}
+.cta-primary-label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.cta-primary-sub {
+  margin-top: 0.2rem;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.78;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-cta-aux {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+.cta-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 0.95rem;
+  background: rgba(var(--bg-elevated), 0.55);
+  border: 1px solid rgba(var(--fg-default), 0.28);
+  border-radius: 0.35rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-strong));
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background-color 0.15s,
+    transform 0.2s;
+}
+.cta-ghost:hover {
+  border-color: rgba(var(--fg-default), 0.55);
+  background: rgba(var(--bg-elevated), 0.85);
+  transform: translateY(-1px);
+}
+/* Destructive variants (Delete + Report). Filled danger tint with a
+   solid red border so they read as "warning, irreversible" at a
+   glance — the previous low-alpha treatment made them blend into the
+   neutral Edit chip. */
+.cta-ghost--danger {
+  color: rgb(var(--danger));
+  border-color: rgba(var(--danger), 0.55);
+  background: rgba(var(--danger), 0.1);
+}
+.cta-ghost--danger:hover {
+  color: #fff;
+  border-color: rgb(var(--danger));
+  background: rgb(var(--danger));
+  transform: translateY(-1px);
+}
+
+/* ── Meta ribbon ──────────────────────────────────────────────── */
+.hero-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+  padding: 0.95rem 1.05rem;
+  background: rgba(var(--bg-base), 0.45);
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.4rem;
+  animation: heroFadeIn 0.55s 0.4s ease-out both;
+}
+@media (max-width: 720px) {
+  .hero-meta {
+    grid-template-columns: 1fr;
+  }
+}
+.hero-meta-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.hero-meta-cell dt {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  margin: 0;
+}
+.hero-meta-cell dd { margin: 0; }
+.hero-meta-hash {
+  display: block;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgb(var(--fg-default));
+  word-break: break-all;
+  user-select: all;
+}
+.hero-meta-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(var(--fg-default));
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.hero-meta-user:hover { color: rgb(var(--accent)); }
+.hero-meta-user-icon {
+  font-size: 11px;
+  color: rgb(var(--fg-muted));
+}
+.hero-meta-user--gone {
+  color: rgb(var(--fg-faint));
+  font-style: italic;
+  cursor: help;
+}
+.hero-meta-time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11.5px;
+  color: rgb(var(--fg-default));
+  font-variant-numeric: tabular-nums;
+}
+.hero-meta-age {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  padding: 0.12rem 0.42rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.2rem;
+}
+
+/* ── Embedded metadata card spacing ───────────────────────────── */
+.release-metadata { margin-bottom: 2rem; }
+
+/* ╔═══════════════════════════════════════════════════════════════╗
+   ║  SECTIONS                                                       ║
+   ╚═══════════════════════════════════════════════════════════════╝ */
+.section {
+  margin-bottom: 2.25rem;
+  animation: sectionRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.section:nth-of-type(2) { animation-delay: 0.05s; }
+.section:nth-of-type(3) { animation-delay: 0.1s; }
+.section:nth-of-type(4) { animation-delay: 0.15s; }
+.section:nth-of-type(5) { animation-delay: 0.2s; }
+@keyframes sectionRise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+  padding-bottom: 0.4rem;
+}
+.section-head-mark {
+  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.85rem;
+  line-height: 1;
+  color: rgb(var(--accent));
+  transform: translateY(-2px);
+  flex-shrink: 0;
+}
+.section-head-title {
+  margin: 0;
+  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.15rem, 2.2vw, 1.6rem);
+  letter-spacing: -0.01em;
+  color: rgb(var(--fg-strong));
+}
+.section-head-count {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: rgb(var(--fg-muted));
+  padding: 0.18rem 0.5rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.section-head-tag {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  padding: 0.18rem 0.45rem;
+  border: 1px solid rgb(var(--line-default));
+  background: rgba(var(--bg-elevated), 0.55);
+  border-radius: 0.25rem;
+  cursor: help;
+  flex-shrink: 0;
+}
+.section-head-meta {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  font-variant-numeric: tabular-nums;
+}
+.section-head-line {
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--line-default)),
+    transparent 75%
+  );
+  min-width: 1rem;
+}
+.section-head--toggle {
+  padding-bottom: 0;
+}
+/* Compact variant — used by the NFO row. Smaller mark, smaller
+   title, tighter margin: the NFO is a release-engineering artefact
+   that ships with most uploads, and rendering it at the full
+   editorial chapter scale gives it visual parity with the
+   description (which is more important to read). */
+.section--compact { margin-bottom: 1.5rem; }
+.section-head--compact { margin-bottom: 0.4rem; gap: 0.55rem; }
+.section-head--compact .section-head-mark {
+  font-size: 1.2rem;
+  transform: translateY(-1px);
+}
+.section-head--compact .section-head-title {
+  font-size: 0.95rem;
+  font-style: italic;
+  font-weight: 500;
+}
+.section-head--compact .section-head-meta {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+}
+.section-head--compact .section-head-caret { font-size: 9px; }
+.section-head--compact .section-head-button {
+  padding: 0.15rem 0.05rem;
+}
+.section-head-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+  background: transparent;
+  border: 0;
+  padding: 0.2rem 0.1rem;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: color 0.15s ease;
+}
+.section-head-button:hover .section-head-title {
+  color: rgb(var(--accent));
+}
+.section-head-caret {
+  margin-left: auto;
+  font-size: 10px;
+  color: rgb(var(--fg-muted));
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.section-head-caret.is-expanded { transform: rotate(90deg); }
+.section-head-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  background: transparent;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.25rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.section-head-action:hover {
+  color: rgb(var(--fg-strong));
+  border-color: rgba(var(--fg-default), 0.35);
+  background: rgba(var(--bg-elevated), 0.4);
+}
+
+/* ╔═══════════════════════════════════════════════════════════════╗
+   ║  STATS CLUSTER — single continuous instrument strip            ║
+   ╚═══════════════════════════════════════════════════════════════╝ */
+.stats-cluster {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.55rem;
+  background: rgba(var(--bg-elevated), 0.45);
+  overflow: hidden;
+}
+.stat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 1.05rem 1.2rem 1.15rem;
+  border-right: 1px solid rgb(var(--line-default));
+  transition: background 0.18s ease;
+}
+.stat:last-child { border-right: 0; }
+.stat:hover { background: rgba(var(--bg-elevated), 0.75); }
+@media (max-width: 720px) {
+  .stat {
+    border-right: 0;
+    border-bottom: 1px solid rgb(var(--line-default));
+  }
+  .stat:last-child { border-bottom: 0; }
+}
+.stat-icon {
+  font-size: 0.95rem;
+  color: rgb(var(--rail, var(--fg-muted)));
+  opacity: 0.85;
+}
+.stat-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: clamp(1.5rem, 2.6vw, 1.85rem);
+  font-weight: 800;
+  line-height: 1;
+  color: rgb(var(--fg-strong));
+  letter-spacing: -0.025em;
+  margin-top: 0.15rem;
+  word-break: break-word;
+}
+.stat-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.stat-sub {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--rail, var(--accent)));
+  padding: 0.12rem 0.4rem;
+  border: 1px solid rgba(var(--rail, var(--accent)), 0.4);
+  background: rgba(var(--rail, var(--accent)), 0.08);
+  border-radius: 0.2rem;
+  margin-top: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.stat::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 2px;
+  background: rgb(var(--rail, var(--fg-muted)));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.stat:hover::after { opacity: 0.6; }
+
+.stat--seeders { --rail: var(--online); }
+.stat--leechers { --rail: var(--warning); }
+.stat--completed { --rail: var(--accent); }
+.stat--size { --rail: var(--fg-default); }
+.stat--volume { --rail: var(--accent); }
+.stat--seeders .stat-num { color: rgb(var(--online)); }
+.stat--leechers .stat-num { color: rgb(var(--warning)); }
+.stat.is-zero .stat-num {
+  color: rgb(var(--fg-faint));
+  font-weight: 700;
+}
+
+/* ╔═══════════════════════════════════════════════════════════════╗
+   ║  NOTE — uploader description editorial block                   ║
+   ╚═══════════════════════════════════════════════════════════════╝ */
+.note-block {
+  position: relative;
+  /* Top padding clears the decorative quotation watermark so the first
+     line of description text never slides under the glyph. */
+  padding: 3rem 1.6rem 1.3rem 2.4rem;
+  background: rgba(var(--bg-elevated), 0.35);
+  border-left: 2px solid rgb(var(--accent));
+  border-radius: 0 0.35rem 0.35rem 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgb(var(--fg-default));
+}
+.note-block::before {
+  content: '“';
+  position: absolute;
+  top: 0.2rem;
+  left: 0.85rem;
+  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-size: 2.6rem;
+  line-height: 1;
+  font-weight: 600;
+  color: rgba(var(--accent), 0.32);
+  pointer-events: none;
+}
+
+/* ╔═══════════════════════════════════════════════════════════════╗
+   ║  CROSS-SEEDS LIST                                              ║
+   ╚═══════════════════════════════════════════════════════════════╝ */
+.cross-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.cross-item { display: block; }
+.cross-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: rgba(var(--bg-elevated), 0.4);
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.4rem;
+  text-decoration: none;
+  color: rgb(var(--fg-default));
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cross-link:hover {
+  background: rgba(var(--bg-elevated), 0.7);
+  border-color: rgba(var(--accent), 0.45);
+  transform: translateX(2px);
+}
+.cross-icon {
+  flex-shrink: 0;
+  color: rgb(var(--fg-muted));
+  font-size: 1rem;
+}
+.cross-name {
+  flex: 1 1 auto;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(var(--fg-strong));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.cross-link:hover .cross-name { color: rgb(var(--accent)); }
+.cross-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  font-variant-numeric: tabular-nums;
+}
+.cross-meta-sep { opacity: 0.45; }
+.cross-meta-cat { color: rgb(var(--fg-default)); font-weight: 700; }
+.cross-arrow {
+  flex-shrink: 0;
+  color: rgb(var(--fg-faint));
+  font-size: 0.85rem;
+  transition: transform 0.18s, color 0.18s;
+}
+.cross-link:hover .cross-arrow {
+  color: rgb(var(--accent));
+  transform: translateX(2px);
+}
+@media (max-width: 720px) {
+  .cross-link {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .cross-name { white-space: normal; }
+  .cross-arrow { display: none; }
+}
+
+/* ╔═══════════════════════════════════════════════════════════════╗
+   ║  SWARM TABLE                                                    ║
+   ╚═══════════════════════════════════════════════════════════════╝ */
+.swarm-frame {
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.45rem;
+  overflow-x: auto;
+  background: rgba(var(--bg-elevated), 0.35);
+}
+.swarm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+}
+.swarm-table thead th {
+  text-align: left;
+  padding: 0.65rem 1rem;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  background: rgba(var(--bg-base), 0.4);
+  border-bottom: 1px solid rgb(var(--line-default));
+}
+.swarm-table tbody td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(var(--line-default), 0.55);
+  color: rgb(var(--fg-default));
+  vertical-align: middle;
+}
+.swarm-table tbody tr:last-child td { border-bottom: 0; }
+.swarm-table tbody tr:hover td { background: rgba(var(--bg-elevated), 0.45); }
+.swarm-endpoint { color: rgb(var(--fg-muted)); }
+.swarm-port { color: rgb(var(--fg-faint)); }
+.swarm-num {
+  color: rgb(var(--fg-default));
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+}
+.swarm-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid;
+  border-radius: 0.2rem;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.swarm-type--seeder {
+  color: rgb(var(--online));
+  border-color: rgba(var(--online), 0.4);
+  background: rgba(var(--online), 0.08);
+}
+.swarm-type--leecher {
+  color: rgb(var(--warning));
+  border-color: rgba(var(--warning), 0.4);
+  background: rgba(var(--warning), 0.08);
+}
+.swarm-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+
+/* ── Tabular numerals utility (matches reports.vue) ───────────── */
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
 /* Media-id badges. Each one carries a subtle tint of the database's
    brand colour so the user can scan the trio at a glance: yellow for
    IMDb, teal for TMDb, blue for TVDB. The tint is applied with low
@@ -1102,11 +1991,27 @@ async function confirmDelete() {
 }
 
 .nfo-frame {
-  background: rgb(var(--bg-inset));
-  border-top: 1px solid rgb(var(--line-default));
-  padding: 1rem;
+  position: relative;
+  background: rgb(var(--bg-inset, var(--bg-base)));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.45rem;
+  padding: 1.05rem 1.1rem;
   overflow: auto;
   max-height: 70vh;
+  /* Faint scanline pattern — vintage terminal flavour without going
+     overboard. Almost imperceptible on dark themes, vanishes on light. */
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 2px,
+    rgba(255, 255, 255, 0.014) 2px,
+    rgba(255, 255, 255, 0.014) 3px
+  );
+  animation: nfoOpen 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes nfoOpen {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .nfo-body {

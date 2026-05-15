@@ -625,6 +625,18 @@
       "uploadedBy": "Uploaded by",
       "uploaderGone": "Account deleted",
       "uploaderGoneTooltip": "The uploader no longer has an account on the tracker.",
+      "sections": {
+        "activity": "Swarm activity",
+        "note": "Uploader's note",
+        "nfo": "NFO",
+        "crossSeeds": "Cross-seeds",
+        "swarm": "Peer list"
+      },
+      "hero": {
+        "case": "Release",
+        "ref": "REF",
+        "downloadHint": "Grab the .torrent"
+      },
       "description": "Description",
       "notFound": "Torrent not found",
       "nfoMeta": {
