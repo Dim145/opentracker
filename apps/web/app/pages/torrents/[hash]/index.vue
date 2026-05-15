@@ -256,7 +256,7 @@
           <button
             v-if="canReport"
             type="button"
-            class="cta-ghost cta-ghost--danger"
+            class="cta-ghost cta-ghost--warn"
             @click="reportOpen = true"
           >
             <Icon name="ph:flag-bold" />
@@ -275,7 +275,7 @@
             <code class="hero-meta-hash">{{ torrent.infoHash }}</code>
           </dd>
         </div>
-        <div class="hero-meta-cell">
+        <div class="hero-meta-cell hero-meta-cell--uploader">
           <dt>{{ $t('torrents.detail.uploadedBy') }}</dt>
           <dd>
             <NuxtLink
@@ -296,7 +296,7 @@
             </span>
           </dd>
         </div>
-        <div class="hero-meta-cell">
+        <div class="hero-meta-cell hero-meta-cell--time">
           <dt>{{ $t('torrents.detail.createdAt') }}</dt>
           <dd class="hero-meta-time">
             <span>{{ formatDate(torrent.createdAt) }}</span>
@@ -331,7 +331,7 @@
          single-line bar, no editorial display weight. The NFO is a
          release-engineering artefact, not a piece of writing — it
          shouldn't compete visually with the description below. -->
-    <section v-if="torrent.nfo" class="section section--compact">
+    <section v-if="torrent.nfo" class="section section--compact section--nfo">
       <header class="section-head section-head--compact section-head--toggle">
         <button
           type="button"
@@ -369,40 +369,50 @@
          metric cells, status-coloured numbers, inline x-seed sub
          lines. Replaces the previous five-card grid which read as
          five competing islands. -->
-    <section class="section">
+    <section class="section section--activity">
       <header class="section-head">
         <span class="section-head-mark" aria-hidden="true">§</span>
         <h2 class="section-head-title">{{ $t('torrents.detail.sections.activity') }}</h2>
         <span class="section-head-line" aria-hidden="true" />
       </header>
       <ul class="stats-cluster">
+        <li class="stat stat--size">
+          <Icon name="ph:database-bold" class="stat-icon" />
+          <div class="stat-body">
+            <span class="stat-num">{{ formatSize(torrent.size) }}</span>
+            <span class="stat-label">{{ $t('torrents.detail.stats.totalSize') }}</span>
+          </div>
+        </li>
         <li class="stat stat--seeders" :class="{ 'is-zero': torrent.stats.seeders === 0 }">
           <Icon name="ph:arrow-up-bold" class="stat-icon" />
-          <span class="stat-num tabular-nums">{{ torrent.stats.seeders }}</span>
-          <span class="stat-label">{{ $t('torrents.detail.stats.seeders') }}</span>
-          <span v-if="xSeedSeederSub" class="stat-sub">{{ xSeedSeederSub }}</span>
+          <div class="stat-body">
+            <span class="stat-num tabular-nums">{{ torrent.stats.seeders }}</span>
+            <span class="stat-label">{{ $t('torrents.detail.stats.seeders') }}</span>
+            <span v-if="xSeedSeederSub" class="stat-sub">{{ xSeedSeederSub }}</span>
+          </div>
         </li>
         <li class="stat stat--leechers" :class="{ 'is-zero': torrent.stats.leechers === 0 }">
           <Icon name="ph:arrow-down-bold" class="stat-icon" />
-          <span class="stat-num tabular-nums">{{ torrent.stats.leechers }}</span>
-          <span class="stat-label">{{ $t('torrents.detail.stats.leechers') }}</span>
-          <span v-if="xSeedLeecherSub" class="stat-sub">{{ xSeedLeecherSub }}</span>
+          <div class="stat-body">
+            <span class="stat-num tabular-nums">{{ torrent.stats.leechers }}</span>
+            <span class="stat-label">{{ $t('torrents.detail.stats.leechers') }}</span>
+            <span v-if="xSeedLeecherSub" class="stat-sub">{{ xSeedLeecherSub }}</span>
+          </div>
         </li>
         <li class="stat stat--completed">
           <Icon name="ph:check-circle-bold" class="stat-icon" />
-          <span class="stat-num tabular-nums">{{ torrent.stats.completed }}</span>
-          <span class="stat-label">{{ $t('torrents.detail.stats.completed') }}</span>
-        </li>
-        <li class="stat stat--size">
-          <Icon name="ph:database-bold" class="stat-icon" />
-          <span class="stat-num">{{ formatSize(torrent.size) }}</span>
-          <span class="stat-label">{{ $t('torrents.detail.stats.totalSize') }}</span>
+          <div class="stat-body">
+            <span class="stat-num tabular-nums">{{ torrent.stats.completed }}</span>
+            <span class="stat-label">{{ $t('torrents.detail.stats.completed') }}</span>
+          </div>
         </li>
         <li v-if="showVolumeCard" class="stat stat--volume">
           <Icon name="ph:cloud-arrow-up-bold" class="stat-icon" />
-          <span class="stat-num">{{ totalUploadedDisplay }}</span>
-          <span class="stat-label">{{ $t('torrents.detail.stats.exchanged') }}</span>
-          <span v-if="xSeedVolumeSub" class="stat-sub">{{ xSeedVolumeSub }}</span>
+          <div class="stat-body">
+            <span class="stat-num">{{ totalUploadedDisplay }}</span>
+            <span class="stat-label">{{ $t('torrents.detail.stats.exchanged') }}</span>
+            <span v-if="xSeedVolumeSub" class="stat-sub">{{ xSeedVolumeSub }}</span>
+          </div>
         </li>
       </ul>
     </section>
@@ -410,7 +420,7 @@
     <!-- § NOTE — uploader's description, when present. Treated as an
          editorial pull-block: serif italic opening character, generous
          line-height, no surrounding "card" frame. -->
-    <section v-if="torrent.description" class="section">
+    <section v-if="torrent.description" class="section section--note">
       <header class="section-head">
         <span class="section-head-mark" aria-hidden="true">§</span>
         <h2 class="section-head-title">{{ $t('torrents.detail.sections.note') }}</h2>
@@ -429,7 +439,7 @@
          rather than tabular data. -->
     <section
       v-if="crossSeeds && crossSeeds.items.length > 0"
-      class="section"
+      class="section section--cross"
     >
       <header class="section-head">
         <span class="section-head-mark" aria-hidden="true">§</span>
@@ -463,7 +473,7 @@
 
     <!-- § SWARM — admin-only peer list. Operational data, kept as a
          table because that's the format that scans best. -->
-    <section v-if="user?.isAdmin" class="section">
+    <section v-if="user?.isAdmin" class="section section--swarm">
       <header class="section-head">
         <span class="section-head-mark" aria-hidden="true">§</span>
         <h2 class="section-head-title">
@@ -1051,42 +1061,70 @@ async function confirmDelete() {
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
   isolation: isolate;
+  /* Local-scope accent for sections that need a fourth hue beyond
+     online/warning/danger — the cross-seed family carries a violet
+     because it sits between "info" and "ornament" semantically. */
+  --release-purple: 167 139 250;
+  --release-cyan: var(--info);
 }
 
-/* ── Atmospheric background ────────────────────────────────────── */
+/* ── Atmospheric background ──────────────────────────────────────
+   Three layers: a deep indigo ambient at the top of the page that
+   tints the otherwise neutral --bg-base toward "night sky"; two
+   coloured blobs picking up the accent + the violet metadata hue;
+   and a faint dot-grid pattern for texture. The combination keeps
+   the page dark (it stays a dark theme) but warms it enough to feel
+   "rich" rather than just "operator console". */
 .release-aura {
   position: absolute;
-  inset: 0;
+  inset: -2rem -2rem auto -2rem;
+  height: 70vh;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
 }
+.release-aura::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 30% 0%,
+      rgba(56, 89, 178, 0.28),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 80% 0%,
+      rgb(var(--release-purple) / 0.18),
+      transparent 70%
+    );
+}
 .aura-blob {
   position: absolute;
   display: block;
-  filter: blur(90px);
-  opacity: 0.32;
+  filter: blur(80px);
+  opacity: 0.38;
   border-radius: 50%;
 }
 .aura-blob--a {
-  width: 480px;
-  height: 480px;
-  top: -160px;
+  width: 520px;
+  height: 520px;
+  top: -180px;
   left: -120px;
   background: radial-gradient(
     circle,
-    rgba(var(--accent), 0.65),
+    rgb(var(--accent) / 0.55),
     transparent 65%
   );
 }
 .aura-blob--b {
-  width: 380px;
-  height: 380px;
-  top: 80px;
-  right: -140px;
+  width: 420px;
+  height: 420px;
+  top: 60px;
+  right: -160px;
   background: radial-gradient(
     circle,
-    rgba(var(--warning), 0.4),
+    rgb(var(--release-purple) / 0.55),
     transparent 65%
   );
 }
@@ -1094,9 +1132,9 @@ async function confirmDelete() {
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
   background-size: 3px 3px;
-  opacity: 0.6;
+  opacity: 0.55;
   mix-blend-mode: overlay;
 }
 
@@ -1125,14 +1163,32 @@ async function confirmDelete() {
   position: relative;
   margin-bottom: 2.5rem;
   padding: 1.75rem 1.85rem 1.5rem;
-  background: linear-gradient(
-    180deg,
-    rgba(var(--bg-elevated), 0.72),
-    rgba(var(--bg-surface), 0.55)
-  );
-  border: 1px solid rgb(var(--line-default));
+  /* Layered background:
+     1. solid elevated surface as the base — non-translucent so the
+        hero unmistakably reads as its own card against the page (the
+        previous translucent fill made card and page blend into the
+        same dark plane);
+     2. tinted indigo + violet radial washes on top, picking up the
+        page's atmospheric blobs without losing the card identity. */
+  background:
+    radial-gradient(
+      ellipse 90% 100% at 0% 0%,
+      rgba(56, 89, 178, 0.22),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 70% 100% at 100% 100%,
+      rgb(var(--release-purple) / 0.18),
+      transparent 60%
+    ),
+    rgb(var(--bg-surface));
+  border: 1px solid rgb(var(--line-strong));
   border-radius: 0.6rem;
   overflow: hidden;
+  box-shadow:
+    0 22px 60px -22px rgba(0, 0, 0, 0.7),
+    0 4px 14px -8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   animation: heroRise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes heroRise {
@@ -1171,17 +1227,18 @@ async function confirmDelete() {
   animation: heroFadeIn 0.55s 0.05s ease-out both;
 }
 .hero-eyebrow-mark {
-  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-style: italic;
   font-size: 18px;
   font-weight: 600;
   letter-spacing: 0;
-  color: rgb(var(--accent));
+  color: rgb(var(--release-cyan));
   line-height: 0;
   transform: translateY(2px);
+  filter: drop-shadow(0 0 8px rgb(var(--release-cyan) / 0.4));
 }
 .hero-eyebrow-label {
-  color: rgb(var(--accent));
+  color: rgb(var(--release-cyan));
   font-weight: 800;
 }
 .hero-eyebrow-sep { opacity: 0.5; }
@@ -1197,9 +1254,10 @@ async function confirmDelete() {
 .hero-eyebrow-ref {
   font-size: 9.5px;
   letter-spacing: 0.18em;
-  color: rgb(var(--fg-faint));
+  color: rgb(var(--online));
   padding: 0.18rem 0.55rem;
-  border: 1px dashed rgb(var(--line-default));
+  border: 1px dashed rgb(var(--online) / 0.45);
+  background: rgb(var(--online) / 0.07);
   border-radius: 0.2rem;
   font-variant-numeric: tabular-nums;
   user-select: all;
@@ -1207,22 +1265,23 @@ async function confirmDelete() {
 
 .hero-title {
   margin: 0 0 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-weight: 800;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   color: rgb(var(--fg-strong));
-  line-height: 1.08;
+  line-height: 1.12;
   overflow-wrap: anywhere;
   text-wrap: pretty;
   animation: heroFadeIn 0.55s 0.15s ease-out both;
-  /* Length-based size buckets: scene names span ~15→110 chars and a
-     single `clamp` can't serve both ends. Each tier picks a bigger or
-     smaller clamp range so the line never spills the hero. */
-  font-size: clamp(2rem, 5.4vw, 3rem); /* default = sm bucket */
+  /* Length-based size buckets — scaled down from the previous
+     "magazine hero" range so the title sits proportionate to the
+     hero, not overpowering it. Short titles still get presence; long
+     scene names shrink rather than wrap into walls. */
+  font-size: clamp(1.4rem, 3.6vw, 2.25rem); /* default = sm bucket */
 }
-.hero-title[data-len='md'] { font-size: clamp(1.5rem, 3.6vw, 2.25rem); }
-.hero-title[data-len='lg'] { font-size: clamp(1.25rem, 2.6vw, 1.75rem); }
-.hero-title[data-len='xl'] { font-size: clamp(1.05rem, 2vw, 1.4rem); }
+.hero-title[data-len='md'] { font-size: clamp(1.25rem, 2.8vw, 1.75rem); }
+.hero-title[data-len='lg'] { font-size: clamp(1.1rem, 2.2vw, 1.45rem); }
+.hero-title[data-len='xl'] { font-size: clamp(0.95rem, 1.8vw, 1.2rem); }
 
 @keyframes heroFadeIn {
   from { opacity: 0; transform: translateY(6px); }
@@ -1250,19 +1309,32 @@ async function confirmDelete() {
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
   color: rgb(var(--fg-default));
-  background: rgba(var(--bg-elevated), 0.45);
+  background: rgb(var(--bg-elevated) / 0.45);
   transition: background 0.15s, border-color 0.15s, transform 0.2s;
 }
 .chip:hover {
-  background: rgba(var(--bg-elevated), 0.75);
-  border-color: rgba(var(--fg-default), 0.25);
+  background: rgb(var(--bg-elevated) / 0.75);
+  border-color: rgb(var(--fg-default) / 0.25);
 }
 .chip-icon {
   font-size: 11px;
   opacity: 0.75;
 }
+/* Category chip carries the page's info-cyan so it reads as "this is
+   what the release is" without competing with the tag colours below. */
 .chip--cat {
-  color: rgb(var(--fg-default));
+  color: rgb(var(--release-cyan));
+  background: rgb(var(--release-cyan) / 0.1);
+  border-color: rgb(var(--release-cyan) / 0.42);
+  letter-spacing: 0.12em;
+}
+.chip--cat .chip-icon {
+  color: rgb(var(--release-cyan));
+  opacity: 1;
+}
+.chip--cat:hover {
+  background: rgb(var(--release-cyan) / 0.18);
+  border-color: rgb(var(--release-cyan) / 0.65);
 }
 .chip--tag {
   text-decoration: none;
@@ -1291,20 +1363,25 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.9rem;
   padding: 0.85rem 1.35rem 0.85rem 1.1rem;
+  /* Green download — the colour reads as "go, available" the way a
+     traffic-light green does, which matches the C411 / classic
+     tracker convention. Diverges from the app's neutral accent on
+     purpose: download is the one action everyone reaches for, so it
+     gets the strongest visual signal on the page. */
   background: linear-gradient(
     135deg,
-    rgb(var(--accent)),
-    rgb(var(--accent-hover, var(--accent)))
+    rgb(var(--online)),
+    rgb(var(--online) / 0.78)
   );
-  color: rgb(var(--accent-fg, var(--bg-base)));
+  color: #0a1610;
   border-radius: 0.45rem;
   text-decoration: none;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-weight: 800;
   letter-spacing: 0.06em;
   box-shadow:
-    0 14px 40px -22px rgba(var(--accent), 0.85),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    0 16px 42px -22px rgb(var(--online) / 0.85),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   transition:
     transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.22s ease,
@@ -1312,10 +1389,10 @@ async function confirmDelete() {
 }
 .cta-primary:hover {
   transform: translateY(-2px);
-  filter: brightness(1.05);
+  filter: brightness(1.08);
   box-shadow:
-    0 18px 46px -20px rgba(var(--accent), 0.95),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    0 20px 50px -20px rgb(var(--online) / 1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 .cta-primary:active { transform: translateY(0); }
 .cta-primary-icon { font-size: 1.45rem; }
@@ -1352,15 +1429,15 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.45rem;
   padding: 0.6rem 0.95rem;
-  background: rgba(var(--bg-elevated), 0.55);
-  border: 1px solid rgba(var(--fg-default), 0.28);
+  background: rgb(var(--release-cyan) / 0.1);
+  border: 1px solid rgb(var(--release-cyan) / 0.45);
   border-radius: 0.35rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgb(var(--fg-strong));
+  color: rgb(var(--release-cyan));
   text-decoration: none;
   cursor: pointer;
   transition:
@@ -1370,18 +1447,19 @@ async function confirmDelete() {
     transform 0.2s;
 }
 .cta-ghost:hover {
-  border-color: rgba(var(--fg-default), 0.55);
-  background: rgba(var(--bg-elevated), 0.85);
+  color: #fff;
+  border-color: rgb(var(--release-cyan));
+  background: rgb(var(--release-cyan));
   transform: translateY(-1px);
 }
-/* Destructive variants (Delete + Report). Filled danger tint with a
-   solid red border so they read as "warning, irreversible" at a
-   glance — the previous low-alpha treatment made them blend into the
-   neutral Edit chip. */
+/* Destructive variants. Delete keeps the full red (it's irreversible);
+   Report drops to warning amber because filing a flag is cautionary,
+   not destructive — and the colour split breaks up the action row so
+   the eye can tell the two apart at a glance. */
 .cta-ghost--danger {
   color: rgb(var(--danger));
-  border-color: rgba(var(--danger), 0.55);
-  background: rgba(var(--danger), 0.1);
+  border-color: rgb(var(--danger) / 0.55);
+  background: rgb(var(--danger) / 0.1);
 }
 .cta-ghost--danger:hover {
   color: #fff;
@@ -1389,87 +1467,121 @@ async function confirmDelete() {
   background: rgb(var(--danger));
   transform: translateY(-1px);
 }
-
-/* ── Meta ribbon ──────────────────────────────────────────────── */
-.hero-meta {
-  display: grid;
-  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0.5rem 1.5rem;
-  margin: 0;
-  padding: 0.95rem 1.05rem;
-  background: rgba(var(--bg-base), 0.45);
-  border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
-  animation: heroFadeIn 0.55s 0.4s ease-out both;
+.cta-ghost--warn {
+  color: rgb(var(--warning));
+  border-color: rgb(var(--warning) / 0.55);
+  background: rgb(var(--warning) / 0.1);
 }
-@media (max-width: 720px) {
-  .hero-meta {
-    grid-template-columns: 1fr;
-  }
+.cta-ghost--warn:hover {
+  color: rgb(var(--bg-base));
+  border-color: rgb(var(--warning));
+  background: rgb(var(--warning));
+  transform: translateY(-1px);
+}
+
+/* ── Meta ribbon ────────────────────────────────────────────────
+   Three coloured chips (hash / uploader / created) on a single
+   horizontal row. Each chip carries its own semantic hue: green for
+   the infohash (file-integrity territory), info-blue for the
+   uploader, amber for the timestamp. */
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  animation: heroFadeIn 0.55s 0.4s ease-out both;
 }
 .hero-meta-cell {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.85rem;
+  background:
+    linear-gradient(
+      rgb(var(--rail, var(--fg-muted)) / 0.14),
+      rgb(var(--rail, var(--fg-muted)) / 0.14)
+    ),
+    rgb(var(--bg-elevated));
+  border: 1px solid rgb(var(--rail, var(--fg-muted)) / 0.5);
+  border-radius: 0.4rem;
   min-width: 0;
 }
+.hero-meta-cell--hash {
+  --rail: var(--online);
+  flex: 1 1 320px;
+  min-width: 240px;
+}
+.hero-meta-cell--uploader { --rail: var(--release-cyan); }
+.hero-meta-cell--time { --rail: var(--warning); }
 .hero-meta-cell dt {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgb(var(--fg-muted));
+  color: rgb(var(--rail, var(--fg-muted)));
   margin: 0;
+  flex-shrink: 0;
+  opacity: 0.85;
 }
-.hero-meta-cell dd { margin: 0; }
+.hero-meta-cell dd { margin: 0; min-width: 0; }
 .hero-meta-hash {
   display: block;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   letter-spacing: 0.04em;
-  color: rgb(var(--fg-default));
+  color: rgb(var(--online));
   word-break: break-all;
   user-select: all;
+  filter: drop-shadow(0 0 6px rgb(var(--online) / 0.25));
 }
 .hero-meta-user {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 12px;
-  font-weight: 600;
-  color: rgb(var(--fg-default));
+  font-weight: 700;
+  color: rgb(var(--release-cyan));
   text-decoration: none;
-  transition: color 0.15s ease;
+  transition: filter 0.15s ease, transform 0.18s ease;
 }
-.hero-meta-user:hover { color: rgb(var(--accent)); }
+.hero-meta-user:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
 .hero-meta-user-icon {
   font-size: 11px;
-  color: rgb(var(--fg-muted));
+  color: rgb(var(--release-cyan));
+  opacity: 0.85;
 }
 .hero-meta-user--gone {
   color: rgb(var(--fg-faint));
   font-style: italic;
   cursor: help;
 }
+.hero-meta-user--gone .hero-meta-user-icon { color: rgb(var(--fg-faint)); }
 .hero-meta-time {
   display: inline-flex;
   align-items: baseline;
   gap: 0.45rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11.5px;
-  color: rgb(var(--fg-default));
+  color: rgb(var(--warning));
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 .hero-meta-age {
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgb(var(--fg-muted));
+  color: rgb(var(--warning) / 0.85);
   padding: 0.12rem 0.42rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--warning) / 0.35);
+  background: rgb(var(--warning) / 0.08);
   border-radius: 0.2rem;
 }
 
@@ -1500,18 +1612,39 @@ async function confirmDelete() {
   padding-bottom: 0.4rem;
 }
 .section-head-mark {
-  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-style: italic;
   font-weight: 600;
   font-size: 1.85rem;
   line-height: 1;
-  color: rgb(var(--accent));
+  color: rgb(var(--section-tint, var(--accent)));
   transform: translateY(-2px);
   flex-shrink: 0;
+  filter: drop-shadow(0 0 10px rgb(var(--section-tint, var(--accent)) / 0.35));
+}
+/* Per-section accent tint for the chapter mark + line. Each section
+   borrows a hue that fits its content: green for the live activity
+   metrics, amber for the technical NFO artefact, violet for the
+   cross-seed family, red for the admin swarm console. */
+.section--activity { --section-tint: var(--online); }
+.section--note     { --section-tint: var(--accent); }
+.section--nfo      { --section-tint: var(--warning); }
+.section--cross    { --section-tint: var(--release-purple); }
+.section--swarm    { --section-tint: var(--danger); }
+.section--activity .section-head-line,
+.section--nfo .section-head-line,
+.section--cross .section-head-line,
+.section--swarm .section-head-line,
+.section--note .section-head-line {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--section-tint) / 0.45),
+    transparent 75%
+  );
 }
 .section-head-title {
   margin: 0;
-  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-style: italic;
   font-weight: 500;
   font-size: clamp(1.15rem, 2.2vw, 1.6rem);
@@ -1539,7 +1672,7 @@ async function confirmDelete() {
   color: rgb(var(--fg-muted));
   padding: 0.18rem 0.45rem;
   border: 1px solid rgb(var(--line-default));
-  background: rgba(var(--bg-elevated), 0.55);
+  background: rgb(var(--bg-elevated) / 0.55);
   border-radius: 0.25rem;
   cursor: help;
   flex-shrink: 0;
@@ -1634,99 +1767,131 @@ async function confirmDelete() {
 }
 .section-head-action:hover {
   color: rgb(var(--fg-strong));
-  border-color: rgba(var(--fg-default), 0.35);
-  background: rgba(var(--bg-elevated), 0.4);
+  border-color: rgb(var(--fg-default) / 0.35);
+  background: rgb(var(--bg-elevated) / 0.4);
 }
 
 /* ╔═══════════════════════════════════════════════════════════════╗
-   ║  STATS CLUSTER — single continuous instrument strip            ║
+   ║  STATS CLUSTER — tinted pill cards                              ║
+   ║  Each metric carries its own semantic colour (online/warning/   ║
+   ║  info/violet), tinted lightly enough to keep the page dark but  ║
+   ║  vivid enough to read as separate "chips" rather than one neutr-║
+   ║  al strip.                                                      ║
    ╚═══════════════════════════════════════════════════════════════╝ */
 .stats-cluster {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0;
-  border: 1px solid rgb(var(--line-default));
-  border-radius: 0.55rem;
-  background: rgba(var(--bg-elevated), 0.45);
-  overflow: hidden;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.65rem;
 }
 .stat {
   position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
-  padding: 1.05rem 1.2rem 1.15rem;
-  border-right: 1px solid rgb(var(--line-default));
-  transition: background 0.18s ease;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 60%),
+    linear-gradient(
+      rgb(var(--rail, var(--fg-muted)) / 0.16),
+      rgb(var(--rail, var(--fg-muted)) / 0.16)
+    ),
+    rgb(var(--bg-surface));
+  border: 1px solid rgb(var(--rail, var(--fg-muted)) / 0.55);
+  border-radius: 0.55rem;
+  box-shadow:
+    0 6px 16px -10px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  isolation: isolate;
+  overflow: hidden;
 }
-.stat:last-child { border-right: 0; }
-.stat:hover { background: rgba(var(--bg-elevated), 0.75); }
-@media (max-width: 720px) {
-  .stat {
-    border-right: 0;
-    border-bottom: 1px solid rgb(var(--line-default));
-  }
-  .stat:last-child { border-bottom: 0; }
+.stat::before {
+  /* Faint diagonal sheen so each chip feels like a soft-lit panel
+     rather than a flat colour swatch — same trick a glass UI uses. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.04),
+    transparent 55%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+.stat:hover {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 60%),
+    linear-gradient(
+      rgb(var(--rail, var(--fg-muted)) / 0.24),
+      rgb(var(--rail, var(--fg-muted)) / 0.24)
+    ),
+    rgb(var(--bg-surface));
+  border-color: rgb(var(--rail, var(--fg-muted)) / 0.8);
+  transform: translateY(-1px);
 }
 .stat-icon {
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   color: rgb(var(--rail, var(--fg-muted)));
-  opacity: 0.85;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgb(var(--rail, var(--fg-muted)) / 0.45));
 }
 .stat-num {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: clamp(1.5rem, 2.6vw, 1.85rem);
+  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
   font-weight: 800;
   line-height: 1;
-  color: rgb(var(--fg-strong));
+  color: rgb(var(--rail, var(--fg-strong)));
   letter-spacing: -0.025em;
-  margin-top: 0.15rem;
   word-break: break-word;
 }
 .stat-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
+  margin-top: 0.2rem;
+}
+.stat-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
 }
 .stat-sub {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgb(var(--rail, var(--accent)));
-  padding: 0.12rem 0.4rem;
-  border: 1px solid rgba(var(--rail, var(--accent)), 0.4);
-  background: rgba(var(--rail, var(--accent)), 0.08);
-  border-radius: 0.2rem;
-  margin-top: 0.25rem;
+  color: rgb(var(--release-purple));
+  padding: 0.08rem 0.35rem;
+  border: 1px solid rgb(var(--release-purple) / 0.45);
+  background: rgb(var(--release-purple) / 0.12);
+  border-radius: 999px;
+  margin-top: 0.3rem;
   font-variant-numeric: tabular-nums;
+  align-self: flex-start;
 }
-.stat::after {
-  content: '';
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 2px;
-  background: rgb(var(--rail, var(--fg-muted)));
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-.stat:hover::after { opacity: 0.6; }
 
 .stat--seeders { --rail: var(--online); }
-.stat--leechers { --rail: var(--warning); }
-.stat--completed { --rail: var(--accent); }
-.stat--size { --rail: var(--fg-default); }
-.stat--volume { --rail: var(--accent); }
-.stat--seeders .stat-num { color: rgb(var(--online)); }
-.stat--leechers .stat-num { color: rgb(var(--warning)); }
+.stat--leechers { --rail: var(--danger); }
+.stat--completed { --rail: var(--info); }
+.stat--size { --rail: var(--release-cyan); }
+.stat--volume { --rail: var(--release-purple); }
+.stat.is-zero {
+  background: rgb(var(--bg-elevated) / 0.5);
+  border-color: rgb(var(--line-default) / 0.85);
+}
+.stat.is-zero .stat-icon { color: rgb(var(--fg-muted)); filter: none; }
 .stat.is-zero .stat-num {
   color: rgb(var(--fg-faint));
   font-weight: 700;
@@ -1740,23 +1905,31 @@ async function confirmDelete() {
   /* Top padding clears the decorative quotation watermark so the first
      line of description text never slides under the glyph. */
   padding: 3rem 1.6rem 1.3rem 2.4rem;
-  background: rgba(var(--bg-elevated), 0.35);
-  border-left: 2px solid rgb(var(--accent));
+  background:
+    linear-gradient(
+      135deg,
+      rgb(var(--accent) / 0.04),
+      transparent 60%
+    ),
+    rgb(var(--bg-elevated));
+  border: 1px solid rgb(var(--line-strong));
+  border-left: 3px solid rgb(var(--accent));
   border-radius: 0 0.35rem 0.35rem 0;
   font-size: 14px;
   line-height: 1.65;
   color: rgb(var(--fg-default));
+  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.55);
 }
 .note-block::before {
   content: '“';
   position: absolute;
   top: 0.2rem;
   left: 0.85rem;
-  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-size: 2.6rem;
   line-height: 1;
   font-weight: 600;
-  color: rgba(var(--accent), 0.32);
+  color: rgb(var(--accent) / 0.32);
   pointer-events: none;
 }
 
@@ -1777,19 +1950,30 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.75rem;
   padding: 0.85rem 1rem;
-  background: rgba(var(--bg-elevated), 0.4);
-  border: 1px solid rgb(var(--line-default));
+  background:
+    linear-gradient(
+      rgb(var(--release-purple) / 0.06),
+      rgb(var(--release-purple) / 0.06)
+    ),
+    rgb(var(--bg-elevated));
+  border: 1px solid rgb(var(--line-strong));
   border-radius: 0.4rem;
   text-decoration: none;
   color: rgb(var(--fg-default));
+  box-shadow: 0 4px 12px -8px rgba(0, 0, 0, 0.5);
   transition:
     background 0.18s ease,
     border-color 0.18s ease,
     transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .cross-link:hover {
-  background: rgba(var(--bg-elevated), 0.7);
-  border-color: rgba(var(--accent), 0.45);
+  background:
+    linear-gradient(
+      rgb(var(--release-purple) / 0.14),
+      rgb(var(--release-purple) / 0.14)
+    ),
+    rgb(var(--bg-elevated));
+  border-color: rgb(var(--release-purple) / 0.6);
   transform: translateX(2px);
 }
 .cross-icon {
@@ -1846,10 +2030,11 @@ async function confirmDelete() {
    ║  SWARM TABLE                                                    ║
    ╚═══════════════════════════════════════════════════════════════╝ */
 .swarm-frame {
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-strong));
   border-radius: 0.45rem;
   overflow-x: auto;
-  background: rgba(var(--bg-elevated), 0.35);
+  background: rgb(var(--bg-elevated));
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.55);
 }
 .swarm-table {
   width: 100%;
@@ -1865,17 +2050,17 @@ async function confirmDelete() {
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  background: rgba(var(--bg-base), 0.4);
+  background: rgb(var(--bg-base) / 0.4);
   border-bottom: 1px solid rgb(var(--line-default));
 }
 .swarm-table tbody td {
   padding: 0.6rem 1rem;
-  border-bottom: 1px solid rgba(var(--line-default), 0.55);
+  border-bottom: 1px solid rgb(var(--line-default) / 0.55);
   color: rgb(var(--fg-default));
   vertical-align: middle;
 }
 .swarm-table tbody tr:last-child td { border-bottom: 0; }
-.swarm-table tbody tr:hover td { background: rgba(var(--bg-elevated), 0.45); }
+.swarm-table tbody tr:hover td { background: rgb(var(--bg-elevated) / 0.45); }
 .swarm-endpoint { color: rgb(var(--fg-muted)); }
 .swarm-port { color: rgb(var(--fg-faint)); }
 .swarm-num {
@@ -1897,13 +2082,13 @@ async function confirmDelete() {
 }
 .swarm-type--seeder {
   color: rgb(var(--online));
-  border-color: rgba(var(--online), 0.4);
-  background: rgba(var(--online), 0.08);
+  border-color: rgb(var(--online) / 0.4);
+  background: rgb(var(--online) / 0.08);
 }
 .swarm-type--leecher {
   color: rgb(var(--warning));
-  border-color: rgba(var(--warning), 0.4);
-  background: rgba(var(--warning), 0.08);
+  border-color: rgb(var(--warning) / 0.4);
+  background: rgb(var(--warning) / 0.08);
 }
 .swarm-empty {
   text-align: center;
@@ -1993,11 +2178,12 @@ async function confirmDelete() {
 .nfo-frame {
   position: relative;
   background: rgb(var(--bg-inset, var(--bg-base)));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-strong));
   border-radius: 0.45rem;
   padding: 1.05rem 1.1rem;
   overflow: auto;
   max-height: 70vh;
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.55);
   /* Faint scanline pattern — vintage terminal flavour without going
      overboard. Almost imperceptible on dark themes, vanishes on light. */
   background-image: repeating-linear-gradient(
