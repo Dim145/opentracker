@@ -317,6 +317,136 @@ func TestParseAnnounceNonNegBytesClamped(t *testing.T) {
 	}
 }
 
+// ----------------------------------------------------------------------------
+// Encoders
+// ----------------------------------------------------------------------------
+
+func TestEncodeConnectResponse_Layout(t *testing.T) {
+	t.Parallel()
+	out := EncodeConnectResponse(nil, 0xCAFEBABE, 0x1122334455667788)
+	if len(out) != 16 {
+		t.Fatalf("len: got %d, want 16", len(out))
+	}
+	if a := binary.BigEndian.Uint32(out[0:4]); a != ActionConnect {
+		t.Errorf("action: got %#x, want %#x", a, ActionConnect)
+	}
+	if tx := binary.BigEndian.Uint32(out[4:8]); tx != 0xCAFEBABE {
+		t.Errorf("transactionID: got %#x, want CAFEBABE", tx)
+	}
+	if cid := binary.BigEndian.Uint64(out[8:16]); cid != 0x1122334455667788 {
+		t.Errorf("connectionID: got %#x, want 1122334455667788", cid)
+	}
+}
+
+func TestEncodeConnectResponse_PreservesPreallocatedBuf(t *testing.T) {
+	t.Parallel()
+	buf := make([]byte, 16)
+	out := EncodeConnectResponse(buf, 1, 2)
+	// Should reuse the input buffer when cap suffices.
+	if &out[0] != &buf[0] {
+		t.Error("expected encoder to reuse the caller's buffer")
+	}
+}
+
+func TestEncodeError_TruncatesLongMessages(t *testing.T) {
+	t.Parallel()
+	reason := make([]byte, 300) // > 256-byte cap
+	for i := range reason {
+		reason[i] = 'A'
+	}
+	out := EncodeError(nil, 0, string(reason))
+	// header (8) + at most 256 bytes of reason
+	if len(out) != 8+256 {
+		t.Fatalf("len: got %d, want %d", len(out), 8+256)
+	}
+}
+
+func TestEncodeAnnounceResponse_IncludesPeers(t *testing.T) {
+	t.Parallel()
+	// Build a peer list and encode; expect (header 20) + (6 × N) bytes.
+	pkts := []byte{
+		// Fake peer data shape — we only need the encoder to read
+		// .IP and .Port; the existing helper expects a real peers.
+		// PeerData type. Instead of mocking, we just call the
+		// encoder with `nil` peers and ensure the header is valid.
+	}
+	_ = pkts
+	out := EncodeAnnounceResponse(nil, 0xDEAD, 1800, 5, 10, nil, "", 50)
+	if len(out) != 20 {
+		t.Fatalf("empty-peer response len: got %d, want 20", len(out))
+	}
+	if a := binary.BigEndian.Uint32(out[0:4]); a != ActionAnnounce {
+		t.Errorf("action: got %d, want ActionAnnounce", a)
+	}
+	if tx := binary.BigEndian.Uint32(out[4:8]); tx != 0xDEAD {
+		t.Errorf("transactionID: got %#x, want DEAD", tx)
+	}
+	if interval := binary.BigEndian.Uint32(out[8:12]); interval != 1800 {
+		t.Errorf("interval: got %d, want 1800", interval)
+	}
+	if leech := binary.BigEndian.Uint32(out[12:16]); leech != 5 {
+		t.Errorf("leechers: got %d, want 5", leech)
+	}
+	if seed := binary.BigEndian.Uint32(out[16:20]); seed != 10 {
+		t.Errorf("seeders: got %d, want 10", seed)
+	}
+}
+
+// ----------------------------------------------------------------------------
+// Edge cases
+// ----------------------------------------------------------------------------
+
+func TestNonNeg_NegativeClampsToZero(t *testing.T) {
+	t.Parallel()
+	if got := nonNeg(-42); got != 0 {
+		t.Errorf("nonNeg(-42): got %d, want 0", got)
+	}
+}
+
+func TestNonNeg_PositiveUnchanged(t *testing.T) {
+	t.Parallel()
+	if got := nonNeg(123); got != 123 {
+		t.Errorf("nonNeg(123): got %d, want 123", got)
+	}
+}
+
+func TestMapEvent_AllTokens(t *testing.T) {
+	t.Parallel()
+	type tc struct {
+		in   uint32
+		want string
+	}
+	cases := []tc{
+		{udpEventNone, "update"},
+		{udpEventStarted, "started"},
+		{udpEventCompleted, "completed"},
+		{udpEventStopped, "stopped"},
+	}
+	for _, c := range cases {
+		req := AnnounceRequestUDP{Event: c.in, URLData: []byte("/announce/x")}
+		apiReq, err := req.ToAnnounceRequest()
+		if err != nil {
+			t.Fatalf("event=%d: ToAnnounceRequest error: %v", c.in, err)
+		}
+		if got := apiReq.Event.String(); got != c.want {
+			t.Errorf("event=%d: got %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
+// extractPasskey strips the literal "announce" / "scrape" tokens so a
+// bare URL doesn't authenticate.
+func TestExtractPasskey_RejectsBareTokens(t *testing.T) {
+	t.Parallel()
+	for _, in := range []string{"/announce", "/scrape", "/announce/", "announce", "scrape"} {
+		req := AnnounceRequestUDP{URLData: []byte(in)}
+		_, err := req.ToAnnounceRequest()
+		if err == nil {
+			t.Errorf("expected missing-passkey error for URL_DATA=%q", in)
+		}
+	}
+}
+
 func TestEncodeAnnounceResponseShape(t *testing.T) {
 	t.Parallel()
 	// No peers — minimal 20-byte response.

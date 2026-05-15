@@ -1,6 +1,14 @@
 package bonus
 
-import "testing"
+import (
+	"context"
+	"encoding/json"
+	"testing"
+	"time"
+
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
+)
 
 // ----------------------------------------------------------------------------
 // Apply — arithmetic correctness and overflow safety
@@ -103,5 +111,121 @@ func TestValidate_AtCeiling(t *testing.T) {
 func TestValidate_MalformedJSON(t *testing.T) {
 	if got := validateSnapshot("not json", nowMs); got != Identity {
 		t.Fatalf("got %+v, want Identity (malformed JSON)", got)
+	}
+}
+
+// ----------------------------------------------------------------------------
+// Get — full flow with a miniredis backend
+// ----------------------------------------------------------------------------
+
+func newTestResolver(t *testing.T) (*Resolver, *miniredis.Miniredis) {
+	t.Helper()
+	mr := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	r := New(client, "ot:")
+	r.SetTTL(50 * time.Millisecond) // fast cache turnaround for tests
+	return r, mr
+}
+
+func writeSnapshot(t *testing.T, mr *miniredis.Miniredis, s snapshot) {
+	t.Helper()
+	raw, err := json.Marshal(s)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	mr.Set("ot:bonus:active", string(raw))
+}
+
+func TestGet_NoKey_ReturnsIdentity(t *testing.T) {
+	r, _ := newTestResolver(t)
+	got := r.Get(context.Background())
+	if got != Identity {
+		t.Fatalf("got %+v, want Identity", got)
+	}
+}
+
+func TestGet_ValidSnapshot(t *testing.T) {
+	r, mr := newTestResolver(t)
+	nowMs := time.Now().UnixMilli()
+	writeSnapshot(t, mr, snapshot{
+		DownloadMultiplier: 50,
+		UploadMultiplier:   200,
+		StartsAtMs:         nowMs - 1000,
+		EndsAtMs:           nowMs + 60_000,
+	})
+	got := r.Get(context.Background())
+	if got.Download != 50 || got.Upload != 200 {
+		t.Fatalf("got %+v, want {50, 200}", got)
+	}
+}
+
+func TestGet_CachesResult(t *testing.T) {
+	r, mr := newTestResolver(t)
+	nowMs := time.Now().UnixMilli()
+	writeSnapshot(t, mr, snapshot{
+		DownloadMultiplier: 100,
+		UploadMultiplier:   500,
+		StartsAtMs:         nowMs - 1000,
+		EndsAtMs:           nowMs + 60_000,
+	})
+	first := r.Get(context.Background())
+	// Mutate Redis behind the cache; same call within TTL must
+	// return the cached value.
+	mr.Del("ot:bonus:active")
+	second := r.Get(context.Background())
+	if first != second {
+		t.Fatalf("cache miss: first=%+v second=%+v", first, second)
+	}
+}
+
+func TestGet_CacheExpires(t *testing.T) {
+	r, mr := newTestResolver(t)
+	r.SetTTL(20 * time.Millisecond)
+	nowMs := time.Now().UnixMilli()
+	writeSnapshot(t, mr, snapshot{
+		DownloadMultiplier: 100,
+		UploadMultiplier:   500,
+		StartsAtMs:         nowMs - 1000,
+		EndsAtMs:           nowMs + 60_000,
+	})
+	_ = r.Get(context.Background())
+	time.Sleep(30 * time.Millisecond) // past TTL
+	mr.Del("ot:bonus:active")
+	got := r.Get(context.Background())
+	if got != Identity {
+		t.Fatalf("got %+v, want Identity after cache expiry", got)
+	}
+}
+
+func TestGet_RejectsExpiredWindow(t *testing.T) {
+	r, mr := newTestResolver(t)
+	writeSnapshot(t, mr, snapshot{
+		DownloadMultiplier: 50,
+		UploadMultiplier:   200,
+		StartsAtMs:         1,
+		EndsAtMs:           1000, // ended long ago
+	})
+	got := r.Get(context.Background())
+	if got != Identity {
+		t.Fatalf("got %+v, want Identity (expired window)", got)
+	}
+}
+
+func TestGet_RejectsMalformedJSON(t *testing.T) {
+	r, mr := newTestResolver(t)
+	mr.Set("ot:bonus:active", "garbage")
+	got := r.Get(context.Background())
+	if got != Identity {
+		t.Fatalf("got %+v, want Identity (malformed)", got)
+	}
+}
+
+func TestGet_RedisError_FailsOpen(t *testing.T) {
+	r, mr := newTestResolver(t)
+	// Simulate a Redis outage by closing the underlying mock.
+	mr.Close()
+	got := r.Get(context.Background())
+	if got != Identity {
+		t.Fatalf("got %+v, want Identity (Redis down → fail-open)", got)
 	}
 }

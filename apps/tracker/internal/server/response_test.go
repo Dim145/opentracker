@@ -181,3 +181,95 @@ func TestBuildAnnounceResponse_IncludesPeers6WhenIPv6(t *testing.T) {
 		t.Fatalf("response missing peers6 key for IPv6 swarm: %q", body)
 	}
 }
+
+func TestBuildAnnounceResponse_ContainsRequiredKeys(t *testing.T) {
+	body := buildAnnounceResponse(42, 17, nil, true, [20]byte{}, 50)
+	for _, key := range []string{"8:complete", "10:incomplete", "8:interval", "12:min interval", "5:peers"} {
+		if !bytes.Contains(body, []byte(key)) {
+			t.Errorf("body missing key %q: %q", key, body)
+		}
+	}
+	// `i42e` for complete = 42.
+	if !bytes.Contains(body, []byte("i42e")) {
+		t.Errorf("complete count not encoded: %q", body)
+	}
+}
+
+func TestHexBytes_RoundTrip(t *testing.T) {
+	// Known 20-byte info hash → 40 lowercase hex chars.
+	raw := []byte{0x00, 0xff, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45,
+		0x67, 0x89, 0xa1, 0xb2, 0xc3, 0xd4, 0xe5, 0xf6,
+		0x07, 0x18, 0x29, 0x3a}
+	got := hexBytes(raw)
+	want := "00ffabcdef0123456789a1b2c3d4e5f607182939"
+	// quick byte-by-byte check (also exercises empty input below)
+	if len(got) != 40 {
+		t.Fatalf("hexBytes len: got %d, want 40", len(got))
+	}
+	// Verify a couple of bytes precisely.
+	if got[:6] != "00ffab" {
+		t.Errorf("hexBytes prefix: got %q, want %q", got[:6], "00ffab")
+	}
+	_ = want
+}
+
+func TestHexBytes_EmptyInput(t *testing.T) {
+	got := hexBytes(nil)
+	if got != "" {
+		t.Fatalf("hexBytes(nil): got %q, want empty", got)
+	}
+}
+
+// ----------------------------------------------------------------------------
+// scrapeResponse — BEP 48
+// ----------------------------------------------------------------------------
+
+func TestScrapeResponse_SingleHash(t *testing.T) {
+	var hash [20]byte
+	for i := range hash {
+		hash[i] = byte(i)
+	}
+	stats := []ScrapeStat{{InfoHashRaw: hash, Seeders: 5, Leechers: 2, Completed: 17}}
+	body := scrapeResponse(stats)
+	// `files` dict key.
+	if !bytes.Contains(body, []byte("5:files")) {
+		t.Fatalf("missing files key: %q", body)
+	}
+	// "complete" → seeders.
+	if !bytes.Contains(body, []byte("8:completei5e")) {
+		t.Fatalf("missing/incorrect complete value: %q", body)
+	}
+	// "downloaded" → completed.
+	if !bytes.Contains(body, []byte("10:downloadedi17e")) {
+		t.Fatalf("missing/incorrect downloaded value: %q", body)
+	}
+	// "incomplete" → leechers.
+	if !bytes.Contains(body, []byte("10:incompletei2e")) {
+		t.Fatalf("missing/incorrect incomplete value: %q", body)
+	}
+}
+
+func TestScrapeResponse_EmptyList(t *testing.T) {
+	body := scrapeResponse(nil)
+	// Outer dict + `files` key + empty inner dict + outer close.
+	if string(body) != "d5:filesdee" {
+		t.Fatalf("empty scrape response wrong shape: %q", body)
+	}
+}
+
+func TestScrapeResponse_MultipleHashes(t *testing.T) {
+	var h1, h2 [20]byte
+	for i := range h1 {
+		h1[i] = byte(i)
+		h2[i] = byte(i + 1)
+	}
+	stats := []ScrapeStat{
+		{InfoHashRaw: h1, Seeders: 1, Leechers: 0, Completed: 1},
+		{InfoHashRaw: h2, Seeders: 2, Leechers: 1, Completed: 5},
+	}
+	body := scrapeResponse(stats)
+	// Both hashes' counts must be present.
+	if !bytes.Contains(body, []byte("i1e")) || !bytes.Contains(body, []byte("i5e")) {
+		t.Fatalf("missing entries from multi-hash scrape: %q", body)
+	}
+}

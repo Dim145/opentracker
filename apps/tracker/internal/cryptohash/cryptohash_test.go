@@ -1,6 +1,9 @@
 package cryptohash
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestHashIP_StableForSameInputs(t *testing.T) {
 	dailyDate = func() string { return "2026-05-06" }
@@ -54,5 +57,26 @@ func TestHashIP_KnownVector(t *testing.T) {
 	want := "199cb0c9c5e589e6"
 	if got != want {
 		t.Errorf("HashIP = %q, want %q", got, want)
+	}
+}
+
+// Exercise the real (non-stubbed) dailyDate so the variable's
+// initialiser is covered. We don't assert against today's date —
+// that would make the test flaky every day — just check the format
+// is what HashIP expects (10 chars, YYYY-MM-DD).
+func TestDailyDate_RealClockFormat(t *testing.T) {
+	// Restore real impl in case a previous test stubbed it.
+	originalDailyDate()
+	d := dailyDate()
+	if len(d) != 10 || d[4] != '-' || d[7] != '-' {
+		t.Fatalf("dailyDate format unexpected: %q (want YYYY-MM-DD)", d)
+	}
+}
+
+// originalDailyDate re-installs the production function — same body
+// as the package-level `var dailyDate = ...` initialiser.
+func originalDailyDate() {
+	dailyDate = func() string {
+		return time.Now().UTC().Format("2006-01-02")
 	}
 }

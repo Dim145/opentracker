@@ -132,3 +132,148 @@ func TestParse_NumWantClamped(t *testing.T) {
 		t.Errorf("NumWant = %d, want 100 (clamped)", r.NumWant)
 	}
 }
+
+func TestEvent_String(t *testing.T) {
+	cases := map[Event]string{
+		EventStarted:   "started",
+		EventStopped:   "stopped",
+		EventCompleted: "completed",
+		EventNone:      "update",
+	}
+	for ev, want := range cases {
+		if got := ev.String(); got != want {
+			t.Errorf("%v.String() = %q, want %q", ev, got, want)
+		}
+	}
+}
+
+func TestParse_UnknownEvent_RecordedOnRequest(t *testing.T) {
+	q := baseValid()
+	q.Set("event", "paused")
+	r, err := Parse(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Event != EventNone {
+		t.Errorf("Event: got %v, want EventNone for unknown token", r.Event)
+	}
+	if r.UnknownEventRaw != "paused" {
+		t.Errorf("UnknownEventRaw: got %q, want %q", r.UnknownEventRaw, "paused")
+	}
+}
+
+func TestParse_KnownEventDoesNotSetUnknownEventRaw(t *testing.T) {
+	q := baseValid()
+	q.Set("event", "started")
+	r, err := Parse(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.UnknownEventRaw != "" {
+		t.Errorf("UnknownEventRaw should be empty for known event, got %q", r.UnknownEventRaw)
+	}
+}
+
+func TestParse_NegativeNumWantIgnored(t *testing.T) {
+	q := baseValid()
+	q.Set("numwant", "-5")
+	r, err := Parse(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Negative is rejected — default (50) survives.
+	if r.NumWant != 50 {
+		t.Errorf("NumWant: got %d, want 50 (default kept on negative)", r.NumWant)
+	}
+}
+
+func TestParse_InvalidPort_Rejected(t *testing.T) {
+	for _, p := range []string{"0", "not-a-port", "99999999"} {
+		q := baseValid()
+		q.Set("port", p)
+		if _, err := Parse(q); err == nil {
+			t.Errorf("Parse should reject port=%q", p)
+		}
+	}
+}
+
+func TestParse_MissingInfoHash(t *testing.T) {
+	q := baseValid()
+	q.Del("info_hash")
+	if _, err := Parse(q); err == nil {
+		t.Fatal("expected error for missing info_hash")
+	}
+}
+
+func TestParse_WrongInfoHashLen(t *testing.T) {
+	q := baseValid()
+	q.Set("info_hash", "tooshort")
+	if _, err := Parse(q); err == nil {
+		t.Fatal("expected error for short info_hash")
+	}
+}
+
+func TestParse_WrongPeerIDLen(t *testing.T) {
+	q := baseValid()
+	q.Set("peer_id", "short")
+	if _, err := Parse(q); err == nil {
+		t.Fatal("expected error for short peer_id")
+	}
+}
+
+func TestParse_PasskeyExtracted(t *testing.T) {
+	q := baseValid()
+	q.Set("passkey", "deadbeef")
+	r, err := Parse(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Passkey != "deadbeef" {
+		t.Errorf("Passkey: got %q, want %q", r.Passkey, "deadbeef")
+	}
+}
+
+func TestParse_MissingPasskey_Rejected(t *testing.T) {
+	q := baseValid()
+	q.Del("passkey")
+	if _, err := Parse(q); err == nil {
+		t.Fatal("expected ErrMissingPasskey")
+	}
+}
+
+func TestParse_InvalidUploaded_ZeroFallback(t *testing.T) {
+	q := baseValid()
+	q.Set("uploaded", "not-a-number")
+	r, err := Parse(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// parseInt64 returns (0, false) on garbage → Uploaded stays 0.
+	if r.Uploaded != 0 {
+		t.Errorf("Uploaded: got %d, want 0", r.Uploaded)
+	}
+}
+
+func TestParse_CompactZero(t *testing.T) {
+	q := baseValid()
+	q.Set("compact", "0")
+	r, err := Parse(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Compact {
+		t.Errorf("Compact: got true, want false when compact=0")
+	}
+}
+
+func TestRequest_IsSeederTrueWhenLeftZero(t *testing.T) {
+	q := baseValid()
+	q.Set("left", "0")
+	r, err := Parse(q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.IsSeeder() {
+		t.Error("IsSeeder() should be true when left=0")
+	}
+}
