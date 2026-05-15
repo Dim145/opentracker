@@ -16,9 +16,13 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// peerTTL matches the legacy 30-minute window. Redis evicts whole hashes
-// after this delay if they're not touched.
-const peerTTL = 30 * time.Minute
+// minPeerTTL is the smallest TTL we'll honour from the operator.
+// Anything below the announce interval would silently zero every
+// delta on the next announce (the `prev` snapshot in
+// `server/handler.go` would already be gone). 15 minutes leaves a
+// comfortable margin over the typical 30 min announce cadence
+// without making misconfiguration catastrophic.
+const minPeerTTL = 15 * time.Minute
 
 // PeerData is what we store in Redis. Field names match the JSON shape used
 // by the Node implementation so callers (apps/api) keep working.
@@ -69,6 +73,11 @@ type countsCacheEntry struct {
 type Store struct {
 	client *redis.Client
 	prefix string
+	// peerTTL is the live-peer expiry window. Sourced from the
+	// `TRACKER_PEER_TTL` env (default 24 h). Clamped to `minPeerTTL`
+	// at construction so a misconfigured value can't break the delta
+	// computation in `server/handler.go`.
+	peerTTL time.Duration
 	// countsCache is process-local — each Go replica maintains its
 	// own. The hot announce path lives behind this, so per-replica
 	// caching is fine; we accept that a peer joining replica A may
@@ -76,10 +85,16 @@ type Store struct {
 	countsCache sync.Map // string → *countsCacheEntry
 }
 
-// New returns a Store. `keyPrefix` typically comes from REDIS_KEY_PREFIX
-// (defaulting to "ot:").
-func New(client *redis.Client, keyPrefix string) *Store {
-	return &Store{client: client, prefix: keyPrefix}
+// New returns a Store. `keyPrefix` typically comes from
+// `REDIS_KEY_PREFIX` (defaulting to `ot:`). `ttl` is the peer expiry
+// window; values below `minPeerTTL` are silently clamped to that
+// floor so a typo in the env can't reduce the window to a value that
+// would zero every delta on the next announce.
+func New(client *redis.Client, keyPrefix string, ttl time.Duration) *Store {
+	if ttl < minPeerTTL {
+		ttl = minPeerTTL
+	}
+	return &Store{client: client, prefix: keyPrefix, peerTTL: ttl}
 }
 
 // Set inserts or updates a peer in the swarm and refreshes the TTL.
@@ -96,7 +111,7 @@ func (s *Store) Set(ctx context.Context, infoHashHex string, p *PeerData) error 
 	key := s.peerKey(infoHashHex)
 	pipe := s.client.TxPipeline()
 	pipe.HSet(ctx, key, p.PeerID, data)
-	pipe.Expire(ctx, key, peerTTL)
+	pipe.Expire(ctx, key, s.peerTTL)
 	_, err = pipe.Exec(ctx)
 	// Invalidate the (seeders, leechers) cache for this swarm so a
 	// stopped-and-restarted peer surfaces in counts immediately
@@ -120,7 +135,7 @@ func (s *Store) Get(ctx context.Context, infoHashHex, peerIDHex string) (*PeerDa
 		_ = s.client.HDel(ctx, s.peerKey(infoHashHex), peerIDHex).Err()
 		return nil, nil
 	}
-	if time.Since(time.UnixMilli(p.UpdatedAt)) > peerTTL {
+	if time.Since(time.UnixMilli(p.UpdatedAt)) > s.peerTTL {
 		_ = s.client.HDel(ctx, s.peerKey(infoHashHex), peerIDHex).Err()
 		return nil, nil
 	}
@@ -150,7 +165,7 @@ func (s *Store) List(ctx context.Context, infoHashHex string) ([]*PeerData, erro
 			stale = append(stale, pid)
 			continue
 		}
-		if now-p.UpdatedAt > peerTTL.Milliseconds() {
+		if now-p.UpdatedAt > s.peerTTL.Milliseconds() {
 			stale = append(stale, pid)
 			continue
 		}

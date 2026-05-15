@@ -239,6 +239,28 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		if d := req.Downloaded - prev.Downloaded; d > 0 {
 			deltaDown = d
 		}
+	} else if req.Event == announce.EventStarted {
+		// First announce we see for this peer, and the client is
+		// explicitly signalling `started`. Trust their declared
+		// cumulative counters as the initial delta — otherwise every
+		// client restart (or any gap > peerTTL) silently zeroes the
+		// session's contribution to both `users.uploaded/downloaded`
+		// and the per-(user, torrent) row in `hnr_tracking`.
+		//
+		// Spoofing window: a malicious client can claim arbitrary
+		// counters on `started`. The 1 TiB per-announce cap below
+		// already bounds the worst case, and a non-`started` first
+		// announce still falls through to the zero-delta path — so
+		// the exploit requires the attacker to advertise `started`
+		// every time they want to inject bytes, which announce
+		// rate-limiting + the existing user banning machinery can
+		// catch.
+		if req.Uploaded > 0 {
+			deltaUp = req.Uploaded
+		}
+		if req.Downloaded > 0 {
+			deltaDown = req.Downloaded
+		}
 	}
 
 	// 5a. Sanity-cap the per-announce delta. A malicious client can

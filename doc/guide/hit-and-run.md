@@ -62,6 +62,13 @@ One row per (user, torrent). The unique index `hnr_user_torrent_idx` guarantees 
 
 The Go tracker's announce handler diffs `uploaded` / `downloaded` against the previous peer entry on every announce and persists them into `hnr_tracking` in the same transaction it updates `users.uploaded` / `users.downloaded`. A separate ticker calls `updateSeedTime(user, torrent, secondsSeeded)` to bump `seedTime`. Exempt or completed rows short-circuit early so no further state churn happens on them.
 
+The previous-announce snapshot lives in Redis with a **24 h TTL by default**, configurable via `TRACKER_PEER_TTL` (Go duration string — `24h`, `90m`, `7200s`; values below `15m` are clamped to that floor). Two cases used to silently zero the delta:
+
+- **First announce ever** for a given (peer_id, info_hash) pair — Redis has no `prev`, so a naive diff produced `0`.
+- **Gap longer than the TTL** — same effect, the peer hash expired between announces.
+
+To recover those bytes, when the very first announce for a peer carries `event=started`, the tracker trusts the client's declared cumulative `uploaded` / `downloaded` as the initial delta. That covers honest clients that resume a session or rejoin after sleep without losing what they already pushed. The existing 1 TiB/announce cap bounds the worst-case spoofing window, and a `started` announce is still rate-limited like any other.
+
 ## When rows get flagged
 
 `checkAndMarkHnrs()` runs from the API plugin loop. On each pass:

@@ -3,8 +3,10 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Config struct {
@@ -17,7 +19,20 @@ type Config struct {
 	RedisKeyPrefix string
 	IPHashSecret   string
 	Debug          bool
+	// PeerTTL is how long a peer entry survives in Redis without being
+	// touched by an announce. Anything below the announce interval would
+	// silently zero every delta on the next announce, so the loader
+	// clamps to a sane minimum (see minPeerTTL in peers.go).
+	PeerTTL time.Duration
 }
+
+// defaultPeerTTL is the fallback applied when `TRACKER_PEER_TTL` is unset
+// or empty. 24 h leaves room for laptops that sleep, mobile clients
+// reconnecting through NAT, and short tracker outages — all without
+// dropping the peer's previous announce snapshot. Operators with very
+// large swarms can shorten it to reclaim Redis memory; smaller deployments
+// can extend it further to be even more forgiving.
+const defaultPeerTTL = 24 * time.Hour
 
 // Load reads configuration from the environment. Required fields without
 // values cause an error (we refuse to start with broken security defaults).
@@ -37,6 +52,7 @@ func Load() (*Config, error) {
 		RedisKeyPrefix: getEnvDefault("REDIS_KEY_PREFIX", "ot:"),
 		IPHashSecret:   os.Getenv("IP_HASH_SECRET"),
 		Debug:          os.Getenv("TRACKER_DEBUG") == "true",
+		PeerTTL:        getEnvDuration("TRACKER_PEER_TTL", defaultPeerTTL),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -66,4 +82,22 @@ func getEnvInt(key string, fallback int) int {
 		}
 	}
 	return fallback
+}
+
+// getEnvDuration parses a Go duration string (`24h`, `90m`, `7200s`, …).
+// A malformed value or a non-positive duration falls back to the default
+// and emits a warning, since silently honouring a bogus value would leave
+// the operator with a tracker that drops every delta.
+func getEnvDuration(key string, fallback time.Duration) time.Duration {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil || d <= 0 {
+		slog.Warn("invalid duration in env, using default",
+			"key", key, "value", v, "default", fallback)
+		return fallback
+	}
+	return d
 }

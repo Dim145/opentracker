@@ -81,6 +81,7 @@ the running app never reads them directly.
 | `TRACKER_UDP_PORT`             | tracker      | `6969`                           | BEP 15 (UDP) announce port.                                            |
 | `TRACKER_UDP_ENABLED`          | tracker, api | `true`                           | Toggles the UDP listener **and** UDP-tier inclusion in `.torrent` downloads. Three processes read this: the tracker (listener), the API stats endpoint (`/api/stats/public`), and `/api/torrents/:hash/download`. |
 | `TRACKER_DEBUG`                | tracker      | `false`                          | Verbose announce + dispatch logging.                                   |
+| `TRACKER_PEER_TTL`             | tracker      | `24h`                            | How long a peer's Redis entry survives between announces. Go duration syntax (`24h`, `90m`, `7200s`). Values below `15m` are clamped — anything shorter would zero the delta computation. Raise it for very forgiving deployments; lower it on huge swarms to reclaim Redis memory. |
 | `TRACKER_INTERNAL_URL`         | api          | `http://tracker:8080`            | Internal URL the API hits for `/api/tracker-health`.                   |
 | `TRACKER_HEALTH_URL`           | api          | `TRACKER_INTERNAL_URL`           | Override the health-probe URL specifically.                            |
 | `TRUST_PROXY`                  | api, tracker | `false`                          | Honour `X-Forwarded-For` for client IP. Set to `true` only behind a *trusted* reverse proxy. The rightmost token is used (the one your proxy appended). |

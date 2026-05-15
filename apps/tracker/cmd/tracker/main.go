@@ -71,7 +71,7 @@ func main() {
 	defer rclient.Close()
 	logger.Info("redis connected")
 
-	store := peers.New(rclient, cfg.RedisKeyPrefix)
+	store := peers.New(rclient, cfg.RedisKeyPrefix, cfg.PeerTTL)
 	database := db.New(pool)
 	srv := server.New(ctx, database, rclient, store, cfg.RedisKeyPrefix, cfg.IPHashSecret, cfg.Debug)
 	defer srv.Stop()
