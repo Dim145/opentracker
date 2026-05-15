@@ -103,6 +103,57 @@ func TestSplitCompactPeers_NumWantShared(t *testing.T) {
 	}
 }
 
+// TestSplitCompactPeers_FairAllocation guards the BEP 7 intent:
+// a v6-only client (or a swarm that's mostly IPv4) shouldn't starve
+// the minority family. With numWant=4 and an unbalanced swarm
+// (10 v4 + 2 v6), the response should still include both v6 peers.
+// Before the fair-allocation rewrite the v4 peers would have filled
+// the response and the v6 ones would have been dropped.
+func TestSplitCompactPeers_FairAllocation(t *testing.T) {
+	peerList := []*peers.PeerData{}
+	for i := 0; i < 10; i++ {
+		peerList = append(peerList, &peers.PeerData{
+			PeerID: "v4peer", IP: "203.0.113.1", Port: 6881,
+		})
+	}
+	peerList = append(peerList,
+		&peers.PeerData{PeerID: "v6a", IP: "2001:db8::1", Port: 1},
+		&peers.PeerData{PeerID: "v6b", IP: "2001:db8::2", Port: 2},
+	)
+
+	var exclude [20]byte
+	v4, v6 := splitCompactPeers(peerList, exclude, 4)
+	v4Count := len(v4) / 6
+	v6Count := len(v6) / 18
+	if v4Count+v6Count != 4 {
+		t.Fatalf("total: got %d, want 4", v4Count+v6Count)
+	}
+	// numWant=4 → each family gets at least 2 slots.
+	if v6Count < 2 {
+		t.Fatalf("v6 starved: got %d v6 peers, want ≥ 2", v6Count)
+	}
+}
+
+// Slack rollover: if a family has fewer peers than its half-share,
+// the other family fills the gap up to numWant total.
+func TestSplitCompactPeers_SlackRollover(t *testing.T) {
+	peerList := []*peers.PeerData{
+		{PeerID: "v4a", IP: "203.0.113.1", Port: 1},
+		{PeerID: "v4b", IP: "203.0.113.2", Port: 2},
+		{PeerID: "v4c", IP: "203.0.113.3", Port: 3},
+		{PeerID: "v4d", IP: "203.0.113.4", Port: 4},
+		{PeerID: "v6", IP: "2001:db8::1", Port: 5},
+	}
+	var exclude [20]byte
+	v4, v6 := splitCompactPeers(peerList, exclude, 4)
+	if len(v6)/18 != 1 {
+		t.Fatalf("v6: got %d, want 1 (only one available)", len(v6)/18)
+	}
+	if len(v4)/6 != 3 {
+		t.Fatalf("v4: got %d, want 3 (slack absorbed)", len(v4)/6)
+	}
+}
+
 func TestBuildAnnounceResponse_OmitsPeers6WhenEmpty(t *testing.T) {
 	peerList := []*peers.PeerData{
 		{PeerID: "aa", IP: "203.0.113.5", Port: 6881},

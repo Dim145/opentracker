@@ -234,6 +234,60 @@ func TestParseAnnounceNopOptionIgnored(t *testing.T) {
 	}
 }
 
+// TestParseOptions_URLDataCap exercises the maxURLDataBytes ceiling
+// added to defend against fragmented-options memory inflation. A
+// malicious client that chains URL_DATA options to push the buffer
+// past the cap should get an error, not a quietly truncated payload
+// (truncation would drop the passkey tail and yield a hard-to-debug
+// "passkey invalid" downstream).
+func TestParseOptions_URLDataCap(t *testing.T) {
+	t.Parallel()
+	// Build options that put a ton of URL_DATA fragments after a real
+	// passkey payload. Each fragment carries 200 bytes; we chain
+	// enough of them to clearly exceed maxURLDataBytes (512).
+	frag := make([]byte, 200)
+	for i := range frag {
+		frag[i] = 'a'
+	}
+	var opts []byte
+	for i := 0; i < 5; i++ { // 5 × 200 = 1000 > 512
+		opts = append(opts, optURLData, byte(len(frag)))
+		opts = append(opts, frag...)
+	}
+	opts = append(opts, optEnd)
+
+	var ih, pid [20]byte
+	pkt := buildAnnounce(1, 1, ih, pid, 1, opts)
+	if _, err := ParseAnnounce(pkt); err == nil {
+		t.Fatal("expected error for oversized URL_DATA chain, got nil")
+	}
+}
+
+// Just below the cap is accepted (boundary case so a future tweak
+// doesn't silently regress it).
+func TestParseOptions_URLDataJustUnderCap(t *testing.T) {
+	t.Parallel()
+	// 250 + 250 = 500 (< 512). Both fragments should glue.
+	frag := make([]byte, 250)
+	for i := range frag {
+		frag[i] = '/'
+	}
+	frag[0] = '/'
+	frag[len(frag)-1] = 'a' // ensure a non-slash tail so passkey extraction is happy
+	var opts []byte
+	opts = append(opts, optURLData, byte(len(frag)))
+	opts = append(opts, frag...)
+	opts = append(opts, optURLData, byte(len(frag)))
+	opts = append(opts, frag...)
+	opts = append(opts, optEnd)
+
+	var ih, pid [20]byte
+	pkt := buildAnnounce(1, 1, ih, pid, 1, opts)
+	if _, err := ParseAnnounce(pkt); err != nil {
+		t.Fatalf("expected accept just under cap, got %v", err)
+	}
+}
+
 func TestParseAnnounceNonNegBytesClamped(t *testing.T) {
 	t.Parallel()
 	// Build an announce that puts a wraparound (negative as int64)

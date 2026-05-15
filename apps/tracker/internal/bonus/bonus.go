@@ -75,6 +75,47 @@ type snapshot struct {
 	EndsAtMs           int64  `json:"endsAtMs"`
 }
 
+// validateSnapshot decodes the raw JSON from Redis and applies all
+// defensive guards: window bounds, sign check, overflow ceiling.
+// Returns the parsed Multipliers when everything checks out, or
+// Identity (1×/1×) otherwise. Extracted from `Get` so it can be
+// unit-tested without standing up a Redis instance.
+func validateSnapshot(raw string, nowMs int64) Multipliers {
+	var s snapshot
+	if json.Unmarshal([]byte(raw), &s) != nil {
+		return Identity
+	}
+	if s.EndsAtMs <= nowMs {
+		// Snapshot's window has ended even though the API hasn't
+		// re-resolved yet (clock skew, missed mutation). Don't
+		// honour it — fail open to identity.
+		return Identity
+	}
+	if s.StartsAtMs > nowMs {
+		// Mirror end-time check on the start side: a snapshot
+		// pushed by the API with a future startsAt (operator
+		// scheduling a window in advance + sync race) must not
+		// apply yet. Fail open until the window actually begins.
+		return Identity
+	}
+	if s.DownloadMultiplier < 0 || s.UploadMultiplier < 0 {
+		// A corrupted JSON could underflow the int64 multiplication
+		// in Apply() and bleed bytes. Identity is safer.
+		return Identity
+	}
+	if s.DownloadMultiplier > maxMultiplier || s.UploadMultiplier > maxMultiplier {
+		// Same idea on the upper side: an absurd multiplier — either
+		// a typo (`uploadMultiplier: 100000` meant as 100×) or a
+		// poisoned write — would overflow the int64 multiplication
+		// and silently credit users with negative bytes.
+		return Identity
+	}
+	return Multipliers{
+		Download: s.DownloadMultiplier,
+		Upload:   s.UploadMultiplier,
+	}
+}
+
 // Resolver is goroutine-safe; one instance per Server. Stash it in a
 // field and call Get(ctx) before persisting user stats.
 type Resolver struct {
@@ -140,38 +181,7 @@ func (r *Resolver) Get(ctx context.Context) Multipliers {
 		r.mu.Unlock()
 		return Identity
 	} else {
-		var s snapshot
-		nowMs := now.UnixMilli()
-		if json.Unmarshal([]byte(raw), &s) != nil {
-			fresh = Identity
-		} else if s.EndsAtMs <= nowMs {
-			// Snapshot's window has ended even though the API hasn't
-			// re-resolved yet (clock skew, missed mutation). Don't
-			// honour it — fail open to identity.
-			fresh = Identity
-		} else if s.StartsAtMs > nowMs {
-			// Mirror end-time check on the start side: a snapshot
-			// pushed by the API with a future startsAt (operator
-			// scheduling a window in advance + sync race) must not
-			// apply yet. Fail open until the window actually begins.
-			fresh = Identity
-		} else if s.DownloadMultiplier < 0 || s.UploadMultiplier < 0 {
-			// Defensive: a corrupted JSON could underflow the int64
-			// multiplication and bleed bytes. Identity is safer.
-			fresh = Identity
-		} else if s.DownloadMultiplier > maxMultiplier || s.UploadMultiplier > maxMultiplier {
-			// Same idea on the upper side: an absurd multiplier — either
-			// a typo (`uploadMultiplier: 100000` meant as 100×) or a
-			// poisoned write — would overflow the int64 multiplication
-			// in Apply() and silently bleed bytes into negative territory.
-			// Fail open to identity so global counters stay correct.
-			fresh = Identity
-		} else {
-			fresh = Multipliers{
-				Download: s.DownloadMultiplier,
-				Upload:   s.UploadMultiplier,
-			}
-		}
+		fresh = validateSnapshot(raw, now.UnixMilli())
 	}
 
 	r.mu.Lock()
