@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -22,14 +23,24 @@ import (
 	"github.com/florianjs/trackarr/apps/tracker/internal/queries"
 )
 
-// hnrWorkerSlots caps how many HnR background goroutines can run in
-// parallel. Each one holds a pgx connection on `pgxpool.Pool`
-// (default 20 connections in our config), so without a ceiling a
-// burst of `event=completed` announces could exhaust the pool and
-// block legitimate requests on `acquire`. 8 slots leaves headroom
-// for the announce hot path while still letting HnR catch up under
-// load.
-const hnrWorkerSlots = 8
+// hnrMinWorkerSlots is the floor for the HnR background worker pool.
+// Even on a 1-core container we want enough parallelism to absorb a
+// small burst of `event=completed` announces without serialising them.
+const hnrMinWorkerSlots = 8
+
+// hnrWorkerSlots scales the HnR pool with available CPUs but never
+// drops below the floor. Each worker holds a pgx connection while it
+// writes the HnR row, so the maximum is bounded by what the pgxpool
+// can supply (default 20 in our config). `GOMAXPROCS*2` is the usual
+// rule of thumb for IO-bound workers — they spend most of their wall
+// clock waiting on Postgres, so over-subscribing the cores is fine.
+func hnrWorkerSlots() int {
+	n := runtime.GOMAXPROCS(0) * 2
+	if n < hnrMinWorkerSlots {
+		n = hnrMinWorkerSlots
+	}
+	return n
+}
 
 // Server holds shared state for the HTTP handlers.
 type Server struct {
@@ -65,10 +76,11 @@ func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *pee
 	if appCtx == nil {
 		appCtx = context.Background()
 	}
-	slots := make(chan struct{}, hnrWorkerSlots)
+	n := hnrWorkerSlots()
+	slots := make(chan struct{}, n)
 	// Pre-fill so the channel acts as a "tickets available" pool —
 	// goroutines acquire by reading, release by sending back.
-	for i := 0; i < hnrWorkerSlots; i++ {
+	for i := 0; i < n; i++ {
 		slots <- struct{}{}
 	}
 	return &Server{
