@@ -457,6 +457,15 @@ interface TorrentWithStats {
   name: string;
   size: number;
   createdAt: string;
+  /**
+   * Timestamp the torrent was last actioned by a moderator (approved,
+   * rejected, changes-requested). Equal to `createdAt` for the auto-
+   * approved path — the upload handler sets both to `now` in that
+   * case. Null only for rows still sitting in `pending`. We use it as
+   * the effective sort key so a torrent that spent a week in the
+   * queue doesn't surface as week-old in the listing.
+   */
+  moderatedAt: string | null;
   // External-database ids — the grouped view buckets by tmdbId for
   // movies/series, igdbId for games and openlibraryId for books so
   // siblings cluster into one card with a poster. The other ids are
@@ -724,6 +733,15 @@ interface ReleaseGroup {
   lead: TorrentWithStats;
   totalSize: number;
   totalSeeders: number;
+  /**
+   * Epoch ms of the **newest** release in the bucket, using
+   * `moderatedAt ?? createdAt` (same coalesce the API applies). This
+   * drives the group-level sort so the grouped view keeps the same
+   * "most recently went live on the tracker" semantics as the flat
+   * view: a 2-release group whose newest publication is 4 months old
+   * has no business sitting above a fresh approval from this morning.
+   */
+  latestCreatedAt: number;
 }
 
 const groupedResults = computed<ReleaseGroup[]>(() => {
@@ -741,12 +759,21 @@ const groupedResults = computed<ReleaseGroup[]>(() => {
         lead: t,
         totalSize: 0,
         totalSeeders: 0,
+        latestCreatedAt: 0,
       };
       buckets.set(slot.key, group);
     }
     group.releases.push(t);
     group.totalSize += t.size || 0;
     group.totalSeeders += t.stats?.seeders || 0;
+    // Mirror the API's `COALESCE(moderated_at, created_at)` so the
+    // grouped view ranks each cluster by the moment its newest release
+    // actually went live on the tracker — not the moment the uploader
+    // hit "submit", which can be days or weeks earlier when moderation
+    // ran long.
+    const stamp = t.moderatedAt ?? t.createdAt;
+    const ts = stamp ? new Date(stamp).getTime() : 0;
+    if (ts > group.latestCreatedAt) group.latestCreatedAt = ts;
   }
   // Sort each group's releases by seeders desc (best release first).
   for (const g of buckets.values()) {
@@ -755,12 +782,15 @@ const groupedResults = computed<ReleaseGroup[]>(() => {
     );
     g.lead = g.releases[0];
   }
-  // Sort: clustered groups first (most active by seed count first), then
-  // solo torrents — that way browsing the grouped view always feels
-  // organised around real titles rather than orphan releases.
+  // Sort: clustered groups first, then solo torrents — that way browsing
+  // the grouped view always feels organised around real titles rather
+  // than orphan releases. Within each tier, order by the newest release's
+  // timestamp so the listing reads as a true "most recent first" feed:
+  // a group's effective date is `MAX(release.createdAt)` across its
+  // releases, not the seed-count it accumulated.
   return Array.from(buckets.values()).sort((a, b) => {
     if (!!a.externalId !== !!b.externalId) return a.externalId ? -1 : 1;
-    return b.totalSeeders - a.totalSeeders;
+    return b.latestCreatedAt - a.latestCreatedAt;
   });
 });
 

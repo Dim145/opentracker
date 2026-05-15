@@ -1,6 +1,6 @@
 import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
-import { desc, eq, ilike, sql, and, or, inArray, notInArray, isNull } from 'drizzle-orm';
+import { eq, ilike, sql, and, or, inArray, notInArray, isNull } from 'drizzle-orm';
 import { validateQuery, torrentQuerySchema } from '~~/utils/schemas';
 import { slugifyTag } from '~~/utils/tags';
 import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
@@ -169,14 +169,30 @@ export default defineEventHandler(async (event) => {
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  // Get torrents with optional search
+  // Get torrents with optional search.
+  //
+  // Order: "most recently *made available*" rather than "most recently
+  // uploaded". For auto-approved torrents the two timestamps are
+  // identical (both are set to `now` in the upload handler), so the
+  // ordering is unchanged for the common case. For torrents that sat
+  // in the moderation queue for a while, the approval date is what the
+  // user thinks of as "when this appeared on the tracker" — sorting by
+  // upload date instead would bury a torrent that was just approved
+  // simply because the moderator took their time.
+  //
+  // `COALESCE(moderated_at, created_at)` falls back to the upload
+  // timestamp for rows where `moderated_at` is NULL (pending torrents
+  // visible to their own uploader, plus everything visible to
+  // admins/moderators), so the sort key is always defined.
   const torrents = await db.query.torrents.findMany({
     where: whereClause,
     with: {
       category: true,
       torrentTags: { with: { tag: true } },
     },
-    orderBy: [desc(schema.torrents.createdAt)],
+    orderBy: [
+      sql`COALESCE(${schema.torrents.moderatedAt}, ${schema.torrents.createdAt}) DESC`,
+    ],
     limit: query.limit,
     offset,
   });
