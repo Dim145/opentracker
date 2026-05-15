@@ -49,6 +49,11 @@ type Request struct {
 	Event      Event
 	Compact    bool
 	NumWant    int
+	// UnknownEventRaw carries the raw `event` query value when it
+	// doesn't match any spec'd token. Empty for absent or recognised
+	// events. The handler logs this at info level when present so an
+	// operator can spot misbehaving / experimental clients.
+	UnknownEventRaw string
 	Passkey    string
 }
 
@@ -113,7 +118,9 @@ func Parse(q url.Values) (*Request, error) {
 		r.Left = 1
 	}
 
-	switch q.Get("event") {
+	switch ev := q.Get("event"); ev {
+	case "":
+		r.Event = EventNone
 	case "started":
 		r.Event = EventStarted
 	case "stopped":
@@ -121,7 +128,14 @@ func Parse(q url.Values) (*Request, error) {
 	case "completed":
 		r.Event = EventCompleted
 	default:
+		// Per BEP 3, unknown events are equivalent to a periodic
+		// announce (no event). We still want operator visibility so
+		// we record the raw value on the request; the HTTP handler
+		// logs it at info-level if `TRACKER_DEBUG` is on. Treating
+		// it as `EventNone` (not rejecting) keeps Trackarr lenient
+		// with clients that invent custom event values.
 		r.Event = EventNone
+		r.UnknownEventRaw = ev
 	}
 
 	if v := q.Get("compact"); v == "0" {

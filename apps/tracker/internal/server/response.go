@@ -71,10 +71,13 @@ func buildAnnounceResponse(seeders, leechers int, peers []*peers.PeerData, _ boo
 //   - `v6`: 18-byte entries (16-byte IPv6 + 2-byte BE port).
 //
 // The numWant cap is **shared** across the two slices: a client asking
-// for 50 peers gets at most 50 total, in whatever IPv4/IPv6 mix the
-// swarm happens to surface first. This matches the BEP 7 intent — the
-// cap is a hint about how many peers the client wants to try, not an
-// invitation to receive 2× that.
+// for 50 peers gets at most 50 total. Per BEP 7 it's spread *fairly*
+// between IPv4 and IPv6 — each family gets at least `numWant/2` slots
+// before the other can over-pick. A swarm with 45 IPv4 + 10 IPv6 used
+// to fill the response with v4 and starve v6; now v6 gets its 25-slot
+// share, falling back to v4 only if v6 runs out of candidates. The
+// reverse symmetry holds. This matches BEP 7's intent that dual-stack
+// clients see both families even when one is the swarm majority.
 //
 // The announcer's own `peer_id` is filtered out (BEP 3: a client
 // doesn't need to be told about itself).
@@ -83,13 +86,11 @@ func splitCompactPeers(peerList []*peers.PeerData, exclude [20]byte, numWant int
 		numWant = 50
 	}
 	excludeHex := hexBytes(exclude[:])
-	v4 = make([]byte, 0, 6*len(peerList))
-	v6 = make([]byte, 0, 18*len(peerList))
-	count := 0
+
+	// First pass: partition. Cheap (one parse + classify per peer).
+	v4peers := make([]*peers.PeerData, 0, len(peerList))
+	v6peers := make([]*peers.PeerData, 0, len(peerList))
 	for _, p := range peerList {
-		if count >= numWant {
-			break
-		}
 		if p.PeerID == excludeHex {
 			continue
 		}
@@ -97,19 +98,45 @@ func splitCompactPeers(peerList []*peers.PeerData, exclude [20]byte, numWant int
 		if ip == nil {
 			continue
 		}
-		var portBuf [2]byte
+		if ip.To4() != nil {
+			v4peers = append(v4peers, p)
+		} else if ip.To16() != nil {
+			v6peers = append(v6peers, p)
+		}
+	}
+
+	// Fair allocation. Each family gets at least its share; unused slack
+	// rolls over to the other family.
+	maxV4 := numWant - numWant/2 // ceil(numWant/2)
+	maxV6 := numWant / 2         // floor(numWant/2)
+	if len(v4peers) < maxV4 {
+		maxV6 += maxV4 - len(v4peers)
+	}
+	if len(v6peers) < maxV6 {
+		maxV4 += maxV6 - len(v6peers)
+	}
+	if len(v4peers) > maxV4 {
+		v4peers = v4peers[:maxV4]
+	}
+	if len(v6peers) > maxV6 {
+		v6peers = v6peers[:maxV6]
+	}
+
+	// Second pass: write the compact strings.
+	v4 = make([]byte, 0, 6*len(v4peers))
+	v6 = make([]byte, 0, 18*len(v6peers))
+	var portBuf [2]byte
+	for _, p := range v4peers {
+		ip4 := net.ParseIP(p.IP).To4()
+		v4 = append(v4, ip4...)
 		binary.BigEndian.PutUint16(portBuf[:], p.Port)
-		if ip4 := ip.To4(); ip4 != nil {
-			v4 = append(v4, ip4...)
-			v4 = append(v4, portBuf[:]...)
-			count++
-			continue
-		}
-		if ip16 := ip.To16(); ip16 != nil {
-			v6 = append(v6, ip16...)
-			v6 = append(v6, portBuf[:]...)
-			count++
-		}
+		v4 = append(v4, portBuf[:]...)
+	}
+	for _, p := range v6peers {
+		ip16 := net.ParseIP(p.IP).To16()
+		v6 = append(v6, ip16...)
+		binary.BigEndian.PutUint16(portBuf[:], p.Port)
+		v6 = append(v6, portBuf[:]...)
 	}
 	return v4, v6
 }

@@ -175,6 +175,15 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 			"xRealIP", r.Header.Get("X-Real-IP"),
 		)
 	}
+	if req.UnknownEventRaw != "" {
+		// Clients with custom or buggy event values used to silently
+		// reach the announce path as if they had sent nothing — useful
+		// to know about for operator support / debugging interop.
+		slog.Info("announce unknown event",
+			"event", req.UnknownEventRaw,
+			"clientIP", clientIP,
+		)
+	}
 	out := s.ProcessAnnounce(r.Context(), req, clientIP)
 	if out.Failure != "" {
 		writeFailure(w, out.Failure)
