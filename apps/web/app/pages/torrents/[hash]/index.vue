@@ -113,18 +113,14 @@
           class="flex flex-col md:flex-row md:items-center justify-between gap-4"
         >
           <div>
-            <div class="flex items-center gap-2 mb-1 flex-wrap">
-              <span
-                class="text-[10px] font-bold bg-bg-tertiary border border-border px-1.5 py-0.5 rounded-sm text-text-muted uppercase tracking-wider"
-                >{{ $t('torrents.detail.object') }}</span
-              >
-              <span class="text-[10px] font-mono text-text-muted">{{
-                torrent.id
-              }}</span>
-              <!-- Surfaced for the uploader and any staff member: the
-                   row's moderation state. Returns nothing when the
-                   row is `accepted` so the badge only appears when
-                   it actually carries information. -->
+            <!-- Surfaced for the uploader and any staff member: the
+                 row's moderation state. The badge itself returns nothing
+                 when the row is `accepted`, so the wrapper only shows
+                 when it actually carries information. -->
+            <div
+              v-if="torrent.moderationStatus && torrent.moderationStatus !== 'accepted'"
+              class="mb-1"
+            >
               <TorrentModerationBadge :status="torrent.moderationStatus" />
             </div>
             <h2
@@ -273,6 +269,28 @@
                 {{ formatAge(torrent.createdAt) }}
               </span>
             </div>
+          </div>
+          <div class="flex flex-col">
+            <span
+              class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1"
+              >{{ $t('torrents.detail.uploadedBy') }}</span
+            >
+            <NuxtLink
+              v-if="torrent.uploader"
+              :to="`/users/${torrent.uploader.id}`"
+              class="inline-flex items-center gap-1.5 text-xs font-mono text-text-secondary hover:text-accent transition-colors"
+            >
+              <Icon name="ph:user-bold" class="text-[11px] text-text-muted" />
+              <span>@{{ torrent.uploader.username }}</span>
+            </NuxtLink>
+            <span
+              v-else
+              class="inline-flex items-center gap-1.5 text-xs font-mono text-text-faint italic"
+              :title="$t('torrents.detail.uploaderGoneTooltip')"
+            >
+              <Icon name="ph:user-bold" class="text-[11px]" />
+              {{ $t('torrents.detail.uploaderGone') }}
+            </span>
           </div>
         </div>
       </div>

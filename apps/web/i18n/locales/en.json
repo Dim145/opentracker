@@ -618,11 +618,13 @@
     },
     "detail": {
       "backToIndex": "Back to index",
-      "object": "Object",
       "download": "Download",
       "report": "Report",
       "infoHash": "Info Hash",
       "createdAt": "Created At",
+      "uploadedBy": "Uploaded by",
+      "uploaderGone": "Account deleted",
+      "uploaderGoneTooltip": "The uploader no longer has an account on the tracker.",
       "description": "Description",
       "notFound": "Torrent not found",
       "nfoMeta": {

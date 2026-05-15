@@ -618,11 +618,13 @@
     },
     "detail": {
       "backToIndex": "Retour à l'index",
-      "object": "Objet",
       "download": "Télécharger",
       "report": "Signaler",
       "infoHash": "Infohash",
       "createdAt": "Créé le",
+      "uploadedBy": "Uploadé par",
+      "uploaderGone": "Compte supprimé",
+      "uploaderGoneTooltip": "L'auteur de cet upload n'a plus de compte sur le tracker.",
       "description": "Description",
       "notFound": "Torrent introuvable",
       "nfoMeta": {

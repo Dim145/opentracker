@@ -16,6 +16,12 @@ export default defineEventHandler(async (event) => {
           tag: true,
         },
       },
+      // Uploader on the header strip ("Uploadé par @user"). Only id +
+      // username — we don't need the full user shape and the public
+      // detail endpoint should not leak email / role bits.
+      uploader: {
+        columns: { id: true, username: true },
+      },
       comments: {
         with: {
           author: {
