@@ -3307,6 +3307,15 @@
       "resolvedSub": "Les signalements validés par un modérateur apparaîtront ici.",
       "dismissedTitle": "Aucun signalement rejeté",
       "dismissedSub": "Les signalements jugés invalides par un modérateur apparaîtront ici."
+    },
+    "cancel": {
+      "action": "Annuler le signalement",
+      "hint": "Tant qu'un modérateur ne l'a pas examiné, vous pouvez retirer ce signalement.",
+      "confirmTitle": "Retirer ce signalement ?",
+      "confirmMessage": "Ce dossier sera supprimé définitivement. La cible et le motif ne seront plus visibles par l'équipe de modération.",
+      "confirmButton": "Retirer",
+      "cancelButton": "Garder",
+      "failed": "Impossible d'annuler le signalement."
     }
   }
 }

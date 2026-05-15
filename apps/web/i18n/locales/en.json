@@ -3307,6 +3307,15 @@
       "resolvedSub": "Resolved reports — those a moderator agreed with — will be listed here.",
       "dismissedTitle": "No dismissed reports",
       "dismissedSub": "Reports a moderator judged invalid will appear here."
+    },
+    "cancel": {
+      "action": "Withdraw report",
+      "hint": "As long as no moderator has looked at it, you can still pull this report back.",
+      "confirmTitle": "Withdraw this report?",
+      "confirmMessage": "The case file will be deleted permanently. The target and reason will no longer be visible to the moderation team.",
+      "confirmButton": "Withdraw",
+      "cancelButton": "Keep",
+      "failed": "Could not cancel the report."
     }
   }
 }

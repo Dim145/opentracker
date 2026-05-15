@@ -112,6 +112,31 @@
 
             <p v-if="r.details" class="entry-details">{{ r.details }}</p>
 
+            <!-- Withdraw control — only while the report is pending. Once a
+                 moderator acts on it the row is part of the audit trail and
+                 the user can no longer pull it back. -->
+            <div v-if="r.status === 'pending'" class="entry-actions">
+              <button
+                type="button"
+                class="entry-cancel"
+                :disabled="cancellingId === r.id"
+                @click="cancelReport(r)"
+              >
+                <Icon
+                  v-if="cancellingId !== r.id"
+                  name="ph:trash-bold"
+                  class="entry-cancel-icon"
+                />
+                <Icon
+                  v-else
+                  name="ph:spinner-bold"
+                  class="entry-cancel-icon entry-cancel-icon--spin"
+                />
+                {{ $t('reports.cancel.action') }}
+              </button>
+              <span class="entry-cancel-hint">{{ $t('reports.cancel.hint') }}</span>
+            </div>
+
             <!-- Resolution drawer — only when the report has been actioned -->
             <div v-if="r.status !== 'pending'" class="entry-resolution">
               <div class="entry-resolution-head">
@@ -238,7 +263,7 @@ type StatusFilter = 'all' | 'pending' | 'resolved' | 'dismissed';
 const activeStatus = ref<StatusFilter>('all');
 const page = ref(1);
 
-const { data } = await useFetch<ReportsPayload>('/api/me/reports', {
+const { data, refresh } = await useFetch<ReportsPayload>('/api/me/reports', {
   query: computed(() => ({
     status: activeStatus.value === 'all' ? undefined : activeStatus.value,
     page: page.value,
@@ -249,6 +274,36 @@ const { data } = await useFetch<ReportsPayload>('/api/me/reports', {
     pagination: { page: 1, limit: 25, total: 0, pages: 0 },
   }),
 });
+
+const confirm = useConfirm();
+const cancellingId = ref<string | null>(null);
+
+async function cancelReport(r: ReportRow) {
+  const ok = await confirm({
+    title: t('reports.cancel.confirmTitle'),
+    message: t('reports.cancel.confirmMessage'),
+    confirmText: t('reports.cancel.confirmButton'),
+    cancelText: t('reports.cancel.cancelButton'),
+    destructive: true,
+  });
+  if (!ok) return;
+
+  cancellingId.value = r.id;
+  try {
+    await $fetch(`/api/me/reports/${r.id}`, { method: 'DELETE' });
+    await refresh();
+  } catch (err) {
+    // The dialog has already closed by the time the request fires, so
+    // surface the failure inline rather than leaving the row hanging
+    // in a "pretending to delete" state.
+    console.error('[reports] cancel failed:', err);
+    if (typeof window !== 'undefined') {
+      window.alert(t('reports.cancel.failed'));
+    }
+  } finally {
+    cancellingId.value = null;
+  }
+}
 
 const rows = computed(() => data.value?.data ?? []);
 const counts = computed(
@@ -871,6 +926,59 @@ function kindIcon(kind: string): string {
   color: rgb(var(--fg-muted));
   line-height: 1.65;
   border-left: 1px solid rgba(var(--rail, var(--fg-muted)), 0.25);
+}
+
+/* ── Withdraw control (pending only) ──────────────────────────── */
+.entry-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-top: 1.05rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed rgb(var(--line-default));
+}
+.entry-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  background: transparent;
+  border: 1px solid rgba(var(--danger), 0.4);
+  border-radius: 0.3rem;
+  color: rgb(var(--danger));
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.entry-cancel:hover:not(:disabled) {
+  background: rgba(var(--danger), 0.12);
+  border-color: rgba(var(--danger), 0.7);
+  transform: translateY(-1px);
+}
+.entry-cancel:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+.entry-cancel-icon { font-size: 0.95em; }
+.entry-cancel-icon--spin { animation: cancelSpin 0.9s linear infinite; }
+@keyframes cancelSpin {
+  to { transform: rotate(360deg); }
+}
+.entry-cancel-hint {
+  font-size: 12px;
+  color: rgb(var(--fg-faint));
+  font-style: italic;
+  line-height: 1.45;
+  max-width: 38ch;
 }
 
 /* Resolution block */
