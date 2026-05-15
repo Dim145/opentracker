@@ -609,6 +609,18 @@ export const torrents = pgTable(
     tvdbId: text('tvdb_id'),
     igdbId: text('igdb_id'),
     openlibraryId: text('openlibrary_id'),
+    // Content signature — SHA-256 of the canonical file list
+    // `[{path, length}]` (sorted by path). Two torrents that contain
+    // the same files (same paths, same sizes) share the same signature,
+    // even when their `info_hash` differs (different piece size,
+    // different `private` flag, different announce URL, …). Used to
+    // surface cross-seeds in the UI and to compute the share of the
+    // swarm's exchange volume coming from peers that also seed a
+    // different `.torrent` of the same content.
+    //
+    // Nullable so older rows uploaded before this column existed can
+    // be backfilled lazily by `plugins/backfill-content-signatures.ts`.
+    contentSignature: text('content_signature'),
     isActive: boolean('is_active').default(true).notNull(),
     // Moderation pipeline. Replaces the legacy `is_approved` boolean.
     //   pending             — first state, awaiting a moderator's call
@@ -637,6 +649,7 @@ export const torrents = pgTable(
     index('torrents_tmdb_idx').on(table.tmdbId),
     index('torrents_tvdb_idx').on(table.tvdbId),
     index('torrents_igdb_idx').on(table.igdbId),
+    index('torrents_content_signature_idx').on(table.contentSignature),
     index('torrents_openlibrary_idx').on(table.openlibraryId),
     index('torrents_moderation_status_idx').on(table.moderationStatus),
     index('torrents_name_trgm_idx').using(

@@ -2,6 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import parseTorrent from 'parse-torrent';
+import { computeContentSignature } from '~~/utils/contentSignature';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { resolveTagsByName, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
 import { normalizeMediaId } from '~~/utils/mediaIds';
@@ -237,6 +238,15 @@ export default defineEventHandler(async (event) => {
     user.isModerator ||
     (await userHasUploadBypass(user.id));
 
+  // Content signature — same content under a different info_hash (different
+  // piece size, different `private` flag, different announce list, …)
+  // shares this fingerprint. Used for cross-seed discovery and metrics.
+  const contentSignature = computeContentSignature({
+    name: parsed.name,
+    length: parsed.length,
+    files: parsed.files?.map((f) => ({ path: f.path, length: f.length })),
+  });
+
   await db.insert(schema.torrents).values({
     id,
     infoHash,
@@ -252,6 +262,7 @@ export default defineEventHandler(async (event) => {
     tvdbId,
     igdbId,
     openlibraryId,
+    contentSignature,
     isActive: true,
     moderationStatus: canBypassModeration ? 'accepted' : 'pending',
     moderatedById: canBypassModeration ? user.id : null,
