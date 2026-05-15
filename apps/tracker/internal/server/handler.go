@@ -118,7 +118,20 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out := s.ProcessAnnounce(r.Context(), req, s.clientIP(r))
+	clientIP := s.clientIP(r)
+	if s.debug {
+		// Surface the full proxy-header story so an operator can
+		// diagnose "why is this peer registered with the wrong IP"
+		// without having to add a one-off tcpdump on the origin.
+		slog.Info("announce clientIP",
+			"resolved", clientIP,
+			"remoteAddr", r.RemoteAddr,
+			"cfConnectingIP", r.Header.Get("CF-Connecting-IP"),
+			"xForwardedFor", r.Header.Get("X-Forwarded-For"),
+			"xRealIP", r.Header.Get("X-Real-IP"),
+		)
+	}
+	out := s.ProcessAnnounce(r.Context(), req, clientIP)
 	if out.Failure != "" {
 		writeFailure(w, out.Failure)
 		return
@@ -620,22 +633,35 @@ func SetTrustProxy(b bool) { trustProxy = b }
 // when explicitly enabled, otherwise an attacker behind a proxy could
 // forge any IP.
 //
-// `X-Forwarded-For` semantics: an upstream proxy APPENDS the peer it
-// observed to the right of the existing list. The leftmost entry is
-// therefore always client-supplied (any earlier hop or a malicious
-// client can set it). The RIGHTMOST entry is the one the trusted
-// proxy added — that's the only value we can rely on.
+// Header priority when TRUST_PROXY is on:
 //
-// Prior versions read the leftmost value, which let any client spoof
-// their announce IP by sending `X-Forwarded-For: 1.2.3.4` (poisoning
-// the swarm view, bypassing IP-bound abuse controls, and breaking
-// `ip_hash` analytics). The fix here takes the rightmost token and
-// falls back to `X-Real-IP` only when XFF is absent.
+//  1. **`CF-Connecting-IP`** — Cloudflare's authoritative header. It
+//     always carries the peer's real IP, regardless of intermediate
+//     hops, Argo Tunnels, Spectrum, or any other CF-side rewrite.
+//     The API tier (`apps/api/utils/rateLimit.ts`) reads the same
+//     header first; keeping the tracker in lockstep means the
+//     `ip_hash` analytics and the rate-limit buckets agree on who
+//     the peer is.
 //
-// Header values are validated as real IP literals so a malformed /
-// garbage header just falls through to RemoteAddr.
+//  2. **`X-Forwarded-For` (rightmost token)** — fallback for non-CF
+//     deployments. An upstream proxy APPENDS the peer it observed to
+//     the right of the existing list; the leftmost entry is always
+//     client-supplied and trivially spoofable. Taking the rightmost
+//     token guards against a malicious client sending
+//     `X-Forwarded-For: 1.2.3.4` to poison the swarm view.
+//
+//  3. **`X-Real-IP`** — last-resort fallback for proxies that don't
+//     emit XFF (rare but seen with some Traefik / HAProxy configs).
+//
+// All header values are validated as real IP literals so a malformed
+// / garbage header just falls through to `RemoteAddr`.
 func (s *Server) clientIP(r *http.Request) string {
 	if trustProxy {
+		if v := r.Header.Get("CF-Connecting-IP"); v != "" {
+			if ip := net.ParseIP(strings.TrimSpace(v)); ip != nil {
+				return ip.String()
+			}
+		}
 		if v := r.Header.Get("X-Forwarded-For"); v != "" {
 			// Walk the list right-to-left, taking the last well-formed
 			// entry. Trusted proxies append, so the rightmost value is
