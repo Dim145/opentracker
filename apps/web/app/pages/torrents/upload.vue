@@ -370,7 +370,12 @@
             class="aside-metadata"
           />
           <div v-else-if="title || selectedFile" class="aside-summary">
-            <p class="aside-name">{{ title || selectedFile?.name }}</p>
+            <p
+              class="aside-name"
+              :title="title || selectedFile?.name"
+            >
+              {{ withWrapHints(title || selectedFile?.name || '') }}
+            </p>
             <div v-if="selectedFile" class="aside-stats">
               <span>{{ formatSize(selectedFile.size) }}</span>
               <span v-if="parsed?.year" class="aside-dot">·</span>
@@ -500,6 +505,7 @@
 
 <script setup lang="ts">
 import { formatSize } from '~/utils/format';
+import { withWrapHints } from '~/utils/displayTitle';
 import {
   findCategory,
   categoryKind,
@@ -1284,6 +1290,22 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   gap: 0.4rem;
   color: rgb(var(--fg-strong));
   font-weight: 600;
+}
+
+/* ─── Aside name (release/file title preview) ──────────────────
+ * Scene-style release names ("a.b.c.d.e.f.g") have no whitespace,
+ * so the default wrap algorithm either overflows the card or
+ * pushes the inline flexbox below to grow uncontrollably. We
+ * combine `overflow-wrap: anywhere` (break at any glyph if no
+ * better point is available) with `text-wrap: pretty` (prefer
+ * the visually nicer of the candidate break points) — the
+ * `withWrapHints` helper already inserted ZWSPs after each
+ * separator so "any glyph" mostly resolves to "after a dot".
+ */
+.aside-name {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-wrap: pretty;
 }
 
 /* ─── Aside placeholder (upload-only) ───────────────────────── */

@@ -25,9 +25,10 @@
         />
         <div class="flex-1 min-w-0">
           <p
-            class="text-sm font-medium text-text-primary leading-snug break-words line-clamp-2"
+            class="text-sm font-medium text-text-primary leading-snug break-words [overflow-wrap:anywhere] [text-wrap:pretty] line-clamp-2"
+            :title="torrent.name"
           >
-            {{ torrent.name }}
+            {{ withWrapHints(torrent.name) }}
           </p>
           <!-- Meta row: category chip + tags. The tag list scrolls
                horizontally so a torrent with 5+ tags doesn't bloat
@@ -225,6 +226,8 @@
 </template>
 
 <script setup lang="ts">
+import { withWrapHints } from '~/utils/displayTitle';
+
 interface TorrentTag {
   id: string;
   name: string;

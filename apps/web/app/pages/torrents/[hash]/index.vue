@@ -127,8 +127,12 @@
                    it actually carries information. -->
               <TorrentModerationBadge :status="torrent.moderationStatus" />
             </div>
-            <h2 class="text-2xl font-bold text-text-primary tracking-tight">
-              {{ torrent.name }}
+            <h2
+              class="font-bold text-text-primary tracking-tight break-words [overflow-wrap:anywhere] [text-wrap:pretty]"
+              :class="titleSizeClass(torrent.name)"
+              :title="torrent.name"
+            >
+              {{ withWrapHints(torrent.name) }}
             </h2>
             <!-- Category + Tag + Media-id Badges -->
             <div
@@ -558,6 +562,7 @@
 <script setup lang="ts">
 import TorrentModerationBadge from '~/components/torrent/TorrentModerationBadge.vue';
 import TorrentModerationPanel from '~/components/torrent/TorrentModerationPanel.vue';
+import { withWrapHints, titleSizeClass } from '~/utils/displayTitle';
 
 interface Peer {
   id: string;
