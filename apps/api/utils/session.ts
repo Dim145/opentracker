@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3';
 import { useSession } from 'h3';
+import { touchPresence } from './presence';
 
 /**
  * Replacement for `nuxt-auth-utils` session helpers using h3's built-in
@@ -54,6 +55,13 @@ export async function getUserSession(
   event: H3Event
 ): Promise<UserSessionData> {
   const s = await session(event);
+  // Refresh `users.last_seen` so the "EN LIGNE" tile reflects active
+  // navigation, not just the last login. Fire-and-forget — the
+  // helper throttles itself with Redis (max 1 DB write/user/min)
+  // and swallows errors, so the request path stays unaffected.
+  if (s.data.user?.id) {
+    void touchPresence(s.data.user.id);
+  }
   return s.data;
 }
 
