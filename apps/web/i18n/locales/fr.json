@@ -633,9 +633,7 @@
         "swarm": "Liste des peers"
       },
       "hero": {
-        "case": "Dossier",
-        "ref": "RÉF",
-        "downloadHint": "Récupère le .torrent"
+        "case": "Dossier"
       },
       "description": "Description",
       "notFound": "Torrent introuvable",

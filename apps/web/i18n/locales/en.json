@@ -633,9 +633,7 @@
         "swarm": "Peer list"
       },
       "hero": {
-        "case": "Release",
-        "ref": "REF",
-        "downloadHint": "Grab the .torrent"
+        "case": "Release"
       },
       "description": "Description",
       "notFound": "Torrent not found",

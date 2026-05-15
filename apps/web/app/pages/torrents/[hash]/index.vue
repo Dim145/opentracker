@@ -125,7 +125,14 @@
     >
       <header class="hero-eyebrow">
         <span class="hero-eyebrow-mark" aria-hidden="true">§</span>
-        <span class="hero-eyebrow-label">{{ $t('torrents.detail.hero.case') }}</span>
+        <!-- Category name doubles as the eyebrow label so the page
+             opens with the most concrete "what is this" signal. Falls
+             back to a generic "Dossier" only when the row carries no
+             category at all (rare — uncategorised uploads are usually
+             rejected before they reach a detail page). -->
+        <span class="hero-eyebrow-label">{{
+          torrent.category?.name || $t('torrents.detail.hero.case')
+        }}</span>
         <span class="hero-eyebrow-sep">·</span>
         <time class="hero-eyebrow-date" :datetime="torrent.createdAt">
           {{ formatLongDate(torrent.createdAt) }}
@@ -140,9 +147,20 @@
           size="sm"
         />
         <span class="hero-eyebrow-spacer" aria-hidden="true" />
-        <span class="hero-eyebrow-ref" :title="torrent.infoHash">
-          {{ $t('torrents.detail.hero.ref') }} {{ torrent.infoHash.slice(0, 8) }}
-        </span>
+        <!-- Report button parked in the top-right corner of the hero
+             so it stays accessible (any authenticated user can flag)
+             without sitting next to the destructive Delete in the
+             main CTA row — flagging is cautionary, deletion is
+             permanent, the two shouldn't live shoulder-to-shoulder. -->
+        <button
+          v-if="canReport"
+          type="button"
+          class="hero-eyebrow-report"
+          @click="reportOpen = true"
+        >
+          <Icon name="ph:flag-bold" />
+          <span>{{ $t('torrents.detail.report') }}</span>
+        </button>
       </header>
 
       <h1
@@ -155,7 +173,6 @@
 
       <div
         v-if="
-          torrent.category ||
           torrent.tags?.length ||
           torrent.imdbId ||
           torrent.tmdbId ||
@@ -163,10 +180,6 @@
         "
         class="hero-chips"
       >
-        <span v-if="torrent.category" class="chip chip--cat">
-          <Icon name="ph:folder-bold" class="chip-icon" />
-          {{ torrent.category.name }}
-        </span>
         <NuxtLink
           v-for="tag in torrent.tags"
           :key="tag.id"
@@ -228,10 +241,7 @@
           <Icon name="ph:download-simple-bold" class="cta-primary-icon" />
           <span class="cta-primary-stack">
             <span class="cta-primary-label">{{ $t('torrents.detail.download') }}</span>
-            <span class="cta-primary-sub">
-              {{ formatSize(torrent.size) }} ·
-              {{ $t('torrents.detail.hero.downloadHint') }}
-            </span>
+            <span class="cta-primary-sub">{{ formatSize(torrent.size) }}</span>
           </span>
         </a>
 
@@ -252,15 +262,6 @@
           >
             <Icon name="ph:trash-bold" />
             <span>{{ $t('common.delete') }}</span>
-          </button>
-          <button
-            v-if="canReport"
-            type="button"
-            class="cta-ghost cta-ghost--warn"
-            @click="reportOpen = true"
-          >
-            <Icon name="ph:flag-bold" />
-            <span>{{ $t('torrents.detail.report') }}</span>
           </button>
         </div>
       </div>
@@ -1251,16 +1252,32 @@ async function confirmDelete() {
   flex: 1 1 auto;
   min-width: 1ch;
 }
-.hero-eyebrow-ref {
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
-  color: rgb(var(--online));
-  padding: 0.18rem 0.55rem;
-  border: 1px dashed rgb(var(--online) / 0.45);
-  background: rgb(var(--online) / 0.07);
-  border-radius: 0.2rem;
-  font-variant-numeric: tabular-nums;
-  user-select: all;
+.hero-eyebrow-report {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.7rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(var(--warning));
+  background: rgb(var(--warning) / 0.1);
+  border: 1px solid rgb(var(--warning) / 0.5);
+  border-radius: 0.3rem;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.18s ease;
+}
+.hero-eyebrow-report:hover {
+  color: rgb(var(--bg-base));
+  background: rgb(var(--warning));
+  border-color: rgb(var(--warning));
+  transform: translateY(-1px);
 }
 
 .hero-title {
@@ -1319,22 +1336,6 @@ async function confirmDelete() {
 .chip-icon {
   font-size: 11px;
   opacity: 0.75;
-}
-/* Category chip carries the page's info-cyan so it reads as "this is
-   what the release is" without competing with the tag colours below. */
-.chip--cat {
-  color: rgb(var(--release-cyan));
-  background: rgb(var(--release-cyan) / 0.1);
-  border-color: rgb(var(--release-cyan) / 0.42);
-  letter-spacing: 0.12em;
-}
-.chip--cat .chip-icon {
-  color: rgb(var(--release-cyan));
-  opacity: 1;
-}
-.chip--cat:hover {
-  background: rgb(var(--release-cyan) / 0.18);
-  border-color: rgb(var(--release-cyan) / 0.65);
 }
 .chip--tag {
   text-decoration: none;
@@ -1465,17 +1466,6 @@ async function confirmDelete() {
   color: #fff;
   border-color: rgb(var(--danger));
   background: rgb(var(--danger));
-  transform: translateY(-1px);
-}
-.cta-ghost--warn {
-  color: rgb(var(--warning));
-  border-color: rgb(var(--warning) / 0.55);
-  background: rgb(var(--warning) / 0.1);
-}
-.cta-ghost--warn:hover {
-  color: rgb(var(--bg-base));
-  border-color: rgb(var(--warning));
-  background: rgb(var(--warning));
   transform: translateY(-1px);
 }
 
