@@ -19,7 +19,7 @@
           {{ title }}
         </p>
         <p
-          class="text-lg font-mono font-bold mt-0.5 leading-none"
+          class="text-lg font-mono font-bold mt-0.5 leading-none flex items-baseline gap-2"
           :class="{
             'text-success': variant === 'success',
             'text-warning': variant === 'warning',
@@ -27,7 +27,17 @@
             'text-text-primary': !variant,
           }"
         >
-          {{ typeof value === 'number' ? formatNumber(value) : value }}
+          <span>{{ typeof value === 'number' ? formatNumber(value) : value }}</span>
+          <!-- Optional secondary chip: rendered to the right of the
+               primary value in the accent colour so it reads as a
+               qualifier rather than a separate KPI. Used on the
+               detail page to surface the cross-seed share. -->
+          <span
+            v-if="sub"
+            class="text-[11px] font-mono font-bold text-accent leading-none"
+          >
+            · {{ sub }}
+          </span>
         </p>
       </div>
     </div>
@@ -40,6 +50,8 @@ defineProps<{
   value: string | number;
   icon?: string;
   variant?: 'success' | 'warning' | 'error';
+  /** Optional qualifier shown next to the primary value (e.g. "1 x-seed"). */
+  sub?: string;
 }>();
 
 function formatNumber(n: number): string {

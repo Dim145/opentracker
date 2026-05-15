@@ -14,6 +14,13 @@ const PEER_TTL = 1800;
 // ============================================================================
 export interface PeerData {
   peerId: string;
+  /**
+   * Owner user id. Written by the Go tracker on every announce (see
+   * `apps/tracker/internal/peers/peers.go`); `omitempty` on the wire
+   * means very old peer rows uploaded before the field existed will
+   * deserialise without it. Treat as optional in cross-tracker code.
+   */
+  userId?: string;
   ip: string; // Raw IP - needed for tracker peer exchange
   ipHash: string; // Hashed IP - for logging/display
   port: number;

@@ -630,7 +630,8 @@
         "seeders": "Seeders",
         "leechers": "Leechers",
         "completed": "Complétés",
-        "totalSize": "Taille totale"
+        "totalSize": "Taille totale",
+        "exchanged": "Échangés"
       },
       "swarm": {
         "title": "Swarm actif ({n})",

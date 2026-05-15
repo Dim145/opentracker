@@ -296,19 +296,27 @@
       class="mb-6"
     />
 
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <!-- Stats Grid — 4 base KPIs + an optional 5th `volume exchanged`
+         card that appears only once swarm activity has produced
+         actual byte transfers (otherwise it's just "0 echanged",
+         which adds noise without value). The seeders + leechers
+         tiles carry a small accent chip ("· N x-seed") whenever
+         a chunk of the swarm is also active on a cross-seed of
+         the same content. -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
       <StatsCard
         :title="$t('torrents.detail.stats.seeders')"
         :value="torrent.stats.seeders"
         icon="ph:arrow-up-bold"
         variant="success"
+        :sub="xSeedSeederSub"
       />
       <StatsCard
         :title="$t('torrents.detail.stats.leechers')"
         :value="torrent.stats.leechers"
         icon="ph:arrow-down-bold"
         variant="warning"
+        :sub="xSeedLeecherSub"
       />
       <StatsCard
         :title="$t('torrents.detail.stats.completed')"
@@ -319,6 +327,13 @@
         :title="$t('torrents.detail.stats.totalSize')"
         :value="formatSize(torrent.size)"
         icon="ph:database-bold"
+      />
+      <StatsCard
+        v-if="showVolumeCard"
+        :title="$t('torrents.detail.stats.exchanged')"
+        :value="totalUploadedDisplay"
+        icon="ph:cloud-arrow-up-bold"
+        :sub="xSeedVolumeSub"
       />
     </div>
 
@@ -642,6 +657,60 @@ const { data: crossSeeds } = await useFetch<{
   total: number;
 }>(`/api/torrents/${hash}/cross-seeds`, {
   default: () => ({ items: [], total: 0 }),
+});
+
+// Cross-seed KPIs (peer counts + volume share). Same side-fetch
+// pattern as `crossSeeds` above — the qualifier chips on the stats
+// row stay hidden until this resolves, no skeleton needed.
+interface CrossSeedStats {
+  otherTorrentCount: number;
+  seederCount: number;
+  leecherCount: number;
+  uploadedShareBytes: string;
+  totalUploadedBytes: string;
+}
+const { data: crossSeedStats } = await useFetch<CrossSeedStats>(
+  `/api/torrents/${hash}/cross-seed-stats`,
+  {
+    default: () => ({
+      otherTorrentCount: 0,
+      seederCount: 0,
+      leecherCount: 0,
+      uploadedShareBytes: '0',
+      totalUploadedBytes: '0',
+    }),
+  },
+);
+
+// Sub-text helpers — empty string → StatsCard renders no qualifier.
+const xSeedSeederSub = computed(() => {
+  const n = crossSeedStats.value?.seederCount ?? 0;
+  return n > 0 ? `${n} x-seed` : '';
+});
+const xSeedLeecherSub = computed(() => {
+  const n = crossSeedStats.value?.leecherCount ?? 0;
+  return n > 0 ? `${n} x-seed` : '';
+});
+const totalUploadedDisplay = computed(() => {
+  const raw = crossSeedStats.value?.totalUploadedBytes ?? '0';
+  // BigInt round-trip preserves precision past 2^53 bytes.
+  const bytes = Number(BigInt(raw));
+  return formatSize(bytes);
+});
+const xSeedVolumeSub = computed(() => {
+  const total = crossSeedStats.value?.totalUploadedBytes ?? '0';
+  const share = crossSeedStats.value?.uploadedShareBytes ?? '0';
+  const totalNum = Number(BigInt(total));
+  const shareNum = Number(BigInt(share));
+  if (totalNum === 0 || shareNum === 0) return '';
+  const pct = (shareNum / totalNum) * 100;
+  // Round to 1 decimal for sub-1% values, integer otherwise — keeps
+  // the chip narrow while staying honest about tiny shares.
+  const formatted = pct < 1 ? pct.toFixed(1) : Math.round(pct).toString();
+  return `${formatted}% x-seed`;
+});
+const showVolumeCard = computed(() => {
+  return Number(BigInt(crossSeedStats.value?.totalUploadedBytes ?? '0')) > 0;
 });
 
 /**
