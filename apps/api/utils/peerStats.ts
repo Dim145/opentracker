@@ -65,7 +65,16 @@ export async function rollupActivePeerCounts(
 
   const keyPrefix = process.env.REDIS_KEY_PREFIX || 'ot:';
   const uniquePeers = new Set<string>();
+  // Seeder and leecher sets are populated independently — a single
+  // machine can be seeding one torrent AND leeching another at the
+  // same time, in which case its `(ip, port)` lands in BOTH sets.
+  // Computing `leechers = peers - seeders` (the previous behaviour)
+  // would hide that machine from the leecher tile entirely, even
+  // though it's actively downloading. The two counters can now
+  // overlap, so `seeders + leechers` may exceed `peers`; that's the
+  // honest representation of a mixed swarm.
   const uniqueSeeders = new Set<string>();
+  const uniqueLeechers = new Set<string>();
 
   let cursor = '0';
   try {
@@ -108,7 +117,11 @@ export async function rollupActivePeerCounts(
             }
             const peerKey = `${peer.ip}:${peer.port}`;
             uniquePeers.add(peerKey);
-            if (peer.isSeeder) uniqueSeeders.add(peerKey);
+            if (peer.isSeeder) {
+              uniqueSeeders.add(peerKey);
+            } else {
+              uniqueLeechers.add(peerKey);
+            }
           } catch {
             // ignore malformed peer payload
           }
@@ -125,6 +138,6 @@ export async function rollupActivePeerCounts(
   return {
     peers: uniquePeers.size,
     seeders: uniqueSeeders.size,
-    leechers: uniquePeers.size - uniqueSeeders.size,
+    leechers: uniqueLeechers.size,
   };
 }

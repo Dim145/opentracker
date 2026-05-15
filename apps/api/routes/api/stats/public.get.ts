@@ -25,6 +25,7 @@ interface PublicStats {
     torrents: number;
     peers: number;
     seeders: number;
+    leechers: number;
     /**
      * Total bytes seeded across the whole user base — `SUM(users.uploaded)`.
      * Surfaces on the homepage as the "Volume" KPI; cached the same as the
@@ -84,6 +85,7 @@ async function computeStats(): Promise<PublicStats> {
       torrents: totalTorrents,
       peers: counts.peers,
       seeders: counts.seeders,
+      leechers: counts.leechers,
       totalUploaded,
       updatedAt: now,
     },

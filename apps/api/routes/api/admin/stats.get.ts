@@ -25,19 +25,26 @@ export default defineEventHandler(async (event) => {
 
   let totalPeers = 0;
   let totalSeeders = 0;
+  let totalLeechers = 0;
   try {
     const cached = await redis.get(CACHE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached);
       totalPeers = parsed.peers ?? 0;
       totalSeeders = parsed.seeders ?? 0;
+      totalLeechers = parsed.leechers ?? 0;
     } else {
       const counts = await rollupActivePeerCounts();
       totalPeers = counts.peers;
       totalSeeders = counts.seeders;
+      totalLeechers = counts.leechers;
       await redis.set(
         CACHE_KEY,
-        JSON.stringify({ peers: totalPeers, seeders: totalSeeders }),
+        JSON.stringify({
+          peers: totalPeers,
+          seeders: totalSeeders,
+          leechers: totalLeechers,
+        }),
         'EX',
         STATS_TTL_S
       );
@@ -57,6 +64,7 @@ export default defineEventHandler(async (event) => {
       torrents: totalTorrents,
       peers: totalPeers,
       seeders: totalSeeders,
+      leechers: totalLeechers,
       updatedAt: Date.now(),
     },
     live: {

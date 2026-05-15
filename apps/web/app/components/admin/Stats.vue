@@ -51,6 +51,7 @@ interface TrackerStats {
     torrents?: number;
     peers?: number;
     seeders?: number;
+    leechers?: number;
   };
   live?: {
     torrents?: number;
@@ -63,7 +64,11 @@ const props = defineProps<{ stats?: TrackerStats }>();
 const torrents = computed(() => props.stats?.live?.torrents ?? 0);
 const peers = computed(() => props.stats?.cached?.peers ?? 0);
 const seeders = computed(() => props.stats?.cached?.seeders ?? 0);
-const leechers = computed(() => Math.max(0, peers.value - seeders.value));
+// Read leechers straight from the backend rather than deriving it from
+// `peers - seeders`: a single machine can seed one torrent and leech
+// another simultaneously, in which case it belongs in both tiles. The
+// backend exposes both sets independently (`utils/peerStats.ts`).
+const leechers = computed(() => props.stats?.cached?.leechers ?? 0);
 
 const seederRatio = computed(() => {
   if (peers.value === 0) return '0';
