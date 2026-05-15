@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -47,6 +48,12 @@ type Server struct {
 	// worker slot, `hnrSlots <- struct{}{}` releases it. Ensures the
 	// HnR DB writes never overshoot the connection pool budget.
 	hnrSlots chan struct{}
+	// bgTasks tracks background goroutines (HnR completion, seed-time
+	// recording, etc.) so `Stop()` can wait for them to finish before
+	// the process exits. Without this, a graceful shutdown would
+	// drop in-flight DB writes — a `completed` announce arriving
+	// during shutdown could lose its HnR entry and leak credit.
+	bgTasks sync.WaitGroup
 }
 
 // New builds a Server. It does not start listening — callers wire it into
@@ -86,8 +93,33 @@ func (s *Server) Routes() http.Handler {
 	return mux
 }
 
-// Stop releases the dedup goroutine.
-func (s *Server) Stop() { s.dedup.Stop() }
+// Stop tears the server down: stops the dedup eviction loop, then
+// waits up to `bgDrainTimeout` for in-flight background tasks
+// (HnR completion + seed-time recorders) to finish their pgx
+// writes. Past the deadline we give up and let the process exit —
+// the deferred contexts inside each worker already carry a 5 s
+// timeout, so this only protects against a stuck DB.
+func (s *Server) Stop() {
+	s.dedup.Stop()
+
+	done := make(chan struct{})
+	go func() {
+		s.bgTasks.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		// Clean drain.
+	case <-time.After(bgDrainTimeout):
+		slog.Warn("server stop: background drain timed out — abandoning in-flight HnR writes")
+	}
+}
+
+// bgDrainTimeout is the worst-case time we'll wait for background
+// goroutines on shutdown. A bit longer than the per-worker DB timeout
+// (5 s) so the slowest worker has time to finish naturally before we
+// give up on it.
+const bgDrainTimeout = 8 * time.Second
 
 // ----------------------------------------------------------------------------
 // /announce
@@ -416,6 +448,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// 9. event=completed: bump the counter and create the HnR entry
 	if req.Event == announce.EventCompleted {
 		_ = s.peers.IncrementCompleted(ctx, infoHashHex)
+		s.bgTasks.Add(1)
 		go s.recordHnrCompletion(req.Passkey, infoHashHex)
 	}
 
@@ -423,6 +456,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	if req.IsSeeder() && prev != nil {
 		elapsed := (time.Now().UnixMilli() - prev.UpdatedAt) / 1000
 		if elapsed > 0 && elapsed < 3600 {
+			s.bgTasks.Add(1)
 			go s.recordSeedTime(req.Passkey, infoHashHex, int32(elapsed))
 		}
 	}
@@ -477,6 +511,18 @@ func (s *Server) hnrRelease() {
 }
 
 func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
+	defer s.bgTasks.Done()
+	// Panic guard: any panic inside this goroutine would skip the
+	// `defer hnrRelease()` below and permanently leak a semaphore
+	// slot. After 8 leaked slots the entire HnR pipeline deadlocks
+	// (no completion is ever recorded). Catching the panic and
+	// releasing the slot keeps the tracker self-healing.
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("hnr completion panic", "info_hash", infoHashHex, "panic", r)
+		}
+	}()
+
 	ctx, cancel := context.WithTimeout(s.appCtx, 5*time.Second)
 	defer cancel()
 	if !s.hnrAcquire(ctx) {
@@ -524,6 +570,16 @@ func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 }
 
 func (s *Server) recordSeedTime(passkey, infoHashHex string, secondsToAdd int32) {
+	defer s.bgTasks.Done()
+	// See `recordHnrCompletion` for the rationale — without this
+	// recover() a panic here would leak the semaphore slot it's
+	// about to take.
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("seed time panic", "info_hash", infoHashHex, "panic", r)
+		}
+	}()
+
 	ctx, cancel := context.WithTimeout(s.appCtx, 5*time.Second)
 	defer cancel()
 	if !s.hnrAcquire(ctx) {

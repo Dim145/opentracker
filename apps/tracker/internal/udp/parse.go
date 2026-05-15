@@ -54,6 +54,15 @@ const (
 	optURLData byte = 2
 )
 
+// maxURLDataBytes caps the concatenated URL_DATA we'll accept. Real
+// tracker URLs round-trip well below 256 bytes (an info hash query
+// and a 64-char passkey fits in ~120). 512 leaves slack for edge
+// cases without letting a hostile client smuggle a multi-KB payload
+// into the parser's growing slice. Truncating beyond this point
+// would lose the passkey anyway, so we fail the packet clearly
+// instead of silently chopping.
+const maxURLDataBytes = 512
+
 // Parsing errors. We never echo these to the client verbatim — UDP
 // errors are short ASCII strings and we keep them tracker-vague — but
 // the constants make the code testable.
@@ -193,6 +202,13 @@ func parseOptionsURLData(opts []byte) ([]byte, error) {
 			n := int(opts[i])
 			i++
 			if i+n > len(opts) {
+				return nil, errMalformedOptions
+			}
+			if len(out)+n > maxURLDataBytes {
+				// Fragmented URL_DATA past the cap. We reject rather
+				// than truncate because the missing tail probably
+				// holds the passkey — silently keeping a prefix
+				// would feed garbage to the auth step.
 				return nil, errMalformedOptions
 			}
 			out = append(out, opts[i:i+n]...)

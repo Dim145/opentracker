@@ -28,6 +28,17 @@ import (
 // expectation reasonable.
 const defaultCacheTTL = 30 * time.Second
 
+// maxMultiplier is the highest factor we honour from the Redis snapshot.
+// Apply() multiplies the per-announce byte delta by `mul / 100`. The
+// announce path caps deltas at 1 TiB (= 2^40), so for the int64 result
+// to stay below 2^63 we need `mul ≤ 2^23 ≈ 8.4M`. A real-world bonus
+// event tops out around 10× (1000 basis points); 100000 (= 1000×) is
+// a generous ceiling that still leaves a ~10^14 safety margin on the
+// multiplication. Anything larger is almost certainly a configuration
+// mistake or a poisoned snapshot — we treat it as identity rather than
+// risk wrapping int64 and crediting users with negative bytes.
+const maxMultiplier = 100_000
+
 // Multipliers carries the currently-active scaling factors expressed
 // as basis points (×100). A pair of `100`s is the no-op identity that
 // the Apply method applies when no event is in flight.
@@ -147,6 +158,13 @@ func (r *Resolver) Get(ctx context.Context) Multipliers {
 		} else if s.DownloadMultiplier < 0 || s.UploadMultiplier < 0 {
 			// Defensive: a corrupted JSON could underflow the int64
 			// multiplication and bleed bytes. Identity is safer.
+			fresh = Identity
+		} else if s.DownloadMultiplier > maxMultiplier || s.UploadMultiplier > maxMultiplier {
+			// Same idea on the upper side: an absurd multiplier — either
+			// a typo (`uploadMultiplier: 100000` meant as 100×) or a
+			// poisoned write — would overflow the int64 multiplication
+			// in Apply() and silently bleed bytes into negative territory.
+			// Fail open to identity so global counters stay correct.
 			fresh = Identity
 		} else {
 			fresh = Multipliers{
