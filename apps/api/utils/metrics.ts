@@ -22,6 +22,7 @@ import { db, schema } from '@trackarr/db';
 import { sql, eq, isNull, and, or, gt, ne, lte } from 'drizzle-orm';
 import { redis } from './server';
 import { isInviteEnabled, isRegistrationOpen, getRequire2FAScope } from './settings';
+import { rollupActivePeerCounts } from './peerStats';
 
 const PEER_CACHE_MS = parseInt(
   process.env.METRICS_PEER_CACHE_MS || '30000',
@@ -289,48 +290,11 @@ let cachedSwarm: SwarmCounts | null = null;
 let swarmInflight: Promise<SwarmCounts> | null = null;
 
 async function scanSwarmCounts(): Promise<SwarmCounts> {
-  const keyPrefix = process.env.REDIS_KEY_PREFIX || 'ot:';
   const SCAN_TIME_BUDGET_MS = 30_000;
-  const deadline = Date.now() + SCAN_TIME_BUDGET_MS;
-
-  const uniquePeers = new Set<string>();
-  const uniqueSeeders = new Set<string>();
-
-  let cursor = '0';
-  do {
-    if (Date.now() > deadline) break;
-    const [nextCursor, keys] = await redis.scan(
-      cursor,
-      'MATCH',
-      `${keyPrefix}peers:*`,
-      'COUNT',
-      100
-    );
-    cursor = nextCursor;
-    for (const fullKey of keys) {
-      const key = fullKey.startsWith(keyPrefix)
-        ? fullKey.slice(keyPrefix.length)
-        : fullKey;
-      const peersData = await redis.hgetall(key);
-      for (const json of Object.values(peersData)) {
-        try {
-          const peer = JSON.parse(json as string);
-          const peerKey = `${peer.ip}:${peer.port}`;
-          uniquePeers.add(peerKey);
-          if (peer.isSeeder) uniqueSeeders.add(peerKey);
-        } catch {
-          // ignore malformed entries
-        }
-      }
-    }
-  } while (cursor !== '0');
-
-  return {
-    peers: uniquePeers.size,
-    seeders: uniqueSeeders.size,
-    leechers: uniquePeers.size - uniqueSeeders.size,
-    collectedAt: Date.now(),
-  };
+  const counts = await rollupActivePeerCounts({
+    deadline: Date.now() + SCAN_TIME_BUDGET_MS,
+  });
+  return { ...counts, collectedAt: Date.now() };
 }
 
 async function getSwarmCounts(): Promise<SwarmCounts> {

@@ -2,6 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { desc, asc, gte, sql } from 'drizzle-orm';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { redis } from '~~/utils/server';
+import { rollupActivePeerCounts } from '~~/utils/peerStats';
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
@@ -48,36 +49,12 @@ export default defineEventHandler(async (event) => {
     );
     const dbSize = Number(dbSizeResult[0]?.pg_database_size) || 0;
 
-    // Peers & Seeders (SCAN) - count unique peers by ip:port
-    const uniquePeers = new Set<string>();
-    const uniqueSeeders = new Set<string>();
-    let cursor = '0';
-    do {
-      const [nextCursor, keys] = await redis.scan(
-        cursor,
-        'MATCH',
-        `${keyPrefix}peers:*`,
-        'COUNT',
-        100
-      );
-      cursor = nextCursor;
-      for (const fullKey of keys) {
-        const key = fullKey.startsWith(keyPrefix)
-          ? fullKey.slice(keyPrefix.length)
-          : fullKey;
-        const peersData = await redis.hgetall(key);
-        for (const json of Object.values(peersData)) {
-          try {
-            const peer = JSON.parse(json as string);
-            const peerKey = `${peer.ip}:${peer.port}`;
-            uniquePeers.add(peerKey);
-            if (peer.isSeeder) uniqueSeeders.add(peerKey);
-          } catch (e) {}
-        }
-      }
-    } while (cursor !== '0');
-    const peersCount = uniquePeers.size;
-    const seedersCount = uniqueSeeders.size;
+    // Peers & Seeders — shared rollup, dedup by `(ip, port)`, filtered
+    // to peers that re-announced within the active window so the live
+    // data point isn't inflated by stale entries from the 24 h peer TTL.
+    const counts = await rollupActivePeerCounts();
+    const peersCount = counts.peers;
+    const seedersCount = counts.seeders;
 
     // Always append a 'live' data point to show current real-time stats
     // This ensures the chart always reflects the current state

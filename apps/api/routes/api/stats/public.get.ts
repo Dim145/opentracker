@@ -1,7 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { sql } from 'drizzle-orm';
-import { redis } from '~~/utils/server';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { rollupActivePeerCounts } from '~~/utils/peerStats';
 
 /**
  * GET /api/stats/public
@@ -74,54 +74,22 @@ async function computeStats(): Promise<PublicStats> {
     .from(schema.users);
   const totalUploaded = totalUploadedResult[0]?.total ?? '0';
 
-  const keyPrefix = process.env.REDIS_KEY_PREFIX || 'ot:';
-  const uniquePeers = new Set<string>();
-  const uniqueSeeders = new Set<string>();
-  let cursor = '0';
-
-  try {
-    do {
-      const [nextCursor, keys] = await redis.scan(
-        cursor,
-        'MATCH',
-        `${keyPrefix}peers:*`,
-        'COUNT',
-        100
-      );
-      cursor = nextCursor;
-      for (const fullKey of keys) {
-        const key = fullKey.startsWith(keyPrefix)
-          ? fullKey.slice(keyPrefix.length)
-          : fullKey;
-        const peersData = await redis.hgetall(key);
-        for (const json of Object.values(peersData)) {
-          try {
-            const peer = JSON.parse(json as string);
-            const peerKey = `${peer.ip}:${peer.port}`;
-            uniquePeers.add(peerKey);
-            if (peer.isSeeder) uniqueSeeders.add(peerKey);
-          } catch {
-            // Ignore malformed peer payload
-          }
-        }
-      }
-    } while (cursor !== '0');
-  } catch (err) {
-    console.warn('[Stats/public] Redis scan failed:', (err as Error).message);
-  }
+  // Active-swarm rollup — shared helper, dedup by `(ip, port)`,
+  // filtered to peers that re-announced within the active window.
+  const counts = await rollupActivePeerCounts();
 
   const now = Date.now();
   return {
     cached: {
       torrents: totalTorrents,
-      peers: uniquePeers.size,
-      seeders: uniqueSeeders.size,
+      peers: counts.peers,
+      seeders: counts.seeders,
       totalUploaded,
       updatedAt: now,
     },
     live: {
       torrents: totalTorrents,
-      peers: uniquePeers.size,
+      peers: counts.peers,
     },
     // Protocol matrix mirrored from the tracker container's wiring.
     // HTTP is always on; UDP is opt-in via `TRACKER_UDP_ENABLED` on

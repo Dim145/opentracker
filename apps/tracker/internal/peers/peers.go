@@ -24,6 +24,28 @@ import (
 // without making misconfiguration catastrophic.
 const minPeerTTL = 15 * time.Minute
 
+// activeListWindow is the freshness window applied to peers we
+// return to clients in `List()` (which feeds the bencoded announce
+// response and the `(seeders, leechers)` counts). It's intentionally
+// shorter than `peerTTL`:
+//
+//   - peerTTL bounds how long a peer entry sits in Redis. We want
+//     it long (default 24 h) so a client's `prev` snapshot is still
+//     around when it re-announces after a sleep / restart, otherwise
+//     `handler.go` zeroes the upload/download delta for that gap.
+//
+//   - activeListWindow is what we consider "currently in the swarm"
+//     for the purpose of advertising peers to other clients. If we
+//     reused peerTTL here, every old session (with a new peer_id /
+//     port after a qBittorrent restart) would stay in the response
+//     for 24 h, and the requesting client would burn its connection
+//     budget on ghosts that don't answer.
+//
+// Two announce intervals (2 × 30 min = 60 min) is the standard
+// "missed one beat" cutoff — a peer that hasn't re-announced in
+// that window is treated as gone.
+const activeListWindow = 60 * time.Minute
+
 // PeerData is what we store in Redis. Field names match the JSON shape used
 // by the Node implementation so callers (apps/api) keep working.
 //
@@ -149,7 +171,12 @@ func (s *Store) Remove(ctx context.Context, infoHashHex, peerIDHex string) error
 	return err
 }
 
-// List returns all live peers in a swarm. Stale peers are pruned in-band.
+// List returns the peers we consider currently in the swarm. Stale
+// peers (older than `peerTTL`) are pruned from Redis in-band; peers
+// that are still inside `peerTTL` but older than `activeListWindow`
+// are skipped from the returned slice — they stay in Redis for the
+// delta computation in `server/handler.go` but aren't advertised to
+// other clients.
 func (s *Store) List(ctx context.Context, infoHashHex string) ([]*PeerData, error) {
 	key := s.peerKey(infoHashHex)
 	all, err := s.client.HGetAll(ctx, key).Result()
@@ -159,14 +186,22 @@ func (s *Store) List(ctx context.Context, infoHashHex string) ([]*PeerData, erro
 	out := make([]*PeerData, 0, len(all))
 	now := time.Now().UnixMilli()
 	stale := make([]string, 0)
+	activeCutoffMs := activeListWindow.Milliseconds()
 	for pid, raw := range all {
 		p := &PeerData{}
 		if err := json.Unmarshal([]byte(raw), p); err != nil {
 			stale = append(stale, pid)
 			continue
 		}
-		if now-p.UpdatedAt > s.peerTTL.Milliseconds() {
+		age := now - p.UpdatedAt
+		if age > s.peerTTL.Milliseconds() {
+			// Truly expired — drop from Redis.
 			stale = append(stale, pid)
+			continue
+		}
+		if age > activeCutoffMs {
+			// Still useful for delta tracking but not for the
+			// announce response — silently skip.
 			continue
 		}
 		out = append(out, p)
