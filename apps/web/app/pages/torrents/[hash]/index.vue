@@ -1048,11 +1048,12 @@ async function confirmDelete() {
   /* Local hue spectrum. The page distributes distinct colours so no
      two adjacent UI elements ever share a tint — the eye reads each
      chip/button as its own identity instead of "another blue".
-     Violet / rose are scoped here; the rest pull from the global
-     semantic vars (online/warning/danger/info/accent). */
+     Violet / rose / teal are scoped here; the rest pull from the
+     global semantic vars (online/warning/danger/info/accent). */
   --release-purple: 167 139 250;
   --release-cyan:   var(--info);
   --release-rose:   244 114 182;
+  --release-teal:   45 212 191;
 }
 
 /* ── Atmospheric background ──────────────────────────────────────
@@ -1867,19 +1868,26 @@ async function confirmDelete() {
   align-self: flex-start;
 }
 
-.stat--seeders { --rail: var(--online); }
-.stat--leechers { --rail: var(--danger); }
+/* One hue per metric — each chip carries its own semantic colour so
+   the row reads as five distinct readings, not five almost-identical
+   panels. Stats share the convention green=seeders / red=leechers /
+   cyan=completed with most tracker UIs, which is intentional:
+   breaking it would cost more in recognition than it would buy us in
+   palette dispersion. */
+.stat--seeders   { --rail: var(--online); }
+.stat--leechers  { --rail: var(--danger); }
 .stat--completed { --rail: var(--info); }
-/* Size is a fact, not a status, so it stays neutral — that keeps
-   cyan reserved for the Completed counter on the row and avoids
-   doubling up the same blue twice across two adjacent chips. */
-.stat--size { --rail: var(--fg-muted); }
-.stat--volume { --rail: var(--release-purple); }
-.stat.is-zero {
-  background: rgb(var(--bg-elevated) / 0.5);
-  border-color: rgb(var(--line-default) / 0.85);
+.stat--size      { --rail: var(--release-teal); }
+.stat--volume    { --rail: var(--release-purple); }
+
+/* Zero-value variant: keep the rail tint on the chip frame so the
+   reader still parses "seeders, currently 0" rather than five
+   identical grey panels, but mute only the icon glow + the number
+   so the "no activity" signal still lands. */
+.stat.is-zero .stat-icon {
+  opacity: 0.55;
+  filter: none;
 }
-.stat.is-zero .stat-icon { color: rgb(var(--fg-muted)); filter: none; }
 .stat.is-zero .stat-num {
   color: rgb(var(--fg-faint));
   font-weight: 700;
