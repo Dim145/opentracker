@@ -615,6 +615,14 @@ const notifTypes = [
   'new_report_filed',
   'report_actioned',
   'trusted_device_added',
+  // ── Social graph (follow) ─────────────────────────────────
+  'followed_user_upload',
+  // ── Upload-request bounty board ───────────────────────────
+  'request_filled',
+  'request_validated',
+  'request_rejected',
+  'request_auto_validated',
+  'request_new_comment',
 ];
 
 // 8 categories grouping the 35 events. Each carries an icon + a
@@ -688,6 +696,26 @@ const categories: EventCategory[] = [
       'forum_reply_on_my_topic',
       'comment_deleted_by_staff',
       'forum_post_deleted_by_staff',
+      // The follow-graph upload ping lands here too — it's
+      // socially-motivated content (someone you subscribe to
+      // released), not a moderation event.
+      'followed_user_upload',
+    ],
+  },
+  // Bounty board — every state-change on a request someone
+  // staked points on. Own category because the audience differs
+  // from `social`: the requester / filler relationship is one-
+  // to-one, not a thread.
+  {
+    key: 'requests',
+    icon: 'ph:megaphone-bold',
+    color: '#d4a734',
+    types: [
+      'request_filled',
+      'request_validated',
+      'request_rejected',
+      'request_auto_validated',
+      'request_new_comment',
     ],
   },
   {
@@ -730,6 +758,13 @@ const samplePayload = {
   amount: 100,
   currentIp: '192.0.2.1',
   previousIp: '192.0.2.42',
+  // Bounty-board placeholders so the preview lines render real
+  // text instead of `{requestTitle}` braces.
+  requestTitle: 'Looking for: complete Cowboy Bebop run',
+  requesterUsername: 'user_carol',
+  fillerUsername: 'uploader_eve',
+  authorUsername: 'user_frank',
+  rewardPoints: 200,
 };
 
 // ── Channel sets ──────────────────────────────────────────────

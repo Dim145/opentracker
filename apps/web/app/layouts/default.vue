@@ -271,14 +271,6 @@
                 </NuxtLink>
                 <div class="py-1">
                   <NuxtLink
-                    to="/requests"
-                    class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
-                    @click="showUserMenu = false"
-                  >
-                    <Icon name="ph:megaphone-bold" class="text-amber-500" />
-                    {{ $t('nav.requests') }}
-                  </NuxtLink>
-                  <NuxtLink
                     to="/favorites"
                     class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
                     @click="showUserMenu = false"
@@ -548,14 +540,6 @@
 
         <!-- Footer actions -->
         <div class="mt-auto border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex flex-col">
-          <NuxtLink
-            to="/requests"
-            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
-            @click="showMobileNav = false"
-          >
-            <Icon name="ph:megaphone-bold" class="text-lg flex-shrink-0 text-amber-500" />
-            <span>{{ $t('nav.requests') }}</span>
-          </NuxtLink>
           <NuxtLink
             to="/favorites"
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
@@ -917,6 +901,7 @@ async function refreshStats() {
 // would muddy the meaning of the link.
 const navLinks = [
   { to: '/torrents', labelKey: 'nav.torrents', icon: 'ph:files', adminOnly: false },
+  { to: '/requests', labelKey: 'nav.requests', icon: 'ph:megaphone-bold', adminOnly: false },
   { to: '/forum', labelKey: 'nav.forum', icon: 'ph:chat-centered-text', adminOnly: false },
   { to: '/admin', labelKey: 'nav.admin', icon: 'ph:shield-check', adminOnly: true },
   { to: '/mod', labelKey: 'nav.mod', icon: 'ph:shield', modOnly: true },
