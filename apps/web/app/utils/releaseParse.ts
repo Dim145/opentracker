@@ -456,13 +456,17 @@ export function parseNfoForTags(
   // `{0,256}` keeps a runaway unclosed bracket from eating the rest
   // of the document — without it, a stray `[` could swallow
   // everything up to the next `]` even when that's miles away.
+  //
+  // Entity decoding order matters: `&amp;` is decoded *last* so an
+  // input like `&amp;lt;` (the literal user-typed sequence) stays
+  // as `&lt;` instead of cascading into a double-unescape to `<`.
   const plain = nfo
     .replace(/\[[^\]]{0,256}\]/g, ' ')
     .replace(/<[^>]{0,256}>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&')
     .replace(/\s+/g, ' ');
   if (!plain.trim()) return [];
 

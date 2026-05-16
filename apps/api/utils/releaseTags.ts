@@ -216,13 +216,16 @@ export function facetsFromTitle(name: string | null | undefined): ReleaseFacets 
  *  runs. */
 export function facetsFromNfo(nfo: string | null | undefined): ReleaseFacets {
   if (!nfo) return { extras: [] };
+  // Entity decoding order matters: `&amp;` is decoded *last* so an
+  // input like `&amp;lt;` stays as `&lt;` instead of cascading into
+  // a double-unescape to `<` (CodeQL js/double-escaping).
   const plain = nfo
     .replace(/\[[^\]]{0,128}\]/g, ' ') // strip BBCode tags
     .replace(/<[^>]{0,256}>/g, ' ')    // strip any HTML tags
     .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&')
     .replace(/\s+/g, ' ');
   return detectFacets(plain);
 }
