@@ -1,5 +1,16 @@
 <template>
   <div class="me-page">
+    <!-- ── Atmospheric background ──────────────────────────────────
+         Same vocabulary as /torrents/:hash and /users/:id — two
+         soft blobs (accent + violet) plus a grain overlay. Lets
+         /me read as part of the same editorial product instead of
+         a flat utility page. -->
+    <div class="me-aura" aria-hidden="true">
+      <span class="aura-blob aura-blob--a" />
+      <span class="aura-blob aura-blob--b" />
+      <span class="aura-grain" />
+    </div>
+
     <!-- ── Hero ───────────────────────────────────────────────── -->
     <section v-if="profile" class="hero">
       <div class="hero-shell">
@@ -13,7 +24,10 @@
               <span>{{ profile.username.slice(0, 2).toUpperCase() }}</span>
             </div>
             <div class="hero-id-body">
-              <p class="hero-eyebrow">{{ $t('me.title') }}</p>
+              <p class="hero-eyebrow">
+                <span class="hero-eyebrow-mark" aria-hidden="true">§</span>
+                <span>{{ $t('me.title') }}</span>
+              </p>
               <h1 class="hero-title">
                 {{ profile.displayName || profile.username }}
               </h1>
@@ -166,9 +180,9 @@
       section above Credentials it stays one click away without
       shoving the rest of the page down.
     -->
-    <section v-if="profile" class="bonus-vault">
+    <section v-if="profile" class="bonus-vault section--bonus">
       <header class="section-head">
-        <span class="section-number">01</span>
+        <span class="section-number" aria-hidden="true">§</span>
         <h2 class="section-title">{{ $t('me.bonus.historyTitle') }}</h2>
         <span class="section-rule" />
       </header>
@@ -209,7 +223,7 @@
           :aria-busy="bonusHistoryPending"
         >
           <header class="bv-head">
-            <span class="bv-head-num">02·a</span>
+            <span class="bv-head-num" aria-hidden="true">§</span>
             <span class="bv-head-rule" aria-hidden="true" />
             <h3 class="bv-head-title">{{ $t('me.bonus.history.title') }}</h3>
           </header>
@@ -282,9 +296,9 @@
     </section>
 
     <!-- ── Tracker info card ──────────────────────────────────── -->
-    <section v-if="profile" class="tracker-card">
+    <section v-if="profile" class="tracker-card section--credentials">
       <header class="section-head">
-        <span class="section-number">02</span>
+        <span class="section-number" aria-hidden="true">§</span>
         <h2 class="section-title">{{ $t('me.credentials.title') }}</h2>
         <span class="section-rule" />
       </header>
@@ -397,9 +411,9 @@
     </section>
 
     <!-- ── Tabs ───────────────────────────────────────────────── -->
-    <section v-if="profile" class="tabs-shell">
+    <section v-if="profile" class="tabs-shell section--activity">
       <header class="section-head">
-        <span class="section-number">03</span>
+        <span class="section-number" aria-hidden="true">§</span>
         <h2 class="section-title">{{ $t('me.activity.title') }}</h2>
         <span class="section-rule" />
       </header>
@@ -1019,26 +1033,38 @@ const permissionPillLabel = computed(() => {
 // Avatar — deterministic accent hue from username, or the highest-
 // priority role's colour when one is attached. `roles[0]` is already
 // the top-priority entry thanks to the API's ORDER BY priority desc.
+// Stable gradient palette — matches /users/:id so the same monogram
+// renders the same way regardless of which surface you see it on.
+// Falls back to the top role's colour when one is attached so an
+// admin/mod's brand colour overrides the hash.
+const meAvatarGradients: Array<[string, string]> = [
+  ['#a78bfa', '#f472b6'], // purple → rose
+  ['#38bdf8', '#2dd4bf'], // cyan → teal
+  ['#f472b6', '#eab308'], // rose → amber
+  ['#a78bfa', '#38bdf8'], // purple → cyan
+  ['#2dd4bf', '#22c55e'], // teal → green
+  ['#22c55e', '#eab308'], // green → amber
+  ['#818cf8', '#a78bfa'], // indigo → purple
+];
+
 const avatarStyle = computed(() => {
   const p = profile.value;
   if (!p) return {};
   const top = p.roles?.[0];
   if (top?.color) {
     return {
-      background: `${top.color}24`,
-      color: top.color,
-      borderColor: `${top.color}66`,
+      background: `linear-gradient(135deg, ${top.color}, ${top.color}cc)`,
     };
   }
   let hash = 0;
   for (let i = 0; i < p.username.length; i++) {
-    hash = (hash * 31 + p.username.charCodeAt(i)) | 0;
+    hash = ((hash << 5) - hash + p.username.charCodeAt(i)) | 0;
   }
-  const hue = Math.abs(hash) % 360;
+  const [from, to] = meAvatarGradients[
+    Math.abs(hash) % meAvatarGradients.length
+  ]!;
   return {
-    background: `hsl(${hue} 45% 18%)`,
-    color: `hsl(${hue} 70% 70%)`,
-    borderColor: `hsl(${hue} 50% 32%)`,
+    background: `linear-gradient(135deg, ${from} 0%, ${to} 100%)`,
   };
 });
 
@@ -1284,12 +1310,90 @@ function formatDuration(seconds: number) {
 
 <style scoped>
 .me-page {
+  position: relative;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 0.25rem 4rem;
+  padding: 2rem 0.25rem 4rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  isolation: isolate;
+  /* Local hue palette shared with /torrents/:hash and /users/:id —
+     keeps the editorial vocabulary threaded across surfaces. */
+  --release-purple: 167 139 250;
+  --release-cyan:   var(--info);
+  --release-rose:   244 114 182;
+  --release-teal:   45 212 191;
+}
+
+/* ── Atmospheric background ─────────────────────────────────────
+   Full-bleed aura with the standard "100 vw + margin shift" trick
+   so the gradient escapes the centred 1280-px wrapper and the page
+   reads edge-to-edge on wide viewports. */
+.me-aura {
+  position: absolute;
+  top: -2rem;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
+  height: 70vh;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.me-aura::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 30% 0%,
+      rgba(56, 89, 178, 0.28),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 80% 0%,
+      rgb(var(--release-purple) / 0.2),
+      transparent 70%
+    );
+}
+.aura-blob {
+  position: absolute;
+  display: block;
+  filter: blur(80px);
+  opacity: 0.38;
+  border-radius: 50%;
+}
+.aura-blob--a {
+  width: 520px;
+  height: 520px;
+  top: -180px;
+  left: 5%;
+  background: radial-gradient(
+    circle,
+    rgb(var(--release-teal) / 0.5),
+    transparent 65%
+  );
+}
+.aura-blob--b {
+  width: 420px;
+  height: 420px;
+  top: 60px;
+  right: 6%;
+  background: radial-gradient(
+    circle,
+    rgb(var(--release-purple) / 0.55),
+    transparent 65%
+  );
+}
+.aura-grain {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 3px 3px;
+  opacity: 0.55;
+  mix-blend-mode: overlay;
 }
 
 /* ─── Hero ──────────────────────────────────────────────────── */
@@ -1350,18 +1454,39 @@ function formatDuration(seconds: number) {
   gap: 1.25rem;
 }
 .hero-avatar {
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: 0.6rem;
+  position: relative;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 0.7rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 1.4rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  border: 1px solid;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: rgba(255, 255, 255, 0.95);
   flex-shrink: 0;
+  isolation: isolate;
+  box-shadow:
+    0 14px 38px -16px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 -20px 30px -16px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.hero-avatar::after {
+  /* Diagonal sheen — gives the gradient block a soft-lit glass card
+     vibe rather than a flat swatch. Mirrors the /users/:id avatar. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.18),
+    transparent 55%
+  );
+  pointer-events: none;
 }
 .hero-id-body {
   display: flex;
@@ -1370,23 +1495,38 @@ function formatDuration(seconds: number) {
   min-width: 0;
 }
 .hero-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.22em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: rgb(var(--fg-muted));
+  color: rgb(var(--release-cyan));
   margin: 0;
 }
+.hero-eyebrow-mark {
+  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-style: italic;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgb(var(--release-cyan));
+  line-height: 0;
+  transform: translateY(2px);
+  filter: drop-shadow(0 0 8px rgb(var(--release-cyan) / 0.4));
+}
 .hero-title {
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: clamp(1.75rem, 4vw, 2.75rem);
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: -0.025em;
-  text-transform: uppercase;
   margin: 0;
-  line-height: 1;
+  line-height: 1.05;
   color: rgb(var(--fg-strong));
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 .hero-handle {
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -1656,29 +1796,41 @@ function formatDuration(seconds: number) {
   transform: translateX(1px);
 }
 
-/* ─── Sections ────────────────────────────────────────────── */
+/* ─── Sections ──────────────────────────────────────────────
+   Switched from the 01/02/03 chip pattern to the § Fraunces-italic
+   chapter mark used by /torrents/:hash and /users/:id. Each parent
+   section carries its own `--section-tint` so the mark and the
+   horizontal rule pick up a different hue per chapter — gold for
+   bonus, cyan for credentials, violet for activity.
+*/
 .section-head {
   display: flex;
   align-items: center;
-  gap: 0.875rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+  padding-bottom: 0.4rem;
 }
 .section-number {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: rgb(var(--fg-muted));
-  background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
-  padding: 0.2rem 0.5rem;
+  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.85rem;
+  line-height: 1;
+  color: rgb(var(--section-tint, var(--accent)));
+  transform: translateY(-2px);
+  flex-shrink: 0;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  filter: drop-shadow(0 0 10px rgb(var(--section-tint, var(--accent)) / 0.35));
 }
 .section-title {
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+  letter-spacing: -0.01em;
+  text-transform: none;
   color: rgb(var(--fg-strong));
   margin: 0;
 }
@@ -1686,11 +1838,18 @@ function formatDuration(seconds: number) {
   flex: 1;
   height: 1px;
   background: linear-gradient(
-    to right,
-    rgb(var(--line-default)),
-    rgb(var(--line-default) / 0)
+    90deg,
+    rgb(var(--section-tint, var(--line-default)) / 0.4),
+    transparent 75%
   );
+  min-width: 1rem;
 }
+
+/* Per-section accent tints — fed to `--section-tint` so the chapter
+   mark and the rule line take a distinct hue per section. */
+.section--bonus       { --section-tint: var(--warning); }
+.section--credentials { --section-tint: var(--release-cyan); }
+.section--activity    { --section-tint: var(--release-purple); }
 
 /* ─── Bonus reserve ────────────────────────────────────────── */
 /*
@@ -1850,36 +2009,43 @@ function formatDuration(seconds: number) {
   opacity: 1;
 }
 
+/* Sub-section header inside the bonus history drawer — same § mark
+   as the page sections but at a smaller scale (the drawer is nested
+   under the main "Bonus" section, so its mark should read as a
+   sub-mark visually). */
 .bv-head {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   margin-bottom: 0.85rem;
 }
 .bv-head-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #d4a734;
+  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: rgb(var(--warning));
+  transform: translateY(-1px);
+  filter: drop-shadow(0 0 6px rgb(var(--warning) / 0.35));
 }
 .bv-head-rule {
   flex: 0 0 1.5rem;
   height: 1px;
   background: linear-gradient(
-    to right,
-    rgb(var(--fg-default) / 0.4),
-    rgb(var(--fg-default) / 0)
+    90deg,
+    rgb(var(--warning) / 0.35),
+    transparent 80%
   );
 }
 .bv-head-title {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1rem;
+  letter-spacing: -0.005em;
+  text-transform: none;
   color: rgb(var(--fg-strong));
 }
 
