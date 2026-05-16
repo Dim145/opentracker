@@ -19,8 +19,8 @@ import {
   lookupMetadata,
   normalizeSourceId,
   type LookupSource,
-  type MediaTypeHint,
 } from '~~/utils/metadata';
+import type { MediaTypeHint } from '~~/utils/metadata/types';
 
 const querySchema = z.object({
   source: z.enum(ALL_SOURCE_IDS as [LookupSource, ...LookupSource[]]),

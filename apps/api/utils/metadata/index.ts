@@ -20,14 +20,11 @@ import type {
   SearchOptions,
 } from './types';
 
-export type {
-  LookupOptions,
-  MediaMetadata,
-  MediaSearchHit,
-  MediaSourceId,
-  MediaTypeHint,
-  SearchOptions,
-} from './types';
+// Types live in `./types` and are imported from there by callers
+// that need them. Re-exporting them through this file would make
+// Nitro auto-import scan both modules and warn about duplicate
+// identifiers (the "Duplicated imports" build warning). Keeping
+// the façade runtime-only is the cleanest cut.
 
 const REGISTRY: Record<MediaSourceId, MediaSource> = {
   tmdb: tmdbSource,

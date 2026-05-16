@@ -169,6 +169,13 @@ export default defineNuxtConfig({
     clientBundle: {
       scan: true,
       includeCustomCollections: true,
+      // Lifted from the default 256 KB. @nuxt/icon warns when the
+      // bundle crosses 75 % of this ceiling; the current set (425
+      // icons, ~194 KB) sat right at the edge and noised up every
+      // docker build with "close to the limit". 320 KB leaves the
+      // headroom for the next half-dozen new icons before we have
+      // to revisit whether they really need to be client-bundled.
+      sizeLimitKb: 320,
       icons: [
         // Theme toggle (default.vue)
         'ph:sun',
