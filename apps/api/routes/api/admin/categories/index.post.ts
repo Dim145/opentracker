@@ -55,6 +55,7 @@ export default defineEventHandler(async (event) => {
         newznabId: body.newznabId ?? null,
         isAdult: body.isAdult ?? false,
         type: body.type ?? null,
+        icon: body.icon ?? null,
         createdAt: new Date(),
       })
       .returning();

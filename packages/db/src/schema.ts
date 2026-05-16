@@ -577,6 +577,13 @@ export const categories = pgTable(
     // 'book', …) without a schema migration. Null = use the
     // existing newznab / slug heuristic.
     type: text('type'), // 'movie' | 'tv' | 'game' | 'book' | null
+    // Optional Phosphor icon name (e.g. "ph:film-strip-bold") that
+    // overrides the type-derived default when an operator wants a
+    // category-specific glyph in torrent rows. Stored as the bare
+    // icon-set name string; the frontend renders it via <Icon>.
+    // Null falls back to the `type`-based mapping (movie → film,
+    // tv → television, …) and finally to a generic file glyph.
+    icon: text('icon'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [index('categories_parent_idx').on(table.parentId)]

@@ -1599,7 +1599,15 @@
         "newznabIdHintShort": "Plage standard 1000–8999 · personnalisée 100000–199999. Vide = ID synthétique.",
         "mediaType": "Type de média",
         "mediaTypeHint": "Détermine l'espace TMDb. Auto se rabat sur l'heuristique slug + Newznab.",
-        "mediaTypeHintShort": "Espace TMDb. Auto = heuristique slug + Newznab."
+        "mediaTypeHintShort": "Espace TMDb. Auto = heuristique slug + Newznab.",
+        "icon": "Icône",
+        "iconPlaceholder": "ph:film-strip-bold",
+        "iconHint": "Cliquez pour choisir, ou tapez un nom d'icône Phosphor (ex. « ph:film-strip-bold »). Vide → icône dérivée du type de média.",
+        "iconSearchPlaceholder": "Rechercher une icône…",
+        "iconEmpty": "Aucune icône ne correspond.",
+        "iconClear": "Effacer",
+        "iconFooterHint": "Ou tapez un nom Phosphor.",
+        "iconToggleAria": "Ouvrir le sélecteur d'icônes"
       },
       "type": {
         "auto": "Auto",

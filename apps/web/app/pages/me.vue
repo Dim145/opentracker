@@ -456,7 +456,7 @@
             class="row row--upload"
           >
             <div class="row-icon">
-              <Icon name="ph:file-archive-bold" />
+              <Icon :name="getCategoryIcon(t.category)" />
             </div>
             <div class="row-body">
               <div class="row-name-line">
@@ -674,6 +674,7 @@
 
 <script setup lang="ts">
 import { formatSize, formatDay } from '~/utils/format';
+import { getCategoryIcon } from '~/utils/categoryIcon';
 import TorrentModerationBadge from '~/components/torrent/TorrentModerationBadge.vue';
 
 definePageMeta({ title: 'My profile' });
@@ -1114,7 +1115,12 @@ interface UploadRow {
   name: string;
   size: number;
   createdAt: string;
-  category?: { id: string; name: string } | null;
+  category?: {
+    id: string;
+    name: string;
+    icon?: string | null;
+    type?: string | null;
+  } | null;
   stats?: { seeders: number; leechers: number; completed: number };
   // Pipeline state of the torrent for the current viewer (the user
   // browsing /me sees their own rows so the status mirrors what /me

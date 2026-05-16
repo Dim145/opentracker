@@ -447,9 +447,37 @@
             </p>
           </fieldset>
 
+          <!-- Optional Phosphor icon override. Empty → the type-derived
+               default (movie → film-strip, tv → television, …) wins;
+               filled → the operator's pick takes precedence on every
+               torrent row carrying this category. -->
           <fieldset class="ed-block">
             <header class="ed-block-head">
               <span class="ed-num">{{ editing.id && editing.parentId ? '04' : '05' }}</span>
+              <div class="ed-block-id">
+                <h4>{{ $t('admin.categories.fields.icon') }}</h4>
+              </div>
+            </header>
+            <IconPicker
+              v-model="form.icon"
+              :placeholder="$t('admin.categories.fields.iconPlaceholder')"
+              :search-placeholder="$t('admin.categories.fields.iconSearchPlaceholder')"
+              :empty-label="$t('admin.categories.fields.iconEmpty')"
+              :clear-label="$t('admin.categories.fields.iconClear')"
+              :footer-hint="$t('admin.categories.fields.iconFooterHint')"
+              :toggle-aria-label="$t('admin.categories.fields.iconToggleAria')"
+              :fallback-icon="iconPreviewName"
+              :disabled="saving"
+              :maxlength="50"
+            />
+            <p class="ed-hint">
+              {{ $t('admin.categories.fields.iconHint') }}
+            </p>
+          </fieldset>
+
+          <fieldset class="ed-block">
+            <header class="ed-block-head">
+              <span class="ed-num">{{ editing.id && editing.parentId ? '05' : '06' }}</span>
               <div class="ed-block-id">
                 <h4>{{ $t('admin.categories.adult.title') }}</h4>
               </div>
@@ -517,6 +545,8 @@
 
 <script setup lang="ts">
 import Modal from '~/components/Modal.vue';
+import IconPicker from '~/components/IconPicker.vue';
+import { getCategoryIcon } from '~/utils/categoryIcon';
 
 const { t } = useI18n();
 
@@ -528,6 +558,7 @@ interface Category {
   newznabId: number | null;
   isAdult?: boolean;
   type?: 'movie' | 'tv' | 'game' | 'book' | null;
+  icon?: string | null;
   createdAt: string;
   subcategories?: Category[];
 }
@@ -699,6 +730,7 @@ interface FormState {
   newznabId: number | null;
   type: MediaType;
   isAdult: boolean;
+  icon: string;
 }
 
 const modalOpen = ref(false);
@@ -709,6 +741,7 @@ const form = reactive<FormState>({
   newznabId: null,
   type: null,
   isAdult: false,
+  icon: '',
 });
 const saving = ref(false);
 const formError = ref<string | null>(null);
@@ -720,6 +753,7 @@ function resetForm() {
   form.newznabId = null;
   form.type = null;
   form.isAdult = false;
+  form.icon = '';
   formError.value = null;
 }
 
@@ -740,6 +774,7 @@ function openEdit(cat: Category) {
   form.newznabId = cat.newznabId ?? null;
   form.type = cat.type ?? null;
   form.isAdult = cat.isAdult ?? false;
+  form.icon = cat.icon ?? '';
   formError.value = null;
   modalOpen.value = true;
   nextTick(() => nameRef.value?.focus());
@@ -764,6 +799,16 @@ const slugPreview = computed(() => {
   return parent ? `${parent.slug}-${base}` : base;
 });
 
+// Live preview of the icon the row would render with — shows what
+// the operator typed, falling back to the type-derived default if
+// the field is empty so the picker box is never blank.
+const iconPreviewName = computed(() =>
+  getCategoryIcon({
+    icon: form.icon.trim() || null,
+    type: form.type,
+  })
+);
+
 const canSubmit = computed(
   () => form.name.trim().length > 0 && !saving.value
 );
@@ -781,6 +826,7 @@ async function submit() {
           newznabId: form.newznabId ?? null,
           type: form.type,
           isAdult: form.isAdult,
+          icon: form.icon.trim() || null,
         },
       });
       notifications.success(t('admin.categories.toasts.updated'));
@@ -793,6 +839,7 @@ async function submit() {
           newznabId: form.newznabId ?? null,
           type: form.type,
           isAdult: form.isAdult,
+          icon: form.icon.trim() || null,
         },
       });
       if (form.parentId) {
@@ -1747,6 +1794,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   letter-spacing: 0.04em;
 }
+
 
 /* Wrap the native select so we can layer our own caret on top
    without losing the OS dropdown popup. */

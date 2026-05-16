@@ -148,7 +148,10 @@ export const adminCategorySchema = z.object({
     .nullable()
     .optional(),
   description: z.string().max(500).optional(),
-  icon: z.string().max(50).optional(),
+  // Optional Phosphor icon name override; accepts null so the admin
+  // form can clear a previously-set glyph and fall back to the
+  // type-derived default.
+  icon: z.string().max(50).nullable().optional(),
   // Marks the row as part of the gated XXX subtree.
   isAdult: z.boolean().optional(),
   // Canonical media type. 'movie' / 'tv' route to TMDb; 'game'

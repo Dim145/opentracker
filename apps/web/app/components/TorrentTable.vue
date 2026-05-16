@@ -20,7 +20,7 @@
     >
       <div class="flex items-start gap-2">
         <Icon
-          name="ph:file-zip"
+          :name="getCategoryIcon(torrent.category)"
           class="text-text-muted text-base shrink-0 mt-0.5"
         />
         <div class="flex-1 min-w-0">
@@ -149,7 +149,7 @@
         <td>
           <div class="flex items-center gap-2 flex-wrap">
             <Icon
-              name="ph:file-zip"
+              :name="getCategoryIcon(torrent.category)"
               class="text-text-muted text-base shrink-0"
             />
             <span
@@ -227,6 +227,7 @@
 
 <script setup lang="ts">
 import { withWrapHints } from '~/utils/displayTitle';
+import { getCategoryIcon } from '~/utils/categoryIcon';
 
 interface TorrentTag {
   id: string;
@@ -245,6 +246,9 @@ interface TorrentWithStats {
     id: string;
     name: string;
     slug: string;
+    icon?: string | null;
+    type?: string | null;
+    parentId?: string | null;
   };
   tags?: TorrentTag[];
   stats: {

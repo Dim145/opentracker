@@ -72,6 +72,7 @@ export default defineEventHandler(async (event) => {
           name: row.torrent.category.name,
           slug: row.torrent.category.slug,
           type: row.torrent.category.type,
+          icon: row.torrent.category.icon,
         }
       : null,
     downloadedAt: row.downloadedAt,

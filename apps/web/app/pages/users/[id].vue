@@ -158,6 +158,10 @@
             :style="{ '--entry-delay': `${Math.min(i * 50, 400)}ms` }"
           >
             <NuxtLink :to="`/torrents/${t.infoHash}`" class="upload-link">
+              <Icon
+                :name="getCategoryIcon(t.category)"
+                class="upload-icon"
+              />
               <div class="upload-info">
                 <span class="upload-name">{{ t.name }}</span>
                 <span class="upload-meta">
@@ -223,6 +227,7 @@
 
 <script setup lang="ts">
 import { formatSize, formatDay, formatAge } from '~/utils/format';
+import { getCategoryIcon } from '~/utils/categoryIcon';
 
 const { t } = useI18n();
 
@@ -257,7 +262,11 @@ interface TorrentItem {
   name: string;
   size: number;
   createdAt: string;
-  category?: { name: string } | null;
+  category?: {
+    name: string;
+    icon?: string | null;
+    type?: string | null;
+  } | null;
   stats: { seeders: number; leechers: number; completed: number };
 }
 
@@ -1025,6 +1034,20 @@ useHead({
     rgb(var(--bg-elevated));
   border-color: rgb(var(--release-purple) / 0.55);
   transform: translateX(2px);
+}
+/* Category glyph on the left of each row — picks up
+   `category.icon` when the admin has overridden it, otherwise the
+   type-derived default from `getCategoryIcon`. Stays muted at rest
+   and warms up to the section accent on hover so it tracks the
+   rest of the card. */
+.upload-icon {
+  flex-shrink: 0;
+  font-size: 1.15rem;
+  color: rgb(var(--fg-muted));
+  transition: color 0.18s ease, transform 0.22s ease;
+}
+.upload-link:hover .upload-icon {
+  color: rgb(var(--release-purple));
 }
 .upload-info {
   flex: 1 1 auto;

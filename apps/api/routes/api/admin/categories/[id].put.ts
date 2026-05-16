@@ -21,6 +21,10 @@ const updateCategorySchema = z.object({
   // 'movie' / 'tv' / 'game' / 'book' / null. Sent explicitly null
   // to clear a previously set type and fall back to the heuristic.
   type: z.enum(['movie', 'tv', 'game', 'book']).nullable().optional(),
+  // Optional Phosphor icon name (e.g. "ph:film-strip-bold"). Sent
+  // explicitly null to clear an earlier override and fall back to
+  // the type-derived default.
+  icon: z.string().max(50).nullable().optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -79,6 +83,7 @@ export default defineEventHandler(async (event) => {
       newznabId?: number | null;
       isAdult?: boolean;
       type?: 'movie' | 'tv' | 'game' | 'book' | null;
+      icon?: string | null;
     } = {
       name,
       slug,
@@ -95,6 +100,9 @@ export default defineEventHandler(async (event) => {
     }
     if (body.type !== undefined) {
       updateData.type = body.type;
+    }
+    if (body.icon !== undefined) {
+      updateData.icon = body.icon;
     }
 
     const [category] = await db
