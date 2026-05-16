@@ -2,6 +2,12 @@
 //
 // Wiring is intentionally simple: load config, open Postgres, open Redis,
 // then serve /announce, /scrape, /health on TRACKER_HTTP_PORT.
+//
+// `tracker healthcheck` is a self-contained subcommand that probes
+// http://127.0.0.1:${TRACKER_HTTP_PORT}/health and exits 0/1. The
+// Docker image is `FROM scratch` (no shell, no curl) so the binary
+// has to do this itself; bundling the probe into the same binary
+// keeps the image down to one file.
 package main
 
 import (
@@ -22,6 +28,12 @@ import (
 )
 
 func main() {
+	// Healthcheck subcommand — invoked by the Docker HEALTHCHECK
+	// directive. Hits the local /health endpoint and exits non-zero
+	// if Postgres or Redis are down, or the server isn't listening.
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		os.Exit(runHealthcheck())
+	}
 	// Wrap the text handler with our passkey-masking middleware so
 	// any 32+-char hex run in messages or attribute values is
 	// redacted before reaching stdout — defense-in-depth against pgx
@@ -146,4 +158,34 @@ func main() {
 	if udpSrv != nil {
 		_ = udpSrv.Close()
 	}
+}
+
+// runHealthcheck probes the local /health endpoint and returns
+// the process exit code for the HEALTHCHECK directive.
+//
+// 0 = healthy (HTTP 200), 1 = anything else (network error,
+// non-200 status, timeout). The /health handler already returns
+// 503 when Postgres or Redis are down, so a single status-code
+// check is enough.
+//
+// Reads the same env var the server uses for its listen port so a
+// compose override of `TRACKER_HTTP_PORT` is honoured by the
+// healthcheck without an extra knob.
+func runHealthcheck() int {
+	port := os.Getenv("TRACKER_HTTP_PORT")
+	if port == "" {
+		port = "8080"
+	}
+	url := "http://127.0.0.1:" + port + "/health"
+
+	client := &http.Client{Timeout: 4 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return 1
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return 1
+	}
+	return 0
 }

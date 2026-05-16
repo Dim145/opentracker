@@ -47,4 +47,16 @@ ENV TRACKER_HTTP_PORT=8080
 ENV TRACKER_UDP_PORT=6969
 ENV TRACKER_UDP_ENABLED=true
 
+# Healthcheck — the `healthcheck` subcommand is built into the
+# tracker binary itself, since the scratch image has no shell or
+# curl. It probes http://127.0.0.1:${TRACKER_HTTP_PORT}/health and
+# exits 0/1; the /health handler already returns 503 when Postgres
+# or Redis are unreachable, so a status-code check is enough.
+#
+# start-period gives the binary time to finish its initial DB
+# connection + the once-per-launch warm-up before the first probe
+# can fail the container.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["/tracker", "healthcheck"]
+
 ENTRYPOINT ["/tracker"]
