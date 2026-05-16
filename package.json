@@ -24,7 +24,8 @@
       "node-datachannel": "npm:empty-npm-package@1.0.0",
       "webrtc-polyfill": "npm:empty-npm-package@1.0.0",
       "@thaunknown/simple-peer": "npm:empty-npm-package@1.0.0",
-      "esbuild": "^0.25.0"
+      "esbuild": "^0.25.0",
+      "devalue": "^5.8.1"
     },
     "onlyBuiltDependencies": [
       "@parcel/watcher",
