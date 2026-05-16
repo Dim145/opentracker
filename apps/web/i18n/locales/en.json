@@ -741,7 +741,11 @@
       "titleWithName": "{name} - Profile",
       "eyebrow": "Member",
       "online": "Online",
-      "stats": "Statistics"
+      "stats": "Statistics",
+      "flag": {
+        "label": "Flag",
+        "aria": "Report {'@'}{name} to moderation"
+      }
     }
   },
   "security": {
@@ -2299,7 +2303,26 @@
       "toasts": {
         "resolved": "Report accepted",
         "dismissed": "Report dismissed",
-        "failed": "Action failed"
+        "failed": "Action failed",
+        "bannedDuration": "Account banned · {duration}"
+      },
+      "banPanel": {
+        "aria": "Choose ban duration",
+        "title": "Sanction",
+        "reasonPlaceholder": "Reason shown to the banned user (pre-filled with the report reason)",
+        "hintNoSanction": "The report will close without a sanction. The user retains full access.",
+        "hintTimed": "The user will be banned for {duration}. Login, tracker and Torznab blocked.",
+        "hintPermanent": "Permanent ban. Lift manually only.",
+        "submitResolve": "Close case",
+        "submitBan": "Ban & close",
+        "duration": {
+          "none": "None",
+          "1d": "1 day",
+          "7d": "7 days",
+          "1m": "1 month",
+          "1y": "1 year",
+          "permanent": "Permanent"
+        }
       }
     },
     "tags": {

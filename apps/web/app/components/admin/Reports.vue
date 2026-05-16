@@ -173,30 +173,121 @@
                "closed" indicator chip for the rest. -->
           <div class="dossier-actions">
             <template v-if="report.status === 'pending'">
-              <button
-                type="button"
-                class="act act--dismiss"
-                :disabled="busy === report.id"
-                @click="resolveReport(report.id, 'dismissed')"
+              <!-- Default view: dismiss + accept side by side.
+                   For user-type reports, "accept" opens an inline
+                   ban-duration picker so the moderator picks the
+                   sanction in the same gesture. -->
+              <template v-if="banPanel?.reportId !== report.id">
+                <button
+                  type="button"
+                  class="act act--dismiss"
+                  :disabled="busy === report.id"
+                  @click="resolveReport(report.id, 'dismissed')"
+                >
+                  <Icon name="ph:x-bold" />
+                  <span>{{ $t('admin.reports.dismissAction') }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="act act--accept"
+                  :disabled="busy === report.id"
+                  @click="onAcceptClick(report)"
+                >
+                  <Icon name="ph:check-bold" />
+                  <span>{{ acceptLabel(report.targetType) }}</span>
+                </button>
+                <!-- Cascade reminder — visible only on torrent reports
+                     where accepting also rejects the torrent. -->
+                <p v-if="report.targetType === 'torrent'" class="act-note">
+                  <Icon name="ph:info-bold" />
+                  {{ $t('admin.reports.cascadeHint') }}
+                </p>
+              </template>
+
+              <!-- Ban-duration picker — replaces the action row
+                   when the mod hits "Accept" on a user report.
+                   Six chips (none / four time presets / permanent)
+                   plus a free-form reason that defaults to the
+                   report's own reason so the banned user gets
+                   immediate context on their bounce screen. -->
+              <div
+                v-else
+                class="ban-panel"
+                :aria-label="$t('admin.reports.banPanel.aria')"
               >
-                <Icon name="ph:x-bold" />
-                <span>{{ $t('admin.reports.dismissAction') }}</span>
-              </button>
-              <button
-                type="button"
-                class="act act--accept"
-                :disabled="busy === report.id"
-                @click="resolveReport(report.id, 'resolved')"
-              >
-                <Icon name="ph:check-bold" />
-                <span>{{ acceptLabel(report.targetType) }}</span>
-              </button>
-              <!-- Cascade reminder — visible only on torrent reports
-                   where accepting also rejects the torrent. -->
-              <p v-if="report.targetType === 'torrent'" class="act-note">
-                <Icon name="ph:info-bold" />
-                {{ $t('admin.reports.cascadeHint') }}
-              </p>
+                <header class="ban-panel-head">
+                  <Icon name="ph:gavel-bold" class="ban-panel-icon" />
+                  <span class="ban-panel-title">
+                    {{ $t('admin.reports.banPanel.title') }}
+                  </span>
+                </header>
+
+                <div class="ban-panel-chips" role="radiogroup">
+                  <button
+                    v-for="opt in banDurationOptions"
+                    :key="opt.value"
+                    type="button"
+                    class="ban-chip"
+                    :class="[
+                      `ban-chip--${opt.value}`,
+                      { 'is-selected': banPanel.duration === opt.value },
+                    ]"
+                    role="radio"
+                    :aria-checked="banPanel.duration === opt.value"
+                    @click="banPanel.duration = opt.value"
+                  >
+                    <Icon :name="opt.icon" class="ban-chip-icon" />
+                    <span>{{ opt.label }}</span>
+                  </button>
+                </div>
+
+                <textarea
+                  v-model="banPanel.reason"
+                  class="ban-panel-reason"
+                  rows="3"
+                  maxlength="500"
+                  :placeholder="$t('admin.reports.banPanel.reasonPlaceholder')"
+                />
+
+                <p class="ban-panel-hint">
+                  <Icon name="ph:info-bold" />
+                  {{
+                    banPanel.duration === 'none'
+                      ? $t('admin.reports.banPanel.hintNoSanction')
+                      : banPanel.duration === 'permanent'
+                        ? $t('admin.reports.banPanel.hintPermanent')
+                        : $t('admin.reports.banPanel.hintTimed', {
+                            duration: $t(
+                              `admin.reports.banPanel.duration.${banPanel.duration}`,
+                            ),
+                          })
+                  }}
+                </p>
+
+                <div class="ban-panel-actions">
+                  <button
+                    type="button"
+                    class="act act--dismiss"
+                    :disabled="busy === report.id"
+                    @click="banPanel = null"
+                  >
+                    {{ $t('common.cancel') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="act act--accept"
+                    :disabled="busy === report.id"
+                    @click="confirmBanPanel(report)"
+                  >
+                    <Icon name="ph:check-bold" />
+                    <span>{{
+                      banPanel.duration === 'none'
+                        ? $t('admin.reports.banPanel.submitResolve')
+                        : $t('admin.reports.banPanel.submitBan')
+                    }}</span>
+                  </button>
+                </div>
+              </div>
             </template>
             <span v-else class="act-closed">
               <Icon name="ph:seal-check-bold" />
@@ -270,9 +361,59 @@ interface ReportsResponse {
   pagination: { page: number; limit: number; total: number; pages: number };
 }
 
+type BanDuration = 'none' | '1d' | '7d' | '1m' | '1y' | 'permanent';
+
+interface BanPanelState {
+  reportId: string;
+  duration: BanDuration;
+  reason: string;
+}
+
 const page = ref(1);
 const statusFilter = ref<'' | 'pending' | 'resolved' | 'dismissed'>('pending');
 const busy = ref<string | null>(null);
+// Inline ban-duration picker. Opened by clicking "Accept" on a
+// user-type report; null for every other case (the panel is the
+// only path that carries a sanction). Closing it discards the
+// chosen duration without resolving anything.
+const banPanel = ref<BanPanelState | null>(null);
+
+const banDurationOptions = computed<{
+  value: BanDuration;
+  label: string;
+  icon: string;
+}[]>(() => [
+  {
+    value: 'none',
+    label: t('admin.reports.banPanel.duration.none'),
+    icon: 'ph:shield-check-bold',
+  },
+  {
+    value: '1d',
+    label: t('admin.reports.banPanel.duration.1d'),
+    icon: 'ph:clock-bold',
+  },
+  {
+    value: '7d',
+    label: t('admin.reports.banPanel.duration.7d'),
+    icon: 'ph:clock-bold',
+  },
+  {
+    value: '1m',
+    label: t('admin.reports.banPanel.duration.1m'),
+    icon: 'ph:clock-counter-clockwise-bold',
+  },
+  {
+    value: '1y',
+    label: t('admin.reports.banPanel.duration.1y'),
+    icon: 'ph:calendar-x-bold',
+  },
+  {
+    value: 'permanent',
+    label: t('admin.reports.banPanel.duration.permanent'),
+    icon: 'ph:prohibit-bold',
+  },
+]);
 
 const { data: reports, refresh } = await useFetch<ReportsResponse>(
   '/api/admin/reports',
@@ -376,22 +517,44 @@ function formatRelative(input: string | Date): string {
 }
 
 // ── Resolve action ─────────────────────────────────────────
+//
+// Two paths reach this function:
+//   1. `dismissed` — dismiss button (no payload extras)
+//   2. `resolved`  — either the direct accept on torrent/post/
+//      comment reports, or the ban-panel submit on user reports.
+//      For the latter, banDuration + banReason ride along and the
+//      server bans the offender in the same transaction.
 async function resolveReport(
   id: string,
-  status: 'resolved' | 'dismissed'
+  status: 'resolved' | 'dismissed',
+  ban?: { duration: BanDuration; reason: string },
 ) {
   if (busy.value) return;
   busy.value = id;
   try {
+    const body: Record<string, unknown> = { status };
+    if (ban) {
+      body.banDuration = ban.duration;
+      if (ban.reason.trim()) body.banReason = ban.reason.trim();
+    }
     await $fetch(`/api/admin/reports/${id}`, {
       method: 'PUT',
-      body: { status },
+      body,
     });
-    notifications.success(
-      status === 'resolved'
-        ? t('admin.reports.toasts.resolved')
-        : t('admin.reports.toasts.dismissed')
-    );
+    if (status === 'resolved' && ban && ban.duration !== 'none') {
+      notifications.success(
+        t('admin.reports.toasts.bannedDuration', {
+          duration: t(`admin.reports.banPanel.duration.${ban.duration}`),
+        }),
+      );
+    } else {
+      notifications.success(
+        status === 'resolved'
+          ? t('admin.reports.toasts.resolved')
+          : t('admin.reports.toasts.dismissed'),
+      );
+    }
+    banPanel.value = null;
     await refresh();
   } catch (error: any) {
     console.error('Failed to resolve report:', error);
@@ -401,6 +564,40 @@ async function resolveReport(
   } finally {
     busy.value = null;
   }
+}
+
+/**
+ * Click handler for the "Accept" button on a pending report.
+ *
+ * For user reports we open the ban-duration picker rather than
+ * resolving immediately — every accepted user report must carry
+ * an explicit decision about sanction (including "no sanction").
+ *
+ * For every other target type (torrent / post / comment) the
+ * legacy behaviour stays: accept = resolve, no extra picker.
+ */
+function onAcceptClick(report: Report) {
+  if (report.targetType === 'user') {
+    banPanel.value = {
+      reportId: report.id,
+      // Default to "permanent" so a hurried moderator who hits
+      // Submit without thinking still issues the harshest
+      // sanction — accepting a user-targeted report without any
+      // ban would silently let an offender walk.
+      duration: 'permanent',
+      reason: report.reason,
+    };
+    return;
+  }
+  void resolveReport(report.id, 'resolved');
+}
+
+function confirmBanPanel(report: Report) {
+  if (!banPanel.value || banPanel.value.reportId !== report.id) return;
+  void resolveReport(report.id, 'resolved', {
+    duration: banPanel.value.duration,
+    reason: banPanel.value.reason,
+  });
 }
 </script>
 
@@ -936,6 +1133,137 @@ async function resolveReport(
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   align-self: center;
+}
+
+/* ── Ban-duration picker ──────────────────────────────────
+   Inline panel that replaces the dossier-actions row when
+   the moderator clicks "Accept" on a user-type report. It
+   carries the sanction decision so a single click resolves
+   the report AND issues the ban in the same gesture. */
+.ban-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-width: 280px;
+  padding: 0.85rem 0.95rem;
+  background:
+    linear-gradient(180deg, rgba(244, 63, 94, 0.06), transparent 80%),
+    rgb(var(--bg-elevated));
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 14px 32px -18px rgba(244, 63, 94, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: ban-panel-rise 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes ban-panel-rise {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ban-panel-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #f43f5e;
+}
+.ban-panel-icon { font-size: 0.95rem; }
+.ban-panel-title { line-height: 1; }
+
+.ban-panel-chips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+.ban-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  background: rgb(var(--bg-base));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-sm);
+  color: rgb(var(--fg-muted));
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s,
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ban-chip:hover {
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--line-strong));
+  transform: translateY(-1px);
+}
+.ban-chip-icon { font-size: 0.85rem; flex-shrink: 0; }
+
+.ban-chip.is-selected {
+  color: #f43f5e;
+  background: rgba(244, 63, 94, 0.1);
+  border-color: rgba(244, 63, 94, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(244, 63, 94, 0.25);
+}
+/* Quiet tone for the "no sanction" preset — it's a valid
+   choice but shouldn't read as "ban" when the moderator
+   eyes the chip row. */
+.ban-chip--none.is-selected {
+  color: rgb(var(--online));
+  background: rgb(var(--online) / 0.1);
+  border-color: rgb(var(--online) / 0.55);
+  box-shadow: inset 0 0 0 1px rgb(var(--online) / 0.25);
+}
+
+.ban-panel-reason {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  background: rgb(var(--bg-base));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-sm);
+  color: rgb(var(--fg-strong));
+  font-family: inherit;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  resize: vertical;
+  min-height: 64px;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.ban-panel-reason:focus {
+  outline: 0;
+  border-color: rgba(244, 63, 94, 0.55);
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.12);
+}
+.ban-panel-reason::placeholder { color: rgb(var(--fg-faint)); }
+
+.ban-panel-hint {
+  margin: 0;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  color: rgb(var(--fg-muted));
+}
+.ban-panel-hint svg {
+  font-size: 0.8rem;
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+  color: rgb(var(--fg-faint));
+}
+
+.ban-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.1rem;
 }
 
 /* ── Empty state ─────────────────────────────────────────── */

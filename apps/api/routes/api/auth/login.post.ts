@@ -8,6 +8,7 @@ import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { mintChallengeToken, markFreshAuth } from '~~/utils/twoFactor';
 import { consumeTrustedDevice } from '~~/utils/trustedDevices';
 import { notify } from '~~/utils/notify';
+import { liftExpiredBan } from '~~/utils/banExpiry';
 
 /**
  * POST /api/auth/login
@@ -76,7 +77,12 @@ export default defineEventHandler(async (event) => {
   // Both gates run *after* the proof check (see above) so a
   // non-credentialed probe can never distinguish a banned from a
   // healthy account.
-  if (user.isBanned) {
+  //
+  // `liftExpiredBan` is the lazy half of the ban-expiry system —
+  // if `bannedUntil` has passed it clears the flag inline so the
+  // user can log in even if the 5-minute cron hasn't ticked yet.
+  const stillBanned = await liftExpiredBan(user);
+  if (stillBanned) {
     throw createError({
       statusCode: 403,
       message: 'Your account has been banned',

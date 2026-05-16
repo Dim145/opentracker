@@ -741,7 +741,11 @@
       "titleWithName": "{name} - Profil",
       "eyebrow": "Membre",
       "online": "En ligne",
-      "stats": "Statistiques"
+      "stats": "Statistiques",
+      "flag": {
+        "label": "Signaler",
+        "aria": "Signaler {'@'}{name} à la modération"
+      }
     }
   },
   "security": {
@@ -2299,7 +2303,26 @@
       "toasts": {
         "resolved": "Signalement accepté",
         "dismissed": "Signalement rejeté",
-        "failed": "Échec de l'action"
+        "failed": "Échec de l'action",
+        "bannedDuration": "Compte banni · {duration}"
+      },
+      "banPanel": {
+        "aria": "Choisir la durée du bannissement",
+        "title": "Sanction",
+        "reasonPlaceholder": "Motif communiqué à l'utilisateur banni (pré-rempli avec le motif du signalement)",
+        "hintNoSanction": "Le signalement sera fermé sans sanction. L'utilisateur garde l'accès complet.",
+        "hintTimed": "L'utilisateur sera banni pour {duration}. Reconnexion impossible, tracker et Torznab bloqués.",
+        "hintPermanent": "Bannissement définitif. À ne lever que manuellement.",
+        "submitResolve": "Fermer le dossier",
+        "submitBan": "Bannir & fermer",
+        "duration": {
+          "none": "Aucune",
+          "1d": "1 jour",
+          "7d": "7 jours",
+          "1m": "1 mois",
+          "1y": "1 an",
+          "permanent": "Définitif"
+        }
       }
     },
     "tags": {

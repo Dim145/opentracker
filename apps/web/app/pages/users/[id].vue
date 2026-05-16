@@ -84,6 +84,28 @@
             <span class="hero-bio-body">{{ user.bio }}</span>
           </blockquote>
         </div>
+
+        <!-- ── Tear-off complaint tab ──────────────────────────
+             Paper-stub affordance clipped onto the dossier from
+             above. Sits OUTSIDE the hero card (above the top
+             border) so it never fights the eyebrow row's
+             right-aligned content (presence badge / role pills)
+             for space. Picks up the "incident slip" vocabulary
+             of the modal it opens — mono caption, warning-red
+             on hover, staple dots where it meets the dossier. -->
+        <button
+          v-if="canReport"
+          type="button"
+          class="hero-flag"
+          :aria-label="$t('users.profile.flag.aria', { name: user.username })"
+          @click="reportOpen = true"
+        >
+          <Icon name="ph:flag-bold" class="hero-flag-icon" />
+          <span class="hero-flag-label">
+            {{ $t('users.profile.flag.label') }}
+          </span>
+          <span class="hero-flag-stitch" aria-hidden="true" />
+        </button>
       </section>
 
       <!-- § STATISTICS ─────────────────────────────────────────── -->
@@ -222,6 +244,19 @@
         </nav>
       </section>
     </template>
+
+    <!-- Report modal — opens from the tear-off tab on the hero.
+         Teleports to body, so its position in the tree is purely
+         organisational. -->
+    <ReportModal
+      v-if="user"
+      :is-open="reportOpen"
+      target-type="user"
+      :target-id="user.id"
+      :target-label="user.displayName || user.username"
+      @close="reportOpen = false"
+      @submitted="reportOpen = false"
+    />
   </div>
 </template>
 
@@ -277,6 +312,7 @@ interface UploadsResponse {
 
 const route = useRoute();
 const userId = computed(() => route.params.id as string);
+const { loggedIn, user: viewer } = useUserSession();
 
 // Fetch user profile
 const {
@@ -284,6 +320,16 @@ const {
   pending,
   error,
 } = await useFetch<UserProfile>(() => `/api/users/${userId.value}`);
+
+// Report affordance — only authenticated viewers looking at
+// someone else's profile can file a complaint. The API rejects
+// self-reports anyway, but hiding the button entirely keeps the
+// UI honest about what's actionable.
+const reportOpen = ref(false);
+const canReport = computed(() => {
+  if (!loggedIn.value || !viewer.value || !user.value) return false;
+  return viewer.value.id !== user.value.id;
+});
 
 // Fetch user uploads with pagination
 const uploadsPage = ref(1);
@@ -554,7 +600,10 @@ useHead({
     rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-strong));
   border-radius: 0.6rem;
-  overflow: hidden;
+  /* No `overflow: hidden` here — the flag tab needs to peek above
+     the top border. The radial-gradient background is clipped by
+     `border-radius` (background-clip defaults to border-box), so
+     nothing else relies on overflow being clipped. */
   box-shadow:
     0 22px 60px -22px rgba(0, 0, 0, 0.7),
     0 4px 14px -8px rgba(0, 0, 0, 0.5),
@@ -812,6 +861,157 @@ useHead({
 @keyframes heroFadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ╔═══════════════════════════════════════════════════════════════╗
+   ║  HERO — clipped-on complaint tab                               ║
+   ║                                                                 ║
+   ║  Sits ABOVE the hero card (bottom: 100% trick). The bottom     ║
+   ║  edge fuses with the hero's top border (border-bottom: 0 +     ║
+   ║  -1 px overlap), so visually the tab looks clipped onto the    ║
+   ║  dossier from above — like a paper slip stapled onto a file.   ║
+   ║                                                                 ║
+   ║  Living outside the hero means the tab and the eyebrow row's   ║
+   ║  right-aligned content (presence badge, role pills) can never  ║
+   ║  collide regardless of how wide the badge label gets.          ║
+   ║                                                                 ║
+   ║  Three faint "staple" dots sit at the bottom of the tab,       ║
+   ║  exactly where it meets the hero — sells the metaphor.         ║
+   ║  Rest state is quiet; hover ignites the danger colour          ║
+   ║  across the tab and waggles the flag glyph for 0.65 s.         ║
+   ╚═══════════════════════════════════════════════════════════════╝ */
+.hero-flag {
+  position: absolute;
+  bottom: calc(100% - 1px);
+  right: 1.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.58rem 0.9rem 0.7rem;
+  background:
+    linear-gradient(180deg, rgba(244, 63, 94, 0.08), rgba(244, 63, 94, 0.015) 90%),
+    rgb(var(--bg-elevated));
+  border: 1px solid rgb(var(--line-strong));
+  border-bottom: 0;
+  border-radius: 0.45rem 0.45rem 0 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  cursor: pointer;
+  z-index: 3;
+  transform-origin: bottom center;
+  animation: heroFlagDrop 0.7s 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition:
+    color 0.2s ease,
+    background 0.22s ease,
+    border-color 0.22s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s ease;
+}
+@keyframes heroFlagDrop {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* "Staple" — three faint dots pinned to the bottom of the tab,
+   right where it meets the hero's top border. Renders the
+   "clipped onto the dossier" metaphor with zero extra imagery. */
+.hero-flag-stitch {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgb(var(--fg-faint) / 0.55);
+  box-shadow:
+    -8px 0 0 0 rgb(var(--fg-faint) / 0.55),
+    8px 0 0 0 rgb(var(--fg-faint) / 0.55);
+  transform: translateX(-50%);
+  pointer-events: none;
+  transition: background 0.22s, box-shadow 0.22s;
+}
+
+.hero-flag-icon {
+  font-size: 0.8rem;
+  color: rgb(var(--release-rose) / 0.85);
+  transform-origin: bottom left;
+  transition: color 0.2s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hero-flag-label {
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.hero-flag:hover {
+  color: rgb(var(--danger));
+  background:
+    linear-gradient(180deg, rgba(244, 63, 94, 0.2), rgba(244, 63, 94, 0.05) 90%),
+    rgb(var(--bg-elevated));
+  border-color: rgb(var(--danger) / 0.55);
+  box-shadow:
+    0 14px 32px -18px rgba(244, 63, 94, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transform: translateY(2px);
+}
+.hero-flag:hover .hero-flag-icon {
+  color: rgb(var(--danger));
+  animation: heroFlagWave 0.65s ease;
+}
+.hero-flag:hover .hero-flag-stitch {
+  background: rgb(var(--danger) / 0.55);
+  box-shadow:
+    -8px 0 0 0 rgb(var(--danger) / 0.55),
+    8px 0 0 0 rgb(var(--danger) / 0.55);
+}
+
+.hero-flag:focus-visible {
+  outline: 2px solid rgb(var(--danger) / 0.6);
+  outline-offset: 3px;
+}
+.hero-flag:active {
+  transform: translateY(4px);
+  box-shadow:
+    0 4px 10px -6px rgba(244, 63, 94, 0.5),
+    inset 0 1px 0 rgba(0, 0, 0, 0.15);
+}
+
+@keyframes heroFlagWave {
+  0%   { transform: rotate(0); }
+  20%  { transform: rotate(-12deg); }
+  45%  { transform: rotate(10deg); }
+  70%  { transform: rotate(-6deg); }
+  100% { transform: rotate(0); }
+}
+
+/* On narrow screens the dossier collapses to a single column
+   and the tab drops its caption, shrinking to just the flag
+   glyph so the corner stays uncluttered. */
+@media (max-width: 640px) {
+  .hero-flag {
+    right: 1rem;
+    padding: 0.5rem 0.6rem 0.6rem;
+    gap: 0;
+  }
+  .hero-flag-label {
+    /* Visually hidden but kept in the accessibility tree. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .hero-flag-icon { font-size: 0.95rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-flag,
+  .hero-flag-icon { animation: none !important; transition: none; }
 }
 
 /* ╔═══════════════════════════════════════════════════════════════╗

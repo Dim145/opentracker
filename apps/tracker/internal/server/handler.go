@@ -256,7 +256,31 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		return AnnounceOutcome{Failure: "Internal tracker error"}
 	}
 	if user.IsBanned {
-		return AnnounceOutcome{Failure: "User is banned"}
+		// Lazy unban: when a timed ban has elapsed, clear the flag
+		// inline so the announce can proceed even if the 5-minute
+		// `ban-expiry` cron hasn't ticked yet. Branch is cold —
+		// only banned users pay the extra round-trip — so the
+		// happy path stays at one query.
+		var bannedUntil *time.Time
+		err := s.db.Pool.QueryRow(
+			ctx,
+			`SELECT banned_until FROM users WHERE id = $1`,
+			user.ID,
+		).Scan(&bannedUntil)
+		if err != nil || bannedUntil == nil || !bannedUntil.Before(time.Now()) {
+			return AnnounceOutcome{Failure: "User is banned"}
+		}
+		if _, err := s.db.Pool.Exec(
+			ctx,
+			`UPDATE users SET is_banned = false WHERE id = $1`,
+			user.ID,
+		); err != nil {
+			slog.Error("internal error", "where", "lazy unban", "err", err)
+			return AnnounceOutcome{Failure: "Internal tracker error"}
+		}
+		// fall through — the user is effectively unbanned now;
+		// the cron will (idempotently) fire `account_unbanned` on
+		// its next sweep.
 	}
 
 	// 2. Ratio check (only when leeching: left > 0)

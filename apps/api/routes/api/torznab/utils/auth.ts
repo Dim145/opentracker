@@ -7,6 +7,7 @@ import { H3Event, createError } from 'h3';
 import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
 import { buildErrorXml, TORZNAB_ERRORS } from './xml';
+import { liftExpiredBan } from '~~/utils/banExpiry';
 
 export interface TorznabUser {
   id: string;
@@ -47,13 +48,17 @@ export async function authenticateTorznab(
     );
   }
 
-  // Look up user by passkey
+  // Look up user by passkey. `bannedUntil` is projected here so
+  // `liftExpiredBan` can flip the row back to healthy when the
+  // timed ban has elapsed — without it we'd block users whose ban
+  // just expired but whom the 5-minute cron hasn't swept yet.
   const users = await db
     .select({
       id: schema.users.id,
       username: schema.users.username,
       passkey: schema.users.passkey,
       isBanned: schema.users.isBanned,
+      bannedUntil: schema.users.bannedUntil,
       isAdmin: schema.users.isAdmin,
       isModerator: schema.users.isModerator,
       showAdultContent: schema.users.showAdultContent,
@@ -68,11 +73,15 @@ export async function authenticateTorznab(
     throw createTorznabError(event, TORZNAB_ERRORS.INCORRECT_CREDENTIALS);
   }
 
-  if (user.isBanned) {
+  const stillBanned = await liftExpiredBan(user);
+  if (stillBanned) {
     throw createTorznabError(event, TORZNAB_ERRORS.ACCOUNT_SUSPENDED);
   }
 
-  return user;
+  // Strip the helper-only field before returning the user to the
+  // rest of the Torznab pipeline — it doesn't need it.
+  const { bannedUntil: _bannedUntil, ...torznabUser } = user;
+  return torznabUser;
 }
 
 /**

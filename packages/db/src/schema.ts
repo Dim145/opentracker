@@ -42,6 +42,17 @@ export const users = pgTable(
     // time so a later promotion/demotion of the issuer doesn't mess
     // with the unban hierarchy check.
     bannedByRole: text('banned_by_role'), // 'admin' | 'moderator'
+    // When set, the ban auto-expires at this timestamp. Null = permanent
+    // ban (the historical behaviour). The expiry is enforced two ways:
+    //   1) a 5-minute `ban-expiry` cron that clears flags + fires the
+    //      `account_unbanned` notification, and
+    //   2) lazy checks at login + torznab + tracker that let an expired
+    //      user back in even if the cron is delayed.
+    bannedUntil: timestamp('banned_until'),
+    // Free-text justification displayed to the banned user on their
+    // bounce screen. Sourced from the resolving moderator's input or
+    // from the report's `reason` as a fallback.
+    banReason: text('ban_reason'),
     // Role assignment moved to the `user_roles` junction table so a
     // user can carry multiple badges (e.g. "Certified" + "Donator").
     // The legacy `roleId` / `roleAssignedManually` columns were
