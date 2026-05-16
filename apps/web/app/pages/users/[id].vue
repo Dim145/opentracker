@@ -47,13 +47,48 @@
               {{ formatDay(user.createdAt).toUpperCase() }}
             </span>
             <span class="hero-eyebrow-spacer" aria-hidden="true" />
-            <!-- Presence indicator. Pulses green if `lastSeen` is
-                 within the last 5 minutes; otherwise renders the
-                 relative age (or "Masqué" when the user opted to
-                 hide it). -->
+            <!-- Right-end metadata strip: presence indicator + follow
+                 CTA share the same vertical band so the top of the
+                 card reads as a single curated "status row" rather
+                 than two floating pills marooned in empty space.
+                 Both items share the eyebrow's mono-caps language,
+                 differentiated only by tone (muted vs teal). -->
             <span class="hero-presence" :class="{ 'is-online': isOnline }">
               <span class="presence-dot" aria-hidden="true" />
               {{ presenceLabel }}
+            </span>
+            <button
+                v-if="canFollow"
+                type="button"
+                class="hero-follow"
+                :class="{ 'is-on': following }"
+                :aria-pressed="following"
+                :disabled="followBusy"
+                @click="toggleFollow"
+            >
+              <Icon
+                  :name="following ? 'ph:user-circle-check-fill' : 'ph:user-circle-plus-bold'"
+                  class="hero-follow-icon"
+              />
+              <span>
+                {{
+                  following
+                    ? $t('users.profile.follow.following')
+                    : $t('users.profile.follow.follow')
+                }}
+              </span>
+              <span class="hero-follow-count tabular-nums">
+                {{ followersCount }}
+              </span>
+            </button>
+            <span
+                v-else-if="(user.followersCount ?? 0) > 0"
+                class="hero-follow hero-follow--readonly"
+                :title="$t('users.profile.follow.countTooltip')"
+            >
+              <Icon name="ph:users-three-bold" class="hero-follow-icon" />
+              <span class="tabular-nums">{{ user.followersCount }}</span>
+              <span>{{ $t('users.profile.follow.followersShort') }}</span>
             </span>
           </header>
 
@@ -271,6 +306,8 @@ interface UserProfile {
   lastSeen: string | null;
   ratio: number | null;
   uploadsCount: number;
+  followersCount?: number;
+  viewerFollowing?: boolean;
   roles: Array<{
     id: string;
     name: string;
@@ -322,6 +359,54 @@ const canReport = computed(() => {
   if (!loggedIn.value || !viewer.value || !user.value) return false;
   return viewer.value.id !== user.value.id;
 });
+
+// Follow affordance — same self-exclusion rule. The button
+// renders the count alongside the label so the dossier reads as
+// social without a separate "X followers" badge cluttering the
+// stats cluster. `t` is already in scope from the earlier
+// `useI18n()` at the top of the script — no re-declaration.
+const notifications = useNotificationStore();
+const following = ref<boolean>(false);
+const followersCount = ref<number>(0);
+const followBusy = ref(false);
+const canFollow = computed(() => {
+  if (!loggedIn.value || !viewer.value || !user.value) return false;
+  return viewer.value.id !== user.value.id;
+});
+watchEffect(() => {
+  if (user.value) {
+    following.value = Boolean(user.value.viewerFollowing);
+    followersCount.value = user.value.followersCount ?? 0;
+  }
+});
+
+async function toggleFollow() {
+  if (!user.value || followBusy.value) return;
+  followBusy.value = true;
+  const wasFollowing = following.value;
+  // Optimistic flip — both the boolean and the count, so the
+  // user sees the dossier react instantly. Rolled back on error.
+  following.value = !wasFollowing;
+  followersCount.value += wasFollowing ? -1 : 1;
+  try {
+    await $fetch(`/api/users/${user.value.id}/follow`, {
+      method: wasFollowing ? 'DELETE' : 'POST',
+    });
+    notifications.success(
+      wasFollowing
+        ? t('users.profile.follow.toasts.unfollowed')
+        : t('users.profile.follow.toasts.followed'),
+    );
+  } catch (err: any) {
+    following.value = wasFollowing;
+    followersCount.value += wasFollowing ? 1 : -1;
+    notifications.error(
+      err?.data?.message || t('users.profile.follow.toasts.failed'),
+    );
+  } finally {
+    followBusy.value = false;
+  }
+}
 
 // Fetch user uploads with pagination
 const uploadsPage = ref(1);
@@ -787,6 +872,8 @@ useHead({
   color: rgb(var(--fg-strong));
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   line-height: 1.1;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
   animation: heroFadeIn 0.55s 0.15s ease-out both;
 }
 
@@ -804,6 +891,101 @@ useHead({
   font-weight: 700;
   color: rgb(var(--release-cyan));
   letter-spacing: 0.04em;
+}
+
+/* ── Follow toggle ──────────────────────────────────────────────
+   Lives at the right end of the eyebrow strip, immediately after
+   the presence pill. Sized + styled to match the eyebrow's
+   metadata language (same vertical height, mono caps, pill
+   shape), differentiated from the muted presence pill by a teal
+   accent that signals "this one is actionable". The count rides
+   inside the button as a small chip so the social weight stays
+   visible without sprawling.
+
+   Read-only variant (--readonly) renders the count alone for the
+   self/anon view — no button, just the number, so the social
+   signal stays present everywhere. */
+.hero-follow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.7rem;
+  background:
+    linear-gradient(180deg, rgb(var(--release-teal) / 0.18), rgb(var(--release-teal) / 0.06)),
+    rgb(var(--bg-elevated));
+  border: 1px solid rgb(var(--release-teal) / 0.5);
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgb(var(--release-teal));
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    color 0.18s,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease;
+}
+.hero-follow:hover:not(:disabled) {
+  background: rgb(var(--release-teal) / 0.18);
+  border-color: rgb(var(--release-teal));
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px -8px rgb(var(--release-teal) / 0.55);
+}
+.hero-follow:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.hero-follow.is-on {
+  background: rgb(var(--release-teal) / 0.22);
+  border-color: rgb(var(--release-teal));
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--release-teal) / 0.3),
+    0 0 16px -4px rgb(var(--release-teal) / 0.4);
+}
+.hero-follow.is-on .hero-follow-icon {
+  animation: hero-follow-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes hero-follow-pop {
+  0%   { transform: scale(1) rotate(0); }
+  35%  { transform: scale(1.35) rotate(-8deg); }
+  65%  { transform: scale(0.94) rotate(6deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.hero-follow-icon {
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.hero-follow-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  padding: 0 0.4rem;
+  height: 1rem;
+  background: rgb(var(--bg-base));
+  border: 1px solid rgb(var(--release-teal) / 0.4);
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: rgb(var(--release-teal));
+}
+.hero-follow--readonly {
+  cursor: default;
+  color: rgb(var(--fg-muted));
+  background: rgb(var(--bg-elevated));
+  border-color: rgb(var(--line-strong));
+}
+.hero-follow--readonly:hover {
+  /* no lift on the read-only variant; it's not an action */
+  transform: none;
+  box-shadow: none;
 }
 
 /* ── Bio pull-quote ───────────────────────────────────────────── */

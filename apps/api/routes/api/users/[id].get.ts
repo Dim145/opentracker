@@ -1,5 +1,5 @@
 import { db, schema } from '@trackarr/db';
-import { eq, sql, desc } from 'drizzle-orm';
+import { and, eq, sql, desc } from 'drizzle-orm';
 import { z } from 'zod';
 
 const paramsSchema = z.object({
@@ -67,11 +67,29 @@ export default defineEventHandler(async (event) => {
         : 1
       : user.uploaded / user.downloaded;
 
-  // Count uploads
-  const uploadsCount = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(schema.torrents)
-    .where(eq(schema.torrents.uploaderId, params.id));
+  // Count uploads + count followers + viewer's own follow flag in
+  // parallel. The follower count is public (a number, never a list);
+  // `viewerFollowing` is the one bit the follow toggle depends on
+  // for its filled/outline state on first paint.
+  const [uploadsCount, followersCount, viewerFollow] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.torrents)
+      .where(eq(schema.torrents.uploaderId, params.id)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.userFollows)
+      .where(eq(schema.userFollows.followingId, params.id)),
+    viewer.id === params.id
+      ? Promise.resolve(null)
+      : db.query.userFollows.findFirst({
+          where: and(
+            eq(schema.userFollows.followerId, viewer.id),
+            eq(schema.userFollows.followingId, params.id),
+          ),
+          columns: { followerId: true },
+        }),
+  ]);
 
   // Privacy: redact `lastSeen` for the public view when the target user
   // has hidden it. Mods/admins keep the real value so moderation isn't
@@ -84,6 +102,8 @@ export default defineEventHandler(async (event) => {
     lastSeen: visibleLastSeen,
     ratio: ratio === Infinity ? null : ratio, // null = infinite
     uploadsCount: uploadsCount[0]?.count || 0,
+    followersCount: followersCount[0]?.count || 0,
+    viewerFollowing: !!viewerFollow,
     roles: visibleRoles,
   };
 });

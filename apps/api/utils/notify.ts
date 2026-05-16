@@ -73,6 +73,13 @@ export type NotificationType =
   | 'bonus_event_started'
   | 'first_seeder_reward'
   | 'seeding_milestone_reached'
+  // ── P2 — Social graph ──────────────────────────────────────
+  // Fired when an upload by someone the recipient follows reaches
+  // `accepted` — either auto-approved at upload time or via a
+  // moderator's later acceptance. The follow target is never
+  // notified of the relationship itself; the only social signal
+  // the graph emits is this one upload-arrival ping.
+  | 'followed_user_upload'
   // ── P2 — Invitations ───────────────────────────────────────
   | 'invite_redeemed'
   | 'invitee_banned'

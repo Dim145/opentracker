@@ -1490,6 +1490,42 @@ export type PanicState = typeof panicState.$inferSelect;
 export type NewPanicState = typeof panicState.$inferInsert;
 
 // ============================================================================
+// User follows
+// ============================================================================
+// Asymmetric follow graph: one row per (follower, followed) pair.
+// The follower's identity is private to the follower — the /users/:id
+// page shows a public *count* but never the names. The follower's
+// own /following surface is the only place that reveals the list.
+//
+// Composite PK doubles as the "follow once" guard so the POST
+// endpoint can ON CONFLICT DO NOTHING without a separate unique
+// index. ON DELETE CASCADE on both FKs keeps the graph clean when
+// either side is deleted (account purge propagates to all their
+// outgoing AND incoming edges).
+export const userFollows = pgTable(
+  'user_follows',
+  {
+    followerId: text('follower_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    followingId: text('following_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.followerId, table.followingId] }),
+    // Drives the upload fan-out: "every follower of user X" is the
+    // hot path when X uploads a torrent. Also serves the public
+    // followers count via COUNT(*) WHERE following_id = ?.
+    index('user_follows_following_idx').on(table.followingId),
+  ],
+);
+
+export type UserFollow = typeof userFollows.$inferSelect;
+export type NewUserFollow = typeof userFollows.$inferInsert;
+
+// ============================================================================
 // Torrent favorites
 // ============================================================================
 // One row per (user, torrent) pin. Purely user-private — no public

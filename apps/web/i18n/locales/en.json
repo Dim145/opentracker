@@ -51,6 +51,7 @@
     "settings": "Settings",
     "downloads": "Downloads",
     "favorites": "My favorites",
+    "following": "My circle",
     "invitations": "Invitations",
     "reports": "My reports",
     "shop": "Bonus shop",
@@ -779,7 +780,51 @@
       "flag": {
         "label": "Flag",
         "aria": "Report {'@'}{name} to moderation"
+      },
+      "follow": {
+        "follow": "Follow",
+        "following": "Following",
+        "followersShort": "followers",
+        "countTooltip": "Followers",
+        "toasts": {
+          "followed": "You are now following this user.",
+          "unfollowed": "You are no longer following this user.",
+          "failed": "Action failed. Try again."
+        }
       }
+    }
+  },
+  "following": {
+    "headTitle": "My circle",
+    "eyebrow": "Cast list",
+    "intro": "Your private cast — every persona below will ping you when a new release of theirs makes it past moderation.",
+    "loading": "Raising the curtain…",
+    "pagerAria": "Cast list pagination",
+    "cast": {
+      "count": "No characters yet | {n} character | {n} characters"
+    },
+    "sort": {
+      "label": "Sort",
+      "recent": "Recent",
+      "alpha": "Alphabetical"
+    },
+    "persona": {
+      "uploads": "Releases",
+      "ratio": "Ratio",
+      "lastUpload": "Last act",
+      "noUploads": "None since they took the stage",
+      "entered": "Entered {date}",
+      "exit": "Exit stage",
+      "exitTooltip": "Stop following {'@'}{name}"
+    },
+    "toasts": {
+      "left": "{'@'}{name} has left the cast.",
+      "leaveFailed": "Could not remove this persona."
+    },
+    "empty": {
+      "title": "The stage is empty",
+      "sub": "Nobody in your cast yet. Visit an uploader's profile, follow them, and you'll be pinged the moment they release.",
+      "cta": "Browse the tracker"
     }
   },
   "security": {
@@ -3315,6 +3360,10 @@
       "hnr_exempted": {
         "title": "Hit & Run exempted",
         "desc": "“{torrentName}” was exempted from H&R tracking."
+      },
+      "followed_user_upload": {
+        "title": "New release from someone you follow",
+        "desc": "{uploaderUsername} just published \"{torrentName}\"."
       },
       "account_banned": {
         "title": "Account suspended",

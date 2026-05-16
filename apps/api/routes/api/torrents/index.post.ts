@@ -9,6 +9,7 @@ import { inferReleaseTags } from '~~/utils/releaseTags';
 import { normalizeMediaId } from '~~/utils/mediaIds';
 import { getUploadRules, evaluateUpload } from '~~/utils/uploadRules';
 import { notifyMany, listStaffRecipients } from '~~/utils/notify';
+import { fanoutFollowedUserUpload } from '~~/utils/followerFanout';
 
 export default defineEventHandler(async (event) => {
   // Require authentication
@@ -397,6 +398,22 @@ export default defineEventHandler(async (event) => {
         );
       }
     })();
+  }
+
+  // Follower fan-out — only fires when the torrent is already live
+  // (auto-accepted path). For pending uploads we wait until the
+  // moderation transition flips them to `accepted` and fire from
+  // `transitionStatus` instead, so followers don't get a ping for
+  // an upload that ends up rejected. Fire-and-forget: a hiccup in
+  // notify must never sink the upload response.
+  if (canBypassModeration) {
+    void fanoutFollowedUserUpload({
+      uploaderId: user.id,
+      uploaderUsername: user.username,
+      torrentId: id,
+      torrentInfoHash: infoHash,
+      torrentName: name,
+    });
   }
 
   return {

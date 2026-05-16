@@ -51,6 +51,7 @@
     "settings": "Paramètres",
     "downloads": "Téléchargements",
     "favorites": "Mes favoris",
+    "following": "Mon réseau",
     "invitations": "Invitations",
     "reports": "Mes signalements",
     "shop": "Boutique bonus",
@@ -779,7 +780,51 @@
       "flag": {
         "label": "Signaler",
         "aria": "Signaler {'@'}{name} à la modération"
+      },
+      "follow": {
+        "follow": "Suivre",
+        "following": "Suivi",
+        "followersShort": "abonnés",
+        "countTooltip": "Abonnés",
+        "toasts": {
+          "followed": "Vous suivez désormais cet utilisateur.",
+          "unfollowed": "Vous ne suivez plus cet utilisateur.",
+          "failed": "Action impossible. Réessayez."
+        }
       }
+    }
+  },
+  "following": {
+    "headTitle": "Mon réseau",
+    "eyebrow": "Distribution",
+    "intro": "Le casting privé de ton tracker. Chaque persona ci-dessous t'avertira lorsqu'un nouvel upload sera validé sous son nom.",
+    "loading": "Lever de rideau…",
+    "pagerAria": "Pagination de la distribution",
+    "cast": {
+      "count": "Aucun personnage | {n} personnage | {n} personnages"
+    },
+    "sort": {
+      "label": "Tri",
+      "recent": "Récent",
+      "alpha": "Ordre alpha"
+    },
+    "persona": {
+      "uploads": "Releases",
+      "ratio": "Ratio",
+      "lastUpload": "Dernier acte",
+      "noUploads": "Aucun depuis l'entrée en scène",
+      "entered": "Entrée en scène {date}",
+      "exit": "Sortir de scène",
+      "exitTooltip": "Cesser de suivre {'@'}{name}"
+    },
+    "toasts": {
+      "left": "{'@'}{name} quitte la distribution.",
+      "leaveFailed": "Impossible de retirer ce personnage."
+    },
+    "empty": {
+      "title": "La scène est vide",
+      "sub": "Personne dans ta distribution pour l'instant. Visite le profil d'un uploader, suis-le, et tu seras averti dès qu'il publie une nouvelle release.",
+      "cta": "Parcourir le tracker"
     }
   },
   "security": {
@@ -3315,6 +3360,10 @@
       "hnr_exempted": {
         "title": "Hit & Run exempté",
         "desc": "« {torrentName} » a été exempté du suivi H&R."
+      },
+      "followed_user_upload": {
+        "title": "Nouvelle release suivie",
+        "desc": "{uploaderUsername} a publié « {torrentName} »."
       },
       "account_banned": {
         "title": "Compte suspendu",

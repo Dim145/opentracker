@@ -18,6 +18,7 @@
  */
 import { db, schema } from '@trackarr/db';
 import { and, eq, inArray } from 'drizzle-orm';
+import { fanoutFollowedUserUpload } from './followerFanout';
 import { randomUUID } from 'node:crypto';
 import { redis } from '../redis/client';
 
@@ -129,37 +130,90 @@ export async function transitionStatus(opts: {
   const { torrentId, nextStatus, actorId, body, isSystem = false } = opts;
   const now = new Date();
 
-  return await db.transaction(async (tx) => {
-    const [updated] = await tx
-      .update(schema.torrents)
-      .set({
-        moderationStatus: nextStatus,
-        moderatedById: actorId,
-        moderatedAt: now,
-      })
-      .where(eq(schema.torrents.id, torrentId))
-      .returning();
+  const { updated, priorStatus, uploaderUsername } = await db.transaction(
+    async (tx) => {
+      // Snapshot the prior status before the UPDATE so the
+      // post-commit fan-out can tell "the row was just promoted to
+      // accepted" from "the moderator re-saved an already-accepted
+      // row". Without this we'd ping followers twice for any
+      // pending → accepted → pending → accepted bounce.
+      const prior = await tx.query.torrents.findFirst({
+        where: eq(schema.torrents.id, torrentId),
+        columns: { moderationStatus: true, uploaderId: true },
+      });
 
-    if (!updated) {
-      throw createError({ statusCode: 404, message: 'Torrent not found' });
-    }
+      const [updated] = await tx
+        .update(schema.torrents)
+        .set({
+          moderationStatus: nextStatus,
+          moderatedById: actorId,
+          moderatedAt: now,
+        })
+        .where(eq(schema.torrents.id, torrentId))
+        .returning();
 
-    // Always log a row so the conversation timeline doubles as the
-    // status-change history. An empty body becomes a one-line system
-    // note instead of an opaque jump in the audit trail.
-    const fallbackBody = body ?? defaultMessageFor(nextStatus);
-    await tx.insert(schema.torrentModerationMessages).values({
-      id: randomUUID(),
-      torrentId,
-      authorId: actorId,
-      body: fallbackBody,
-      isSystem: isSystem || body === null,
-      statusChange: nextStatus,
-      createdAt: now,
+      if (!updated) {
+        throw createError({ statusCode: 404, message: 'Torrent not found' });
+      }
+
+      // Always log a row so the conversation timeline doubles as
+      // the status-change history. An empty body becomes a one-
+      // line system note instead of an opaque jump in the audit
+      // trail.
+      const fallbackBody = body ?? defaultMessageFor(nextStatus);
+      await tx.insert(schema.torrentModerationMessages).values({
+        id: randomUUID(),
+        torrentId,
+        authorId: actorId,
+        body: fallbackBody,
+        isSystem: isSystem || body === null,
+        statusChange: nextStatus,
+        createdAt: now,
+      });
+
+      // Resolve the uploader's username only when we'll actually
+      // need it for the fan-out below — saves a join on the 99%
+      // of transitions that aren't to `accepted`.
+      let uploaderUsername: string | null = null;
+      if (
+        nextStatus === 'accepted' &&
+        prior?.moderationStatus !== 'accepted' &&
+        updated.uploaderId
+      ) {
+        const uploader = await tx.query.users.findFirst({
+          where: eq(schema.users.id, updated.uploaderId),
+          columns: { username: true },
+        });
+        uploaderUsername = uploader?.username ?? null;
+      }
+
+      return {
+        updated,
+        priorStatus: prior?.moderationStatus ?? null,
+        uploaderUsername,
+      };
+    },
+  );
+
+  // Follower fan-out — only when the row crossed *into* the
+  // `accepted` state. Fire-and-forget post-commit so a follower-
+  // notify hiccup never rolls back the moderation decision.
+  if (
+    nextStatus === 'accepted' &&
+    priorStatus !== 'accepted' &&
+    updated.uploaderId &&
+    uploaderUsername
+  ) {
+    void fanoutFollowedUserUpload({
+      uploaderId: updated.uploaderId,
+      uploaderUsername,
+      torrentId: updated.id,
+      torrentInfoHash: updated.infoHash,
+      torrentName: updated.name,
     });
+  }
 
-    return updated;
-  });
+  return updated;
 }
 
 /**
