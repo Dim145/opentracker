@@ -425,10 +425,7 @@
         <span class="section-head-line" aria-hidden="true" />
       </header>
       <article class="note-block">
-        <div
-          class="prose prose-invert prose-sm max-w-none description-content"
-          v-html="renderedDescription"
-        />
+        <DescriptionRender :source="torrent.description" />
       </article>
     </section>
 
@@ -559,6 +556,7 @@
 <script setup lang="ts">
 import TorrentModerationBadge from '~/components/torrent/TorrentModerationBadge.vue';
 import TorrentModerationPanel from '~/components/torrent/TorrentModerationPanel.vue';
+import DescriptionRender from '~/components/DescriptionRender.vue';
 import { withWrapHints } from '~/utils/displayTitle';
 
 interface Peer {
@@ -974,10 +972,6 @@ function tagBadgeStyle(tag: { color: string }) {
     color: 'rgb(var(--fg-default))',
   };
 }
-
-const renderedDescription = computed(() =>
-  renderMarkdown(torrent.value?.description)
-);
 
 if (error.value || !torrent.value) {
   throw createError({ statusCode: 404, message: t('torrents.detail.notFound') });
@@ -2150,36 +2144,10 @@ async function confirmDelete() {
   color: #6cd161;
 }
 
-.description-content :deep(img) {
-  max-width: 100%;
-  height: auto;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.description-content :deep(p) {
-  margin-bottom: 1rem;
-}
-
-.description-content :deep(p:last-child) {
-  margin-bottom: 0;
-}
-
-.description-content :deep(a) {
-  color: #fff;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.description-content :deep(ul),
-.description-content :deep(ol) {
-  margin-bottom: 1rem;
-  padding-left: 1.5rem;
-}
-
-.description-content :deep(li) {
-  margin-bottom: 0.25rem;
-}
+/* Description typography lives in <DescriptionRender> now — the
+   `.description-content :deep(...)` block that used to live here
+   was migrated wholesale into that component so every surface
+   renders descriptions through one shared pipeline. */
 
 .nfo-frame {
   position: relative;

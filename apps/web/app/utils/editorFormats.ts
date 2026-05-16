@@ -67,6 +67,11 @@ export function markdownToHtml(md: string): string {
 
 // ─── BBCode → HTML ──────────────────────────────────────────────────────────
 
+/* Inline marks live as <strong>/<em>/<u>/<s>. Alignment lives as a
+   <div style="text-align:…"> wrapper rather than the original <p>
+   tag so the alignment block can host nested block-level content
+   (img, blockquote, list) without producing the invalid <p><p>
+   nesting the previous version emitted. */
 const SIMPLE_TAGS: Array<[RegExp, string]> = [
   [/\[b\](.*?)\[\/b\]/gis, '<strong>$1</strong>'],
   [/\[i\](.*?)\[\/i\]/gis, '<em>$1</em>'],
@@ -74,10 +79,11 @@ const SIMPLE_TAGS: Array<[RegExp, string]> = [
   [/\[s\](.*?)\[\/s\]/gis, '<s>$1</s>'],
   [/\[code\](.*?)\[\/code\]/gis, '<pre><code>$1</code></pre>'],
   [/\[h([1-6])\](.*?)\[\/h\1\]/gis, '<h$1>$2</h$1>'],
-  [/\[center\](.*?)\[\/center\]/gis, '<p style="text-align:center">$1</p>'],
-  [/\[right\](.*?)\[\/right\]/gis, '<p style="text-align:right">$1</p>'],
-  [/\[left\](.*?)\[\/left\]/gis, '<p style="text-align:left">$1</p>'],
+  [/\[center\]([\s\S]*?)\[\/center\]/gi, '<div style="text-align:center">$1</div>'],
+  [/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align:right">$1</div>'],
+  [/\[left\]([\s\S]*?)\[\/left\]/gi, '<div style="text-align:left">$1</div>'],
 ];
+
 
 function escapeHtml(s: string): string {
   return s
@@ -137,6 +143,18 @@ function safeColor(value: string): string | null {
 export function bbcodeToHtml(input: string): string {
   let s = escapeHtml(input);
 
+  /* Convert paragraph breaks (blank lines) and single newlines to
+     `<br>` tags up-front. Doing this BEFORE the BBCode pass lets
+     inline wrappers like `[size=13]p1\n\np2[/size]` keep both
+     paragraphs under the same span — the previous "split at the
+     end" approach tore the span across two `<p>` elements and the
+     browser closed the wrapper on the first paragraph, losing the
+     font-size / colour / weight on the second.
+     Order: `\n\n+` first (so it doesn't get eaten by the single-
+     newline pass that follows). */
+  s = s.replace(/\n{2,}/g, '<br><br>');
+  s = s.replace(/\n/g, '<br>');
+
   // [url=https://…]label[/url] and [url]https://…[/url]
   s = s.replace(
     /\[url=([^\]\s]+)\](.*?)\[\/url\]/gis,
@@ -169,15 +187,33 @@ export function bbcodeToHtml(input: string): string {
     }
   );
 
-  // [size=N] (1..7 are common BBCode sizes; clamp & map to em)
+  // [size=N] — N is either a 1..7 BBCode index (map to em) or a
+  // raw pixel value (8..72, clamped). Pixel values are how forum-
+  // exported BBCode like the one ShareWood produces declares
+  // headings ([size=29]Title[/size]); the previous "clamp to 7"
+  // pass squashed those down to 1.4 em and threw away the headline
+  // hierarchy entirely.
   s = s.replace(
-    /\[size=(\d{1,2})\](.*?)\[\/size\]/gis,
+    /\[size=(\d{1,3})(?:px|pt)?\]([\s\S]*?)\[\/size\]/gi,
     (_m, raw: string, content: string) => {
-      const n = Math.max(1, Math.min(7, parseInt(raw, 10) || 3));
-      const em = (0.7 + n * 0.1).toFixed(2); // 1→0.8, 7→1.4
-      return `<span style="font-size:${em}em">${content}</span>`;
+      const n = parseInt(raw, 10) || 3;
+      if (n >= 1 && n <= 7) {
+        const em = (0.7 + n * 0.1).toFixed(2); // 1→0.8em, 7→1.4em
+        return `<span style="font-size:${em}em">${content}</span>`;
+      }
+      // Treat as a pixel value. Cap at 48 so a stray `[size=300]`
+      // doesn't blow out the layout.
+      const px = Math.max(8, Math.min(48, n));
+      return `<span style="font-size:${px}px">${content}</span>`;
     }
   );
+
+  // [font=Verdana] / [font="Comic Sans"] — common in forum-exported
+  // BBCode, useless on a tracker (web fonts aren't guaranteed). We
+  // drop the wrapper and keep the inner content so the rest of the
+  // markup parses cleanly instead of leaving the literal `[font=…]`
+  // text in the rendered output.
+  s = s.replace(/\[font=[^\]]+\]([\s\S]*?)\[\/font\]/gi, '$1');
 
   // [quote] and [quote=author]
   s = s.replace(
@@ -200,14 +236,11 @@ export function bbcodeToHtml(input: string): string {
 
   for (const [re, html] of SIMPLE_TAGS) s = s.replace(re, html);
 
-  // Treat lone newlines as line breaks so a pasted BBCode paragraph
-  // doesn't collapse into a single line. Block-level tags above already
-  // create their own breaks, so we only convert newlines that aren't
-  // adjacent to a tag boundary.
-  s = s
-    .split(/\n{2,}/)
-    .map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`)
-    .join('');
+  /* Trim leading/trailing `<br>` that the pre-process step left
+     when the input had whitespace before the first tag or after
+     the last one. Cheap cleanup — without it, the rendered output
+     opens with an empty line. */
+  s = s.replace(/^(?:\s|<br\s*\/?>)+/i, '').replace(/(?:\s|<br\s*\/?>)+$/i, '');
 
   return s;
 }

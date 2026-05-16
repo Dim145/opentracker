@@ -151,6 +151,7 @@
             <WysiwygEditor
               v-model="description"
               format="markdown"
+              default-mode="preview"
               :placeholder="$t('torrents.uploadForm.descriptionPlaceholder')"
             />
             <p

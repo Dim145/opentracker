@@ -1090,7 +1090,15 @@
       "linkPrompt": "URL du lien",
       "linkOnlyHttp": "Seuls les liens http(s) sont acceptés.",
       "imagePrompt": "URL de l'image",
-      "imageOnlyHttp": "Seules les URLs d'image http(s) sont acceptées."
+      "imageOnlyHttp": "Seules les URLs d'image http(s) sont acceptées.",
+      "modeAria": "Mode d'édition",
+      "mode": {
+        "editor": "Mode visuel",
+        "code": "Mode code (BBCode / Markdown)",
+        "preview": "Aperçu (lecture seule)"
+      },
+      "tagsLabel": "Tags :",
+      "previewBadge": "Aperçu — lecture seule"
     },
     "mediaSearch": {
       "placeholderTv": "Rechercher des séries TV sur TMDb…",

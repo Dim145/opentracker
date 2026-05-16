@@ -1,9 +1,75 @@
 <template>
   <div class="wysiwyg-editor">
-    <!-- Toolbar -->
+    <!-- Mode bar — always visible. The three icons toggle between
+         the WYSIWYG editor, the raw-source textarea, and the
+         read-only render. Mode-specific tools (the formatting
+         toolbar, the BBCode tag chips, etc.) sit on the same row
+         to the right of the divider. -->
     <div
-      v-if="editor"
-      class="flex items-center flex-wrap gap-0.5 p-1.5 bg-bg-tertiary border border-border rounded-t border-b-0"
+      class="we-modebar flex items-center flex-wrap gap-0.5 p-1.5 bg-bg-tertiary border border-border rounded-t border-b-0"
+    >
+      <div class="we-modes" role="tablist" :aria-label="t('components.wysiwyg.modeAria')">
+        <button
+          type="button"
+          :class="['toolbar-btn', { active: mode === 'editor' }]"
+          :title="t('components.wysiwyg.mode.editor')"
+          role="tab"
+          :aria-selected="mode === 'editor'"
+          @click="setMode('editor')"
+        >
+          <Icon name="ph:pencil-bold" />
+        </button>
+        <button
+          type="button"
+          :class="['toolbar-btn', { active: mode === 'code' }]"
+          :title="t('components.wysiwyg.mode.code')"
+          role="tab"
+          :aria-selected="mode === 'code'"
+          @click="setMode('code')"
+        >
+          <Icon name="ph:code-bold" />
+        </button>
+        <button
+          type="button"
+          :class="['toolbar-btn', { active: mode === 'preview' }]"
+          :title="t('components.wysiwyg.mode.preview')"
+          role="tab"
+          :aria-selected="mode === 'preview'"
+          @click="setMode('preview')"
+        >
+          <Icon name="ph:eye-bold" />
+        </button>
+      </div>
+
+      <span class="divider" />
+
+      <!-- ── Mode: CODE — BBCode/Markdown tag chips ───────────── -->
+      <div v-if="mode === 'code'" class="we-tags">
+        <span class="we-tags-label">{{ t('components.wysiwyg.tagsLabel') }}</span>
+        <button
+          v-for="tag in CODE_TAGS"
+          :key="tag.label"
+          type="button"
+          class="we-tag-chip"
+          :title="tag.title"
+          @click="insertTag(tag)"
+        >
+          [{{ tag.label }}]
+        </button>
+      </div>
+
+      <!-- ── Mode: PREVIEW — read-only badge ──────────────────── -->
+      <div v-if="mode === 'preview'" class="we-preview-badge">
+        <Icon name="ph:eye-bold" />
+        {{ t('components.wysiwyg.previewBadge') }}
+      </div>
+    </div>
+
+    <!-- Editor toolbar (only in editor mode). Same buttons as
+         before, just gated by `mode === 'editor'`. -->
+    <div
+      v-if="mode === 'editor' && editor"
+      class="we-toolbar flex items-center flex-wrap gap-0.5 p-1.5 bg-bg-tertiary border border-border border-t-0 border-b-0"
     >
       <!-- Inline marks -->
       <button
@@ -228,18 +294,44 @@
     <!-- Format hint — visible only when content was just imported from
          another format, gives the user a sense of what the editor is doing. -->
     <div
-      v-if="lastImportedFormat && lastImportedFormat !== 'html'"
+      v-if="mode === 'editor' && lastImportedFormat && lastImportedFormat !== 'html'"
       class="flex items-center gap-1.5 px-3 py-1 bg-bg-tertiary/60 border border-border border-b-0 text-[10px] uppercase tracking-widest text-text-muted"
     >
       <Icon name="ph:magic-wand" />
       {{ t('components.wysiwyg.pastedAs', { format: lastImportedFormat }) }}
     </div>
 
-    <!-- Editor -->
+    <!-- Editor (TipTap, WYSIWYG) -->
     <EditorContent
+      v-show="mode === 'editor'"
       :editor="editor"
-      class="wysiwyg-content bg-bg-tertiary border border-border rounded-b px-3 py-2 min-h-[120px] focus-within:border-fg-default/20 transition-colors"
+      class="wysiwyg-content bg-bg-tertiary border border-border rounded-b px-3 py-2 min-h-[160px] focus-within:border-fg-default/20 transition-colors"
     />
+
+    <!-- Code mode — raw source textarea. The textarea is the *truth*
+         while this mode is active; we don't shadow the value through
+         the TipTap model. Users can paste BBCode or Markdown freely;
+         on save the parent decides what to do (auto-detect happens
+         at render-time on the public detail page). -->
+    <textarea
+      v-show="mode === 'code'"
+      ref="codeAreaRef"
+      :value="modelValue"
+      :placeholder="resolvedPlaceholder"
+      class="we-code-area bg-bg-tertiary border border-border rounded-b px-3 py-2 w-full min-h-[260px] font-mono text-[12.5px] leading-relaxed text-text-default outline-none focus:border-fg-default/20 transition-colors"
+      @input="onCodeInput"
+    />
+
+    <!-- Preview mode — read-only render of the current source.
+         Routes through <DescriptionRender>, the same component the
+         public detail page uses, so what you see here is byte-for-
+         byte what the viewer will see post-publish. -->
+    <div
+      v-show="mode === 'preview'"
+      class="we-preview bg-bg-tertiary border border-border rounded-b px-4 py-3 min-h-[180px]"
+    >
+      <DescriptionRender :source="previewSource" />
+    </div>
 
     <!-- Character count -->
     <div v-if="maxLength && editor" class="text-right mt-1">
@@ -271,6 +363,41 @@ import {
   detectFormat,
   type EditorFormat,
 } from '~/utils/editorFormats';
+import DescriptionRender from '~/components/DescriptionRender.vue';
+
+/* The three editor modes. `editor` is the visual TipTap surface,
+   `code` is a raw source textarea (BBCode / Markdown / HTML — the
+   render pass auto-detects), `preview` is the read-only render of
+   whichever source the user typed last. */
+type EditorMode = 'editor' | 'code' | 'preview';
+
+interface CodeTag {
+  /** Label shown inside the chip — also drives `[…]` insertion. */
+  label: string;
+  /** Tooltip explaining what the tag does. */
+  title: string;
+  /** Optional override for the inserted text (e.g. `url=https://`). */
+  open?: string;
+  /** Closing tag override (defaults to `/label`). */
+  close?: string;
+  /** When true, no closing tag is inserted (e.g. `[hr]`-style). */
+  selfClosing?: boolean;
+}
+
+const CODE_TAGS: CodeTag[] = [
+  { label: 'b', title: 'Gras' },
+  { label: 'i', title: 'Italique' },
+  { label: 'u', title: 'Souligné' },
+  { label: 's', title: 'Barré' },
+  { label: 'url', title: 'Lien', open: 'url=https://' },
+  { label: 'img', title: 'Image' },
+  { label: 'quote', title: 'Citation' },
+  { label: 'code', title: 'Bloc de code' },
+  { label: 'list', title: 'Liste' },
+  { label: 'color', title: 'Couleur', open: 'color=#ffffff' },
+  { label: 'size', title: 'Taille', open: 'size=16' },
+  { label: 'center', title: 'Centrer' },
+];
 
 const { t } = useI18n();
 
@@ -285,12 +412,22 @@ interface Props {
    * stores raw HTML.
    */
   format?: 'markdown' | 'html';
+  /**
+   * Which mode the editor starts in. Defaults to the visual editor so
+   * an empty new-upload form drops the cursor straight into the WYSIWYG
+   * surface. The edit page passes `'preview'` so an existing
+   * description (which may include exotic BBCode formatting TipTap
+   * can't round-trip) is shown as the viewer will see it before the
+   * uploader commits to a destructive edit.
+   */
+  defaultMode?: EditorMode;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   placeholder: '',
   format: 'html',
   maxLength: undefined,
+  defaultMode: 'editor',
 });
 
 // Resolve runtime placeholder: prefer the prop if explicitly passed,
@@ -306,6 +443,23 @@ const emit = defineEmits<{
 }>();
 
 const lastImportedFormat = ref<EditorFormat | null>(null);
+const mode = ref<EditorMode>(props.defaultMode);
+const codeAreaRef = ref<HTMLTextAreaElement | null>(null);
+
+/* Preview routes through <DescriptionRender>, which calls
+   `toEditorHtml` internally — same code path as the public detail
+   page. We just hand it the *raw* source: HTML straight from
+   TipTap when the user has been editing visually, or the raw
+   textarea content when they were in code mode. That way the
+   preview output is identical to what the visitor will see, even
+   if the editor's WYSIWYG round-trip would have stripped some
+   BBCode-specific formatting (font-size, colour, …). */
+const previewSource = computed(() => {
+  if (mode.value === 'editor' && editor.value) {
+    return editor.value.getHTML();
+  }
+  return props.modelValue;
+});
 
 // Convert the parent's stored value into HTML for TipTap. For markdown
 // mode we also accept the legacy mix of MD with embedded HTML/BBCode.
@@ -442,6 +596,69 @@ function promptImage() {
   editor.value?.chain().focus().setImage({ src: url }).run();
 }
 
+/* ── Mode switch ─────────────────────────────────────────────
+   When the user toggles modes we keep the source in sync via
+   `modelValue` — no shadow copies. Going to `editor` reparses
+   the source (handles the case where the user typed BBCode in
+   code mode and is jumping into the visual editor). Going to
+   `code`/`preview` from `editor` flushes TipTap's HTML into
+   markdown / raw form so the textarea / preview reflect what
+   the parent will store. */
+function setMode(next: EditorMode) {
+  if (mode.value === next) return;
+
+  // Editor → other: flush TipTap content into `modelValue` first.
+  if (mode.value === 'editor' && editor.value) {
+    const html = editor.value.getHTML();
+    const out = htmlToOutput(html);
+    if (out !== props.modelValue) {
+      emit('update:modelValue', out);
+    }
+  }
+
+  mode.value = next;
+
+  // → editor: re-seed TipTap from the (possibly raw) source.
+  if (next === 'editor' && editor.value) {
+    const html = inputToHtml(props.modelValue);
+    if (html !== editor.value.getHTML()) {
+      editor.value.commands.setContent(html, { emitUpdate: false });
+    }
+  }
+
+  // → code: drop focus onto the textarea so the user can start
+  // typing immediately.
+  if (next === 'code') {
+    nextTick(() => codeAreaRef.value?.focus());
+  }
+}
+
+function onCodeInput(e: Event) {
+  emit('update:modelValue', (e.target as HTMLTextAreaElement).value);
+}
+
+/* Insert a BBCode tag at the textarea cursor, wrapping the current
+   selection if there is one. Restores focus + leaves the caret
+   between the tags so the user can keep typing without having to
+   reach for the mouse. */
+function insertTag(tag: CodeTag) {
+  const ta = codeAreaRef.value;
+  if (!ta) return;
+  ta.focus();
+  const value = ta.value;
+  const start = ta.selectionStart ?? value.length;
+  const end = ta.selectionEnd ?? value.length;
+  const selected = value.slice(start, end);
+  const openTag = `[${tag.open ?? tag.label}]`;
+  const closeTag = tag.selfClosing ? '' : `[${tag.close ?? `/${tag.label}`}]`;
+  const next = value.slice(0, start) + openTag + selected + closeTag + value.slice(end);
+  emit('update:modelValue', next);
+  nextTick(() => {
+    const caret = start + openTag.length + selected.length;
+    ta.setSelectionRange(caret, caret);
+  });
+}
+
 // Keep the editor in sync if the parent reassigns modelValue (e.g. when
 // the modal opens for a different torrent).
 watch(
@@ -489,6 +706,88 @@ onBeforeUnmount(() => {
   height: 1.25rem;
   background: rgb(var(--line-default));
   margin: 0 0.25rem;
+}
+
+/* Mode segment — three buttons grouped tight so the eye reads
+   them as one control rather than three independent toggles. */
+.we-modes {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem;
+  background: rgb(var(--bg-inset, var(--bg-elevated)));
+  border-radius: 0.3rem;
+  border: 1px solid rgb(var(--line-default));
+}
+.we-modes .toolbar-btn {
+  border-radius: 0.2rem;
+}
+
+/* Tag chips for code mode. Mono, faint at rest, light up on hover
+   to telegraph "click to insert". The label retains its [bracket]
+   form so the chip itself doubles as a hint about what's about to
+   land in the textarea. */
+.we-tags {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  color: rgb(var(--fg-muted));
+}
+.we-tags-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  margin-right: 0.25rem;
+}
+.we-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.5rem;
+  background: rgb(var(--bg-elevated));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgb(var(--fg-default));
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, transform 0.18s ease;
+}
+.we-tag-chip:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.we-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  padding: 0.18rem 0.5rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.25rem;
+  background: rgb(var(--bg-elevated));
+}
+
+.we-code-area {
+  resize: vertical;
+}
+.we-code-area::placeholder {
+  color: rgb(var(--fg-muted));
+  font-family: inherit;
 }
 </style>
 
