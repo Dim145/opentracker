@@ -655,11 +655,6 @@
       "favorite": "Favoris",
       "favoriteAdd": "Ajouter aux favoris",
       "favoriteRemove": "Retirer des favoris",
-      "toasts": {
-        "favorited": "Ajouté à vos favoris.",
-        "unfavorited": "Retiré de vos favoris.",
-        "favoriteFailed": "Impossible de modifier vos favoris."
-      },
       "infoHash": "Infohash",
       "createdAt": "Créé le",
       "uploadedBy": "Uploadé par",
@@ -712,7 +707,10 @@
         "message": "Supprimer définitivement « {name} » de l'index ? Cette action est irréversible."
       },
       "toasts": {
-        "deleted": "Torrent supprimé"
+        "deleted": "Torrent supprimé",
+        "favorited": "Ajouté à vos favoris.",
+        "unfavorited": "Retiré de vos favoris.",
+        "favoriteFailed": "Impossible de modifier vos favoris."
       },
       "errors": {
         "deleteFailed": "Échec de la suppression du torrent"

@@ -655,11 +655,6 @@
       "favorite": "Favorite",
       "favoriteAdd": "Add to favorites",
       "favoriteRemove": "Remove from favorites",
-      "toasts": {
-        "favorited": "Added to your favorites.",
-        "unfavorited": "Removed from your favorites.",
-        "favoriteFailed": "Could not update your favorites."
-      },
       "infoHash": "Info Hash",
       "createdAt": "Created At",
       "uploadedBy": "Uploaded by",
@@ -712,7 +707,10 @@
         "message": "Permanently remove “{name}” from the index? This cannot be undone."
       },
       "toasts": {
-        "deleted": "Torrent deleted"
+        "deleted": "Torrent deleted",
+        "favorited": "Added to your favorites.",
+        "unfavorited": "Removed from your favorites.",
+        "favoriteFailed": "Could not update your favorites."
       },
       "errors": {
         "deleteFailed": "Failed to delete torrent"
