@@ -67,6 +67,32 @@ export function markdownToHtml(md: string): string {
 
 // ─── BBCode → HTML ──────────────────────────────────────────────────────────
 
+/* Run a single replace pass, then keep re-running it until the
+   output stops changing. Used for nestable BBCode tags ([color],
+   [size], [font]) where each pass resolves the innermost layer
+   and exposes the next one outward — the negative-lookahead
+   regexes inside each pass deliberately refuse to cross over
+   another opener of the same kind, so a single replace handles
+   exactly one layer of depth.
+
+   Convergence is guaranteed because every successful match
+   replaces `[tag]…[/tag]` brackets with `<htmltag>` brackets — the
+   pattern can't match its own output. A hard ceiling caps runaway
+   loops on pathologically deep input. */
+function replaceUntilStable(
+  s: string,
+  fn: (str: string) => string,
+  maxPasses = 24,
+): string {
+  let prev: string;
+  let i = 0;
+  do {
+    prev = s;
+    s = fn(s);
+  } while (s !== prev && ++i < maxPasses);
+  return s;
+}
+
 /* Inline marks live as <strong>/<em>/<u>/<s>. Alignment lives as a
    <div style="text-align:…"> wrapper rather than the original <p>
    tag so the alignment block can host nested block-level content
@@ -178,42 +204,58 @@ export function bbcodeToHtml(input: string): string {
     return `<img src="${escapeAttr(decoded)}" alt="" />`;
   });
 
-  // [color=red] / [color=#ff0000]
-  s = s.replace(
-    /\[color=([^\]]+)\](.*?)\[\/color\]/gis,
-    (_m, raw: string, content: string) => {
-      const c = safeColor(unescapeHtml(raw));
-      return c ? `<span style="color:${c}">${content}</span>` : content;
-    }
+  /* Nestable inline wrappers — `[color]`, `[size]`, `[font]` can
+     all be nested inside themselves in real-world BBCode (the
+     ShareWood / phpBB exports wrap the whole body in
+     `[font=Verdana][size=13]…[/size][/font]` and then nest smaller
+     `[font][size]` blocks inside).
+     A plain non-greedy regex `\[size=…\](.*?)\[/size\]` matches the
+     outer open with the FIRST inner close, leaving the inner open
+     orphaned as literal text — exactly the bug visible on the
+     ShareWood-exported torrents where `[size=13]Plus d'info`
+     appeared verbatim.
+     Fix: negative-lookahead the content so the regex refuses to
+     cross over another opener of the same kind, then iterate until
+     stable so each outward layer is resolved on a subsequent
+     pass. */
+  s = replaceUntilStable(s, (str) =>
+    str.replace(
+      /\[color=([^\]]+)\]((?:(?!\[color=)[\s\S])*?)\[\/color\]/gi,
+      (_m, raw: string, content: string) => {
+        const c = safeColor(unescapeHtml(raw));
+        return c ? `<span style="color:${c}">${content}</span>` : content;
+      }
+    )
   );
 
-  // [size=N] — N is either a 1..7 BBCode index (map to em) or a
-  // raw pixel value (8..72, clamped). Pixel values are how forum-
-  // exported BBCode like the one ShareWood produces declares
-  // headings ([size=29]Title[/size]); the previous "clamp to 7"
-  // pass squashed those down to 1.4 em and threw away the headline
-  // hierarchy entirely.
-  s = s.replace(
-    /\[size=(\d{1,3})(?:px|pt)?\]([\s\S]*?)\[\/size\]/gi,
-    (_m, raw: string, content: string) => {
-      const n = parseInt(raw, 10) || 3;
-      if (n >= 1 && n <= 7) {
-        const em = (0.7 + n * 0.1).toFixed(2); // 1→0.8em, 7→1.4em
-        return `<span style="font-size:${em}em">${content}</span>`;
+  s = replaceUntilStable(s, (str) =>
+    str.replace(
+      /\[size=(\d{1,3})(?:px|pt)?\]((?:(?!\[size=)[\s\S])*?)\[\/size\]/gi,
+      (_m, raw: string, content: string) => {
+        const n = parseInt(raw, 10) || 3;
+        if (n >= 1 && n <= 7) {
+          const em = (0.7 + n * 0.1).toFixed(2); // 1→0.8em, 7→1.4em
+          return `<span style="font-size:${em}em">${content}</span>`;
+        }
+        // Pixel value path. Cap at 48 so a stray `[size=300]`
+        // doesn't blow out the layout.
+        const px = Math.max(8, Math.min(48, n));
+        return `<span style="font-size:${px}px">${content}</span>`;
       }
-      // Treat as a pixel value. Cap at 48 so a stray `[size=300]`
-      // doesn't blow out the layout.
-      const px = Math.max(8, Math.min(48, n));
-      return `<span style="font-size:${px}px">${content}</span>`;
-    }
+    )
   );
 
   // [font=Verdana] / [font="Comic Sans"] — common in forum-exported
-  // BBCode, useless on a tracker (web fonts aren't guaranteed). We
-  // drop the wrapper and keep the inner content so the rest of the
-  // markup parses cleanly instead of leaving the literal `[font=…]`
-  // text in the rendered output.
-  s = s.replace(/\[font=[^\]]+\]([\s\S]*?)\[\/font\]/gi, '$1');
+  // BBCode, useless on a tracker (web fonts aren't guaranteed).
+  // Same nesting fix as size / colour above — without the
+  // lookahead, the outer `[font]` matches the inner `[/font]` and
+  // the inner `[font=Verdana]` is left as literal text.
+  s = replaceUntilStable(s, (str) =>
+    str.replace(
+      /\[font=[^\]]+\]((?:(?!\[font=)[\s\S])*?)\[\/font\]/gi,
+      '$1'
+    )
+  );
 
   // [quote] and [quote=author]
   s = s.replace(
