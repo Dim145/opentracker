@@ -39,8 +39,8 @@
         <div class="hero-body">
           <header class="hero-eyebrow">
             <span class="hero-eyebrow-mark" aria-hidden="true">§</span>
-            <span class="hero-eyebrow-label">
-              {{ $t('users.profile.eyebrow') }}
+            <span class="hero-eyebrow-label" :class="eyebrowLabelClass">
+              {{ eyebrowLabel }}
             </span>
             <span class="hero-eyebrow-sep">·</span>
             <span class="hero-eyebrow-since" :title="formatDay(user.createdAt)">
@@ -63,19 +63,11 @@
 
           <div class="hero-handle-row">
             <span class="hero-handle">@{{ user.username }}</span>
-            <span v-if="user.isAdmin" class="role-pill role-pill--admin">
-              <Icon name="ph:shield-star-bold" class="role-pill-icon" />
-              {{ $t('me.permission.admin') }}
-            </span>
-            <span v-else-if="user.isModerator" class="role-pill role-pill--mod">
-              <Icon name="ph:gavel-bold" class="role-pill-icon" />
-              {{ $t('nav.mod') }}
-            </span>
             <RoleBadge
-              v-for="r in user.roles"
-              :key="r.id"
-              :role="r"
-              :title="$t('users.profile.roleTitle', { name: r.name })"
+                v-for="r in user.roles"
+                :key="r.id"
+                :role="r"
+                :title="$t('users.profile.roleTitle', { name: r.name })"
             />
           </div>
 
@@ -94,11 +86,11 @@
              of the modal it opens — mono caption, warning-red
              on hover, staple dots where it meets the dossier. -->
         <button
-          v-if="canReport"
-          type="button"
-          class="hero-flag"
-          :aria-label="$t('users.profile.flag.aria', { name: user.username })"
-          @click="reportOpen = true"
+            v-if="canReport"
+            type="button"
+            class="hero-flag"
+            :aria-label="$t('users.profile.flag.aria', { name: user.username })"
+            @click="reportOpen = true"
         >
           <Icon name="ph:flag-bold" class="hero-flag-icon" />
           <span class="hero-flag-label">
@@ -142,8 +134,8 @@
             <Icon name="ph:upload-simple-bold" class="stat-icon" />
             <div class="stat-body">
               <span class="stat-num tabular-nums">{{
-                user.uploadsCount
-              }}</span>
+                  user.uploadsCount
+                }}</span>
               <span class="stat-label">{{ $t('users.profile.uploads') }}</span>
             </div>
           </li>
@@ -158,8 +150,8 @@
             {{ $t('users.profile.uploadedTorrents') }}
           </h2>
           <span v-if="user.uploadsCount" class="section-head-count">{{
-            user.uploadsCount
-          }}</span>
+              user.uploadsCount
+            }}</span>
           <span class="section-head-line" aria-hidden="true" />
         </header>
 
@@ -174,15 +166,15 @@
 
         <ul v-else class="upload-list">
           <li
-            v-for="(t, i) in uploads.data"
-            :key="t.id"
-            class="upload-item"
-            :style="{ '--entry-delay': `${Math.min(i * 50, 400)}ms` }"
+              v-for="(t, i) in uploads.data"
+              :key="t.id"
+              class="upload-item"
+              :style="{ '--entry-delay': `${Math.min(i * 50, 400)}ms` }"
           >
             <NuxtLink :to="`/torrents/${t.infoHash}`" class="upload-link">
               <Icon
-                :name="getCategoryIcon(t.category)"
-                class="upload-icon"
+                  :name="getCategoryIcon(t.category)"
+                  class="upload-icon"
               />
               <div class="upload-info">
                 <span class="upload-name">{{ t.name }}</span>
@@ -215,14 +207,14 @@
         </ul>
 
         <nav
-          v-if="uploads?.pagination && uploads.pagination.pages > 1"
-          class="upload-pager"
+            v-if="uploads?.pagination && uploads.pagination.pages > 1"
+            class="upload-pager"
         >
           <button
-            type="button"
-            class="pager-btn"
-            :disabled="uploadsPage <= 1"
-            @click="uploadsPage--"
+              type="button"
+              class="pager-btn"
+              :disabled="uploadsPage <= 1"
+              @click="uploadsPage--"
           >
             <Icon name="ph:arrow-left-bold" />
             {{ $t('common.previous') }}
@@ -233,10 +225,10 @@
             <span class="pager-total">{{ uploads.pagination.pages }}</span>
           </span>
           <button
-            type="button"
-            class="pager-btn"
-            :disabled="uploadsPage >= uploads.pagination.pages"
-            @click="uploadsPage++"
+              type="button"
+              class="pager-btn"
+              :disabled="uploadsPage >= uploads.pagination.pages"
+              @click="uploadsPage++"
           >
             {{ $t('common.next') }}
             <Icon name="ph:arrow-right-bold" />
@@ -249,13 +241,13 @@
          Teleports to body, so its position in the tree is purely
          organisational. -->
     <ReportModal
-      v-if="user"
-      :is-open="reportOpen"
-      target-type="user"
-      :target-id="user.id"
-      :target-label="user.displayName || user.username"
-      @close="reportOpen = false"
-      @submitted="reportOpen = false"
+        v-if="user"
+        :is-open="reportOpen"
+        target-type="user"
+        :target-id="user.id"
+        :target-label="user.displayName || user.username"
+        @close="reportOpen = false"
+        @submitted="reportOpen = false"
     />
   </div>
 </template>
@@ -334,10 +326,10 @@ const canReport = computed(() => {
 // Fetch user uploads with pagination
 const uploadsPage = ref(1);
 const { data: uploads, pending: uploadsPending } =
-  await useFetch<UploadsResponse>(() => `/api/users/${userId.value}/uploads`, {
-    query: { page: uploadsPage, limit: 10 },
-    watch: [uploadsPage],
-  });
+    await useFetch<UploadsResponse>(() => `/api/users/${userId.value}/uploads`, {
+      query: { page: uploadsPage, limit: 10 },
+      watch: [uploadsPage],
+    });
 
 // Initials for the monogram avatar — first letter of each "word" in
 // the displayName, or the first two chars of the username when there
@@ -398,6 +390,20 @@ const presenceLabel = computed(() => {
   return formatAge(user.value.lastSeen).toUpperCase();
 });
 
+const eyebrowLabel = computed(() => {
+  if (!user.value) return t('users.profile.eyebrow');
+  if (user.value.isAdmin) return t('me.permission.admin');
+  if (user.value.isModerator) return t('me.permission.moderator');
+  return t('users.profile.eyebrow');
+});
+
+const eyebrowLabelClass = computed(() => {
+  if (!user.value) return null;
+  if (user.value.isAdmin) return 'hero-eyebrow-label--admin';
+  if (user.value.isModerator) return 'hero-eyebrow-label--mod';
+  return null;
+});
+
 // Ratio formatting
 const ratioFormatted = computed(() => {
   if (!user.value) return '0.00';
@@ -419,8 +425,8 @@ const ratioTier = computed<'healthy' | 'ok' | 'warn' | 'bad'>(() => {
 
 useHead({
   title: user.value?.username
-    ? t('users.profile.titleWithName', { name: user.value.username })
-    : t('users.profile.title'),
+      ? t('users.profile.titleWithName', { name: user.value.username })
+      : t('users.profile.title'),
 });
 </script>
 
@@ -468,16 +474,16 @@ useHead({
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(
-      ellipse 80% 60% at 30% 0%,
-      rgba(56, 89, 178, 0.28),
-      transparent 70%
-    ),
-    radial-gradient(
-      ellipse 60% 50% at 80% 0%,
-      rgb(var(--release-purple) / 0.2),
-      transparent 70%
-    );
+      radial-gradient(
+          ellipse 80% 60% at 30% 0%,
+          rgba(56, 89, 178, 0.28),
+          transparent 70%
+      ),
+      radial-gradient(
+          ellipse 60% 50% at 80% 0%,
+          rgb(var(--release-purple) / 0.2),
+          transparent 70%
+      );
 }
 .aura-blob {
   position: absolute;
@@ -492,9 +498,9 @@ useHead({
   top: -180px;
   left: -120px;
   background: radial-gradient(
-    circle,
-    rgb(var(--release-rose) / 0.55),
-    transparent 65%
+      circle,
+      rgb(var(--release-rose) / 0.55),
+      transparent 65%
   );
 }
 .aura-blob--b {
@@ -503,16 +509,16 @@ useHead({
   top: 60px;
   right: -160px;
   background: radial-gradient(
-    circle,
-    rgb(var(--release-purple) / 0.55),
-    transparent 65%
+      circle,
+      rgb(var(--release-purple) / 0.55),
+      transparent 65%
   );
 }
 .aura-grain {
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
   background-size: 3px 3px;
   opacity: 0.55;
   mix-blend-mode: overlay;
@@ -587,17 +593,17 @@ useHead({
   margin-bottom: 2.5rem;
   padding: 1.75rem 1.85rem;
   background:
-    radial-gradient(
-      ellipse 90% 100% at 0% 0%,
-      rgba(56, 89, 178, 0.22),
-      transparent 60%
-    ),
-    radial-gradient(
-      ellipse 70% 100% at 100% 100%,
-      rgb(var(--release-rose) / 0.18),
-      transparent 60%
-    ),
-    rgb(var(--bg-surface));
+      radial-gradient(
+          ellipse 90% 100% at 0% 0%,
+          rgba(56, 89, 178, 0.22),
+          transparent 60%
+      ),
+      radial-gradient(
+          ellipse 70% 100% at 100% 100%,
+          rgb(var(--release-rose) / 0.18),
+          transparent 60%
+      ),
+      rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-strong));
   border-radius: 0.6rem;
   /* No `overflow: hidden` here — the flag tab needs to peek above
@@ -605,9 +611,9 @@ useHead({
      `border-radius` (background-clip defaults to border-box), so
      nothing else relies on overflow being clipped. */
   box-shadow:
-    0 22px 60px -22px rgba(0, 0, 0, 0.7),
-    0 4px 14px -8px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      0 22px 60px -22px rgba(0, 0, 0, 0.7),
+      0 4px 14px -8px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
   animation: heroRise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes heroRise {
@@ -633,9 +639,9 @@ useHead({
   justify-content: center;
   flex-shrink: 0;
   box-shadow:
-    0 16px 40px -18px rgba(0, 0, 0, 0.7),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    inset 0 -24px 32px -16px rgba(0, 0, 0, 0.35);
+      0 16px 40px -18px rgba(0, 0, 0, 0.7),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+      inset 0 -24px 32px -16px rgba(0, 0, 0, 0.35);
   isolation: isolate;
   animation: avatarRise 0.7s 0.05s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -651,9 +657,9 @@ useHead({
   inset: 0;
   border-radius: inherit;
   background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.18),
-    transparent 55%
+      135deg,
+      rgba(255, 255, 255, 0.18),
+      transparent 55%
   );
   pointer-events: none;
 }
@@ -717,6 +723,12 @@ useHead({
 .hero-eyebrow-label {
   color: rgb(var(--release-cyan));
   font-weight: 800;
+}
+.hero-eyebrow-label--admin {
+  color: rgb(var(--danger));
+}
+.hero-eyebrow-label--mod {
+  color: rgb(var(--release-cyan));
 }
 .hero-eyebrow-sep { opacity: 0.5; }
 .hero-eyebrow-since {
@@ -794,43 +806,18 @@ useHead({
   letter-spacing: 0.04em;
 }
 
-.role-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.32rem;
-  padding: 0.22rem 0.55rem;
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  border: 1px solid;
-}
-.role-pill-icon { font-size: 11px; }
-.role-pill--admin {
-  color: rgb(var(--danger));
-  background: rgb(var(--danger) / 0.12);
-  border-color: rgb(var(--danger) / 0.5);
-}
-.role-pill--mod {
-  color: rgb(var(--release-cyan));
-  background: rgb(var(--release-cyan) / 0.12);
-  border-color: rgb(var(--release-cyan) / 0.5);
-}
-
 /* ── Bio pull-quote ───────────────────────────────────────────── */
 .hero-bio {
   position: relative;
   margin: 0.6rem 0 0;
   padding: 1.05rem 1.15rem 1.05rem 2.1rem;
   background:
-    linear-gradient(
-      135deg,
-      rgb(var(--release-rose) / 0.06),
-      transparent 60%
-    ),
-    rgb(var(--bg-elevated));
+      linear-gradient(
+          135deg,
+          rgb(var(--release-rose) / 0.06),
+          transparent 60%
+      ),
+      rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
   border-left: 3px solid rgb(var(--release-rose));
   border-radius: 0 0.35rem 0.35rem 0;
@@ -889,8 +876,8 @@ useHead({
   gap: 0.5rem;
   padding: 0.58rem 0.9rem 0.7rem;
   background:
-    linear-gradient(180deg, rgba(244, 63, 94, 0.08), rgba(244, 63, 94, 0.015) 90%),
-    rgb(var(--bg-elevated));
+      linear-gradient(180deg, rgba(244, 63, 94, 0.08), rgba(244, 63, 94, 0.015) 90%),
+      rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
   border-bottom: 0;
   border-radius: 0.45rem 0.45rem 0 0;
@@ -905,11 +892,11 @@ useHead({
   transform-origin: bottom center;
   animation: heroFlagDrop 0.7s 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   transition:
-    color 0.2s ease,
-    background 0.22s ease,
-    border-color 0.22s ease,
-    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.25s ease;
+      color 0.2s ease,
+      background 0.22s ease,
+      border-color 0.22s ease,
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.25s ease;
 }
 @keyframes heroFlagDrop {
   from { opacity: 0; transform: translateY(-10px); }
@@ -928,8 +915,8 @@ useHead({
   border-radius: 999px;
   background: rgb(var(--fg-faint) / 0.55);
   box-shadow:
-    -8px 0 0 0 rgb(var(--fg-faint) / 0.55),
-    8px 0 0 0 rgb(var(--fg-faint) / 0.55);
+      -8px 0 0 0 rgb(var(--fg-faint) / 0.55),
+      8px 0 0 0 rgb(var(--fg-faint) / 0.55);
   transform: translateX(-50%);
   pointer-events: none;
   transition: background 0.22s, box-shadow 0.22s;
@@ -950,12 +937,12 @@ useHead({
 .hero-flag:hover {
   color: rgb(var(--danger));
   background:
-    linear-gradient(180deg, rgba(244, 63, 94, 0.2), rgba(244, 63, 94, 0.05) 90%),
-    rgb(var(--bg-elevated));
+      linear-gradient(180deg, rgba(244, 63, 94, 0.2), rgba(244, 63, 94, 0.05) 90%),
+      rgb(var(--bg-elevated));
   border-color: rgb(var(--danger) / 0.55);
   box-shadow:
-    0 14px 32px -18px rgba(244, 63, 94, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      0 14px 32px -18px rgba(244, 63, 94, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transform: translateY(2px);
 }
 .hero-flag:hover .hero-flag-icon {
@@ -965,8 +952,8 @@ useHead({
 .hero-flag:hover .hero-flag-stitch {
   background: rgb(var(--danger) / 0.55);
   box-shadow:
-    -8px 0 0 0 rgb(var(--danger) / 0.55),
-    8px 0 0 0 rgb(var(--danger) / 0.55);
+      -8px 0 0 0 rgb(var(--danger) / 0.55),
+      8px 0 0 0 rgb(var(--danger) / 0.55);
 }
 
 .hero-flag:focus-visible {
@@ -976,8 +963,8 @@ useHead({
 .hero-flag:active {
   transform: translateY(4px);
   box-shadow:
-    0 4px 10px -6px rgba(244, 63, 94, 0.5),
-    inset 0 1px 0 rgba(0, 0, 0, 0.15);
+      0 4px 10px -6px rgba(244, 63, 94, 0.5),
+      inset 0 1px 0 rgba(0, 0, 0, 0.15);
 }
 
 @keyframes heroFlagWave {
@@ -1070,9 +1057,9 @@ useHead({
   flex: 1 1 auto;
   height: 1px;
   background: linear-gradient(
-    90deg,
-    rgb(var(--release-purple) / 0.4),
-    transparent 75%
+      90deg,
+      rgb(var(--release-purple) / 0.4),
+      transparent 75%
   );
   min-width: 1rem;
 }
@@ -1095,21 +1082,21 @@ useHead({
   gap: 0.85rem;
   padding: 0.85rem 1rem;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 60%),
-    linear-gradient(
-      rgb(var(--rail, var(--fg-muted)) / 0.16),
-      rgb(var(--rail, var(--fg-muted)) / 0.16)
-    ),
-    rgb(var(--bg-surface));
+      linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 60%),
+      linear-gradient(
+          rgb(var(--rail, var(--fg-muted)) / 0.16),
+          rgb(var(--rail, var(--fg-muted)) / 0.16)
+      ),
+      rgb(var(--bg-surface));
   border: 1px solid rgb(var(--rail, var(--fg-muted)) / 0.55);
   border-radius: 0.55rem;
   box-shadow:
-    0 6px 16px -10px rgba(0, 0, 0, 0.55),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+      0 6px 16px -10px rgba(0, 0, 0, 0.55),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.025);
   transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+      background 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .stat:hover {
   border-color: rgb(var(--rail, var(--fg-muted)) / 0.8);
@@ -1210,28 +1197,28 @@ useHead({
   gap: 0.85rem;
   padding: 0.85rem 1rem;
   background:
-    linear-gradient(
-      rgb(var(--release-purple) / 0.05),
-      rgb(var(--release-purple) / 0.05)
-    ),
-    rgb(var(--bg-elevated));
+      linear-gradient(
+          rgb(var(--release-purple) / 0.05),
+          rgb(var(--release-purple) / 0.05)
+      ),
+      rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
   border-radius: 0.4rem;
   text-decoration: none;
   color: rgb(var(--fg-default));
   box-shadow: 0 4px 12px -8px rgba(0, 0, 0, 0.5);
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      background 0.18s ease,
+      border-color 0.18s ease,
+      transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .upload-link:hover {
   background:
-    linear-gradient(
-      rgb(var(--release-purple) / 0.14),
-      rgb(var(--release-purple) / 0.14)
-    ),
-    rgb(var(--bg-elevated));
+      linear-gradient(
+          rgb(var(--release-purple) / 0.14),
+          rgb(var(--release-purple) / 0.14)
+      ),
+      rgb(var(--bg-elevated));
   border-color: rgb(var(--release-purple) / 0.55);
   transform: translateX(2px);
 }
