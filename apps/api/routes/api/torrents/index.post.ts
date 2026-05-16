@@ -4,7 +4,8 @@ import { randomUUID } from 'crypto';
 import parseTorrent from 'parse-torrent';
 import { computeContentSignature } from '~~/utils/contentSignature';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
-import { resolveTagsByName, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
+import { resolveTagsByName, slugifyTag, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
+import { inferReleaseTags } from '~~/utils/releaseTags';
 import { normalizeMediaId } from '~~/utils/mediaIds';
 import { getUploadRules, evaluateUpload } from '~~/utils/uploadRules';
 import { notifyMany, listStaffRecipients } from '~~/utils/notify';
@@ -279,43 +280,84 @@ export default defineEventHandler(async (event) => {
     updatedAt: now,
   });
 
-  // Add tags if provided. The form part can be either:
-  //   - tags: JSON string array of names (preferred, free-form input)
-  //   - tagIds: JSON string array of pre-resolved ids (kept for callers
-  //     that already know the ids — e.g. the admin tag picker)
+  // ── Tag attachment ─────────────────────────────────────────────
+  //
+  // Two sources feed the final tag set:
+  //
+  //   1. **User-declared tags** from the form (`tags` / `tagIds`) —
+  //      free-form names and/or pre-resolved UUIDs. Always honoured.
+  //
+  //   2. **Auto-inferred tags** from `inferReleaseTags(name, nfo)` —
+  //      facets the parser extracted from the filename and NFO body
+  //      (resolution, codec, source, audio, language, HDR, extras).
+  //      Title is authoritative; NFO only fills the facets the title
+  //      was silent about ("ajout de tags si pas parser par le
+  //      titre"). User-declared slugs win on collision — never
+  //      overwriting what the operator typed by hand.
+  //
+  // Everything funnels through the same `resolveTagsByName()` call so
+  // the per-torrent cap, slug normalisation, and on-conflict-do-
+  // nothing race protection are applied uniformly.
+  const userIds: string[] = [];
+  const userNames: string[] = [];
+
   if (tagsRaw) {
     try {
-      const parsed = JSON.parse(tagsRaw) as unknown;
-      let resolvedIds: string[] = [];
-      if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')) {
-        // Heuristic: a UUIDv4 has 36 chars with hyphens at fixed offsets.
-        // Anything that doesn't look like a uuid is treated as a free-form
-        // tag name. This lets old callers (admin form sending ids) and new
-        // ones (upload modal sending names) share the same form field.
+      const parsedTags = JSON.parse(tagsRaw) as unknown;
+      if (
+        Array.isArray(parsedTags) &&
+        parsedTags.every((v) => typeof v === 'string')
+      ) {
+        // Heuristic: a UUIDv4 has 36 chars with hyphens at fixed
+        // offsets. Anything that doesn't look like a UUID is treated
+        // as a free-form tag name — lets old callers (admin tag
+        // picker → ids) and new ones (upload modal → names) share
+        // the same form field.
         const looksLikeUuid = (s: string) =>
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-        const ids = (parsed as string[]).filter(looksLikeUuid);
-        const names = (parsed as string[]).filter((s) => !looksLikeUuid(s));
-        if (names.length > 0) {
-          const r = await resolveTagsByName(names);
-          resolvedIds = r.ids;
-        }
-        const all = Array.from(new Set([...ids, ...resolvedIds])).slice(
-          0,
-          MAX_TAGS_PER_TORRENT
-        );
-        if (all.length > 0) {
-          await db.insert(schema.torrentTags).values(
-            all.map((tagId) => ({
-              torrentId: id,
-              tagId,
-            }))
-          );
+        for (const v of parsedTags as string[]) {
+          if (looksLikeUuid(v)) userIds.push(v);
+          else userNames.push(v);
         }
       }
     } catch {
-      // Ignore invalid tags JSON; the torrent is already saved.
+      // Invalid tags JSON: just skip the user-declared side; we'll
+      // still attach the auto-inferred facets below.
     }
+  }
+
+  // Auto-inferred names from the release name + NFO body. Skip any
+  // whose canonical slug collides with one the user already typed,
+  // so user intent always wins.
+  const userSlugs = new Set(userNames.map(slugifyTag));
+  const inferredNames = inferReleaseTags(name, nfo).filter(
+    (n) => !userSlugs.has(slugifyTag(n))
+  );
+
+  let resolvedIds: string[] = [];
+  if (userNames.length > 0 || inferredNames.length > 0) {
+    try {
+      // User-declared names come first so they survive the per-call
+      // truncation if the combined list exceeds MAX_TAGS_PER_TORRENT.
+      const r = await resolveTagsByName([...userNames, ...inferredNames]);
+      resolvedIds = r.ids;
+    } catch (err) {
+      // `resolveTagsByName` throws createError on bad input (over
+      // length, too many tags, etc.) — don't fail the whole upload
+      // because of a tag issue; surface a warning instead.
+      console.warn('[torrents] auto-tag resolution failed:', err);
+    }
+  }
+
+  const allTagIds = Array.from(new Set([...userIds, ...resolvedIds])).slice(
+    0,
+    MAX_TAGS_PER_TORRENT
+  );
+  if (allTagIds.length > 0) {
+    await db
+      .insert(schema.torrentTags)
+      .values(allTagIds.map((tagId) => ({ torrentId: id, tagId })))
+      .onConflictDoNothing();
   }
 
   const torrent = {

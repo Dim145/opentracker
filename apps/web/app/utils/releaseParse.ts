@@ -423,3 +423,78 @@ export function parseReleaseName(
     tags,
   };
 }
+
+/**
+ * Pull release-flag tags out of a description / NFO body. Strips the
+ * surrounding BBCode and HTML noise first so labels like
+ * `[b]Codec vidéo :[/b] [i]H.265[/i]` resolve to `Codec vidéo : H.265`
+ * before the token tables run.
+ *
+ * Different from `parseReleaseName` in two ways:
+ *
+ *   1. We don't try to recover a title / year / season — the NFO body
+ *      has none of the canonical positional structure a scene
+ *      filename does. Only tag harvesting is meaningful.
+ *
+ *   2. We scan the *whole* cleaned string, not a tail-after-stop
+ *      slice. The NFO doesn't have a stable "title ends here" marker;
+ *      the BBCode strip already removed the formatting that would
+ *      have masked tokens, so false positives are mostly limited to
+ *      content the table actually targets.
+ *
+ * Mirrors the server-side `inferReleaseTags()` flow so the auto-tag
+ * inference on initial upload and the "re-parse" button on the edit
+ * page agree on what they detect.
+ */
+export function parseNfoForTags(
+  nfo: string | null | undefined,
+  kindHint?: ParsedRelease['kind']
+): string[] {
+  if (!nfo) return [];
+
+  // Strip BBCode `[…]` wrappers and HTML `<…>` tags. The bounded
+  // `{0,256}` keeps a runaway unclosed bracket from eating the rest
+  // of the document — without it, a stray `[` could swallow
+  // everything up to the next `]` even when that's miles away.
+  const plain = nfo
+    .replace(/\[[^\]]{0,256}\]/g, ' ')
+    .replace(/<[^>]{0,256}>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\s+/g, ' ');
+  if (!plain.trim()) return [];
+
+  const kind: ParsedRelease['kind'] = kindHint ?? detectKind(plain);
+
+  const tags: string[] = [];
+  const seen = new Set<string>();
+  function push(label: string) {
+    if (seen.has(label.toLowerCase())) return;
+    tags.push(label);
+    seen.add(label.toLowerCase());
+  }
+  const pushTable = (
+    table: Array<[label: string, pattern: RegExp]>
+  ) => {
+    for (const [label, pattern] of table) {
+      if (pattern.test(plain)) push(label);
+    }
+  };
+
+  if (kind === 'game') {
+    pushTable(GAME_TAGS);
+    const ver = extractVersionTag(plain);
+    if (ver) push(ver);
+  } else if (kind === 'book') {
+    pushTable(BOOK_TAGS);
+    const vol = extractVolumeTag(plain);
+    if (vol) push(vol);
+  } else {
+    pushTable(VIDEO_TAGS);
+    pushTable(VIDEO_LANG_TAGS);
+    pushTable(VIDEO_QUALITY_TAGS);
+  }
+  return tags;
+}

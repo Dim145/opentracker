@@ -205,6 +205,15 @@
               <button
                 v-if="nfo"
                 type="button"
+                class="btn-ghost btn-ghost--small"
+                @click="parseNfoNow"
+              >
+                <Icon name="ph:magic-wand-bold" />
+                {{ $t('torrents.edit.parseNfo') }}
+              </button>
+              <button
+                v-if="nfo"
+                type="button"
                 class="btn-ghost btn-ghost--small btn-ghost--danger"
                 @click="nfo = ''"
               >
@@ -347,7 +356,11 @@ import {
   getFlattenedCategories,
   type CategoryNode,
 } from '~/utils/categories';
-import { mergeParsedTags, parseReleaseName } from '~/utils/releaseParse';
+import {
+  mergeParsedTags,
+  parseReleaseName,
+  parseNfoForTags,
+} from '~/utils/releaseParse';
 import { useNotificationStore } from '~/stores/notifications';
 
 definePageMeta({ title: 'Edit torrent' });
@@ -504,6 +517,33 @@ function parseTitleNow() {
     return;
   }
   const { merged, added } = mergeParsedTags(tagNames.value, r.tags);
+  tagNames.value = merged;
+  if (added.length === 0) {
+    notifications.success(t('torrents.uploadForm.toasts.titleParsedAllOn'));
+  } else {
+    notifications.success(
+      t('torrents.uploadForm.toasts.tagsAdded', { count: added.length, tags: added.join(', ') })
+    );
+  }
+}
+
+/**
+ * "Re-parse NFO" button handler. Mirrors `parseTitleNow()` but takes
+ * its input from the NFO textarea instead of the title field. The
+ * existing tags survive — the merger is case-insensitive and only
+ * folds in flags the user doesn't already have, so a forum-export
+ * NFO declaring `Qualité vidéo : 2160p` adds the `2160p` chip if it
+ * isn't there, leaves it alone if it is.
+ */
+function parseNfoNow() {
+  const value = nfo.value.trim();
+  if (!value) return;
+  const parsed = parseNfoForTags(value, parserKindHint.value);
+  if (parsed.length === 0) {
+    notifications.info(t('torrents.uploadForm.toasts.noTagsDetected'));
+    return;
+  }
+  const { merged, added } = mergeParsedTags(tagNames.value, parsed);
   tagNames.value = merged;
   if (added.length === 0) {
     notifications.success(t('torrents.uploadForm.toasts.titleParsedAllOn'));

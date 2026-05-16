@@ -589,6 +589,7 @@
       "identityHelp": "Cherchez sur TMDb pour attacher les bonnes métadonnées, ou collez un identifiant manuellement ci-dessous. Choisir un résultat remplit IMDb / TMDb / TVDB en une étape.",
       "descriptionRequired": "Une description est requise.",
       "uploadNfo": "Envoyer un .nfo",
+      "parseNfo": "Reparser le NFO",
       "clear": "Effacer",
       "nfoPlaceholder": "Collez ou envoyez un fichier NFO de release…",
       "titleRequired": "Le titre est requis",
