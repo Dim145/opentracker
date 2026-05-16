@@ -383,11 +383,6 @@ useHead({
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
   isolation: isolate;
-  /* Clip horizontal overflow on the wrapper — the aura blobs bleed
-     past the page bounds and on mobile that produces a stray
-     horizontal scroll-bar otherwise. `clip` avoids creating a
-     scroll container. */
-  overflow-x: clip;
   --release-purple: 167 139 250;
   --release-cyan:   var(--info);
   --release-rose:   244 114 182;
@@ -397,9 +392,17 @@ useHead({
 /* ── Atmosphere ────────────────────────────────────────────────── */
 .profile-aura {
   position: absolute;
-  /* No horizontal bleed — keeps the aura from extending past the
-     page wrapper and triggering a stray right-scroll on mobile. */
-  inset: -2rem 0 auto 0;
+  /* Break out of the centred 1080-px wrapper to span the full
+     viewport width: anchor at left:50%, pull back by 50 vw via a
+     negative margin so the aura's edges line up with the
+     viewport's. The aura clips its own blob children
+     (`overflow: hidden`); mobile is safe because the aura is
+     exactly 100 vw wide — no fractional bleed that could trigger
+     a stray right-scroll. */
+  top: -2rem;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
   height: 70vh;
   z-index: -1;
   overflow: hidden;

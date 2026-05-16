@@ -1045,12 +1045,6 @@ async function confirmDelete() {
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
   isolation: isolate;
-  /* Clip horizontal overflow on the wrapper itself — the aura blobs
-     bleed past the page bounds at the top, and on mobile (where the
-     page is the full viewport width) that bleed would otherwise
-     cause a stray horizontal scroll-bar. `clip` is preferred over
-     `hidden` so it doesn't create a scroll container. */
-  overflow-x: clip;
   /* Local hue spectrum. The page distributes distinct colours so no
      two adjacent UI elements ever share a tint — the eye reads each
      chip/button as its own identity instead of "another blue".
@@ -1071,10 +1065,17 @@ async function confirmDelete() {
    "rich" rather than just "operator console". */
 .release-aura {
   position: absolute;
-  /* Horizontal bleed kept to zero so the aura container never
-     extends past the page wrapper — the blur on the blobs already
-     softens the page-edge clip, so there's no visual cost. */
-  inset: -2rem 0 auto 0;
+  /* Break out of the centred 1180-px wrapper to span the full
+     viewport width: anchor at left:50% then pull back by 50 vw with
+     a negative margin so the aura's left/right edges line up with
+     the viewport's. The aura clips its own blob children
+     (`overflow: hidden`); mobile is safe because the aura's outer
+     width is exactly 100 vw — no fractional bleed that could
+     trigger a stray right-scroll. */
+  top: -2rem;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
   height: 70vh;
   z-index: -1;
   overflow: hidden;
