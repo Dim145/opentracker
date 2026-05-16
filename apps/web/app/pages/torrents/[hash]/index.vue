@@ -134,8 +134,12 @@
           torrent.category?.name || $t('torrents.detail.hero.case')
         }}</span>
         <span class="hero-eyebrow-sep">·</span>
-        <time class="hero-eyebrow-date" :datetime="torrent.createdAt">
-          {{ formatLongDate(torrent.createdAt) }}
+        <time
+          class="hero-eyebrow-date"
+          :datetime="torrent.createdAt"
+          :title="formatDate(torrent.createdAt)"
+        >
+          {{ formatAge(torrent.createdAt).toUpperCase() }}
         </time>
         <span
           v-if="torrent.moderationStatus && torrent.moderationStatus !== 'accepted'"
@@ -295,13 +299,6 @@
               <Icon name="ph:user-bold" class="hero-meta-user-icon" />
               {{ $t('torrents.detail.uploaderGone') }}
             </span>
-          </dd>
-        </div>
-        <div class="hero-meta-cell hero-meta-cell--time">
-          <dt>{{ $t('torrents.detail.createdAt') }}</dt>
-          <dd class="hero-meta-time">
-            <span>{{ formatDate(torrent.createdAt) }}</span>
-            <span class="hero-meta-age">{{ formatAge(torrent.createdAt) }}</span>
           </dd>
         </div>
       </dl>
@@ -625,23 +622,9 @@ interface TorrentDetail {
   gatedAdult?: boolean;
 }
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const route = useRoute();
 const hash = route.params.hash as string;
-
-// Long-form date for the hero eyebrow ("16 MAI 2026") — a magazine
-// dateline rather than the compact `formatDate` value, which is also
-// shown lower down in the meta ribbon. Uppercased so it sits flush
-// with the other mono labels in the eyebrow row.
-function formatLongDate(iso: string): string {
-  return new Date(iso)
-    .toLocaleDateString(locale.value, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-    .toUpperCase();
-}
 
 // Length-based size bucket for the hero title. Scene release names
 // span a wide range (from "Cats.Eye.S02.MULTI.1080p..." at ~40 chars
@@ -1062,11 +1045,14 @@ async function confirmDelete() {
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
   isolation: isolate;
-  /* Local-scope accent for sections that need a fourth hue beyond
-     online/warning/danger — the cross-seed family carries a violet
-     because it sits between "info" and "ornament" semantically. */
+  /* Local hue spectrum. The page distributes distinct colours so no
+     two adjacent UI elements ever share a tint — the eye reads each
+     chip/button as its own identity instead of "another blue".
+     Violet / rose are scoped here; the rest pull from the global
+     semantic vars (online/warning/danger/info/accent). */
   --release-purple: 167 139 250;
-  --release-cyan: var(--info);
+  --release-cyan:   var(--info);
+  --release-rose:   244 114 182;
 }
 
 /* ── Atmospheric background ──────────────────────────────────────
@@ -1425,20 +1411,24 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.45rem;
 }
+/* Edit takes violet so it doesn't repeat the cyan that already lives
+   in the eyebrow § mark. The action palette is now one button per
+   colour: green (Download), violet (Edit), red (Delete), amber
+   (Report) — four distinct hues, no near-doubles. */
 .cta-ghost {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
   padding: 0.6rem 0.95rem;
-  background: rgb(var(--release-cyan) / 0.1);
-  border: 1px solid rgb(var(--release-cyan) / 0.45);
+  background: rgb(var(--release-purple) / 0.12);
+  border: 1px solid rgb(var(--release-purple) / 0.5);
   border-radius: 0.35rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgb(var(--release-cyan));
+  color: rgb(var(--release-purple));
   text-decoration: none;
   cursor: pointer;
   transition:
@@ -1449,8 +1439,8 @@ async function confirmDelete() {
 }
 .cta-ghost:hover {
   color: #fff;
-  border-color: rgb(var(--release-cyan));
-  background: rgb(var(--release-cyan));
+  border-color: rgb(var(--release-purple));
+  background: rgb(var(--release-purple));
   transform: translateY(-1px);
 }
 /* Destructive variants. Delete keeps the full red (it's irreversible);
@@ -1470,10 +1460,16 @@ async function confirmDelete() {
 }
 
 /* ── Meta ribbon ────────────────────────────────────────────────
-   Three coloured chips (hash / uploader / created) on a single
-   horizontal row. Each chip carries its own semantic hue: green for
-   the infohash (file-integrity territory), info-blue for the
-   uploader, amber for the timestamp. */
+   Two chips on one horizontal row:
+     - hash     → neutral     (the fingerprint is just text — a
+                               coloured tint here read as semantic
+                               weight it didn't deserve)
+     - uploader → rose         (warm hue, identifies a person and
+                                does not collide with any action
+                                colour above)
+   The created-at chip moved out: the eyebrow now carries that data
+   as a relative duration ("6D AGO"), so a second copy in the
+   ribbon was redundant chrome. */
 .hero-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1497,14 +1493,34 @@ async function confirmDelete() {
   border: 1px solid rgb(var(--rail, var(--fg-muted)) / 0.5);
   border-radius: 0.4rem;
   min-width: 0;
+  transition: border-color 0.18s ease;
+}
+.hero-meta-cell:hover {
+  border-color: rgb(var(--rail, var(--fg-muted)) / 0.75);
 }
 .hero-meta-cell--hash {
-  --rail: var(--online);
-  flex: 1 1 320px;
-  min-width: 240px;
+  /* Hash is a piece of pure data, not a status; treat it as neutral
+     chrome — the chip is still framed and still selectable, just no
+     colour signal beyond that. Sized to its content so it doesn't
+     stretch and dominate the row. */
+  --rail: var(--fg-muted);
+  flex: 0 0 auto;
 }
-.hero-meta-cell--uploader { --rail: var(--release-cyan); }
-.hero-meta-cell--time { --rail: var(--warning); }
+.hero-meta-cell--hash {
+  background: rgb(var(--bg-elevated));
+  border-color: rgb(var(--line-strong));
+}
+.hero-meta-cell--hash:hover {
+  border-color: rgb(var(--fg-default) / 0.4);
+}
+.hero-meta-cell--uploader {
+  --rail: var(--release-rose);
+  /* Push to the right of the row so the hash (left) and the uploader
+     (right) bookend the ribbon — leaves the gap in the middle as
+     visual breathing room. Falls below on narrow viewports where the
+     wrap pushes the cell to its own line. */
+  margin-left: auto;
+}
 .hero-meta-cell dt {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 9px;
@@ -1514,18 +1530,18 @@ async function confirmDelete() {
   color: rgb(var(--rail, var(--fg-muted)));
   margin: 0;
   flex-shrink: 0;
-  opacity: 0.85;
+  opacity: 0.9;
 }
+.hero-meta-cell--hash dt { color: rgb(var(--fg-muted)); opacity: 1; }
 .hero-meta-cell dd { margin: 0; min-width: 0; }
 .hero-meta-hash {
   display: block;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   letter-spacing: 0.04em;
-  color: rgb(var(--online));
+  color: rgb(var(--fg-default));
   word-break: break-all;
   user-select: all;
-  filter: drop-shadow(0 0 6px rgb(var(--online) / 0.25));
 }
 .hero-meta-user {
   display: inline-flex;
@@ -1534,7 +1550,7 @@ async function confirmDelete() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 12px;
   font-weight: 700;
-  color: rgb(var(--release-cyan));
+  color: rgb(var(--release-rose));
   text-decoration: none;
   transition: filter 0.15s ease, transform 0.18s ease;
 }
@@ -1544,7 +1560,7 @@ async function confirmDelete() {
 }
 .hero-meta-user-icon {
   font-size: 11px;
-  color: rgb(var(--release-cyan));
+  color: rgb(var(--release-rose));
   opacity: 0.85;
 }
 .hero-meta-user--gone {
@@ -1553,27 +1569,6 @@ async function confirmDelete() {
   cursor: help;
 }
 .hero-meta-user--gone .hero-meta-user-icon { color: rgb(var(--fg-faint)); }
-.hero-meta-time {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11.5px;
-  color: rgb(var(--warning));
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
-.hero-meta-age {
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgb(var(--warning) / 0.85);
-  padding: 0.12rem 0.42rem;
-  border: 1px solid rgb(var(--warning) / 0.35);
-  background: rgb(var(--warning) / 0.08);
-  border-radius: 0.2rem;
-}
 
 /* ── Embedded metadata card spacing ───────────────────────────── */
 .release-metadata { margin-bottom: 2rem; }
@@ -1875,7 +1870,10 @@ async function confirmDelete() {
 .stat--seeders { --rail: var(--online); }
 .stat--leechers { --rail: var(--danger); }
 .stat--completed { --rail: var(--info); }
-.stat--size { --rail: var(--release-cyan); }
+/* Size is a fact, not a status, so it stays neutral — that keeps
+   cyan reserved for the Completed counter on the row and avoids
+   doubling up the same blue twice across two adjacent chips. */
+.stat--size { --rail: var(--fg-muted); }
 .stat--volume { --rail: var(--release-purple); }
 .stat.is-zero {
   background: rgb(var(--bg-elevated) / 0.5);
