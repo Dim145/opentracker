@@ -734,7 +734,10 @@
       "colSL": "S/L",
       "uncategorized": "Sans catégorie",
       "title": "Profil utilisateur",
-      "titleWithName": "{name} - Profil"
+      "titleWithName": "{name} - Profil",
+      "eyebrow": "Membre",
+      "online": "En ligne",
+      "stats": "Statistiques"
     }
   },
   "security": {

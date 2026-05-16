@@ -1045,6 +1045,12 @@ async function confirmDelete() {
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
   isolation: isolate;
+  /* Clip horizontal overflow on the wrapper itself — the aura blobs
+     bleed past the page bounds at the top, and on mobile (where the
+     page is the full viewport width) that bleed would otherwise
+     cause a stray horizontal scroll-bar. `clip` is preferred over
+     `hidden` so it doesn't create a scroll container. */
+  overflow-x: clip;
   /* Local hue spectrum. The page distributes distinct colours so no
      two adjacent UI elements ever share a tint — the eye reads each
      chip/button as its own identity instead of "another blue".
@@ -1065,7 +1071,10 @@ async function confirmDelete() {
    "rich" rather than just "operator console". */
 .release-aura {
   position: absolute;
-  inset: -2rem -2rem auto -2rem;
+  /* Horizontal bleed kept to zero so the aura container never
+     extends past the page wrapper — the blur on the blobs already
+     softens the page-edge clip, so there's no visual cost. */
+  inset: -2rem 0 auto 0;
   height: 70vh;
   z-index: -1;
   overflow: hidden;
@@ -2405,6 +2414,139 @@ async function confirmDelete() {
   .adult-gate__meta {
     grid-template-columns: 1fr;
   }
+}
+
+/* ╔═══════════════════════════════════════════════════════════════╗
+   ║  MOBILE LAYOUT — keep every chip / button / data row usable    ║
+   ║  on a 360-420 px viewport. The fix-list is mostly about not    ║
+   ║  letting flex content overflow its parent (the InfoHash was    ║
+   ║  the worst offender — 40 hex chars in mono push past any 360-  ║
+   ║  px hero), and about giving touch targets enough room.         ║
+   ╚═══════════════════════════════════════════════════════════════╝ */
+@media (max-width: 640px) {
+  .release-page {
+    padding: 1.25rem 0.9rem 4rem;
+  }
+
+  /* ── Hero ────────────────────────────────────────────────── */
+  .hero {
+    padding: 1.25rem 1.1rem 1.2rem;
+    border-radius: 0.5rem;
+  }
+  .hero-eyebrow {
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    gap: 0.4rem;
+  }
+  /* Report parks on its own line on mobile so the eyebrow doesn't
+     compete with the touch target on narrow screens. */
+  .hero-eyebrow-report {
+    margin-left: 0;
+    margin-top: 0.4rem;
+    flex-basis: 100%;
+    justify-content: center;
+  }
+  .hero-eyebrow-spacer { display: none; }
+
+  /* CTAs go vertical on mobile: Download stays the dominant signal
+     at full width, then Edit + Delete share the row below it. */
+  .hero-cta {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .cta-primary {
+    justify-content: center;
+    padding: 0.9rem 1rem;
+  }
+  .cta-primary-stack { align-items: center; }
+  .hero-cta-aux {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .cta-ghost {
+    justify-content: center;
+    padding: 0.7rem 0.6rem;
+  }
+
+  /* Meta ribbon — the InfoHash overflow killer. On mobile the hash
+     cell takes the full row and the 40-hex string wraps onto a
+     second line. The uploader sits below, no `margin-left: auto`
+     so it doesn't try to push off the right edge. */
+  .hero-meta-cell--hash {
+    flex: 1 1 100%;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.65rem;
+  }
+  .hero-meta-cell--hash dd { flex: 1 1 100%; }
+  .hero-meta-hash {
+    font-size: 10.5px;
+    line-height: 1.45;
+  }
+  .hero-meta-cell--uploader {
+    margin-left: 0;
+    flex: 1 1 auto;
+  }
+
+  /* ── Section heads ───────────────────────────────────────── */
+  .section { margin-bottom: 1.75rem; }
+  .section-head {
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+  }
+  .section-head-mark { font-size: 1.5rem; }
+  .section-head-title { font-size: 1.1rem; }
+
+  /* ── Stats cluster — two columns on mobile so a 5-metric row
+        doesn't become a 5-row stack that pushes the next section
+        below the fold. ──────────────────────────────────────── */
+  .stats-cluster {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .stat {
+    padding: 0.7rem 0.75rem;
+    gap: 0.6rem;
+  }
+  .stat-icon { font-size: 0.95rem; }
+  .stat-num { font-size: clamp(1.05rem, 4.5vw, 1.4rem); }
+  .stat-label {
+    font-size: 8.5px;
+    letter-spacing: 0.18em;
+  }
+
+  /* ── Note block ──────────────────────────────────────────── */
+  .note-block {
+    padding: 2.4rem 1.1rem 1rem 1.6rem;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .note-block::before {
+    font-size: 2.1rem;
+    left: 0.55rem;
+    top: 0.3rem;
+  }
+
+  /* ── Cross-seed rows ─────────────────────────────────────── */
+  .cross-link { padding: 0.7rem 0.85rem; }
+  .cross-name { font-size: 11.5px; }
+  .cross-meta {
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    width: 100%;
+    margin-top: 0.25rem;
+  }
+
+  /* ── Swarm table — already wraps in horizontal scroll, just
+        tighten the inner padding so we can see more on screen. */
+  .swarm-table thead th,
+  .swarm-table tbody td {
+    padding: 0.5rem 0.65rem;
+    font-size: 10px;
+  }
+  .swarm-table thead th { font-size: 9px; letter-spacing: 0.16em; }
 }
 .adult-gate__meta div {
   display: flex;
