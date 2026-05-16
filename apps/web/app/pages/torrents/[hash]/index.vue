@@ -151,6 +151,34 @@
           size="sm"
         />
         <span class="hero-eyebrow-spacer" aria-hidden="true" />
+        <!-- Favorite star — sits to the left of the report button so
+             the "save" action is the warmer affordance and the
+             "flag" action stays the colder one. Both live in the
+             eyebrow strip rather than the main CTA row so they
+             can't be misclicked alongside Download / Delete. -->
+        <button
+          v-if="canFavorite"
+          type="button"
+          class="hero-eyebrow-star"
+          :class="{ 'is-on': favorited }"
+          :aria-pressed="favorited"
+          :aria-label="
+            favorited
+              ? $t('torrents.detail.favoriteRemove')
+              : $t('torrents.detail.favoriteAdd')
+          "
+          :title="
+            favorited
+              ? $t('torrents.detail.favoriteRemove')
+              : $t('torrents.detail.favoriteAdd')
+          "
+          @click="toggleFavorite"
+        >
+          <Icon :name="favorited ? 'ph:star-fill' : 'ph:star-bold'" />
+          <span class="hero-eyebrow-star-label">
+            {{ $t('torrents.detail.favorite') }}
+          </span>
+        </button>
         <!-- Report button parked in the top-right corner of the hero
              so it stays accessible (any authenticated user can flag)
              without sitting next to the destructive Delete in the
@@ -924,6 +952,44 @@ const canReport = computed(() => loggedIn.value && !!user.value);
 
 const reportOpen = ref(false);
 
+// Favorite toggle. The server's `viewerFavorited` projection is
+// the source of truth on initial load; `favorited` mirrors it
+// optimistically so the star flips instantly on click without
+// waiting for the round-trip. A failed POST/DELETE rolls back
+// the optimistic state and surfaces a toast.
+const canFavorite = computed(() => loggedIn.value && !!user.value);
+const favorited = ref<boolean>(false);
+const favoriteBusy = ref(false);
+watchEffect(() => {
+  if (torrent.value) {
+    favorited.value = Boolean((torrent.value as any).viewerFavorited);
+  }
+});
+
+async function toggleFavorite() {
+  if (!torrent.value || favoriteBusy.value) return;
+  favoriteBusy.value = true;
+  const wasFavorited = favorited.value;
+  favorited.value = !wasFavorited;
+  try {
+    await $fetch(`/api/torrents/${torrent.value.infoHash}/favorite`, {
+      method: wasFavorited ? 'DELETE' : 'POST',
+    });
+    notifications.success(
+      wasFavorited
+        ? t('torrents.detail.toasts.unfavorited')
+        : t('torrents.detail.toasts.favorited'),
+    );
+  } catch (err: any) {
+    favorited.value = wasFavorited;
+    notifications.error(
+      err?.data?.message || t('torrents.detail.toasts.favoriteFailed'),
+    );
+  } finally {
+    favoriteBusy.value = false;
+  }
+}
+
 /**
  * Build the badge target for a TMDb id.
  *
@@ -1269,6 +1335,62 @@ async function confirmDelete() {
   background: rgb(var(--warning));
   border-color: rgb(var(--warning));
   transform: translateY(-1px);
+}
+
+/* ── Favorite star ────────────────────────────────────────
+   Mirrors the report chip's footprint so the two affordances
+   read as a matched pair, but uses an amber/gold tone (the
+   "library / catalog" colour we picked for the favorites
+   surface) instead of the warning tone. Outline state stays
+   muted so the star doesn't shout for attention; on-state
+   fills the glyph and ignites a glow.
+
+   The 0.55 s pop on activation gives the user a tactile
+   confirmation without needing a separate toast. */
+.hero-eyebrow-star {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.7rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  background: rgb(var(--bg-elevated));
+  border: 1px solid rgb(var(--line-strong));
+  border-radius: 0.3rem;
+  cursor: pointer;
+  transition:
+    color 0.18s,
+    background 0.18s,
+    border-color 0.18s,
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hero-eyebrow-star:hover {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.55);
+  background: rgba(245, 158, 11, 0.08);
+  transform: translateY(-1px);
+}
+.hero-eyebrow-star.is-on {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.65);
+  box-shadow:
+    inset 0 0 0 1px rgba(245, 158, 11, 0.25),
+    0 6px 16px -8px rgba(245, 158, 11, 0.55);
+}
+.hero-eyebrow-star.is-on svg {
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.55));
+  animation: hero-star-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes hero-star-pop {
+  0%   { transform: scale(1) rotate(0); }
+  35%  { transform: scale(1.45) rotate(-12deg); }
+  60%  { transform: scale(0.92) rotate(8deg); }
+  100% { transform: scale(1) rotate(0); }
 }
 
 .hero-title {

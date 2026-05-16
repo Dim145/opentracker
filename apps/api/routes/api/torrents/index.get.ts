@@ -210,6 +210,29 @@ export default defineEventHandler(async (event) => {
   const settled = await Promise.allSettled(
     torrents.map((t) => getStats(t.infoHash))
   );
+
+  // Bulk-lookup the viewer's favorited torrent_ids among the page
+  // slice — one indexed query for the whole page, then a `Set`
+  // membership check per row when projecting. Keeps the star
+  // toggle's filled/outline state authoritative without a
+  // per-row round-trip.
+  let favoritedSet = new Set<string>();
+  if (torrents.length > 0) {
+    const rows = await db
+      .select({ torrentId: schema.torrentFavorites.torrentId })
+      .from(schema.torrentFavorites)
+      .where(
+        and(
+          eq(schema.torrentFavorites.userId, user.id),
+          inArray(
+            schema.torrentFavorites.torrentId,
+            torrents.map((t) => t.id),
+          ),
+        ),
+      );
+    favoritedSet = new Set(rows.map((r) => r.torrentId));
+  }
+
   const enriched = torrents.map((torrent, i) => {
     const r = settled[i];
     const stats =
@@ -226,6 +249,7 @@ export default defineEventHandler(async (event) => {
         leechers: stats.leechers,
         completed: stats.completed,
       },
+      viewerFavorited: favoritedSet.has(torrent.id),
     };
   });
 

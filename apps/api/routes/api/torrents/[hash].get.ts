@@ -1,5 +1,5 @@
 import { db, schema } from '@trackarr/db';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { getPeers, getStats } from '~~/utils/server';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
 
@@ -81,9 +81,20 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const [stats, peers] = await Promise.all([
+  const [stats, peers, favorite] = await Promise.all([
     getStats(infoHash),
     getPeers(infoHash),
+    // Cheap "did this viewer star this torrent?" lookup — hits
+    // the composite PK so it's an index probe, not a scan. The
+    // result drives the filled/outline state of the star toggle
+    // in the hero without a second client round-trip.
+    db.query.torrentFavorites.findFirst({
+      where: and(
+        eq(schema.torrentFavorites.userId, session.id),
+        eq(schema.torrentFavorites.torrentId, torrent.id),
+      ),
+      columns: { userId: true },
+    }),
   ]);
 
   const tags = torrent.torrentTags?.map((tt) => tt.tag) || [];
@@ -97,6 +108,7 @@ export default defineEventHandler(async (event) => {
       leechers: stats.leechers,
       completed: stats.completed,
     },
+    viewerFavorited: !!favorite,
     // Only expose anonymized peer data - no raw IPs
     peers: peers.map((p) => ({
       id: p.ipHash,

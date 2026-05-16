@@ -87,6 +87,23 @@
               {{ formatAge(torrent.createdAt) }}
             </span>
             <button
+              v-if="torrent.viewerFavorited !== undefined"
+              type="button"
+              class="favorite-star favorite-star--mobile"
+              :class="{ 'is-on': isFavorited(torrent) }"
+              :aria-pressed="isFavorited(torrent)"
+              :title="
+                isFavorited(torrent)
+                  ? $t('components.torrentTable.unfavorite')
+                  : $t('components.torrentTable.favorite')
+              "
+              @click.stop="toggleFavorite(torrent)"
+            >
+              <Icon
+                :name="isFavorited(torrent) ? 'ph:star-fill' : 'ph:star-bold'"
+              />
+            </button>
+            <button
               v-if="admin"
               type="button"
               class="text-text-muted hover:text-error active:text-error transition-colors w-9 h-9 -mr-2 -my-2 inline-flex items-center justify-center rounded"
@@ -128,13 +145,14 @@
         </th>
         <th v-if="!compact">{{ $t('components.torrentTable.size') }}</th>
         <th class="text-right w-16">{{ $t('components.torrentTable.age') }}</th>
+        <th v-if="hasFavoriteColumn" class="w-10"></th>
         <th v-if="admin" class="w-12"></th>
       </tr>
     </thead>
     <tbody>
       <tr v-if="torrents.length === 0">
         <td
-          :colspan="(compact ? 4 : 8) + (admin ? 1 : 0)"
+          :colspan="(compact ? 4 : 8) + (admin ? 1 : 0) + (hasFavoriteColumn ? 1 : 0)"
           class="text-center text-text-muted py-8"
         >
           {{ $t('components.torrentTable.noTorrents') }}
@@ -211,6 +229,33 @@
         <td class="text-right text-text-muted text-[10px] font-mono">
           {{ formatAge(torrent.createdAt) }}
         </td>
+        <td
+          v-if="torrent.viewerFavorited !== undefined"
+          class="text-center w-10"
+        >
+          <button
+            type="button"
+            class="favorite-star"
+            :class="[
+              isFavorited(torrent)
+                ? 'text-amber-500 hover:text-amber-400'
+                : 'text-text-faint hover:text-amber-400',
+            ]"
+            :aria-pressed="isFavorited(torrent)"
+            :title="
+              isFavorited(torrent)
+                ? $t('components.torrentTable.unfavorite')
+                : $t('components.torrentTable.favorite')
+            "
+            @click.stop="toggleFavorite(torrent)"
+          >
+            <Icon
+              :name="isFavorited(torrent) ? 'ph:star-fill' : 'ph:star-bold'"
+              class="text-base transition-transform"
+              :class="{ 'star-pop': isFavorited(torrent) }"
+            />
+          </button>
+        </td>
         <td v-if="admin" class="text-center">
           <button
             class="text-text-muted hover:text-error transition-colors p-1.5 rounded hover:bg-error/10"
@@ -256,6 +301,11 @@ interface TorrentWithStats {
     leechers: number;
     completed: number;
   };
+  // Set by the server when the caller is authenticated. Rendering
+  // the star column keys off this field's presence: rows fetched
+  // from contexts where favorites don't apply (admin tooling, …)
+  // simply leave it `undefined` and the column disappears.
+  viewerFavorited?: boolean;
 }
 
 const { t } = useI18n();
@@ -270,6 +320,15 @@ const props = defineProps<{
 const emit = defineEmits<{
   deleted: [infoHash: string];
 }>();
+
+// Header for the favorite column appears as soon as ANY row in
+// the current page carries a `viewerFavorited` flag — the parent
+// page either authenticates the request or it doesn't, so the
+// flag is uniform across the slice. We use `.some()` rather than
+// `[0]` so empty pages don't flicker.
+const hasFavoriteColumn = computed(() =>
+  props.torrents.some((t) => t.viewerFavorited !== undefined),
+);
 
 const categoriesById = computed(() => {
   const map = new Map<string, { id: string; name: string }>();
@@ -305,6 +364,37 @@ function tagBadgeStyle(tag: TorrentTag) {
 const confirm = useConfirm();
 const notifications = useNotificationStore();
 
+// Per-row optimistic state for the favorite star. Storing the
+// override in a Map (keyed by infoHash) lets the user click
+// multiple rows in succession without the in-flight requests
+// stomping each other's UI state. The map is preferred over
+// mutating the prop because the parent re-binds `torrents` on
+// refresh — we want the local override to win for the lifetime
+// of the in-flight toggle, then defer back to the prop.
+const favOverride = ref<Map<string, boolean>>(new Map());
+
+function isFavorited(t: TorrentWithStats): boolean {
+  const override = favOverride.value.get(t.infoHash);
+  if (override !== undefined) return override;
+  return Boolean(t.viewerFavorited);
+}
+
+async function toggleFavorite(torrent: TorrentWithStats) {
+  const before = isFavorited(torrent);
+  const next = !before;
+  favOverride.value.set(torrent.infoHash, next);
+  try {
+    await $fetch(`/api/torrents/${torrent.infoHash}/favorite`, {
+      method: before ? 'DELETE' : 'POST',
+    });
+  } catch (err: any) {
+    favOverride.value.set(torrent.infoHash, before);
+    notifications.error(
+      err?.data?.message || t('components.torrentTable.errors.favoriteFailed'),
+    );
+  }
+}
+
 async function deleteTorrent(torrent: TorrentWithStats) {
   const ok = await confirm({
     title: t('components.torrentTable.deleteConfirmTitle'),
@@ -324,3 +414,39 @@ async function deleteTorrent(torrent: TorrentWithStats) {
   }
 }
 </script>
+
+<style scoped>
+/* Subtle button base — the heavy-lifting of color comes from
+   tailwind utility classes applied in the template. This block
+   only handles the few things tailwind doesn't carry cleanly:
+   the touch-target padding, the pop animation on activation,
+   and the mobile-card variant's tighter footprint. */
+.favorite-star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border-radius: 0.25rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.favorite-star:hover {
+  background: rgba(245, 158, 11, 0.08);
+}
+.favorite-star--mobile {
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: -0.5rem 0;
+}
+.star-pop {
+  animation: star-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes star-pop {
+  0%   { transform: scale(1) rotate(0); }
+  35%  { transform: scale(1.4) rotate(-10deg); }
+  60%  { transform: scale(0.92) rotate(6deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+</style>

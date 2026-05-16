@@ -50,6 +50,7 @@
     "profile": "Voir le profil",
     "settings": "Paramètres",
     "downloads": "Téléchargements",
+    "favorites": "Mes favoris",
     "invitations": "Invitations",
     "reports": "Mes signalements",
     "shop": "Boutique bonus",
@@ -212,6 +213,33 @@
   "me": {
     "title": "Dossier personnel",
     "headTitle": "Mon profil",
+    "favorites": {
+      "title": "Mes favoris",
+      "headTitle": "Mes favoris",
+      "eyebrow": "Catalogue privé",
+      "intro": "Chaque torrent que tu as épinglé devient une fiche d'index. Pile chaude, classée par date de mise en favori. À toi de retirer ce qui n'a plus sa place.",
+      "loading": "Ouverture du catalogue…",
+      "cardCount": "{n} fiche en archive | {n} fiches en archive",
+      "sort": {
+        "label": "Tri",
+        "recent": "Récent",
+        "name": "Nom",
+        "seeders": "Seeders"
+      },
+      "removeStamp": "Retirer",
+      "removeStampTooltip": "Retirer de mes favoris",
+      "pagerAria": "Pagination des favoris",
+      "toasts": {
+        "removed": "Fiche retirée du catalogue.",
+        "removeFailed": "Impossible de retirer cette fiche."
+      },
+      "empty": {
+        "title": "Le tiroir est vide",
+        "sub": "Pour le moment ton catalogue est vierge. Lance-toi : étoile un torrent et il atterrit ici, daté et numéroté.",
+        "stamp": "Vide",
+        "cta": "Parcourir le tracker"
+      }
+    },
     "publish": "Publier un torrent",
     "memberSince": "Membre depuis le {date}",
     "roleBadgeTitle": "Rôle · {name} · attribué le {date}",
@@ -624,6 +652,14 @@
       "backToIndex": "Retour à l'index",
       "download": "Télécharger",
       "report": "Signaler",
+      "favorite": "Favoris",
+      "favoriteAdd": "Ajouter aux favoris",
+      "favoriteRemove": "Retirer des favoris",
+      "toasts": {
+        "favorited": "Ajouté à vos favoris.",
+        "unfavorited": "Retiré de vos favoris.",
+        "favoriteFailed": "Impossible de modifier vos favoris."
+      },
       "infoHash": "Infohash",
       "createdAt": "Créé le",
       "uploadedBy": "Uploadé par",
@@ -1062,11 +1098,14 @@
       "deleteConfirmTitle": "Supprimer le torrent",
       "deleteConfirmMessage": "Supprimer définitivement « {name} » de l'index ?",
       "deleteAction": "Supprimer",
+      "favorite": "Ajouter aux favoris",
+      "unfavorite": "Retirer des favoris",
       "toasts": {
         "deleted": "Torrent supprimé"
       },
       "errors": {
-        "deleteFailed": "Échec de la suppression du torrent"
+        "deleteFailed": "Échec de la suppression du torrent",
+        "favoriteFailed": "Impossible de modifier les favoris"
       }
     },
     "wysiwyg": {

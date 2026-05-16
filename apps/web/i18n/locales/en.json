@@ -50,6 +50,7 @@
     "profile": "View profile",
     "settings": "Settings",
     "downloads": "Downloads",
+    "favorites": "My favorites",
     "invitations": "Invitations",
     "reports": "My reports",
     "shop": "Bonus shop",
@@ -212,6 +213,33 @@
   "me": {
     "title": "Personal dossier",
     "headTitle": "My profile",
+    "favorites": {
+      "title": "My favorites",
+      "headTitle": "My favorites",
+      "eyebrow": "Private catalogue",
+      "intro": "Every torrent you've pinned becomes a catalogue card. Sorted newest-filed first by default — yank what no longer earns its shelf space.",
+      "loading": "Opening the catalogue…",
+      "cardCount": "{n} card on file | {n} cards on file",
+      "sort": {
+        "label": "Sort",
+        "recent": "Recent",
+        "name": "Name",
+        "seeders": "Seeders"
+      },
+      "removeStamp": "Return",
+      "removeStampTooltip": "Remove from favorites",
+      "pagerAria": "Favorites pagination",
+      "toasts": {
+        "removed": "Card pulled from the catalogue.",
+        "removeFailed": "Could not pull this card."
+      },
+      "empty": {
+        "title": "The drawer is empty",
+        "sub": "Your catalogue is blank for now. Star a torrent on the tracker and it lands here, dated and serialised.",
+        "stamp": "Empty",
+        "cta": "Browse the tracker"
+      }
+    },
     "publish": "Publish a release",
     "memberSince": "Member since {date}",
     "roleBadgeTitle": "Role · {name} · attached {date}",
@@ -624,6 +652,14 @@
       "backToIndex": "Back to index",
       "download": "Download",
       "report": "Report",
+      "favorite": "Favorite",
+      "favoriteAdd": "Add to favorites",
+      "favoriteRemove": "Remove from favorites",
+      "toasts": {
+        "favorited": "Added to your favorites.",
+        "unfavorited": "Removed from your favorites.",
+        "favoriteFailed": "Could not update your favorites."
+      },
       "infoHash": "Info Hash",
       "createdAt": "Created At",
       "uploadedBy": "Uploaded by",
@@ -1062,11 +1098,14 @@
       "deleteConfirmTitle": "Delete torrent",
       "deleteConfirmMessage": "Permanently remove \"{name}\" from the index?",
       "deleteAction": "Delete",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
       "toasts": {
         "deleted": "Torrent deleted"
       },
       "errors": {
-        "deleteFailed": "Failed to delete torrent"
+        "deleteFailed": "Failed to delete torrent",
+        "favoriteFailed": "Could not update favorites"
       }
     },
     "wysiwyg": {

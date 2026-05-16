@@ -1490,6 +1490,41 @@ export type PanicState = typeof panicState.$inferSelect;
 export type NewPanicState = typeof panicState.$inferInsert;
 
 // ============================================================================
+// Torrent favorites
+// ============================================================================
+// One row per (user, torrent) pin. Purely user-private — no public
+// "X people favorited this" count, no notification to the uploader.
+// Composite PK doubles as the "can't favorite twice" guard: the
+// POST endpoint can ON CONFLICT DO NOTHING without an extra unique
+// index. A user deletion drops their favorites; a torrent deletion
+// drops every favorite that referenced it (cleaner than leaving
+// dangling rows for the /me/favorites page to filter out).
+export const torrentFavorites = pgTable(
+  'torrent_favorites',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    torrentId: text('torrent_id')
+      .notNull()
+      .references(() => torrents.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.torrentId] }),
+    // Drives the /me/favorites listing (newest first). Composite
+    // PK already covers "is X favorited by user Y" lookups.
+    index('torrent_favorites_user_created_idx').on(
+      table.userId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export type TorrentFavorite = typeof torrentFavorites.$inferSelect;
+export type NewTorrentFavorite = typeof torrentFavorites.$inferInsert;
+
+// ============================================================================
 // Anti-cheat — flagged announces
 // ============================================================================
 // Every time the Go tracker spots a statistical / signature anomaly on an

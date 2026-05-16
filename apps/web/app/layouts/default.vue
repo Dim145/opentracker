@@ -271,6 +271,14 @@
                 </NuxtLink>
                 <div class="py-1">
                   <NuxtLink
+                    to="/favorites"
+                    class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
+                    @click="showUserMenu = false"
+                  >
+                    <Icon name="ph:star-bold" class="text-amber-500" />
+                    {{ $t('nav.favorites') }}
+                  </NuxtLink>
+                  <NuxtLink
                     to="/downloads"
                     class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
                     @click="showUserMenu = false"
@@ -524,6 +532,14 @@
 
         <!-- Footer actions -->
         <div class="mt-auto border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex flex-col">
+          <NuxtLink
+            to="/favorites"
+            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
+            @click="showMobileNav = false"
+          >
+            <Icon name="ph:star-bold" class="text-lg flex-shrink-0 text-amber-500" />
+            <span>{{ $t('nav.favorites') }}</span>
+          </NuxtLink>
           <NuxtLink
             to="/downloads"
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
