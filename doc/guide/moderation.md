@@ -109,10 +109,17 @@ Every accepted report:
 Staff resolve from `/mod/reports`. The PUT (`/api/admin/reports/:id`) accepts:
 
 ```json
-{ "status": "resolved" | "dismissed", "resolution": "optional note (≤500)" }
+{
+  "status": "resolved" | "dismissed",
+  "resolution": "optional note (≤500)",
+  "banDuration": "none" | "1d" | "7d" | "1m" | "1y" | "permanent",
+  "banReason": "optional, defaults to the report's reason"
+}
 ```
 
 Both outcomes notify the reporter through the `report_actioned` notification, with the resolution note carried inline — so a report never feels like it vanished into a void.
+
+`banDuration` is only meaningful when `targetType = 'user'` and `status = 'resolved'`. See the dedicated [Reports guide](./reports.md#user-reports-ban-on-resolution) for the full ban-on-resolution flow.
 
 ### Cascade: report on a torrent
 
@@ -156,3 +163,35 @@ This saves the moderator a round-trip and keeps the audit trail honest: the mode
 | `POST /api/reports`              | Any authenticated user (rate-limited as a mutation). |
 | `GET  /api/admin/reports`        | Moderators + admins.                                 |
 | `PUT  /api/admin/reports/:id`    | Moderators + admins.                                 |
+
+## Timed bans & auto-unban
+
+The user `is_banned` flag carries a sibling `banned_until`
+timestamp. A NULL value means permanent (the historical
+behaviour); a future timestamp means the ban auto-lifts when
+the cron sweeps past it. The lift is also enforced lazily at
+login, Torznab, and the announce path so a user trying to
+sign in milliseconds after their ban expires isn't bounced
+because the cron hasn't ticked yet.
+
+The dedicated [Reports guide](./reports.md) covers the full
+ban lifecycle, including the bounce-screen reason text and the
+admin-tunable timeout setting.
+
+## Anti-cheat
+
+A separate moderation surface at `/mod/anti-cheat` handles
+suspicious announces flagged by the Go tracker. Three
+heuristics — impossible velocity, upload to an empty swarm,
+unknown peer_id signature — feed the queue; staff triage each
+flag manually. See the [Anti-cheat guide](./anti-cheat.md) for
+the detectors, severity levels, and review workflow.
+
+## Upload requests
+
+`/requests` is a community bounty board where users post
+specific upload wishes and stake bonus points as a reward. It
+isn't a moderation surface per se (requests live or die on
+user-to-user action), but staff have soft-delete on the
+discussion threads attached to each request. See the
+[Upload Requests guide](./upload-requests.md).

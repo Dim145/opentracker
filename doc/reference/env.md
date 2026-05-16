@@ -152,6 +152,8 @@ itself (admin/security events), not user-facing notification channels.
 | ---------------------------- | ------- | ------------ | ---------------------------------------------------------------------- |
 | `BONUS_COLLECTION_INTERVAL`  | api     | `3600000`    | Bonus-collector tick period (ms). Cross-replica SETNX lock; persisted last-tick timestamp ensures exactly one tick across the fleet. |
 | `STATS_COLLECTION_INTERVAL`  | api     | `3600000`    | `site_stats` snapshot period (ms). Same lock model.                    |
+| `BAN_EXPIRY_INTERVAL`        | api     | `300000`     | Ban-expiry cron tick (ms). Sweeps `is_banned=true AND banned_until<NOW()` and fires `account_unbanned`. SETNX lock. |
+| `REQUEST_AUTO_VALIDATE_INTERVAL` | api | `600000`     | Upload-request auto-validate cron tick (ms). Pays the filler when a request sits in `filled` past the admin-tuned timeout. SETNX lock. |
 
 ## Prometheus metrics
 

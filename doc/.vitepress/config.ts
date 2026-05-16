@@ -76,6 +76,8 @@ export default defineConfig({
             { text: 'Roles & Permissions', link: '/guide/roles-and-permissions' },
             { text: 'Invitations', link: '/guide/invitations' },
             { text: 'Moderation', link: '/guide/moderation' },
+            { text: 'Reports', link: '/guide/reports' },
+            { text: 'Anti-cheat', link: '/guide/anti-cheat' },
             { text: 'Upload Rules', link: '/guide/upload-rules' },
             { text: 'Forum', link: '/guide/forum' },
             { text: 'Hit-and-Run', link: '/guide/hit-and-run' },
@@ -85,6 +87,15 @@ export default defineConfig({
             { text: 'Metadata Providers', link: '/guide/metadata-providers' },
             { text: 'Notifications', link: '/guide/notifications' },
             { text: 'Internationalization', link: '/guide/i18n' },
+          ],
+        },
+        {
+          text: 'Community',
+          items: [
+            { text: 'Upload Requests', link: '/guide/upload-requests' },
+            { text: 'Favorites', link: '/guide/favorites' },
+            { text: 'Follows', link: '/guide/follows' },
+            { text: 'Cross-seed', link: '/guide/cross-seed' },
           ],
         },
         {

@@ -40,13 +40,23 @@ features:
     details: Pluggable provider abstraction with TMDb (movies/TV), IGDB (games) and Open Library + Google Books (books). The user's locale drives the lookup language so French users get French titles out of the box.
   - title: Multi-channel notifications
     details: In-app feed plus optional fan-out to SMTP, Telegram, Discord, Slack, Mattermost, ntfy, Gotify, Pushover, Webhook, Apprise — or system-level browser push via the Push API + service worker.
+  - title: Anti-cheat detection
+    details: Three real-time heuristics in the Go tracker (impossible velocity, upload to an empty swarm, unknown peer_id signature) feed a manual triage queue at /mod/anti-cheat. Nothing auto-bans.
+  - title: Upload requests / bounty board
+    details: Members post specific upload wishes and stake bonus points as a reward. The escrow is atomic, the timeout is operator-tunable, and the auto-validation cron is race-safe with the manual paths.
+  - title: Social graph
+    details: One-way follow on every profile, private "/following" cast list, opt-in upload notifications. Concurrency-capped fan-out keeps a hot uploader from storming the dispatch layer.
+  - title: Cross-seed surface
+    details: Content signatures group sibling torrents on the detail page. KPI tiles tell you how much of the current swarm is also active on a sibling — useful for planning low-risk migrations.
+  - title: Timed bans
+    details: Bans carry an optional duration. A 5-minute cron lifts expired rows and fires account_unbanned. Lazy unban at every auth boundary covers the gap before the cron ticks.
 ---
 
 ## Why Trackarr?
 
 Trackarr is designed for communities that value **privacy** and **security** above all else. Unlike traditional trackers that store passwords and personal data in plaintext or with reversible encryption, Trackarr uses cryptographic proofs that make it mathematically impossible to recover user credentials — even for administrators.
 
-This documentation covers the [`Dim145/opentracker`](https://github.com/Dim145/opentracker) fork, which adds two-factor auth, user-managed invitations, the moderation pipeline, bonus events, the [seed-bonus economy](/guide/seed-bonus) (per-user points + shop), the [UDP tracker frontend](/guide/udp-tracker) (BEP 15 alongside HTTP), the three-state registration mode, [pluggable media metadata](/guide/metadata-providers) (TMDb / IGDB / Open Library), [multi-channel notifications](/guide/notifications) (SMTP, Telegram, Discord, Web Push, …), and a hardened announce hot path on top of the original feature set.
+This documentation covers the [`Dim145/opentracker`](https://github.com/Dim145/opentracker) fork, which adds two-factor auth, user-managed invitations, the moderation pipeline, bonus events, the [seed-bonus economy](/guide/seed-bonus) (per-user points + shop), the [UDP tracker frontend](/guide/udp-tracker) (BEP 15 alongside HTTP), the three-state registration mode, [pluggable media metadata](/guide/metadata-providers) (TMDb / IGDB / Open Library), [multi-channel notifications](/guide/notifications) (SMTP, Telegram, Discord, Web Push, …), a [community bounty board](/guide/upload-requests), a [follow / subscribe](/guide/follows) graph with upload notifications, [private favorites](/guide/favorites), a [cross-seed](/guide/cross-seed) surface on every torrent, [anti-cheat detection](/guide/anti-cheat) feeding a manual triage queue, and a hardened announce hot path on top of the original feature set.
 
 ### Tech Stack
 

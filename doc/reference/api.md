@@ -135,15 +135,62 @@ See [Notifications](../guide/notifications.md) for the channel types (SMTP, Tele
 | DELETE | `/api/torrents/comments/:id`                     | author / mod  | Delete a comment.                                                        |
 | GET    | `/api/torrents/:hash/moderation/messages`        | thread†       | Moderation chat — `{status, messages}`. 404 if not allowed.              |
 | POST   | `/api/torrents/:hash/moderation/messages`        | thread†       | Reply without a status change.                                           |
+| GET    | `/api/torrents/:hash/cross-seeds`                | user          | Sibling torrents that share this content signature (up to 50).           |
+| GET    | `/api/torrents/:hash/cross-seed-stats`           | user          | Cross-seed KPI bundle (peer overlap + volume share). Memoised 30 s.      |
+| POST   | `/api/torrents/:hash/favorite`                   | user          | Star (idempotent).                                                       |
+| DELETE | `/api/torrents/:hash/favorite`                   | user          | Unstar (silent if not starred).                                          |
 | GET    | `/api/debug/:hash`                               | mod           | Raw row + per-peer swarm dump.                                           |
 
 † `thread` = uploader of the row OR any staff member.
+
+### Favorites
+
+| Method | Path                          | Auth | Purpose                                              |
+| ------ | ----------------------------- | ---- | ---------------------------------------------------- |
+| GET    | `/api/me/favorites`           | user | Paginated catalogue, sort `recent` / `name` / `seeders`. |
+
+### Follows (social graph)
+
+| Method | Path                                | Auth | Purpose                                                  |
+| ------ | ----------------------------------- | ---- | -------------------------------------------------------- |
+| POST   | `/api/users/:id/follow`             | user | Subscribe to a user (idempotent, refuses self-follow).   |
+| DELETE | `/api/users/:id/follow`             | user | Unsubscribe (silent if not following).                   |
+| GET    | `/api/me/following`                 | user | Paginated cast list, sort `recent` / `alpha`.            |
+
+The public `/api/users/:id` payload carries `followersCount` and `viewerFollowing` so the profile page renders the toggle state in one round-trip.
 
 ### Reports (user-side)
 
 | Method | Path                  | Auth | Purpose                                                                  |
 | ------ | --------------------- | ---- | ------------------------------------------------------------------------ |
-| POST   | `/api/reports`        | user | Submit a report (`{ target_type, target_id, reason }`). See [Moderation — Reports](../guide/moderation.md#reports). |
+| POST   | `/api/reports`        | user | Submit a report (`{ target_type, target_id, reason, details? }`). See [Reports](../guide/reports.md). |
+| GET    | `/api/me/reports`     | user | List the caller's filed reports + current status.                        |
+| DELETE | `/api/me/reports/:id` | user | Withdraw a pending report (hard-delete; refused once staff has acted).   |
+
+### Upload requests (bounty board)
+
+| Method | Path                                                | Auth | Purpose                                                          |
+| ------ | --------------------------------------------------- | ---- | ---------------------------------------------------------------- |
+| GET    | `/api/requests`                                     | user | Paginated list. Filters: `status`, `mine`, `categoryId`, `search`. |
+| POST   | `/api/requests`                                     | user | Create. Reward (if any) debited atomically from `bonus_points`.  |
+| GET    | `/api/requests/:id`                                 | user | Detail + thread + fill-attempt history + viewer permissions.     |
+| PATCH  | `/api/requests/:id`                                 | requester | Edit while `requested`. Reward bump-only.                  |
+| DELETE | `/api/requests/:id`                                 | requester | Cancel + refund. Only while `requested`.                   |
+| POST   | `/api/requests/:id/fill`                            | user (not requester) | Propose a torrent (`{ infoHash }` or `{ torrentId }`). Enforces uploader = caller, category match, per-user cap. |
+| POST   | `/api/requests/:id/validate`                        | requester | Accept the fill + pay the filler.                          |
+| POST   | `/api/requests/:id/reject`                          | requester | Bounce the fill; status → `requested`; filler attempts counter ticks. |
+| POST   | `/api/requests/:id/comments`                        | user | Append to the discussion (locked when `validated`/`cancelled`).  |
+| PATCH  | `/api/requests/:id/comments/:cid`                   | author (15 min) | Edit own comment within the grace window.            |
+| DELETE | `/api/requests/:id/comments/:cid`                   | author (15 min) / mod | Soft-delete (body hidden, row stays).        |
+
+See [Upload Requests](../guide/upload-requests.md) for the full lifecycle, point ledger, and operator settings.
+
+### Anti-cheat (staff)
+
+| Method | Path                                       | Auth | Purpose                                                |
+| ------ | ------------------------------------------ | ---- | ------------------------------------------------------ |
+| GET    | `/api/mod/anti-cheat/flags`                | mod  | Paginated queue. Filters: `status`, `kind`, `userId`.  |
+| PUT    | `/api/mod/anti-cheat/flags/:id`            | mod  | Stamp a review verdict + optional note. See [Anti-cheat](../guide/anti-cheat.md). |
 
 ## Moderation
 
@@ -224,8 +271,8 @@ The admin surface is gated by the `canAccessAdmin` permission. Auth = **admin** 
 | Method | Path                                          | Purpose                                                              |
 | ------ | --------------------------------------------- | -------------------------------------------------------------------- |
 | GET    | `/api/admin/users`                            | Paginated registry with KPI strip + filters.                         |
-| POST   | `/api/admin/users/:id/ban`                    | Ban (auto-banlist the last-known IP).                                |
-| POST   | `/api/admin/users/:id/unban`                  | Unban (does not auto-remove the IP banlist row).                     |
+| POST   | `/api/admin/users/:id/ban`                    | Ban (auto-banlist the last-known IP). Accepts an optional `duration` (days). |
+| POST   | `/api/admin/users/:id/unban`                  | Unban (does not auto-remove the IP banlist row). Refuses a mod trying to lift an admin-issued ban. |
 | PUT    | `/api/admin/users/:id/role`                   | *Deprecated.* Use the role-attach endpoints below.                   |
 | GET    | `/api/admin/users/:id/roles`                  | List a user's roles.                                                 |
 | POST   | `/api/admin/users/:id/roles`                  | Attach a role.                                                       |
@@ -243,8 +290,8 @@ See [Roles & Permissions](../guide/roles-and-permissions.md).
 
 | Method | Path                                  | Purpose                                                              |
 | ------ | ------------------------------------- | -------------------------------------------------------------------- |
-| GET    | `/api/admin/settings`                 | All site settings (title, tagline, force-2FA scope, retention, …).   |
-| PUT    | `/api/admin/settings`                 | Save settings.                                                       |
+| GET    | `/api/admin/settings`                 | All site settings (title, tagline, force-2FA scope, retention, request auto-validate timeout, request fill cap, …). |
+| PUT    | `/api/admin/settings`                 | Save settings (any subset; missing keys are left untouched).         |
 | POST   | `/api/admin/logo`                     | Upload the site logo (multipart).                                    |
 | POST   | `/api/admin/favicon`                  | Upload the favicon (multipart).                                      |
 | GET    | `/api/admin/stats`                    | Live aggregate stats (users, torrents, peers, DB size).              |
@@ -329,7 +376,7 @@ See [Invitations](../guide/invitations.md).
 | Method | Path                          | Purpose                                                              |
 | ------ | ----------------------------- | -------------------------------------------------------------------- |
 | GET    | `/api/admin/reports`          | Queue (paginated, filterable by target_type and status).             |
-| PUT    | `/api/admin/reports/:id`      | Resolve a report (status + action note).                             |
+| PUT    | `/api/admin/reports/:id`      | Resolve a report. For `targetType='user'` + `status='resolved'`, accepts `banDuration` (`none` / `1d` / `7d` / `1m` / `1y` / `permanent`) and `banReason` to ban the offender in the same transaction. See [Reports](../guide/reports.md). |
 
 ### Notification channels (server-side config)
 

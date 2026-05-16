@@ -101,7 +101,8 @@ again" button on their next `/settings` visit.
 ### Routing rules
 
 Every notification type (50+ events: `upload_accepted`,
-`comment_on_my_upload`, `hnr_violation_marked`, …) maps to one
+`comment_on_my_upload`, `hnr_violation_marked`,
+`followed_user_upload`, `request_filled`, …) maps to one
 channel of the user's choice — or stays in the in-app feed only.
 A first-channel onboarding bulk-routes every type to the new
 channel; users can later untick or re-route individual rows.
@@ -110,6 +111,30 @@ The router is **opt-out** for staff-as-recipient events
 (`new_pending_upload`, `new_report_filed`) — those land in the feed
 of every active moderator regardless of routing rules, since
 missing one is the wrong default for a moderation pipeline.
+
+### Event categories
+
+`/settings → Notifications` groups the event list by category
+so a user can quickly route a whole bucket at once:
+
+| Category | Events |
+| --- | --- |
+| **Uploads & moderation** | `upload_accepted`, `upload_rejected`, `upload_changes_requested`, `upload_reset`, `moderation_message_received`, `torrent_deleted_by_staff` |
+| **Hit & Run** | `hnr_violation_marked`, `hnr_cleared`, `hnr_exempted` |
+| **My account** | `account_banned`, `account_unbanned`, `role_attached_manually`, `role_detached`, `staff_status_changed` |
+| **Bonus & seed** | `bonus_points_adjusted`, `bonus_event_started`, `first_seeder_reward`, `seeding_milestone_reached` |
+| **Security** | `password_changed`, `totp_enabled`, `totp_disabled`, `passkey_added`, `passkey_removed`, `recovery_codes_regenerated`, `recovery_code_used`, `login_new_ip`, `trusted_device_added` |
+| **Social** | `comment_on_my_upload`, `forum_reply_on_my_topic`, `comment_deleted_by_staff`, `forum_post_deleted_by_staff`, `followed_user_upload` |
+| **Requests** | `request_filled`, `request_validated`, `request_rejected`, `request_auto_validated`, `request_new_comment` |
+| **Invitations** | `invite_redeemed`, `invitee_banned` |
+| **Moderation duties** *(staff only)* | `new_pending_upload`, `new_report_filed`, `report_actioned` |
+
+`followed_user_upload` lives under **Social** rather than its
+own category — it's a social signal (someone you subscribe to
+released a torrent), not a moderation event. The five
+`request_*` events get their own **Requests** category because
+the audience is different (one-to-one requester/filler
+relationship, not a thread).
 
 ### Privacy
 
