@@ -1,0 +1,57 @@
+/**
+ * PUT /api/mod/anti-cheat/flags/:id
+ *
+ * Mark an anti-cheat flag as reviewed. Verdict is free text so the
+ * moderation team can adopt whatever vocabulary they want
+ * ("clean", "warned", "monitoring", "banned"); the page UI offers
+ * three primary actions but stores whatever label was applied. An
+ * optional free-form note travels with it so the next moderator on
+ * the same suspect's row can see why their predecessor closed it.
+ *
+ * Idempotent on `reviewedAt`: hitting the endpoint twice with the
+ * same payload re-stamps the timestamp and rotates the reviewer if
+ * a different mod is now on the row — useful when the original
+ * reviewer wants to revise a decision.
+ *
+ * Never modifies the user. Bans/warnings are still issued manually
+ * from the user admin surface — this endpoint is only the audit
+ * stamp.
+ */
+import { db, schema } from '@trackarr/db';
+import { eq } from 'drizzle-orm';
+import { z } from 'zod';
+import { requireModeratorSession } from '~~/utils/adminAuth';
+
+const reviewSchema = z.object({
+  verdict: z.string().min(1).max(40),
+  note: z.string().max(500).nullable().optional(),
+});
+
+export default defineEventHandler(async (event) => {
+  const { user } = await requireModeratorSession(event);
+
+  const id = getRouterParam(event, 'id');
+  if (!id) {
+    throw createError({ statusCode: 400, message: 'Flag id required' });
+  }
+
+  const body = await readBody(event);
+  const data = reviewSchema.parse(body);
+
+  const updated = await db
+    .update(schema.anticheatFlags)
+    .set({
+      reviewedAt: new Date(),
+      reviewedById: user.id,
+      reviewVerdict: data.verdict,
+      reviewNote: data.note ?? null,
+    })
+    .where(eq(schema.anticheatFlags.id, id))
+    .returning();
+
+  if (updated.length === 0) {
+    throw createError({ statusCode: 404, message: 'Flag not found' });
+  }
+
+  return updated[0];
+});

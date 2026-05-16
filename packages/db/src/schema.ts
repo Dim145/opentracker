@@ -1477,3 +1477,70 @@ export type NewSiteStats = typeof siteStats.$inferInsert;
 
 export type PanicState = typeof panicState.$inferSelect;
 export type NewPanicState = typeof panicState.$inferInsert;
+
+// ============================================================================
+// Anti-cheat — flagged announces
+// ============================================================================
+// Every time the Go tracker spots a statistical / signature anomaly on an
+// announce (impossible upload velocity, claimed upload to an empty swarm,
+// unknown peer_id prefix, `completed` event without a prior `started`, …)
+// it records a row here. The moderation team triages from /mod/anti-cheat:
+// nothing is ever auto-banned, the table is just the audit trail + queue.
+// Stored as raw events (one per detection) so the same user with 200
+// suspicious announces shows up 200 times — easier to spot patterns than
+// a single counter would be.
+export const anticheatFlags = pgTable(
+  'anticheat_flags',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // Torrent the flag fired on, when the row references one of ours.
+    // Null when the flag is purely user-level (e.g. peer_id churn
+    // across multiple infohashes), or when the announce hit an
+    // unknown infohash that the tracker rejected upstream.
+    torrentId: text('torrent_id').references(() => torrents.id, {
+      onDelete: 'set null',
+    }),
+    // Raw infohash from the announce — kept even when the torrent
+    // row goes away so audit trails survive deletion.
+    infoHash: text('info_hash').notNull(),
+    // Detection kind. Strings (not an enum) so the tracker can grow
+    // new heuristics without a coordinated schema migration.
+    //   'velocity'       — impossible upload bytes/sec
+    //   'no_leecher'     — claimed upload to an empty swarm
+    //   'unknown_client' — peer_id prefix not in the known whitelist
+    //   'event_skip'     — `completed` / paid bytes without a prior `started`
+    kind: text('kind').notNull(),
+    severity: text('severity').notNull().default('medium'), // low | medium | high
+    // Free-form context dropped by the detector (numbers used, swarm
+    // counts, headers seen, …). Inspected from the mod UI.
+    details: jsonb('details').notNull().default({}),
+    // Peer_id (hex), client IP, User-Agent — captured because the
+    // detector almost always wants them all available to triage.
+    peerId: text('peer_id'),
+    ip: text('ip'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    // Review state — null until a moderator has looked. Verdict is
+    // free text so the team can record whatever convention they want
+    // ('clean' / 'warned' / 'banned' / 'monitoring' …); the page
+    // only enforces the three primary actions but stores whichever
+    // label was applied.
+    reviewedAt: timestamp('reviewed_at'),
+    reviewedById: text('reviewed_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    reviewVerdict: text('review_verdict'),
+    reviewNote: text('review_note'),
+  },
+  (table) => [
+    index('anticheat_flags_user_idx').on(table.userId, table.createdAt),
+    index('anticheat_flags_unreviewed_idx').on(table.reviewedAt),
+    index('anticheat_flags_kind_idx').on(table.kind),
+  ]
+);
+
+export type AnticheatFlag = typeof anticheatFlags.$inferSelect;
+export type NewAnticheatFlag = typeof anticheatFlags.$inferInsert;

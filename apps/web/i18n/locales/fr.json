@@ -33,7 +33,10 @@
     "justNow": "à l'instant",
     "minutesAgo": "il y a {n} min",
     "hoursAgo": "il y a {n} h",
-    "clear": "Effacer"
+    "clear": "Effacer",
+    "errors": {
+      "generic": "Une erreur est survenue. Réessayez."
+    }
   },
   "nav": {
     "dashboard": "Accueil",
@@ -2728,14 +2731,89 @@
       "pendingTorrents": "Torrents en attente",
       "users": "Utilisateurs",
       "reports": "Signalements",
-      "hnr": "Hit & Run"
+      "hnr": "Hit & Run",
+      "antiCheat": "Anti-cheat"
     },
     "descriptions": {
       "dashboard": "Aperçu de la modération et actions rapides",
       "pendingTorrents": "Examiner et approuver les torrents en attente",
       "users": "Gérer les comptes utilisateurs et les bannissements",
       "reports": "Examiner et traiter les signalements des utilisateurs",
-      "hnr": "Surveiller et gérer les violations H&R"
+      "hnr": "Surveiller et gérer les violations H&R",
+      "antiCheat": "Triager les annonces signalées par le détecteur anti-triche"
+    },
+    "antiCheat": {
+      "title": "Anti-cheat",
+      "eyebrow": "Anti-triche",
+      "unreviewed": "à traiter",
+      "tagline": "Le tracker signale chaque annonce qui sent le ratio-cheating (vélocité impossible, upload sans leecher, signature client inconnue). Rien n'est bannit automatiquement : ici tu confirmes ou tu écartes.",
+      "tabsAria": "Filtrer par statut",
+      "pagerAria": "Pagination des signalements anti-triche",
+      "radar": {
+        "label": "État du radar",
+        "calm": "RAS",
+        "elevated": "Vigilance",
+        "critical": "Alerte rouge",
+        "meta": "{unreviewed} à traiter"
+      },
+      "feed": {
+        "title": "Dossiers ouverts",
+        "loading": "Lecture du radar…"
+      },
+      "tile": {
+        "unreviewed": "À traiter",
+        "reviewed": "Traités"
+      },
+      "evidence": {
+        "velocity": "{rate} Mo/s revendiqués · plafond {cap} Mo/s",
+        "noLeecher": "{mb} Mo uploadés vers un swarm vide",
+        "unknownClient": "Préfixe peer inconnu · {prefix}"
+      },
+      "verdictLegend": "Choisir un verdict",
+      "tab": {
+        "unreviewed": "À traiter",
+        "reviewed": "Traités",
+        "all": "Tous"
+      },
+      "kindFilter": {
+        "all": "Tous types"
+      },
+      "kind": {
+        "velocity": "Vélocité",
+        "no_leecher": "Upload sans leecher",
+        "unknown_client": "Client inconnu"
+      },
+      "severity": {
+        "low": "Faible",
+        "medium": "Moyen",
+        "high": "Élevé"
+      },
+      "openLabel": "À traiter",
+      "userGone": "Compte supprimé",
+      "detail": {
+        "peerId": "Peer ID",
+        "ip": "IP",
+        "userAgent": "User-Agent",
+        "firedAt": "Détecté le",
+        "rawPayload": "Données brutes",
+        "reviewedBy": "Traité par {'@'}{user}, {date}",
+        "reReview": "Revoir"
+      },
+      "verdict": {
+        "clean": "Innocent",
+        "warned": "Averti",
+        "banned": "Banni",
+        "monitoring": "Surveillé"
+      },
+      "submitReview": "Enregistrer",
+      "notePlaceholder": "Note (optionnel) — contexte pour le prochain modérateur qui croisera ce compte.",
+      "toastReviewed": "Signalement traité.",
+      "empty": {
+        "allClearTitle": "Aucune alerte",
+        "allClearSub": "Le radar tourne, le swarm reste propre. Reviens jeter un œil après le prochain pic d'annonces.",
+        "genericTitle": "Pas de dossier ici",
+        "genericSub": "Aucun signalement ne correspond à ce filtre. Essaie un autre statut ou un autre type."
+      }
     },
     "dashboard": {
       "watchtower": "Tour de garde · Modération",

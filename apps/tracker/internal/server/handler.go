@@ -15,6 +15,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/florianjs/trackarr/apps/tracker/internal/announce"
+	"github.com/florianjs/trackarr/apps/tracker/internal/anticheat"
 	"github.com/florianjs/trackarr/apps/tracker/internal/bencode"
 	"github.com/florianjs/trackarr/apps/tracker/internal/bonus"
 	"github.com/florianjs/trackarr/apps/tracker/internal/cryptohash"
@@ -184,7 +185,7 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 			"clientIP", clientIP,
 		)
 	}
-	out := s.ProcessAnnounce(r.Context(), req, clientIP)
+	out := s.ProcessAnnounce(r.Context(), req, clientIP, r.UserAgent())
 	if out.Failure != "" {
 		writeFailure(w, out.Failure)
 		return
@@ -242,7 +243,7 @@ type AnnounceOutcome struct {
 // in the HTTP wrapper, not here, because UDP timing-side-channel
 // concerns are different (no single-shot round-trip a remote attacker
 // can measure with sub-ms precision).
-func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, clientIP string) AnnounceOutcome {
+func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, clientIP, userAgent string) AnnounceOutcome {
 	infoHashHex := hexBytes(req.InfoHash[:])
 
 	// 1. Resolve & validate the user
@@ -326,6 +327,60 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		}
 		if req.Downloaded > 0 {
 			deltaDown = req.Downloaded
+		}
+	}
+
+	// 5. Anti-cheat inspection. Runs BEFORE the 1 TiB sanity cap so
+	// the detector sees the raw client claim — a velocity check on
+	// the post-cap value would silently miss the 50 GB/s "I claim 1
+	// TiB" announces RatioMaster-family scripts emit. The detector
+	// only flags (never blocks): findings are appended to the
+	// `anticheat_flags` table for the mod team to triage manually.
+	// Best-effort: if Inspect returns anything, fire a goroutine
+	// for the DB write so the announce path stays fast on its hot
+	// edge.
+	if deltaUp > 0 {
+		preSeeders, preLeechers, _ := s.peers.Counts(ctx, infoHashHex)
+		// `prev` carries the announcing peer's own state from the
+		// last announce; subtract them from the swarm counts so
+		// "leechers excluding myself" reads as the no_leecher
+		// detector expects.
+		if prev != nil && prev.Left > 0 {
+			preLeechers--
+		} else if prev != nil {
+			preSeeders--
+		}
+		if preSeeders < 0 {
+			preSeeders = 0
+		}
+		if preLeechers < 0 {
+			preLeechers = 0
+		}
+		var prevUpdatedMs int64
+		if prev != nil {
+			prevUpdatedMs = prev.UpdatedAt
+		}
+		acFlags := anticheat.Inspect(anticheat.DefaultConfig(), anticheat.Inputs{
+			UserID:          user.ID,
+			TorrentID:       torrentID,
+			InfoHash:        infoHashHex,
+			PeerIDHex:       peerHex,
+			IP:              clientIP,
+			UserAgent:       userAgent,
+			Event:           req.Event.String(),
+			Left:            req.Left,
+			DeltaUp:         deltaUp,
+			DeltaDown:       deltaDown,
+			PrevUpdatedAtMs: prevUpdatedMs,
+			SwarmSeeders:    preSeeders,
+			SwarmLeechers:   preLeechers,
+		})
+		if len(acFlags) > 0 {
+			s.bgTasks.Add(1)
+			go func(flags []anticheat.Flag) {
+				defer s.bgTasks.Done()
+				anticheat.Persist(ctx, s.db.Pool, flags)
+			}(acFlags)
 		}
 	}
 

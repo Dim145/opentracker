@@ -98,6 +98,12 @@ const menuItems = computed(() => [
     icon: 'ph:lightning',
     description: t('mod.descriptions.hnr'),
   },
+  {
+    label: t('mod.nav.antiCheat'),
+    path: '/mod/anti-cheat',
+    icon: 'ph:shield-warning',
+    description: t('mod.descriptions.antiCheat'),
+  },
 ]);
 
 const currentItem = computed(

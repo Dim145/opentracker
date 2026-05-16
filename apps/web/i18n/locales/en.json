@@ -33,7 +33,10 @@
     "justNow": "just now",
     "minutesAgo": "{n} min ago",
     "hoursAgo": "{n}h ago",
-    "clear": "Clear"
+    "clear": "Clear",
+    "errors": {
+      "generic": "Something went wrong. Try again."
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -2728,14 +2731,89 @@
       "pendingTorrents": "Pending Torrents",
       "users": "Users",
       "reports": "Reports",
-      "hnr": "Hit & Run"
+      "hnr": "Hit & Run",
+      "antiCheat": "Anti-cheat"
     },
     "descriptions": {
       "dashboard": "Moderation overview and quick actions",
       "pendingTorrents": "Review and approve pending torrent uploads",
       "users": "Manage user accounts and bans",
       "reports": "Review and handle user reports",
-      "hnr": "Monitor and manage H&R violations"
+      "hnr": "Monitor and manage H&R violations",
+      "antiCheat": "Triage announces flagged by the cheat detector"
+    },
+    "antiCheat": {
+      "title": "Anti-cheat",
+      "eyebrow": "Anti-cheat",
+      "unreviewed": "to review",
+      "tagline": "The tracker raises a flag on every announce that smells like ratio-cheating (impossible velocity, upload to an empty swarm, unknown client signature). Nothing auto-bans — this is where you confirm or dismiss.",
+      "tabsAria": "Filter by status",
+      "pagerAria": "Anti-cheat flag pagination",
+      "radar": {
+        "label": "Radar status",
+        "calm": "All clear",
+        "elevated": "Elevated",
+        "critical": "Red alert",
+        "meta": "{unreviewed} pending"
+      },
+      "feed": {
+        "title": "Open cases",
+        "loading": "Reading radar…"
+      },
+      "tile": {
+        "unreviewed": "To review",
+        "reviewed": "Reviewed"
+      },
+      "evidence": {
+        "velocity": "{rate} MB/s claimed · {cap} MB/s allowed",
+        "noLeecher": "{mb} MB uploaded to an empty swarm",
+        "unknownClient": "Unknown peer prefix · {prefix}"
+      },
+      "verdictLegend": "Pick a verdict",
+      "tab": {
+        "unreviewed": "To review",
+        "reviewed": "Reviewed",
+        "all": "All"
+      },
+      "kindFilter": {
+        "all": "All kinds"
+      },
+      "kind": {
+        "velocity": "Velocity",
+        "no_leecher": "Upload to empty swarm",
+        "unknown_client": "Unknown client"
+      },
+      "severity": {
+        "low": "Low",
+        "medium": "Med",
+        "high": "High"
+      },
+      "openLabel": "Open",
+      "userGone": "Account deleted",
+      "detail": {
+        "peerId": "Peer ID",
+        "ip": "IP",
+        "userAgent": "User-Agent",
+        "firedAt": "Fired at",
+        "rawPayload": "Raw payload",
+        "reviewedBy": "Reviewed by {'@'}{user}, {date}",
+        "reReview": "Re-review"
+      },
+      "verdict": {
+        "clean": "Clean",
+        "warned": "Warned",
+        "banned": "Banned",
+        "monitoring": "Monitoring"
+      },
+      "submitReview": "Save",
+      "notePlaceholder": "Note (optional) — context for the next moderator who lands on this account.",
+      "toastReviewed": "Flag reviewed.",
+      "empty": {
+        "allClearTitle": "All clear",
+        "allClearSub": "Radar's sweeping, swarm's clean. Drop back in after the next batch of announces.",
+        "genericTitle": "Nothing here",
+        "genericSub": "No flags match this filter. Try a different status or kind."
+      }
     },
     "dashboard": {
       "watchtower": "Watchtower · Moderation",

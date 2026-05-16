@@ -283,7 +283,11 @@ func (s *Server) handleAnnounce(ctx context.Context, data []byte, raddr *net.UDP
 	}
 
 	clientIP := udpClientIP(req, raddr)
-	out := s.proc.ProcessAnnounce(ctx, apiReq, clientIP)
+	// UDP announces have no User-Agent header; passing empty lets
+	// the anticheat detector still reason from the peer_id prefix
+	// alone (the UA hint is only consulted when the prefix is
+	// unknown).
+	out := s.proc.ProcessAnnounce(ctx, apiReq, clientIP, "")
 	if out.Failure != "" {
 		// Failure carries the user-facing reason ("Invalid passkey",
 		// "Low ratio…", "Torrent not found or inactive"). Surface it
