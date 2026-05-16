@@ -202,6 +202,29 @@ export default defineEventHandler(async (event) => {
     );
   }
 
+  // Upload-request bounty board tunables — clamped here as
+  // defence-in-depth alongside the schema bounds.
+  if (
+    typeof body.requestAutoValidateHours === 'number' &&
+    body.requestAutoValidateHours >= 1 &&
+    body.requestAutoValidateHours <= 8760
+  ) {
+    await setSetting(
+      SETTINGS_KEYS.REQUEST_AUTO_VALIDATE_HOURS,
+      String(Math.floor(body.requestAutoValidateHours)),
+    );
+  }
+  if (
+    typeof body.requestMaxFillsPerUser === 'number' &&
+    body.requestMaxFillsPerUser >= 1 &&
+    body.requestMaxFillsPerUser <= 20
+  ) {
+    await setSetting(
+      SETTINGS_KEYS.REQUEST_MAX_FILLS_PER_USER,
+      String(Math.floor(body.requestMaxFillsPerUser)),
+    );
+  }
+
   return {
     success: true,
     ...body,

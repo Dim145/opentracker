@@ -4,6 +4,7 @@
     <AdminAnnouncements />
     <AdminRegistration />
     <AdminNotificationRetention />
+    <AdminRequestSettings />
     <AdminPanic />
   </div>
 </template>

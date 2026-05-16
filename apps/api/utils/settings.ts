@@ -138,6 +138,18 @@ export const SETTINGS_KEYS = {
   // they've observed real usage.
   NOTIFICATIONS_RETENTION_READ_DAYS: 'notifications_retention_read_days',
   NOTIFICATIONS_RETENTION_UNREAD_DAYS: 'notifications_retention_unread_days',
+  // ── Upload requests (bounty board) ─────────────────────────
+  // Hours a request can sit in `filled` state before the cron
+  // auto-validates and pays the filler. 168 h (7 days) is the
+  // default — short enough that fillers don't sit on locked
+  // points forever, long enough that holidays / sick days don't
+  // surprise-trigger the auto-validate.
+  REQUEST_AUTO_VALIDATE_HOURS: 'request_auto_validate_hours',
+  // Maximum number of fill attempts (proposed + rejected) a
+  // single user can stack against the same request. Caps abuse
+  // ("I'll just keep throwing torrents until something sticks")
+  // without forcing perfect first tries.
+  REQUEST_MAX_FILLS_PER_USER: 'request_max_fills_per_user',
 } as const;
 
 const settingsCache = new Map<
@@ -457,5 +469,38 @@ export async function setNotificationsRetentionUnreadDays(
   await setSetting(
     SETTINGS_KEYS.NOTIFICATIONS_RETENTION_UNREAD_DAYS,
     String(days),
+  );
+}
+
+// ── Upload-request bounty board ─────────────────────────────────
+// Bounds: 1–8760 h (1 year) on the timeout, 1–20 on the per-user
+// fill cap. Clamp parses too so a hand-edited Redis cache can't
+// freeze the cron or open a re-propose loop.
+
+export async function getRequestAutoValidateHours(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.REQUEST_AUTO_VALIDATE_HOURS);
+  const parsed = value ? parseInt(value, 10) : 168;
+  if (Number.isNaN(parsed) || parsed < 1 || parsed > 8760) return 168;
+  return parsed;
+}
+
+export async function setRequestAutoValidateHours(hours: number): Promise<void> {
+  await setSetting(
+    SETTINGS_KEYS.REQUEST_AUTO_VALIDATE_HOURS,
+    String(hours),
+  );
+}
+
+export async function getRequestMaxFillsPerUser(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.REQUEST_MAX_FILLS_PER_USER);
+  const parsed = value ? parseInt(value, 10) : 3;
+  if (Number.isNaN(parsed) || parsed < 1 || parsed > 20) return 3;
+  return parsed;
+}
+
+export async function setRequestMaxFillsPerUser(value: number): Promise<void> {
+  await setSetting(
+    SETTINGS_KEYS.REQUEST_MAX_FILLS_PER_USER,
+    String(value),
   );
 }

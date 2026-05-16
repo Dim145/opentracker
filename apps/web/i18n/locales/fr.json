@@ -52,6 +52,7 @@
     "downloads": "Téléchargements",
     "favorites": "Mes favoris",
     "following": "Mon réseau",
+    "requests": "Demandes",
     "invitations": "Invitations",
     "reports": "Mes signalements",
     "shop": "Boutique bonus",
@@ -825,6 +826,122 @@
       "title": "La scène est vide",
       "sub": "Personne dans ta distribution pour l'instant. Visite le profil d'un uploader, suis-le, et tu seras averti dès qu'il publie une nouvelle release.",
       "cta": "Parcourir le tracker"
+    }
+  },
+  "requests": {
+    "headTitle": "Bourse aux demandes",
+    "headTitleDetail": "Demande",
+    "headTitleWithName": "{name} · Demande",
+    "title": "Bourse aux demandes",
+    "eyebrow": "Marché ouvert",
+    "intro": "Sollicitez des uploads précis et stakez des points en récompense. Tout utilisateur connecté peut déposer un torrent existant pour réclamer la prime — la mise est libérée à la validation.",
+    "openCount": "Aucune offre | {n} offre en circulation | {n} offres en circulation",
+    "loading": "Lecture du marché…",
+    "pagerAria": "Pagination des demandes",
+    "rewardTooltip": "Récompense en points bonus",
+    "noReward": "Sans récompense",
+    "pointsShort": "pts",
+    "points": "points",
+    "by": "Par",
+    "reward": "Récompense",
+    "description": "Description",
+    "filledBy": "Proposé par",
+    "filledByValidated": "Rempli par",
+    "timeline": "Chronologie",
+    "unknownCategory": "Sans catégorie",
+    "notFound": "Demande introuvable",
+    "status": {
+      "requested": "Demandé",
+      "filled": "Rempli",
+      "validated": "Validé",
+      "cancelled": "Annulé"
+    },
+    "statusFilter": {
+      "all": "Tous"
+    },
+    "filters": {
+      "mine": "Mes demandes",
+      "searchPlaceholder": "Rechercher un titre…"
+    },
+    "timelineRow": {
+      "created": "Déposé",
+      "filled": "Rempli",
+      "proposed": "Proposé par",
+      "rejected": "Refusé",
+      "validated": "Validé",
+      "cancelled": "Annulé"
+    },
+    "empty": {
+      "title": "Le marché est silencieux",
+      "sub": "Aucune offre ne correspond aux filtres choisis. Affine ta recherche, ou file une demande en première position."
+    },
+    "actions": {
+      "title": "Actions",
+      "create": "Nouvelle demande",
+      "edit": "Éditer",
+      "cancel": "Annuler la demande",
+      "cancelConfirmTitle": "Annuler cette demande ?",
+      "cancelConfirmMessage": "La récompense bloquée sera restituée immédiatement. L'opération est irréversible.",
+      "validate": "Valider la proposition",
+      "reject": "Rejeter la proposition",
+      "fill": "Proposer ce torrent",
+      "fillHashLabel": "Hash du torrent",
+      "fillHashPlaceholder": "40 caractères hex",
+      "attemptsLeft": "Aucune tentative restante | {n}/{max} tentative restante | {n}/{max} tentatives restantes",
+      "nothingToDo": "Aucune action disponible",
+      "backToBoard": "Retour au marché"
+    },
+    "new": {
+      "headTitle": "Nouvelle demande",
+      "eyebrow": "Dépôt sur le marché",
+      "title": "Déposer une demande",
+      "intro": "Décris précisément ce que tu cherches, fixe une mise optionnelle, et un autre utilisateur viendra peut-être la remplir.",
+      "fields": {
+        "category": "Catégorie",
+        "title": "Titre",
+        "titlePlaceholder": "Concis : la release exacte, le format souhaité…",
+        "description": "Description",
+        "descriptionPlaceholder": "Détails : édition, langue, qualité, source… ce qui aidera à proposer le bon torrent.",
+        "reward": "Récompense",
+        "optional": "Optionnel"
+      },
+      "balance": {
+        "current": "Solde actuel",
+        "after": "Solde après dépôt"
+      },
+      "rewardHint": "La mise est immédiatement déduite et restituée si tu annules. Elle est transférée au filler à la validation.",
+      "errors": {
+        "insufficient": "Pas assez de points pour cette récompense."
+      },
+      "actions": {
+        "submit": "Déposer la demande"
+      },
+      "toasts": {
+        "created": "Demande déposée sur le marché.",
+        "failed": "Impossible de créer la demande."
+      }
+    },
+    "thread": {
+      "title": "Discussion",
+      "empty": "Aucun message — la discussion s'ouvre dès le premier commentaire.",
+      "locked": "Discussion verrouillée — dossier clos.",
+      "placeholder": "Écris un message — pose une question, propose une référence, clarifie un détail…",
+      "send": "Envoyer",
+      "edited": "édité",
+      "deletedUser": "supprimé",
+      "deletedBody": "Commentaire retiré par la modération.",
+      "deleteConfirmTitle": "Supprimer ce commentaire ?",
+      "deleteConfirmMessage": "Le commentaire sera masqué dans la discussion."
+    },
+    "toasts": {
+      "cancelled": "Demande annulée. Points restitués.",
+      "validated": "Demande validée. Récompense envoyée au filler.",
+      "rejected": "Proposition rejetée. La demande retourne sur le marché.",
+      "filled": "Proposition enregistrée. Le demandeur sera notifié.",
+      "commentFailed": "Impossible d'envoyer le commentaire.",
+      "commentEditFailed": "Impossible d'éditer le commentaire.",
+      "commentDeleteFailed": "Impossible de supprimer le commentaire.",
+      "failed": "Action impossible. Réessayez."
     }
   },
   "security": {
@@ -2581,6 +2698,16 @@
       "saved": "Enregistré",
       "saveContent": "Enregistrer la page d'accueil"
     },
+    "requests": {
+      "title": "Bourse aux demandes",
+      "description": "Réglage de la temporisation d'auto-validation et du plafond de propositions par utilisateur pour le marché des demandes d'upload.",
+      "autoValidateHours": "Délai avant validation automatique",
+      "autoValidateHint": "Si le demandeur ne valide ni ne rejette une proposition au bout de ce délai, la demande est automatiquement validée et le filler reçoit la récompense. 1–8760 heures. Défaut : 168 h (7 jours).",
+      "hoursLabel": "heures",
+      "maxFills": "Propositions maximum par utilisateur",
+      "maxFillsHint": "Combien de torrents un même utilisateur peut proposer sur une même demande (rejets compris). 1–20. Défaut : 3.",
+      "attemptsLabel": "tentatives"
+    },
     "panic": {
       "title": "Verrouillage d'urgence",
       "intro": "Chiffrer immédiatement toutes les données sensibles. Cette action rend les données illisibles sans le mot de passe panique défini lors de la première inscription.",
@@ -3364,6 +3491,26 @@
       "followed_user_upload": {
         "title": "Nouvelle release suivie",
         "desc": "{uploaderUsername} a publié « {torrentName} »."
+      },
+      "request_filled": {
+        "title": "Proposition reçue",
+        "desc": "{fillerUsername} propose « {torrentName} » pour la demande « {requestTitle} »."
+      },
+      "request_validated": {
+        "title": "Demande validée",
+        "desc": "{requesterUsername} a validé ta proposition pour « {requestTitle} » (+{rewardPoints} pts)."
+      },
+      "request_rejected": {
+        "title": "Proposition rejetée",
+        "desc": "{requesterUsername} a rejeté ta proposition sur « {requestTitle} »."
+      },
+      "request_auto_validated": {
+        "title": "Validation automatique",
+        "desc": "La demande « {requestTitle} » a été validée automatiquement (+{rewardPoints} pts si tu as rempli)."
+      },
+      "request_new_comment": {
+        "title": "Nouveau message",
+        "desc": "{authorUsername} sur « {requestTitle} » : {preview}"
       },
       "account_banned": {
         "title": "Compte suspendu",

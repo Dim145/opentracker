@@ -80,6 +80,12 @@ export type NotificationType =
   // notified of the relationship itself; the only social signal
   // the graph emits is this one upload-arrival ping.
   | 'followed_user_upload'
+  // ── P2 — Upload requests (bounty board) ────────────────────
+  | 'request_filled'         // requester: someone proposed a torrent
+  | 'request_validated'      // filler: requester accepted, reward paid
+  | 'request_rejected'       // filler: requester sent it back
+  | 'request_auto_validated' // both: cron auto-paid after timeout
+  | 'request_new_comment'    // other party: new message in the thread
   // ── P2 — Invitations ───────────────────────────────────────
   | 'invite_redeemed'
   | 'invitee_banned'

@@ -52,6 +52,7 @@
     "downloads": "Downloads",
     "favorites": "My favorites",
     "following": "My circle",
+    "requests": "Requests",
     "invitations": "Invitations",
     "reports": "My reports",
     "shop": "Bonus shop",
@@ -825,6 +826,122 @@
       "title": "The stage is empty",
       "sub": "Nobody in your cast yet. Visit an uploader's profile, follow them, and you'll be pinged the moment they release.",
       "cta": "Browse the tracker"
+    }
+  },
+  "requests": {
+    "headTitle": "Bounty board",
+    "headTitleDetail": "Request",
+    "headTitleWithName": "{name} · Request",
+    "title": "Bounty board",
+    "eyebrow": "Open market",
+    "intro": "Post a specific upload you want and stake bonus points as a reward. Any logged-in user can submit an existing torrent to claim the bounty — the stake is released on validation.",
+    "openCount": "No open bounties | {n} open bounty | {n} open bounties",
+    "loading": "Reading the floor…",
+    "pagerAria": "Bounty board pagination",
+    "rewardTooltip": "Reward in bonus points",
+    "noReward": "No reward",
+    "pointsShort": "pts",
+    "points": "points",
+    "by": "By",
+    "reward": "Reward",
+    "description": "Description",
+    "filledBy": "Proposed by",
+    "filledByValidated": "Filled by",
+    "timeline": "Timeline",
+    "unknownCategory": "Uncategorised",
+    "notFound": "Request not found",
+    "status": {
+      "requested": "Open",
+      "filled": "Filled",
+      "validated": "Validated",
+      "cancelled": "Cancelled"
+    },
+    "statusFilter": {
+      "all": "All"
+    },
+    "filters": {
+      "mine": "My requests",
+      "searchPlaceholder": "Search titles…"
+    },
+    "timelineRow": {
+      "created": "Posted",
+      "filled": "Filled",
+      "proposed": "Proposed by",
+      "rejected": "Rejected",
+      "validated": "Validated",
+      "cancelled": "Cancelled"
+    },
+    "empty": {
+      "title": "The market is quiet",
+      "sub": "No bounties match the current filters. Sharpen the search, or open one yourself."
+    },
+    "actions": {
+      "title": "Actions",
+      "create": "New request",
+      "edit": "Edit",
+      "cancel": "Cancel request",
+      "cancelConfirmTitle": "Cancel this request?",
+      "cancelConfirmMessage": "The held reward will be refunded immediately. This cannot be undone.",
+      "validate": "Validate proposal",
+      "reject": "Reject proposal",
+      "fill": "Propose this torrent",
+      "fillHashLabel": "Torrent hash",
+      "fillHashPlaceholder": "40 hex characters",
+      "attemptsLeft": "No attempts left | {n}/{max} attempt left | {n}/{max} attempts left",
+      "nothingToDo": "No actions available",
+      "backToBoard": "Back to board"
+    },
+    "new": {
+      "headTitle": "New request",
+      "eyebrow": "Post to market",
+      "title": "File a request",
+      "intro": "Describe what you're after, stake an optional reward, and another user may step up to fill it.",
+      "fields": {
+        "category": "Category",
+        "title": "Title",
+        "titlePlaceholder": "Be concise — the exact release, the format you want…",
+        "description": "Description",
+        "descriptionPlaceholder": "Details: edition, language, quality, source… anything that helps propose the right torrent.",
+        "reward": "Reward",
+        "optional": "Optional"
+      },
+      "balance": {
+        "current": "Current balance",
+        "after": "Balance after stake"
+      },
+      "rewardHint": "The stake is deducted immediately and refunded if you cancel. It's transferred to the filler on validation.",
+      "errors": {
+        "insufficient": "Not enough points for this reward."
+      },
+      "actions": {
+        "submit": "Post request"
+      },
+      "toasts": {
+        "created": "Request posted on the board.",
+        "failed": "Could not create the request."
+      }
+    },
+    "thread": {
+      "title": "Discussion",
+      "empty": "No messages yet — the discussion opens with the first comment.",
+      "locked": "Discussion locked — case closed.",
+      "placeholder": "Write a message — ask a question, suggest a reference, clarify a detail…",
+      "send": "Send",
+      "edited": "edited",
+      "deletedUser": "deleted",
+      "deletedBody": "Comment removed by moderation.",
+      "deleteConfirmTitle": "Delete this comment?",
+      "deleteConfirmMessage": "The comment will be hidden from the thread."
+    },
+    "toasts": {
+      "cancelled": "Request cancelled. Reward refunded.",
+      "validated": "Request validated. Reward sent to the filler.",
+      "rejected": "Proposal rejected. The request is back on the market.",
+      "filled": "Proposal submitted. The requester will be notified.",
+      "commentFailed": "Could not post the comment.",
+      "commentEditFailed": "Could not edit the comment.",
+      "commentDeleteFailed": "Could not delete the comment.",
+      "failed": "Action failed. Try again."
     }
   },
   "security": {
@@ -2581,6 +2698,16 @@
       "saved": "Saved",
       "saveContent": "Save Homepage Content"
     },
+    "requests": {
+      "title": "Bounty board",
+      "description": "Configure the auto-validation timeout and the per-user proposal cap for the upload-request marketplace.",
+      "autoValidateHours": "Auto-validate timeout",
+      "autoValidateHint": "If the requester doesn't validate or reject a proposal within this window, the request is auto-validated and the filler is paid. 1–8760 hours. Default: 168 h (7 days).",
+      "hoursLabel": "hours",
+      "maxFills": "Max proposals per user",
+      "maxFillsHint": "How many torrents a single user can propose on the same request (rejections included). 1–20. Default: 3.",
+      "attemptsLabel": "attempts"
+    },
     "panic": {
       "title": "Emergency Lockdown",
       "intro": "Encrypt all sensitive data immediately. This action renders data unreadable without the panic password set during first registration.",
@@ -3364,6 +3491,26 @@
       "followed_user_upload": {
         "title": "New release from someone you follow",
         "desc": "{uploaderUsername} just published \"{torrentName}\"."
+      },
+      "request_filled": {
+        "title": "New proposal on your request",
+        "desc": "{fillerUsername} proposed \"{torrentName}\" for \"{requestTitle}\"."
+      },
+      "request_validated": {
+        "title": "Request validated",
+        "desc": "{requesterUsername} accepted your proposal for \"{requestTitle}\" (+{rewardPoints} pts)."
+      },
+      "request_rejected": {
+        "title": "Proposal rejected",
+        "desc": "{requesterUsername} rejected your proposal on \"{requestTitle}\"."
+      },
+      "request_auto_validated": {
+        "title": "Auto-validated",
+        "desc": "Request \"{requestTitle}\" was auto-validated (+{rewardPoints} pts if you filled)."
+      },
+      "request_new_comment": {
+        "title": "New comment",
+        "desc": "{authorUsername} on \"{requestTitle}\": {preview}"
       },
       "account_banned": {
         "title": "Account suspended",

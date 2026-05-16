@@ -217,6 +217,22 @@ export const adminSettingsSchema = z.object({
     .min(1)
     .max(3650)
     .optional(),
+  // Upload-request bounty board tunables. Bounds match the
+  // settings.ts getters' clamp; out-of-range values are dropped
+  // silently by the PUT handler to match the section's existing
+  // tolerance.
+  requestAutoValidateHours: z
+    .number()
+    .int()
+    .min(1)
+    .max(8760)
+    .optional(),
+  requestMaxFillsPerUser: z
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .optional(),
 });
 
 // ============================================================================

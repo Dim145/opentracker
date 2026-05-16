@@ -35,6 +35,8 @@ import {
   getRequire2FAScope,
   getNotificationsRetentionReadDays,
   getNotificationsRetentionUnreadDays,
+  getRequestAutoValidateHours,
+  getRequestMaxFillsPerUser,
 } from '~~/utils/settings';
 
 /**
@@ -79,6 +81,8 @@ export default defineEventHandler(async (event) => {
     await getNotificationsRetentionReadDays();
   const notificationsRetentionUnreadDays =
     await getNotificationsRetentionUnreadDays();
+  const requestAutoValidateHours = await getRequestAutoValidateHours();
+  const requestMaxFillsPerUser = await getRequestMaxFillsPerUser();
 
   return {
     registrationOpen,
@@ -114,5 +118,7 @@ export default defineEventHandler(async (event) => {
     require2FAScope,
     notificationsRetentionReadDays,
     notificationsRetentionUnreadDays,
+    requestAutoValidateHours,
+    requestMaxFillsPerUser,
   };
 });

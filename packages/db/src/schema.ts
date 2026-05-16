@@ -1490,6 +1490,150 @@ export type PanicState = typeof panicState.$inferSelect;
 export type NewPanicState = typeof panicState.$inferInsert;
 
 // ============================================================================
+// Upload requests
+// ============================================================================
+// A user-driven bounty board: "I want this torrent uploaded, here's a
+// reward". The flow:
+//   1. requester picks a category, writes a title + description, optionally
+//      stakes a reward (deducted from `bonusPoints` on creation, refunded
+//      on cancel, transferred to filler on validate).
+//   2. another user (NOT the requester — self-fill is rejected at the
+//      endpoint) submits the infoHash of an upload they claim satisfies
+//      the request → status `filled`.
+//   3. the requester either validates (filler receives reward) or rejects
+//      (status → `requested`, filler's attempt counter increments — once
+//      the per-user cap is reached they can no longer re-propose on the
+//      same request).
+//   4. if the requester sits on a `filled` request past the operator-
+//      configured timeout, a cron auto-validates and pays the filler.
+//
+// Comments live in a sibling table — they're a discussion thread, not a
+// timeline of state changes (state changes don't generate a comment row).
+export const uploadRequests = pgTable(
+  'upload_requests',
+  {
+    id: text('id').primaryKey(),
+    requesterId: text('requester_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    categoryId: text('category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'restrict' }),
+    title: text('title').notNull(),
+    description: text('description').notNull(),
+    // Snapshot at creation. Deducted from requester immediately and held
+    // (the user can't double-spend by editing this down). Bumps are
+    // allowed (delta deducted on the spot) — drops are not.
+    rewardPoints: integer('reward_points').default(0).notNull(),
+    // requested | filled | cancelled | validated
+    status: text('status').default('requested').notNull(),
+    // When `status = filled` or `validated`, the user who matched the
+    // request. Cleared on reject so the row goes back to "looking for a
+    // filler".
+    filledById: text('filled_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    filledTorrentId: text('filled_torrent_id').references(() => torrents.id, {
+      onDelete: 'set null',
+    }),
+    filledAt: timestamp('filled_at'),
+    validatedAt: timestamp('validated_at'),
+    cancelledAt: timestamp('cancelled_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // Listing index: open requests, newest first.
+    index('upload_requests_status_idx').on(table.status, table.createdAt),
+    // "Show me my own requests" + chronological order.
+    index('upload_requests_requester_idx').on(
+      table.requesterId,
+      table.createdAt,
+    ),
+    // Auto-validate cron scans this — partial-index would be ideal but
+    // drizzle can't express it inline; the migration ships a partial.
+    index('upload_requests_filled_at_idx').on(table.filledAt),
+  ],
+);
+
+// One row per (request, user) fill attempt — used to enforce the
+// per-user proposal cap (an uploader rejected too many times can't
+// keep flooding the same request). `proposed` rows are the active
+// pending fill; `rejected` rows are the audit trail counter.
+export const uploadRequestFillAttempts = pgTable(
+  'upload_request_fill_attempts',
+  {
+    id: text('id').primaryKey(),
+    requestId: text('request_id')
+      .notNull()
+      .references(() => uploadRequests.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    torrentId: text('torrent_id')
+      .notNull()
+      .references(() => torrents.id, { onDelete: 'cascade' }),
+    // 'proposed' (live, awaiting validation) | 'rejected' (the user's
+    // attempt was bounced) | 'validated' (the user won the bounty).
+    status: text('status').default('proposed').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    rejectedAt: timestamp('rejected_at'),
+  },
+  (table) => [
+    // Counter query: "how many rejected fills has user X already piled
+    // up on request Y" runs on every fill attempt.
+    index('upload_request_fill_attempts_request_user_idx').on(
+      table.requestId,
+      table.userId,
+    ),
+  ],
+);
+
+// Discussion thread attached to a request. Separate from the status
+// changes (those are derived from the parent row's timestamps + status).
+export const uploadRequestComments = pgTable(
+  'upload_request_comments',
+  {
+    id: text('id').primaryKey(),
+    requestId: text('request_id')
+      .notNull()
+      .references(() => uploadRequests.id, { onDelete: 'cascade' }),
+    authorId: text('author_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    body: text('body').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    // Stamped when the author edits within the 15-minute grace window.
+    // After that the row is frozen (the endpoint refuses further PATCH).
+    editedAt: timestamp('edited_at'),
+    // Soft-delete by staff. The row stays so the thread numbering
+    // doesn't shift, but `body` is hidden from non-staff viewers.
+    deletedAt: timestamp('deleted_at'),
+    deletedById: text('deleted_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (table) => [
+    // Listing index for the detail page (chronological).
+    index('upload_request_comments_request_idx').on(
+      table.requestId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export type UploadRequest = typeof uploadRequests.$inferSelect;
+export type NewUploadRequest = typeof uploadRequests.$inferInsert;
+export type UploadRequestFillAttempt =
+  typeof uploadRequestFillAttempts.$inferSelect;
+export type NewUploadRequestFillAttempt =
+  typeof uploadRequestFillAttempts.$inferInsert;
+export type UploadRequestComment =
+  typeof uploadRequestComments.$inferSelect;
+export type NewUploadRequestComment =
+  typeof uploadRequestComments.$inferInsert;
+
+// ============================================================================
 // User follows
 // ============================================================================
 // Asymmetric follow graph: one row per (follower, followed) pair.
