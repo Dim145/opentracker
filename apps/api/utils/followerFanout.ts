@@ -30,6 +30,42 @@ interface FanoutInput {
   torrentName: string;
 }
 
+/** Pool size for per-follower notify dispatch. 20 is high
+ *  enough that a few hundred followers finish in roughly one
+ *  notify round-trip's worth of wall time, low enough that an
+ *  uploader with 50k+ followers can't open 50k+ concurrent
+ *  connections to Postgres and Redis at upload time. */
+const FANOUT_CONCURRENCY = 20;
+
+/**
+ * Worker-pool concurrency limiter. Spins up `concurrency`
+ * workers that pop items from a shared queue. Each task's
+ * failure is swallowed — the fan-out is best-effort and a
+ * single recipient's notify glitch must not skip the rest.
+ */
+async function withConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  if (items.length === 0) return;
+  const queue = items.slice();
+  const workers = Array(Math.min(concurrency, items.length))
+    .fill(0)
+    .map(async () => {
+      while (queue.length > 0) {
+        const item = queue.shift();
+        if (item === undefined) return;
+        try {
+          await fn(item);
+        } catch {
+          // best-effort: don't let one bad recipient sink the rest
+        }
+      }
+    });
+  await Promise.all(workers);
+}
+
 export async function fanoutFollowedUserUpload(
   input: FanoutInput,
 ): Promise<void> {
@@ -41,22 +77,23 @@ export async function fanoutFollowedUserUpload(
 
     if (followers.length === 0) return;
 
-    // Sequential notify calls would serialize the fan-out and
-    // stretch a 200-follower upload into 200 round-trips. They run
-    // in parallel; each is independently best-effort (the
-    // `notify` implementation already swallows its own errors).
-    await Promise.all(
-      followers.map((f) =>
-        notify(
-          f.followerId,
-          'followed_user_upload',
-          {
-            uploaderId: input.uploaderId,
-            uploaderUsername: input.uploaderUsername,
-            torrentName: input.torrentName,
-          },
-          `/torrents/${input.torrentInfoHash}`,
-        ),
+    // Capped concurrency pool. Unbounded `Promise.all` was a
+    // real DoS risk: an uploader with 50k followers opened 50k
+    // parallel notify calls (DB insert + Redis publish + maybe
+    // an external channel dispatch each) at every upload. 20
+    // workers finish a 200-follower upload in 10 round-trip
+    // batches and keep the connection pool from collapsing
+    // even on a 50k-follower hot account.
+    await withConcurrency(followers, FANOUT_CONCURRENCY, (f) =>
+      notify(
+        f.followerId,
+        'followed_user_upload',
+        {
+          uploaderId: input.uploaderId,
+          uploaderUsername: input.uploaderUsername,
+          torrentName: input.torrentName,
+        },
+        `/torrents/${input.torrentInfoHash}`,
       ),
     );
   } catch (err) {

@@ -85,11 +85,16 @@ export default defineNitroPlugin(async () => {
         const fillerId = row.filledById;
         const reward = row.rewardPoints;
         try {
-          await db.transaction(async (tx) => {
-            if (reward > 0) {
-              await payReward(tx, fillerId, reward);
-            }
-            await tx
+          // Atomicity: do the conditional UPDATE FIRST and only
+          // pay if it actually flipped a row. The earlier version
+          // paid before the UPDATE, so a manual validate that
+          // slipped in between SELECT and the cron's pay-step
+          // would result in a double payout — the manual UPDATE
+          // already credited the filler, the cron's UPDATE
+          // no-ops because the status is already 'validated',
+          // but `payReward` had already run.
+          const paid = await db.transaction(async (tx) => {
+            const [updated] = await tx
               .update(schema.uploadRequests)
               .set({
                 status: 'validated',
@@ -99,13 +104,16 @@ export default defineNitroPlugin(async () => {
               .where(
                 and(
                   eq(schema.uploadRequests.id, row.id),
-                  // Race guard: the row could have been validated
-                  // by the manual path between the SELECT and the
-                  // UPDATE. The status filter makes the UPDATE a
-                  // no-op in that case.
                   eq(schema.uploadRequests.status, 'filled'),
                 ),
-              );
+              )
+              .returning({ id: schema.uploadRequests.id });
+            if (!updated) {
+              return false; // already validated by the manual path
+            }
+            if (reward > 0) {
+              await payReward(tx, fillerId, reward);
+            }
             await tx
               .update(schema.uploadRequestFillAttempts)
               .set({ status: 'validated' })
@@ -119,7 +127,12 @@ export default defineNitroPlugin(async () => {
                   ),
                 ),
               );
+            return true;
           });
+          if (!paid) {
+            // Manual path got there first — skip the notification.
+            continue;
+          }
 
           const payload = {
             requestId: row.id,

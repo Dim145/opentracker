@@ -27,9 +27,18 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { getPeers } from '~~/redis/cache';
+import { redis } from '~~/utils/server';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
 
 const MAX_SIBLINGS_SCANNED = 50;
+/** Memoise the computed stats per infoHash for 30 s. The KPIs
+ *  are inherently fuzzy (live swarm state) and the page-load
+ *  cost was 50 parallel Redis HGETALL + 2 SQL aggregates — well
+ *  worth caching, especially since a logged-in attacker can
+ *  spam this endpoint with `requireUserSession` alone. */
+const STATS_CACHE_TTL_S = 30;
+const cacheKeyFor = (infoHash: string) => `xseed:stats:${infoHash}`;
 
 interface CrossSeedStats {
   otherTorrentCount: number;
@@ -41,7 +50,22 @@ interface CrossSeedStats {
 
 export default defineEventHandler(async (event): Promise<CrossSeedStats> => {
   const { user: session } = await requireUserSession(event);
+  await rateLimit(event, RATE_LIMITS.public);
   const infoHash = validateParam(event, 'hash', infoHashSchema);
+
+  // Short-TTL Redis memo. The KPIs are derived from live swarm
+  // state and historical aggregates — a 30 s lag is invisible
+  // to the user but kills the Redis-storm vector (the prior
+  // version fired up to 50 parallel HGETALL per request).
+  const cacheKey = cacheKeyFor(infoHash);
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached) as CrossSeedStats;
+    }
+  } catch {
+    // Cache hiccup — fall through to a live compute.
+  }
 
   const source = await db.query.torrents.findFirst({
     where: (t, { eq }) => eq(t.infoHash, infoHash),
@@ -100,10 +124,14 @@ export default defineEventHandler(async (event): Promise<CrossSeedStats> => {
       })
       .from(schema.hnrTracking)
       .where(eq(schema.hnrTracking.torrentId, source.id));
-    return {
+    const result: CrossSeedStats = {
       ...empty,
       totalUploadedBytes: totals[0]?.total ?? '0',
     };
+    void redis
+      .set(cacheKey, JSON.stringify(result), 'EX', STATS_CACHE_TTL_S)
+      .catch(() => {});
+    return result;
   }
 
   // ── 2. Gather every userId currently active in a sibling swarm ──
@@ -160,11 +188,15 @@ export default defineEventHandler(async (event): Promise<CrossSeedStats> => {
     uploadedShareBytes = shareQuery[0]?.total ?? '0';
   }
 
-  return {
+  const result: CrossSeedStats = {
     otherTorrentCount: siblings.length,
     seederCount,
     leecherCount,
     uploadedShareBytes,
     totalUploadedBytes,
   };
+  void redis
+    .set(cacheKey, JSON.stringify(result), 'EX', STATS_CACHE_TTL_S)
+    .catch(() => {});
+  return result;
 });

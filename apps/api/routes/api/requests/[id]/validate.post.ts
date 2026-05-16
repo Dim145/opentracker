@@ -50,18 +50,33 @@ export default defineEventHandler(async (event) => {
   const fillerId = request.filledById;
   const reward = request.rewardPoints;
   const now = new Date();
-  await db.transaction(async (tx) => {
-    if (reward > 0) {
-      await payReward(tx, fillerId, reward);
-    }
-    await tx
+  // Atomicity: the row UPDATE carries the `status = 'filled'`
+  // predicate, so a concurrent validate / auto-validate / reject
+  // that already flipped the row to a terminal state results in
+  // an empty `returning()`. We bail in that case instead of
+  // paying out — without this guard a double-clicked button or
+  // two tabs would credit the filler twice.
+  const paid = await db.transaction(async (tx) => {
+    const [updated] = await tx
       .update(schema.uploadRequests)
       .set({
         status: 'validated',
         validatedAt: now,
         updatedAt: now,
       })
-      .where(eq(schema.uploadRequests.id, id));
+      .where(
+        and(
+          eq(schema.uploadRequests.id, id),
+          eq(schema.uploadRequests.status, 'filled'),
+        ),
+      )
+      .returning({ id: schema.uploadRequests.id });
+    if (!updated) {
+      return false; // raced — another path resolved this row
+    }
+    if (reward > 0) {
+      await payReward(tx, fillerId, reward);
+    }
     await tx
       .update(schema.uploadRequestFillAttempts)
       .set({ status: 'validated' })
@@ -72,7 +87,15 @@ export default defineEventHandler(async (event) => {
           eq(schema.uploadRequestFillAttempts.status, 'proposed'),
         ),
       );
+    return true;
   });
+
+  if (!paid) {
+    throw createError({
+      statusCode: 409,
+      message: 'This request was already resolved',
+    });
+  }
 
   void notify(
     fillerId,

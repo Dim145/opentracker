@@ -18,10 +18,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users, userFollows } from '@trackarr/db/schema';
 import { requireAuthSession } from '~~/utils/adminAuth';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateParam, uuidSchema } from '~~/utils/schemas';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
   const targetId = validateParam(event, 'id', uuidSchema);
 
   if (targetId === session.user.id) {

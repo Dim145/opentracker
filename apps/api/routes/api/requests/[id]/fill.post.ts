@@ -118,37 +118,31 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Enforce the per-user attempt cap. Each rejected proposal
-  // counts; the active `proposed` row also counts so a user can't
-  // bypass by stacking unresolved proposals (only one proposal
-  // can be active at a time per request anyway).
   const maxAttempts = await getRequestMaxFillsPerUser();
-  const [{ value: attempts } = { value: 0 }] = await db
-    .select({ value: sql<number>`count(*)::int` })
-    .from(schema.uploadRequestFillAttempts)
-    .where(
-      and(
-        eq(schema.uploadRequestFillAttempts.requestId, id),
-        eq(schema.uploadRequestFillAttempts.userId, user.id),
-      ),
-    );
-  if (attempts >= maxAttempts) {
-    throw createError({
-      statusCode: 400,
-      message: `You have reached the maximum of ${maxAttempts} proposals on this request`,
-    });
-  }
-
   const now = new Date();
-  await db.transaction(async (tx) => {
-    await tx.insert(schema.uploadRequestFillAttempts).values({
-      id: randomUUID(),
-      requestId: id,
-      userId: user.id,
-      torrentId: torrent.id,
-      status: 'proposed',
-    });
-    await tx
+
+  // Race-safe fill: the per-user attempt count + the request
+  // transition happen inside one transaction, the status flip
+  // carries a `WHERE status = 'requested'` predicate, and the
+  // count is re-read inside the tx with FOR UPDATE on the
+  // matched fill_attempts so a parallel fill from the same user
+  // can't both pass the cap.
+  const result = await db.transaction(async (tx) => {
+    // Count the caller's existing attempts under a row-lock so
+    // a concurrent insert from the same user doesn't slip past.
+    const lockedAttempts = await tx.execute<{ id: string }>(
+      sql`SELECT id FROM ${schema.uploadRequestFillAttempts}
+          WHERE request_id = ${id} AND user_id = ${user.id}
+          FOR UPDATE`,
+    );
+    if (lockedAttempts.length >= maxAttempts) {
+      return { ok: false as const, reason: 'cap' as const };
+    }
+    // Conditional UPDATE — only one parallel fill can flip the
+    // request from `requested` to `filled`. The losing tx sees
+    // empty `returning()` and bails before inserting the
+    // orphan proposed row that the audit flagged.
+    const [updated] = await tx
       .update(schema.uploadRequests)
       .set({
         status: 'filled',
@@ -157,8 +151,38 @@ export default defineEventHandler(async (event) => {
         filledAt: now,
         updatedAt: now,
       })
-      .where(eq(schema.uploadRequests.id, id));
+      .where(
+        and(
+          eq(schema.uploadRequests.id, id),
+          eq(schema.uploadRequests.status, 'requested'),
+        ),
+      )
+      .returning({ id: schema.uploadRequests.id });
+    if (!updated) {
+      return { ok: false as const, reason: 'race' as const };
+    }
+    await tx.insert(schema.uploadRequestFillAttempts).values({
+      id: randomUUID(),
+      requestId: id,
+      userId: user.id,
+      torrentId: torrent.id,
+      status: 'proposed',
+    });
+    return { ok: true as const };
   });
+
+  if (!result.ok) {
+    if (result.reason === 'cap') {
+      throw createError({
+        statusCode: 400,
+        message: `You have reached the maximum of ${maxAttempts} proposals on this request`,
+      });
+    }
+    throw createError({
+      statusCode: 409,
+      message: 'Another user filled this request first',
+    });
+  }
 
   // Notify the requester. Best-effort — a notify failure must not
   // sink the fill.

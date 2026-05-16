@@ -14,10 +14,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { torrents, torrentFavorites } from '@trackarr/db/schema';
 import { requireAuthSession } from '~~/utils/adminAuth';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
   const hash = validateParam(event, 'hash', infoHashSchema);
 
   const torrent = await db.query.torrents.findFirst({

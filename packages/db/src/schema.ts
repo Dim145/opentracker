@@ -1586,6 +1586,14 @@ export const uploadRequestFillAttempts = pgTable(
       table.requestId,
       table.userId,
     ),
+    // Authoritative "one active proposal at a time per (request,
+    // user)" guard. The fill endpoint already locks-and-counts
+    // inside a transaction, but this partial unique index makes
+    // the constraint structural — any future codepath that
+    // forgets to lock can't insert a duplicate `proposed` row.
+    uniqueIndex('upload_request_fill_attempts_active_unique')
+      .on(table.requestId, table.userId)
+      .where(sql`status = 'proposed'`),
   ],
 );
 
