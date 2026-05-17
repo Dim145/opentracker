@@ -263,6 +263,117 @@ const userRoleAssignmentsTotal = new Gauge({
   ...labelMeta,
 });
 
+// ─── Torrent comments (since 0.10) ───────────────────────────────────────────
+
+const torrentCommentsTotal = new Gauge({
+  name: 'trackarr_torrent_comments_total',
+  help: 'Comments posted on torrent detail pages.',
+  ...labelMeta,
+});
+
+// ─── Anti-cheat (since 0.20) ─────────────────────────────────────────────────
+
+const anticheatFlagsByKind = new Gauge({
+  name: 'trackarr_anticheat_flags_by_kind',
+  help: 'Anti-cheat flags raised by the tracker, by detection heuristic.',
+  labelNames: ['kind'] as const,
+  ...labelMeta,
+});
+
+const anticheatFlagsUnreviewedTotal = new Gauge({
+  name: 'trackarr_anticheat_flags_unreviewed_total',
+  help: 'Anti-cheat flags still awaiting moderator review (reviewed_at IS NULL). Effectively the queue depth at /mod/anti-cheat.',
+  ...labelMeta,
+});
+
+// ─── Timed bans (since 0.20) ─────────────────────────────────────────────────
+
+const usersBannedExpiringTotal = new Gauge({
+  name: 'trackarr_users_banned_expiring_total',
+  help: 'Banned users with a `banned_until` timestamp (timed bans, as opposed to permanent ones). Subset of trackarr_users_banned_total.',
+  ...labelMeta,
+});
+
+const usersBannedExpiredPendingTotal = new Gauge({
+  name: 'trackarr_users_banned_expired_pending_total',
+  help: 'Timed bans whose `banned_until` has passed but the 5-min ban-expiry cron has not yet swept them. Steady-state should hover near zero; persistent values mean the cron is stuck.',
+  ...labelMeta,
+});
+
+// ─── Social graph (since 0.20) ───────────────────────────────────────────────
+
+const torrentFavoritesTotal = new Gauge({
+  name: 'trackarr_torrent_favorites_total',
+  help: 'Total per-user torrent stars across the catalogue.',
+  ...labelMeta,
+});
+
+const userFollowsTotal = new Gauge({
+  name: 'trackarr_user_follows_total',
+  help: 'Total edges in the one-way follow graph.',
+  ...labelMeta,
+});
+
+// ─── Cross-seed (since 0.19) ─────────────────────────────────────────────────
+
+const torrentsWithSignatureTotal = new Gauge({
+  name: 'trackarr_torrents_with_signature_total',
+  help: 'Torrents that have a computed content_signature (drives the cross-seed surface). The backfill plugin populates legacy rows on boot.',
+  ...labelMeta,
+});
+
+// ─── Upload requests / bounty board (since 0.20) ─────────────────────────────
+
+const uploadRequestsByStatus = new Gauge({
+  name: 'trackarr_upload_requests_by_status',
+  help: 'Upload requests by lifecycle state (requested/filled/validated/cancelled). Sum is the all-time total.',
+  labelNames: ['status'] as const,
+  ...labelMeta,
+});
+
+const uploadRequestsRewardHeldTotal = new Gauge({
+  name: 'trackarr_upload_requests_reward_held_total',
+  help: 'Bonus points currently held in escrow across all open requests (status in requested or filled). Equals the sum the bounty board has on the hook.',
+  ...labelMeta,
+});
+
+const uploadRequestFillAttemptsByStatus = new Gauge({
+  name: 'trackarr_upload_request_fill_attempts_by_status',
+  help: 'Fill attempts on upload requests, by status (proposed/rejected/validated).',
+  labelNames: ['status'] as const,
+  ...labelMeta,
+});
+
+const uploadRequestCommentsTotal = new Gauge({
+  name: 'trackarr_upload_request_comments_total',
+  help: 'Comments across every upload-request thread. Deleted rows still count — soft-delete keeps thread numbering stable.',
+  ...labelMeta,
+});
+
+// ─── Notification routing (since 0.14) ───────────────────────────────────────
+
+const notificationRoutingSubscribers = new Gauge({
+  name: 'trackarr_notification_routing_subscribers',
+  help: 'Distinct users routing at least one notification type to the given channel. The same user can route through several channels and is counted once per channel.',
+  labelNames: ['channel'] as const,
+  ...labelMeta,
+});
+
+// ─── Shop (since 0.14) ───────────────────────────────────────────────────────
+
+const shopItemsByStatus = new Gauge({
+  name: 'trackarr_shop_items_by_status',
+  help: 'Bonus-shop catalogue, by availability. `enabled` = listed; `disabled` = hidden from the storefront.',
+  labelNames: ['status'] as const,
+  ...labelMeta,
+});
+
+const shopPurchasesTotal = new Gauge({
+  name: 'trackarr_shop_purchases_total',
+  help: 'Total successful shop purchases across all users (cumulative; never resets).',
+  ...labelMeta,
+});
+
 // ─── Storage ─────────────────────────────────────────────────────────────────
 
 const redisMemoryBytes = new Gauge({
@@ -738,6 +849,215 @@ async function refreshGauges(): Promise<void> {
         for (const s of ['off', 'staff', 'all']) {
           require2faScope.set({ scope: s }, s === scope ? 1 : 0);
         }
+      })
+      .catch(() => {})
+  );
+
+  // ─── Torrent comments ────────────────────────────────────
+  tasks.push(
+    countQuery(schema.torrentComments)
+      .then((r) => torrentCommentsTotal.set(r[0]?.count ?? 0))
+      .catch(() => {})
+  );
+
+  // ─── Anti-cheat ──────────────────────────────────────────
+  tasks.push(
+    db
+      .select({
+        kind: schema.anticheatFlags.kind,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(schema.anticheatFlags)
+      .groupBy(schema.anticheatFlags.kind)
+      .then((rows) => {
+        // Pre-seed the three known kinds so a dashboard stays
+        // stable when none have fired recently.
+        for (const k of ['velocity', 'no_leecher', 'unknown_client']) {
+          anticheatFlagsByKind.set({ kind: k }, 0);
+        }
+        for (const r of rows) {
+          anticheatFlagsByKind.set(
+            { kind: r.kind as string },
+            Number(r.count ?? 0)
+          );
+        }
+      })
+      .catch(() => {})
+  );
+  tasks.push(
+    countQuery(
+      schema.anticheatFlags,
+      isNull(schema.anticheatFlags.reviewedAt)
+    )
+      .then((r) => anticheatFlagsUnreviewedTotal.set(r[0]?.count ?? 0))
+      .catch(() => {})
+  );
+
+  // ─── Timed bans ──────────────────────────────────────────
+  // banned_until is set → timed ban. We then split by whether
+  // the timestamp is in the past (expired, waiting for cron) or
+  // future (still active). Both subsets count in
+  // trackarr_users_banned_total — these gauges are slices.
+  tasks.push(
+    Promise.all([
+      countQuery(
+        schema.users,
+        and(
+          eq(schema.users.isBanned, true),
+          sql`${schema.users.bannedUntil} IS NOT NULL`
+        )
+      ),
+      countQuery(
+        schema.users,
+        and(
+          eq(schema.users.isBanned, true),
+          lte(schema.users.bannedUntil, new Date())
+        )
+      ),
+    ])
+      .then(([timed, expired]) => {
+        usersBannedExpiringTotal.set(timed[0]?.count ?? 0);
+        usersBannedExpiredPendingTotal.set(expired[0]?.count ?? 0);
+      })
+      .catch(() => {})
+  );
+
+  // ─── Favorites + follows ─────────────────────────────────
+  tasks.push(
+    countQuery(schema.torrentFavorites)
+      .then((r) => torrentFavoritesTotal.set(r[0]?.count ?? 0))
+      .catch(() => {})
+  );
+  tasks.push(
+    countQuery(schema.userFollows)
+      .then((r) => userFollowsTotal.set(r[0]?.count ?? 0))
+      .catch(() => {})
+  );
+
+  // ─── Cross-seed (signature backfill progress) ────────────
+  tasks.push(
+    countQuery(
+      schema.torrents,
+      sql`${schema.torrents.contentSignature} IS NOT NULL`
+    )
+      .then((r) => torrentsWithSignatureTotal.set(r[0]?.count ?? 0))
+      .catch(() => {})
+  );
+
+  // ─── Upload requests / bounty board ──────────────────────
+  tasks.push(
+    Promise.all([
+      db
+        .select({
+          status: schema.uploadRequests.status,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(schema.uploadRequests)
+        .groupBy(schema.uploadRequests.status),
+      db
+        .select({
+          held: sql<string>`coalesce(sum(reward_points), 0)::text`,
+        })
+        .from(schema.uploadRequests)
+        .where(
+          or(
+            eq(schema.uploadRequests.status, 'requested'),
+            eq(schema.uploadRequests.status, 'filled')
+          )
+        ),
+    ])
+      .then(([byStatus, escrow]) => {
+        for (const s of ['requested', 'filled', 'validated', 'cancelled']) {
+          uploadRequestsByStatus.set({ status: s }, 0);
+        }
+        for (const r of byStatus) {
+          uploadRequestsByStatus.set(
+            { status: r.status as string },
+            Number(r.count ?? 0)
+          );
+        }
+        const held = Number(escrow[0]?.held ?? 0);
+        uploadRequestsRewardHeldTotal.set(Number.isFinite(held) ? held : 0);
+      })
+      .catch(() => {})
+  );
+  tasks.push(
+    db
+      .select({
+        status: schema.uploadRequestFillAttempts.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(schema.uploadRequestFillAttempts)
+      .groupBy(schema.uploadRequestFillAttempts.status)
+      .then((rows) => {
+        for (const s of ['proposed', 'rejected', 'validated']) {
+          uploadRequestFillAttemptsByStatus.set({ status: s }, 0);
+        }
+        for (const r of rows) {
+          uploadRequestFillAttemptsByStatus.set(
+            { status: r.status as string },
+            Number(r.count ?? 0)
+          );
+        }
+      })
+      .catch(() => {})
+  );
+  tasks.push(
+    countQuery(schema.uploadRequestComments)
+      .then((r) => uploadRequestCommentsTotal.set(r[0]?.count ?? 0))
+      .catch(() => {})
+  );
+
+  // ─── Notification routing ────────────────────────────────
+  // Count distinct subscribers per channel — same user routing
+  // multiple types to one channel counts once. Initialises every
+  // known channel type at 0 so a channel that lost its last
+  // subscriber still shows as `… 0` on the dashboard.
+  tasks.push(
+    db
+      .select({
+        channel: schema.userNotificationRouting.channelType,
+        count: sql<number>`count(distinct ${schema.userNotificationRouting.userId})::int`,
+      })
+      .from(schema.userNotificationRouting)
+      .groupBy(schema.userNotificationRouting.channelType)
+      .then((rows) => {
+        for (const c of [
+          'email',
+          'telegram',
+          'discord',
+          'slack',
+          'mattermost',
+          'ntfy',
+          'gotify',
+          'pushover',
+          'webhook',
+          'apprise',
+          'web_push',
+        ]) {
+          notificationRoutingSubscribers.set({ channel: c }, 0);
+        }
+        for (const r of rows) {
+          notificationRoutingSubscribers.set(
+            { channel: r.channel as string },
+            Number(r.count ?? 0)
+          );
+        }
+      })
+      .catch(() => {})
+  );
+
+  // ─── Shop ────────────────────────────────────────────────
+  tasks.push(
+    Promise.all([
+      countQuery(schema.shopItems, eq(schema.shopItems.enabled, true)),
+      countQuery(schema.shopItems, eq(schema.shopItems.enabled, false)),
+      countQuery(schema.shopPurchases),
+    ])
+      .then(([enabled, disabled, purchases]) => {
+        shopItemsByStatus.set({ status: 'enabled' }, enabled[0]?.count ?? 0);
+        shopItemsByStatus.set({ status: 'disabled' }, disabled[0]?.count ?? 0);
+        shopPurchasesTotal.set(purchases[0]?.count ?? 0);
       })
       .catch(() => {})
   );
