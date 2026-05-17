@@ -181,12 +181,20 @@ func Inspect(cfg Config, in Inputs) []Flag {
 	return flags
 }
 
-// Persist writes a batch of flags in a single multi-row INSERT. Each
-// row gets a UUID generated here so the caller doesn't have to. Best-
-// effort: errors are logged but never bubble back to the announce
-// handler — surfacing a detection failure to the BitTorrent client
-// would expose detection state to attackers and break ordinary
-// announces during DB hiccups.
+// Persist writes a batch of flags. Each row gets a UUID generated
+// here so the caller doesn't have to. Best-effort: errors are logged
+// but never bubble back to the announce handler — surfacing a
+// detection failure to the BitTorrent client would expose detection
+// state to attackers and break ordinary announces during DB hiccups.
+//
+// Aggregation: `no_leecher` flags collapse onto a single open row
+// per (user, torrent) thanks to the partial unique index
+// `anticheat_flags_no_leecher_open_unique`. The upsert sums
+// `details.deltaUp`, bumps an `eventCount`, refreshes
+// `lastEventAt`, and rotates the latest peer_id/ip/user-agent into
+// place. Once a moderator reviews the row, subsequent events fall
+// through the partial filter and start a fresh row — so the
+// aggregation only ever covers a single open case.
 func Persist(ctx context.Context, pool *pgxpool.Pool, flags []Flag) {
 	if len(flags) == 0 {
 		return
@@ -201,14 +209,60 @@ func Persist(ctx context.Context, pool *pgxpool.Pool, flags []Flag) {
 		if err != nil {
 			detailsJSON = []byte("{}")
 		}
-		_, err = pool.Exec(ctx,
-			`INSERT INTO anticheat_flags
-			   (id, user_id, torrent_id, info_hash, kind, severity, details,
-			    peer_id, ip, user_agent, created_at)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
-			id, f.UserID, f.TorrentID, f.InfoHash, f.Kind, f.Severity,
-			detailsJSON, f.PeerID, f.IP, f.UserAgent,
-		)
+		// `no_leecher` with a known torrent → upsert; everything
+		// else → plain insert. The branch matches the partial
+		// unique index in 0022_anticheat_no_leecher_unique.sql.
+		if f.Kind == "no_leecher" && f.TorrentID != nil {
+			_, err = pool.Exec(ctx,
+				`INSERT INTO anticheat_flags
+				   (id, user_id, torrent_id, info_hash, kind, severity, details,
+				    peer_id, ip, user_agent, created_at)
+				 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+				 ON CONFLICT (user_id, torrent_id)
+				   WHERE kind = 'no_leecher'
+				     AND reviewed_at IS NULL
+				     AND torrent_id IS NOT NULL
+				 DO UPDATE SET
+				   details = (
+				     jsonb_set(
+				       jsonb_set(
+				         jsonb_set(
+				           anticheat_flags.details,
+				           '{deltaUp}',
+				           to_jsonb(
+				             COALESCE((anticheat_flags.details->>'deltaUp')::bigint, 0)
+				             + COALESCE((EXCLUDED.details->>'deltaUp')::bigint, 0)
+				           )
+				         ),
+				         '{eventCount}',
+				         to_jsonb(COALESCE((anticheat_flags.details->>'eventCount')::int, 1) + 1)
+				       ),
+				       '{lastEventAt}',
+				       to_jsonb(to_char(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
+				     )
+				     || jsonb_build_object(
+				          'swarmSeeders', EXCLUDED.details->'swarmSeeders',
+				          'swarmLeechers', EXCLUDED.details->'swarmLeechers'
+				        )
+				   ),
+				   peer_id    = EXCLUDED.peer_id,
+				   ip         = EXCLUDED.ip,
+				   user_agent = EXCLUDED.user_agent,
+				   severity   = EXCLUDED.severity,
+				   info_hash  = EXCLUDED.info_hash`,
+				id, f.UserID, f.TorrentID, f.InfoHash, f.Kind, f.Severity,
+				detailsJSON, f.PeerID, f.IP, f.UserAgent,
+			)
+		} else {
+			_, err = pool.Exec(ctx,
+				`INSERT INTO anticheat_flags
+				   (id, user_id, torrent_id, info_hash, kind, severity, details,
+				    peer_id, ip, user_agent, created_at)
+				 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())`,
+				id, f.UserID, f.TorrentID, f.InfoHash, f.Kind, f.Severity,
+				detailsJSON, f.PeerID, f.IP, f.UserAgent,
+			)
+		}
 		if err != nil {
 			slog.Warn("anticheat: insert failed", "kind", f.Kind, "err", err)
 		}

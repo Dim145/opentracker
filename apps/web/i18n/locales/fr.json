@@ -3176,6 +3176,15 @@
       "submitReview": "Enregistrer",
       "notePlaceholder": "Note (optionnel) — contexte pour le prochain modérateur qui croisera ce compte.",
       "toastReviewed": "Signalement traité.",
+      "bulk": {
+        "selectAll": "Sélectionner la page",
+        "deselectAll": "Désélectionner la page",
+        "selectRow": "Sélectionner ce signalement",
+        "summary": "signalement sélectionné | signalements sélectionnés",
+        "notePlaceholder": "Note partagée (optionnelle)",
+        "apply": "Appliquer",
+        "toastDone": "{n} signalement traité | {n} signalements traités"
+      },
       "empty": {
         "allClearTitle": "Aucune alerte",
         "allClearSub": "Le radar tourne, le swarm reste propre. Reviens jeter un œil après le prochain pic d'annonces.",

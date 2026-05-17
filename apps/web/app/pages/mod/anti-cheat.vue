@@ -50,6 +50,24 @@
           {{ data?.pagination.total ?? 0 }}
         </span>
       </div>
+      <button
+        type="button"
+        class="ac-select-all"
+        :class="{ 'is-active': allOnPageSelected }"
+        :disabled="rows.length === 0"
+        @click="toggleAllOnPage"
+      >
+        <Icon
+          :name="allOnPageSelected ? 'ph:check-square-fill' : 'ph:square-bold'"
+        />
+        <span>
+          {{
+            allOnPageSelected
+              ? $t('mod.antiCheat.bulk.deselectAll')
+              : $t('mod.antiCheat.bulk.selectAll')
+          }}
+        </span>
+      </button>
       <div class="ac-status-seg">
         <button
           v-for="tab in statusTabs"
@@ -87,6 +105,26 @@
       >
         <!-- Severity ribbon, full-height on the left -->
         <span class="ac-case-ribbon" aria-hidden="true" />
+
+        <!-- Bulk selection checkbox — sits inside the ribbon margin
+             so it doesn't push the case-head grid columns around.
+             Its label captures the click so the surrounding row's
+             expand handler doesn't fire when toggling the box. -->
+        <label
+          class="ac-case-select"
+          :class="{ 'is-selected': selected.has(row.id) }"
+          @click.stop
+        >
+          <input
+            type="checkbox"
+            :checked="selected.has(row.id)"
+            :aria-label="$t('mod.antiCheat.bulk.selectRow')"
+            @change="toggleSelection(row.id)"
+          >
+          <span class="ac-case-select-mark" aria-hidden="true">
+            <Icon name="ph:check-bold" />
+          </span>
+        </label>
 
         <button
           type="button"
@@ -339,6 +377,70 @@
         <Icon name="ph:arrow-right-bold" />
       </button>
     </nav>
+
+    <!-- ╔══════════════════════════════════════════════════════════╗
+         ║  BULK ACTION BAR — sticky-bottom, slides in when ≥1 row   ║
+         ║  is selected. Reuses the same verdict vocabulary as the   ║
+         ║  per-case form so a "select all + apply" dispatch reads   ║
+         ║  identically in the audit trail.                          ║
+         ╚══════════════════════════════════════════════════════════╝ -->
+    <Transition name="ac-bulkbar-slide">
+      <div v-if="selectedCount > 0" class="ac-bulkbar">
+        <div class="ac-bulkbar-summary">
+          <span class="ac-bulkbar-count tabular-nums">{{ selectedCount }}</span>
+          <span class="ac-bulkbar-label">
+            {{ $t('mod.antiCheat.bulk.summary', selectedCount, { n: selectedCount }) }}
+          </span>
+        </div>
+
+        <div class="ac-bulkbar-verdicts" role="group">
+          <button
+            v-for="v in VERDICTS"
+            :key="v.value"
+            type="button"
+            class="ac-bulkbar-verdict"
+            :class="[
+              `ac-bulkbar-verdict--${v.value}`,
+              { 'is-selected': bulkForm.verdict === v.value },
+            ]"
+            @click="bulkForm.verdict = v.value"
+          >
+            <Icon :name="v.icon" />
+            <span>{{ $t(`mod.antiCheat.verdict.${v.value}`) }}</span>
+          </button>
+        </div>
+
+        <input
+          v-model="bulkForm.note"
+          type="text"
+          class="ac-bulkbar-note"
+          maxlength="500"
+          :placeholder="$t('mod.antiCheat.bulk.notePlaceholder')"
+        >
+
+        <div class="ac-bulkbar-actions">
+          <button
+            type="button"
+            class="ac-bulkbar-cancel"
+            @click="clearSelection"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="ac-bulkbar-apply"
+            :disabled="!bulkForm.verdict || bulkSubmitting"
+            @click="submitBulk"
+          >
+            <Icon
+              :name="bulkSubmitting ? 'ph:circle-notch' : 'ph:check-bold'"
+              :class="{ 'ac-spin': bulkSubmitting }"
+            />
+            <span>{{ $t('mod.antiCheat.bulk.apply') }}</span>
+          </button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -621,6 +723,93 @@ function reopenReview(row: FlagRow) {
   reviewForm.note = '';
   row.reviewedAt = null as unknown as string;
 }
+
+// ── Bulk selection ──────────────────────────────────────────
+// A `Set<string>` of flag ids the moderator has ticked. The bulk
+// action bar appears whenever the set is non-empty. Selection
+// resets on any filter change (status / kind / page) because
+// tracking IDs that aren't on the visible page would confuse the
+// "N sélectionnés" count.
+const selected = ref<Set<string>>(new Set());
+const bulkForm = reactive<{ verdict: Verdict | ''; note: string }>({
+  verdict: '',
+  note: '',
+});
+const bulkSubmitting = ref(false);
+
+const selectedCount = computed(() => selected.value.size);
+const allOnPageSelected = computed(() => {
+  if (rows.value.length === 0) return false;
+  return rows.value.every((r) => selected.value.has(r.id));
+});
+
+function toggleSelection(id: string) {
+  const next = new Set(selected.value);
+  if (next.has(id)) {
+    next.delete(id);
+  } else {
+    next.add(id);
+  }
+  selected.value = next;
+}
+
+function toggleAllOnPage() {
+  const next = new Set(selected.value);
+  if (allOnPageSelected.value) {
+    for (const r of rows.value) next.delete(r.id);
+  } else {
+    for (const r of rows.value) next.add(r.id);
+  }
+  selected.value = next;
+}
+
+function clearSelection() {
+  selected.value = new Set();
+  bulkForm.verdict = '';
+  bulkForm.note = '';
+}
+
+async function submitBulk() {
+  if (!bulkForm.verdict || selectedCount.value === 0 || bulkSubmitting.value)
+    return;
+  bulkSubmitting.value = true;
+  try {
+    const ids = Array.from(selected.value);
+    const res = await $fetch<{ updated: number; ids: string[] }>(
+      '/api/mod/anti-cheat/flags/bulk',
+      {
+        method: 'PUT',
+        body: {
+          flagIds: ids,
+          verdict: bulkForm.verdict,
+          note: bulkForm.note.trim() || null,
+        },
+      },
+    );
+    notifications.success(
+      t('mod.antiCheat.bulk.toastDone', res.updated, { n: res.updated }),
+    );
+    clearSelection();
+    await refresh();
+  } catch (err: any) {
+    notifications.error(
+      err?.data?.message || err?.message || t('common.errors.generic'),
+    );
+  } finally {
+    bulkSubmitting.value = false;
+  }
+}
+
+// Clear selection on any filter change — ids that disappear from
+// the visible page would otherwise stay ticked and confuse the
+// "N sélectionnés" count.
+watch([status, kind, page], () => {
+  if (selected.value.size > 0) {
+    selected.value = new Set();
+    bulkForm.verdict = '';
+    bulkForm.note = '';
+  }
+});
 
 /* User-monogram avatar: stable two-letter initials + a hashed hue,
  * same approach used on /users and /me so the same user looks the
@@ -1556,4 +1745,252 @@ const emptySub = computed(() => {
 }
 .ac-pager-cur { color: rgb(var(--fg-strong)); font-size: 14px; }
 .ac-pager-sep { opacity: 0.4; }
+
+/* ╔═══════════════════════════════════════════════════════════════╗
+   ║  BULK SELECTION                                                ║
+   ╚═══════════════════════════════════════════════════════════════╝ */
+
+/* Per-row checkbox — sits in the gutter between the ribbon and the
+   case-head grid. Custom mark so it picks up the same kind-tone
+   accent as the surrounding row when ticked. */
+.ac-case {
+  /* Leave room on the left for the absolute-positioned checkbox so
+     the case-head grid doesn't have to know about it. */
+  padding-left: 2.6rem;
+}
+.ac-case-select {
+  position: absolute;
+  top: 1.05rem;
+  left: 1rem;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.ac-case-select input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.ac-case-select-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: rgb(var(--bg-base));
+  border: 1.5px solid rgb(var(--line-strong));
+  border-radius: 4px;
+  color: transparent;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+.ac-case-select-mark > svg,
+.ac-case-select-mark > .iconify {
+  font-size: 0.85rem;
+}
+.ac-case-select:hover .ac-case-select-mark {
+  border-color: rgb(var(--kind-tone, var(--fg-faint)));
+}
+.ac-case-select.is-selected .ac-case-select-mark {
+  background: rgb(var(--kind-tone, var(--fg-default)));
+  border-color: rgb(var(--kind-tone, var(--fg-default)));
+  color: rgb(var(--bg-base));
+}
+
+/* Select-all toggle in the feed header. */
+.ac-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  background: transparent;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.3rem;
+  color: rgb(var(--fg-muted));
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.ac-select-all:hover:not(:disabled) {
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--fg-faint));
+}
+.ac-select-all.is-active {
+  color: rgb(var(--accent));
+  border-color: rgb(var(--accent) / 0.5);
+  background: rgb(var(--accent) / 0.05);
+}
+.ac-select-all:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ╔═══════════════════════════════════════════════════════════════╗
+   ║  BULK ACTION BAR                                               ║
+   ╚═══════════════════════════════════════════════════════════════╝ */
+
+.ac-bulkbar {
+  position: fixed;
+  left: 50%;
+  bottom: 1.2rem;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.85rem;
+  max-width: calc(100vw - 2rem);
+  background: rgb(var(--bg-elevated) / 0.96);
+  border: 1px solid rgb(var(--line-strong));
+  border-radius: 0.6rem;
+  box-shadow:
+    0 18px 48px -16px rgba(0, 0, 0, 0.7),
+    0 4px 18px -6px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transform: translateX(-50%);
+}
+.ac-bulkbar-summary {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding-right: 0.85rem;
+  border-right: 1px solid rgb(var(--line-default));
+  color: rgb(var(--fg-default));
+}
+.ac-bulkbar-count {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: rgb(var(--fg-strong));
+}
+.ac-bulkbar-label {
+  font-size: 0.82rem;
+  color: rgb(var(--fg-muted));
+}
+
+.ac-bulkbar-verdicts {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+.ac-bulkbar-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.7rem;
+  background: rgb(var(--bg-base));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.35rem;
+  color: rgb(var(--fg-muted));
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.ac-bulkbar-verdict:hover {
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--fg-faint));
+}
+.ac-bulkbar-verdict.is-selected {
+  background: rgb(var(--verdict-tone, var(--accent)));
+  border-color: rgb(var(--verdict-tone, var(--accent)));
+  color: rgb(var(--bg-base));
+}
+.ac-bulkbar-verdict--clean       { --verdict-tone: var(--online); }
+.ac-bulkbar-verdict--warned      { --verdict-tone: var(--warning); }
+.ac-bulkbar-verdict--banned      { --verdict-tone: var(--danger); }
+.ac-bulkbar-verdict--monitoring  { --verdict-tone: 125 211 252; }
+
+.ac-bulkbar-note {
+  flex: 1;
+  min-width: 180px;
+  max-width: 280px;
+  padding: 0.45rem 0.75rem;
+  background: rgb(var(--bg-base));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 0.35rem;
+  color: rgb(var(--fg-default));
+  font-size: 0.85rem;
+  outline: 0;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.ac-bulkbar-note::placeholder {
+  color: rgb(var(--fg-faint));
+}
+.ac-bulkbar-note:focus {
+  border-color: rgb(var(--accent));
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.18);
+}
+
+.ac-bulkbar-actions {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+.ac-bulkbar-cancel,
+.ac-bulkbar-apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.ac-bulkbar-cancel {
+  background: transparent;
+  border: 1px solid rgb(var(--line-default));
+  color: rgb(var(--fg-muted));
+}
+.ac-bulkbar-cancel:hover {
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--fg-faint));
+}
+.ac-bulkbar-apply {
+  background: rgb(var(--accent));
+  border: 1px solid rgb(var(--accent));
+  color: rgb(var(--accent-fg));
+}
+.ac-bulkbar-apply:hover:not(:disabled) {
+  background: rgb(var(--accent-hover));
+  border-color: rgb(var(--accent-hover));
+}
+.ac-bulkbar-apply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Slide-up + fade transition. */
+.ac-bulkbar-slide-enter-active,
+.ac-bulkbar-slide-leave-active {
+  transition:
+    transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 0.22s ease;
+}
+.ac-bulkbar-slide-enter-from,
+.ac-bulkbar-slide-leave-to {
+  transform: translateX(-50%) translateY(28px);
+  opacity: 0;
+}
+
+@media (max-width: 720px) {
+  .ac-bulkbar {
+    left: 0.6rem;
+    right: 0.6rem;
+    max-width: none;
+    transform: none;
+    bottom: 0.6rem;
+  }
+  .ac-bulkbar-slide-enter-from,
+  .ac-bulkbar-slide-leave-to {
+    transform: translateY(28px);
+  }
+}
 </style>

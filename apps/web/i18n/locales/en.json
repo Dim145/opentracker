@@ -3177,6 +3177,15 @@
       "submitReview": "Save",
       "notePlaceholder": "Note (optional) — context for the next moderator who lands on this account.",
       "toastReviewed": "Flag reviewed.",
+      "bulk": {
+        "selectAll": "Select page",
+        "deselectAll": "Deselect page",
+        "selectRow": "Select this flag",
+        "summary": "flag selected | flags selected",
+        "notePlaceholder": "Shared note (optional)",
+        "apply": "Apply",
+        "toastDone": "{n} flag reviewed | {n} flags reviewed"
+      },
       "empty": {
         "allClearTitle": "All clear",
         "allClearSub": "Radar's sweeping, swarm's clean. Drop back in after the next batch of announces.",

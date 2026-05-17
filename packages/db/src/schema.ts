@@ -2011,6 +2011,19 @@ export const anticheatFlags = pgTable(
     index('anticheat_flags_user_idx').on(table.userId, table.createdAt),
     index('anticheat_flags_unreviewed_idx').on(table.reviewedAt),
     index('anticheat_flags_kind_idx').on(table.kind),
+    // `no_leecher` flags collapse to a single row per (user, torrent)
+    // while the case is still open — the tracker upserts and adds
+    // `deltaUp` into the existing row's `details` instead of
+    // cluttering the moderation queue with one flag per announce.
+    // Restricted to non-null torrent_id because two flags against
+    // an unknown infohash should still produce distinct rows for
+    // audit (we can't merge them — they may target different
+    // torrents that just happen to be missing from our DB).
+    uniqueIndex('anticheat_flags_no_leecher_open_unique')
+      .on(table.userId, table.torrentId)
+      .where(
+        sql`kind = 'no_leecher' AND reviewed_at IS NULL AND torrent_id IS NOT NULL`
+      ),
   ]
 );
 
