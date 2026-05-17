@@ -256,6 +256,11 @@ export const bonusEvents = pgTable(
     // is still inside [startsAt, endsAt]. Disabled rows are ignored
     // by the active-window resolver and skipped by overlap checks.
     enabled: boolean('enabled').default(true).notNull(),
+    // Where the event originated. `manual` is an admin-created window
+    // (the historical default). `freeleech_pool` is created by the
+    // contributory pool when its target is reached — the icon/modal
+    // surface the difference with a dedicated copy.
+    source: text('source').default('manual').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     createdById: text('created_by_id').references(() => users.id, {
       onDelete: 'set null',
@@ -485,6 +490,239 @@ export const shopPurchases = pgTable(
   (table) => [
     index('shop_purchases_user_idx').on(table.userId, table.createdAt),
     index('shop_purchases_item_idx').on(table.itemId),
+  ]
+);
+
+// ============================================================================
+// Freeleech pool — contributory site-wide freeleech
+// ============================================================================
+//
+// Users pool their bonus points into a shared pot; when the target is
+// reached the system spawns a `bonus_events` row whose `source` column
+// flags it as `freeleech_pool`, runs the freeleech for a configured
+// number of days, then drains the pool and reopens a new cycle.
+//
+// The configuration is a singleton (`id = 1`, enforced by a CHECK
+// constraint) because the pool is global by design: at most one pool
+// can be filling at any moment, and the admin tunes one set of knobs
+// for the whole site.
+//
+// Three sibling tables drive the runtime state:
+//   - `freeleech_pool_cycles`        the lifecycle ledger — every
+//                                     fill→trigger→end is a row, with
+//                                     a `status` enum that the cron
+//                                     advances.
+//   - `freeleech_pool_contributions` append-only audit of who
+//                                     contributed how many points to
+//                                     which cycle.
+//   - `freeleech_pool_windows`       optional open/closed windows
+//                                     (admin-configurable). When at
+//                                     least one window exists, the
+//                                     pool only accepts contributions
+//                                     when *now* falls inside one.
+//
+// Per design: when the pool fires while a non-freeleech bonus event is
+// already in flight, the original event is closed immediately and its
+// remaining duration is stashed on the cycle row (`paused_event_*`).
+// When the pool's own event ends, the cron re-creates the original
+// event for the remaining time so the operator's intent isn't lost.
+
+export const freeleechPoolConfig = pgTable(
+  'freeleech_pool_config',
+  {
+    // Singleton: id = 1, enforced by the CHECK below. The unique row
+    // is upserted on first read; admins PATCH it without thinking
+    // about its existence.
+    id: integer('id').primaryKey(),
+    enabled: boolean('enabled').default(false).notNull(),
+    // Total bonus points needed to trigger the freeleech. Must be > 0
+    // when `enabled = true` — the contribute endpoint refuses to run
+    // with a zero target so a misconfig can't auto-trigger on the
+    // first 1-point contribution.
+    pointsTarget: integer('points_target').default(0).notNull(),
+    // Length of the freeleech once triggered, in whole days. Cap at
+    // 30 to avoid an operator typo that would lock the site into
+    // permanent freeleech.
+    freeleechDurationDays: integer('freeleech_duration_days').default(1).notNull(),
+    // Lower bound on a single contribution. 1 is the natural floor —
+    // a 0-point contribution would be a no-op that bloats the
+    // contributions table.
+    contributionMin: integer('contribution_min').default(1).notNull(),
+    // Per-user cap as a basis-points fraction of the target
+    // (10000 = 100%). 0 disables the cap entirely. Computed as
+    // `floor(target * pct / 10000)` at contribute time so a target
+    // change doesn't retroactively invalidate already-applied
+    // contributions.
+    maxPerUserBp: integer('max_per_user_bp').default(0).notNull(),
+    // Quick-select buttons rendered next to the free-amount field.
+    // jsonb array of positive integers; the UI ignores zero / negative
+    // entries.
+    presetAmounts: jsonb('preset_amounts')
+      .$type<number[]>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    // Title / description applied to the spawned `bonus_events` row.
+    // Falls back to a hard-coded i18n key when null.
+    eventTitleTemplate: text('event_title_template'),
+    eventDescriptionTemplate: text('event_description_template'),
+    eventLongDescriptionTemplate: text('event_long_description_template'),
+    updatedAt: timestamp('updated_at'),
+  },
+  (table) => [
+    // The singleton constraint: only id = 1 is allowed to exist.
+    // Belt-and-braces because the admin route also upserts on 1.
+    uniqueIndex('freeleech_pool_config_singleton')
+      .on(table.id)
+      .where(sql`id = 1`),
+  ]
+);
+
+// Optional contribution windows. When the table is empty the pool is
+// always open (subject to `enabled`); otherwise we accept contributions
+// only when *now* falls inside at least one row.
+//
+// Four flavours, distinguished by `kind`:
+//   - 'oneoff'    concrete [startsAt, endsAt) range
+//   - 'weekly'    weekday + time-of-day bounds, repeated every week
+//   - 'monthly'   list of days-of-month + time-of-day bounds, repeated
+//                 every month
+//   - 'yearly'    month/day for both ends of a yearly anniversary range
+//
+// The columnar layout below stays sparse (each row uses one block of
+// columns and leaves the others null) on purpose: it keeps the
+// per-kind queries simple and lets the FE submit/edit each kind with
+// its own form without a polymorphic `config` jsonb to validate.
+export const freeleechPoolWindows = pgTable(
+  'freeleech_pool_windows',
+  {
+    id: text('id').primaryKey(),
+    kind: text('kind').notNull(), // 'oneoff' | 'weekly' | 'monthly' | 'yearly'
+    enabled: boolean('enabled').default(true).notNull(),
+    // One-off fields. Null on recurring rows.
+    startsAt: timestamp('starts_at'),
+    endsAt: timestamp('ends_at'),
+    // Weekly fields. Weekday is 0-6, 0 = Sunday (matches JS
+    // `Date.getUTCDay`). Minute bounds are minutes since UTC
+    // midnight (0–1440). The time-of-day bounds are *also* used by
+    // `monthly` rows so the same form widget can drive both.
+    weekdayStart: integer('weekday_start'),
+    weekdayEnd: integer('weekday_end'),
+    minuteStart: integer('minute_start'),
+    minuteEnd: integer('minute_end'),
+    // Monthly fields. `monthly_days` is a jsonb int array of days
+    // (1-31). The pool is open on those days, between
+    // `minute_start` and `minute_end`.
+    monthlyDays: jsonb('monthly_days').$type<number[]>(),
+    // Yearly fields. Annual anniversary range — month is 1-12, day
+    // is 1-31. The range can cross a year boundary (e.g. Dec 20 →
+    // Jan 5) and the service handles the wraparound. Whole-day
+    // windows for simplicity.
+    yearMonthStart: integer('year_month_start'),
+    yearDayStart: integer('year_day_start'),
+    yearMonthEnd: integer('year_month_end'),
+    yearDayEnd: integer('year_day_end'),
+    label: text('label'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('freeleech_pool_windows_kind_idx').on(table.kind, table.enabled),
+    index('freeleech_pool_windows_oneoff_idx').on(
+      table.startsAt,
+      table.endsAt,
+    ),
+  ]
+);
+
+// One row per cycle. The cron advances `status`:
+//   filling      → contributions accepted; total < target
+//   full_queued  → target reached but a freeleech event was already
+//                  active; the cron will start us when that event ends
+//   active       → our bonus_event is running (started_at filled)
+//   ended        → the bonus event terminated naturally (cron sweep)
+//   cancelled    → admin reset/drained the pool mid-cycle
+//
+// Only one row at a time should be in `filling | full_queued | active`.
+// The contribute endpoint serialises via a Postgres advisory lock so
+// concurrent inserts can't fork the cycle.
+export const freeleechPoolCycles = pgTable(
+  'freeleech_pool_cycles',
+  {
+    id: text('id').primaryKey(),
+    status: text('status').default('filling').notNull(),
+    // Snapshot of the config at cycle creation so a mid-cycle config
+    // change can't move the goalposts on contributors.
+    targetSnapshot: integer('target_snapshot').notNull(),
+    durationDaysSnapshot: integer('duration_days_snapshot').notNull(),
+    totalContributed: integer('total_contributed').default(0).notNull(),
+    // Filled when status → active.
+    startedAt: timestamp('started_at'),
+    endsAt: timestamp('ends_at'),
+    // FK to the bonus_events row created on trigger.
+    triggeredEventId: text('triggered_event_id').references(
+      () => bonusEvents.id,
+      { onDelete: 'set null' }
+    ),
+    // Preserved overlay state — when we displaced a non-freeleech
+    // event to run the pool, these capture its params + remaining
+    // duration so the cron can spawn a replacement at pool end.
+    pausedEventTitle: text('paused_event_title'),
+    pausedEventDescription: text('paused_event_description'),
+    pausedEventLongDescription: text('paused_event_long_description'),
+    pausedEventDownloadMultiplier: integer('paused_event_download_multiplier'),
+    pausedEventUploadMultiplier: integer('paused_event_upload_multiplier'),
+    pausedEventRemainingMs: bigint('paused_event_remaining_ms', { mode: 'number' }),
+    pausedEventCreatedById: text('paused_event_created_by_id').references(
+      () => users.id,
+      { onDelete: 'set null' }
+    ),
+    // When we're full_queued, this is the event we're waiting on so
+    // the cron can short-circuit the start check.
+    waitingOnEventId: text('waiting_on_event_id').references(
+      () => bonusEvents.id,
+      { onDelete: 'set null' }
+    ),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    closedAt: timestamp('closed_at'),
+  },
+  (table) => [
+    index('freeleech_pool_cycles_status_idx').on(table.status, table.createdAt),
+    // The cron picks pending cycles by status; the partial unique
+    // index forbids two simultaneously-open cycles. A historical
+    // `ended`/`cancelled` row can sit next to a fresh `filling` one
+    // without conflict.
+    uniqueIndex('freeleech_pool_cycles_open_unique')
+      .on(table.status)
+      .where(sql`status IN ('filling', 'full_queued', 'active')`),
+  ]
+);
+
+// Append-only contribution ledger. A user can contribute many times
+// to the same cycle — we don't merge rows so the audit stays honest.
+// The corresponding `bonus_grants` row (source = 'freeleech_pool',
+// amount < 0) carries the user's per-user history view.
+export const freeleechPoolContributions = pgTable(
+  'freeleech_pool_contributions',
+  {
+    id: text('id').primaryKey(),
+    cycleId: text('cycle_id')
+      .notNull()
+      .references(() => freeleechPoolCycles.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    amount: integer('amount').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('freeleech_pool_contributions_cycle_idx').on(
+      table.cycleId,
+      table.createdAt
+    ),
+    // Aggregation index for "top contributors" + per-user cap check.
+    index('freeleech_pool_contributions_cycle_user_idx').on(
+      table.cycleId,
+      table.userId
+    ),
   ]
 );
 

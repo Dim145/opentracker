@@ -142,6 +142,12 @@ const menuItems = computed(() => [
     description: t('admin.descriptions.shop'),
   },
   {
+    label: t('admin.nav.freeleechPool'),
+    path: '/admin/freeleech-pool',
+    icon: 'ph:hand-coins',
+    description: t('admin.descriptions.freeleechPool'),
+  },
+  {
     label: t('admin.nav.bannedIps'),
     path: '/admin/banned-ips',
     icon: 'ph:prohibit',

@@ -34,17 +34,32 @@
     <div class="bb">
       <!-- ── Title strip ────────────────────────────────────── -->
       <header class="bb-title-strip" :class="`bb-title-strip--${presetSlug}`">
-        <span class="bb-preset-tag">
-          <Icon :name="presetIcon" class="bb-preset-tag-icon" />
-          {{ presetLabel }}
-        </span>
+        <div class="bb-tag-row">
+          <span class="bb-preset-tag">
+            <Icon :name="presetIcon" class="bb-preset-tag-icon" />
+            {{ presetLabel }}
+          </span>
+          <!-- Pool source badge — surfaces the community origin
+               whenever the event came from the freeleech pool. -->
+          <span v-if="isPool" class="bb-source-tag">
+            <Icon name="ph:hand-coins-fill" class="bb-preset-tag-icon" />
+            {{ $t('bonus.modal.fromPool') }}
+          </span>
+        </div>
         <h2 class="bb-title">{{ event.title }}</h2>
         <p class="bb-countdown tabular-nums">
           <Icon name="ph:hourglass-medium-fill" class="bb-countdown-icon" />
           {{ $t('bonus.modal.endsInLong', { time: countdown }) }}
         </p>
-        <p v-if="event.description" class="bb-desc">
-          {{ event.description }}
+        <p v-if="effectiveDescription" class="bb-desc">
+          {{ effectiveDescription }}
+        </p>
+        <!-- Overlay hint — only shown when the pool's freeleech
+             displaced a non-freeleech event. The original's upload
+             multiplier (≠ 1.00x) is the giveaway. -->
+        <p v-if="isPool && isOverlay" class="bb-overlay-hint">
+          <Icon name="ph:stack-overflow-logo-bold" class="bb-overlay-icon" />
+          <span>{{ $t('bonus.modal.poolOverlayHint') }}</span>
         </p>
       </header>
 
@@ -56,8 +71,23 @@
             <span class="meter-label">{{ $t('bonus.modal.download') }}</span>
             <Icon :name="verdictIcon('download')" class="meter-verdict-icon" />
           </header>
-          <p class="meter-value tabular-nums">{{ downloadDisplay }}</p>
-          <p class="meter-verdict">{{ verdict('download') }}</p>
+          <p class="meter-value tabular-nums">
+            <!-- Overlay case: render the original DL multiplier
+                 struck through next to the new (zero) value so the
+                 user sees the pool freeleech literally cancelled
+                 the surcharge they were paying. -->
+            <span
+              v-if="overlayDownloadFrom !== null"
+              class="meter-value-strike tabular-nums"
+            >×{{ formatBonusMultiplier(overlayDownloadFrom) }}</span>
+            <span>{{ downloadDisplay }}</span>
+          </p>
+          <p class="meter-verdict">
+            <template v-if="overlayDownloadFrom !== null">
+              {{ $t('bonus.modal.verdict.poolFreeleech') }}
+            </template>
+            <template v-else>{{ verdict('download') }}</template>
+          </p>
           <!-- Visual gauge — left of center = lower than 1× (good
                for DL), right = higher (bad). Capped at 200% so the
                extremes don't slide off. -->
@@ -218,7 +248,16 @@ const wallClock = computed(() => {
   });
 });
 
-// ── Preset / icon / colour ─────────────────────────────────
+// ── Source / preset / icon / colour ────────────────────────
+const isPool = computed(() => props.event.source === 'freeleech_pool');
+// "Overlay" = pool freeleech that displaced a non-freeleech bonus
+// event. The original event's upload multiplier was preserved, so a
+// pool-sourced event with upload != 100 is the giveaway. Used for
+// the title-strip hint copy and the upload meter's "kept" tone.
+const isOverlay = computed(
+  () => isPool.value && props.event.uploadMultiplier !== 100
+);
+
 const preset = computed(() =>
   bonusPresetLabel(
     props.event.downloadMultiplier,
@@ -226,6 +265,7 @@ const preset = computed(() =>
   )
 );
 const presetSlug = computed(() => {
+  if (isPool.value) return 'pool';
   switch (preset.value) {
     case 'Freeleech':
       return 'freeleech';
@@ -236,6 +276,7 @@ const presetSlug = computed(() => {
   }
 });
 const presetLabel = computed(() => {
+  if (isPool.value) return t('bonus.modal.preset.poolFreeleech');
   switch (preset.value) {
     case 'Freeleech':
       return t('bonus.modal.preset.freeleech');
@@ -246,6 +287,7 @@ const presetLabel = computed(() => {
   }
 });
 const presetIcon = computed(() => {
+  if (isPool.value) return 'ph:hand-coins-fill';
   switch (preset.value) {
     case 'Freeleech':
       return 'ph:gift-fill';
@@ -254,6 +296,36 @@ const presetIcon = computed(() => {
     default:
       return 'ph:lightning-fill';
   }
+});
+
+// ── Localized fallbacks for pool-default copy ─────────────
+// The pool service stores `description` / `longDescription` as
+// NULL when the admin didn't customize the per-event templates,
+// precisely so the modal can render the locale's default here
+// instead of locking the surface to one language. Admin-supplied
+// strings (any non-null value) are rendered verbatim — they're
+// already in the admin's chosen language.
+const effectiveDescription = computed<string | null>(() => {
+  if (props.event.description) return props.event.description;
+  if (!isPool.value) return null;
+  return isOverlay.value
+    ? t('bonus.modal.poolDefaults.descriptionOverlay')
+    : t('bonus.modal.poolDefaults.description');
+});
+
+// ── Overlay (pool-displaced original event) ───────────────
+// `pausedFrom` is non-null only when the pool freeleech displaced
+// a non-freeleech event. We compare DL multipliers because the
+// pool *always* sets DL to 0 — so any pre-displacement value > 0
+// is worth surfacing in the meter. The upload meter doesn't need
+// the strikethrough because the upload multiplier of the original
+// event is preserved verbatim by the pool.
+const overlayDownloadFrom = computed<number | null>(() => {
+  if (!props.event.pausedFrom) return null;
+  if (props.event.pausedFrom.downloadMultiplier === props.event.downloadMultiplier) {
+    return null;
+  }
+  return props.event.pausedFrom.downloadMultiplier;
 });
 
 // ── Countdown + window progress ────────────────────────────
@@ -370,6 +442,14 @@ function formatDateTime(iso: string): string {
 // ── Explainer ──────────────────────────────────────────────
 const explainer = computed(() => {
   if (props.event.longDescription) return props.event.longDescription;
+  // Pool events with no admin-supplied long description: render
+  // the localized default so the explainer matches the user's
+  // language. The overlay variant calls out the displaced event.
+  if (isPool.value) {
+    return isOverlay.value
+      ? t('bonus.modal.poolDefaults.longDescriptionOverlay')
+      : t('bonus.modal.poolDefaults.longDescription');
+  }
   const dl = props.event.downloadMultiplier;
   const ul = props.event.uploadMultiplier;
   const parts: string[] = [];
@@ -521,6 +601,82 @@ const explainer = computed(() => {
     rgba(108, 209, 97, 0) 100%
   );
   box-shadow: 0 0 12px rgba(108, 209, 97, 0.5);
+}
+.bb-title-strip--pool {
+  background: linear-gradient(
+    180deg,
+    rgba(212, 167, 52, 0.08) 0%,
+    rgba(212, 167, 52, 0.02) 60%,
+    rgb(var(--bg-elevated)) 100%
+  );
+}
+.bb-title-strip--pool::before {
+  background: linear-gradient(
+    to right,
+    rgba(212, 167, 52, 0) 0%,
+    #d4a734 50%,
+    rgba(212, 167, 52, 0) 100%
+  );
+  box-shadow: 0 0 12px rgba(212, 167, 52, 0.5);
+}
+
+.bb-tag-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Pool source badge — co-exists with the preset tag. */
+.bb-source-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.55rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(212, 167, 52, 0.45);
+  background: rgba(212, 167, 52, 0.08);
+  color: #d4a734;
+}
+.bb-title-strip--pool .bb-preset-tag {
+  color: #d4a734;
+  border-color: rgba(212, 167, 52, 0.45);
+  background: rgba(212, 167, 52, 0.08);
+}
+
+.bb-overlay-hint {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.3rem 0 0;
+  padding: 0.4rem 0.55rem;
+  border-left: 2px solid rgba(212, 167, 52, 0.55);
+  background: rgba(212, 167, 52, 0.05);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: rgb(var(--fg-muted));
+}
+.bb-overlay-icon {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: #d4a734;
+}
+
+/* Strike-through value in the DL meter — surfaces the original
+   multiplier the pool replaced. */
+.meter-value-strike {
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 1.1rem;
+  color: rgb(var(--fg-faint));
+  text-decoration: line-through;
+  text-decoration-color: rgba(244, 63, 94, 0.65);
+  text-decoration-thickness: 2px;
 }
 
 .bb-preset-tag {

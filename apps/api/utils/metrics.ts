@@ -374,6 +374,51 @@ const shopPurchasesTotal = new Gauge({
   ...labelMeta,
 });
 
+// ─── Freeleech pool ──────────────────────────────────────────────────────────
+
+const freeleechPoolEnabled = new Gauge({
+  name: 'trackarr_freeleech_pool_enabled',
+  help: '1 when the contributory freeleech pool is enabled by the admin, 0 otherwise.',
+  ...labelMeta,
+});
+
+const freeleechPoolPointsCurrent = new Gauge({
+  name: 'trackarr_freeleech_pool_points_current',
+  help: 'Bonus points contributed to the current open cycle. 0 when no cycle is open.',
+  ...labelMeta,
+});
+
+const freeleechPoolPointsTarget = new Gauge({
+  name: 'trackarr_freeleech_pool_points_target',
+  help: 'Bonus points required to trigger the freeleech on the current cycle (snapshotted at cycle creation).',
+  ...labelMeta,
+});
+
+const freeleechPoolProgress = new Gauge({
+  name: 'trackarr_freeleech_pool_progress_ratio',
+  help: 'Fill ratio of the current cycle (0..1). 0 when no cycle is open.',
+  ...labelMeta,
+});
+
+const freeleechPoolState = new Gauge({
+  name: 'trackarr_freeleech_pool_state',
+  help: 'Indicator gauge — 1 on the label that matches the current cycle status, 0 elsewhere. No row open ⇒ all labels at 0.',
+  labelNames: ['state'] as const,
+  ...labelMeta,
+});
+
+const freeleechPoolContributorsTotal = new Gauge({
+  name: 'trackarr_freeleech_pool_contributors_total',
+  help: 'Distinct contributors to the current open cycle.',
+  ...labelMeta,
+});
+
+const freeleechPoolCyclesCompleted = new Gauge({
+  name: 'trackarr_freeleech_pool_cycles_completed_total',
+  help: 'Cumulative number of cycles that actually ran their freeleech to completion (`status = ended`). Cancelled cycles are excluded.',
+  ...labelMeta,
+});
+
 // ─── Storage ─────────────────────────────────────────────────────────────────
 
 const redisMemoryBytes = new Gauge({
@@ -1058,6 +1103,70 @@ async function refreshGauges(): Promise<void> {
         shopItemsByStatus.set({ status: 'enabled' }, enabled[0]?.count ?? 0);
         shopItemsByStatus.set({ status: 'disabled' }, disabled[0]?.count ?? 0);
         shopPurchasesTotal.set(purchases[0]?.count ?? 0);
+      })
+      .catch(() => {})
+  );
+
+  // ─── Freeleech pool ──────────────────────────────────────
+  // Three queries: the singleton config (for the enabled flag),
+  // the currently open cycle (for progress + state), and a
+  // count of historical `ended` cycles (for the cumulative
+  // gauge).
+  tasks.push(
+    Promise.all([
+      db
+        .select({ enabled: schema.freeleechPoolConfig.enabled })
+        .from(schema.freeleechPoolConfig)
+        .where(eq(schema.freeleechPoolConfig.id, 1))
+        .limit(1),
+      db
+        .select()
+        .from(schema.freeleechPoolCycles)
+        .where(sql`status IN ('filling', 'full_queued', 'active')`)
+        .limit(1),
+      countQuery(
+        schema.freeleechPoolCycles,
+        eq(schema.freeleechPoolCycles.status, 'ended')
+      ),
+    ])
+      .then(async ([configRow, openCycleRows, endedRow]) => {
+        freeleechPoolEnabled.set(configRow[0]?.enabled ? 1 : 0);
+        freeleechPoolCyclesCompleted.set(endedRow[0]?.count ?? 0);
+
+        // Pre-seed every state label so a draining bucket shows
+        // up as `… 0` instead of vanishing.
+        for (const s of ['filling', 'full_queued', 'active']) {
+          freeleechPoolState.set({ state: s }, 0);
+        }
+
+        const cycle = openCycleRows[0];
+        if (!cycle) {
+          freeleechPoolPointsCurrent.set(0);
+          freeleechPoolPointsTarget.set(0);
+          freeleechPoolProgress.set(0);
+          freeleechPoolContributorsTotal.set(0);
+          return;
+        }
+        freeleechPoolPointsCurrent.set(cycle.totalContributed);
+        freeleechPoolPointsTarget.set(cycle.targetSnapshot);
+        freeleechPoolProgress.set(
+          cycle.targetSnapshot > 0
+            ? Math.min(1, cycle.totalContributed / cycle.targetSnapshot)
+            : 0
+        );
+        freeleechPoolState.set({ state: cycle.status }, 1);
+
+        // Distinct contributor count is a separate query so we
+        // can keep the main lookup as a plain row read.
+        const [contribRow] = await db
+          .select({
+            count: sql<number>`COUNT(DISTINCT ${schema.freeleechPoolContributions.userId})::int`,
+          })
+          .from(schema.freeleechPoolContributions)
+          .where(
+            eq(schema.freeleechPoolContributions.cycleId, cycle.id)
+          );
+        freeleechPoolContributorsTotal.set(Number(contribRow?.count ?? 0));
       })
       .catch(() => {})
   );

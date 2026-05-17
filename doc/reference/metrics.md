@@ -145,6 +145,20 @@ The sum of `trackarr_torrents_by_status` equals `trackarr_torrents_total`.
 | `trackarr_shop_items_by_status`              | gauge | `status="enabled\|disabled"`          |
 | `trackarr_shop_purchases_total`              | gauge | Cumulative successful purchases.      |
 
+### Freeleech pool
+
+The contributory pool: members fund a shared pot until the target is hit, then a sitewide freeleech runs for the configured duration.
+
+| Metric                                            | Type  | Labels / Notes                                                              |
+| ------------------------------------------------- | ----- | --------------------------------------------------------------------------- |
+| `trackarr_freeleech_pool_enabled`                 | gauge | `1` when the admin has the pool turned on, `0` otherwise.                   |
+| `trackarr_freeleech_pool_points_current`          | gauge | Points contributed to the open cycle. `0` when no cycle is open.            |
+| `trackarr_freeleech_pool_points_target`           | gauge | Target snapshot of the open cycle.                                          |
+| `trackarr_freeleech_pool_progress_ratio`          | gauge | `current / target`, clamped to `[0, 1]`.                                    |
+| `trackarr_freeleech_pool_state`                   | gauge | `state="filling\|full_queued\|active"`. `1` on the live one, `0` elsewhere. |
+| `trackarr_freeleech_pool_contributors_total`      | gauge | Distinct contributors in the open cycle.                                    |
+| `trackarr_freeleech_pool_cycles_completed_total`  | gauge | Cumulative cycles that ran to completion (`status = ended`).                |
+
 ### Default Node.js metrics
 
 `prom-client`'s default collector ships under the `trackarr_` prefix: CPU, heap usage, event-loop lag, GC pauses, etc. (Useful when you want to alert on Node-side trouble.)
@@ -180,4 +194,12 @@ trackarr_upload_requests_reward_held_total
 # Backfill progress (should approach trackarr_torrents_total on
 # steady state):
 trackarr_torrents_with_signature_total / trackarr_torrents_total
+
+# Freeleech-pool fill ratio — pre-clamped 0..1 gauge, plots as a
+# smooth ramp from 0% to 100% over the cycle:
+trackarr_freeleech_pool_progress_ratio
+
+# Live state of the pool (1 on exactly one label when a cycle is
+# open, all zero when no cycle exists):
+trackarr_freeleech_pool_state
 ```

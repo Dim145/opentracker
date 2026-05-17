@@ -26,6 +26,18 @@ export interface ActiveBonusEvent {
   uploadMultiplier: number;
   startsAt: string; // ISO 8601
   endsAt: string;
+  /** 'manual' for admin-created windows, 'freeleech_pool' for
+   *  community pool-triggered ones. The icon + modal use this to
+   *  swap copy and decorate the badge. */
+  source?: 'manual' | 'freeleech_pool' | string;
+  /** When this is a pool freeleech that displaced a running
+   *  bonus event, the multipliers of the displaced event are
+   *  carried here so the modal can render "X → 0" overlay copy. */
+  pausedFrom?: {
+    downloadMultiplier: number;
+    uploadMultiplier: number;
+    title: string | null;
+  } | null;
 }
 
 const POLL_INTERVAL_MS = 60_000;

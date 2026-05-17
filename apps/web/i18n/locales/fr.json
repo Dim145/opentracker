@@ -1151,7 +1151,16 @@
       "preset": {
         "freeleech": "Freeleech",
         "silverleech": "Silverleech",
-        "bonus": "Bonus"
+        "bonus": "Bonus",
+        "poolFreeleech": "Freeleech pool"
+      },
+      "fromPool": "Pool communautaire",
+      "poolOverlayHint": "Ce freeleech est déclenché par le pool communautaire. Il superpose un évènement bonus déjà actif — le multiplicateur d'upload original est conservé.",
+      "poolDefaults": {
+        "description": "Freeleech déclenché par le pool — la communauté a atteint la cible.",
+        "descriptionOverlay": "Freeleech déclenché par le pool, superposé à un évènement bonus actif. Multiplicateur d'upload conservé.",
+        "longDescription": "Évènement bonus créé par le pool de freeleech communautaire. L'évènement initial (s'il y en avait un) reprend son cours à la fin de cette fenêtre.",
+        "longDescriptionOverlay": "Évènement bonus créé par le pool de freeleech communautaire alors qu'un autre évènement tournait. Le multiplicateur de téléchargement est forcé à 0 (freeleech) pendant cette fenêtre, le multiplicateur d'upload original est conservé, et l'évènement déplacé reprend pour son temps restant à la fin de cette fenêtre."
       },
       "verdict": {
         "free": "Téléchargements gratuits — rien n'est compté",
@@ -1160,7 +1169,8 @@
         "surcharge": "Compté ×{mult} — plus lourd que d'habitude",
         "uploadNone": "Aucun upload compté",
         "uploadReduced": "Seuls {pct}% de votre upload comptent",
-        "uploadBonus": "Chaque octet compte pour {mult}"
+        "uploadBonus": "Chaque octet compte pour {mult}",
+        "poolFreeleech": "Freeleech pool — la cagnotte communautaire a déclenché"
       },
       "rel": {
         "seconds": "{n} s",
@@ -1386,6 +1396,7 @@
       "bonusEvents": "Évènements bonus",
       "bonusRules": "Règles de gain",
       "shop": "Boutique bonus",
+      "freeleechPool": "Pool freeleech",
       "bannedIps": "IP bannies",
       "uploadRules": "Règles d'upload",
       "invitations": "Invitations",
@@ -1403,6 +1414,7 @@
       "bonusEvents": "Planifier des fenêtres Freeleech / Silverleech et des multiplicateurs personnalisés",
       "bonusRules": "Configurer comment les utilisateurs gagnent des points bonus (seed, paliers, connexion quotidienne, …) et les courbes de multiplicateurs",
       "shop": "Définir ce que les utilisateurs peuvent acheter avec leurs points bonus",
+      "freeleechPool": "Configurer le pool de freeleech communautaire — cible, durée, fenêtres de contribution, plafond par utilisateur",
       "bannedIps": "Consulter, ajouter et retirer des IP de la liste de blocage d'authentification",
       "uploadRules": "Garde-fous appliqués côté serveur sur chaque upload de torrent",
       "invitations": "Gérer le système d'invitations",
@@ -2017,6 +2029,129 @@
       "confirm": {
         "deleteTitle": "Supprimer l'article",
         "deleteMessage": "Supprimer définitivement « {name} » ? Les articles avec un historique d'achat ne peuvent pas être supprimés — désactivez-les à la place."
+      }
+    },
+    "freeleechPool": {
+      "eyebrow": "Pool communautaire",
+      "title": "Pool freeleech",
+      "cistern": {
+        "classification": "RÉSERVOIR COMMUNAUTAIRE · PANNEAU 04",
+        "title": "Le Réservoir",
+        "connecting": "Établissement de la télémétrie…",
+        "reservoir": "État du réservoir",
+        "calibration": "Calibrage",
+        "schedule": "Programmation des vannes",
+        "ledger": "Registre des cycles",
+        "fillLevel": "Niveau de remplissage",
+        "armed": "ARMÉ",
+        "offline": "HORS LIGNE",
+        "armedHint": "Armé, le pool accepte les contributions pendant les fenêtres ouvertes. Mettre hors ligne suspend l'alimentation sans perdre le cycle en cours.",
+        "deployed": "Vannes déployées",
+        "folio": "Folio"
+      },
+      "intro": "Une cagnotte partagée que les membres peuvent remplir avec leurs points bonus. Quand la cible est atteinte, un freeleech sitewide est déclenché pour la durée configurée. Les fenêtres de contribution (optionnelles) permettent de fermer le pool en dehors d'heures données.",
+      "configTitle": "Configuration",
+      "configHelp": "Les modifications n'affectent que les futurs cycles — les cycles déjà ouverts conservent leur cible et leur durée d'origine pour ne pas trahir les contributeurs.",
+      "windowsTitle": "Fenêtres de contribution",
+      "windowsHelp": "Laissez la programmation vide pour garder le pool ouvert en permanence. Dès qu'au moins une fenêtre est activée, le pool n'accepte les contributions que lorsque l'instant présent tombe à l'intérieur d'une fenêtre configurée (ponctuelle, hebdo, mensuelle ou annuelle).",
+      "addOneoff": "Ajouter une fenêtre ponctuelle",
+      "addWeekly": "Ajouter une fenêtre hebdomadaire",
+      "addMonthly": "Ajouter une fenêtre mensuelle",
+      "addYearly": "Ajouter une fenêtre annuelle",
+      "add": "Ajouter",
+      "windowsEmpty": "Aucune fenêtre — le pool est ouvert dès qu'il est activé.",
+      "monthlyDesc": "Jours {days}",
+      "kind": {
+        "oneoff": "Ponctuelle",
+        "weekly": "Hebdo",
+        "monthly": "Mensuelle",
+        "yearly": "Annuelle"
+      },
+      "weekday": {
+        "sun": "Dimanche",
+        "mon": "Lundi",
+        "tue": "Mardi",
+        "wed": "Mercredi",
+        "thu": "Jeudi",
+        "fri": "Vendredi",
+        "sat": "Samedi"
+      },
+      "month": {
+        "01": "Janvier",
+        "02": "Février",
+        "03": "Mars",
+        "04": "Avril",
+        "05": "Mai",
+        "06": "Juin",
+        "07": "Juillet",
+        "08": "Août",
+        "09": "Septembre",
+        "10": "Octobre",
+        "11": "Novembre",
+        "12": "Décembre"
+      },
+      "currentTitle": "Cycle en cours",
+      "noCycle": "Aucun cycle n'est ouvert pour l'instant.",
+      "historyTitle": "Historique des cycles",
+      "historyEmpty": "Aucun cycle clôturé pour l'instant.",
+      "topPatrons": "Top contributeurs",
+      "reset": "Drainer le pool",
+      "fields": {
+        "enabled": "Activer le pool freeleech",
+        "target": "Points à atteindre",
+        "durationDays": "Durée du freeleech (jours)",
+        "contributionMin": "Contribution minimale",
+        "maxPerUserPct": "Plafond par utilisateur (% de la cible)",
+        "maxPerUserHint": "0 = aucun plafond. Sinon, aucun utilisateur ne peut contribuer plus que cette fraction de la cible sur un même cycle.",
+        "presetAmounts": "Montants prédéfinis",
+        "presetAmountsPlaceholder": "100, 500, 1000",
+        "presetAmountsHint": "Liste d'entiers positifs séparés par des virgules. Affichés comme boutons rapides sous le champ de contribution.",
+        "eventTitle": "Titre de l'évènement déclenché",
+        "eventDescription": "Description de l'évènement déclenché",
+        "from": "De",
+        "to": "À",
+        "fromDay": "Jour de début",
+        "fromTime": "Heure de début (UTC)",
+        "toDay": "Jour de fin",
+        "toTime": "Heure de fin (UTC)",
+        "daysOfMonth": "Jours du mois",
+        "daysOfMonthHint": "Choisissez les jours où le pool doit s'ouvrir. Les 30 / 31 février sont ignorés en silence pour les mois courts.",
+        "fromMonth": "Mois de début",
+        "toMonth": "Mois de fin",
+        "fromDayOfMonth": "Jour de début",
+        "toDayOfMonth": "Jour de fin",
+        "yearlyHint": "Plage anniversaire toute la journée. Fin < début est autorisé et fait le tour de l'année (ex : 20 déc. → 5 janv.).",
+        "label": "Libellé (optionnel)",
+        "utcHint": "Les horaires sont en UTC — ils ne bougent pas avec l'heure d'été.",
+        "status": "Statut",
+        "progress": "Progression",
+        "endsAt": "Termine le",
+        "startedAt": "Démarré",
+        "closedAt": "Clôturé",
+        "collected": "Collecté"
+      },
+      "cycleStatus": {
+        "filling": "En remplissage",
+        "full_queued": "En attente",
+        "active": "Actif",
+        "ended": "Terminé",
+        "cancelled": "Annulé"
+      },
+      "confirmRemoveWindow": {
+        "title": "Supprimer la fenêtre",
+        "message": "Supprimer cette fenêtre de contribution ? Le changement s'applique à la prochaine tentative de contribution."
+      },
+      "confirmReset": {
+        "title": "Drainer le pool",
+        "message": "Annuler le cycle en cours et désactiver tout freeleech déclenché par le pool actuellement en cours. Les contributions déjà versées ne sont PAS remboursées — les contributions sont des dons. Continuer ?"
+      },
+      "toasts": {
+        "configSaved": "Configuration enregistrée.",
+        "reset": "Pool drainé."
+      },
+      "errors": {
+        "save": "Échec de l'enregistrement.",
+        "windowAdd": "Échec de l'ajout de la fenêtre."
       }
     },
     "bonusEvents": {
@@ -3326,6 +3461,43 @@
     },
     "errors": {
       "buyFailed": "Échec de l'acquisition. Réessayez plus tard."
+    }
+  },
+  "freeleechPool": {
+    "eyebrow": "Pool communautaire",
+    "titleMain": "La cagnotte",
+    "titleAccent": "freeleech",
+    "blurb": "Les membres se cotisent pour financer un freeleech sitewide. Quand la cagnotte est pleine, un freeleech global se déclenche pour {days} jours. Aucun remboursement — chaque point engagé est un don au swarm.",
+    "points": "pts",
+    "contributeLabel": "Votre contribution",
+    "cta": "Verser au pool",
+    "submitting": "Envoi…",
+    "youGave": "Vous avez déjà versé {amount} pt(s) sur ce cycle.",
+    "topPatrons": "Top contributeurs",
+    "lockedClosed": "Le pool est fermé pour le moment. Revenez pendant une fenêtre d'ouverture.",
+    "lockedQueued": "Cible atteinte — en attente de la fin de l'évènement freeleech actuel pour démarrer.",
+    "lockedActive": "Le freeleech est en cours. Profitez-en !",
+    "lockedEnded": "Ce cycle est terminé. Un nouveau s'ouvrira dès que l'opérateur réactivera le pool.",
+    "lockedCancelled": "Ce cycle a été annulé par l'admin. Plus aucune contribution n'est possible.",
+    "lockedUserCap": "Vous avez atteint votre plafond de contribution pour ce cycle.",
+    "status": {
+      "filling": "Accepte les contributions",
+      "closed": "Pool fermé pour le moment",
+      "queued": "En attente de la fin du freeleech actif",
+      "active": "Freeleech en cours — se termine dans {countdown}",
+      "activeNoEnd": "Freeleech en cours",
+      "ended": "Cycle terminé",
+      "cancelled": "Cycle annulé"
+    },
+    "countdown": {
+      "ended": "terminé"
+    },
+    "toasts": {
+      "contributed": "{amount} pt(s) versés à la cagnotte. Merci !",
+      "triggered": "Cible atteinte — le freeleech arrive."
+    },
+    "errors": {
+      "contribute": "Impossible d'appliquer votre contribution. Réessayez."
     }
   },
   "downloads": {

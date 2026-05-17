@@ -11,7 +11,7 @@
  * tracker (which reads `bonus:active` on the announce hot path) and
  * subsequent web hits pay only the cheap cache lookup.
  */
-import { db } from '@trackarr/db';
+import { db, schema } from '@trackarr/db';
 import { bonusEvents } from '@trackarr/db/schema';
 import { eq } from 'drizzle-orm';
 import { getActiveSnapshot } from '~~/utils/bonusEvents';
@@ -34,9 +34,47 @@ export default defineEventHandler(async () => {
       uploadMultiplier: true,
       startsAt: true,
       endsAt: true,
+      source: true,
     },
   });
   if (!row) return { event: null };
+
+  // When this event came from the freeleech pool AND it displaced
+  // an active event, the cycle row carries the displaced event's
+  // params + remaining duration. We surface the original
+  // multipliers so the modal can render the "2x → 0" overlay
+  // comparison without a second round-trip.
+  let pausedFrom:
+    | {
+        downloadMultiplier: number;
+        uploadMultiplier: number;
+        title: string | null;
+      }
+    | null = null;
+  if (row.source === 'freeleech_pool') {
+    const [cycle] = await db
+      .select({
+        pausedEventDownloadMultiplier:
+          schema.freeleechPoolCycles.pausedEventDownloadMultiplier,
+        pausedEventUploadMultiplier:
+          schema.freeleechPoolCycles.pausedEventUploadMultiplier,
+        pausedEventTitle: schema.freeleechPoolCycles.pausedEventTitle,
+      })
+      .from(schema.freeleechPoolCycles)
+      .where(eq(schema.freeleechPoolCycles.triggeredEventId, row.id))
+      .limit(1);
+    if (
+      cycle &&
+      cycle.pausedEventDownloadMultiplier !== null &&
+      cycle.pausedEventUploadMultiplier !== null
+    ) {
+      pausedFrom = {
+        downloadMultiplier: cycle.pausedEventDownloadMultiplier,
+        uploadMultiplier: cycle.pausedEventUploadMultiplier,
+        title: cycle.pausedEventTitle,
+      };
+    }
+  }
 
   return {
     event: {
@@ -48,6 +86,8 @@ export default defineEventHandler(async () => {
       uploadMultiplier: row.uploadMultiplier,
       startsAt: row.startsAt.toISOString(),
       endsAt: row.endsAt.toISOString(),
+      source: row.source,
+      pausedFrom,
     },
   };
 });

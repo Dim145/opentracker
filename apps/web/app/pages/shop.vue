@@ -64,6 +64,13 @@
       </aside>
     </header>
 
+    <!-- ── Communal pool — rendered above the items grid when
+         the operator has enabled the feature. Self-contained:
+         component fetches its own state and emits the new balance
+         after each contribution so the coin counter stays in
+         sync. -->
+    <ShopFreeleechPool @balance-changed="onBalanceFromPool" />
+
     <!-- ── Loading ────────────────────────────────────────── -->
     <div v-if="pending" class="shop-loading">
       <Icon name="ph:circle-notch" class="animate-spin" />
@@ -349,6 +356,16 @@ async function confirmAndBuy(item: ShopItem) {
   } finally {
     pendingItemId.value = null;
   }
+}
+
+// ── Pool integration ──────────────────────────────────────────
+// The communal pool component carries its own contribute form.
+// When the user funds the pool we get a fresh balance back via
+// this event so the coin counter ticks down without a second
+// round-trip through `/api/shop/items`.
+function onBalanceFromPool(value: number) {
+  bonusPoints.value = value;
+  runCounter(value);
 }
 </script>
 
