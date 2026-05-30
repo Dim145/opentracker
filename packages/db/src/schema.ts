@@ -2040,3 +2040,208 @@ export const anticheatFlags = pgTable(
 
 export type AnticheatFlag = typeof anticheatFlags.$inferSelect;
 export type NewAnticheatFlag = typeof anticheatFlags.$inferInsert;
+
+// ============================================================================
+// Federation (inter-instance, opt-in, owner-controlled — Phase 0 socle)
+// ============================================================================
+//
+// Two tables back the federation trust layer:
+//
+//   `federationConfig` — singleton. Holds this instance's verifiable
+//      identity (an Ed25519 keypair generated on first enable; the
+//      private key is encrypted at rest with the same AES-GCM helper as
+//      notification-channel secrets) plus the owner's master switch and
+//      the default sharing scopes proposed to new partners.
+//
+//   `federationPeers` — the allow-list. One row per partner instance the
+//      owner has handshaked with. `status` drives the double opt-in
+//      lifecycle; `sharesWithThem` / `acceptsFromThem` are the granular,
+//      asymmetric scope grants. A peer's `publicKey` is the ONLY thing
+//      that authenticates its signed S2S requests — revoking a peer
+//      forgets the key and its requests stop verifying.
+//
+// Nothing here touches the Go tracker or the announce hot path.
+// See doc/federation/PROPOSAL.md.
+
+/** Granular federation scopes, asymmetric per peer.
+ *  `swarm` is the risky one (re-opens private swarm isolation) — off by
+ *  default everywhere; see PROPOSAL §7.4. */
+export type FederationScopes = {
+  catalog: boolean;
+  social: boolean;
+  accounts: boolean;
+  swarm: boolean;
+};
+
+const EMPTY_SCOPES: FederationScopes = {
+  catalog: false,
+  social: false,
+  accounts: false,
+  swarm: false,
+};
+
+export const federationConfig = pgTable('federation_config', {
+  id: text('id').primaryKey().default('singleton'), // always one row
+  /** Owner master switch. When false the instance is unreachable for
+   *  handshakes and the (future) catalogue sync does not run. */
+  enabled: boolean('enabled').default(false).notNull(),
+  /** Human-facing name advertised to partners during the handshake. */
+  instanceName: text('instance_name'),
+  /** This instance's public base URL (e.g. https://tracker.example.fr),
+   *  baked into outbound handshakes so partners know where to call back. */
+  publicUrl: text('public_url'),
+  /** Verifiable identity, generated lazily on first enable.
+   *   - instanceId: base64url fingerprint of the SPKI public key; the
+   *     keyId partners use to look this instance up.
+   *   - publicKey: SPKI PEM, shared in the clear.
+   *   - privateKeyEnc: PKCS8 PEM, encrypted at rest via encryptJson(). */
+  instanceId: text('instance_id'),
+  publicKey: text('public_key'),
+  privateKeyEnc: text('private_key_enc'),
+  /** Default scopes proposed to NEW partners; each link is tuned
+   *  individually afterwards on federationPeers. */
+  defaultScopes: jsonb('default_scopes')
+    .$type<FederationScopes>()
+    .default(EMPTY_SCOPES)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type FederationConfig = typeof federationConfig.$inferSelect;
+
+export const federationPeers = pgTable(
+  'federation_peers',
+  {
+    id: text('id').primaryKey(), // UUID
+    /** Partner public base URL. Natural unique key — one link per host. */
+    baseUrl: text('base_url').notNull().unique(),
+    /** Partner identity, learned during the handshake. Null only in the
+     *  brief window between creating a pending_out row and the ACK. */
+    instanceId: text('instance_id'),
+    publicKey: text('public_key'),
+    displayName: text('display_name'),
+    /** Double opt-in lifecycle:
+     *   pending_out — we sent a handshake, awaiting THEIR owner.
+     *   pending_in  — they sent us a handshake, awaiting OUR owner.
+     *   active      — both sides approved; signed S2S allowed.
+     *   suspended   — temporarily paused by our owner (key kept).
+     *   blocked     — hard-blocked; their requests rejected.
+     *   revoked     — link torn down; cached remote data purged. */
+    status: text('status').notNull().default('pending_out'),
+    /** What WE send THEM. */
+    sharesWithThem: jsonb('shares_with_them')
+      .$type<FederationScopes>()
+      .default(EMPTY_SCOPES)
+      .notNull(),
+    /** What we ACCEPT FROM them. */
+    acceptsFromThem: jsonb('accepts_from_them')
+      .$type<FederationScopes>()
+      .default(EMPTY_SCOPES)
+      .notNull(),
+    lastHandshakeAt: timestamp('last_handshake_at'),
+    lastSeenAt: timestamp('last_seen_at'),
+    lastError: text('last_error'),
+    /** Owner who created / approved the link. */
+    createdBy: text('created_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('federation_peers_status_idx').on(table.status),
+    // Identity is unique once known; partial so multiple pending_out
+    // rows (instance_id still null) don't collide.
+    uniqueIndex('federation_peers_instance_id_unique')
+      .on(table.instanceId)
+      .where(sql`instance_id IS NOT NULL`),
+  ]
+);
+
+export type FederationPeer = typeof federationPeers.$inferSelect;
+export type NewFederationPeer = typeof federationPeers.$inferInsert;
+
+// ============================================================================
+// Federation — Phase 1: federated catalogue (read-only local cache)
+// ============================================================================
+//
+// `remoteTorrents` mirrors the metadata of partner-instance torrents we've
+// pulled via the catalogue sync. It is NEVER merged into `torrents`: the
+// local economy (ratio, HnR, moderation) stays sealed. Download links point
+// back to the origin instance — we never serve a partner's `.torrent` with
+// our own passkey (that's the swarm-merge question, deferred to Phase 4).
+//
+// `federationSyncState` is the per-peer × resource cursor the sync cron
+// advances so each run only pulls what changed since last time.
+
+export const remoteTorrents = pgTable(
+  'remote_torrents',
+  {
+    id: text('id').primaryKey(), // local mirror UUID
+    peerId: text('peer_id')
+      .notNull()
+      .references(() => federationPeers.id, { onDelete: 'cascade' }),
+    /** Torrent UUID on the partner instance. */
+    remoteId: text('remote_id').notNull(),
+    infoHash: text('info_hash').notNull(),
+    contentSignature: text('content_signature'),
+    name: text('name').notNull(),
+    size: bigint('size', { mode: 'number' }).notNull(),
+    description: text('description'),
+    /** Mapped to a local category slug when possible; raw remote slug otherwise. */
+    categorySlug: text('category_slug'),
+    categoryType: text('category_type'), // movie | tv | game | book | null
+    tags: jsonb('tags').$type<string[]>(),
+    imdbId: text('imdb_id'),
+    tmdbId: text('tmdb_id'),
+    tvdbId: text('tvdb_id'),
+    igdbId: text('igdb_id'),
+    openlibraryId: text('openlibrary_id'),
+    /** Swarm stats from the partner — best-effort, short-lived. */
+    seeders: integer('seeders').default(0).notNull(),
+    leechers: integer('leechers').default(0).notNull(),
+    completed: integer('completed').default(0).notNull(),
+    /** Remote display name only — never a local user id. */
+    uploaderName: text('uploader_name'),
+    remoteCreatedAt: timestamp('remote_created_at'),
+    remoteDetailUrl: text('remote_detail_url'),
+    remoteDownloadUrl: text('remote_download_url'),
+    fetchedAt: timestamp('fetched_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('remote_torrents_peer_remote_unique').on(
+      table.peerId,
+      table.remoteId
+    ),
+    index('remote_torrents_info_hash_idx').on(table.infoHash),
+    index('remote_torrents_content_sig_idx').on(table.contentSignature),
+    index('remote_torrents_imdb_idx').on(table.imdbId),
+    index('remote_torrents_tmdb_idx').on(table.tmdbId),
+    index('remote_torrents_name_idx').on(table.name),
+  ]
+);
+
+export type RemoteTorrent = typeof remoteTorrents.$inferSelect;
+export type NewRemoteTorrent = typeof remoteTorrents.$inferInsert;
+
+export const federationSyncState = pgTable(
+  'federation_sync_state',
+  {
+    peerId: text('peer_id')
+      .notNull()
+      .references(() => federationPeers.id, { onDelete: 'cascade' }),
+    /** Resource being synced — `catalog` today; `social` etc. later. */
+    resource: text('resource').notNull(),
+    /** Opaque cursor returned by the peer (ISO timestamp for catalogue). */
+    cursor: text('cursor'),
+    lastRunAt: timestamp('last_run_at'),
+    lastStatus: text('last_status'), // ok | error | partial
+    itemsSynced: integer('items_synced').default(0).notNull(),
+    lastError: text('last_error'),
+  },
+  (table) => [primaryKey({ columns: [table.peerId, table.resource] })]
+);
+
+export type FederationSyncState = typeof federationSyncState.$inferSelect;

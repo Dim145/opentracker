@@ -168,6 +168,34 @@ const EN: Dict = {
     title: 'Trusted device added',
     desc: 'A new device was marked as trusted on your account.',
   },
+  federation_request_received: {
+    title: 'Federation request',
+    desc: '{instanceName} wants to federate with your tracker.',
+  },
+  followed_user_upload: {
+    title: 'New release from someone you follow',
+    desc: '{uploaderUsername} just published “{torrentName}”.',
+  },
+  request_filled: {
+    title: 'New proposal on your request',
+    desc: '{fillerUsername} proposed “{torrentName}” for “{requestTitle}”.',
+  },
+  request_validated: {
+    title: 'Request validated',
+    desc: '{requesterUsername} accepted your proposal for “{requestTitle}” (+{rewardPoints} pts).',
+  },
+  request_rejected: {
+    title: 'Proposal rejected',
+    desc: '{requesterUsername} rejected your proposal on “{requestTitle}”.',
+  },
+  request_auto_validated: {
+    title: 'Auto-validated',
+    desc: 'Request “{requestTitle}” was auto-validated (+{rewardPoints} pts if you filled).',
+  },
+  request_new_comment: {
+    title: 'New comment',
+    desc: '{authorUsername} on “{requestTitle}”: {preview}',
+  },
 };
 
 const FR: Dict = {
@@ -314,6 +342,34 @@ const FR: Dict = {
   trusted_device_added: {
     title: 'Appareil de confiance ajouté',
     desc: 'Un nouvel appareil a été marqué comme de confiance sur ton compte.',
+  },
+  federation_request_received: {
+    title: 'Demande de fédération',
+    desc: '{instanceName} souhaite se fédérer avec ton tracker.',
+  },
+  followed_user_upload: {
+    title: 'Nouvelle release suivie',
+    desc: '{uploaderUsername} a publié « {torrentName} ».',
+  },
+  request_filled: {
+    title: 'Proposition reçue',
+    desc: '{fillerUsername} propose « {torrentName} » pour la demande « {requestTitle} ».',
+  },
+  request_validated: {
+    title: 'Demande validée',
+    desc: '{requesterUsername} a validé ta proposition pour « {requestTitle} » (+{rewardPoints} pts).',
+  },
+  request_rejected: {
+    title: 'Proposition rejetée',
+    desc: '{requesterUsername} a rejeté ta proposition sur « {requestTitle} ».',
+  },
+  request_auto_validated: {
+    title: 'Validation automatique',
+    desc: 'La demande « {requestTitle} » a été validée automatiquement (+{rewardPoints} pts si tu as rempli).',
+  },
+  request_new_comment: {
+    title: 'Nouveau message',
+    desc: '{authorUsername} sur « {requestTitle} » : {preview}',
   },
 };
 

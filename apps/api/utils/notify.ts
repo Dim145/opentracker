@@ -94,7 +94,11 @@ export type NotificationType =
   | 'new_report_filed'
   | 'report_actioned'
   // ── P2 — Security (soft) ───────────────────────────────────
-  | 'trusted_device_added';
+  | 'trusted_device_added'
+  // ── Federation (owner-facing) ──────────────────────────────
+  // A partner instance sent us a handshake; the owner must review and
+  // approve it in /admin/federation (double opt-in).
+  | 'federation_request_received';
 
 export interface NotificationRecord {
   id: string;

@@ -1,0 +1,93 @@
+/**
+ * POST /api/federation/callback  — inbound, server-to-server.
+ *
+ * A peer we previously sent a handshake to (status `pending_out`) has had
+ * its owner approve the link. They call us back, signed with the key we
+ * already learned during their ACK, telling us the scopes they granted.
+ * We flip the link to `active`.
+ *
+ * Scope mapping (their perspective → ours):
+ *   acceptsFromYou  = what THEY accept from us  → our `sharesWithThem`
+ *   sharesWithYou   = what THEY send us          → our `acceptsFromThem`
+ */
+import { eq } from 'drizzle-orm';
+import { z } from 'zod';
+import { db, schema } from '@trackarr/db';
+import {
+  getFederationConfig,
+  isFederationLive,
+} from '~~/utils/federation/config';
+import { verifySignedRequest } from '~~/utils/federation/signing';
+import { federationScopesSchema } from '~~/utils/federation/scopes';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+
+const PATHNAME = '/api/federation/callback';
+
+const bodySchema = z.object({
+  acceptsFromYou: federationScopesSchema.optional(),
+  sharesWithYou: federationScopesSchema.optional(),
+});
+
+export default defineEventHandler(async (event) => {
+  await rateLimit(event, RATE_LIMITS.mutation);
+
+  const config = await getFederationConfig();
+  if (!isFederationLive(config)) {
+    throw createError({ statusCode: 404, message: 'Federation not enabled' });
+  }
+
+  const rawBody = (await readRawBody(event, 'utf8')) || '';
+  const headers = getRequestHeaders(event);
+  const senderId = headers['x-trackarr-instance'];
+  if (!senderId) {
+    throw createError({ statusCode: 401, message: 'Missing instance header' });
+  }
+
+  const [peer] = await db
+    .select()
+    .from(schema.federationPeers)
+    .where(eq(schema.federationPeers.instanceId, senderId))
+    .limit(1);
+  if (!peer || !peer.publicKey) {
+    throw createError({ statusCode: 404, message: 'Unknown peer' });
+  }
+  if (peer.status === 'blocked' || peer.status === 'revoked') {
+    throw createError({ statusCode: 403, message: 'Peer is blocked' });
+  }
+
+  const verdict = verifySignedRequest({
+    method: 'POST',
+    pathname: PATHNAME,
+    rawBody,
+    headers,
+    publicKeyPem: peer.publicKey,
+  });
+  if (!verdict.ok) {
+    throw createError({
+      statusCode: 401,
+      message: `Signature rejected: ${verdict.reason}`,
+    });
+  }
+
+  let parsed: z.infer<typeof bodySchema>;
+  try {
+    parsed = bodySchema.parse(rawBody ? JSON.parse(rawBody) : {});
+  } catch {
+    throw createError({ statusCode: 400, message: 'Malformed callback body' });
+  }
+
+  const now = new Date();
+  await db
+    .update(schema.federationPeers)
+    .set({
+      status: 'active',
+      sharesWithThem: parsed.acceptsFromYou ?? peer.sharesWithThem,
+      acceptsFromThem: parsed.sharesWithYou ?? peer.acceptsFromThem,
+      lastSeenAt: now,
+      lastError: null,
+      updatedAt: now,
+    })
+    .where(eq(schema.federationPeers.id, peer.id));
+
+  return { ok: true, status: 'active' };
+});
