@@ -80,10 +80,9 @@ export default defineEventHandler(async (event) => {
 
   // The user just typed a valid TOTP code, that counts as a fresh
   // auth — let them perform other sensitive ops (e.g. add a passkey)
-  // for the next 10 minutes without retyping anything.
-  if (session.id) {
-    await markFreshAuth(String(session.id));
-  }
+  // for the next 10 minutes without retyping anything. Key on the
+  // real h3 session id, not session.user (finding H1).
+  await markFreshAuth(await getSessionId(event));
 
   void notify(session.user.id, 'totp_enabled', null, '/settings');
 

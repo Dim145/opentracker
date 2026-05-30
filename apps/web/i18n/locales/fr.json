@@ -2854,6 +2854,7 @@
       "restoreButton": "Restaurer la base",
       "confirmTitle": "Confirmer le chiffrement",
       "confirmHint": "Cette action chiffrera toutes les données sensibles de la base. Elles seront illisibles jusqu'à restauration avec le mot de passe panique.",
+      "encryptPasswordHint": "La clé de chiffrement est dérivée de ce mot de passe — ressaisissez-le pour confirmer. Il n'est jamais stocké : un dump de la base ne peut donc pas être déchiffré sans lui.",
       "irreversibleWarning": "{warn} Cette action est irréversible sans le mot de passe panique.",
       "warningEmoji": "⚠️",
       "cancel": "Annuler",

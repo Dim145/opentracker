@@ -15,6 +15,7 @@
  * Webhook URLs leak secrets in their path (the `token` segment) so
  * we encrypt the whole URL in the `userConfig` blob.
  */
+import { safeFetch, SafeFetchError } from '../safeFetch';
 import type { ChannelAdapter, NotificationPayload, TestResult } from './types';
 
 interface DiscordUser {
@@ -41,7 +42,11 @@ async function postEmbed(
     return { ok: false, error: 'Invalid Discord webhook URL format' };
   }
   try {
-    const res = await fetch(url, {
+    // safeFetch (not bare fetch) for defense-in-depth: the host is
+    // already pinned to discord.com by WEBHOOK_RE, but safeFetch
+    // re-validates every redirect hop so a hijacked/edge-case 30x
+    // can't land the POST on an internal address.
+    const res = await safeFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -69,6 +74,7 @@ async function postEmbed(
     }
     return { ok: true };
   } catch (err) {
+    if (err instanceof SafeFetchError) return { ok: false, error: err.message };
     return { ok: false, error: (err as Error).message };
   }
 }

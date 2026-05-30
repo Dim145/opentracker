@@ -79,6 +79,22 @@ export async function clearUserSession(event: H3Event): Promise<void> {
   await s.clear();
 }
 
+/**
+ * The h3 session id (a top-level sibling of `data`, NOT inside it).
+ *
+ * `getUserSession`/`requireUserSession` deliberately return only
+ * `s.data` (the `{ user }` payload), which has no `id` field — so
+ * reading `session.id` at a call site is always `undefined`. The
+ * fresh-auth window (markFreshAuth/isFreshAuth) keys on this id, so
+ * every consumer MUST resolve it through this helper, not off the
+ * session-data object. (Finding H1: without this the fresh-auth
+ * gate was permanently inert.)
+ */
+export async function getSessionId(event: H3Event): Promise<string> {
+  const s = await session(event);
+  return s.id;
+}
+
 export async function requireUserSession(
   event: H3Event
 ): Promise<UserSessionData & { user: SessionUser }> {

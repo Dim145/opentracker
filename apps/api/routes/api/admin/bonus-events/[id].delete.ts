@@ -18,6 +18,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing id' });
   }
 
+  // Refuse to delete a pool-managed event directly: a freeleech-pool
+  // cycle references it via triggeredEventId, and deleting it out
+  // from under the cycle leaves the cycle 'active' with a dangling
+  // (null) event until its own ends_at (finding L8). Route the admin
+  // to the pool's own reset action instead.
+  const existing = await db.query.bonusEvents.findFirst({
+    where: eq(bonusEvents.id, id),
+    columns: { id: true, source: true },
+  });
+  if (!existing) {
+    throw createError({ statusCode: 404, message: 'Event not found' });
+  }
+  if (existing.source === 'freeleech_pool') {
+    throw createError({
+      statusCode: 409,
+      message:
+        'This event is managed by the freeleech pool. Use the pool reset action to stop it.',
+    });
+  }
+
   const [deleted] = await db
     .delete(bonusEvents)
     .where(eq(bonusEvents.id, id))

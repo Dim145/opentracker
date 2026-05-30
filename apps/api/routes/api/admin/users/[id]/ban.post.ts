@@ -82,10 +82,13 @@ export default defineEventHandler(async (event) => {
   try {
     const invite = await db.query.invitations.findFirst({
       where: (i, { eq }) => eq(i.usedBy, target.id),
-      columns: { generatedBy: true, code: true },
+      // The inviter FK is `createdBy`; there is no `generatedBy`
+      // column, so the old projection returned undefined and this
+      // notification never fired (finding L4).
+      columns: { createdBy: true, code: true },
     });
-    if (invite?.generatedBy && invite.generatedBy !== actor.id) {
-      void notify(invite.generatedBy, 'invitee_banned', {
+    if (invite?.createdBy && invite.createdBy !== actor.id) {
+      void notify(invite.createdBy, 'invitee_banned', {
         inviteeUsername: target.username,
         inviteCode: invite.code,
         reason,

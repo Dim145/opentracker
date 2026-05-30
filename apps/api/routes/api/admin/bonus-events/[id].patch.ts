@@ -73,6 +73,16 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, message: 'Event not found' });
     }
 
+    // Pool-managed events are owned by the freeleech-pool state
+    // machine; editing one by hand desyncs the active cycle (L8).
+    if (existing.source === 'freeleech_pool') {
+      throw createError({
+        statusCode: 409,
+        message:
+          'This event is managed by the freeleech pool and cannot be edited directly. Use the pool reset action instead.',
+      });
+    }
+
     // Compute the prospective window. We always check against the
     // post-update values so an admin can't sneak past the overlap
     // guard by tweaking one bound at a time.

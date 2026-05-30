@@ -46,7 +46,7 @@ func unsetIfWritable(t *testing.T, k string) error {
 func TestLoad_RequiresDatabaseURL(t *testing.T) {
 	t.Setenv("DATABASE_URL", "")
 	t.Setenv("REDIS_URL", "redis://localhost:6379")
-	t.Setenv("IP_HASH_SECRET", "secret")
+	t.Setenv("IP_HASH_SECRET", "test-secret-0123456789abcdef0123")
 	if _, err := Load(); err == nil {
 		t.Fatal("expected error for missing DATABASE_URL")
 	}
@@ -55,7 +55,7 @@ func TestLoad_RequiresDatabaseURL(t *testing.T) {
 func TestLoad_RequiresRedisURL(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://x")
 	t.Setenv("REDIS_URL", "")
-	t.Setenv("IP_HASH_SECRET", "secret")
+	t.Setenv("IP_HASH_SECRET", "test-secret-0123456789abcdef0123")
 	if _, err := Load(); err == nil {
 		t.Fatal("expected error for missing REDIS_URL")
 	}
@@ -77,7 +77,7 @@ func TestLoad_RequiresIPHashSecret(t *testing.T) {
 func TestLoad_DefaultsApplied(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://x")
 	t.Setenv("REDIS_URL", "redis://localhost:6379")
-	t.Setenv("IP_HASH_SECRET", "secret")
+	t.Setenv("IP_HASH_SECRET", "test-secret-0123456789abcdef0123")
 	// Leave all the optional vars unset.
 	t.Setenv("TRACKER_HTTP_PORT", "")
 	t.Setenv("TRACKER_UDP_PORT", "")
@@ -117,7 +117,7 @@ func TestLoad_DefaultsApplied(t *testing.T) {
 func TestLoad_PortOverrides(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://x")
 	t.Setenv("REDIS_URL", "redis://x")
-	t.Setenv("IP_HASH_SECRET", "secret")
+	t.Setenv("IP_HASH_SECRET", "test-secret-0123456789abcdef0123")
 	t.Setenv("TRACKER_HTTP_PORT", "9090")
 	t.Setenv("TRACKER_UDP_PORT", "9999")
 
@@ -136,7 +136,7 @@ func TestLoad_PortOverrides(t *testing.T) {
 func TestLoad_UDPDisabled(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://x")
 	t.Setenv("REDIS_URL", "redis://x")
-	t.Setenv("IP_HASH_SECRET", "secret")
+	t.Setenv("IP_HASH_SECRET", "test-secret-0123456789abcdef0123")
 	t.Setenv("TRACKER_UDP_ENABLED", "false")
 
 	cfg, _ := Load()
@@ -148,7 +148,7 @@ func TestLoad_UDPDisabled(t *testing.T) {
 func TestLoad_DebugEnabled(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://x")
 	t.Setenv("REDIS_URL", "redis://x")
-	t.Setenv("IP_HASH_SECRET", "secret")
+	t.Setenv("IP_HASH_SECRET", "test-secret-0123456789abcdef0123")
 	t.Setenv("TRACKER_DEBUG", "true")
 
 	cfg, _ := Load()
@@ -164,7 +164,7 @@ func TestLoad_DebugEnabled(t *testing.T) {
 func TestLoad_InvalidPortFallsBackToDefault(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://x")
 	t.Setenv("REDIS_URL", "redis://x")
-	t.Setenv("IP_HASH_SECRET", "secret")
+	t.Setenv("IP_HASH_SECRET", "test-secret-0123456789abcdef0123")
 	t.Setenv("TRACKER_HTTP_PORT", "not-a-number")
 
 	cfg, _ := Load()
@@ -220,7 +220,7 @@ func TestGetEnvDuration_ZeroFallsBack(t *testing.T) {
 func TestLoad_PeerTTLOverride(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://x")
 	t.Setenv("REDIS_URL", "redis://x")
-	t.Setenv("IP_HASH_SECRET", "secret")
+	t.Setenv("IP_HASH_SECRET", "test-secret-0123456789abcdef0123")
 	t.Setenv("TRACKER_PEER_TTL", "6h")
 
 	cfg, _ := Load()

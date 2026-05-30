@@ -34,6 +34,7 @@
  *     saved): `sendWebPush` short-circuits with a clear message.
  */
 import webpush from 'web-push';
+import { validateHost, SafeFetchError } from '../safeFetch';
 import type { ChannelAdapter, NotificationPayload, TestResult } from './types';
 
 /**
@@ -113,6 +114,24 @@ async function sendWebPush(
   }
   if (!user?.endpoint || !user?.keys?.p256dh || !user?.keys?.auth) {
     return { ok: false, error: 'User push subscription is incomplete.' };
+  }
+  // The endpoint is whatever the browser's pushManager.subscribe()
+  // returned and was POSTed verbatim into the user-config — i.e.
+  // attacker-controllable. The `web-push` lib does a bare
+  // https.request to it with NO private-IP guard, so without this
+  // check it is an SSRF primitive (the status/body are reflected
+  // below). Validate the host through the same DNS/private-range
+  // gate safeFetch uses before handing the URL to the library
+  // (finding M10).
+  try {
+    const endpointUrl = new URL(user.endpoint);
+    if (endpointUrl.protocol !== 'https:') {
+      return { ok: false, error: 'Push endpoint must be https.' };
+    }
+    await validateHost(endpointUrl.hostname);
+  } catch (err) {
+    if (err instanceof SafeFetchError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Invalid push endpoint URL.' };
   }
   const swPayload: SwPayload = {
     title: payload.title.slice(0, 250),

@@ -74,6 +74,17 @@ export default defineEventHandler(async (event) => {
   };
   const contentType = mimeTypes[ext || ''] || 'application/octet-stream';
   setHeader(event, 'Content-Type', contentType);
+  // Block content sniffing, and sandbox SVGs so a hostile inline
+  // <script>/onload cannot execute if the file URL is opened
+  // directly as a same-origin document (finding: SVG XSS).
+  setHeader(event, 'X-Content-Type-Options', 'nosniff');
+  if (ext === 'svg') {
+    setHeader(
+      event,
+      'Content-Security-Policy',
+      "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+    );
+  }
   setHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable');
 
   return sendStream(event, createReadStream(finalPath));

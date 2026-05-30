@@ -21,5 +21,9 @@ export default defineEventHandler(async (event) => {
     .where(eq(forumTopics.id, id))
     .returning();
 
+  if (topic.length === 0) {
+    throw createError({ statusCode: 404, message: 'Topic not found' });
+  }
+
   return topic[0];
 });

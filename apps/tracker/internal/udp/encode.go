@@ -31,8 +31,15 @@ func EncodeAnnounceResponse(
 	if numWant <= 0 {
 		numWant = 50
 	}
-	// Worst-case size: header + every peer fits.
-	maxLen := announceRespHdr + 6*len(peerList)
+	// Worst-case size: header + at most `numWant` peers (the write
+	// loop below stops at numWant). Sizing to the FULL swarm wasted
+	// allocation on large torrents (finding L6) — bound it by the
+	// effective write budget.
+	peerBudget := numWant
+	if len(peerList) < peerBudget {
+		peerBudget = len(peerList)
+	}
+	maxLen := announceRespHdr + 6*peerBudget
 	if cap(out) < maxLen {
 		out = make([]byte, maxLen)
 	}

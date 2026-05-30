@@ -118,7 +118,7 @@ function isBlockedAddress(address: string, family: number): boolean {
  * An IP literal short-circuits the DNS step but still goes through
  * the range check.
  */
-async function validateHost(hostname: string): Promise<void> {
+export async function validateHost(hostname: string): Promise<void> {
   const literal = isIP(hostname);
   if (literal) {
     if (isBlockedAddress(hostname, literal)) {

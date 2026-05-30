@@ -79,6 +79,77 @@ export async function invalidateBanCache(userId: string): Promise<void> {
 }
 
 /**
+ * Live staff-role lookup, cached for 60 s — backs the role
+ * re-validation in `requireModeratorSession` / `requireAdminSession`.
+ *
+ * The session cookie is a sealed, stateless 7-day token that bakes
+ * in `isAdmin` / `isModerator` at login time. Without this, a user
+ * demoted for cause kept a cookie that still asserted staff and
+ * could keep hitting admin/mod APIs for up to 7 days (finding M2).
+ * Re-reading the authoritative flags here (and bumping the cache on
+ * role change) closes that window to ≤ 60 s, mirroring the ban
+ * cache. Returns null when the user no longer exists.
+ */
+const ROLE_CACHE_TTL_S = 60;
+const roleCacheKey = (userId: string) => `auth:role:${userId}`;
+
+async function readLiveRoles(
+  userId: string
+): Promise<{ isAdmin: boolean; isModerator: boolean } | null> {
+  try {
+    const cached = await redis.get(roleCacheKey(userId));
+    if (cached) {
+      const p = JSON.parse(cached) as { a: boolean; m: boolean };
+      return { isAdmin: !!p.a, isModerator: !!p.m };
+    }
+  } catch {
+    /* fall through to DB */
+  }
+  const [row] = await db
+    .select({ isAdmin: users.isAdmin, isModerator: users.isModerator })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!row) return null;
+  try {
+    await redis.setex(
+      roleCacheKey(userId),
+      ROLE_CACHE_TTL_S,
+      JSON.stringify({ a: row.isAdmin, m: row.isModerator })
+    );
+  } catch {
+    /* no-op */
+  }
+  return { isAdmin: row.isAdmin, isModerator: row.isModerator };
+}
+
+/** Drop the cached role state. Call from any path that changes a
+ *  user's `is_admin` / `is_moderator` (role-change endpoint). */
+export async function invalidateRoleCache(userId: string): Promise<void> {
+  try {
+    await redis.del(roleCacheKey(userId));
+  } catch {
+    /* no-op */
+  }
+}
+
+/**
+ * Re-validate the caller's staff role against the live DB (cached)
+ * rather than trusting the sealed cookie, and reconcile the in-memory
+ * session so downstream reads see the authoritative value.
+ */
+async function refreshSessionRoles(
+  session: Awaited<ReturnType<typeof requireUserSession>>
+): Promise<void> {
+  const live = await readLiveRoles(session.user.id);
+  if (!live) {
+    throw createError({ statusCode: 403, message: 'Account no longer exists' });
+  }
+  session.user.isAdmin = live.isAdmin;
+  session.user.isModerator = live.isModerator;
+}
+
+/**
  * Require user authentication and check for bans
  */
 export async function requireAuthSession(event: H3Event) {
@@ -111,6 +182,10 @@ export async function requireAuthSession(event: H3Event) {
 export async function requireModeratorSession(event: H3Event) {
   const session = await requireAuthSession(event);
 
+  // Re-validate against the live (cached) role, not the sealed
+  // cookie, so a demoted staffer loses access within ≤60 s (M2).
+  await refreshSessionRoles(session);
+
   if (!session.user?.isAdmin && !session.user?.isModerator) {
     throw createError({
       statusCode: 403,
@@ -127,6 +202,10 @@ export async function requireModeratorSession(event: H3Event) {
  */
 export async function requireAdminSession(event: H3Event) {
   const session = await requireAuthSession(event);
+
+  // Re-validate against the live (cached) role, not the sealed
+  // cookie (M2).
+  await refreshSessionRoles(session);
 
   if (!session.user?.isAdmin) {
     throw createError({

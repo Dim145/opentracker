@@ -222,9 +222,11 @@ export default defineEventHandler(async (event) => {
   // Notify the inviter when their code was redeemed. Sits outside
   // the transaction so a notification glitch doesn't roll back a
   // genuine signup.
-  if (validInvite && validInvite.generatedBy) {
+  // The inviter FK is `createdBy` — `generatedBy` doesn't exist on
+  // the invitations row, so this notify never fired (finding L4).
+  if (validInvite && validInvite.createdBy) {
     void notify(
-      validInvite.generatedBy,
+      validInvite.createdBy,
       'invite_redeemed',
       {
         inviteeUsername: body.username,

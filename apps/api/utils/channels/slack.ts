@@ -7,6 +7,7 @@
  * a small block kit message: header (title), section (body), and a
  * context line linking back to Trackarr when a deep link exists.
  */
+import { safeFetch, SafeFetchError } from '../safeFetch';
 import type { ChannelAdapter, NotificationPayload, TestResult } from './types';
 
 interface SlackUser {
@@ -41,7 +42,9 @@ async function postBlocks(
     });
   }
   try {
-    const res = await fetch(url, {
+    // safeFetch for defense-in-depth: host is pinned to
+    // hooks.slack.com by WEBHOOK_RE, safeFetch re-validates redirects.
+    const res = await safeFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -58,6 +61,7 @@ async function postBlocks(
     }
     return { ok: true };
   } catch (err) {
+    if (err instanceof SafeFetchError) return { ok: false, error: err.message };
     return { ok: false, error: (err as Error).message };
   }
 }

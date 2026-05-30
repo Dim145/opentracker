@@ -320,7 +320,30 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		}
 	}
 
-	// 5. Calculate stats deltas vs the previous announce
+	// 5. Calculate stats deltas vs the previous announce.
+	//
+	// A delta is ONLY ever credited as the difference between two
+	// announces we actually observed (a durable-enough Redis baseline
+	// from the previous announce). We never trust a client-declared
+	// cumulative counter as a standalone delta.
+	//
+	// Why: `event=stopped` deletes the peer from Redis (step 7), which
+	// resets `prev` to nil. An earlier version trusted `req.Uploaded`
+	// as the full delta on the first-announce `started` path, so a
+	// client could loop `started(uploaded=1TiB)` → `stopped` →
+	// `started(uploaded=1TiB)` … and fabricate unlimited upload credit
+	// (the 1 TiB cap below is per-announce, so it did not bound the
+	// loop; and the velocity anti-cheat heuristic is skipped whenever
+	// prev==nil). See security finding C2.
+	//
+	// Cost of the safe behaviour: when a peer's baseline is missing
+	// (explicit client restart, or a Redis gap > peerTTL) the first
+	// announce credits 0 and merely re-establishes the baseline (the
+	// peer is stored in step 8 with its current counters); subsequent
+	// announces credit the genuine increments. A restart therefore
+	// forfeits at most one announce-interval of credit — identical to
+	// the long-standing TTL-expiry behaviour, and the only direction
+	// that cannot be replayed.
 	prev, _ := s.peers.Get(ctx, infoHashHex, peerHex)
 	var deltaUp, deltaDown int64
 	if prev != nil {
@@ -329,28 +352,6 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		}
 		if d := req.Downloaded - prev.Downloaded; d > 0 {
 			deltaDown = d
-		}
-	} else if req.Event == announce.EventStarted {
-		// First announce we see for this peer, and the client is
-		// explicitly signalling `started`. Trust their declared
-		// cumulative counters as the initial delta — otherwise every
-		// client restart (or any gap > peerTTL) silently zeroes the
-		// session's contribution to both `users.uploaded/downloaded`
-		// and the per-(user, torrent) row in `hnr_tracking`.
-		//
-		// Spoofing window: a malicious client can claim arbitrary
-		// counters on `started`. The 1 TiB per-announce cap below
-		// already bounds the worst case, and a non-`started` first
-		// announce still falls through to the zero-delta path — so
-		// the exploit requires the attacker to advertise `started`
-		// every time they want to inject bytes, which announce
-		// rate-limiting + the existing user banning machinery can
-		// catch.
-		if req.Uploaded > 0 {
-			deltaUp = req.Uploaded
-		}
-		if req.Downloaded > 0 {
-			deltaDown = req.Downloaded
 		}
 	}
 
@@ -403,7 +404,23 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 			s.bgTasks.Add(1)
 			go func(flags []anticheat.Flag) {
 				defer s.bgTasks.Done()
-				anticheat.Persist(ctx, s.db.Pool, flags)
+				// recover() so a panic still releases the WaitGroup
+				// slot (otherwise graceful shutdown's bgTasks.Wait()
+				// would hang). Mirrors recordHnrCompletion/recordSeedTime.
+				defer func() {
+					if r := recover(); r != nil {
+						slog.Error("anticheat persist panic", "recover", r)
+					}
+				}()
+				// Derive the DB context from the server lifetime, NOT the
+				// request ctx: r.Context() is cancelled the instant the
+				// announce response is written, so the detached write
+				// almost always raced into `context canceled` and the
+				// flag was silently dropped — quietly starving the very
+				// moderation queue this subsystem feeds (finding M9).
+				pctx, cancel := context.WithTimeout(s.appCtx, 5*time.Second)
+				defer cancel()
+				anticheat.Persist(pctx, s.db.Pool, flags)
 			}(acFlags)
 		}
 	}
@@ -449,7 +466,19 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// the per-torrent counter inside hnr_tracking. The latter creates a
 	// tracking row on the first non-zero delta so the Downloads page in
 	// the web UI can show a torrent before the user has completed it.
-	if deltaUp > 0 || deltaDown > 0 {
+	//
+	// Credit-dedup: the main dedup key (step 4) includes the event, so
+	// two concurrent announces that share {hash,peer} but differ in
+	// event (e.g. `started` + `update`) BOTH pass it, both read the
+	// same `prev` baseline, and would each credit the same delta —
+	// an N× over-credit (finding M5). Gate the credit itself on an
+	// event-independent key so the byte delta is booked at most once
+	// per (hash,peer) per 2 s window. CheckAndMark is mutex-guarded,
+	// so exactly one of a concurrent pair wins. The per-event dedup
+	// above still lets distinct events run their own side effects
+	// (completed counter, stopped removal).
+	creditKey := infoHashHex + ":" + peerHex + ":credit"
+	if (deltaUp > 0 || deltaDown > 0) && s.dedup.CheckAndMark(creditKey) {
 		if err := s.db.Q.IncrementUserStats(ctx, queries.IncrementUserStatsParams{
 			Uploaded:   deltaUp,
 			Downloaded: deltaDown,

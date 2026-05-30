@@ -7,6 +7,7 @@
  * the fallback + a colour + the body in plain text, and the deep
  * link as the attachment URL when present.
  */
+import { safeFetch, SafeFetchError } from '../safeFetch';
 import type { ChannelAdapter, NotificationPayload, TestResult } from './types';
 
 interface MattermostUser {
@@ -25,7 +26,13 @@ async function postAttachment(
     return { ok: false, error: 'Invalid Mattermost webhook URL format' };
   }
   try {
-    const res = await fetch(url, {
+    // Route through safeFetch (not bare fetch): the host class above
+    // is `[^/]+` because Mattermost is self-hostable, so the URL is
+    // attacker-controllable to ANY host. safeFetch resolves DNS and
+    // refuses private/loopback/link-local/metadata ranges and
+    // re-validates every redirect hop, closing the SSRF that bare
+    // fetch left open (finding H3).
+    const res = await safeFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -43,14 +50,17 @@ async function postAttachment(
       }),
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
+      // Do NOT reflect the upstream response body. The destination is
+      // an arbitrary self-hosted host, so echoing its body back to the
+      // caller would be a read-SSRF exfil oracle. Status code only.
       return {
         ok: false,
-        error: `Mattermost returned ${res.status}: ${text.slice(0, 200)}`,
+        error: `Mattermost returned ${res.status}`,
       };
     }
     return { ok: true };
   } catch (err) {
+    if (err instanceof SafeFetchError) return { ok: false, error: err.message };
     return { ok: false, error: (err as Error).message };
   }
 }

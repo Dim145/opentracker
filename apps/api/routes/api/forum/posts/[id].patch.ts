@@ -10,7 +10,7 @@
  * without trusting client-supplied timestamps.
  */
 import { db } from '@trackarr/db';
-import { forumPosts } from '@trackarr/db/schema';
+import { forumPosts, forumTopics } from '@trackarr/db/schema';
 import { validateBody, forumPostUpdateSchema } from '~~/utils/schemas';
 import { eq } from 'drizzle-orm';
 
@@ -45,6 +45,18 @@ export default defineEventHandler(async (event) => {
       statusCode: 403,
       message: 'You can only edit your own posts',
     });
+  }
+
+  // A locked topic is a hard freeze for non-staff on EVERY mutation,
+  // not just new replies (finding: forum lock not enforced on edit).
+  if (!isStaff) {
+    const topic = await db.query.forumTopics.findFirst({
+      where: eq(forumTopics.id, post.topicId),
+      columns: { isLocked: true },
+    });
+    if (topic?.isLocked) {
+      throw createError({ statusCode: 403, message: 'This topic is locked' });
+    }
   }
 
   const [updated] = await db

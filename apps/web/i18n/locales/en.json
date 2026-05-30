@@ -2855,6 +2855,7 @@
       "restoreButton": "Restore Database",
       "confirmTitle": "Confirm Database Encryption",
       "confirmHint": "This will encrypt all sensitive data in the database. The data will be unreadable until restored with the panic password.",
+      "encryptPasswordHint": "The encryption key is derived from this password — re-enter it to confirm. It is never stored, so a database dump cannot be decrypted without it.",
       "irreversibleWarning": "{warn} This action is irreversible without the panic password.",
       "warningEmoji": "⚠️",
       "cancel": "Cancel",

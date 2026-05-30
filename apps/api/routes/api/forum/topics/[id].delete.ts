@@ -36,6 +36,13 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // A non-staff author cannot delete a topic a moderator has locked
+  // (locking is meant to freeze/preserve the thread — finding: forum
+  // lock not enforced on topic delete).
+  if (!isModerator && topic.isLocked) {
+    throw createError({ statusCode: 403, message: 'This topic is locked' });
+  }
+
   await db.delete(forumTopics).where(eq(forumTopics.id, id));
 
   return { message: 'Topic deleted' };

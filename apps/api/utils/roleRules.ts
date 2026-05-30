@@ -111,12 +111,14 @@ export async function computeUserStats(
 
   const downloaded = Number(user.downloadedBytes ?? 0);
   const uploaded = Number(user.uploadedBytes ?? 0);
-  const ratio =
-    downloaded === 0
-      ? uploaded > 0
-        ? Number.POSITIVE_INFINITY
-        : 0
-      : uploaded / downloaded;
+  // For RULE EVALUATION, a zero-download account has ratio 0 — NOT
+  // +Infinity. Returning Infinity made `ratio >= X` match instantly
+  // for any brand-new account that uploaded a single byte (or
+  // fabricated upload), letting it satisfy a high ratio threshold
+  // with no real track record and auto-cross into a role (finding
+  // L12). Operators who want to reward pure seeders should gate on
+  // uploadedBytes / completedSeeds instead of ratio.
+  const ratio = downloaded === 0 ? 0 : uploaded / downloaded;
   const ageMs = Date.now() - new Date(user.createdAt).getTime();
   return {
     approvedUploads: agg?.approvedUploads ?? 0,

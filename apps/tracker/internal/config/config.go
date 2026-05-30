@@ -64,6 +64,14 @@ func Load() (*Config, error) {
 	if cfg.IPHashSecret == "" {
 		return nil, fmt.Errorf("IP_HASH_SECRET is required")
 	}
+	// IP_HASH_SECRET keys BOTH the IP/peer fingerprints and the BEP 15
+	// connection-id HMAC. A short, low-entropy value would let an
+	// attacker brute-force the fixed-salt IP hashes and forge
+	// connection ids, so require at least 32 chars (findings:
+	// IP_HASH_SECRET / connection-id key strength).
+	if len(cfg.IPHashSecret) < 32 {
+		return nil, fmt.Errorf("IP_HASH_SECRET must be at least 32 characters (got %d); generate one with `openssl rand -hex 32`", len(cfg.IPHashSecret))
+	}
 
 	return cfg, nil
 }

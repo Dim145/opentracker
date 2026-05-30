@@ -338,7 +338,12 @@ export function toEditorHtml(input: string | null | undefined): string {
   if (!input) return '';
   switch (detectFormat(input)) {
     case 'bbcode':
-      return bbcodeToHtml(input);
+      // Run the BBCode output through the same DOMPurify pass as the
+      // other arms. bbcodeToHtml emits only whitelisted markup today,
+      // but routing it through sanitizeHtml keeps this sink
+      // defence-in-depth consistent so a future BBCode tag can't open
+      // an XSS hole (finding: BBCode bypasses the sanitiser).
+      return sanitizeHtml(bbcodeToHtml(input));
     case 'html':
       // Sanitise just in case it came from clipboard.
       return sanitizeHtml(input);

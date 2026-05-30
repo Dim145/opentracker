@@ -46,9 +46,20 @@ export default defineNitroPlugin((nitroApp) => {
   }
 
   const port = parseInt(process.env.METRICS_PORT || '9090', 10);
-  const host = process.env.METRICS_HOST || '0.0.0.0';
+  // Default to loopback so a one-flag `METRICS_ENABLED=true` doesn't
+  // silently publish the endpoint to the whole network (finding L10).
+  // Operators who scrape from another host set METRICS_HOST explicitly
+  // — and should pair it with METRICS_AUTH_TOKEN (warned below).
+  const host = process.env.METRICS_HOST || '127.0.0.1';
   const authToken = process.env.METRICS_AUTH_TOKEN || '';
   const path = process.env.METRICS_PATH || '/metrics';
+
+  const loopback = host === '127.0.0.1' || host === '::1' || host === 'localhost';
+  if (!authToken && !loopback) {
+    console.warn(
+      `[metrics] Listening on ${host}:${port} with NO METRICS_AUTH_TOKEN — the metrics endpoint is exposed unauthenticated beyond loopback. Set METRICS_AUTH_TOKEN or bind METRICS_HOST to 127.0.0.1.`
+    );
+  }
 
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     // Liveness probe — useful for orchestrators that hit the metrics port

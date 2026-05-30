@@ -57,6 +57,25 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Carry any Torznab access block across the rotation. The block is
+  // keyed by passkey hash, so without this a blocked user could
+  // self-lift the admin's restriction simply by minting a new
+  // passkey (finding: Torznab block evaded by rotation). Re-apply it
+  // to the new key and drop the now-dead old entry + stats.
+  try {
+    const wasBlocked = await isTorznabUserBlocked(user.passkey);
+    if (wasBlocked.blocked) {
+      await blockTorznabUser(
+        updated.passkey,
+        wasBlocked.reason ?? 'carried over on passkey rotation'
+      );
+      await unblockTorznabUser(user.passkey);
+    }
+    await clearTorznabUserStats(user.passkey);
+  } catch (err) {
+    console.warn('[passkey rotate] torznab block migration failed:', err);
+  }
+
   // Refresh the session in place so the next reveal/copy on the page
   // returns the new value rather than the stale one we cached at login.
   await setUserSession(event, {

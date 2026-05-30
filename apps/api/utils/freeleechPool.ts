@@ -285,24 +285,32 @@ export function monthlyCovers(
   minuteEnd: number | null
 ): boolean {
   const today = now.getUTCDate();
-  if (!days.includes(today)) return false;
   const minOfDay = now.getUTCHours() * 60 + now.getUTCMinutes();
   const startMin = minuteStart ?? 0;
   const endMin = minuteEnd ?? 1440;
-  // Allow `endMin <= startMin` to encode a window that crosses
-  // midnight (e.g. 22:00 → 02:00 of the *next* day). We catch the
-  // "early next day" case by also accepting yesterday's window
-  // wrapping into today.
-  if (endMin > startMin) {
-    return minOfDay >= startMin && minOfDay < endMin;
+  // `endMin <= startMin` encodes a window that crosses midnight
+  // (e.g. 22:00 → 02:00 of the *next* day).
+  const crossesMidnight = endMin <= startMin;
+
+  // Same-calendar-day portion (requires today ∈ days).
+  if (days.includes(today)) {
+    if (crossesMidnight) {
+      // Open from startMin through end of day.
+      if (minOfDay >= startMin) return true;
+    } else if (minOfDay >= startMin && minOfDay < endMin) {
+      return true;
+    }
   }
-  // Cross-midnight: open from startMin..end-of-day, then 0..endMin
-  // on the next day. The "next day" portion requires that yesterday
-  // was a listed day.
-  if (minOfDay >= startMin) return true;
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const yDay = yesterday.getUTCDate();
-  if (days.includes(yDay) && minOfDay < endMin) return true;
+
+  // After-midnight spillover of a cross-midnight window whose START
+  // day was YESTERDAY. This must be evaluated even when today ∉ days
+  // — otherwise a window like days=[15], 22:00→02:00 silently closed
+  // ~2 h early because the post-midnight slice fell on the 16th,
+  // which isn't a listed day (finding M7).
+  if (crossesMidnight) {
+    const yDay = new Date(now.getTime() - 24 * 60 * 60 * 1000).getUTCDate();
+    if (days.includes(yDay) && minOfDay < endMin) return true;
+  }
   return false;
 }
 
@@ -831,6 +839,53 @@ export async function tickStartQueued(): Promise<number> {
   return started;
 }
 
+/**
+ * Re-create the bonus event the pool displaced (if any) for the time
+ * it still had to run, mirroring the overlay capture in
+ * `attemptTrigger`. Shared by the natural cycle end AND the admin
+ * reset so a manual drain doesn't permanently destroy an unrelated,
+ * admin-scheduled event that merely happened to be running when the
+ * pool fired (finding M8). When a transient overlap blocks the
+ * resume we LOG rather than silently drop it (finding L7). Must run
+ * inside a tx already holding the bonus-events write lock.
+ */
+async function restorePausedEvent(
+  tx: Tx,
+  cycle: typeof schema.freeleechPoolCycles.$inferSelect,
+  now: Date
+): Promise<void> {
+  if (
+    !cycle.pausedEventRemainingMs ||
+    cycle.pausedEventRemainingMs <= 0 ||
+    cycle.pausedEventDownloadMultiplier === null ||
+    cycle.pausedEventUploadMultiplier === null
+  ) {
+    return;
+  }
+  const resumeEnds = new Date(now.getTime() + cycle.pausedEventRemainingMs);
+  if (await hasOverlap(now, resumeEnds, undefined, tx)) {
+    console.warn(
+      '[FreeleechPool] paused bonus event NOT restored for cycle',
+      cycle.id,
+      '— another enabled event overlaps the resume window; recreate it manually if needed.'
+    );
+    return;
+  }
+  await tx.insert(schema.bonusEvents).values({
+    id: randomUUID(),
+    title: cycle.pausedEventTitle ?? 'Bonus event (resumed)',
+    description: cycle.pausedEventDescription,
+    longDescription: cycle.pausedEventLongDescription,
+    downloadMultiplier: cycle.pausedEventDownloadMultiplier,
+    uploadMultiplier: cycle.pausedEventUploadMultiplier,
+    startsAt: now,
+    endsAt: resumeEnds,
+    enabled: true,
+    source: 'manual',
+    createdById: cycle.pausedEventCreatedById,
+  });
+}
+
 /** Close every cycle whose `ends_at` has passed. For each, restore
  *  the paused event (if any) and open a fresh `filling` cycle when
  *  the feature is still enabled. */
@@ -865,32 +920,7 @@ export async function tickEndExpired(): Promise<number> {
         }
 
         // Restore the paused event when we displaced one.
-        if (
-          cycle.pausedEventRemainingMs &&
-          cycle.pausedEventRemainingMs > 0 &&
-          cycle.pausedEventDownloadMultiplier !== null &&
-          cycle.pausedEventUploadMultiplier !== null
-        ) {
-          const resumeId = randomUUID();
-          const resumeEnds = new Date(
-            now.getTime() + cycle.pausedEventRemainingMs
-          );
-          if (!(await hasOverlap(now, resumeEnds, undefined, tx))) {
-            await tx.insert(schema.bonusEvents).values({
-              id: resumeId,
-              title: cycle.pausedEventTitle ?? 'Bonus event (resumed)',
-              description: cycle.pausedEventDescription,
-              longDescription: cycle.pausedEventLongDescription,
-              downloadMultiplier: cycle.pausedEventDownloadMultiplier,
-              uploadMultiplier: cycle.pausedEventUploadMultiplier,
-              startsAt: now,
-              endsAt: resumeEnds,
-              enabled: true,
-              source: 'manual',
-              createdById: cycle.pausedEventCreatedById,
-            });
-          }
-        }
+        await restorePausedEvent(tx, cycle, now);
 
         await tx
           .update(schema.freeleechPoolCycles)
@@ -948,6 +978,13 @@ export async function adminReset(): Promise<{ cancelled: boolean }> {
         .set({ enabled: false, updatedAt: now })
         .where(eq(schema.bonusEvents.id, open.triggeredEventId));
     }
+
+    // Restore any event the pool displaced — a manual reset must not
+    // silently destroy an unrelated, admin-scheduled bonus event
+    // (finding M8). 'cancelled' cycles are never revisited by the
+    // cron, so this is the only chance to bring it back.
+    await restorePausedEvent(tx, open, now);
+
     await tx
       .update(schema.freeleechPoolCycles)
       .set({ status: 'cancelled', closedAt: now })

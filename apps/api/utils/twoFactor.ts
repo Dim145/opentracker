@@ -69,28 +69,61 @@ export function buildTotpUri(opts: {
 
 /**
  * Verify a 6-digit code against the stored secret. Returns `true` for
- * any code valid in the ±30 s window (`window: 1`).
+ * any code valid in the ±30 s window (`epochTolerance: 30`).
  *
- * otplib v13 returns `{ valid, delta, epoch, timeStep }` — note the
- * lowercase `valid`. The earlier `result.isValid` check silently
- * coerced to `false` for every code because the property doesn't
- * exist; callers saw "Invalid TOTP code" no matter what they typed.
+ * Pass `{ userId }` to additionally enforce single-use: a code that
+ * already authenticated this user is rejected for the rest of its
+ * validity window (replay protection — finding M3).
+ *
+ * otplib v13 returns `{ valid, delta }` — note the lowercase `valid`.
  */
+const TOTP_PERIOD_S = 30;
+// Covers the ±1-step tolerance window with margin so a code can't be
+// replayed before it has truly expired.
+const TOTP_REPLAY_TTL_S = 90;
+
 export async function verifyTotp(
   code: string,
-  secret: string
+  secret: string,
+  opts?: { userId?: string }
 ): Promise<boolean> {
   if (!/^\d{6}$/.test(code.trim())) return false;
+  let result: { valid: boolean; delta?: number } | undefined;
   try {
-    const result = await otpVerify({
+    result = await otpVerify({
       token: code.trim(),
       secret,
-      window: 1,
+      // ±30 s (±1 step) of clock drift. otplib v13 DROPPED the old
+      // `window` option — passing it was silently ignored, leaving
+      // zero tolerance (finding L3). `epochTolerance` (seconds) is
+      // the v13 API.
+      epochTolerance: TOTP_PERIOD_S,
     });
-    return !!result?.valid;
   } catch {
     return false;
   }
+  if (!result?.valid) return false;
+
+  // Single-use within the validity window (finding M3 / RFC 6238
+  // §5.2): once a user's code is accepted, reject the same matched
+  // time step so a captured code can't be replayed on another 2FA
+  // endpoint before it naturally expires. The matched step is
+  // `currentStep + delta`, so the ±1 drift slot is keyed precisely.
+  if (opts?.userId) {
+    const matchedStep =
+      Math.floor(Date.now() / 1000 / TOTP_PERIOD_S) + (result.delta ?? 0);
+    const key = `2fa:totp-used:${opts.userId}:${matchedStep}`;
+    let firstUse: string | null;
+    try {
+      firstUse = await redis.set(key, '1', 'EX', TOTP_REPLAY_TTL_S, 'NX');
+    } catch {
+      // Redis blip: fail OPEN on the replay guard (the code was
+      // already cryptographically valid) rather than lock the user out.
+      return true;
+    }
+    if (firstUse !== 'OK') return false; // already consumed → replay
+  }
+  return true;
 }
 
 // ── Recovery codes ───────────────────────────────────────────
@@ -220,8 +253,20 @@ export async function consumeChallengeToken(
   token: string
 ): Promise<string | null> {
   const key = challengeKey(token);
-  const userId = await redis.get(key);
-  if (!userId) return null;
-  await redis.del(key);
-  return userId;
+  // Atomic read-and-delete (Redis 6.2+ GETDEL). A non-atomic
+  // GET-then-DEL let two concurrent verify requests both observe the
+  // userId before either delete ran, so the same one-shot token
+  // could be consumed twice (finding L2). GETDEL hands the value to
+  // exactly one caller.
+  try {
+    const userId = await redis.getdel(key);
+    return userId || null;
+  } catch {
+    // Fallback for a Redis build without GETDEL: best-effort
+    // GET+DEL (slightly racy, but never worse than the old path).
+    const userId = await redis.get(key);
+    if (!userId) return null;
+    await redis.del(key);
+    return userId;
+  }
 }

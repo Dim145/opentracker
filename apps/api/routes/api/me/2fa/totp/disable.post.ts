@@ -42,9 +42,11 @@ export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event);
   const body = await validateBody(event, bodySchema);
 
-  // Gate A — fresh auth window.
-  const sid = String(session.id ?? '');
-  if (!sid || !(await isFreshAuth(sid))) {
+  // Gate A — fresh auth window. Resolve the real h3 session id
+  // (finding H1: session.id off the data object was always
+  // undefined, so this gate used to reject every request).
+  const sid = await getSessionId(event);
+  if (!(await isFreshAuth(sid))) {
     throw createError({
       statusCode: 401,
       message:
@@ -69,7 +71,7 @@ export default defineEventHandler(async (event) => {
   // hold the secret is the cleanest confirmation.
   let consumedRecoveryId: string | null = null;
   if (body.code) {
-    if (!(await verifyTotp(body.code, row.totpSecret))) {
+    if (!(await verifyTotp(body.code, row.totpSecret, { userId: session.user.id }))) {
       throw createError({ statusCode: 400, message: 'Invalid TOTP code.' });
     }
   } else if (body.recoveryCode) {

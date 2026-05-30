@@ -19,7 +19,7 @@
         </p>
 
         <button
-          @click="showConfirmModal = true"
+          @click="openEncryptModal"
           :disabled="loading"
           class="w-full bg-error text-white text-sm font-bold uppercase tracking-widest py-3 rounded hover:bg-error/90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
         >
@@ -46,7 +46,7 @@
         </div>
 
         <button
-          @click="showRestoreModal = true"
+          @click="openRestoreModal"
           :disabled="loading"
           class="w-full bg-success text-white text-sm font-bold uppercase tracking-widest py-3 rounded hover:bg-success/90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
         >
@@ -83,6 +83,29 @@
             </p>
           </div>
 
+          <div class="mb-4">
+            <label
+              for="encryptPanicPassword"
+              class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2"
+            >
+              {{ $t('admin.panic.panicPassword') }}
+            </label>
+            <input
+              id="encryptPanicPassword"
+              v-model="encryptPassword"
+              type="password"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-error transition-colors"
+              :placeholder="$t('admin.panic.panicPasswordPlaceholder')"
+            />
+            <p class="text-text-muted text-xs mt-2">
+              {{ $t('admin.panic.encryptPasswordHint') }}
+            </p>
+          </div>
+
+          <div v-if="error" class="text-error text-sm mb-4">
+            {{ error }}
+          </div>
+
           <div class="flex gap-3">
             <button
               @click="showConfirmModal = false"
@@ -92,7 +115,7 @@
             </button>
             <button
               @click="triggerPanic"
-              :disabled="loading"
+              :disabled="loading || !encryptPassword"
               class="flex-1 bg-error text-white text-sm font-bold py-2.5 rounded hover:bg-error/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <Icon
@@ -184,6 +207,10 @@ const loading = ref(false);
 const showConfirmModal = ref(false);
 const showRestoreModal = ref(false);
 const panicPassword = ref('');
+// Separate field for the encrypt confirmation — the key is now
+// derived from the raw panic password (not the stored hash), so the
+// admin must re-enter it to lock the database.
+const encryptPassword = ref('');
 const error = ref('');
 
 // Fetch panic state on mount
@@ -199,6 +226,18 @@ onMounted(async () => {
   }
 });
 
+function openEncryptModal() {
+  error.value = '';
+  encryptPassword.value = '';
+  showConfirmModal.value = true;
+}
+
+function openRestoreModal() {
+  error.value = '';
+  panicPassword.value = '';
+  showRestoreModal.value = true;
+}
+
 async function triggerPanic() {
   loading.value = true;
   error.value = '';
@@ -206,12 +245,16 @@ async function triggerPanic() {
   try {
     await $fetch('/api/admin/panic/encrypt', {
       method: 'POST',
-      body: { confirm: 'ENCRYPT_ALL_DATA' },
+      body: {
+        confirm: 'ENCRYPT_ALL_DATA',
+        panicPassword: encryptPassword.value,
+      },
     });
 
     isEncrypted.value = true;
     encryptedAt.value = new Date().toISOString();
     showConfirmModal.value = false;
+    encryptPassword.value = '';
   } catch (err: any) {
     error.value = err.data?.message || t('admin.panic.encryptionFailed');
   } finally {

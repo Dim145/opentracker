@@ -67,6 +67,20 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // A privilege-bearing role must NOT be auto-granted: the rules
+  // engine keys on attacker-influenceable counters (uploaded / ratio
+  // / seedtime), so an auto role with `canUploadWithoutModeration`
+  // lets a member who inflates those stats silently acquire a
+  // moderation bypass with no human in the loop (finding: role
+  // engine auto + bypass). Require a manual attach for the bypass.
+  if (body.assignmentMode === 'auto' && body.canUploadWithoutModeration) {
+    throw createError({
+      statusCode: 400,
+      message:
+        'A role that grants upload-without-moderation cannot be auto-assigned. Use manual assignment so a human authorises each grant.',
+    });
+  }
+
   const [created] = await db
     .insert(roles)
     .values({

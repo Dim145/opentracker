@@ -88,6 +88,17 @@ export default defineEventHandler(async (event) => {
     })
     .where(eq(schema.users.id, user.id));
 
+  // A password change is a global security event. Revoke every
+  // trusted-device cookie (each one bypasses 2FA for up to 30 days,
+  // so a rotation that didn't clear them would leave a thief's
+  // device authorised — finding H2) and wipe the fresh-auth stamp so
+  // the change itself can't be ridden by a stale session. The
+  // current tab transparently re-establishes fresh-auth on its next
+  // sensitive action. Best-effort: a bookkeeping hiccup must not
+  // fail the password change itself.
+  await revokeAllForUser(user.id).catch(() => {});
+  await clearFreshAuth(await getSessionId(event)).catch(() => {});
+
   void notify(user.id, 'password_changed', null, '/settings');
 
   return { success: true };

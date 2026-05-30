@@ -37,6 +37,20 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // A locked topic freezes non-staff: otherwise a regular author
+  // could delete their first post and cascade-wipe the entire locked
+  // thread (every other user's replies too) — defeating a
+  // moderator's lock (finding: forum lock not enforced on delete).
+  if (!isModerator) {
+    const topic = await db.query.forumTopics.findFirst({
+      where: eq(forumTopics.id, post.topicId),
+      columns: { isLocked: true },
+    });
+    if (topic?.isLocked) {
+      throw createError({ statusCode: 403, message: 'This topic is locked' });
+    }
+  }
+
   // Check if it's the first post of the topic
   const firstPost = await db.query.forumPosts.findFirst({
     where: eq(forumPosts.topicId, post.topicId),

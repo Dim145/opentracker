@@ -76,6 +76,11 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.users.id, id))
     .returning();
 
+  // Bust the cached role so the staff gates observe the change
+  // within the request, not after the 60 s TTL — and a demotion
+  // takes effect immediately (finding M2).
+  await invalidateRoleCache(id);
+
   // Notify the affected user when their staff status actually
   // changed in either direction. The payload carries both before
   // and after flags so the bell can render a precise label.

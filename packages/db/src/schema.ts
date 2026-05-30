@@ -1233,6 +1233,17 @@ export const panicState = pgTable('panic_state', {
   encryptedAt: timestamp('encrypted_at'),
   encryptionSalt: text('encryption_salt'), // For key derivation (base64)
   encryptionIv: text('encryption_iv'), // AES-GCM IV (base64)
+  // Key-derivation scheme used for the current ciphertext:
+  //   1 (legacy) = key derived from the stored panic_password_hash. UNSAFE
+  //                against a DB dump (both KDF inputs live in the dump), kept
+  //                only so a database panicked before the fix can still be
+  //                restored.
+  //   2          = key derived from the raw panic password supplied at
+  //                encrypt time + a random salt. A dump then yields only the
+  //                scrypt verifier + salt + ciphertext, forcing an offline
+  //                password brute-force instead of instant decryption.
+  // New panics always write 2; restore branches on this value.
+  kdfVersion: integer('kdf_version').default(1).notNull(),
 });
 
 // ============================================================================

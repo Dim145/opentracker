@@ -15,6 +15,18 @@
  *
  * Stateless mode: we never use Apprise's stash storage — secrets stay
  * in our DB (encrypted), Apprise just delivers.
+ *
+ * SSRF-by-proxy caveat: safeFetch protects OUR call to the sidecar
+ * (apiUrl), but the per-user `urls` value is a notification *target*
+ * the sidecar itself fetches — and Apprise supports schemes
+ * (json://, xml://, form://, generic webhooks) that issue arbitrary
+ * outbound HTTP. So a user can make the operator's Apprise sidecar
+ * request internal hosts; safeFetch on our side cannot constrain
+ * that. Mitigation is operational and MUST be documented for
+ * operators: run the Apprise sidecar on an isolated network segment
+ * with NO route to internal infra / cloud metadata, and/or restrict
+ * the permitted Apprise schemes in the sidecar config. Do not assume
+ * this path is SSRF-safe just because safeFetch is present.
  */
 import { safeFetch, SafeFetchError } from '../safeFetch';
 import type { ChannelAdapter, NotificationPayload, TestResult } from './types';

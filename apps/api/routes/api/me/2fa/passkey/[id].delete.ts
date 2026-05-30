@@ -24,8 +24,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Passkey id required' });
   }
 
-  const sid = String(session.id ?? '');
-  if (!sid || !(await isFreshAuth(sid))) {
+  // Real h3 session id for the fresh-auth gate (finding H1).
+  const sid = await getSessionId(event);
+  if (!(await isFreshAuth(sid))) {
     throw createError({
       statusCode: 401,
       message:

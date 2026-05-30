@@ -32,6 +32,17 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // The raw panic password is required so the encryption key can be
+  // derived from it (not from the stored hash). Deriving from the
+  // hash would leave BOTH KDF inputs (hash + salt) inside the very
+  // dump panic mode is meant to protect — see finding C1.
+  if (!body.panicPassword || typeof body.panicPassword !== 'string') {
+    throw createError({
+      statusCode: 400,
+      message: 'Panic password is required to encrypt.',
+    });
+  }
+
   // Check if already encrypted
   const currentState = await db.query.panicState.findFirst();
   if (currentState?.isEncrypted) {
@@ -54,15 +65,28 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Verify the supplied password against the stored hash before we
+  // lock the database — encrypting under a key the admin can't
+  // reproduce would brick the data.
+  const passwordOk = await verifyPassword(
+    admin.panicPasswordHash,
+    body.panicPassword
+  );
+  if (!passwordOk) {
+    throw createError({ statusCode: 401, message: 'Invalid panic password' });
+  }
+
   // We only need a salt now — IVs are generated per-record inside
   // `encrypt()` and prefixed into each ciphertext. The legacy IV
   // column on `panic_state` is left null on fresh panics; restore
   // still reads it as a fallback when decrypting old data.
   const salt = generateSalt();
 
-  // Derive key from the original panic password (stored hash). We use
-  // the hash as a key since we can't recover the original password.
-  const key = await deriveKey(admin.panicPasswordHash, Buffer.from(salt, 'base64'));
+  // Derive the key from the RAW panic password (kdf_version 2). The
+  // stored hash is NOT a key input — a DB dump then only yields the
+  // scrypt verifier + salt + ciphertext, forcing an offline
+  // brute-force rather than instant decryption (finding C1).
+  const key = await deriveKey(body.panicPassword, Buffer.from(salt, 'base64'));
 
   // ── Encrypt sensitive user data ──────────────────────────────
   const allUsers = await db.select().from(users);
@@ -143,6 +167,7 @@ export default defineEventHandler(async (event) => {
       encryptedAt: new Date(),
       encryptionSalt: salt,
       encryptionIv: null,
+      kdfVersion: 2,
     })
     .onConflictDoUpdate({
       target: panicState.id,
@@ -151,6 +176,7 @@ export default defineEventHandler(async (event) => {
         encryptedAt: new Date(),
         encryptionSalt: salt,
         encryptionIv: null,
+        kdfVersion: 2,
       },
     });
 

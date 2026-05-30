@@ -21,5 +21,11 @@ export default defineEventHandler(async (event) => {
     .where(eq(forumTopics.id, id))
     .returning();
 
+  // Unknown id → no row updated. Return 404 instead of a 200 with an
+  // empty body so callers get a deterministic result.
+  if (topic.length === 0) {
+    throw createError({ statusCode: 404, message: 'Topic not found' });
+  }
+
   return topic[0];
 });

@@ -82,7 +82,7 @@ export default defineEventHandler(async (event) => {
         message: 'TOTP is not enabled for this account.',
       });
     }
-    if (!(await verifyTotp(body.code, user.totpSecret))) {
+    if (!(await verifyTotp(body.code, user.totpSecret, { userId: user.id }))) {
       throw createError({ statusCode: 400, message: 'Invalid TOTP code.' });
     }
   } else if (body.recoveryCode) {
@@ -134,8 +134,8 @@ export default defineEventHandler(async (event) => {
     loggedInAt: Date.now(),
   });
 
-  const session = await getUserSession(event);
-  if (session?.id) await markFreshAuth(String(session.id));
+  // Real h3 session id, not the session-data object (finding H1).
+  await markFreshAuth(await getSessionId(event));
 
   // Issue the trusted-device cookie if the user opted in. Best-effort
   // (a DB hiccup here would block the login otherwise — the user can

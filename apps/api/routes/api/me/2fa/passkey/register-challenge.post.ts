@@ -17,9 +17,25 @@ import {
   RP_NAME,
   setRegistrationChallenge,
 } from '~~/utils/webauthn';
+import { isFreshAuth } from '~~/utils/twoFactor';
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event);
+
+  // Step-up: enrolling a NEW authenticator is as sensitive as
+  // removing one, so it requires the fresh-auth window too. Without
+  // this, a hijacked session could silently plant a persistent
+  // backdoor passkey (findings H1 / M4). A normal login (or a 2FA
+  // verify) stamps fresh-auth, so first-time enrolment right after
+  // sign-in is unaffected.
+  const sid = await getSessionId(event);
+  if (!(await isFreshAuth(sid))) {
+    throw createError({
+      statusCode: 401,
+      message:
+        'Re-authenticate first. Adding an authenticator requires a fresh login (≤ 10 min ago).',
+    });
+  }
 
   const [user, existing] = await Promise.all([
     db.query.users.findFirst({

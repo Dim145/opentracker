@@ -52,8 +52,10 @@ export default defineEventHandler(async (event) => {
         ),
     ]);
 
-  const sid = String(session.id ?? '');
-  const fresh = sid ? await isFreshAuth(sid) : false;
+  // Real h3 session id (finding H1) — old session.id was undefined,
+  // so freshAuth was always reported false.
+  const sid = await getSessionId(event);
+  const fresh = await isFreshAuth(sid);
 
   return {
     totpEnabled: user?.totpEnabled ?? false,

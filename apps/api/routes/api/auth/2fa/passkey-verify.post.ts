@@ -149,8 +149,8 @@ export default defineEventHandler(async (event) => {
     loggedInAt: Date.now(),
   });
 
-  const session = await getUserSession(event);
-  if (session?.id) await markFreshAuth(String(session.id));
+  // Real h3 session id, not the session-data object (finding H1).
+  await markFreshAuth(await getSessionId(event));
 
   if (user.trustDevicesEnabled) {
     try {

@@ -194,8 +194,11 @@ export default defineEventHandler(async (event) => {
 
   // Stamp the fresh-auth window even on no-2FA logins so the same
   // settings flow ("change my password" etc.) works either way.
-  const session = await getUserSession(event);
-  if (session?.id) await markFreshAuth(String(session.id));
+  // Key on the real h3 session id (getSessionId), not the session
+  // *data* object — `getUserSession` returns only `{ user }`, which
+  // has no `id`, so the old `session.id` was always undefined and
+  // the fresh-auth window never opened (finding H1).
+  await markFreshAuth(await getSessionId(event));
 
   return {
     success: true,

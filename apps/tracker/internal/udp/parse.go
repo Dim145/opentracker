@@ -3,6 +3,7 @@ package udp
 import (
 	"encoding/binary"
 	"errors"
+	"math"
 	"strings"
 
 	"github.com/florianjs/trackarr/apps/tracker/internal/announce"
@@ -147,7 +148,7 @@ func ParseAnnounce(data []byte) (*AnnounceRequestUDP, error) {
 		ConnectionID:  binary.BigEndian.Uint64(data[0:8]),
 		TransactionID: binary.BigEndian.Uint32(data[12:16]),
 		Downloaded:    int64(binary.BigEndian.Uint64(data[56:64])),
-		Left:          int64(binary.BigEndian.Uint64(data[64:72])),
+		Left:          clampLeft(binary.BigEndian.Uint64(data[64:72])),
 		Uploaded:      int64(binary.BigEndian.Uint64(data[72:80])),
 		Event:         binary.BigEndian.Uint32(data[80:84]),
 		IPv4:          binary.BigEndian.Uint32(data[84:88]),
@@ -268,6 +269,23 @@ func nonNeg(v int64) int64 {
 		return 0
 	}
 	return v
+}
+
+// clampLeft maps the raw uint64 `left` field to int64 WITHOUT the
+// sign-flip a plain cast causes for values >= 2^63. A client that
+// sets the high bit (e.g. 0xFFFFFFFFFFFFFFFF) would otherwise wrap
+// to a negative int64, which nonNeg() then clamps to 0 — turning a
+// leecher into a SEEDER (IsSeeder() == left==0), letting it skip the
+// ratio gate and bank bogus seed-time (finding M6). Clamping to
+// MaxInt64 keeps it "lots left" (a leecher), matching how the HTTP
+// path treats an out-of-range left. (uploaded/downloaded keep their
+// wrap-to-0-via-nonNeg behaviour — there it only drops a delta,
+// which is harmless and covered by existing tests.)
+func clampLeft(u uint64) int64 {
+	if u > math.MaxInt64 {
+		return math.MaxInt64
+	}
+	return int64(u)
 }
 
 func mapEvent(e uint32) announce.Event {

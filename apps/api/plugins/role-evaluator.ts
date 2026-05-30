@@ -26,9 +26,12 @@ export default defineNitroPlugin(() => {
   const tick = async () => {
     try {
       const result = await reevaluateAllUsers();
-      if (result.changed > 0) {
+      // reevaluateAllUsers returns { considered, attached, detached } —
+      // the old log read result.changed / result.skipped, which don't
+      // exist (always undefined → the log never fired).
+      if (result.attached + result.detached > 0) {
         console.log(
-          `[Roles] sweep: ${result.changed} user(s) updated, ${result.skipped} manual override(s) skipped`
+          `[Roles] sweep: ${result.considered} considered, ${result.attached} attached, ${result.detached} detached`
         );
       }
     } catch (err) {

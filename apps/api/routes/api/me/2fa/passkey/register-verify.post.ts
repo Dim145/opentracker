@@ -95,10 +95,9 @@ export default defineEventHandler(async (event) => {
   await clearRegistrationChallenge(session.user.id);
 
   // Adding a passkey counts as a fresh-auth confirmation —
-  // user-verifying ceremony just happened seconds ago.
-  if (session.id) {
-    await markFreshAuth(String(session.id));
-  }
+  // user-verifying ceremony just happened seconds ago. Key on the
+  // real h3 session id, not session.user (finding H1).
+  await markFreshAuth(await getSessionId(event));
 
   void notify(
     session.user.id,

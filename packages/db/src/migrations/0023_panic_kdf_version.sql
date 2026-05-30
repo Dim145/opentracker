@@ -1,0 +1,22 @@
+-- Panic-mode key-derivation hardening.
+--
+-- The original panic encryption derived its AES-256-GCM key from
+-- `users.panic_password_hash` — a value stored in plaintext in the
+-- same database the panic feature is meant to render unreadable.
+-- Together with the plaintext `panic_state.encryption_salt`, a DB
+-- dump contained BOTH inputs to the KDF, so an attacker could
+-- reconstruct the key and decrypt everything without knowing the
+-- panic password. (Critical finding C1.)
+--
+-- The fix derives the key from the RAW panic password supplied by
+-- the admin at encrypt time (verified against the stored hash),
+-- over a fresh random salt. A dump then yields only the scrypt
+-- verifier + salt + ciphertext, forcing an offline brute-force.
+--
+-- `kdf_version` lets restore stay backward-compatible with any
+-- database already encrypted under the legacy (hash-derived) scheme:
+--   1 = legacy, key = scrypt(panic_password_hash, salt)
+--   2 = hardened, key = scrypt(raw_panic_password, salt)
+-- Existing rows default to 1; new panics write 2.
+ALTER TABLE "panic_state"
+  ADD COLUMN IF NOT EXISTS "kdf_version" integer NOT NULL DEFAULT 1;

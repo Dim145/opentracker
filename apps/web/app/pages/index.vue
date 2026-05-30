@@ -482,7 +482,13 @@ function splitBigBytes(bytes: bigint): VolumeParts {
         ? floatVal.toFixed(0)
         : floatVal.toFixed(2);
   return {
-    value: value.replace(/\.?0+$/, ''),
+    // Only trim trailing zeros that sit AFTER a decimal point. The
+    // old unconditional /\.?0+$/ also ate trailing zeros of whole
+    // numbers ("120" → "12", "1000" → "1"), under-reporting volumes
+    // by 10×–1000× (finding L9).
+    value: value.includes('.')
+      ? value.replace(/\.?0+$/, '')
+      : value,
     unit: units[i],
   };
 }

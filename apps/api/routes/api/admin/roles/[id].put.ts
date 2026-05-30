@@ -91,6 +91,37 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Reject the auto + upload-bypass combo on the EFFECTIVE post-update
+  // state (a privilege auto-grant from attacker-influenceable stats —
+  // finding: role engine auto + bypass). Only resolve the stored row
+  // when the patch could produce the combo.
+  if (
+    body.assignmentMode === 'auto' ||
+    body.canUploadWithoutModeration === true
+  ) {
+    const [existing] = await db
+      .select({
+        assignmentMode: roles.assignmentMode,
+        canUploadWithoutModeration: roles.canUploadWithoutModeration,
+      })
+      .from(roles)
+      .where(eq(roles.id, id))
+      .limit(1);
+    if (!existing) {
+      throw createError({ statusCode: 404, message: 'Role not found' });
+    }
+    const effMode = body.assignmentMode ?? existing.assignmentMode;
+    const effBypass =
+      body.canUploadWithoutModeration ?? existing.canUploadWithoutModeration;
+    if (effMode === 'auto' && effBypass) {
+      throw createError({
+        statusCode: 400,
+        message:
+          'A role that grants upload-without-moderation cannot be auto-assigned. Use manual assignment so a human authorises each grant.',
+      });
+    }
+  }
+
   const [updated] = await db
     .update(roles)
     .set(next)

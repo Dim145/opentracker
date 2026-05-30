@@ -69,11 +69,18 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Derive decryption key. The IV is now embedded per-record (`iv:ct:tag`)
-  // — `legacyIv` is forwarded for databases encrypted before this fix
-  // (when a single global IV was reused).
+  // Derive decryption key. kdf_version 2 (current) derives from the
+  // RAW panic password the admin just submitted; version 1 (legacy,
+  // pre-C1-fix) derived from the stored hash — we honour it so a
+  // database encrypted before the fix can still be recovered. The IV
+  // is embedded per-record (`iv:ct:tag`); `legacyIv` is forwarded for
+  // databases encrypted before per-record IVs (single global IV).
+  const kdfInput =
+    (currentState.kdfVersion ?? 1) >= 2
+      ? body.panicPassword
+      : admin.panicPasswordHash;
   const key = await deriveKey(
-    admin.panicPasswordHash,
+    kdfInput,
     Buffer.from(currentState.encryptionSalt, 'base64')
   );
   const legacyIv = currentState.encryptionIv

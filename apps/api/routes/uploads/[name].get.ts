@@ -54,6 +54,21 @@ export default defineEventHandler(async (event) => {
       setHeader(event, 'Content-Type', mimeTypes[ext]);
     }
 
+    // Never let the browser sniff a different (e.g. HTML) type.
+    setHeader(event, 'X-Content-Type-Options', 'nosniff');
+    // SVGs are uploaded by admins as raw XML and served same-origin;
+    // a hostile SVG can carry inline <script>/onload that would run
+    // if a victim navigates to the file URL directly. Lock such a
+    // document down so it can render as a picture but can never
+    // execute script or load anything external (finding: SVG XSS).
+    if (ext === 'svg') {
+      setHeader(
+        event,
+        'Content-Security-Policy',
+        "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+      );
+    }
+
     setHeader(event, 'Content-Length', stats.size);
     setHeader(event, 'Cache-Control', 'public, max-age=86400, immutable');
 

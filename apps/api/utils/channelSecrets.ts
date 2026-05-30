@@ -10,10 +10,11 @@
  *
  * We re-use `panic.ts`'s AES-GCM primitive (fresh IV per record, auth
  * tag bound to the ciphertext) and derive the key once at boot from
- * `NUXT_SESSION_SECRET` — the same secret that already gates session
- * cookies and IP hashing, so the threat model is consistent. A
- * dedicated `CHANNEL_ENCRYPTION_KEY` can override it for operators
- * who prefer key separation.
+ * `NUXT_SESSION_SECRET` — the same secret that already seals session
+ * cookies (IP hashing uses a SEPARATE `IP_HASH_SECRET`). A dedicated
+ * `CHANNEL_ENCRYPTION_KEY` can override it for operators who prefer
+ * key separation; setting it shrinks the blast radius of a
+ * NUXT_SESSION_SECRET leak to "session forgery only".
  *
  * If neither var is set, this module throws on first use. That's
  * intentional: a misconfigured deployment must not silently store
@@ -39,10 +40,23 @@ function getKey(): Buffer {
       '[channelSecrets] Neither CHANNEL_ENCRYPTION_KEY nor NUXT_SESSION_SECRET is set; refusing to encrypt/decrypt channel configs. Generate one with `openssl rand -hex 32`.'
     );
   }
-  // Fixed salt keeps the derived key stable across restarts; the
-  // input secret is already high-entropy so we don't need PBKDF2
-  // iterations beyond scrypt's default cost. 32 bytes = AES-256.
-  cachedKey = scryptSync(raw, 'trackarr:channels:v1', 32) as Buffer;
+  // Reject a weak secret here too. The session path enforces >=32
+  // chars (session.ts), but this code reads the env var directly, so
+  // without its own check a 1-char secret would silently produce a
+  // trivially brute-forceable AES key while reporting success
+  // (finding: no min-strength validation on the channel KDF path).
+  if (raw.length < 32) {
+    throw new Error(
+      '[channelSecrets] CHANNEL_ENCRYPTION_KEY / NUXT_SESSION_SECRET must be at least 32 characters. Generate one with `openssl rand -hex 32`.'
+    );
+  }
+  // Salt: defaults to the legacy fixed value so existing ciphertext
+  // still decrypts. A fresh deployment may set CHANNEL_ENCRYPTION_SALT
+  // to a unique value for per-deployment key separation (do NOT change
+  // it on a deployment that already has encrypted channel secrets —
+  // that would make them undecryptable). 32 bytes = AES-256.
+  const salt = process.env.CHANNEL_ENCRYPTION_SALT || 'trackarr:channels:v1';
+  cachedKey = scryptSync(raw, salt, 32) as Buffer;
   return cachedKey;
 }
 
