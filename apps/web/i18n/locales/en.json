@@ -41,6 +41,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "torrents": "Torrents",
+    "federated": "Federated",
     "forum": "Forum",
     "admin": "Admin",
     "mod": "Mod",
@@ -1404,7 +1405,8 @@
       "torznab": "Torznab API",
       "branding": "Branding",
       "notifications": "Notifications",
-      "settings": "Settings"
+      "settings": "Settings",
+      "federation": "Federation"
     },
     "descriptions": {
       "dashboard": "Tracker configuration and node management",
@@ -1422,7 +1424,79 @@
       "torznab": "Configure *arr integration and rate limiting",
       "branding": "Customize site appearance and branding",
       "notifications": "Configure external notification channels (email, Discord, Telegram, …)",
-      "settings": "System-wide registration and tracker settings"
+      "settings": "System-wide registration and tracker settings",
+      "federation": "Link this tracker with trusted Trackarr instances"
+    },
+    "federation": {
+      "intro": "Connect this tracker to other Trackarr instances you trust. You decide who you link with and exactly what you share — inbound links need your approval.",
+      "ownerOnly": "Owner only",
+      "master": {
+        "title": "Federation enabled",
+        "on": "This instance is reachable for handshakes. Turn it off to sever all links instantly.",
+        "off": "Off. Turn it on to generate this instance's identity and start linking with partners."
+      },
+      "identity": {
+        "title": "This instance",
+        "name": "Name",
+        "publicUrl": "Public URL",
+        "instanceId": "Instance ID",
+        "fingerprint": "Fingerprint",
+        "namePlaceholder": "e.g. CinéVault",
+        "urlPlaceholder": "https://tracker.example.fr",
+        "save": "Save identity",
+        "notProvisioned": "Enable federation to generate this instance's keypair.",
+        "hint": "Share your Instance ID and fingerprint with partners over a separate channel so they can verify the handshake."
+      },
+      "scopes": {
+        "title": "Default sharing scopes",
+        "intro": "Proposed to new partners; each link is tuned individually.",
+        "catalog": "Catalogue & metadata",
+        "catalogDesc": "Titles, descriptions, media IDs — discovery only, swarms untouched.",
+        "social": "Social",
+        "socialDesc": "Comments, forum threads, cross-instance follows.",
+        "accounts": "Accounts & reputation",
+        "accountsDesc": "Linked identity & read-only reputation. Needs each user's consent.",
+        "swarm": "Swarm / peers",
+        "swarmDesc": "Merges peer swarms across instances. Re-opens private isolation — off by default.",
+        "risky": "Risky"
+      },
+      "kpis": {
+        "activePeers": "Active peers",
+        "pending": "Pending",
+        "partners": "Partners"
+      },
+      "peers": {
+        "addUrl": "Partner URL",
+        "addUrlPlaceholder": "https://tracker.example.org",
+        "send": "Send handshake",
+        "empty": "No partner instances yet. Add one above to start a handshake.",
+        "review": "Review",
+        "revoke": "Revoke",
+        "resend": "Resend",
+        "status": {
+          "pending_out": "Sent · awaiting them",
+          "pending_in": "Awaiting your approval",
+          "active": "Active",
+          "suspended": "Suspended",
+          "blocked": "Blocked",
+          "revoked": "Revoked"
+        }
+      },
+      "approve": {
+        "title": "Approve federation request",
+        "verify": "Verify the fingerprint {fp} with the partner's owner out-of-band before approving. A wrong fingerprint means an impostor.",
+        "theyShare": "They propose to share with you",
+        "youShareBack": "What you share back with them",
+        "confirm": "Approve federation",
+        "cancel": "Cancel"
+      },
+      "toast": {
+        "saved": "Settings saved",
+        "sent": "Handshake sent — awaiting their owner's approval",
+        "approved": "Federation link is now active",
+        "revoked": "Link removed",
+        "error": "Something went wrong"
+      }
     },
     "notifications": {
       "retention": {
@@ -3804,6 +3878,10 @@
       "trusted_device_added": {
         "title": "Trusted device added",
         "desc": "A new device was marked as trusted on your account."
+      },
+      "federation_request_received": {
+        "title": "Federation request",
+        "desc": "{instanceName} wants to federate with your tracker."
       }
     }
   },
@@ -3868,5 +3946,19 @@
       "cancelButton": "Keep",
       "failed": "Could not cancel the report."
     }
+  },
+  "federated": {
+    "eyebrow": "Catalogue",
+    "title": "Federated",
+    "lead": "Content living on partner instances you've federated with. Opening a result takes you to its origin tracker, where you download with your account there — your local ratio and swarms stay untouched.",
+    "count": "{n} federated",
+    "searchPlaceholder": "Search federated titles…",
+    "empty": "Nothing federated yet. Your instance owner connects partners in Admin → Federation; their catalogue then syncs in automatically.",
+    "via": "via {peer}",
+    "alsoLocal": "also here",
+    "open": "Open",
+    "prev": "Prev",
+    "next": "Next",
+    "showing": "{shown} of {total} across partner instances"
   }
 }

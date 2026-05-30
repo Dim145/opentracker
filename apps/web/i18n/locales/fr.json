@@ -41,6 +41,7 @@
   "nav": {
     "dashboard": "Accueil",
     "torrents": "Torrents",
+    "federated": "Fédéré",
     "forum": "Forum",
     "admin": "Admin",
     "mod": "Modération",
@@ -1404,7 +1405,8 @@
       "torznab": "API Torznab",
       "branding": "Identité visuelle",
       "notifications": "Notifications",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "federation": "Fédération"
     },
     "descriptions": {
       "dashboard": "Configuration du tracker et gestion des nœuds",
@@ -1422,7 +1424,79 @@
       "torznab": "Configurer l'intégration *arr et la limitation de débit",
       "branding": "Personnaliser l'apparence et l'identité visuelle du site",
       "notifications": "Configurer les canaux de notifications externes (email, Discord, Telegram, …)",
-      "settings": "Paramètres globaux d'inscription et de tracker"
+      "settings": "Paramètres globaux d'inscription et de tracker",
+      "federation": "Relier ce tracker à des instances Trackarr de confiance"
+    },
+    "federation": {
+      "intro": "Reliez ce tracker à d'autres instances Trackarr de confiance. Vous décidez avec qui vous vous liez et exactement ce que vous partagez — les liens entrants requièrent votre approbation.",
+      "ownerOnly": "Owner uniquement",
+      "master": {
+        "title": "Fédération activée",
+        "on": "Cette instance est joignable pour les handshakes. Désactivez pour couper tous les liens instantanément.",
+        "off": "Désactivée. Activez-la pour générer l'identité de cette instance et commencer à vous lier à des partenaires."
+      },
+      "identity": {
+        "title": "Cette instance",
+        "name": "Nom",
+        "publicUrl": "URL publique",
+        "instanceId": "Identifiant d'instance",
+        "fingerprint": "Empreinte",
+        "namePlaceholder": "ex. CinéVault",
+        "urlPlaceholder": "https://tracker.exemple.fr",
+        "save": "Enregistrer l'identité",
+        "notProvisioned": "Activez la fédération pour générer la paire de clés de cette instance.",
+        "hint": "Communiquez votre identifiant d'instance et votre empreinte aux partenaires via un autre canal afin qu'ils puissent vérifier le handshake."
+      },
+      "scopes": {
+        "title": "Périmètres de partage par défaut",
+        "intro": "Proposés aux nouveaux partenaires ; chaque lien se règle individuellement.",
+        "catalog": "Catalogue & métadonnées",
+        "catalogDesc": "Titres, descriptions, identifiants média — découverte uniquement, swarms intacts.",
+        "social": "Social",
+        "socialDesc": "Commentaires, fils de forum, abonnements inter-instances.",
+        "accounts": "Comptes & réputation",
+        "accountsDesc": "Identité liée & réputation en lecture seule. Nécessite le consentement de chaque utilisateur.",
+        "swarm": "Swarm / pairs",
+        "swarmDesc": "Fusionne les swarms entre instances. Rouvre l'isolement privé — désactivé par défaut.",
+        "risky": "Risqué"
+      },
+      "kpis": {
+        "activePeers": "Pairs actifs",
+        "pending": "En attente",
+        "partners": "Partenaires"
+      },
+      "peers": {
+        "addUrl": "URL du partenaire",
+        "addUrlPlaceholder": "https://tracker.exemple.org",
+        "send": "Envoyer le handshake",
+        "empty": "Aucune instance partenaire pour l'instant. Ajoutez-en une ci-dessus pour lancer un handshake.",
+        "review": "Examiner",
+        "revoke": "Révoquer",
+        "resend": "Renvoyer",
+        "status": {
+          "pending_out": "Envoyé · en attente d'eux",
+          "pending_in": "En attente de votre approbation",
+          "active": "Actif",
+          "suspended": "Suspendu",
+          "blocked": "Bloqué",
+          "revoked": "Révoqué"
+        }
+      },
+      "approve": {
+        "title": "Approuver la demande de fédération",
+        "verify": "Vérifiez l'empreinte {fp} avec l'owner du partenaire par un canal séparé avant d'approuver. Une mauvaise empreinte signifie un imposteur.",
+        "theyShare": "Ils proposent de partager avec vous",
+        "youShareBack": "Ce que vous partagez en retour",
+        "confirm": "Approuver la fédération",
+        "cancel": "Annuler"
+      },
+      "toast": {
+        "saved": "Paramètres enregistrés",
+        "sent": "Handshake envoyé — en attente de l'approbation de leur owner",
+        "approved": "Le lien de fédération est désormais actif",
+        "revoked": "Lien supprimé",
+        "error": "Une erreur est survenue"
+      }
     },
     "notifications": {
       "retention": {
@@ -3803,6 +3877,10 @@
       "trusted_device_added": {
         "title": "Appareil de confiance ajouté",
         "desc": "Un nouvel appareil a été marqué comme de confiance sur ton compte."
+      },
+      "federation_request_received": {
+        "title": "Demande de fédération",
+        "desc": "{instanceName} souhaite se fédérer avec ton tracker."
       }
     }
   },

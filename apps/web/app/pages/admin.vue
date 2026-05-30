@@ -172,6 +172,12 @@ const menuItems = computed(() => [
     description: t('admin.descriptions.torznab'),
   },
   {
+    label: t('admin.nav.federation'),
+    path: '/admin/federation',
+    icon: 'ph:broadcast',
+    description: t('admin.descriptions.federation'),
+  },
+  {
     label: t('admin.nav.branding'),
     path: '/admin/branding',
     icon: 'ph:paint-brush',
