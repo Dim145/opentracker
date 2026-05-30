@@ -472,6 +472,13 @@
         <span class="section-head-count">{{ crossSeeds.items.length }}</span>
         <span class="section-head-line" aria-hidden="true" />
       </header>
+      <!-- The grouping is based on matching file names + sizes only
+           (a metadata fingerprint), NOT verified content — so it's a
+           discovery hint, never a guarantee these hold the same data. -->
+      <p class="cross-note">
+        <Icon name="ph:info-bold" class="cross-note-icon" />
+        {{ $t('torrents.detail.crossSeedNote') }}
+      </p>
       <ul class="cross-list">
         <li
           v-for="sib in crossSeeds.items"
@@ -2058,6 +2065,20 @@ async function confirmDelete() {
 /* ╔═══════════════════════════════════════════════════════════════╗
    ║  CROSS-SEEDS LIST                                              ║
    ╚═══════════════════════════════════════════════════════════════╝ */
+.cross-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0 0 0.7rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: rgb(var(--fg-muted));
+}
+.cross-note-icon {
+  flex-shrink: 0;
+  margin-top: 0.12rem;
+  color: rgb(var(--fg-faint));
+}
 .cross-list {
   list-style: none;
   margin: 0;

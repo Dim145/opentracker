@@ -670,6 +670,7 @@
         "crossSeeds": "Cross-seeds",
         "swarm": "Liste des peers"
       },
+      "crossSeedNote": "Regroupés uniquement sur la correspondance des noms et tailles de fichiers — un indice de découverte, pas une garantie de contenu vérifié.",
       "hero": {
         "case": "Dossier"
       },

@@ -2,6 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import parseTorrent from 'parse-torrent';
+import bencode from 'bencode';
 import { computeContentSignature } from '~~/utils/contentSignature';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { resolveTagsByName, slugifyTag, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
@@ -131,10 +132,46 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Parse the torrent file
+  // Hard cap on the .torrent blob BEFORE parsing. readMultipartFormData
+  // already buffered the whole body in memory; this bounds the parse +
+  // re-encode + pieces-expansion work and the stored bytea. A real
+  // .torrent is well under a few MB even for huge multi-file releases.
+  const MAX_TORRENT_BYTES = 10 * 1024 * 1024; // 10 MiB
+  if (file.data.length > MAX_TORRENT_BYTES) {
+    throw createError({
+      statusCode: 413,
+      message: `Torrent file exceeds ${MAX_TORRENT_BYTES} bytes`,
+    });
+  }
+
+  // Normalise the torrent to a PRIVATE one at upload time: decode,
+  // force info.private = 1, re-encode, and treat THOSE bytes as
+  // canonical. We then compute the info_hash and store the normalised
+  // blob — so the hash in the DB equals the hash a client derives from
+  // the .torrent we serve (the download route also sets private = 1).
+  // The previous code stored the raw bytes but the download route
+  // mutated info.private, which changed the info dict — and thus the
+  // info_hash — for any torrent uploaded with private absent/0, making
+  // it announce a hash the tracker had never seen (finding HIGH:
+  // info_hash drift). Normalising once here keeps all three in sync.
+  let normalizedData: Buffer;
+  try {
+    const decoded = bencode.decode(file.data) as Record<string, unknown>;
+    const info = decoded?.info as Record<string, unknown> | undefined;
+    if (!info || typeof info !== 'object') {
+      throw new Error('missing info dict');
+    }
+    info.private = 1;
+    normalizedData = Buffer.from(bencode.encode(decoded));
+  } catch (_err) {
+    throw createError({ statusCode: 400, message: 'Invalid torrent file' });
+  }
+
+  // Parse the normalised bytes so name / size / files / infoHash all
+  // describe exactly what we store and serve.
   let parsed: Awaited<ReturnType<typeof parseTorrent>>;
   try {
-    parsed = await parseTorrent(file.data);
+    parsed = await parseTorrent(normalizedData);
   } catch (_err) {
     throw createError({
       statusCode: 400,
@@ -149,17 +186,50 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Reject a hostile/absurd file list before we do O(n log n) work over
+  // it (signature canonicalisation) and before persisting.
+  const MAX_FILES = 20_000;
+  if (parsed.files && parsed.files.length > MAX_FILES) {
+    throw createError({
+      statusCode: 413,
+      message: `Torrent declares too many files (> ${MAX_FILES})`,
+    });
+  }
+
   const infoHash = parsed.infoHash.toLowerCase();
   // 256 chars matches typical scene name lengths and gives a sane
-  // upper bound without truncating real-world torrents.
-  const name = (customName?.slice(0, 256) || parsed.name || file.filename || 'Unknown');
+  // upper bound. Cap the FINAL resolved name regardless of source —
+  // the parsed `info.name` is attacker-controlled, so the cap can't
+  // apply only to the operator-supplied customName (finding L7).
+  const name = (customName?.slice(0, 256) || parsed.name || file.filename || 'Unknown')
+    .slice(0, 256)
+    .trim() || 'Unknown';
 
-  // Calculate total size
+  // Calculate total size. File lengths come straight from the
+  // (attacker-controlled) bencode integers; bencode accepts negative
+  // and >2^53 values, which would yield a negative/imprecise total
+  // that bypasses the max-size upload rule (a negative is never >
+  // the cap) and poisons ratio/RSS/metrics (findings: negative length,
+  // unsafe-integer length). Validate every length and the total.
+  const isSafeNonNegative = (n: unknown): n is number =>
+    typeof n === 'number' && Number.isSafeInteger(n) && n >= 0;
+
   let totalSize = 0;
-  if (parsed.length) {
+  if (parsed.length !== undefined && parsed.length !== null) {
+    if (!isSafeNonNegative(parsed.length)) {
+      throw createError({ statusCode: 400, message: 'Invalid torrent size' });
+    }
     totalSize = parsed.length;
   } else if (parsed.files && Array.isArray(parsed.files)) {
-    totalSize = parsed.files.reduce((sum, f) => sum + (f.length || 0), 0);
+    for (const f of parsed.files) {
+      if (!isSafeNonNegative(f.length)) {
+        throw createError({ statusCode: 400, message: 'Invalid file length in torrent' });
+      }
+      totalSize += f.length;
+    }
+  }
+  if (!isSafeNonNegative(totalSize)) {
+    throw createError({ statusCode: 400, message: 'Invalid total torrent size' });
   }
 
   // ── Server-side upload-rule enforcement ───────────────────────
@@ -256,7 +326,9 @@ export default defineEventHandler(async (event) => {
     size: totalSize,
     description: description || null,
     nfo,
-    torrentData: Buffer.from(file.data),
+    // Store the NORMALISED bytes (private=1), not the raw upload, so
+    // the stored info_hash matches what the download route serves.
+    torrentData: normalizedData,
     uploaderId: user.id, // Set uploader from authenticated user
     categoryId: categoryId || null,
     imdbId,

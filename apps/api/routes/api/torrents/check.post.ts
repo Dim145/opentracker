@@ -38,6 +38,16 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Cap the blob before parsing — same memory-DoS guard as the upload
+  // route. readMultipartFormData already buffered the body.
+  const MAX_TORRENT_BYTES = 10 * 1024 * 1024; // 10 MiB
+  if (file.data.length > MAX_TORRENT_BYTES) {
+    throw createError({
+      statusCode: 413,
+      message: `Torrent file exceeds ${MAX_TORRENT_BYTES} bytes`,
+    });
+  }
+
   let parsed: Awaited<ReturnType<typeof parseTorrent>>;
   try {
     parsed = await parseTorrent(file.data);

@@ -670,6 +670,7 @@
         "crossSeeds": "Cross-seeds",
         "swarm": "Peer list"
       },
+      "crossSeedNote": "Grouped by matching file names and sizes only — a discovery hint, not a verified-content guarantee.",
       "hero": {
         "case": "Release"
       },
