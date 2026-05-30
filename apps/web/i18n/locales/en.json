@@ -42,6 +42,7 @@
     "dashboard": "Dashboard",
     "torrents": "Torrents",
     "federated": "Federated",
+    "federatedIdentity": "Federated identity",
     "forum": "Forum",
     "admin": "Admin",
     "mod": "Mod",
@@ -3984,5 +3985,44 @@
     "lead": "Recent topics from your partner instances. Open one to read or reply on its home tracker.",
     "back": "Back to forum",
     "empty": "No federated topics yet — connect partners that share their social scope."
+  },
+  "federatedIdentity": {
+    "eyebrow": "Account",
+    "title": "Federated identity",
+    "intro": "Prove you own an account on a partner instance to show its reputation here. It's never merged into your local ratio or bonus.",
+    "noPartners": "No partner instance currently accepts account links. Ask your owner to enable the “accounts” scope with a partner.",
+    "link": {
+      "title": "Link an account",
+      "peer": "Partner instance",
+      "username": "Your username there",
+      "usernamePlaceholder": "e.g. alice",
+      "generate": "Generate code"
+    },
+    "code": {
+      "instructions": "Put this code in your profile bio on {peer}, then click Verify.",
+      "verify": "Verify",
+      "verifying": "Verifying…"
+    },
+    "list": {
+      "title": "Linked accounts",
+      "empty": "No linked accounts yet.",
+      "pending": "Pending",
+      "verified": "Verified",
+      "remove": "Remove"
+    },
+    "rep": {
+      "title": "Reputation on {peer}",
+      "ratio": "Ratio",
+      "uploads": "Uploads",
+      "memberSince": "Member since",
+      "unavailable": "Reputation unavailable"
+    },
+    "toast": {
+      "codeGenerated": "Code generated — add it to your bio on the partner, then verify",
+      "verified": "Identity verified!",
+      "notVerified": "Code not found in your remote bio yet",
+      "removed": "Link removed",
+      "error": "Something went wrong"
+    }
   }
 }

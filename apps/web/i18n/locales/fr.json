@@ -42,6 +42,7 @@
     "dashboard": "Accueil",
     "torrents": "Torrents",
     "federated": "Fédéré",
+    "federatedIdentity": "Identité fédérée",
     "forum": "Forum",
     "admin": "Admin",
     "mod": "Modération",
@@ -3983,5 +3984,44 @@
     "lead": "Sujets récents de vos instances partenaires. Ouvrez-en un pour lire ou répondre sur son tracker d'origine.",
     "back": "Retour au forum",
     "empty": "Aucun sujet fédéré pour l'instant — connectez des partenaires qui partagent leur périmètre social."
+  },
+  "federatedIdentity": {
+    "eyebrow": "Compte",
+    "title": "Identité fédérée",
+    "intro": "Prouvez que vous possédez un compte sur une instance partenaire pour afficher sa réputation ici. Elle n'est jamais fusionnée avec votre ratio ou vos bonus locaux.",
+    "noPartners": "Aucune instance partenaire n'accepte les liens de compte pour l'instant. Demandez à votre owner d'activer le périmètre « comptes » avec un partenaire.",
+    "link": {
+      "title": "Lier un compte",
+      "peer": "Instance partenaire",
+      "username": "Votre nom d'utilisateur là-bas",
+      "usernamePlaceholder": "ex. alice",
+      "generate": "Générer le code"
+    },
+    "code": {
+      "instructions": "Placez ce code dans la bio de votre profil sur {peer}, puis cliquez sur Vérifier.",
+      "verify": "Vérifier",
+      "verifying": "Vérification…"
+    },
+    "list": {
+      "title": "Comptes liés",
+      "empty": "Aucun compte lié pour l'instant.",
+      "pending": "En attente",
+      "verified": "Vérifié",
+      "remove": "Supprimer"
+    },
+    "rep": {
+      "title": "Réputation sur {peer}",
+      "ratio": "Ratio",
+      "uploads": "Uploads",
+      "memberSince": "Membre depuis",
+      "unavailable": "Réputation indisponible"
+    },
+    "toast": {
+      "codeGenerated": "Code généré — ajoutez-le à votre bio sur le partenaire, puis vérifiez",
+      "verified": "Identité vérifiée !",
+      "notVerified": "Code introuvable dans votre bio distante pour l'instant",
+      "removed": "Lien supprimé",
+      "error": "Une erreur est survenue"
+    }
   }
 }

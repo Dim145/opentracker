@@ -287,6 +287,14 @@
                     {{ $t('nav.following') }}
                   </NuxtLink>
                   <NuxtLink
+                    to="/federated-identity"
+                    class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
+                    @click="showUserMenu = false"
+                  >
+                    <Icon name="ph:identification-badge-bold" class="text-sky-400" />
+                    {{ $t('nav.federatedIdentity', 'Federated identity') }}
+                  </NuxtLink>
+                  <NuxtLink
                     to="/downloads"
                     class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
                     @click="showUserMenu = false"

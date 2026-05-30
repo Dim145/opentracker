@@ -2285,3 +2285,43 @@ export const federatedFollows = pgTable(
 );
 
 export type FederatedFollow = typeof federatedFollows.$inferSelect;
+
+// ============================================================================
+// Federation — Phase 3: linked identities + remote reputation
+// ============================================================================
+//
+// A local user proves they also own an account on a partner instance by
+// placing a one-time code in their remote profile bio; we verify it over
+// signed S2S. Once `verified`, the partner's reputation (ratio, age, uploads)
+// can be shown read-only next to the link — never merged into local economy.
+
+export const federatedIdentities = pgTable(
+  'federated_identities',
+  {
+    id: text('id').primaryKey(),
+    localUserId: text('local_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    peerId: text('peer_id')
+      .notNull()
+      .references(() => federationPeers.id, { onDelete: 'cascade' }),
+    /** Claimed username on the partner instance. */
+    remoteUsername: text('remote_username').notNull(),
+    /** pending — awaiting bio-code verification; verified — proven. */
+    status: text('status').notNull().default('pending'),
+    /** One-time code the user must place in their remote bio. Cleared
+     *  once verified. */
+    verifyCode: text('verify_code'),
+    verifiedAt: timestamp('verified_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('federated_identities_unique').on(
+      table.localUserId,
+      table.peerId,
+      table.remoteUsername,
+    ),
+  ],
+);
+
+export type FederatedIdentity = typeof federatedIdentities.$inferSelect;
