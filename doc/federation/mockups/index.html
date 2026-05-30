@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Federation mockups · Trackarr</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .hero { max-width: 760px; margin: 0 auto; padding: 4rem var(--container-pad) 2rem; text-align: center; }
+  .hero .mark-lg { width: 56px; height: 56px; border-radius: 12px; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; font-size: 1.8rem; margin: 0 auto 1.25rem; box-shadow: var(--shadow-popover); }
+  .hero h1 { font-size: 38px; font-weight: 700; letter-spacing: -0.03em; color: var(--fg-strong); }
+  .hero h1 .g { color: var(--gold); }
+  .hero p { color: var(--fg-muted); margin-top: 0.75rem; font-size: 15px; line-height: 1.6; }
+  .cards { max-width: 920px; margin: 1rem auto; padding: 0 var(--container-pad) 4rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .mock-card { display: block; background: var(--bg-surface); border: 1px solid var(--line-default); border-radius: var(--radius-md); overflow: hidden; transition: all 0.18s ease; }
+  .mock-card:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+  .mock-card .thumb { height: 120px; display: grid; place-items: center; font-size: 2.4rem; color: var(--gold); border-bottom: 1px solid var(--line-default); position: relative; overflow: hidden; }
+  .mock-card .thumb::before { content:''; position:absolute; inset:0; background: radial-gradient(circle at 50% 120%, rgba(212,167,52,0.12), transparent 60%); }
+  .mock-card .b { padding: 1rem 1.1rem; }
+  .mock-card h3 { font-size: 15px; font-weight: 600; color: var(--fg-strong); display: flex; align-items: center; gap: 0.5rem; }
+  .mock-card p { font-size: 12.5px; color: var(--fg-subtle); margin-top: 0.35rem; line-height: 1.5; }
+  .mock-card .go { margin-top: 0.8rem; font-size: 12px; font-weight: 600; color: var(--gold); display: inline-flex; align-items: center; gap: 0.3rem; }
+  .full { grid-column: 1 / -1; }
+  .full .thumb { height: 84px; }
+  @media (max-width: 680px){ .cards{ grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand"><span class="mark"><i class="ph-bold ph-broadcast"></i></span> TRACKARR</div>
+  <span class="badge badge-gold" style="margin-left:.5rem"><i class="ph-bold ph-flask"></i> Mockups</span>
+  <div class="header-spacer"></div>
+  <a class="btn btn-secondary btn-sm" href="../PROPOSAL.md"><i class="ph ph-file-text"></i> Read the proposal</a>
+</header>
+
+<section class="hero reveal">
+  <div class="mark-lg"><i class="ph-bold ph-broadcast"></i></div>
+  <span class="eyebrow" style="justify-content:center"><span class="eyebrow-rule"></span> Design proposal · v1.x</span>
+  <h1 style="margin-top:.6rem">Trackarr <span class="g">Federation</span></h1>
+  <p>High-fidelity mockups for letting independent Trackarr instances link up and share data —
+     opt-in, owner-controlled, allow-list only. Built to match the live design system exactly.</p>
+</section>
+
+<div class="cards">
+  <a class="mock-card full reveal" style="animation-delay:.05s" href="admin-federation.html">
+    <div class="thumb"><i class="ph-bold ph-broadcast"></i></div>
+    <div class="b">
+      <h3><i class="ph ph-shield-check" style="color:var(--gold)"></i> Admin · /admin/federation</h3>
+      <p>The owner console: master enable toggle, this instance's verifiable identity, default sharing scopes (catalogue · social · accounts · swarm), KPIs, and the partner allow-list with handshake flow. Includes the inbound-request approval modal — click <em>Review</em> on the pending request.</p>
+      <span class="go">Open mockup <i class="ph-bold ph-arrow-right"></i></span>
+    </div>
+  </a>
+
+  <a class="mock-card reveal" style="animation-delay:.1s" href="federated-catalog.html">
+    <div class="thumb"><i class="ph-bold ph-list-magnifying-glass"></i></div>
+    <div class="b">
+      <h3><i class="ph ph-database" style="color:var(--gold)"></i> Federated catalogue</h3>
+      <p>Browse with a Local / Federated / All filter, origin badges (“via SonoriqueFR”), cross-instance dedupe, and redirect-to-source downloads.</p>
+      <span class="go">Open mockup <i class="ph-bold ph-arrow-right"></i></span>
+    </div>
+  </a>
+
+  <a class="mock-card reveal" style="animation-delay:.15s" href="admin-federation.html" onclick="sessionStorage.setItem('openHandshake','1')">
+    <div class="thumb"><i class="ph-bold ph-handshake"></i></div>
+    <div class="b">
+      <h3><i class="ph ph-fingerprint" style="color:var(--gold)"></i> Handshake approval</h3>
+      <p>Double opt-in: review a partner's identity & fingerprint, verify out-of-band, then choose the scopes you share back before approving.</p>
+      <span class="go">Open in admin <i class="ph-bold ph-arrow-right"></i></span>
+    </div>
+  </a>
+</div>
+
+</body>
+</html>

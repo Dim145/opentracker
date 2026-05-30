@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Federation · Admin · Trackarr</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* page-local: peer list rows */
+  .peer { display: grid; grid-template-columns: 16px 1fr auto; gap: 0.9rem; align-items: center;
+    padding: 0.85rem 1rem; border: 1px solid var(--line-default); border-radius: var(--radius-md);
+    background: var(--bg-surface); transition: border-color 0.16s ease, background 0.16s ease; margin-bottom: 0.6rem; }
+  .peer:hover { border-color: var(--line-strong); }
+  .peer--pending { border-color: rgba(234, 179, 8, 0.35); background: rgba(234, 179, 8, 0.035); }
+  .peer--blocked { opacity: 0.6; }
+  .peer-id { min-width: 0; }
+  .peer-name { font-weight: 600; color: var(--fg-strong); display: flex; align-items: center; gap: 0.5rem; }
+  .peer-url { font-family: var(--font-mono); font-size: 11.5px; color: var(--fg-subtle); margin-top: 0.15rem; }
+  .peer-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; align-items: center; }
+  .peer-scopes { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  .peer-actions { display: flex; gap: 0.4rem; align-items: center; }
+  .scope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  .scope-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.7rem 0.85rem; border: 1px solid var(--line-default); border-radius: var(--radius-md); background: var(--bg-inset); }
+  .scope-row .ico { width: 30px; height: 30px; border-radius: var(--radius-sm); display: grid; place-items: center; background: var(--bg-elevated); color: var(--gold); font-size: 1rem; flex-shrink: 0; }
+  .scope-row.is-warn .ico { color: var(--warning); }
+  .scope-row .t { font-weight: 600; font-size: 13px; }
+  .scope-row .d { font-size: 11.5px; color: var(--fg-subtle); margin-top: 1px; }
+  .master { display: flex; align-items: center; gap: 1rem; padding: 1.15rem 1.25rem;
+    border: 1px solid rgba(34, 197, 94, 0.3); border-radius: var(--radius-md);
+    background: linear-gradient(100deg, rgba(34,197,94,0.06), transparent 60%); }
+  .master .ring { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+    background: rgba(34, 197, 94, 0.12); color: var(--online); font-size: 1.35rem; flex-shrink: 0; }
+  .id-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1.1rem; align-items: center; font-size: 13px; }
+  .id-grid dt { color: var(--fg-subtle); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .id-grid dd { font-family: var(--font-mono); font-size: 12px; color: var(--fg-default); display: flex; align-items: center; gap: 0.5rem; }
+  .copy { color: var(--fg-subtle); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 4px; }
+  .copy:hover { background: var(--bg-hover); color: var(--fg-default); }
+  .add-form { display: grid; grid-template-columns: 1fr auto auto; gap: 0.6rem; align-items: end; }
+  @media (max-width: 720px){ .add-form{ grid-template-columns: 1fr; } .scope-grid{ grid-template-columns: 1fr; } .id-grid{ grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ░░ HEADER ░░ -->
+<header class="app-header">
+  <div class="brand"><span class="mark"><i class="ph-bold ph-broadcast"></i></span> TRACKARR</div>
+  <nav class="header-nav">
+    <a href="#">Browse</a><a href="#">Upload</a><a href="#">Requests</a><a href="#">Forum</a><a href="#" class="active">Admin</a>
+  </nav>
+  <div class="header-spacer"></div>
+  <div class="header-user"><span class="muted">owner</span><span class="avatar">FA</span></div>
+</header>
+
+<div class="admin-shell">
+  <!-- ░░ ADMIN SIDEBAR ░░ -->
+  <aside class="admin-aside">
+    <div class="aside-label">Operate</div>
+    <a class="nav-item" href="#"><i class="ph ph-squares-four"></i> Dashboard</a>
+    <a class="nav-item" href="#"><i class="ph ph-users"></i> Users</a>
+    <a class="nav-item" href="#"><i class="ph ph-user-circle-gear"></i> Roles</a>
+    <a class="nav-item" href="#"><i class="ph ph-folders"></i> Categories</a>
+    <a class="nav-item" href="#"><i class="ph ph-tag"></i> Tags</a>
+    <div class="aside-label" style="margin-top:1rem">Economy</div>
+    <a class="nav-item" href="#"><i class="ph ph-gift"></i> Bonus events</a>
+    <a class="nav-item" href="#"><i class="ph ph-strategy"></i> Bonus rules</a>
+    <a class="nav-item" href="#"><i class="ph ph-storefront"></i> Shop</a>
+    <div class="aside-label" style="margin-top:1rem">Network</div>
+    <a class="nav-item active" href="#"><i class="ph ph-broadcast"></i> Federation</a>
+    <a class="nav-item" href="#"><i class="ph ph-rss"></i> Torznab</a>
+    <a class="nav-item" href="#"><i class="ph ph-prohibit"></i> Banned IPs</a>
+    <a class="nav-item" href="#"><i class="ph ph-gear"></i> Settings</a>
+  </aside>
+
+  <!-- ░░ MAIN ░░ -->
+  <main class="admin-main">
+
+    <!-- header strip -->
+    <div class="row between wrap gap reveal" style="margin-bottom:1.5rem">
+      <div>
+        <span class="eyebrow"><span class="eyebrow-rule"></span> Admin / Network</span>
+        <h1 class="h-page" style="margin-top:0.5rem">Federation</h1>
+        <p class="note" style="max-width:60ch; margin-top:0.35rem">
+          Connect this tracker to other Trackarr instances you trust. You stay in control of who you
+          link with and exactly what you share. Inbound links require your approval.
+        </p>
+      </div>
+      <span class="badge badge-gold"><i class="ph-bold ph-crown-simple"></i> Owner only</span>
+    </div>
+
+    <!-- master toggle -->
+    <div class="master reveal" style="animation-delay:.05s">
+      <span class="ring"><i class="ph-bold ph-broadcast"></i></span>
+      <div class="grow">
+        <div class="row gap-sm"><span class="h-section">Federation enabled</span><span class="dot on" style="margin-left:.2rem"></span></div>
+        <p class="note">This instance is reachable for handshakes and runs the catalogue sync. Turn off to sever all links instantly.</p>
+      </div>
+      <label class="switch"><input type="checkbox" checked id="master"><span class="track"></span><span class="thumb"></span></label>
+    </div>
+
+    <!-- identity + default scopes -->
+    <div class="section">
+      <div class="section-head">
+        <span class="section-tag"><i class="ph-bold ph-fingerprint"></i> This instance</span>
+        <span class="section-rule"></span>
+      </div>
+      <div class="row gap-lg wrap" style="align-items:stretch">
+        <div class="card grow" style="min-width:320px">
+          <div class="card-header"><i class="ph ph-identification-card"></i><span class="h-card">Verifiable identity</span></div>
+          <div class="card-body">
+            <dl class="id-grid">
+              <dt>Name</dt><dd style="font-family:var(--font-sans)">CinéVault</dd>
+              <dt>Public URL</dt><dd>https://tracker.cinevault.fr <a class="copy" title="Copy"><i class="ph ph-copy"></i></a></dd>
+              <dt>Instance ID</dt><dd>tk_b32jq8f4k2m7x9 <a class="copy" title="Copy"><i class="ph ph-copy"></i></a></dd>
+              <dt>Public key</dt><dd>ed25519:9Af3…2dC1 <span class="badge badge-neutral">SHA-256 fp</span></dd>
+            </dl>
+            <hr class="hr">
+            <p class="note"><i class="ph ph-info" style="color:var(--info)"></i> Share your <strong>Instance ID</strong> and fingerprint with partners through a separate channel so they can verify the handshake.</p>
+          </div>
+        </div>
+
+        <div class="card grow" style="min-width:320px">
+          <div class="card-header"><i class="ph ph-share-network"></i><span class="h-card">Default sharing scopes</span></div>
+          <div class="card-body stack" style="gap:0.6rem">
+            <p class="note" style="margin-bottom:.2rem">Proposed to new partners. Each link can be tuned individually.</p>
+            <div class="scope-row">
+              <span class="ico"><i class="ph-bold ph-database"></i></span>
+              <div class="grow"><div class="t">Catalogue & metadata</div><div class="d">Titles, descriptions, media IDs — discovery only, swarms untouched.</div></div>
+              <label class="switch is-gold"><input type="checkbox" checked><span class="track"></span><span class="thumb"></span></label>
+            </div>
+            <div class="scope-row">
+              <span class="ico"><i class="ph-bold ph-chat-circle-dots"></i></span>
+              <div class="grow"><div class="t">Social</div><div class="d">Comments, forum threads, cross-instance follows.</div></div>
+              <label class="switch is-gold"><input type="checkbox" checked><span class="track"></span><span class="thumb"></span></label>
+            </div>
+            <div class="scope-row">
+              <span class="ico"><i class="ph-bold ph-trophy"></i></span>
+              <div class="grow"><div class="t">Accounts & reputation</div><div class="d">Linked identity & read-only reputation. Needs each user's consent.</div></div>
+              <label class="switch is-gold"><input type="checkbox"><span class="track"></span><span class="thumb"></span></label>
+            </div>
+            <div class="scope-row is-warn">
+              <span class="ico"><i class="ph-bold ph-share-fat"></i></span>
+              <div class="grow"><div class="t">Swarm / peers <span class="badge badge-pending" style="margin-left:.3rem"><i class="ph-bold ph-warning"></i> Risky</span></div><div class="d">Merges peer swarms across instances. Re-opens private isolation — off by default.</div></div>
+              <label class="switch is-warning"><input type="checkbox"><span class="track"></span><span class="thumb"></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="section">
+      <div class="snapshot reveal" style="animation-delay:.1s">
+        <div class="snap snap--accent"><span class="snap-num">2</span><span class="snap-label">Active peers</span><i class="ph-bold ph-plugs-connected snap-icon"></i></div>
+        <div class="snap"><span class="snap-num">2</span><span class="snap-label">Pending</span><i class="ph-bold ph-hourglass-medium snap-icon"></i></div>
+        <div class="snap"><span class="snap-num">18 432</span><span class="snap-label">Federated torrents</span><i class="ph-bold ph-database snap-icon"></i></div>
+        <div class="snap"><span class="snap-num">2<span style="font-size:13px;font-weight:500;color:var(--fg-subtle)"> min</span></span><span class="snap-label">Last sync</span><i class="ph-bold ph-arrows-clockwise snap-icon"></i></div>
+      </div>
+    </div>
+
+    <!-- partners -->
+    <div class="section">
+      <div class="section-head">
+        <span class="section-num">01</span>
+        <span class="section-tag"><i class="ph-bold ph-plugs-connected"></i> Partner instances</span>
+        <span class="section-rule"></span>
+        <span class="badge badge-neutral">5 total</span>
+      </div>
+
+      <!-- add partner -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-body">
+          <form class="add-form" onsubmit="return false">
+            <div>
+              <label class="field-label">Partner URL</label>
+              <input class="input" placeholder="https://tracker.example.org" value="">
+            </div>
+            <div>
+              <label class="field-label">Propose scopes</label>
+              <div class="row gap-sm" style="height:34px">
+                <span class="scope catalog active"><i class="ph-bold ph-database"></i> Catalogue</span>
+                <span class="scope social"><i class="ph-bold ph-chat-circle-dots"></i> Social</span>
+              </div>
+            </div>
+            <button class="btn btn-primary"><i class="ph-bold ph-handshake"></i> Send handshake</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- incoming request highlight -->
+      <div class="peer peer--pending reveal">
+        <span class="dot warn"></span>
+        <div class="peer-id">
+          <div class="peer-name">BibliotheK <span class="badge badge-pending">Awaiting your approval</span></div>
+          <div class="peer-url">https://tracker.bibliothek.de · tk_d9p1k…44z</div>
+          <div class="peer-meta">
+            <span class="faint" style="font-size:11px">Wants to share:</span>
+            <div class="peer-scopes">
+              <span class="scope catalog active"><i class="ph-bold ph-database"></i> Catalogue</span>
+              <span class="scope social active"><i class="ph-bold ph-chat-circle-dots"></i> Social</span>
+            </div>
+          </div>
+        </div>
+        <div class="peer-actions">
+          <button class="btn btn-success btn-sm" onclick="openModal()"><i class="ph-bold ph-eye"></i> Review</button>
+          <button class="btn btn-ghost btn-icon" title="Reject"><i class="ph ph-x"></i></button>
+        </div>
+      </div>
+
+      <!-- active peer 1 -->
+      <div class="peer">
+        <span class="dot on"></span>
+        <div class="peer-id">
+          <div class="peer-name">SonoriqueFR <span class="badge badge-online">Active</span></div>
+          <div class="peer-url">https://tracker.sonorique.fr · tk_7h2m…q4</div>
+          <div class="peer-meta">
+            <div class="peer-scopes">
+              <span class="scope catalog active"><i class="ph-bold ph-database"></i> Catalogue</span>
+              <span class="scope social active"><i class="ph-bold ph-chat-circle-dots"></i> Social</span>
+            </div>
+            <span class="faint" style="font-size:11px;margin-left:.3rem"><i class="ph ph-arrows-clockwise"></i> synced 2 min ago · 9 204 torrents</span>
+          </div>
+        </div>
+        <div class="peer-actions">
+          <button class="btn btn-secondary btn-sm"><i class="ph ph-sliders-horizontal"></i> Scopes</button>
+          <button class="btn btn-ghost btn-icon" title="Suspend"><i class="ph ph-pause"></i></button>
+          <button class="btn btn-ghost btn-icon" title="Revoke"><i class="ph ph-link-break"></i></button>
+        </div>
+      </div>
+
+      <!-- active peer 2 -->
+      <div class="peer">
+        <span class="dot on"></span>
+        <div class="peer-id">
+          <div class="peer-name">PixelHaven <span class="badge badge-online">Active</span></div>
+          <div class="peer-url">https://pixelhaven.to · tk_3xk9…8b</div>
+          <div class="peer-meta">
+            <div class="peer-scopes">
+              <span class="scope catalog active"><i class="ph-bold ph-database"></i> Catalogue</span>
+              <span class="scope"><i class="ph ph-chat-circle-dots"></i> Social</span>
+            </div>
+            <span class="faint" style="font-size:11px;margin-left:.3rem"><i class="ph ph-arrows-clockwise"></i> synced 14 min ago · 9 228 torrents</span>
+          </div>
+        </div>
+        <div class="peer-actions">
+          <button class="btn btn-secondary btn-sm"><i class="ph ph-sliders-horizontal"></i> Scopes</button>
+          <button class="btn btn-ghost btn-icon" title="Suspend"><i class="ph ph-pause"></i></button>
+          <button class="btn btn-ghost btn-icon" title="Revoke"><i class="ph ph-link-break"></i></button>
+        </div>
+      </div>
+
+      <!-- pending out -->
+      <div class="peer">
+        <span class="dot idle"></span>
+        <div class="peer-id">
+          <div class="peer-name">DocuSphere <span class="badge badge-neutral">Sent · awaiting them</span></div>
+          <div class="peer-url">https://docu.example.org · handshake sent 1 h ago</div>
+        </div>
+        <div class="peer-actions">
+          <button class="btn btn-ghost btn-sm"><i class="ph ph-arrows-clockwise"></i> Resend</button>
+          <button class="btn btn-ghost btn-icon" title="Cancel"><i class="ph ph-x"></i></button>
+        </div>
+      </div>
+
+      <!-- blocked -->
+      <div class="peer peer--blocked">
+        <span class="dot idle"></span>
+        <div class="peer-id">
+          <div class="peer-name">shadytracker.xyz <span class="badge badge-blocked"><i class="ph-bold ph-prohibit"></i> Blocked</span></div>
+          <div class="peer-url">https://shadytracker.xyz · revoked 3 d ago — cached data purged</div>
+        </div>
+        <div class="peer-actions">
+          <button class="btn btn-ghost btn-sm"><i class="ph ph-arrow-counter-clockwise"></i> Unblock</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ░░ HANDSHAKE APPROVAL MODAL ░░ -->
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <div class="modal-head">
+      <i class="ph-bold ph-handshake lead"></i>
+      <span class="h-section" id="mtitle">Approve federation request</span>
+      <button class="modal-x" onclick="closeModal()"><i class="ph ph-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="card" style="background:var(--bg-inset);margin-bottom:1rem">
+        <div class="card-body">
+          <dl class="id-grid">
+            <dt>Name</dt><dd style="font-family:var(--font-sans);font-weight:600">BibliotheK</dd>
+            <dt>URL</dt><dd>https://tracker.bibliothek.de</dd>
+            <dt>Instance ID</dt><dd>tk_d9p1k2j8s44z</dd>
+            <dt>Fingerprint</dt><dd>ed25519:1B7c…<strong style="color:var(--fg-strong)">8E·44·A2</strong></dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="banner banner-warn" style="margin-bottom:1.1rem">
+        <i class="ph-bold ph-shield-warning"></i>
+        <span>Verify the fingerprint <strong>8E·44·A2</strong> with the partner's owner out-of-band before approving. A wrong fingerprint means an impostor.</span>
+      </div>
+
+      <label class="field-label">They propose to share with you</label>
+      <div class="row gap-sm wrap" style="margin:.4rem 0 1.1rem">
+        <span class="scope catalog active"><i class="ph-bold ph-database"></i> Catalogue</span>
+        <span class="scope social active"><i class="ph-bold ph-chat-circle-dots"></i> Social</span>
+      </div>
+
+      <label class="field-label">What you share back with them</label>
+      <div class="scope-grid" style="margin-top:.5rem">
+        <div class="scope-row"><span class="ico"><i class="ph-bold ph-database"></i></span><div class="grow"><div class="t">Catalogue</div></div><label class="switch is-gold"><input type="checkbox" checked><span class="track"></span><span class="thumb"></span></label></div>
+        <div class="scope-row"><span class="ico"><i class="ph-bold ph-chat-circle-dots"></i></span><div class="grow"><div class="t">Social</div></div><label class="switch is-gold"><input type="checkbox" checked><span class="track"></span><span class="thumb"></span></label></div>
+        <div class="scope-row"><span class="ico"><i class="ph-bold ph-trophy"></i></span><div class="grow"><div class="t">Accounts</div></div><label class="switch is-gold"><input type="checkbox"><span class="track"></span><span class="thumb"></span></label></div>
+        <div class="scope-row is-warn"><span class="ico"><i class="ph-bold ph-share-fat"></i></span><div class="grow"><div class="t">Swarm</div></div><label class="switch is-warning"><input type="checkbox"><span class="track"></span><span class="thumb"></span></label></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" onclick="closeModal()"><i class="ph-bold ph-x"></i> Reject</button>
+      <button class="btn btn-success" onclick="closeModal()"><i class="ph-bold ph-check"></i> Approve federation</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const overlay = document.getElementById('overlay');
+  function openModal(){ overlay.classList.add('open'); }
+  function closeModal(){ overlay.classList.remove('open'); }
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  // deep-link from the mockups index "Handshake approval" card
+  if (sessionStorage.getItem('openHandshake')) { sessionStorage.removeItem('openHandshake'); openModal(); }
+
+  // master toggle dims the rest when off
+  const master = document.getElementById('master');
+  master.addEventListener('change', () => {
+    document.querySelectorAll('.admin-main .section').forEach(s => {
+      s.style.opacity = master.checked ? '1' : '0.4';
+      s.style.pointerEvents = master.checked ? 'auto' : 'none';
+    });
+  });
+
+  // copy affordance feedback
+  document.querySelectorAll('.copy').forEach(c => c.addEventListener('click', () => {
+    const i = c.querySelector('i'); i.className = 'ph ph-check'; setTimeout(()=> i.className='ph ph-copy', 1200);
+  }));
+</script>
+</body>
+</html>
