@@ -3881,6 +3881,10 @@
       "federation_request_received": {
         "title": "Demande de fédération",
         "desc": "{instanceName} souhaite se fédérer avec ton tracker."
+      },
+      "federated_followed_upload": {
+        "title": "Nouvelle release d'un uploadeur suivi",
+        "desc": "{uploaderName} sur {peerName} a publié « {torrentName} »."
       }
     }
   },
@@ -3956,9 +3960,28 @@
     "via": "via {peer}",
     "alsoLocal": "aussi ici",
     "sameContent": "même contenu ici",
+    "follow": "Suivre",
+    "following": "Suivi",
     "open": "Ouvrir",
     "prev": "Préc.",
     "next": "Suiv.",
-    "showing": "{shown} sur {total} à travers les instances partenaires"
+    "showing": "{shown} sur {total} à travers les instances partenaires",
+    "detail": {
+      "back": "Retour au fédéré",
+      "notFound": "Ce torrent fédéré n'est plus en cache.",
+      "openOnSource": "Ouvrir sur {peer}",
+      "comments": "Commentaires",
+      "noComments": "Aucun commentaire sur l'instance d'origine pour l'instant.",
+      "commentsError": "Impossible de charger les commentaires depuis l'instance d'origine.",
+      "commentOnSource": "Commenter sur {peer}"
+    }
+  },
+  "forumFederated": {
+    "link": "Forum fédéré",
+    "eyebrow": "Inter-instances",
+    "title": "Forum fédéré",
+    "lead": "Sujets récents de vos instances partenaires. Ouvrez-en un pour lire ou répondre sur son tracker d'origine.",
+    "back": "Retour au forum",
+    "empty": "Aucun sujet fédéré pour l'instant — connectez des partenaires qui partagent leur périmètre social."
   }
 }

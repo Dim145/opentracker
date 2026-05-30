@@ -98,7 +98,10 @@ export type NotificationType =
   // ── Federation (owner-facing) ──────────────────────────────
   // A partner instance sent us a handshake; the owner must review and
   // approve it in /admin/federation (double opt-in).
-  | 'federation_request_received';
+  | 'federation_request_received'
+  // A followed uploader on a partner instance published a new torrent
+  // (detected by the catalogue sync). Notifies the local follower.
+  | 'federated_followed_upload';
 
 export interface NotificationRecord {
   id: string;

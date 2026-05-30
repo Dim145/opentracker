@@ -8,11 +8,15 @@
  * MAX_PAGES_PER_RUN so a huge backlog is drained over several ticks rather
  * than pinning one.
  *
+ * Phase 2a: NEW items (first-seen this sync) from an uploader a local user
+ * follows (`federated_follows`) emit a `federated_followed_upload` notice —
+ * a pull-based "follow" with no S2S Follow protocol (latency = sync period).
+ *
  * Read-only mirror: nothing here ever touches `torrents` or the local
  * economy. Driven by the `federation-sync` cron plugin.
  */
-import { eq, and } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
+import { eq, and, inArray, sql } from 'drizzle-orm';
+import { v4 as uuid } from 'uuid';
 import { db, schema } from '@trackarr/db';
 import type { FederationPeer } from '@trackarr/db/schema';
 import {
@@ -21,6 +25,7 @@ import {
   isFederationLive,
 } from './config';
 import { signedGet } from './signing';
+import { notifyMany } from '../notify';
 
 const PAGE_LIMIT = 100;
 const MAX_PAGES_PER_RUN = 25;
@@ -29,6 +34,13 @@ interface SyncResult {
   synced: number;
   status: 'ok' | 'error';
   error?: string;
+}
+
+/** A torrent seen for the first time this sync — candidate for a follow ping. */
+interface NewItem {
+  uploaderName: string | null;
+  name: string;
+  infoHash: string;
 }
 
 export async function syncPeerCatalogue(peer: FederationPeer): Promise<SyncResult> {
@@ -55,6 +67,7 @@ export async function syncPeerCatalogue(peer: FederationPeer): Promise<SyncResul
   let cursor = state?.cursor ?? null;
   let synced = 0;
   let pages = 0;
+  const newItems: NewItem[] = [];
 
   try {
     while (pages < MAX_PAGES_PER_RUN) {
@@ -77,8 +90,10 @@ export async function syncPeerCatalogue(peer: FederationPeer): Promise<SyncResul
       const items = res.data.items as unknown[];
       if (items.length === 0) break;
       for (const it of items) {
-        await upsertRemoteTorrent(peer.id, it as Record<string, unknown>);
+        const r = await upsertRemoteTorrent(peer.id, it as Record<string, unknown>);
+        if (!r) continue;
         synced++;
+        if (r.isNew && r.uploaderName) newItems.push(r);
       }
 
       const next = res.data.nextCursor;
@@ -92,6 +107,11 @@ export async function syncPeerCatalogue(peer: FederationPeer): Promise<SyncResul
       .update(schema.federationPeers)
       .set({ lastSeenAt: new Date(), lastError: null, updatedAt: new Date() })
       .where(eq(schema.federationPeers.id, peer.id));
+
+    // Phase 2a — ping local followers of any uploader who just shipped.
+    if (newItems.length) {
+      await notifyFollowersOfNewUploads(peer, newItems);
+    }
     return { synced, status: 'ok' };
   } catch (err: unknown) {
     const msg = (err as Error)?.message || 'sync failed';
@@ -114,16 +134,17 @@ function asNum(v: unknown): number {
 async function upsertRemoteTorrent(
   peerId: string,
   it: Record<string, unknown>,
-): Promise<void> {
+): Promise<NewItem & { isNew: boolean } | null> {
   const remoteId = asStr(it.remoteId);
   const infoHash = asStr(it.infoHash);
   const name = asStr(it.name);
-  if (!remoteId || !infoHash || !name) return; // skip malformed
+  if (!remoteId || !infoHash || !name) return null; // skip malformed
 
   const now = new Date();
   const remoteCreatedAt = it.createdAt
     ? new Date(it.createdAt as string)
     : null;
+  const uploaderName = asStr(it.uploaderName);
   const shared = {
     infoHash,
     contentSignature: asStr(it.contentSignature),
@@ -134,7 +155,7 @@ async function upsertRemoteTorrent(
     categorySlug: asStr(it.categorySlug),
     categoryType: asStr(it.categoryType),
     tags: Array.isArray(it.tags)
-      ? (it.tags as unknown[]).filter((t) => typeof t === 'string').slice(0, 50) as string[]
+      ? ((it.tags as unknown[]).filter((t) => typeof t === 'string').slice(0, 50) as string[])
       : null,
     imdbId: asStr(it.imdbId),
     tmdbId: asStr(it.tmdbId),
@@ -144,7 +165,7 @@ async function upsertRemoteTorrent(
     seeders: asNum(it.seeders),
     leechers: asNum(it.leechers),
     completed: asNum(it.completed),
-    uploaderName: asStr(it.uploaderName),
+    uploaderName,
     remoteCreatedAt:
       remoteCreatedAt && !Number.isNaN(remoteCreatedAt.getTime())
         ? remoteCreatedAt
@@ -154,13 +175,69 @@ async function upsertRemoteTorrent(
     updatedAt: now,
   };
 
-  await db
+  // `xmax = 0` is true only for a fresh INSERT (not an ON CONFLICT update),
+  // letting us distinguish first-seen torrents from refreshed ones.
+  const [row] = await db
     .insert(schema.remoteTorrents)
-    .values({ id: uuidv4(), peerId, remoteId, fetchedAt: now, ...shared })
+    .values({ id: uuid(), peerId, remoteId, fetchedAt: now, ...shared })
     .onConflictDoUpdate({
       target: [schema.remoteTorrents.peerId, schema.remoteTorrents.remoteId],
       set: shared,
-    });
+    })
+    .returning({ isNew: sql<boolean>`(xmax = 0)` });
+
+  return { isNew: !!row?.isNew, uploaderName, name: shared.name, infoHash };
+}
+
+/** Notify local followers when a followed remote uploader ships something new. */
+async function notifyFollowersOfNewUploads(
+  peer: FederationPeer,
+  newItems: NewItem[],
+): Promise<void> {
+  const uploaders = [
+    ...new Set(newItems.map((i) => i.uploaderName).filter((u): u is string => !!u)),
+  ];
+  if (!uploaders.length) return;
+
+  const follows = await db
+    .select({
+      localUserId: schema.federatedFollows.localUserId,
+      remoteUsername: schema.federatedFollows.remoteUsername,
+    })
+    .from(schema.federatedFollows)
+    .where(
+      and(
+        eq(schema.federatedFollows.peerId, peer.id),
+        inArray(schema.federatedFollows.remoteUsername, uploaders),
+      ),
+    );
+  if (!follows.length) return;
+
+  const followersByUploader = new Map<string, string[]>();
+  for (const f of follows) {
+    const list = followersByUploader.get(f.remoteUsername) ?? [];
+    list.push(f.localUserId);
+    followersByUploader.set(f.remoteUsername, list);
+  }
+
+  const peerName = peer.displayName || peer.baseUrl;
+  for (const item of newItems) {
+    const followers = item.uploaderName
+      ? followersByUploader.get(item.uploaderName)
+      : undefined;
+    if (!followers || !followers.length) continue;
+    await notifyMany(
+      followers,
+      'federated_followed_upload',
+      {
+        uploaderName: item.uploaderName,
+        peerName,
+        torrentName: item.name,
+        infoHash: item.infoHash,
+      },
+      '/federated',
+    );
+  }
 }
 
 async function saveCursor(
@@ -202,7 +279,6 @@ export async function syncAllCatalogues(): Promise<{
   let totalSynced = 0;
   let count = 0;
   for (const peer of peers) {
-    // We only pull a catalogue we've agreed to accept from them.
     if (!peer.acceptsFromThem?.catalog) continue;
     const r = await syncPeerCatalogue(peer);
     totalSynced += r.synced;

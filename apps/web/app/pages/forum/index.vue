@@ -38,6 +38,13 @@
         </li>
       </ul>
 
+      <div class="masthead-tools">
+        <NuxtLink to="/forum/federated" class="ed-btn">
+          <Icon name="ph:broadcast-bold" />
+          {{ $t('forumFederated.link') }}
+        </NuxtLink>
+      </div>
+
       <div v-if="user?.isAdmin" class="masthead-tools">
         <button type="button" class="ed-btn ed-btn--primary" @click="openCreate">
           <Icon name="ph:plus-bold" />

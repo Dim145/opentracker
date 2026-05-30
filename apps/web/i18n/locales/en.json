@@ -3882,6 +3882,10 @@
       "federation_request_received": {
         "title": "Federation request",
         "desc": "{instanceName} wants to federate with your tracker."
+      },
+      "federated_followed_upload": {
+        "title": "New release from a followed uploader",
+        "desc": "{uploaderName} on {peerName} published “{torrentName}”."
       }
     }
   },
@@ -3957,9 +3961,28 @@
     "via": "via {peer}",
     "alsoLocal": "also here",
     "sameContent": "same content here",
+    "follow": "Follow",
+    "following": "Following",
     "open": "Open",
     "prev": "Prev",
     "next": "Next",
-    "showing": "{shown} of {total} across partner instances"
+    "showing": "{shown} of {total} across partner instances",
+    "detail": {
+      "back": "Back to federated",
+      "notFound": "This federated torrent is no longer cached.",
+      "openOnSource": "Open on {peer}",
+      "comments": "Comments",
+      "noComments": "No comments on the source instance yet.",
+      "commentsError": "Couldn't load comments from the source instance.",
+      "commentOnSource": "Comment on {peer}"
+    }
+  },
+  "forumFederated": {
+    "link": "Federated forum",
+    "eyebrow": "Cross-instance",
+    "title": "Federated forum",
+    "lead": "Recent topics from your partner instances. Open one to read or reply on its home tracker.",
+    "back": "Back to forum",
+    "empty": "No federated topics yet — connect partners that share their social scope."
   }
 }

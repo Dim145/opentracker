@@ -2245,3 +2245,43 @@ export const federationSyncState = pgTable(
 );
 
 export type FederationSyncState = typeof federationSyncState.$inferSelect;
+
+// ============================================================================
+// Federation — Phase 2a: federated follows (social)
+// ============================================================================
+//
+// A local user can follow an uploader on a partner instance. This is a
+// LOCAL subscription (no S2S Follow protocol): the catalogue sync already
+// pulls partner torrents with their `uploaderName`, so when a NEW remote
+// torrent from a followed uploader lands, we notify the local followers.
+// Latency = the sync interval; nothing is pushed cross-instance.
+
+export const federatedFollows = pgTable(
+  'federated_follows',
+  {
+    id: text('id').primaryKey(),
+    localUserId: text('local_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    peerId: text('peer_id')
+      .notNull()
+      .references(() => federationPeers.id, { onDelete: 'cascade' }),
+    /** Remote uploader's display name on the partner instance. */
+    remoteUsername: text('remote_username').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('federated_follows_unique').on(
+      table.localUserId,
+      table.peerId,
+      table.remoteUsername,
+    ),
+    // Hot path: "who follows (peer, uploaderName)?" during sync fan-out.
+    index('federated_follows_target_idx').on(
+      table.peerId,
+      table.remoteUsername,
+    ),
+  ],
+);
+
+export type FederatedFollow = typeof federatedFollows.$inferSelect;

@@ -196,6 +196,10 @@ const EN: Dict = {
     title: 'New comment',
     desc: '{authorUsername} on “{requestTitle}”: {preview}',
   },
+  federated_followed_upload: {
+    title: 'New release from a followed uploader',
+    desc: '{uploaderName} on {peerName} published “{torrentName}”.',
+  },
 };
 
 const FR: Dict = {
@@ -370,6 +374,10 @@ const FR: Dict = {
   request_new_comment: {
     title: 'Nouveau message',
     desc: '{authorUsername} sur « {requestTitle} » : {preview}',
+  },
+  federated_followed_upload: {
+    title: 'Nouvelle release suivie',
+    desc: '{uploaderName} sur {peerName} a publié « {torrentName} ».',
   },
 };
 
