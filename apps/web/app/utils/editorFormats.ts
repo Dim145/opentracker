@@ -20,7 +20,7 @@
  */
 import { marked } from 'marked';
 import TurndownService from 'turndown';
-import { sanitizeHtml } from '~/utils/markdown';
+import { sanitizeHtml, sanitizeRichHtml } from '~/utils/markdown';
 
 // Turndown is configured to mirror common Markdown writing conventions
 // (fenced code blocks, ATX headings) so a save → reload round-trip
@@ -338,12 +338,13 @@ export function toEditorHtml(input: string | null | undefined): string {
   if (!input) return '';
   switch (detectFormat(input)) {
     case 'bbcode':
-      // Run the BBCode output through the same DOMPurify pass as the
-      // other arms. bbcodeToHtml emits only whitelisted markup today,
-      // but routing it through sanitizeHtml keeps this sink
-      // defence-in-depth consistent so a future BBCode tag can't open
-      // an XSS hole (finding: BBCode bypasses the sanitiser).
-      return sanitizeHtml(bbcodeToHtml(input));
+      // Sanitise the BBCode output (defence-in-depth: a future tag
+      // can't open an XSS hole). Use the RICH sanitizer so the
+      // presentational inline styles BBCode legitimately emits —
+      // [center]/[left]/[right] (text-align), [color], [size]
+      // (font-size) — survive; the strict `sanitizeHtml` stripped
+      // every `style` and silently dropped those features.
+      return sanitizeRichHtml(bbcodeToHtml(input));
     case 'html':
       // Sanitise just in case it came from clipboard.
       return sanitizeHtml(input);
