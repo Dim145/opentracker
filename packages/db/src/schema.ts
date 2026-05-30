@@ -878,6 +878,11 @@ export const torrents = pgTable(
     // be backfilled lazily by `plugins/backfill-content-signatures.ts`.
     contentSignature: text('content_signature'),
     isActive: boolean('is_active').default(true).notNull(),
+    // Per-torrent opt-in for swarm federation (Phase 4). When true AND the
+    // owner has a swarm-scoped peer link, this torrent's peers may be shared
+    // with / mixed from partner instances. Off by default — it re-opens the
+    // private swarm isolation, so it stays an explicit per-torrent choice.
+    federateSwarm: boolean('federate_swarm').default(false).notNull(),
     // Moderation pipeline. Replaces the legacy `is_approved` boolean.
     //   pending             — first state, awaiting a moderator's call
     //   accepted            — public; visible everywhere

@@ -688,6 +688,12 @@
         "totalSize": "Total Size",
         "exchanged": "Exchanged"
       },
+      "fedSwarm": {
+        "title": "Swarm federation",
+        "desc": "Allow this torrent's peers to be shared with — and mixed from — partner instances you have a swarm link with. Off by default; this shares peer IPs with trusted partners.",
+        "on": "Federated",
+        "off": "Not federated"
+      },
       "swarm": {
         "title": "Active Swarm ({n})",
         "adminOnly": "Admin only",
@@ -1474,6 +1480,8 @@
         "review": "Review",
         "revoke": "Revoke",
         "resend": "Resend",
+        "manage": "Manage",
+        "delete": "Remove",
         "status": {
           "pending_out": "Sent · awaiting them",
           "pending_in": "Awaiting your approval",
@@ -1490,6 +1498,17 @@
         "youShareBack": "What you share back with them",
         "confirm": "Approve federation",
         "cancel": "Cancel"
+      },
+      "manage": {
+        "title": "Manage partner",
+        "currentStatus": "Current status",
+        "statusActions": "Lifecycle",
+        "reactivate": "Reactivate",
+        "suspend": "Suspend",
+        "block": "Block",
+        "youShare": "What you share with them",
+        "youAccept": "What you accept from them",
+        "saveScopes": "Save scopes"
       },
       "toast": {
         "saved": "Settings saved",
@@ -3958,6 +3977,10 @@
     "lead": "Content living on partner instances you've federated with. Opening a result takes you to its origin tracker, where you download with your account there — your local ratio and swarms stay untouched.",
     "count": "{n} federated",
     "searchPlaceholder": "Search federated titles…",
+    "modeCache": "Cache",
+    "modeLive": "Live",
+    "livePrompt": "Type at least 2 characters to query partners live",
+    "liveResult": "Live results from {peers} partner instance(s)",
     "empty": "Nothing federated yet. Your instance owner connects partners in Admin → Federation; their catalogue then syncs in automatically.",
     "via": "via {peer}",
     "alsoLocal": "also here",

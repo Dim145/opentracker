@@ -52,6 +52,10 @@ type Server struct {
 	dedup        *dedup
 	ipHashSecret string
 	debug        bool
+	// federationSwarm: when true, ProcessAnnounce mixes peers cached from
+	// partner instances (`remote_peers:{infoHash}`) into the response. Off
+	// by default (TRACKER_FEDERATION_SWARM) — re-opens private swarm isolation.
+	federationSwarm bool
 	// appCtx is the process-lifecycle context. Background goroutines spawned
 	// from a request derive their own timeouts from this so they cancel when
 	// the server shuts down rather than running on context.Background().
@@ -73,7 +77,7 @@ type Server struct {
 // appCtx should be the process-lifecycle context (cancelled on shutdown).
 // `redisKeyPrefix` must match the API's REDIS_KEY_PREFIX so the bonus
 // resolver reads the same Redis snapshot the API writes.
-func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *peers.Store, redisKeyPrefix, ipHashSecret string, debug bool) *Server {
+func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *peers.Store, redisKeyPrefix, ipHashSecret string, debug, federationSwarm bool) *Server {
 	if appCtx == nil {
 		appCtx = context.Background()
 	}
@@ -90,10 +94,11 @@ func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *pee
 		peers:        store,
 		bonus:        bonus.New(rclient, redisKeyPrefix),
 		dedup:        newDedup(),
-		ipHashSecret: ipHashSecret,
-		debug:        debug,
-		appCtx:       appCtx,
-		hnrSlots:     slots,
+		ipHashSecret:    ipHashSecret,
+		debug:           debug,
+		federationSwarm: federationSwarm,
+		appCtx:          appCtx,
+		hnrSlots:        slots,
 	}
 }
 
@@ -596,6 +601,14 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		slog.Error("internal error", "where", "list peers", "err", err)
 		return AnnounceOutcome{Failure: "Internal tracker error"}
 	}
+	// 11b. Federation cross-announce (Phase 4): mix in peers cached from
+	// partner instances for this torrent. Off unless TRACKER_FEDERATION_SWARM.
+	// Best-effort — a cache miss or error never fails the announce.
+	if s.federationSwarm {
+		if remote, rerr := s.peers.ListRemote(ctx, infoHashHex); rerr == nil && len(remote) > 0 {
+			peerList = mergePeers(peerList, remote)
+		}
+	}
 	seeders, leechers := 0, 0
 	for _, p := range peerList {
 		if p.IsSeeder {
@@ -611,6 +624,32 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		Interval:    announceInterval,
 		MinInterval: minAnnounceInterval,
 	}
+}
+
+// mergePeers appends remote (partner-instance) peers to the local set,
+// de-duplicating by ip:port so a peer present in both swarms isn't listed
+// twice. Local peers keep priority (kept first); remote ones fill in.
+func mergePeers(local, remote []*peers.PeerData) []*peers.PeerData {
+	type key struct {
+		ip   string
+		port uint16
+	}
+	seen := make(map[key]struct{}, len(local)+len(remote))
+	for _, p := range local {
+		seen[key{p.IP, p.Port}] = struct{}{}
+	}
+	for _, p := range remote {
+		if p == nil || p.IP == "" {
+			continue
+		}
+		k := key{p.IP, p.Port}
+		if _, ok := seen[k]; ok {
+			continue
+		}
+		seen[k] = struct{}{}
+		local = append(local, p)
+	}
+	return local
 }
 
 // ----------------------------------------------------------------------------

@@ -125,7 +125,8 @@
           <div class="peer-actions">
             <button v-if="p.status === 'pending_in'" class="fbtn fbtn-ok" @click="openApprove(p)"><Icon name="ph:eye-bold" /> {{ $t('admin.federation.peers.review') }}</button>
             <button v-if="p.status === 'pending_out'" class="fbtn" :disabled="busy.row === p.id" @click="resend(p)"><Icon name="ph:arrows-clockwise" /> {{ $t('admin.federation.peers.resend') }}</button>
-            <button class="fbtn fbtn-danger" :disabled="busy.row === p.id" :title="$t('admin.federation.peers.revoke')" @click="revoke(p)"><Icon name="ph:link-break-bold" /></button>
+            <button v-if="isEstablished(p.status)" class="fbtn" :title="$t('admin.federation.peers.manage')" @click="openManage(p)"><Icon name="ph:sliders-horizontal-bold" /></button>
+            <button class="fbtn fbtn-danger" :disabled="busy.row === p.id" :title="$t('admin.federation.peers.delete')" @click="revoke(p)"><Icon name="ph:trash-bold" /></button>
           </div>
         </div>
       </div>
@@ -166,6 +167,54 @@
         <button class="fbtn fbtn-ok" :disabled="busy.approve" @click="confirmApprove">
           <Icon :name="busy.approve ? 'ph:circle-notch' : 'ph:check-bold'" :class="{ 'animate-spin': busy.approve }" />
           {{ $t('admin.federation.approve.confirm') }}
+        </button>
+      </template>
+    </Modal>
+
+    <!-- Manage peer modal — status + scope governance -->
+    <Modal v-model="manageOpen" :title="$t('admin.federation.manage.title')" icon="ph:sliders-horizontal" size="md">
+      <div v-if="manageTarget" class="fed-modal">
+        <dl class="fed-id">
+          <dt>{{ $t('admin.federation.identity.name') }}</dt>
+          <dd>{{ manageTarget.displayName || hostOf(manageTarget.baseUrl) }}</dd>
+          <dt>{{ $t('admin.federation.manage.currentStatus') }}</dt>
+          <dd><span class="fed-badge" :class="statusTone(manageTarget.status)">{{ $t('admin.federation.peers.status.' + manageTarget.status) }}</span></dd>
+        </dl>
+
+        <label class="fed-sub">{{ $t('admin.federation.manage.statusActions') }}</label>
+        <div class="fed-status-actions">
+          <button v-if="manageTarget.status !== 'active'" class="fbtn fbtn-ok" :disabled="busy.manage" @click="setStatus('active')"><Icon name="ph:play-bold" /> {{ $t('admin.federation.manage.reactivate') }}</button>
+          <button v-if="manageTarget.status === 'active'" class="fbtn" :disabled="busy.manage" @click="setStatus('suspended')"><Icon name="ph:pause-bold" /> {{ $t('admin.federation.manage.suspend') }}</button>
+          <button v-if="manageTarget.status !== 'blocked'" class="fbtn fbtn-danger" :disabled="busy.manage" @click="setStatus('blocked')"><Icon name="ph:prohibit-bold" /> {{ $t('admin.federation.manage.block') }}</button>
+        </div>
+
+        <label class="fed-sub" style="margin-top: 1rem">{{ $t('admin.federation.manage.youShare') }}</label>
+        <div class="fed-modal-scopes">
+          <div v-for="s in scopeDefs" :key="'ms' + s.key" class="scope-row" :class="{ 'is-warn': s.key === 'swarm' }">
+            <span class="scope-ico"><Icon :name="s.icon" /></span>
+            <span class="scope-t" style="flex: 1">{{ $t(s.label) }}</span>
+            <label class="switch" :class="s.key === 'swarm' ? 'is-warning' : 'is-gold'">
+              <input v-model="manageShares[s.key]" type="checkbox" /><span class="track" /><span class="thumb" />
+            </label>
+          </div>
+        </div>
+
+        <label class="fed-sub" style="margin-top: 1rem">{{ $t('admin.federation.manage.youAccept') }}</label>
+        <div class="fed-modal-scopes">
+          <div v-for="s in scopeDefs" :key="'ma' + s.key" class="scope-row" :class="{ 'is-warn': s.key === 'swarm' }">
+            <span class="scope-ico"><Icon :name="s.icon" /></span>
+            <span class="scope-t" style="flex: 1">{{ $t(s.label) }}</span>
+            <label class="switch" :class="s.key === 'swarm' ? 'is-warning' : 'is-gold'">
+              <input v-model="manageAccepts[s.key]" type="checkbox" /><span class="track" /><span class="thumb" />
+            </label>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <button class="fbtn" @click="manageOpen = false">{{ $t('admin.federation.approve.cancel') }}</button>
+        <button class="fbtn fbtn-ok" :disabled="busy.manage" @click="saveScopes">
+          <Icon :name="busy.manage ? 'ph:circle-notch' : 'ph:floppy-disk-bold'" :class="{ 'animate-spin': busy.manage }" />
+          {{ $t('admin.federation.manage.saveScopes') }}
         </button>
       </template>
     </Modal>
@@ -220,7 +269,7 @@ const scopeDefs = [
   { key: 'swarm', icon: 'ph:share-fat-bold', label: 'admin.federation.scopes.swarm', desc: 'admin.federation.scopes.swarmDesc' },
 ] as const;
 
-const busy = reactive({ master: false, identity: false, scopes: false, add: false, approve: false, row: '' });
+const busy = reactive({ master: false, identity: false, scopes: false, add: false, approve: false, manage: false, row: '' });
 const flash = ref<{ msg: string; tone: 'ok' | 'error' } | null>(null);
 function showFlash(msg: string, tone: 'ok' | 'error' = 'ok') {
   flash.value = { msg, tone };
@@ -345,6 +394,48 @@ async function confirmApprove() {
   busy.approve = false;
   approveOpen.value = false;
 }
+
+// --- peer governance: status transitions + scope edits (PATCH) ---
+const ESTABLISHED_STATUSES = ['active', 'suspended', 'blocked'];
+function isEstablished(status: string) {
+  return ESTABLISHED_STATUSES.includes(status);
+}
+const manageOpen = ref(false);
+const manageTarget = ref<Peer | null>(null);
+const manageShares = reactive<Scopes>({ ...EMPTY });
+const manageAccepts = reactive<Scopes>({ ...EMPTY });
+function openManage(p: Peer) {
+  manageTarget.value = p;
+  Object.assign(manageShares, p.sharesWithThem ?? EMPTY);
+  Object.assign(manageAccepts, p.acceptsFromThem ?? EMPTY);
+  manageOpen.value = true;
+}
+async function saveScopes() {
+  const p = manageTarget.value;
+  if (!p) return;
+  busy.manage = true;
+  await run(
+    () =>
+      $fetch(`/api/admin/federation/peers/${p.id}`, {
+        method: 'PATCH',
+        body: { sharesWithThem: { ...manageShares }, acceptsFromThem: { ...manageAccepts } },
+      }),
+    t('admin.federation.toast.saved'),
+  );
+  busy.manage = false;
+  manageOpen.value = false;
+}
+async function setStatus(status: 'active' | 'suspended' | 'blocked') {
+  const p = manageTarget.value;
+  if (!p) return;
+  busy.manage = true;
+  await run(
+    () => $fetch(`/api/admin/federation/peers/${p.id}`, { method: 'PATCH', body: { status } }),
+    t('admin.federation.toast.saved'),
+  );
+  busy.manage = false;
+  manageOpen.value = false;
+}
 </script>
 
 <style scoped>
@@ -443,4 +534,5 @@ async function confirmApprove() {
 .fed-sub { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-subtle); }
 .fed-modal-scopes { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem; }
 @media (max-width: 560px) { .fed-modal-scopes { grid-template-columns: 1fr; } }
+.fed-status-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0 0.2rem; }
 </style>

@@ -69,6 +69,21 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // A callback only ever COMPLETES an outbound handshake we initiated
+  // (status `pending_out`). If the link is already active, ACK idempotently
+  // but do NOT let a post-approval callback silently rewrite the scopes our
+  // owner agreed to. Any other state (pending_in, suspended, …) means there
+  // is no outbound handshake awaiting confirmation — reject it.
+  if (peer.status === 'active') {
+    return { ok: true, status: 'active' };
+  }
+  if (peer.status !== 'pending_out') {
+    throw createError({
+      statusCode: 409,
+      message: 'No outbound handshake awaiting confirmation',
+    });
+  }
+
   let parsed: z.infer<typeof bodySchema>;
   try {
     parsed = bodySchema.parse(rawBody ? JSON.parse(rawBody) : {});

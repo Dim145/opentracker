@@ -10,6 +10,7 @@
  */
 import { redis } from '~~/utils/server';
 import { syncAllCatalogues } from '~~/utils/federation/catalogSync';
+import { syncSwarmPeers } from '~~/utils/federation/swarmSync';
 import {
   getFederationConfig,
   isFederationLive,
@@ -42,6 +43,18 @@ export default defineNitroPlugin(async () => {
       console.log(
         `[Federation Sync] Tick — ${r.peers} peer(s), ${r.synced} torrent(s) (${Date.now() - start}ms)`,
       );
+      // Phase 4 — refresh the cross-announce peer cache for swarm-federated
+      // torrents. Best-effort; never blocks the catalogue result.
+      try {
+        const sw = await syncSwarmPeers();
+        if (sw.torrents > 0) {
+          console.log(
+            `[Federation Sync] Swarm — ${sw.peers} remote peer(s) cached across ${sw.torrents} torrent(s)`,
+          );
+        }
+      } catch (e) {
+        console.warn('[Federation Sync] swarm sync failed:', (e as Error).message);
+      }
 
       try {
         await redis.set(LAST_TICK_KEY, String(Date.now()));

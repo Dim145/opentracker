@@ -215,6 +215,28 @@ func (s *Store) List(ctx context.Context, infoHashHex string) ([]*PeerData, erro
 	return out, nil
 }
 
+// ListRemote returns peers cached from partner instances for this torrent
+// (Phase 4 cross-announce). The API's federation sync writes a JSON array of
+// PeerData to `remote_peers:{infoHash}` with a short TTL; we read it as-is.
+// Returns nil on miss / parse error — cross-announce is strictly best-effort
+// and must never fail an announce.
+func (s *Store) ListRemote(ctx context.Context, infoHashHex string) ([]*PeerData, error) {
+	raw, err := s.client.Get(ctx, s.remotePeerKey(infoHashHex)).Bytes()
+	if err != nil {
+		if err == redis.Nil {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var out []*PeerData
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, nil
+	}
+	return out, nil
+}
+
+func (s *Store) remotePeerKey(h string) string { return s.prefix + "remote_peers:" + h }
+
 // Counts returns (seeders, leechers) for a swarm. Walks List once
 // per `countsCacheTTL` per swarm; concurrent callers either share
 // the cached value or — if the cache is cold/expired — race to

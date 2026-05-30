@@ -19,6 +19,10 @@ type Config struct {
 	RedisKeyPrefix string
 	IPHashSecret   string
 	Debug          bool
+	// FederationSwarm gates the cross-announce peer injection (Phase 4).
+	// Off by default — mixing partner-instance peers into responses re-opens
+	// the private swarm isolation, so it's an explicit operator opt-in.
+	FederationSwarm bool
 	// PeerTTL is how long a peer entry survives in Redis without being
 	// touched by an announce. Anything below the announce interval would
 	// silently zero every delta on the next announce, so the loader
@@ -51,8 +55,9 @@ func Load() (*Config, error) {
 		RedisPassword:  os.Getenv("REDIS_PASSWORD"),
 		RedisKeyPrefix: getEnvDefault("REDIS_KEY_PREFIX", "ot:"),
 		IPHashSecret:   os.Getenv("IP_HASH_SECRET"),
-		Debug:          os.Getenv("TRACKER_DEBUG") == "true",
-		PeerTTL:        getEnvDuration("TRACKER_PEER_TTL", defaultPeerTTL),
+		Debug:           os.Getenv("TRACKER_DEBUG") == "true",
+		FederationSwarm: getEnvDefault("TRACKER_FEDERATION_SWARM", "false") == "true",
+		PeerTTL:         getEnvDuration("TRACKER_PEER_TTL", defaultPeerTTL),
 	}
 
 	if cfg.DatabaseURL == "" {

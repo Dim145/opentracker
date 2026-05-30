@@ -688,6 +688,12 @@
         "totalSize": "Taille totale",
         "exchanged": "Échangés"
       },
+      "fedSwarm": {
+        "title": "Fédération du swarm",
+        "desc": "Autoriser le partage des pairs de ce torrent avec — et depuis — les instances partenaires avec lesquelles vous avez un lien swarm. Désactivé par défaut ; cela partage les IP des pairs avec des partenaires de confiance.",
+        "on": "Fédéré",
+        "off": "Non fédéré"
+      },
       "swarm": {
         "title": "Swarm actif ({n})",
         "adminOnly": "Admin uniquement",
@@ -1474,6 +1480,8 @@
         "review": "Examiner",
         "revoke": "Révoquer",
         "resend": "Renvoyer",
+        "manage": "Gérer",
+        "delete": "Supprimer",
         "status": {
           "pending_out": "Envoyé · en attente d'eux",
           "pending_in": "En attente de votre approbation",
@@ -1490,6 +1498,17 @@
         "youShareBack": "Ce que vous partagez en retour",
         "confirm": "Approuver la fédération",
         "cancel": "Annuler"
+      },
+      "manage": {
+        "title": "Gérer le partenaire",
+        "currentStatus": "Statut actuel",
+        "statusActions": "Cycle de vie",
+        "reactivate": "Réactiver",
+        "suspend": "Suspendre",
+        "block": "Bloquer",
+        "youShare": "Ce que vous partagez avec eux",
+        "youAccept": "Ce que vous acceptez d'eux",
+        "saveScopes": "Enregistrer les scopes"
       },
       "toast": {
         "saved": "Paramètres enregistrés",
@@ -3957,6 +3976,10 @@
     "lead": "Du contenu hébergé sur les instances partenaires avec lesquelles vous êtes fédéré. Ouvrir un résultat vous amène sur son tracker d'origine, où vous téléchargez avec votre compte là-bas — votre ratio et vos swarms locaux ne sont pas touchés.",
     "count": "{n} fédérés",
     "searchPlaceholder": "Rechercher dans le catalogue fédéré…",
+    "modeCache": "Cache",
+    "modeLive": "Direct",
+    "livePrompt": "Tapez au moins 2 caractères pour interroger les partenaires en direct",
+    "liveResult": "Résultats en direct de {peers} instance(s) partenaire(s)",
     "empty": "Rien de fédéré pour l'instant. L'owner de votre instance connecte des partenaires dans Admin → Fédération ; leur catalogue se synchronise ensuite automatiquement.",
     "via": "via {peer}",
     "alsoLocal": "aussi ici",

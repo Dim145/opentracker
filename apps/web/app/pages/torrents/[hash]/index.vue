@@ -501,6 +501,24 @@
       </ul>
     </section>
 
+    <!-- § FEDERATION SWARM — per-torrent opt-in (uploader / staff). -->
+    <section v-if="canEdit" class="section">
+      <header class="section-head">
+        <span class="section-head-mark" aria-hidden="true">§</span>
+        <h2 class="section-head-title">{{ $t('torrents.detail.fedSwarm.title') }}</h2>
+        <span class="section-head-line" aria-hidden="true" />
+      </header>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+        <p style="font-size: 13px; color: rgb(var(--fg-muted)); max-width: 62ch; line-height: 1.55; margin: 0;">
+          {{ $t('torrents.detail.fedSwarm.desc') }}
+        </p>
+        <button type="button" class="btn-secondary" :disabled="fedSwarmBusy" @click="toggleFedSwarm">
+          <Icon :name="fedSwarm ? 'ph:broadcast-bold' : 'ph:broadcast'" />
+          {{ fedSwarm ? $t('torrents.detail.fedSwarm.on') : $t('torrents.detail.fedSwarm.off') }}
+        </button>
+      </div>
+    </section>
+
     <!-- § SWARM — admin-only peer list. Operational data, kept as a
          table because that's the format that scans best. -->
     <section v-if="user?.isAdmin" class="section section--swarm">
@@ -625,6 +643,7 @@ interface TorrentDetail {
   description: string | null;
   nfo: string | null;
   uploaderId: string | null;
+  federateSwarm?: boolean;
   // Eager-loaded by the detail endpoint, projected down to id +
   // username so the header strip can render an @-link without
   // leaking email / role bits onto the public payload.
@@ -934,6 +953,34 @@ const metadata = computed(
 
 // Get current user session
 const { loggedIn, user } = useUserSession();
+
+// Phase 4 — per-torrent swarm-federation opt-in (uploader / staff only).
+const fedSwarm = ref(false);
+const fedSwarmBusy = ref(false);
+watch(
+  () => torrent.value?.federateSwarm,
+  (v) => {
+    fedSwarm.value = !!v;
+  },
+  { immediate: true },
+);
+async function toggleFedSwarm() {
+  const enabled = !fedSwarm.value;
+  const hash = torrent.value?.infoHash;
+  if (!hash) return;
+  fedSwarmBusy.value = true;
+  try {
+    await $fetch(`/api/torrents/${hash}/federate-swarm`, {
+      method: 'PUT',
+      body: { enabled },
+    });
+    fedSwarm.value = enabled;
+  } catch {
+    /* keep previous visual state on error */
+  } finally {
+    fedSwarmBusy.value = false;
+  }
+}
 const notifications = useNotificationStore();
 const confirm = useConfirm();
 
