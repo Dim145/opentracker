@@ -4,6 +4,13 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 
 ## Released
 
+### v0.21.x — Freeleech pool, observability, security hardening
+
+- [x] **Freeleech pool** — Community-funded pot in the shop: members stake bonus points; when the target is reached a site-wide freeleech fires for a configured duration, then the pool drains and reopens. Admin-tunable target / duration / per-user cap / preset amounts, optional contribution windows (one-off, weekly, monthly, yearly), top-contributor board, and graceful interaction with an already-running bonus event. See [Freeleech pool](./freeleech-pool.md).
+- [x] **Anti-cheat triage upgrades** — `no_leecher` flags aggregate to one open row per (user, torrent) (the tracker upserts and sums the claimed bytes) instead of flooding the queue; the `/mod/anti-cheat` page gains bulk select + bulk verdict.
+- [x] **Observability** — Prometheus metrics extended to every recent surface (anti-cheat, bounty board, follows/favorites, cross-seed, timed bans, bonus shop, freeleech pool) on a dedicated port, plus a ready-to-import Grafana overview dashboard. A Docker `/health` probe is baked into the tracker image.
+- [x] **Security hardening pass** — Multi-stage adversarial audit + remediation: panic-mode key no longer derivable from a DB dump, ratio-economy re-credit loop closed, the 2FA fresh-auth window made functional (+ step-up on authenticator enrolment), trusted-device revocation on password change, SSRF closed on the Mattermost/Web-Push channels, demoted-staff role re-validation, TOTP single-use, `.torrent` ingestion hardened (private-flag normalisation so info_hash can't drift, size/length/file-count caps), and a long tail of medium/low fixes. **Breaking:** `IP_HASH_SECRET` and `NUXT_SESSION_SECRET` must now be ≥ 32 chars, and panic-mode encryption requires the panic password in the request.
+
 ### v0.20.x — Social graph, bounty board, anti-cheat
 
 - [x] **Anti-cheat detection** — Three real-time heuristics in the Go tracker (impossible velocity, upload to empty swarm, unknown peer_id signature) feeding a manual triage queue at `/mod/anti-cheat`. Nothing auto-bans. See [Anti-cheat](./anti-cheat.md).

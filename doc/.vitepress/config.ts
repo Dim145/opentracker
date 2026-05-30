@@ -83,6 +83,7 @@ export default defineConfig({
             { text: 'Hit-and-Run', link: '/guide/hit-and-run' },
             { text: 'Bonus Events', link: '/guide/bonus-events' },
             { text: 'Seed Bonus Economy', link: '/guide/seed-bonus' },
+            { text: 'Freeleech Pool', link: '/guide/freeleech-pool' },
             { text: 'UDP Tracker (BEP 15)', link: '/guide/udp-tracker' },
             { text: 'Metadata Providers', link: '/guide/metadata-providers' },
             { text: 'Notifications', link: '/guide/notifications' },
