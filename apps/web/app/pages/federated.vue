@@ -30,6 +30,7 @@
           <div class="t-sub">
             <span class="origin"><Icon name="ph:broadcast-bold" /> {{ $t('federated.via', { peer: t.peerName || host(t.peerBaseUrl) }) }}</span>
             <span v-if="t.existsLocally" class="dedupe"><Icon name="ph:link-bold" /> {{ $t('federated.alsoLocal') }}</span>
+          <span v-else-if="t.sameContentLocally" class="dedupe"><Icon name="ph:copy-bold" /> {{ $t('federated.sameContent') }}</span>
             <span v-for="tag in (t.tags || []).slice(0, 3)" :key="tag" class="t-tag">{{ tag }}</span>
           </div>
         </div>
@@ -77,6 +78,7 @@ interface Row {
   peerName: string | null;
   peerBaseUrl: string;
   existsLocally: boolean;
+  sameContentLocally: boolean;
 }
 interface Resp {
   items: Row[];

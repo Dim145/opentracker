@@ -250,3 +250,20 @@ NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.example.com:6969/announce
 Add it to `.gitignore` (already done in the repo). Use `.env.example` as the
 template for documentation and CI.
 :::
+
+## Federation
+
+Inter-instance federation is **opt-in** — off until the owner enables it in
+`/admin/federation`. It introduces no _required_ variables: the instance's
+Ed25519 private key is encrypted with the same key as notification-channel
+secrets (`CHANNEL_ENCRYPTION_KEY`, falling back to `NUXT_SESSION_SECRET`).
+
+| Variable                   | Read by | Default           | Purpose                                                                              |
+| -------------------------- | ------- | ----------------- | ------------------------------------------------------------------------------------ |
+| `FEDERATION_SYNC_INTERVAL` | api     | `900000` (15 min) | Catalogue-sync cron period in ms. The cron is a no-op while federation is disabled.  |
+
+> [!NOTE]
+> Outbound federation calls go through the SSRF-hardened `safeFetch`, which
+> blocks loopback and private IP ranges. Federating two instances on the same
+> LAN/host therefore needs public hostnames (an explicit host allow-list is not
+> implemented yet).

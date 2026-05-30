@@ -3945,5 +3945,20 @@
       "cancelButton": "Garder",
       "failed": "Impossible d'annuler le signalement."
     }
+  },
+  "federated": {
+    "eyebrow": "Catalogue",
+    "title": "Fédéré",
+    "lead": "Du contenu hébergé sur les instances partenaires avec lesquelles vous êtes fédéré. Ouvrir un résultat vous amène sur son tracker d'origine, où vous téléchargez avec votre compte là-bas — votre ratio et vos swarms locaux ne sont pas touchés.",
+    "count": "{n} fédérés",
+    "searchPlaceholder": "Rechercher dans le catalogue fédéré…",
+    "empty": "Rien de fédéré pour l'instant. L'owner de votre instance connecte des partenaires dans Admin → Fédération ; leur catalogue se synchronise ensuite automatiquement.",
+    "via": "via {peer}",
+    "alsoLocal": "aussi ici",
+    "sameContent": "même contenu ici",
+    "open": "Ouvrir",
+    "prev": "Préc.",
+    "next": "Suiv.",
+    "showing": "{shown} sur {total} à travers les instances partenaires"
   }
 }

@@ -3956,6 +3956,7 @@
     "empty": "Nothing federated yet. Your instance owner connects partners in Admin → Federation; their catalogue then syncs in automatically.",
     "via": "via {peer}",
     "alsoLocal": "also here",
+    "sameContent": "same content here",
     "open": "Open",
     "prev": "Prev",
     "next": "Next",

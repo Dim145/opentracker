@@ -10,7 +10,7 @@
  * Signature covers the full request path (incl. query); GET has no body so
  * the digest is over the empty string.
  */
-import { eq, and, gt, asc } from 'drizzle-orm';
+import { eq, and, gt, asc, inArray } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import {
   getFederationConfig,
@@ -120,6 +120,25 @@ export default defineEventHandler(async (event) => {
     .orderBy(asc(schema.torrents.createdAt))
     .limit(limit);
 
+  // Aggregate tags for the page's torrents in a single round-trip.
+  const ids = rows.map((r) => r.id);
+  const tagRows = ids.length
+    ? await db
+        .select({
+          torrentId: schema.torrentTags.torrentId,
+          name: schema.tags.name,
+        })
+        .from(schema.torrentTags)
+        .innerJoin(schema.tags, eq(schema.torrentTags.tagId, schema.tags.id))
+        .where(inArray(schema.torrentTags.torrentId, ids))
+    : [];
+  const tagsByTorrent = new Map<string, string[]>();
+  for (const t of tagRows) {
+    const list = tagsByTorrent.get(t.torrentId) ?? [];
+    list.push(t.name);
+    tagsByTorrent.set(t.torrentId, list);
+  }
+
   const base = (config!.publicUrl || '').replace(/\/$/, '');
   const items = rows.map((r) => ({
     remoteId: r.id,
@@ -130,6 +149,7 @@ export default defineEventHandler(async (event) => {
     description: r.description,
     categorySlug: r.categorySlug,
     categoryType: r.categoryType,
+    tags: tagsByTorrent.get(r.id) ?? [],
     imdbId: r.imdbId,
     tmdbId: r.tmdbId,
     tvdbId: r.tvdbId,

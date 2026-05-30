@@ -2,10 +2,13 @@
  * GET /api/federation/browse?q=&page=&limit=&peer=  — authenticated.
  *
  * Reads the local mirror (`remote_torrents`) for the federated-catalogue
- * UI. Joins the peer so each row carries its origin (name + URL), and
- * flags `existsLocally` when the same info_hash is already on this
- * instance (dedupe hint). Revoked peers cascade-delete their rows, so an
- * inner join naturally hides them.
+ * UI. Joins the peer so each row carries its origin (name + URL), and adds
+ * two dedupe hints against the local catalogue:
+ *   - existsLocally      — same info_hash is already here (literally the same
+ *                          torrent).
+ *   - sameContentLocally — same content_signature but a different info_hash
+ *                          (a cross-seed of the same files).
+ * Revoked peers cascade-delete their rows, so an inner join hides them.
  */
 import { desc, ilike, and, or, eq, sql, inArray } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
@@ -41,6 +44,7 @@ export default defineEventHandler(async (event) => {
     .select({
       id: schema.remoteTorrents.id,
       infoHash: schema.remoteTorrents.infoHash,
+      contentSignature: schema.remoteTorrents.contentSignature,
       name: schema.remoteTorrents.name,
       size: schema.remoteTorrents.size,
       categorySlug: schema.remoteTorrents.categorySlug,
@@ -67,15 +71,35 @@ export default defineEventHandler(async (event) => {
     .limit(limit)
     .offset(offset);
 
-  // Dedupe hint: which of these info_hashes already exist locally?
+  // Dedupe hints: which of these info_hashes / content_signatures already
+  // exist locally? One query covers both via OR.
   const hashes = rows.map((r) => r.infoHash);
-  const localRows = hashes.length
-    ? await db
-        .select({ infoHash: schema.torrents.infoHash })
-        .from(schema.torrents)
-        .where(inArray(schema.torrents.infoHash, hashes))
-    : [];
-  const localSet = new Set(localRows.map((l) => l.infoHash));
+  const sigs = rows
+    .map((r) => r.contentSignature)
+    .filter((s): s is string => !!s);
+  const localRows =
+    hashes.length || sigs.length
+      ? await db
+          .select({
+            infoHash: schema.torrents.infoHash,
+            contentSignature: schema.torrents.contentSignature,
+          })
+          .from(schema.torrents)
+          .where(
+            or(
+              hashes.length
+                ? inArray(schema.torrents.infoHash, hashes)
+                : sql`false`,
+              sigs.length
+                ? inArray(schema.torrents.contentSignature, sigs)
+                : sql`false`,
+            ),
+          )
+      : [];
+  const localHashes = new Set(localRows.map((l) => l.infoHash));
+  const localSigs = new Set(
+    localRows.map((l) => l.contentSignature).filter((s): s is string => !!s),
+  );
 
   const [{ total }] = await db
     .select({ total: sql<number>`count(*)::int` })
@@ -86,10 +110,12 @@ export default defineEventHandler(async (event) => {
     )
     .where(where);
 
-  const items = rows.map((r) => ({
-    ...r,
-    existsLocally: localSet.has(r.infoHash),
-  }));
+  const items = rows.map((r) => {
+    const existsLocally = localHashes.has(r.infoHash);
+    const sameContentLocally =
+      !existsLocally && !!r.contentSignature && localSigs.has(r.contentSignature);
+    return { ...r, existsLocally, sameContentLocally };
+  });
 
   return {
     items,
