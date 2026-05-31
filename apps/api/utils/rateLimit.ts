@@ -289,6 +289,30 @@ function rateLimitMemory(
   return { remaining: maxRequests - entry.count, blocked: false };
 }
 
+/**
+ * Rate-limit keyed on an authenticated IDENTITY (e.g. a federation peer's
+ * `instanceId`) instead of the client IP. A partner is a stable identity, so
+ * this can't be bypassed by rotating egress IPs, and partners behind one NAT
+ * don't share a bucket. Pure sliding-window count — no IP blacklist side
+ * effects. Throws 429 when the window is exceeded.
+ */
+export async function rateLimitIdentity(
+  identity: string,
+  options: { windowSec: number; maxRequests: number; prefix?: string },
+): Promise<void> {
+  const { windowSec, maxRequests, prefix = 'id' } = options;
+  const key = `${prefix}:id:${identity}`;
+  const result = await rateLimitRedis(key, windowSec, maxRequests);
+  if (result.blocked) {
+    throw createError({
+      statusCode: 429,
+      statusMessage: 'Too Many Requests',
+      message: 'Rate limit exceeded for this instance',
+      data: { retryAfter: result.retryAfter },
+    });
+  }
+}
+
 // ============================================================================
 // Main Rate Limit Function
 // ============================================================================

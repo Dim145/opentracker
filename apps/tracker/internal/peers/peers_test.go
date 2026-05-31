@@ -292,6 +292,190 @@ func TestCounts_CacheRespectsTTL(t *testing.T) {
 }
 
 // ----------------------------------------------------------------------------
+// ListRemote — federation cross-announce cache (Phase 4)
+// ----------------------------------------------------------------------------
+
+// setRemote writes the raw value of a remote_peers:{hash} key straight into
+// miniredis, mirroring what the API's federation sync produces.
+func setRemote(t *testing.T, mr *miniredis.Miniredis, infoHash, raw string) {
+	t.Helper()
+	mr.Set("ot:remote_peers:"+infoHash, raw)
+}
+
+// TestListRemote_TableDriven exercises the read+unmarshal contract of
+// ListRemote against a live (in-process) miniredis: a missing key, a
+// well-formed JSON array, an empty array, and malformed JSON. In every
+// failure mode ListRemote must return (nil, nil) and never panic —
+// cross-announce is strictly best-effort.
+func TestListRemote_TableDriven(t *testing.T) {
+	tests := []struct {
+		name string
+		// store, when non-empty, is written verbatim to the
+		// remote_peers key before the call. When empty, the key is
+		// left absent (cache-miss case).
+		store    string
+		setKey   bool
+		wantLen  int
+		wantNil  bool
+		validate func(t *testing.T, got []*PeerData)
+	}{
+		{
+			name:    "cache miss — key absent returns nil",
+			setKey:  false,
+			wantNil: true,
+		},
+		{
+			name:    "stored JSON array parses into peers",
+			setKey:  true,
+			store:   `[{"peerId":"a","ip":"198.51.100.1","port":6881,"isSeeder":true},{"peerId":"b","ip":"198.51.100.2","port":6882,"isSeeder":false}]`,
+			wantLen: 2,
+			validate: func(t *testing.T, got []*PeerData) {
+				if got[0].IP != "198.51.100.1" || got[0].Port != 6881 || !got[0].IsSeeder {
+					t.Errorf("peer[0] mis-parsed: %+v", got[0])
+				}
+				if got[1].IP != "198.51.100.2" || got[1].Port != 6882 || got[1].IsSeeder {
+					t.Errorf("peer[1] mis-parsed: %+v", got[1])
+				}
+			},
+		},
+		{
+			name:    "empty JSON array yields zero peers (non-nil, no error)",
+			setKey:  true,
+			store:   `[]`,
+			wantLen: 0,
+		},
+		{
+			name:    "malformed JSON returns nil without panicking",
+			setKey:  true,
+			store:   `{not valid json`,
+			wantNil: true,
+		},
+		{
+			name:    "JSON object (wrong shape) returns nil",
+			setKey:  true,
+			store:   `{"peerId":"a","ip":"198.51.100.1"}`,
+			wantNil: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, mr := newTestStore(t, 24*time.Hour)
+			if tt.setKey {
+				setRemote(t, mr, "fed-hash", tt.store)
+			}
+			got, err := s.ListRemote(context.Background(), "fed-hash")
+			if err != nil {
+				t.Fatalf("ListRemote returned error (must be best-effort nil): %v", err)
+			}
+			if tt.wantNil {
+				if got != nil {
+					t.Fatalf("expected nil, got %+v", got)
+				}
+				return
+			}
+			if len(got) != tt.wantLen {
+				t.Fatalf("len: got %d, want %d (%+v)", len(got), tt.wantLen, got)
+			}
+			if tt.validate != nil {
+				tt.validate(t, got)
+			}
+		})
+	}
+}
+
+// TestListRemote_CacheHitSkipsRedis proves the second call within
+// remoteCacheTTL is served from the process-local cache and does NOT
+// re-read Redis: we populate the cache, then change the underlying key,
+// and assert the stale (cached) value is still returned.
+func TestListRemote_CacheHitSkipsRedis(t *testing.T) {
+	s, mr := newTestStore(t, 24*time.Hour)
+	ctx := context.Background()
+
+	setRemote(t, mr, "h", `[{"peerId":"a","ip":"198.51.100.1","port":6881}]`)
+
+	first, err := s.ListRemote(ctx, "h")
+	if err != nil {
+		t.Fatalf("first ListRemote: %v", err)
+	}
+	if len(first) != 1 || first[0].IP != "198.51.100.1" {
+		t.Fatalf("first call mis-parsed: %+v", first)
+	}
+
+	// Mutate Redis behind the cache. If the second call hit Redis it
+	// would see two peers; a cache hit returns the original one.
+	setRemote(t, mr, "h", `[{"peerId":"a","ip":"198.51.100.1","port":6881},{"peerId":"b","ip":"198.51.100.2","port":6882}]`)
+
+	second, err := s.ListRemote(ctx, "h")
+	if err != nil {
+		t.Fatalf("second ListRemote: %v", err)
+	}
+	if len(second) != 1 {
+		t.Fatalf("second call should be a cache hit (len 1), got len %d — Redis was re-read", len(second))
+	}
+}
+
+// TestListRemote_CacheMissIsCached confirms an absent key caches a nil
+// result: even after the key later appears, a second call within the TTL
+// still returns nil (the cached miss), proving the miss path is memoised
+// (this is the hot non-federated-torrent case the cache exists for).
+func TestListRemote_CacheMissIsCached(t *testing.T) {
+	s, mr := newTestStore(t, 24*time.Hour)
+	ctx := context.Background()
+
+	got, err := s.ListRemote(ctx, "absent")
+	if err != nil || got != nil {
+		t.Fatalf("first call on absent key: got (%+v, %v), want (nil, nil)", got, err)
+	}
+
+	// Key appears after the miss was cached.
+	setRemote(t, mr, "absent", `[{"peerId":"a","ip":"198.51.100.1","port":6881}]`)
+
+	got2, err := s.ListRemote(ctx, "absent")
+	if err != nil {
+		t.Fatalf("second ListRemote: %v", err)
+	}
+	if got2 != nil {
+		t.Fatalf("second call should return the cached nil miss, got %+v", got2)
+	}
+}
+
+// TestListRemote_ExpiredCacheRefetches forces the cache entry's expiry
+// into the past and confirms the next call re-reads Redis and picks up the
+// updated value — the complement to the cache-hit test.
+func TestListRemote_ExpiredCacheRefetches(t *testing.T) {
+	s, mr := newTestStore(t, 24*time.Hour)
+	ctx := context.Background()
+
+	setRemote(t, mr, "h", `[{"peerId":"a","ip":"198.51.100.1","port":6881}]`)
+	if _, err := s.ListRemote(ctx, "h"); err != nil {
+		t.Fatalf("priming call: %v", err)
+	}
+
+	// Expire the cached entry by rewriting it with a past expiresAt.
+	v, ok := s.remoteCache.Load("h")
+	if !ok {
+		t.Fatal("expected a cached entry after the priming call")
+	}
+	entry := v.(*remoteCacheEntry)
+	s.remoteCache.Store("h", &remoteCacheEntry{
+		peers:     entry.peers,
+		expiresAt: time.Now().Add(-time.Second), // already expired
+	})
+
+	// Underlying key now has two peers; an expired cache must refetch.
+	setRemote(t, mr, "h", `[{"peerId":"a","ip":"198.51.100.1","port":6881},{"peerId":"b","ip":"198.51.100.2","port":6882}]`)
+
+	got, err := s.ListRemote(ctx, "h")
+	if err != nil {
+		t.Fatalf("post-expiry ListRemote: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("expired cache should refetch (len 2), got len %d", len(got))
+	}
+}
+
+// ----------------------------------------------------------------------------
 // Completed counter
 // ----------------------------------------------------------------------------
 

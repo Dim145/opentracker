@@ -24,6 +24,7 @@ import { computeInstanceId } from '~~/utils/federation/keys';
 import { federationScopesSchema } from '~~/utils/federation/scopes';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notify } from '~~/utils/notify';
+import { assertNotReplayed } from '~~/utils/federation/inbound';
 
 const PATHNAME = '/api/federation/handshake';
 
@@ -81,6 +82,7 @@ export default defineEventHandler(async (event) => {
       message: `Signature rejected: ${verdict.reason ?? 'identity mismatch'}`,
     });
   }
+  await assertNotReplayed(headers['x-trackarr-signature']);
 
   const now = new Date();
   let isNewRequest = false;

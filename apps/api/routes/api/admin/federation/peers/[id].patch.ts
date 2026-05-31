@@ -19,8 +19,7 @@ import { requireAdminSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 import { federationScopesSchema } from '~~/utils/federation/scopes';
-
-const ESTABLISHED = ['active', 'suspended', 'blocked', 'revoked'];
+import { canGovernanceTransition } from '~~/utils/federation/peerLifecycle';
 
 const bodySchema = z
   .object({
@@ -52,11 +51,12 @@ export default defineEventHandler(async (event) => {
 
   const set: Record<string, unknown> = { updatedAt: new Date() };
   if (body.status !== undefined) {
-    if (!ESTABLISHED.includes(peer.status)) {
+    // Enforced via the shared transition table — notably forbids resurrecting a
+    // revoked peer and changing the status of a pending handshake.
+    if (!canGovernanceTransition(peer.status, body.status)) {
       throw createError({
         statusCode: 409,
-        message:
-          'Status change applies only to an established link — approve or delete a pending handshake instead',
+        message: `Illegal status transition ${peer.status} → ${body.status} (approve/delete a pending handshake; revoked is terminal)`,
       });
     }
     set.status = body.status;

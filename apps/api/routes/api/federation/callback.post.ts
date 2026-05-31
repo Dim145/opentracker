@@ -20,6 +20,8 @@ import {
 import { verifySignedRequest } from '~~/utils/federation/signing';
 import { federationScopesSchema } from '~~/utils/federation/scopes';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { assertNotReplayed } from '~~/utils/federation/inbound';
+import { evaluateCallback } from '~~/utils/federation/peerLifecycle';
 
 const PATHNAME = '/api/federation/callback';
 
@@ -68,16 +70,17 @@ export default defineEventHandler(async (event) => {
       message: `Signature rejected: ${verdict.reason}`,
     });
   }
+  await assertNotReplayed(headers['x-trackarr-signature']);
 
-  // A callback only ever COMPLETES an outbound handshake we initiated
-  // (status `pending_out`). If the link is already active, ACK idempotently
-  // but do NOT let a post-approval callback silently rewrite the scopes our
-  // owner agreed to. Any other state (pending_in, suspended, …) means there
-  // is no outbound handshake awaiting confirmation — reject it.
-  if (peer.status === 'active') {
+  // A callback only ever COMPLETES an outbound handshake we initiated. If the
+  // link is already active, ACK idempotently WITHOUT rewriting the scopes our
+  // owner agreed to; any other state means there is no outbound handshake
+  // awaiting confirmation (centralised in peerLifecycle.evaluateCallback).
+  const decision = evaluateCallback(peer.status);
+  if (decision === 'idempotent') {
     return { ok: true, status: 'active' };
   }
-  if (peer.status !== 'pending_out') {
+  if (decision === 'reject') {
     throw createError({
       statusCode: 409,
       message: 'No outbound handshake awaiting confirmation',

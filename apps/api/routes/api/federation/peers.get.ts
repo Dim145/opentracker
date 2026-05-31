@@ -11,12 +11,7 @@ import { eq, and } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { redis } from '~~/utils/server';
 import { isBlockedIp } from '~~/utils/safeFetch';
-import {
-  getFederationConfig,
-  isFederationLive,
-} from '~~/utils/federation/config';
-import { verifySignedRequest } from '~~/utils/federation/signing';
-import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { verifyInboundS2S } from '~~/utils/federation/inbound';
 
 // Match the tracker's activeListWindow (peers.go) so we only expose peers
 // that are actually live.
@@ -24,44 +19,7 @@ const ACTIVE_WINDOW_MS = 60 * 60 * 1000;
 const MAX_PEERS = 200;
 
 export default defineEventHandler(async (event) => {
-  await rateLimit(event, RATE_LIMITS.public);
-
-  const config = await getFederationConfig();
-  if (!isFederationLive(config)) {
-    throw createError({ statusCode: 404, message: 'Federation not enabled' });
-  }
-
-  const headers = getRequestHeaders(event);
-  const senderId = headers['x-trackarr-instance'];
-  if (!senderId) {
-    throw createError({ statusCode: 401, message: 'Missing instance header' });
-  }
-
-  const [peer] = await db
-    .select()
-    .from(schema.federationPeers)
-    .where(eq(schema.federationPeers.instanceId, senderId))
-    .limit(1);
-  if (!peer || !peer.publicKey) {
-    throw createError({ statusCode: 404, message: 'Unknown peer' });
-  }
-  if (peer.status !== 'active') {
-    throw createError({ statusCode: 403, message: 'Peer not active' });
-  }
-  if (!peer.sharesWithThem?.swarm) {
-    throw createError({ statusCode: 403, message: 'Swarm not shared with this peer' });
-  }
-
-  const verdict = verifySignedRequest({
-    method: 'GET',
-    pathname: event.path,
-    rawBody: '',
-    headers,
-    publicKeyPem: peer.publicKey,
-  });
-  if (!verdict.ok) {
-    throw createError({ statusCode: 401, message: `Signature rejected: ${verdict.reason}` });
-  }
+  await verifyInboundS2S(event, 'swarm');
 
   const q = getQuery(event);
   const infoHash =

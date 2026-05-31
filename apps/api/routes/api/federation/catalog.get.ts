@@ -12,64 +12,13 @@
  */
 import { eq, and, or, gt, asc, inArray } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
-import {
-  getFederationConfig,
-  isFederationLive,
-} from '~~/utils/federation/config';
-import { verifySignedRequest } from '~~/utils/federation/signing';
-import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { verifyInboundS2S } from '~~/utils/federation/inbound';
 
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 50;
 
 export default defineEventHandler(async (event) => {
-  await rateLimit(event, RATE_LIMITS.public);
-
-  const config = await getFederationConfig();
-  if (!isFederationLive(config)) {
-    throw createError({ statusCode: 404, message: 'Federation not enabled' });
-  }
-
-  const headers = getRequestHeaders(event);
-  const senderId = headers['x-trackarr-instance'];
-  if (!senderId) {
-    throw createError({ statusCode: 401, message: 'Missing instance header' });
-  }
-
-  const [peer] = await db
-    .select()
-    .from(schema.federationPeers)
-    .where(eq(schema.federationPeers.instanceId, senderId))
-    .limit(1);
-  if (!peer || !peer.publicKey) {
-    throw createError({ statusCode: 404, message: 'Unknown peer' });
-  }
-  if (peer.status !== 'active') {
-    throw createError({ statusCode: 403, message: 'Peer not active' });
-  }
-  // We must be sharing the catalogue scope with THEM.
-  if (!peer.sharesWithThem?.catalog) {
-    throw createError({
-      statusCode: 403,
-      message: 'Catalogue not shared with this peer',
-    });
-  }
-
-  // A GET carries no body — and h3's readRawBody throws 405 on GET/HEAD,
-  // so we must NOT call it here. The signed digest covers the empty string.
-  const verdict = verifySignedRequest({
-    method: 'GET',
-    pathname: event.path, // full path incl. query — matches what was signed
-    rawBody: '',
-    headers,
-    publicKeyPem: peer.publicKey,
-  });
-  if (!verdict.ok) {
-    throw createError({
-      statusCode: 401,
-      message: `Signature rejected: ${verdict.reason}`,
-    });
-  }
+  const { config } = await verifyInboundS2S(event, 'catalog');
 
   const q = getQuery(event);
   const sinceRaw = typeof q.since === 'string' ? new Date(q.since) : null;
@@ -154,7 +103,7 @@ export default defineEventHandler(async (event) => {
     tagsByTorrent.set(t.torrentId, list);
   }
 
-  const base = (config!.publicUrl || '').replace(/\/$/, '');
+  const base = (config.publicUrl || '').replace(/\/$/, '');
   const items = rows.map((r) => ({
     remoteId: r.id,
     infoHash: r.infoHash,
