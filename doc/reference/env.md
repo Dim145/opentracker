@@ -261,6 +261,9 @@ secrets (`CHANNEL_ENCRYPTION_KEY`, falling back to `NUXT_SESSION_SECRET`).
 | Variable                   | Read by | Default           | Purpose                                                                              |
 | -------------------------- | ------- | ----------------- | ------------------------------------------------------------------------------------ |
 | `FEDERATION_SYNC_INTERVAL` | api     | `900000` (15 min) | Catalogue-sync cron period in ms. The cron is a no-op while federation is disabled.  |
+| `TRACKER_FEDERATION_SWARM` | tracker | `false`           | Master switch for swarm cross-announce on the Go tracker. Leave off unless you've deliberately enabled opt-in swarm federation. |
+
+See the [Federation guide](/guide/federation) for the full feature, trust model and security notes.
 
 > [!NOTE]
 > Outbound federation calls go through the SSRF-hardened `safeFetch`, which

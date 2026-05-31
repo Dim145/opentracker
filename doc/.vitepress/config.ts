@@ -16,6 +16,10 @@ export default defineConfig({
 
   ignoreDeadLinks: [/^http:\/\/localhost/],
 
+  // The federation design study and its standalone HTML mockups aren't part
+  // of the published site — the user-facing feature doc is guide/federation.md.
+  srcExclude: ['federation/PROPOSAL.md'],
+
   head: [
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     [
@@ -97,6 +101,7 @@ export default defineConfig({
             { text: 'Favorites', link: '/guide/favorites' },
             { text: 'Follows', link: '/guide/follows' },
             { text: 'Cross-seed', link: '/guide/cross-seed' },
+            { text: 'Federation', link: '/guide/federation' },
           ],
         },
         {

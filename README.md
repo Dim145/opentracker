@@ -53,6 +53,14 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 - **Distributed rate limiting** — Redis-backed sliding windows; progressive penalties; auto IP bans.
 - **Optional static deployment** — distroless nginx serves a CSR bundle in **~28 MB** (see below).
 
+### Federation (inter-instance)
+
+- **Owner-curated network** — connect independent Trackarr instances through a double opt-in, **Ed25519-signed** handshake; off by default, enabled from `/admin/federation`.
+- **Granular, asymmetric scopes** — share/accept `catalog`, `social`, `accounts`, `swarm` per peer and per direction; suspend / block / revoke / re-scope any peer from the owner console.
+- **Federated catalogue** — browse & search partner content (cron-synced cache **+** live fan-out) with cross-instance dedupe; a remote download links back to its origin instance (never your local passkey).
+- **Federated social & identity** — follow remote uploaders, read-only sanitized comments/forum, and prove you own an account on a partner (verified-identity badge + read-only reputation; **no SSO**, economies stay isolated).
+- **Optional swarm cross-announce** — opt-in **per torrent and per peer**, behind `TRACKER_FEDERATION_SWARM` (off); only `ip/port/isSeeder` cross the wire and ratio/HnR stay local. See [Federation](doc/guide/federation.md).
+
 ---
 
 ## 🏗️ Architecture
