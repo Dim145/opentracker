@@ -13,9 +13,10 @@
 import { desc, ilike, and, or, eq, sql, inArray } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { escapeLike } from '~~/utils/sql';
+import { requireAuthSession } from '~~/utils/adminAuth';
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event);
+  await requireAuthSession(event);
 
   const q = getQuery(event);
   const search = typeof q.q === 'string' ? q.q.trim() : '';

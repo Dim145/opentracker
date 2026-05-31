@@ -89,11 +89,11 @@ func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *pee
 		slots <- struct{}{}
 	}
 	return &Server{
-		db:           db,
-		redis:        rclient,
-		peers:        store,
-		bonus:        bonus.New(rclient, redisKeyPrefix),
-		dedup:        newDedup(),
+		db:              db,
+		redis:           rclient,
+		peers:           store,
+		bonus:           bonus.New(rclient, redisKeyPrefix),
+		dedup:           newDedup(),
 		ipHashSecret:    ipHashSecret,
 		debug:           debug,
 		federationSwarm: federationSwarm,

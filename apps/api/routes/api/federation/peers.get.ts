@@ -10,6 +10,7 @@
 import { eq, and } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { redis } from '~~/utils/server';
+import { isBlockedIp } from '~~/utils/safeFetch';
 import {
   getFederationConfig,
   isFederationLive,
@@ -108,6 +109,8 @@ export default defineEventHandler(async (event) => {
         updatedAt?: number;
       };
       if (!p.ip || !p.port) continue;
+      // Never expose internal / private / loopback peer IPs to a partner.
+      if (isBlockedIp(p.ip)) continue;
       if (typeof p.updatedAt === 'number' && now - p.updatedAt > ACTIVE_WINDOW_MS) {
         continue;
       }

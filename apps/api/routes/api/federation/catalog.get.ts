@@ -10,7 +10,7 @@
  * Signature covers the full request path (incl. query); GET has no body so
  * the digest is over the empty string.
  */
-import { eq, and, gt, asc, inArray } from 'drizzle-orm';
+import { eq, and, or, gt, asc, inArray } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import {
   getFederationConfig,
@@ -74,6 +74,7 @@ export default defineEventHandler(async (event) => {
   const q = getQuery(event);
   const sinceRaw = typeof q.since === 'string' ? new Date(q.since) : null;
   const since = sinceRaw && !Number.isNaN(sinceRaw.getTime()) ? sinceRaw : null;
+  const sinceId = typeof q.sinceId === 'string' ? q.sinceId : null;
   const limit = Math.min(
     MAX_LIMIT,
     Math.max(1, parseInt(String(q.limit ?? DEFAULT_LIMIT), 10) || DEFAULT_LIMIT),
@@ -83,7 +84,21 @@ export default defineEventHandler(async (event) => {
     eq(schema.torrents.moderationStatus, 'accepted'),
     eq(schema.torrents.isActive, true),
   ];
-  if (since) conditions.push(gt(schema.torrents.createdAt, since));
+  // Composite (created_at, id) cursor. A created_at-only `gt` permanently
+  // skips every row that shares the page-boundary timestamp; tie-break on id.
+  if (since) {
+    conditions.push(
+      sinceId
+        ? or(
+            gt(schema.torrents.createdAt, since),
+            and(
+              eq(schema.torrents.createdAt, since),
+              gt(schema.torrents.id, sinceId),
+            ),
+          )!
+        : gt(schema.torrents.createdAt, since),
+    );
+  }
 
   const rows = await db
     .select({
@@ -117,7 +132,7 @@ export default defineEventHandler(async (event) => {
       eq(schema.torrents.infoHash, schema.torrentStats.infoHash),
     )
     .where(and(...conditions))
-    .orderBy(asc(schema.torrents.createdAt))
+    .orderBy(asc(schema.torrents.createdAt), asc(schema.torrents.id))
     .limit(limit);
 
   // Aggregate tags for the page's torrents in a single round-trip.
@@ -166,9 +181,12 @@ export default defineEventHandler(async (event) => {
     downloadUrl: base ? `${base}/torrents/${r.infoHash}` : null,
   }));
 
-  const nextCursor = items.length
-    ? items[items.length - 1]!.createdAt
-    : (since ?? null);
+  const last = items[items.length - 1];
+  const nextCursor = last
+    ? { createdAt: last.createdAt, id: last.remoteId }
+    : since
+      ? { createdAt: since, id: sinceId }
+      : null;
 
   return { ok: true, items, nextCursor, count: items.length };
 });

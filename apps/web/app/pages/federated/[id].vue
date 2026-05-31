@@ -20,7 +20,7 @@
             <span v-for="tag in (t.tags || []).slice(0, 5)" :key="tag" class="t-tag">{{ tag }}</span>
           </div>
         </div>
-        <a v-if="t.detailUrl" class="fb-open" :href="t.detailUrl" target="_blank" rel="noopener noreferrer">
+        <a v-if="t.detailUrl" class="fb-open" :href="safeHttpUrl(t.detailUrl) || '#'" target="_blank" rel="noopener noreferrer">
           <Icon name="ph:arrow-square-out-bold" /> {{ $t('federated.detail.openOnSource', { peer: peerName }) }}
         </a>
       </header>
@@ -47,7 +47,7 @@
         </div>
 
         <p v-if="t.detailUrl" class="fd-cta">
-          <a :href="t.detailUrl" target="_blank" rel="noopener noreferrer">
+          <a :href="safeHttpUrl(t.detailUrl) || '#'" target="_blank" rel="noopener noreferrer">
             {{ $t('federated.detail.commentOnSource', { peer: peerName }) }} <Icon name="ph:arrow-square-out" />
           </a>
         </p>
@@ -57,6 +57,8 @@
 </template>
 
 <script setup lang="ts">
+import { safeHttpUrl } from '~/utils/safeUrl';
+
 interface Detail {
   torrent: {
     id: string;

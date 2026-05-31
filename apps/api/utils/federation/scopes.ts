@@ -32,3 +32,21 @@ export const federationScopesSchema = z
       swarm: !!s.swarm,
     }),
   );
+
+/**
+ * Intersection of two scope sets — true only where BOTH are true. Used to
+ * clamp what we end up sharing with a peer to what our owner actually offered:
+ * a handshake callback carries the scopes the peer says it accepts from us, but
+ * it must never WIDEN our share beyond the owner's original offer.
+ */
+export function intersectScopes(
+  a: FederationScopes,
+  b: FederationScopes,
+): FederationScopes {
+  return {
+    catalog: !!a.catalog && !!b.catalog,
+    social: !!a.social && !!b.social,
+    accounts: !!a.accounts && !!b.accounts,
+    swarm: !!a.swarm && !!b.swarm,
+  };
+}

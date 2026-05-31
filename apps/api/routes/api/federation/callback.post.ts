@@ -91,12 +91,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Malformed callback body' });
   }
 
+  // What we share with them is clamped to what our owner ORIGINALLY offered
+  // (the scopes set on the pending_out row). The callback only tells us what
+  // the peer accepts — it must never widen our share beyond the offer, or a
+  // peer could self-grant e.g. `swarm` (peer-IP exposure) we never agreed to.
+  const offered = peer.sharesWithThem ?? EMPTY_SCOPES;
+  const sharesWithThem = parsed.acceptsFromYou
+    ? intersectScopes(offered, parsed.acceptsFromYou)
+    : offered;
+
   const now = new Date();
   await db
     .update(schema.federationPeers)
     .set({
       status: 'active',
-      sharesWithThem: parsed.acceptsFromYou ?? peer.sharesWithThem,
+      sharesWithThem,
       acceptsFromThem: parsed.sharesWithYou ?? peer.acceptsFromThem,
       lastSeenAt: now,
       lastError: null,

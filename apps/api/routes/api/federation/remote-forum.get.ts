@@ -50,7 +50,14 @@ export default defineEventHandler(async (event) => {
       });
       const topics: RemoteTopic[] =
         res.status === 200 && Array.isArray(res.data?.topics)
-          ? (res.data.topics as RemoteTopic[]).slice(0, 30)
+          ? (res.data.topics as RemoteTopic[]).slice(0, 30).map((tp) => ({
+              ...tp,
+              // Defense-in-depth: only an http(s) URL reaches the UI's href.
+              url:
+                typeof tp.url === 'string' && /^https?:\/\//i.test(tp.url)
+                  ? tp.url
+                  : null,
+            }))
           : [];
       return {
         peerId: peer.id,

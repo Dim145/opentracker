@@ -54,6 +54,18 @@ export async function ensureFederationIdentity(): Promise<FederationConfig> {
     return existing;
   }
 
+  // A PARTIALLY provisioned identity (some columns set, others null) is an
+  // anomaly — never regenerate over it, or we'd rotate the live key and orphan
+  // every peer that trusts the current public key.
+  if (
+    existing &&
+    (existing.instanceId || existing.publicKey || existing.privateKeyEnc)
+  ) {
+    throw new Error(
+      'Federation identity is partially provisioned; refusing to rotate the key. Restore the missing column(s) or reset the row deliberately.',
+    );
+  }
+
   const kp = generateInstanceKeypair();
   const identity = {
     instanceId: kp.instanceId,

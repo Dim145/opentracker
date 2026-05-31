@@ -60,8 +60,16 @@ export default defineEventHandler(async (event) => {
   const q = getQuery(event);
   const username = typeof q.username === 'string' ? q.username.trim() : '';
   const code = typeof q.code === 'string' ? q.code.trim() : '';
-  if (!username || code.length < 6) {
-    throw createError({ statusCode: 400, message: 'username and code required' });
+  // The code MUST be a verification token in our issued format
+  // (`trackarr-verify-<hex>`), never an arbitrary substring — otherwise a
+  // partner could turn this into a bio-content oracle (probe any 6-char
+  // substring of a user's bio) or trivially spoof a link (code="trackarr"
+  // matching any bio that mentions us).
+  if (!username || !/^trackarr-verify-[0-9a-f]{12,}$/.test(code)) {
+    throw createError({
+      statusCode: 400,
+      message: 'username and a valid verification code required',
+    });
   }
 
   const [u] = await db

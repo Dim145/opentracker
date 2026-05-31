@@ -16,7 +16,7 @@
         </h2>
         <ul class="ff-topics">
           <li v-for="(tp, i) in p.topics" :key="i" class="ff-topic">
-            <a :href="tp.url || '#'" target="_blank" rel="noopener noreferrer" class="ff-topic-title">
+            <a :href="safeHttpUrl(tp.url) || '#'" target="_blank" rel="noopener noreferrer" class="ff-topic-title">
               {{ tp.title }} <Icon name="ph:arrow-square-out" />
             </a>
             <div class="ff-topic-meta">
@@ -37,6 +37,8 @@
 </template>
 
 <script setup lang="ts">
+import { safeHttpUrl } from '~/utils/safeUrl';
+
 interface RemoteTopic {
   title: string;
   categoryName: string | null;

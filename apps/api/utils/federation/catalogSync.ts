@@ -29,6 +29,44 @@ import { notifyMany } from '../notify';
 
 const PAGE_LIMIT = 100;
 const MAX_PAGES_PER_RUN = 25;
+const MAX_REMOTE_PER_PEER = 100_000; // hard cap on mirrored rows per peer
+const MAX_FOLLOW_NOTIFY = 25; // cap follow notifications per sync run
+
+interface CatCursor {
+  t: string;
+  id: string | null;
+}
+/** Parse the stored cursor: composite JSON `{t,id}` or a legacy ISO string. */
+function parseCatalogCursor(stored: string | null): CatCursor | null {
+  if (!stored) return null;
+  try {
+    const o = JSON.parse(stored);
+    if (o && typeof o.t === 'string') {
+      return { t: o.t, id: typeof o.id === 'string' ? o.id : null };
+    }
+  } catch {
+    /* legacy ISO string */
+  }
+  return { t: stored, id: null };
+}
+/** Read a partner's nextCursor: composite `{createdAt,id}` (new) or legacy ISO
+ *  string. Returns null on anything malformed — never throws (a bad date used
+ *  to abort the whole peer sync). */
+function readNextCursor(next: unknown): CatCursor | null {
+  let t: string | null = null;
+  let id: string | null = null;
+  if (next && typeof next === 'object') {
+    const o = next as Record<string, unknown>;
+    if (typeof o.createdAt === 'string') t = o.createdAt;
+    if (typeof o.id === 'string') id = o.id;
+  } else if (typeof next === 'string') {
+    t = next;
+  }
+  if (!t) return null;
+  const d = new Date(t);
+  if (Number.isNaN(d.getTime())) return null;
+  return { t: d.toISOString(), id };
+}
 
 interface SyncResult {
   synced: number;
@@ -64,16 +102,32 @@ export async function syncPeerCatalogue(peer: FederationPeer): Promise<SyncResul
     )
     .limit(1);
 
-  let cursor = state?.cursor ?? null;
+  const cur = parseCatalogCursor(state?.cursor ?? null);
+  const isFirstSync = !state; // initial backfill — do NOT notify followers
+  let nextStored = state?.cursor ?? null;
+  let sinceT = cur?.t ?? null;
+  let sinceId = cur?.id ?? null;
   let synced = 0;
   let pages = 0;
   const newItems: NewItem[] = [];
+
+  // Cap the mirror per peer so a misbehaving partner can't grow the table
+  // without bound.
+  const [{ existing }] = await db
+    .select({ existing: sql<number>`count(*)::int` })
+    .from(schema.remoteTorrents)
+    .where(eq(schema.remoteTorrents.peerId, peer.id));
+  if ((existing ?? 0) >= MAX_REMOTE_PER_PEER) {
+    await saveCursor(peer.id, nextStored, 'ok', 0, 'row cap reached');
+    return { synced: 0, status: 'ok' };
+  }
 
   try {
     while (pages < MAX_PAGES_PER_RUN) {
       pages++;
       const qs = new URLSearchParams();
-      if (cursor) qs.set('since', cursor);
+      if (sinceT) qs.set('since', sinceT);
+      if (sinceT && sinceId) qs.set('sinceId', sinceId);
       qs.set('limit', String(PAGE_LIMIT));
       const pathname = `/api/federation/catalog?${qs.toString()}`;
 
@@ -96,26 +150,34 @@ export async function syncPeerCatalogue(peer: FederationPeer): Promise<SyncResul
         if (r.isNew && r.uploaderName) newItems.push(r);
       }
 
-      const next = res.data.nextCursor;
-      cursor = next ? new Date(next as string).toISOString() : cursor;
-      await saveCursor(peer.id, cursor, 'partial', synced, null);
+      // Advance the composite (created_at,id) cursor. readNextCursor tolerates
+      // a legacy string and never throws on a malformed value.
+      const adv = readNextCursor(res.data.nextCursor);
+      if (adv) {
+        sinceT = adv.t;
+        sinceId = adv.id;
+        nextStored = JSON.stringify({ t: adv.t, id: adv.id });
+      }
+      await saveCursor(peer.id, nextStored, 'partial', synced, null);
       if (items.length < PAGE_LIMIT) break;
     }
 
-    await saveCursor(peer.id, cursor, 'ok', synced, null);
+    await saveCursor(peer.id, nextStored, 'ok', synced, null);
     await db
       .update(schema.federationPeers)
       .set({ lastSeenAt: new Date(), lastError: null, updatedAt: new Date() })
       .where(eq(schema.federationPeers.id, peer.id));
 
-    // Phase 2a — ping local followers of any uploader who just shipped.
-    if (newItems.length) {
+    // Phase 2a — ping local followers of any uploader who just shipped. Skip
+    // on the very first sync of a peer (the initial backfill would otherwise
+    // notify the whole back-catalogue at once).
+    if (newItems.length && !isFirstSync) {
       await notifyFollowersOfNewUploads(peer, newItems);
     }
     return { synced, status: 'ok' };
   } catch (err: unknown) {
     const msg = (err as Error)?.message || 'sync failed';
-    await saveCursor(peer.id, cursor, 'error', synced, msg);
+    await saveCursor(peer.id, nextStored, 'error', synced, msg);
     await db
       .update(schema.federationPeers)
       .set({ lastError: `Catalogue sync: ${msg}`, updatedAt: new Date() })
@@ -127,8 +189,20 @@ export async function syncPeerCatalogue(peer: FederationPeer): Promise<SyncResul
 function asStr(v: unknown): string | null {
   return typeof v === 'string' && v.length ? v : null;
 }
-function asNum(v: unknown): number {
-  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
+/** Partner count clamped to PG `integer` range, non-negative. */
+function asCount(v: unknown): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return 0;
+  return Math.min(2_147_483_647, Math.max(0, Math.trunc(v)));
+}
+/** Partner size clamped to a safe non-negative ceiling (avoids bigint overflow). */
+function asSize(v: unknown): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return 0;
+  return Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.trunc(v)));
+}
+/** Only an absolute http(s) URL survives — no javascript:/data: into the UI's :href. */
+function asHttpUrl(v: unknown): string | null {
+  const s = asStr(v);
+  return s && /^https?:\/\//i.test(s) ? s : null;
 }
 
 async function upsertRemoteTorrent(
@@ -149,7 +223,7 @@ async function upsertRemoteTorrent(
     infoHash,
     contentSignature: asStr(it.contentSignature),
     name: name.slice(0, 1000),
-    size: asNum(it.size),
+    size: asSize(it.size),
     description:
       typeof it.description === 'string' ? it.description.slice(0, 20_000) : null,
     categorySlug: asStr(it.categorySlug),
@@ -162,16 +236,16 @@ async function upsertRemoteTorrent(
     tvdbId: asStr(it.tvdbId),
     igdbId: asStr(it.igdbId),
     openlibraryId: asStr(it.openlibraryId),
-    seeders: asNum(it.seeders),
-    leechers: asNum(it.leechers),
-    completed: asNum(it.completed),
+    seeders: asCount(it.seeders),
+    leechers: asCount(it.leechers),
+    completed: asCount(it.completed),
     uploaderName,
     remoteCreatedAt:
       remoteCreatedAt && !Number.isNaN(remoteCreatedAt.getTime())
         ? remoteCreatedAt
         : null,
-    remoteDetailUrl: asStr(it.detailUrl),
-    remoteDownloadUrl: asStr(it.downloadUrl),
+    remoteDetailUrl: asHttpUrl(it.detailUrl),
+    remoteDownloadUrl: asHttpUrl(it.downloadUrl),
     updatedAt: now,
   };
 
@@ -194,6 +268,11 @@ async function notifyFollowersOfNewUploads(
   peer: FederationPeer,
   newItems: NewItem[],
 ): Promise<void> {
+  // Cap pings per run so a partner flooding fabricated uploads can't fan out
+  // an unbounded notification/email storm.
+  if (newItems.length > MAX_FOLLOW_NOTIFY) {
+    newItems = newItems.slice(0, MAX_FOLLOW_NOTIFY);
+  }
   const uploaders = [
     ...new Set(newItems.map((i) => i.uploaderName).filter((u): u is string => !!u)),
   ];

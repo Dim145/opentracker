@@ -19,6 +19,7 @@ import {
 } from '~~/utils/federation/config';
 import { signedGet } from '~~/utils/federation/signing';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { requireAuthSession } from '~~/utils/adminAuth';
 
 const PER_PEER_TIMEOUT_MS = 6000;
 const PER_PEER_LIMIT = 30;
@@ -31,7 +32,7 @@ function asNum(v: unknown): number {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event);
+  await requireAuthSession(event);
   await rateLimit(event, RATE_LIMITS.public);
 
   const q = getQuery(event);

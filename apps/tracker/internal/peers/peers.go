@@ -92,6 +92,23 @@ type countsCacheEntry struct {
 	expiresAt time.Time
 }
 
+// remoteCacheTTL bounds how stale `ListRemote` is allowed to go. When
+// the federation-swarm flag is on, `ProcessAnnounce` calls `ListRemote`
+// on EVERY announce — including the common case of a non-federated
+// torrent whose `remote_peers:{hash}` key is simply absent, which still
+// costs a full Redis round-trip per announce. The cache keeps that cost
+// flat at one GET per torrent per `remoteCacheTTL`, caching the parsed
+// `[]*PeerData` (or nil on miss) so repeated announces for the same
+// torrent inside the window reuse the result. Kept short (2 s) because
+// the API refreshes `remote_peers:*` on its own cadence and a couple of
+// seconds of staleness is invisible to clients announcing every 30 min.
+const remoteCacheTTL = 2 * time.Second
+
+type remoteCacheEntry struct {
+	peers     []*PeerData
+	expiresAt time.Time
+}
+
 type Store struct {
 	client *redis.Client
 	prefix string
@@ -105,6 +122,11 @@ type Store struct {
 	// caching is fine; we accept that a peer joining replica A may
 	// not show up in replica B's `Counts` for up to `countsCacheTTL`.
 	countsCache sync.Map // string → *countsCacheEntry
+	// remoteCache mirrors countsCache for `ListRemote`: process-local,
+	// `sync.Map`-backed, short-lived. Spares the federation-swarm hot
+	// path a Redis GET on every announce for the same torrent within
+	// `remoteCacheTTL`.
+	remoteCache sync.Map // string → *remoteCacheEntry
 }
 
 // New returns a Store. `keyPrefix` typically comes from
@@ -221,18 +243,43 @@ func (s *Store) List(ctx context.Context, infoHashHex string) ([]*PeerData, erro
 // Returns nil on miss / parse error — cross-announce is strictly best-effort
 // and must never fail an announce.
 func (s *Store) ListRemote(ctx context.Context, infoHashHex string) ([]*PeerData, error) {
+	// Short-lived cache hit: reuse the last result (including a cached
+	// nil for absent / unparseable keys) so repeated announces for the
+	// same torrent inside `remoteCacheTTL` skip the Redis round-trip.
+	if v, ok := s.remoteCache.Load(infoHashHex); ok {
+		entry := v.(*remoteCacheEntry)
+		if time.Now().Before(entry.expiresAt) {
+			return entry.peers, nil
+		}
+	}
 	raw, err := s.client.Get(ctx, s.remotePeerKey(infoHashHex)).Bytes()
 	if err != nil {
 		if err == redis.Nil {
+			// Cache the miss too — the common non-federated torrent has
+			// no key, and re-GETting it every announce is exactly the
+			// cost this cache exists to remove.
+			s.cacheRemote(infoHashHex, nil)
 			return nil, nil
 		}
+		// Transient Redis error: don't cache (so we retry next time),
+		// and never break the announce.
 		return nil, err
 	}
 	var out []*PeerData
 	if err := json.Unmarshal(raw, &out); err != nil {
+		s.cacheRemote(infoHashHex, nil)
 		return nil, nil
 	}
+	s.cacheRemote(infoHashHex, out)
 	return out, nil
+}
+
+// cacheRemote stores a ListRemote result under a fresh `remoteCacheTTL`.
+func (s *Store) cacheRemote(infoHashHex string, p []*PeerData) {
+	s.remoteCache.Store(infoHashHex, &remoteCacheEntry{
+		peers:     p,
+		expiresAt: time.Now().Add(remoteCacheTTL),
+	})
 }
 
 func (s *Store) remotePeerKey(h string) string { return s.prefix + "remote_peers:" + h }

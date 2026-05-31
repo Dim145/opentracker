@@ -78,36 +78,92 @@ function isBlockedIPv4(ip: string): boolean {
 }
 
 /**
- * IPv6 blocks. We compare against the lowercase canonical form
- * (Node's `dns.lookup` returns the canonical text).
+ * Fully expand an IPv6 literal into its 8 16-bit groups, so range checks
+ * operate on numeric prefixes rather than fragile text patterns. Handles
+ * `::` compression, an embedded IPv4 tail (`::ffff:1.2.3.4`), and a `%zone`
+ * suffix. Returns null on anything malformed → caller fails closed.
  *
- *   - `::1/128` / `::/128` — loopback + unspecified
- *   - `fc00::/7`           — unique local (first byte fc or fd)
- *   - `fe80::/10`          — link-local (first byte fe + bits 8/9/a/b)
- *   - `ff00::/8`           — multicast
- *   - `::ffff:x.x.x.x`     — IPv4-mapped; delegate to the IPv4 check
- *   - `64:ff9b::/96`       — NAT64 — block to avoid an indirect path
- *                            into a private IPv4 destination
+ * This replaces the previous text-pattern approach, which only matched the
+ * dotted-decimal IPv4-mapped form (`::ffff:127.0.0.1`) and let the
+ * hex-grouped form (`::ffff:7f00:1`) — and every real `fe80::…` literal —
+ * slip through as "not blocked" (full SSRF bypass).
+ */
+function expandIPv6(input: string): number[] | null {
+  let v = input.toLowerCase();
+  const pct = v.indexOf('%');
+  if (pct !== -1) v = v.slice(0, pct); // strip zone id
+  // Embedded IPv4 tail → fold into two hex groups.
+  const v4m = v.match(/^(.*:)(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+  if (v4m) {
+    const o = v4m[2]!.split('.').map(Number);
+    if (o.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return null;
+    v = `${v4m[1]}${(((o[0]! << 8) | o[1]!) >>> 0).toString(16)}:${(((o[2]! << 8) | o[3]!) >>> 0).toString(16)}`;
+  }
+  const parts = v.split('::');
+  if (parts.length > 2) return null;
+  const head = parts[0] === '' ? [] : parts[0]!.split(':');
+  const tail = parts.length === 2 ? (parts[1] === '' ? [] : parts[1]!.split(':')) : [];
+  let groups: string[];
+  if (parts.length === 1) {
+    groups = head;
+  } else {
+    const missing = 8 - head.length - tail.length;
+    if (missing < 1) return null; // `::` must stand for at least one zero group
+    groups = [...head, ...Array(missing).fill('0'), ...tail];
+  }
+  if (groups.length !== 8 || groups.some((g) => !/^[0-9a-f]{1,4}$/.test(g))) {
+    return null;
+  }
+  return groups.map((g) => parseInt(g, 16));
+}
+
+/**
+ * IPv6 range check on the expanded numeric form.
+ *   - `::/128` / `::1/128`  — unspecified + loopback
+ *   - `::ffff:x.x.x.x` / `::x.x.x.x` — IPv4-mapped/compatible → IPv4 check
+ *   - `fc00::/7`            — unique-local
+ *   - `fe80::/10`           — link-local
+ *   - `ff00::/8`            — multicast
+ *   - `64:ff9b::/96`        — NAT64 (indirect path to private IPv4)
+ * Malformed input fails closed (blocked).
  */
 function isBlockedIPv6(ip: string): boolean {
-  const v = ip.toLowerCase();
-  if (v === '::1' || v === '::' || v === '0:0:0:0:0:0:0:1' || v === '0:0:0:0:0:0:0:0') {
-    return true;
+  const g = expandIPv6(ip);
+  if (!g) return true; // fail closed
+  // IPv4-mapped (::ffff:a.b.c.d) / IPv4-compatible (::a.b.c.d): low 32 bits
+  // are an IPv4 address — but `::`/`::1` themselves are handled separately.
+  const lowIsV4Holder =
+    g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 && g[4] === 0 &&
+    (g[5] === 0xffff || g[5] === 0);
+  const isUnspecOrLoopback =
+    g[5] === 0 && g[6] === 0 && (g[7] === 0 || g[7] === 1);
+  if (lowIsV4Holder && !isUnspecOrLoopback) {
+    const v4 = `${(g[6]! >> 8) & 0xff}.${g[6]! & 0xff}.${(g[7]! >> 8) & 0xff}.${g[7]! & 0xff}`;
+    return isBlockedIPv4(v4);
   }
-  // IPv4-mapped — strip the `::ffff:` prefix and check as IPv4.
-  const mapped = v.match(/^(?:0:0:0:0:0:ffff|::ffff):([0-9.]+)$/);
-  if (mapped) return isBlockedIPv4(mapped[1]!);
-  // NAT64 well-known prefix.
-  if (v.startsWith('64:ff9b:') || v.startsWith('64:ff9b::')) return true;
-  // Loopback / link-local / unique-local / multicast.
-  if (/^fe[89ab]:/.test(v)) return true; // fe80::/10
-  if (/^f[cd]/.test(v)) return true;     // fc00::/7
-  if (v.startsWith('ff')) return true;   // ff00::/8 multicast
+  if (g.every((x) => x === 0)) return true; // ::
+  if (g.slice(0, 7).every((x) => x === 0) && g[7] === 1) return true; // ::1
+  const first = g[0]!;
+  if ((first & 0xfe00) === 0xfc00) return true; // fc00::/7
+  if ((first & 0xffc0) === 0xfe80) return true; // fe80::/10
+  if ((first & 0xff00) === 0xff00) return true; // ff00::/8
+  if (first === 0x0064 && g[1] === 0xff9b) return true; // 64:ff9b::/96
   return false;
 }
 
 function isBlockedAddress(address: string, family: number): boolean {
   return family === 6 ? isBlockedIPv6(address) : isBlockedIPv4(address);
+}
+
+/**
+ * Synchronous range check on an IP literal: true for private / loopback /
+ * link-local / CGNAT / metadata / etc. ranges (and for any non-IP string).
+ * Used to filter peer IPs before exposing or relaying them over federation.
+ */
+export function isBlockedIp(ip: string): boolean {
+  const fam = isIP(ip);
+  if (!fam) return true; // not a valid IP literal → treat as unsafe
+  return isBlockedAddress(ip, fam);
 }
 
 /**

@@ -18,6 +18,7 @@ import {
   isFederationLive,
 } from './config';
 import { signedGet } from './signing';
+import { isBlockedIp } from '../safeFetch';
 
 const CACHE_TTL_S = 900; // 15 min — refreshed each sync tick
 const MAX_PER_TORRENT = 300;
@@ -61,39 +62,51 @@ export async function syncSwarmPeers(): Promise<{ torrents: number; peers: numbe
   const nowMs = Date.now();
 
   for (const t of localTorrents) {
-    const collected: CachedPeer[] = [];
-    for (const peer of peers) {
-      try {
-        const res = await signedGet({
+    // Query every swarm peer for this torrent in parallel — the previous
+    // serial loop could stack per-peer 8s timeouts past the cron lock TTL.
+    const settled = await Promise.allSettled(
+      peers.map((peer) =>
+        signedGet({
           baseUrl: peer.baseUrl,
           pathname: `/api/federation/peers?infoHash=${t.infoHash}`,
           instanceId,
           privateKeyPem: pk,
           timeoutMs: 8000,
-        });
-        if (res.status === 200 && Array.isArray(res.data?.peers)) {
-          for (const rp of res.data.peers as unknown[]) {
-            const o = rp as Record<string, unknown>;
-            const ip = typeof o.ip === 'string' ? o.ip : '';
-            const port = typeof o.port === 'number' ? o.port : 0;
-            if (!ip || port <= 0 || port > 65535) continue;
-            collected.push({
-              peerId: '',
-              ip,
-              port,
-              isSeeder: !!o.isSeeder,
-              updatedAt: nowMs,
-            });
-          }
+        }),
+      ),
+    );
+
+    const collected: CachedPeer[] = [];
+    let anyOk = false; // did at least one peer actually respond 200?
+    for (const s of settled) {
+      if (s.status !== 'fulfilled') continue;
+      const res = s.value;
+      if (res.status === 200 && Array.isArray(res.data?.peers)) {
+        anyOk = true;
+        for (const rp of res.data.peers as unknown[]) {
+          const o = rp as Record<string, unknown>;
+          const ip = typeof o.ip === 'string' ? o.ip : '';
+          const port = typeof o.port === 'number' ? o.port : 0;
+          if (!ip || port <= 0 || port > 65535) continue;
+          // Don't relay internal / private / loopback IPs into our swarm.
+          if (isBlockedIp(ip)) continue;
+          collected.push({
+            peerId: '',
+            ip,
+            port,
+            isSeeder: !!o.isSeeder,
+            updatedAt: nowMs,
+          });
         }
-      } catch {
-        /* skip this peer */
       }
     }
 
     const key = `remote_peers:${t.infoHash}`;
     if (!collected.length) {
-      await redis.del(key).catch(() => {});
+      // Only clear the cache when a peer genuinely returned an empty swarm.
+      // A total failure (every peer errored/timed out) must ride the existing
+      // TTL rather than dropping a still-valid cross-announce set.
+      if (anyOk) await redis.del(key).catch(() => {});
       continue;
     }
     // Dedup by ip:port across all partners.

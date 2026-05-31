@@ -83,6 +83,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = new Date();
+  let isNewRequest = false;
   const [existing] = await db
     .select()
     .from(schema.federationPeers)
@@ -106,7 +107,7 @@ export default defineEventHandler(async (event) => {
       })
       .where(eq(schema.federationPeers.id, existing.id));
   } else {
-    await db
+    const inserted = await db
       .insert(schema.federationPeers)
       .values({
         id: uuidv4(),
@@ -120,28 +121,38 @@ export default defineEventHandler(async (event) => {
       })
       // Same URL already linked under a different identity: ignore rather
       // than 500. The owner can resolve the conflict manually.
-      .onConflictDoNothing({ target: schema.federationPeers.baseUrl });
+      .onConflictDoNothing({ target: schema.federationPeers.baseUrl })
+      .returning({ id: schema.federationPeers.id });
+    // Only a genuinely new pending_in row warrants an owner notification —
+    // re-handshakes and URL conflicts must not fan out admin notices.
+    isNewRequest = inserted.length > 0;
   }
 
-  // Notify the owner(s) — admins only (owner == admin in this model).
-  const admins = await db
-    .select({ id: schema.users.id })
-    .from(schema.users)
-    .where(and(eq(schema.users.isAdmin, true), eq(schema.users.isBanned, false)));
-  await Promise.allSettled(
-    admins.map((a) =>
-      notify(
-        a.id,
-        'federation_request_received',
-        {
-          instanceName: parsed.name ?? parsed.baseUrl,
-          baseUrl: parsed.baseUrl,
-          fingerprint: parsed.instanceId,
-        },
-        '/admin/federation',
+  // Notify the owner(s) — admins only (owner == admin in this model). Only on
+  // a brand-new inbound request, so a peer can't spam admin notices by
+  // re-handshaking (and a URL-conflict insert that did nothing stays silent).
+  if (isNewRequest) {
+    const admins = await db
+      .select({ id: schema.users.id })
+      .from(schema.users)
+      .where(
+        and(eq(schema.users.isAdmin, true), eq(schema.users.isBanned, false)),
+      );
+    await Promise.allSettled(
+      admins.map((a) =>
+        notify(
+          a.id,
+          'federation_request_received',
+          {
+            instanceName: parsed.name ?? parsed.baseUrl,
+            baseUrl: parsed.baseUrl,
+            fingerprint: parsed.instanceId,
+          },
+          '/admin/federation',
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   // Reply with our identity so the caller can trust our callback later.
   return {
