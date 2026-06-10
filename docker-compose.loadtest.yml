@@ -45,7 +45,10 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-tracker}
       POSTGRES_DB: ${DB_NAME:-trackarr}
     ports:
-      - "5432:5432"
+      # Bind to loopback only — this overlay ships default/weak creds, so the
+      # DB must never be reachable off-host even if run on a shared box
+      # (finding L16). Run k6/benchmarks from inside the compose network.
+      - "127.0.0.1:5432:5432"
     volumes:
       - loadtest_postgres:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -76,7 +79,8 @@ services:
       --maxmemory-policy allkeys-lru
       --maxclients 5000
     ports:
-      - "6379:6379"
+      # Loopback only — see the postgres note above (finding L16).
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-loadtest}", "ping"]
       interval: 5s

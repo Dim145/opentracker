@@ -296,9 +296,21 @@ services:
   # CONNECTION POOLING - PgBouncer
   # =============================================================================
   pgbouncer:
+    # NOTE: pin to a digest (edoburu/pgbouncer@sha256:...) rather than the
+    # floating :latest before production, and consider running non-root +
+    # read_only with a tmpfs for its runtime dir once verified against the
+    # image (finding L14).
     image: edoburu/pgbouncer:latest
     container_name: trackarr-pgbouncer
     restart: always
+    # Match the privilege reduction every other service in the stack gets —
+    # pgbouncer brokers the DB credentials, so a code-exec bug here must not
+    # run as an escalatable root container (finding L14). pgbouncer is a
+    # userspace proxy on port 6432, so it needs no Linux capabilities.
+    cap_drop:
+      - ALL
+    security_opt:
+      - "no-new-privileges:true"
     environment:
       DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@postgres:5432/${DB_NAME:-trackarr}
       DB_HOST: postgres

@@ -8,7 +8,10 @@
 ; Generate SCRAM hash with:
 ; SELECT rolname, rolpassword FROM pg_authid WHERE rolname = 'tracker';
 ;
-; IMPORTANT: Update this file with your actual credentials before production deployment
-; The password here should match the PostgreSQL user password
-
-"tracker" "tracker"
+; IMPORTANT: this file is NOT mounted by docker-compose.prod.yml (pgbouncer
+; there uses env-driven AUTH_TYPE=scram-sha-256). It is only a template. If
+; you switch pgbouncer to a config-file mount, replace the placeholder below
+; with a GENERATED SCRAM-SHA-256 hash — never commit a real or default
+; plaintext password (finding L15).
+;
+; "your_db_user" "SCRAM-SHA-256$4096:<salt>$<StoredKey>:<ServerKey>"
