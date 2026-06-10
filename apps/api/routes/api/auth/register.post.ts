@@ -206,14 +206,30 @@ export default defineEventHandler(async (event) => {
 
     // Mark invite as used inside the same transaction so the row
     // is never consumed without a matching new user row landing.
+    //
+    // The burn is compare-and-swap (`used_by IS NULL` + rowcount check),
+    // not a blind UPDATE keyed on id. The eligibility read above runs
+    // before the advisory lock, so N concurrent registrations with the
+    // same code each saw it unused; an unconditional burn let every one
+    // of them INSERT a user and just overwrote `used_by`, minting N
+    // accounts from one invite (finding M1). If the guarded UPDATE
+    // claims zero rows the invite was already consumed — abort the
+    // whole tx so the user INSERT rolls back.
     if (validInvite) {
-      await tx
+      const claimed = await tx
         .update(invitations)
         .set({
           usedBy: userId,
           usedAt: new Date(),
         })
-        .where(eq(invitations.id, validInvite.id));
+        .where(and(eq(invitations.id, validInvite.id), isNull(invitations.usedBy)))
+        .returning({ id: invitations.id });
+      if (claimed.length === 0) {
+        throw createError({
+          statusCode: 409,
+          message: 'This invite code was just used. Please request a new one.',
+        });
+      }
     }
 
     return settledFirstUser;

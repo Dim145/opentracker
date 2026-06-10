@@ -439,6 +439,12 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// could legitimately push between two announces, so anything
 	// above is dropped to the cap.
 	const maxDeltaPerAnnounce int64 = 1 << 40 // 1 TiB
+	// Per-second ceiling for credited bytes, applied as rate × elapsed
+	// below. 1 GiB/s (~8 Gbit/s) sits above any normal seedbox link, so
+	// honest seeders are never clamped; it exists purely to bound
+	// fabricated deltas (finding H1). Bump this in code if you genuinely
+	// run faster links.
+	const maxCreditBytesPerSec int64 = 1 << 30 // 1 GiB/s
 	if deltaUp > maxDeltaPerAnnounce {
 		slog.Warn("clamping unrealistic upload delta",
 			"info_hash", infoHashHex,
@@ -454,6 +460,47 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 			"claimed", deltaDown,
 		)
 		deltaDown = maxDeltaPerAnnounce
+	}
+
+	// 5a-bis. Rate-clamp the credited delta to maxCreditBytesPerSec ×
+	// (seconds since this peer's previous announce). The per-announce
+	// cap above only bounds a SINGLE announce, but nothing on the wire
+	// enforces a minimum announce interval — a client could announce
+	// every ~2 s claiming +1 TiB each time and mint effectively unlimited
+	// upload credit, defeating ratio gating and ratio-derived roles
+	// (finding H1). Because consecutive clamps cover adjacent time
+	// windows, the integral of credited bytes is bounded by the rate ×
+	// wall-clock no matter how fast — or under how many rotated peer_ids —
+	// the client announces. Runs AFTER anticheat.Inspect so the detector
+	// still sees the raw client claim.
+	if prev != nil && (deltaUp > 0 || deltaDown > 0) {
+		elapsedMs := time.Now().UnixMilli() - prev.UpdatedAt
+		if elapsedMs < 0 {
+			elapsedMs = 0 // non-monotonic wall clock / skew
+		}
+		// Integer seconds. Sub-second gaps clamp to 0, which is safe: the
+		// creditKey dedup (step 6) already blocks crediting more than once
+		// per 2 s per (hash, peer), and genuine bytes are picked up on the
+		// next announce as the baseline rolls forward.
+		maxByElapsed := maxCreditBytesPerSec * (elapsedMs / 1000)
+		if maxByElapsed < 0 || maxByElapsed > maxDeltaPerAnnounce {
+			// Overflow on absurd skew, or a gap long enough that the
+			// per-announce cap is the tighter bound.
+			maxByElapsed = maxDeltaPerAnnounce
+		}
+		if deltaUp > maxByElapsed {
+			slog.Warn("clamping upload delta to rate ceiling",
+				"info_hash", infoHashHex,
+				"peer_id", peerHex,
+				"claimed", deltaUp,
+				"allowed", maxByElapsed,
+				"elapsed_ms", elapsedMs,
+			)
+			deltaUp = maxByElapsed
+		}
+		if deltaDown > maxByElapsed {
+			deltaDown = maxByElapsed
+		}
 	}
 
 	// 5b. Apply the active bonus event multipliers (Freeleech /
@@ -850,8 +897,22 @@ func boolStr(b bool) string {
 // semantics as TRUST_PROXY in apps/api.
 var trustProxy = false
 
+// trustCFConnectingIP gates the CF-Connecting-IP header specifically. It is
+// authoritative ONLY when the stack actually sits behind Cloudflare; our
+// reverse proxy overwrites X-Real-IP / X-Forwarded-For with the real peer
+// but does not set CF-Connecting-IP, so trusting it unconditionally let a
+// client forge its swarm IP / ip_hash and (in lockstep with the API) bypass
+// IP bans + rate limits (finding H2). Off by default; mirrors
+// TRUST_CF_CONNECTING_IP in apps/api.
+var trustCFConnectingIP = false
+
 // SetTrustProxy is called once at startup based on TRUST_PROXY env.
 func SetTrustProxy(b bool) { trustProxy = b }
+
+// SetTrustCFConnectingIP is called once at startup based on the
+// TRUST_CF_CONNECTING_IP env. Only enable behind Cloudflare with ingress
+// locked to Cloudflare's published IP ranges.
+func SetTrustCFConnectingIP(b bool) { trustCFConnectingIP = b }
 
 // clientIP extracts the announcing peer's IP. We only honor proxy headers
 // when explicitly enabled, otherwise an attacker behind a proxy could
@@ -859,13 +920,13 @@ func SetTrustProxy(b bool) { trustProxy = b }
 //
 // Header priority when TRUST_PROXY is on:
 //
-//  1. **`CF-Connecting-IP`** — Cloudflare's authoritative header. It
-//     always carries the peer's real IP, regardless of intermediate
-//     hops, Argo Tunnels, Spectrum, or any other CF-side rewrite.
-//     The API tier (`apps/api/utils/rateLimit.ts`) reads the same
-//     header first; keeping the tracker in lockstep means the
-//     `ip_hash` analytics and the rate-limit buckets agree on who
-//     the peer is.
+//  1. **`CF-Connecting-IP`** — Cloudflare's authoritative header, but
+//     ONLY consulted when TRUST_CF_CONNECTING_IP is also on. It is
+//     authoritative solely behind Cloudflare; on any other edge our
+//     reverse proxy does not set it, so a client could forge it. When
+//     enabled the API tier reads the same header first, keeping the
+//     `ip_hash` analytics and rate-limit buckets in lockstep. When
+//     disabled (the default) it is ignored entirely (finding H2).
 //
 //  2. **`X-Forwarded-For` (rightmost token)** — fallback for non-CF
 //     deployments. An upstream proxy APPENDS the peer it observed to
@@ -881,9 +942,11 @@ func SetTrustProxy(b bool) { trustProxy = b }
 // / garbage header just falls through to `RemoteAddr`.
 func (s *Server) clientIP(r *http.Request) string {
 	if trustProxy {
-		if v := r.Header.Get("CF-Connecting-IP"); v != "" {
-			if ip := net.ParseIP(strings.TrimSpace(v)); ip != nil {
-				return ip.String()
+		if trustCFConnectingIP {
+			if v := r.Header.Get("CF-Connecting-IP"); v != "" {
+				if ip := net.ParseIP(strings.TrimSpace(v)); ip != nil {
+					return ip.String()
+				}
 			}
 		}
 		if v := r.Header.Get("X-Forwarded-For"); v != "" {

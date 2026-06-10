@@ -54,7 +54,33 @@ export default defineEventHandler(async (event) => {
 
   const fillerId = request.filledById;
   const now = new Date();
-  await db.transaction(async (tx) => {
+  // Atomicity mirrors validate.post.ts: the request UPDATE carries the
+  // `status = 'filled'` predicate so a concurrent validate / auto-validate
+  // that already flipped the row to a terminal state results in an empty
+  // `returning()`. Without this guard a reject racing a validate would
+  // re-open an already-paid request (status back to 'requested',
+  // filledById null) while the filler kept the reward — a points-minting
+  // path via re-fill or cancel-refund (finding M6).
+  const resolved = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(schema.uploadRequests)
+      .set({
+        status: 'requested',
+        filledById: null,
+        filledTorrentId: null,
+        filledAt: null,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(schema.uploadRequests.id, id),
+          eq(schema.uploadRequests.status, 'filled'),
+        ),
+      )
+      .returning({ id: schema.uploadRequests.id });
+    if (!updated) {
+      return false; // raced — another path already resolved this row
+    }
     await tx
       .update(schema.uploadRequestFillAttempts)
       .set({ status: 'rejected', rejectedAt: now })
@@ -65,17 +91,15 @@ export default defineEventHandler(async (event) => {
           eq(schema.uploadRequestFillAttempts.status, 'proposed'),
         ),
       );
-    await tx
-      .update(schema.uploadRequests)
-      .set({
-        status: 'requested',
-        filledById: null,
-        filledTorrentId: null,
-        filledAt: null,
-        updatedAt: now,
-      })
-      .where(eq(schema.uploadRequests.id, id));
+    return true;
   });
+
+  if (!resolved) {
+    throw createError({
+      statusCode: 409,
+      message: 'This request was already resolved',
+    });
+  }
 
   void notify(
     fillerId,

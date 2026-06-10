@@ -8,7 +8,7 @@
  * Title / description / category are fully editable while the row
  * is in `requested`.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
@@ -86,7 +86,26 @@ export default defineEventHandler(async (event) => {
       if (rewardDelta > 0) {
         await holdReward(tx, user.id, rewardDelta);
       }
-      await tx
+      // The write is compare-and-swap, not a blind absolute set. The
+      // `status = 'requested'` predicate stops an edit landing on a row
+      // a concurrent fill already moved on. When the reward is being
+      // changed we ALSO pin the CAS to the exact base we computed the
+      // delta against: two concurrent bumps both read base=100, each
+      // escrows only its own delta, but a last-writer-wins absolute set
+      // would advertise the larger target while only the smaller delta
+      // was held — minting the difference on validate/cancel-refund
+      // (finding M8). The predicate makes the losing writer miss, roll
+      // back its holdReward, and surface a 409.
+      const predicates = [
+        eq(schema.uploadRequests.id, id),
+        eq(schema.uploadRequests.status, 'requested'),
+      ];
+      if (body.rewardPoints !== undefined) {
+        predicates.push(
+          eq(schema.uploadRequests.rewardPoints, row.rewardPoints),
+        );
+      }
+      const [updated] = await tx
         .update(schema.uploadRequests)
         .set({
           categoryId: body.categoryId ?? row.categoryId,
@@ -95,7 +114,16 @@ export default defineEventHandler(async (event) => {
           rewardPoints: body.rewardPoints ?? row.rewardPoints,
           updatedAt: new Date(),
         })
-        .where(eq(schema.uploadRequests.id, id));
+        .where(and(...predicates))
+        .returning({ id: schema.uploadRequests.id });
+      if (!updated) {
+        // Raced with another edit / fill / cancel, or the reward base
+        // moved under us. Throwing inside the tx rolls back holdReward.
+        throw new RewardError(
+          409,
+          'This request changed while you were editing it — reload and retry',
+        );
+      }
     });
   } catch (err) {
     if (err instanceof RewardError) {

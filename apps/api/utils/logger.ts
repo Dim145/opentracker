@@ -76,7 +76,15 @@ export const logger = pino({
 });
 
 function hashRequestIp(req: any): string {
-  const fwd = req.headers?.['x-forwarded-for'];
+  // Only consult x-forwarded-for when we actually sit behind a trusted
+  // proxy. On a directly-exposed deployment the header is attacker-
+  // supplied, so honouring it unconditionally let a client forge the IP
+  // fingerprint recorded in the security/audit logs (finding H2). When
+  // TRUST_PROXY is off we fingerprint the real socket peer instead.
+  const fwd =
+    process.env.TRUST_PROXY === 'true'
+      ? req.headers?.['x-forwarded-for']
+      : undefined;
   // x-forwarded-for can be a comma-separated chain; only the leftmost
   // entry is the original client.
   const raw =

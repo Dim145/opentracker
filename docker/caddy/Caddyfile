@@ -9,6 +9,21 @@
 	email {$ACME_EMAIL:admin@example.com}
 }
 
+# Strip client-suppliable IP-trust headers before proxying upstream.
+# We overwrite X-Real-IP / X-Forwarded-For with the real peer in every
+# block below, but CF-Connecting-IP / True-Client-IP are NOT set here and
+# would otherwise pass through verbatim. The api (getClientIP) and tracker
+# (clientIP) read CF-Connecting-IP first, so a client sending a forged
+# value could spoof its effective IP — bypassing IP bans + rate limits and
+# framing a victim's IP into the DDoS blacklist (finding H2). Imported into
+# every reverse_proxy block. Re-add these headers ONLY if the stack is
+# genuinely fronted by Cloudflare AND ingress is restricted to Cloudflare's
+# published IP ranges (and set TRUST_CF_CONNECTING_IP=true on api+tracker).
+(strip_spoofable_ip_headers) {
+	header_up -CF-Connecting-IP
+	header_up -True-Client-IP
+}
+
 # -----------------------------------------------------------------------------
 # Main app: web frontend + api + tracker on the same hostname
 # -----------------------------------------------------------------------------
@@ -46,6 +61,7 @@
 		reverse_proxy tracker:8080 {
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-For {remote_host}
+			import strip_spoofable_ip_headers
 		}
 	}
 
@@ -55,6 +71,7 @@
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-For {remote_host}
 			header_up X-Forwarded-Proto {scheme}
+			import strip_spoofable_ip_headers
 		}
 	}
 
@@ -63,6 +80,7 @@
 		reverse_proxy api:4000 {
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-For {remote_host}
+			import strip_spoofable_ip_headers
 		}
 	}
 
@@ -72,6 +90,7 @@
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-For {remote_host}
 			header_up X-Forwarded-Proto {scheme}
+			import strip_spoofable_ip_headers
 		}
 	}
 
@@ -110,6 +129,7 @@
 	reverse_proxy tracker:8080 {
 		header_up X-Real-IP {remote_host}
 		header_up X-Forwarded-For {remote_host}
+		import strip_spoofable_ip_headers
 	}
 
 	# Same passkey scrub as on the main domain — every request to this

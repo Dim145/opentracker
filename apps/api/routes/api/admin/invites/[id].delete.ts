@@ -39,16 +39,30 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Invite not found' });
   }
 
-  const isExpired =
-    invite.expiresAt !== null && invite.expiresAt.getTime() <= Date.now();
   const wasUsed = !!invite.usedBy;
-  const shouldRefund = !wasUsed && !isExpired;
 
-  await db.transaction(async (tx) => {
-    await tx
+  // Admin keeps the "strike any row, used or not" power, so the DELETE
+  // is unconditional — but the refund must fire at most once even if
+  // two admins (or a double-fired request) hit the same unused invite.
+  // Key the refund off the DELETE's RETURNING: only the request that
+  // actually removed the row sees it, the concurrent losers get an
+  // empty result and skip the `+1`. Used/expired rows are still deleted
+  // (housekeeping) but never refunded (finding H3, admin variant).
+  const refunded = await db.transaction(async (tx) => {
+    const [deleted] = await tx
       .delete(schema.invitations)
-      .where(eq(schema.invitations.id, invite.id));
-    if (shouldRefund) {
+      .where(eq(schema.invitations.id, invite.id))
+      .returning({
+        usedBy: schema.invitations.usedBy,
+        expiresAt: schema.invitations.expiresAt,
+      });
+    if (!deleted) {
+      return false; // a concurrent request already removed it
+    }
+    const stillValid =
+      deleted.expiresAt === null || deleted.expiresAt.getTime() > Date.now();
+    const doRefund = !deleted.usedBy && stillValid;
+    if (doRefund) {
       await tx
         .update(schema.users)
         .set({
@@ -56,11 +70,12 @@ export default defineEventHandler(async (event) => {
         })
         .where(eq(schema.users.id, invite.createdBy));
     }
+    return doRefund;
   });
 
   return {
     success: true,
-    refunded: shouldRefund,
+    refunded,
     wasUsed,
   };
 });

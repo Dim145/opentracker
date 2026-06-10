@@ -84,7 +84,20 @@ export interface RateLimitOptions {
 const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
 
 /**
- * Extract client IP. Honors proxy headers only if TRUST_PROXY=true.
+ * Whether to honor `CF-Connecting-IP`. Off by default: that header is only
+ * authoritative when the stack actually sits behind Cloudflare. Our reverse
+ * proxy (Caddy) overwrites X-Real-IP / X-Forwarded-For with the real peer
+ * but does NOT set CF-Connecting-IP, so trusting it unconditionally let a
+ * client forge its effective IP — bypassing IP bans / rate limits and
+ * framing a victim's IP into the blacklist (finding H2). Enable ONLY when
+ * Cloudflare fronts the deployment and ingress is locked to Cloudflare's
+ * published ranges; the Caddyfile also strips the header by default.
+ */
+const TRUST_CF_CONNECTING_IP = process.env.TRUST_CF_CONNECTING_IP === 'true';
+
+/**
+ * Extract client IP. Honors proxy headers only if TRUST_PROXY=true, and
+ * CF-Connecting-IP only if TRUST_CF_CONNECTING_IP=true on top of that.
  */
 export function getClientIP(event: any): string {
   const directIp = event.node?.req?.socket?.remoteAddress || 'unknown';
@@ -93,8 +106,10 @@ export function getClientIP(event: any): string {
     return directIp;
   }
 
-  const cfConnectingIP = getHeader(event, 'cf-connecting-ip');
-  if (cfConnectingIP) return cfConnectingIP;
+  if (TRUST_CF_CONNECTING_IP) {
+    const cfConnectingIP = getHeader(event, 'cf-connecting-ip');
+    if (cfConnectingIP) return cfConnectingIP;
+  }
 
   const realIP = getHeader(event, 'x-real-ip');
   if (realIP) return realIP;

@@ -19,10 +19,12 @@
  * crash between the two doesn't leave the counter desynchronised.
  */
 import { db, schema } from '@trackarr/db';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
   const id = getRouterParam(event, 'id');
   if (!id) {
     throw createError({ statusCode: 400, message: 'Missing id' });
@@ -44,14 +46,32 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const isExpired =
-    invite.expiresAt !== null && invite.expiresAt.getTime() <= Date.now();
-
-  await db.transaction(async (tx) => {
-    await tx
+  // Guarded delete + conditional refund, both inside the transaction.
+  // The DELETE carries `used_by IS NULL` and we key the refund off
+  // whether RETURNING actually gave us the row: only the first of N
+  // concurrent deletes removes it, so the `+1` refund fires at most
+  // once. Previously the delete was keyed on id alone and the refund
+  // was unconditional, so a burst of parallel deletes of one unused
+  // invite minted +N slots (finding H3). Expiry is re-derived from the
+  // deleted row rather than a stale pre-read.
+  const refunded = await db.transaction(async (tx) => {
+    const [deleted] = await tx
       .delete(schema.invitations)
-      .where(eq(schema.invitations.id, invite.id));
-    if (!isExpired) {
+      .where(
+        and(
+          eq(schema.invitations.id, invite.id),
+          isNull(schema.invitations.usedBy),
+        ),
+      )
+      .returning({ expiresAt: schema.invitations.expiresAt });
+    if (!deleted) {
+      // Lost the race (already deleted) or the code was used between
+      // the pre-read and here — keep the row's lineage, no refund.
+      return false;
+    }
+    const stillValid =
+      deleted.expiresAt === null || deleted.expiresAt.getTime() > Date.now();
+    if (stillValid) {
       // Refund — the slot was reserved at create-time, this gives it
       // back so the user isn't penalised for changing their mind.
       await tx
@@ -61,7 +81,8 @@ export default defineEventHandler(async (event) => {
         })
         .where(eq(schema.users.id, user.id));
     }
+    return stillValid;
   });
 
-  return { success: true, refunded: !isExpired };
+  return { success: true, refunded };
 });

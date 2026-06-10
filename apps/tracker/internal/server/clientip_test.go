@@ -12,7 +12,9 @@ import (
 // real address.
 func TestClientIP_PrefersCFConnectingIP(t *testing.T) {
 	SetTrustProxy(true)
+	SetTrustCFConnectingIP(true)
 	defer SetTrustProxy(false)
+	defer SetTrustCFConnectingIP(false)
 
 	s := &Server{}
 	r := httptest.NewRequest("GET", "/announce", nil)
@@ -88,7 +90,9 @@ func TestClientIP_IgnoresProxyHeadersWhenTrustProxyOff(t *testing.T) {
 
 func TestClientIP_RejectsMalformedCFHeader(t *testing.T) {
 	SetTrustProxy(true)
+	SetTrustCFConnectingIP(true)
 	defer SetTrustProxy(false)
+	defer SetTrustCFConnectingIP(false)
 
 	s := &Server{}
 	r := httptest.NewRequest("GET", "/announce", nil)
@@ -104,7 +108,9 @@ func TestClientIP_RejectsMalformedCFHeader(t *testing.T) {
 
 func TestClientIP_IPv6InCFConnectingIP(t *testing.T) {
 	SetTrustProxy(true)
+	SetTrustCFConnectingIP(true)
 	defer SetTrustProxy(false)
+	defer SetTrustCFConnectingIP(false)
 
 	s := &Server{}
 	r := httptest.NewRequest("GET", "/announce", nil)
@@ -114,5 +120,28 @@ func TestClientIP_IPv6InCFConnectingIP(t *testing.T) {
 	got := s.clientIP(r)
 	if got != "2001:db8::1" {
 		t.Fatalf("clientIP: got %q, want 2001:db8::1 (IPv6 via CF header)", got)
+	}
+}
+
+// TestClientIP_IgnoresCFWhenCFTrustOff — with TRUST_PROXY on but
+// TRUST_CF_CONNECTING_IP off (the default), a client-supplied
+// CF-Connecting-IP must be ignored and we fall through to the
+// proxy-controlled X-Forwarded-For. This is the swarm-side half of the
+// IP-spoofing fix (finding H2): off a Cloudflare edge the header is
+// attacker-controlled and must not be allowed to set the peer IP.
+func TestClientIP_IgnoresCFWhenCFTrustOff(t *testing.T) {
+	SetTrustProxy(true)
+	SetTrustCFConnectingIP(false)
+	defer SetTrustProxy(false)
+
+	s := &Server{}
+	r := httptest.NewRequest("GET", "/announce", nil)
+	r.Header.Set("CF-Connecting-IP", "1.2.3.4") // forged by the client
+	r.Header.Set("X-Forwarded-For", "203.0.113.42") // set by our proxy
+	r.RemoteAddr = "172.18.0.5:54321"
+
+	got := s.clientIP(r)
+	if got != "203.0.113.42" {
+		t.Fatalf("clientIP: got %q, want 203.0.113.42 (CF ignored, XFF used)", got)
 	}
 }

@@ -54,6 +54,9 @@ func main() {
 	}
 
 	server.SetTrustProxy(os.Getenv("TRUST_PROXY") == "true")
+	// Off by default — only honor CF-Connecting-IP behind a real Cloudflare
+	// edge with ingress locked to Cloudflare's ranges (finding H2).
+	server.SetTrustCFConnectingIP(os.Getenv("TRUST_CF_CONNECTING_IP") == "true")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

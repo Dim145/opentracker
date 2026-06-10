@@ -84,7 +84,8 @@ the running app never reads them directly.
 | `TRACKER_PEER_TTL`             | tracker      | `24h`                            | How long a peer's Redis entry survives between announces. Go duration syntax (`24h`, `90m`, `7200s`). Values below `15m` are clamped — anything shorter would zero the delta computation. Raise it for very forgiving deployments; lower it on huge swarms to reclaim Redis memory. |
 | `TRACKER_INTERNAL_URL`         | api          | `http://tracker:8080`            | Internal URL the API hits for `/api/tracker-health`.                   |
 | `TRACKER_HEALTH_URL`           | api          | `TRACKER_INTERNAL_URL`           | Override the health-probe URL specifically.                            |
-| `TRUST_PROXY`                  | api, tracker | `false`                          | Honour `X-Forwarded-For` for client IP. Set to `true` only behind a *trusted* reverse proxy. The rightmost token is used (the one your proxy appended). |
+| `TRUST_PROXY`                  | api, tracker | `false`                          | Honour `X-Forwarded-For` / `X-Real-IP` for client IP. Set to `true` only behind a *trusted* reverse proxy. The rightmost token is used (the one your proxy appended). |
+| `TRUST_CF_CONNECTING_IP`       | api, tracker | `false`                          | Honour `CF-Connecting-IP`. Keep `false` unless fronted by **Cloudflare** with ingress locked to its IP ranges — otherwise the header is client-spoofable (the Caddyfile strips it by default) and trusting it bypasses IP bans/rate limits. Requires `TRUST_PROXY=true`. |
 | `NUXT_PUBLIC_TRACKER_HTTP_URL` | api, web     | `http://localhost:8080/announce` | Announce URL embedded in `.torrent` files (runtime).                   |
 | `NUXT_PUBLIC_TRACKER_UDP_URL`  | api, web     | unset                            | UDP tier added when `TRACKER_UDP_ENABLED=true` and this URL is set.    |
 | `NUXT_PUBLIC_TRACKER_WS_URL`   | api, web     | unset                            | Reserved; WebTorrent (wss) is **not** implemented yet — don't advertise it. |
@@ -105,6 +106,7 @@ change them.
 | `ADMIN_API_KEY`           | api     | —                                | **Required**. Bearer token for internal admin endpoints.            |
 | `CHANNEL_ENCRYPTION_KEY`  | api     | falls back to `NUXT_SESSION_SECRET` | AES key for notification-channel configs at rest (SMTP password, Telegram token, VAPID private key). Generate with `openssl rand -hex 32`. |
 | `TRUST_PROXY`             | api, tracker | `false`                     | See *Tracker* — same flag, same semantics, same caveats.            |
+| `TRUST_CF_CONNECTING_IP`  | api, tracker | `false`                     | See *Tracker* — only enable behind Cloudflare with locked ingress.  |
 
 ## Two-factor auth & WebAuthn
 
