@@ -44,7 +44,9 @@ export default defineEventHandler(async (event) => {
           columns: { id: true, name: true },
         },
       },
-      orderBy: [desc(schema.hnrTracking.downloadedAt)],
+      // `id` tiebreaker for stable pagination on downloadedAt collisions
+      // (finding L22).
+      orderBy: [desc(schema.hnrTracking.downloadedAt), desc(schema.hnrTracking.id)],
       limit,
       offset,
     }),

@@ -11,6 +11,15 @@ const escapeXml = (str: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
+// Wrap arbitrary (uploader-controlled) text in a CDATA section safely.
+// A literal `]]>` inside the content would otherwise close the section
+// early and let the value inject sibling XML (spoofed <enclosure>, feed
+// corruption) into the torznab/RSS output consumed by *Arr indexers
+// (finding M5). Splitting the terminator into two CDATA sections keeps
+// the bytes intact while making them inert.
+const cdata = (str: string): string =>
+  `<![CDATA[${String(str ?? '').replace(/]]>/g, ']]]]><![CDATA[>')}]]>`;
+
 // ============================================================================
 // Torznab Error Response
 // ============================================================================
@@ -167,7 +176,7 @@ export function buildSearchXml(feed: TorznabFeed): string {
       <comments>${escapeXml(item.commentsUrl)}</comments>
       <pubDate>${item.pubDate.toUTCString()}</pubDate>
       <size>${item.size}</size>
-      <description><![CDATA[${item.description ?? ''}]]></description>
+      <description>${cdata(item.description ?? '')}</description>
       ${item.categoryName ? `<category>${escapeXml(item.categoryName)}</category>` : ''}
 ${attrs.join('\n')}
       <enclosure url="${escapeXml(item.downloadUrl)}" length="${item.size}" type="application/x-bittorrent"/>

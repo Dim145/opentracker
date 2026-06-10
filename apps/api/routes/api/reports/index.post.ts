@@ -64,6 +64,29 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Collapse duplicates: if this reporter already has an open (pending)
+  // report against the same target, acknowledge it without inserting a
+  // second row or re-fanning-out to every staff member. Stops a single
+  // user spamming the mod queue + external channels with repeated
+  // reports (finding L4); re-reporting is still allowed once the prior
+  // report has been resolved/dismissed.
+  const existingReport = await db.query.reports.findFirst({
+    where: (r, { and, eq }) =>
+      and(
+        eq(r.reporterId, user.id),
+        eq(r.targetType, data.targetType),
+        eq(r.targetId, data.targetId),
+        eq(r.status, 'pending'),
+      ),
+  });
+  if (existingReport) {
+    return {
+      success: true,
+      message: 'You already have an open report for this target',
+      data: existingReport,
+    };
+  }
+
   // Create report
   const report = await db
     .insert(schema.reports)

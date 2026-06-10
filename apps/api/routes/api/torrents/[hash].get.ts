@@ -9,6 +9,10 @@ export default defineEventHandler(async (event) => {
 
   const torrent = await db.query.torrents.findFirst({
     where: (t, { eq }) => eq(t.infoHash, infoHash),
+    // Exclude the raw .torrent blob — the detail view never needs it and
+    // serialising the bytea to JSON ships the whole file to every viewer
+    // (finding M4). The gated download route is the only reader.
+    columns: { torrentData: false },
     with: {
       category: true,
       torrentTags: {

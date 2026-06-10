@@ -20,7 +20,10 @@ import {
 import { verifySignedRequest } from '~~/utils/federation/signing';
 import { federationScopesSchema } from '~~/utils/federation/scopes';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
-import { assertNotReplayed } from '~~/utils/federation/inbound';
+import {
+  assertNotReplayed,
+  assertBodyWithinLimit,
+} from '~~/utils/federation/inbound';
 import { evaluateCallback } from '~~/utils/federation/peerLifecycle';
 
 const PATHNAME = '/api/federation/callback';
@@ -32,6 +35,7 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   await rateLimit(event, RATE_LIMITS.mutation);
+  assertBodyWithinLimit(event);
 
   const config = await getFederationConfig();
   if (!isFederationLive(config)) {
@@ -103,13 +107,23 @@ export default defineEventHandler(async (event) => {
     ? intersectScopes(offered, parsed.acceptsFromYou)
     : offered;
 
+  // Symmetric clamp on the ACCEPT direction (finding L7): the partner only
+  // tells us what they'll share, but that must never widen what we ingest
+  // beyond the accept-preference our operator set at init time. Intersect
+  // their declared shares with our pre-authorized ceiling so a peer can't
+  // self-grant `swarm` / `accounts` we never agreed to.
+  const acceptCeiling = peer.acceptsFromThem ?? EMPTY_SCOPES;
+  const acceptsFromThem = parsed.sharesWithYou
+    ? intersectScopes(acceptCeiling, parsed.sharesWithYou)
+    : acceptCeiling;
+
   const now = new Date();
   await db
     .update(schema.federationPeers)
     .set({
       status: 'active',
       sharesWithThem,
-      acceptsFromThem: parsed.sharesWithYou ?? peer.acceptsFromThem,
+      acceptsFromThem,
       lastSeenAt: now,
       lastError: null,
       updatedAt: now,

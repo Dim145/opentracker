@@ -31,6 +31,7 @@ import type {
   SearchOptions,
 } from './types';
 import { META_TTL, NEG_SENTINEL } from './types';
+import { safeHttpUrl } from './safeUrl';
 
 const OL_BASE = 'https://openlibrary.org';
 const OL_COVERS = 'https://covers.openlibrary.org';
@@ -236,7 +237,10 @@ function olToMedia(
     runtime: null,
     voteAverage: null,
     voteCount: null,
-    url: data.url || `${OL_BASE}/${coverKind === 'isbn' ? 'isbn' : 'works'}/${id}`,
+    url: safeHttpUrl(
+      data.url,
+      `${OL_BASE}/${coverKind === 'isbn' ? 'isbn' : 'works'}/${id}`,
+    ),
     authors: (data.authors ?? [])
       .map((a) => a.name)
       .filter((n): n is string => typeof n === 'string'),
@@ -331,7 +335,10 @@ function gbToMedia(v: GbVolume, fallbackId: string): MediaMetadata {
         : null,
     voteCount:
       typeof info.ratingsCount === 'number' ? info.ratingsCount : null,
-    url: info.canonicalVolumeLink || info.infoLink || `https://books.google.com/books?id=${v.id}`,
+    url: safeHttpUrl(
+      info.canonicalVolumeLink || info.infoLink,
+      `https://books.google.com/books?id=${v.id}`,
+    ),
     authors: info.authors ?? [],
     publisher: info.publisher ?? null,
     pageCount: info.pageCount ?? null,
@@ -468,7 +475,10 @@ function gbSearchHit(v: GbVolume): MediaSearchHit | null {
       typeof info.averageRating === 'number'
         ? Math.round(info.averageRating * 2 * 10) / 10
         : null,
-    url: info.canonicalVolumeLink || info.infoLink || `https://books.google.com/books?id=${v.id}`,
+    url: safeHttpUrl(
+      info.canonicalVolumeLink || info.infoLink,
+      `https://books.google.com/books?id=${v.id}`,
+    ),
   };
 }
 

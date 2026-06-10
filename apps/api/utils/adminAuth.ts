@@ -3,6 +3,8 @@ import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users } from '@trackarr/db/schema';
 import { redis } from '../redis/client';
+import { getSessionId } from './session';
+import { isFreshAuth } from './twoFactor';
 
 /**
  * Cached `isBanned` lookup — backs `requireAuthSession`.
@@ -215,6 +217,28 @@ export async function requireAdminSession(event: H3Event) {
   }
 
   return session;
+}
+
+/**
+ * Require the caller's session to be inside the fresh-auth window
+ * (recent login / 2FA — see twoFactor.FRESH_AUTH_TTL_S, 10 min). Layer
+ * this on top of requireAdminSession for the highest-impact, hard-to-undo
+ * admin mutations (privilege grants, economy adjustments, panic,
+ * federation key provisioning) so a borrowed or exfiltrated — but stale —
+ * admin session can't self-escalate without re-authenticating first
+ * (finding L10). The FE surfaces the 401 + `reauthRequired` flag as a
+ * re-login prompt, mirroring the me/2fa step-up flow.
+ */
+export async function requireFreshAuth(event: H3Event): Promise<void> {
+  const sid = await getSessionId(event);
+  if (!(await isFreshAuth(sid))) {
+    throw createError({
+      statusCode: 401,
+      message:
+        'Re-authenticate first. This action requires a fresh login (within the last 10 minutes).',
+      data: { reauthRequired: true },
+    });
+  }
 }
 
 /**

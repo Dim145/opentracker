@@ -7,7 +7,8 @@
 import { detectDDoS, isBlacklisted, getClientIP } from '~~/utils/rateLimit';
 import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
-import { users, bannedIps } from '@trackarr/db/schema';
+import { users, bannedIps, webauthnCredentials } from '@trackarr/db/schema';
+import { isUserRequiredFor2FA } from '~~/utils/settings';
 
 // ============================================================================
 // Security Configuration
@@ -219,9 +220,14 @@ export default defineEventHandler(async (event) => {
     const session = await getUserSession(event);
 
     if (session.user) {
-      // Check DB for ban status
+      // Check DB for ban status (and the role/2FA flags reused below).
       const [dbUser] = await db
-        .select({ isBanned: users.isBanned })
+        .select({
+          isBanned: users.isBanned,
+          isAdmin: users.isAdmin,
+          isModerator: users.isModerator,
+          totpEnabled: users.totpEnabled,
+        })
         .from(users)
         .where(eq(users.id, session.user.id))
         .limit(1);
@@ -236,6 +242,46 @@ export default defineEventHandler(async (event) => {
             statusCode: 403,
             message: 'Your account has been banned',
           });
+        }
+      }
+
+      // Mandatory-2FA enforcement (finding M2). require2FAScope was only
+      // surfaced as a FE redirect hint, so an HTTP client could ignore it
+      // and use the API with a password-only session. Enforce it here:
+      // when the policy applies to this user and they have no second
+      // factor, block every API route except the 2FA-enrolment endpoints
+      // (and /api/auth/*, already excluded above) until they enrol. SSR
+      // page loads are left alone so the FE can still render the redirect.
+      // isUserRequiredFor2FA short-circuits to false when scope='off'
+      // (the cached default), so this costs nothing on most deployments.
+      if (
+        dbUser &&
+        !dbUser.isBanned &&
+        path.startsWith('/api/') &&
+        !path.startsWith('/api/me/2fa/')
+      ) {
+        const required = await isUserRequiredFor2FA({
+          isAdmin: dbUser.isAdmin,
+          isModerator: dbUser.isModerator,
+        });
+        if (required) {
+          let has2FA = dbUser.totpEnabled ?? false;
+          if (!has2FA) {
+            const passkeyCount = await db
+              .select({ id: webauthnCredentials.id })
+              .from(webauthnCredentials)
+              .where(eq(webauthnCredentials.userId, session.user.id))
+              .then((r) => r.length);
+            has2FA = passkeyCount > 0;
+          }
+          if (!has2FA) {
+            throw createError({
+              statusCode: 403,
+              message:
+                'Two-factor authentication is required. Enrol a second factor to continue.',
+              data: { requires2FASetup: true },
+            });
+          }
         }
       }
 

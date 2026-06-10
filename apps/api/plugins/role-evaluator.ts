@@ -18,6 +18,7 @@
  */
 
 import { reevaluateAllUsers } from '~~/utils/roleRules';
+import { withCronLock } from '~~/utils/cronLock';
 
 const SWEEP_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 const FIRST_RUN_DELAY_MS = 60 * 1000; // wait 1 min after boot
@@ -25,15 +26,20 @@ const FIRST_RUN_DELAY_MS = 60 * 1000; // wait 1 min after boot
 export default defineNitroPlugin(() => {
   const tick = async () => {
     try {
-      const result = await reevaluateAllUsers();
-      // reevaluateAllUsers returns { considered, attached, detached } —
-      // the old log read result.changed / result.skipped, which don't
-      // exist (always undefined → the log never fired).
-      if (result.attached + result.detached > 0) {
-        console.log(
-          `[Roles] sweep: ${result.considered} considered, ${result.attached} attached, ${result.detached} detached`
-        );
-      }
+      // Cross-replica lock so only one replica runs the sweep per tick —
+      // it's idempotent but re-parsing torrents is "the expensive bit", so
+      // N replicas duplicating it is wasted DB/CPU (finding L23).
+      await withCronLock('role_evaluator:lock', 5 * 60, async () => {
+        const result = await reevaluateAllUsers();
+        // reevaluateAllUsers returns { considered, attached, detached } —
+        // the old log read result.changed / result.skipped, which don't
+        // exist (always undefined → the log never fired).
+        if (result.attached + result.detached > 0) {
+          console.log(
+            `[Roles] sweep: ${result.considered} considered, ${result.attached} attached, ${result.detached} detached`
+          );
+        }
+      });
     } catch (err) {
       console.error('[Roles] sweep failed:', err);
     }

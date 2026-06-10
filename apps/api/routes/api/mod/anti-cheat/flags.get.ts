@@ -57,7 +57,10 @@ export default defineEventHandler(async (event) => {
   const [rows, countResult, statusBuckets] = await Promise.all([
     db.query.anticheatFlags.findMany({
       where: whereClause,
-      orderBy: [desc(schema.anticheatFlags.createdAt)],
+      // `id` tiebreaker so rows sharing a createdAt timestamp keep a stable
+      // order across pages — without it a moderator can miss or double-see
+      // flags on timestamp collisions (finding L22).
+      orderBy: [desc(schema.anticheatFlags.createdAt), desc(schema.anticheatFlags.id)],
       limit,
       offset,
     }),

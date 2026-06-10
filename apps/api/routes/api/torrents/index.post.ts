@@ -46,6 +46,17 @@ export default defineEventHandler(async (event) => {
   const description = formData
     .find((f) => f.name === 'description')
     ?.data.toString();
+  // Enforce the documented 10k cap (torrentUploadSchema.description) here —
+  // the multipart path never runs the zod schema, so without this an
+  // uploader could persist an unbounded blob into the text column and
+  // bloat every listing/detail response (finding L2). Mirrors the NFO cap.
+  const DESCRIPTION_MAX_CHARS = 10_000;
+  if (description && description.length > DESCRIPTION_MAX_CHARS) {
+    throw createError({
+      statusCode: 413,
+      message: `Description exceeds ${DESCRIPTION_MAX_CHARS} characters`,
+    });
+  }
   const tagsRaw = formData.find((f) => f.name === 'tags')?.data.toString();
   // External media-database tags. Each is normalised (URL → bare id);
   // non-matching input is silently dropped to null rather than 400ing

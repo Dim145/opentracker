@@ -186,6 +186,14 @@ export default defineEventHandler(async (event) => {
   // admins/moderators), so the sort key is always defined.
   const torrents = await db.query.torrents.findMany({
     where: whereClause,
+    // Negative projection: select every column EXCEPT the raw .torrent
+    // blob. Without this drizzle pulls `torrent_data` (bytea) for every
+    // row and Nitro serialises each as a {"type":"Buffer","data":[...]}
+    // byte array ~4x its size — shipping the full file list + piece
+    // hashes of every torrent to each member and turning a single
+    // `?limit=100` into a multi-hundred-MB response (finding M4). Only
+    // the gated download route reads torrent_data.
+    columns: { torrentData: false },
     with: {
       category: true,
       torrentTags: { with: { tag: true } },

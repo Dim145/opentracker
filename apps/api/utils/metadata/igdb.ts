@@ -32,6 +32,7 @@ import type {
   SearchOptions,
 } from './types';
 import { META_TTL, NEG_SENTINEL } from './types';
+import { safeHttpUrl } from './safeUrl';
 
 const IGDB_BASE = 'https://api.igdb.com/v4';
 const TWITCH_TOKEN_URL = 'https://id.twitch.tv/oauth2/token';
@@ -242,7 +243,7 @@ function normalizeDetail(game: IgdbGame): MediaMetadata {
       typeof game.total_rating_count === 'number'
         ? game.total_rating_count
         : null,
-    url: game.url || `https://www.igdb.com/games/${game.slug}`,
+    url: safeHttpUrl(game.url, `https://www.igdb.com/games/${game.slug}`),
     platforms: (game.platforms ?? []).map((p) => p.name).filter(Boolean),
     gameModes: (game.game_modes ?? []).map((m) => m.name).filter(Boolean),
     screenshots: (game.screenshots ?? [])
@@ -360,7 +361,7 @@ async function searchGames(
       typeof g.total_rating === 'number'
         ? Math.round((g.total_rating / 10) * 10) / 10
         : null,
-    url: g.url || `https://www.igdb.com/games/${g.slug}`,
+    url: safeHttpUrl(g.url, `https://www.igdb.com/games/${g.slug}`),
   }));
 
   try {

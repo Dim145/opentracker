@@ -24,7 +24,10 @@ import { computeInstanceId } from '~~/utils/federation/keys';
 import { federationScopesSchema } from '~~/utils/federation/scopes';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notify } from '~~/utils/notify';
-import { assertNotReplayed } from '~~/utils/federation/inbound';
+import {
+  assertNotReplayed,
+  assertBodyWithinLimit,
+} from '~~/utils/federation/inbound';
 
 const PATHNAME = '/api/federation/handshake';
 
@@ -38,6 +41,7 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   await rateLimit(event, RATE_LIMITS.mutation);
+  assertBodyWithinLimit(event);
 
   const config = await getFederationConfig();
   if (!isFederationLive(config)) {

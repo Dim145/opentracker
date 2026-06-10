@@ -22,6 +22,14 @@ import { isBlockedIp } from '../safeFetch';
 
 const CACHE_TTL_S = 900; // 15 min — refreshed each sync tick
 const MAX_PER_TORRENT = 300;
+// Cap entries pointing at the same destination IP. A partner-supplied
+// peer list is untrusted relay data: without a per-IP bound one partner
+// could fill all 300 slots with a single victim IP across a port range,
+// amplifying our whole userbase against it (finding L6).
+const MAX_PORTS_PER_IP = 2;
+// Lowest port we'll relay. Real BitTorrent peers never bind <1024 (needs
+// root); listing :22/:25/:80/:443 etc. would just be a reflection target.
+const MIN_PEER_PORT = 1024;
 
 interface CachedPeer {
   peerId: string;
@@ -87,7 +95,8 @@ export async function syncSwarmPeers(): Promise<{ torrents: number; peers: numbe
           const o = rp as Record<string, unknown>;
           const ip = typeof o.ip === 'string' ? o.ip : '';
           const port = typeof o.port === 'number' ? o.port : 0;
-          if (!ip || port <= 0 || port > 65535) continue;
+          // Drop service ports (<1024) — see MIN_PEER_PORT (finding L6).
+          if (!ip || port < MIN_PEER_PORT || port > 65535) continue;
           // Don't relay internal / private / loopback IPs into our swarm.
           if (isBlockedIp(ip)) continue;
           collected.push({
@@ -109,13 +118,18 @@ export async function syncSwarmPeers(): Promise<{ torrents: number; peers: numbe
       if (anyOk) await redis.del(key).catch(() => {});
       continue;
     }
-    // Dedup by ip:port across all partners.
+    // Dedup by ip:port across all partners, and cap how many entries any
+    // single destination IP may contribute (finding L6).
     const seen = new Set<string>();
+    const ipCounts = new Map<string, number>();
     const uniq: CachedPeer[] = [];
     for (const p of collected) {
       const k = `${p.ip}:${p.port}`;
       if (seen.has(k)) continue;
+      const ipCount = ipCounts.get(p.ip) ?? 0;
+      if (ipCount >= MAX_PORTS_PER_IP) continue;
       seen.add(k);
+      ipCounts.set(p.ip, ipCount + 1);
       uniq.push(p);
       if (uniq.length >= MAX_PER_TORRENT) break;
     }

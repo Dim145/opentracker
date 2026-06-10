@@ -2,6 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { sql } from 'drizzle-orm';
 import { redis } from '~~/utils/server';
 import { v4 as uuidv4 } from 'uuid';
+import { withCronLock } from '~~/utils/cronLock';
 
 export default defineNitroPlugin((nitroApp) => {
   // Run every hour by default, or use env var (in ms)
@@ -122,10 +123,16 @@ export default defineNitroPlugin((nitroApp) => {
     }
   };
 
+  // Cross-replica lock so a multi-replica deployment writes ONE site_stats
+  // snapshot per tick, not N (finding L20). Single-replica setups are
+  // unaffected (the lock is always free).
+  const tick = () =>
+    void withCronLock('stats_collector:lock', 5 * 60, collectStats);
+
   // Initial collection after a short delay to ensure DB/Redis are ready.
   // unref both timers so they don't pin the event loop during shutdown.
-  setTimeout(collectStats, 10000).unref?.();
+  setTimeout(tick, 10000).unref?.();
 
   // Schedule periodic collection
-  setInterval(collectStats, INTERVAL).unref?.();
+  setInterval(tick, INTERVAL).unref?.();
 });

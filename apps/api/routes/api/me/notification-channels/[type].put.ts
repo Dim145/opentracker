@@ -53,6 +53,45 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid body' });
   }
 
+  // Shape + size validation (finding L28). userConfig was stored as a
+  // free z.record(z.unknown()), so a user could persist an arbitrarily
+  // large blob (bloating the encrypted column) or shape-malformed config
+  // that silently breaks their own fan-out. Reject unknown keys, oversize
+  // values, and non-primitive types up front.
+  if (parsed.data.userConfig !== undefined) {
+    const allowedKeys = new Set(adapter.userFields.map((f) => f.key));
+    const MAX_VALUE_LEN = 4096;
+    const entries = Object.entries(parsed.data.userConfig);
+    if (entries.length > allowedKeys.size) {
+      throw createError({ statusCode: 400, statusMessage: 'Too many config fields' });
+    }
+    for (const [key, value] of entries) {
+      if (!allowedKeys.has(key)) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: `Unknown config field: ${key}`,
+        });
+      }
+      if (typeof value === 'string' && value.length > MAX_VALUE_LEN) {
+        throw createError({
+          statusCode: 413,
+          statusMessage: `Config field "${key}" exceeds ${MAX_VALUE_LEN} characters`,
+        });
+      }
+      if (
+        value !== null &&
+        typeof value !== 'string' &&
+        typeof value !== 'number' &&
+        typeof value !== 'boolean'
+      ) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: `Config field "${key}" has an unsupported type`,
+        });
+      }
+    }
+  }
+
   assertChannelEncryptionReady();
 
   const existing = await db.query.userNotificationChannels.findFirst({

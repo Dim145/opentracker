@@ -153,6 +153,14 @@ export default defineEventHandler(async (event) => {
   }
 
   if (description !== undefined) {
+    // Same 10k cap as upload — PATCH must not be a back door to an
+    // unbounded description column (finding L2).
+    if (typeof description === 'string' && description.length > 10_000) {
+      throw createError({
+        statusCode: 413,
+        message: 'Description exceeds 10000 characters',
+      });
+    }
     updateData.description = description || null;
   }
 

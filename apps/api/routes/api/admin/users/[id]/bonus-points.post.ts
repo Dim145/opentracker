@@ -19,7 +19,7 @@ import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
-import { requireAdminSession } from '~~/utils/adminAuth';
+import { requireAdminSession, requireFreshAuth } from '~~/utils/adminAuth';
 import { notify } from '~~/utils/notify';
 
 const bodySchema = z
@@ -38,6 +38,9 @@ const bodySchema = z
 
 export default defineEventHandler(async (event) => {
   const { user: actor } = await requireAdminSession(event);
+  // Direct economy mutation — require a fresh login on top of the admin
+  // gate (finding L10).
+  await requireFreshAuth(event);
   const userId = getRouterParam(event, 'id');
   if (!userId) {
     throw createError({ statusCode: 400, message: 'Missing user id' });

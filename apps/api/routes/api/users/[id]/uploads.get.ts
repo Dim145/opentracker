@@ -1,6 +1,7 @@
 import { db, schema } from '@trackarr/db';
-import { and, eq, desc, sql } from 'drizzle-orm';
+import { and, eq, desc, sql, or, isNull, notInArray } from 'drizzle-orm';
 import { getStats } from '~~/utils/server';
+import { adultCategoryIds } from '~~/utils/adultContent';
 import { z } from 'zod';
 
 const paramsSchema = z.object({
@@ -42,9 +43,29 @@ export default defineEventHandler(async (event) => {
   const isStaff = !!(viewer.isAdmin || viewer.isModerator);
   const seeAll = isSelf || isStaff;
   const baseFilter = eq(schema.torrents.uploaderId, params.id);
-  const where = seeAll
-    ? baseFilter
-    : and(baseFilter, eq(schema.torrents.moderationStatus, 'accepted'));
+  const conditions = [baseFilter];
+  if (!seeAll) {
+    conditions.push(eq(schema.torrents.moderationStatus, 'accepted'));
+    // Adult gate — mirror the listing/detail/RSS/Torznab surfaces so a
+    // non-opted-in viewer can't enumerate another user's XXX uploads here
+    // (finding L3). Self/staff keep full visibility.
+    const me = await db.query.users.findFirst({
+      where: eq(schema.users.id, viewer.id),
+      columns: { showAdultContent: true },
+    });
+    if (!me?.showAdultContent) {
+      const adultIds = await adultCategoryIds();
+      if (adultIds.length > 0) {
+        conditions.push(
+          or(
+            isNull(schema.torrents.categoryId),
+            notInArray(schema.torrents.categoryId, adultIds),
+          )!,
+        );
+      }
+    }
+  }
+  const where = and(...conditions);
 
   // Get user's uploads
   const torrents = await db.query.torrents.findMany({

@@ -4,13 +4,13 @@
  * Useful for diagnosing if peers are being stored at all
  */
 import { redis } from '~~/utils/server';
+import { requireAdminSession } from '~~/utils/adminAuth';
 
 export default defineEventHandler(async (event) => {
-  // Admin only
-  const { user } = await requireUserSession(event);
-  if (!user.isAdmin) {
-    throw createError({ statusCode: 403, message: 'Admin only' });
-  }
+  // Admin only — requireAdminSession re-validates the live role (closing
+  // the demoted-but-not-banned window the bespoke stale-cookie check left
+  // open) + the ban check, like every other admin route (finding L9).
+  await requireAdminSession(event);
 
   const keyPrefix = process.env.REDIS_KEY_PREFIX || 'ot:';
   const keys: string[] = [];

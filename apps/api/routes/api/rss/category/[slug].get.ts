@@ -84,7 +84,9 @@ export default defineEventHandler(async (event) => {
   });
 
   setHeader(event, 'Content-Type', 'application/rss+xml; charset=utf-8');
-  setHeader(event, 'Cache-Control', 'public, max-age=300'); // 5min cache
+  // Per-user feed (adult filter + apikey-in-URL) — never shared-cacheable
+  // (finding L5).
+  setHeader(event, 'Cache-Control', 'private, max-age=300'); // 5min, per-user
   return rss;
 });
 
@@ -114,13 +116,18 @@ function buildRSSFeed(feed: RSSFeed): string {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
 
+  // Neutralize a `]]>` breakout in uploader-controlled description so it
+  // can't inject sibling XML into the feed (finding M5).
+  const cdata = (str: string) =>
+    `<![CDATA[${String(str ?? '').replace(/]]>/g, ']]]]><![CDATA[>')}]]>`;
+
   const items = feed.items
     .map(
       (item) => `
     <item>
       <title>${escapeXml(item.title)}</title>
       <link>${escapeXml(item.link)}</link>
-      <description><![CDATA[${item.description}]]></description>
+      <description>${cdata(item.description)}</description>
       ${item.category ? `<category>${escapeXml(item.category)}</category>` : ''}
       <pubDate>${item.pubDate}</pubDate>
       <guid isPermaLink="false">${escapeXml(item.guid)}</guid>

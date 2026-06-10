@@ -4,13 +4,11 @@
  */
 import { redis } from '~~/utils/server';
 import { getGlobalStats } from '~~/utils/server';
+import { requireAdminSession } from '~~/utils/adminAuth';
 
 export default defineEventHandler(async (event) => {
-  // Admin only
-  const { user } = await requireUserSession(event);
-  if (!user.isAdmin) {
-    throw createError({ statusCode: 403, message: 'Admin only' });
-  }
+  // Admin only — live-role-revalidating gate (finding L9).
+  await requireAdminSession(event);
 
   // Check Redis connection
   let redisStatus = 'unknown';

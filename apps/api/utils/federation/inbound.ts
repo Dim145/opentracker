@@ -25,7 +25,11 @@ import { SCOPE_KEYS } from './scopes';
 
 type Scope = (typeof SCOPE_KEYS)[number];
 
-const REPLAY_TTL_S = 6 * 60; // > the ±5 min signing clock-skew window
+// A signature stays date-valid across the full ±5 min skew window (10 min
+// end to end), so the nonce must be remembered at least that long — at 6 min
+// a captured request could be replayed once after the nonce expired but
+// while its timestamp was still valid (finding L18). 11 min adds margin.
+const REPLAY_TTL_S = 11 * 60;
 const REPLAY_PREFIX = 'fed:replay:';
 
 /**
@@ -49,6 +53,29 @@ export async function assertNotReplayed(
   }
   if (!inserted) {
     throw createError({ statusCode: 401, message: 'Replay detected' });
+  }
+}
+
+/**
+ * Reject an oversized S2S request body BEFORE we buffer + JSON-parse it.
+ * handshake/callback read the raw body for signature verification with no
+ * size limit (Nitro sets none), so an unauthenticated peer could push
+ * hundreds of MB to be parsed into memory and rejected (finding L17).
+ * Signed handshake/callback bodies are < ~4.5 KB given the zod caps, so a
+ * 16 KB ceiling is generous. Checks Content-Length (always set by our
+ * signedPost client); chunked floods are still bounded by the per-IP
+ * mutation rate limit applied at each handler.
+ */
+const MAX_S2S_BODY_BYTES = 16 * 1024;
+
+export function assertBodyWithinLimit(
+  event: H3Event,
+  maxBytes = MAX_S2S_BODY_BYTES,
+): void {
+  const raw = getRequestHeaders(event)['content-length'];
+  const len = raw ? Number(raw) : 0;
+  if (Number.isFinite(len) && len > maxBytes) {
+    throw createError({ statusCode: 413, message: 'Request body too large' });
   }
 }
 

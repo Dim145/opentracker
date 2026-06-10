@@ -29,6 +29,10 @@ const bodySchema = z.object({
   baseUrl: z.string().trim().url().max(255),
   name: z.string().trim().max(120).optional().nullable(),
   scopes: federationScopesSchema.optional(),
+  // What we agree to ACCEPT from this peer. Captured at init so the
+  // partner's callback can't self-grant ingest scopes (swarm/accounts)
+  // we never authorized; defaults to mirroring what we offer (finding L7).
+  scopesAccepted: federationScopesSchema.optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -61,6 +65,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const scopes = body.scopes ?? live.defaultScopes;
+  // Operator-chosen accept ceiling; the callback intersects the partner's
+  // declared shares against this so they can't widen it (finding L7).
+  const acceptScopes = body.scopesAccepted ?? scopes;
   const now = new Date();
 
   // Create / reset the pending_out row first.
@@ -72,6 +79,7 @@ export default defineEventHandler(async (event) => {
       displayName: body.name ?? null,
       status: 'pending_out',
       sharesWithThem: scopes,
+      acceptsFromThem: acceptScopes,
       createdBy: session.user.id,
       lastHandshakeAt: now,
     })
@@ -79,6 +87,7 @@ export default defineEventHandler(async (event) => {
       target: schema.federationPeers.baseUrl,
       set: {
         sharesWithThem: scopes,
+        acceptsFromThem: acceptScopes,
         status: 'pending_out',
         lastHandshakeAt: now,
         lastError: null,

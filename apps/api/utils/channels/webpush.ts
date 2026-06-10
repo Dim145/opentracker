@@ -38,6 +38,27 @@ import { validateHost, SafeFetchError } from '../safeFetch';
 import type { ChannelAdapter, NotificationPayload, TestResult } from './types';
 
 /**
+ * Allow-list of real browser push-service hosts. The endpoint is fully
+ * user-controlled and the `web-push` lib re-resolves DNS at connect time
+ * with no private-range guard, so a `validateHost` check alone is a
+ * check-time-only defence that DNS rebinding defeats (finding M10).
+ * Pinning to the known push services closes the SSRF entirely: an
+ * attacker can't substitute an internal target because they don't
+ * control these hosts' DNS. Covers Chromium/Edge/Opera/Brave (FCM),
+ * Firefox (Mozilla autopush), Safari (Apple), and legacy Windows (WNS).
+ */
+function isAllowedPushHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  return (
+    h === 'fcm.googleapis.com' ||
+    h === 'web.push.apple.com' ||
+    h === 'updates.push.services.mozilla.com' ||
+    h.endsWith('.push.services.mozilla.com') ||
+    h.endsWith('.notify.windows.com')
+  );
+}
+
+/**
  * Persisted server config. The public key is exposed to users (it
  * has to be — they pass it to `pushManager.subscribe`). The private
  * key never leaves the API process.
@@ -128,6 +149,15 @@ async function sendWebPush(
     if (endpointUrl.protocol !== 'https:') {
       return { ok: false, error: 'Push endpoint must be https.' };
     }
+    if (!isAllowedPushHost(endpointUrl.hostname)) {
+      return {
+        ok: false,
+        error: 'Push endpoint host is not a recognised push service.',
+      };
+    }
+    // Belt-and-braces: still range-check the resolved IP. The host
+    // allow-list already makes rebinding impossible (attacker can't
+    // control these hosts' DNS), but this stays as defence in depth.
     await validateHost(endpointUrl.hostname);
   } catch (err) {
     if (err instanceof SafeFetchError) return { ok: false, error: err.message };
@@ -160,9 +190,12 @@ async function sendWebPush(
     if (res.statusCode >= 200 && res.statusCode < 300) {
       return { ok: true };
     }
+    // Don't reflect the upstream response body — only the status code,
+    // which is all the UI needs and avoids echoing a remote body back to
+    // the user (finding M10).
     return {
       ok: false,
-      error: `Push service returned ${res.statusCode}: ${(res.body || '').slice(0, 200)}`,
+      error: `Push service returned ${res.statusCode}`,
     };
   } catch (err) {
     // `web-push` throws a `WebPushError` with `statusCode` for any
@@ -174,17 +207,18 @@ async function sendWebPush(
       message?: string;
     };
     const status = e.statusCode ?? 0;
-    const detail = (e.body || e.message || '').slice(0, 200);
     if (status === 404 || status === 410) {
       return {
         ok: false,
         error: `Subscription gone (${status}). The user needs to re-enable browser notifications.`,
       };
     }
+    // Status code only on a service error; the library's own message
+    // (not the upstream body) on a transport error.
     return {
       ok: false,
       error: status
-        ? `Push service returned ${status}: ${detail}`
+        ? `Push service returned ${status}`
         : (e.message ?? 'Unknown push error'),
     };
   }

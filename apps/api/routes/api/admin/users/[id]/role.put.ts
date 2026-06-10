@@ -11,7 +11,7 @@
  *     mid-session; they must ask another admin.
  */
 import { db, schema } from '@trackarr/db';
-import { requireAdminSession } from '~~/utils/adminAuth';
+import { requireAdminSession, requireFreshAuth } from '~~/utils/adminAuth';
 import { validateBody } from '~~/utils/schemas';
 import { eq, and, ne, count } from 'drizzle-orm';
 import { z } from 'zod';
@@ -27,6 +27,9 @@ const bodySchema = z
 
 export default defineEventHandler(async (event) => {
   const { user: actor } = await requireAdminSession(event);
+  // Privilege grants are the highest-impact admin action — require a
+  // fresh login on top of the admin gate (finding L10).
+  await requireFreshAuth(event);
   const { id } = paramsSchema.parse(getRouterParams(event));
   // Routed through validateBody so a Zod failure renders as a clean
   // 400 with a human message, not a wall of `unrecognized_keys` issue

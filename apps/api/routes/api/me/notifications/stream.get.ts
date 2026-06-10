@@ -28,8 +28,24 @@
  *   - We emit a `:` comment line every 30s as a heartbeat so the
  *     connection stays warm through aggressive idle timeouts.
  */
+import { eq } from 'drizzle-orm';
+import { db } from '@trackarr/db';
+import { users } from '@trackarr/db/schema';
 import { redis } from '~~/redis/client';
 import { channelFor, NOTIFY_CHANNEL_PREFIX } from '~~/utils/notify';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+
+// Concurrency guards (finding M9). Each open SSE connection is a held fd
+// + a Set entry + a 30s timer; the global DDoS gate counts one HTTP
+// request and decays, so without an explicit cap a single account could
+// accumulate thousands of streams and exhaust the process. Multi-tab use
+// is legitimate, so the per-user cap is generous; the per-process ceiling
+// is the backstop. A max lifetime forces EventSource to reconnect (and
+// re-run auth/ban checks) periodically.
+const MAX_STREAMS_PER_USER = 5;
+const MAX_TOTAL_STREAMS = 2000;
+const STREAM_MAX_LIFETIME_MS = 2 * 60 * 60 * 1000; // 2h
+let totalStreams = 0;
 
 // ── Per-process subscriber + writer registry ─────────────────────
 //
@@ -74,6 +90,27 @@ function ensureSubscriber(): void {
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
+
+  // Throttle the connection-open rate — one EventSource open is a single
+  // HTTP request the DDoS gate counts once, so this is what bounds how
+  // fast a client can spin up streams (finding M9).
+  await rateLimit(event, RATE_LIMITS.public);
+
+  // Per-user + per-process connection caps.
+  const current = writersByUser.get(user.id);
+  if (current && current.size >= MAX_STREAMS_PER_USER) {
+    throw createError({
+      statusCode: 429,
+      message: 'Too many open notification streams',
+    });
+  }
+  if (totalStreams >= MAX_TOTAL_STREAMS) {
+    throw createError({
+      statusCode: 503,
+      message: 'Notification stream capacity reached, retry shortly',
+    });
+  }
+
   ensureSubscriber();
 
   // Headers — explicit because some proxies strip the implicit ones.
@@ -106,6 +143,7 @@ export default defineEventHandler(async (event) => {
     });
   }
   writers.add(send);
+  totalStreams++;
 
   // Initial frame so the browser knows the stream is up. The
   // payload doesn't matter — clients ignore the `:` comment lines
@@ -113,23 +151,21 @@ export default defineEventHandler(async (event) => {
   // proxy idle counters.
   res.write(': open\n\n');
 
-  // Heartbeat every 30s. Browsers' EventSource will reconnect on
-  // its own if the socket drops, so we don't need a watchdog —
-  // just keep the upstream proxy happy.
-  const heartbeat = setInterval(() => {
-    try {
-      res.write(': ping\n\n');
-    } catch {
-      // Write failure means the socket is closed; the `close`
-      // listener will run shortly and clean up.
-    }
-  }, 30_000);
+  // Declared up-front so `cleanup` can clear them without a TDZ trap.
+  let heartbeat: ReturnType<typeof setInterval> | undefined;
+  let lifetimeTimer: ReturnType<typeof setTimeout> | undefined;
+  let closed = false;
 
   // Cleanup on disconnect. EventSource doesn't expose a graceful
   // close from the client; the server learns by the TCP read end
-  // closing or by the request signal aborting.
+  // closing or by the request signal aborting. Idempotent (the close
+  // + error listeners and the timers can all race to call it).
   const cleanup = () => {
-    clearInterval(heartbeat);
+    if (closed) return;
+    closed = true;
+    if (heartbeat) clearInterval(heartbeat);
+    if (lifetimeTimer) clearTimeout(lifetimeTimer);
+    totalStreams = Math.max(0, totalStreams - 1);
     const set = writersByUser.get(user.id);
     if (set) {
       set.delete(send);
@@ -149,6 +185,39 @@ export default defineEventHandler(async (event) => {
       // already closed
     }
   };
+
+  // Heartbeat every 30s. Browsers' EventSource will reconnect on
+  // its own if the socket drops, so we don't need a watchdog —
+  // just keep the upstream proxy happy. We also re-check the ban
+  // status here: a long-lived stream never re-enters the global
+  // middleware, so a user banned mid-stream would keep receiving
+  // their notifications without this (finding L26).
+  heartbeat = setInterval(() => {
+    try {
+      res.write(': ping\n\n');
+    } catch {
+      // Write failure means the socket is closed; the `close`
+      // listener will run shortly and clean up.
+      return;
+    }
+    void db
+      .select({ isBanned: users.isBanned })
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1)
+      .then(([row]) => {
+        // Tear the socket down on ban or account deletion. A transient
+        // DB error leaves the stream up and retries on the next tick.
+        if (!row || row.isBanned) cleanup();
+      })
+      .catch(() => {});
+  }, 30_000);
+
+  // Hard lifetime cap — forces EventSource to reconnect (and re-run
+  // auth/ban checks) at least every STREAM_MAX_LIFETIME_MS, and bounds
+  // how long any single connection can pin resources (finding M9/L26).
+  lifetimeTimer = setTimeout(cleanup, STREAM_MAX_LIFETIME_MS);
+
   event.node.req.on('close', cleanup);
   event.node.req.on('error', cleanup);
 

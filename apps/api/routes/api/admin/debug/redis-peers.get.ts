@@ -4,13 +4,11 @@
  */
 import { getPeers, getStats } from '~~/utils/server';
 import { redis } from '~~/utils/server';
+import { requireAdminSession } from '~~/utils/adminAuth';
 
 export default defineEventHandler(async (event) => {
-  // Admin only
-  const { user } = await requireUserSession(event);
-  if (!user.isAdmin) {
-    throw createError({ statusCode: 403, message: 'Admin only' });
-  }
+  // Admin only — live-role-revalidating gate (finding L9).
+  await requireAdminSession(event);
 
   const query = getQuery(event);
   const infoHash = (query.infoHash as string)?.toLowerCase();

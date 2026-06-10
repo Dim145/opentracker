@@ -22,6 +22,7 @@ import { db, schema } from '@trackarr/db';
 import { eq, isNull } from 'drizzle-orm';
 import parseTorrent from 'parse-torrent';
 import { computeContentSignature } from '~~/utils/contentSignature';
+import { withCronLock } from '~~/utils/cronLock';
 
 const SWEEP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const FIRST_RUN_DELAY_MS = 60 * 1000; // 1 minute after boot
@@ -84,12 +85,17 @@ async function tick(): Promise<{ processed: number; signed: number }> {
 export default defineNitroPlugin(() => {
   const run = async () => {
     try {
-      const { processed, signed } = await tick();
-      if (processed > 0) {
-        console.log(
-          `[ContentSignature] backfill tick: processed=${processed}, signed=${signed}`,
-        );
-      }
+      // Cross-replica lock so only one replica re-parses torrents per tick
+      // (the parse is "the expensive bit") instead of every replica doing
+      // the same backfill work (finding L23).
+      await withCronLock('content_signature_backfill:lock', 5 * 60, async () => {
+        const { processed, signed } = await tick();
+        if (processed > 0) {
+          console.log(
+            `[ContentSignature] backfill tick: processed=${processed}, signed=${signed}`,
+          );
+        }
+      });
     } catch (err: any) {
       console.warn('[ContentSignature] backfill tick failed:', err?.message);
     }
