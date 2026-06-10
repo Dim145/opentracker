@@ -273,6 +273,26 @@ export default defineNuxtConfig({
     },
   },
 
+  // Emit security headers from the SSR layer itself so the web container is
+  // self-protecting even if it's ever exposed without Caddy in front (direct
+  // port publish, alternate ingress, a proxy that doesn't replicate the
+  // header block) — finding L11. Mirrors docker/caddy/Caddyfile; HSTS is
+  // intentionally left to the TLS edge (Caddy), since the SSR container
+  // serves plain HTTP internally.
+  routeRules: {
+    '/**': {
+      headers: {
+        'X-Frame-Options': 'SAMEORIGIN',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Permissions-Policy':
+          'geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()',
+        'Content-Security-Policy':
+          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https:; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'",
+      },
+    },
+  },
+
   app: {
     head: {
       title: 'Trackarr',

@@ -345,6 +345,13 @@ async function unfavorite(row: FavoriteRow) {
       });
       notifications.success(t('me.favorites.toasts.removed'));
       await refresh();
+      // Removing the last item on the last page leaves `page` past the new
+      // page count — clamp back into range so the reactive query refetches
+      // a populated page instead of stranding the user on a blank one with
+      // no pager (finding L24).
+      if (data.value && page.value > data.value.pagination.pages) {
+        page.value = Math.max(1, data.value.pagination.pages);
+      }
     } catch (err: any) {
       notifications.error(
         err?.data?.message || t('me.favorites.toasts.removeFailed'),

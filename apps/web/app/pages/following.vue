@@ -365,6 +365,11 @@ async function unfollow(row: PersonaRow) {
       await $fetch(`/api/users/${row.id}/follow`, { method: 'DELETE' });
       notifications.success(t('following.toasts.left', { name: row.username }));
       await refresh();
+      // Clamp back into range after removing the last item on the last
+      // page so the reactive query refetches a populated page (finding L24).
+      if (data.value && page.value > data.value.pagination.pages) {
+        page.value = Math.max(1, data.value.pagination.pages);
+      }
     } catch (err: any) {
       notifications.error(
         err?.data?.message || t('following.toasts.leaveFailed'),
