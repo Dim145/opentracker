@@ -340,6 +340,21 @@ func (s *Store) IncrementCompleted(ctx context.Context, infoHashHex string) erro
 	return err
 }
 
+// completedOnceTTL bounds the snatch-dedup marker. It only needs to outlast
+// realistic replay attempts; the authoritative completion record is the
+// hnr_tracking row in Postgres.
+const completedOnceTTL = 180 * 24 * time.Hour
+
+// MarkFirstCompletion atomically records that (userID, torrentID) completed
+// and reports whether this was the FIRST time. Keyed on the stable
+// (user, torrent) pair — not the attacker-chosen peer_id — so a client
+// replaying event=completed (or rotating peer_ids) can't inflate the public
+// snatch counter (finding L12).
+func (s *Store) MarkFirstCompletion(ctx context.Context, torrentID, userID string) (bool, error) {
+	key := s.prefix + "completed_once:" + torrentID + ":" + userID
+	return s.client.SetNX(ctx, key, "1", completedOnceTTL).Result()
+}
+
 // CompletedCount returns the number of completed downloads for a torrent.
 func (s *Store) CompletedCount(ctx context.Context, infoHashHex string) (int64, error) {
 	v, err := s.client.HGet(ctx, s.statsKey(infoHashHex), "completed").Int64()

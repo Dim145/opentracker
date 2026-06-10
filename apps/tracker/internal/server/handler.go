@@ -288,6 +288,14 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		// its next sweep.
 	}
 
+	// 1b. IP ban — the api enforces banned_ips at the web/login tier; honour
+	// the same list here so an operator-banned IP can't keep leeching via
+	// the swarm with any valid passkey (finding L8). Cached (60s) and
+	// fail-open, so a DB hiccup never blocks a legitimate announce.
+	if banned, err := s.db.IsIpBanned(ctx, clientIP); err == nil && banned {
+		return AnnounceOutcome{Failure: "Access denied"}
+	}
+
 	// 2. Ratio check (only when leeching: left > 0)
 	if req.Left > 0 {
 		minRatio, err := s.db.GetMinRatio(ctx)
@@ -626,17 +634,29 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		return AnnounceOutcome{Failure: "Internal tracker error"}
 	}
 
-	// 9. event=completed: bump the counter and create the HnR entry
+	// 9. event=completed: bump the counter and create the HnR entry.
+	// Count only the FIRST completion per (user, torrent) — a client
+	// replaying event=completed (or rotating peer_id) must not inflate the
+	// public snatch counter (finding L12). Fail-open: a Redis error credits
+	// (preserving prior behaviour) rather than silently dropping a snatch.
 	if req.Event == announce.EventCompleted {
-		_ = s.peers.IncrementCompleted(ctx, infoHashHex)
+		first, markErr := s.peers.MarkFirstCompletion(ctx, torrentID, user.ID)
+		if markErr != nil || first {
+			_ = s.peers.IncrementCompleted(ctx, infoHashHex)
+		}
 		s.bgTasks.Add(1)
 		go s.recordHnrCompletion(req.Passkey, infoHashHex)
 	}
 
-	// 10. Seeders contribute to seed-time tracking
+	// 10. Seeders contribute to seed-time tracking. Gate on an
+	// event-independent dedup key (mirroring the byte-credit creditKey) so
+	// concurrent announces with distinct events (started/completed/update,
+	// all left=0) can't each book the same `elapsed` — an N× over-credit
+	// the per-event dedup at step 4 doesn't stop (finding M7).
 	if req.IsSeeder() && prev != nil {
 		elapsed := (time.Now().UnixMilli() - prev.UpdatedAt) / 1000
-		if elapsed > 0 && elapsed < 3600 {
+		seedKey := infoHashHex + ":" + peerHex + ":seedtime"
+		if elapsed > 0 && elapsed < 3600 && s.dedup.CheckAndMark(seedKey) {
 			s.bgTasks.Add(1)
 			go s.recordSeedTime(req.Passkey, infoHashHex, int32(elapsed))
 		}

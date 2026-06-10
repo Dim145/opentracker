@@ -42,6 +42,9 @@ type DB struct {
 
 	cacheMu sync.RWMutex
 	cache   map[string]cachedSetting
+
+	ipBanMu    sync.RWMutex
+	ipBanCache map[string]cachedIPBan
 }
 
 type cachedSetting struct {
@@ -49,12 +52,18 @@ type cachedSetting struct {
 	cachedAt time.Time
 }
 
+type cachedIPBan struct {
+	banned   bool
+	cachedAt time.Time
+}
+
 // New wraps a pool and the generated queries.
 func New(pool *pgxpool.Pool) *DB {
 	return &DB{
-		Pool:  pool,
-		Q:     queries.New(pool),
-		cache: make(map[string]cachedSetting),
+		Pool:       pool,
+		Q:          queries.New(pool),
+		cache:      make(map[string]cachedSetting),
+		ipBanCache: make(map[string]cachedIPBan),
 	}
 }
 
@@ -110,6 +119,48 @@ func (d *DB) GetHnrRequiredSeedTime(ctx context.Context) (int32, error) {
 		return 86400, nil
 	}
 	return int32(n), nil
+}
+
+// ipBanTTL bounds how long a banned_ips lookup is cached on the announce
+// hot path; maxIPBanCache caps the map so a flood of distinct IPs can't
+// grow it unbounded between expiries.
+const ipBanTTL = 60 * time.Second
+const maxIPBanCache = 50_000
+
+// IsIpBanned reports whether `ip` is present in banned_ips. The api enforces
+// banned_ips at the web/login tier; the announce/scrape path must honour it
+// too, but a DB hit per announce would crush the hot path — so the boolean
+// is cached per IP for ipBanTTL. Fails OPEN on a DB error (we never block a
+// genuine announce because of a transient lookup failure). Hand-written SQL
+// via the pool, mirroring the lazy-unban path in the handler (finding L8).
+func (d *DB) IsIpBanned(ctx context.Context, ip string) (bool, error) {
+	if ip == "" {
+		return false, nil
+	}
+	d.ipBanMu.RLock()
+	entry, ok := d.ipBanCache[ip]
+	d.ipBanMu.RUnlock()
+	if ok && time.Since(entry.cachedAt) <= ipBanTTL {
+		return entry.banned, nil
+	}
+
+	var banned bool
+	err := d.Pool.QueryRow(
+		ctx,
+		`SELECT EXISTS(SELECT 1 FROM banned_ips WHERE ip = $1)`,
+		ip,
+	).Scan(&banned)
+	if err != nil {
+		return false, err
+	}
+
+	d.ipBanMu.Lock()
+	if len(d.ipBanCache) >= maxIPBanCache {
+		d.ipBanCache = make(map[string]cachedIPBan)
+	}
+	d.ipBanCache[ip] = cachedIPBan{banned: banned, cachedAt: time.Now()}
+	d.ipBanMu.Unlock()
+	return banned, nil
 }
 
 // InvalidateCache drops every cached setting. Used in tests.
