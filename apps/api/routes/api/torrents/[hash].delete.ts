@@ -10,6 +10,7 @@ import { redis } from '~~/utils/server';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notify } from '~~/utils/notify';
+import { recordFederationRemoval } from '~~/utils/federation/removals';
 
 export default defineEventHandler(async (event) => {
   // Rate limit mutations
@@ -54,6 +55,17 @@ export default defineEventHandler(async (event) => {
 
   // Delete from PostgreSQL
   await db.delete(torrents).where(eq(torrents.infoHash, infoHash));
+
+  // Federation: append a tombstone so partners purge their mirror row (the
+  // append-forward catalogue sync would otherwise never learn it's gone).
+  await recordFederationRemoval(
+    {
+      torrentId: existing.id,
+      infoHash: existing.infoHash,
+      contentSignature: existing.contentSignature,
+    },
+    'deleted',
+  );
 
   // Delete from Redis cache
   try {

@@ -57,15 +57,19 @@ function readNextCursor(next: unknown): CatCursor | null {
   let id: string | null = null;
   if (next && typeof next === 'object') {
     const o = next as Record<string, unknown>;
-    if (typeof o.createdAt === 'string') t = o.createdAt;
+    // `t` is the removals/stats feeds' field; `createdAt` the catalogue's.
+    if (typeof o.t === 'string') t = o.t;
+    else if (typeof o.createdAt === 'string') t = o.createdAt;
     if (typeof o.id === 'string') id = o.id;
   } else if (typeof next === 'string') {
     t = next;
   }
   if (!t) return null;
-  const d = new Date(t);
-  if (Number.isNaN(d.getTime())) return null;
-  return { t: d.toISOString(), id };
+  // Validate it parses but KEEP the original string — `toISOString()` truncates
+  // to milliseconds, which would re-introduce the boundary re-fetch bug
+  // (catalog.get now emits and compares a µs-precision cursor).
+  if (Number.isNaN(new Date(t).getTime())) return null;
+  return { t, id };
 }
 
 interface SyncResult {
@@ -326,6 +330,7 @@ async function saveCursor(
   status: string,
   items: number,
   error: string | null,
+  resource = 'catalog',
 ): Promise<void> {
   const row = {
     cursor,
@@ -336,7 +341,7 @@ async function saveCursor(
   };
   await db
     .insert(schema.federationSyncState)
-    .values({ peerId, resource: 'catalog', ...row })
+    .values({ peerId, resource, ...row })
     .onConflictDoUpdate({
       target: [
         schema.federationSyncState.peerId,
@@ -346,23 +351,266 @@ async function saveCursor(
     });
 }
 
+/** Read the stored composite cursor for one peer + resource. */
+async function readCursor(
+  peerId: string,
+  resource: string,
+): Promise<CatCursor | null> {
+  const [state] = await db
+    .select()
+    .from(schema.federationSyncState)
+    .where(
+      and(
+        eq(schema.federationSyncState.peerId, peerId),
+        eq(schema.federationSyncState.resource, resource),
+      ),
+    )
+    .limit(1);
+  return parseCatalogCursor(state?.cursor ?? null);
+}
+
+/**
+ * Pull a peer's tombstones (`/api/federation/catalog-removals`) and delete the
+ * matching mirror rows. Closes the append-forward sync's blind spot for
+ * deletes / moderation pulls / uploader bans. Best-effort: errors are recorded
+ * on the cursor row, never thrown.
+ */
+async function syncPeerRemovals(
+  peer: FederationPeer,
+  instanceId: string,
+  privateKeyPem: string,
+): Promise<number> {
+  const cur = await readCursor(peer.id, 'catalog_removals');
+  let sinceT = cur?.t ?? null;
+  let sinceId = cur?.id ?? null;
+  let nextStored = cur ? JSON.stringify({ t: cur.t, id: cur.id }) : null;
+  let removed = 0;
+  let pages = 0;
+  try {
+    while (pages < MAX_PAGES_PER_RUN) {
+      pages++;
+      const qs = new URLSearchParams();
+      if (sinceT) qs.set('since', sinceT);
+      if (sinceT && sinceId) qs.set('sinceId', sinceId);
+      qs.set('limit', String(PAGE_LIMIT));
+      const res = await signedGet({
+        baseUrl: peer.baseUrl,
+        pathname: `/api/federation/catalog-removals?${qs.toString()}`,
+        instanceId,
+        privateKeyPem,
+      });
+      if (res.status !== 200 || !res.data?.ok || !Array.isArray(res.data.items)) {
+        throw new Error(res.data?.message || `HTTP ${res.status}`);
+      }
+      const items = res.data.items as Array<{ remoteId?: string }>;
+      if (items.length === 0) break;
+      const remoteIds = items
+        .map((i) => i.remoteId)
+        .filter((x): x is string => typeof x === 'string' && !!x);
+      if (remoteIds.length) {
+        await db
+          .delete(schema.remoteTorrents)
+          .where(
+            and(
+              eq(schema.remoteTorrents.peerId, peer.id),
+              inArray(schema.remoteTorrents.remoteId, remoteIds),
+            ),
+          );
+        removed += remoteIds.length;
+      }
+      const adv = readNextCursor(res.data.nextCursor);
+      if (adv) {
+        sinceT = adv.t;
+        sinceId = adv.id;
+        nextStored = JSON.stringify({ t: adv.t, id: adv.id });
+      }
+      await saveCursor(peer.id, nextStored, 'partial', removed, null, 'catalog_removals');
+      if (items.length < PAGE_LIMIT) break;
+    }
+    await saveCursor(peer.id, nextStored, 'ok', removed, null, 'catalog_removals');
+  } catch (err) {
+    await saveCursor(
+      peer.id,
+      nextStored,
+      'error',
+      removed,
+      (err as Error)?.message ?? 'removals sync failed',
+      'catalog_removals',
+    );
+  }
+  return removed;
+}
+
+/**
+ * Refresh swarm counts on already-mirrored rows from a peer's
+ * `/api/federation/catalog-stats` feed. One bounded page per tick (stats churn
+ * constantly; the cursor walks updated_at so the freshest changes land first).
+ */
+async function syncPeerStats(
+  peer: FederationPeer,
+  instanceId: string,
+  privateKeyPem: string,
+): Promise<number> {
+  const cur = await readCursor(peer.id, 'catalog_stats');
+  let sinceT = cur?.t ?? null;
+  let sinceId = cur?.id ?? null;
+  let nextStored = cur ? JSON.stringify({ t: cur.t, id: cur.id }) : null;
+  let updated = 0;
+  try {
+    const qs = new URLSearchParams();
+    if (sinceT) qs.set('since', sinceT);
+    if (sinceT && sinceId) qs.set('sinceId', sinceId);
+    qs.set('limit', String(PAGE_LIMIT));
+    const res = await signedGet({
+      baseUrl: peer.baseUrl,
+      pathname: `/api/federation/catalog-stats?${qs.toString()}`,
+      instanceId,
+      privateKeyPem,
+    });
+    if (res.status !== 200 || !res.data?.ok || !Array.isArray(res.data.items)) {
+      throw new Error(res.data?.message || `HTTP ${res.status}`);
+    }
+    const items = res.data.items as Array<{
+      infoHash?: string;
+      seeders?: number;
+      leechers?: number;
+      completed?: number;
+    }>;
+    for (const it of items) {
+      const infoHash = asStr(it.infoHash);
+      if (!infoHash) continue;
+      await db
+        .update(schema.remoteTorrents)
+        .set({
+          seeders: asCount(it.seeders),
+          leechers: asCount(it.leechers),
+          completed: asCount(it.completed),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(schema.remoteTorrents.peerId, peer.id),
+            eq(schema.remoteTorrents.infoHash, infoHash),
+          ),
+        );
+      updated++;
+    }
+    const adv = readNextCursor(res.data.nextCursor);
+    if (adv) {
+      sinceT = adv.t;
+      sinceId = adv.id;
+      nextStored = JSON.stringify({ t: adv.t, id: adv.id });
+    }
+    await saveCursor(peer.id, nextStored, 'ok', updated, null, 'catalog_stats');
+  } catch (err) {
+    await saveCursor(
+      peer.id,
+      nextStored,
+      'error',
+      updated,
+      (err as Error)?.message ?? 'stats sync failed',
+      'catalog_stats',
+    );
+  }
+  return updated;
+}
+
+/**
+ * Pull a peer's CHANGED rows (`/api/federation/catalog-refresh`) and upsert
+ * them — re-mirroring metadata edits, re-approvals, and un-bans that the
+ * append-forward catalogue cursor can't see. No follower notify (a refresh is
+ * not a new upload).
+ */
+async function syncPeerRefresh(
+  peer: FederationPeer,
+  instanceId: string,
+  privateKeyPem: string,
+): Promise<number> {
+  const cur = await readCursor(peer.id, 'catalog_refresh');
+  let sinceT = cur?.t ?? null;
+  let sinceId = cur?.id ?? null;
+  let nextStored = cur ? JSON.stringify({ t: cur.t, id: cur.id }) : null;
+  let refreshed = 0;
+  let pages = 0;
+  try {
+    while (pages < MAX_PAGES_PER_RUN) {
+      pages++;
+      const qs = new URLSearchParams();
+      if (sinceT) qs.set('since', sinceT);
+      if (sinceT && sinceId) qs.set('sinceId', sinceId);
+      qs.set('limit', String(PAGE_LIMIT));
+      const res = await signedGet({
+        baseUrl: peer.baseUrl,
+        pathname: `/api/federation/catalog-refresh?${qs.toString()}`,
+        instanceId,
+        privateKeyPem,
+      });
+      if (res.status !== 200 || !res.data?.ok || !Array.isArray(res.data.items)) {
+        throw new Error(res.data?.message || `HTTP ${res.status}`);
+      }
+      const items = res.data.items as unknown[];
+      if (items.length === 0) break;
+      for (const it of items) {
+        const r = await upsertRemoteTorrent(peer.id, it as Record<string, unknown>);
+        if (r) refreshed++;
+      }
+      const adv = readNextCursor(res.data.nextCursor);
+      if (adv) {
+        sinceT = adv.t;
+        sinceId = adv.id;
+        nextStored = JSON.stringify({ t: adv.t, id: adv.id });
+      }
+      await saveCursor(peer.id, nextStored, 'partial', refreshed, null, 'catalog_refresh');
+      if (items.length < PAGE_LIMIT) break;
+    }
+    await saveCursor(peer.id, nextStored, 'ok', refreshed, null, 'catalog_refresh');
+  } catch (err) {
+    await saveCursor(
+      peer.id,
+      nextStored,
+      'error',
+      refreshed,
+      (err as Error)?.message ?? 'refresh sync failed',
+      'catalog_refresh',
+    );
+  }
+  return refreshed;
+}
+
 /** Sync every active peer that shares its catalogue with us. */
 export async function syncAllCatalogues(): Promise<{
   peers: number;
   synced: number;
+  removed: number;
 }> {
   const peers = await db
     .select()
     .from(schema.federationPeers)
     .where(eq(schema.federationPeers.status, 'active'));
 
+  // Shared signing context for the removals + stats passes (the catalogue pass
+  // resolves its own inside syncPeerCatalogue).
+  const config = await getFederationConfig();
+  const live = isFederationLive(config);
+  const pk = live ? getPrivateKeyPem(config!) : null;
+  const instanceId = config?.instanceId ?? null;
+
   let totalSynced = 0;
+  let totalRemoved = 0;
   let count = 0;
   for (const peer of peers) {
     if (!peer.acceptsFromThem?.catalog) continue;
     const r = await syncPeerCatalogue(peer);
     totalSynced += r.synced;
     count++;
+    // Additive passes: tombstone-driven deletes + swarm-count refresh. They
+    // close the append-forward sync's blind spots (deletes/bans, stale stats)
+    // without touching the catalogue cursor. Skipped if we can't sign.
+    if (pk && instanceId) {
+      totalRemoved += await syncPeerRemovals(peer, instanceId, pk);
+      await syncPeerRefresh(peer, instanceId, pk);
+      await syncPeerStats(peer, instanceId, pk);
+    }
   }
-  return { peers: count, synced: totalSynced };
+  return { peers: count, synced: totalSynced, removed: totalRemoved };
 }

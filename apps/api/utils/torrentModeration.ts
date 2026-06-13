@@ -19,6 +19,7 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq, inArray } from 'drizzle-orm';
 import { fanoutFollowedUserUpload } from './followerFanout';
+import { recordFederationRemoval } from './federation/removals';
 import { randomUUID } from 'node:crypto';
 import { redis } from '../redis/client';
 
@@ -211,6 +212,21 @@ export async function transitionStatus(opts: {
       torrentInfoHash: updated.infoHash,
       torrentName: updated.name,
     });
+  }
+
+  // Federation: if the row just LEFT the accepted state it's no longer
+  // federatable — tombstone it so partners purge their mirror. (Re-entering
+  // 'accepted' is the follower fan-out branch above; re-propagating a restored
+  // OLD row is a known append-forward-cursor limitation, not handled here.)
+  if (priorStatus === 'accepted' && nextStatus !== 'accepted') {
+    void recordFederationRemoval(
+      {
+        torrentId: updated.id,
+        infoHash: updated.infoHash,
+        contentSignature: updated.contentSignature,
+      },
+      'moderation',
+    );
   }
 
   return updated;

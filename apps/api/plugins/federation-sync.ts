@@ -41,7 +41,7 @@ export default defineNitroPlugin(async () => {
 
       const r = await syncAllCatalogues();
       console.log(
-        `[Federation Sync] Tick — ${r.peers} peer(s), ${r.synced} torrent(s) (${Date.now() - start}ms)`,
+        `[Federation Sync] Tick — ${r.peers} peer(s), ${r.synced} torrent(s), ${r.removed} removed (${Date.now() - start}ms)`,
       );
       // Phase 4 — refresh the cross-announce peer cache for swarm-federated
       // torrents. Best-effort; never blocks the catalogue result.

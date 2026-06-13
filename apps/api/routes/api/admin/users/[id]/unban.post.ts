@@ -12,9 +12,9 @@
  * time, so subsequent role changes on the issuer don't loosen the
  * gate.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
-import { users, bannedIps } from '@trackarr/db/schema';
+import { users, bannedIps, torrents } from '@trackarr/db/schema';
 import { invalidateBanCache, requireModeratorSession } from '~~/utils/adminAuth';
 import { validateParam, uuidSchema } from '~~/utils/schemas';
 import { notify } from '~~/utils/notify';
@@ -46,6 +46,27 @@ export default defineEventHandler(async (event) => {
   // Drop the cached `isBanned` so the unbanned user can sign in
   // again on the very next attempt rather than waiting for the TTL.
   await invalidateBanCache(userId);
+
+  // Federation re-eligibility: the removals feed told partners to purge this
+  // user's torrents when they were banned. Bump updated_at now so they
+  // re-surface on the catalog-refresh feed and partners re-mirror them.
+  try {
+    await db
+      .update(torrents)
+      .set({ updatedAt: new Date() })
+      .where(
+        and(
+          eq(torrents.uploaderId, userId),
+          eq(torrents.moderationStatus, 'accepted'),
+          eq(torrents.isActive, true),
+        ),
+      );
+  } catch (err) {
+    console.warn(
+      '[Unban] federation re-propagate touch failed:',
+      (err as Error).message,
+    );
+  }
 
   if (target.lastIp) {
     await db.delete(bannedIps).where(eq(bannedIps.ip, target.lastIp));

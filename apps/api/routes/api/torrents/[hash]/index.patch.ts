@@ -24,6 +24,7 @@ import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { normalizeMediaId } from '~~/utils/mediaIds';
 import { userCanBypassModeration } from '~~/utils/torrentModeration';
+import { recordFederationRemoval } from '~~/utils/federation/removals';
 
 export default defineEventHandler(async (event) => {
   // Rate limit mutations
@@ -272,6 +273,21 @@ export default defineEventHandler(async (event) => {
       statusChange: 'pending',
       createdAt: new Date(),
     });
+
+    // Federation: an accepted row that auto-reverts to pending is no longer
+    // federatable — tombstone it so partners drop their mirror during
+    // re-moderation (re-approval re-propagates it via the catalog-refresh
+    // feed). A `changes_requested` row was never federated, so skip it.
+    if (existing.moderationStatus === 'accepted') {
+      void recordFederationRemoval(
+        {
+          torrentId: existing.id,
+          infoHash: existing.infoHash,
+          contentSignature: existing.contentSignature,
+        },
+        'moderation',
+      );
+    }
   }
 
   // Fetch updated torrent

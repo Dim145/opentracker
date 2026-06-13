@@ -901,9 +901,17 @@ export const torrents = pgTable(
     }),
     moderatedAt: timestamp('moderated_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    // Bumped on every drizzle update of the row (via $onUpdate) — metadata
+    // edits, moderation transitions, etc. NULL until first edited, so the
+    // federation "catalog-refresh" feed (cursor on updated_at) carries only
+    // CHANGED rows; brand-new torrents stay on the create-cursor catalogue
+    // feed. This is what lets edits / re-approvals propagate to partner
+    // mirrors (the append-forward catalogue cursor never re-reads old rows).
+    updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
   },
   (table) => [
     uniqueIndex('torrents_info_hash_idx').on(table.infoHash),
+    index('torrents_updated_at_idx').on(table.updatedAt),
     index('torrents_uploader_idx').on(table.uploaderId),
     index('torrents_category_idx').on(table.categoryId),
     index('torrents_imdb_idx').on(table.imdbId),
@@ -2255,6 +2263,44 @@ export const federationSyncState = pgTable(
 );
 
 export type FederationSyncState = typeof federationSyncState.$inferSelect;
+
+// ============================================================================
+// Federation — catalogue removals (tombstones)
+// ============================================================================
+//
+// The catalogue sync is an append-forward cursor over `created_at`: it can
+// surface NEW torrents but never learns that an already-mirrored one stopped
+// being federatable (hard-deleted, moderation-pulled, or its uploader banned).
+// Without this, peers keep orphaned `remote_torrents` rows with dead links.
+//
+// Every removal appends a tombstone here; partners walk it via a signed
+// `since`-cursor feed (`/api/federation/catalog-removals`) and delete the
+// matching mirror row. `torrent_id` is the LOCAL torrent id, i.e. the partner's
+// `remote_torrents.remote_id`, so the delete is exact and per-peer.
+export const federationCatalogRemovals = pgTable(
+  'federation_catalog_removals',
+  {
+    id: text('id').primaryKey(),
+    /** Local torrent id = the partner's `remote_torrents.remote_id`. */
+    torrentId: text('torrent_id').notNull(),
+    infoHash: text('info_hash').notNull(),
+    contentSignature: text('content_signature'),
+    /** deleted | moderation | uploader_banned */
+    reason: text('reason').notNull(),
+    removedAt: timestamp('removed_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // Walked by the feed in (removed_at, id) order — same composite-cursor
+    // shape as the catalogue.
+    index('federation_catalog_removals_cursor_idx').on(
+      table.removedAt,
+      table.id,
+    ),
+  ]
+);
+
+export type FederationCatalogRemoval =
+  typeof federationCatalogRemovals.$inferSelect;
 
 // ============================================================================
 // Federation — Phase 2a: federated follows (social)

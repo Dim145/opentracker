@@ -11,10 +11,11 @@
  * sibling unban route can refuse a moderator trying to lift an
  * admin-issued ban.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
-import { users, bannedIps } from '@trackarr/db/schema';
+import { users, bannedIps, torrents } from '@trackarr/db/schema';
 import { invalidateBanCache, requireModeratorSession } from '~~/utils/adminAuth';
+import { recordFederationRemoval } from '~~/utils/federation/removals';
 import {
   validateBody,
   validateParam,
@@ -59,6 +60,30 @@ export default defineEventHandler(async (event) => {
   // Drop the cached `isBanned` so the lockout takes effect on the
   // very next request rather than waiting up to 60 s for the TTL.
   await invalidateBanCache(userId);
+
+  // Federation: a banned uploader's content stops federating OUT immediately
+  // (catalog.get filters banned uploaders), but rows already mirrored on peers
+  // would linger as orphans. Tombstone the user's federatable torrents so
+  // partners purge them on their next sync.
+  try {
+    const fed = await db
+      .select({
+        torrentId: torrents.id,
+        infoHash: torrents.infoHash,
+        contentSignature: torrents.contentSignature,
+      })
+      .from(torrents)
+      .where(
+        and(
+          eq(torrents.uploaderId, userId),
+          eq(torrents.moderationStatus, 'accepted'),
+          eq(torrents.isActive, true),
+        ),
+      );
+    await recordFederationRemoval(fed, 'uploader_banned');
+  } catch (err) {
+    console.warn('[Ban] federation tombstone failed:', (err as Error).message);
+  }
 
   if (target.lastIp) {
     const banReason = `Banned user: ${target.username}. Reason: ${reason}`;
