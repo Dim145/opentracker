@@ -1,0 +1,4 @@
+# Force textual diffs for source files git's binary heuristic may otherwise
+# flag (e.g. .vue templates dense with multibyte glyphs like ▲ ▼). This only
+# affects diff rendering — no content or line-ending normalization.
+*.vue diff

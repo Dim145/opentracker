@@ -3982,6 +3982,7 @@
     "liveResult": "Résultats en direct de {peers} instance(s) partenaire(s)",
     "empty": "Rien de fédéré pour l'instant. L'owner de votre instance connecte des partenaires dans Admin → Fédération ; leur catalogue se synchronise ensuite automatiquement.",
     "via": "via {peer}",
+    "sources": "{n} sources",
     "alsoLocal": "aussi ici",
     "sameContent": "même contenu ici",
     "follow": "Suivre",

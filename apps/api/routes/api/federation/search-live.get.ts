@@ -140,15 +140,56 @@ export default defineEventHandler(async (event) => {
       .where(inArray(schema.torrents.infoHash, hashes));
     for (const l of localRows) localHashes.add(l.infoHash);
   }
-  const withHints = items.map((i) => ({
-    ...i,
-    existsLocally: localHashes.has(i.infoHash),
-  }));
+  // Collapse the same release seen on multiple peers into one item carrying
+  // sources[], matching /api/federation/browse. Key = content_signature
+  // (cross-seed) || info_hash.
+  const groups = new Map<string, LiveItem[]>();
+  for (const i of items) {
+    const k = i.contentSignature || i.infoHash;
+    const arr = groups.get(k);
+    if (arr) arr.push(i);
+    else groups.set(k, [i]);
+  }
+  const deduped = [...groups.entries()].map(([key, grp]) => {
+    const rep = grp.reduce((a, b) => (b.seeders > a.seeders ? b : a), grp[0]!);
+    const sources = grp.map((s) => ({
+      id: `live-${s.peerId}-${s.infoHash}`,
+      peerId: s.peerId,
+      peerName: s.peerName,
+      peerBaseUrl: s.peerBaseUrl,
+      uploaderName: s.uploaderName,
+      categorySlug: s.categorySlug,
+      seeders: s.seeders,
+      leechers: s.leechers,
+      detailUrl: s.detailUrl,
+    }));
+    return {
+      id: `live-${rep.peerId}-${rep.infoHash}`,
+      key,
+      infoHash: rep.infoHash,
+      contentSignature: rep.contentSignature,
+      name: rep.name,
+      size: rep.size,
+      categorySlug: rep.categorySlug,
+      categoryType: rep.categoryType,
+      isAdult: rep.isAdult,
+      tags: rep.tags,
+      imdbId: rep.imdbId,
+      tmdbId: rep.tmdbId,
+      uploaderName: rep.uploaderName,
+      remoteCreatedAt: null,
+      seeders: grp.reduce((a, s) => a + (s.seeders || 0), 0),
+      leechers: grp.reduce((a, s) => a + (s.leechers || 0), 0),
+      peerId: rep.peerId,
+      peerName: rep.peerName,
+      peerBaseUrl: rep.peerBaseUrl,
+      detailUrl: rep.detailUrl,
+      sourceCount: sources.length,
+      sources,
+      existsLocally: grp.some((s) => localHashes.has(s.infoHash)),
+      sameContentLocally: false,
+    };
+  });
 
-  return {
-    items: withHints,
-    peers: peers.length,
-    reached,
-    mode: 'live',
-  };
+  return { items: deduped, peers: peers.length, reached, mode: 'live' };
 });

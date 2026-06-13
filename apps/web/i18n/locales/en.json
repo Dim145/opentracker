@@ -3983,6 +3983,7 @@
     "liveResult": "Live results from {peers} partner instance(s)",
     "empty": "Nothing federated yet. Your instance owner connects partners in Admin → Federation; their catalogue then syncs in automatically.",
     "via": "via {peer}",
+    "sources": "{n} sources",
     "alsoLocal": "also here",
     "sameContent": "same content here",
     "follow": "Follow",
