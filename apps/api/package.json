@@ -9,7 +9,8 @@
     "prepare": "nitropack prepare",
     "preview": "node .output/server/index.mjs",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@simplewebauthn/server": "^13.3.0",
