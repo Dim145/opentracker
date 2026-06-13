@@ -40,6 +40,12 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.federationPeers.id, rt.peerId))
     .limit(1);
   if (!peer) throw createError({ statusCode: 404, message: 'Partner instance gone' });
+  // De-trusted peer (suspended/blocked/revoked): cached rows aren't purged on a
+  // status change, so refuse to serve this peer's cached detail as trusted
+  // content — only `active` peers' data is served.
+  if (peer.status !== 'active') {
+    throw createError({ statusCode: 404, message: 'Federated torrent not found' });
+  }
 
   // Pull comments from the origin — best-effort, never fatal.
   let comments: RemoteComment[] = [];

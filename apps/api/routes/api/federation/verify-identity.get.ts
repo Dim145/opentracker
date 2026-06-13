@@ -28,11 +28,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const [u] = await db
-    .select({ bio: schema.users.bio })
+    .select({ bio: schema.users.bio, isBanned: schema.users.isBanned })
     .from(schema.users)
     .where(eq(schema.users.username, username))
     .limit(1);
 
-  const matched = !!u?.bio && u.bio.includes(code);
+  // A banned account can't prove a (still-valid) identity link to a peer —
+  // never confirm the bio code for a banned user.
+  const matched = !!u?.bio && !u.isBanned && u.bio.includes(code);
   return { ok: true, matched };
 });

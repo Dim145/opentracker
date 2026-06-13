@@ -32,8 +32,13 @@ function asNum(v: unknown): number {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireAuthSession(event);
+  const { user } = await requireAuthSession(event);
   await rateLimit(event, RATE_LIMITS.public);
+  const me = await db.query.users.findFirst({
+    where: eq(schema.users.id, user.id),
+    columns: { showAdultContent: true },
+  });
+  const showAdult = me?.showAdultContent ?? false;
 
   const q = getQuery(event);
   const search = typeof q.q === 'string' ? q.q.trim() : '';
@@ -75,6 +80,7 @@ export default defineEventHandler(async (event) => {
     size: number;
     categorySlug: string | null;
     categoryType: string | null;
+    isAdult: boolean;
     tags: string[];
     imdbId: string | null;
     tmdbId: string | null;
@@ -98,6 +104,8 @@ export default defineEventHandler(async (event) => {
       const infoHash = asStr(raw.infoHash);
       const name = asStr(raw.name);
       if (!infoHash || !name) continue;
+      // Adult gate, mirrored from the origin's category (search.get exports it).
+      if (!showAdult && raw.isAdult === true) continue;
       items.push({
         infoHash,
         contentSignature: asStr(raw.contentSignature),
@@ -105,6 +113,7 @@ export default defineEventHandler(async (event) => {
         size: asNum(raw.size),
         categorySlug: asStr(raw.categorySlug),
         categoryType: asStr(raw.categoryType),
+        isAdult: raw.isAdult === true,
         tags: Array.isArray(raw.tags)
           ? (raw.tags.filter((t) => typeof t === 'string').slice(0, 50) as string[])
           : [],

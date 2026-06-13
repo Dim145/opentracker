@@ -23,11 +23,17 @@ export default defineEventHandler(async (event) => {
       uploaded: schema.users.uploaded,
       downloaded: schema.users.downloaded,
       createdAt: schema.users.createdAt,
+      isBanned: schema.users.isBanned,
     })
     .from(schema.users)
     .where(eq(schema.users.username, username))
     .limit(1);
-  if (!u) throw createError({ statusCode: 404, message: 'User not found' });
+  // A banned user must not present a healthy reputation to peers. Return the
+  // same 404 as a missing user so a banned account simply stops federating its
+  // reputation / verified-identity standing (closes the laundering vector).
+  if (!u || u.isBanned) {
+    throw createError({ statusCode: 404, message: 'User not found' });
+  }
 
   const [counts] = await db
     .select({ uploads: sql<number>`count(*)::int` })

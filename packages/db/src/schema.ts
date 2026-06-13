@@ -2194,9 +2194,14 @@ export const remoteTorrents = pgTable(
     name: text('name').notNull(),
     size: bigint('size', { mode: 'number' }).notNull(),
     description: text('description'),
-    /** Mapped to a local category slug when possible; raw remote slug otherwise. */
+    /** Raw remote category slug (partner's namespace — NOT resolved to a local
+     *  `categories` row). Displayed as-is; never used for a local FK. */
     categorySlug: text('category_slug'),
     categoryType: text('category_type'), // movie | tv | game | book | null
+    /** Adult flag mirrored from the origin's category. Lets the consumer apply
+     *  its own `showAdultContent` gate to federated rows (the origin's
+     *  `categories.isAdult` has no local equivalent here). */
+    isAdult: boolean('is_adult').default(false).notNull(),
     tags: jsonb('tags').$type<string[]>(),
     imdbId: text('imdb_id'),
     tmdbId: text('tmdb_id'),

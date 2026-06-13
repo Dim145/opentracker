@@ -10,7 +10,7 @@
  * Signature covers the full request path (incl. query); GET has no body so
  * the digest is over the empty string.
  */
-import { eq, and, or, gt, asc, inArray } from 'drizzle-orm';
+import { eq, and, or, gt, asc, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { verifyInboundS2S } from '~~/utils/federation/inbound';
 
@@ -32,6 +32,10 @@ export default defineEventHandler(async (event) => {
   const conditions = [
     eq(schema.torrents.moderationStatus, 'accepted'),
     eq(schema.torrents.isActive, true),
+    // A banned uploader's footprint stops federating out. The torrent stays
+    // visible locally (moderation is separate), but we don't propagate a
+    // banned member's content/identity to partner instances.
+    or(isNull(schema.users.id), eq(schema.users.isBanned, false))!,
   ];
   // Composite (created_at, id) cursor. A created_at-only `gt` permanently
   // skips every row that shares the page-boundary timestamp; tie-break on id.
@@ -59,6 +63,7 @@ export default defineEventHandler(async (event) => {
       description: schema.torrents.description,
       categorySlug: schema.categories.slug,
       categoryType: schema.categories.type,
+      isAdult: schema.categories.isAdult,
       imdbId: schema.torrents.imdbId,
       tmdbId: schema.torrents.tmdbId,
       tvdbId: schema.torrents.tvdbId,
@@ -113,6 +118,7 @@ export default defineEventHandler(async (event) => {
     description: r.description,
     categorySlug: r.categorySlug,
     categoryType: r.categoryType,
+    isAdult: !!r.isAdult,
     tags: tagsByTorrent.get(r.id) ?? [],
     imdbId: r.imdbId,
     tmdbId: r.tmdbId,

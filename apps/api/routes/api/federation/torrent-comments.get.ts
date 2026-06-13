@@ -5,7 +5,7 @@
  * we share `social` with. Read-only, metadata only (author display name +
  * content + timestamp — never local ids). Signed like the catalogue.
  */
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, or, desc, isNull } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { verifyInboundS2S } from '~~/utils/federation/inbound';
 
@@ -40,7 +40,13 @@ export default defineEventHandler(async (event) => {
     })
     .from(schema.torrentComments)
     .leftJoin(schema.users, eq(schema.torrentComments.authorId, schema.users.id))
-    .where(eq(schema.torrentComments.torrentId, torrent.id))
+    // Don't federate a banned user's comments.
+    .where(
+      and(
+        eq(schema.torrentComments.torrentId, torrent.id),
+        or(isNull(schema.users.id), eq(schema.users.isBanned, false)),
+      ),
+    )
     .orderBy(desc(schema.torrentComments.createdAt))
     .limit(100);
 

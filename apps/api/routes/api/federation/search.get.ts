@@ -11,7 +11,7 @@
  * Signature covers the full request path (incl. query); GET has no body so the
  * digest is over the empty string.
  */
-import { eq, and, or, ilike, desc, inArray } from 'drizzle-orm';
+import { eq, and, or, ilike, desc, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { verifyInboundS2S } from '~~/utils/federation/inbound';
 import { escapeLike } from '~~/utils/sql';
@@ -43,6 +43,7 @@ export default defineEventHandler(async (event) => {
       description: schema.torrents.description,
       categorySlug: schema.categories.slug,
       categoryType: schema.categories.type,
+      isAdult: schema.categories.isAdult,
       imdbId: schema.torrents.imdbId,
       tmdbId: schema.torrents.tmdbId,
       tvdbId: schema.torrents.tvdbId,
@@ -68,6 +69,8 @@ export default defineEventHandler(async (event) => {
       and(
         eq(schema.torrents.moderationStatus, 'accepted'),
         eq(schema.torrents.isActive, true),
+        // Don't surface a banned uploader's content to a searching peer.
+        or(isNull(schema.users.id), eq(schema.users.isBanned, false))!,
         or(
           ilike(schema.torrents.name, esc),
           eq(schema.torrents.infoHash, search.toLowerCase()),
@@ -105,6 +108,7 @@ export default defineEventHandler(async (event) => {
     description: r.description,
     categorySlug: r.categorySlug,
     categoryType: r.categoryType,
+    isAdult: !!r.isAdult,
     tags: tagsByTorrent.get(r.id) ?? [],
     imdbId: r.imdbId,
     tmdbId: r.tmdbId,

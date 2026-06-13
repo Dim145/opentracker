@@ -5,7 +5,7 @@
  * share `social` with. Each topic carries a link back to the source so the
  * reader follows it home to read/reply. Signed like the catalogue.
  */
-import { eq, desc } from 'drizzle-orm';
+import { eq, or, desc, isNull } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { verifyInboundS2S } from '~~/utils/federation/inbound';
 
@@ -28,6 +28,8 @@ export default defineEventHandler(async (event) => {
       eq(schema.forumTopics.categoryId, schema.forumCategories.id),
     )
     .leftJoin(schema.users, eq(schema.forumTopics.authorId, schema.users.id))
+    // Don't federate a banned user's forum topics.
+    .where(or(isNull(schema.users.id), eq(schema.users.isBanned, false)))
     .orderBy(desc(schema.forumTopics.updatedAt))
     .limit(30);
 

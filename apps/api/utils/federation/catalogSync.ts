@@ -228,6 +228,7 @@ async function upsertRemoteTorrent(
       typeof it.description === 'string' ? it.description.slice(0, 20_000) : null,
     categorySlug: asStr(it.categorySlug),
     categoryType: asStr(it.categoryType),
+    isAdult: it.isAdult === true,
     tags: Array.isArray(it.tags)
       ? ((it.tags as unknown[]).filter((t) => typeof t === 'string').slice(0, 50) as string[])
       : null,

@@ -16,7 +16,14 @@ import { escapeLike } from '~~/utils/sql';
 import { requireAuthSession } from '~~/utils/adminAuth';
 
 export default defineEventHandler(async (event) => {
-  await requireAuthSession(event);
+  const { user } = await requireAuthSession(event);
+  // Mirror the local catalogue's adult gate (torrents/index.get.ts): a viewer
+  // who hasn't opted in never sees adult-categorised federated rows either.
+  const me = await db.query.users.findFirst({
+    where: eq(schema.users.id, user.id),
+    columns: { showAdultContent: true },
+  });
+  const showAdult = me?.showAdultContent ?? false;
 
   const q = getQuery(event);
   const search = typeof q.q === 'string' ? q.q.trim() : '';
@@ -28,18 +35,25 @@ export default defineEventHandler(async (event) => {
   );
   const offset = (page - 1) * limit;
 
-  const conditions = [];
+  const conditions = [
+    // Only serve cached rows from peers that are still trusted. A
+    // suspended/blocked/revoked peer's rows aren't purged on a status change
+    // (only on hard DELETE), so without this filter a de-federated peer's
+    // cache keeps being served as trusted federated content.
+    eq(schema.federationPeers.status, 'active'),
+  ];
+  if (!showAdult) conditions.push(eq(schema.remoteTorrents.isAdult, false));
   if (search) {
     const esc = `%${escapeLike(search)}%`;
     conditions.push(
       or(
         ilike(schema.remoteTorrents.name, esc),
         eq(schema.remoteTorrents.infoHash, search.toLowerCase()),
-      ),
+      )!,
     );
   }
   if (peerId) conditions.push(eq(schema.remoteTorrents.peerId, peerId));
-  const where = conditions.length ? and(...conditions) : undefined;
+  const where = and(...conditions);
 
   const rows = await db
     .select({
@@ -50,6 +64,7 @@ export default defineEventHandler(async (event) => {
       size: schema.remoteTorrents.size,
       categorySlug: schema.remoteTorrents.categorySlug,
       categoryType: schema.remoteTorrents.categoryType,
+      isAdult: schema.remoteTorrents.isAdult,
       tags: schema.remoteTorrents.tags,
       imdbId: schema.remoteTorrents.imdbId,
       tmdbId: schema.remoteTorrents.tmdbId,
