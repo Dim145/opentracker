@@ -107,6 +107,7 @@ change them.
 | `CHANNEL_ENCRYPTION_KEY`  | api     | falls back to `NUXT_SESSION_SECRET` | AES key for notification-channel configs at rest (SMTP password, Telegram token, VAPID private key). Generate with `openssl rand -hex 32`. |
 | `TRUST_PROXY`             | api, tracker | `false`                     | See *Tracker* — same flag, same semantics, same caveats.            |
 | `TRUST_CF_CONNECTING_IP`  | api, tracker | `false`                     | See *Tracker* — only enable behind Cloudflare with locked ingress.  |
+| `SAFE_FETCH_ALLOW_HOSTS`  | api     | — (empty)                        | Comma-separated exact hostnames allowed to bypass the SSRF private/loopback block. Needed only to federate with a peer reachable over a private network (LAN / VPN / docker service name). List trusted peer hosts only; empty leaves SSRF protection unchanged. |
 
 ## Two-factor auth & WebAuthn
 

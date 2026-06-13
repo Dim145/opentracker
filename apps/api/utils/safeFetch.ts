@@ -35,6 +35,25 @@ export interface SafeFetchOptions extends RequestInit {
 }
 
 /**
+ * Operator-declared hosts allowed to bypass the private/loopback range block.
+ *
+ * The SSRF guard refuses private/loopback/link-local targets, which also
+ * blocks legitimate federation with a peer reachable only over a private
+ * network — a LAN, a VPN (Tailscale/WireGuard), or a docker-compose service
+ * name. `SAFE_FETCH_ALLOW_HOSTS` is a comma-separated list of EXACT hostnames
+ * (the URL host, e.g. `b-api` or `tracker.internal`) that skip the range
+ * check. Empty by default, so the SSRF posture is unchanged unless an operator
+ * explicitly opts specific, trusted peers in. Match is on the literal host, so
+ * a DNS-rebinding answer for a *different* host is still blocked.
+ */
+const ALLOWED_HOSTS = new Set(
+  (process.env.SAFE_FETCH_ALLOW_HOSTS || '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+/**
  * IPv4 ranges that should never see outbound traffic from an
  * SSRF-hardened fetch. Order is most-frequent first for the cheap
  * fast paths.
@@ -175,6 +194,8 @@ export function isBlockedIp(ip: string): boolean {
  * the range check.
  */
 export async function validateHost(hostname: string): Promise<void> {
+  // Operator-trusted peer (private LAN/VPN/docker host) — skip the range gate.
+  if (ALLOWED_HOSTS.has(hostname.toLowerCase())) return;
   const literal = isIP(hostname);
   if (literal) {
     if (isBlockedAddress(hostname, literal)) {
