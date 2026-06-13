@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Proposition — Catalogue fédéré · TRACKARR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --bg-soft: #101216;
+    --surface: #131519;
+    --surface-2: #171a1f;
+    --line: rgba(255,255,255,.07);
+    --line-2: rgba(255,255,255,.12);
+    --txt: #e8eaed;
+    --txt-2: #9aa0a8;
+    --txt-3: #61666e;
+    --teal: #46d6c0;       /* federation accent */
+    --teal-dim: rgba(70,214,192,.13);
+    --green: #3fb950;      /* seeders */
+    --red: #f0564b;        /* leechers */
+    --amber: #f0a93b;      /* adult / warning */
+    --amber-dim: rgba(240,169,59,.12);
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+    --sans: "Inter", system-ui, sans-serif;
+    --r: 10px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--txt);
+    font-family: var(--sans); font-size: 15px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(900px 500px at 78% -8%, rgba(70,214,192,.05), transparent 60%),
+      radial-gradient(700px 400px at 5% 110%, rgba(70,214,192,.03), transparent 55%);
+    background-attachment: fixed;
+  }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: var(--mono); }
+
+  /* ---------- header ---------- */
+  header {
+    position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: center; gap: 30px;
+    padding: 0 26px; height: 58px;
+    background: rgba(10,11,13,.82); backdrop-filter: blur(12px);
+    border-bottom: .5px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 11px; }
+  .brand .glyph {
+    width: 30px; height: 30px; border-radius: 8px;
+    border: .5px solid var(--line-2);
+    display: grid; place-items: center; color: var(--teal);
+    background: var(--teal-dim); font-size: 15px;
+  }
+  .brand b { font-weight: 600; letter-spacing: .14em; font-size: 14px; }
+  .brand small { display: block; font-family: var(--mono); font-size: 9.5px; color: var(--txt-3); letter-spacing: .1em; margin-top: -2px; }
+  nav { display: flex; gap: 4px; }
+  nav a {
+    font-size: 13.5px; color: var(--txt-2); padding: 7px 13px; border-radius: 8px;
+    display: flex; align-items: center; gap: 7px; transition: .15s;
+  }
+  nav a:hover { color: var(--txt); background: var(--surface); }
+  nav a.active { color: var(--txt); background: var(--surface-2); box-shadow: inset 0 0 0 .5px var(--line-2); }
+  nav a .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 8px var(--teal); }
+  .spacer { flex: 1; }
+  .who { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--txt-2); }
+  .who .av { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); border: .5px solid var(--line-2); display: grid; place-items: center; font-family: var(--mono); font-size: 11px; color: var(--teal); }
+
+  /* ---------- layout ---------- */
+  main { max-width: 1120px; margin: 0 auto; padding: 38px 26px 90px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .28em; color: var(--txt-3); }
+  .head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin: 8px 0 22px; }
+  h1 { font-size: 34px; font-weight: 600; letter-spacing: -.02em; margin: 4px 0 0; }
+  .count {
+    font-family: var(--mono); font-size: 12px; color: var(--teal);
+    border: .5px solid rgba(70,214,192,.4); background: var(--teal-dim);
+    padding: 6px 12px; border-radius: 999px; display: inline-flex; gap: 7px; align-items: center; white-space: nowrap;
+  }
+
+  .banner {
+    display: flex; gap: 13px; align-items: flex-start;
+    background: var(--bg-soft); border: .5px solid var(--line); border-left: 2px solid var(--teal);
+    border-radius: var(--r); padding: 15px 17px; color: var(--txt-2); font-size: 13.5px; line-height: 1.55; margin-bottom: 20px;
+  }
+  .banner .i { color: var(--teal); flex: none; margin-top: 1px; }
+
+  .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+  .search { flex: 1; position: relative; }
+  .search input {
+    width: 100%; height: 42px; border-radius: var(--r); border: .5px solid var(--line);
+    background: var(--surface); color: var(--txt); padding: 0 14px 0 40px; font-family: var(--sans); font-size: 14px;
+  }
+  .search input::placeholder { color: var(--txt-3); }
+  .search input:focus { outline: none; border-color: var(--line-2); box-shadow: 0 0 0 3px rgba(70,214,192,.08); }
+  .search .mag { position: absolute; left: 14px; top: 13px; color: var(--txt-3); }
+  .seg { display: inline-flex; border: .5px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface); }
+  .seg button {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .04em; color: var(--txt-2);
+    background: transparent; border: 0; padding: 0 16px; height: 42px; cursor: pointer; transition: .15s;
+  }
+  .seg button.on { color: var(--bg); background: var(--teal); font-weight: 600; }
+
+  .scope-note { font-size: 12px; color: var(--txt-3); margin: 14px 2px 16px; font-family: var(--mono); letter-spacing: .02em; }
+
+  /* ---------- cards ---------- */
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .card {
+    position: relative; display: grid;
+    grid-template-columns: 46px 1fr auto; gap: 16px; align-items: center;
+    background: var(--surface); border: .5px solid var(--line); border-radius: var(--r);
+    padding: 15px 18px; transition: .16s;
+  }
+  .card:hover { border-color: var(--line-2); background: var(--surface-2); }
+  .ico {
+    width: 46px; height: 46px; border-radius: 9px; display: grid; place-items: center;
+    background: var(--bg-soft); border: .5px solid var(--line); font-size: 20px; color: var(--txt-2);
+  }
+  .body { min-width: 0; }
+  .title { font-size: 15.5px; font-weight: 500; letter-spacing: -.01em; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .meta-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 9px; }
+
+  /* origin + category + tag chips */
+  .chip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .02em;
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 7px;
+    border: .5px solid var(--line-2); color: var(--txt-2); background: var(--bg-soft); white-space: nowrap;
+  }
+  .chip.origin { color: var(--teal); border-color: rgba(70,214,192,.35); background: var(--teal-dim); }
+  .chip.origin .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--teal); }
+  /* (1) remote category badge */
+  .chip.cat { color: #cdd3da; border-style: dashed; border-color: var(--line-2); }
+  .chip.cat .k { color: var(--txt-3); }
+  .chip.cat.adult { color: var(--amber); border-color: rgba(240,169,59,.4); background: var(--amber-dim); border-style: solid; }
+  .tag { font-size: 11px; color: var(--txt-3); font-family: var(--mono); padding: 2px 4px; }
+  .sep { color: var(--txt-3); opacity: .5; }
+  .uploader { font-size: 12px; color: var(--txt-3); display: inline-flex; align-items: center; gap: 5px; }
+
+  .right { display: flex; align-items: center; gap: 20px; white-space: nowrap; }
+  .stat { font-family: var(--mono); font-size: 12.5px; color: var(--txt-2); }
+  .stat .up { color: var(--green); }
+  .stat .dn { color: var(--red); }
+  .size { font-family: var(--mono); font-size: 12.5px; color: var(--txt); min-width: 58px; text-align: right; }
+  .age { font-family: var(--mono); font-size: 11.5px; color: var(--txt-3); }
+  .act { display: flex; gap: 8px; }
+  .btn {
+    font-size: 12.5px; font-family: var(--mono); letter-spacing: .02em;
+    border: .5px solid var(--line-2); background: transparent; color: var(--txt-2);
+    padding: 7px 12px; border-radius: 8px; cursor: pointer; transition: .15s; display: inline-flex; gap: 6px; align-items: center;
+  }
+  .btn:hover { color: var(--txt); border-color: var(--teal); background: var(--teal-dim); }
+  .btn.ghost:hover { color: var(--txt); border-color: var(--line-2); background: var(--surface); }
+  .btn[disabled] { opacity: .4; cursor: not-allowed; }
+  .btn[disabled]:hover { color: var(--txt-2); border-color: var(--line-2); background: transparent; }
+
+  /* (2) adult gate */
+  .card.gated .ico { color: var(--amber); border-color: rgba(240,169,59,.3); background: var(--amber-dim); }
+  .gated .veil-title { display: inline-flex; align-items: center; gap: 9px; color: var(--txt-2); }
+  .gated .veil-title .lock { color: var(--amber); }
+  .blurred { filter: blur(6px); user-select: none; opacity: .55; }
+  .reveal {
+    font-family: var(--mono); font-size: 11.5px; color: var(--amber);
+    border: .5px solid rgba(240,169,59,.45); background: var(--amber-dim);
+    padding: 5px 11px; border-radius: 7px; cursor: pointer; transition: .15s;
+  }
+  .reveal:hover { background: rgba(240,169,59,.2); }
+
+  /* (3) dedup multi-source */
+  .sources { position: relative; }
+  .src-toggle { cursor: pointer; }
+  .src-menu {
+    display: none; position: absolute; top: 28px; left: 0; z-index: 10; min-width: 200px;
+    background: var(--surface-2); border: .5px solid var(--line-2); border-radius: 9px; padding: 6px;
+    box-shadow: 0 12px 34px rgba(0,0,0,.55);
+  }
+  .sources.open .src-menu { display: block; }
+  .src-menu .opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border-radius: 7px; font-size: 12.5px; color: var(--txt-2); cursor: pointer; }
+  .src-menu .opt:hover { background: var(--surface); color: var(--txt); }
+  .src-menu .opt .mono { color: var(--txt-3); font-size: 11px; }
+
+  /* (4) de-trusted / stale */
+  .card.stale { opacity: .62; border-style: dashed; border-color: rgba(240,169,59,.28); }
+  .card.stale .ico { color: var(--txt-3); }
+  .chip.warn { color: var(--amber); border-color: rgba(240,169,59,.4); background: var(--amber-dim); border-style: solid; }
+
+  /* numbered annotation pills */
+  .ann {
+    position: absolute; left: -13px; top: -11px; z-index: 5;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--teal); color: #04201c; font-family: var(--mono); font-weight: 600; font-size: 13px;
+    display: grid; place-items: center; box-shadow: 0 0 0 4px var(--bg), 0 4px 14px rgba(70,214,192,.4);
+  }
+  .ann.amber { background: var(--amber); color: #2a1c05; box-shadow: 0 0 0 4px var(--bg), 0 4px 14px rgba(240,169,59,.4); }
+
+  /* legend */
+  .legend { margin-top: 40px; border-top: .5px solid var(--line); padding-top: 26px; }
+  .legend h2 { font-size: 13px; font-family: var(--mono); letter-spacing: .2em; color: var(--txt-3); font-weight: 500; margin: 0 0 18px; text-transform: uppercase; }
+  .ba { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .ba .item { background: var(--bg-soft); border: .5px solid var(--line); border-radius: var(--r); padding: 15px 16px; }
+  .ba .num { width: 22px; height: 22px; border-radius: 50%; background: var(--teal); color: #04201c; font-family: var(--mono); font-weight: 600; font-size: 12px; display: grid; place-items: center; margin-bottom: 11px; }
+  .ba .num.amber { background: var(--amber); color: #2a1c05; }
+  .ba .t { font-size: 13.5px; font-weight: 500; margin-bottom: 8px; }
+  .ba .before { font-size: 12.5px; color: var(--txt-3); }
+  .ba .after { font-size: 12.5px; color: var(--txt-2); margin-top: 4px; }
+  .ba .after b { color: var(--teal); font-weight: 500; }
+  .arrow { color: var(--txt-3); }
+  .footnote { margin-top: 22px; font-size: 11.5px; color: var(--txt-3); font-family: var(--mono); line-height: 1.7; }
+
+  @media (max-width: 720px) {
+    .card { grid-template-columns: 40px 1fr; }
+    .right { grid-column: 1 / -1; justify-content: space-between; margin-top: 6px; }
+    .head-row { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="glyph">◉</div>
+      <div><b>TRACKARR</b><small>v0.22.0</small></div>
+    </div>
+    <nav>
+      <a href="#">▤ Torrents</a>
+      <a href="#" class="active"><span class="dot"></span> Fédéré</a>
+      <a href="#">◰ Demandes</a>
+      <a href="#">▭ Forum</a>
+      <a href="#">⚙ Admin</a>
+      <a href="#">⛉ Modération</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="who"><span class="av">FA</span> fedadmin</div>
+  </header>
+
+  <main>
+    <div class="eyebrow">CATALOGUE</div>
+    <div class="head-row">
+      <h1>Fédéré</h1>
+      <span class="count">◉ 4 résultats · 2 instances</span>
+    </div>
+
+    <div class="banner">
+      <span class="i">ⓘ</span>
+      <span>Du contenu hébergé sur les instances partenaires avec lesquelles vous êtes fédéré. Ouvrir un résultat vous amène sur son tracker d'origine, où vous téléchargez avec votre compte là-bas — <b style="color:var(--txt-2)">votre ratio et vos swarms locaux ne sont pas touchés.</b></span>
+    </div>
+
+    <div class="toolbar">
+      <div class="search">
+        <span class="mag">⌕</span>
+        <input placeholder="Rechercher dans le catalogue fédéré…" />
+      </div>
+      <div class="seg">
+        <button class="on">Cache</button>
+        <button>Direct</button>
+      </div>
+    </div>
+    <div class="scope-note">// catégorie &amp; tags affichés tels que reçus du pair — espace de noms distant, non fusionné au catalogue local</div>
+
+    <div class="list">
+
+      <!-- (2) ADULT GATE -->
+      <div class="card gated" id="adultCard">
+        <span class="ann amber">2</span>
+        <div class="ico">⚑</div>
+        <div class="body">
+          <div class="title">
+            <span class="veil-title"><span class="lock">🔒</span> <span>Contenu adulte masqué</span></span>
+            <span class="blurred" id="adultName" aria-hidden="true">[XXX] Studio Premiere 2026 1080p</span>
+          </div>
+          <div class="meta-line">
+            <span class="chip origin"><span class="dot"></span> via Alpha Tracker</span>
+            <span class="chip cat adult">⚠ adulte · <span style="margin-left:4px">xxx-jav</span></span>
+            <span class="uploader">⤓ alphauser</span>
+            <button class="reveal" onclick="revealAdult()">Révéler ce contenu</button>
+          </div>
+        </div>
+        <div class="right">
+          <span class="size blurred">2.0 GB</span>
+          <span class="stat"><span class="up">▲ 7</span> &nbsp;<span class="dn">▼ 2</span></span>
+          <span class="age">1 h</span>
+        </div>
+      </div>
+
+      <!-- (3) DEDUP MULTI-SOURCE  + (1) category -->
+      <div class="card">
+        <span class="ann">3</span>
+        <div class="ico">🎬</div>
+        <div class="body">
+          <div class="title">Mon Film FR 2026 MULTi 1080p BluRay</div>
+          <div class="meta-line">
+            <span class="sources" id="srcWrap">
+              <span class="chip origin src-toggle" onclick="toggleSrc()"><span class="dot"></span> 2 sources : Alpha · Beta ▾</span>
+              <div class="src-menu">
+                <div class="opt">Alpha Tracker <span class="mono">films-fr · ▲25</span></div>
+                <div class="opt">Beta Tracker <span class="mono">movies · ▲9</span></div>
+              </div>
+            </span>
+            <span class="chip cat"><span class="k">cat. distante</span> films-fr</span>
+            <span class="tag">1080p</span><span class="tag">MULTi</span><span class="tag">x265</span>
+          </div>
+        </div>
+        <div class="right">
+          <span class="size">15 GB</span>
+          <span class="stat"><span class="up">▲ 34</span> &nbsp;<span class="dn">▼ 4</span></span>
+          <div class="act"><button class="btn">↗ Ouvrir</button><button class="btn ghost">+ Suivre</button></div>
+        </div>
+      </div>
+
+      <!-- (1) REMOTE CATEGORY VISIBLE -->
+      <div class="card">
+        <span class="ann">1</span>
+        <div class="ico">🎮</div>
+        <div class="body">
+          <div class="title">Cyber Quest Repack [FR]</div>
+          <div class="meta-line">
+            <span class="chip origin"><span class="dot"></span> via Alpha Tracker</span>
+            <span class="chip cat"><span class="k">cat. distante</span> jeux <span class="k">(game)</span></span>
+            <span class="uploader">⤓ gamer</span>
+            <span class="tag">Repack</span><span class="tag">FitGirl</span><span class="tag">FR</span>
+          </div>
+        </div>
+        <div class="right">
+          <span class="size">50 GB</span>
+          <span class="stat"><span class="up">▲ 12</span> &nbsp;<span class="dn">▼ 8</span></span>
+          <div class="act"><button class="btn">↗ Ouvrir</button><button class="btn ghost">+ Suivre</button></div>
+        </div>
+      </div>
+
+      <!-- (4) DE-TRUSTED / STALE -->
+      <div class="card stale">
+        <span class="ann amber">4</span>
+        <div class="ico">⚠</div>
+        <div class="body">
+          <div class="title">Vieux Documentaire 2019 <span class="chip warn">lien rompu · cache</span></div>
+          <div class="meta-line">
+            <span class="chip origin" style="opacity:.6"><span class="dot" style="background:var(--amber)"></span> via Gamma Tracker · suspendu</span>
+            <span class="chip cat"><span class="k">cat. distante</span> docu</span>
+            <span class="uploader">⤓ archivist</span>
+          </div>
+        </div>
+        <div class="right">
+          <span class="size">3.4 GB</span>
+          <span class="stat">— —</span>
+          <div class="act"><button class="btn" disabled title="Instance dé-fédérée">↗ Ouvrir</button></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="scope-note" style="margin-top:16px">4 sur 4 à travers les instances partenaires</div>
+
+    <!-- legend -->
+    <section class="legend">
+      <h2>Avant → Après · 4 corrections de cohérence fédération</h2>
+      <div class="ba">
+        <div class="item">
+          <div class="num">1</div>
+          <div class="t">Catégorie distante visible</div>
+          <div class="before">Avant : seulement un glyphe muet ; le slug distant (films-fr, jeux…) est stocké mais jamais affiché ni filtrable.</div>
+          <div class="after">Après : <b>badge « cat. distante : … »</b> lisible, marqué comme espace de noms distant.</div>
+        </div>
+        <div class="item">
+          <div class="num amber">2</div>
+          <div class="t">Gate adulte fédérée</div>
+          <div class="before">Avant : le contenu adulte d'un pair s'affiche pour tous, gate <code>showAdultContent</code> ignorée.</div>
+          <div class="after">Après : <b>masqué par défaut</b>, révélation explicite — comme le catalogue local.</div>
+        </div>
+        <div class="item">
+          <div class="num">3</div>
+          <div class="t">Dédup multi-origines</div>
+          <div class="before">Avant : un même release sur 2 pairs = 2 lignes dupliquées (content-signature ignorée entre pairs).</div>
+          <div class="after">Après : <b>une carte, N sources</b> regroupées par signature, avec choix de l'origine.</div>
+        </div>
+        <div class="item">
+          <div class="num amber">4</div>
+          <div class="t">Pair dé-fédéré / périmé</div>
+          <div class="before">Avant : suspendre/bloquer un pair ne purge pas son cache ; ses données restent servies comme « de confiance ».</div>
+          <div class="after">Après : <b>état « lien rompu — cache »</b> atténué, action « Ouvrir » désactivée.</div>
+        </div>
+      </div>
+      <div class="footnote">
+        Maquette statique — non intégrée à l'app. Données d'exemple. Aligne le rendu fédéré sur les garanties du catalogue local
+        (gate adulte, lisibilité catégorie, intégrité du cache après dé-fédération) sans toucher au modèle « instances souveraines, économies isolées ».
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function revealAdult() {
+      var c = document.getElementById('adultCard');
+      c.classList.remove('gated');
+      document.querySelectorAll('#adultCard .blurred').forEach(function (e) { e.classList.remove('blurred'); });
+      var v = c.querySelector('.veil-title'); if (v) v.style.display = 'none';
+      var name = document.getElementById('adultName'); if (name) name.style.fontWeight = '500';
+      var btn = c.querySelector('.reveal'); if (btn) btn.remove();
+    }
+    function toggleSrc() {
+      document.getElementById('srcWrap').classList.toggle('open');
+    }
+    document.querySelectorAll('.seg button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        this.parentNode.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+        this.classList.add('on');
+      });
+    });
+    document.addEventListener('click', function (e) {
+      var w = document.getElementById('srcWrap');
+      if (w && !w.contains(e.target)) w.classList.remove('open');
+    });
+  </script>
+</body>
+</html>
