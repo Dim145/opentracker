@@ -24,7 +24,8 @@
       "node-datachannel": "npm:empty-npm-package@1.0.0",
       "webrtc-polyfill": "npm:empty-npm-package@1.0.0",
       "@thaunknown/simple-peer": "npm:empty-npm-package@1.0.0",
-      "esbuild": "^0.25.0",
+      "esbuild": "^0.28.1",
+      "shell-quote": "^1.8.4",
       "devalue": "^5.8.1",
       "ws@8": "^8.20.1",
       "brace-expansion@5": "^5.0.6"
