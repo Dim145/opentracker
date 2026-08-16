@@ -94,10 +94,10 @@ export default defineNuxtConfig({
   //   `'root'` value triggered an SSR/CSR redirect race that crashed
   //   vue-i18n with INVALID_ARGUMENT (code 26)).
   //
-  // lazy: false
-  //   With only two small locale bundles (~5 KB each), shipping both
-  //   in the initial JS payload is cheaper than the round-trip cost
-  //   + race conditions of lazy locale loading during hydration.
+  // Locale loading is always lazy since module v10 (the `lazy` flag was
+  // removed): each bundle is fetched on demand. Our `setLocale()` calls
+  // are awaited (see plugins/i18n-user.client.ts), so a switch never
+  // renders against a half-loaded message set.
   //
   // The default locale is English so any new key automatically falls
   // back to its English value when missing in another bundle, instead
@@ -105,7 +105,6 @@ export default defineNuxtConfig({
   i18n: {
     defaultLocale: 'en',
     strategy: 'no_prefix',
-    lazy: false,
     langDir: 'locales',
     locales: [
       { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
@@ -117,14 +116,6 @@ export default defineNuxtConfig({
       redirectOn: 'no prefix',
       alwaysRedirect: false,
       fallbackLocale: 'en',
-    },
-    // Explicitly disable the legacy `v-t` directive optimisation. The
-    // module warns about it being on by default and slated for removal
-    // in v10; we don't use the directive (we always go through `$t()`
-    // / `t()`), so opting out drops the build-time AST-walk and
-    // silences the deprecation notice.
-    bundle: {
-      optimizeTranslationDirective: false,
     },
   },
 

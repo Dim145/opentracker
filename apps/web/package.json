@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@iconify-json/simple-icons": "^1.2.81",
-    "@nuxtjs/i18n": "^9.5.6",
+    "@nuxtjs/i18n": "^10.6.0",
     "@nuxtjs/tailwindcss": "6.14.0",
     "@pinia/nuxt": "0.11.3",
     "@simplewebauthn/browser": "^13.3.0",
@@ -31,7 +31,7 @@
     "chartjs-plugin-zoom": "^2.2.0",
     "isomorphic-dompurify": "^3.12.0",
     "marked": "^18.0.3",
-    "nuxt": "^4.4.7",
+    "nuxt": "^4.5.2",
     "pinia": "^3.0.4",
     "turndown": "^7.2.0",
     "vue": "^3.5.34",
