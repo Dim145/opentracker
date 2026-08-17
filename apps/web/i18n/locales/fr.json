@@ -613,8 +613,8 @@
       },
       "ficheHelp": "Besoin d'une fiche propre ? Le générateur la compose depuis le MediaInfo du fichier.",
       "ficheOpen": "Générateur de fiche",
-      "ficheRawNotice": "La fiche générée est conservée en BBCode pour préserver couleurs, tailles et centrage.",
-      "ficheEditAnyway": "Éditer quand même"
+      "ficheRawNotice": "La fiche générée est du BBCode : le mode visuel l’aplatirait. Le mode code et l’aperçu restent disponibles.",
+      "ficheEditAnyway": "Débloquer le mode visuel"
     },
     "edit": {
       "backToRelease": "Retour à la release",
@@ -1325,7 +1325,8 @@
       "mode": {
         "editor": "Mode visuel",
         "code": "Mode code (BBCode / Markdown)",
-        "preview": "Aperçu (lecture seule)"
+        "preview": "Aperçu (lecture seule)",
+        "editorLocked": "Mode visuel indisponible : il ne sait pas restituer ce balisage"
       },
       "tagsLabel": "Tags :",
       "previewBadge": "Aperçu — lecture seule"

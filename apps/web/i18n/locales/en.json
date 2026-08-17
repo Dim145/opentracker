@@ -613,8 +613,8 @@
       },
       "ficheHelp": "Need a clean sheet? The builder assembles one from the file's MediaInfo.",
       "ficheOpen": "Sheet builder",
-      "ficheRawNotice": "The generated sheet is kept as BBCode so colours, sizes and centring survive.",
-      "ficheEditAnyway": "Edit anyway"
+      "ficheRawNotice": "The generated sheet is BBCode, which visual mode would flatten. Source mode and preview stay available.",
+      "ficheEditAnyway": "Unlock visual mode"
     },
     "edit": {
       "backToRelease": "Back to release",
@@ -1325,7 +1325,8 @@
       "mode": {
         "editor": "Visual mode",
         "code": "Source mode (BBCode / Markdown)",
-        "preview": "Preview (read-only)"
+        "preview": "Preview (read-only)",
+        "editorLocked": "Visual mode unavailable: it cannot round-trip this markup"
       },
       "tagsLabel": "Tags:",
       "previewBadge": "Preview — read-only"

@@ -245,26 +245,19 @@
                 {{ $t('torrents.uploadForm.ficheOpen') }}
               </button>
             </div>
-            <template v-if="descriptionRaw">
-              <div class="fiche-cta">
-                <p class="section-help fiche-cta-text">
-                  {{ $t('torrents.uploadForm.ficheRawNotice') }}
-                </p>
-                <button type="button" class="btn-ghost" @click="descriptionRaw = false">
-                  {{ $t('torrents.uploadForm.ficheEditAnyway') }}
-                </button>
-              </div>
-              <textarea
-                v-model="description"
-                rows="14"
-                class="input field-input fiche-raw"
-                spellcheck="false"
-              />
-            </template>
+            <div v-if="descriptionRaw" class="fiche-cta">
+              <p class="section-help fiche-cta-text">
+                {{ $t('torrents.uploadForm.ficheRawNotice') }}
+              </p>
+              <button type="button" class="btn-ghost" @click="descriptionRaw = false">
+                {{ $t('torrents.uploadForm.ficheEditAnyway') }}
+              </button>
+            </div>
             <WysiwygEditor
-              v-else
               v-model="description"
               format="markdown"
+              :visual-editing-disabled="descriptionRaw"
+              :default-mode="descriptionRaw ? 'code' : 'editor'"
               :placeholder="$t('torrents.uploadForm.descriptionPlaceholder')"
             />
             <p
@@ -1239,13 +1232,6 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-bottom: 0.85rem;
-}
-
-.fiche-raw {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  resize: vertical;
 }
 
 .fiche-cta-text {
