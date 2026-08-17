@@ -17,18 +17,51 @@ jobs:
         if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
         runs-on: ubuntu-latest
 
+        outputs:
+            version: ${{ steps.version.outputs.version }}
+            created: ${{ steps.check_tag.outputs.exists == 'false' }}
+
         steps:
             - name: Checkout
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
 
+            # HEAD_REF goes through the environment rather than being
+            # interpolated into the script: a branch name is attacker-chosen
+            # text, and `${{ }}` would splice it into the shell before bash
+            # ever sees it.
             - name: Extract version from branch name
               id: version
+              env:
+                  HEAD_REF: ${{ github.event.pull_request.head.ref }}
               run: |
-                  BRANCH="${{ github.event.pull_request.head.ref }}"
-                  VERSION="${BRANCH#release/}"
-                  echo "version=$VERSION" >> $GITHUB_OUTPUT
+                  set -euo pipefail
+                  VERSION="${HEAD_REF#release/}"
+                  # Two checks, because neither is sufficient alone and this
+                  # value gets spliced into `git tag`, into $GITHUB_OUTPUT and
+                  # into the published image tags:
+                  #
+                  #   - the `case` rejects any byte outside [0-9.], which is
+                  #     what stops an embedded newline turning one output into
+                  #     two ("version=0.1.0\nversion=injected");
+                  #   - grep is line-oriented, so its anchors only bind within
+                  #     a line — but with newlines already excluded it now
+                  #     enforces the three-component shape on the whole string.
+                  #
+                  # A `case` glob alone is not enough either: `[0-9]*.[0-9]*.[0-9]*`
+                  # happily matches "0.0.0; curl evil.example.com".
+                  case "$VERSION" in
+                      ''|*[!0-9.]*)
+                          echo "::error::branch '$HEAD_REF' does not name a release version"
+                          exit 1
+                          ;;
+                  esac
+                  if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+                      echo "::error::branch '$HEAD_REF' does not name a release version"
+                      exit 1
+                  fi
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
                   echo "Extracted version: $VERSION"
 
             - name: Check if tag exists
@@ -52,7 +85,8 @@ jobs:
 
             - name: Create GitHub Release
               if: steps.check_tag.outputs.exists == 'false'
-              uses: softprops/action-gh-release@v1
+              # v1 runs on a Node runtime GitHub no longer supports.
+              uses: softprops/action-gh-release@v3
               with:
                   tag_name: ${{ steps.version.outputs.version }}
                   name: Release ${{ steps.version.outputs.version }}
@@ -62,6 +96,33 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Delete release branch
+              env:
+                  HEAD_REF: ${{ github.event.pull_request.head.ref }}
               run: |
-                  git push origin --delete "${{ github.event.pull_request.head.ref }}" || true
-                  echo "🧹 Cleaned up branch: ${{ github.event.pull_request.head.ref }}"
+                  git push origin --delete "$HEAD_REF" || true
+                  echo "🧹 Cleaned up branch: $HEAD_REF"
+
+    # Build and push the images by calling docker.yml directly.
+    #
+    # This is NOT redundant with docker.yml's own `release: published` trigger.
+    # The Release above is created by action-gh-release using the default
+    # GITHUB_TOKEN, and GitHub does not raise workflow-triggering events for
+    # anything done with that token — the recursion guard. So the release event
+    # never reaches docker.yml, and before this job existed every automated
+    # release produced a tag and a Release with no images behind them; 0.23.0
+    # only got built because someone toggled the Release draft -> published by
+    # hand with a user token. Calling the workflow removes the dependency on
+    # event propagation entirely, rather than working around it with a PAT.
+    publish-images:
+        needs: create-tag
+        if: needs.create-tag.outputs.created == 'true'
+        uses: ./.github/workflows/docker.yml
+        with:
+            version: ${{ needs.create-tag.outputs.version }}
+        # docker.yml pushes to ghcr and signs with cosign; a called workflow can
+        # never hold more than the caller grants it.
+        permissions:
+            contents: read
+            packages: write
+            id-token: write
+        secrets: inherit

@@ -1,21 +1,64 @@
+# Builds, signs and pushes the five images.
+#
+# Three entry points, deliberately:
+#
+#   workflow_call     — how release-tag.yml drives this after it creates the
+#                       tag. This is the primary path and it exists because
+#                       the `release: published` trigger below CANNOT fire for
+#                       an automated release: action-gh-release authenticates
+#                       with the default GITHUB_TOKEN, and GitHub does not
+#                       raise workflow-triggering events for anything done
+#                       with that token (the recursion guard). Releases cut by
+#                       the pipeline therefore built nothing at all until
+#                       someone re-published them by hand. Do not "simplify"
+#                       this back into a bare release trigger.
+#   release           — still honoured, so a Release published manually by a
+#                       human (which does propagate) keeps working.
+#   workflow_dispatch — escape hatch to rebuild an existing tag without
+#                       touching the Release.
+#
+# Every path resolves to the same `version`, and the tag set is pinned
+# explicitly rather than inferred from the event: under workflow_call the ref
+# is the merge commit, so metadata-action's defaults would derive a branch
+# name instead of the release version. `<version>` + `latest` is exactly what
+# the release event produced before, and the compose files default to
+# IMAGE_TAG=latest, so that rolling tag has to keep moving.
 name: publish basic container
 
 on:
   release:
     types: [published]
+  workflow_call:
+    inputs:
+      version:
+        description: Release version to build, tag and push (e.g. 0.23.0)
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing tag to rebuild and push (e.g. 0.23.0)
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 # Ne pas accumuler de runs en parallèle si plusieurs releases sont publiées
 # coup-sur-coup — la 2e annule la 1re.
+# Keyed on the version, not on github.ref: under workflow_call the ref is the
+# caller's, so two different releases would share a group and the second would
+# cancel the first mid-push.
 concurrency:
-  group: docker-publish-${{ github.ref }}
+  group: docker-publish-${{ inputs.version || github.event.release.tag_name }}
   cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
   IMAGE_BASE: ${{ github.repository }}
+  # `inputs` is null on the release event, so this collapses to the tag name
+  # there and to the caller-supplied value on workflow_call / dispatch.
+  VERSION: ${{ inputs.version || github.event.release.tag_name }}
 
 jobs:
   # Backend et frontend tournent en parallèle — aucune dépendance entre eux,
@@ -27,7 +70,11 @@ jobs:
       packages: write
       id-token: write
     steps:
+      # Build the tag, not whatever ref the trigger happened to carry — under
+      # workflow_call that ref is the release PR's merge commit.
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.VERSION }}
 
       - name: Install cosign
         uses: sigstore/cosign-installer@main
@@ -46,8 +93,11 @@ jobs:
         uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}/api
+          tags: |
+            type=raw,value=${{ env.VERSION }}
+            type=raw,value=latest
 
-      - name: Build and push backend image
+      - name: Build and push api image
         id: build-and-push
         uses: docker/build-push-action@v6
         with:
@@ -58,7 +108,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
 
-      - name: Sign the backend image
+      - name: Sign the api image
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
@@ -72,7 +122,11 @@ jobs:
       packages: write
       id-token: write
     steps:
+      # Build the tag, not whatever ref the trigger happened to carry — under
+      # workflow_call that ref is the release PR's merge commit.
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.VERSION }}
 
       - name: Install cosign
         uses: sigstore/cosign-installer@main
@@ -86,13 +140,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata (backend)
+      - name: Extract Docker metadata (tracker)
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}/tracker
+          tags: |
+            type=raw,value=${{ env.VERSION }}
+            type=raw,value=latest
 
-      - name: Build and push backend image
+      - name: Build and push tracker image
         id: build-and-push
         uses: docker/build-push-action@v6
         with:
@@ -103,7 +160,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
 
-      - name: Sign the backend image
+      - name: Sign the tracker image
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
@@ -117,7 +174,11 @@ jobs:
       packages: write
       id-token: write
     steps:
+      # Build the tag, not whatever ref the trigger happened to carry — under
+      # workflow_call that ref is the release PR's merge commit.
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.VERSION }}
 
       - name: Install cosign
         uses: sigstore/cosign-installer@main
@@ -131,13 +192,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata (backend)
+      - name: Extract Docker metadata (front-ssr)
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}/front-ssr
+          tags: |
+            type=raw,value=${{ env.VERSION }}
+            type=raw,value=latest
 
-      - name: Build and push backend image
+      - name: Build and push front-ssr image
         id: build-and-push
         uses: docker/build-push-action@v6
         with:
@@ -148,7 +212,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
 
-      - name: Sign the backend image
+      - name: Sign the front-ssr image
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
@@ -161,7 +225,11 @@ jobs:
       packages: write
       id-token: write
     steps:
+      # Build the tag, not whatever ref the trigger happened to carry — under
+      # workflow_call that ref is the release PR's merge commit.
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.VERSION }}
 
       - name: Install cosign
         uses: sigstore/cosign-installer@main
@@ -175,13 +243,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata (backend)
+      - name: Extract Docker metadata (front)
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}/front
+          tags: |
+            type=raw,value=${{ env.VERSION }}
+            type=raw,value=latest
 
-      - name: Build and push backend image
+      - name: Build and push front image
         id: build-and-push
         uses: docker/build-push-action@v6
         with:
@@ -192,7 +263,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
 
-      - name: Sign the backend image
+      - name: Sign the front image
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
@@ -209,7 +280,11 @@ jobs:
       packages: write
       id-token: write
     steps:
+      # Build the tag, not whatever ref the trigger happened to carry — under
+      # workflow_call that ref is the release PR's merge commit.
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.VERSION }}
 
       - name: Install cosign
         uses: sigstore/cosign-installer@main
@@ -228,6 +303,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}/docs
+          tags: |
+            type=raw,value=${{ env.VERSION }}
+            type=raw,value=latest
 
       - name: Build and push docs image
         id: build-and-push
@@ -255,3 +333,51 @@ jobs:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+
+  # Post-condition: a tag must never exist without five images behind it.
+  #
+  # The build jobs above going green is not the same claim — they can succeed
+  # while an image is pushed under the wrong tag, which is precisely the class
+  # of mistake the explicit `tags:` above exists to prevent. This asks the
+  # registry instead of trusting the build, and it is what makes a broken
+  # release fail the release run rather than surface weeks later as a stale
+  # `latest`.
+  verify:
+    name: verify images are in the registry
+    needs: [build-api, build-tracker, build-front-ssr, build-front, build-docs]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Every image must resolve at ${{ env.VERSION }} and at latest
+        run: |
+          set -euo pipefail
+          # github.repository keeps the owner's casing (Dim145/…) but ghcr
+          # paths are lowercase. metadata-action normalises this for the build
+          # jobs; here the ref is assembled by hand, so it has to be done
+          # explicitly or every lookup 404s.
+          base=$(printf '%s' "$IMAGE_BASE" | tr '[:upper:]' '[:lower:]')
+          missing=0
+          for image in api tracker front-ssr front docs; do
+            for tag in "${VERSION}" latest; do
+              ref="${REGISTRY}/${base}/${image}:${tag}"
+              if digest=$(docker buildx imagetools inspect "$ref" --format '{{.Manifest.Digest}}' 2>/dev/null); then
+                echo "  ok      $ref -> $digest"
+              else
+                echo "::error::image missing from the registry: $ref"
+                missing=1
+              fi
+            done
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::release ${VERSION} is incomplete — do not announce it"
+            exit 1
+          fi
