@@ -31,6 +31,7 @@
     "chartjs-plugin-zoom": "^2.2.0",
     "isomorphic-dompurify": "^3.22.0",
     "marked": "^18.0.9",
+    "mediainfo.js": "^0.3.7",
     "nuxt": "^4.5.2",
     "pinia": "^4.0.3",
     "turndown": "^7.2.4",

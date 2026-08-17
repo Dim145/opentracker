@@ -187,6 +187,9 @@ importers:
       marked:
         specifier: ^18.0.9
         version: 18.0.9
+      mediainfo.js:
+        specifier: ^0.3.7
+        version: 0.3.7
       nuxt:
         specifier: ^4.5.2
         version: 4.5.2(@babel/plugin-syntax-jsx@7.29.7(@babel/core@7.29.7))(@babel/plugin-syntax-typescript@7.29.7(@babel/core@7.29.7))(@oxc-project/types@0.144.0)(@parcel/watcher@2.5.6)(@types/node@24.13.3)(@vue/compiler-sfc@3.5.41)(bufferutil@4.1.0)(cac@6.7.14)(db0@0.3.4(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(postgres@3.4.9)))(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(postgres@3.4.9))(esbuild@0.28.2)(eslint@10.3.0(jiti@2.7.0))(ioredis@5.11.1)(lightningcss@1.33.0)(magicast@0.5.4)(optionator@0.9.4)(oxc-parser@0.141.0)(pinia@4.0.3(@vue/devtools-api@8.2.1)(typescript@7.0.2)(vue@3.5.41(typescript@7.0.2)))(rolldown@1.2.4)(rollup-plugin-visualizer@7.1.1(rolldown@1.2.4)(rollup@4.62.4))(rollup@4.62.4)(terser@5.50.0)(tsx@4.23.12)(typescript@7.0.2)(utf-8-validate@6.0.6)(vite@8.2.1(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.0))(yaml@2.9.0)
@@ -3996,6 +3999,11 @@ packages:
   media-typer@0.3.0:
     resolution: {integrity: sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==}
     engines: {node: '>= 0.6'}
+
+  mediainfo.js@0.3.7:
+    resolution: {integrity: sha512-mgsmb2GrCTAguVcTohW7KrF+QXNaihrbljj75pLWDQcTTQyqfGoZG4Dy++AZ+FDVCT14LHvVGC9SXxcF5VePag==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
 
   merge-stream@2.0.0:
     resolution: {integrity: sha512-abv/qOcuPfk3URPfDzmZU1LKmuw8kT+0nIHvKrKgFrwifol/doWcdA4ZqsWQ8ENrFKkd67Mfpo/LovbIUsbt3w==}
@@ -9792,6 +9800,10 @@ snapshots:
   mdn-data@2.27.1: {}
 
   media-typer@0.3.0: {}
+
+  mediainfo.js@0.3.7:
+    dependencies:
+      yargs: 18.1.0
 
   merge-stream@2.0.0: {}
 

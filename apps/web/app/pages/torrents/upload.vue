@@ -236,7 +236,33 @@
           </header>
 
           <div class="section-body">
+            <div class="fiche-cta">
+              <p class="section-help fiche-cta-text">
+                {{ $t('torrents.uploadForm.ficheHelp') }}
+              </p>
+              <button type="button" class="btn-ghost" @click="openFicheBuilder">
+                <Icon name="ph:magic-wand-bold" />
+                {{ $t('torrents.uploadForm.ficheOpen') }}
+              </button>
+            </div>
+            <template v-if="descriptionRaw">
+              <div class="fiche-cta">
+                <p class="section-help fiche-cta-text">
+                  {{ $t('torrents.uploadForm.ficheRawNotice') }}
+                </p>
+                <button type="button" class="btn-ghost" @click="descriptionRaw = false">
+                  {{ $t('torrents.uploadForm.ficheEditAnyway') }}
+                </button>
+              </div>
+              <textarea
+                v-model="description"
+                rows="14"
+                class="input field-input fiche-raw"
+                spellcheck="false"
+              />
+            </template>
             <WysiwygEditor
+              v-else
               v-model="description"
               format="markdown"
               :placeholder="$t('torrents.uploadForm.descriptionPlaceholder')"
@@ -519,6 +545,7 @@ import {
   type ParsedRelease,
 } from '~/utils/releaseParse';
 import { useNotificationStore } from '~/stores/notifications';
+import { useFicheDraftStore } from '~/stores/ficheDraft';
 
 const { t } = useI18n();
 
@@ -597,6 +624,54 @@ const tvdbId = ref('');
 const igdbId = ref('');
 const openlibraryId = ref('');
 const isUploading = ref(false);
+
+/* ── Générateur de fiche ────────────────────────────────────────────────
+   Aller : on confie au store le .torrent déjà choisi et les identifiants
+   déjà saisis, pour que le générateur démarre directement à l'étape 02.
+   Retour : on récupère le BBCode produit. WysiwygEditor fait passer son
+   `modelValue` par `toEditorHtml()`, qui détecte le BBCode — on peut donc
+   l'assigner tel quel à `description`, sans conversion préalable ici. */
+const ficheDraft = useFicheDraftStore();
+
+/* Vrai quand la description vient du générateur : on l'affiche telle quelle
+   plutôt que dans l'éditeur, pour ne pas aplatir le BBCode en Markdown. */
+const descriptionRaw = ref(false);
+
+function openFicheBuilder() {
+  ficheDraft.seedFromUpload({
+    torrentFile: selectedFile.value,
+    releaseName: title.value || selectedFile.value?.name?.replace(/\.torrent$/i, '') || '',
+    imdbId: imdbId.value,
+    tmdbId: tmdbId.value,
+    categoryId: selectedCategoryId.value,
+  });
+  navigateTo('/torrents/fiche');
+}
+
+onMounted(() => {
+  // Le générateur renvoie les trois éléments d'un coup : la description en
+  // BBCode (que WysiwygEditor sait ingérer via toEditorHtml), le NFO et le
+  // nom de release normalisé.
+  const result = ficheDraft.consumeResult();
+  if (!result) return;
+  if (result.bbcode) {
+    description.value = result.bbcode;
+    // La fiche est du BBCode riche (couleurs, tailles, centrage). L'éditeur
+    // WYSIWYG la reconvertirait en Markdown à la sauvegarde et perdrait tout
+    // ça — DescriptionRender détecte le BBCode à l'affichage, donc on la
+    // garde brute tant que l'utilisateur ne demande pas à l'éditer.
+    descriptionRaw.value = true;
+  }
+  if (result.title) title.value = result.title;
+  if (result.nfo) {
+    // Le NFO arrive sous forme de texte, mais le formulaire n'accepte qu'un
+    // fichier joint : on l'emballe comme s'il avait été déposé, plutôt que
+    // d'obliger l'utilisateur à l'enregistrer sur son disque pour le
+    // redéposer ici. Le bouton « retirer » de la zone de dépôt le défait.
+    const base = (result.title || 'release').replace(/[^\w.-]+/g, '.');
+    nfoFile.value = new File([result.nfo], `${base}.nfo`, { type: 'text/plain' });
+  }
+});
 const result = ref<TorrentResult | null>(null);
 const error = ref<string | null>(null);
 const dragActive = ref(false);
@@ -1155,6 +1230,29 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
 
 <style scoped>
 @import '~/assets/css/upload-form.css';
+
+/* Accès au générateur de fiche depuis la section Description. */
+.fiche-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.fiche-raw {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.fiche-cta-text {
+  margin: 0;
+  flex: 1 1 18rem;
+}
+
 
 /* ─── Drop zone ──────────────────────────────────────────────── */
 .drop-zone {
