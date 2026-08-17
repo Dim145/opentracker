@@ -1,0 +1,107 @@
+# Dependabot — automated dependency update PRs.
+#
+# Until this file existed the repo relied on default alert scanning alone,
+# which in practice only ever surfaced npm advisories: across the entire
+# history of the repo `gh api .../dependabot/alerts` returned nothing but
+# `npm`. The Go tracker was invisible to it — GO-2026-5970, a reachable
+# infinite-loop DoS in golang.org/x/text sitting on the tracker's Postgres
+# connect path (db.Open -> pgxpool.NewWithConfig -> norm.Form.Transform),
+# was found by hand with govulncheck and never raised here.
+#
+# The cooldowns mirror the 7-day min-release-age policy already applied to
+# local installs, so a version published this morning isn't merged this
+# afternoon. Patch releases are deliberately exempt (0 days): that is where
+# security fixes arrive, and delaying them is the opposite of the point.
+version: 2
+
+updates:
+  # ---------------------------------------------------------------------------
+  # Go tracker
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: gomod
+    directory: /apps/tracker
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+      semver-patch-days: 0
+    groups:
+      # One PR for the routine churn; majors stay on their own so they get
+      # read properly.
+      go-minor-and-patch:
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+
+  # ---------------------------------------------------------------------------
+  # Node workspaces
+  #
+  # `/` is the pnpm workspace root — its pnpm-lock.yaml covers apps/api,
+  # apps/web, packages/db and packages/shared. `/doc` is a standalone npm
+  # project with its own package-lock.json.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: npm
+    directories:
+      - /
+      - /doc
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+      semver-patch-days: 0
+    groups:
+      npm-minor-and-patch:
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+
+  # ---------------------------------------------------------------------------
+  # Base images pinned in the Dockerfiles (golang, node, distroless, nginx).
+  # apps/web holds both Dockerfile and Dockerfile.static.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: docker
+    directories:
+      - /apps/api
+      - /apps/tracker
+      - /apps/web
+      - /doc
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      base-images:
+        patterns:
+          - '*'
+
+  # Service images pinned in the compose files (postgres, redis, caddy,
+  # pgbouncer, grafana) — these never pass through a Dockerfile.
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      compose-images:
+        patterns:
+          - '*'
+
+  # ---------------------------------------------------------------------------
+  # Workflow actions. These run with repository credentials, so a stale or
+  # floating ref is a supply-chain hole rather than a cosmetic problem —
+  # docker.yml currently pins sigstore/cosign-installer to @main.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns:
+          - '*'

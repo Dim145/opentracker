@@ -1,0 +1,99 @@
+# Go tracker CI — vet, tests, and vulnerability scanning.
+#
+# Until this existed nothing enforced that apps/tracker still compiled, let
+# alone that it was free of known vulnerabilities: the only workflows were
+# release-time image publishing. `go build` inside apps/tracker/Dockerfile
+# is not a gate — it runs after a release is already published.
+name: Tracker CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/tracker/**'
+      - '.github/workflows/tracker-ci.yml'
+  pull_request:
+    paths:
+      - 'apps/tracker/**'
+      - '.github/workflows/tracker-ci.yml'
+  # Advisories are published against code that hasn't changed, so the vuln
+  # scan can't only run on pushes. Monday morning, before anyone starts.
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tracker-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/tracker
+
+jobs:
+  test:
+    name: vet + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          # Single source of truth: the `go` directive in apps/tracker/go.mod,
+          # which also drives the golang image tag in the Dockerfile.
+          go-version-file: apps/tracker/go.mod
+          cache-dependency-path: apps/tracker/go.sum
+
+      # `gofmt -l` exits 0 even when it lists files, so the emptiness of its
+      # output is the assertion. Six files had drifted out of format before
+      # this gate existed.
+      #
+      # `set -e` is what covers the other failure mode: on a file that doesn't
+      # parse, gofmt writes to stderr and exits non-zero while printing nothing
+      # on stdout — an empty-output check alone would wave that through.
+      - name: gofmt
+        run: |
+          set -euo pipefail
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::gofmt would rewrite these files — run 'gofmt -w .' in apps/tracker"
+            echo "$unformatted"
+            gofmt -d .
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      # -race matters here more than in most services: the tracker runs a
+      # dedup eviction loop and background HnR/seed-time writers alongside
+      # every announce.
+      - name: go test -race
+        run: go test -race ./...
+
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: apps/tracker/go.mod
+          cache-dependency-path: apps/tracker/go.sum
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      # This is the check Dependabot can't do. Dependabot matches advisories
+      # against declared version ranges; govulncheck walks the call graph and
+      # only reports a vulnerability when a vulnerable symbol is actually
+      # reachable from this module. It exits non-zero on a finding, which is
+      # what fails the job.
+      - name: govulncheck
+        run: govulncheck ./...
