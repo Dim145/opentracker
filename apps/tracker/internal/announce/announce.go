@@ -54,7 +54,7 @@ type Request struct {
 	// events. The handler logs this at info level when present so an
 	// operator can spot misbehaving / experimental clients.
 	UnknownEventRaw string
-	Passkey    string
+	Passkey         string
 }
 
 // Errors returned by Parse. Each maps to a "failure reason" the tracker

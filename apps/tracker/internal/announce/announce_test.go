@@ -88,10 +88,10 @@ func TestParse_MissingFields(t *testing.T) {
 
 func TestParse_Events(t *testing.T) {
 	cases := map[string]Event{
-		"":          EventNone,
-		"started":   EventStarted,
-		"stopped":   EventStopped,
-		"completed": EventCompleted,
+		"":           EventNone,
+		"started":    EventStarted,
+		"stopped":    EventStopped,
+		"completed":  EventCompleted,
 		"weirdvalue": EventNone,
 	}
 	for in, want := range cases {

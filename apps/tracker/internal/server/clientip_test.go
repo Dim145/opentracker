@@ -136,7 +136,7 @@ func TestClientIP_IgnoresCFWhenCFTrustOff(t *testing.T) {
 
 	s := &Server{}
 	r := httptest.NewRequest("GET", "/announce", nil)
-	r.Header.Set("CF-Connecting-IP", "1.2.3.4") // forged by the client
+	r.Header.Set("CF-Connecting-IP", "1.2.3.4")     // forged by the client
 	r.Header.Set("X-Forwarded-For", "203.0.113.42") // set by our proxy
 	r.RemoteAddr = "172.18.0.5:54321"
 

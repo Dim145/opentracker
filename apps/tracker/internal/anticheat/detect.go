@@ -58,16 +58,16 @@ type Flag struct {
 // handler. Keeping it as a single struct lets the call site stay
 // short and lets test code build fixtures concisely.
 type Inputs struct {
-	UserID            string
-	TorrentID         string // may be empty when the torrent row is gone
-	InfoHash          string // hex-encoded
-	PeerIDHex         string
-	IP                string
-	UserAgent         string
-	Event             string // "started" | "stopped" | "completed" | "update"
-	Left              int64  // bytes the client still needs (0 → seeder)
-	DeltaUp           int64  // bytes claimed since last announce
-	DeltaDown         int64
+	UserID    string
+	TorrentID string // may be empty when the torrent row is gone
+	InfoHash  string // hex-encoded
+	PeerIDHex string
+	IP        string
+	UserAgent string
+	Event     string // "started" | "stopped" | "completed" | "update"
+	Left      int64  // bytes the client still needs (0 → seeder)
+	DeltaUp   int64  // bytes claimed since last announce
+	DeltaDown int64
 	// PrevUpdatedAtMs — wall clock of the previous announce in unix
 	// millis. Zero when this is the very first announce we see for
 	// the (infoHash, peer) pair; in that case velocity detection is

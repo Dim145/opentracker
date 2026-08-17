@@ -68,13 +68,6 @@ type PeerData struct {
 	UpdatedAt  int64  `json:"updatedAt"` // unix millis
 }
 
-// Store wraps a Redis client and the global key prefix. We bake the prefix
-// in here (rather than relying on a client-side hook) for two reasons:
-//   1. The api uses ioredis's `keyPrefix` option which prepends `prefix +`
-//      to every key. We want byte-for-byte the same keys so both apps see
-//      the same physical Redis entries.
-//   2. Mutating in-flight command args from a hook is fragile in go-redis;
-//      string concat is trivial and unambiguous.
 // countsCacheTTL bounds how stale `Counts` is allowed to go. Each
 // `(seeders, leechers)` lookup HGETALL-s the whole swarm hash and
 // JSON-unmarshals every peer; a busy torrent can hold thousands of
@@ -109,6 +102,14 @@ type remoteCacheEntry struct {
 	expiresAt time.Time
 }
 
+// Store wraps a Redis client and the global key prefix. We bake the prefix
+// in here (rather than relying on a client-side hook) for two reasons:
+//
+//  1. The api uses ioredis's `keyPrefix` option which prepends `prefix +`
+//     to every key. We want byte-for-byte the same keys so both apps see
+//     the same physical Redis entries.
+//  2. Mutating in-flight command args from a hook is fragile in go-redis;
+//     string concat is trivial and unambiguous.
 type Store struct {
 	client *redis.Client
 	prefix string
@@ -376,6 +377,18 @@ func NewClientFromURL(redisURL, password string) (*redis.Client, error) {
 	}
 	if password != "" {
 		opts.Password = password
+	}
+	// go-redis 9.22 raised its default read/write timeouts from 3 s to 5 s to
+	// align with the cross-SDK config proposal. Announce is a hot path with an
+	// http.Server WriteTimeout of 10 s, so a stalled Redis eating 5 s of that
+	// budget twice over would blow the response deadline instead of failing
+	// fast. Pin the previous 3 s explicitly — only when the URL didn't already
+	// carry its own value, so `?read_timeout=` still wins.
+	if opts.ReadTimeout == 0 {
+		opts.ReadTimeout = 3 * time.Second
+	}
+	if opts.WriteTimeout == 0 {
+		opts.WriteTimeout = 3 * time.Second
 	}
 	return redis.NewClient(opts), nil
 }

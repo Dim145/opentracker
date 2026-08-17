@@ -68,8 +68,8 @@ func TestMergePeers(t *testing.T) {
 			name:  "skips nil entries and entries with empty IP in remote",
 			local: []*peers.PeerData{mkPeer("203.0.113.1", 6881)},
 			remote: []*peers.PeerData{
-				nil,                       // must be skipped
-				mkPeer("", 6883),          // empty IP — must be skipped
+				nil,              // must be skipped
+				mkPeer("", 6883), // empty IP — must be skipped
 				mkPeer("10.0.0.5", 7001),
 			},
 			wantLen:     2, // 1 local + 1 valid remote
