@@ -73,3 +73,7 @@ Thumbs.db
 .github/*.md
 documentation/
 .claude/
+
+# Knowledge graph — regenerated from the source tree by `graphify update .`,
+# so it is a build product, not a source. Around 8 MB of JSON and HTML.
+graphify-out/
