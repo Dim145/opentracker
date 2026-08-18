@@ -58,6 +58,15 @@ export interface MediaMetadata {
   voteCount: number | null;
   url: string;
 
+  /** Date de sortie brute (YYYY-MM-DD) — la fiche l'affiche en toutes lettres. */
+  releaseDate?: string | null;
+  countries?: string[];
+  /** Réalisateur(s) pour un film, créateur(s) pour une série. */
+  directors?: string[];
+  cast?: Array<{ name: string; character: string | null; photoUrl: string | null }>;
+  seasonCount?: number | null;
+  episodeCount?: number | null;
+
   // ── Source-specific typed slots ────────────────────────────
   // Filled by the relevant provider; null otherwise. The Torznab /
   // *Arr cross-reference uses these to match against the user's

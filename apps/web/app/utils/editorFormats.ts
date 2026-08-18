@@ -197,11 +197,18 @@ export function bbcodeToHtml(input: string): string {
     return `<a href="${escapeAttr(decoded)}" rel="noopener noreferrer" target="_blank">${escapeHtml(decoded)}</a>`;
   });
 
-  // [img]url[/img]
-  s = s.replace(/\[img\](.*?)\[\/img\]/gis, (_m, src: string) => {
-    const decoded = unescapeHtml(src);
+  /* [img]url[/img] et ses formes dimensionnées — [img width=75]url[/img],
+     [img=320x180]url[/img]. Les fiches de release s'en servent pour les
+     vignettes du casting ; sans ces variantes le tag restait en texte brut
+     au milieu de l'aperçu. Seules des dimensions numériques sont reprises. */
+  s = s.replace(/\[img([^\]]*)\]([\s\S]*?)\[\/img\]/gi, (_m, attrs: string, src: string) => {
+    const decoded = unescapeHtml(src.trim());
     if (!/^https?:\/\//i.test(decoded)) return '';
-    return `<img src="${escapeAttr(decoded)}" alt="" />`;
+    const dims = /^=\s*(\d{1,4})\s*x\s*(\d{1,4})\s*$/i.exec(attrs);
+    const w = /\bwidth\s*=\s*"?(\d{1,4})/i.exec(attrs)?.[1] ?? dims?.[1];
+    const h = /\bheight\s*=\s*"?(\d{1,4})/i.exec(attrs)?.[1] ?? dims?.[2];
+    const size = `${w ? ` width="${w}"` : ''}${h ? ` height="${h}"` : ''}`;
+    return `<img src="${escapeAttr(decoded)}" alt=""${size} />`;
   });
 
   /* Nestable inline wrappers — `[color]`, `[size]`, `[font]` can

@@ -539,7 +539,6 @@
       "age": "Age"
     },
     "ago": "ago",
-    "upload": "Upload",
     "uploadForm": {
       "eyebrow": "New entry · Indexer",
       "titleMain": "Upload",
@@ -611,7 +610,11 @@
         "downloadTorrent": "Download .torrent",
         "viewRelease": "View release",
         "uploadAnother": "Upload another release"
-      }
+      },
+      "ficheHelp": "Need a clean sheet? The builder assembles one from the file's MediaInfo.",
+      "ficheOpen": "Sheet builder",
+      "ficheRawNotice": "The generated sheet is BBCode, which visual mode would flatten. Source mode and preview stay available.",
+      "ficheEditAnyway": "Unlock visual mode"
     },
     "edit": {
       "backToRelease": "Back to release",
@@ -1322,7 +1325,8 @@
       "mode": {
         "editor": "Visual mode",
         "code": "Source mode (BBCode / Markdown)",
-        "preview": "Preview (read-only)"
+        "preview": "Preview (read-only)",
+        "editorLocked": "Visual mode unavailable: it cannot round-trip this markup"
       },
       "tagsLabel": "Tags:",
       "previewBadge": "Preview — read-only"
@@ -2172,6 +2176,9 @@
         "sat": "Saturday"
       },
       "month": {
+        "10": "October",
+        "11": "November",
+        "12": "December",
         "01": "January",
         "02": "February",
         "03": "March",
@@ -2180,10 +2187,7 @@
         "06": "June",
         "07": "July",
         "08": "August",
-        "09": "September",
-        "10": "October",
-        "11": "November",
-        "12": "December"
+        "09": "September"
       },
       "currentTitle": "Current cycle",
       "noCycle": "No cycle is currently open.",
@@ -2193,7 +2197,7 @@
       "reset": "Drain the pool",
       "fields": {
         "enabled": "Enable the freeleech pool",
-        "target": "Points target",
+        "target": "Target",
         "durationDays": "Freeleech duration (days)",
         "contributionMin": "Minimum contribution",
         "maxPerUserPct": "Per-user cap (% of target)",
@@ -2223,7 +2227,6 @@
         "endsAt": "Ends at",
         "startedAt": "Started",
         "closedAt": "Closed",
-        "target": "Target",
         "collected": "Collected"
       },
       "cycleStatus": {
@@ -4047,6 +4050,107 @@
       "notVerified": "Code not found in your remote bio yet",
       "removed": "Link removed",
       "error": "Something went wrong"
+    }
+  },
+  "fiche": {
+    "title": "Release sheet builder",
+    "titleLead": "Sheet",
+    "titleAccent": "builder",
+    "eyebrow": "Upload tooling",
+    "backToUpload": "Back to upload",
+    "next": "Continue",
+    "back": "Back",
+    "steps": {
+      "file": "File",
+      "work": "Work",
+      "tech": "Technical",
+      "output": "Sheet"
+    },
+    "file": {
+      "help": "Drop the video, the NFO or the .torrent. The title is derived from its name.",
+      "drop": "Drop a file here",
+      "formats": "MKV · MP4 · AVI · TS · M2TS · ISO · NFO · TORRENT",
+      "analyzing": "Reading the file…",
+      "analyzeFailed": "Could not read this file.",
+      "unsupported": "Unrecognised format.",
+      "manual": "Enter manually",
+      "analysed": "Analysed: {v} video, {a} audio, {s} subtitles."
+    },
+    "work": {
+      "help": "Edit the title to search, then pick a result — or fill everything in by hand.",
+      "search": "Search title",
+      "searching": "Searching…",
+      "lookupFailed": "Lookup failed.",
+      "name": "Title",
+      "originalName": "Original title",
+      "kind": "Kind",
+      "movie": "Movie",
+      "tv": "TV show",
+      "year": "Year",
+      "releaseDate": "Release date",
+      "runtime": "Runtime (min)",
+      "country": "Country",
+      "director": "Director / Creator",
+      "seasons": "Seasons",
+      "episodes": "Episodes",
+      "genres": "Genres",
+      "cast": "Cast",
+      "poster": "Poster URL",
+      "overview": "Synopsis"
+    },
+    "tech": {
+      "help": "Prefilled from the file when possible. Everything stays editable.",
+      "quality": "Quality",
+      "container": "Container",
+      "codec": "Video codec",
+      "source": "Source",
+      "bitrate": "Video bitrate",
+      "size": "Total size",
+      "paste": "Paste MediaInfo",
+      "pastePlaceholder": "General\nFormat : Matroska\n\nVideo\nFormat : HEVC\n…",
+      "releaseName": "Release name",
+      "spaces": "Spaces instead of dots",
+      "namePattern": "[Title].[Year].[Language].[Resolution].[Source].[Audio].[Video]-[TEAM]",
+      "custom": "Other…",
+      "none": "—",
+      "language": "Language",
+      "codecAudio": "Codec",
+      "channels": "Channels",
+      "defaultTrack": "Default track",
+      "audioTitle": "Audio tracks",
+      "subtitleTitle": "Subtitles",
+      "subtitleFormat": "Format",
+      "addTrack": "Add",
+      "removeTrack": "Remove track",
+      "noAudio": "No audio track. Add one or paste a MediaInfo dump.",
+      "noSubtitle": "No subtitle track. Add one or paste a MediaInfo dump.",
+      "subtitleKind": {
+        "full": "Full",
+        "forced": "Forced",
+        "sdh": "SDH"
+      },
+      "bitrateTrack": "Bitrate"
+    },
+    "output": {
+      "optPoster": "Include poster",
+      "optSynopsis": "Include synopsis",
+      "optTechnical": "Include technical block",
+      "optCast": "Include cast photos",
+      "screenshots": "Screenshot links",
+      "screenshotsPlaceholder": "One URL per line",
+      "bbcode": "Generated BBCode",
+      "viewNfo": "View NFO",
+      "nfoTitle": "Generated NFO"
+    },
+    "preview": {
+      "title": "Preview"
+    },
+    "actions": {
+      "use": "Send to upload",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyFailed": "Copy failed.",
+      "hint": "Description, NFO and release name are carried into the form."
     }
   }
 }

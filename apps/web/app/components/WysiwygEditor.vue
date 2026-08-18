@@ -12,9 +12,14 @@
         <button
           type="button"
           :class="['toolbar-btn', { active: mode === 'editor' }]"
-          :title="t('components.wysiwyg.mode.editor')"
+          :title="
+            visualEditingDisabled
+              ? t('components.wysiwyg.mode.editorLocked')
+              : t('components.wysiwyg.mode.editor')
+          "
           role="tab"
           :aria-selected="mode === 'editor'"
+          :disabled="visualEditingDisabled"
           @click="setMode('editor')"
         >
           <Icon name="ph:pencil-bold" />
@@ -421,6 +426,16 @@ interface Props {
    * uploader commits to a destructive edit.
    */
   defaultMode?: EditorMode;
+  /**
+   * Interdit le mode visuel sans fermer l'éditeur pour autant.
+   *
+   * Sert quand la source contient un balisage que l'aller-retour TipTap ne
+   * sait pas restituer — couleurs, tailles, centrage d'une fiche BBCode. Le
+   * bouton crayon reste visible mais grisé ; le code, où la source s'édite
+   * telle quelle, et l'aperçu, qui la rend comme le visiteur la verra,
+   * restent tous deux accessibles.
+   */
+  visualEditingDisabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -428,6 +443,7 @@ const props = withDefaults(defineProps<Props>(), {
   format: 'html',
   maxLength: undefined,
   defaultMode: 'editor',
+  visualEditingDisabled: false,
 });
 
 // Resolve runtime placeholder: prefer the prop if explicitly passed,
@@ -443,7 +459,11 @@ const emit = defineEmits<{
 }>();
 
 const lastImportedFormat = ref<EditorFormat | null>(null);
-const mode = ref<EditorMode>(props.defaultMode);
+// Un mode de départ interdit n'aurait aucune issue : on ouvre sur le code,
+// le seul endroit où la source se modifie sans passer par TipTap.
+const mode = ref<EditorMode>(
+  props.visualEditingDisabled && props.defaultMode === 'editor' ? 'code' : props.defaultMode,
+);
 const codeAreaRef = ref<HTMLTextAreaElement | null>(null);
 
 /* Preview routes through <DescriptionRender>, which calls
@@ -606,6 +626,7 @@ function promptImage() {
    the parent will store. */
 function setMode(next: EditorMode) {
   if (mode.value === next) return;
+  if (next === 'editor' && props.visualEditingDisabled) return;
 
   // Editor → other: flush TipTap content into `modelValue` first.
   if (mode.value === 'editor' && editor.value) {
@@ -659,6 +680,18 @@ function insertTag(tag: CodeTag) {
   });
 }
 
+/* Le verrou peut tomber après coup : la fiche revient du générateur une fois
+   l'éditeur déjà monté. On quitte alors le mode visuel en assignant `mode`
+   directement, sans passer par `setMode` — sa sortie reverse le HTML de
+   TipTap dans `modelValue`, ce qui aplatirait précisément le balisage que le
+   verrou est là pour protéger. */
+watch(
+  () => props.visualEditingDisabled,
+  (locked) => {
+    if (locked && mode.value === 'editor') mode.value = 'code';
+  },
+);
+
 // Keep the editor in sync if the parent reassigns modelValue (e.g. when
 // the modal opens for a different torrent).
 watch(
@@ -696,6 +729,12 @@ onBeforeUnmount(() => {
 .toolbar-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+/* `:hover` matche encore un bouton désactivé : sans ceci il s'éclaire au
+   survol et se laisse prendre pour cliquable. */
+.toolbar-btn:disabled:hover {
+  color: rgb(var(--fg-muted));
+  background: none;
 }
 .toolbar-btn.active {
   background: rgb(var(--fg-default) / 0.12);

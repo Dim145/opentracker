@@ -539,7 +539,6 @@
       "age": "Âge"
     },
     "ago": "il y a",
-    "upload": "Envoyer",
     "uploadForm": {
       "eyebrow": "Nouvelle entrée · Indexeur",
       "titleMain": "Envoyer",
@@ -611,7 +610,11 @@
         "downloadTorrent": "Télécharger le .torrent",
         "viewRelease": "Voir la release",
         "uploadAnother": "Envoyer une autre release"
-      }
+      },
+      "ficheHelp": "Besoin d'une fiche propre ? Le générateur la compose depuis le MediaInfo du fichier.",
+      "ficheOpen": "Générateur de fiche",
+      "ficheRawNotice": "La fiche générée est du BBCode : le mode visuel l’aplatirait. Le mode code et l’aperçu restent disponibles.",
+      "ficheEditAnyway": "Débloquer le mode visuel"
     },
     "edit": {
       "backToRelease": "Retour à la release",
@@ -1322,7 +1325,8 @@
       "mode": {
         "editor": "Mode visuel",
         "code": "Mode code (BBCode / Markdown)",
-        "preview": "Aperçu (lecture seule)"
+        "preview": "Aperçu (lecture seule)",
+        "editorLocked": "Mode visuel indisponible : il ne sait pas restituer ce balisage"
       },
       "tagsLabel": "Tags :",
       "previewBadge": "Aperçu — lecture seule"
@@ -2172,6 +2176,9 @@
         "sat": "Samedi"
       },
       "month": {
+        "10": "Octobre",
+        "11": "Novembre",
+        "12": "Décembre",
         "01": "Janvier",
         "02": "Février",
         "03": "Mars",
@@ -2180,10 +2187,7 @@
         "06": "Juin",
         "07": "Juillet",
         "08": "Août",
-        "09": "Septembre",
-        "10": "Octobre",
-        "11": "Novembre",
-        "12": "Décembre"
+        "09": "Septembre"
       },
       "currentTitle": "Cycle en cours",
       "noCycle": "Aucun cycle n'est ouvert pour l'instant.",
@@ -4046,6 +4050,107 @@
       "notVerified": "Code introuvable dans votre bio distante pour l'instant",
       "removed": "Lien supprimé",
       "error": "Une erreur est survenue"
+    }
+  },
+  "fiche": {
+    "title": "Générateur de fiche",
+    "titleLead": "Générateur de",
+    "titleAccent": "fiche",
+    "eyebrow": "Outils d'upload",
+    "backToUpload": "Retour à l'upload",
+    "next": "Continuer",
+    "back": "Retour",
+    "steps": {
+      "file": "Fichier",
+      "work": "Œuvre",
+      "tech": "Technique",
+      "output": "Fiche"
+    },
+    "file": {
+      "help": "Déposez la vidéo, le NFO ou le .torrent. Le titre en sera déduit automatiquement.",
+      "drop": "Déposez un fichier ici",
+      "formats": "MKV · MP4 · AVI · TS · M2TS · ISO · NFO · TORRENT",
+      "analyzing": "Analyse du fichier…",
+      "analyzeFailed": "Impossible de lire ce fichier.",
+      "unsupported": "Format non reconnu.",
+      "manual": "Saisir manuellement",
+      "analysed": "Analysé : {v} vidéo, {a} audio, {s} sous-titres."
+    },
+    "work": {
+      "help": "Modifiez le titre pour lancer la recherche, puis choisissez un résultat — ou saisissez tout à la main.",
+      "search": "Titre recherché",
+      "searching": "Recherche…",
+      "lookupFailed": "La récupération a échoué.",
+      "name": "Titre",
+      "originalName": "Titre original",
+      "kind": "Type",
+      "movie": "Film",
+      "tv": "Série",
+      "year": "Année",
+      "releaseDate": "Date de sortie",
+      "runtime": "Durée (min)",
+      "country": "Pays",
+      "director": "Réalisateur / Créateur",
+      "seasons": "Saisons",
+      "episodes": "Épisodes",
+      "genres": "Genres",
+      "cast": "Acteurs",
+      "poster": "URL de l'affiche",
+      "overview": "Synopsis"
+    },
+    "tech": {
+      "help": "Pré-rempli depuis le fichier quand c'est possible. Tout reste modifiable.",
+      "quality": "Qualité",
+      "container": "Format",
+      "codec": "Codec vidéo",
+      "source": "Source",
+      "bitrate": "Débit vidéo",
+      "size": "Taille totale",
+      "paste": "Coller un MediaInfo",
+      "pastePlaceholder": "General\nFormat : Matroska\n\nVideo\nFormat : HEVC\n…",
+      "releaseName": "Nom de release",
+      "spaces": "Espaces au lieu de points",
+      "namePattern": "[Titre].[Année].[Langue].[Résolution].[Source].[Audio].[Vidéo]-[TEAM]",
+      "custom": "Autre…",
+      "none": "—",
+      "language": "Langue",
+      "codecAudio": "Codec",
+      "channels": "Canaux",
+      "defaultTrack": "Piste par défaut",
+      "audioTitle": "Pistes audio",
+      "subtitleTitle": "Sous-titres",
+      "subtitleFormat": "Format",
+      "addTrack": "Ajouter",
+      "removeTrack": "Supprimer la piste",
+      "noAudio": "Aucune piste audio. Ajoutez-en une ou collez un MediaInfo.",
+      "noSubtitle": "Aucun sous-titre. Ajoutez-en un ou collez un MediaInfo.",
+      "subtitleKind": {
+        "full": "Complet",
+        "forced": "Forcé",
+        "sdh": "SDH"
+      },
+      "bitrateTrack": "Débit"
+    },
+    "output": {
+      "optPoster": "Inclure l'affiche",
+      "optSynopsis": "Inclure le synopsis",
+      "optTechnical": "Inclure le bloc technique",
+      "optCast": "Inclure les photos des acteurs",
+      "screenshots": "Liens des captures",
+      "screenshotsPlaceholder": "Une URL par ligne",
+      "bbcode": "BBCode généré",
+      "viewNfo": "Voir le NFO",
+      "nfoTitle": "NFO généré"
+    },
+    "preview": {
+      "title": "Aperçu"
+    },
+    "actions": {
+      "use": "Envoyer vers l'upload",
+      "copy": "Copier",
+      "copied": "Copié",
+      "copyFailed": "La copie a échoué.",
+      "hint": "La description, le NFO et le nom de release sont repris dans le formulaire."
     }
   }
 }

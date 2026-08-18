@@ -29,6 +29,10 @@ import type {
 import { META_TTL, NEG_SENTINEL } from './types';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
+/** Au-delà, une fiche devient illisible ; fichegen s'arrête au même ordre. */
+const CAST_LIMIT = 8;
+const CAST_PHOTO_SIZE = 'w185';
+
 const POSTER_SIZE = 'w500';
 const BACKDROP_SIZE = 'w1280';
 const DEFAULT_LOCALE = 'en-US';
@@ -154,6 +158,42 @@ function normalizeDetail(type: 'movie' | 'tv', data: any): MediaMetadata {
     voteCount:
       typeof data.vote_count === 'number' ? data.vote_count : null,
     url: `https://www.themoviedb.org/${type}/${data.id}`,
+
+    /* Champs nécessaires à une fiche de release complète. Tous facultatifs :
+       TMDb ne les renseigne pas systématiquement, et l'appelant doit pouvoir
+       les corriger ou les saisir lui-même quand il n'y a pas de tmdbId. */
+    releaseDate: releaseDate || null,
+    countries: Array.isArray(data.production_countries)
+      ? data.production_countries
+          .map((c: any) => c?.name)
+          .filter((n: unknown): n is string => typeof n === 'string')
+      : [],
+    // Un film a un réalisateur dans `crew` ; une série a des `created_by`.
+    directors: isMovie
+      ? (data.credits?.crew ?? [])
+          .filter((c: any) => c?.job === 'Director' && typeof c?.name === 'string')
+          .map((c: any) => c.name as string)
+      : (data.created_by ?? [])
+          .map((c: any) => c?.name)
+          .filter((n: unknown): n is string => typeof n === 'string'),
+    cast: (data.credits?.cast ?? [])
+      .slice(0, CAST_LIMIT)
+      .map((c: any) => ({
+        name: typeof c?.name === 'string' ? c.name : '',
+        character: typeof c?.character === 'string' ? c.character : null,
+        photoUrl: c?.profile_path
+          ? `https://image.tmdb.org/t/p/${CAST_PHOTO_SIZE}${c.profile_path}`
+          : null,
+      }))
+      .filter((c: { name: string }) => c.name.length > 0),
+    seasonCount:
+      !isMovie && typeof data.number_of_seasons === 'number'
+        ? data.number_of_seasons
+        : null,
+    episodeCount:
+      !isMovie && typeof data.number_of_episodes === 'number'
+        ? data.number_of_episodes
+        : null,
   };
 }
 
@@ -165,7 +205,8 @@ async function fetchDetail(
 ): Promise<MediaMetadata | null> {
   const data = await tmdbGet<any>(
     `/${type}/${id}`,
-    { append_to_response: 'external_ids', language: locale },
+    // `credits` alimente acteurs + réalisateur ; sans lui TMDb ne renvoie rien.
+    { append_to_response: 'external_ids,credits', language: locale },
     cred
   );
   if (!data) return null;
