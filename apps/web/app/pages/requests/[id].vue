@@ -265,6 +265,15 @@
               <template v-if="data.status === 'requested'">
                 <button
                   type="button"
+                  class="side-btn"
+                  :disabled="busy"
+                  @click="openEdit"
+                >
+                  <Icon name="ph:pencil-simple-bold" />
+                  <span>{{ $t('requests.actions.edit') }}</span>
+                </button>
+                <button
+                  type="button"
                   class="side-btn side-btn--danger"
                   :disabled="busy"
                   @click="cancel"
@@ -381,6 +390,86 @@
       <Icon name="ph:question-bold" class="dossier-empty-icon" />
       <p>{{ $t('requests.notFound') }}</p>
     </div>
+
+    <!-- Édition de la demande — réservée au demandeur, tant qu'elle est ouverte. -->
+    <Modal
+      v-model="editOpen"
+      :title="$t('requests.edit.title')"
+      icon="ph:pencil-simple-bold"
+      size="lg"
+    >
+      <form class="req-edit" @submit.prevent="saveEdit">
+        <label class="req-edit-field">
+          <span class="req-edit-label">{{ $t('requests.new.fields.title') }}</span>
+          <input
+            v-model="editForm.title"
+            type="text"
+            class="input"
+            minlength="3"
+            maxlength="200"
+            required
+          />
+        </label>
+
+        <label class="req-edit-field">
+          <span class="req-edit-label">{{ $t('requests.new.fields.description') }}</span>
+          <textarea
+            v-model="editForm.description"
+            class="input"
+            rows="6"
+            minlength="10"
+            maxlength="4000"
+            required
+          />
+        </label>
+
+        <div class="req-edit-row">
+          <label class="req-edit-field">
+            <span class="req-edit-label">{{ $t('requests.new.fields.category') }}</span>
+            <select v-model="editForm.categoryId" class="input">
+              <option
+                v-for="c in categoriesData ?? []"
+                :key="c.id"
+                :value="c.id"
+              >
+                {{ c.name }}
+              </option>
+            </select>
+          </label>
+
+          <label class="req-edit-field">
+            <span class="req-edit-label">{{ $t('requests.new.fields.reward') }}</span>
+            <input
+              v-model.number="editForm.rewardPoints"
+              type="number"
+              class="input"
+              :min="rewardFloor"
+              step="1"
+            />
+          </label>
+        </div>
+
+        <p class="req-edit-hint">{{ $t('requests.edit.bumpOnly') }}</p>
+        <p v-if="rewardDelta > 0" class="req-edit-delta">
+          {{ $t('requests.edit.delta') }} :
+          <strong class="tabular-nums">⊕ {{ formatPoints(rewardDelta) }}</strong>
+        </p>
+      </form>
+
+      <template #footer>
+        <button type="button" class="btn-ghost" @click="editOpen = false">
+          {{ $t('common.cancel') }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          :disabled="!editValid || editSaving"
+          @click="saveEdit"
+        >
+          {{ $t('requests.edit.save') }}
+        </button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -467,6 +556,81 @@ const editing = reactive<{ id: string | null; body: string }>({
   id: null,
   body: '',
 });
+
+/* ── Édition de la demande elle-même ──────────────────────────────────────
+   `PATCH /api/requests/:id` accepte titre, description, catégorie et une
+   hausse de récompense tant que la demande est en `requested`. Les
+   catégories ne sont chargées qu'à l'ouverture du modal : la page de détail
+   est publique et la liste ne sert qu'au propriétaire. */
+const editOpen = ref(false);
+const editSaving = ref(false);
+const editForm = reactive({
+  title: '',
+  description: '',
+  categoryId: '',
+  rewardPoints: 0,
+});
+
+const { data: categoriesData, execute: loadCategories } = await useFetch<
+  Array<{ id: string; name: string; parentId: string | null }>
+>('/api/categories', { immediate: false });
+
+/** Récompense de départ : le supplément est débité, jamais restitué à la baisse. */
+const rewardFloor = computed(() => data.value?.rewardPoints ?? 0);
+const rewardDelta = computed(() =>
+  Math.max(0, (editForm.rewardPoints || 0) - rewardFloor.value),
+);
+const editValid = computed(
+  () =>
+    editForm.title.trim().length >= 3 &&
+    editForm.title.trim().length <= 200 &&
+    editForm.description.trim().length >= 10 &&
+    editForm.description.trim().length <= 4000 &&
+    (editForm.rewardPoints || 0) >= rewardFloor.value,
+);
+
+async function openEdit() {
+  if (!data.value) return;
+  editForm.title = data.value.title;
+  editForm.description = data.value.description;
+  editForm.categoryId = data.value.category?.id ?? '';
+  editForm.rewardPoints = data.value.rewardPoints;
+  editOpen.value = true;
+  if (!categoriesData.value) await loadCategories();
+}
+
+async function saveEdit() {
+  if (!data.value || !editValid.value) return;
+  // N'envoyer que ce qui a bougé : l'endpoint refuse un corps vide, et
+  // réémettre une récompense inchangée déclencherait un débit à zéro.
+  const body: Record<string, string | number> = {};
+  if (editForm.title.trim() !== data.value.title) body.title = editForm.title.trim();
+  if (editForm.description.trim() !== data.value.description) {
+    body.description = editForm.description.trim();
+  }
+  if (editForm.categoryId && editForm.categoryId !== data.value.category?.id) {
+    body.categoryId = editForm.categoryId;
+  }
+  if ((editForm.rewardPoints || 0) !== data.value.rewardPoints) {
+    body.rewardPoints = editForm.rewardPoints || 0;
+  }
+  if (!Object.keys(body).length) {
+    notifications.info(t('requests.edit.noChange'));
+    editOpen.value = false;
+    return;
+  }
+  editSaving.value = true;
+  try {
+    await $fetch(`/api/requests/${id.value}`, { method: 'PATCH', body });
+    await refresh();
+    notifications.success(t('requests.edit.saved'));
+    editOpen.value = false;
+  } catch (e: any) {
+    notifications.error(e?.data?.message ?? t('requests.edit.failed'));
+  } finally {
+    editSaving.value = false;
+  }
+}
 
 const hasAction = computed(() => {
   if (!data.value) return false;
@@ -1500,5 +1664,39 @@ async function fill() {
 @media (prefers-reduced-motion: reduce) {
   .hero { animation: none !important; }
   .hero--requested .hero-status-dot { animation: none !important; }
+}
+
+/* ── Édition de la demande ─────────────────────────────────────────────── */
+.req-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.req-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.req-edit-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: rgb(var(--fg-muted));
+}
+.req-edit-row {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+.req-edit-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgb(var(--fg-muted));
+}
+.req-edit-delta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgb(var(--fg-strong));
 }
 </style>

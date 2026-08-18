@@ -955,6 +955,15 @@
       "commentEditFailed": "Could not edit the comment.",
       "commentDeleteFailed": "Could not delete the comment.",
       "failed": "Action failed. Try again."
+    },
+    "edit": {
+      "title": "Edit request",
+      "bumpOnly": "The reward can only go up: lowering it would mislead anyone already working on a fill.",
+      "delta": "Extra debited",
+      "save": "Save",
+      "saved": "Request updated.",
+      "failed": "Could not update the request.",
+      "noChange": "Nothing changed."
     }
   },
   "security": {

@@ -4,6 +4,14 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 
 ## Released
 
+### v0.24.x — Release sheet builder
+
+- [x] **Release sheet builder** — A four-step wizard at `/torrents/fiche`, reachable from the upload form, that turns a video file into a BBCode release sheet, an NFO and a normalised release name, then hands all three back to the upload form. MediaInfo runs in the browser through WebAssembly and only reads the chunks it asks for, so nothing about the file leaves the machine. Measured quantities are modelled in base units (bit/s, bytes) with the unit kept as a display preference, which is what makes the Kbps/Mbps and MiB/GiB selectors non-destructive. Every dropdown keeps an "Other…" entry, and a value from MediaInfo matching no entry switches to free text by itself. Sending a sheet to the upload form disables only the editor's visual mode — source mode and preview stay available, so the BBCode is still editable and still previewable.
+
+### v0.22.x — Federation
+
+- [x] **Federation (axes 1-4)** — Inter-tracker communication between Trackarr instances, double opt-in at the handshake with per-peer scopes and signed requests. Catalogue mirroring with persisted per-resource cursors, an append-forward create feed plus a separate `catalog-refresh` feed cursored on `torrents.updated_at` so metadata edits and re-approvals propagate to partner mirrors. Tombstone channel for removals. Per-peer row and page caps so a misbehaving partner cannot grow the mirror without bound; Redis lock so a single API replica syncs per tick; silent initial backfill. Federated forum, remote torrent comments, ban-aware identity and reputation lookups, and swarm cross-announce. Verified on a three-instance mesh. See [Federation](./federation.md).
+
 ### v0.21.x — Freeleech pool, observability, security hardening
 
 - [x] **Freeleech pool** — Community-funded pot in the shop: members stake bonus points; when the target is reached a site-wide freeleech fires for a configured duration, then the pool drains and reopens. Admin-tunable target / duration / per-user cap / preset amounts, optional contribution windows (one-off, weekly, monthly, yearly), top-contributor board, and graceful interaction with an already-running bonus event. See [Freeleech pool](./freeleech-pool.md).
@@ -62,9 +70,12 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 
 ## In progress / next
 
+- [ ] **Indexed search** — Torrent search is a `LIKE '%term%'` over `torrents.name`. A leading wildcard cannot use a B-tree index, so every search is a sequential scan that grows with the catalogue, and only the name is searched — not the description, tags or file names. The target is a fast, complete search whose searchable fields are configurable from the admin panel.
+- [ ] **Persisted torrent groups** — Releases of the same work are grouped in the browser, on the current page only, keyed on the external metadata id. Promoting that to a stored group entity would let it survive pagination, carry a group page and aggregate stats. The cross-seed content signatures already answer "these two torrents are the same work".
 - [ ] **User Classes** — Power User, VIP with granular permissions on top of the existing role engine
-- [ ] **Edit UI on requests** — The `PATCH /api/requests/:id` endpoint exists and handles bump-only reward + title/desc/category edits; the inline detail-page form is the missing piece.
 - [ ] **Withdrawn-reports audit trail** — Currently a pending report can be hard-deleted from `/me/reports`. A tombstone for "pattern of withdrawn reports" would help catch bad-faith reporters.
+- [ ] **Federation health view** — `federation_sync_state` records last sync, cursor and error per peer and resource, but nothing reads it back. An operator has no way to answer "is my federation healthy?".
+- [ ] **Protocol version negotiation** — The federation proposal reserves an envelope `v` field and capability negotiation at the handshake. Worth confirming end-to-end before the next protocol bump, so a mixed-version mesh fails loudly rather than drifting.
 
 ---
 
@@ -74,14 +85,13 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 - [ ] **Private Messages** — User-to-user inbox system
 - [ ] **Collages / Collections** — Group torrents by theme
 - [ ] **Theme System** — Custom theme support beyond the built-in dark/light pair
-- [ ] **E2E Tests** — Complete functional test suite
-- [ ] **API Documentation** — OpenAPI/Swagger at `/api/docs`
+- [ ] **E2E Tests** — Complete functional test suite. Priority within this bucket: the money paths (bonus accrual, bounty escrow, freeleech pool), which are the least covered relative to what they move.
+- [ ] **API Documentation** — OpenAPI generated from the Zod schemas already on every route, rather than the hand-written `doc/reference/api.md` that will drift against 244 handlers.
 
 ---
 
 ## Future (v1.x+)
 
-- [ ] Federation — Inter-tracker communication
 - [ ] Mobile app companion
 - [ ] CLI tool for tracker management
 - [ ] Distributed tracker (multi-node)

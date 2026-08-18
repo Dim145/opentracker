@@ -34,6 +34,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 - **Rich media metadata** — TMDb (films + TV), IGDB (games), Open Library + Google Books (books); user locale drives the lookup language.
 - **Smart media-id paste** — drop an IMDb / TMDb / TVDB / IGDB slug or ISBN into search to filter the listing.
 - **Dedicated upload page** — auto title + tags from filename, multi-source search picker, duplicate preflight, conditional ID block per category, Tiptap WYSIWYG description, NFO drag-drop (CP437 → UTF-8).
+- **Release sheet builder** — a four-step wizard at `/torrents/fiche` turns a video file into a BBCode sheet, an NFO and a normalised release name, then hands all three to the upload form. MediaInfo runs **in the browser** through WebAssembly and reads only the chunks it asks for, so a 40 GB remux is analysed without ever being uploaded. Every dropdown keeps an "Other…" entry, and bitrate/size unit selectors change the frame of reference without touching the value.
 - **Operator console** — `/admin` covers users, categories, roles, invites, branding, panic, tags, Torznab, reports, HnR.
 - **Notification fan-out** — every event-emitting route hits Postgres + Redis pub/sub + the user's chosen external transport (SMTP, Telegram, Discord, ntfy, Gotify, Pushover, Slack, Mattermost, webhook, Apprise, **Web Push**).
 

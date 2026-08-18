@@ -955,6 +955,15 @@
       "commentEditFailed": "Impossible d'éditer le commentaire.",
       "commentDeleteFailed": "Impossible de supprimer le commentaire.",
       "failed": "Action impossible. Réessayez."
+    },
+    "edit": {
+      "title": "Éditer la demande",
+      "bumpOnly": "La récompense ne peut qu’être augmentée : la baisser tromperait ceux qui se sont déjà positionnés.",
+      "delta": "Supplément prélevé",
+      "save": "Enregistrer",
+      "saved": "Demande mise à jour.",
+      "failed": "Impossible de mettre à jour la demande.",
+      "noChange": "Aucune modification."
     }
   },
   "security": {
