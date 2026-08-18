@@ -3199,6 +3199,25 @@
           "responseUnit": "ms"
         }
       }
+    },
+    "search": {
+      "title": "Search",
+      "description": "Choose what the search bar looks through. Each enabled field adds a full-text index to the query; an unchecked field is not read at all.",
+      "fields": "Fields searched",
+      "fieldsHint": "Searching by infohash or by IMDb / TMDb / TVDB link does not go through here — it stays available regardless.",
+      "noneWarning": "No field enabled: free-text search will return nothing.",
+      "field": {
+        "name": "Title",
+        "description": "Description",
+        "nfo": "NFO",
+        "tags": "Tags"
+      },
+      "fieldHint": {
+        "name": "The release name. Leave this on in almost every case.",
+        "description": "The write-up supplied by the uploader.",
+        "nfo": "Long and often noisy text (file listings, ASCII art): can drown out relevant hits.",
+        "tags": "Costs a subquery over tags — small, but not free."
+      }
     }
   },
   "mod": {

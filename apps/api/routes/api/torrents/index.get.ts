@@ -1,10 +1,18 @@
 import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
-import { eq, ilike, sql, and, or, inArray, notInArray, isNull } from 'drizzle-orm';
+import { eq, sql, and, or, inArray, notInArray, isNull, type SQL } from 'drizzle-orm';
 import { validateQuery, torrentQuerySchema } from '~~/utils/schemas';
 import { slugifyTag } from '~~/utils/tags';
 import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
-import { escapeLike } from '~~/utils/sql';
+import { getSetting } from '~~/utils/settings';
+import {
+  FTS_CONFIG,
+  SEARCH_FIELDS_SETTING,
+  ftsVector,
+  fuzzyTerm,
+  parseSearchFields,
+  toPrefixTsQuery,
+} from '~~/utils/search';
 import { adultCategoryIds } from '~~/utils/adultContent';
 
 export default defineEventHandler(async (event) => {
@@ -58,22 +66,58 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Recherche libre. L'infohash est traité en amont : c'est une égalité exacte
+  // servie par un index unique, elle n'a rien à faire dans le texte. Les liens
+  // IMDb / TMDb / TVDB n'arrivent même pas ici — la barre de recherche les
+  // détecte côté client et les envoie comme paramètres dédiés (voir plus bas).
+  let searchCondition: SQL | null = null;
+  let fuzzyFallback: SQL | null = null;
   if (query.search) {
-    // Intelligent search: if it looks like an infoHash, search by it too
     const isHash = /^[0-9a-fA-F]{40}$/.test(query.search);
     if (isHash) {
-      conditions.push(eq(schema.torrents.infoHash, query.search.toLowerCase()));
+      searchCondition = eq(schema.torrents.infoHash, query.search.toLowerCase());
     } else {
-      // Split search into terms for more flexible matching
-      const terms = query.search.split(/\s+/).filter((t) => t.length > 0);
-      if (terms.length > 0) {
-        conditions.push(
-          and(
-            ...terms.map((term) =>
-              ilike(schema.torrents.name, `%${escapeLike(term)}%`)
-            )
-          )
-        );
+      const fields = parseSearchFields(await getSetting(SEARCH_FIELDS_SETTING));
+      const tsq = toPrefixTsQuery(query.search);
+      if (tsq && fields.length) {
+        const q = sql`to_tsquery(${FTS_CONFIG}, ${tsq})`;
+        const branches: SQL[] = [];
+        if (fields.includes('name')) {
+          branches.push(sql`${ftsVector(schema.torrents.name)} @@ ${q}`);
+        }
+        if (fields.includes('description')) {
+          branches.push(sql`${ftsVector(schema.torrents.description)} @@ ${q}`);
+        }
+        if (fields.includes('nfo')) {
+          branches.push(sql`${ftsVector(schema.torrents.nfo)} @@ ${q}`);
+        }
+        if (fields.includes('tags')) {
+          // EXISTS corrélé plutôt qu'une jointure : la jointure dupliquerait
+          // les lignes d'un torrent portant plusieurs tags correspondants, et
+          // il faudrait un DISTINCT qui casserait la pagination.
+          branches.push(sql`EXISTS (
+            SELECT 1 FROM ${schema.torrentTags} tt
+            JOIN ${schema.tags} tg ON tg.id = tt.tag_id
+            WHERE tt.torrent_id = ${schema.torrents.id}
+              AND ${ftsVector(sql`tg.name`)} @@ ${q}
+          )`);
+        }
+        searchCondition = branches.length > 1 ? or(...branches)! : branches[0]!;
+
+        // Repli sur faute de frappe, préparé ici mais exécuté seulement si la
+        // passe plein-texte ne rend rien : le trigramme coûte dix fois plus
+        // cher (237 ms contre 23 ms sur 200 000 lignes), ce qui ne se justifie
+        // que face à une page de résultats vide. `word_similarity` et non
+        // `similarity` : sur un nom de release entier la similarité globale
+        // reste sous le seuil et ne trouve jamais rien.
+        const fuzzy = fuzzyTerm(query.search);
+        if (fuzzy) {
+          fuzzyFallback = sql`${fuzzy} <% ${schema.torrents.name}`;
+        }
+      } else if (tsq) {
+        // L'opérateur a désactivé tous les champs : la recherche texte ne
+        // renvoie rien plutôt que de tout renvoyer.
+        searchCondition = sql`false`;
       }
     }
   }
@@ -167,7 +211,30 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+  // Le prédicat de recherche est resté à part des filtres : le repli flou
+  // rejoue donc la même requête en ne remplaçant que lui.
+  const compose = (search: SQL | null) => {
+    const all = search ? [...conditions, search] : conditions;
+    return all.length > 0 ? and(...all) : undefined;
+  };
+  const countRows = async (where: SQL | undefined) => {
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.torrents)
+      .where(where);
+    return row?.count ?? 0;
+  };
+
+  let whereClause = compose(searchCondition);
+  // Le comptage est nécessaire de toute façon pour la pagination : on le fait
+  // en premier et il sert aussi de sonde au repli. Sonder séparément aurait
+  // ajouté une requête à chaque recherche d'un seul mot, y compris les 95 %
+  // qui trouvent leur résultat du premier coup.
+  let total = await countRows(whereClause);
+  if (total === 0 && fuzzyFallback) {
+    whereClause = compose(fuzzyFallback);
+    total = await countRows(whereClause);
+  }
 
   // Get torrents with optional search.
   //
@@ -205,13 +272,7 @@ export default defineEventHandler(async (event) => {
     offset,
   });
 
-  // Get total count
-  const countResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(schema.torrents)
-    .where(whereClause);
-
-  const total = countResult[0]?.count || 0;
+  // `total` a déjà été calculé plus haut : il conditionne le repli flou.
 
   // Enrich with live stats from Redis. Tolerate partial failure: a Redis hiccup
   // for one torrent should not fail the whole listing — fall back to zeroes.

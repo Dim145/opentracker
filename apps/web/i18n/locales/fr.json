@@ -3199,6 +3199,25 @@
           "responseUnit": "ms"
         }
       }
+    },
+    "search": {
+      "title": "Recherche",
+      "description": "Choisissez ce que balaie la barre de recherche. Chaque champ activé ajoute un index plein-texte à la requête ; un champ décoché n’est pas lu du tout.",
+      "fields": "Champs balayés",
+      "fieldsHint": "La recherche par infohash et par lien IMDb / TMDb / TVDB ne passe pas par ici : elle reste active quoi qu’il arrive.",
+      "noneWarning": "Aucun champ activé : la recherche libre ne renverra plus rien.",
+      "field": {
+        "name": "Titre",
+        "description": "Description",
+        "nfo": "NFO",
+        "tags": "Tags"
+      },
+      "fieldHint": {
+        "name": "Le nom de la release. À laisser actif dans la quasi-totalité des cas.",
+        "description": "Le texte de présentation rédigé par l’uploadeur.",
+        "nfo": "Texte long et souvent bruyant (listings, ASCII art) : peut noyer les résultats pertinents.",
+        "tags": "Coûte une sous-requête sur les tags, négligeable mais non nulle."
+      }
     }
   },
   "mod": {

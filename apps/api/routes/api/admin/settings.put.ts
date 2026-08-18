@@ -16,6 +16,15 @@ export default defineEventHandler(async (event) => {
   // Validate request body with Zod
   const body = await validateBody(event, adminSettingsSchema);
 
+  if (body.searchFields !== undefined) {
+    // Dédupliqué et stocké en CSV : la liste est courte et un tableau JSON
+    // n'apporterait rien de plus qu'un format à parser des deux côtés.
+    await setSetting(
+      SETTINGS_KEYS.SEARCH_FIELDS,
+      [...new Set(body.searchFields)].join(',')
+    );
+  }
+
   if (typeof body.registrationOpen === 'boolean') {
     await setRegistrationOpen(body.registrationOpen);
   }

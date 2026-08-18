@@ -1,4 +1,6 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { getSetting } from '~~/utils/settings';
+import { SEARCH_FIELDS_SETTING, parseSearchFields } from '~~/utils/search';
 import {
   isRegistrationOpen,
   getMinRatio,
@@ -81,6 +83,9 @@ export default defineEventHandler(async (event) => {
     await getNotificationsRetentionReadDays();
   const notificationsRetentionUnreadDays =
     await getNotificationsRetentionUnreadDays();
+  const searchFields = parseSearchFields(
+    await getSetting(SEARCH_FIELDS_SETTING)
+  );
   const requestAutoValidateHours = await getRequestAutoValidateHours();
   const requestMaxFillsPerUser = await getRequestMaxFillsPerUser();
 
@@ -120,5 +125,6 @@ export default defineEventHandler(async (event) => {
     notificationsRetentionUnreadDays,
     requestAutoValidateHours,
     requestMaxFillsPerUser,
+    searchFields,
   };
 });

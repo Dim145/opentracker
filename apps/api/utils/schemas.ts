@@ -162,6 +162,13 @@ export const adminCategorySchema = z.object({
 });
 
 export const adminSettingsSchema = z.object({
+  // Champs balayés par la recherche libre. Le tableau vide est accepté : c'est
+  // le choix explicite « pas de recherche texte », distinct de l'absence de
+  // clé qui laisse le réglage inchangé.
+  searchFields: z
+    .array(z.enum(['name', 'description', 'nfo', 'tags']))
+    .max(4)
+    .optional(),
   registrationOpen: z.boolean().optional(),
   inviteEnabled: z.boolean().optional(),
   defaultInvites: z.coerce.number().int().min(0).max(100).optional(),
