@@ -169,6 +169,7 @@ export const adminSettingsSchema = z.object({
     .array(z.enum(['name', 'description', 'nfo', 'tags']))
     .max(4)
     .optional(),
+  searchFuzzy: z.boolean().optional(),
   registrationOpen: z.boolean().optional(),
   inviteEnabled: z.boolean().optional(),
   defaultInvites: z.coerce.number().int().min(0).max(100).optional(),

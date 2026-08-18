@@ -3217,7 +3217,10 @@
         "description": "The write-up supplied by the uploader.",
         "nfo": "Long and often noisy text (file listings, ASCII art): can drown out relevant hits.",
         "tags": "Costs a subquery over tags — small, but not free."
-      }
+      },
+      "fuzzy": "Typo tolerance",
+      "fuzzyLabel": "Catch typos",
+      "fuzzyHint": "When a search finds nothing, a second pass looks for near matches — “crimsen” finds “Crimson”. It only runs against an otherwise empty page, but costs roughly ten times a normal search. Turn it off if the catalogue grows large or the server is under strain."
     }
   },
   "mod": {

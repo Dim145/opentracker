@@ -1,6 +1,11 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { getSetting } from '~~/utils/settings';
-import { SEARCH_FIELDS_SETTING, parseSearchFields } from '~~/utils/search';
+import {
+  SEARCH_FIELDS_SETTING,
+  SEARCH_FUZZY_SETTING,
+  parseSearchFields,
+  parseSearchFuzzy,
+} from '~~/utils/search';
 import {
   isRegistrationOpen,
   getMinRatio,
@@ -86,6 +91,7 @@ export default defineEventHandler(async (event) => {
   const searchFields = parseSearchFields(
     await getSetting(SEARCH_FIELDS_SETTING)
   );
+  const searchFuzzy = parseSearchFuzzy(await getSetting(SEARCH_FUZZY_SETTING));
   const requestAutoValidateHours = await getRequestAutoValidateHours();
   const requestMaxFillsPerUser = await getRequestMaxFillsPerUser();
 
@@ -126,5 +132,6 @@ export default defineEventHandler(async (event) => {
     requestAutoValidateHours,
     requestMaxFillsPerUser,
     searchFields,
+    searchFuzzy,
   };
 });

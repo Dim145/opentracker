@@ -8,9 +8,11 @@ import { getSetting } from '~~/utils/settings';
 import {
   FTS_CONFIG,
   SEARCH_FIELDS_SETTING,
+  SEARCH_FUZZY_SETTING,
   ftsVector,
   fuzzyTerm,
   parseSearchFields,
+  parseSearchFuzzy,
   toPrefixTsQuery,
 } from '~~/utils/search';
 import { adultCategoryIds } from '~~/utils/adultContent';
@@ -111,7 +113,7 @@ export default defineEventHandler(async (event) => {
         // `similarity` : sur un nom de release entier la similarité globale
         // reste sous le seuil et ne trouve jamais rien.
         const fuzzy = fuzzyTerm(query.search);
-        if (fuzzy) {
+        if (fuzzy && parseSearchFuzzy(await getSetting(SEARCH_FUZZY_SETTING))) {
           fuzzyFallback = sql`${fuzzy} <% ${schema.torrents.name}`;
         }
       } else if (tsq) {

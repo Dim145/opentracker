@@ -25,6 +25,13 @@ export default defineEventHandler(async (event) => {
     );
   }
 
+  if (typeof body.searchFuzzy === 'boolean') {
+    await setSetting(
+      SETTINGS_KEYS.SEARCH_FUZZY,
+      body.searchFuzzy ? 'true' : 'false'
+    );
+  }
+
   if (typeof body.registrationOpen === 'boolean') {
     await setRegistrationOpen(body.registrationOpen);
   }

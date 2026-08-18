@@ -3217,7 +3217,10 @@
         "description": "Le texte de présentation rédigé par l’uploadeur.",
         "nfo": "Texte long et souvent bruyant (listings, ASCII art) : peut noyer les résultats pertinents.",
         "tags": "Coûte une sous-requête sur les tags, négligeable mais non nulle."
-      }
+      },
+      "fuzzy": "Tolérance aux fautes de frappe",
+      "fuzzyLabel": "Rattraper les fautes de frappe",
+      "fuzzyHint": "Quand la recherche ne trouve rien, une seconde passe cherche les titres approchants — « crimsen » retrouve « Crimson ». Elle ne s’exécute que face à une page vide, mais coûte environ dix fois une recherche normale. À couper si le catalogue devient trop gros ou le serveur trop chargé."
     }
   },
   "mod": {

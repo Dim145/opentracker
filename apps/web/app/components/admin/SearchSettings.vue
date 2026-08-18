@@ -58,6 +58,18 @@
         {{ $t('admin.search.noneWarning') }}
       </p>
 
+      <SettingsGroup
+        :label="$t('admin.search.fuzzy')"
+        :description="$t('admin.search.fuzzyHint')"
+      >
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input v-model="fuzzy" type="checkbox" class="mt-0.5 accent-text-primary" />
+          <span class="text-sm text-text-primary">
+            {{ $t('admin.search.fuzzyLabel') }}
+          </span>
+        </label>
+      </SettingsGroup>
+
       <button
         :disabled="loading || saved"
         class="w-full text-[10px] font-bold uppercase tracking-widest py-2.5 rounded transition-all disabled:opacity-50 flex items-center justify-center gap-2"
@@ -88,16 +100,19 @@ const FIELDS = ['name', 'description', 'nfo', 'tags'] as const;
 type Field = (typeof FIELDS)[number];
 
 const fields = ref<Field[]>(['name', 'description']);
+// Actif par défaut : sans lui, une faute de frappe rend une page vide.
+const fuzzy = ref(true);
 const loading = ref(false);
 const saved = ref(false);
 
-const { data } = await useFetch<{ searchFields?: Field[] }>(
+const { data } = await useFetch<{ searchFields?: Field[]; searchFuzzy?: boolean }>(
   '/api/admin/settings',
 );
 watch(
   data,
   (v) => {
     if (Array.isArray(v?.searchFields)) fields.value = [...v.searchFields];
+    if (typeof v?.searchFuzzy === 'boolean') fuzzy.value = v.searchFuzzy;
   },
   { immediate: true },
 );
@@ -110,7 +125,10 @@ async function save() {
     // soit l'ordre dans lequel les cases ont été cochées.
     await $fetch('/api/admin/settings', {
       method: 'PUT',
-      body: { searchFields: FIELDS.filter((f) => fields.value.includes(f)) },
+      body: {
+        searchFields: FIELDS.filter((f) => fields.value.includes(f)),
+        searchFuzzy: fuzzy.value,
+      },
     });
     saved.value = true;
     setTimeout(() => (saved.value = false), 2000);

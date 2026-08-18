@@ -49,6 +49,23 @@ export function parseSearchFields(raw: string | null | undefined): SearchField[]
   return raw.trim() === '' ? [] : parsed.length ? parsed : DEFAULT_SEARCH_FIELDS;
 }
 
+/** Clé de `settings` activant le repli sur faute de frappe. */
+export const SEARCH_FUZZY_SETTING = 'search_fuzzy';
+
+/**
+ * Repli sur faute de frappe : actif par défaut.
+ *
+ * C'est ce qui évite une page vide à qui tape « crimsen » pour « crimson », mais
+ * la passe `word_similarity` coûte environ dix fois une recherche plein-texte
+ * (204 ms contre 52 sur 200 000 lignes). Sur un catalogue devenu trop gros ou un
+ * serveur sous tension, un opérateur doit pouvoir la couper sans toucher au
+ * reste de la recherche — d'où un réglage distinct des champs balayés.
+ */
+export function parseSearchFuzzy(raw: string | null | undefined): boolean {
+  if (raw === null || raw === undefined) return true;
+  return raw.trim().toLowerCase() !== 'false';
+}
+
 /**
  * Requête tsquery avec complétion sur le dernier terme.
  *
