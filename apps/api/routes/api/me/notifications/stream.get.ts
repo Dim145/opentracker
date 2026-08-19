@@ -94,7 +94,7 @@ export default defineEventHandler(async (event) => {
   // Throttle the connection-open rate — one EventSource open is a single
   // HTTP request the DDoS gate counts once, so this is what bounds how
   // fast a client can spin up streams (finding M9).
-  await rateLimit(event, RATE_LIMITS.public);
+  await rateLimit(event, RATE_LIMITS.stream);
 
   // Per-user + per-process connection caps.
   const current = writersByUser.get(user.id);

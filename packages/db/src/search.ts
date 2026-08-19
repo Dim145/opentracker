@@ -31,5 +31,11 @@ export const FTS_CONFIG = 'simple';
  * and the query could no longer use it.
  */
 export function ftsVector(column: AnyColumn | SQL): SQL {
+  // `sql.raw` is REQUIRED here and must stay. This same expression is what
+  // `schema.ts` emits as the GIN index definition, and an index expression
+  // has to be immutable and literal — a bound parameter is invalid DDL, and
+  // even in the query position it would stop the planner from matching the
+  // indexed expression, silently turning every search into a sequential scan.
+  // `FTS_CONFIG` is a module constant, never user input.
   return sql`to_tsvector(${sql.raw(`'${FTS_CONFIG}'`)}, coalesce(${column}, ''))`;
 }

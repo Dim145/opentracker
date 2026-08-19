@@ -140,6 +140,7 @@ export async function syncPeerCatalogue(peer: FederationPeer): Promise<SyncResul
         pathname,
         instanceId: config!.instanceId,
         privateKeyPem,
+        audienceInstanceId: peer.instanceId ?? undefined,
       });
       if (res.status !== 200 || !res.data?.ok || !Array.isArray(res.data.items)) {
         throw new Error(res.data?.message || `HTTP ${res.status}`);
@@ -398,6 +399,7 @@ async function syncPeerRemovals(
         pathname: `/api/federation/catalog-removals?${qs.toString()}`,
         instanceId,
         privateKeyPem,
+        audienceInstanceId: peer.instanceId ?? undefined,
       });
       if (res.status !== 200 || !res.data?.ok || !Array.isArray(res.data.items)) {
         throw new Error(res.data?.message || `HTTP ${res.status}`);
@@ -466,6 +468,7 @@ async function syncPeerStats(
       pathname: `/api/federation/catalog-stats?${qs.toString()}`,
       instanceId,
       privateKeyPem,
+      audienceInstanceId: peer.instanceId ?? undefined,
     });
     if (res.status !== 200 || !res.data?.ok || !Array.isArray(res.data.items)) {
       throw new Error(res.data?.message || `HTTP ${res.status}`);
@@ -544,6 +547,7 @@ async function syncPeerRefresh(
         pathname: `/api/federation/catalog-refresh?${qs.toString()}`,
         instanceId,
         privateKeyPem,
+        audienceInstanceId: peer.instanceId ?? undefined,
       });
       if (res.status !== 200 || !res.data?.ok || !Array.isArray(res.data.items)) {
         throw new Error(res.data?.message || `HTTP ${res.status}`);

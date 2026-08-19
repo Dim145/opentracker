@@ -9,7 +9,7 @@ import { mintChallengeToken, markFreshAuth } from '~~/utils/twoFactor';
 import { consumeTrustedDevice } from '~~/utils/trustedDevices';
 import { notify } from '~~/utils/notify';
 import { liftExpiredBan } from '~~/utils/banExpiry';
-import { decryptSecret, encryptSecretRequired, looksEncrypted } from '~~/utils/credentialSecrets';
+import { decryptSecret, encryptSecretRequired, needsRewrite } from '~~/utils/credentialSecrets';
 
 /**
  * POST /api/auth/login
@@ -86,10 +86,11 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Lazy migration: a proven-correct login is the safe moment to upgrade a
-  // legacy plaintext verifier in place. Fire-and-forget — a failure here
-  // must never cost the user their login, the next one retries.
-  if (!looksEncrypted(user.authVerifier)) {
+  // Lazy migration: a proven-correct login is the safe moment to write the
+  // verifier back under the current key — whether it was legacy plaintext or
+  // only readable through CREDENTIAL_ENCRYPTION_KEY_PREVIOUS. Fire-and-forget:
+  // a failure here must never cost the user their login, the next one retries.
+  if (needsRewrite(user.authVerifier)) {
     void db
       .update(users)
       .set({ authVerifier: encryptSecretRequired(storedVerifier) })

@@ -108,6 +108,9 @@ change them.
 | `TRUST_PROXY`             | api, tracker | `false`                     | See *Tracker* — same flag, same semantics, same caveats.            |
 | `TRUST_CF_CONNECTING_IP`  | api, tracker | `false`                     | See *Tracker* — only enable behind Cloudflare with locked ingress.  |
 | `SAFE_FETCH_ALLOW_HOSTS`  | api     | — (empty)                        | Comma-separated exact hostnames allowed to bypass the SSRF private/loopback block. Needed only to federate with a peer reachable over a private network (LAN / VPN / docker service name). List trusted peer hosts only; empty leaves SSRF protection unchanged. |
+| `CREDENTIAL_ENCRYPTION_KEY` | api   | falls back to `CHANNEL_ENCRYPTION_KEY`, then `NUXT_SESSION_SECRET` | AES key for the two account secrets at rest: `users.auth_verifier` (which IS the login credential, not a hash of it) and `users.totp_secret`. Set it to keep credentials separate from notification-channel secrets. Generate with `openssl rand -hex 32`. |
+| `CREDENTIAL_ENCRYPTION_SALT` | api  | `trackarr:credentials:v1`        | KDF salt for the key above. **Never change it on a deployment that already holds encrypted credentials** — every account would stop being able to log in. |
+| `FEDERATION_REQUIRE_AUDIENCE` | api | `false`                          | Refuse an inbound S2S request that carries only the audience-less v1 signature. Signed requests now bind the recipient's `instanceId`, which stops one partner replaying a signed request to another; until every peer runs a version that emits it, an attacker can strip the v2 header and downgrade. Turn this on once all partners are upgraded. |
 
 ## Two-factor auth & WebAuthn
 

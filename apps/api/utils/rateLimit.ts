@@ -507,6 +507,14 @@ export const RATE_LIMITS = {
 
   // Download - moderate
   download: { windowSec: 60, maxRequests: 20, prefix: 'dl' },
+
+  // Long-lived SSE stream. Its own bucket on purpose: a stream is not a read,
+  // it is one connection that re-establishes on every interruption — container
+  // restart, network flap, tab wake. Sharing `public` meant a handful of
+  // reconnections burned the quota and then failed the session's ORDINARY
+  // reads, while the client looped on 429s. Sized for reconnection, not for
+  // browsing.
+  stream: { windowSec: 60, maxRequests: 12, prefix: 'sse', progressive: false },
 };
 
 // ============================================================================

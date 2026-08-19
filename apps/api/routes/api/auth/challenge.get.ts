@@ -8,8 +8,17 @@ import { randomBytes, createHmac } from 'crypto';
 import { db } from '@trackarr/db';
 import { users } from '@trackarr/db/schema';
 import { redis } from '~~/utils/server';
+import { rateLimit } from '~~/utils/rateLimit';
 
 const CHALLENGE_TTL = 300; // 5 minutes
+
+/** 20 challenges per 5 min per IP, with the progressive penalty. */
+const CHALLENGE_LIMIT = {
+  windowSec: 300,
+  maxRequests: 20,
+  prefix: 'challenge',
+  progressive: true,
+} as const;
 
 // Stable per-process key for deriving the *fake* salt of non-existent
 // accounts. Prefer NUXT_SESSION_SECRET (always set, >=32 chars); fall
@@ -36,6 +45,16 @@ function fakeSaltFor(username: string): string {
 }
 
 export default defineEventHandler(async (event) => {
+  // The only auth route that had no limit. Enumeration is already closed by
+  // the deterministic fake salt, but every call still costs a `SELECT` on
+  // `users` AND writes a Redis key with a 5-minute TTL — including the
+  // `login:fake:*` keys, which nothing ever consumes. Unbounded, that is a
+  // slow memory drain on Redis for the price of an unauthenticated GET.
+  //
+  // More generous than RATE_LIMITS.auth: a challenge is not an attempt, and a
+  // legitimate client fetches one per login screen, sometimes twice if the
+  // user retypes their name.
+  await rateLimit(event, CHALLENGE_LIMIT);
   const query = getQuery(event);
   const username = (query.username as string)?.trim();
   

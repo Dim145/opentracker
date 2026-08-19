@@ -86,6 +86,7 @@ export default defineEventHandler(async (event) => {
       body: { acceptsFromYou: acceptsFromThem, sharesWithYou: sharesWithThem },
       instanceId: live.instanceId,
       privateKeyPem,
+      audienceInstanceId: peer.instanceId ?? undefined,
     });
     await db
       .update(schema.federationPeers)

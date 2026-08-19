@@ -110,6 +110,9 @@ export default defineEventHandler(async (event) => {
       },
       instanceId: live.instanceId,
       privateKeyPem,
+      // No audience: the handshake is the exchange that TEACHES us the
+      // partner's instanceId, so there is nothing to bind to yet. This is the
+      // one call that stays v1-only by construction.
     });
 
     if (res.status !== 200 || !res.data?.instance?.publicKey) {

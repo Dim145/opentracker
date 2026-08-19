@@ -1,4 +1,5 @@
 import { securityLogger } from './logger';
+import { safeFetch } from './safeFetch';
 
 export interface SecurityAlert {
   type: SecurityAlertType;
@@ -142,7 +143,13 @@ async function sendToWebhook(
       payload = alert;
     }
 
-    const response = await fetch(webhookUrl, {
+    // safeFetch, not fetch — every other operator-configured URL in this
+    // codebase goes through it. The URL itself comes from the environment so
+    // there is no privilege escalation here, but a raw fetch follows
+    // redirects blindly: a hijacked webhook endpoint could 302 the alert —
+    // which carries IPs, usernames and incident detail — to an arbitrary
+    // host, or at an internal address.
+    const response = await safeFetch(webhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

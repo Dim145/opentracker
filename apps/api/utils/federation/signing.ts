@@ -39,6 +39,38 @@ function signingString(
   return `${method.toUpperCase()}\n${pathname}\n${date}\n${digest}`;
 }
 
+/**
+ * Signing string v2 — same fields plus the AUDIENCE, i.e. the instanceId of
+ * the partner the request is addressed to.
+ *
+ * v1 binds the method, the path, the clock and the body, but says nothing
+ * about *who the request was for*. A signed request received by peer B can
+ * therefore be replayed verbatim to peer C within the ±5 min window, as long
+ * as C also trusts the sender — the anti-replay nonce store is local to each
+ * instance, so C has never seen it. The impact is modest (the scoped
+ * endpoints are reads the sender is already entitled to), but binding the
+ * audience is the standard fix and RFC 9421 names the same component
+ * (`@authority`).
+ *
+ * Rolled out without a flag day: the sender emits BOTH signatures, the
+ * receiver prefers v2 when present. Until every peer in a mesh emits v2, an
+ * attacker can still strip the v2 header and downgrade to v1 — which is why
+ * `FEDERATION_REQUIRE_AUDIENCE=true` exists. Turn it on once all partners run
+ * this version or newer; after that a v1-only request is refused.
+ */
+function signingStringV2(
+  method: string,
+  pathname: string,
+  date: string,
+  digest: string,
+  audience: string,
+): string {
+  return `${method.toUpperCase()}\n${pathname}\n${date}\n${digest}\n${audience}`;
+}
+
+/** Refuse a request that carries only the audience-less v1 signature. */
+const REQUIRE_AUDIENCE = process.env.FEDERATION_REQUIRE_AUDIENCE === 'true';
+
 export type SignedHeaders = Record<string, string>;
 
 export function buildSignedHeaders(opts: {
@@ -47,20 +79,35 @@ export function buildSignedHeaders(opts: {
   body: string;
   instanceId: string;
   privateKeyPem: string;
+  /** Recipient's instanceId. Unknown during the handshake, which is the one
+   *  exchange that bootstraps it — v1 only there. */
+  audienceInstanceId?: string;
 }): SignedHeaders {
   const date = new Date().toISOString();
   const digest = digestOf(opts.body);
-  const signature = signPayload(
-    opts.privateKeyPem,
-    signingString(opts.method, opts.pathname, date, digest),
-  );
-  return {
+  const headers: SignedHeaders = {
     'content-type': 'application/json',
     'x-trackarr-instance': opts.instanceId,
     'x-trackarr-date': date,
     'x-trackarr-digest': digest,
-    'x-trackarr-signature': signature,
+    'x-trackarr-signature': signPayload(
+      opts.privateKeyPem,
+      signingString(opts.method, opts.pathname, date, digest),
+    ),
   };
+  if (opts.audienceInstanceId) {
+    headers['x-trackarr-signature-v2'] = signPayload(
+      opts.privateKeyPem,
+      signingStringV2(
+        opts.method,
+        opts.pathname,
+        date,
+        digest,
+        opts.audienceInstanceId,
+      ),
+    );
+  }
+  return headers;
 }
 
 export interface VerifyResult {
@@ -81,6 +128,9 @@ export function verifySignedRequest(opts: {
   rawBody: string;
   headers: Record<string, string | undefined>;
   publicKeyPem: string;
+  /** OUR instanceId. Never read from the request — the audience is only
+   *  meaningful because the receiver supplies it from its own config. */
+  expectedAudience?: string;
 }): VerifyResult {
   const instanceId = opts.headers['x-trackarr-instance'];
   const date = opts.headers['x-trackarr-date'];
@@ -97,6 +147,36 @@ export function verifySignedRequest(opts: {
   if (digestOf(opts.rawBody) !== digest) {
     return { ok: false, reason: 'digest mismatch', instanceId };
   }
+  const signatureV2 = opts.headers['x-trackarr-signature-v2'];
+
+  if (signatureV2 && opts.expectedAudience) {
+    const valid = verifyPayload(
+      opts.publicKeyPem,
+      signingStringV2(
+        opts.method,
+        opts.pathname,
+        date,
+        digest,
+        opts.expectedAudience,
+      ),
+      signatureV2,
+    );
+    // A v2 signature that does not verify is a hard failure, never a reason
+    // to fall back to v1: that fallback would be the downgrade itself.
+    if (!valid) {
+      return { ok: false, reason: 'bad signature (audience)', instanceId };
+    }
+    return { ok: true, instanceId };
+  }
+
+  if (REQUIRE_AUDIENCE) {
+    return {
+      ok: false,
+      reason: 'audience-bound signature required (FEDERATION_REQUIRE_AUDIENCE)',
+      instanceId,
+    };
+  }
+
   const valid = verifyPayload(
     opts.publicKeyPem,
     signingString(opts.method, opts.pathname, date, digest),
@@ -123,6 +203,7 @@ export async function signedPost(opts: {
   body: unknown;
   instanceId: string;
   privateKeyPem: string;
+  audienceInstanceId?: string;
   timeoutMs?: number;
 }): Promise<SignedResponse> {
   const bodyStr = JSON.stringify(opts.body ?? {});
@@ -132,6 +213,7 @@ export async function signedPost(opts: {
     body: bodyStr,
     instanceId: opts.instanceId,
     privateKeyPem: opts.privateKeyPem,
+    audienceInstanceId: opts.audienceInstanceId,
   });
   const url = new URL(opts.pathname, opts.baseUrl).toString();
 
@@ -176,6 +258,7 @@ export async function signedGet(opts: {
     body: '',
     instanceId: opts.instanceId,
     privateKeyPem: opts.privateKeyPem,
+    audienceInstanceId: opts.audienceInstanceId,
   });
   const url = new URL(opts.pathname, opts.baseUrl).toString();
   const controller = new AbortController();

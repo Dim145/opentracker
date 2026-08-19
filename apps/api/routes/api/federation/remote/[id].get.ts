@@ -64,6 +64,7 @@ export default defineEventHandler(async (event) => {
           pathname: `/api/federation/torrent-comments?infoHash=${encodeURIComponent(rt.infoHash)}`,
           instanceId: config!.instanceId,
           privateKeyPem: pk,
+          audienceInstanceId: peer.instanceId ?? undefined,
         });
         if (res.status === 200 && Array.isArray(res.data?.comments)) {
           comments = (res.data.comments as unknown[]).slice(0, 200).map((c) => {

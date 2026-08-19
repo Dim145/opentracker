@@ -32,13 +32,31 @@
  * the next time it is written; the login handler additionally upgrades the
  * row in place once a proof has been verified.
  */
-import { scryptSync } from 'crypto';
+import { createHmac, scryptSync } from 'crypto';
 import { encrypt, decrypt } from './panic';
 
-let cachedKey: Buffer | null = null;
+let cachedKeys: { current: Buffer; previous: Buffer | null } | null = null;
 
-function getKey(): Buffer {
-  if (cachedKey) return cachedKey;
+function salt(): string {
+  return process.env.CREDENTIAL_ENCRYPTION_SALT || 'trackarr:credentials:v1';
+}
+
+function derive(raw: string, where: string): Buffer {
+  if (raw.length < 32) {
+    throw new Error(
+      `[credentialSecrets] ${where} must be at least 32 characters. Generate one with \`openssl rand -hex 32\`.`,
+    );
+  }
+  return scryptSync(raw, salt(), 32) as Buffer;
+}
+
+/** True when the key was inherited rather than set for this purpose. */
+export function usingInheritedKey(): boolean {
+  return !process.env.CREDENTIAL_ENCRYPTION_KEY;
+}
+
+function getKeys(): { current: Buffer; previous: Buffer | null } {
+  if (cachedKeys) return cachedKeys;
   const raw =
     process.env.CREDENTIAL_ENCRYPTION_KEY ||
     process.env.CHANNEL_ENCRYPTION_KEY ||
@@ -48,18 +66,37 @@ function getKey(): Buffer {
       '[credentialSecrets] No CREDENTIAL_ENCRYPTION_KEY / CHANNEL_ENCRYPTION_KEY / NUXT_SESSION_SECRET set; refusing to handle account secrets. Generate one with `openssl rand -hex 32`.',
     );
   }
-  if (raw.length < 32) {
-    throw new Error(
-      '[credentialSecrets] The encryption key must be at least 32 characters. Generate one with `openssl rand -hex 32`.',
-    );
-  }
-  // A salt distinct from the channel one. Do NOT change it on a deployment
-  // that already holds encrypted credentials — every account would stop
-  // being able to log in.
-  const salt =
-    process.env.CREDENTIAL_ENCRYPTION_SALT || 'trackarr:credentials:v1';
-  cachedKey = scryptSync(raw, salt, 32) as Buffer;
-  return cachedKey;
+  // A rotation key. Without it, changing the root secret is a one-way door:
+  // every verifier and TOTP seed becomes undecryptable and the whole member
+  // base is locked out with no way back. Set this to the OLD value for one
+  // deployment; rows re-encrypt under the new key as their owners log in.
+  const prev = process.env.CREDENTIAL_ENCRYPTION_KEY_PREVIOUS;
+  cachedKeys = {
+    current: derive(raw, 'The credential encryption key'),
+    previous: prev ? derive(prev, 'CREDENTIAL_ENCRYPTION_KEY_PREVIOUS') : null,
+  };
+  return cachedKeys;
+}
+
+function getKey(): Buffer {
+  return getKeys().current;
+}
+
+/**
+ * Key check value — a short, non-reversible fingerprint of the derived key.
+ *
+ * Persisted on first use so a later boot can tell "the key changed" from
+ * "everything is fine". Without it, rotating `NUXT_SESSION_SECRET` — which
+ * before this feature only invalidated session cookies, and which a careful
+ * operator does periodically — would silently make every credential
+ * undecryptable, and the only symptom would be every member being told
+ * "Invalid credentials" at once.
+ */
+export function keyCheckValue(): string {
+  return createHmac('sha256', getKey())
+    .update('trackarr:credential-kcv:v1')
+    .digest('base64')
+    .slice(0, 22);
 }
 
 /**
@@ -94,15 +131,40 @@ export function decryptSecret(
 ): string | null {
   if (value == null || value === '') return null;
   if (!looksEncrypted(value)) return value; // legacy plaintext
+  const { current, previous } = getKeys();
   try {
-    return decrypt(value, getKey());
+    return decrypt(value, current);
   } catch {
-    // Wrong key, rotated salt, or tampering. Never fall through to the raw
-    // value: that would let a corrupted row authenticate against itself.
-    console.error(
-      '[credentialSecrets] Could not decrypt a stored account secret. Check CREDENTIAL_ENCRYPTION_KEY / CREDENTIAL_ENCRYPTION_SALT.',
-    );
-    return null;
+    /* fall through to the rotation key */
+  }
+  if (previous) {
+    try {
+      return decrypt(value, previous);
+    } catch {
+      /* fall through to the failure below */
+    }
+  }
+  // Wrong key, rotated salt, or tampering. Never fall through to the raw
+  // value: that would let a corrupted row authenticate against itself.
+  console.error(
+    '[credentialSecrets] Could not decrypt a stored account secret. The encryption key changed without CREDENTIAL_ENCRYPTION_KEY_PREVIOUS being set, or CREDENTIAL_ENCRYPTION_SALT was altered.',
+  );
+  return null;
+}
+
+/**
+ * True when the stored value should be written back under the current key:
+ * either it is legacy plaintext, or it only decrypts under the rotation key.
+ * Callers do this on a proven login, which is the safe moment.
+ */
+export function needsRewrite(value: string | null | undefined): boolean {
+  if (!value) return false;
+  if (!looksEncrypted(value)) return true;
+  try {
+    decrypt(value, getKeys().current);
+    return false;
+  } catch {
+    return true;
   }
 }
 

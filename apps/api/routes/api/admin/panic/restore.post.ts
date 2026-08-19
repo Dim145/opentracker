@@ -9,6 +9,8 @@ import {
 } from '@trackarr/db/schema';
 import { deriveKey, decryptField, decrypt } from '~~/utils/panic';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { redis } from '~~/utils/server';
+import { z } from 'zod';
 
 /**
  * POST /api/admin/panic/restore
@@ -16,20 +18,61 @@ import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
  * This endpoint is publicly accessible (no auth required) since
  * user sessions may be invalid after encryption
  */
+
+/**
+ * Cap total restore attempts across every source, on top of the per-IP limit.
+ * 30 tries per hour: generous for an operator fumbling a passphrase under
+ * pressure, useless for an online search against a password that derives an
+ * AES key through scrypt.
+ */
+const GLOBAL_ATTEMPT_KEY = 'panic:restore:attempts';
+const GLOBAL_ATTEMPT_MAX = 30;
+const GLOBAL_ATTEMPT_WINDOW_S = 3600;
+
+async function assertGlobalAttemptBudget(): Promise<void> {
+  let count: number;
+  try {
+    count = await redis.incr(GLOBAL_ATTEMPT_KEY);
+    if (count === 1) await redis.expire(GLOBAL_ATTEMPT_KEY, GLOBAL_ATTEMPT_WINDOW_S);
+  } catch {
+    // Redis unreachable. Fail OPEN: the per-IP limit still applies, and a
+    // recovery path that refuses to run because the cache is down would turn
+    // an incident into an outage.
+    return;
+  }
+  if (count > GLOBAL_ATTEMPT_MAX) {
+    throw createError({
+      statusCode: 429,
+      message:
+        'Too many restore attempts. Wait an hour, or clear the counter from Redis if this is a legitimate recovery.',
+    });
+  }
+}
+
 export default defineEventHandler(async (event) => {
   // No session is available post-panic, so the strict auth bucket is
   // the only guard against an online brute-force of the panic password
   // (scrypt is slow but still attackable with the endpoint open). 5
   // tries per 5 min per IP, with progressive lockout.
   await rateLimit(event, RATE_LIMITS.auth);
-  const body = await readBody(event);
 
-  if (!body.panicPassword) {
-    throw createError({
-      statusCode: 400,
-      message: 'Panic password is required',
-    });
-  }
+  // The per-IP bucket is not enough on its own: a distributed attacker rotates
+  // addresses and never trips it. A global counter caps total attempts against
+  // the panic password however many sources they come from — the password is
+  // the single key to an encrypted database, and this endpoint is
+  // unauthenticated by necessity (no session survives the encryption).
+  await assertGlobalAttemptBudget();
+
+  // A schema, not `readBody()`. Without one, `panicPassword` could arrive as
+  // an object, an array, or several megabytes of text — all of which reach
+  // scrypt, and the last of which is free CPU amplification for an
+  // unauthenticated caller. 200 characters is well past any real passphrase.
+  const body = await readValidatedBody(
+    event,
+    z.object({
+      panicPassword: z.string().min(1, 'Panic password is required').max(200),
+    }).strict().parse,
+  );
 
   // Check if database is encrypted
   const currentState = await db.query.panicState.findFirst();

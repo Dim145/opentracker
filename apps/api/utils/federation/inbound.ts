@@ -131,6 +131,9 @@ export async function verifyInboundS2S(
     rawBody: '',
     headers,
     publicKeyPem: peer.publicKey,
+    // Our own id, read from our config — never from the request. That is the
+    // whole point: it proves the sender addressed THIS instance.
+    expectedAudience: config.instanceId ?? undefined,
   });
   if (!verdict.ok) {
     throw createError({

@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import { join, resolve, sep } from 'path';
 import { existsSync } from 'fs';
+import { assertImageType } from '~~/utils/imageSniff';
 
 /**
  * POST /api/admin/logo
@@ -61,7 +62,16 @@ export default defineEventHandler(async (event) => {
     'image/svg+xml': 'svg',
     'image/webp': 'webp',
   };
-  const ext = extMap[mimeType] || 'png';
+  // The declared type got us this far; the BYTES decide the extension. A part
+  // labelled `image/png` carrying something else would otherwise be stored
+  // under `.png`, i.e. an extension that disagrees with its content.
+  const actualType = assertImageType(file.data, [
+    'image/png',
+    'image/jpeg',
+    'image/svg+xml',
+    'image/webp',
+  ]);
+  const ext = extMap[actualType] || 'png';
 
   // Generate unique filename
   const filename = `logo-${randomBytes(8).toString('hex')}.${ext}`;

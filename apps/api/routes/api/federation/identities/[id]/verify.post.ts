@@ -63,6 +63,7 @@ export default defineEventHandler(async (event) => {
       pathname: `/api/federation/verify-identity?username=${encodeURIComponent(idn.remoteUsername)}&code=${encodeURIComponent(idn.verifyCode)}`,
       instanceId: config!.instanceId,
       privateKeyPem: pk,
+      audienceInstanceId: peer.instanceId ?? undefined,
     });
     matched = res.status === 200 && res.data?.matched === true;
   } catch (err: unknown) {

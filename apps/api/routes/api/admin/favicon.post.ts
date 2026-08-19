@@ -1,6 +1,7 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { setSetting, SETTINGS_KEYS } from '~~/utils/server';
 import { randomBytes } from 'crypto';
+import { assertImageType } from '~~/utils/imageSniff';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import { join, resolve, sep } from 'path';
 import { existsSync } from 'fs';
@@ -63,7 +64,14 @@ export default defineEventHandler(async (event) => {
     'image/svg+xml': 'svg',
     'image/webp': 'webp',
   };
-  const ext = extMap[mimeType] || 'png';
+  // Same reasoning as the logo route: trust the bytes, not the declared type.
+  const actualType = assertImageType(file.data, [
+    'image/png',
+    'image/x-icon',
+    'image/svg+xml',
+    'image/webp',
+  ]);
+  const ext = extMap[actualType] || 'png';
 
   // Generate unique filename
   const filename = `favicon-${randomBytes(8).toString('hex')}.${ext}`;

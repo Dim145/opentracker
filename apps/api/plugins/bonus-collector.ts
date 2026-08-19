@@ -400,6 +400,12 @@ export default defineNitroPlugin(async () => {
  * Inserts default rules + tier curves on first boot. Per-row
  * `INSERT ... ON CONFLICT DO NOTHING` keeps user edits safe — once
  * a row exists for a kind / tier, this function is a no-op for it.
+ *
+ * The config goes in as a bound parameter cast to jsonb, not as a `sql.raw`
+ * literal with hand-doubled quotes. The old form was not exploitable — it is
+ * fed by `BONUS_RULE_DEFAULTS`, a constant — but hand-rolled escaping is the
+ * kind of shape that turns into an injection the day someone points it at
+ * operator input.
  */
 async function ensureDefaults(): Promise<void> {
   // Rules
@@ -407,7 +413,7 @@ async function ensureDefaults(): Promise<void> {
     const config = BONUS_RULE_DEFAULTS[kind as BonusRuleKind];
     await db.execute(
       sql`INSERT INTO ${schema.bonusRules} (id, kind, enabled, config)
-          VALUES (${uuidv4()}, ${kind}, true, ${sql.raw(`'${JSON.stringify(config).replaceAll("'", "''")}'::jsonb`)})
+          VALUES (${uuidv4()}, ${kind}, true, ${JSON.stringify(config)}::jsonb)
           ON CONFLICT (kind) DO NOTHING`
     );
   }

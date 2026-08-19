@@ -60,6 +60,7 @@ export default defineConfig({
             { text: 'Architecture', link: '/guide/architecture' },
             { text: 'Configuration', link: '/guide/configuration' },
             { text: 'Backup & Restore', link: '/guide/backup-restore' },
+            { text: 'Upgrading', link: '/guide/upgrading' },
             { text: 'Local Production', link: '/guide/local-production' },
             { text: 'Roadmap', link: '/guide/roadmap' },
           ],
