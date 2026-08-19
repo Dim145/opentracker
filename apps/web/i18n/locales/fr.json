@@ -2766,7 +2766,9 @@
           "1y": "1 an",
           "permanent": "Définitif"
         }
-      }
+      },
+      "filterWithdrawn": "Retirés",
+      "withdrawnByReporter": "Ce signaleur a retiré {n} signalements"
     },
     "tags": {
       "title": "Tags",

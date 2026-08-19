@@ -2766,7 +2766,9 @@
           "1y": "1 year",
           "permanent": "Permanent"
         }
-      }
+      },
+      "filterWithdrawn": "Withdrawn",
+      "withdrawnByReporter": "This reporter has withdrawn {n} reports"
     },
     "tags": {
       "title": "Tags",

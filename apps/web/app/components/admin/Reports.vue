@@ -140,6 +140,16 @@
               <span class="meta-reporter">
                 <Icon name="ph:user-bold" class="meta-reporter-icon" />
                 <span>{{ report.reporter?.username || '—' }}</span>
+                <!-- Le signal recherché : un retrait isolé ne dit rien, une
+                     série en dit long. Affiché à partir de deux. -->
+                <span
+                  v-if="(report.reporterWithdrawnCount ?? 0) >= 2"
+                  class="meta-withdrawn"
+                  :title="$t('admin.reports.withdrawnByReporter', { n: report.reporterWithdrawnCount })"
+                >
+                  <Icon name="ph:arrow-u-up-left-bold" />
+                  {{ report.reporterWithdrawnCount }}
+                </span>
               </span>
             </div>
 
@@ -351,13 +361,21 @@ interface Report {
   createdAt: string;
   resolvedAt?: string | null;
   reporter?: { id: string; username: string } | null;
+  /** Retraits cumulés de ce signaleur, tous signalements confondus. */
+  reporterWithdrawnCount?: number;
   resolver?: { id: string; username: string } | null;
   target: ReportTarget | null;
 }
 
 interface ReportsResponse {
   data: Report[];
-  counts: { all: number; pending: number; resolved: number; dismissed: number };
+  counts: {
+    all: number;
+    pending: number;
+    resolved: number;
+    dismissed: number;
+    withdrawn: number;
+  };
   pagination: { page: number; limit: number; total: number; pages: number };
 }
 
@@ -370,7 +388,9 @@ interface BanPanelState {
 }
 
 const page = ref(1);
-const statusFilter = ref<'' | 'pending' | 'resolved' | 'dismissed'>('pending');
+const statusFilter = ref<'' | 'pending' | 'resolved' | 'dismissed' | 'withdrawn'>(
+  'pending'
+);
 const busy = ref<string | null>(null);
 // Inline ban-duration picker. Opened by clicking "Accept" on a
 // user-type report; null for every other case (the panel is the
@@ -426,16 +446,17 @@ const { data: reports, refresh } = await useFetch<ReportsResponse>(
 );
 
 // ── Filter strip ───────────────────────────────────────────
-const filterOptions = computed<{ value: '' | 'pending' | 'resolved' | 'dismissed'; label: string }[]>(
+const filterOptions = computed<{ value: '' | 'pending' | 'resolved' | 'dismissed' | 'withdrawn'; label: string }[]>(
   () => [
     { value: 'pending', label: t('admin.reports.filterPending') },
     { value: 'resolved', label: t('admin.reports.filterResolved') },
     { value: 'dismissed', label: t('admin.reports.filterDismissed') },
+    { value: 'withdrawn', label: t('admin.reports.filterWithdrawn') },
     { value: '', label: t('admin.reports.filterAll') },
   ]
 );
 
-function filterCount(value: '' | 'pending' | 'resolved' | 'dismissed'): number {
+function filterCount(value: '' | 'pending' | 'resolved' | 'dismissed' | 'withdrawn'): number {
   const counts = reports.value?.counts;
   if (!counts) return 0;
   if (value === '') return counts.all;
@@ -960,6 +981,19 @@ function confirmBanPanel(report: Report) {
   font-size: 11px;
   color: rgb(var(--fg-strong));
   letter-spacing: 0.03em;
+}
+.meta-withdrawn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: rgb(var(--warning) / 0.15);
+  color: rgb(var(--warning));
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
 }
 .meta-reporter-icon {
   font-size: 0.95rem;

@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   const offset = (page - 1) * limit;
 
   const conditions = [];
-  if (status && ['pending', 'resolved', 'dismissed'].includes(status)) {
+  if (status && ['pending', 'resolved', 'dismissed', 'withdrawn'].includes(status)) {
     conditions.push(eq(schema.reports.status, status));
   }
 
@@ -128,16 +128,48 @@ export default defineEventHandler(async (event) => {
     pending: 0,
     resolved: 0,
     dismissed: 0,
+    withdrawn: 0,
   };
   for (const row of statusCounts) {
     if (row.status in counts) {
       counts[row.status as keyof typeof counts] = row.count;
     }
   }
-  const total = counts.pending + counts.resolved + counts.dismissed;
+  const total =
+    counts.pending + counts.resolved + counts.dismissed + counts.withdrawn;
+
+  // Retraits par signaleur présent sur cette page. C'est la raison d'être de la
+  // pierre tombale : un signalement retiré isolément ne dit rien, une série en
+  // dit long. Une seule requête groupée sur les identifiants de la page plutôt
+  // qu'une sous-requête par ligne.
+  const reporterIds = [...new Set(enriched.map((r) => r.reporterId).filter(Boolean))];
+  const withdrawnRows = reporterIds.length
+    ? await db
+        .select({
+          reporterId: schema.reports.reporterId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(schema.reports)
+        .where(
+          and(
+            inArray(schema.reports.reporterId, reporterIds as string[]),
+            eq(schema.reports.status, 'withdrawn')
+          )
+        )
+        .groupBy(schema.reports.reporterId)
+    : [];
+  const withdrawnByReporter: Record<string, number> = {};
+  for (const row of withdrawnRows) {
+    if (row.reporterId) withdrawnByReporter[row.reporterId] = row.count;
+  }
 
   return {
-    data: enriched,
+    data: enriched.map((r) => ({
+      ...r,
+      reporterWithdrawnCount: r.reporterId
+        ? (withdrawnByReporter[r.reporterId] ?? 0)
+        : 0,
+    })),
     counts: { ...counts, all: total },
     pagination: {
       page,
