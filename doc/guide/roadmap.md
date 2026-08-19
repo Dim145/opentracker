@@ -4,6 +4,10 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 
 ## Released
 
+### v0.25.x — Full-text search
+
+- [x] **Full-text catalogue search** — Search moved off `name ILIKE '%term%'` onto PostgreSQL full-text: one GIN index per field (name, description, NFO, tag names), and a setting at `/admin/settings` deciding which of them a query reads. One index per field rather than a single weighted vector is what makes that setting real — each enabled field adds a branch to the `OR`, served by its own index. No extension and no extra service: `to_tsvector` and GIN have been core Postgres since 8.3. The last term carries a `:*` so the bar completes as you type, and a `word_similarity` pass catches typos when full-text finds nothing — expensive enough (223 ms against 60) that an operator can switch it off for a large catalogue or a strained server. Searching by infohash or by IMDb/TMDb/TVDB link is untouched. Measured over 200k torrents: 52 ms for a name search against 184 ms before, 28 ms for a word only present in a description (previously unfindable).
+
 ### v0.24.x — Release sheet builder
 
 - [x] **Release sheet builder** — A four-step wizard at `/torrents/fiche`, reachable from the upload form, that turns a video file into a BBCode release sheet, an NFO and a normalised release name, then hands all three back to the upload form. MediaInfo runs in the browser through WebAssembly and only reads the chunks it asks for, so nothing about the file leaves the machine. Measured quantities are modelled in base units (bit/s, bytes) with the unit kept as a display preference, which is what makes the Kbps/Mbps and MiB/GiB selectors non-destructive. Every dropdown keeps an "Other…" entry, and a value from MediaInfo matching no entry switches to free text by itself. Sending a sheet to the upload form disables only the editor's visual mode — source mode and preview stay available, so the BBCode is still editable and still previewable.
@@ -70,7 +74,6 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 
 ## In progress / next
 
-- [ ] **Indexed search** — Torrent search is a `LIKE '%term%'` over `torrents.name`. A leading wildcard cannot use a B-tree index, so every search is a sequential scan that grows with the catalogue, and only the name is searched — not the description, tags or file names. The target is a fast, complete search whose searchable fields are configurable from the admin panel.
 - [ ] **Persisted torrent groups** — Releases of the same work are grouped in the browser, on the current page only, keyed on the external metadata id. Promoting that to a stored group entity would let it survive pagination, carry a group page and aggregate stats. The cross-seed content signatures already answer "these two torrents are the same work".
 - [ ] **User Classes** — Power User, VIP with granular permissions on top of the existing role engine
 - [ ] **Withdrawn-reports audit trail** — Currently a pending report can be hard-deleted from `/me/reports`. A tombstone for "pattern of withdrawn reports" would help catch bad-faith reporters.
