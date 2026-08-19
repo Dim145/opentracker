@@ -541,7 +541,7 @@ async function confirmDelete() {
     ),
     radial-gradient(
       ellipse at 80% 110%,
-      color-mix(in srgb, var(--accent) 5%, transparent),
+      color-mix(in srgb, rgb(var(--accent)) 5%, transparent),
       transparent 60%
     );
   z-index: 0;
@@ -660,7 +660,7 @@ async function confirmDelete() {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-muted);
-  border: 1px solid var(--line-default);
+  border: 1px solid rgb(var(--line-default));
   background: color-mix(in srgb, var(--bg-secondary) 60%, transparent);
 }
 .reg-pill-dot {
@@ -692,7 +692,7 @@ async function confirmDelete() {
 .draft {
   position: relative;
   background: var(--paper);
-  border: 1px solid var(--line-default);
+  border: 1px solid rgb(var(--line-default));
   border-radius: 14px;
   padding: 1.75rem;
   overflow: hidden;
@@ -793,7 +793,7 @@ async function confirmDelete() {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 6px;
-  border: 1.5px solid var(--line-default);
+  border: 1.5px solid rgb(var(--line-default));
   background: var(--bg-primary);
   border-radius: 10px;
   padding: 6px;
@@ -886,7 +886,7 @@ async function confirmDelete() {
      dashed neutral border. */
   cursor: not-allowed;
   background: var(--bg-tertiary);
-  border-color: var(--line-default);
+  border-color: rgb(var(--line-default));
   border-style: dashed;
   color: var(--ink-muted);
 }
@@ -927,15 +927,15 @@ async function confirmDelete() {
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--warning) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--warning) 25%, transparent);
+  background: color-mix(in srgb, rgb(var(--warning)) 8%, transparent);
+  border: 1px solid color-mix(in srgb, rgb(var(--warning)) 25%, transparent);
   color: var(--ink-muted);
   font-size: 0.8rem;
   font-style: italic;
   font-family: 'Fraunces', 'Times New Roman', serif;
 }
 .draft-empty-note :deep(svg),
-.draft-empty-note .iconify { color: var(--warning); flex-shrink: 0; }
+.draft-empty-note .iconify { color: rgb(var(--warning)); flex-shrink: 0; }
 
 /* ── Ledger ──────────────────────────────────────────── */
 
@@ -949,7 +949,7 @@ async function confirmDelete() {
   align-items: flex-start;
   margin-bottom: 1.25rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid var(--line-default);
+  border-bottom: 1px solid rgb(var(--line-default));
 }
 .ledger-roman {
   font-family: 'Fraunces', 'Times New Roman', serif;
@@ -991,7 +991,7 @@ async function confirmDelete() {
   grid-template-columns: 56px 4px 1fr auto;
   gap: 1rem;
   padding: 1.25rem 0;
-  border-bottom: 1px solid var(--line-default);
+  border-bottom: 1px solid rgb(var(--line-default));
   align-items: center;
   position: relative;
   animation: reveal-up 480ms var(--reveal-delay, 0ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -1017,7 +1017,7 @@ async function confirmDelete() {
   line-height: 1;
   text-align: right;
   padding-right: 0.5rem;
-  border-right: 1px solid var(--line-default);
+  border-right: 1px solid rgb(var(--line-default));
 }
 .ledger-row--active .ledger-num { color: var(--gild); }
 .ledger-row--used .ledger-num { color: var(--success); }
@@ -1047,7 +1047,7 @@ async function confirmDelete() {
   color: var(--ink);
   padding: 0.3rem 0.625rem;
   background: var(--bg-primary);
-  border: 1px solid var(--line-default);
+  border: 1px solid rgb(var(--line-default));
   border-radius: 6px;
   word-break: break-all;
 }
@@ -1079,7 +1079,7 @@ async function confirmDelete() {
 .ledger-row--expired .ledger-status {
   color: var(--ink-muted);
   background: var(--bg-tertiary);
-  border-color: var(--line-default);
+  border-color: rgb(var(--line-default));
 }
 
 .ledger-meta {
@@ -1158,7 +1158,7 @@ async function confirmDelete() {
 .ledger-empty {
   text-align: center;
   padding: 4rem 2rem;
-  border: 1px dashed color-mix(in srgb, var(--gild) 30%, var(--line-default));
+  border: 1px dashed color-mix(in srgb, var(--gild) 30%, rgb(var(--line-default)));
   border-radius: 14px;
   background:
     repeating-linear-gradient(
@@ -1311,7 +1311,7 @@ async function confirmDelete() {
   font-style: italic;
   font-size: 0.95rem;
   font-weight: 500;
-  border: 1.5px solid var(--line-default);
+  border: 1.5px solid rgb(var(--line-default));
   background: var(--bg-primary);
   color: var(--ink-soft);
   cursor: pointer;
@@ -1365,17 +1365,17 @@ async function confirmDelete() {
   margin: 0;
   padding: 0.75rem 0.875rem;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--warning) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--warning) 22%, transparent);
+  background: color-mix(in srgb, rgb(var(--warning)) 6%, transparent);
+  border: 1px solid color-mix(in srgb, rgb(var(--warning)) 22%, transparent);
 }
 .seal-warning :deep(svg),
-.seal-warning .iconify { color: var(--warning); flex-shrink: 0; margin-top: 2px; }
+.seal-warning .iconify { color: rgb(var(--warning)); flex-shrink: 0; margin-top: 2px; }
 
 .seal-footer {
   display: flex;
   justify-content: flex-end;
   padding: 0.875rem 1.25rem;
-  border-top: 1px solid var(--line-default);
+  border-top: 1px solid rgb(var(--line-default));
 }
 
 /* ── Confirm modal ─────────────────────────────────── */
@@ -1405,7 +1405,7 @@ async function confirmDelete() {
   gap: 0.5rem;
   justify-content: flex-end;
   padding: 0.875rem 1.25rem;
-  border-top: 1px solid var(--line-default);
+  border-top: 1px solid rgb(var(--line-default));
 }
 
 /* ── Page-load motion ─────────────────────────────── */

@@ -36,14 +36,14 @@ defineProps<{
   height: 6px;
   border-radius: 999px;
   background-color: currentColor;
-  box-shadow: 0 0 0 2px rgba(var(--bg-base), 0.7);
+  box-shadow: 0 0 0 2px rgb(var(--bg-base) / 0.7);
   position: relative;
 }
 
 /* Pending → amber pulse to draw the eye gently to "awaiting action" */
 .status-chip--pending {
   color: rgb(var(--warning));
-  background-color: rgba(var(--warning), 0.08);
+  background-color: rgb(var(--warning) / 0.08);
 }
 .status-chip--pending .status-dot::after {
   content: '';
@@ -67,11 +67,11 @@ defineProps<{
 
 .status-chip--resolved {
   color: rgb(var(--online));
-  background-color: rgba(var(--online), 0.08);
+  background-color: rgb(var(--online) / 0.08);
 }
 
 .status-chip--dismissed {
   color: rgb(var(--danger));
-  background-color: rgba(var(--danger), 0.1);
+  background-color: rgb(var(--danger) / 0.1);
 }
 </style>

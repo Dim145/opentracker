@@ -32,7 +32,7 @@
             <label>{{ $t('federatedIdentity.link.username') }}</label>
             <input v-model="remoteUser" class="input" :placeholder="$t('federatedIdentity.link.usernamePlaceholder')" />
           </div>
-          <button class="btn-primary" :disabled="busy.create || !selPeer || !remoteUser.trim()">
+          <button class="btn btn-primary" :disabled="busy.create || !selPeer || !remoteUser.trim()">
             <Icon :name="busy.create ? 'ph:circle-notch' : 'ph:key-bold'" :class="{ 'animate-spin': busy.create }" />
             {{ $t('federatedIdentity.link.generate') }}
           </button>
@@ -72,7 +72,7 @@
           <p class="fid-instr">{{ $t('federatedIdentity.code.instructions', { peer: idn.peerName || host(idn.peerBaseUrl) }) }}</p>
           <div class="fid-code-row">
             <code class="fid-code">{{ idn.verifyCode }}</code>
-            <button class="btn-secondary fid-verify" :disabled="busy.verify === idn.id" @click="verify(idn.id)">
+            <button class="btn btn-secondary fid-verify" :disabled="busy.verify === idn.id" @click="verify(idn.id)">
               <Icon :name="busy.verify === idn.id ? 'ph:circle-notch' : 'ph:check-bold'" :class="{ 'animate-spin': busy.verify === idn.id }" />
               {{ busy.verify === idn.id ? $t('federatedIdentity.code.verifying') : $t('federatedIdentity.code.verify') }}
             </button>
@@ -209,50 +209,50 @@ function fmtDate(d: string | null) {
 .fid-flash-enter-active, .fid-flash-leave-active { transition: all 0.2s ease; }
 .fid-flash-enter-from, .fid-flash-leave-to { opacity: 0; transform: translateY(-4px); }
 
-.fid-title { font-size: 28px; font-weight: 700; color: var(--fg-strong); letter-spacing: -0.02em; margin-top: 0.45rem; }
-.fid-head .note { font-size: 13px; color: var(--fg-muted); margin-top: 0.4rem; max-width: 64ch; line-height: 1.55; }
+.fid-title { font-size: 28px; font-weight: 700; color: rgb(var(--fg-strong)); letter-spacing: -0.02em; margin-top: 0.45rem; }
+.fid-head .note { font-size: 13px; color: rgb(var(--fg-muted)); margin-top: 0.4rem; max-width: 64ch; line-height: 1.55; }
 
-.card { background: var(--bg-surface); border: 1px solid var(--line-default); border-radius: var(--radius-md); }
-.card-header { padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--line-default); display: flex; align-items: center; gap: 0.55rem; }
-.card-header :deep(svg) { color: var(--fg-subtle); }
+.card { background: rgb(var(--bg-surface)); border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); }
+.card-header { padding: 0.9rem 1.1rem; border-bottom: 1px solid rgb(var(--line-default)); display: flex; align-items: center; gap: 0.55rem; }
+.card-header :deep(svg) { color: rgb(var(--fg-subtle)); }
 .card-body { padding: 1.1rem; }
-.fid-empty-partners { display: flex; align-items: center; gap: 0.5rem; font-size: 13px; color: var(--fg-subtle); }
+.fid-empty-partners { display: flex; align-items: center; gap: 0.5rem; font-size: 13px; color: rgb(var(--fg-subtle)); }
 .fid-form { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
 .fid-field { display: flex; flex-direction: column; gap: 0.3rem; }
 .fid-field.grow { flex: 1; min-width: 160px; }
-.fid-field label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-subtle); }
+.fid-field label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgb(var(--fg-subtle)); }
 .fid-field select.input { min-width: 180px; }
 
-.section-head { display: flex; align-items: center; gap: 0.6rem; padding-bottom: 0.7rem; border-bottom: 1px solid var(--line-default); margin-bottom: 1rem; }
-.section-tag { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--font-mono, monospace); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-muted); }
+.section-head { display: flex; align-items: center; gap: 0.6rem; padding-bottom: 0.7rem; border-bottom: 1px solid rgb(var(--line-default)); margin-bottom: 1rem; }
+.section-tag { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--font-mono, monospace); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: rgb(var(--fg-muted)); }
 .section-tag :deep(svg) { color: var(--gold, #d4a734); font-size: 1rem; }
-.section-rule { flex: 1; height: 1px; background: var(--line-default); }
+.section-rule { flex: 1; height: 1px; background: rgb(var(--line-default)); }
 
-.fid-empty { text-align: center; padding: 2.5rem 1rem; color: var(--fg-subtle); border: 1px dashed var(--line-default); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; font-size: 13px; }
+.fid-empty { text-align: center; padding: 2.5rem 1rem; color: rgb(var(--fg-subtle)); border: 1px dashed rgb(var(--line-default)); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; font-size: 13px; }
 .fid-empty :deep(svg) { font-size: 1.7rem; opacity: 0.5; }
 
-.fid-item { border: 1px solid var(--line-default); border-radius: var(--radius-md); background: var(--bg-surface); padding: 0.9rem 1rem; margin-bottom: 0.7rem; }
+.fid-item { border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); background: rgb(var(--bg-surface)); padding: 0.9rem 1rem; margin-bottom: 0.7rem; }
 .fid-item-head { display: flex; align-items: center; gap: 0.6rem; }
-.fid-handle { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 14px; color: var(--fg-default); }
-.fid-handle strong { color: var(--fg-strong); }
-.fid-at { font-family: var(--font-mono, monospace); font-size: 11.5px; color: var(--fg-subtle); }
+.fid-handle { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 14px; color: rgb(var(--fg-default)); }
+.fid-handle strong { color: rgb(var(--fg-strong)); }
+.fid-at { font-family: var(--font-mono, monospace); font-size: 11.5px; color: rgb(var(--fg-subtle)); }
 .fid-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 10.5px; font-weight: 600; padding: 0.12rem 0.45rem; border-radius: 99px; border: 1px solid; text-transform: uppercase; letter-spacing: 0.03em; }
 .fid-badge.ok { color: #4ade80; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
 .fid-badge.pending { color: #facc15; background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.3); }
-.fid-x { margin-left: auto; color: var(--fg-subtle); width: 28px; height: 28px; border-radius: var(--radius-sm); display: grid; place-items: center; border: 1px solid transparent; }
-.fid-x:hover:not(:disabled) { background: var(--bg-hover); color: #f87171; }
+.fid-x { margin-left: auto; color: rgb(var(--fg-subtle)); width: 28px; height: 28px; border-radius: var(--radius-sm); display: grid; place-items: center; border: 1px solid transparent; }
+.fid-x:hover:not(:disabled) { background: rgb(var(--bg-hover)); color: #f87171; }
 .fid-x:disabled { opacity: 0.5; }
 
-.fid-pending { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line-default); }
-.fid-instr { font-size: 12.5px; color: var(--fg-muted); margin-bottom: 0.5rem; }
+.fid-pending { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid rgb(var(--line-default)); }
+.fid-instr { font-size: 12.5px; color: rgb(var(--fg-muted)); margin-bottom: 0.5rem; }
 .fid-code-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.fid-code { font-family: var(--font-mono, monospace); font-size: 12.5px; background: var(--bg-inset); border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); padding: 0.35rem 0.6rem; color: var(--gold, #d4a734); user-select: all; }
+.fid-code { font-family: var(--font-mono, monospace); font-size: 12.5px; background: rgb(var(--bg-inset)); border: 1px dashed rgb(var(--line-strong)); border-radius: var(--radius-sm); padding: 0.35rem 0.6rem; color: var(--gold, #d4a734); user-select: all; }
 
-.fid-rep { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid var(--line-default); }
-.fid-rep-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-subtle); }
+.fid-rep { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid rgb(var(--line-default)); }
+.fid-rep-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgb(var(--fg-subtle)); }
 .fid-rep-stats { display: flex; gap: 1.25rem; margin-top: 0.5rem; flex-wrap: wrap; }
 .fid-stat { display: flex; flex-direction: column; gap: 0.1rem; }
-.fid-stat .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-faint); }
-.fid-stat .v { font-family: var(--font-mono, monospace); font-size: 15px; font-weight: 700; color: var(--fg-strong); }
-.fid-rep-na { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; color: var(--fg-subtle); }
+.fid-stat .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: rgb(var(--fg-faint)); }
+.fid-stat .v { font-family: var(--font-mono, monospace); font-size: 15px; font-weight: 700; color: rgb(var(--fg-strong)); }
+.fid-rep-na { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; color: rgb(var(--fg-subtle)); }
 </style>

@@ -388,12 +388,12 @@ async function handleSubmit() {
   color: var(--ink);
 }
 .cat-tile--on {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  border-color: var(--accent);
+  background: color-mix(in srgb, rgb(var(--accent)) 14%, transparent);
+  border-color: rgb(var(--accent));
   color: var(--ink);
 }
 .cat-tile--on > svg {
-  color: var(--accent);
+  color: rgb(var(--accent));
 }
 
 .compose-title-input {

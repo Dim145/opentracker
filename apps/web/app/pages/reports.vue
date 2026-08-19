@@ -446,14 +446,14 @@ function kindIcon(kind: string): string {
   height: 420px;
   top: -120px;
   left: -100px;
-  background: radial-gradient(circle, rgba(var(--accent), 0.6), transparent 65%);
+  background: radial-gradient(circle, rgb(var(--accent) / 0.6), transparent 65%);
 }
 .aura-blob--b {
   width: 360px;
   height: 360px;
   top: 60px;
   right: -120px;
-  background: radial-gradient(circle, rgba(var(--warning), 0.45), transparent 65%);
+  background: radial-gradient(circle, rgb(var(--warning) / 0.45), transparent 65%);
 }
 .aura-grain {
   position: absolute;
@@ -562,7 +562,7 @@ function kindIcon(kind: string): string {
   align-items: flex-start;
   width: 100%;
   padding: 1rem 1.1rem 1.05rem;
-  background: rgba(var(--bg-elevated), 0.55);
+  background: rgb(var(--bg-elevated) / 0.55);
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.45rem;
   color: inherit;
@@ -575,12 +575,12 @@ function kindIcon(kind: string): string {
     border-color 0.2s ease;
 }
 .kpi-btn:hover {
-  background: rgba(var(--bg-elevated), 0.85);
-  border-color: rgba(var(--fg-default), 0.25);
+  background: rgb(var(--bg-elevated) / 0.85);
+  border-color: rgb(var(--fg-default) / 0.25);
   transform: translateY(-1px);
 }
 .kpi.is-active .kpi-btn {
-  background: rgba(var(--bg-elevated), 0.95);
+  background: rgb(var(--bg-elevated) / 0.95);
   border-color: rgba(var(--rail, var(--accent)), 0.55);
   box-shadow: 0 8px 24px -16px rgba(var(--rail, var(--accent)), 0.65);
 }
@@ -647,7 +647,7 @@ function kindIcon(kind: string): string {
   align-items: center;
   gap: 0.5rem;
   padding: 0.45rem 0.85rem;
-  background: rgba(var(--bg-elevated), 0.45);
+  background: rgb(var(--bg-elevated) / 0.45);
   border: 1px solid rgb(var(--line-default));
   border-radius: 999px;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -662,7 +662,7 @@ function kindIcon(kind: string): string {
 }
 .filter-pill:hover {
   color: rgb(var(--fg-strong));
-  background: rgba(var(--bg-elevated), 0.7);
+  background: rgb(var(--bg-elevated) / 0.7);
   transform: translateY(-1px);
 }
 /* Active state — translucent fill in the pill's own colour. Avoids
@@ -704,7 +704,7 @@ function kindIcon(kind: string): string {
   border-radius: 999px;
   font-size: 9.5px;
   font-weight: 700;
-  background: rgba(var(--fg-default), 0.08);
+  background: rgb(var(--fg-default) / 0.08);
 }
 .filter-pill.is-active .filter-pill-count {
   background: rgba(var(--pill-tint, var(--accent)), 0.22);
@@ -733,7 +733,7 @@ function kindIcon(kind: string): string {
    coloured ribbon on the left that signals status at a glance. */
 .entry-card {
   position: relative;
-  background: rgba(var(--bg-elevated), 0.42);
+  background: rgb(var(--bg-elevated) / 0.42);
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.55rem;
   padding: 1.15rem 1.4rem 1.25rem 1.65rem;
@@ -744,8 +744,8 @@ function kindIcon(kind: string): string {
     transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .entry-card:hover {
-  background: rgba(var(--bg-elevated), 0.62);
-  border-color: rgba(var(--fg-default), 0.22);
+  background: rgb(var(--bg-elevated) / 0.62);
+  border-color: rgb(var(--fg-default) / 0.22);
   transform: translateY(-1px);
 }
 .entry-card:hover .entry-ribbon { width: 6px; }
@@ -826,7 +826,7 @@ function kindIcon(kind: string): string {
   gap: 0.35rem;
   padding: 0.22rem 0.55rem;
   border: 1px solid rgb(var(--line-default));
-  background: rgba(var(--bg-surface), 0.55);
+  background: rgb(var(--bg-surface) / 0.55);
   border-radius: 0.25rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 9.5px;
@@ -944,7 +944,7 @@ function kindIcon(kind: string): string {
   gap: 0.45rem;
   padding: 0.4rem 0.85rem;
   background: transparent;
-  border: 1px solid rgba(var(--danger), 0.4);
+  border: 1px solid rgb(var(--danger) / 0.4);
   border-radius: 0.3rem;
   color: rgb(var(--danger));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -960,8 +960,8 @@ function kindIcon(kind: string): string {
     transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .entry-cancel:hover:not(:disabled) {
-  background: rgba(var(--danger), 0.12);
-  border-color: rgba(var(--danger), 0.7);
+  background: rgb(var(--danger) / 0.12);
+  border-color: rgb(var(--danger) / 0.7);
   transform: translateY(-1px);
 }
 .entry-cancel:disabled {
@@ -1006,11 +1006,11 @@ function kindIcon(kind: string): string {
   flex-shrink: 0;
 }
 .entry-resolution-mark--resolved {
-  background: rgba(var(--online), 0.15);
+  background: rgb(var(--online) / 0.15);
   color: rgb(var(--online));
 }
 .entry-resolution-mark--dismissed {
-  background: rgba(var(--danger), 0.15);
+  background: rgb(var(--danger) / 0.15);
   color: rgb(var(--danger));
 }
 .entry-resolution-meta {
@@ -1037,7 +1037,7 @@ function kindIcon(kind: string): string {
   text-decoration: none;
   font-weight: 700;
   transition: color 0.15s ease;
-  border-bottom: 1px dashed rgba(var(--fg-default), 0.25);
+  border-bottom: 1px dashed rgb(var(--fg-default) / 0.25);
 }
 .entry-resolver-link:hover {
   color: rgb(var(--accent));
@@ -1047,7 +1047,7 @@ function kindIcon(kind: string): string {
 .entry-resolution-note {
   margin: 0.75rem 0 0;
   padding: 0.75rem 1rem;
-  background: rgba(var(--bg-surface), 0.6);
+  background: rgb(var(--bg-surface) / 0.6);
   border-left: 3px solid rgba(var(--rail), 0.45);
   border-radius: 0 0.25rem 0.25rem 0;
   font-family: 'Source Serif 4', 'Charter', Georgia, serif;
@@ -1072,7 +1072,7 @@ function kindIcon(kind: string): string {
   height: 5rem;
   margin: 0 auto 1.5rem;
   border-radius: 999px;
-  background: rgba(var(--bg-elevated), 0.5);
+  background: rgb(var(--bg-elevated) / 0.5);
   border: 1px dashed rgb(var(--line-default));
 }
 .empty-icon {
@@ -1132,7 +1132,7 @@ function kindIcon(kind: string): string {
   align-items: center;
   gap: 0.45rem;
   padding: 0.55rem 1.05rem;
-  background: rgba(var(--bg-elevated), 0.45);
+  background: rgb(var(--bg-elevated) / 0.45);
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.3rem;
   color: rgb(var(--fg-default));
@@ -1145,8 +1145,8 @@ function kindIcon(kind: string): string {
   transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
 }
 .pager-btn:hover:not(:disabled) {
-  background: rgba(var(--bg-elevated), 0.75);
-  border-color: rgba(var(--fg-default), 0.25);
+  background: rgb(var(--bg-elevated) / 0.75);
+  border-color: rgb(var(--fg-default) / 0.25);
   transform: translateY(-1px);
 }
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }

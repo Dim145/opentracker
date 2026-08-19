@@ -1041,7 +1041,7 @@ const ratioColor = computed(() => {
 <style scoped>
 /* Header background — translucent surface that adapts to the active theme */
 .app-header {
-  background-color: color-mix(in srgb, var(--bg-base) 80%, transparent);
+  background-color: color-mix(in srgb, rgb(var(--bg-base)) 80%, transparent);
 }
 
 /* Drawer panel: solid surface so the page underneath isn't visible
