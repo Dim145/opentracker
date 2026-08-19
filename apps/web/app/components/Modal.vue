@@ -26,7 +26,7 @@
           <header
             v-if="$slots.header || title"
             class="px-4 py-3 flex items-center justify-between gap-3"
-            style="border-bottom: 1px solid var(--line-default); background-color: color-mix(in srgb, var(--bg-elevated) 50%, transparent);"
+            style="border-bottom: 1px solid rgb(var(--line-default)); background-color: color-mix(in srgb, rgb(var(--bg-elevated)) 50%, transparent);"
           >
             <div class="flex items-center gap-2 min-w-0">
               <Icon
@@ -57,7 +57,7 @@
           <footer
             v-if="$slots.footer"
             class="px-4 py-3 flex items-center justify-end gap-2"
-            style="border-top: 1px solid var(--line-default); background-color: color-mix(in srgb, var(--bg-elevated) 50%, transparent);"
+            style="border-top: 1px solid rgb(var(--line-default)); background-color: color-mix(in srgb, rgb(var(--bg-elevated)) 50%, transparent);"
           >
             <slot name="footer" />
           </footer>
@@ -103,10 +103,10 @@ const sizeClass = computed(() => {
 
 const iconStyle = computed(() => {
   switch (props.iconTone) {
-    case 'danger':  return { color: 'var(--danger)' };
-    case 'warning': return { color: 'var(--warning)' };
-    case 'success': return { color: 'var(--online)' };
-    default:        return { color: 'var(--fg-muted)' };
+    case 'danger':  return { color: 'rgb(var(--danger))' };
+    case 'warning': return { color: 'rgb(var(--warning))' };
+    case 'success': return { color: 'rgb(var(--online))' };
+    default:        return { color: 'rgb(var(--fg-muted))' };
   }
 });
 

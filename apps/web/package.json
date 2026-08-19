@@ -8,7 +8,9 @@
     "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@iconify-json/simple-icons": "^1.2.93",
@@ -42,6 +44,7 @@
   "devDependencies": {
     "@iconify-json/ph": "^1.2.2",
     "@nuxt/icon": "^2.5.0",
-    "@types/turndown": "^5.0.6"
+    "@types/turndown": "^5.0.6",
+    "vitest": "^4.1.10"
   }
 }

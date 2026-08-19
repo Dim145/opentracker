@@ -512,7 +512,7 @@
         <p style="font-size: 13px; color: rgb(var(--fg-muted)); max-width: 62ch; line-height: 1.55; margin: 0;">
           {{ $t('torrents.detail.fedSwarm.desc') }}
         </p>
-        <button type="button" class="btn-secondary" :disabled="fedSwarmBusy" @click="toggleFedSwarm">
+        <button type="button" class="btn btn-secondary" :disabled="fedSwarmBusy" @click="toggleFedSwarm">
           <Icon :name="fedSwarm ? 'ph:broadcast-bold' : 'ph:broadcast'" />
           {{ fedSwarm ? $t('torrents.detail.fedSwarm.on') : $t('torrents.detail.fedSwarm.off') }}
         </button>

@@ -777,13 +777,13 @@ async function handleDelete() {
   position: relative;
   background: rgb(var(--bg-surface));
   border: 1px solid var(--rule);
-  border-left: 3px solid color-mix(in srgb, var(--accent) 80%, transparent);
+  border-left: 3px solid color-mix(in srgb, rgb(var(--accent)) 80%, transparent);
   border-radius: 4px;
   transition: border-color 0.18s, transform 0.18s;
 }
 .section-tile:hover {
   border-color: var(--rule-strong);
-  border-left-color: var(--accent);
+  border-left-color: rgb(var(--accent));
   transform: translateY(-1px);
 }
 .section-tile--skeleton {
@@ -815,7 +815,7 @@ async function handleDelete() {
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.22em;
-  color: var(--accent);
+  color: rgb(var(--accent));
   text-transform: uppercase;
 }
 .section-tile-icon {
@@ -826,9 +826,9 @@ async function handleDelete() {
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: rgb(var(--accent));
+  background: color-mix(in srgb, rgb(var(--accent)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, rgb(var(--accent)) 35%, transparent);
 }
 .section-tile-title {
   margin: 0;
@@ -899,7 +899,7 @@ async function handleDelete() {
   position: absolute;
   left: 0;
   top: 0.05rem;
-  color: var(--accent);
+  color: rgb(var(--accent));
   font-size: 0.95rem;
 }
 .last-byline {

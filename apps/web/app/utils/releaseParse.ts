@@ -208,6 +208,10 @@ const GAME_STOP =
   // Runtime / OS flags.
   '|\\bwin(?:[- ]?x?64)?\\b|\\bmac(?:[- ]?os)?\\b|\\blinux\\b';
 
+/** Crochet de plateforme en tête de nom de jeu — `[PS5] Titre…`. */
+const GAME_PLATFORM_PREFIX =
+  /^\s*\[\s*(?:ps[2345]|psp|ps[- ]?vita|xb(?:ox)?[- ]?(?:one|series|sx|ss|360)|xb1|x360|n?switch|nsw|wii[- ]?u|wii|3ds|n?ds|pc)\s*\][. _-]*/i;
+
 const BOOK_STOP =
   // Format bracket — strongest signal we're past the title.
   '\\[\\s*(?:epub|pdf|mobi|azw3?|cbz|cbr|djvu)\\s*\\]' +
@@ -310,7 +314,13 @@ export function parseReleaseName(
   input: string,
   kindHint?: ParsedRelease['kind']
 ): ParsedRelease {
-  const raw = stripGroup(stripExtension(input || ''));
+  // Les `_` sont normalisés en `.` avant tout le reste. Les tables de jetons
+  // s'appuient sur `\b`, or l'underscore est lui-même un caractère de mot :
+  // dans `Titre_2024_1080p` aucune frontière ne se déclenche, aucun jeton
+  // d'arrêt ne matche, et le nom entier ressortait comme titre. La
+  // normalisation vient APRÈS `stripGroup`, dont le motif de groupe accepte
+  // l'underscore (`-Foo_Bar`).
+  const raw = stripGroup(stripExtension(input || '')).replace(/_/g, '.');
 
   // 1) Decide what kind we're parsing. The caller-supplied hint (from
   //    the picked category) wins over filename inference — the user
@@ -330,19 +340,16 @@ export function parseReleaseName(
         : VIDEO_STOP;
   const STOP = new RegExp(stopSource, 'i');
 
-  // 3) Slice the title off the metadata tail. We also strip the
-  //    leading platform bracket for games before tokenising so the
-  //    title isn't prefixed with `[PS5]`.
-  const stopMatch = raw.match(STOP);
-  let titleSlice = stopMatch
-    ? raw.slice(0, stopMatch.index ?? raw.length)
-    : raw;
-  if (kind === 'game') {
-    titleSlice = titleSlice.replace(
-      /^\s*\[\s*(?:ps[2345]|psp|ps[- ]?vita|xb(?:ox)?[- ]?(?:one|series|sx|ss|360)|xb1|x360|n?switch|nsw|wii[- ]?u|wii|3ds|n?ds|pc)\s*\][. _-]*/i,
-      ''
-    );
-  }
+  // 3) Slice the title off the metadata tail. For games the leading
+  //    platform bracket is removed FIRST: it is itself a stop token, so
+  //    leaving it in place made the slice run from index 0 and every
+  //    `[PS5] Titre…` came back with an EMPTY title.
+  const titleSource =
+    kind === 'game' ? raw.replace(GAME_PLATFORM_PREFIX, '') : raw;
+  const stopMatch = titleSource.match(STOP);
+  const titleSlice = stopMatch
+    ? titleSource.slice(0, stopMatch.index ?? titleSource.length)
+    : titleSource;
   let title = tokenise(titleSlice)
     // Drop any trailing bracketed fragment left by the slice
     // ("(2024" or "[NTb"). It would otherwise show up as stray
@@ -378,7 +385,7 @@ export function parseReleaseName(
   //    The tail starts at the first stop token; everything beyond it
   //    is fair game for tag harvesting without risking false hits
   //    inside the title (`Web` inside "World End Beach", etc.).
-  const tail = stopMatch ? raw.slice(stopMatch.index ?? 0) : raw;
+  const tail = stopMatch ? titleSource.slice(stopMatch.index ?? 0) : titleSource;
   const tags: string[] = [];
   const seen = new Set<string>();
   function push(label: string) {

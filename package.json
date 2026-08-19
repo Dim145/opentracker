@@ -12,7 +12,7 @@
     "db:push": "pnpm --filter @trackarr/db run db:push",
     "db:generate": "pnpm --filter @trackarr/db run db:generate",
     "db:studio": "pnpm --filter @trackarr/db run db:studio",
-    "postinstall": "find -L node_modules -type d -name simple-peer -exec sh -c 'echo \"export default null;\" > \"$1/lite.js\"' _ {} \\;"
+    "postinstall": "find -L node_modules \\( -name .output -o -name .nuxt -o -name .git \\) -prune -o -type d -name simple-peer -exec sh -c 'echo \"export default null;\" > \"$1/lite.js\"' _ {} \\;"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

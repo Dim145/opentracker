@@ -321,7 +321,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   border: 1px solid var(--rule);
   border-radius: 4px;
   background:
-    radial-gradient(800px 200px at 0% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+    radial-gradient(800px 200px at 0% 0%, color-mix(in srgb, rgb(var(--accent)) 12%, transparent), transparent 60%),
     rgb(var(--bg-surface));
   overflow: hidden;
 }
@@ -329,7 +329,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   position: absolute;
   inset: 0 auto 0 0;
   width: 6px;
-  background: var(--accent);
+  background: rgb(var(--accent));
 }
 
 .cat-crumb {
@@ -372,9 +372,9 @@ async function handleDeleteTopic(topic: ForumTopic) {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  color: var(--accent);
+  background: color-mix(in srgb, rgb(var(--accent)) 14%, transparent);
+  border: 1px solid color-mix(in srgb, rgb(var(--accent)) 35%, transparent);
+  color: rgb(var(--accent));
   font-size: 1.7rem;
   flex-shrink: 0;
 }
@@ -393,7 +393,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: rgb(var(--accent));
   margin: 0;
 }
 .cat-banner-eyebrow .dot {
