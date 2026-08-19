@@ -15,12 +15,19 @@ beforeEach(async () => {
   // pool), donc les nommer serait redondant — mais les OUBLIER laisserait
   // des lignes d'un test fuir dans le suivant, ce qui se manifeste par des
   // échecs qui dépendent de l'ordre d'exécution.
+  //
+  // Les trois tables de fédération sont nommées explicitement : `peers` est
+  // la racine du miroir (remote_torrents, sync_state, follows en dépendent),
+  // tandis que `federation_config` et les tombstones ne pointent vers rien et
+  // survivraient donc à un CASCADE depuis `users`.
   await db.execute(
     sql`TRUNCATE TABLE
           upload_request_fill_attempts, upload_requests, invitations,
           reports, torrents, tags, categories, settings,
           freeleech_pool_cycles, freeleech_pool_contributions,
-          bonus_grants, bonus_rules, users
+          bonus_grants, bonus_rules,
+          federation_config, federation_peers, federation_catalog_removals,
+          users
         RESTART IDENTITY CASCADE`,
   );
 });
