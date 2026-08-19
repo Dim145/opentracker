@@ -509,15 +509,27 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 .fed-badge.danger { color: #f87171; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
 .fed-badge.neutral { color: var(--fg-muted); background: rgba(255, 255, 255, 0.04); border-color: var(--line-default); }
 
-/* switch */
+/* switch
+   Les jetons de couleur sont des TRIPLETS RGB ("35 35 35"), pas des couleurs :
+   il faut les envelopper dans `rgb(…)`. Sans l'enveloppe, `background: 35 35 35`
+   est invalide, le navigateur jette la déclaration en silence, et l'interrupteur
+   devenait purement et simplement invisible à l'état éteint — seul l'état allumé
+   se voyait, parce qu'il retombait sur le littéral `#d4a734` de `--gold`, un
+   jeton qui n'existe pas. */
 .switch { position: relative; display: inline-flex; flex-shrink: 0; width: 42px; height: 24px; }
 .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.switch .track { position: absolute; inset: 0; border-radius: 99px; background: var(--bg-hover); border: 1px solid var(--line-strong); transition: all 0.2s ease; }
-.switch .thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--fg-subtle); transition: all 0.2s cubic-bezier(0.3, 1.4, 0.5, 1); }
-.switch input:checked ~ .track { background: var(--online); border-color: var(--online); }
+.switch .track { position: absolute; inset: 0; border-radius: 99px; background: rgb(var(--bg-hover)); border: 1px solid rgb(var(--line-strong)); transition: all 0.2s ease; }
+.switch .thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: rgb(var(--fg-subtle)); transition: all 0.2s cubic-bezier(0.3, 1.4, 0.5, 1); }
+.switch input:checked ~ .track { background: rgb(var(--online)); border-color: rgb(var(--online)); }
 .switch input:checked ~ .thumb { left: 21px; background: #0a0a0a; }
-.switch.is-gold input:checked ~ .track { background: var(--gold, #d4a734); border-color: var(--gold, #d4a734); }
-.switch.is-warning input:checked ~ .track { background: var(--warning); border-color: var(--warning); }
+.switch.is-gold input:checked ~ .track { background: #d4a734; border-color: #d4a734; }
+.switch.is-warning input:checked ~ .track { background: rgb(var(--warning)); border-color: rgb(var(--warning)); }
+/* L'input réel est transparent : sans anneau explicite, la navigation au
+   clavier n'a aucun repère visible sur ce contrôle. */
+.switch input:focus-visible ~ .track { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
+.switch input:disabled { cursor: not-allowed; }
+.switch input:disabled ~ .track,
+.switch input:disabled ~ .thumb { opacity: 0.45; }
 
 /* status dot */
 .fed-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
