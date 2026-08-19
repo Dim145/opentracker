@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "nitropack dev",
-    "build": "nitropack build",
+    "build": "node scripts/generate-openapi.mjs && nitropack build",
     "prepare": "nitropack prepare",
     "preview": "node .output/server/index.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "openapi": "node scripts/generate-openapi.mjs"
   },
   "dependencies": {
     "@simplewebauthn/server": "^13.3.2",

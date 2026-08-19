@@ -81,6 +81,10 @@
         </section>
       </div>
 
+      <!-- Santé de la synchronisation : ce que federation_sync_state
+           consignait sans que rien ne le relise. -->
+      <AdminFederationHealth />
+
       <!-- KPIs -->
       <div class="fed-kpis">
         <div class="kpi"><span class="kpi-n">{{ kpis.active }}</span><span class="kpi-l">{{ $t('admin.federation.kpis.activePeers') }}</span><Icon name="ph:plugs-connected-bold" class="kpi-i" /></div>

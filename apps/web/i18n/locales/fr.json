@@ -1529,6 +1529,22 @@
         "approved": "Le lien de fédération est désormais actif",
         "revoked": "Lien supprimé",
         "error": "Une erreur est survenue"
+      },
+      "health": {
+        "title": "Santé de la synchronisation",
+        "refresh": "Actualiser",
+        "disabled": "La fédération est désactivée : rien ne se synchronise.",
+        "lastRun": "Dernier passage",
+        "never": "jamais",
+        "ago": "il y a {d}",
+        "every": "toutes les {d}",
+        "staleAfter": "en retard au-delà de {d}",
+        "tileOk": "À jour",
+        "tileStale": "En retard",
+        "tileError": "En erreur",
+        "tileMirrored": "Torrents miroir",
+        "noPeers": "Aucun partenaire actif.",
+        "neverSynced": "Jamais synchronisé."
       }
     },
     "notifications": {
@@ -2766,7 +2782,9 @@
           "1y": "1 an",
           "permanent": "Définitif"
         }
-      }
+      },
+      "filterWithdrawn": "Retirés",
+      "withdrawnByReporter": "Ce signaleur a retiré {n} signalements"
     },
     "tags": {
       "title": "Tags",

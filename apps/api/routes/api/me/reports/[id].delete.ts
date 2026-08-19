@@ -9,10 +9,14 @@
  * dismissed report is the kind of paper trail we want to keep so a
  * pattern of bad-faith reporting stays visible to staff.
  *
- * Hard delete (not a soft "withdrawn" status): the row exists purely
- * because the user asked us to look at it, and they're now asking us
- * to forget. Keeping a tombstone would just add a fourth status the
- * UI has to render without giving the user anything useful.
+ * This used to hard-delete, on the reasoning that the user asked us to
+ * forget and a tombstone would only add a status the UI must render for
+ * no user benefit. The first half still holds and the second was the
+ * mistake: the tombstone is not for the reporter. Filing and pulling
+ * reports in series is exactly the pattern staff need to see, and a
+ * deleted row makes it invisible. So the report leaves the reporter's
+ * own list — from their side it is gone — and stays counted against
+ * them in moderation.
  */
 import { db, schema } from '@trackarr/db';
 import { and, eq } from 'drizzle-orm';
@@ -50,8 +54,12 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // UPDATE conditionnel sur le statut : deux retraits concurrents, ou un
+  // modérateur qui traite le signalement pendant que l'utilisateur le retire,
+  // ne peuvent pas se marcher dessus.
   await db
-    .delete(schema.reports)
+    .update(schema.reports)
+    .set({ status: 'withdrawn', withdrawnAt: new Date() })
     .where(
       and(
         eq(schema.reports.id, id),

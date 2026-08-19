@@ -77,3 +77,7 @@ documentation/
 # Knowledge graph — regenerated from the source tree by `graphify update .`,
 # so it is a build product, not a source. Around 8 MB of JSON and HTML.
 graphify-out/
+
+# Generated from the route tree by `pnpm --filter @trackarr/api openapi`, which
+# the API build runs before nitropack. A build product, not a source.
+apps/api/openapi.json

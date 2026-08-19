@@ -14,7 +14,7 @@
  * moderator who reviewed it.
  */
 import { db, schema } from '@trackarr/db';
-import { eq, desc, and, sql, inArray } from 'drizzle-orm';
+import { eq, ne, desc, and, sql, inArray } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
@@ -29,6 +29,10 @@ export default defineEventHandler(async (event) => {
   if (status && ['pending', 'resolved', 'dismissed'].includes(status)) {
     conditions.push(eq(schema.reports.status, status));
   }
+  // Un signalement retiré sort de la vue du signaleur : il a demandé qu'on
+  // l'oublie, et de son côté c'est le cas. La ligne survit uniquement pour la
+  // modération, qui a besoin de voir les retraits en série.
+  conditions.push(ne(schema.reports.status, 'withdrawn'));
   const whereClause = and(...conditions);
 
   const [reports, countResult, statusCounts] = await Promise.all([
@@ -54,7 +58,14 @@ export default defineEventHandler(async (event) => {
         count: sql<number>`count(*)::int`,
       })
       .from(schema.reports)
-      .where(eq(schema.reports.reporterId, user.id))
+      // Même exclusion que la liste, sinon les puces de filtre annonceraient
+      // des signalements que la liste ne montre pas.
+      .where(
+        and(
+          eq(schema.reports.reporterId, user.id),
+          ne(schema.reports.status, 'withdrawn')
+        )
+      )
       .groupBy(schema.reports.status),
   ]);
 

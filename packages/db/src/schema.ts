@@ -1630,7 +1630,14 @@ export const reports = pgTable(
     targetId: text('target_id').notNull(),
     reason: text('reason').notNull(),
     details: text('details'), // Additional context
-    status: text('status').default('pending').notNull(), // pending | resolved | dismissed
+    // pending | resolved | dismissed | withdrawn
+    status: text('status').default('pending').notNull(),
+    // Retrait par le signaleur. La ligne n'est plus supprimée : elle disparaît
+    // de la liste du signaleur — il a demandé qu'on oublie — mais reste comptée
+    // côté modération, où un utilisateur qui dépose puis retire en série est
+    // précisément le signal qu'on cherche. La pierre tombale n'existe donc pas
+    // pour l'utilisateur, elle existe pour le staff.
+    withdrawnAt: timestamp('withdrawn_at'),
     resolvedBy: text('resolved_by').references(() => users.id),
     resolvedAt: timestamp('resolved_at'),
     resolution: text('resolution'), // Action taken
