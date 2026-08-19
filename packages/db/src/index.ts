@@ -93,3 +93,7 @@ export function getPoolStats(): { max: number; idle_timeout: number } {
 export async function closeDatabase(): Promise<void> {
   await client.end();
 }
+
+// Expression plein-texte : partagée entre la déclaration des index (schema.ts)
+// et les requêtes de recherche, pour qu'elles ne puissent pas diverger.
+export { ftsVector, FTS_CONFIG } from './search';
