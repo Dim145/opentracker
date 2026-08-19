@@ -23,7 +23,7 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
               with:
                   fetch-depth: 0
 
@@ -86,7 +86,7 @@ jobs:
             - name: Create GitHub Release
               if: steps.check_tag.outputs.exists == 'false'
               # v1 runs on a Node runtime GitHub no longer supports.
-              uses: softprops/action-gh-release@v3
+              uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
               with:
                   tag_name: ${{ steps.version.outputs.version }}
                   name: Release ${{ steps.version.outputs.version }}
@@ -125,4 +125,8 @@ jobs:
             contents: read
             packages: write
             id-token: write
-        secrets: inherit
+        # No `secrets: inherit`. The called workflow only ever reads
+        # `secrets.GITHUB_TOKEN`, which GitHub provides to a reusable workflow
+        # automatically, scoped by the `permissions` block above. Inheriting
+        # handed it every secret in the repository — including any unrelated
+        # to publishing images.

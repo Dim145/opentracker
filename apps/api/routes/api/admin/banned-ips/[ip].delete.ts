@@ -16,6 +16,7 @@ import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { isIP } from 'node:net';
+import { invalidateIpBanCache } from '~~/utils/adminAuth';
 
 export default defineEventHandler(async (event) => {
   await requireModeratorSession(event);
@@ -33,6 +34,10 @@ export default defineEventHandler(async (event) => {
     .delete(schema.bannedIps)
     .where(eq(schema.bannedIps.ip, ip))
     .returning({ ip: schema.bannedIps.ip });
+
+  // Same reasoning as the ban path: an unban must take effect immediately,
+  // not after the cache TTL.
+  await invalidateIpBanCache(ip);
 
   return {
     success: true,

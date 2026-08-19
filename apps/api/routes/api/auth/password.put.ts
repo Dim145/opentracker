@@ -33,6 +33,7 @@ import { redis } from '~~/utils/server';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { z } from 'zod';
 import { notify } from '~~/utils/notify';
+import { decryptSecret, encryptSecretRequired } from '~~/utils/credentialSecrets';
 
 const bodySchema = z.object({
   challenge: z.string().length(64, 'Invalid challenge'),
@@ -69,8 +70,12 @@ export default defineEventHandler(async (event) => {
   }
 
   // Same proof shape as login: SHA256(verifier + challenge).
+  const storedVerifier = decryptSecret(row.authVerifier);
+  if (!storedVerifier) {
+    throw createError({ statusCode: 401, message: 'Invalid credentials' });
+  }
   const expectedProof = createHash('sha256')
-    .update(row.authVerifier + body.challenge)
+    .update(storedVerifier + body.challenge)
     .digest('hex');
 
   if (!secureCompare(body.currentProof, expectedProof)) {
@@ -84,7 +89,7 @@ export default defineEventHandler(async (event) => {
     .update(schema.users)
     .set({
       authSalt: body.newSalt,
-      authVerifier: body.newVerifier,
+      authVerifier: encryptSecretRequired(body.newVerifier),
     })
     .where(eq(schema.users.id, user.id));
 

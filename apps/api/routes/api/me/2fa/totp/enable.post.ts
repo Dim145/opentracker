@@ -22,6 +22,7 @@ import {
 } from '~~/utils/twoFactor';
 import { validateBody } from '~~/utils/schemas';
 import { notify } from '~~/utils/notify';
+import { decryptSecret } from '~~/utils/credentialSecrets';
 
 const bodySchema = z.object({
   code: z.string().regex(/^\d{6}$/, 'Code must be 6 digits'),
@@ -47,7 +48,8 @@ export default defineEventHandler(async (event) => {
       message: 'TOTP is already enabled.',
     });
   }
-  if (!(await verifyTotp(body.code, row.totpSecret))) {
+  const seed = decryptSecret(row.totpSecret);
+  if (!seed || !(await verifyTotp(body.code, seed))) {
     throw createError({
       statusCode: 400,
       message: 'Invalid code. Make sure your phone clock is in sync.',

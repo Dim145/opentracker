@@ -22,6 +22,11 @@ updates:
     directory: /apps/tracker
     schedule:
       interval: weekly
+    # Wait a week before opening a PR for a freshly published version. A
+    # compromised release is usually yanked long before that; without the
+    # cooldown Dependabot would race to propose it.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
@@ -49,6 +54,11 @@ updates:
       - /doc
     schedule:
       interval: weekly
+    # Wait a week before opening a PR for a freshly published version. A
+    # compromised release is usually yanked long before that; without the
+    # cooldown Dependabot would race to propose it.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
     cooldown:
       default-days: 7
@@ -73,6 +83,11 @@ updates:
       - /doc
     schedule:
       interval: weekly
+    # Wait a week before opening a PR for a freshly published version. A
+    # compromised release is usually yanked long before that; without the
+    # cooldown Dependabot would race to propose it.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       base-images:
@@ -85,6 +100,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Wait a week before opening a PR for a freshly published version. A
+    # compromised release is usually yanked long before that; without the
+    # cooldown Dependabot would race to propose it.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       compose-images:
@@ -100,6 +120,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Wait a week before opening a PR for a freshly published version. A
+    # compromised release is usually yanked long before that; without the
+    # cooldown Dependabot would race to propose it.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       actions:

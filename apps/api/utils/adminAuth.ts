@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3';
 import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
-import { users } from '@trackarr/db/schema';
+import { bannedIps, users } from '@trackarr/db/schema';
 import { redis } from '../redis/client';
 import { getSessionId } from './session';
 import { isFreshAuth } from './twoFactor';
@@ -28,7 +28,7 @@ import { isFreshAuth } from './twoFactor';
 const BAN_CACHE_TTL_S = 60;
 const banCacheKey = (userId: string) => `auth:ban:${userId}`;
 
-async function readBanStatusCached(
+export async function readBanStatusCached(
   userId: string
 ): Promise<'ok' | 'banned' | 'gone'> {
   try {
@@ -95,7 +95,7 @@ export async function invalidateBanCache(userId: string): Promise<void> {
 const ROLE_CACHE_TTL_S = 60;
 const roleCacheKey = (userId: string) => `auth:role:${userId}`;
 
-async function readLiveRoles(
+export async function readLiveRoles(
   userId: string
 ): Promise<{ isAdmin: boolean; isModerator: boolean } | null> {
   try {
@@ -130,6 +130,55 @@ async function readLiveRoles(
 export async function invalidateRoleCache(userId: string): Promise<void> {
   try {
     await redis.del(roleCacheKey(userId));
+  } catch {
+    /* no-op */
+  }
+}
+
+/**
+ * Cached IP-ban lookup — backs the security middleware.
+ *
+ * The middleware used to run an uncached `SELECT` on `banned_ips` for EVERY
+ * request, ahead of any rate limiting: an unauthenticated flood therefore
+ * cost one Postgres round trip per packet, through pgbouncer, before a single
+ * defence could fire. That is an amplification, not a defence.
+ *
+ * Same shape as the user ban cache: a short TTL so a fresh ban takes effect
+ * within a minute even if the explicit invalidation misfires, plus negative
+ * caching so the common "not banned" answer costs one Redis GET.
+ */
+const IP_BAN_CACHE_TTL_S = 60;
+const ipBanCacheKey = (ip: string) => `sec:ipban:${ip}`;
+
+export async function readIpBanCached(ip: string): Promise<string | null> {
+  if (!ip || ip === 'unknown') return null;
+  try {
+    const cached = await redis.get(ipBanCacheKey(ip));
+    if (cached === '0') return null;
+    if (cached !== null) return cached; // the stored ban reason
+  } catch {
+    // Redis hiccup — fall through to the DB rather than fail open on a ban.
+  }
+
+  const [row] = await db
+    .select({ reason: bannedIps.reason })
+    .from(bannedIps)
+    .where(eq(bannedIps.ip, ip))
+    .limit(1);
+
+  const value = row ? row.reason || 'IP banned' : '0';
+  try {
+    await redis.setex(ipBanCacheKey(ip), IP_BAN_CACHE_TTL_S, value);
+  } catch {
+    /* no-op */
+  }
+  return row ? value : null;
+}
+
+/** Drop the cached verdict for one IP. Call from the ban / unban routes. */
+export async function invalidateIpBanCache(ip: string): Promise<void> {
+  try {
+    await redis.del(ipBanCacheKey(ip));
   } catch {
     /* no-op */
   }

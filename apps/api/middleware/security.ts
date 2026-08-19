@@ -7,7 +7,12 @@
 import { detectDDoS, isBlacklisted, getClientIP } from '~~/utils/rateLimit';
 import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
-import { users, bannedIps, webauthnCredentials } from '@trackarr/db/schema';
+import { users, webauthnCredentials } from '@trackarr/db/schema';
+import {
+  readBanStatusCached,
+  readIpBanCached,
+  readLiveRoles,
+} from '~~/utils/adminAuth';
 import { isUserRequiredFor2FA } from '~~/utils/settings';
 
 // ============================================================================
@@ -99,7 +104,12 @@ function applySecurityHeaders(event: any): void {
   const headers: Record<string, string> = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block',
+    // `X-XSS-Protection: 1; mode=block` is deliberately NOT sent. The
+    // header is deprecated and its auditor introduced its own
+    // vulnerabilities (Chrome removed the feature for that reason); `0` is
+    // the value modern guidance recommends. The Caddyfile already dropped
+    // it — this layer had not followed.
+    'X-XSS-Protection': '0',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     'X-DNS-Prefetch-Control': 'off',
@@ -149,52 +159,29 @@ export default defineEventHandler(async (event) => {
   const ip = getClientIP(event);
   const userAgent = getHeader(event, 'user-agent') || '';
 
-  // 1. Check IP Ban (Permanent bans from DB)
-  if (ip) {
-    const [bannedIp] = await db
-      .select()
-      .from(bannedIps)
-      .where(eq(bannedIps.ip, ip))
-      .limit(1);
+  // Order matters. Everything below is sorted by cost, cheapest first, so a
+  // flood is dropped as early as possible:
+  //
+  //   in-process checks  →  Redis  →  Postgres
+  //
+  // The IP-ban `SELECT` used to sit at the very top, ahead of the rate
+  // limiter: an unauthenticated request cost a Postgres round trip through
+  // pgbouncer before any defence could fire, which turns a packet flood into
+  // a database flood. It is now cached in Redis and runs last.
 
-    if (bannedIp) {
-      throw createError({
-        statusCode: 403,
-        message: `Access denied: ${bannedIp.reason || 'IP banned'}`,
-      });
-    }
-  }
-
-  // Check IP blacklist (Temporary rate-limit bans)
-  if (await isBlacklisted(ip)) {
-    console.warn(`[Security] Blocked blacklisted IP: ${ip.slice(0, 8)}...`);
-    throw createError({
-      statusCode: 403,
-      message: 'Access denied',
-    });
-  }
-
-  // Check for blocked user agents
+  // 1. In-process filters — no I/O at all.
   if (hasBlockedUserAgent(userAgent)) {
     console.warn(
       `[Security] Blocked suspicious user agent: ${userAgent.slice(0, 50)}...`
     );
-    throw createError({
-      statusCode: 403,
-      message: 'Access denied',
-    });
+    throw createError({ statusCode: 403, message: 'Access denied' });
   }
 
-  // Validate request path
   if (!isValidPath(path)) {
     console.warn(`[Security] Blocked suspicious path: ${path}`);
-    throw createError({
-      statusCode: 400,
-      message: 'Invalid request',
-    });
+    throw createError({ statusCode: 400, message: 'Invalid request' });
   }
 
-  // Validate query parameters for API routes
   if (path.startsWith('/api/')) {
     const query = getQuery(event) as Record<string, unknown>;
     if (!validateQueryParams(query)) {
@@ -204,45 +191,63 @@ export default defineEventHandler(async (event) => {
         message: 'Invalid request parameters',
       });
     }
+  }
 
-    // DDoS detection for API routes
+  // 2. Redis — temporary blacklist, then the abuse counter itself.
+  if (await isBlacklisted(ip)) {
+    console.warn(`[Security] Blocked blacklisted IP: ${ip.slice(0, 8)}...`);
+    throw createError({ statusCode: 403, message: 'Access denied' });
+  }
+
+  if (
+    path.startsWith('/api/') ||
+    path.includes('/announce') ||
+    path.includes('/scrape')
+  ) {
     await detectDDoS(event);
   }
 
-  // Rate limit check for tracker endpoints (high volume)
-  if (path.includes('/announce') || path.includes('/scrape')) {
-    await detectDDoS(event);
+  // 3. Persistent IP bans — Redis-cached, so this is a GET on the hot path
+  //    and only reaches Postgres once a minute per distinct address.
+  const ipBanReason = await readIpBanCached(ip);
+  if (ipBanReason) {
+    throw createError({
+      statusCode: 403,
+      message: `Access denied: ${ipBanReason}`,
+    });
   }
 
-  // 2. Check User Ban (for authenticated sessions)
-  // Skip for auth routes and Torznab API (has its own passkey auth)
+  // 4. Authenticated caller — ban status and mandatory-2FA policy.
+  // Skip for auth routes and Torznab (which carries its own passkey auth).
   if (!path.startsWith('/api/auth/') && !path.startsWith('/api/torznab')) {
     const session = await getUserSession(event);
 
     if (session.user) {
-      // Check DB for ban status (and the role/2FA flags reused below).
-      const [dbUser] = await db
-        .select({
-          isBanned: users.isBanned,
-          isAdmin: users.isAdmin,
-          isModerator: users.isModerator,
-          totpEnabled: users.totpEnabled,
-        })
-        .from(users)
-        .where(eq(users.id, session.user.id))
-        .limit(1);
+      // Both reads are Redis-cached (60 s) in adminAuth. This block used to
+      // issue an uncached `SELECT` on `users` for every authenticated
+      // request, duplicating the cached check `requireAuthSession` performs
+      // moments later.
+      const status = await readBanStatusCached(session.user.id);
 
-      if (dbUser?.isBanned) {
-        // Clear session immediately
+      if (status !== 'ok') {
+        // `gone` (the row no longer exists) is treated exactly like `banned`.
+        // The previous code only tested `isBanned`, then set `authChecked`
+        // unconditionally — which made `requireAuthSession` skip its own
+        // check and left a deleted account with a working session for the
+        // remaining cookie lifetime.
         await clearUserSession(event);
-
-        // If it's an API request, throw 403
         if (path.startsWith('/api/')) {
           throw createError({
             statusCode: 403,
-            message: 'Your account has been banned',
+            message:
+              status === 'banned'
+                ? 'Your account has been banned'
+                : 'Your account no longer exists',
           });
         }
+        // Non-API path: session cleared, nothing more to enforce. Do NOT
+        // mark the request as checked.
+        return;
       }
 
       // Mandatory-2FA enforcement (finding M2). require2FAScope was only
@@ -254,18 +259,23 @@ export default defineEventHandler(async (event) => {
       // page loads are left alone so the FE can still render the redirect.
       // isUserRequiredFor2FA short-circuits to false when scope='off'
       // (the cached default), so this costs nothing on most deployments.
-      if (
-        dbUser &&
-        !dbUser.isBanned &&
-        path.startsWith('/api/') &&
-        !path.startsWith('/api/me/2fa/')
-      ) {
-        const required = await isUserRequiredFor2FA({
-          isAdmin: dbUser.isAdmin,
-          isModerator: dbUser.isModerator,
-        });
+      if (path.startsWith('/api/') && !path.startsWith('/api/me/2fa/')) {
+        const roles = await readLiveRoles(session.user.id);
+        const required = roles
+          ? await isUserRequiredFor2FA({
+              isAdmin: roles.isAdmin,
+              isModerator: roles.isModerator,
+            })
+          : false;
         if (required) {
-          let has2FA = dbUser.totpEnabled ?? false;
+          // Only now does the policy justify touching the DB for the
+          // enrolment state.
+          const [row] = await db
+            .select({ totpEnabled: users.totpEnabled })
+            .from(users)
+            .where(eq(users.id, session.user.id))
+            .limit(1);
+          let has2FA = row?.totpEnabled ?? false;
           if (!has2FA) {
             const passkeyCount = await db
               .select({ id: webauthnCredentials.id })
@@ -285,7 +295,8 @@ export default defineEventHandler(async (event) => {
         }
       }
 
-      // Mark as checked to avoid redundant DB queries in requireAuthSession
+      // Mark as checked to avoid a redundant lookup in requireAuthSession.
+      // Only reached when the account exists and is not banned.
       event.context.authChecked = true;
     }
   }

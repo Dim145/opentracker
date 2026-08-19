@@ -25,6 +25,7 @@ import {
 } from '~~/utils/twoFactor';
 import { validateBody } from '~~/utils/schemas';
 import { notify } from '~~/utils/notify';
+import { decryptSecret } from '~~/utils/credentialSecrets';
 
 const bodySchema = z
   .object({
@@ -71,7 +72,8 @@ export default defineEventHandler(async (event) => {
   // hold the secret is the cleanest confirmation.
   let consumedRecoveryId: string | null = null;
   if (body.code) {
-    if (!(await verifyTotp(body.code, row.totpSecret, { userId: session.user.id }))) {
+    const seed = decryptSecret(row.totpSecret);
+    if (!seed || !(await verifyTotp(body.code, seed, { userId: session.user.id }))) {
       throw createError({ statusCode: 400, message: 'Invalid TOTP code.' });
     }
   } else if (body.recoveryCode) {

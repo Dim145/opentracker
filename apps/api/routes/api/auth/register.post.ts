@@ -13,6 +13,7 @@ import { validateBody, registerSchema } from '~~/utils/schemas';
 import { notify } from '~~/utils/notify';
 import { verifyPoWSolution } from '~~/utils/pow';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { encryptSecretRequired } from '~~/utils/credentialSecrets';
 
 /**
  * Postgres advisory lock id used to serialise the "first user gets
@@ -189,7 +190,9 @@ export default defineEventHandler(async (event) => {
       id: userId,
       username: body.username,
       authSalt: body.authSalt,
-      authVerifier: body.authVerifier,
+      // Encrypted at rest: the verifier IS the login credential, not a hash
+      // of it, so a database dump would otherwise be an account takeover.
+      authVerifier: encryptSecretRequired(body.authVerifier),
       passkey,
       isAdmin: settledFirstUser,
       isModerator: false,

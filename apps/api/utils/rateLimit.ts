@@ -6,6 +6,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { redis } from '~~/utils/server';
+import { isIP } from 'node:net';
 
 // ============================================================================
 // Types & Configuration
@@ -98,7 +99,33 @@ const TRUST_CF_CONNECTING_IP = process.env.TRUST_CF_CONNECTING_IP === 'true';
 /**
  * Extract client IP. Honors proxy headers only if TRUST_PROXY=true, and
  * CF-Connecting-IP only if TRUST_CF_CONNECTING_IP=true on top of that.
+ *
+ * `X-Forwarded-For` is walked RIGHT to LEFT, taking the last well-formed
+ * entry. That is what `doc/reference/env.md` documents and what the Go
+ * tracker (`server.clientIP`) already did; this function used to take the
+ * LEFTMOST token and to prefer `X-Real-IP` over the list entirely. Both are
+ * client-suppliable: the shipped Caddyfile overwrites the two headers with
+ * `{remote_host}`, so the supported deployment was safe, but behind any
+ * proxy that APPENDS instead (nginx `proxy_add_x_forwarded_for`, Traefik,
+ * HAProxy, most CDNs) a client could pick its own effective IP — bypassing
+ * IP bans and rate limits, and framing a victim's address into the
+ * blacklist.
+ *
+ * Every candidate is validated with `net.isIP` before use. An unvalidated
+ * header value would otherwise become a Redis key and a `banned_ips`
+ * comparand, letting an attacker mint unbounded cache keys from arbitrary
+ * strings.
  */
+function firstValidIp(value: string | undefined): string | null {
+  if (!value) return null;
+  const parts = value.split(',');
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const candidate = parts[i]!.trim();
+    if (candidate && isIP(candidate)) return candidate;
+  }
+  return null;
+}
+
 export function getClientIP(event: any): string {
   const directIp = event.node?.req?.socket?.remoteAddress || 'unknown';
 
@@ -107,15 +134,19 @@ export function getClientIP(event: any): string {
   }
 
   if (TRUST_CF_CONNECTING_IP) {
-    const cfConnectingIP = getHeader(event, 'cf-connecting-ip');
-    if (cfConnectingIP) return cfConnectingIP;
+    const cf = firstValidIp(getHeader(event, 'cf-connecting-ip'));
+    if (cf) return cf;
   }
 
-  const realIP = getHeader(event, 'x-real-ip');
-  if (realIP) return realIP;
+  // The list our upstream appended to — rightmost entry is the address the
+  // proxy we trust actually observed.
+  const forwarded = firstValidIp(getHeader(event, 'x-forwarded-for'));
+  if (forwarded) return forwarded;
 
-  const forwarded = getHeader(event, 'x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0].trim();
+  // Single-value header, checked last: a proxy that sets XFF but not
+  // X-Real-IP would otherwise let a client-supplied X-Real-IP win.
+  const realIP = firstValidIp(getHeader(event, 'x-real-ip'));
+  if (realIP) return realIP;
 
   return directIp;
 }

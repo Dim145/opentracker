@@ -4,3 +4,22 @@ packages:
 
 # Hoist dependencies that have peer-dep issues with auto-install-peers
 shamefully-hoist: false
+
+# ── Supply-chain hardening ───────────────────────────────────────────────────
+# The npm registry has repeatedly been the delivery vehicle for compromised
+# releases published from hijacked maintainer accounts, and the window between
+# publication and takedown is measured in hours. These three settings buy that
+# window back.
+#
+#   minimumReleaseAge  a version must have existed for 24 h before pnpm will
+#                      install it, transitive dependencies included. Malicious
+#                      publishes are typically pulled well inside that.
+#   trustPolicy        refuse an update that LOWERS a package's trust level
+#                      compared with its previous releases.
+#   blockExoticSubdeps sub-dependencies may only come from a real registry —
+#                      never a git URL or a tarball a compromised manifest
+#                      points at. Default in pnpm 11; explicit here because
+#                      this workspace is on pnpm 10.
+minimumReleaseAge: 1440
+trustPolicy: no-downgrade
+blockExoticSubdeps: true

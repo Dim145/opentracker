@@ -9,6 +9,7 @@ import { mintChallengeToken, markFreshAuth } from '~~/utils/twoFactor';
 import { consumeTrustedDevice } from '~~/utils/trustedDevices';
 import { notify } from '~~/utils/notify';
 import { liftExpiredBan } from '~~/utils/banExpiry';
+import { decryptSecret, encryptSecretRequired, looksEncrypted } from '~~/utils/credentialSecrets';
 
 /**
  * POST /api/auth/login
@@ -62,8 +63,20 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // The verifier is encrypted at rest. `decryptSecret` returns a legacy
+  // plaintext value unchanged, so accounts created before the rollout keep
+  // working; it returns null when the ciphertext fails authentication, and
+  // we fail closed on that rather than compare against a corrupted row.
+  const storedVerifier = decryptSecret(user.authVerifier);
+  if (!storedVerifier) {
+    throw createError({
+      statusCode: 401,
+      message: 'Invalid credentials',
+    });
+  }
+
   const expectedProof = createHash('sha256')
-    .update(user.authVerifier + body.challenge)
+    .update(storedVerifier + body.challenge)
     .digest('hex');
 
   if (!secureCompare(body.proof, expectedProof)) {
@@ -71,6 +84,17 @@ export default defineEventHandler(async (event) => {
       statusCode: 401,
       message: 'Invalid credentials',
     });
+  }
+
+  // Lazy migration: a proven-correct login is the safe moment to upgrade a
+  // legacy plaintext verifier in place. Fire-and-forget — a failure here
+  // must never cost the user their login, the next one retries.
+  if (!looksEncrypted(user.authVerifier)) {
+    void db
+      .update(users)
+      .set({ authVerifier: encryptSecretRequired(storedVerifier) })
+      .where(eq(users.id, user.id))
+      .catch(() => {});
   }
 
   // ── Account & IP bans ───────────────────────────────────────

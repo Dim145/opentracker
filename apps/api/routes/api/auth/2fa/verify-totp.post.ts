@@ -21,6 +21,7 @@ import { issueTrustedDevice } from '~~/utils/trustedDevices';
 import { validateBody } from '~~/utils/schemas';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notify } from '~~/utils/notify';
+import { decryptSecret } from '~~/utils/credentialSecrets';
 
 const bodySchema = z
   .object({
@@ -82,7 +83,8 @@ export default defineEventHandler(async (event) => {
         message: 'TOTP is not enabled for this account.',
       });
     }
-    if (!(await verifyTotp(body.code, user.totpSecret, { userId: user.id }))) {
+    const seed = decryptSecret(user.totpSecret);
+    if (!seed || !(await verifyTotp(body.code, seed, { userId: user.id }))) {
       throw createError({ statusCode: 400, message: 'Invalid TOTP code.' });
     }
   } else if (body.recoveryCode) {

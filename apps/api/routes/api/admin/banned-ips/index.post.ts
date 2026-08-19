@@ -20,6 +20,7 @@ import { requireModeratorSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 import { z } from 'zod';
+import { invalidateIpBanCache } from '~~/utils/adminAuth';
 
 const bodySchema = z.object({
   ip: z
@@ -56,6 +57,10 @@ export default defineEventHandler(async (event) => {
       set: { reason },
     })
     .returning();
+
+  // The middleware caches the verdict for 60 s; drop it so the ban bites at
+  // once instead of waiting out the TTL.
+  await invalidateIpBanCache(row!.ip);
 
   return {
     success: true,

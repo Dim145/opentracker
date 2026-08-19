@@ -17,6 +17,7 @@ import {
   buildTotpUri,
   generateTotpSecret,
 } from '~~/utils/twoFactor';
+import { encryptSecret } from '~~/utils/credentialSecrets';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
@@ -49,7 +50,9 @@ export default defineEventHandler(async (event) => {
 
   await db
     .update(schema.users)
-    .set({ totpSecret: secret })
+    // Encrypted at rest — the same dump that leaks the verifier must not
+    // also hand over the second factor.
+    .set({ totpSecret: encryptSecret(secret) })
     .where(eq(schema.users.id, user.id));
 
   return {

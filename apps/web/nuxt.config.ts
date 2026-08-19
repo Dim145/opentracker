@@ -278,8 +278,9 @@ export default defineNuxtConfig({
         'Referrer-Policy': 'strict-origin-when-cross-origin',
         'Permissions-Policy':
           'geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()',
-        'Content-Security-Policy':
-          "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https:; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'",
+        // Content-Security-Policy is NOT set here. It carries a per-response
+        // nonce so `script-src` can drop `'unsafe-inline'`, which a static
+        // header cannot express — see server/plugins/csp.ts.
       },
     },
   },

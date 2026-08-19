@@ -40,16 +40,14 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 		Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
-		# CSP — locks scripts/frames to first-party. `unsafe-inline`
-		# is currently required by the Nuxt FOUC theme script in
-		# app.vue (constant string, not user-controlled, so the XSS
-		# risk is nil); when that script moves to a nonce-scoped
-		# external file we can drop the keyword.
-		# fonts.googleapis.com (CSS) + fonts.gstatic.com (font binaries)
-		# are explicitly allow-listed because main.css imports the Inter
-		# and JetBrains Mono families from there. If you bundle fonts
-		# locally instead, the two extra hosts can be dropped.
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https:; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		# Content-Security-Policy is deliberately NOT set at site level.
+		# `header` REPLACES the upstream value, and the Nuxt container
+		# now emits a per-response policy carrying a nonce so that
+		# `script-src` can drop `'unsafe-inline'` (see
+		# apps/web/server/plugins/csp.ts). Setting a static policy here
+		# would silently overwrite the nonce with the weaker one.
+		# The two handles Caddy answers on behalf of the API get their
+		# own policy below; the api container also sends one.
 		-Server
 	}
 
@@ -67,6 +65,10 @@
 
 	# All API routes (including /api/uploads/*, /api/health, /api/torrents/...).
 	handle /api/* {
+		# JSON and images only — nothing here should ever be treated as a
+		# document, let alone run a script. The api container sends its own
+		# policy too; this one is the edge's floor.
+		header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
 		reverse_proxy api:4000 {
 			header_up X-Real-IP {remote_host}
 			header_up X-Forwarded-For {remote_host}

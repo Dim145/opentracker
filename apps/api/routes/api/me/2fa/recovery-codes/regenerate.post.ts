@@ -19,6 +19,7 @@ import {
 } from '~~/utils/twoFactor';
 import { validateBody } from '~~/utils/schemas';
 import { notify } from '~~/utils/notify';
+import { decryptSecret } from '~~/utils/credentialSecrets';
 
 const bodySchema = z.object({
   code: z.string().regex(/^\d{6}$/, 'A 6-digit TOTP code is required'),
@@ -48,7 +49,8 @@ export default defineEventHandler(async (event) => {
       message: 'TOTP is not enabled.',
     });
   }
-  if (!(await verifyTotp(body.code, row.totpSecret, { userId: session.user.id }))) {
+  const seed = decryptSecret(row.totpSecret);
+  if (!seed || !(await verifyTotp(body.code, seed, { userId: session.user.id }))) {
     throw createError({ statusCode: 400, message: 'Invalid TOTP code.' });
   }
 
