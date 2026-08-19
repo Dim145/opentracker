@@ -62,3 +62,23 @@ export async function makeRequest(
   });
   return id;
 }
+
+type ReportInsert = typeof schema.reports.$inferInsert;
+
+/** Un signalement en attente, déposé par `reporterId`. Rend son id. */
+export async function makeReport(
+  reporterId: string,
+  over: Partial<ReportInsert> = {},
+): Promise<string> {
+  const id = randomUUID();
+  await db.insert(schema.reports).values({
+    id,
+    reporterId,
+    targetType: 'torrent',
+    targetId: randomUUID(),
+    reason: 'Contenu manifestement hors charte, merci de regarder.',
+    status: 'pending',
+    ...over,
+  });
+  return id;
+}
