@@ -68,10 +68,10 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Recherche libre. L'infohash est traité en amont : c'est une égalité exacte
-  // servie par un index unique, elle n'a rien à faire dans le texte. Les liens
-  // IMDb / TMDb / TVDB n'arrivent même pas ici — la barre de recherche les
-  // détecte côté client et les envoie comme paramètres dédiés (voir plus bas).
+  // Free-text search. The infohash is handled upstream: it is an exact match
+  // served by a unique index and has no business in the text path. IMDb / TMDb
+  // / TVDB links never even reach here — the search bar detects them
+  // client-side and sends them as dedicated parameters (see below).
   let searchCondition: SQL | null = null;
   let fuzzyFallback: SQL | null = null;
   if (query.search) {
@@ -94,9 +94,9 @@ export default defineEventHandler(async (event) => {
           branches.push(sql`${ftsVector(schema.torrents.nfo)} @@ ${q}`);
         }
         if (fields.includes('tags')) {
-          // EXISTS corrélé plutôt qu'une jointure : la jointure dupliquerait
-          // les lignes d'un torrent portant plusieurs tags correspondants, et
-          // il faudrait un DISTINCT qui casserait la pagination.
+          // A correlated EXISTS rather than a join: the join would duplicate
+          // rows for a torrent carrying several matching tags, and would need a
+          // DISTINCT that breaks pagination.
           branches.push(sql`EXISTS (
             SELECT 1 FROM ${schema.torrentTags} tt
             JOIN ${schema.tags} tg ON tg.id = tt.tag_id
@@ -106,19 +106,19 @@ export default defineEventHandler(async (event) => {
         }
         searchCondition = branches.length > 1 ? or(...branches)! : branches[0]!;
 
-        // Repli sur faute de frappe, préparé ici mais exécuté seulement si la
-        // passe plein-texte ne rend rien : le trigramme coûte dix fois plus
-        // cher (237 ms contre 23 ms sur 200 000 lignes), ce qui ne se justifie
-        // que face à une page de résultats vide. `word_similarity` et non
-        // `similarity` : sur un nom de release entier la similarité globale
-        // reste sous le seuil et ne trouve jamais rien.
+        // Typo fallback, prepared here but only executed when the full-text
+        // pass returns nothing: the trigram costs ten times more (237 ms
+        // against 23 ms over 200,000 rows), which is only justified in the face
+        // of an empty results page. `word_similarity`, not `similarity`: over a
+        // whole release name the global similarity stays below the threshold
+        // and never finds anything.
         const fuzzy = fuzzyTerm(query.search);
         if (fuzzy && parseSearchFuzzy(await getSetting(SEARCH_FUZZY_SETTING))) {
           fuzzyFallback = sql`${fuzzy} <% ${schema.torrents.name}`;
         }
       } else if (tsq) {
-        // L'opérateur a désactivé tous les champs : la recherche texte ne
-        // renvoie rien plutôt que de tout renvoyer.
+        // The operator disabled every field: text search returns nothing
+        // rather than returning everything.
         searchCondition = sql`false`;
       }
     }
@@ -213,8 +213,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Le prédicat de recherche est resté à part des filtres : le repli flou
-  // rejoue donc la même requête en ne remplaçant que lui.
+  // The search predicate is kept apart from the filters, so the fuzzy fallback
+  // replays the same query replacing only that.
   const compose = (search: SQL | null) => {
     const all = search ? [...conditions, search] : conditions;
     return all.length > 0 ? and(...all) : undefined;
@@ -228,10 +228,10 @@ export default defineEventHandler(async (event) => {
   };
 
   let whereClause = compose(searchCondition);
-  // Le comptage est nécessaire de toute façon pour la pagination : on le fait
-  // en premier et il sert aussi de sonde au repli. Sonder séparément aurait
-  // ajouté une requête à chaque recherche d'un seul mot, y compris les 95 %
-  // qui trouvent leur résultat du premier coup.
+  // The count is needed for pagination anyway: we do it first and it doubles
+  // as the probe for the fallback. Probing separately would have added a query
+  // to every single-word search, including the 95% that find their result
+  // first time.
   let total = await countRows(whereClause);
   if (total === 0 && fuzzyFallback) {
     whereClause = compose(fuzzyFallback);
@@ -274,7 +274,7 @@ export default defineEventHandler(async (event) => {
     offset,
   });
 
-  // `total` a déjà été calculé plus haut : il conditionne le repli flou.
+  // `total` was already computed above: it is what gates the fuzzy fallback.
 
   // Enrich with live stats from Redis. Tolerate partial failure: a Redis hiccup
   // for one torrent should not fail the whole listing — fall back to zeroes.

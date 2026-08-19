@@ -1,10 +1,10 @@
 /**
- * Nom de release normalisé et NFO, dérivés des données techniques.
+ * Normalised release name and NFO, derived from the technical data.
  *
- * Deux sorties distinctes de la fiche BBCode : le nom de release sert à
- * nommer le torrent, le NFO à le documenter. Les deux se déduisent de ce
- * qu'on sait déjà — l'utilisateur n'a rien à ressaisir — mais restent
- * modifiables, parce qu'aucune déduction n'est fiable à 100 %.
+ * Two outputs distinct from the BBCode listing: the release name names the
+ * torrent, the NFO documents it. Both are derived from what we already know —
+ * the user re-types nothing — but stay editable, because no derivation is 100%
+ * reliable.
  */
 import type { TechnicalSheet } from './mediainfo';
 import { prettyAudioFormat, renderMediaInfo, resolutionLabel } from './mediainfo';
@@ -22,12 +22,12 @@ export interface ReleaseNameParts {
 }
 
 /**
- * Codec vidéo dans la forme courte attendue dans un nom de release.
+ * The video codec in the short form a release name expects.
  *
- * Même distinction que sur la fiche : `x264` pour un ré-encodage, `H264`
- * pour un flux d'origine. Ignorer l'encodeur donnait un nom en `H264` sur
- * une release manifestement encodée en x264 — en contradiction avec le
- * codec annoncé juste au-dessus dans la même fiche.
+ * The same distinction as on the listing: `x264` for a re-encode, `H264` for an
+ * original stream. Ignoring the encoder produced an `H264` name on a release
+ * plainly encoded with x264 — contradicting the codec announced just above in
+ * the same listing.
  */
 function shortVideoCodec(format?: string, encoder?: string): string | undefined {
   const f = (format ?? '').toLowerCase();
@@ -46,11 +46,11 @@ function shortVideoCodec(format?: string, encoder?: string): string | undefined 
 }
 
 /**
- * Langue en majuscules : FRENCH, VOSTFR, MULTi…
+ * The language in upper case: FRENCH, VOSTFR, MULTi…
  *
- * La convention des trackers francophones ne décrit pas la piste audio mais
- * ce que l'utilisateur va entendre et lire : une VO sous-titrée en français
- * s'annonce VOSTFR, pas JAPANESE. D'où le croisement avec les sous-titres.
+ * The French tracker convention describes not the audio track but what the user
+ * will hear and read: an original version subtitled in French is announced
+ * VOSTFR, not JAPANESE. Hence the cross-check against the subtitles.
  */
 function releaseLanguage(sheet: TechnicalSheet): string | undefined {
   const langs = sheet.audio
@@ -76,13 +76,13 @@ function releaseLanguage(sheet: TechnicalSheet): string | undefined {
 }
 
 /**
- * Équipe de release, déduite du nom de fichier d'origine.
+ * The release team, derived from the original filename.
  *
- * L'équipe suit le premier tiret du DERNIER segment de la release (celui que
- * séparent les points ou les espaces). Découper au dernier tiret du nom
- * entier amputait les noms composés : « x264-Foo-Bar » ne rendait que
- * « Bar ». Déduction volontairement prudente pour le reste — on refuse ce
- * qui ressemble à un fragment technique plutôt que de proposer n'importe quoi.
+ * The team follows the first hyphen of the LAST segment of the release (the one
+ * dots or spaces separate). Splitting on the last hyphen of the whole name
+ * truncated compound names: "x264-Foo-Bar" returned only "Bar". Deliberately
+ * cautious elsewhere — we refuse anything that looks like a technical fragment
+ * rather than propose just anything.
  */
 export function guessTeam(fileName?: string): string | undefined {
   const base = (fileName ?? '').replace(/\.[a-z0-9]{2,4}$/i, '').trim();
@@ -97,7 +97,7 @@ export function guessTeam(fileName?: string): string | undefined {
   return candidate;
 }
 
-/** Déduit tout ce qui est déductible ; les trous restent à la main. */
+/** Derives everything derivable; the gaps are left to be filled by hand. */
 export function deriveReleaseParts(
   title: string,
   year: number | null | undefined,
@@ -119,10 +119,10 @@ export function deriveReleaseParts(
 }
 
 /**
- * `Titre.Annee.LANGUE.Resolution.Source.Audio.Video-TEAM`
+ * `Title.Year.LANGUAGE.Resolution.Source.Audio.Video-TEAM`
  *
- * Les segments absents sont simplement omis : un nom incomplet reste
- * utilisable, alors qu'un nom truffé de « undefined » ne l'est pas.
+ * Absent segments are simply omitted: an incomplete name is still usable, where
+ * one riddled with "undefined" is not.
  */
 export function formatReleaseName(
   parts: ReleaseNameParts,
@@ -146,13 +146,13 @@ export function formatReleaseName(
 }
 
 /**
- * NFO texte : le nom de la release, puis le bloc MediaInfo du modèle.
+ * The text NFO: the release name, then the model's MediaInfo block.
  *
- * Le bloc est toujours rendu depuis `TechnicalSheet`, jamais depuis la sortie
- * brute conservée dans `sheet.raw` : le modèle est la seule source de vérité,
- * si bien qu'une piste ajoutée ou corrigée à l'étape technique se retrouve
- * dans le NFO. C'est aussi ce qui rend l'aller-retour sans perte, puisque
- * `renderMediaInfo` écrit exactement les libellés que le parseur relit.
+ * The block is always rendered from `TechnicalSheet`, never from the raw output
+ * kept in `sheet.raw`: the model is the single source of truth, so a track
+ * added or corrected on the technical step shows up in the NFO. That is also
+ * what makes the round trip lossless, since `renderMediaInfo` writes exactly
+ * the labels the parser reads back.
  */
 export function buildNfo(releaseName: string, sheet: TechnicalSheet): string {
   const head = releaseName.trim();

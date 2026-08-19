@@ -17,8 +17,8 @@ export default defineEventHandler(async (event) => {
   const body = await validateBody(event, adminSettingsSchema);
 
   if (body.searchFields !== undefined) {
-    // Dédupliqué et stocké en CSV : la liste est courte et un tableau JSON
-    // n'apporterait rien de plus qu'un format à parser des deux côtés.
+    // Deduplicated and stored as CSV: the list is short and a JSON array would
+    // add nothing but a format to parse on both sides.
     await setSetting(
       SETTINGS_KEYS.SEARCH_FIELDS,
       [...new Set(body.searchFields)].join(',')

@@ -16,17 +16,17 @@ import {
 } from '../app/utils/ficheRelease';
 import { emptySheet, type TechnicalSheet } from '../app/utils/mediainfo';
 
-// Générateur de fiche. Tout est pur : à partir d'un `TechnicalSheet` et de
-// métadonnées, on produit du BBCode, un nom de release et un NFO. Rien ici ne
-// touche au réseau ni au disque, ce qui rend la logique entièrement testable —
-// et c'est utile, parce que trois défauts s'y sont déjà glissés sans qu'aucun
-// ne provoque d'erreur visible : un code de langue régional affiché brut, une
-// équipe amputée, et un codec incohérent entre la fiche et le nom de release.
+// The listing generator. Everything is pure: from a `TechnicalSheet` and some
+// metadata it produces BBCode, a release name and an NFO. Nothing here touches
+// the network or the disk, which makes the logic entirely testable — and that
+// is useful, because three defects have already slipped in without any of them
+// raising an error: a regional language code printed raw, a truncated team
+// name, and a codec that disagreed between the listing and the release name.
 
 function sheet(over: Partial<TechnicalSheet> = {}): TechnicalSheet {
   return {
     ...emptySheet(),
-    fileName: 'Titre.2026.1080p.WEB-DL.x264-TeamName.mkv',
+    fileName: 'Title.2026.1080p.WEB-DL.x264-TeamName.mkv',
     container: 'Matroska',
     fileSize: 1_473_173_712,
     duration: '24 min 24 s',
@@ -57,32 +57,32 @@ function sheet(over: Partial<TechnicalSheet> = {}): TechnicalSheet {
 }
 
 describe('languageLabel', () => {
-  it('reconnaît les codes ISO courts', () => {
+  it('recognises short ISO codes', () => {
     expect(languageLabel('fr')).toEqual({ flag: '🇫🇷', name: 'Français' });
     expect(languageLabel('ja')).toEqual({ flag: '🇯🇵', name: 'Japonais' });
   });
 
-  it('accepte les codes régionaux', () => {
-    // Les motifs sont ancrés (`^fr$`) : sans repli sur la partie langue,
-    // « fr-FR » ressortait tel quel sur la fiche, sans drapeau.
+  it('accepts regional codes', () => {
+    // The patterns are anchored (`^fr$`): with no fallback onto the language
+    // part, "fr-FR" came out verbatim on the listing, with no flag.
     expect(languageLabel('fr-FR').name).toBe('Français');
     expect(languageLabel('en-US').name).toBe('Anglais');
     expect(languageLabel('ja-JP').name).toBe('Japonais');
   });
 
-  it('distingue les variantes qui méritent leur propre drapeau', () => {
+  it('keeps the variants that deserve their own flag apart', () => {
     expect(languageLabel('pt-BR')).toEqual({ flag: '🇧🇷', name: 'Brésilien' });
     expect(languageLabel('pt').name).toBe('Portugais');
   });
 
-  it('rend la valeur brute sans drapeau plutôt que d’inventer', () => {
+  it('returns the raw value with no flag rather than inventing one', () => {
     expect(languageLabel('klingon')).toEqual({ flag: '', name: 'klingon' });
     expect(languageLabel('')).toEqual({ flag: '', name: 'Inconnu' });
   });
 });
 
 describe('audioLine / subtitleLine', () => {
-  it('compose la ligne audio avec drapeau, disposition, codec et débit', () => {
+  it('composes the audio line with flag, layout, codec and bitrate', () => {
     const line = audioLine(sheet().audio[0]!);
     expect(line).toContain('🇯🇵');
     expect(line).toContain('Japonais');
@@ -91,19 +91,19 @@ describe('audioLine / subtitleLine', () => {
     expect(line).toContain('192 Kbps');
   });
 
-  it('n’affiche pas de débit quand il est inconnu', () => {
+  it('shows no bitrate when it is unknown', () => {
     const line = audioLine({ kind: 'audio', format: 'AAC', language: 'fr' });
     expect(line).not.toContain('@');
   });
 
-  it('distingue les trois natures de sous-titre', () => {
+  it('tells the three kinds of subtitle apart', () => {
     const base = { kind: 'text' as const, format: 'SRT', language: 'fr' };
     expect(subtitleLine(base)).toContain('complets');
     expect(subtitleLine({ ...base, isForced: true })).toContain('Forcé');
     expect(subtitleLine({ ...base, isSdh: true })).toContain('SDH');
   });
 
-  it('le caractère forcé prime sur SDH quand les deux sont posés', () => {
+  it('lets forced win over SDH when both flags are set', () => {
     const line = subtitleLine({
       kind: 'text', format: 'SRT', language: 'fr', isForced: true, isSdh: true,
     });
@@ -113,48 +113,48 @@ describe('audioLine / subtitleLine', () => {
 });
 
 describe('guessTeam', () => {
-  it('prend ce qui suit le premier tiret du dernier segment', () => {
-    expect(guessTeam('Titre.2026.1080p.WEB-DL.x264-NTb.mkv')).toBe('NTb');
+  it('takes what follows the first hyphen of the last segment', () => {
+    expect(guessTeam('Title.2026.1080p.WEB-DL.x264-NTb.mkv')).toBe('NTb');
   });
 
-  it('garde un nom d’équipe composé', () => {
-    // Découper au dernier tiret du nom entier amputait « Foo-Bar » en « Bar ».
-    expect(guessTeam('Titre.2026.1080p.WEB-DL.x264-Foo-Bar.mkv')).toBe('Foo-Bar');
+  it('keeps a compound team name', () => {
+    // Splitting on the last hyphen of the whole name truncated "Foo-Bar" to
+    // "Bar".
+    expect(guessTeam('Title.2026.1080p.WEB-DL.x264-Foo-Bar.mkv')).toBe('Foo-Bar');
   });
 
-  it('fonctionne aussi sur un nom séparé par des espaces', () => {
-    expect(guessTeam('Titre 2026 1080p WEB-DL x264-Foo-Bar.mkv')).toBe('Foo-Bar');
+  it('works on a space-separated name too', () => {
+    expect(guessTeam('Title 2026 1080p WEB-DL x264-Foo-Bar.mkv')).toBe('Foo-Bar');
   });
 
-  it('refuse un fragment technique plutôt que de proposer n’importe quoi', () => {
-    expect(guessTeam('Titre.2026.1080p.WEB-DL.mkv')).toBeUndefined();
-    expect(guessTeam('Titre.2026.x264.mkv')).toBeUndefined();
+  it('refuses a technical fragment rather than proposing anything', () => {
+    expect(guessTeam('Title.2026.1080p.WEB-DL.mkv')).toBeUndefined();
+    expect(guessTeam('Title.2026.x264.mkv')).toBeUndefined();
     expect(guessTeam('')).toBeUndefined();
   });
 });
 
 describe('deriveReleaseParts / formatReleaseName', () => {
-  it('déduit résolution, audio, codec et équipe', () => {
-    const parts = deriveReleaseParts('Mon Titre', 2026, sheet(), 'WEB-DL');
+  it('derives resolution, audio, codec and team', () => {
+    const parts = deriveReleaseParts('My Title', 2026, sheet(), 'WEB-DL');
     expect(parts.resolution).toBe('1080p');
     expect(parts.audio).toBe('AAC');
     expect(parts.video).toBe('x264');
     expect(parts.team).toBe('TeamName');
   });
 
-  it('annonce VOSTFR pour une VO sous-titrée en français', () => {
-    // Convention des trackers francophones : on décrit ce que l'utilisateur
-    // va entendre et lire, pas la piste audio. « JAPANESE » serait exact et
-    // inutile.
+  it('announces VOSTFR for an original version subtitled in French', () => {
+    // French tracker convention: describe what the user will hear and read,
+    // not the audio track. "JAPANESE" would be accurate and useless.
     expect(deriveReleaseParts('T', 2026, sheet(), 'WEB-DL').language).toBe('VOSTFR');
   });
 
-  it('annonce FRENCH quand l’audio est française', () => {
+  it('announces FRENCH when the audio is French', () => {
     const s = sheet({ audio: [{ kind: 'audio', format: 'AC-3', language: 'fr' }] });
     expect(deriveReleaseParts('T', 2026, s, 'BluRay').language).toBe('FRENCH');
   });
 
-  it('annonce MULTi dès deux langues audio', () => {
+  it('announces MULTi from two audio languages onwards', () => {
     const s = sheet({
       audio: [
         { kind: 'audio', format: 'AC-3', language: 'fr' },
@@ -164,23 +164,23 @@ describe('deriveReleaseParts / formatReleaseName', () => {
     expect(deriveReleaseParts('T', 2026, s, 'BluRay').language).toBe('MULTi');
   });
 
-  it('assemble le nom en omettant les segments absents', () => {
+  it('assembles the name, omitting the absent segments', () => {
     expect(
-      formatReleaseName({ title: 'Mon Titre', year: 2026, resolution: '1080p', team: 'NTb' }),
-    ).toBe('Mon.Titre.2026.1080p-NTb');
-    // Un nom incomplet reste utilisable ; un nom truffé d'« undefined » non.
-    expect(formatReleaseName({ title: 'Seul' })).toBe('Seul');
+      formatReleaseName({ title: 'My Title', year: 2026, resolution: '1080p', team: 'NTb' }),
+    ).toBe('My.Title.2026.1080p-NTb');
+    // An incomplete name is still usable; one riddled with "undefined" is not.
+    expect(formatReleaseName({ title: 'Alone' })).toBe('Alone');
   });
 
-  it('sait basculer en espaces', () => {
+  it('can switch to spaces', () => {
     expect(
-      formatReleaseName({ title: 'Mon Titre', year: 2026, resolution: '1080p' }, true),
-    ).toBe('Mon Titre 2026 1080p');
+      formatReleaseName({ title: 'My Title', year: 2026, resolution: '1080p' }, true),
+    ).toBe('My Title 2026 1080p');
   });
 
-  it('le codec du nom s’accorde avec celui de la fiche', () => {
-    // Les deux se fondent sur l'encodeur déclaré : la fiche disait « x264 »
-    // pendant que le nom disait « H264 ».
+  it('keeps the name codec in step with the listing codec', () => {
+    // Both derive from the declared encoder: the listing said "x264" while the
+    // name said "H264".
     const parts = deriveReleaseParts('T', 2026, sheet(), 'WEB-DL');
     const s = sheet({ video: [{ ...sheet().video[0]!, encoder: undefined }] });
     expect(parts.video).toBe('x264');
@@ -189,20 +189,20 @@ describe('deriveReleaseParts / formatReleaseName', () => {
 });
 
 describe('buildNfo', () => {
-  it('place le nom de release en tête, puis le bloc MediaInfo', () => {
-    const nfo = buildNfo('Mon.Titre.2026.1080p-NTb', sheet());
-    expect(nfo.startsWith('Mon.Titre.2026.1080p-NTb')).toBe(true);
+  it('puts the release name first, then the MediaInfo block', () => {
+    const nfo = buildNfo('My.Title.2026.1080p-NTb', sheet());
+    expect(nfo.startsWith('My.Title.2026.1080p-NTb')).toBe(true);
     expect(nfo).toContain('General');
     expect(nfo).toContain('Video');
     expect(nfo).toContain('Audio');
   });
 
-  it('rend le modèle et non la sortie brute conservée', () => {
-    // Le NFO se calcule depuis `TechnicalSheet`, pour qu'une piste corrigée
-    // à l'étape technique s'y retrouve.
-    const s = sheet({ raw: 'CECI EST UNE ANCIENNE SORTIE COLLÉE' });
-    const nfo = buildNfo('Nom', s);
-    expect(nfo).not.toContain('ANCIENNE SORTIE');
+  it('renders the model, not the raw output that was kept', () => {
+    // The NFO is computed from `TechnicalSheet`, so that a track corrected at
+    // the technical step shows up in it.
+    const s = sheet({ raw: 'THIS IS AN OLD PASTED OUTPUT' });
+    const nfo = buildNfo('Name', s);
+    expect(nfo).not.toContain('OLD PASTED');
     expect(nfo).toContain('1920 pixels');
   });
 });
@@ -210,11 +210,11 @@ describe('buildNfo', () => {
 describe('buildFiche', () => {
   const work: FicheWork = {
     type: 'tv',
-    title: 'Mon Titre',
+    title: 'My Title',
     year: 2026,
     genres: ['Animation'],
     countries: ['Japon'],
-    overview: 'Un synopsis.',
+    overview: 'A synopsis.',
     posterUrl: 'https://example.org/p.jpg',
   };
   const release: FicheRelease = {
@@ -227,13 +227,13 @@ describe('buildFiche', () => {
     totalSize: 1_473_173_712,
     totalSizeUnit: 'GiB',
     fileCount: 1,
-    releaseName: 'Mon.Titre.2026.1080p-NTb',
+    releaseName: 'My.Title.2026.1080p-NTb',
   };
 
-  it('produit un bloc centré équilibré', () => {
+  it('produces a balanced centred block', () => {
     const bb = buildFiche(work, release, sheet(), defaultOptions());
     expect(bb.startsWith('[center]')).toBe(true);
-    // Autant d'ouvertures que de fermetures, sinon l'aperçu déborde.
+    // As many openings as closings, otherwise the preview overflows.
     for (const tag of ['center', 'font', 'size']) {
       const open = (bb.match(new RegExp(`\\[${tag}[=\\]]`, 'g')) ?? []).length;
       const close = (bb.match(new RegExp(`\\[/${tag}\\]`, 'g')) ?? []).length;
@@ -241,54 +241,54 @@ describe('buildFiche', () => {
     }
   });
 
-  it('met en forme les grandeurs plutôt que d’afficher les valeurs brutes', () => {
+  it('formats quantities rather than printing raw values', () => {
     const bb = buildFiche(work, release, sheet(), defaultOptions());
     expect(bb).toContain('8 Mbps');
     expect(bb).toContain('1.37 GiB');
-    // Le défaut d'origine : « Débit vidéo : 8000000 ».
+    // The original defect: "Video bitrate: 8000000".
     expect(bb).not.toContain('8000000');
     expect(bb).not.toContain('1473173712');
   });
 
-  it('affiche les langues avec leur drapeau, code régional compris', () => {
+  it('shows languages with their flag, regional codes included', () => {
     const bb = buildFiche(work, release, sheet(), defaultOptions());
     expect(bb).toContain('🇯🇵');
     expect(bb).toContain('🇫🇷');
     expect(bb).not.toContain('fr-FR');
   });
 
-  it('respecte les options de composition', () => {
-    const sans = buildFiche(work, release, sheet(), {
+  it('honours the composition options', () => {
+    const without = buildFiche(work, release, sheet(), {
       ...defaultOptions(),
       includeSynopsis: false,
       includePoster: false,
       includeTechnical: false,
     });
-    expect(sans).not.toContain('Un synopsis.');
-    expect(sans).not.toContain('example.org/p.jpg');
-    expect(sans).not.toContain('Qualité vidéo');
+    expect(without).not.toContain('A synopsis.');
+    expect(without).not.toContain('example.org/p.jpg');
+    expect(without).not.toContain('Qualité vidéo');
   });
 
-  it('n’insère que des captures en http(s)', () => {
+  it('inserts http(s) screenshots only', () => {
     const bb = buildFiche(work, release, sheet(), {
       ...defaultOptions(),
-      screenshots: 'https://ok.example/1.png\njavascript:alert(1)\nftp://non.example/2.png',
+      screenshots: 'https://ok.example/1.png\njavascript:alert(1)\nftp://no.example/2.png',
     });
     expect(bb).toContain('https://ok.example/1.png');
     expect(bb).not.toContain('javascript:');
     expect(bb).not.toContain('ftp://');
   });
 
-  it('supporte une fiche sans aucune métadonnée', () => {
-    // L'utilisateur peut n'avoir aucun tmdbId : la fiche doit sortir quand
-    // même, sans « undefined » ni plantage.
+  it('supports a listing with no metadata at all', () => {
+    // The user may have no tmdbId: the listing must still come out, with
+    // neither "undefined" nor a crash.
     const bb = buildFiche(
-      { type: 'movie', title: 'Sans métadonnées' },
+      { type: 'movie', title: 'No metadata' },
       {},
       emptySheet(),
       defaultOptions(),
     );
-    expect(bb).toContain('Sans métadonnées');
+    expect(bb).toContain('No metadata');
     expect(bb).not.toContain('undefined');
     expect(bb).not.toContain('NaN');
   });

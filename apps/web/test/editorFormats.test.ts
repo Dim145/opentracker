@@ -7,76 +7,74 @@ import {
   toEditorHtml,
 } from '../app/utils/editorFormats';
 
-// L'éditeur accepte indifféremment du Markdown, du HTML ou du BBCode : c'est
-// ce qui permet de coller une fiche venue d'un autre tracker sans la refaire.
-// La détection de format est donc un aiguillage silencieux — se tromper ne
-// lève aucune erreur, ça affiche simplement les délimiteurs en clair au milieu
-// du texte.
+// The editor accepts Markdown, HTML or BBCode indifferently: that is what lets
+// someone paste a listing from another tracker without rewriting it. Format
+// detection is therefore a silent switch — getting it wrong raises no error,
+// it just prints the delimiters literally in the middle of the text.
 //
-// Le convertisseur BBCode, lui, est la seule partie du projet qui fabrique du
-// HTML brut à partir d'une entrée utilisateur. Il échappe tout d'entrée et ne
-// réinjecte que ce qu'il émet lui-même ; ces tests figent cette discipline,
-// puis vérifient que `toEditorHtml` repasse quand même le résultat au
-// désinfectant — la défense en profondeur qui rattraperait une future balise
-// mal écrite.
+// The BBCode converter is the only part of the project that builds raw HTML
+// from user input. It escapes everything up front and only re-injects what it
+// emits itself; these tests pin that discipline, then check that
+// `toEditorHtml` still runs the result through the sanitiser — the
+// defence-in-depth that would catch a future badly written tag.
 
 describe('detectFormat', () => {
-  it('reconnaît le BBCode à sa balise fermante', () => {
-    // C'est ce qui le distingue d'un lien Markdown `[libellé](url)`.
-    expect(detectFormat('[b]gras[/b]')).toBe('bbcode');
-    expect(detectFormat('[center][size=13]Fiche[/size][/center]')).toBe('bbcode');
+  it('recognises BBCode by its closing tag', () => {
+    // That is what distinguishes it from a Markdown `[label](url)` link.
+    expect(detectFormat('[b]bold[/b]')).toBe('bbcode');
+    expect(detectFormat('[center][size=13]Listing[/size][/center]')).toBe('bbcode');
   });
 
-  it('ne prend pas un lien markdown pour du BBCode', () => {
-    expect(detectFormat('Voir [le site](https://ok.example)')).toBe('markdown');
+  it('does not mistake a markdown link for BBCode', () => {
+    expect(detectFormat('See [the site](https://ok.example)')).toBe('markdown');
   });
 
-  it('privilégie le markdown même quand du HTML en ligne s’y mêle', () => {
-    // Beaucoup de trackers acceptaient déjà `<u>` par-dessus du Markdown. Une
-    // sonde naïve « contient une balise HTML » classait ça en HTML pur, et les
-    // `**` finissaient affichés tels quels.
-    expect(detectFormat('**gras** et <u>souligné</u>')).toBe('markdown');
-    expect(detectFormat('# Titre\n\n<br>ligne')).toBe('markdown');
+  it('prefers markdown even when inline HTML is mixed in', () => {
+    // Many trackers already accepted `<u>` on top of Markdown. A naive
+    // "contains an HTML tag" probe classified that as pure HTML, and the `**`
+    // ended up printed literally.
+    expect(detectFormat('**bold** and <u>underlined</u>')).toBe('markdown');
+    expect(detectFormat('# Title\n\n<br>line')).toBe('markdown');
   });
 
-  it('reconnaît le HTML quand il n’y a aucune syntaxe markdown', () => {
-    expect(detectFormat('<p>Bonjour <b>toi</b></p>')).toBe('html');
+  it('recognises HTML when there is no markdown syntax at all', () => {
+    expect(detectFormat('<p>Hello <b>you</b></p>')).toBe('html');
   });
 
-  it('retombe sur markdown pour du texte nu ou vide', () => {
-    expect(detectFormat('juste une phrase')).toBe('markdown');
+  it('falls back to markdown for bare or empty text', () => {
+    expect(detectFormat('just a sentence')).toBe('markdown');
     expect(detectFormat('   ')).toBe('markdown');
   });
 });
 
-describe('bbcodeToHtml — mise en forme', () => {
-  it('traduit les balises simples et imbriquées', () => {
-    const html = bbcodeToHtml('[b][i]les deux[/i][/b]');
+describe('bbcodeToHtml — formatting', () => {
+  it('translates simple and nested tags', () => {
+    const html = bbcodeToHtml('[b][i]both[/i][/b]');
     expect(html).toContain('<strong>');
     expect(html).toContain('<em>');
   });
 
-  it('résout les emballages de même type imbriqués', () => {
-    // Le défaut historique, visible sur les torrents exportés d'un forum : un
-    // `[size=13]` extérieur se refermait sur le premier `[/size]` intérieur,
-    // et le `[size=10]` orphelin s'affichait en toutes lettres.
-    const html = bbcodeToHtml('[size=13]dehors [size=10]dedans[/size] retour[/size]');
+  it('resolves same-kind wrappers nested in one another', () => {
+    // The historical defect, visible on torrents exported from a forum: an
+    // outer `[size=13]` closed on the first inner `[/size]`, and the orphaned
+    // `[size=10]` was printed verbatim.
+    const html = bbcodeToHtml('[size=13]outside [size=10]inside[/size] back[/size]');
     expect(html).not.toContain('[size=');
     expect(html).not.toContain('[/size]');
     expect(html.match(/font-size/g)).toHaveLength(2);
   });
 
-  it('borne une taille aberrante au lieu de faire exploser la mise en page', () => {
-    expect(bbcodeToHtml('[size=300]énorme[/size]')).toContain('font-size:48px');
-    expect(bbcodeToHtml('[size=1]minuscule[/size]')).toContain('font-size:0.80em');
+  it('bounds an absurd size instead of blowing up the layout', () => {
+    expect(bbcodeToHtml('[size=300]huge[/size]')).toContain('font-size:48px');
+    expect(bbcodeToHtml('[size=1]tiny[/size]')).toContain('font-size:0.80em');
   });
 
-  it('convertit les listes ordonnées et non ordonnées', () => {
-    expect(bbcodeToHtml('[list][*]un[*]deux[/list]')).toBe('<ul><li>un</li><li>deux</li></ul>');
-    expect(bbcodeToHtml('[list=1][*]un[/list]')).toBe('<ol><li>un</li></ol>');
+  it('converts ordered and unordered lists', () => {
+    expect(bbcodeToHtml('[list][*]one[*]two[/list]')).toBe('<ul><li>one</li><li>two</li></ul>');
+    expect(bbcodeToHtml('[list=1][*]one[/list]')).toBe('<ol><li>one</li></ol>');
   });
 
-  it('reprend les dimensions numériques d’une image', () => {
+  it('carries over numeric image dimensions', () => {
     const a = bbcodeToHtml('[img width=75]https://ok.example/p.jpg[/img]');
     expect(a).toContain('width="75"');
     const b = bbcodeToHtml('[img=320x180]https://ok.example/p.jpg[/img]');
@@ -84,103 +82,103 @@ describe('bbcodeToHtml — mise en forme', () => {
     expect(b).toContain('height="180"');
   });
 
-  it('garde les deux paragraphes sous un même emballage', () => {
+  it('keeps both paragraphs under a single wrapper', () => {
     const html = bbcodeToHtml('[size=13]para 1\n\npara 2[/size]');
     expect(html.match(/font-size/g)).toHaveLength(1);
     expect(html).toContain('para 2');
   });
 });
 
-describe('bbcodeToHtml — l’entrée n’est pas de confiance', () => {
-  it('échappe le HTML présent dans l’entrée', () => {
+describe('bbcodeToHtml — the input is not trusted', () => {
+  it('escapes HTML present in the input', () => {
     const html = bbcodeToHtml('<script>alert(1)</script>');
     expect(html).not.toContain('<script');
     expect(html).toContain('&lt;script&gt;');
   });
 
-  it('n’émet un lien que pour http(s)', () => {
-    expect(bbcodeToHtml('[url=javascript:alert(1)]clic[/url]')).not.toContain('<a ');
-    expect(bbcodeToHtml('[url=https://ok.example]clic[/url]')).toContain(
+  it('emits a link for http(s) only', () => {
+    expect(bbcodeToHtml('[url=javascript:alert(1)]click[/url]')).not.toContain('<a ');
+    expect(bbcodeToHtml('[url=https://ok.example]click[/url]')).toContain(
       'href="https://ok.example"',
     );
-    // Le libellé reste visible : on retire le lien, pas le texte.
-    expect(bbcodeToHtml('[url=javascript:alert(1)]clic[/url]')).toContain('clic');
+    // The label stays visible: we drop the link, not the text.
+    expect(bbcodeToHtml('[url=javascript:alert(1)]click[/url]')).toContain('click');
   });
 
-  it('n’émet une image que pour http(s)', () => {
+  it('emits an image for http(s) only', () => {
     expect(bbcodeToHtml('[img]javascript:alert(1)[/img]')).toBe('');
     expect(bbcodeToHtml('[img]data:image/svg+xml,<svg onload=alert(1)>[/img]')).toBe('');
   });
 
-  it('refuse une couleur qui n’en est pas une', () => {
-    const html = bbcodeToHtml('[color=red;background:url(https://pisteur.example)]x[/color]');
+  it('refuses a colour that is not one', () => {
+    const html = bbcodeToHtml('[color=red;background:url(https://tracker.example)]x[/color]');
     expect(html).not.toContain('url(');
     expect(html).toContain('x');
   });
 
-  it('durcit les liens sortants', () => {
-    expect(bbcodeToHtml('[url=https://ailleurs.example]x[/url]')).toContain(
+  it('hardens outbound links', () => {
+    expect(bbcodeToHtml('[url=https://elsewhere.example]x[/url]')).toContain(
       'rel="noopener noreferrer"',
     );
   });
 });
 
-describe('toEditorHtml — l’aiguillage complet', () => {
-  it('désinfecte quel que soit le chemin emprunté', () => {
-    // Trois formats, une seule garantie : rien d'exécutable n'atteint TipTap.
+describe('toEditorHtml — the whole switch', () => {
+  it('sanitises whichever branch is taken', () => {
+    // Three formats, one guarantee: nothing executable reaches TipTap.
     expect(toEditorHtml('<script>alert(1)</script>')).not.toContain('<script');
     expect(toEditorHtml('[b]<script>alert(1)</script>[/b]')).not.toContain('<script');
-    expect(toEditorHtml('# Titre\n<script>alert(1)</script>')).not.toContain('<script');
+    expect(toEditorHtml('# Title\n<script>alert(1)</script>')).not.toContain('<script');
   });
 
-  it('préserve la mise en forme du BBCode via le profil riche', () => {
-    // Le profil strict retirait tous les `style` et faisait disparaître
-    // [center], [color] et [size] à l'ouverture de l'éditeur.
-    const html = toEditorHtml('[center][color=#ff0000]Rouge centré[/color][/center]');
+  it('preserves BBCode formatting through the rich profile', () => {
+    // The strict profile stripped every `style` and made [center], [color] and
+    // [size] vanish the moment the editor opened.
+    const html = toEditorHtml('[center][color=#ff0000]Red and centred[/color][/center]');
     expect(html).toContain('text-align');
     expect(html).toContain('color');
-    expect(html).toContain('Rouge centré');
+    expect(html).toContain('Red and centred');
   });
 
-  it('rend une chaîne vide sur une entrée absente', () => {
+  it('returns an empty string on absent input', () => {
     expect(toEditorHtml(null)).toBe('');
     expect(toEditorHtml(undefined)).toBe('');
     expect(toEditorHtml('')).toBe('');
   });
 });
 
-describe('aller-retour markdown ↔ html', () => {
-  it('conserve la structure courante', () => {
-    const md = '# Titre\n\nUn **gras**, un *italique* et un [lien](https://ok.example).';
-    const retour = htmlToMarkdown(markdownToHtml(md));
-    expect(retour).toContain('# Titre');
-    expect(retour).toContain('**gras**');
-    expect(retour).toContain('[lien](https://ok.example)');
+describe('markdown ↔ html round trip', () => {
+  it('preserves the ordinary structure', () => {
+    const md = '# Title\n\nSome **bold**, some *italic* and a [link](https://ok.example).';
+    const back = htmlToMarkdown(markdownToHtml(md));
+    expect(back).toContain('# Title');
+    expect(back).toContain('**bold**');
+    expect(back).toContain('[link](https://ok.example)');
   });
 
-  it('conserve les listes et les blocs de code', () => {
-    const md = '- un\n- deux\n\n```\ncode\n```';
-    const retour = htmlToMarkdown(markdownToHtml(md));
-    expect(retour).toMatch(/^-\s+un$/m);
-    expect(retour).toContain('```');
+  it('preserves lists and code blocks', () => {
+    const md = '- one\n- two\n\n```\ncode\n```';
+    const back = htmlToMarkdown(markdownToHtml(md));
+    expect(back).toMatch(/^-\s+one$/m);
+    expect(back).toContain('```');
   });
 
-  it('préserve le souligné, que le markdown ne sait pas écrire', () => {
-    // Sans la règle turndown dédiée, `<u>` disparaissait à l'enregistrement.
-    expect(htmlToMarkdown('<p><u>souligné</u></p>')).toContain('<u>souligné</u>');
+  it('preserves underline, which markdown cannot write', () => {
+    // Without the dedicated turndown rule, `<u>` disappeared on save.
+    expect(htmlToMarkdown('<p><u>underlined</u></p>')).toContain('<u>underlined</u>');
   });
 
-  it('préserve le centrage', () => {
-    const md = htmlToMarkdown('<p style="text-align:center">centré</p>');
+  it('preserves centring', () => {
+    const md = htmlToMarkdown('<p style="text-align:center">centred</p>');
     expect(md).toContain('text-align:center');
   });
 
-  it('est stable à la seconde passe', () => {
-    // C'est ce qui compte vraiment : ouvrir puis réenregistrer une fiche sans
-    // y toucher ne doit pas la faire dériver un peu plus à chaque fois.
-    const md = '# Titre\n\nUn **gras** et une liste :\n\n- un\n- deux';
-    const un = htmlToMarkdown(markdownToHtml(md));
-    const deux = htmlToMarkdown(markdownToHtml(un));
-    expect(deux).toBe(un);
+  it('is stable on a second pass', () => {
+    // This is what really matters: opening then re-saving a listing without
+    // touching it must not make it drift a little further every time.
+    const md = '# Title\n\nSome **bold** and a list:\n\n- one\n- two';
+    const first = htmlToMarkdown(markdownToHtml(md));
+    const second = htmlToMarkdown(markdownToHtml(first));
+    expect(second).toBe(first);
   });
 });

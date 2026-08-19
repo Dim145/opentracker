@@ -15,13 +15,13 @@ export default defineConfig({
     // units (SSRF range checks, XML builders, ban date math, zod
     // schemas, search helpers, bonus tier maths, panic crypto).
     clearMocks: true,
-    // Certains modules par ailleurs purs — `bonusEarning`, par exemple —
-    // tirent `utils/settings` dans leur chaîne d'imports, qui construit le
-    // client Redis au chargement du module et exige ses secrets. Plutôt que
-    // de remanier le graphe d'imports pour les tests, on fournit ici des
-    // valeurs manifestement factices : rien ne se connecte, les options sont
-    // seulement bâties. Les longueurs respectent les minimums exigés en
-    // production (32 caractères), sinon la validation refuse au chargement.
+    // Some otherwise-pure modules — `bonusEarning`, for one — pull
+    // `utils/settings` into their import chain, and that builds the Redis
+    // client at module load time and demands its secrets. Rather than reshape
+    // the import graph for the tests' sake, we supply obviously-fake values
+    // here: nothing connects, the options are merely constructed. The lengths
+    // respect the production minimums (32 characters), otherwise validation
+    // refuses them at load time.
     env: {
       REDIS_PASSWORD: 'test-redis-password-not-a-real-one',
       NUXT_SESSION_SECRET: 'test-session-secret-0123456789abcdef',

@@ -162,9 +162,9 @@ export const adminCategorySchema = z.object({
 });
 
 export const adminSettingsSchema = z.object({
-  // Champs balayés par la recherche libre. Le tableau vide est accepté : c'est
-  // le choix explicite « pas de recherche texte », distinct de l'absence de
-  // clé qui laisse le réglage inchangé.
+  // Fields scanned by free-text search. The empty array is accepted: it is the
+  // explicit "no text search" choice, distinct from an absent key which leaves
+  // the setting unchanged.
   searchFields: z
     .array(z.enum(['name', 'description', 'nfo', 'tags']))
     .max(4)

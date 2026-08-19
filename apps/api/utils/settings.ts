@@ -150,10 +150,10 @@ export const SETTINGS_KEYS = {
   // ("I'll just keep throwing torrents until something sticks")
   // without forcing perfect first tries.
   REQUEST_MAX_FILLS_PER_USER: 'request_max_fills_per_user',
-  // Champs balayés par la recherche libre, en CSV : name,description,nfo,tags.
+  // Fields scanned by free-text search, as CSV: name,description,nfo,tags.
   SEARCH_FIELDS: 'search_fields',
-  // Repli sur faute de frappe. Coûteux (word_similarity relit beaucoup de
-  // lignes candidates) : laissé débrayable pour les gros catalogues.
+  // Typo fallback. Expensive (word_similarity re-reads many candidate rows):
+  // left switchable for large catalogues.
   SEARCH_FUZZY: 'search_fuzzy',
 } as const;
 

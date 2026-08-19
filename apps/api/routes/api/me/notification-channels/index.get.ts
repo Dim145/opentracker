@@ -3,9 +3,9 @@
  *
  * Returns the set of channels the user can configure. A channel is
  * "available" iff the admin row exists, is enabled, AND the last
- * admin test passed — that's the gate from the design ("section
- * notifications apparait dans /settings if au moins un canal est
- * activé et fonctionnel").
+ * admin test passed — that's the gate from the design ("the
+ * notifications section appears in /settings when at least one
+ * channel is enabled and working").
  *
  * For each available channel we include:
  *   - the meta (label, icon, user-side fields the UI renders)

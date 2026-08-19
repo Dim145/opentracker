@@ -36,10 +36,10 @@ docker run -d --name "$PG" --network "$NET" \
   -e POSTGRES_USER=tracker -e POSTGRES_PASSWORD=tracker -e POSTGRES_DB=trackarr \
   "$PG_IMAGE" >/dev/null
 
-# Redis : plusieurs gardes d'idempotence en dépendent — le crédit de connexion
-# quotidienne pose une clé SET NX, le collecteur de bonus prend un verrou
-# inter-répliques. Les tester contre un faux en mémoire ne prouverait rien,
-# puisque c'est justement l'atomicité de Redis qui fait la garantie.
+# Redis: several idempotence guards depend on it — the daily login credit
+# sets a SET NX key, the bonus collector takes a cross-replica lock. Testing
+# those against an in-memory fake would prove nothing, since Redis atomicity
+# is precisely what makes the guarantee.
 docker run -d --name "$RD" --network "$NET" \
   "$RD_IMAGE" redis-server --requirepass "$RD_PASS" >/dev/null
 

@@ -9,16 +9,16 @@ import {
   validateBonusRuleConfig,
 } from '../utils/bonusEarning';
 
-// Économie de gain. Ces multiplicateurs sont appliqués à chaque tick du cron
-// sur chaque seed de chaque membre : une erreur de palier ne casse rien de
-// visible, elle distribue silencieusement le mauvais nombre de points à toute
-// la communauté, et le ledger rend le rattrapage pénible. D'où des cas aux
-// bornes plutôt qu'au milieu des intervalles.
+// The earning economy. These multipliers are applied on every cron tick to
+// every seed of every member: a tier mistake breaks nothing visible, it
+// silently hands the wrong number of points to the whole community, and the
+// ledger makes putting it right painful. Hence cases on the boundaries rather
+// than in the middle of the ranges.
 
 describe('resolveSeedCountMultiplier', () => {
-  const tiers = DEFAULT_SEED_COUNT_TIERS; // trié croissant par maxSeeders
+  const tiers = DEFAULT_SEED_COUNT_TIERS; // sorted ascending by maxSeeders
 
-  it('rend le premier palier dont le plafond couvre le compte', () => {
+  it('returns the first tier whose ceiling covers the count', () => {
     expect(resolveSeedCountMultiplier(0, tiers)).toBe(300);
     expect(resolveSeedCountMultiplier(1, tiers)).toBe(300);
     expect(resolveSeedCountMultiplier(2, tiers)).toBe(200);
@@ -28,32 +28,32 @@ describe('resolveSeedCountMultiplier', () => {
     expect(resolveSeedCountMultiplier(21, tiers)).toBe(100);
   });
 
-  it('est inclusif sur la borne haute de chaque palier', () => {
-    // La borne est le piège classique : `<=` et non `<`. Un torrent avec
-    // exactement 5 seeders doit rester à 2×, pas retomber à 1,25×.
+  it('is inclusive on each tier’s upper bound', () => {
+    // The bound is the classic trap: `<=`, not `<`. A torrent with exactly 5
+    // seeders must stay at 2×, not fall back to 1.25×.
     for (const t of tiers) {
       expect(resolveSeedCountMultiplier(t.maxSeeders, tiers)).toBe(t.multiplier);
     }
   });
 
-  it('retombe sur 1× plutôt que sur zéro quand aucun palier ne couvre', () => {
-    // Le repli protège d'un opérateur qui vide la table : mieux vaut
-    // créditer au taux nominal que de couper l'économie en silence.
+  it('falls back to 1× rather than zero when no tier covers', () => {
+    // The fallback protects against an operator emptying the table: better to
+    // credit at the nominal rate than to cut the economy off in silence.
     expect(resolveSeedCountMultiplier(10, [])).toBe(100);
     expect(resolveSeedCountMultiplier(2_000_000, tiers)).toBe(100);
   });
 });
 
 describe('resolveAgeMultiplier', () => {
-  // ATTENTION : ce résolveur attend les paliers triés DÉCROISSANT par
-  // minAgeDays — c'est ce que produit `loadTiers()` (`orderBy desc`). La
-  // constante `DEFAULT_AGE_TIERS` est, elle, déclarée croissante parce
-  // qu'elle ne sert qu'à amorcer la table. Les passer directement rendrait
-  // toujours le premier palier ; ce test fige les deux comportements pour
-  // qu'un futur appelant ne confonde pas les deux tableaux.
+  // CAREFUL: this resolver expects tiers sorted DESCENDING by minAgeDays —
+  // which is what `loadTiers()` produces (`orderBy desc`). The
+  // `DEFAULT_AGE_TIERS` constant, on the other hand, is declared ascending
+  // because it only seeds the table. Passing it straight through would always
+  // return the first tier; this test pins both behaviours so a future caller
+  // does not confuse the two arrays.
   const desc = [...DEFAULT_AGE_TIERS].sort((a, b) => b.minAgeDays - a.minAgeDays);
 
-  it('rend le premier palier dont le plancher est atteint', () => {
+  it('returns the first tier whose floor is reached', () => {
     expect(resolveAgeMultiplier(0, desc)).toBe(100);
     expect(resolveAgeMultiplier(29, desc)).toBe(100);
     expect(resolveAgeMultiplier(30, desc)).toBe(120);
@@ -64,29 +64,29 @@ describe('resolveAgeMultiplier', () => {
     expect(resolveAgeMultiplier(10_000, desc)).toBe(200);
   });
 
-  it('est inclusif sur la borne basse de chaque palier', () => {
+  it('is inclusive on each tier’s lower bound', () => {
     for (const t of desc) {
       expect(resolveAgeMultiplier(t.minAgeDays, desc)).toBe(t.multiplier);
     }
   });
 
-  it('rend 1× sur un tableau vide', () => {
+  it('returns 1× on an empty array', () => {
     expect(resolveAgeMultiplier(500, [])).toBe(100);
   });
 
-  it('documente le piège : un tableau croissant colle tout au premier palier', () => {
-    // Non pas un comportement souhaitable, mais un fait à connaître. Si un
-    // jour ce test tombe parce que le résolveur trie lui-même, tant mieux —
-    // il faudra alors le remplacer par l'assertion inverse.
+  it('documents the trap: an ascending array pins everything to the first tier', () => {
+    // Not desirable behaviour, but a fact worth knowing. If this test ever
+    // fails because the resolver started sorting for itself, so much the
+    // better — replace it with the opposite assertion then.
     expect(resolveAgeMultiplier(10_000, DEFAULT_AGE_TIERS)).toBe(100);
   });
 });
 
 describe('validateBonusRuleConfig', () => {
-  it('accepte les défauts livrés pour chaque type de règle', () => {
-    // Si un défaut ne validait pas contre son propre schéma, l'amorce au
-    // premier démarrage échouerait — et seulement au premier démarrage,
-    // c'est-à-dire chez l'opérateur et jamais chez nous.
+  it('accepts the shipped defaults for every rule kind', () => {
+    // If a default failed to validate against its own schema, the first-boot
+    // seeding would fail — and only on first boot, which means at the
+    // operator's site and never at ours.
     for (const kind of BONUS_RULE_KINDS) {
       expect(() =>
         validateBonusRuleConfig(kind, BONUS_RULE_DEFAULTS[kind]),
@@ -94,7 +94,7 @@ describe('validateBonusRuleConfig', () => {
     }
   });
 
-  it('refuse un taux de seeding négatif ou démesuré', () => {
+  it('refuses a negative or outsized seeding rate', () => {
     expect(() =>
       validateBonusRuleConfig('seeding', { pointsPerHourPerSeed: -1 }),
     ).toThrow();
@@ -106,9 +106,9 @@ describe('validateBonusRuleConfig', () => {
     ).not.toThrow();
   });
 
-  it('refuse une clé inconnue au lieu de l’ignorer', () => {
-    // Les schémas sont `.strict()` : une faute de frappe dans la config
-    // d'administration doit remonter, pas être silencieusement perdue.
+  it('refuses an unknown key instead of ignoring it', () => {
+    // The schemas are `.strict()`: a typo in the admin config must surface,
+    // not be silently dropped.
     expect(() =>
       validateBonusRuleConfig('seeding', {
         pointsPerHourPerSeed: 1,
@@ -117,9 +117,9 @@ describe('validateBonusRuleConfig', () => {
     ).toThrow();
   });
 
-  it('refuse une config vide ou du mauvais type', () => {
+  it('refuses an empty or wrongly typed config', () => {
     expect(() => validateBonusRuleConfig('seeding', {})).toThrow();
     expect(() => validateBonusRuleConfig('seeding', null)).toThrow();
-    expect(() => validateBonusRuleConfig('daily_login', 'cinq')).toThrow();
+    expect(() => validateBonusRuleConfig('daily_login', 'five')).toThrow();
   });
 });

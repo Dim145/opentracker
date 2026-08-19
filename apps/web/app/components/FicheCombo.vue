@@ -1,20 +1,20 @@
 <script setup lang="ts">
 /**
- * Liste déroulante qui n'enferme pas.
+ * A dropdown that does not box you in.
  *
- * Les valeurs courantes sont proposées — c'est ce qu'on veut dans 95 % des
- * cas et ça évite les fautes de frappe qui font diverger les fiches — mais
- * une release sort toujours des cases, alors « Autre » découvre un champ
- * libre. Une valeur venue de MediaInfo qui n'est dans aucune liste bascule
- * d'elle-même en saisie libre plutôt que d'être silencieusement effacée.
+ * The common values are offered — that is what you want 95% of the time and it
+ * avoids the typos that make listings diverge — but a release always breaks the
+ * mould, so "Other" reveals a free field. A value from MediaInfo that appears
+ * in no list switches to free input by itself rather than being silently
+ * erased.
  */
 const props = defineProps<{
   options: readonly string[];
   placeholder?: string;
-  /** Libellé de l'entrée vide ; absent, le champ devient obligatoire. */
+  /** Label of the empty entry; absent, the field becomes mandatory. */
   emptyLabel?: string;
-  /** Rendu d'une option quand la valeur stockée n'est pas lisible telle
-   *  quelle — un code de langue, par exemple. */
+  /** How to render an option when the stored value is not readable as-is — a
+   *  language code, for instance. */
   labelFor?: (value: string) => string;
 }>();
 
@@ -23,7 +23,7 @@ const model = defineModel<string>({ default: '' });
 const CUSTOM = '__custom__';
 const forced = ref(false);
 
-/** Vrai dès que la valeur courante ne figure pas dans la liste proposée. */
+/** True as soon as the current value is absent from the offered list. */
 const isCustom = computed(
   () => forced.value || (!!model.value && !props.options.includes(model.value)),
 );

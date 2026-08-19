@@ -138,10 +138,9 @@ export default defineEventHandler(async (event) => {
   const total =
     counts.pending + counts.resolved + counts.dismissed + counts.withdrawn;
 
-  // Retraits par signaleur présent sur cette page. C'est la raison d'être de la
-  // pierre tombale : un signalement retiré isolément ne dit rien, une série en
-  // dit long. Une seule requête groupée sur les identifiants de la page plutôt
-  // qu'une sous-requête par ligne.
+  // Withdrawals per reporter present on this page. This is the tombstone's
+  // whole purpose: one withdrawn report says nothing, a series says a lot. One
+  // grouped query over the page's ids rather than a subquery per row.
   const reporterIds = [...new Set(enriched.map((r) => r.reporterId).filter(Boolean))];
   const withdrawnRows = reporterIds.length
     ? await db

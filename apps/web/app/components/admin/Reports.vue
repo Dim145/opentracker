@@ -140,7 +140,7 @@
               <span class="meta-reporter">
                 <Icon name="ph:user-bold" class="meta-reporter-icon" />
                 <span>{{ report.reporter?.username || '—' }}</span>
-                <!-- Le signal recherché : un retrait isolé ne dit rien, une
+                <!-- The signal we are after: one withdrawal says nothing, a
                      série en dit long. Affiché à partir de deux. -->
                 <span
                   v-if="(report.reporterWithdrawnCount ?? 0) >= 2"

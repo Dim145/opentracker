@@ -1,13 +1,13 @@
 /**
- * Génération de la fiche en BBCode.
+ * BBCode listing generation.
  *
- * Le gabarit reproduit celui de FicheGen — relevé sur une fiche réellement
- * produite par l'outil, pas deviné : bloc centré en Verdana, libellés bleus
- * #3d85c6, bandeaux illustrés entre les sections, drapeau par piste audio.
- * C'est le rendu attendu par les habitués, on ne s'en écarte pas.
+ * The template reproduces FicheGen's — taken from a listing the tool actually
+ * produced, not guessed: centred Verdana block, #3d85c6 blue labels,
+ * illustrated banners between sections, a flag per audio track. That is the
+ * rendering regulars expect, and we do not stray from it.
  *
- * Le BBCode émis reste dans le sous-ensemble que `editorFormats.ts` sait
- * relire, pour qu'une fiche recollée dans l'éditeur revienne en HTML.
+ * The emitted BBCode stays within the subset `editorFormats.ts` can read back,
+ * so a listing pasted into the editor returns as HTML.
  */
 import type { BitRateUnit, MediaTrack, SizeUnit, TechnicalSheet } from './mediainfo';
 import {
@@ -17,14 +17,15 @@ import {
   prettyAudioFormat,
 } from './mediainfo';
 
-/** Bleu des libellés, repris tel quel du gabarit d'origine. */
+/** Label blue, taken verbatim from the original template. */
 const ACCENT = '#3d85c6';
 
 /**
- * Bandeaux illustrés du gabarit. Ce sont les visuels de FicheGen, réutilisés
- * tels quels sur décision explicite. Contrepartie assumée : ils sont hébergés
- * sur un compte tiers, donc une fiche déjà publiée se dégrade si ce compte
- * disparaît. Les rapatrier un jour ne demandera que de changer ces URLs.
+ * The template's illustrated banners. These are FicheGen's visuals, reused
+ * as-is by explicit decision. The accepted trade-off: they are hosted on a
+ * third-party account, so an already-published listing degrades if that account
+ * disappears. Bringing them in-house one day means changing these URLs, nothing
+ * more.
  */
 const BANNER = {
   movie: 'https://i.imgur.com/EXBOmiU.png',
@@ -46,7 +47,7 @@ export interface FicheWork {
   title: string;
   originalTitle?: string;
   year?: number | null;
-  /** ISO `YYYY-MM-DD` ; rendue en toutes lettres sur la fiche. */
+  /** ISO `YYYY-MM-DD`; spelled out in full on the listing. */
   releaseDate?: string | null;
   runtime?: number | null;
   genres?: string[];
@@ -67,7 +68,7 @@ export interface FicheRelease {
   quality?: string;
   container?: string;
   videoCodec?: string;
-  /** bit/s ; l'unité n'est qu'un choix d'affichage. */
+  /** bit/s; the unit is only a display choice. */
   videoBitRate?: number;
   videoBitRateUnit?: BitRateUnit;
   /** Octets. */
@@ -82,7 +83,7 @@ export interface FicheOptions {
   includeSynopsis: boolean;
   includeTechnical: boolean;
   includeCastPhotos: boolean;
-  /** Liens d'images collés par l'utilisateur, un par ligne. */
+  /** Image links pasted by the user, one per line. */
   screenshots: string;
 }
 
@@ -97,12 +98,13 @@ export function defaultOptions(): FicheOptions {
 }
 
 /**
- * `String(v)` avant toute méthode de chaîne, systématiquement.
+ * `String(v)` before any string method, without exception.
  *
- * Le modèle annonce des `string`, mais un producteur peut livrer un nombre :
- * mediainfo.js rend `FrameRate` et `BitDepth` numériques. Un `.replace()` sur
- * un nombre lève un TypeError dans un `computed`, ce qui vide la page entière.
- * Passer par ici plutôt que se fier au typage rend ce plantage impossible.
+ * The model declares `string`, but a producer may hand over a number:
+ * mediainfo.js returns `FrameRate` and `BitDepth` as numerics. A `.replace()`
+ * on a number throws a TypeError inside a `computed`, which blanks the whole
+ * page. Going through here rather than trusting the types makes that crash
+ * impossible.
  */
 function text(v: unknown): string {
   return v === undefined || v === null ? '' : String(v);
@@ -134,9 +136,9 @@ function runtimeLabel(minutes?: number | null): string | undefined {
 }
 
 /**
- * Drapeau par langue. MediaInfo rend tantôt le nom anglais, tantôt le code
- * ISO ; on accepte les deux et on retombe sur le libellé brut sans drapeau
- * quand la langue est inconnue, plutôt que d'inventer.
+ * A flag per language. MediaInfo returns sometimes the English name, sometimes
+ * the ISO code; we accept both and fall back to the raw label with no flag when
+ * the language is unknown, rather than inventing one.
  */
 const LANGUAGE_FLAGS: Array<[RegExp, string, string]> = [
   [/^(fr|fre|fra|french|français|francais)$/i, '🇫🇷', 'Français'],
@@ -154,9 +156,9 @@ const LANGUAGE_FLAGS: Array<[RegExp, string, string]> = [
 ];
 
 /**
- * Variantes régionales qui méritent leur propre drapeau : le portugais du
- * Brésil et l'espagnol d'Amérique latine sont annoncés comme tels sur les
- * trackers, les confondre avec la métropole serait une erreur de fond.
+ * Regional variants that deserve their own flag: Brazilian Portuguese and Latin
+ * American Spanish are announced as such on trackers, and conflating them with
+ * the European variants would be a substantive error.
  */
 const LANGUAGE_REGIONS: Array<[RegExp, string, string]> = [
   [/^pt[-_](br)$/i, '🇧🇷', 'Brésilien'],
@@ -165,10 +167,10 @@ const LANGUAGE_REGIONS: Array<[RegExp, string, string]> = [
 ];
 
 /**
- * MediaInfo rend tantôt le nom anglais, tantôt le code ISO — et souvent le
- * code régional (`fr-FR`, `en-US`, `ja-JP`). Les motifs étant ancrés, un
- * `fr-FR` ne correspondait à rien et ressortait tel quel sur la fiche : on
- * essaie donc d'abord la valeur complète, puis la seule partie langue.
+ * MediaInfo returns sometimes the English name, sometimes the ISO code — and
+ * often the regional code (`fr-FR`, `en-US`, `ja-JP`). Because the patterns are
+ * anchored, `fr-FR` matched nothing and came out verbatim on the listing: so we
+ * try the full value first, then the language part alone.
  */
 export function languageLabel(raw?: string): { flag: string; name: string } {
   const value = text(raw).trim();
@@ -183,7 +185,7 @@ export function languageLabel(raw?: string): { flag: string; name: string } {
   return { flag: '', name: value };
 }
 
-/** Liste proposée par les selects de langue, alignée sur les drapeaux ci-dessus. */
+/** The list offered by the language selects, aligned with the flags above. */
 export const LANGUAGE_OPTIONS = [
   'fr',
   'en',
@@ -314,8 +316,8 @@ export function buildFiche(
       subs.length ? subs.join('\n') : 'Aucun',
     );
 
-    // Le gabarit d'origine ne met PAS ces deux valeurs en italique, à la
-    // différence de toutes les autres — on reproduit l'écart tel quel.
+    // The original template does NOT italicise these two values, unlike every
+    // other one — we reproduce the discrepancy as-is.
     const plain = (label: string, value: string) =>
       `[b][color=${ACCENT}]${label} :[/color][/b] ${value}`;
     const sizeLines: string[] = [];
@@ -328,7 +330,7 @@ export function buildFiche(
     if (sizeLines.length) out.push('', `[img]${BANNER.size}[/img]`, sizeLines.join('\n'));
   }
 
-  /* Fermeture du bloc centré ouvert plus haut. */
+  /* Close the centred block opened above. */
   out.push('[/size][/font][/center]');
 
   /* ── Captures collées par l'utilisateur ─────────────────────────────── */

@@ -1,16 +1,15 @@
 <template>
   <!--
-    Champs balayés par la recherche libre du catalogue.
+    Fields scanned by the catalogue's free-text search.
 
-    Chaque champ est servi par son propre index GIN plein-texte : cocher une
-    case ajoute une branche au OR de la requête, la décocher la retire. Ce
-    n'est donc pas un réglage de pondération mais de périmètre — un champ
-    décoché n'est pas lu du tout.
+    Each field is served by its own full-text GIN index: ticking a box adds a
+    branch to the query's OR, unticking removes it. This is therefore not a
+    weighting setting but a scope one — an unticked field is not read at all.
 
-    Le titre reste conseillé dans tous les cas ; tout décocher n'est pas
-    interdit, mais la recherche libre ne rend alors plus rien (la recherche par
-    infohash et par lien IMDb / TMDb / TVDB continue de fonctionner, elle ne
-    passe pas par ce chemin).
+    The title stays recommended in every case; unticking everything is not
+    forbidden, but free-text search then returns nothing (infohash search and
+    IMDb / TMDb / TVDB link search keep working, they do not go through this
+    path).
   -->
   <div class="card">
     <div class="card-header">
@@ -95,12 +94,12 @@
 </template>
 
 <script setup lang="ts">
-/** Même ordre que côté serveur, du plus au moins évident à activer. */
+/** Same order as on the server side, most to least obvious to enable. */
 const FIELDS = ['name', 'description', 'nfo', 'tags'] as const;
 type Field = (typeof FIELDS)[number];
 
 const fields = ref<Field[]>(['name', 'description']);
-// Actif par défaut : sans lui, une faute de frappe rend une page vide.
+// On by default: without it, a typo returns an empty page.
 const fuzzy = ref(true);
 const loading = ref(false);
 const saved = ref(false);
@@ -121,8 +120,8 @@ async function save() {
   loading.value = true;
   saved.value = false;
   try {
-    // On réordonne sur FIELDS pour que la valeur stockée soit stable quel que
-    // soit l'ordre dans lequel les cases ont été cochées.
+    // Reordered against FIELDS so the stored value is stable whatever order
+    // the boxes were ticked in.
     await $fetch('/api/admin/settings', {
       method: 'PUT',
       body: {

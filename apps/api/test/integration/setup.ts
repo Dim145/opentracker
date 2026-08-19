@@ -9,17 +9,17 @@ import { redis } from '../../redis/client';
 // file, so closing it in afterAll is safe (and lets the process exit
 // without waiting on postgres-js idle timeouts).
 beforeEach(async () => {
-  // `torrents`, `tags` et `settings` s'ajoutent à la liste depuis que les
-  // suites recherche / signalements / bonus écrivent dedans. CASCADE se
-  // charge des tables liées (torrent_tags, bonus_grants, contributions au
-  // pool), donc les nommer serait redondant — mais les OUBLIER laisserait
-  // des lignes d'un test fuir dans le suivant, ce qui se manifeste par des
-  // échecs qui dépendent de l'ordre d'exécution.
+  // `torrents`, `tags` and `settings` joined the list once the search /
+  // reports / bonus suites started writing to them. CASCADE takes care of the
+  // dependent tables (torrent_tags, bonus_grants, pool contributions), so
+  // naming those would be redundant — but FORGETTING a root would let one
+  // test's rows leak into the next, which shows up as failures that depend on
+  // execution order.
   //
-  // Les trois tables de fédération sont nommées explicitement : `peers` est
-  // la racine du miroir (remote_torrents, sync_state, follows en dépendent),
-  // tandis que `federation_config` et les tombstones ne pointent vers rien et
-  // survivraient donc à un CASCADE depuis `users`.
+  // The three federation tables are named explicitly: `peers` is the root of
+  // the mirror (remote_torrents, sync_state and follows hang off it), while
+  // `federation_config` and the tombstones reference nothing and would
+  // therefore survive a CASCADE from `users`.
   await db.execute(
     sql`TRUNCATE TABLE
           upload_request_fill_attempts, upload_requests, invitations,
@@ -34,8 +34,8 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await closeDatabase();
-  // ioredis garde une connexion ouverte et un handle actif : sans ce quit,
-  // vitest reste suspendu après le dernier test au lieu de rendre la main,
-  // et le run finit par être tué par le timeout du harnais.
+  // ioredis keeps a connection and an active handle open: without this quit,
+  // vitest hangs after the last test instead of returning, and the run ends up
+  // killed by the harness timeout.
   await redis.quit().catch(() => {});
 });

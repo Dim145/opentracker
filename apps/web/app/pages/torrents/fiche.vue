@@ -1,19 +1,20 @@
 <script setup lang="ts">
 /**
- * Générateur de fiche — assistant en quatre étapes.
+ * Listing generator — a four-step wizard.
  *
- *   1 · Fichier    un seul sélecteur : vidéo, NFO ou .torrent. Le titre est
- *                  déduit du nom via le parseur déjà utilisé à l'upload.
- *   2 · Œuvre      la recherche TMDb part de ce titre ; on choisit un
- *                  résultat pour pré-remplir, ou on saisit tout à la main.
- *                  Chaque champ reste modifiable, y compris sans tmdbId.
- *   3 · Technique  pré-remplie si une vidéo ou un NFO a été fourni, et le
- *                  nom de release normalisé se recalcule au fil des choix.
- *   4 · Sortie     BBCode + NFO, à copier ou à renvoyer vers l'upload.
+ *   1 · File       a single picker: video, NFO or .torrent. The title is
+ *                  derived from the filename by the parser already used at
+ *                  upload time.
+ *   2 · Work       the TMDb search starts from that title; pick a result to
+ *                  prefill, or type everything by hand. Every field stays
+ *                  editable, tmdbId or no tmdbId.
+ *   3 · Technical  prefilled when a video or an NFO was supplied, and the
+ *                  normalised release name recomputes as choices are made.
+ *   4 · Output     BBCode + NFO, to copy or send back to the upload page.
  *
- * Tout se passe dans le navigateur. Les deux seuls appels réseau sont la
- * recherche et le détail TMDb, qui passent par l'API du tracker pour que la
- * clé reste côté serveur ; ni la vidéo ni la fiche ne quittent la machine.
+ * Everything happens in the browser. The only two network calls are the TMDb
+ * search and detail lookups, which go through the tracker API so the key stays
+ * server-side; neither the video nor the listing leaves the machine.
  */
 import { watchDebounced } from '@vueuse/core';
 import { useFicheDraftStore } from '~/stores/ficheDraft';
@@ -88,7 +89,7 @@ const torrentFile = shallowRef<File | null>(draft.torrentFile);
 const VIDEO_RE = /\.(mkv|mp4|avi|mov|ts|m2ts|iso|wmv|flv|webm)$/i;
 const NFO_RE = /\.(nfo|txt)$/i;
 
-/** Un seul point d'entrée : on route selon l'extension. */
+/** A single entry point: we route on the extension. */
 async function acceptFile(file: File) {
   fileError.value = '';
   pickedName.value = file.name;
@@ -113,8 +114,8 @@ async function acceptFile(file: File) {
     try {
       sheet.value = await analyzeFile(file);
       syncSpecs(sheet.value, true);
-      // Le WASM rend un objet, pas du texte : on réécrit un bloc MediaInfo
-      // pour que l'étape 3 montre ce qui a été lu et reste corrigeable.
+      // The WASM returns an object, not text: we re-emit a MediaInfo block so
+      // step 3 shows what was read and stays correctable.
       showRendered();
     } catch (err: any) {
       fileError.value = err?.message ?? t('fiche.file.analyzeFailed');
@@ -132,7 +133,7 @@ function seedTitleFrom(fileName: string) {
   if (parsed.title) work.title = parsed.title;
   if (parsed.year) work.year = parsed.year;
   if (parsed.kind === 'tv') work.type = 'tv';
-  // Le nom porte souvent la source mieux que le conteneur ne la connaît.
+  // The filename often carries the source better than the container knows it.
   const source = parsed.tags.find((tag) => (SOURCES as readonly string[]).includes(tag));
   if (source) release.source = source;
   searchTerm.value = parsed.title || base;
@@ -174,7 +175,7 @@ const searching = ref(false);
 const searchError = ref('');
 const results = ref<Array<Record<string, any>>>([]);
 
-/** La recherche se déclenche à l'édition du titre, pas sur un bouton. */
+/** The search fires as the title is edited, not on a button. */
 let searchToken = 0;
 watchDebounced(
   searchTerm,
@@ -255,9 +256,9 @@ const castText = computed({
 
 /* ── 3 · Technique ────────────────────────────────────────────────────── */
 
-/* Listes proposées par les selects. Elles ne ferment rien : chaque champ
-   garde une entrée « Autre » qui rouvre la saisie libre, parce qu'aucune
-   liste ne tiendra jamais la totalité de ce qui circule. */
+/* The lists offered by the selects. They close nothing off: every field keeps
+   an "Other" entry that reopens free input, because no list will ever hold
+   everything in circulation. */
 const QUALITIES = [
   'UHD Full BluRay',
   'UHD-Remux',
@@ -329,10 +330,10 @@ const release = reactive<FicheRelease>({
 });
 
 /**
- * Recopie dans les specs ce que le fichier a livré. Sans `force`, seuls les
- * champs encore vides sont remplis : ce que l'utilisateur a corrigé lui
- * appartient. `force` sert à l'arrivée d'un nouveau fichier, qui doit tout
- * réactualiser plutôt que de laisser traîner les valeurs du précédent.
+ * Copies what the file delivered into the specs. Without `force`, only the
+ * still-empty fields are filled: what the user corrected belongs to them.
+ * `force` is for a new file arriving, which must refresh everything rather than
+ * leave the previous file's values lying around.
  */
 function syncSpecs(s: TechnicalSheet, force = false) {
   const v = s.video[0];
@@ -344,10 +345,10 @@ function syncSpecs(s: TechnicalSheet, force = false) {
   set('quality', resolutionLabel(v?.width, v?.height) ?? '');
   set('videoCodec', v ? prettyVideoFormat(v.format, v.encoder) : '');
 
-  /* L'unité n'a de sens que par rapport à sa valeur : on la choisit au moment
-     où on écrit la valeur, pas séparément. La traiter comme un champ
-     indépendant faisait gagner l'unité par défaut posée à l'affichage, et un
-     débit de 12 Mbps s'annonçait « 12000 Kbps ». Une fois la valeur en place,
+  /* A unit only means anything relative to its value: it is chosen at the
+     moment the value is written, not separately. Treating it as an independent
+     field let the display's default unit win, and a 12 Mbps bitrate announced
+     itself as "12000 Kbps". Once the value is in place,
      le choix de l'utilisateur tient. */
   if (force || !release.videoBitRate) {
     release.videoBitRate = bitRate;
@@ -361,13 +362,12 @@ function syncSpecs(s: TechnicalSheet, force = false) {
 watch(sheet, (s) => syncSpecs(s), { deep: true });
 
 /**
- * Zone « coller MediaInfo » : un point d'entrée, pas un miroir.
+ * The "paste MediaInfo" area: an entry point, not a mirror.
  *
- * On y dépose le bloc lu dans le fichier pour que l'utilisateur voie ce qui
- * a été compris et puisse le corriger en masse ; toute frappe le réinjecte
- * dans le modèle. Le texte que nous venons d'y écrire est ignoré, sinon
- * l'arrondi d'affichage de la taille redescendrait dans les données à
- * chaque analyse.
+ * We drop the block read from the file there so the user can see what was
+ * understood and correct it wholesale; any keystroke feeds it back into the
+ * model. The text we just wrote there is ignored, otherwise the size's display
+ * rounding would flow back into the data on every analysis.
  */
 const pastedMediaInfo = ref('');
 let lastRendered = '';
@@ -406,7 +406,7 @@ function setSubtitleKind(t: MediaTrack, kind: SubtitleKind) {
   t.isSdh = kind === 'sdh';
 }
 
-/** « 🇫🇷 Français » — le code seul ne dit rien à personne dans un select. */
+/** "🇫🇷 Français" — the code alone means nothing to anyone in a select. */
 function langLabel(code: string): string {
   const { flag, name } = languageLabel(code);
   return flag ? `${flag} ${name}` : name;
@@ -415,8 +415,8 @@ function langLabel(code: string): string {
 const nameParts = ref<ReleaseNameParts>({ title: '' });
 const useSpaces = ref(false);
 
-/* Le nom proposé se recalcule tant que l'utilisateur ne l'a pas repris à la
-   main — d'où le drapeau plutôt qu'un simple watch qui écraserait sa saisie. */
+/* The proposed name keeps recomputing until the user takes it over by hand —
+   hence the flag rather than a plain watch that would overwrite their input. */
 const releaseNameTouched = ref(false);
 watchEffect(() => {
   const parts = deriveReleaseParts(work.title, work.year, sheet.value, release.source);
@@ -456,7 +456,7 @@ function sendToUpload() {
   navigateTo('/torrents/upload');
 }
 
-/* Arrivée depuis l'upload avec un torrent déjà choisi : on saute l'étape 1. */
+/* Arriving from upload with a torrent already picked: skip step 1. */
 onMounted(() => {
   if (draft.hasTorrent) {
     pickedName.value = draft.torrentFile?.name ?? '';
@@ -949,7 +949,7 @@ onMounted(() => {
       </section>
     </div>
 
-    <!-- Visualiseur de NFO, en pop-up comme sur fichegen -->
+    <!-- NFO viewer, as a popup like fichegen's -->
     <div v-if="nfoOpen" class="fiche-modal" role="dialog" aria-modal="true" @click.self="nfoOpen = false">
       <div class="fiche-modal-card">
         <header class="fiche-modal-head">
@@ -978,7 +978,7 @@ onMounted(() => {
   width: 100%;
 }
 
-/* ── Fil des étapes ─────────────────────────────────────────────────────── */
+/* ── Step thread ────────────────────────────────────────────────────────── */
 .fiche-steps {
   display: flex;
   flex-wrap: wrap;

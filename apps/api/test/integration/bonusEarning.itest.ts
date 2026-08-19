@@ -6,19 +6,19 @@ import { creditPoints, creditDailyLoginIfDue } from '../../utils/bonusEarning';
 import { redis } from '../../redis/client';
 import { getBonus, makeUser } from './helpers';
 
-// Crédit de points bonus, contre un vrai Postgres.
+// Crediting bonus points, against a real Postgres.
 //
-// C'est de la monnaie : les points s'échangent en boutique, financent le pool
-// de freeleech et servent de mise sur le tableau de primes. Deux invariants
-// comptent plus que le reste, et aucun des deux ne se vérifie sans base.
+// This is currency: points are spent in the shop, fund the freeleech pool and
+// act as the stake on the bounty board. Two invariants matter more than the
+// rest, and neither can be checked without a database.
 //
-//   * le solde et le ledger ne peuvent pas diverger — ils sont écrits dans la
-//     même transaction, donc un échec partiel doit tout annuler ;
-//   * le crédit quotidien ne peut pas être réclamé deux fois le même jour,
-//     même par deux requêtes simultanées.
+//   * the balance and the ledger cannot diverge — they are written in the same
+//     transaction, so a partial failure must roll everything back;
+//   * the daily credit cannot be claimed twice on the same day, not even by
+//     two simultaneous requests.
 //
-// Le second est le seul qui ait déjà été exploité ailleurs : un double-clic
-// suffit à le déclencher si la garde n'est pas atomique.
+// The second is the only one already exploited elsewhere: a double click is
+// enough to trigger it when the guard is not atomic.
 
 async function grantCount(userId: string): Promise<number> {
   const [row] = await db
@@ -28,8 +28,8 @@ async function grantCount(userId: string): Promise<number> {
   return row!.n;
 }
 
-describe('creditPoints — solde et ledger avancent ensemble', () => {
-  it('crédite le solde et inscrit une ligne au ledger', async () => {
+describe('creditPoints — balance and ledger move together', () => {
+  it('credits the balance and writes a ledger row', async () => {
     const user = await makeUser({ bonusPoints: 0 });
     await creditPoints({ userId: user, source: 'seeding', amount: 42 });
 
@@ -44,7 +44,7 @@ describe('creditPoints — solde et ledger avancent ensemble', () => {
     expect(grant!.source).toBe('seeding');
   });
 
-  it('cumule sans écraser', async () => {
+  it('accumulates rather than overwrites', async () => {
     const user = await makeUser({ bonusPoints: 10 });
     await creditPoints({ userId: user, source: 'seeding', amount: 5 });
     await creditPoints({ userId: user, source: 'first_seeder', amount: 25 });
@@ -53,9 +53,9 @@ describe('creditPoints — solde et ledger avancent ensemble', () => {
     expect(await grantCount(user)).toBe(2);
   });
 
-  it('ignore un montant nul ou négatif sans rien écrire', async () => {
-    // Un crédit négatif serait un débit déguisé, hors de tout garde-fou de
-    // solde ; le refuser en amont vaut mieux que de le rattraper après.
+  it('ignores a zero or negative amount without writing anything', async () => {
+    // A negative credit would be a debit in disguise, outside every balance
+    // guard; refusing it up front beats catching it afterwards.
     const user = await makeUser({ bonusPoints: 100 });
     await creditPoints({ userId: user, source: 'seeding', amount: 0 });
     await creditPoints({ userId: user, source: 'seeding', amount: -50 });
@@ -64,11 +64,11 @@ describe('creditPoints — solde et ledger avancent ensemble', () => {
     expect(await grantCount(user)).toBe(0);
   });
 
-  it('n’écrit ni solde ni ledger quand l’utilisateur n’existe pas', async () => {
-    // L'UPDATE ne touche aucune ligne ; l'INSERT du ledger doit alors
-    // échouer sur la clé étrangère et annuler la transaction entière.
-    // Sans transaction, on se retrouverait avec un ledger orphelin.
-    const avant = await db
+  it('writes neither balance nor ledger when the user does not exist', async () => {
+    // The UPDATE touches no row; the ledger INSERT must then fail on the
+    // foreign key and roll the whole transaction back. Without a transaction
+    // we would be left with an orphaned ledger row.
+    const before = await db
       .select({ n: sql<number>`count(*)::int` })
       .from(schema.bonusGrants);
     await expect(
@@ -78,16 +78,16 @@ describe('creditPoints — solde et ledger avancent ensemble', () => {
         amount: 10,
       }),
     ).rejects.toThrow();
-    const apres = await db
+    const after = await db
       .select({ n: sql<number>`count(*)::int` })
       .from(schema.bonusGrants);
-    expect(apres[0]!.n).toBe(avant[0]!.n);
+    expect(after[0]!.n).toBe(before[0]!.n);
   });
 
-  it('supporte des crédits concurrents sans en perdre', async () => {
-    // `bonus_points = bonus_points + x` est atomique côté Postgres ; le test
-    // fige ce choix, car un passage à un lire-puis-écrire côté application
-    // perdrait des crédits sous charge et ce serait indétectable à l'œil.
+  it('handles concurrent credits without losing any', async () => {
+    // `bonus_points = bonus_points + x` is atomic on the Postgres side; this
+    // test pins that choice, because moving to a read-then-write in the
+    // application would lose credits under load and be invisible to the eye.
     const user = await makeUser({ bonusPoints: 0 });
     await Promise.all(
       Array.from({ length: 20 }, () =>
@@ -99,58 +99,60 @@ describe('creditPoints — solde et ledger avancent ensemble', () => {
   });
 });
 
-describe('creditDailyLoginIfDue — une fois par jour, pas deux', () => {
-  const RECOMPENSE = 5;
+describe('creditDailyLoginIfDue — once a day, not twice', () => {
+  const REWARD = 5;
 
   beforeEach(async () => {
-    // La règle vit en base et n'est amorcée qu'au premier démarrage de l'API ;
-    // le TRUNCATE de `setup.ts` ne la recrée pas, donc on la pose ici.
+    // The rule lives in the database and is only seeded on the API's first
+    // boot; the TRUNCATE in `setup.ts` does not recreate it, so put it back
+    // here.
     await db
       .insert(schema.bonusRules)
       .values({
         id: randomUUID(),
         kind: 'daily_login',
         enabled: true,
-        config: { reward: RECOMPENSE },
+        config: { reward: REWARD },
       })
       .onConflictDoNothing();
-    // La garde d'idempotence est une clé Redis à TTL de 36 h : sans purge,
-    // le deuxième test de la journée hériterait de la clé du premier.
+    // The idempotence guard is a Redis key with a 36 h TTL: without a purge,
+    // the day's second test would inherit the first one's key.
     const keys = await redis.keys('bonus:dailyLogin:*');
     if (keys.length) await redis.del(...keys);
   });
-  it('crédite au premier appel', async () => {
+
+  it('credits on the first call', async () => {
     const user = await makeUser({ bonusPoints: 0 });
-    const credite = await creditDailyLoginIfDue(user);
-    expect(credite).toBeGreaterThan(0);
-    expect(await getBonus(user)).toBe(credite);
+    const credited = await creditDailyLoginIfDue(user);
+    expect(credited).toBeGreaterThan(0);
+    expect(await getBonus(user)).toBe(credited);
   });
 
-  it('ne recrédite pas au deuxième appel du même jour', async () => {
+  it('does not credit again on the same day', async () => {
     const user = await makeUser({ bonusPoints: 0 });
-    const premier = await creditDailyLoginIfDue(user);
+    const first = await creditDailyLoginIfDue(user);
     const second = await creditDailyLoginIfDue(user);
 
     expect(second).toBe(0);
-    expect(await getBonus(user)).toBe(premier);
+    expect(await getBonus(user)).toBe(first);
   });
 
-  it('résiste à deux réclamations simultanées', async () => {
-    // Le cas du double-clic, ou de deux onglets. Si la garde n'était qu'un
-    // SELECT suivi d'un INSERT, les deux passeraient.
+  it('withstands two simultaneous claims', async () => {
+    // The double-click case, or two tabs. If the guard were only a SELECT
+    // followed by an INSERT, both would get through.
     const user = await makeUser({ bonusPoints: 0 });
     const [a, b] = await Promise.all([
       creditDailyLoginIfDue(user),
       creditDailyLoginIfDue(user),
     ]);
 
-    // Exactement un des deux crédite.
+    // Exactly one of the two credits.
     expect([a, b].filter((n) => n > 0)).toHaveLength(1);
     expect(await getBonus(user)).toBe(Math.max(a, b));
     expect(await grantCount(user)).toBe(1);
   });
 
-  it('ne mélange pas les comptes', async () => {
+  it('does not mix accounts up', async () => {
     const a = await makeUser({ bonusPoints: 0 });
     const b = await makeUser({ bonusPoints: 0 });
     await creditDailyLoginIfDue(a);

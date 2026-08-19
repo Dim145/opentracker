@@ -9,36 +9,35 @@ import {
   decryptField,
 } from '../utils/panic';
 
-// Chiffrement du mode panique. Ce module est le seul usage d'AES-GCM du
-// projet, et il sert deux chemins : la mise sous scellés de la base, et les
-// secrets des canaux de notification (`channelSecrets.ts`), qui eux tournent
-// en permanence. Une régression ici ne casse pas un écran, elle rend des
-// données illisibles — sans message d'erreur exploitable, puisque GCM échoue
-// de la même façon qu'une clé fausse.
+// Panic-mode encryption. This module is the project's only use of AES-GCM, and
+// it serves two paths: sealing the database, and the notification channel
+// secrets (`channelSecrets.ts`), which run all the time. A regression here does
+// not break a screen, it makes data unreadable — with no usable error message,
+// since GCM fails exactly the way a wrong key does.
 //
-// L'enjeu principal des cas ci-dessous est la longueur du tag
-// d'authentification. Sans `authTagLength`, Node accepte pour GCM des tags de
-// 4, 8, 12, 13, 14, 15 ou 16 octets ; le tag venant de la chaîne stockée en
-// base, un attaquant capable d'y écrire pourrait le tronquer et ramener le
-// coût d'une forge de 2^128 à 2^32. Avec GCM, une forge réussie sur tag court
-// fait fuiter la sous-clé d'authentification H et ouvre des forges
-// arbitraires — exactement le scénario que le mode panique existe pour
-// couvrir. D'où les deux tests « tag tronqué ».
+// The main concern in the cases below is the authentication tag length.
+// Without `authTagLength`, Node accepts GCM tags of 4, 8, 12, 13, 14, 15 or 16
+// bytes; since the tag comes from the string stored in the database, an
+// attacker able to write there could truncate it and bring the cost of a
+// forgery down from 2^128 to 2^32. With GCM, a successful forgery on a short
+// tag leaks the authentication subkey H and opens the door to arbitrary
+// forgeries — exactly the scenario panic mode exists to cover. Hence the two
+// "truncated tag" tests.
 
-const PASSWORD = 'un-mot-de-passe-de-panique-correct';
+const PASSWORD = 'a-perfectly-valid-panic-password';
 
 async function key(): Promise<Buffer> {
   return deriveKey(PASSWORD, Buffer.from(generateSalt(), 'base64'));
 }
 
 describe('deriveKey / generateSalt', () => {
-  it('dérive une clé AES-256 de 32 octets', async () => {
+  it('derives a 32-byte AES-256 key', async () => {
     const k = await key();
     expect(k).toBeInstanceOf(Buffer);
     expect(k.length).toBe(32);
   });
 
-  it('est déterministe à sel constant, et diverge sinon', async () => {
+  it('is deterministic for a constant salt, and diverges otherwise', async () => {
     const salt = Buffer.from(generateSalt(), 'base64');
     const a = await deriveKey(PASSWORD, salt);
     const b = await deriveKey(PASSWORD, salt);
@@ -47,7 +46,7 @@ describe('deriveKey / generateSalt', () => {
     expect(a.equals(c)).toBe(false);
   });
 
-  it('produit un sel de 32 octets, différent à chaque appel', () => {
+  it('produces a 32-byte salt, different on every call', () => {
     const s1 = Buffer.from(generateSalt(), 'base64');
     const s2 = Buffer.from(generateSalt(), 'base64');
     expect(s1.length).toBe(32);
@@ -56,7 +55,7 @@ describe('deriveKey / generateSalt', () => {
 });
 
 describe('encrypt / decrypt', () => {
-  it('fait un aller-retour fidèle, y compris sur de l’UTF-8 non ASCII', async () => {
+  it('round-trips faithfully, non-ASCII UTF-8 included', async () => {
     const k = await key();
     for (const clear of [
       'a',
@@ -69,29 +68,29 @@ describe('encrypt / decrypt', () => {
     }
   });
 
-  it('émet `iv:ct:tag` avec un IV de 12 octets et un tag de 16', async () => {
+  it('emits `iv:ct:tag` with a 12-byte IV and a 16-byte tag', async () => {
     const k = await key();
-    const parts = encrypt('charge utile', k).split(':');
+    const parts = encrypt('payload', k).split(':');
     expect(parts).toHaveLength(3);
     expect(Buffer.from(parts[0]!, 'base64').length).toBe(12);
-    // 16 octets : le défaut de Node pour GCM, et ce que `authTagLength`
-    // impose désormais au déchiffrement. Si ce test tombe, toute donnée
-    // déjà stockée devient illisible — c'est le garde-fou du correctif.
+    // 16 bytes: Node's GCM default, and what `authTagLength` now enforces on
+    // decryption. If this test falls, every already-stored value becomes
+    // unreadable — this is the guard rail on that fix.
     expect(Buffer.from(parts[2]!, 'base64').length).toBe(16);
   });
 
-  it('utilise un IV neuf à chaque appel, donc deux chiffrés du même clair diffèrent', async () => {
+  it('uses a fresh IV every call, so two ciphertexts of the same plaintext differ', async () => {
     const k = await key();
-    expect(encrypt('même texte', k)).not.toBe(encrypt('même texte', k));
+    expect(encrypt('same text', k)).not.toBe(encrypt('same text', k));
   });
 
-  it('refuse une clé différente', async () => {
+  it('refuses a different key', async () => {
     const blob = encrypt('secret', await key());
-    const autre = await key();
-    expect(() => decrypt(blob, autre)).toThrow();
+    const other = await key();
+    expect(() => decrypt(blob, other)).toThrow();
   });
 
-  it('refuse un texte chiffré altéré', async () => {
+  it('refuses tampered ciphertext', async () => {
     const k = await key();
     const [iv, ct, tag] = encrypt('secret', k).split(':');
     const bytes = Buffer.from(ct!, 'base64');
@@ -99,7 +98,7 @@ describe('encrypt / decrypt', () => {
     expect(() => decrypt(`${iv}:${bytes.toString('base64')}:${tag}`, k)).toThrow();
   });
 
-  it('refuse un tag altéré mais de bonne longueur', async () => {
+  it('refuses a tampered tag of the right length', async () => {
     const k = await key();
     const [iv, ct, tag] = encrypt('secret', k).split(':');
     const bytes = Buffer.from(tag!, 'base64');
@@ -107,29 +106,29 @@ describe('encrypt / decrypt', () => {
     expect(() => decrypt(`${iv}:${ct}:${bytes.toString('base64')}`, k)).toThrow();
   });
 
-  it('refuse un tag TRONQUÉ au lieu de l’accepter', async () => {
+  it('refuses a TRUNCATED tag instead of accepting it', async () => {
     const k = await key();
     const [iv, ct, tag] = encrypt('secret', k).split(':');
-    // Sans `authTagLength`, Node acceptait ces longueurs et se contentait de
-    // vérifier les premiers octets — la brèche que le correctif ferme.
+    // Without `authTagLength`, Node accepted these lengths and merely checked
+    // the leading bytes — the hole this fix closes.
     for (const n of [4, 8, 12, 15]) {
-      const court = Buffer.from(tag!, 'base64').subarray(0, n).toString('base64');
-      expect(() => decrypt(`${iv}:${ct}:${court}`, k)).toThrow();
+      const short = Buffer.from(tag!, 'base64').subarray(0, n).toString('base64');
+      expect(() => decrypt(`${iv}:${ct}:${short}`, k)).toThrow();
     }
   });
 
-  it('refuse un format mal formé', async () => {
+  it('refuses a malformed shape', async () => {
     const k = await key();
-    for (const bad of ['', 'pasdeseparateur', 'a:b:c:d']) {
+    for (const bad of ['', 'noseparator', 'a:b:c:d']) {
       expect(() => decrypt(bad, k)).toThrow();
     }
   });
 });
 
-describe('format hérité `ct:tag`', () => {
-  // Les toutes premières versions stockaient un IV global de 16 octets à
-  // part. La restauration doit continuer à lire ces lignes, sinon une base
-  // mise sous scellés avant la migration devient définitivement illisible.
+describe('legacy `ct:tag` format', () => {
+  // The earliest versions stored a global 16-byte IV separately. Restore must
+  // keep reading those rows, otherwise a database sealed before the migration
+  // becomes permanently unreadable.
   function encryptLegacy(text: string, k: Buffer, iv: Buffer): string {
     const cipher = createCipheriv('aes-256-gcm', k, iv);
     let out = cipher.update(text, 'utf8', 'base64');
@@ -137,31 +136,31 @@ describe('format hérité `ct:tag`', () => {
     return `${out}:${cipher.getAuthTag().toString('base64')}`;
   }
 
-  it('déchiffre un couple en deux parties quand l’IV hérité est fourni', async () => {
+  it('decrypts a two-part pair when the legacy IV is supplied', async () => {
     const k = await key();
     const legacyIv = randomBytes(16);
-    const blob = encryptLegacy('ancienne donnée', k, legacyIv);
-    expect(decrypt(blob, k, legacyIv)).toBe('ancienne donnée');
+    const blob = encryptLegacy('old data', k, legacyIv);
+    expect(decrypt(blob, k, legacyIv)).toBe('old data');
   });
 
-  it('refuse deux parties sans IV hérité plutôt que de deviner', async () => {
+  it('refuses two parts with no legacy IV rather than guessing', async () => {
     const k = await key();
-    const blob = encryptLegacy('ancienne donnée', k, randomBytes(16));
+    const blob = encryptLegacy('old data', k, randomBytes(16));
     expect(() => decrypt(blob, k)).toThrow(/Malformed/);
   });
 });
 
 describe('encryptField / decryptField', () => {
-  it('laisse passer null et undefined sans les chiffrer', async () => {
+  it('passes null and undefined through without encrypting them', async () => {
     const k = await key();
     expect(encryptField(null, k)).toBeNull();
     expect(encryptField(undefined, k)).toBeNull();
     expect(decryptField(null, k)).toBeNull();
   });
 
-  it('fait l’aller-retour sur une valeur présente, chaîne vide comprise', async () => {
+  it('round-trips a present value, the empty string included', async () => {
     const k = await key();
-    for (const v of ['', 'valeur', '0']) {
+    for (const v of ['', 'value', '0']) {
       expect(decryptField(encryptField(v, k), k)).toBe(v);
     }
   });

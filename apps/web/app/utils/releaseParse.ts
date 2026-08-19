@@ -208,7 +208,7 @@ const GAME_STOP =
   // Runtime / OS flags.
   '|\\bwin(?:[- ]?x?64)?\\b|\\bmac(?:[- ]?os)?\\b|\\blinux\\b';
 
-/** Crochet de plateforme en tête de nom de jeu — `[PS5] Titre…`. */
+/** The platform bracket leading a game name — `[PS5] Title…`. */
 const GAME_PLATFORM_PREFIX =
   /^\s*\[\s*(?:ps[2345]|psp|ps[- ]?vita|xb(?:ox)?[- ]?(?:one|series|sx|ss|360)|xb1|x360|n?switch|nsw|wii[- ]?u|wii|3ds|n?ds|pc)\s*\][. _-]*/i;
 
@@ -314,12 +314,11 @@ export function parseReleaseName(
   input: string,
   kindHint?: ParsedRelease['kind']
 ): ParsedRelease {
-  // Les `_` sont normalisés en `.` avant tout le reste. Les tables de jetons
-  // s'appuient sur `\b`, or l'underscore est lui-même un caractère de mot :
-  // dans `Titre_2024_1080p` aucune frontière ne se déclenche, aucun jeton
-  // d'arrêt ne matche, et le nom entier ressortait comme titre. La
-  // normalisation vient APRÈS `stripGroup`, dont le motif de groupe accepte
-  // l'underscore (`-Foo_Bar`).
+  // `_` is normalised to `.` before anything else. The token tables rely on
+  // `\b`, but the underscore is itself a word character: in `Title_2024_1080p`
+  // no boundary fires, no stop token matches, and the whole name came back as
+  // the title. The normalisation happens AFTER `stripGroup`, whose group
+  // pattern accepts the underscore (`-Foo_Bar`).
   const raw = stripGroup(stripExtension(input || '')).replace(/_/g, '.');
 
   // 1) Decide what kind we're parsing. The caller-supplied hint (from

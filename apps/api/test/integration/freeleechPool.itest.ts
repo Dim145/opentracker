@@ -12,19 +12,19 @@ import {
 } from '../../utils/freeleechPool';
 import { getBonus, makeUser } from './helpers';
 
-// Pool de freeleech — le pot commun.
+// Freeleech pool — the shared purse.
 //
-// Chaque contribution est un débit réel du solde d'un membre, et la cagnotte
-// est partagée : deux invariants s'y opposent en permanence. D'un côté, une
-// contribution ne doit jamais créditer le pot sans débiter l'auteur (ni
-// l'inverse). De l'autre, le plafond par personne doit tenir même quand
-// plusieurs contributions arrivent en même temps — c'est justement le
-// scénario où un contrôle lu-puis-écrit laisse passer.
+// Every contribution is a real debit from a member's balance, and the pot is
+// shared: two invariants pull against each other constantly. On one side, a
+// contribution must never credit the pot without debiting its author (nor the
+// reverse). On the other, the per-person cap must hold even when several
+// contributions land at the same time — which is exactly the scenario a
+// read-then-write check lets through.
 //
-// `contribute` prend un verrou consultatif sur le pot avant d'écrire ; ces
-// tests figent ce que ce verrou garantit.
+// `contribute` takes an advisory lock on the pot before writing; these tests
+// pin what that lock guarantees.
 
-const CIBLE = 1000;
+const TARGET = 1000;
 
 async function setConfig(over: Record<string, unknown> = {}): Promise<void> {
   await db
@@ -32,17 +32,17 @@ async function setConfig(over: Record<string, unknown> = {}): Promise<void> {
     .values({
       id: POOL_CONFIG_ID,
       enabled: true,
-      pointsTarget: CIBLE,
+      pointsTarget: TARGET,
       contributionMin: 10,
       ...over,
     })
     .onConflictDoUpdate({
       target: schema.freeleechPoolConfig.id,
-      set: { enabled: true, pointsTarget: CIBLE, contributionMin: 10, ...over },
+      set: { enabled: true, pointsTarget: TARGET, contributionMin: 10, ...over },
     });
 }
 
-async function potCourant(): Promise<number> {
+async function potTotal(): Promise<number> {
   const cycle = await getCurrentCycle();
   return cycle?.totalContributed ?? 0;
 }
@@ -54,48 +54,48 @@ beforeEach(async () => {
   await setConfig();
 });
 
-describe('contribute — le pot et le solde bougent ensemble', () => {
-  it('débite l’auteur et crédite le pot du même montant', async () => {
+describe('contribute — pot and balance move together', () => {
+  it('debits the author and credits the pot by the same amount', async () => {
     const user = await makeUser({ bonusPoints: 500 });
     await contribute(user, 100);
 
     expect(await getBonus(user)).toBe(400);
-    expect(await potCourant()).toBe(100);
+    expect(await potTotal()).toBe(100);
     expect(await getUserContribution((await getCurrentCycle())!.id, user)).toBe(100);
   });
 
-  it('cumule les contributions successives du même membre', async () => {
+  it('accumulates successive contributions from the same member', async () => {
     const user = await makeUser({ bonusPoints: 500 });
     await contribute(user, 50);
     await contribute(user, 30);
 
     expect(await getBonus(user)).toBe(420);
-    expect(await potCourant()).toBe(80);
+    expect(await potTotal()).toBe(80);
     expect(await getUserContribution((await getCurrentCycle())!.id, user)).toBe(80);
   });
 
-  it('additionne les contributions de plusieurs membres', async () => {
+  it('adds up contributions from several members', async () => {
     const a = await makeUser({ bonusPoints: 500 });
     const b = await makeUser({ bonusPoints: 500 });
     await contribute(a, 100);
     await contribute(b, 250);
 
-    expect(await potCourant()).toBe(350);
+    expect(await potTotal()).toBe(350);
     expect(await getBonus(a)).toBe(400);
     expect(await getBonus(b)).toBe(250);
   });
 
-  it('refuse de mettre un solde à découvert, et ne touche à rien', async () => {
+  it('refuses to overdraw a balance, and touches nothing', async () => {
     const user = await makeUser({ bonusPoints: 40 });
     await expect(contribute(user, 100)).rejects.toThrow();
 
     expect(await getBonus(user)).toBe(40);
-    expect(await potCourant()).toBe(0);
+    expect(await potTotal()).toBe(0);
   });
 });
 
-describe('contribute — garde-fous d’entrée', () => {
-  it('refuse un montant non entier, nul ou négatif', async () => {
+describe('contribute — input guards', () => {
+  it('refuses a non-integer, zero or negative amount', async () => {
     const user = await makeUser({ bonusPoints: 500 });
     for (const bad of [0, -10, 1.5, Number.NaN]) {
       await expect(contribute(user, bad)).rejects.toBeInstanceOf(FreeleechPoolError);
@@ -103,72 +103,72 @@ describe('contribute — garde-fous d’entrée', () => {
     expect(await getBonus(user)).toBe(500);
   });
 
-  it('refuse en dessous du minimum configuré', async () => {
+  it('refuses anything below the configured minimum', async () => {
     const user = await makeUser({ bonusPoints: 500 });
     await expect(contribute(user, 9)).rejects.toThrow(/[Mm]inimum/);
     await expect(contribute(user, 10)).resolves.toBeDefined();
   });
 
-  it('refuse quand le pot est désactivé', async () => {
+  it('refuses while the pot is disabled', async () => {
     await setConfig({ enabled: false });
     const user = await makeUser({ bonusPoints: 500 });
     await expect(contribute(user, 100)).rejects.toThrow(/disabled/i);
   });
 
-  it('refuse quand aucune cible n’est configurée', async () => {
+  it('refuses when no target is configured', async () => {
     await setConfig({ pointsTarget: 0 });
     const user = await makeUser({ bonusPoints: 500 });
     await expect(contribute(user, 100)).rejects.toThrow(/target/i);
   });
 });
 
-describe('contribute — concurrence', () => {
-  it('n’encaisse pas plus que le solde sous contributions simultanées', async () => {
-    // Le cas qui compte : dix requêtes de 100 sur un solde de 250. Sans le
-    // verrou, plusieurs liraient le même solde et le pot recevrait plus que
-    // ce que le membre possède — de la monnaie créée à partir de rien.
+describe('contribute — concurrency', () => {
+  it('never takes in more than the balance under simultaneous contributions', async () => {
+    // The case that matters: ten requests of 100 against a balance of 250.
+    // Without the lock several of them would read the same balance and the pot
+    // would receive more than the member owns — money created out of nothing.
     const user = await makeUser({ bonusPoints: 250 });
-    const essais = await Promise.allSettled(
+    const attempts = await Promise.allSettled(
       Array.from({ length: 10 }, () => contribute(user, 100)),
     );
 
-    const reussies = essais.filter((r) => r.status === 'fulfilled').length;
-    expect(reussies).toBe(2); // 250 ne finance que deux fois 100
+    const succeeded = attempts.filter((r) => r.status === 'fulfilled').length;
+    expect(succeeded).toBe(2); // 250 only funds two lots of 100
     expect(await getBonus(user)).toBe(50);
-    expect(await potCourant()).toBe(200);
+    expect(await potTotal()).toBe(200);
   });
 
-  it('le pot reste égal à la somme des contributions enregistrées', async () => {
-    // Invariant de cohérence : le compteur dénormalisé du cycle ne doit
-    // jamais diverger du détail, même après une rafale.
-    const membres = await Promise.all(
+  it('keeps the pot equal to the sum of the recorded contributions', async () => {
+    // Consistency invariant: the cycle's denormalised counter must never drift
+    // from the detail rows, even after a burst.
+    const members = await Promise.all(
       Array.from({ length: 6 }, () => makeUser({ bonusPoints: 500 })),
     );
-    await Promise.allSettled(membres.map((m) => contribute(m, 50)));
+    await Promise.allSettled(members.map((m) => contribute(m, 50)));
 
     const cycle = await getCurrentCycle();
-    const [somme] = await db
+    const [sum] = await db
       .select({ total: sql<number>`coalesce(sum(amount), 0)::int` })
       .from(schema.freeleechPoolContributions)
       .where(eq(schema.freeleechPoolContributions.cycleId, cycle!.id));
 
-    expect(cycle!.totalContributed).toBe(somme!.total);
+    expect(cycle!.totalContributed).toBe(sum!.total);
   });
 });
 
-describe('plafond par personne', () => {
-  it('empêche une seule personne de porter tout le pot', async () => {
-    // `maxPerUserBp` est en points de base : 2500 = 25 % de la cible.
+describe('per-person cap', () => {
+  it('stops one person from carrying the whole pot', async () => {
+    // `maxPerUserBp` is in basis points: 2500 = 25% of the target.
     await setConfig({ maxPerUserBp: 2500 });
     const user = await makeUser({ bonusPoints: 5000 });
 
-    await contribute(user, 250); // pile le plafond
+    await contribute(user, 250); // exactly the cap
     await expect(contribute(user, 10)).rejects.toThrow();
 
     expect(await getUserContribution((await getCurrentCycle())!.id, user)).toBe(250);
   });
 
-  it('tient sous contributions simultanées', async () => {
+  it('holds under simultaneous contributions', async () => {
     await setConfig({ maxPerUserBp: 2500 });
     const user = await makeUser({ bonusPoints: 5000 });
 
@@ -181,21 +181,21 @@ describe('plafond par personne', () => {
   });
 });
 
-describe('tableau des contributeurs', () => {
-  it('classe par montant décroissant', async () => {
-    const petit = await makeUser({ bonusPoints: 500 });
-    const gros = await makeUser({ bonusPoints: 500 });
-    const moyen = await makeUser({ bonusPoints: 500 });
-    await contribute(petit, 20);
-    await contribute(gros, 200);
-    await contribute(moyen, 80);
+describe('contributor leaderboard', () => {
+  it('ranks by descending amount', async () => {
+    const small = await makeUser({ bonusPoints: 500 });
+    const large = await makeUser({ bonusPoints: 500 });
+    const middle = await makeUser({ bonusPoints: 500 });
+    await contribute(small, 20);
+    await contribute(large, 200);
+    await contribute(middle, 80);
 
     const cycle = await getCurrentCycle();
     const top = await getTopContributors(cycle!.id, 10);
     expect(top.map((t) => t.total)).toEqual([200, 80, 20]);
   });
 
-  it('agrège les contributions multiples d’une même personne en une ligne', async () => {
+  it('aggregates one person’s several contributions into a single row', async () => {
     const user = await makeUser({ bonusPoints: 500 });
     await contribute(user, 40);
     await contribute(user, 60);
@@ -208,7 +208,7 @@ describe('tableau des contributeurs', () => {
 });
 
 describe('configuration', () => {
-  it('crée une configuration par défaut plutôt que d’échouer', async () => {
+  it('creates a default configuration rather than failing', async () => {
     await db.execute(sql`TRUNCATE TABLE freeleech_pool_config CASCADE`);
     const cfg = await getConfig();
     expect(cfg.id).toBe(POOL_CONFIG_ID);

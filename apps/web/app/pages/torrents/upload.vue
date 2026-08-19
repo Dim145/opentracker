@@ -618,16 +618,16 @@ const igdbId = ref('');
 const openlibraryId = ref('');
 const isUploading = ref(false);
 
-/* ── Générateur de fiche ────────────────────────────────────────────────
-   Aller : on confie au store le .torrent déjà choisi et les identifiants
-   déjà saisis, pour que le générateur démarre directement à l'étape 02.
-   Retour : on récupère le BBCode produit. WysiwygEditor fait passer son
-   `modelValue` par `toEditorHtml()`, qui détecte le BBCode — on peut donc
-   l'assigner tel quel à `description`, sans conversion préalable ici. */
+/* ── Listing generator ──────────────────────────────────────────────────
+   Outbound: we hand the store the .torrent already picked and the ids already
+   entered, so the generator starts straight at step 02.
+   Inbound: we collect the BBCode produced. WysiwygEditor runs its `modelValue`
+   through `toEditorHtml()`, which detects BBCode — so we can assign it to
+   `description` as-is, with no conversion here. */
 const ficheDraft = useFicheDraftStore();
 
-/* Vrai quand la description vient du générateur : on l'affiche telle quelle
-   plutôt que dans l'éditeur, pour ne pas aplatir le BBCode en Markdown. */
+/* True when the description comes from the generator: we show it as-is rather
+   than in the editor, so the BBCode is not flattened to Markdown. */
 const descriptionRaw = ref(false);
 
 function openFicheBuilder() {
@@ -642,25 +642,25 @@ function openFicheBuilder() {
 }
 
 onMounted(() => {
-  // Le générateur renvoie les trois éléments d'un coup : la description en
-  // BBCode (que WysiwygEditor sait ingérer via toEditorHtml), le NFO et le
-  // nom de release normalisé.
+  // The generator returns all three at once: the BBCode description (which
+  // WysiwygEditor can ingest through toEditorHtml), the NFO and the normalised
+  // release name.
   const result = ficheDraft.consumeResult();
   if (!result) return;
   if (result.bbcode) {
     description.value = result.bbcode;
-    // La fiche est du BBCode riche (couleurs, tailles, centrage). L'éditeur
-    // WYSIWYG la reconvertirait en Markdown à la sauvegarde et perdrait tout
-    // ça — DescriptionRender détecte le BBCode à l'affichage, donc on la
-    // garde brute tant que l'utilisateur ne demande pas à l'éditer.
+    // The listing is rich BBCode (colours, sizes, centring). The WYSIWYG
+    // editor would convert it back to Markdown on save and lose all of that —
+    // DescriptionRender detects BBCode at display time, so we keep it raw until
+    // the user asks to edit it.
     descriptionRaw.value = true;
   }
   if (result.title) title.value = result.title;
   if (result.nfo) {
-    // Le NFO arrive sous forme de texte, mais le formulaire n'accepte qu'un
-    // fichier joint : on l'emballe comme s'il avait été déposé, plutôt que
-    // d'obliger l'utilisateur à l'enregistrer sur son disque pour le
-    // redéposer ici. Le bouton « retirer » de la zone de dépôt le défait.
+    // The NFO arrives as text, but the form only accepts an attached file: we
+    // wrap it as though it had been dropped, rather than force the user to save
+    // it to disk and drop it back here. The drop zone's "remove" button undoes
+    // this.
     const base = (result.title || 'release').replace(/[^\w.-]+/g, '.');
     nfoFile.value = new File([result.nfo], `${base}.nfo`, { type: 'text/plain' });
   }
@@ -1224,7 +1224,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
 <style scoped>
 @import '~/assets/css/upload-form.css';
 
-/* Accès au générateur de fiche depuis la section Description. */
+/* Access to the listing generator from the Description section. */
 .fiche-cta {
   display: flex;
   align-items: center;

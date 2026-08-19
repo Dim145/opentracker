@@ -6,23 +6,21 @@ import {
 } from '../app/utils/releaseParse';
 import { detectMediaId, mediaIdQueryParam } from '../app/utils/mediaIdDetect';
 
-// Analyse d'un nom de release.
+// Release-name parsing.
 //
-// Le membre dépose un fichier, et le formulaire se pré-remplit tout seul :
-// titre nettoyé, année, saison/épisode, étiquettes de scène. Rien ici n'est
-// bloquant — c'est justement ce qui rend la fonction risquée. Une erreur ne
-// lève pas d'exception, elle propose simplement un mauvais titre, lance la
-// recherche de métadonnées sur la mauvaise œuvre, et l'upload part avec une
-// fiche fausse que personne ne relira.
+// The member drops a file and the form fills itself in: cleaned title, year,
+// season/episode, scene tags. Nothing here is blocking — which is exactly what
+// makes the function risky. A mistake raises no exception, it merely proposes
+// the wrong title, fires the metadata lookup against the wrong work, and the
+// upload ships with a wrong listing nobody will re-read.
 //
-// Les deux pièges structurels sont figés ici : la découpe titre / métadonnées
-// (chercher les étiquettes AVANT la coupure fait remonter « Web » depuis un
-// titre qui contient ce mot) et le choix de la table d'étiquettes selon la
-// nature devinée (les jeux annoncent leur plateforme AVANT le titre, les
-// films leur codec après).
+// The two structural traps are pinned here: the title/metadata split (looking
+// for tags BEFORE the cut surfaces "Web" out of a title containing that word)
+// and the choice of tag table by inferred kind (games announce their platform
+// BEFORE the title, films their codec after).
 
 describe('parseReleaseName — films', () => {
-  it('sépare le titre de la queue technique', () => {
+  it('separates the title from the technical tail', () => {
     const r = parseReleaseName('Dune.Part.Two.2024.2160p.UHD.BluRay.REMUX.HDR.HEVC.Atmos-FraMeSToR');
     expect(r.title).toBe('Dune Part Two');
     expect(r.year).toBe(2024);
@@ -31,47 +29,47 @@ describe('parseReleaseName — films', () => {
     expect(r.tags).toContain('HEVC');
   });
 
-  it('accepte n’importe quel séparateur', () => {
-    for (const nom of [
+  it('accepts any separator', () => {
+    for (const name of [
       'Le Grand Bleu 1988 1080p BluRay x264-TEAM',
       'Le_Grand_Bleu_1988_1080p_BluRay_x264-TEAM',
       'Le.Grand.Bleu.1988.1080p.BluRay.x264-TEAM',
     ]) {
-      const r = parseReleaseName(nom);
+      const r = parseReleaseName(name);
       expect(r.title).toBe('Le Grand Bleu');
       expect(r.year).toBe(1988);
     }
   });
 
-  it('retire l’extension et le groupe', () => {
-    const r = parseReleaseName('Titre.2020.1080p.WEB-DL.x264-GROUPE.mkv');
-    expect(r.title).toBe('Titre');
-    expect(r.tags).not.toContain('GROUPE');
+  it('strips the extension and the group', () => {
+    const r = parseReleaseName('Title.2020.1080p.WEB-DL.x264-GROUP.mkv');
+    expect(r.title).toBe('Title');
+    expect(r.tags).not.toContain('GROUP');
   });
 
-  it('ne cherche les étiquettes qu’après la coupure', () => {
-    // « Extended » est une étiquette de qualité connue. Puisqu'elle apparaît
-    // avant le premier jeton d'arrêt (l'année), elle appartient au titre et
-    // ne doit pas remonter en étiquette.
+  it('only looks for tags after the cut', () => {
+    // "Extended" is a known quality tag. Since it appears before the first
+    // stop token (the year), it belongs to the title and must not surface as
+    // a tag.
     const r = parseReleaseName('Extended.Family.2024.1080p.WEB-DL.x264-TEAM');
     expect(r.title).toBe('Extended Family');
     expect(r.tags).toContain('WEB-DL');
     expect(r.tags).not.toContain('EXTENDED');
   });
 
-  it('tronque le titre quand un de ses mots est lui-même un jeton d’arrêt', () => {
-    // Limite connue et assumée : « Web » sert à repérer la source, donc un
-    // titre qui contient ce mot est coupé là. Le membre corrige dans le
-    // formulaire ; le pré-remplissage n'est qu'une suggestion. Ce test est là
-    // pour que le jour où la coupure sera affinée, on le sache.
+  it('truncates the title when one of its words is itself a stop token', () => {
+    // Known and accepted limitation: "Web" is how the source is spotted, so a
+    // title containing that word is cut there. The member fixes it in the
+    // form; the prefill is only a suggestion. This test exists so that the day
+    // the cut gets smarter, we know about it.
     expect(parseReleaseName('Charlotte.Web.2006.1080p.BluRay.x264-TEAM').title).toBe(
       'Charlotte',
     );
   });
 });
 
-describe('parseReleaseName — séries', () => {
-  it('lit la forme SxxExx', () => {
+describe('parseReleaseName — series', () => {
+  it('reads the SxxExx form', () => {
     const r = parseReleaseName('The.Mandalorian.S03E01.1080p.WEB.DDP5.1.H.264-NTb');
     expect(r.title).toBe('The Mandalorian');
     expect(r.season).toBe(3);
@@ -79,119 +77,119 @@ describe('parseReleaseName — séries', () => {
     expect(r.kind).toBe('tv');
   });
 
-  it('lit aussi les formes 1x01 et « Season 2 »', () => {
-    const a = parseReleaseName('Une.Serie.2x05.1080p.WEB-DL');
+  it('also reads the 1x01 and "Season 2" forms', () => {
+    const a = parseReleaseName('Some.Series.2x05.1080p.WEB-DL');
     expect([a.season, a.episode]).toEqual([2, 5]);
 
-    const b = parseReleaseName('Une.Serie.Season.2.1080p.WEB-DL');
+    const b = parseReleaseName('Some.Series.Season.2.1080p.WEB-DL');
     expect(b.season).toBe(2);
     expect(b.episode).toBeNull();
   });
 
-  it('gère une saison complète sans épisode', () => {
-    const r = parseReleaseName('Une.Serie.S01.COMPLETE.1080p.WEB-DL');
+  it('handles a complete season with no episode', () => {
+    const r = parseReleaseName('Some.Series.S01.COMPLETE.1080p.WEB-DL');
     expect(r.season).toBe(1);
     expect(r.episode).toBeNull();
   });
 
-  it('accepte un numéro d’épisode à quatre chiffres', () => {
-    // Les séries d'animation longues en ont besoin.
-    const r = parseReleaseName('Un.Anime.S01E1024.1080p.WEB-DL');
+  it('accepts a four-digit episode number', () => {
+    // Long-running animated series need it.
+    const r = parseReleaseName('Some.Anime.S01E1024.1080p.WEB-DL');
     expect(r.episode).toBe(1024);
   });
 });
 
-describe('parseReleaseName — jeux et livres', () => {
-  it('retire le crochet de plateforme du titre et le garde en étiquette', () => {
+describe('parseReleaseName — games and books', () => {
+  it('removes the platform bracket from the title and keeps it as a tag', () => {
     const r = parseReleaseName('[PS5] Kingdom.Come.Deliverance.2 [EUR MULTI]');
     expect(r.kind).toBe('game');
     expect(r.title).toBe('Kingdom Come Deliverance 2');
     expect(r.tags).toContain('PS5');
   });
 
-  it('reconnaît un numéro de version', () => {
-    const r = parseReleaseName('[PC] Un.Jeu.v1.2.3');
+  it('recognises a version stamp', () => {
+    const r = parseReleaseName('[PC] Some.Game.v1.2.3');
     expect(r.tags.some((t) => t.toLowerCase().includes('v1.2.3'))).toBe(true);
   });
 
-  it('reconnaît un format de livre et sa plage de tomes', () => {
-    const r = parseReleaseName('Une.Serie.[T01.T05].FR.[CBZ]-ebdz');
+  it('recognises a book format and its volume range', () => {
+    const r = parseReleaseName('Some.Series.[T01.T05].FR.[CBZ]-ebdz');
     expect(r.kind).toBe('book');
     expect(r.tags).toContain('CBZ');
   });
 
-  it('laisse l’indication de l’appelant primer sur la devinette', () => {
-    // La catégorie choisie par le membre porte plus de contexte que le nom
-    // de fichier : elle gagne.
-    const r = parseReleaseName('Un.Titre.Ambigu.2024', 'book');
+  it('lets the caller hint win over the guess', () => {
+    // The category the member picked carries more context than the filename,
+    // so it wins.
+    const r = parseReleaseName('Some.Ambiguous.Title.2024', 'book');
     expect(r.kind).toBe('book');
   });
 });
 
-describe('parseReleaseName — cas dégradés', () => {
-  it('ne casse pas sur une entrée vide ou dénuée de structure', () => {
-    for (const nom of ['', '   ', 'sansstructure']) {
-      const r = parseReleaseName(nom);
+describe('parseReleaseName — degraded cases', () => {
+  it('does not break on empty or structureless input', () => {
+    for (const name of ['', '   ', 'nostructure']) {
+      const r = parseReleaseName(name);
       expect(r.year).toBeNull();
       expect(Array.isArray(r.tags)).toBe(true);
     }
   });
 
-  it('ne prend pas un nombre à quatre chiffres quelconque pour une année', () => {
-    expect(parseReleaseName('Titre.12345.1080p.WEB-DL').year).toBeNull();
+  it('does not take just any four-digit number for a year', () => {
+    expect(parseReleaseName('Title.12345.1080p.WEB-DL').year).toBeNull();
   });
 
-  it('ne rend jamais d’étiquette en double', () => {
-    const r = parseReleaseName('Titre.2024.1080p.1080p.BluRay.BluRay.x264');
+  it('never returns a duplicate tag', () => {
+    const r = parseReleaseName('Title.2024.1080p.1080p.BluRay.BluRay.x264');
     expect(new Set(r.tags).size).toBe(r.tags.length);
   });
 });
 
 describe('mergeParsedTags', () => {
-  it('n’ajoute que ce qui manque, sans doublon de casse', () => {
+  it('adds only what is missing, with no case-duplicate', () => {
     const { merged, added } = mergeParsedTags(['1080p'], ['1080P', 'BluRay']);
     expect(merged).toEqual(['1080p', 'BluRay']);
     expect(added).toEqual(['BluRay']);
   });
 
-  it('conserve l’orthographe déjà saisie par le membre', () => {
+  it('keeps the spelling the member already typed', () => {
     const { merged } = mergeParsedTags(['BluRay'], ['bluray']);
     expect(merged).toEqual(['BluRay']);
   });
 
-  it('ignore les entrées vides', () => {
+  it('ignores empty entries', () => {
     const { merged } = mergeParsedTags(['  ', ''], ['x', '   ']);
     expect(merged).toEqual(['x']);
   });
 });
 
 describe('parseNfoForTags', () => {
-  it('retire le BBCode avant de chercher les étiquettes', () => {
-    const tags = parseNfoForTags('[b]Codec vidéo :[/b] [i]H.265[/i] — [b]Source :[/b] BluRay');
+  it('strips the BBCode before looking for tags', () => {
+    const tags = parseNfoForTags('[b]Video codec:[/b] [i]H.265[/i] — [b]Source:[/b] BluRay');
     expect(tags).toContain('HEVC');
     expect(tags).toContain('BluRay');
   });
 
-  it('retire aussi le HTML et décode les entités', () => {
-    const tags = parseNfoForTags('<p>Résolution&nbsp;: <b>2160p</b></p>');
+  it('strips HTML too and decodes entities', () => {
+    const tags = parseNfoForTags('<p>Resolution&nbsp;: <b>2160p</b></p>');
     expect(tags).toContain('2160p');
   });
 
-  it('ne se laisse pas manger le document par un crochet non fermé', () => {
-    // La borne `{0,256}` existe pour ça : sans elle, un `[` égaré avalait tout
-    // jusqu'au `]` suivant, à des kilomètres de là, et le NFO ressortait vide.
-    const nfo = `[non fermé ${'x'.repeat(500)} 1080p BluRay`;
+  it('does not let an unclosed bracket eat the document', () => {
+    // The `{0,256}` bound exists for this: without it a stray `[` swallowed
+    // everything up to the next `]`, miles away, and the NFO came back empty.
+    const nfo = `[unclosed ${'x'.repeat(500)} 1080p BluRay`;
     expect(parseNfoForTags(nfo)).toContain('1080p');
   });
 
-  it('ne décode pas deux fois une entité échappée', () => {
-    // `&amp;lt;` est ce que le membre a réellement tapé : il doit rester
-    // `&lt;`, pas redescendre en `<`.
+  it('does not double-decode an escaped entity', () => {
+    // `&amp;lt;` is what the member actually typed: it must stay `&lt;`, not
+    // cascade back down to `<`.
     expect(() => parseNfoForTags('&amp;lt;script&amp;gt; 1080p')).not.toThrow();
     expect(parseNfoForTags('&amp;lt;script&amp;gt; 1080p')).toContain('1080p');
   });
 
-  it('rend une liste vide plutôt que de planter', () => {
+  it('returns an empty list rather than throwing', () => {
     expect(parseNfoForTags(null)).toEqual([]);
     expect(parseNfoForTags('')).toEqual([]);
     expect(parseNfoForTags('[b][/b]')).toEqual([]);
@@ -199,7 +197,7 @@ describe('parseNfoForTags', () => {
 });
 
 describe('detectMediaId', () => {
-  it('reconnaît un identifiant IMDb collé ou saisi', () => {
+  it('recognises a pasted or typed IMDb id', () => {
     expect(detectMediaId('tt0133093')).toMatchObject({ source: 'imdb', id: 'tt0133093' });
     expect(detectMediaId('https://www.imdb.com/title/tt0133093/')).toMatchObject({
       source: 'imdb',
@@ -207,9 +205,9 @@ describe('detectMediaId', () => {
     });
   });
 
-  it('reconnaît une URL TMDb en gardant son espace de noms', () => {
-    // Le préfixe `tv/` doit survivre, sinon la recherche part sur le mauvais
-    // périmètre côté API.
+  it('recognises a TMDb URL and keeps its namespace', () => {
+    // The `tv/` prefix has to survive, otherwise the search runs against the
+    // wrong scope on the API side.
     expect(detectMediaId('https://www.themoviedb.org/tv/1396')).toMatchObject({
       source: 'tmdb',
       id: 'tv/1396',
@@ -217,25 +215,25 @@ describe('detectMediaId', () => {
     });
   });
 
-  it('relit la forme préfixée au rechargement de la page', () => {
+  it('re-reads the prefixed form when the page reloads', () => {
     expect(detectMediaId('movie/603')).toMatchObject({ source: 'tmdb', display: '603' });
   });
 
-  it('reconnaît TVDB par le chemin comme par le paramètre', () => {
+  it('recognises TVDB by path as well as by query parameter', () => {
     expect(detectMediaId('https://thetvdb.com/series/12345')?.source).toBe('tvdb');
     expect(detectMediaId('https://thetvdb.com/x?id=999')?.source).toBe('tvdb');
   });
 
-  it('reste muet sur ce qui est ambigu', () => {
-    // Une suite de chiffres nue est le plus souvent une année ou du bruit :
-    // basculer en « recherche par identifiant » là-dessus ferait disparaître
-    // tous les résultats sans explication.
-    for (const entree of ['1999', '', '   ', 'Matrix', 'tt12']) {
-      expect(detectMediaId(entree)).toBeNull();
+  it('stays silent on anything ambiguous', () => {
+    // A bare run of digits is most often a year or noise: switching to
+    // "search by id" on that would make every result vanish with no
+    // explanation.
+    for (const input of ['1999', '', '   ', 'Matrix', 'tt12']) {
+      expect(detectMediaId(input)).toBeNull();
     }
   });
 
-  it('nomme le bon paramètre de requête', () => {
+  it('names the right query parameter', () => {
     expect(mediaIdQueryParam('imdb')).toBe('imdbid');
     expect(mediaIdQueryParam('tmdb')).toBe('tmdbid');
     expect(mediaIdQueryParam('tvdb')).toBe('tvdbid');

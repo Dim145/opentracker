@@ -81,8 +81,8 @@
         </section>
       </div>
 
-      <!-- Santé de la synchronisation : ce que federation_sync_state
-           consignait sans que rien ne le relise. -->
+      <!-- Sync health: what federation_sync_state was recording with nothing
+           reading it back. -->
       <AdminFederationHealth />
 
       <!-- KPIs -->
@@ -510,12 +510,11 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 .fed-badge.neutral { color: rgb(var(--fg-muted)); background: rgba(255, 255, 255, 0.04); border-color: rgb(var(--line-default)); }
 
 /* switch
-   Les jetons de couleur sont des TRIPLETS RGB ("35 35 35"), pas des couleurs :
-   il faut les envelopper dans `rgb(…)`. Sans l'enveloppe, `background: 35 35 35`
-   est invalide, le navigateur jette la déclaration en silence, et l'interrupteur
-   devenait purement et simplement invisible à l'état éteint — seul l'état allumé
-   se voyait, parce qu'il retombait sur le littéral `#d4a734` de `--gold`, un
-   jeton qui n'existe pas. */
+   The colour tokens are RGB TRIPLETS ("35 35 35"), not colours: they must be
+   wrapped in `rgb(…)`. Without the wrapper, `background: 35 35 35` is invalid,
+   the browser drops the declaration in silence, and the switch became plainly
+   invisible in its off state — only the on state showed, because it fell back
+   to the `#d4a734` literal of `--gold`, a token that does not exist. */
 .switch { position: relative; display: inline-flex; flex-shrink: 0; width: 42px; height: 24px; }
 .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .switch .track { position: absolute; inset: 0; border-radius: 99px; background: rgb(var(--bg-hover)); border: 1px solid rgb(var(--line-strong)); transition: all 0.2s ease; }
@@ -524,8 +523,8 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 .switch input:checked ~ .thumb { left: 21px; background: #0a0a0a; }
 .switch.is-gold input:checked ~ .track { background: #d4a734; border-color: #d4a734; }
 .switch.is-warning input:checked ~ .track { background: rgb(var(--warning)); border-color: rgb(var(--warning)); }
-/* L'input réel est transparent : sans anneau explicite, la navigation au
-   clavier n'a aucun repère visible sur ce contrôle. */
+/* The real input is transparent: without an explicit ring, keyboard
+   navigation has no visible cue on this control. */
 .switch input:focus-visible ~ .track { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
 .switch input:disabled { cursor: not-allowed; }
 .switch input:disabled ~ .track,

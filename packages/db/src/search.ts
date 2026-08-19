@@ -1,35 +1,34 @@
 /**
- * Expression plein-texte partagée entre le schéma et les requêtes.
+ * The full-text expression shared between the schema and the queries.
  *
- * Un index d'expression ne sert une requête que si l'expression interrogée est
- * la même que l'expression indexée. Les deux sortent donc d'ici : `schema.ts`
- * appelle `ftsVector()` pour déclarer les index GIN, la route de recherche
- * l'appelle pour construire son prédicat. Elles ne peuvent pas diverger.
+ * An expression index only serves a query when the queried expression is the
+ * same as the indexed one. Both therefore come from here: `schema.ts` calls
+ * `ftsVector()` to declare the GIN indexes, the search route calls it to build
+ * its predicate. They cannot diverge.
  *
- * Le choix des index d'expression plutôt que de colonnes `GENERATED … STORED`
- * est dicté par le mode de gestion du schéma : le conteneur API fait un
- * `drizzle-kit push --force` au démarrage, qui réconcilie la base avec
- * `schema.ts`. Les index sont un terrain que push maîtrise bien ; les colonnes
- * générées le sont moins, et elles dupliqueraient en table un vecteur que
- * l'index contient déjà.
+ * Choosing expression indexes over `GENERATED … STORED` columns is dictated by
+ * how the schema is managed: the API container runs `drizzle-kit push --force`
+ * at boot, reconciling the database with `schema.ts`. Indexes are ground push
+ * handles well; generated columns less so, and they would duplicate in the
+ * table a vector the index already holds.
  */
 import { sql, type SQL } from 'drizzle-orm';
 import type { AnyColumn } from 'drizzle-orm';
 
 /**
- * Configuration `simple` et non `french` : un nom de release n'est pas de la
- * prose. Le lemmatiseur réduirait « Remux », « Extended » ou « Complete » de
- * façon imprévisible, et la langue change d'une release à l'autre. `simple`
- * découpe et replie la casse, ce qu'on veut sur un catalogue multilingue.
+ * Configuration `simple`, not `french`: a release name is not prose. The
+ * stemmer would reduce "Remux", "Extended" or "Complete" unpredictably, and the
+ * language changes from one release to the next. `simple` tokenises and folds
+ * case, which is what a multilingual catalogue wants.
  */
 export const FTS_CONFIG = 'simple';
 
 /**
- * Le vecteur indexé pour une colonne.
+ * The indexed vector for one column.
  *
- * `coalesce` fait partie de l'expression et non d'un confort d'écriture : sans
- * lui une colonne NULL produirait un vecteur NULL, la ligne sortirait de
- * l'index, et la requête cesserait de pouvoir s'en servir.
+ * `coalesce` is part of the expression, not a writing convenience: without it a
+ * NULL column would produce a NULL vector, the row would drop out of the index,
+ * and the query could no longer use it.
  */
 export function ftsVector(column: AnyColumn | SQL): SQL {
   return sql`to_tsvector(${sql.raw(`'${FTS_CONFIG}'`)}, coalesce(${column}, ''))`;

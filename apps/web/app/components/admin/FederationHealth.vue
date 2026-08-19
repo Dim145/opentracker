@@ -1,14 +1,14 @@
 <template>
   <!--
-    Tableau de bord de la fédération.
+    Federation dashboard.
 
-    Parti pris : la santé n'est pas un mot, c'est une grandeur qui se dégrade.
-    Le bandeau du haut montre le temps écoulé depuis le dernier passage rapporté
-    au seuil de retard — on lit une jauge qui se remplit, pas un horodatage
-    qu'il faut soustraire de tête. En dessous, un rail coloré par pair rend le
-    verdict lisible en vision périphérique, et le détail par ressource est un
-    registre monospace aligné, parce que c'est ce qu'un opérateur balaie
-    réellement : combien d'éléments, quand, où en est le curseur.
+    The stance taken: health is not a word, it is a quantity that degrades. The
+    top banner shows the time since the last run relative to the "behind"
+    threshold — you read a gauge filling up, not a timestamp you have to
+    subtract in your head. Below it, a colour rail per peer makes the verdict
+    legible in peripheral vision, and the per-resource detail is an aligned
+    monospace log, because that is what an operator actually scans: how many
+    items, when, and where the cursor stands.
   -->
   <section class="card fh">
     <div class="card-header">
@@ -30,9 +30,9 @@
       </p>
 
       <template v-else>
-        <!-- ── Battement de cœur ─────────────────────────────────────────
-             Le seul chiffre qu'on regarde en premier : à quand remonte le
-             dernier passage, et est-ce inquiétant ? -->
+        <!-- ── Heartbeat ─────────────────────────────────────────────────
+             The one number anyone looks at first: how long since the last
+             run, and is that worrying? -->
         <div class="fh-pulse" :class="`fh-pulse--${pulseTone}`">
           <div class="fh-pulse-head">
             <span class="fh-pulse-label">
@@ -103,8 +103,8 @@
             </li>
           </ul>
 
-          <!-- L'erreur se lit, elle ne se survole pas : un opérateur qui
-               diagnostique a besoin du message, pas d'une infobulle. -->
+          <!-- The error is read, not hovered: an operator diagnosing a
+               problem needs the message, not a tooltip. -->
           <pre v-if="peerError(peer)" class="fh-error">{{ peerError(peer) }}</pre>
         </article>
       </template>
@@ -156,7 +156,7 @@ const { data, pending, refresh } = await useFetch<Health>(
   '/api/admin/federation/health',
 );
 
-/* L'horloge avance toute seule : sans ça, la jauge fige à l'instant du
+/* The clock advances on its own: without this the gauge freezes at the moment of
    chargement et une page laissée ouverte ment sur l'état réel. */
 const now = ref(Date.now());
 let ticker: ReturnType<typeof setInterval> | null = null;
@@ -174,7 +174,7 @@ const sinceMs = computed(() => {
   return last ? now.value - new Date(last).getTime() : null;
 });
 
-/** Remplissage de la jauge : 100 % au seuil de retard. */
+/** Gauge fill: 100% at the "behind" threshold. */
 const pulsePct = computed(() => {
   const stale = data.value?.staleAfterMs ?? 0;
   if (!stale || sinceMs.value === null) return 100;
@@ -204,7 +204,7 @@ const tiles = computed(() => {
   ];
 });
 
-/** Première erreur rencontrée, pair ou ressource — c'est celle qui bloque. */
+/** The first error encountered, peer or resource — that is the blocking one. */
 function peerError(p: Peer): string | null {
   return p.resources.find((r) => r.lastError)?.lastError ?? p.lastError ?? null;
 }
@@ -222,7 +222,7 @@ function ago(iso: string | null): string {
 function formatInt(n: number): string {
   return new Intl.NumberFormat(locale.value).format(n ?? 0);
 }
-/** Un curseur est long et opaque : on n'en montre que les bouts. */
+/** A cursor is long and opaque: we show only its ends. */
 function shortCursor(c: string): string {
   return c.length <= 14 ? c : `${c.slice(0, 6)}…${c.slice(-6)}`;
 }
@@ -304,7 +304,7 @@ function hostOf(url: string): string {
   background: rgb(var(--tone));
   transition: width 0.6s ease;
 }
-/* Repère du seuil : la jauge a une fin, il faut la voir. */
+/* Threshold marker: the gauge has an end, and it needs to be visible. */
 .fh-pulse-mark {
   position: absolute;
   inset-block: -2px;
@@ -345,7 +345,7 @@ function hostOf(url: string): string {
   line-height: 1;
   color: rgb(var(--tone));
 }
-/* Un compteur à zéro est une bonne nouvelle : il ne doit pas crier. */
+/* A counter at zero is good news: it must not shout. */
 .fh-tile.is-zero .fh-tile-n { color: rgb(var(--fg-subtle)); }
 .fh-tile-l {
   font-size: 0.66rem;
@@ -396,7 +396,7 @@ function hostOf(url: string): string {
   color: rgb(var(--fg-muted));
 }
 
-/* Registre : colonnes fixes pour que l'œil descende en ligne droite. */
+/* The log: fixed columns so the eye travels straight down. */
 .fh-res {
   list-style: none;
   margin: 0;

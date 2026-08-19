@@ -44,8 +44,8 @@ on:
 permissions:
   contents: read
 
-# Ne pas accumuler de runs en parallèle si plusieurs releases sont publiées
-# coup-sur-coup — la 2e annule la 1re.
+# Do not pile up parallel runs when several releases are published back to
+# back — the second cancels the first.
 # Keyed on the version, not on github.ref: under workflow_call the ref is the
 # caller's, so two different releases would share a group and the second would
 # cancel the first mid-push.
@@ -61,7 +61,7 @@ env:
   VERSION: ${{ inputs.version || github.event.release.tag_name }}
 
 jobs:
-  # Backend et frontend tournent en parallèle — aucune dépendance entre eux,
+  # Backend and frontend run in parallel — no dependency between them,
   # aucune raison de payer la latence d'un build séquentiel.
   build-api:
     runs-on: ubuntu-latest

@@ -29,9 +29,9 @@ export default defineEventHandler(async (event) => {
   if (status && ['pending', 'resolved', 'dismissed'].includes(status)) {
     conditions.push(eq(schema.reports.status, status));
   }
-  // Un signalement retiré sort de la vue du signaleur : il a demandé qu'on
-  // l'oublie, et de son côté c'est le cas. La ligne survit uniquement pour la
-  // modération, qui a besoin de voir les retraits en série.
+  // A withdrawn report leaves the reporter's view: they asked to be forgotten,
+  // and on their side that is the case. The row survives only for moderation,
+  // which needs to see withdrawals in series.
   conditions.push(ne(schema.reports.status, 'withdrawn'));
   const whereClause = and(...conditions);
 
@@ -58,8 +58,8 @@ export default defineEventHandler(async (event) => {
         count: sql<number>`count(*)::int`,
       })
       .from(schema.reports)
-      // Même exclusion que la liste, sinon les puces de filtre annonceraient
-      // des signalements que la liste ne montre pas.
+      // The same exclusion as the list, otherwise the filter chips would
+      // announce reports the list does not show.
       .where(
         and(
           eq(schema.reports.reporterId, user.id),

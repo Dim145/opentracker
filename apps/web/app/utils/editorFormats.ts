@@ -197,10 +197,10 @@ export function bbcodeToHtml(input: string): string {
     return `<a href="${escapeAttr(decoded)}" rel="noopener noreferrer" target="_blank">${escapeHtml(decoded)}</a>`;
   });
 
-  /* [img]url[/img] et ses formes dimensionnées — [img width=75]url[/img],
-     [img=320x180]url[/img]. Les fiches de release s'en servent pour les
-     vignettes du casting ; sans ces variantes le tag restait en texte brut
-     au milieu de l'aperçu. Seules des dimensions numériques sont reprises. */
+  /* [img]url[/img] and its sized forms — [img width=75]url[/img],
+     [img=320x180]url[/img]. Release listings use them for cast thumbnails;
+     without these variants the tag stayed as plain text in the middle of the
+     preview. Only numeric dimensions are carried over. */
   s = s.replace(/\[img([^\]]*)\]([\s\S]*?)\[\/img\]/gi, (_m, attrs: string, src: string) => {
     const decoded = unescapeHtml(src.trim());
     if (!/^https?:\/\//i.test(decoded)) return '';

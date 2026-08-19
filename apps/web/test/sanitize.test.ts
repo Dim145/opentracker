@@ -3,130 +3,127 @@ import { renderMarkdown, sanitizeHtml, sanitizeRichHtml } from '../app/utils/mar
 import { safeHttpUrl } from '../app/utils/safeUrl';
 import { safeInAppPath } from '../app/utils/safePath';
 
-// La frontière XSS de l'application.
+// The application's XSS boundary.
 //
-// Tout ce qui remonte en `v-html` passe par ici : descriptions de torrents,
-// posts du forum, personnalisation de l'administration, fiches importées d'un
-// autre tracker. Sur un tracker privé, ces textes sont écrits par des membres
-// et relus par tous les autres, y compris le staff avec sa session
-// d'administration ouverte — un seul `<script>` qui passe et c'est le compte
-// administrateur qui tombe.
+// Everything that ends up in a `v-html` passes through here: torrent
+// descriptions, forum posts, admin branding, listings imported from another
+// tracker. On a private tracker those texts are written by members and read by
+// everyone else, staff included with an admin session open — one `<script>`
+// getting through is the admin account falling.
 //
-// Le profil DOMPurify est volontairement plus strict que le profil par défaut,
-// qui laisse passer `<style>`, `<form>` et les schémas d'URL arbitraires.
-// Deux profils coexistent, et c'est là que se situe le vrai risque : le profil
-// « riche » rouvre l'attribut `style` pour que le BBCode de mise en forme
-// survive. Il ne doit le rouvrir QUE pour une liste blanche de propriétés, et
-// surtout ne jamais contaminer le profil strict — les deux partagent la même
-// instance DOMPurify et un drapeau de portée.
+// The DOMPurify profile is deliberately stricter than the default one, which
+// lets `<style>`, `<form>` and arbitrary URL schemes through. Two profiles
+// coexist, and that is where the real risk sits: the "rich" profile reopens
+// the `style` attribute so BBCode formatting survives. It must reopen it ONLY
+// for a whitelist of properties, and above all must never contaminate the
+// strict profile — the two share a DOMPurify instance and a scope flag.
 
 describe('renderMarkdown', () => {
-  it('rend le markdown courant', () => {
-    const html = renderMarkdown('# Titre\n\nUn **gras** et un [lien](https://ok.example).');
+  it('renders ordinary markdown', () => {
+    const html = renderMarkdown('# Title\n\nSome **bold** and a [link](https://ok.example).');
     expect(html).toContain('<h1');
-    expect(html).toContain('<strong>gras</strong>');
+    expect(html).toContain('<strong>bold</strong>');
     expect(html).toContain('href="https://ok.example"');
   });
 
-  it('supprime le script inséré en HTML brut', () => {
-    const html = renderMarkdown('Bonjour <script>alert(1)</script> tout le monde');
+  it('strips a script injected as raw HTML', () => {
+    const html = renderMarkdown('Hello <script>alert(1)</script> everyone');
     expect(html).not.toContain('<script');
     expect(html).not.toContain('alert(1)');
   });
 
-  it('neutralise les gestionnaires d’événements', () => {
+  it('neutralises event handlers', () => {
     const html = renderMarkdown('<img src=x onerror="alert(1)">');
     expect(html).not.toContain('onerror');
   });
 
-  it('refuse les schémas d’URL exécutables sur un lien markdown', () => {
-    // `[clic](javascript:…)` est la forme la plus courante : elle traverse
-    // marked sans encombre et n'est arrêtée que par ALLOWED_URI_REGEXP.
-    for (const mauvais of [
-      '[clic](javascript:alert(1))',
-      '[clic](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)',
-      '[clic](vbscript:msgbox)',
+  it('refuses executable URL schemes on a markdown link', () => {
+    // `[click](javascript:…)` is the most common shape: it sails through
+    // marked untouched and is only stopped by ALLOWED_URI_REGEXP.
+    for (const bad of [
+      '[click](javascript:alert(1))',
+      '[click](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)',
+      '[click](vbscript:msgbox)',
     ]) {
-      const html = renderMarkdown(mauvais);
+      const html = renderMarkdown(bad);
       expect(html).not.toMatch(/javascript:|data:text\/html|vbscript:/i);
     }
   });
 
-  it('laisse passer http, https, mailto et les ancres', () => {
+  it('lets http, https, mailto and anchors through', () => {
     expect(renderMarkdown('[a](https://ok.example)')).toContain('https://ok.example');
     expect(renderMarkdown('[a](http://ok.example)')).toContain('http://ok.example');
     expect(renderMarkdown('[a](mailto:x@ok.example)')).toContain('mailto:');
     expect(renderMarkdown('[a](#section)')).toContain('#section');
   });
 
-  it('durcit les liens sortants contre le tabnabbing', () => {
-    const html = renderMarkdown('[a](https://ailleurs.example)');
+  it('hardens outbound links against tabnabbing', () => {
+    const html = renderMarkdown('[a](https://elsewhere.example)');
     expect(html).toContain('rel="noopener noreferrer"');
     expect(html).toContain('target="_blank"');
   });
 
-  it('laisse les ancres internes sans cible externe', () => {
-    expect(renderMarkdown('[a](#bas)')).not.toContain('target="_blank"');
+  it('leaves in-page anchors without an external target', () => {
+    expect(renderMarkdown('[a](#bottom)')).not.toContain('target="_blank"');
   });
 
-  it('retire les balises structurelles dangereuses', () => {
+  it('removes the dangerous structural tags', () => {
     const html = sanitizeHtml(
       '<style>body{display:none}</style><form action="/x"><input name="p"></form>' +
         '<iframe src="https://evil.example"></iframe><base href="https://evil.example">',
     );
-    for (const balise of ['<style', '<form', '<input', '<iframe', '<base']) {
-      expect(html).not.toContain(balise);
+    for (const tag of ['<style', '<form', '<input', '<iframe', '<base']) {
+      expect(html).not.toContain(tag);
     }
   });
 
-  it('rend une chaîne vide plutôt que « null »', () => {
+  it('returns an empty string rather than "null"', () => {
     expect(renderMarkdown(null)).toBe('');
     expect(renderMarkdown(undefined)).toBe('');
     expect(sanitizeHtml('')).toBe('');
   });
 });
 
-describe('sanitizeRichHtml — l’attribut style rouvert, mais bordé', () => {
-  it('conserve les propriétés purement présentationnelles', () => {
-    // Ce sont exactement celles que le BBCode émet : [center], [color], [size].
+describe('sanitizeRichHtml — the style attribute reopened, but fenced in', () => {
+  it('keeps the purely presentational properties', () => {
+    // These are exactly the ones BBCode emits: [center], [color], [size].
     const html = sanitizeRichHtml(
-      '<p style="text-align:center;color:#ff0000;font-size:1.2em">Salut</p>',
+      '<p style="text-align:center;color:#ff0000;font-size:1.2em">Hello</p>',
     );
     expect(html).toContain('text-align: center');
     expect(html).toContain('color: #ff0000');
     expect(html).toContain('font-size: 1.2em');
   });
 
-  it('jette les propriétés hors liste blanche', () => {
+  it('drops properties outside the whitelist', () => {
     const html = sanitizeRichHtml(
       '<p style="position:fixed;top:0;left:0;z-index:9999;opacity:0;color:red">x</p>',
     );
-    // Un bloc positionné en superposition est un détournement de clic, pas
-    // une mise en forme.
+    // A block positioned as an overlay is clickjacking, not formatting.
     expect(html).not.toContain('position');
     expect(html).not.toContain('z-index');
     expect(html).toContain('color: red');
   });
 
-  it('jette les valeurs capables d’aller chercher une ressource ou de s’échapper', () => {
-    for (const mauvais of [
-      'background-color: url(https://pisteur.example/x.png)',
+  it('drops values able to fetch a resource or break out', () => {
+    for (const bad of [
+      'background-color: url(https://tracker.example/x.png)',
       'color: expression(alert(1))',
       'font-family: javascript:alert(1)',
       'color: red} body { display:none',
       'font-size: 12px; /* @import "evil" */',
     ]) {
-      const html = sanitizeRichHtml(`<p style="${mauvais}">x</p>`);
+      const html = sanitizeRichHtml(`<p style="${bad}">x</p>`);
       expect(html).not.toMatch(/url\(|expression\(|javascript:|@import|[{}]/);
     }
   });
 
-  it('lâche un style absurdement long en bloc', () => {
+  it('drops an absurdly long style wholesale', () => {
     const html = sanitizeRichHtml(`<p style="${'color:red;'.repeat(100)}">x</p>`);
     expect(html).not.toContain('style');
   });
 
-  it('garde la même sévérité que le profil strict sur tout le reste', () => {
+  it('stays as severe as the strict profile on everything else', () => {
     const html = sanitizeRichHtml(
       '<script>alert(1)</script><a href="javascript:alert(1)">x</a><iframe></iframe>',
     );
@@ -135,35 +132,35 @@ describe('sanitizeRichHtml — l’attribut style rouvert, mais bordé', () => {
     expect(html).not.toContain('<iframe');
   });
 
-  it('n’a pas desserré le profil strict au passage', () => {
-    // Les deux profils partagent une instance DOMPurify et un drapeau de
-    // portée. Si le crochet du profil riche fuyait, le style survivrait ici —
-    // et toute la personnalisation d'administration deviendrait injectable.
-    sanitizeRichHtml('<p style="color:red">riche</p>');
+  it('has not loosened the strict profile on its way past', () => {
+    // Both profiles share a DOMPurify instance and a scope flag. If the rich
+    // profile's hook leaked, style would survive here — and the whole admin
+    // branding surface would become injectable.
+    sanitizeRichHtml('<p style="color:red">rich</p>');
     expect(sanitizeHtml('<p style="color:red">strict</p>')).not.toContain('style');
     expect(renderMarkdown('<p style="color:red">strict</p>')).not.toContain('style');
   });
 });
 
 describe('safeHttpUrl', () => {
-  it('n’accepte qu’une URL http(s) absolue', () => {
+  it('accepts only an absolute http(s) URL', () => {
     expect(safeHttpUrl('https://ok.example/x')).toBe('https://ok.example/x');
     expect(safeHttpUrl('  http://ok.example/  ')).toBe('http://ok.example/');
   });
 
-  it('refuse tout le reste', () => {
-    for (const mauvais of [
+  it('refuses everything else', () => {
+    for (const bad of [
       'javascript:alert(1)',
       'data:text/html,<script>alert(1)</script>',
       '//evil.example/x',
-      '/chemin/relatif',
+      '/relative/path',
       'ftp://ok.example',
       'https://',
       42,
       null,
       undefined,
     ]) {
-      expect(safeHttpUrl(mauvais)).toBeNull();
+      expect(safeHttpUrl(bad)).toBeNull();
     }
   });
 });
@@ -171,24 +168,24 @@ describe('safeHttpUrl', () => {
 describe('safeInAppPath', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('accepte un chemin absolu de l’application', () => {
+  it('accepts an absolute in-app path', () => {
     expect(safeInAppPath('/torrents/42')).toBe('/torrents/42');
   });
 
-  it('refuse tout ce qui pourrait sortir du site', () => {
-    // Le lien vient d'une ligne de notification écrite côté serveur, et part
-    // dans `router.push`. Une URL protocole-relative y suffit à emmener le
-    // membre ailleurs — support idéal pour une page de phishing.
-    for (const mauvais of ['//evil.example/x', 'https://evil.example', 'evil', '', null, undefined]) {
-      expect(safeInAppPath(mauvais)).toBe('/');
+  it('refuses anything that could leave the site', () => {
+    // The link comes from a server-written notification row and is handed to
+    // `router.push`. A protocol-relative URL is enough to take the member
+    // elsewhere — an ideal vehicle for a phishing page.
+    for (const bad of ['//evil.example/x', 'https://evil.example', 'evil', '', null, undefined]) {
+      expect(safeInAppPath(bad)).toBe('/');
     }
   });
 
-  it('vérifie l’origine réelle quand le navigateur est là', () => {
+  it('checks the real origin when a browser is present', () => {
     vi.stubGlobal('window', { location: { origin: 'https://tracker.example' } });
-    expect(safeInAppPath('/torrents?page=2#haut')).toBe('/torrents?page=2#haut');
-    // `/\evil.example` : certains navigateurs traitent l'antislash comme une
-    // barre oblique et partent hors origine.
+    expect(safeInAppPath('/torrents?page=2#top')).toBe('/torrents?page=2#top');
+    // `/\evil.example`: some browsers treat the backslash as a slash and end
+    // up off-origin.
     expect(safeInAppPath('/\\evil.example')).toBe('/');
   });
 });

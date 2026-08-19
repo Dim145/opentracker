@@ -114,7 +114,8 @@ const rendered = computed(() => toEditorHtml(props.source));
    with huge top/bottom margins, which (a) defeats text-align and
    (b) stacks giant gaps between consecutive dividers. No border /
    no radius: descriptions often embed divider banners on a white
-   plate (`Le Pitch`, `La Série`, …) where a faint frame would read
+   plate (section banners such as "The Plot", "The Series", …) where a faint
+   frame would read
    as accidental chrome around the asset. */
 .description-render img {
   max-width: 100%;

@@ -1,15 +1,14 @@
 import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'node:url';
 
-// Suite unitaire du frontend.
+// Frontend unit suite.
 //
-// Elle ne monte aucun composant et ne démarre pas Nuxt : elle couvre les
-// utilitaires purs de `app/utils`, qui sont là où vit la logique susceptible
-// d'être fausse en silence — analyse d'un nom de release, lecture d'un
-// MediaInfo, génération du BBCode d'une fiche. Ces modules n'importent rien
-// de Nuxt, donc aucun environnement simulé n'est nécessaire ; monter des
-// composants demanderait `@nuxt/test-utils` et un navigateur simulé, pour un
-// gain bien moindre.
+// It mounts no component and does not boot Nuxt: it covers the pure helpers
+// in `app/utils`, which is where the logic that can be silently wrong lives —
+// release-name parsing, MediaInfo reading, BBCode listing generation. Those
+// modules import nothing from Nuxt, so no simulated environment is needed;
+// mounting components would require `@nuxt/test-utils` and a simulated
+// browser, for a far smaller return.
 const root = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({

@@ -8,93 +8,92 @@ import {
   toPrefixTsQuery,
 } from '../utils/search';
 
-// Helpers de la recherche plein-texte. Deux d'entre eux gardent une frontière
-// de sécurité : `toPrefixTsQuery` assemble une expression que Postgres va
-// *parser* — `to_tsquery` interprète `&`, `|`, `!`, `:` et les parenthèses,
-// donc une saisie brute y produirait au mieux une erreur 500 sur une simple
-// parenthèse, au pire une requête que l'utilisateur n'a pas demandée. Et
-// `parseSearchFields` décide ce que la recherche lit : le désarmer ou
-// l'élargir par accident change ce que voient les membres.
+// Full-text search helpers. Two of them hold a security boundary:
+// `toPrefixTsQuery` assembles an expression Postgres will *parse* —
+// `to_tsquery` interprets `&`, `|`, `!`, `:` and parentheses, so raw input
+// would produce at best a 500 on a single parenthesis, at worst a query the
+// user never asked for. And `parseSearchFields` decides what search reads:
+// disarming it or widening it by accident changes what members see.
 
 describe('parseSearchFields', () => {
-  it('retombe sur le défaut quand le réglage est absent', () => {
+  it('falls back to the default when the setting is absent', () => {
     expect(parseSearchFields(null)).toEqual(DEFAULT_SEARCH_FIELDS);
     expect(parseSearchFields(undefined)).toEqual(DEFAULT_SEARCH_FIELDS);
   });
 
-  it('lit une liste CSV et ignore la casse et les espaces', () => {
+  it('reads a CSV list, ignoring case and whitespace', () => {
     expect(parseSearchFields(' Name , DESCRIPTION ')).toEqual([
       'name',
       'description',
     ]);
   });
 
-  it('accepte les quatre champs connus', () => {
+  it('accepts all four known fields', () => {
     expect(parseSearchFields(SEARCH_FIELDS.join(','))).toEqual([
       ...SEARCH_FIELDS,
     ]);
   });
 
-  it('écarte les champs inconnus sans faire échouer le reste', () => {
+  it('discards unknown fields without failing the rest', () => {
     expect(parseSearchFields('name,uploader,description')).toEqual([
       'name',
       'description',
     ]);
   });
 
-  it('distingue « rien coché » de « valeur illisible »', () => {
-    // La chaîne vide est un choix délibéré de l'opérateur : ne rien
-    // chercher en texte libre. Une valeur qui ne contient aucun champ
-    // valide est en revanche une corruption du réglage, et désarmer la
-    // recherche sur cette base serait pire que de revenir au défaut.
+  it('tells "nothing ticked" apart from "unreadable value"', () => {
+    // The empty string is a deliberate operator choice: search no free text
+    // at all. A value containing no valid field, on the other hand, is a
+    // corrupted setting, and disarming search on that basis would be worse
+    // than reverting to the default.
     expect(parseSearchFields('')).toEqual([]);
     expect(parseSearchFields('   ')).toEqual([]);
-    expect(parseSearchFields('nawak,bidon')).toEqual(DEFAULT_SEARCH_FIELDS);
+    expect(parseSearchFields('garbage,nonsense')).toEqual(DEFAULT_SEARCH_FIELDS);
   });
 
-  it('ne met pas le NFO dans le défaut', () => {
-    // Texte long et bruyant : l'activer par défaut noierait les résultats
-    // pertinents sans que personne comprenne pourquoi.
+  it('keeps the NFO out of the default', () => {
+    // Long, noisy text: enabling it by default would drown the relevant
+    // results with nobody understanding why.
     expect(DEFAULT_SEARCH_FIELDS).not.toContain('nfo');
   });
 });
 
 describe('parseSearchFuzzy', () => {
-  it('est actif par défaut', () => {
+  it('is on by default', () => {
     expect(parseSearchFuzzy(null)).toBe(true);
     expect(parseSearchFuzzy(undefined)).toBe(true);
   });
 
-  it('ne se désactive que sur « false » explicite', () => {
+  it('only switches off on an explicit "false"', () => {
     expect(parseSearchFuzzy('false')).toBe(false);
     expect(parseSearchFuzzy(' FALSE ')).toBe(false);
     expect(parseSearchFuzzy('true')).toBe(true);
-    // Une valeur inattendue laisse la tolérance active : perdre la
-    // correction de frappe se voit tout de suite, la garder ne casse rien.
+    // An unexpected value leaves tolerance on: losing typo correction is
+    // noticed immediately, keeping it breaks nothing.
     expect(parseSearchFuzzy('0')).toBe(true);
-    expect(parseSearchFuzzy('nawak')).toBe(true);
+    expect(parseSearchFuzzy('garbage')).toBe(true);
   });
 });
 
 describe('toPrefixTsQuery', () => {
-  it('préfixe le dernier terme et lie les autres par ET', () => {
+  it('prefixes the last term and ANDs the others', () => {
     expect(toPrefixTsQuery('crimson')).toBe('crimson:*');
     expect(toPrefixTsQuery('crimson vault')).toBe('crimson & vault:*');
     expect(toPrefixTsQuery('a b c')).toBe('a & b & c:*');
   });
 
-  it('replie la casse', () => {
+  it('folds case', () => {
     expect(toPrefixTsQuery('CrimSON')).toBe('crimson:*');
   });
 
-  it('garde les lettres accentuées', () => {
+  it('keeps accented letters', () => {
     expect(toPrefixTsQuery('intégrale')).toBe('intégrale:*');
     expect(toPrefixTsQuery('日本語')).toBe('日本語:*');
   });
 
-  it('neutralise les opérateurs tsquery au lieu de les transmettre', () => {
-    // Sans ce nettoyage, `to_tsquery` lèverait une erreur de syntaxe sur la
-    // moindre parenthèse et la recherche renverrait un 500.
+  it('neutralises tsquery operators instead of forwarding them', () => {
+    // Without this scrubbing, `to_tsquery` would raise a syntax error on the
+    // slightest parenthesis and search would return a 500.
     for (const input of [
       'a & b',
       'a | b',
@@ -106,24 +105,23 @@ describe('toPrefixTsQuery', () => {
     ]) {
       const out = toPrefixTsQuery(input);
       expect(out).not.toBeNull();
-      // Seul le `:*` final est un opérateur ; le reste est du texte et des
-      // conjonctions que nous avons nous-mêmes posées.
+      // Only the trailing `:*` is an operator; the rest is text and the
+      // conjunctions we placed ourselves.
       expect(out!.replace(/ & /g, ' ').replace(/:\*$/, '')).toMatch(
         /^[\p{L}\p{N} ]*$/u,
       );
     }
   });
 
-  it('découpe sur la ponctuation d’un nom de release', () => {
+  it('splits on the punctuation of a release name', () => {
     expect(toPrefixTsQuery('Crimson.Vault.1994.1080p')).toBe(
       'crimson & vault & 1994 & 1080p:*',
     );
     expect(toPrefixTsQuery('WEB-DL')).toBe('web & dl:*');
   });
 
-  it('rend null quand il ne reste rien d’exploitable', () => {
-    // L'appelant doit alors s'abstenir de filtrer, et non renvoyer une
-    // page vide.
+  it('returns null when nothing usable is left', () => {
+    // The caller must then skip the filter rather than return an empty page.
     for (const input of ['', '   ', '***', '&&&', '()']) {
       expect(toPrefixTsQuery(input)).toBeNull();
     }
@@ -131,27 +129,27 @@ describe('toPrefixTsQuery', () => {
 });
 
 describe('fuzzyTerm', () => {
-  it('accepte un mot unique d’au moins trois caractères', () => {
+  it('accepts a single word of at least three characters', () => {
     expect(fuzzyTerm('crimsen')).toBe('crimsen');
     expect(fuzzyTerm('ABC')).toBe('abc');
   });
 
-  it('refuse en dessous de trois caractères', () => {
-    // En dessous de trois caractères il n'existe aucun trigramme, donc
-    // l'index ne peut rien faire et le repli ferait un parcours complet.
+  it('refuses anything below three characters', () => {
+    // Below three characters there is no trigram at all, so the index can do
+    // nothing and the fallback would be a full scan.
     expect(fuzzyTerm('ab')).toBeNull();
     expect(fuzzyTerm('a')).toBeNull();
   });
 
-  it('refuse dès qu’il y a plusieurs mots', () => {
-    // `word_similarity` compare mot à mot et ne rend pas la main sur la
-    // combinaison : sur plusieurs termes le repli serait à la fois cher et
-    // faux.
+  it('refuses as soon as there are several words', () => {
+    // `word_similarity` compares word to word and says nothing about the
+    // combination: on several terms the fallback would be both expensive and
+    // wrong.
     expect(fuzzyTerm('crimsen vault')).toBeNull();
     expect(fuzzyTerm('crimson.vault')).toBeNull();
   });
 
-  it('refuse une saisie vide ou sans caractère utile', () => {
+  it('refuses empty input or input with no usable character', () => {
     expect(fuzzyTerm('')).toBeNull();
     expect(fuzzyTerm('***')).toBeNull();
   });

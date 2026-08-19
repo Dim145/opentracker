@@ -18,11 +18,11 @@ export default defineConfig({
     fileParallelism: false,
     hookTimeout: 30000,
     testTimeout: 30000,
-    // Mêmes secrets factices que la suite unitaire : plusieurs modules
-    // tirent `utils/settings` dans leur chaîne d'imports, qui construit le
-    // client Redis au chargement. Les valeurs viennent de l'environnement
-    // quand le harnais en fournit (`run-integration-tests.sh`), sinon on
-    // retombe sur ces valeurs de test.
+    // Same obviously-fake secrets as the unit suite: several modules pull
+    // `utils/settings` into their import chain, and that builds the Redis
+    // client at load time. Values come from the environment when the harness
+    // provides them (`run-integration-tests.sh`), otherwise these test
+    // defaults apply.
     env: {
       REDIS_PASSWORD: process.env.REDIS_PASSWORD ?? 'test-redis-password-not-a-real-one',
       REDIS_HOST: process.env.REDIS_HOST ?? 'trackarr-itest-redis',

@@ -1,177 +1,177 @@
-# Fédération Trackarr — Étude de faisabilité & architecture
+# Trackarr federation — feasibility study & architecture
 
-> Statut : **proposition de conception** (RFC). Aucun code applicatif n'est encore écrit.
-> Concrétise la ligne `Future (v1.x+) — Federation, inter-tracker communication` de la [roadmap](../guide/roadmap.md).
-> Cadrage validé : fédération **complète** (catalogue + social + comptes/réputation + swarm), **allow-list contrôlée par l'owner**, **protocole maison Trackarr↔Trackarr**.
+> Status: **design proposal** (RFC). No application code is written yet.
+> Realises the `Future (v1.x+) — Federation, inter-tracker communication` line of the [roadmap](../guide/roadmap.md).
+> Agreed scope: **full** federation (catalogue + social + accounts/reputation + swarm), **owner-controlled allow-list**, **in-house Trackarr↔Trackarr protocol**.
 
 ---
 
 ## 1. TL;DR
 
-Oui, c'est faisable, et le codebase est **bien positionné** : identifiants UUID v4 (pas de collision inter-instances), identité de contenu déjà solide (`info_hash` + `content_signature` + IDs média), table `settings` clé-valeur pour les toggles owner, et des briques de sécurité serveur-à-serveur déjà présentes (`safeFetch` anti-SSRF, `ADMIN_API_KEY`, rate-limit Redis distribué).
+Yes, it is feasible, and the codebase is **well positioned**: UUID v4 identifiers (no cross-instance collisions), solid content identity already in place (`info_hash` + `content_signature` + media IDs), a key-value `settings` table for owner toggles, and several server-to-server security building blocks already present (`safeFetch` anti-SSRF, `ADMIN_API_KEY`, distributed Redis rate limiting).
 
-La proposition tient en **5 phases** livrables indépendamment, par risque croissant :
+The proposal breaks into **5 independently shippable phases**, in increasing order of risk:
 
-| Phase | Axe | Risque | Touche le tracker Go ? |
+| Phase | Axis | Risk | Touches the Go tracker? |
 |---|---|---|---|
-| **0** | Socle de confiance (handshake + allow-list + transport signé) | Faible | Non |
-| **1** | Catalogue / métadonnées (découverte fédérée) | Faible | Non |
-| **2** | Social (commentaires, forum, follows fédérés) | Moyen | Non |
-| **3** | Comptes / réputation (identité & ratio portables) | Élevé | Non |
-| **4** | Swarm / pairs (cross-announce) | **Très élevé** | **Oui** |
+| **0** | Trust foundation (handshake + allow-list + signed transport) | Low | No |
+| **1** | Catalogue / metadata (federated discovery) | Low | No |
+| **2** | Social (comments, forum, federated follows) | Medium | No |
+| **3** | Accounts / reputation (portable identity & ratio) | High | No |
+| **4** | Swarm / peers (cross-announce) | **Very high** | **Yes** |
 
-Le découpage permet de livrer de la valeur dès la Phase 1 sans jamais s'engager sur les phases risquées. La Phase 4 (partage de swarm) est en **tension directe avec la nature « privée » du tracker** et fait l'objet d'un avertissement dédié (§7.4).
-
----
-
-## 2. Objectif & périmètre
-
-Permettre à plusieurs instances Trackarr **indépendantes** de communiquer et de partager leurs données, l'activation et le choix des partenaires étant **décidés par l'owner** de chaque instance.
-
-**Principe fondateur — souveraineté de l'instance.** La fédération n'est jamais subie : chaque instance reste maîtresse de (a) si elle fédère, (b) avec qui, (c) ce qu'elle partage, (d) ce qu'elle accepte. Le lien est **bidirectionnel et à double consentement** (les deux owners doivent accepter).
+The split lets us deliver value from Phase 1 onwards without ever committing to the risky phases. Phase 4 (swarm sharing) is in **direct tension with the private nature of the tracker** and carries a dedicated warning (§7.4).
 
 ---
 
-## 3. État des lieux du codebase
+## 2. Goal & scope
 
-### 3.1 Ce qui aide (déjà en place)
+Let several **independent** Trackarr instances communicate and share their data, with activation and partner selection **decided by each instance's owner**.
 
-| Atout | Où | Pourquoi ça compte |
+**Founding principle — instance sovereignty.** Federation is never imposed: each instance stays in control of (a) whether it federates, (b) with whom, (c) what it shares, (d) what it accepts. The link is **bidirectional and double opt-in** (both owners must agree).
+
+---
+
+## 3. Codebase assessment
+
+### 3.1 What helps (already in place)
+
+| Asset | Where | Why it matters |
 |---|---|---|
-| **UUID v4 partout** | `packages/db/src/schema.ts` | Pas de collision d'ID entre instances — l'obstacle n°1 est déjà levé. |
-| **Identité de contenu** | `info_hash` (unique), `content_signature` (SHA-256 des fichiers, déjà calculée pour le cross-seed), IDs média (`imdb_id`/`tmdb_id`/`tvdb_id`/`igdb_id`/`openlibrary_id`) | Reconnaître « le même contenu » d'une instance à l'autre, dédupliquer, fusionner les releases. |
-| **Toggles owner** | table `settings` (clé-valeur + invalidation cross-réplica via Redis pub/sub), middleware `admin.ts` | Un `federation_enabled` réservé à l'admin s'y branche sans redéploiement. |
-| **HTTP sortant durci** | `apps/api/utils/safeFetch.ts` | Anti-SSRF, revalide chaque redirection — indispensable pour des appels vers des hôtes tiers. |
-| **Auth machine-to-machine** | `apps/api/utils/auth.ts` (`ADMIN_API_KEY`), constant-time compare | Base pour l'auth serveur-à-serveur. |
-| **Rate-limit distribué** | `apps/api/utils/rateLimit.ts` (Redis sliding windows + pénalités) | Protège les futurs endpoints S2S exposés. |
-| **Surfaces machine déjà exposées** | Torznab (`/api/torznab`), RSS (`/api/rss`) | Précédent de sérialisation de catalogue lisible par machine. |
-| **Plugin cron de référence** | `apps/api/plugins/bonus-collector.ts` (lock cross-réplica + last-tick persisté) | Patron exact pour le worker de synchronisation fédérée. |
-| **Fan-out notifications** | `apps/api/utils/notify.ts` | Réutilisable pour notifier l'owner d'une demande de fédération entrante. |
+| **UUID v4 everywhere** | `packages/db/src/schema.ts` | No ID collisions between instances — obstacle number one is already cleared. |
+| **Content identity** | `info_hash` (unique), `content_signature` (SHA-256 of the files, already computed for cross-seeding), media IDs (`imdb_id`/`tmdb_id`/`tvdb_id`/`igdb_id`/`openlibrary_id`) | Recognising "the same content" from one instance to the next, deduplicating, merging releases. |
+| **Owner toggles** | `settings` table (key-value + cross-replica invalidation over Redis pub/sub), `admin.ts` middleware | An admin-only `federation_enabled` plugs straight in with no redeploy. |
+| **Hardened outbound HTTP** | `apps/api/utils/safeFetch.ts` | Anti-SSRF, revalidates every redirect — indispensable for calls to third-party hosts. |
+| **Machine-to-machine auth** | `apps/api/utils/auth.ts` (`ADMIN_API_KEY`), constant-time compare | The basis for server-to-server auth. |
+| **Distributed rate limiting** | `apps/api/utils/rateLimit.ts` (Redis sliding windows + penalties) | Protects the future exposed S2S endpoints. |
+| **Machine surfaces already exposed** | Torznab (`/api/torznab`), RSS (`/api/rss`) | Prior art for machine-readable catalogue serialisation. |
+| **Reference cron plugin** | `apps/api/plugins/bonus-collector.ts` (cross-replica lock + persisted last tick) | The exact pattern for the federated sync worker. |
+| **Notification fan-out** | `apps/api/utils/notify.ts` | Reusable to notify the owner of an inbound federation request. |
 
-### 3.2 Ce qui manque (à construire)
+### 3.2 What is missing (to build)
 
-- Aucune notion d'**origine/source** sur les entités (pas de `origin_instance`).
-- Aucune **communication serveur-à-serveur**, ni endpoint **entrant** destiné à une autre machine (tout est sortant / pull-only).
-- Pas d'**identité d'instance** ni d'**identité d'utilisateur globale** (`passkey` et `username` sont scoppés par instance).
-- Pas de **signature de requêtes** asymétrique (seul un secret partagé `ADMIN_API_KEY` existe).
-
----
-
-## 4. Principes directeurs
-
-1. **Opt-in owner, par défaut OFF.** `federation_enabled = false` à l'installation.
-2. **Allow-list explicite.** Aucune instance inconnue ne peut lire ou pousser quoi que ce soit. Pas de découverte automatique, pas de confiance transitive (« l'ami de mon ami » n'est pas mon ami).
-3. **Double consentement.** Un lien n'est `active` que si les deux owners l'ont approuvé.
-4. **Scopes granulaires et asymétriques.** Pour chaque pair, l'owner choisit séparément ce qu'il *partage avec* lui et ce qu'il *accepte de* lui, parmi `catalog` / `social` / `accounts` / `swarm`.
-5. **Révocable et auditable à tout moment.** Couper un lien purge les données distantes mises en cache et invalide les clés.
-6. **Le tracker (hot path) reste intact** jusqu'à la Phase 4. La fédération vit dans `apps/api`, jamais dans le chemin d'annonce critique.
-7. **Respect de la vie privée by design.** On ne fédère jamais de PII brute : pas d'IP (déjà hashées), pas de verifier d'auth, pas d'e-mail. Cf. §8.
+- No notion of **origin/source** on entities (no `origin_instance`).
+- No **server-to-server communication**, and no **inbound** endpoint meant for another machine (everything is outbound / pull-only).
+- No **instance identity** and no **global user identity** (`passkey` and `username` are scoped per instance).
+- No **asymmetric request signing** (only a shared `ADMIN_API_KEY` secret exists).
 
 ---
 
-## 5. Architecture cible
+## 4. Guiding principles
 
-### 5.1 Vue d'ensemble
+1. **Owner opt-in, OFF by default.** `federation_enabled = false` on install.
+2. **Explicit allow-list.** No unknown instance can read or push anything. No automatic discovery, no transitive trust ("a friend of a friend" is not a friend).
+3. **Double consent.** A link is `active` only once both owners have approved it.
+4. **Granular, asymmetric scopes.** For each peer the owner separately chooses what they *share with* it and what they *accept from* it, among `catalog` / `social` / `accounts` / `swarm`.
+5. **Revocable and auditable at any time.** Cutting a link purges the cached remote data and invalidates the keys.
+6. **The tracker (hot path) stays untouched** until Phase 4. Federation lives in `apps/api`, never in the critical announce path.
+7. **Privacy by design.** We never federate raw PII: no IPs (already hashed), no auth verifier, no email. See §8.
 
-La fédération est un **nouveau sous-système de `apps/api`** : un groupe de routes entrantes S2S, un groupe de routes admin, et un plugin cron de synchronisation. Le tracker Go n'est pas modifié avant la Phase 4.
+---
+
+## 5. Target architecture
+
+### 5.1 Overview
+
+Federation is a **new sub-system inside `apps/api`**: a group of inbound S2S routes, a group of admin routes, and a sync cron plugin. The Go tracker is untouched before Phase 4.
 
 ```
    Instance A (tracker.a.com)                         Instance B (tracker.b.com)
    ┌──────────────────────────────┐                  ┌──────────────────────────────┐
    │ apps/api (Nitro)             │   HTTPS + sig    │ apps/api (Nitro)             │
    │  /api/federation/*      ◄────┼─── Ed25519 ──────┼──►  /api/federation/*        │
-   │    handshake · sync · search │   (S2S, pairs    │     handshake · sync · search│
-   │                              │    allow-list    │                              │
-   │  /api/admin/federation/*     │    uniquement)   │  /api/admin/federation/*     │
-   │    owner : toggle + pairs    │                  │    owner : toggle + pairs    │
+   │    handshake · sync · search │  (S2S, allow-    │     handshake · sync · search│
+   │                              │   listed peers   │                              │
+   │  /api/admin/federation/*     │   only)          │  /api/admin/federation/*     │
+   │    owner: toggle + peers     │                  │    owner: toggle + peers     │
    │                              │                  │                              │
    │  plugin: federation-sync     │                  │  plugin: federation-sync     │
-   │    (cron pull, calqué sur    │                  │    (cron pull)               │
+   │    (cron pull, modelled on   │                  │    (cron pull)               │
    │     bonus-collector)         │                  │                              │
    └───────────┬──────────────────┘                  └───────────┬──────────────────┘
                ▼                                                  ▼
-   Postgres: federation_config (singleton)            Postgres (mêmes tables)
+   Postgres: federation_config (singleton)            Postgres (same tables)
              federation_peers (allow-list)
-             remote_torrents (cache catalogue)
-             federation_sync_state (curseurs)
+             remote_torrents (catalogue cache)
+             federation_sync_state (cursors)
              remote_* (social, phase 2+)
-   Redis:    verrous de sync, rate-limit S2S,
-             cache de réponses distantes
+   Redis:    sync locks, S2S rate limit,
+             remote response cache
 ```
 
-Tout appel sortant passe par `safeFetch`. Tout appel entrant est signé, vérifié contre l'allow-list, et rate-limité.
+Every outbound call goes through `safeFetch`. Every inbound call is signed, checked against the allow-list, and rate-limited.
 
-### 5.2 Identité d'instance
+### 5.2 Instance identity
 
-Chaque instance génère **une paire de clés Ed25519** au premier démarrage de la fédération (stockée chiffrée, comme les secrets de canaux de notif). L'**`instance_id`** est l'empreinte de la clé publique (ex. `b32(sha256(pubkey))`). Cet `instance_id` + la clé publique constituent l'identité vérifiable de l'instance — pas de PKI ni d'autorité centrale.
+Each instance generates **one Ed25519 keypair** the first time federation starts (stored encrypted, like the notification channel secrets). The **`instance_id`** is the fingerprint of the public key (e.g. `b32(sha256(pubkey))`). That `instance_id` plus the public key form the instance's verifiable identity — no PKI, no central authority.
 
-### 5.3 Modèle de confiance & handshake (double opt-in)
+### 5.3 Trust model & handshake (double opt-in)
 
 ```
  Owner A                Instance A                 Instance B               Owner B
-   │  ajoute l'URL de B      │                          │                       │
-   │  + scopes proposés      │                          │                       │
+   │  adds B's URL           │                          │                       │
+   │  + proposed scopes      │                          │                       │
    ├────────────────────────►│                          │                       │
    │                         │  POST /api/federation/   │                       │
-   │                         │   handshake  (signé A)   │                       │
+   │                         │   handshake  (A-signed)  │                       │
    │                         ├─────────────────────────►│                       │
-   │                         │                          │  crée peer(pending_in)│
-   │                         │                          │  notifie l'owner      │
+   │                         │                          │  creates pending_in   │
+   │                         │                          │  notifies the owner   │
    │                         │                          ├──────────────────────►│
-   │                         │                          │                       │ approuve
+   │                         │                          │                       │ approves
    │                         │                          │◄──────────────────────┤ + scopes
-   │                         │  callback signé B         │                       │
+   │                         │  B-signed callback       │                       │
    │                         │◄─────────────────────────┤                       │
-   │  lien ACTIVE des 2 côtés│  (échange clés publiques)│                       │
+   │  link ACTIVE both sides │  (public keys exchanged) │                       │
 ```
 
-- A → `POST https://B/api/federation/handshake`, **signé avec la clé privée de A**, contenant : `instance_id` de A, sa clé publique, son URL publique, son nom, les scopes proposés.
-- B crée un `federation_peers` en `pending_in` et **notifie son owner** (`notify`).
-- L'owner de B approuve dans `/admin/federation`, choisit ses scopes → B répond (callback signé) avec sa clé publique et ses scopes acceptés.
-- Les deux côtés passent `active`. Chacun connaît désormais la clé publique de l'autre.
+- A → `POST https://B/api/federation/handshake`, **signed with A's private key**, carrying: A's `instance_id`, its public key, its public URL, its name, and the proposed scopes.
+- B creates a `federation_peers` row in `pending_in` and **notifies its owner** (`notify`).
+- B's owner approves in `/admin/federation`, picks their scopes → B replies (signed callback) with its public key and the scopes it accepts.
+- Both sides move to `active`. Each now knows the other's public key.
 
-### 5.4 Protocole de transport S2S
+### 5.4 S2S transport protocol
 
-Modèle **HTTP Signatures** (inspiré d'ActivityPub mais sans son vocabulaire) :
+An **HTTP Signatures** model (inspired by ActivityPub but without its vocabulary):
 
-- Headers : `Date`, `Digest` (SHA-256 du corps), `Signature` (Ed25519 sur `(request-target) host date digest`), `X-Trackarr-Instance` (= `instance_id` émetteur, sert de `keyId`).
-- Vérification côté récepteur : (1) l'`instance_id` est dans l'allow-list et `active` ; (2) la signature est valide pour sa clé publique connue ; (3) `Date` dans une fenêtre ±5 min (anti-rejeu) + cache de `Digest` récents.
-- Enveloppe JSON commune : `{ v, instance_id, sent_at, type, payload }`.
-- Transport : HTTPS uniquement, via `safeFetch` (anti-SSRF), timeouts courts, pagination obligatoire.
+- Headers: `Date`, `Digest` (SHA-256 of the body), `Signature` (Ed25519 over `(request-target) host date digest`), `X-Trackarr-Instance` (= the sender's `instance_id`, used as the `keyId`).
+- Receiver-side verification: (1) the `instance_id` is in the allow-list and `active`; (2) the signature is valid for its known public key; (3) `Date` within a ±5 min window (replay protection) plus a cache of recent `Digest` values.
+- Shared JSON envelope: `{ v, instance_id, sent_at, type, payload }`.
+- Transport: HTTPS only, through `safeFetch` (anti-SSRF), short timeouts, mandatory pagination.
 
-Ce choix évite tout secret partagé à synchroniser et rend chaque message **non-répudiable** et **révocable** (il suffit d'oublier la clé publique).
+This choice avoids any shared secret to keep in sync and makes each message **non-repudiable** and **revocable** (forgetting the public key is enough).
 
 ---
 
-## 6. Schéma de base de données
+## 6. Database schema
 
-Style Drizzle/`snake_case`, cohérent avec `packages/db/src/schema.ts`. Tables introduites par phase.
+Drizzle / `snake_case` style, consistent with `packages/db/src/schema.ts`. Tables introduced per phase.
 
-### Phase 0 — confiance & transport
+### Phase 0 — trust & transport
 
 ```
 federation_config         (singleton, id = 'singleton')
   enabled                 boolean   default false
   instance_name           text
   instance_public_url     text
-  signing_private_key     text      -- Ed25519 privée, chiffrée (cf. notificationChannels)
+  signing_private_key     text      -- Ed25519 private key, encrypted (cf. notificationChannels)
   signing_public_key      text
-  instance_id             text      -- empreinte de la clé publique
-  share_catalog           boolean   default false   -- valeurs par défaut proposées aux nouveaux pairs
+  instance_id             text      -- fingerprint of the public key
+  share_catalog           boolean   default false   -- defaults proposed to new peers
   share_social            boolean   default false
   share_accounts          boolean   default false
   share_swarm             boolean   default false
   created_at, updated_at  timestamp
 
-federation_peers          (l'allow-list)
+federation_peers          (the allow-list)
   id                      uuid pk
-  base_url                text unique          -- https://tracker.exemple.com
-  instance_id             text                 -- identité distante (empreinte clé pub)
-  public_key              text                 -- clé pub Ed25519 du pair
+  base_url                text unique          -- https://tracker.example.com
+  instance_id             text                 -- remote identity (public key fingerprint)
+  public_key              text                 -- the peer's Ed25519 public key
   display_name            text
   status                  text   -- pending_out | pending_in | active | suspended | blocked | revoked
-  shares_with_them        jsonb  -- { catalog, social, accounts, swarm } : ce qu'on LEUR envoie
-  accepts_from_them       jsonb  -- { catalog, social, accounts, swarm } : ce qu'on accepte D'EUX
+  shares_with_them        jsonb  -- { catalog, social, accounts, swarm }: what we send THEM
+  accepts_from_them       jsonb  -- { catalog, social, accounts, swarm }: what we accept FROM them
   last_handshake_at       timestamp
   last_seen_at            timestamp
   last_error              text
@@ -179,33 +179,33 @@ federation_peers          (l'allow-list)
   created_at, updated_at  timestamp
   index(status), index(instance_id)
 
-federation_sync_state     (curseur par pair × ressource)
+federation_sync_state     (cursor per peer × resource)
   peer_id                 uuid -> federation_peers.id
   resource                text   -- catalog | social | ...
-  cursor                  text   -- timestamp/opaque renvoyé par le pair
+  cursor                  text   -- opaque timestamp returned by the peer
   last_run_at             timestamp
   last_status             text   -- ok | error | partial
   items_synced            integer
   pk(peer_id, resource)
 ```
 
-### Phase 1 — catalogue (cache local du contenu distant)
+### Phase 1 — catalogue (local cache of remote content)
 
 ```
 remote_torrents
-  id                      uuid pk              -- id local du miroir
+  id                      uuid pk              -- local mirror id
   peer_id                 uuid -> federation_peers.id
-  remote_id               text                 -- uuid du torrent chez le pair
+  remote_id               text                 -- the torrent's uuid on the peer
   info_hash               text
   content_signature       text
   name                    text
   size                    bigint
   description             text
-  category_slug           text                 -- mappée vers une catégorie locale si possible
+  category_slug           text                 -- mapped to a local category when possible
   tags                    jsonb
   imdb_id, tmdb_id, ...   text
-  seeders, leechers, completed  integer        -- stats distantes, best-effort
-  uploader_name           text                 -- nom distant, JAMAIS d'id local
+  seeders, leechers, completed  integer        -- remote stats, best effort
+  uploader_name           text                 -- remote name, NEVER a local id
   remote_detail_url       text
   remote_download_url     text
   fetched_at, updated_at  timestamp
@@ -213,125 +213,125 @@ remote_torrents
   index(info_hash), index(content_signature), index(imdb_id), ...
 ```
 
-> Le catalogue distant est un **cache en lecture seule**, jamais mélangé à la table `torrents` locale. Les vues fédérées font l'`UNION`/le merge à la lecture (badge « depuis instance X »), ce qui garde l'économie locale (ratio, HnR, modération) totalement étanche.
+> The remote catalogue is a **read-only cache**, never mixed into the local `torrents` table. Federated views do the `UNION`/merge at read time (a "from instance X" badge), which keeps the local economy (ratio, HnR, moderation) completely sealed.
 
-### Phases 2-4 (esquisse, détaillées plus bas)
+### Phases 2-4 (sketch, detailed below)
 
-- **Social** : `remote_comments`, `remote_forum_topics/posts`, ou une table polymorphe `remote_objects(peer_id, kind, remote_id, payload jsonb, ...)`.
-- **Comptes/réputation** : `federated_identities(user_id, peer_id, remote_handle, verified_at)`, `remote_user_reputation(...)`.
-- **Swarm** : pas de table — cross-announce au niveau tracker Go + Redis (cf. §7.4).
+- **Social**: `remote_comments`, `remote_forum_topics/posts`, or one polymorphic `remote_objects(peer_id, kind, remote_id, payload jsonb, ...)` table.
+- **Accounts/reputation**: `federated_identities(user_id, peer_id, remote_handle, verified_at)`, `remote_user_reputation(...)`.
+- **Swarm**: no table — cross-announce at the Go tracker + Redis level (see §7.4).
 
 ---
 
-## 7. Les quatre axes en détail
+## 7. The four axes in detail
 
-### 7.1 Axe 1 — Catalogue / métadonnées *(socle, risque faible)*
+### 7.1 Axis 1 — Catalogue / metadata *(foundation, low risk)*
 
-**But.** Découvrir et rechercher le contenu des instances partenaires sans toucher aux swarms.
+**Goal.** Discover and search partner instances' content without touching the swarms.
 
-- **Synchronisation pull** : le plugin cron `federation-sync` interroge périodiquement `GET /api/federation/catalog?since=<cursor>` de chaque pair `active` qui nous partage `catalog`. Réponse paginée, signée. Upsert dans `remote_torrents`. (Optionnel ultérieur : push « live » des nouveautés via webhook signé pour réduire la latence.)
-- **Dé-duplication** : un même contenu présent localement *et* à distance est rapproché par `info_hash` → sinon `content_signature` → sinon IDs média. L'UI affiche « aussi disponible sur 2 instances ».
-- **Recherche fédérée** : les listings ajoutent un filtre `Local / Fédéré / Tout`. Deux modes : *cache* (rapide, lit `remote_torrents`) et *live* (fan-out `GET /api/federation/search?q=` vers les pairs, agrégé, borné en temps — réutilise le patron de fan-out concurrency-capped des follows).
-- **Téléchargement — décision importante.** En Phase 1, le bouton « télécharger » d'un torrent distant **redirige vers l'instance d'origine** (l'utilisateur doit y avoir un compte). On **ne** sert **pas** le `.torrent` avec notre propre passkey : ça mélangerait les swarms et contournerait le modèle privé. La fusion réelle des swarms est le sujet (risqué) de la Phase 4.
+- **Pull synchronisation**: the `federation-sync` cron plugin periodically calls `GET /api/federation/catalog?since=<cursor>` on every `active` peer that shares `catalog` with us. Paginated, signed response. Upsert into `remote_torrents`. (Optional later: a "live" push of new items over a signed webhook to cut latency.)
+- **Deduplication**: the same content present locally *and* remotely is matched by `info_hash` → else `content_signature` → else media IDs. The UI shows "also available on 2 instances".
+- **Federated search**: listings gain a `Local / Federated / All` filter. Two modes: *cache* (fast, reads `remote_torrents`) and *live* (fan-out `GET /api/federation/search?q=` to the peers, aggregated, time-bounded — reuses the concurrency-capped fan-out pattern from follows).
+- **Download — an important decision.** In Phase 1, the "download" button on a remote torrent **redirects to the origin instance** (the user needs an account there). We do **not** serve the `.torrent` with our own passkey: that would mix the swarms and bypass the private model. Actually merging swarms is the (risky) subject of Phase 4.
 
-**Vie privée** : on ne fédère que des métadonnées déjà « publiques » au sein de l'instance d'origine ; jamais le `torrent_data` binaire ni l'identité réelle de l'uploader (seulement un nom d'affichage).
+**Privacy**: we federate only metadata that is already "public" within the origin instance; never the binary `torrent_data`, never the uploader's real identity (a display name only).
 
-### 7.2 Axe 2 — Social *(risque moyen)*
+### 7.2 Axis 2 — Social *(medium risk)*
 
-**But.** Commentaires, sujets de forum et follows visibles d'une instance à l'autre, façon fediverse léger.
+**Goal.** Comments, forum topics and follows visible from one instance to another, fediverse-lite style.
 
-- Réutilise le transport S2S et le modèle `remote_objects`. Un commentaire distant est rendu en lecture seule avec mention « @alice@tracker.b.com ».
-- **Follows inter-instances** : un user local peut suivre un user distant ; les notifications `followed_user_upload` traversent via un message S2S signé `Announce`.
-- **Modération** : tout objet distant est filtrable/bloquable localement ; un owner peut couper le scope `social` d'un pair sans couper `catalog`. Pas de modération distante imposée (souveraineté).
-- **Anti-abus** : limite de débit par pair, taille de payload bornée, sanitization HTML identique à celle des entrées locales (le projet a déjà un viewer BBCode/description durci).
+- Reuses the S2S transport and the `remote_objects` model. A remote comment renders read-only with a "@alice@tracker.b.com" attribution.
+- **Cross-instance follows**: a local user can follow a remote user; `followed_user_upload` notifications travel over a signed S2S `Announce` message.
+- **Moderation**: every remote object is locally filterable/blockable; an owner can cut a peer's `social` scope without cutting `catalog`. No remote moderation is imposed (sovereignty).
+- **Anti-abuse**: per-peer rate limit, bounded payload size, HTML sanitisation identical to local input (the project already has a hardened BBCode/description viewer).
 
-### 7.3 Axe 3 — Comptes / réputation *(risque élevé)*
+### 7.3 Axis 3 — Accounts / reputation *(high risk)*
 
-**But.** Identité et/ou réputation (ratio, bonus, ancienneté) portables entre instances.
+**Goal.** Portable identity and/or reputation (ratio, bonus, seniority) between instances.
 
-C'est l'axe le plus délicat car il touche à l'économie et à la sécurité des comptes. Trois options, du moins au plus intégré :
+This is the most delicate axis because it touches the economy and account security. Three options, from least to most integrated:
 
 | Option | Description | Implication |
 |---|---|---|
-| **A. Identité liée (recommandé pour commencer)** | Un user prouve qu'il possède un compte sur le pair (challenge signé) et **lie** les deux identités. Affichage d'un badge « vérifié sur tracker.b.com ». | Aucune fusion d'économie. Sûr. Base pour la suite. |
-| **B. Réputation importée (lecture seule)** | À la demande, on importe ratio/ancienneté/bonus du pair comme **signal d'affichage** (ex. fast-track d'invitation), sans modifier l'économie locale. | Risque de triche si un pair ment → réservé aux pairs de haute confiance ; valeurs marquées « source : tracker.b.com ». |
-| **C. SSO / compte unique** | Login d'une instance vaut sur l'autre. | Très intrusif, sécurité lourde (révocation, panic mode, ZK-auth distribuée). **Hors périmètre raisonnable v1.** |
+| **A. Linked identity (recommended to start)** | A user proves they own an account on the peer (signed challenge) and **links** both identities. Shows a "verified on tracker.b.com" badge. | No economy merge. Safe. A basis for the rest. |
+| **B. Imported reputation (read-only)** | On request we import ratio/seniority/bonus from the peer as a **display signal** (e.g. invitation fast-track), without altering the local economy. | Cheating risk if a peer lies → reserved for high-trust peers; values labelled "source: tracker.b.com". |
+| **C. SSO / single account** | A login on one instance is valid on the other. | Very intrusive, heavy security work (revocation, panic mode, distributed ZK auth). **Out of reasonable scope for v1.** |
 
-**Recommandation** : livrer **A**, exposer **B** comme option par-pair explicitement « confiance élevée », et **ne pas** faire **C** en v1. L'auth zero-knowledge actuelle (le serveur ne voit jamais le mot de passe) rend le SSO complexe — c'est une bonne chose pour la sécurité, mais ça ferme la porte à un SSO naïf.
+**Recommendation**: ship **A**, expose **B** as an explicitly "high trust" per-peer option, and **do not** do **C** in v1. The current zero-knowledge auth (the server never sees the password) makes SSO complex — good for security, but it closes the door on naive SSO.
 
-### 7.4 Axe 4 — Swarm / pairs *(risque TRÈS élevé — avertissement)*
+### 7.4 Axis 4 — Swarm / peers *(VERY high risk — warning)*
 
-**But.** Mutualiser seeders/leechers entre instances pour accélérer les téléchargements.
+**Goal.** Pool seeders and leechers between instances to speed up downloads.
 
-⚠️ **Tension fondamentale.** Un tracker privé isole *délibérément* les swarms (`info.private=1`, découverte de pairs uniquement via le tracker). Fédérer les pairs revient à **percer cet isolement**. Conséquences à arbitrer explicitement avec l'owner :
+⚠️ **Fundamental tension.** A private tracker *deliberately* isolates swarms (`info.private=1`, peer discovery through the tracker only). Federating peers means **piercing that isolation**. Consequences to weigh explicitly with the owner:
 
-- **Comptabilité ratio/HnR** : si un pair de B télécharge sur le swarm de A, *qui* comptabilise l'upload/download ? Le modèle de ratio et de Hit-and-Run doit être repensé (réconciliation cross-instance, ou « zone neutre » non comptabilisée).
-- **Sécurité/anti-triche** : les heuristiques anti-cheat du tracker Go (vélocité, swarm vide, peer_id inconnu) supposent un swarm clos. Des pairs distants brouillent ces signaux.
-- **Confidentialité** : exposer les pairs (même IP hashée) d'une instance à une autre élargit la surface.
-- **Charge sur le hot path** : c'est la **seule** phase qui touche le tracker Go ; elle doit rester optionnelle et n'activer le cross-announce que pour des torrents explicitement marqués « fédérés » et des pairs au scope `swarm` mutuel.
+- **Ratio/HnR accounting**: if a peer from B downloads on A's swarm, *who* accounts for the upload/download? The ratio and Hit-and-Run model has to be rethought (cross-instance reconciliation, or a "neutral zone" that is not accounted).
+- **Security/anti-cheat**: the Go tracker's anti-cheat heuristics (velocity, empty swarm, unknown peer_id) assume a closed swarm. Remote peers blur those signals.
+- **Confidentiality**: exposing one instance's peers (even hashed IPs) to another widens the surface.
+- **Hot-path load**: this is the **only** phase that touches the Go tracker; it must stay optional and enable cross-announce only for torrents explicitly marked "federated" and peers with a mutual `swarm` scope.
 
-**Approche prudente recommandée** : cross-announce **opt-in par torrent et par pair**, avec une zone de comptabilité dédiée (ou non-comptabilisée), derrière un flag tracker `TRACKER_FEDERATION_SWARM=false` par défaut. À traiter **en dernier**, après retour d'expérience des phases 1-3. Une alternative plus douce : se contenter d'**afficher** le nombre de seeders distants (déjà couvert par l'Axe 1) sans réellement fusionner les swarms — souvent 80 % de la valeur perçue pour 5 % du risque.
+**Recommended cautious approach**: cross-announce **opt-in per torrent and per peer**, with a dedicated (or non-accounted) accounting zone, behind a `TRACKER_FEDERATION_SWARM=false` tracker flag by default. To be tackled **last**, after experience from phases 1-3. A gentler alternative: merely **display** the remote seeder count (already covered by Axis 1) without actually merging the swarms — often 80% of the perceived value for 5% of the risk.
 
 ---
 
-## 8. Sécurité, abus & vie privée
+## 8. Security, abuse & privacy
 
-| Sujet | Mesure |
+| Topic | Measure |
 |---|---|
-| **Auth S2S** | Signature Ed25519 par requête, `instance_id` = `keyId`, allow-list obligatoire, anti-rejeu (Date + cache de Digest). |
-| **SSRF** | Tous les appels sortants via `safeFetch` (déjà durci : bloque IP privées/loopback/link-local/metadata, revalide les redirections). URL de pair validée au handshake. |
-| **Rate-limit** | Réutilise `rateLimit.ts` : fenêtres par `instance_id` *et* par IP, pénalités progressives. Endpoints S2S plafonnés. |
-| **Révocation** | Passer un pair à `blocked`/`revoked` : oublie sa clé publique (ses futures requêtes échouent à la vérification) et purge `remote_*`. |
-| **Panic mode** | La fédération doit être **suspendue** quand la panic mode est active (pas d'exfiltration pendant un incident). Les clés de signature sont incluses dans le périmètre de chiffrement panic. |
-| **Vie privée / RGPD** | On ne fédère jamais : IP brutes (déjà hashées localement, **non** partagées), e-mails, `auth_verifier`/`auth_salt`, `panic_password_hash`, `totp_secret`, codes de récupération. Seulement métadonnées de contenu + noms d'affichage publics. Le scope `accounts` requiert le **consentement explicite du user** concerné, pas seulement de l'owner. |
-| **Empoisonnement de catalogue** | Données distantes marquées comme telles, jamais fusionnées dans `torrents`, filtrables/purgeables par pair ; un pair malveillant ne peut polluer que son propre namespace `remote_torrents`. |
+| **S2S auth** | Ed25519 signature per request, `instance_id` = `keyId`, mandatory allow-list, replay protection (Date + Digest cache). |
+| **SSRF** | All outbound calls through `safeFetch` (already hardened: blocks private/loopback/link-local/metadata IPs, revalidates redirects). Peer URL validated at handshake. |
+| **Rate limiting** | Reuses `rateLimit.ts`: windows per `instance_id` *and* per IP, escalating penalties. S2S endpoints capped. |
+| **Revocation** | Moving a peer to `blocked`/`revoked` forgets its public key (its future requests fail verification) and purges `remote_*`. |
+| **Panic mode** | Federation must be **suspended** while panic mode is active (no exfiltration during an incident). The signing keys fall inside the panic encryption perimeter. |
+| **Privacy / GDPR** | We never federate: raw IPs (already hashed locally, **not** shared), emails, `auth_verifier`/`auth_salt`, `panic_password_hash`, `totp_secret`, recovery codes. Only content metadata and public display names. The `accounts` scope requires the **explicit consent of the user** concerned, not just the owner's. |
+| **Catalogue poisoning** | Remote data is marked as such, never merged into `torrents`, filterable/purgeable per peer; a malicious peer can only pollute its own `remote_torrents` namespace. |
 
 ---
 
-## 9. Impact sur l'existant
+## 9. Impact on the existing system
 
-- **Migrations** : additives uniquement (nouvelles tables). Aucune colonne retirée. Compatible avec le `drizzle-kit push --force` au boot de l'API.
-- **Tracker Go** : **intact** en phases 0-3. Touché seulement en phase 4 (cross-announce, derrière flag off par défaut).
-- **Perf** : la sync est un cron borné (patron `bonus-collector`), hors requête utilisateur. Les vues fédérées « live » sont plafonnées en temps et en fan-out.
-- **Déploiement** : un nouveau secret (`FEDERATION_SIGNING_KEY` ou génération auto au premier run) ; le port/Caddy n'a pas besoin de changer (les routes S2S passent par `/api/federation/*` derrière le reverse-proxy existant). Documenter dans `doc/reference/env.md`.
-- **Build statique (CSR)** : la page admin fédération suit le même chemin que les autres pages `/admin/*` ; pas d'impact sur le tracker `scratch`.
+- **Migrations**: additive only (new tables). No column removed. Compatible with the `drizzle-kit push --force` at API boot.
+- **Go tracker**: **untouched** in phases 0-3. Only affected in phase 4 (cross-announce, behind an off-by-default flag).
+- **Performance**: the sync is a bounded cron (the `bonus-collector` pattern), outside the user request path. "Live" federated views are capped in time and fan-out.
+- **Deployment**: one new secret (`FEDERATION_SIGNING_KEY`, or auto-generated on first run); the port and Caddy need no change (S2S routes go through `/api/federation/*` behind the existing reverse proxy). Document in `doc/reference/env.md`.
+- **Static build (CSR)**: the federation admin page follows the same path as the other `/admin/*` pages; no impact on the `scratch` tracker image.
 
 ---
 
-## 10. Phasage & estimation d'effort
+## 10. Phasing & effort estimate
 
-| Phase | Contenu | Effort indicatif | Dépend de |
+| Phase | Content | Rough effort | Depends on |
 |---|---|---|---|
-| **0 — Socle** | Clés Ed25519, `federation_config`/`federation_peers`, handshake double opt-in, transport signé, page admin (toggle + allow-list), notif owner | M | — |
-| **1 — Catalogue** | `remote_torrents`, endpoints `catalog`/`search`, cron sync, dédup, UI listing fédéré + redirection de téléchargement | M–L | 0 |
-| **2 — Social** | `remote_objects`, commentaires/forum/follows fédérés, modération par-scope | M | 0, 1 |
-| **3 — Comptes** | Option A (identité liée) ; option B (réputation lecture seule, par-pair) | M–L | 0 |
-| **4 — Swarm** | Cross-announce opt-in (tracker Go), réconciliation ratio/HnR, flag off par défaut | **L–XL** | 0, 1, retour d'expérience |
+| **0 — Foundation** | Ed25519 keys, `federation_config`/`federation_peers`, double opt-in handshake, signed transport, admin page (toggle + allow-list), owner notification | M | — |
+| **1 — Catalogue** | `remote_torrents`, `catalog`/`search` endpoints, sync cron, dedup, federated listing UI + download redirect | M–L | 0 |
+| **2 — Social** | `remote_objects`, federated comments/forum/follows, per-scope moderation | M | 0, 1 |
+| **3 — Accounts** | Option A (linked identity); option B (read-only reputation, per peer) | M–L | 0 |
+| **4 — Swarm** | Opt-in cross-announce (Go tracker), ratio/HnR reconciliation, off-by-default flag | **L–XL** | 0, 1, field experience |
 
-Recommandation : **0 → 1** d'abord (le socle + la découverte de catalogue couvrent l'essentiel de la valeur), puis 2 et 3 selon l'usage, et 4 seulement après décision explicite assumant les arbitrages du §7.4.
-
----
-
-## 11. Risques & questions ouvertes
-
-1. **Mapping des catégories/tags** entre instances aux taxonomies différentes : prévoir une table de correspondance ou un fallback « non classé ».
-2. **Versionnement du protocole** : champ `v` dans l'enveloppe ; négociation de capacités au handshake (quelles phases chaque pair supporte).
-3. **Cohérence des stats distantes** : seeders/leechers fédérés sont best-effort (TTL court) ; ne pas les présenter comme temps réel.
-4. **Quotas de stockage** du cache `remote_torrents` (purge LRU/TTL par pair).
-5. **Gouvernance** : que se passe-t-il si un pair de confiance est compromis ? → révocation rapide + purge ; envisager une « liste de défiance » partageable mais **non contraignante** (chaque owner reste souverain).
-6. **Phase 4** : modèle de comptabilité ratio cross-instance — sujet de conception à part entière.
+Recommendation: **0 → 1** first (the foundation plus catalogue discovery covers most of the value), then 2 and 3 depending on usage, and 4 only after an explicit decision that accepts the trade-offs in §7.4.
 
 ---
 
-## 12. Maquettes
+## 11. Risks & open questions
 
-Maquettes haute-fidélité (HTML autonome, reproduisant le design system Trackarr) dans [`./mockups/`](./mockups/). Point d'entrée : **`mockups/index.html`** (ouvrir dans un navigateur).
-
-- `index.html` — page d'accueil / navigation entre les maquettes.
-- `admin-federation.html` — page `/admin/federation` : master toggle owner, identité vérifiable de l'instance, scopes partagés par défaut (catalogue · social · comptes · swarm), KPIs, allow-list des pairs (statuts, scopes, sync, ajout/handshake). **Le modal d'approbation d'une demande entrante est intégré** (bouton *Review* sur la demande en attente).
-- `federated-catalog.html` — listing avec filtre Local/Fédéré/Tout, badge d'origine (« via … »), dédup inter-instances, téléchargement par redirection vers la source.
-- `styles.css` — feuille de style partagée reproduisant les tokens du design system live.
+1. **Category/tag mapping** between instances with different taxonomies: plan a correspondence table or an "unclassified" fallback.
+2. **Protocol versioning**: a `v` field in the envelope; capability negotiation at handshake (which phases each peer supports).
+3. **Remote stat consistency**: federated seeders/leechers are best effort (short TTL); do not present them as real time.
+4. **Storage quotas** for the `remote_torrents` cache (LRU/TTL purge per peer).
+5. **Governance**: what happens if a trusted peer is compromised? → fast revocation + purge; consider a shareable but **non-binding** "distrust list" (each owner stays sovereign).
+6. **Phase 4**: the cross-instance ratio accounting model — a design topic in its own right.
 
 ---
 
-*Document de conception — à valider avant toute implémentation.*
+## 12. Mockups
+
+High-fidelity mockups (standalone HTML reproducing the Trackarr design system) in [`./mockups/`](./mockups/). Entry point: **`mockups/index.html`** (open in a browser).
+
+- `index.html` — landing page / navigation between the mockups.
+- `admin-federation.html` — the `/admin/federation` page: owner master toggle, verifiable instance identity, default shared scopes (catalogue · social · accounts · swarm), KPIs, peer allow-list (statuses, scopes, sync, add/handshake). **The approval modal for an inbound request is included** (the *Review* button on the pending request).
+- `federated-catalog.html` — listing with a Local/Federated/All filter, an origin badge ("via …"), cross-instance dedup, download by redirect to the source.
+- `styles.css` — shared stylesheet reproducing the live design system tokens.
+
+---
+
+*Design document — to be approved before any implementation.*

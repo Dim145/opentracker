@@ -427,13 +427,12 @@ interface Props {
    */
   defaultMode?: EditorMode;
   /**
-   * Interdit le mode visuel sans fermer l'éditeur pour autant.
+   * Forbids visual mode without closing the editor altogether.
    *
-   * Sert quand la source contient un balisage que l'aller-retour TipTap ne
-   * sait pas restituer — couleurs, tailles, centrage d'une fiche BBCode. Le
-   * bouton crayon reste visible mais grisé ; le code, où la source s'édite
-   * telle quelle, et l'aperçu, qui la rend comme le visiteur la verra,
-   * restent tous deux accessibles.
+   * Used when the source carries markup the TipTap round trip cannot restore —
+   * colours, sizes, the centring of a BBCode listing. The pencil button stays
+   * visible but greyed out; code mode, where the source is edited as-is, and
+   * preview, which renders it as a visitor will see it, both stay reachable.
    */
   visualEditingDisabled?: boolean;
 }
@@ -459,8 +458,8 @@ const emit = defineEmits<{
 }>();
 
 const lastImportedFormat = ref<EditorFormat | null>(null);
-// Un mode de départ interdit n'aurait aucune issue : on ouvre sur le code,
-// le seul endroit où la source se modifie sans passer par TipTap.
+// A forbidden starting mode would have no way out: we open on code, the only
+// place the source can be modified without going through TipTap.
 const mode = ref<EditorMode>(
   props.visualEditingDisabled && props.defaultMode === 'editor' ? 'code' : props.defaultMode,
 );
@@ -680,11 +679,11 @@ function insertTag(tag: CodeTag) {
   });
 }
 
-/* Le verrou peut tomber après coup : la fiche revient du générateur une fois
-   l'éditeur déjà monté. On quitte alors le mode visuel en assignant `mode`
-   directement, sans passer par `setMode` — sa sortie reverse le HTML de
-   TipTap dans `modelValue`, ce qui aplatirait précisément le balisage que le
-   verrou est là pour protéger. */
+/* The lock can drop after the fact: the listing comes back from the generator
+   once the editor is already mounted. We then leave visual mode by assigning
+   `mode` directly rather than going through `setMode` — its exit pours TipTap's
+   HTML back into `modelValue`, which would flatten precisely the markup the
+   lock is there to protect. */
 watch(
   () => props.visualEditingDisabled,
   (locked) => {
@@ -730,7 +729,7 @@ onBeforeUnmount(() => {
   opacity: 0.3;
   cursor: not-allowed;
 }
-/* `:hover` matche encore un bouton désactivé : sans ceci il s'éclaire au
+/* `:hover` still matches a disabled button: without this it lights up on
    survol et se laisse prendre pour cliquable. */
 .toolbar-btn:disabled:hover {
   color: rgb(var(--fg-muted));

@@ -1,28 +1,27 @@
 /**
- * MediaInfo → modèle de fiche.
+ * MediaInfo → listing model.
  *
- * Deux producteurs, un seul modèle : l'utilisateur peut soit déposer le
- * fichier vidéo (mediainfo.js en WebAssembly le lit dans le navigateur),
- * soit coller la sortie texte de MediaInfo qu'il a déjà sous la main.
- * Les deux chemins convergent vers `TechnicalSheet`, si bien que le
- * générateur BBCode en aval ignore d'où viennent les données.
+ * Two producers, one model: the user can either drop the video file
+ * (mediainfo.js, WebAssembly, reads it in the browser) or paste the
+ * MediaInfo text output they already have to hand. Both paths converge on
+ * `TechnicalSheet`, so the downstream BBCode generator never needs to know
+ * where the data came from.
  *
- * Les grandeurs mesurées (débit, taille) sont stockées en unité de base —
- * bit/s et octets — et jamais sous forme de texte : l'unité affichée n'est
- * qu'une préférence de rendu que l'utilisateur change sans que la valeur
- * bouge. C'est ce qui permet au sélecteur Kbps/Mbps de l'étape technique
- * d'être un simple choix d'affichage plutôt qu'une réécriture de la donnée.
+ * Measured quantities (bitrate, size) are stored in base units — bit/s and
+ * bytes — and never as text: the displayed unit is only a rendering
+ * preference the user changes without the value moving. That is what lets
+ * the Kbps/Mbps selector on the technical step be a display choice rather
+ * than a rewrite of the data.
  *
- * Tout est strictement local : le fichier n'est jamais lu par le serveur,
- * seuls quelques kilo-octets d'en-tête et de queue sont réellement
- * parcourus par le WASM.
+ * Everything is strictly local: the file is never read by the server, and
+ * only a few kilobytes of header and tail are actually walked by the WASM.
  */
 
 export type TrackKind = 'video' | 'audio' | 'text';
 export type BitRateUnit = 'Kbps' | 'Mbps';
 export type SizeUnit = 'GiB' | 'MiB';
 
-/** Nature d'un sous-titre, au sens des trackers. */
+/** What kind of subtitle this is, in tracker terms. */
 export type SubtitleKind = 'full' | 'forced' | 'sdh';
 
 export interface MediaTrack {
@@ -31,13 +30,13 @@ export interface MediaTrack {
   profile?: string;
   width?: number;
   height?: number;
-  /** Nombre nu, sans « FPS ». */
+  /** Bare number, no "FPS" suffix. */
   frameRate?: string;
   /** Débit en bit/s. */
   bitRate?: number;
-  /** Unité d'affichage seulement — ne change pas `bitRate`. */
+  /** Display unit only — does not change `bitRate`. */
   bitRateUnit?: BitRateUnit;
-  /** Nombre nu, sans « bits ». */
+  /** Bare number, no "bits" suffix. */
   bitDepth?: string;
   /** Disposition normalisée : « 2.0 », « 5.1 »… */
   channels?: string;
@@ -47,7 +46,7 @@ export interface MediaTrack {
   title?: string;
   isDefault?: boolean;
   isForced?: boolean;
-  /** Sous-titres pour sourds et malentendants. */
+  /** Subtitles for the deaf and hard of hearing. */
   isSdh?: boolean;
 }
 
@@ -89,18 +88,18 @@ export function emptyTrack(kind: TrackKind): MediaTrack {
    ──────────────────────────────────────────────────────────────────────── */
 
 /**
- * `String(v)` avant toute méthode de chaîne, systématiquement.
+ * `String(v)` before any string method, without exception.
  *
- * mediainfo.js rend `FrameRate`, `BitDepth`, `Width`… comme des NOMBRES là
- * où la sortie texte ne donne que des chaînes. Un `.replace()` sur un nombre
- * lève un TypeError dans un `computed`, ce qui vide la page entière. Passer
- * par ici plutôt que se fier au typage rend ce plantage impossible.
+ * mediainfo.js returns `FrameRate`, `BitDepth`, `Width`… as NUMBERS where the
+ * text output only gives strings. A `.replace()` on a number throws a
+ * TypeError inside a `computed`, which blanks the whole page. Going through
+ * here rather than trusting the types makes that crash impossible.
  */
 function asText(v: unknown): string {
   return v === undefined || v === null ? '' : String(v);
 }
 
-/** Normalise les séparateurs de MediaInfo : espaces fines, insécables, virgule. */
+/** Normalise MediaInfo separators: thin spaces, non-breaking spaces, comma. */
 function normalizeNumeric(raw: unknown): string {
   return asText(raw)
     .replace(/[   \s]/g, '')
@@ -122,8 +121,8 @@ const BITRATE_FACTORS: Record<string, number> = {
 };
 
 /**
- * « 192 kb/s », « 8 000 kb/s », « 8.05 Mbps », « 8000000 » → bit/s.
- * Un nombre nu est déjà en bit/s, comme le rend mediainfo.js.
+ * "192 kb/s", "8 000 kb/s", "8.05 Mbps", "8000000" → bit/s.
+ * A bare number is already in bit/s, the way mediainfo.js returns it.
  */
 export function parseBitRate(raw?: string | number | null): number | undefined {
   if (typeof raw === 'number') {
@@ -138,19 +137,19 @@ export function parseBitRate(raw?: string | number | null): number | undefined {
   return Math.round(value * (BITRATE_FACTORS[m[2] ?? ''] ?? 1));
 }
 
-/** Au-delà du mégabit, le Kbps devient illisible — c'est le seuil de bascule. */
+/** Past the megabit, Kbps becomes unreadable — that is the switchover point. */
 export function pickBitRateUnit(bps?: number): BitRateUnit {
   return bps && bps >= 1_000_000 ? 'Mbps' : 'Kbps';
 }
 
-/** bit/s → valeur exprimée dans l'unité demandée (pour les champs de saisie). */
+/** bit/s → the value expressed in the requested unit (for input fields). */
 export function bitRateIn(bps: number | undefined, unit: BitRateUnit): number | undefined {
   if (!bps) return undefined;
   const scaled = unit === 'Mbps' ? bps / 1_000_000 : bps / 1_000;
   return Number(scaled.toFixed(unit === 'Mbps' ? 2 : 0));
 }
 
-/** Inverse de `bitRateIn` : la saisie repart en bit/s. */
+/** Inverse of `bitRateIn`: input goes back to bit/s. */
 export function bitRateFrom(value: number | undefined, unit: BitRateUnit): number | undefined {
   if (!value || !Number.isFinite(value) || value <= 0) return undefined;
   return Math.round(value * (unit === 'Mbps' ? 1_000_000 : 1_000));
@@ -163,7 +162,7 @@ export function formatBitRate(bps?: number, unit?: BitRateUnit): string | undefi
   return value === undefined ? undefined : `${value} ${u}`;
 }
 
-/** Forme MediaInfo, pour la ré-émission d'un bloc lisible : « 8 000 kb/s ». */
+/** MediaInfo form, for re-emitting a readable block: "8 000 kb/s". */
 function mediaInfoBitRate(bps?: number): string | undefined {
   if (!bps) return undefined;
   return `${Math.round(bps / 1000).toLocaleString('fr-FR').replace(/ | /g, ' ')} kb/s`;
@@ -238,9 +237,9 @@ export function formatDuration(seconds?: number | string | null): string | undef
    ──────────────────────────────────────────────────────────────────────── */
 
 /**
- * « 8 channels » / « 6 » → « 7.1 » / « 5.1 ». MediaInfo n'est pas homogène,
- * et la fonction doit rester idempotente : elle reçoit aussi bien la valeur
- * brute du décodeur que la disposition déjà normalisée qu'un select renvoie.
+ * "8 channels" / "6" → "7.1" / "5.1". MediaInfo is not consistent, and this
+ * function has to stay idempotent: it receives both the decoder's raw value
+ * and the already-normalised layout a select hands back.
  */
 export function channelsToLayout(raw?: string): string | undefined {
   if (!raw) return undefined;
@@ -259,7 +258,7 @@ export function channelsToLayout(raw?: string): string | undefined {
   return map[n] ?? `${n}.0`;
 }
 
-/** « 5.1 » → 6 : le compte de canaux qu'attend un bloc MediaInfo. */
+/** "5.1" → 6: the channel count a MediaInfo block expects. */
 export function layoutToChannels(layout?: string): number | undefined {
   const m = /^(\d+)\.(\d)$/.exec(asText(layout).trim());
   if (m) return Number.parseInt(m[1]!, 10) + Number.parseInt(m[2]!, 10);
@@ -268,8 +267,8 @@ export function layoutToChannels(layout?: string): number | undefined {
 }
 
 /**
- * Noms commerciaux. MediaInfo rend le nom technique du codec ; sur une
- * fiche on attend le nom que les gens reconnaissent.
+ * Commercial names. MediaInfo returns the codec's technical name; a listing
+ * is expected to carry the name people recognise.
  */
 export function prettyAudioFormat(format?: string, profile?: string): string {
   const f = asText(format).trim();
@@ -290,12 +289,12 @@ export function prettyAudioFormat(format?: string, profile?: string): string {
 }
 
 /**
- * Codec vidéo tel qu'on l'annonce sur une fiche.
+ * The video codec as announced on a listing.
  *
- * `x264` et `H.264` désignent le même format mais pas la même release : le
- * premier signale un ré-encodage, le second un flux d'origine (remux, WEB
- * non retouché). L'encodeur déclaré par le conteneur tranche — c'est la
- * seule information fiable dont on dispose pour les distinguer.
+ * `x264` and `H.264` name the same format but not the same release: the
+ * first signals a re-encode, the second an original stream (remux, untouched
+ * WEB). The encoder declared by the container settles it — the only reliable
+ * information we have to tell them apart.
  */
 export function prettyVideoFormat(format?: string, encoder?: string): string {
   const f = asText(format).trim().toLowerCase();
@@ -312,9 +311,9 @@ export function prettyVideoFormat(format?: string, encoder?: string): string {
 }
 
 /**
- * Conteneur sous le nom que tout le monde emploie. MediaInfo dit
- * « Matroska » là où une fiche annonce « MKV » — et où le select de
- * l'étape technique propose « MKV ».
+ * The container under the name everybody uses. MediaInfo says "Matroska"
+ * where a listing announces "MKV" — and where the technical step's select
+ * offers "MKV".
  */
 export function prettyContainer(format?: string): string {
   const f = asText(format).trim().toLowerCase();
@@ -332,12 +331,12 @@ export function prettyContainer(format?: string): string {
 }
 
 /**
- * 3840×2160 → « 2160p ».
+ * 3840×2160 → "2160p".
  *
- * Un palier est atteint dès que la largeur OU la hauteur y arrive, à 5 %
- * près : un master cinéma perd de la hauteur au rognage (1920×800 reste du
- * 1080p) et un master anamorphique perd de la largeur (1440×1080 aussi).
- * Se fier à la seule hauteur déclassait le premier cas en 720p.
+ * A tier is reached as soon as the width OR the height gets there, within
+ * 5%: a cinema master loses height to cropping (1920×800 is still 1080p) and
+ * an anamorphic master loses width (1440×1080 likewise). Trusting height
+ * alone demoted the first case to 720p.
  */
 export function resolutionLabel(width?: number, height?: number): string | undefined {
   const tiers = [
@@ -364,13 +363,13 @@ export function resolutionLabel(width?: number, height?: number): string | undef
 
 const SECTION_RE = /^(General|Video|Audio|Text|Menu|Général|Vidéo|Texte)(\s*#?\d+)?\s*$/i;
 
-/** Indices d'un sous-titre SDH — aucun conteneur ne porte le drapeau. */
+/** Hints that a subtitle is SDH — no container carries the flag. */
 const SDH_RE = /\b(sdh|hearing[\s-]?impaired|malentendant)/i;
 
 /**
- * Parse la sortie texte de MediaInfo : des blocs séparés par une ligne
- * vide, chacun ouvert par son nom puis des paires `clé : valeur`.
- * Tolérant aux libellés français comme anglais.
+ * Parse the MediaInfo text output: blocks separated by a blank line, each
+ * opened by its name and followed by `key : value` pairs. Tolerant of both
+ * French and English labels.
  */
 export function parseMediaInfoText(raw: string): TechnicalSheet {
   const sheet = emptySheet();
@@ -474,14 +473,14 @@ export function parseMediaInfoText(raw: string): TechnicalSheet {
 }
 
 /**
- * Ré-émet un bloc MediaInfo depuis le modèle.
+ * Re-emit a MediaInfo block from the model.
  *
- * Le format de sortie est celui de MediaInfo lui-même, pas un résumé
- * maison : c'est ce que `parseMediaInfoText` sait relire, si bien que le
- * texte proposé à l'étape technique peut être corrigé à la main puis
- * réinjecté sans rien perdre. Un résumé aux libellés inventés cassait ce
- * cycle — il rendait `Resolution : 1080p` que le parseur ignorait, et la
- * largeur comme la hauteur disparaissaient au premier aller-retour.
+ * The output format is MediaInfo's own, not an in-house summary: that is
+ * what `parseMediaInfoText` can read back, so the text offered on the
+ * technical step can be hand-corrected and fed back in without losing
+ * anything. A summary with invented labels broke that cycle — it rendered
+ * `Resolution : 1080p`, which the parser ignored, and both width and height
+ * vanished on the first round trip.
  */
 export function renderMediaInfo(sheet: TechnicalSheet): string {
   const out: string[] = [];
@@ -552,13 +551,12 @@ export function renderMediaInfo(sheet: TechnicalSheet): string {
    ──────────────────────────────────────────────────────────────────────── */
 
 /**
- * En `format: 'object'`, mediainfo.js ne produit AUCUN champ `_String` :
- * ni `FileSize_String`, ni `Duration_String`, ni `BitRate_String`. Seules
- * les valeurs brutes existent, et elles sont numériques. Les lire telles
- * quelles donnait « Débit vidéo : 8000000 » sur la fiche et laissait la
- * taille comme la durée vides. On lit donc le nombre et on met en forme
- * ici, en acceptant quand même les `_String` au cas où une version future
- * les rétablirait.
+ * In `format: 'object'`, mediainfo.js produces NO `_String` field at all:
+ * no `FileSize_String`, no `Duration_String`, no `BitRate_String`. Only the
+ * raw values exist, and they are numeric. Reading them as-is printed
+ * "Video bitrate: 8000000" on the listing and left size and duration empty.
+ * So we read the number and format here, while still accepting `_String`
+ * fields in case a future version brings them back.
  */
 type RawValue = string | number | undefined;
 
@@ -591,7 +589,7 @@ interface RawTrack {
   FileName?: RawValue;
 }
 
-/** Convertit le JSON de mediainfo.js vers le même modèle. */
+/** Convert the mediainfo.js JSON into the same model. */
 export function sheetFromMediaInfoJson(result: unknown): TechnicalSheet {
   const sheet = emptySheet();
   const tracks = (result as { media?: { track?: RawTrack[] } })?.media?.track ?? [];
@@ -674,17 +672,17 @@ export function sheetFromMediaInfoJson(result: unknown): TechnicalSheet {
 }
 
 /**
- * Analyse un fichier local avec mediainfo.js.
+ * Analyse a local file with mediainfo.js.
  *
- * Le module et son WASM (~3 Mo) sont importés dynamiquement : rien n'est
- * téléchargé tant que l'utilisateur n'a pas réellement déposé un fichier.
- * `readChunk` ne remonte que les tranches réclamées par la bibliothèque,
- * donc un fichier de 40 Go n'est jamais chargé en mémoire.
+ * The module and its WASM (~3 MB) are imported dynamically: nothing is
+ * downloaded until the user actually drops a file. `readChunk` only returns
+ * the slices the library asks for, so a 40 GB file is never loaded into
+ * memory.
  */
 export async function analyzeFile(file: File): Promise<TechnicalSheet> {
   const { default: mediaInfoFactory } = await import('mediainfo.js');
-  // Le paquet expose son binaire ; `?url` laisse Vite l'émettre comme asset
-  // servi par notre propre origine (aucun CDN, cohérent avec le CSP).
+  // The package exposes its binary; `?url` lets Vite emit it as an asset
+  // served from our own origin (no CDN, consistent with the CSP).
   const wasmUrl = (await import('mediainfo.js/MediaInfoModule.wasm?url')).default;
 
   const mediaInfo = await mediaInfoFactory({
@@ -706,7 +704,7 @@ export async function analyzeFile(file: File): Promise<TechnicalSheet> {
     );
     const sheet = sheetFromMediaInfoJson(result);
     sheet.fileName = sheet.fileName ?? file.name;
-    // Le conteneur ne connaît pas toujours sa propre taille ; le `File`, si.
+    // The container does not always know its own size; the `File` does.
     sheet.fileSize = sheet.fileSize ?? file.size;
     sheet.fileSizeUnit = sheet.fileSizeUnit ?? pickSizeUnit(sheet.fileSize);
     return sheet;

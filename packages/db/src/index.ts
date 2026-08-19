@@ -94,6 +94,6 @@ export async function closeDatabase(): Promise<void> {
   await client.end();
 }
 
-// Expression plein-texte : partagée entre la déclaration des index (schema.ts)
-// et les requêtes de recherche, pour qu'elles ne puissent pas diverger.
+// The full-text expression: shared between the index declarations (schema.ts)
+// and the search queries, so the two cannot diverge.
 export { ftsVector, FTS_CONFIG } from './search';

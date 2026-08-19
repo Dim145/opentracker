@@ -5,15 +5,15 @@ import { db, schema, ftsVector } from '@trackarr/db';
 import { toPrefixTsQuery, FTS_CONFIG } from '../../utils/search';
 import { makeCategory } from './helpers';
 
-// Recherche plein-texte, contre un vrai Postgres.
+// Full-text search, against a real Postgres.
 //
-// Les helpers sont couverts en unitaire ; ce qui ne peut se vérifier qu'ici,
-// c'est l'accord entre l'expression *indexée* et l'expression *interrogée*.
-// Un index d'expression ne sert la requête que si les deux sont identiques :
-// si elles divergent, rien ne casse — la recherche continue de rendre les
-// bons résultats, en parcourant séquentiellement la table. Le défaut est donc
-// invisible en test fonctionnel et ne se voit qu'au plan d'exécution. D'où le
-// test qui lit `EXPLAIN`.
+// The helpers are covered by unit tests; what can only be checked here is the
+// agreement between the *indexed* expression and the *queried* expression. An
+// expression index only serves the query when the two are identical: if they
+// diverge, nothing breaks — search keeps returning the right results, by
+// scanning the table sequentially. The defect is therefore invisible to a
+// functional test and shows up only in the execution plan. Hence the test that
+// reads `EXPLAIN`.
 
 interface Row {
   name: string;
@@ -39,7 +39,7 @@ async function seed(rows: Row[]): Promise<void> {
   await db.execute(sql`ANALYZE torrents`);
 }
 
-/** Reproduit le prédicat de la route pour les champs demandés. */
+/** Reproduces the route's predicate for the requested fields. */
 function searchCondition(term: string, fields: string[]): SQL {
   const tsq = toPrefixTsQuery(term)!;
   const q = sql`to_tsquery(${FTS_CONFIG}, ${tsq})`;
@@ -68,17 +68,17 @@ beforeEach(async () => {
   categoryId = await makeCategory();
 });
 
-describe('recherche plein-texte — périmètre des champs', () => {
+describe('full-text search — field scope', () => {
   beforeEach(async () => {
     await seed([
-      { name: 'Crimson Vault 1994 1080p BluRay x264-NTb', description: 'Un thriller.' },
-      { name: 'Northern Lights 2011 2160p WEB-DL x265', description: 'Contient crimson dans le texte.' },
-      { name: 'Paper Lanterns 1983 720p HDTV', nfo: 'Encodeur : crimson-team. Piste VF.' },
+      { name: 'Crimson Vault 1994 1080p BluRay x264-NTb', description: 'A thriller.' },
+      { name: 'Northern Lights 2011 2160p WEB-DL x265', description: 'Contains crimson in the text.' },
+      { name: 'Paper Lanterns 1983 720p HDTV', nfo: 'Encoder: crimson-team. French track.' },
     ]);
   });
 
-  it('ne lit que les champs activés', async () => {
-    // Le réglage n'est pas une pondération : un champ décoché n'est pas lu.
+  it('reads only the enabled fields', async () => {
+    // The setting is not a weighting: an unticked field is not read at all.
     expect(await find('crimson', ['name'])).toEqual([
       'Crimson Vault 1994 1080p BluRay x264-NTb',
     ]);
@@ -90,15 +90,15 @@ describe('recherche plein-texte — périmètre des champs', () => {
     ]);
   });
 
-  it('unit les champs activés sans doublonner une ligne qui matche deux fois', async () => {
+  it('unions the enabled fields without duplicating a row that matches twice', async () => {
     const found = await find('crimson', ['name', 'description', 'nfo']);
     expect(found).toHaveLength(3);
     expect(new Set(found).size).toBe(3);
   });
 
-  it('trouve un mot présent uniquement dans la description', async () => {
-    // C'est la régression que la 0.25 corrige : avant, la recherche ne
-    // portait que sur le nom et ce mot était introuvable.
+  it('finds a word present only in the description', async () => {
+    // This is the regression 0.25 fixes: before, search covered the name only
+    // and this word was unreachable.
     expect(await find('crimson', ['name'])).not.toContain(
       'Northern Lights 2011 2160p WEB-DL x265',
     );
@@ -108,7 +108,7 @@ describe('recherche plein-texte — périmètre des champs', () => {
   });
 });
 
-describe('recherche plein-texte — comportement de la requête', () => {
+describe('full-text search — query behaviour', () => {
   beforeEach(async () => {
     await seed([
       { name: 'Crimson Vault 1994 1080p BluRay x264-NTb' },
@@ -118,15 +118,15 @@ describe('recherche plein-texte — comportement de la requête', () => {
     ]);
   });
 
-  it('complète le dernier terme saisi', async () => {
+  it('completes the last term typed', async () => {
     expect(await find('crim', ['name'])).toHaveLength(2);
     expect(await find('cathed', ['name'])).toEqual([
       'Glass Cathedral 2003 720p HDTV XviD',
     ]);
   });
 
-  it('lie les termes par ET, pas par OU', async () => {
-    // « crimson vault » ne doit pas ramener Crimson Tide.
+  it('joins the terms with AND, not OR', async () => {
+    // "crimson vault" must not bring back Crimson Tide.
     expect(await find('crimson vault', ['name'])).toEqual([
       'Crimson Vault 1994 1080p BluRay x264-NTb',
     ]);
@@ -135,7 +135,7 @@ describe('recherche plein-texte — comportement de la requête', () => {
     ]);
   });
 
-  it('ignore la casse et la ponctuation du nom de release', async () => {
+  it('ignores the case and punctuation of a release name', async () => {
     expect(await find('CRIMSON.VAULT', ['name'])).toEqual([
       'Crimson Vault 1994 1080p BluRay x264-NTb',
     ]);
@@ -144,26 +144,26 @@ describe('recherche plein-texte — comportement de la requête', () => {
     ]);
   });
 
-  it('ne casse pas sur une saisie contenant des opérateurs tsquery', async () => {
-    // Sans le nettoyage côté helper, Postgres lèverait une erreur de syntaxe
-    // et la route rendrait un 500 sur une simple parenthèse.
+  it('does not break on input containing tsquery operators', async () => {
+    // Without the scrubbing in the helper, Postgres would raise a syntax
+    // error and the route would return a 500 on a single parenthesis.
     for (const evil of ['crimson & (vault', 'crimson | vault', "crim'son", '!crimson']) {
       await expect(find(evil, ['name'])).resolves.toBeInstanceOf(Array);
     }
   });
 
-  it('rend zéro résultat sur un terme absent, sans erreur', async () => {
-    expect(await find('zorglubinette', ['name', 'description', 'nfo'])).toEqual([]);
+  it('returns zero results on an absent term, with no error', async () => {
+    expect(await find('nonexistentword', ['name', 'description', 'nfo'])).toEqual([]);
   });
 });
 
-describe('accord index / requête', () => {
-  it('le planificateur utilise bien l’index d’expression', async () => {
-    // Le cœur du sujet. On insère assez de lignes pour que Postgres préfère
-    // l'index à un parcours séquentiel, puis on lit le plan. Si l'expression
-    // de `ftsVector()` cessait de correspondre à celle déclarée dans
-    // `schema.ts`, la recherche resterait *fonctionnellement* correcte et ce
-    // test serait le seul à s'en apercevoir.
+describe('index / query agreement', () => {
+  it('the planner really does use the expression index', async () => {
+    // The heart of the matter. Insert enough rows for Postgres to prefer the
+    // index over a sequential scan, then read the plan. If the expression in
+    // `ftsVector()` stopped matching the one declared in `schema.ts`, search
+    // would remain *functionally* correct and this test would be the only
+    // thing to notice.
     const rows: Row[] = [];
     for (let i = 0; i < 2000; i++) {
       rows.push({ name: `Filler Release ${i} 1080p BluRay x264-GRP` });
@@ -183,18 +183,18 @@ describe('accord index / requête', () => {
   });
 });
 
-describe('repli sur faute de frappe', () => {
+describe('typo fallback', () => {
   beforeEach(async () => {
     await seed([{ name: 'Crimson Vault 1994 1080p BluRay x264-NTb' }]);
   });
 
-  it('le plein-texte seul ne rattrape pas la faute', async () => {
+  it('full text alone does not catch the typo', async () => {
     expect(await find('crimsen', ['name'])).toEqual([]);
   });
 
-  it('word_similarity la rattrape', async () => {
-    // `word_similarity` et non `similarity` : sur un nom de release entier,
-    // la similarité globale reste sous le seuil et ne trouve jamais rien.
+  it('word_similarity does catch it', async () => {
+    // `word_similarity`, not `similarity`: over a whole release name the
+    // global similarity stays below the threshold and never finds anything.
     const rows = await db
       .select({ name: schema.torrents.name })
       .from(schema.torrents)
@@ -204,8 +204,8 @@ describe('repli sur faute de frappe', () => {
     ]);
   });
 
-  it('similarity sur la chaîne entière, elle, ne trouve rien', async () => {
-    // Le piège documenté : c'est ce qui avait été essayé en premier.
+  it('similarity over the whole string, in contrast, finds nothing', async () => {
+    // The documented trap: this is what was tried first.
     const rows = await db
       .select({ name: schema.torrents.name })
       .from(schema.torrents)
@@ -214,8 +214,8 @@ describe('repli sur faute de frappe', () => {
   });
 });
 
-describe('les autres modes de recherche restent intacts', () => {
-  it('l’infohash reste une égalité exacte servie par son index unique', async () => {
+describe('the other search modes stay intact', () => {
+  it('the infohash stays an exact match served by its unique index', async () => {
     await seed([{ name: 'Crimson Vault 1994' }, { name: 'Northern Lights 2011' }]);
     const hash = '0'.repeat(40);
     const rows = await db
@@ -225,11 +225,11 @@ describe('les autres modes de recherche restent intacts', () => {
     expect(rows).toHaveLength(1);
   });
 
-  it('un identifiant externe filtre sur sa colonne dédiée', async () => {
+  it('an external id filters on its dedicated column', async () => {
     await db.insert(schema.torrents).values({
       id: randomUUID(),
       infoHash: 'f'.repeat(40),
-      name: 'Avec identifiant externe',
+      name: 'With an external id',
       size: 1,
       categoryId,
       imdbId: 'tt0111161',

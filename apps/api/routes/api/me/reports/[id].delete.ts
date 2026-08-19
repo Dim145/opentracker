@@ -54,9 +54,9 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // UPDATE conditionnel sur le statut : deux retraits concurrents, ou un
-  // modérateur qui traite le signalement pendant que l'utilisateur le retire,
-  // ne peuvent pas se marcher dessus.
+  // An UPDATE gated on status: two concurrent withdrawals, or a moderator
+  // handling the report while the user withdraws it, cannot step on each
+  // other.
   await db
     .update(schema.reports)
     .set({ status: 'withdrawn', withdrawnAt: new Date() })

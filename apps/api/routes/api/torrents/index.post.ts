@@ -375,8 +375,8 @@ export default defineEventHandler(async (event) => {
   //      facets the parser extracted from the filename and NFO body
   //      (resolution, codec, source, audio, language, HDR, extras).
   //      Title is authoritative; NFO only fills the facets the title
-  //      was silent about ("ajout de tags si pas parser par le
-  //      titre"). User-declared slugs win on collision — never
+  //      was silent about ("add tags when the title did not parse
+  //      them"). User-declared slugs win on collision — never
   //      overwriting what the operator typed by hand.
   //
   // Everything funnels through the same `resolveTagsByName()` call so

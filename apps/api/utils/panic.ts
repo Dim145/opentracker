@@ -78,18 +78,19 @@ export function decrypt(
   } else {
     throw new Error('Malformed ciphertext (expected iv:ct:tag or legacy ct:tag with legacyIv)');
   }
-  // `authTagLength` n'est pas décoratif : sans lui, Node accepte pour AES-GCM
-  // des tags de 4, 8, 12, 13, 14, 15 ou 16 octets, et le tag vient d'ici même —
-  // de la chaîne stockée en base. Un attaquant capable d'écrire en base peut
-  // donc le tronquer à 4 octets et ramener le coût d'une forge de 2^128 à 2^32 ;
-  // avec GCM une forge réussie sur tag court fait fuiter la sous-clé
-  // d'authentification H, ce qui ouvre ensuite des forges arbitraires. C'est
-  // précisément le scénario que le mode panique existe pour couvrir : une base
-  // compromise. Node déprécie d'ailleurs l'omission depuis DEP0182.
+  // `authTagLength` is not decorative: without it Node accepts AES-GCM tags of
+  // 4, 8, 12, 13, 14, 15 or 16 bytes, and the tag comes from right here — from
+  // the string stored in the database. An attacker able to write to the
+  // database can therefore truncate it to 4 bytes and bring the cost of a
+  // forgery down from 2^128 to 2^32; with GCM a successful forgery on a short
+  // tag leaks the authentication subkey H, which then opens the door to
+  // arbitrary forgeries. That is precisely the scenario panic mode exists to
+  // cover: a compromised database. Node has deprecated the omission since
+  // DEP0182 in any case.
   //
-  // Aucun risque pour l'existant : le chiffrement n'a jamais passé d'option, et
-  // le défaut de Node pour GCM est justement 16 octets — vérifié sur les deux
-  // formats, courant `iv:ct:tag` et hérité `ct:tag`.
+  // No risk to what already exists: encryption never passed an option, and
+  // Node's GCM default is exactly 16 bytes — verified on both formats, the
+  // current `iv:ct:tag` and the legacy `ct:tag`.
   const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: 16 });
   decipher.setAuthTag(Buffer.from(authTag, 'base64'));
   let decrypted = decipher.update(encrypted, 'base64', 'utf8');

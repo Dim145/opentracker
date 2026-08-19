@@ -1,162 +1,162 @@
-# Import depuis trackers tiers (cross-seed) — recherche & décision
+# Importing from third-party trackers (cross-seed) — research & decision
 
-**Date :** 2026-08-17 · **Statut :** en pause, non implémenté · **Méthode :** définitions d'indexeurs Jackett/Prowlarr, code amont UNIT3D, spec Torznab, croisés avec le code du repo (`fichier:ligne`).
+**Date:** 2026-08-17 · **Status:** on hold, not implemented · **Method:** Jackett/Prowlarr indexer definitions, upstream UNIT3D code and the Torznab spec, cross-checked against this repo (`file:line`).
 
-Sites étudiés : [c411.org](https://c411.org), [tr4ker.net](https://tr4ker.net), [yggreborn.org](https://www.yggreborn.org), [gemini-tracker.org](https://gemini-tracker.org).
-
----
-
-## Objectif visé
-
-**Faciliter le cross-seed**, pas cloner un catalogue. Le scénario :
-
-1. L'utilisateur seede déjà un contenu récupéré sur un tracker tiers.
-2. Il l'importe chez nous : on récupère la fiche, le `.torrent` et les métadonnées.
-3. On **réécrit l'announce** vers notre tracker et on **conserve le champ `source`** du dict `info` s'il existe, donc **l'infohash ne change pas**.
-4. Il ajoute notre announce à son torrent déjà en seed. Son swarm rejoint le nôtre sans re-vérification.
-
-Décisions déjà arrêtées par le mainteneur :
-
-- L'import **ne crée volontairement pas de seed** — c'est l'utilisateur qui apporte les données. Ce n'est pas un défaut.
-- On veut **notre swarm**, pas celui du tracker distant. Aucun mirroring d'announce.
-- On garde `source` **pour préserver l'infohash** (voir plus bas pourquoi c'est le bon arbitrage).
-- Le `.torrent` est **toujours réécrit** avant stockage.
+Sites studied: [c411.org](https://c411.org), [tr4ker.net](https://tr4ker.net), [yggreborn.org](https://www.yggreborn.org), [gemini-tracker.org](https://gemini-tracker.org).
 
 ---
 
-## Le point technique qui a débloqué le sujet
+## The goal
 
-Une première analyse concluait à tort que réécrire l'announce cassait l'import. **C'est faux, et c'est important de ne pas refaire l'erreur :**
+**Make cross-seeding easy**, not clone a catalogue. The scenario:
 
-> L'infohash est le SHA-1 du **dictionnaire `info` seul** ([BEP 3](https://www.bittorrent.org/beps/bep_0003.html)). `announce` et `announce-list` sont des clés **frères** de `info`, en dehors. Réécrire le tracker ne touche donc jamais à l'infohash.
+1. The user already seeds content they got from a third-party tracker.
+2. They import it here: we fetch the listing, the `.torrent` and the metadata.
+3. We **rewrite the announce** to point at our tracker and **keep the `source` field** of the `info` dict if there is one, so **the infohash does not change**.
+4. They add our announce to the torrent they are already seeding. Their swarm joins ours without a recheck.
 
-Le repo en fait déjà la démonstration : `apps/api/routes/api/torrents/[hash]/download.get.ts:104` injecte la passkey dans l'URL d'announce à chaque téléchargement, sans que l'infohash bouge d'un bit.
+Decisions the maintainer has already made:
 
-Corollaire sur `source` : beaucoup de trackers privés glissent un `source` dans le dict `info` pour rendre *leur* infohash unique. Comme il est **dans** `info`, y toucher change l'infohash.
-
-- **Le garder** → même infohash que le site d'origine → le client qui seede déjà peut ajouter notre announce **sans re-vérifier**. C'est ce qu'on veut pour le cross-seed.
-- **Le remplacer** → nouvel infohash → re-vérification complète côté client avant de pouvoir seeder.
+- The import **deliberately does not create a seed** — the user brings the data. That is not a defect.
+- We want **our swarm**, not the remote tracker's. No announce mirroring.
+- We keep `source` **to preserve the infohash** (see below for why that is the right trade-off).
+- The `.torrent` is **always rewritten** before storage.
 
 ---
 
-## Ce que chaque site expose
+## The technical point that unblocked the topic
 
-Les quatre ont une **API officielle avec clé par utilisateur**. Aucun scraping nécessaire pour le cœur du besoin.
+An earlier analysis wrongly concluded that rewriting the announce broke the import. **It does not, and it matters not to repeat the mistake:**
 
-| Site | Logiciel | Endpoint | Auth | Où trouver la clé |
+> The infohash is the SHA-1 of the **`info` dictionary alone** ([BEP 3](https://www.bittorrent.org/beps/bep_0003.html)). `announce` and `announce-list` are **siblings** of `info`, outside it. Rewriting the tracker therefore never touches the infohash.
+
+The repo already demonstrates this: `apps/api/routes/api/torrents/[hash]/download.get.ts:104` injects the passkey into the announce URL on every download, and the infohash does not move a bit.
+
+Corollary about `source`: many private trackers slip a `source` into the `info` dict to make *their* infohash unique. Because it is **inside** `info`, touching it changes the infohash.
+
+- **Keep it** → same infohash as the origin site → a client already seeding can add our announce **without a recheck**. That is what we want for cross-seeding.
+- **Replace it** → new infohash → a full recheck on the client before it can seed.
+
+---
+
+## What each site exposes
+
+All four have an **official API with a per-user key**. No scraping is needed for the core requirement.
+
+| Site | Software | Endpoint | Auth | Where to find the key |
 |---|---|---|---|---|
-| C411 | custom | `GET /api/torznab` | `apikey` en query | `/user/integrations` |
-| TR4KER | custom | `GET /api/torznab/all` | `apikey` en query | `/mon-compte/parametres` → « Clé API » |
-| YggReborn | custom | `GET https://api.yggreborn.org/api` | `apikey` = passkey | doc officielle sur `/guide-api` |
-| G3MINI TR4CK3R | **UNIT3D 9.2.0** | `GET /api/torrents/filter` | `Authorization: Bearer` | My Settings → onglet « API Key » |
+| C411 | custom | `GET /api/torznab` | `apikey` in the query | `/user/integrations` |
+| TR4KER | custom | `GET /api/torznab/all` | `apikey` in the query | `/mon-compte/parametres` → "Clé API" |
+| YggReborn | custom | `GET https://api.yggreborn.org/api` | `apikey` = passkey | official docs at `/guide-api` |
+| G3MINI TR4CK3R | **UNIT3D 9.2.0** | `GET /api/torrents/filter` | `Authorization: Bearer` | My Settings → "API Key" tab |
 
-Débits connus : C411 **15 req/min**, YggReborn ~2 s entre requêtes. Non documenté pour les deux autres.
+Known rate limits: C411 **15 req/min**, YggReborn ~2 s between requests. Undocumented for the other two.
 
-### Champs disponibles
+### Available fields
 
-| Besoin | C411 · TR4KER · Ygg (Torznab XML) | G3MINI (UNIT3D JSON) |
+| Need | C411 · TR4KER · Ygg (Torznab XML) | G3MINI (UNIT3D JSON) |
 |---|---|---|
-| Nom | `title` | `name` |
-| **Description** | **absente de la norme** | `description` |
+| Name | `title` | `name` |
+| **Description** | **absent from the standard** | `description` |
 | NFO / MediaInfo | absent | `media_info`, `bd_info` |
-| Fichier `.torrent` | `enclosure/@url` | `download_link` |
-| Taille | `size` | `size` |
-| Liste des fichiers | via le `.torrent` | `files[]` (nom + taille) |
-| Catégorie | `category` — **ID Newznab standard** | `category_id` + `category` (libellé), **propres au site** |
+| `.torrent` file | `enclosure/@url` | `download_link` |
+| Size | `size` | `size` |
+| File list | via the `.torrent` | `files[]` (name + size) |
+| Category | `category` — **standard Newznab ID** | `category_id` + `category` (label), **site-specific** |
 | IMDb / TMDb / TVDb | `imdbid`, `tmdbid` | `imdb_id`, `tmdb_id`, `tvdb_id`, `mal_id`, `igdb_id` |
-| Affiche / genres | absents | `meta.poster`, `meta.genres` |
-| Résolution / type | déductible du titre | `resolution`, `type`, `distributor` |
-| Seeders / leechers | oui | oui |
-| Uploadeur | absent | `uploader` |
+| Poster / genres | absent | `meta.poster`, `meta.genres` |
+| Resolution / type | inferable from the title | `resolution`, `type`, `distributor` |
+| Seeders / leechers | yes | yes |
+| Uploader | absent | `uploader` |
 | Freeleech | `downloadvolumefactor` | `freeleech` |
 
-Source du détail UNIT3D : [`TorrentResource.php`](https://github.com/HDInnovations/UNIT3D/blob/master/app/Http/Resources/TorrentResource.php) — c'est la liste exacte des champs rendus, pas une supposition.
+Source for the UNIT3D detail: [`TorrentResource.php`](https://github.com/HDInnovations/UNIT3D/blob/master/app/Http/Resources/TorrentResource.php) — that is the exact list of rendered fields, not a guess.
 
 ---
 
-## Le point de blocage
+## The blocker
 
-**Tout ce qui est nécessaire au cross-seed est accessible par API sur les quatre sites** : le `.torrent` (donc le dict `info`, donc `source` et l'infohash), le titre, la taille, la catégorie et les identifiants externes.
+**Everything cross-seeding needs is reachable over the API on all four sites**: the `.torrent` (hence the `info` dict, hence `source` and the infohash), the title, the size, the category and the external ids.
 
-Ce qui manque, uniquement sur les trois sites Torznab : **la description rédigée et le NFO**.
+What is missing, on the three Torznab sites only: **the written description and the NFO**.
 
-Contournement partiel sans scraping : Torznab transporte `imdbid` / `tmdbid`, et le repo dispose déjà de `apps/api/routes/api/metadata/lookup.get.ts` (`GET /api/metadata/lookup?source=imdb|tmdb|tvdb|igdb&id=…`) qui rend affiche, synopsis et genres. On remplit donc la fiche sans toucher au HTML du site source — on perd seulement les notes de release manuscrites.
+Partial workaround without scraping: Torznab carries `imdbid` / `tmdbid`, and the repo already has `apps/api/routes/api/metadata/lookup.get.ts` (`GET /api/metadata/lookup?source=imdb|tmdb|tvdb|igdb&id=…`) which returns poster, synopsis and genres. So the listing can be filled without touching the source site's HTML — we only lose the hand-written release notes.
 
-### Ce qui n'a pas été tranché, et comment le trancher
+### What was never settled, and how to settle it
 
-`<description>` **est** un élément RSS standard, lu par les parseurs Torznab (SearXNG le lit, par exemple). La [spec Torznab 1.3](https://torznab.github.io/spec-1.3-draft/torznab/Specification-v1.3.html) ne rend obligatoires que `size` et `category` et **ne dit rien du contenu de `description`**. La définition Jackett de C411 ne le lit pas — mais **Jackett n'extrait que ce dont Jackett a besoin**, donc ça ne prouve rien.
+`<description>` **is** a standard RSS element, read by Torznab parsers (SearXNG reads it, for one). The [Torznab 1.3 spec](https://torznab.github.io/spec-1.3-draft/torznab/Specification-v1.3.html) makes only `size` and `category` mandatory and **says nothing about the content of `description`**. Jackett's C411 definition does not read it — but **Jackett only extracts what Jackett needs**, so that proves nothing.
 
-Autrement dit : C411 **peut** déjà renvoyer la description, personne n'a vérifié. Avec une clé valide, c'est une commande :
+In other words: C411 **may** already return the description and nobody has checked. With a valid key it is one command:
 
 ```bash
 curl -s "https://c411.org/api/torznab?apikey=$KEY&t=search&limit=1" | xmllint --format - | head -60
 ```
 
-Si `<description>` contient autre chose que le titre, le blocage tombe et le sujet peut repartir.
+If `<description>` holds anything beyond the title, the blocker falls and the topic can resume.
 
 ---
 
-## Correspondance des catégories
+## Category matching
 
-Besoin exprimé : détection automatique **plus** possibilité de corriger à la main avant import.
+Stated requirement: automatic detection **plus** the ability to correct by hand before importing.
 
-**Côté Torznab, c'est une jointure et non une heuristique.** Torznab impose un espace de nommage partagé (2000 Movies, 5000 TV, 3000 Audio, 4000 PC, 1000 Console, 7000 Books) et le repo possède **déjà** la table qui associe nos catégories à ces IDs, puisqu'on les émet pour notre propre flux : `apps/api/routes/api/torznab/utils/categories.ts:9` (`NEWZNAB_CATEGORIES`) et le mapping qui suit (l.64+). La détection automatique consiste à lire cette table à l'envers. En complément, `t=caps` rend l'arbre complet du site distant avec ses libellés maison — c'est la matière de l'écran de mapping.
+**On the Torznab side this is a join, not a heuristic.** Torznab mandates a shared namespace (2000 Movies, 5000 TV, 3000 Audio, 4000 PC, 1000 Console, 7000 Books) and the repo **already** has the table mapping our categories to those IDs, because we emit them for our own feed: `apps/api/routes/api/torznab/utils/categories.ts:9` (`NEWZNAB_CATEGORIES`) and the mapping that follows (l.64+). Automatic detection means reading that table backwards. On top of that, `t=caps` returns the remote site's full tree with its own labels — that is the raw material for the mapping screen.
 
-**Côté UNIT3D, il faut apprendre l'arbre.** `category_id` est propre au site ; seul le libellé `category` est lisible. Première synchro : énumérer les paires (id, libellé), proposer un rapprochement par libellé, laisser l'humain trancher. Une fois par site.
+**On the UNIT3D side the tree has to be learned.** `category_id` is site-specific; only the `category` label is readable. First sync: enumerate the (id, label) pairs, propose a match by label, let a human decide. Once per site.
 
-Forme retenue si le sujet reprend :
+The shape to build if the topic resumes:
 
-1. Table persistée `(source, remote_category_id) → category_id`, avec un drapeau auto/manuel. **Un choix manuel ne doit jamais être écrasé par une resynchro.**
-2. Écran de mapping par source, arbre distant à gauche, nos catégories à droite, proposition pré-sélectionnée.
-3. Catégorie non mappée → import **en attente et signalé**, jamais un « Divers » silencieux.
-4. Prévisualisation de la fiche avant écriture, éditable — c'est le formulaire d'upload manuel pré-rempli.
+1. A persisted `(source, remote_category_id) → category_id` table with an auto/manual flag. **A manual choice must never be overwritten by a resync.**
+2. A per-source mapping screen, remote tree on the left, our categories on the right, with a pre-selected proposal.
+3. An unmapped category → import **held and flagged**, never a silent "Misc".
+4. A preview of the listing before writing, editable — that is the manual upload form, pre-filled.
 
 ---
 
-## Ce que le repo apporte déjà
+## What the repo already provides
 
-| Existant | Réutilisation |
+| Existing | Reuse |
 |---|---|
-| `apps/api/routes/api/torznab/` (+ `utils/categories.ts`, `utils/xml.ts`) | On **produit** déjà du Torznab : vocabulaire, catégories et sérialisation acquis. Il manque le sens lecture. Notre propre endpoint sert de banc d'essai avant d'avoir la moindre clé tierce. |
-| `apps/api/utils/safeFetch.ts` | Sortie réseau gardée contre le SSRF, déjà couverte par des tests. |
-| `apps/api/routes/api/metadata/lookup.get.ts` | Remplit affiche/synopsis/genres depuis un `imdbid`/`tmdbid`. |
-| `apps/api/utils/federation/` + `remoteTorrents` (`packages/db/src/schema.ts:2191`) | Même forme : source distante → cache local → rendu. Attention, `remote_torrents` est un **miroir catalogue** qui renvoie vers l'instance d'origine — un import cross-seed écrit au contraire dans `torrents`, ce n'est pas la même table ni la même intention. |
-| `apps/api/utils/channels/` | Patron d'adaptateur à copier (10 canaux derrière une interface commune). |
+| `apps/api/routes/api/torznab/` (+ `utils/categories.ts`, `utils/xml.ts`) | We already **produce** Torznab: vocabulary, categories and serialisation are settled. Only the reading direction is missing. Our own endpoint is a test bench before we hold a single third-party key. |
+| `apps/api/utils/safeFetch.ts` | Outbound network guarded against SSRF, already covered by tests. |
+| `apps/api/routes/api/metadata/lookup.get.ts` | Fills poster/synopsis/genres from an `imdbid`/`tmdbid`. |
+| `apps/api/utils/federation/` + `remoteTorrents` (`packages/db/src/schema.ts:2191`) | Same shape: remote source → local cache → render. Careful, `remote_torrents` is a **catalogue mirror** pointing back at the origin instance — a cross-seed import writes into `torrents` instead, a different table with a different intent. |
+| `apps/api/utils/channels/` | Adapter pattern to copy (10 channels behind a common interface). |
 
-Deux adaptateurs suffisent pour les quatre sites : **Torznab (XML)** et **UNIT3D (JSON)**. Le second est le plus rentable — il marchera tel quel sur les dizaines d'autres trackers sous UNIT3D.
-
----
-
-## Points d'implémentation à ne pas oublier
-
-- **`torrents` n'a aucune colonne de provenance.** (`packages/db/src/schema.ts:844`+ : `infoHash` unique l.848, `torrentData` l.853, `uploaderId` l.854, `categoryId` l.855.) Le `source` vu à la ligne 263 appartient à `bonusEvents`, pas à `torrents` — piège de lecture. Un import devra ajouter la provenance.
-- **`infoHash` est déjà `unique()`** (l.848) : c'est la contrainte de dédup naturelle. Prévoir la fusion, pas l'échec brut, quand le contenu existe déjà.
-- **Ne jamais persister le `.torrent` d'origine tel quel** : il contient la passkey de celui qui l'a téléchargé, c'est-à-dire son identité sur le site source. Réécriture de l'announce **avant** toute écriture en base.
-- **Les clés API sont des identités.** Chiffrement au repos, jamais dans les logs ni dans un export, jamais renvoyées au client après saisie. Stockage **par utilisateur**, rien de global à l'instance.
-- **Passkey Ygg liée à l'IP** qui l'a générée. Un serveur qui change d'IP casse l'intégration sans message clair — le prévoir dans le diagnostic.
-- **Cloudflare.** Les pages publiques de `yggreborn.org` et `gemini-tracker.org` ont renvoyé **403** depuis un poste de dev, et la demande d'indexeur G3MINI mentionne une erreur CF 525. Les sous-domaines d'API semblent épargnés — **à vérifier depuis l'IP du serveur avant d'écrire du code**.
-- **Débit.** Une recherche qui fanoute sur quatre sources épuise vite les 15 req/min de C411 : cache par (source, requête) et file d'attente par utilisateur.
-- **Règles des sites.** Utiliser l'API avec sa propre clé est prévu ; republier leur contenu ailleurs ne l'est généralement pas, et un infohash conservé se retrouve. Arbitrage assumé côté mainteneur, consigné ici pour que ce ne soit pas une découverte.
+Two adapters cover all four sites: **Torznab (XML)** and **UNIT3D (JSON)**. The second pays off most — it will work as-is on the dozens of other UNIT3D trackers.
 
 ---
 
-## Décision
+## Implementation points not to forget
 
-**Sujet mis en pause au 2026-08-17.** Motif : hors G3MINI (UNIT3D), la description et le NFO ne sont pas accessibles par API, et le mainteneur ne veut pas de scraping HTML — a fortiori derrière Cloudflare.
+- **`torrents` has no provenance column.** (`packages/db/src/schema.ts:844`+: `infoHash` unique l.848, `torrentData` l.853, `uploaderId` l.854, `categoryId` l.855.) The `source` at line 263 belongs to `bonusEvents`, not `torrents` — an easy misreading. An import will have to add provenance.
+- **`infoHash` is already `unique()`** (l.848): that is the natural dedup constraint. Plan for a merge rather than a hard failure when the content already exists.
+- **Never persist the original `.torrent` as-is**: it carries the passkey of whoever downloaded it, i.e. their identity on the source site. Rewrite the announce **before** any database write.
+- **API keys are identities.** Encrypt at rest, never log them, never include them in an export, never return them to the client after entry. Store them **per user**, nothing instance-wide.
+- **Ygg passkeys are bound to the IP** that generated them. A server that changes IP breaks the integration with no clear message — handle that in the diagnostics.
+- **Cloudflare.** The public pages of `yggreborn.org` and `gemini-tracker.org` returned **403** from a dev machine, and the G3MINI indexer request mentions a CF 525 error. The API subdomains appear to be spared — **verify from the server's IP before writing any code**.
+- **Rate limits.** A search fanning out to four sources burns through C411's 15 req/min quickly: cache per (source, query) and queue per user.
+- **Site rules.** Using the API with your own key is expected; republishing their content elsewhere generally is not, and a preserved infohash is traceable. A trade-off the maintainer accepts, recorded here so it is not a surprise later.
 
-Deux portes restent ouvertes pour reprendre :
+---
 
-1. **Vérifier `<description>` chez C411** avec la commande `curl` ci-dessus. Si le champ est réellement rempli, les trois sites Torznab redeviennent viables et le sujet repart.
-2. **Ne faire que l'adaptateur UNIT3D.** G3MINI donne déjà l'import complet en un appel, et l'adaptateur est réutilisable sur tout l'écosystème UNIT3D. C'est le meilleur rapport travail/couverture si on veut avancer sans attendre.
+## Decision
+
+**On hold as of 2026-08-17.** Reason: outside G3MINI (UNIT3D), the description and the NFO are not reachable over the API, and the maintainer does not want HTML scraping — least of all behind Cloudflare.
+
+Two doors remain open to resume:
+
+1. **Check `<description>` on C411** with the `curl` command above. If the field is genuinely populated, the three Torznab sites become viable again and the topic restarts.
+2. **Build only the UNIT3D adapter.** G3MINI already gives a complete import in one call, and the adapter is reusable across the whole UNIT3D ecosystem. That is the best work-to-coverage ratio if we want to move without waiting.
 
 ---
 
 ## Sources
 
-- [UNIT3D — `TorrentResource.php`](https://github.com/HDInnovations/UNIT3D/blob/master/app/Http/Resources/TorrentResource.php) — champs exacts rendus par l'API
-- [UNIT3D — doc API torrents](https://hdinnovations.github.io/UNIT3D/torrent_api.html)
-- Définitions Jackett : [c411](https://github.com/Jackett/Jackett/blob/master/src/Jackett.Common/Definitions/c411.yml) · [tr4ker](https://github.com/Jackett/Jackett/blob/master/src/Jackett.Common/Definitions/tr4ker.yml) · [yggreborn-api](https://github.com/Jackett/Jackett/blob/master/src/Jackett.Common/Definitions/yggreborn-api.yml) · [g3minitr4ck3r-api](https://github.com/Jackett/Jackett/blob/master/src/Jackett.Common/Definitions/g3minitr4ck3r-api.yml)
-- [Jackett #16517](https://github.com/Jackett/Jackett/issues/16517) — demande G3MINI, révèle UNIT3D 9.2.0
-- [Spécification Torznab 1.3](https://torznab.github.io/spec-1.3-draft/torznab/Specification-v1.3.html)
-- [BEP 3](https://www.bittorrent.org/beps/bep_0003.html) — structure du `.torrent`, infohash = SHA-1 du dict `info`
-- [api-ratio](https://github.com/sabuontop/api-ratio) — récupération de stats multi-trackers, si le sujet « importer ses propres données » revient
+- [UNIT3D — `TorrentResource.php`](https://github.com/HDInnovations/UNIT3D/blob/master/app/Http/Resources/TorrentResource.php) — the exact fields the API renders
+- [UNIT3D — torrents API docs](https://hdinnovations.github.io/UNIT3D/torrent_api.html)
+- Jackett definitions: [c411](https://github.com/Jackett/Jackett/blob/master/src/Jackett.Common/Definitions/c411.yml) · [tr4ker](https://github.com/Jackett/Jackett/blob/master/src/Jackett.Common/Definitions/tr4ker.yml) · [yggreborn-api](https://github.com/Jackett/Jackett/blob/master/src/Jackett.Common/Definitions/yggreborn-api.yml) · [g3minitr4ck3r-api](https://github.com/Jackett/Jackett/blob/master/src/Jackett.Common/Definitions/g3minitr4ck3r-api.yml)
+- [Jackett #16517](https://github.com/Jackett/Jackett/issues/16517) — the G3MINI request, which reveals UNIT3D 9.2.0
+- [Torznab 1.3 specification](https://torznab.github.io/spec-1.3-draft/torznab/Specification-v1.3.html)
+- [BEP 3](https://www.bittorrent.org/beps/bep_0003.html) — `.torrent` structure, infohash = SHA-1 of the `info` dict
+- [api-ratio](https://github.com/sabuontop/api-ratio) — multi-tracker stats retrieval, if "import your own data" ever comes back

@@ -1,27 +1,26 @@
 #!/usr/bin/env node
 /**
- * Génère `apps/api/openapi.json` depuis l'arborescence des routes.
+ * Generates `apps/api/openapi.json` from the route tree.
  *
- * La documentation manuscrite décrivait 244 handlers en 458 lignes. Ce genre de
- * fichier ne dérive pas : il a déjà dérivé au moment où on le relit. Ici, la
- * source de vérité est celle que Nitro utilise lui-même — le nom des fichiers.
- * Un chemin ne peut donc pas être documenté s'il n'existe pas, ni exister sans
- * être documenté.
+ * The hand-written documentation described 244 handlers in 458 lines. That kind
+ * of file does not drift: it has already drifted by the time you read it. Here
+ * the source of truth is the one Nitro itself uses — the filenames. A path
+ * therefore cannot be documented without existing, nor exist without being
+ * documented.
  *
- * Ce qui est dérivé automatiquement, et donc toujours juste :
- *   - le chemin et la méthode, depuis `routes/**\/<nom>.<methode>.ts` ;
- *   - les paramètres de chemin, depuis les segments `[id]` ;
- *   - le besoin d'authentification, depuis l'appel de garde présent dans le
- *     fichier (`requireAdminSession`, `requireUserSession`, …) ;
- *   - le résumé, depuis la première phrase du commentaire de tête.
+ * What is derived automatically, and is therefore always right:
+ *   - the path and method, from `routes/**\/<name>.<method>.ts`;
+ *   - the path parameters, from the `[id]` segments;
+ *   - whether authentication is required, from the guard call present in the
+ *     file (`requireAdminSession`, `requireUserSession`, …);
+ *   - the summary, from the first sentence of the header comment.
  *
- * Ce qui ne l'est pas : la forme des corps de requête et des réponses. Les
- * schémas Zod vivent dans la fermeture des handlers, hors d'atteinte d'une
- * analyse statique honnête. Les 21 schémas partagés de `utils/schemas.ts` sont
- * en revanche convertis et exposés dans `components.schemas` — Zod 4 sait le
- * faire nativement avec `z.toJSONSchema()`, sans dépendance supplémentaire. Une
- * route peut s'y rattacher en nommant son schéma dans son commentaire de tête :
- * `@body loginSchema`, `@query torrentQuerySchema`.
+ * What is not: the shape of request bodies and responses. The Zod schemas live
+ * inside the handlers' closures, out of reach of any honest static analysis.
+ * The 21 shared schemas in `utils/schemas.ts` are converted and exposed under
+ * `components.schemas` — Zod 4 does that natively with `z.toJSONSchema()`, with
+ * no extra dependency. A route can attach to one by naming its schema in its
+ * header comment: `@body loginSchema`, `@query torrentQuerySchema`.
  */
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
@@ -31,7 +30,7 @@ const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const ROUTES = join(ROOT, 'routes');
 const METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head'];
 
-/** Gardes d'authentification, de la plus forte à la plus faible. */
+/** Authentication guards, strongest to weakest. */
 const GUARDS = [
   ['requireAdminSession', 'admin'],
   ['requireModeratorSession', 'moderator'],
@@ -64,7 +63,7 @@ function toRoute(file) {
   return { path, method: m[2], file };
 }
 
-/** Première phrase du commentaire de tête, débarrassée des astérisques. */
+/** The first sentence of the header comment, with the asterisks stripped. */
 function summaryOf(src) {
   const block = src.match(/^\/\*\*([\s\S]*?)\*\//);
   if (!block) return null;
@@ -72,7 +71,7 @@ function summaryOf(src) {
     .split('\n')
     .map((l) => l.replace(/^\s*\*ature?\s?/, '').replace(/^\s*\*\s?/, '').trim())
     .filter(Boolean);
-  // La première ligne répète en général « GET /api/... » : on la saute.
+  // The first line usually repeats "GET /api/...": skip it.
   const body = lines.filter((l) => !/^[A-Z]+\s+\//.test(l) && !l.startsWith('@'));
   if (!body.length) return null;
   const text = body.join(' ');
@@ -90,7 +89,7 @@ async function main() {
   const files = await walk(ROUTES);
   const routes = files.map(toRoute).filter(Boolean);
 
-  // Les schémas partagés, convertis par Zod lui-même.
+  // The shared schemas, converted by Zod itself.
   let components = {};
   try {
     const { z } = await import('zod');
@@ -100,12 +99,12 @@ async function main() {
       try {
         components[name] = z.toJSONSchema(value, { io: 'input', unrepresentable: 'any' });
       } catch {
-        // Un schéma non représentable (transform, refine complexe) est omis
-        // plutôt que rendu faux.
+        // A schema that cannot be represented (transform, complex refine) is
+        // omitted rather than rendered wrongly.
       }
     }
   } catch (e) {
-    console.warn(`  schémas partagés non chargés (${e.message}) — spec sans components`);
+    console.warn(`  shared schemas not loaded (${e.message}) — spec without components`);
   }
 
   const paths = {};
@@ -135,10 +134,10 @@ async function main() {
       'x-auth': guard ? guard[1] : 'public',
     };
 
-    // Rattachement d'un schéma partagé. La route le nomme déjà dans son appel
-    // de validation — `validateBody(event, loginSchema)` — donc on lit ça
-    // plutôt que d'imposer une annotation à écrire et à tenir à jour. Le
-    // commentaire `@body` reste accepté pour les cas que l'appel ne dit pas.
+    // Attaching a shared schema. The route already names it in its validation
+    // call — `validateBody(event, loginSchema)` — so we read that rather than
+    // impose an annotation to write and keep up to date. The `@body` comment is
+    // still honoured for the cases the call does not state.
     const body =
       src.match(/@body\s+(\w+Schema)/) ||
       src.match(/validateBody\(\s*event\s*,\s*(\w+Schema)/);
@@ -179,11 +178,10 @@ async function main() {
       title: 'Trackarr API',
       version: pkg.version,
       description:
-        'Généré depuis l\'arborescence des routes. Chemins, méthodes, ' +
-        'paramètres de chemin et exigences d\'authentification sont dérivés du ' +
-        'code et ne peuvent donc pas dériver. Les corps de requête ne sont ' +
-        'documentés que pour les routes rattachées à un schéma partagé via ' +
-        '`@body` / `@query`.',
+        'Generated from the route tree. Paths, methods, path parameters and ' +
+        'authentication requirements are derived from the code and therefore ' +
+        'cannot drift. Request bodies are documented only for routes attached ' +
+        'to a shared schema through `@body` / `@query`.',
     },
     servers: [{ url: '/' }],
     components: {
@@ -201,8 +199,8 @@ async function main() {
     .flatMap((p) => Object.values(p))
     .filter((o) => o.requestBody).length;
   console.log(
-    `openapi.json : ${routes.length} opérations sur ${Object.keys(paths).length} chemins, ` +
-      `${Object.keys(components).length} schémas partagés, ${withBody} corps rattachés`
+    `openapi.json: ${routes.length} operations over ${Object.keys(paths).length} paths, ` +
+      `${Object.keys(components).length} shared schemas, ${withBody} bodies attached`
   );
 }
 

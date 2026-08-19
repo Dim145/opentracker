@@ -241,10 +241,10 @@ export const bonusEvents = pgTable(
     id: text('id').primaryKey(),
     title: text('title').notNull(),
     // Short description shown under the title in the user-facing
-    // popup ("Silverleech global jusqu'à la mise en place du système
-    // de points." in the design). Optional.
+    // popup ("Global silverleech until the points system lands." in
+    // the design). Optional.
     description: text('description'),
-    // Long description for the "Qu'est-ce que … ?" explainer block.
+    // Long description for the "What is … ?" explainer block.
     // Optional — falls back to a generated sentence when null.
     longDescription: text('long_description'),
     // basis points × 100 — see header comment.
@@ -922,20 +922,19 @@ export const torrents = pgTable(
     index('torrents_content_signature_idx').on(table.contentSignature),
     index('torrents_openlibrary_idx').on(table.openlibraryId),
     index('torrents_moderation_status_idx').on(table.moderationStatus),
-    // GIN plutôt que GiST : c'est l'opclass recommandée pour LIKE/ILIKE et,
-    // mesuré sur 200 000 lignes, elle rend 20 ms contre 26 ms en lecture avec
-    // une construction trois fois plus rapide. Cet index ne sert plus la
-    // recherche principale — passée au plein-texte — mais le repli sur faute
-    // de frappe (`word_similarity`), qui en dépend.
+    // GIN rather than GiST: it is the recommended opclass for LIKE/ILIKE and,
+    // measured over 200,000 rows, returns in 20 ms against 26 ms while building
+    // three times faster. This index no longer serves the main search — which
+    // moved to full text — but the typo fallback (`word_similarity`), which
+    // depends on it.
     index('torrents_name_trgm_idx').using(
       'gin',
       table.name.op('gin_trgm_ops')
     ),
-    // Plein-texte : un index par champ, et non un seul vecteur pondéré. C'est
-    // ce qui rend le réglage d'administration réellement effectif — la requête
-    // n'assemble en OR que les champs activés, chacun servi par son propre
-    // index. Un vecteur unique obligerait à toujours tout lire puis à filtrer
-    // après coup.
+    // Full text: one index per field, not a single weighted vector. That is
+    // what makes the admin setting actually effective — the query ORs together
+    // only the enabled fields, each served by its own index. A single vector
+    // would force reading everything and filtering afterwards.
     index('torrents_fts_name_idx').using('gin', ftsVector(table.name)),
     index('torrents_fts_description_idx').using(
       'gin',
@@ -1532,9 +1531,9 @@ export const tags = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
-    // Sert la branche « tags » de la recherche texte. La table est petite, mais
-    // le prédicat est un EXISTS corrélé évalué par ligne candidate : sans index
-    // il redevient un parcours de `tags` à chaque fois.
+    // Serves the "tags" branch of text search. The table is small, but the
+    // predicate is a correlated EXISTS evaluated per candidate row: without an
+    // index it becomes a scan of `tags` every time.
     index('tags_fts_name_idx').using('gin', ftsVector(table.name)),
   ]
 );
@@ -1632,11 +1631,11 @@ export const reports = pgTable(
     details: text('details'), // Additional context
     // pending | resolved | dismissed | withdrawn
     status: text('status').default('pending').notNull(),
-    // Retrait par le signaleur. La ligne n'est plus supprimée : elle disparaît
-    // de la liste du signaleur — il a demandé qu'on oublie — mais reste comptée
-    // côté modération, où un utilisateur qui dépose puis retire en série est
-    // précisément le signal qu'on cherche. La pierre tombale n'existe donc pas
-    // pour l'utilisateur, elle existe pour le staff.
+    // Withdrawal by the reporter. The row is no longer deleted: it disappears
+    // from the reporter's list — they asked to be forgotten — but stays counted
+    // on the moderation side, where a user who files then withdraws in series is
+    // exactly the signal we are after. The tombstone therefore does not exist
+    // for the user, it exists for the staff.
     withdrawnAt: timestamp('withdrawn_at'),
     resolvedBy: text('resolved_by').references(() => users.id),
     resolvedAt: timestamp('resolved_at'),

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * Grandeur mesurée : un nombre et son unité.
+ * A measured quantity: a number and its unit.
  *
- * La valeur reste stockée en unité de base (bit/s, octets) ; changer l'unité
- * ne fait que changer le repère de lecture, jamais la donnée. C'est ce qui
- * permet de passer de Kbps à Mbps sans que la fiche bouge, et ce qui évitait
- * d'avoir à ressaisir une valeur déjà lue dans le fichier.
+ * The value stays stored in base units (bit/s, bytes); changing the unit only
+ * changes the frame of reference, never the data. That is what lets you switch
+ * from Kbps to Mbps without the listing moving, and what removed the need to
+ * re-enter a value already read from the file.
  */
 import {
   bitRateFrom,
@@ -18,7 +18,7 @@ import {
 
 const props = defineProps<{ kind: 'bitrate' | 'size' }>();
 
-/** Valeur en unité de base : bit/s pour un débit, octets pour une taille. */
+/** The value in base units: bit/s for a bitrate, bytes for a size. */
 const base = defineModel<number | undefined>('base');
 const unit = defineModel<string | undefined>('unit');
 
@@ -29,7 +29,7 @@ const UNITS = {
 
 const units = computed(() => UNITS[props.kind]);
 
-// Une unité absente rendrait le select vide et la conversion arbitraire.
+// An absent unit would leave the select empty and the conversion arbitrary.
 watchEffect(() => {
   if (!unit.value || !units.value.includes(unit.value as never)) {
     unit.value = props.kind === 'bitrate' ? 'Kbps' : 'GiB';

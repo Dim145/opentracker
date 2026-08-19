@@ -58,10 +58,10 @@ export interface MediaMetadata {
   voteCount: number | null;
   url: string;
 
-  /** Date de sortie brute (YYYY-MM-DD) — la fiche l'affiche en toutes lettres. */
+  /** Raw release date (YYYY-MM-DD) — the listing spells it out in full. */
   releaseDate?: string | null;
   countries?: string[];
-  /** Réalisateur(s) pour un film, créateur(s) pour une série. */
+  /** Director(s) for a film, creator(s) for a series. */
   directors?: string[];
   cast?: Array<{ name: string; character: string | null; photoUrl: string | null }>;
   seasonCount?: number | null;

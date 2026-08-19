@@ -29,7 +29,7 @@ import type {
 import { META_TTL, NEG_SENTINEL } from './types';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
-/** Au-delà, une fiche devient illisible ; fichegen s'arrête au même ordre. */
+/** Past this, a listing becomes unreadable; fichegen stops at the same order. */
 const CAST_LIMIT = 8;
 const CAST_PHOTO_SIZE = 'w185';
 
@@ -159,16 +159,16 @@ function normalizeDetail(type: 'movie' | 'tv', data: any): MediaMetadata {
       typeof data.vote_count === 'number' ? data.vote_count : null,
     url: `https://www.themoviedb.org/${type}/${data.id}`,
 
-    /* Champs nécessaires à une fiche de release complète. Tous facultatifs :
-       TMDb ne les renseigne pas systématiquement, et l'appelant doit pouvoir
-       les corriger ou les saisir lui-même quand il n'y a pas de tmdbId. */
+    /* Fields a complete release listing needs. All optional:
+       TMDb does not always populate them, and the caller must be able to
+       correct them or type them in when there is no tmdbId. */
     releaseDate: releaseDate || null,
     countries: Array.isArray(data.production_countries)
       ? data.production_countries
           .map((c: any) => c?.name)
           .filter((n: unknown): n is string => typeof n === 'string')
       : [],
-    // Un film a un réalisateur dans `crew` ; une série a des `created_by`.
+    // A film has a director in `crew`; a series has `created_by`.
     directors: isMovie
       ? (data.credits?.crew ?? [])
           .filter((c: any) => c?.job === 'Director' && typeof c?.name === 'string')
@@ -205,7 +205,7 @@ async function fetchDetail(
 ): Promise<MediaMetadata | null> {
   const data = await tmdbGet<any>(
     `/${type}/${id}`,
-    // `credits` alimente acteurs + réalisateur ; sans lui TMDb ne renvoie rien.
+    // `credits` feeds cast + director; without it TMDb returns nothing.
     { append_to_response: 'external_ids,credits', language: locale },
     cred
   );

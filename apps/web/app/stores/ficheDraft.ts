@@ -1,20 +1,19 @@
 /**
- * Passage de main entre la page d'upload et le générateur de fiche.
+ * The handover between the upload page and the listing generator.
  *
- * Deux sens de circulation :
+ * Two directions of travel:
  *
- *   upload → fiche   le `.torrent` déjà choisi et les identifiants déjà
- *                    saisis, pour que l'utilisateur n'ait pas à
- *                    resélectionner son fichier ;
- *   fiche → upload   le BBCode produit, que la page d'upload injecte
- *                    dans l'éditeur au retour.
+ *   upload → listing   the `.torrent` already picked and the ids already
+ *                      entered, so the user does not have to reselect their
+ *                      file;
+ *   listing → upload   the BBCode produced, which the upload page injects into
+ *                      the editor on return.
  *
- * Un objet `File` ne se sérialise pas : ce store vit en mémoire pour la
- * durée de la session de navigation. C'est suffisant parce que le
- * transfert se fait par navigation interne (`navigateTo`), sans
- * rechargement. Ouvrir /torrents/fiche dans un onglet neuf repart
- * simplement de l'étape de sélection — d'où `hasTorrent` que la page
- * consulte pour décider où démarrer.
+ * A `File` object does not serialise: this store lives in memory for the
+ * duration of the browsing session. That is enough because the transfer happens
+ * through internal navigation (`navigateTo`), with no reload. Opening
+ * /torrents/fiche in a fresh tab simply starts from the selection step — hence
+ * `hasTorrent`, which the page consults to decide where to begin.
  */
 import { defineStore } from 'pinia';
 
@@ -51,7 +50,7 @@ export const useFicheDraftStore = defineStore('ficheDraft', () => {
     pending.value = payload;
   }
 
-  /** Lecture destructive : la fiche ne doit être injectée qu'une fois. */
+  /** Destructive read: the listing must only be injected once. */
   function consumeResult() {
     const value = pending.value;
     pending.value = null;

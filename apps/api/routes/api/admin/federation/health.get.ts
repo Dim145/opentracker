@@ -1,25 +1,24 @@
 /**
  * GET /api/admin/federation/health
  *
- * Répond à la seule question qu'un opérateur se pose vraiment : « ma
- * fédération va-t-elle bien ? »
+ * Answers the only question an operator really asks: "is my federation
+ * healthy?"
  *
- * Les données existaient déjà — `federation_sync_state` consigne depuis
- * toujours le dernier passage, le curseur, le nombre d'éléments et l'erreur
- * éventuelle par couple (pair, ressource) — mais rien ne les relisait. Un
- * pair qui échouait en silence depuis des jours restait invisible tant que
- * personne n'allait lire la table à la main.
+ * The data already existed — `federation_sync_state` has always recorded the
+ * last run, the cursor, the item count and any error per (peer, resource) pair
+ * — but nothing read it back. A peer failing silently for days stayed invisible
+ * until somebody went and read the table by hand.
  *
- * Le verdict est calculé ici plutôt que dans l'interface : « en retard » n'a
- * de sens que rapporté à l'intervalle de synchronisation réel, que le serveur
- * connaît et que le navigateur devrait sinon deviner.
+ * The verdict is computed here rather than in the UI: "behind" only means
+ * anything relative to the actual sync interval, which the server knows and the
+ * browser would otherwise have to guess.
  */
 import { db, schema } from '@trackarr/db';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { getFederationConfig } from '~~/utils/federation/config';
 
-/** Un pair est « en retard » au-delà de trois intervalles sans passage. */
+/** A peer is "behind" past three intervals with no run. */
 const STALE_INTERVALS = 3;
 
 type Verdict = 'ok' | 'stale' | 'error' | 'never';
@@ -32,8 +31,8 @@ export default defineEventHandler(async (event) => {
   const staleAfterMs = intervalMs * STALE_INTERVALS;
   const now = Date.now();
 
-  // Seuls les pairs actifs comptent : un pair en attente ou bloqué n'est pas
-  // censé synchroniser, l'afficher en erreur serait un faux positif.
+  // Only active peers count: a pending or blocked peer is not supposed to
+  // sync, so showing it as failing would be a false positive.
   const peers = await db
     .select({
       id: schema.federationPeers.id,
@@ -49,9 +48,9 @@ export default defineEventHandler(async (event) => {
 
   const peerIds = peers.map((p) => p.id);
 
-  // Un aller-retour par table plutôt qu'un par pair : le nombre de pairs est
-  // petit mais la page se rafraîchit, et N+1 sur un rafraîchissement
-  // automatique se paie tous les jours.
+  // One round trip per table rather than one per peer: the peer count is
+  // small but the page auto-refreshes, and an N+1 on an automatic refresh is
+  // paid for every single day.
   const [states, mirrorCounts] = await Promise.all([
     peerIds.length
       ? db
@@ -99,8 +98,8 @@ export default defineEventHandler(async (event) => {
       verdict: verdictFor(s.lastRunAt, s.lastStatus),
     }));
 
-    // Verdict du pair : le pire de ses ressources. Un catalogue qui passe
-    // pendant que les suppressions échouent n'est pas un pair en bonne santé.
+    // The peer's verdict: the worst of its resources. A catalogue succeeding
+    // while removals fail is not a healthy peer.
     const order: Verdict[] = ['ok', 'stale', 'never', 'error'];
     const worst = resources.reduce<Verdict>(
       (acc, r) => (order.indexOf(r.verdict) > order.indexOf(acc) ? r.verdict : acc),
@@ -125,8 +124,8 @@ export default defineEventHandler(async (event) => {
     error: active.filter((r) => r.verdict === 'error').length,
     never: active.filter((r) => r.verdict === 'never').length,
     mirroredTotal: rows.reduce((n, r) => n + r.mirrored, 0),
-    // Dernier passage toutes ressources confondues : le « battement de cœur »
-    // de la fédération, ce qu'on regarde en premier.
+    // Last run across all resources: federation's "heartbeat", and the first
+    // thing anyone looks at.
     lastRunAt:
       states
         .map((s) => s.lastRunAt)

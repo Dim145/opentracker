@@ -391,7 +391,7 @@
       <p>{{ $t('requests.notFound') }}</p>
     </div>
 
-    <!-- Édition de la demande — réservée au demandeur, tant qu'elle est ouverte. -->
+    <!-- Editing the request — reserved for the requester, while it is open. -->
     <Modal
       v-model="editOpen"
       :title="$t('requests.edit.title')"
@@ -557,11 +557,11 @@ const editing = reactive<{ id: string | null; body: string }>({
   body: '',
 });
 
-/* ── Édition de la demande elle-même ──────────────────────────────────────
-   `PATCH /api/requests/:id` accepte titre, description, catégorie et une
-   hausse de récompense tant que la demande est en `requested`. Les
-   catégories ne sont chargées qu'à l'ouverture du modal : la page de détail
-   est publique et la liste ne sert qu'au propriétaire. */
+/* ── Editing the request itself ───────────────────────────────────────────
+   `PATCH /api/requests/:id` accepts title, description, category and a reward
+   increase while the request is in `requested`. Categories are only loaded when
+   the modal opens: the detail page is public and the list only serves the
+   owner. */
 const editOpen = ref(false);
 const editSaving = ref(false);
 const editForm = reactive({
@@ -575,7 +575,7 @@ const { data: categoriesData, execute: loadCategories } = await useFetch<
   Array<{ id: string; name: string; parentId: string | null }>
 >('/api/categories', { immediate: false });
 
-/** Récompense de départ : le supplément est débité, jamais restitué à la baisse. */
+/** The starting reward: the top-up is debited, never refunded on a decrease. */
 const rewardFloor = computed(() => data.value?.rewardPoints ?? 0);
 const rewardDelta = computed(() =>
   Math.max(0, (editForm.rewardPoints || 0) - rewardFloor.value),
@@ -601,7 +601,7 @@ async function openEdit() {
 
 async function saveEdit() {
   if (!data.value || !editValid.value) return;
-  // N'envoyer que ce qui a bougé : l'endpoint refuse un corps vide, et
+  // Send only what moved: the endpoint refuses an empty body, and
   // réémettre une récompense inchangée déclencherait un débit à zéro.
   const body: Record<string, string | number> = {};
   if (editForm.title.trim() !== data.value.title) body.title = editForm.title.trim();
