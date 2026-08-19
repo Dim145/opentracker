@@ -4,6 +4,12 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 
 ## Released
 
+### v0.26.x — Report tombstones, federation health, generated OpenAPI
+
+- [x] **Withdrawn-report tombstones** — Withdrawing a pending report used to hard-delete the row, which meant someone could file and pull reports in series and leave no trace. The row now survives as `withdrawn` and leaves the reporter's own list entirely — from their side nothing changed — while moderation gains a Withdrawn filter and, beside each reporter, how many reports they have withdrawn overall, shown from two upward. See [Reports](./reports.md).
+- [x] **Federation health panel** — `federation_sync_state` had recorded last run, cursor, item count and error per (peer, resource) since federation shipped, and nothing read it back; a partner failing every tick stayed invisible. `/admin/federation` now shows a heartbeat gauge that fills as time since the last run approaches the stale threshold, a coloured rail per peer, a per-resource ledger, and errors printed in full. The verdict is computed server-side, since "stale" only means anything against the real sync interval, and a peer's verdict is the worst of its resources. See [Federation](./federation.md).
+- [x] **Generated OpenAPI** — The spec is derived from the source Nitro itself uses, the route file names: 243 operations over 203 paths at `/api/docs/openapi.json`. Path, method, path parameters and the authentication requirement are read from the code and cannot drift. Request bodies come from the validation call each route already makes, and the 21 shared schemas are converted by Zod 4's own `z.toJSONSchema()`. Response shapes and handler-local schemas are deliberately out of scope rather than guessed at. Generation runs as part of the build.
+
 ### v0.25.x — Full-text search
 
 - [x] **Full-text catalogue search** — Search moved off `name ILIKE '%term%'` onto PostgreSQL full-text: one GIN index per field (name, description, NFO, tag names), and a setting at `/admin/settings` deciding which of them a query reads. One index per field rather than a single weighted vector is what makes that setting real — each enabled field adds a branch to the `OR`, served by its own index. No extension and no extra service: `to_tsvector` and GIN have been core Postgres since 8.3. The last term carries a `:*` so the bar completes as you type, and a `word_similarity` pass catches typos when full-text finds nothing — expensive enough (223 ms against 60) that an operator can switch it off for a large catalogue or a strained server. Searching by infohash or by IMDb/TMDb/TVDB link is untouched. Measured over 200k torrents: 52 ms for a name search against 184 ms before, 28 ms for a word only present in a description (previously unfindable).
@@ -76,8 +82,6 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 
 - [ ] **Persisted torrent groups** — Releases of the same work are grouped in the browser, on the current page only, keyed on the external metadata id. Promoting that to a stored group entity would let it survive pagination, carry a group page and aggregate stats. The cross-seed content signatures already answer "these two torrents are the same work".
 - [ ] **User Classes** — Power User, VIP with granular permissions on top of the existing role engine
-- [ ] **Withdrawn-reports audit trail** — Currently a pending report can be hard-deleted from `/me/reports`. A tombstone for "pattern of withdrawn reports" would help catch bad-faith reporters.
-- [ ] **Federation health view** — `federation_sync_state` records last sync, cursor and error per peer and resource, but nothing reads it back. An operator has no way to answer "is my federation healthy?".
 - [ ] **Protocol version negotiation** — The federation proposal reserves an envelope `v` field and capability negotiation at the handshake. Worth confirming end-to-end before the next protocol bump, so a mixed-version mesh fails loudly rather than drifting.
 
 ---
@@ -88,8 +92,9 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 - [ ] **Private Messages** — User-to-user inbox system
 - [ ] **Collages / Collections** — Group torrents by theme
 - [ ] **Theme System** — Custom theme support beyond the built-in dark/light pair
+- [ ] **OpenAPI response schemas** — The generated spec covers paths, methods, auth and shared request bodies. Response shapes, and the bodies of the ~70 routes that declare their schema inside the handler closure, need a convention change before static analysis can reach them honestly.
+- [ ] **API docs viewer** — The spec is served raw; a bundled viewer (Swagger UI / Scalar) would need packaging, since the CSP rules out a CDN.
 - [ ] **E2E Tests** — Complete functional test suite. Priority within this bucket: the money paths (bonus accrual, bounty escrow, freeleech pool), which are the least covered relative to what they move.
-- [ ] **API Documentation** — OpenAPI generated from the Zod schemas already on every route, rather than the hand-written `doc/reference/api.md` that will drift against 244 handlers.
 
 ---
 
