@@ -1529,6 +1529,22 @@
         "approved": "Federation link is now active",
         "revoked": "Link removed",
         "error": "Something went wrong"
+      },
+      "health": {
+        "title": "Sync health",
+        "refresh": "Refresh",
+        "disabled": "Federation is off — nothing is syncing.",
+        "lastRun": "Last run",
+        "never": "never",
+        "ago": "{d} ago",
+        "every": "every {d}",
+        "staleAfter": "stale after {d}",
+        "tileOk": "Up to date",
+        "tileStale": "Stale",
+        "tileError": "Failing",
+        "tileMirrored": "Mirrored torrents",
+        "noPeers": "No active partner.",
+        "neverSynced": "Never synced."
       }
     },
     "notifications": {
