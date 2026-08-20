@@ -55,17 +55,67 @@ export function sniffImage(buf: Buffer): SniffedImage | null {
   // ICO — reserved 0x0000 then image type 1.
   if (startsWith(buf, [0x00, 0x00, 0x01, 0x00])) return 'image/x-icon';
 
-  // SVG is XML: no signature to match, so look at the head of the text. A BOM
-  // and leading whitespace, comments or a doctype are all legal before the
-  // root element. We only inspect the first kilobyte — enough to reach `<svg`
-  // in any real file, and bounded so a hostile upload cannot make us scan a
-  // multi-megabyte blob.
-  const head = buf.subarray(0, 1024).toString('utf8').replace(/^﻿/, '');
-  if (/^\s*(<\?xml[\s\S]*?\?>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE\s+svg[\s\S]*?>\s*)?<svg[\s>]/i.test(head)) {
+  // SVG is XML: no signature to match, so the head of the text has to be
+  // parsed instead. Only the first kilobyte is inspected — enough to reach
+  // `<svg` in any real file, and bounded so a hostile upload cannot make us
+  // scan a multi-megabyte blob.
+  if (looksLikeSvg(buf.subarray(0, 1024).toString('utf8'))) {
     return 'image/svg+xml';
   }
 
   return null;
+}
+
+/**
+ * Does this text open an SVG document?
+ *
+ * Deliberately a hand-rolled scan and not a regular expression. The obvious
+ * pattern for "optional declaration, then any number of comments, then an
+ * optional doctype, then `<svg`" nests a lazy `[\s\S]*?` inside a `*` group,
+ * which backtracks exponentially: a file starting `<!--` followed by repeated
+ * `--><!--` and never reaching `<svg` took 136 ms at 24 repetitions and doubles
+ * with each one after — so the 1 KB cap above bounds the input without bounding
+ * the work, and the request thread simply never comes back.
+ *
+ * This walks forward with `indexOf` and never revisits a character, so the cost
+ * is linear in the input whatever it contains. An unterminated construct means
+ * "not an SVG", which is the right answer anyway.
+ */
+function looksLikeSvg(text: string): boolean {
+  let i = text.charCodeAt(0) === 0xfeff ? 1 : 0; // strip a BOM
+
+  const skipTo = (marker: string): boolean => {
+    const end = text.indexOf(marker, i);
+    if (end === -1) return false;
+    i = end + marker.length;
+    return true;
+  };
+
+  // A malformed file could in principle chain a lot of tiny constructs; cap the
+  // number of hops so the loop is bounded by construction rather than by
+  // reasoning about the input.
+  for (let hops = 0; hops < 64; hops++) {
+    while (i < text.length && /\s/.test(text[i]!)) i++;
+    if (i >= text.length) return false;
+
+    if (text.startsWith('<?xml', i)) {
+      if (!skipTo('?>')) return false;
+      continue;
+    }
+    if (text.startsWith('<!--', i)) {
+      if (!skipTo('-->')) return false;
+      continue;
+    }
+    if (text.slice(i, i + 9).toUpperCase() === '<!DOCTYPE') {
+      if (!skipTo('>')) return false;
+      continue;
+    }
+    // Anything else has to be the root element.
+    if (text.slice(i, i + 4).toLowerCase() !== '<svg') return false;
+    const after = text[i + 4];
+    return after === undefined || after === '>' || /\s/.test(after);
+  }
+  return false;
 }
 
 /**
