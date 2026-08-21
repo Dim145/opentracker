@@ -38,6 +38,7 @@ export async function browseMirror(opts: BrowseMirrorOptions) {
   const peerId = opts.peerId ?? null;
   const page = opts.page;
   const limit = opts.limit;
+  const offset = (page - 1) * limit;
 
   // Group the same release across peers. content_signature catches cross-seeds
   // (same files, different .torrent); info_hash is the fallback for rows
