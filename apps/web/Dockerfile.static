@@ -40,6 +40,12 @@ COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web ./apps/web
 COPY packages/shared ./packages/shared
+# `packages/shared/tsconfig.json` extends this file. The bundler resolves the
+# tsconfig chain when it transforms the shared sources, which it started doing
+# when the release parser moved into the package — and dies without the base.
+# The SSR and API images already copy it; this one was missed because it is not
+# part of the local compose stack.
+COPY tsconfig.base.json ./
 ENV NUXT_STATIC_BUILD=true \
     NODE_ENV=production
 RUN pnpm --filter @trackarr/web exec nuxi generate

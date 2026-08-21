@@ -12,6 +12,13 @@
     downloads the .torrent directly. That pairing is the point of the grouped
     view — everything needed to decide is on screen, so the common case never
     leaves the search page.
+
+    "The whole row" is literal, and it takes a stretched pseudo-element to be
+    true: the anchor only wraps the chips, so without it the size, the swarm
+    counts and the age were dead space. A row that looks clickable and is not,
+    on two thirds of its width, is worse than one that never looked clickable.
+    Nesting the download button inside the anchor instead would be invalid
+    HTML and would swallow its own click.
   -->
   <div class="rr" :class="`rr--${tier}`">
     <!-- A federated release goes home: the `.torrent` is fetched from the
@@ -19,7 +26,7 @@
          the local passkey, so there is no download button on those rows — the
          partner chips say where to go instead. -->
     <component
-      :is="release.remote ? 'a' : 'NuxtLink'"
+      :is="release.remote ? 'a' : NuxtLink"
       v-bind="
         release.remote
           ? { href: release.remote.detailUrl ?? undefined, target: '_blank', rel: 'noopener noreferrer' }
@@ -99,6 +106,17 @@ const props = defineProps<{
   };
 }>();
 
+/**
+ * Resolved, not named.
+ *
+ * `:is="'NuxtLink'"` looks like it works and does not: Vue treats an
+ * unresolvable string as a native tag, so the row rendered as a literal
+ * `<nuxtlink to="…">` element — no anchor, no href, no navigation, and no
+ * warning in a production build. Clicking a release did nothing at all, which
+ * is exactly the kind of failure a string-typed component reference produces.
+ */
+const NuxtLink = resolveComponent('NuxtLink');
+
 const chips = computed(() => releaseChips(props.release.name));
 const tier = computed(() => resolutionTier(chips.value.resolution));
 
@@ -132,6 +150,7 @@ const age = computed(() =>
 
 <style scoped>
 .rr {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr auto auto auto auto auto;
   align-items: center;
@@ -165,6 +184,13 @@ const age = computed(() =>
   display: block;
   min-width: 0;
   padding-left: 0.75rem;
+}
+/* The link covers the row, not just its own column. Everything that must stay
+   independently clickable lifts itself above this with a z-index. */
+.rr-main::after {
+  content: '';
+  position: absolute;
+  inset: 0;
 }
 
 .rr-chips {
@@ -298,6 +324,9 @@ const age = computed(() =>
 }
 
 .rr-dl {
+  /* Above the stretched link, or it would never receive a click. */
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
