@@ -65,6 +65,12 @@ export default defineEventHandler(async (event) => {
       tvdbId: schema.torrents.tvdbId,
       igdbId: schema.torrents.igdbId,
       openlibraryId: schema.torrents.openlibraryId,
+      // Series position. Not decoration: the partner needs it to file a
+      // television release under the right season and episode, and the only
+      // alternative is re-parsing the name — which every consumer would then
+      // have to do, each with its own idea of what a season pack looks like.
+      season: schema.torrents.season,
+      episode: schema.torrents.episode,
       uploaderName: schema.users.username,
       seeders: schema.torrentStats.seeders,
       leechers: schema.torrentStats.leechers,
@@ -121,6 +127,8 @@ export default defineEventHandler(async (event) => {
     tvdbId: r.tvdbId,
     igdbId: r.igdbId,
     openlibraryId: r.openlibraryId,
+    season: r.season,
+    episode: r.episode,
     seeders: r.seeders ?? 0,
     leechers: r.leechers ?? 0,
     completed: r.completed ?? 0,

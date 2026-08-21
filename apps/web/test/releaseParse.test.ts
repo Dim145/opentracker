@@ -4,6 +4,9 @@ import {
   parseNfoForTags,
   parseReleaseName,
 } from '../app/utils/releaseParse';
+// Imported through the web re-export on purpose: the implementation now lives
+// in `@trackarr/shared`, and this path is what the upload / edit / listing
+// pages actually resolve. Covering it here keeps the re-export honest too.
 import { detectMediaId, mediaIdQueryParam } from '../app/utils/mediaIdDetect';
 
 // Release-name parsing.

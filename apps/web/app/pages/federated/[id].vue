@@ -162,6 +162,6 @@ function fmtDate(d: string | null) {
 .fd-empty-comments { text-align: center; padding: 2rem 1rem; color: rgb(var(--fg-subtle)); border: 1px dashed rgb(var(--line-default)); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; font-size: 13px; }
 .fd-empty-comments :deep(svg) { font-size: 1.5rem; opacity: 0.5; }
 .fd-cta { margin-top: 1rem; text-align: center; font-size: 12.5px; }
-.fd-cta a { color: var(--info, #38bdf8); display: inline-flex; align-items: center; gap: 0.3rem; }
+.fd-cta a { color: rgb(var(--info, 56 189 248)); display: inline-flex; align-items: center; gap: 0.3rem; }
 .fd-cta a:hover { text-decoration: underline; }
 </style>

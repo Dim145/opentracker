@@ -3,6 +3,7 @@ import {
   text,
   timestamp,
   integer,
+  smallint,
   bigint,
   boolean,
   jsonb,
@@ -866,6 +867,18 @@ export const torrents = pgTable(
     tvdbId: text('tvdb_id'),
     igdbId: text('igdb_id'),
     openlibraryId: text('openlibrary_id'),
+    // ── Series position ──────────────────────────────────────
+    // A `tmdb_id` for television identifies the SERIES, not a season, so a
+    // catalogue grouped on it alone collapses every episode of every season
+    // into a single entry. These two carry the position parsed from the
+    // release name at upload (and backfilled over the existing catalogue), so
+    // the grouping key can be `tmdb:tv/1396:s03`.
+    //
+    // Both stay nullable: a film has no season, and a name the parser cannot
+    // read falls back to the series-level group rather than being dropped.
+    // `season` with a null `episode` is the legitimate season-pack case.
+    season: smallint('season'),
+    episode: smallint('episode'),
     // Content signature — SHA-256 of the canonical file list
     // `[{path, length}]` (sorted by path). Two torrents that contain
     // the same files (same paths, same sizes) share the same signature,
@@ -917,6 +930,33 @@ export const torrents = pgTable(
     index('torrents_category_idx').on(table.categoryId),
     index('torrents_imdb_idx').on(table.imdbId),
     index('torrents_tmdb_idx').on(table.tmdbId),
+    // Serves the grouped listing: television groups on (tmdb_id, season) and
+    // the query groups on exactly that pair.
+    index('torrents_tmdb_season_idx').on(table.tmdbId, table.season),
+    // ── Grouped listing ──────────────────────────────────────
+    // Two partial indexes, one per branch of the grouped query, both keyed on
+    // the same ordering expression the listing uses.
+    //
+    // The naive form — GROUP BY over the whole table — costs a sequential scan
+    // plus a hash aggregate on every page: 180 ms over 200 000 rows, growing
+    // linearly and never able to stop early, because ordering groups by recency
+    // needs every group before it can pick 25. Splitting the query in two makes
+    // both halves index-driven and brings the same page to 0.8 ms.
+    //
+    // A torrent WITHOUT an external id is a group of one, so it needs no
+    // aggregation at all — it streams straight off `torrents_ungrouped_idx`
+    // and stops at the limit. Only tagged rows reach the aggregate, which is
+    // the set that genuinely has to be folded.
+    index('torrents_grouped_idx')
+      .on(sql`coalesce(${table.moderatedAt}, ${table.createdAt}) DESC`)
+      .where(
+        sql`${table.moderationStatus} = 'accepted' AND ${table.isActive} AND (${table.tmdbId} IS NOT NULL OR ${table.igdbId} IS NOT NULL OR ${table.openlibraryId} IS NOT NULL)`,
+      ),
+    index('torrents_ungrouped_idx')
+      .on(sql`coalesce(${table.moderatedAt}, ${table.createdAt}) DESC`)
+      .where(
+        sql`${table.moderationStatus} = 'accepted' AND ${table.isActive} AND ${table.tmdbId} IS NULL AND ${table.igdbId} IS NULL AND ${table.openlibraryId} IS NULL`,
+      ),
     index('torrents_tvdb_idx').on(table.tvdbId),
     index('torrents_igdb_idx').on(table.igdbId),
     index('torrents_content_signature_idx').on(table.contentSignature),
@@ -2248,6 +2288,15 @@ export const remoteTorrents = pgTable(
     tvdbId: text('tvdb_id'),
     igdbId: text('igdb_id'),
     openlibraryId: text('openlibrary_id'),
+    /**
+     * Series position, mirrored from the partner. Sent by instances from
+     * 0.28.0 on; older partners omit the fields entirely, in which case the
+     * sync re-parses them out of the name so a mirrored season still knows
+     * which season it is. Null for anything that is not television, and for a
+     * name nothing could read.
+     */
+    season: smallint('season'),
+    episode: smallint('episode'),
     /** Swarm stats from the partner — best-effort, short-lived. */
     seeders: integer('seeders').default(0).notNull(),
     leechers: integer('leechers').default(0).notNull(),
@@ -2269,6 +2318,12 @@ export const remoteTorrents = pgTable(
     index('remote_torrents_content_sig_idx').on(table.contentSignature),
     index('remote_torrents_imdb_idx').on(table.imdbId),
     index('remote_torrents_tmdb_idx').on(table.tmdbId),
+    // The grouped catalogue matches a local group against the mirror one id
+    // namespace at a time — `tmdb_id = ANY(...) OR igdb_id = ANY(...) OR …` —
+    // so each namespace needs its own index or the badge query degrades into a
+    // scan of every partner's catalogue on every page.
+    index('remote_torrents_igdb_idx').on(table.igdbId),
+    index('remote_torrents_openlibrary_idx').on(table.openlibraryId),
     index('remote_torrents_name_idx').on(table.name),
   ]
 );

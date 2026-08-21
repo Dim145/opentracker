@@ -24,6 +24,7 @@ import {
   getPrivateKeyPem,
   isFederationLive,
 } from './config';
+import { parseReleaseName } from '@trackarr/shared/releaseParse';
 import { signedGet } from './signing';
 import { notifyMany } from '../notify';
 
@@ -199,6 +200,45 @@ function asCount(v: unknown): number {
   if (typeof v !== 'number' || !Number.isFinite(v)) return 0;
   return Math.min(2_147_483_647, Math.max(0, Math.trunc(v)));
 }
+/**
+ * A season or episode number, or null. Anything a partner sends that is not a
+ * plausible position — a float, a negative, a five-digit joke — becomes null
+ * rather than a value that would file the release under a season nobody has.
+ */
+function asPosition(v: unknown): number | null {
+  if (typeof v !== 'number' || !Number.isInteger(v)) return null;
+  return v >= 0 && v <= 9_999 ? v : null;
+}
+
+/**
+ * The series position, taken from the partner when it sends one and re-derived
+ * from the name when it does not.
+ *
+ * The fallback is what keeps a mesh mixed-version: an instance older than
+ * 0.28.0 omits the fields entirely, and without this every one of its
+ * television releases would mirror as "season unknown". Re-parsing costs a
+ * handful of regexes over a short string we are already storing, and it is the
+ * same parser the local catalogue uses — so a release looks the same whichever
+ * side of the federation it came from.
+ *
+ * The partner's own value always wins when present: it saw the upload form,
+ * and the uploader may have corrected what the parser guessed.
+ */
+function seriesPosition(
+  it: Record<string, unknown>,
+  name: string,
+): { season: number | null; episode: number | null } {
+  const season = asPosition(it.season);
+  const episode = asPosition(it.episode);
+  if (season !== null || episode !== null) return { season, episode };
+  try {
+    const parsed = parseReleaseName(name);
+    return { season: parsed.season, episode: parsed.episode };
+  } catch {
+    return { season: null, episode: null };
+  }
+}
+
 /** Partner size clamped to a safe non-negative ceiling (avoids bigint overflow). */
 function asSize(v: unknown): number {
   if (typeof v !== 'number' || !Number.isFinite(v)) return 0;
@@ -210,7 +250,15 @@ function asHttpUrl(v: unknown): string | null {
   return s && /^https?:\/\//i.test(s) ? s : null;
 }
 
-async function upsertRemoteTorrent(
+/**
+ * Write one partner item into the mirror.
+ *
+ * Exported because the LIVE search uses it too: a live fan-out is a cache fill,
+ * not a second ingestion path. Anything a partner hands us — through the cron
+ * or through a search — lands here, gets the same coercion, the same URL
+ * scheme check and the same series-position fallback.
+ */
+export async function upsertRemoteTorrent(
   peerId: string,
   it: Record<string, unknown>,
 ): Promise<NewItem & { isNew: boolean } | null> {
@@ -242,6 +290,7 @@ async function upsertRemoteTorrent(
     tvdbId: asStr(it.tvdbId),
     igdbId: asStr(it.igdbId),
     openlibraryId: asStr(it.openlibraryId),
+    ...seriesPosition(it, name),
     seeders: asCount(it.seeders),
     leechers: asCount(it.leechers),
     completed: asCount(it.completed),

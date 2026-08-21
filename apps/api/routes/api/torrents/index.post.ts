@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import parseTorrent from 'parse-torrent';
 import bencode from 'bencode';
+import { parseReleaseName } from '@trackarr/shared/releaseParse';
 import { computeContentSignature } from '~~/utils/contentSignature';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { resolveTagsByName, slugifyTag, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
@@ -11,6 +12,32 @@ import { normalizeMediaId } from '~~/utils/mediaIds';
 import { getUploadRules, evaluateUpload } from '~~/utils/uploadRules';
 import { notifyMany, listStaffRecipients } from '~~/utils/notify';
 import { fanoutFollowedUserUpload } from '~~/utils/followerFanout';
+
+
+/**
+ * Season and episode for the grouped catalogue.
+ *
+ * A `tmdb_id` for television identifies the series, so grouping on it alone
+ * puts every episode of every season under one entry. The position comes from
+ * the release name through the same parser the upload form uses, so what the
+ * member saw pre-filled is what gets stored.
+ *
+ * An unreadable name yields nulls rather than a guess: the row then falls back
+ * to the series-level group, which is a degraded answer rather than a wrong
+ * one. A season with no episode is the legitimate season-pack case and is
+ * stored as such.
+ */
+function seriesPosition(name: string): {
+  season: number | null;
+  episode: number | null;
+} {
+  try {
+    const parsedName = parseReleaseName(name);
+    return { season: parsedName.season, episode: parsedName.episode };
+  } catch {
+    return { season: null, episode: null };
+  }
+}
 
 export default defineEventHandler(async (event) => {
   // Require authentication
@@ -347,6 +374,11 @@ export default defineEventHandler(async (event) => {
     tvdbId,
     igdbId,
     openlibraryId,
+    // Series position, parsed from the resolved name. Only meaningful for
+    // television, and only when a `tmdb_id` is set — but stored regardless,
+    // because the grouping query is what decides whether to use it, and a
+    // torrent can gain its tmdb id later through an edit.
+    ...seriesPosition(name),
     contentSignature,
     isActive: true,
     moderationStatus: canBypassModeration ? 'accepted' : 'pending',

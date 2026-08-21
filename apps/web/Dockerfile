@@ -30,6 +30,11 @@ COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web ./apps/web
 COPY packages/shared ./packages/shared
+# `packages/shared/tsconfig.json` extends this file. Harmless before the
+# release parser moved into the package, because nothing pulled its
+# sources through the bundler; now the web build transforms them and
+# resolves the tsconfig chain, which dies without the base.
+COPY tsconfig.base.json ./
 RUN pnpm --filter @trackarr/web build
 
 # -----------------------------------------------------------------------------

@@ -5,7 +5,7 @@
         <p class="eyebrow"><span class="eyebrow-rule" /> {{ $t('federated.eyebrow') }}</p>
         <h1 class="fb-title">{{ $t('federated.title') }}</h1>
       </div>
-      <span class="fb-count"><Icon name="ph:broadcast-bold" /> {{ $t('federated.count', { n: pag.total }) }}</span>
+      <span class="fb-count"><Icon name="ph:broadcast-bold" /> {{ $t('federated.count', { n: activeTotal }) }}</span>
     </header>
 
     <div class="fb-banner">
@@ -17,6 +17,14 @@
       <div class="fb-search">
         <Icon name="ph:magnifying-glass" />
         <input v-model="search" type="search" class="input" :placeholder="$t('federated.searchPlaceholder')" />
+      </div>
+      <div class="fb-modes" role="tablist">
+        <button type="button" role="tab" :class="{ active: view === 'simple' }" @click="view = 'simple'">
+          <Icon name="ph:list-bullets-bold" /> {{ $t('search.viewSimple') }}
+        </button>
+        <button type="button" role="tab" :class="{ active: view === 'grouped' }" @click="view = 'grouped'">
+          <Icon name="ph:squares-four-bold" /> {{ $t('search.viewGrouped') }}
+        </button>
       </div>
       <div class="fb-modes" role="tablist">
         <button type="button" role="tab" :class="{ active: mode === 'cache' }" @click="mode = 'cache'">
@@ -32,7 +40,33 @@
       {{ q.trim().length < 2 ? $t('federated.livePrompt') : $t('federated.liveResult', { peers: livePeers }) }}
     </p>
 
-    <div v-if="items.length" class="fb-list">
+    <!-- Grouped: one row per work, exactly as the local catalogue folds it.
+         Same components, same navigation — the only differences are that a
+         release links home instead of downloading, and that a row says how
+         many partners carry it. -->
+    <div v-if="view === 'grouped'" class="fb-groups">
+      <p v-if="groupsPending && !groupRows.length" class="fb-empty">
+        <Icon name="ph:circle-notch" class="animate-spin" />
+        <p>{{ $t('common.loading') }}</p>
+      </p>
+      <template v-else-if="groupRows.length">
+        <TorrentGroupRow
+          v-for="g in groupRows"
+          :key="g.key"
+          :group="g"
+          :category-label="g.categorySlugs?.[0] ?? null"
+          tree-endpoint="/api/federation/group"
+          :page-href="null"
+          hide-page-link
+        />
+      </template>
+      <div v-else-if="view === 'simple'" class="fb-empty">
+        <Icon name="ph:broadcast-bold" />
+        <p>{{ $t('federated.empty') }}</p>
+      </div>
+    </div>
+
+    <div v-else-if="items.length" class="fb-list">
       <div v-for="t in items" :key="t.key" class="t-row is-fed" :class="{ 'menu-open': openKey === t.key }">
         <span class="cat" :class="catClass(t.categoryType)"><Icon :name="catIcon(t.categoryType)" /></span>
         <div class="t-main">
@@ -99,12 +133,12 @@
       </div>
     </div>
 
-    <div v-else class="fb-empty">
+    <div v-else-if="view === 'simple'" class="fb-empty">
       <Icon name="ph:broadcast" />
       <p>{{ $t('federated.empty') }}</p>
     </div>
 
-    <div v-if="pag.pages > 1" class="fb-pager">
+    <div v-if="activePages > 1" class="fb-pager">
       <button :disabled="page <= 1" @click="page--"><Icon name="ph:caret-left-bold" /> {{ $t('federated.prev') }}</button>
       <span class="fb-pos tabular">{{ page }} / {{ pag.pages }}</span>
       <button :disabled="page >= pag.pages" @click="page++">{{ $t('federated.next') }} <Icon name="ph:caret-right-bold" /></button>
@@ -165,6 +199,7 @@ const page = ref(1);
 const search = ref('');
 const q = ref('');
 const mode = ref<'cache' | 'live'>('cache');
+const view = ref<'simple' | 'grouped'>('simple');
 
 let debounce: ReturnType<typeof setTimeout> | undefined;
 watch(search, (v) => {
@@ -201,11 +236,14 @@ async function runLive() {
     );
     // A newer query started while we awaited — discard this stale result.
     if (seq !== liveSeq) return;
-    // The endpoint already returns the deduped shape (id/key/sources/…); a
-    // live hit has no remote_torrents row so the name isn't an internal
-    // /federated/:id link (only the origin "open" link works).
+    // The live endpoint writes what it finds into the mirror and reads back
+    // out of it, so a live hit IS a `remote_torrents` row — same shape, same
+    // internal /federated/:id link, same grouping. That is the whole point of
+    // it no longer being a parallel code path.
     liveItems.value = res.items ?? [];
     livePeers.value = res.peers ?? 0;
+    // Grouped mode reads the mirror the fan-out just filled.
+    if (view.value === 'grouped') await refreshGroups();
   } catch {
     if (seq !== liveSeq) return;
     liveItems.value = [];
@@ -214,6 +252,42 @@ async function runLive() {
   }
 }
 watch([q, mode], runLive);
+
+// ── Grouped view ───────────────────────────────────────────────────────────
+// Reads the mirror through the same shape the local catalogue uses. In live
+// mode the fan-out fills the mirror first, then this refreshes — one store,
+// whichever mode is on.
+interface GroupRow {
+  key: string;
+  source: 'tmdb' | 'igdb' | 'openlibrary' | 'solo';
+  externalId: string;
+  releaseCount: number;
+  peerCount: number;
+  latest: string;
+  minSize: number;
+  maxSize: number;
+  leadName: string;
+  categorySlugs: string[];
+  seedMin: number;
+  seedMax: number;
+  scopes: Array<{ scope: string; units: number; latest: string }>;
+  defaultScope: string;
+}
+
+const {
+  data: groupsData,
+  pending: groupsPending,
+  refresh: refreshGroups,
+} = await useFetch<{
+  groups: GroupRow[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}>('/api/federation/groups', {
+  query: computed(() => ({ search: q.value || undefined, page: page.value })),
+  watch: [q, page, view],
+  immediate: view.value === 'grouped',
+});
+
+const groupRows = computed(() => groupsData.value?.groups ?? []);
 
 const items = computed(() =>
   mode.value === 'live' ? liveItems.value : data.value?.items ?? [],
@@ -227,6 +301,20 @@ const pag = computed(() =>
         pages: 1,
       }
     : data.value?.pagination ?? { page: 1, limit: 50, total: 0, pages: 1 },
+);
+
+/** What the header counts: works when grouped, releases when flat. */
+const activeTotal = computed(() =>
+  view.value === 'grouped'
+    ? (groupsData.value?.pagination.total ?? 0)
+    : pag.value.total,
+);
+
+/** Pages to walk, whichever view is on screen. */
+const activePages = computed(() =>
+  view.value === 'grouped'
+    ? (groupsData.value?.pagination.totalPages ?? 1)
+    : pag.value.pages,
 );
 
 // --- multi-source picker --------------------------------------------------
@@ -333,19 +421,20 @@ function timeAgo(d: string | null) {
 .fb-count { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--font-mono, monospace); font-size: 11px; color: #7dd3fc; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.2rem 0.55rem; border-radius: var(--radius-sm); }
 
 .fb-banner { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.8rem 1rem; border-radius: var(--radius-md); font-size: 12.5px; line-height: 1.55; background: rgba(56, 189, 248, 0.07); border: 1px solid rgba(56, 189, 248, 0.22); color: #bae6fd; margin-bottom: 1.25rem; }
-.fb-banner :deep(svg) { color: var(--info, #38bdf8); font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.fb-banner :deep(svg) { color: rgb(var(--info, 56 189 248)); font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
 
 .fb-toolbar { margin-bottom: 1.25rem; display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .fb-search { position: relative; max-width: 480px; flex: 1; min-width: 220px; }
 .fb-modes { display: inline-flex; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0; }
 .fb-modes button { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; font-weight: 600; padding: 0.45rem 0.8rem; color: rgb(var(--fg-muted)); background: rgb(var(--bg-elevated)); border: none; cursor: pointer; transition: all 0.14s ease; }
 .fb-modes button + button { border-left: 1px solid rgb(var(--line-default)); }
-.fb-modes button.active { color: #0a0a0a; background: var(--info, #38bdf8); }
+.fb-modes button.active { color: #0a0a0a; background: rgb(var(--info, 56 189 248)); }
 .fb-modes button:not(.active):hover { background: rgb(var(--bg-hover)); color: rgb(var(--fg-default)); }
 .fb-live-hint { display: flex; align-items: center; gap: 0.4rem; font-size: 11.5px; color: #7dd3fc; margin: -0.5rem 0 1rem; }
 .fb-search :deep(svg) { position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); color: rgb(var(--fg-faint)); }
 .fb-search .input { padding-left: 2.1rem; }
 
+.fb-groups { display: flex; flex-direction: column; gap: 0.5rem; }
 .fb-list { border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); overflow: hidden; background: rgb(var(--bg-surface)); }
 .t-row { position: relative; display: grid; grid-template-columns: 38px 1fr auto auto auto auto; gap: 1rem; align-items: center; padding: 0.8rem 1rem; border-bottom: 1px solid rgb(var(--line-default)); transition: background 0.12s ease; }
 .t-row.menu-open { z-index: 30; }

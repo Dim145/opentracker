@@ -4,6 +4,83 @@ import { redis } from '~~/utils/server';
 import { v4 as uuidv4 } from 'uuid';
 import { withCronLock } from '~~/utils/cronLock';
 
+/**
+ * Persist the per-swarm tally into `torrent_stats`.
+ *
+ * The table is the only Postgres-side view of the swarm: Redis holds the live
+ * peers, but a query that needs counts for many torrents at once — the grouped
+ * catalogue's seeder range, the federation catalogue feeds — cannot fan out one
+ * Redis read per row. It reads this snapshot instead, and pays for that with
+ * staleness bounded by the collection interval.
+ *
+ * **A torrent whose swarm emptied has no Redis key at all**, so it is not in
+ * the tally and would otherwise keep its last non-zero count forever. Rows not
+ * observed are therefore reset — but only after a COMPLETE scan. A scan cut
+ * short by the time budget saw an arbitrary subset, and zeroing everything it
+ * missed would report a healthy catalogue as dead.
+ */
+async function writeTorrentStats(
+  perTorrent: Map<string, { seeders: number; leechers: number }>,
+  scanTruncated: boolean
+): Promise<void> {
+  // Taken before the first write, so every row this pass touches ends up with
+  // a later `updated_at` than this. That is how the sweep below recognises
+  // what it did NOT see, without carrying a list of a hundred thousand hashes
+  // into a query.
+  const passStartedAt = new Date().toISOString();
+  try {
+    if (perTorrent.size > 0) {
+      // Chunked so the statement stays well inside Postgres' parameter limit
+      // on a catalogue with a six-figure number of live swarms.
+      const CHUNK = 1_000;
+      const entries = [...perTorrent.entries()];
+      for (let i = 0; i < entries.length; i += CHUNK) {
+        const slice = entries.slice(i, i + CHUNK);
+        const values = sql.join(
+          slice.map(
+            ([hash, c]) => sql`(${hash}, ${c.seeders}::int, ${c.leechers}::int)`
+          ),
+          sql`, `
+        );
+        // Insert, not update: the row is created at upload, but a torrent
+        // that arrived any other way — a federation mirror, a restore — has
+        // none, and an UPDATE would drop its counts on the floor for good.
+        //
+        // `completed` is deliberately untouched: a snapshot cannot see it —
+        // it is a cumulative counter, not a fact about the current swarm.
+        await db.execute(sql`
+          INSERT INTO torrent_stats (info_hash, seeders, leechers, updated_at)
+          SELECT v.info_hash, v.seeders, v.leechers, now()
+            FROM (VALUES ${values}) AS v(info_hash, seeders, leechers)
+           WHERE EXISTS (SELECT 1 FROM torrents t WHERE t.info_hash = v.info_hash)
+              ON CONFLICT (info_hash) DO UPDATE
+             SET seeders = excluded.seeders,
+                 leechers = excluded.leechers,
+                 updated_at = excluded.updated_at
+        `);
+      }
+    }
+
+    if (!scanTruncated) {
+      // Anything still carrying a count from before this pass has no swarm
+      // left. The predicate excludes rows already at zero, so a quiet
+      // catalogue costs one indexless-but-cheap pass and writes nothing.
+      await db.execute(sql`
+        UPDATE torrent_stats
+           SET seeders = 0, leechers = 0, updated_at = now()
+         WHERE (seeders <> 0 OR leechers <> 0)
+           AND updated_at < ${passStartedAt}::timestamptz`);
+    }
+  } catch (err) {
+    // A stale snapshot degrades a range on a collapsed row; it must never
+    // take the rest of the collection down with it.
+    console.warn(
+      '[Stats Collector] torrent_stats refresh failed:',
+      (err as Error).message
+    );
+  }
+}
+
 export default defineNitroPlugin((nitroApp) => {
   // Run every hour by default, or use env var (in ms)
   const INTERVAL = parseInt(
@@ -40,6 +117,11 @@ export default defineNitroPlugin((nitroApp) => {
       const keyPrefix = process.env.REDIS_KEY_PREFIX || 'ot:';
       const uniquePeers = new Set<string>();
       const uniqueSeeders = new Set<string>();
+      // Per-torrent tally, taken from the same pass. `torrent_stats` used to
+      // be written once at upload and never again, so every consumer of it —
+      // the three federation feeds — was publishing zeroes. The peers are
+      // already parsed here; counting them per swarm costs one map entry.
+      const perTorrent = new Map<string, { seeders: number; leechers: number }>();
       let cursor = '0';
       do {
         if (Date.now() > scanDeadline) {
@@ -60,14 +142,23 @@ export default defineNitroPlugin((nitroApp) => {
             ? fullKey.slice(keyPrefix.length)
             : fullKey;
           const peersData = await redis.hgetall(key);
+          const infoHash = key.slice('peers:'.length);
+          let seeders = 0;
+          let leechers = 0;
           for (const json of Object.values(peersData)) {
             try {
               const peer = JSON.parse(json as string);
               const peerKey = `${peer.ip}:${peer.port}`;
               uniquePeers.add(peerKey);
-              if (peer.isSeeder) uniqueSeeders.add(peerKey);
+              if (peer.isSeeder) {
+                uniqueSeeders.add(peerKey);
+                seeders++;
+              } else {
+                leechers++;
+              }
             } catch (e) {}
           }
+          if (infoHash) perTorrent.set(infoHash, { seeders, leechers });
         }
       } while (cursor !== '0');
       const peersCount = uniquePeers.size;
@@ -77,6 +168,8 @@ export default defineNitroPlugin((nitroApp) => {
           `[Stats Collector] SCAN exceeded ${SCAN_TIME_BUDGET_MS}ms — counts are partial`
         );
       }
+
+      await writeTorrentStats(perTorrent, scanTruncated);
 
       // 4. Redis Memory Usage
       const info = await redis.info('memory');
