@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
         ),
       ),
     )
-    .orderBy(desc(schema.catalogRecords.seq))
+    .orderBy(desc(schema.catalogRecords.createdAt))
     .limit(limit);
 
   // Verbatim, like the record feed: a record rebuilt from parts is a second

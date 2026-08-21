@@ -74,7 +74,7 @@ async function allRecords(torrentId: string) {
     .select()
     .from(schema.catalogRecords)
     .where(eq(schema.catalogRecords.torrentId, torrentId))
-    .orderBy(schema.catalogRecords.seq);
+    .orderBy(schema.catalogRecords.createdAt, schema.catalogRecords.id);
 }
 
 beforeEach(() => {

@@ -5,7 +5,6 @@ import {
   integer,
   smallint,
   bigint,
-  bigserial,
   boolean,
   jsonb,
   index,
@@ -1052,20 +1051,6 @@ export const catalogRecords = pgTable(
     /** Content address — `sha256:<hex>` over the canonical body. */
     id: text('id').primaryKey(),
     /**
-     * Monotonic publication order. Local, and no longer a sync cursor.
-     *
-     * It was one, and it was never safe as one: two concurrent inserts can
-     * commit out of order, so a reader paging strictly past the highest value
-     * it saw can step over a record it never received. Set reconciliation
-     * replaced it — a partner now compares SETS, which cannot skip and does
-     * not care what order anything was written in.
-     *
-     * Kept because it is the cheapest honest answer to "in what order did this
-     * instance publish these", which is worth having in an admin view and in a
-     * post-mortem. Nothing on the wire reads it.
-     */
-    seq: bigserial('seq', { mode: 'number' }).notNull(),
-    /**
      * The torrent this record describes. Deliberately NOT a foreign key.
      *
      * A record is a published artefact and has to outlive its subject: that is
@@ -1101,8 +1086,9 @@ export const catalogRecords = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
-    index('catalog_records_seq_idx').on(table.seq),
     index('catalog_records_info_hash_idx').on(table.infoHash),
+    /** Newest first, for the live-search answer. */
+    index('catalog_records_created_idx').on(table.createdAt),
     /**
      * The set reconciliation reads: ordered ranges of `id` over the records
      * that still stand. The primary key alone would have to visit the heap for
