@@ -81,3 +81,6 @@ graphify-out/
 # Generated from the route tree by `pnpm --filter @trackarr/api openapi`, which
 # the API build runs before nitropack. A build product, not a source.
 apps/api/openapi.json
+
+# Claude Code session memory — local notes, never part of the project.
+.remember/
