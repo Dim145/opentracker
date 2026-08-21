@@ -341,6 +341,101 @@ describe('mirror — dedup and integrity', () => {
   });
 });
 
+describe('series position — what a mirrored season knows about itself', () => {
+  // The grouped catalogue files television under `(work, season, episode)`.
+  // Those two numbers are columns, not something derivable at display time
+  // without re-parsing every name on every page, so they have to cross the
+  // federation with the release. They were added to `torrents` before they
+  // were added to the feed, which is exactly the kind of omission that shows
+  // up as "the partner's episodes all landed in season unknown".
+
+  it('mirrors the position the partner sends', async () => {
+    const peer = await makePeer();
+    on(CATALOG, () =>
+      page([item(1, { name: 'Show.S03E07.1080p-NTb', season: 3, episode: 7 })]),
+    );
+
+    await syncPeerCatalogue(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.season).toBe(3);
+    expect(row!.episode).toBe(7);
+  });
+
+  it('re-derives it from the name when an older partner omits it', async () => {
+    // A mesh is mixed-version by nature. Without this fallback every
+    // television release from an instance predating the field would mirror as
+    // "season unknown" — and it is the same parser the local catalogue uses,
+    // so the release reads identically whichever side it came from.
+    const peer = await makePeer();
+    on(CATALOG, () => page([item(2, { name: 'Show.S02E05.2160p.WEB-DL-NTb' })]));
+
+    await syncPeerCatalogue(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.season).toBe(2);
+    expect(row!.episode).toBe(5);
+  });
+
+  it('reads a season pack as a season with no episode', async () => {
+    const peer = await makePeer();
+    on(CATALOG, () => page([item(3, { name: 'Show.S01.COMPLETE.1080p-GRP' })]));
+
+    await syncPeerCatalogue(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.season).toBe(1);
+    expect(row!.episode).toBeNull();
+  });
+
+  it('leaves a film with no position', async () => {
+    const peer = await makePeer();
+    on(CATALOG, () => page([item(4, { name: 'Some.Film.2011.1080p.BluRay-A' })]));
+
+    await syncPeerCatalogue(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.season).toBeNull();
+    expect(row!.episode).toBeNull();
+  });
+
+  it('refuses a position a partner made up', async () => {
+    // Anything that is not a plausible number is dropped rather than stored:
+    // a float or a five-digit season would file the release under a bucket
+    // the group page can never show.
+    const peer = await makePeer();
+    on(CATALOG, () =>
+      page([
+        item(5, { name: 'Unreadable.Upload', season: 1.5, episode: -3 }),
+        item(6, { name: 'Also.Unreadable', season: 99_999 }),
+        item(7, { name: 'And.Again', season: 'three' }),
+      ]),
+    );
+
+    await syncPeerCatalogue(peer);
+
+    for (const row of await mirrored(peer.id)) {
+      expect(row.season, row.name).toBeNull();
+      expect(row.episode, row.name).toBeNull();
+    }
+  });
+
+  it('prefers the partner over the parser when the two disagree', async () => {
+    // The partner saw the upload form: an uploader may have corrected what
+    // the parser guessed, and that correction is the better answer.
+    const peer = await makePeer();
+    on(CATALOG, () =>
+      page([item(8, { name: 'Show.S09E09.1080p-NTb', season: 1, episode: 2 })]),
+    );
+
+    await syncPeerCatalogue(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.season).toBe(1);
+    expect(row!.episode).toBe(2);
+  });
+});
+
 describe('containing a hostile partner', () => {
   it('stores http(s) URLs only', async () => {
     const peer = await makePeer();

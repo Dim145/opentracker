@@ -2288,6 +2288,15 @@ export const remoteTorrents = pgTable(
     tvdbId: text('tvdb_id'),
     igdbId: text('igdb_id'),
     openlibraryId: text('openlibrary_id'),
+    /**
+     * Series position, mirrored from the partner. Sent by instances from
+     * 0.28.0 on; older partners omit the fields entirely, in which case the
+     * sync re-parses them out of the name so a mirrored season still knows
+     * which season it is. Null for anything that is not television, and for a
+     * name nothing could read.
+     */
+    season: smallint('season'),
+    episode: smallint('episode'),
     /** Swarm stats from the partner — best-effort, short-lived. */
     seeders: integer('seeders').default(0).notNull(),
     leechers: integer('leechers').default(0).notNull(),
