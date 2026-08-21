@@ -36,7 +36,11 @@ import {
   isFederationLive,
 } from '~~/utils/federation/config';
 import { didKeyFromPublicKey } from '~~/utils/federation/did';
-import { mintRecords, mintTombstone } from '~~/utils/federation/catalogRecord';
+import {
+  PUBLISHABLE,
+  mintRecords,
+  mintTombstone,
+} from '~~/utils/federation/catalogRecord';
 import { getSetting, setSetting } from '~~/utils/server';
 import { withCronLock } from '~~/utils/cronLock';
 
@@ -75,10 +79,6 @@ function readCursor(raw: string | null): { ts: string; id: string } {
 }
 
 const LIVE_AT = sql`coalesce(${schema.torrents.updatedAt}, ${schema.torrents.createdAt})`;
-const VISIBLE = and(
-  eq(schema.torrents.moderationStatus, 'accepted'),
-  eq(schema.torrents.isActive, true),
-)!;
 
 interface TickResult {
   minted: number;
@@ -101,7 +101,7 @@ async function tick(ctx: {
     .from(schema.torrents)
     .where(
       and(
-        VISIBLE,
+        PUBLISHABLE,
         or(
           sql`${LIVE_AT} > ${cursor.ts}::timestamp`,
           and(
@@ -139,10 +139,10 @@ async function tick(ctx: {
       and(
         isNull(schema.catalogRecords.supersededAt),
         eq(schema.catalogRecords.kind, 'torrent'),
-        or(
-          isNull(schema.torrents.id),
-          sql`NOT (${schema.torrents.moderationStatus} = 'accepted' AND ${schema.torrents.isActive})`,
-        ),
+        // Gone, or no longer publishable — a ban counts, which is why the
+        // condition is the same one minting uses rather than a copy that can
+        // drift away from it.
+        or(isNull(schema.torrents.id), sql`NOT (${PUBLISHABLE})`),
       ),
     )
     .limit(BATCH_SIZE);

@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { randomUUID, generateKeyPairSync } from 'node:crypto';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { didKeyFromPublicKey } from '../../utils/federation/did';
 import { verifyRecord } from '../../utils/federation/record';
 import {
+  SETTLE_SECONDS,
+  listRecordsSince,
   mintRecords,
   mintTombstone,
   type MintContext,
@@ -279,5 +281,91 @@ describe('mintTombstone', () => {
     const id = await makeTorrent();
     expect(await mintTombstone(id, ctx)).toBeNull();
     expect(await allRecords(id)).toHaveLength(0);
+  });
+});
+
+describe('the record stream', () => {
+  /** Records are withheld for a few seconds; tests cannot wait for that. */
+  async function age(): Promise<void> {
+    await db.execute(
+      sql`UPDATE catalog_records
+             SET created_at = now() - interval '${sql.raw(String(SETTLE_SECONDS + 5))} seconds'`,
+    );
+  }
+
+  it('walks forward by seq, oldest first', async () => {
+    const ids = [await makeTorrent(), await makeTorrent(), await makeTorrent()];
+    await mintRecords(ids, ctx);
+    await age();
+
+    const first = await listRecordsSince(0, 2);
+    expect(first.records).toHaveLength(2);
+    expect(first.nextCursor).toBeGreaterThan(0);
+
+    const second = await listRecordsSince(first.nextCursor, 2);
+    expect(second.records).toHaveLength(1);
+
+    // No overlap and nothing missed: three records across the two pages.
+    const seen = new Set(
+      [...first.records, ...second.records].map((r) => (r as { id: string }).id),
+    );
+    expect(seen.size).toBe(3);
+  });
+
+  it('serves what stands, not what stood', async () => {
+    // A superseded record is history. Its successor carries `replaces` and
+    // arrives with a higher seq, so a partner learns of the change without
+    // ever being sent the old one.
+    const id = await makeTorrent();
+    await mintRecords([id], ctx);
+    await db
+      .update(schema.torrents)
+      .set({ name: 'Renamed-A' })
+      .where(eq(schema.torrents.id, id));
+    await mintRecords([id], ctx);
+    await age();
+
+    const { records } = await listRecordsSince(0, 50);
+    expect(records).toHaveLength(1);
+    expect((records[0] as { name: string }).name).toBe('Renamed-A');
+    expect((records[0] as Record<string, unknown>)['trackarr:replaces']).toBeTruthy();
+  });
+
+  it('serves a withdrawal as a statement, not as a gap', async () => {
+    const id = await makeTorrent();
+    await mintRecords([id], ctx);
+    await mintTombstone(id, ctx);
+    await age();
+
+    const { records } = await listRecordsSince(0, 50);
+    expect(records).toHaveLength(1);
+    expect((records[0] as { type: string }).type).toBe('Tombstone');
+  });
+
+  it('withholds a record until concurrent writers have committed', async () => {
+    // `seq` is a sequence, and a sequence is not a safe cursor: two
+    // transactions can take 5 and 6 and commit in the other order, so a reader
+    // paging strictly past the highest seq it saw would miss 5 forever. The
+    // settle window is what makes that vanishingly unlikely — and it is why a
+    // freshly minted record is not immediately visible.
+    const id = await makeTorrent();
+    await mintRecords([id], ctx);
+
+    expect((await listRecordsSince(0, 50)).records).toHaveLength(0);
+    await age();
+    expect((await listRecordsSince(0, 50)).records).toHaveLength(1);
+  });
+
+  it('leaves the cursor where it was when there is nothing new', async () => {
+    // A partner that polls an idle instance must not have its cursor reset to
+    // zero and re-download the catalogue.
+    const id = await makeTorrent();
+    await mintRecords([id], ctx);
+    await age();
+    const { nextCursor } = await listRecordsSince(0, 50);
+
+    const idle = await listRecordsSince(nextCursor, 50);
+    expect(idle.records).toHaveLength(0);
+    expect(idle.nextCursor).toBe(nextCursor);
   });
 });

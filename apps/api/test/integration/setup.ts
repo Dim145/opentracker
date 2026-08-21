@@ -16,10 +16,16 @@ beforeEach(async () => {
   // test's rows leak into the next, which shows up as failures that depend on
   // execution order.
   //
-  // The three federation tables are named explicitly: `peers` is the root of
-  // the mirror (remote_torrents, sync_state and follows hang off it), while
+  // The federation tables are named explicitly: `peers` is the root of the
+  // mirror (remote_torrents, sync_state and follows hang off it), while
   // `federation_config` and the tombstones reference nothing and would
   // therefore survive a CASCADE from `users`.
+  //
+  // `catalog_records` is named for a subtler reason: its `torrent_id` is
+  // deliberately NOT a foreign key, because a published record has to outlive
+  // the torrent it describes. That is also what puts it out of reach of a
+  // CASCADE, so records would leak between tests and every assertion about
+  // "the whole stream" would count somebody else's.
   await db.execute(
     sql`TRUNCATE TABLE
           upload_request_fill_attempts, upload_requests, invitations,
@@ -27,6 +33,7 @@ beforeEach(async () => {
           freeleech_pool_cycles, freeleech_pool_contributions,
           bonus_grants, bonus_rules,
           federation_config, federation_peers, federation_catalog_removals,
+          catalog_records,
           users
         RESTART IDENTITY CASCADE`,
   );

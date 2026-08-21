@@ -25,7 +25,7 @@
  *    record hourly. Swarm figures travel separately, unsigned, as what they
  *    are.
  */
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import {
   CONTEXT,
@@ -34,6 +34,29 @@ import {
   type SignedRecord,
   type UnsignedRecord,
 } from './record';
+
+/**
+ * What this instance is willing to publish.
+ *
+ * Defined here rather than in the feed on purpose. A feed filter can stop
+ * sending something; it cannot un-send it. Once a record is signed and handed
+ * to a partner it can be relayed by anyone, forever — so "we no longer publish
+ * this" has to be a decision about MINTING, backed by a tombstone, or it is
+ * not a decision at all.
+ *
+ * Three conditions, and the third is the one a filter-only design gets wrong:
+ * a banned uploader's content stops federating out. The torrent stays visible
+ * locally — moderation is a separate matter — but a banned member's work and
+ * name are not propagated.
+ */
+export const PUBLISHABLE = sql`
+  ${schema.torrents.moderationStatus} = 'accepted'
+  AND ${schema.torrents.isActive}
+  AND NOT EXISTS (
+    SELECT 1 FROM ${schema.users}
+     WHERE ${schema.users.id} = ${schema.torrents.uploaderId}
+       AND ${schema.users.isBanned}
+  )`;
 
 /** Everything the projection reads. Nothing else may influence the id. */
 export interface TorrentProjection {
@@ -354,4 +377,68 @@ export async function mintTombstone(
   });
 
   return signed;
+}
+
+/**
+ * How long a record waits before it is served to a partner.
+ *
+ * `seq` is a sequence, and a sequence is not a safe cursor: two transactions
+ * can take 5 and 6 and commit in the other order, so a reader paging strictly
+ * past the highest seq it saw would miss 5 forever. Withholding a record for a
+ * few seconds means that by the time it is served, anything that started
+ * before it has committed.
+ *
+ * A mitigation, not a proof — which is why set reconciliation replaces this
+ * cursor rather than refining it: reconciliation converges on the same SET
+ * whatever order things were written in, and cannot skip.
+ */
+export const SETTLE_SECONDS = 5;
+
+export interface RecordPage {
+  records: Array<Record<string, unknown>>;
+  nextCursor: number;
+}
+
+/**
+ * One page of the record stream, oldest first.
+ *
+ * Only what currently stands. A superseded record is history: its successor
+ * carries `replaces` and arrives with a higher seq, so a partner learns of the
+ * change without ever needing the old one — and a tombstone is served like any
+ * other record, because a withdrawal is a statement, not a gap.
+ *
+ * No filtering beyond that. What this instance publishes was decided when the
+ * record was minted; a feed clause could stop sending something but could not
+ * un-send it, and a record already handed over can be relayed by anyone.
+ */
+export async function listRecordsSince(
+  since: number,
+  limit: number,
+): Promise<RecordPage> {
+  const rows = await db
+    .select({
+      seq: schema.catalogRecords.seq,
+      body: schema.catalogRecords.body,
+    })
+    .from(schema.catalogRecords)
+    .where(
+      and(
+        gt(schema.catalogRecords.seq, since),
+        isNull(schema.catalogRecords.supersededAt),
+        lt(
+          schema.catalogRecords.createdAt,
+          sql`now() - interval '${sql.raw(String(SETTLE_SECONDS))} seconds'`,
+        ),
+      ),
+    )
+    .orderBy(asc(schema.catalogRecords.seq))
+    .limit(limit);
+
+  return {
+    // Verbatim. Rebuilding a record from parts would be a second
+    // implementation of the format, and it would eventually disagree with the
+    // signature.
+    records: rows.map((r) => r.body),
+    nextCursor: rows.length ? Number(rows[rows.length - 1]!.seq) : since,
+  };
 }
