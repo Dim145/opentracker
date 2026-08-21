@@ -41,6 +41,7 @@ import { and, eq, ne } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { didKeyFromPublicKey } from './did';
 import { verifyIdentity } from './identityDoc';
+import { isRevoked } from './identityRecord';
 
 export interface ClaimOutcome {
   ok: boolean;
@@ -67,6 +68,18 @@ export async function checkClaim(document: unknown): Promise<ClaimOutcome> {
     // A document can be perfectly well signed by its subject and still say
     // nothing: "I hold a key and I say I am Nova" is free to manufacture.
     return { ok: false, reason: 'not endorsed by the instance it names' };
+  }
+
+  // A withdrawn identifier proves nothing, however good the signatures on it
+  // are — and the document will still verify perfectly, because a withdrawal
+  // cannot reach back and unmake bytes that were signed before it. This check
+  // is the only thing between a leaked file and the identity it names.
+  //
+  // Asked of the ENDORSER specifically: only the instance that vouched for an
+  // identifier can take that back, and a partner announcing withdrawals for
+  // keys it never issued must not be able to unpick anybody else's links.
+  if (await isRevoked(verdict.subject!, verdict.endorsedBy)) {
+    return { ok: false, reason: 'that identifier has been withdrawn by its instance' };
   }
 
   // Match on the KEY, never on the URL the document carries. A URL is a string

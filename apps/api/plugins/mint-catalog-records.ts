@@ -28,7 +28,10 @@
  * Nothing runs while federation is off: no key, no issuer, and no reason to
  * pay for it.
  */
-import { mintIdentityRecords } from '~~/utils/federation/identityRecord';
+import {
+  mintIdentityRecords,
+  mintRevocations,
+} from '~~/utils/federation/identityRecord';
 import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import {
@@ -159,6 +162,7 @@ async function tick(ctx: MintContext): Promise<TickResult> {
     const ids = await mintIdentityRecords(ctx);
     minted += ids.minted;
     withdrawn += ids.withdrawn;
+    minted += (await mintRevocations(ctx)).minted;
   } catch (err) {
     // A member's alias assertion failing must not stop the catalogue.
     console.warn('[CatalogRecords] identity records:', (err as Error).message);

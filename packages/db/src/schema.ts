@@ -2553,17 +2553,47 @@ export type FederatedFollow = typeof federatedFollows.$inferSelect;
  * That is also why the key is exportable but never re-imported: a key this
  * server has seen cannot become a member's private property afterwards.
  */
-export const userSigningKeys = pgTable('user_signing_keys', {
-  userId: text('user_id')
-    .primaryKey()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  /** `did:key:z6Mk…` — the multicodec-tagged public key, self-describing. */
-  did: text('did').notNull().unique(),
-  publicKey: text('public_key').notNull(),
-  /** Encrypted at rest with the instance credential key. */
-  privateKeyEnc: text('private_key_enc').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+export const userSigningKeys = pgTable(
+  'user_signing_keys',
+  {
+    /**
+     * The key IS the identifier, so it is the primary key. A member has one
+     * current key and as many retired ones as they have rotated — a retired
+     * key has to stay on file, because "this identifier is no longer that
+     * person" is a statement we have to keep making.
+     */
+    did: text('did').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    publicKey: text('public_key').notNull(),
+    /** Encrypted at rest with the instance credential key. */
+    privateKeyEnc: text('private_key_enc').notNull(),
+    /**
+     * Set when the member rotated away from it.
+     *
+     * A rotation is not housekeeping: it says the old key can no longer speak
+     * for them, which is the only recourse a member has if their exported file
+     * gets out. Every link anybody proved with it has to fall.
+     */
+    revokedAt: timestamp('revoked_at'),
+    /** The key that took over, so a member's history survives the rotation. */
+    succeededBy: text('succeeded_by'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    /**
+     * One current key per member. A partial unique index rather than a plain
+     * one: retired keys pile up and must not compete for the slot, while two
+     * live keys for one member would make "who is this?" ambiguous in a way
+     * nothing downstream could resolve.
+     */
+    uniqueIndex('user_signing_keys_current')
+      .on(table.userId)
+      .where(sql`revoked_at IS NULL`),
+    index('user_signing_keys_user_idx').on(table.userId),
+  ],
+);
 
 export type UserSigningKey = typeof userSigningKeys.$inferSelect;
 
@@ -2667,3 +2697,46 @@ export const remoteIdentityLinks = pgTable(
 );
 
 export type RemoteIdentityLink = typeof remoteIdentityLinks.$inferSelect;
+
+/**
+ * Identifiers a partner has withdrawn.
+ *
+ * The recourse a member has when their exported identity file gets out. Their
+ * instance retires the key and publishes it; every instance that hears drops
+ * whatever was proven with it and refuses to accept it again.
+ *
+ * Kept as its own table rather than as a flag on the link, because a
+ * revocation can arrive BEFORE anybody tries to use the key — and that is the
+ * case worth being ready for: a leaked file is used by whoever finds it,
+ * whenever they find it.
+ */
+export const revokedIdentities = pgTable(
+  'revoked_identities',
+  {
+    id: text('id').primaryKey(),
+    /**
+     * The retired identifier, and WHO retired it.
+     *
+     * Keyed on the pair, never on the identifier alone. A withdrawal is only
+     * worth anything from the instance that issued the identifier in the first
+     * place — otherwise any partner could unpick any link in the federation by
+     * announcing withdrawals for keys it never issued. Since a claim is only
+     * ever accepted on a known partner's endorsement, checking that THAT
+     * partner withdrew it is both sufficient and exact.
+     */
+    did: text('did').notNull(),
+    /** `did:key:…` of the instance that withdrew it. */
+    issuer: text('issuer').notNull(),
+    /** The key that took over, when the member rotated rather than left. */
+    succeededBy: text('succeeded_by'),
+    /** Content address of the record that carried it. */
+    recordId: text('record_id'),
+    revokedAt: timestamp('revoked_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('revoked_identities_unique').on(table.issuer, table.did),
+    index('revoked_identities_did_idx').on(table.did),
+  ],
+);
+
+export type RevokedIdentity = typeof revokedIdentities.$inferSelect;

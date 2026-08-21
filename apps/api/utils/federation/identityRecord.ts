@@ -38,7 +38,7 @@
  * "anybody can check": the evidence is self-verifying, so a third instance
  * confirms the link without trusting B and without asking A.
  */
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { canonicalBytes } from './jcs';
 import { createHash, randomUUID } from 'node:crypto';
@@ -401,4 +401,218 @@ export async function identitiesOfUser(userId: string): Promise<Set<string>> {
     for (const d of await aliasesOf(root)) all.add(d);
   }
   return all;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Withdrawing an identifier
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * "That key is no longer our member", published so it can travel.
+ *
+ * The recourse a member has when their exported identity file gets out.
+ * Nothing can un-leak a key — whoever holds it can sign with it forever — so
+ * this does not try. It withdraws the instance's endorsement, which is the
+ * half that made the key worth anything to anybody else, and it does so as a
+ * record: it reconciles, it relays, and it outlives us.
+ *
+ * Only the issuing instance may revoke. A self-revocation signed by the key
+ * itself would look tidier and would be a gift to a thief: they hold the key
+ * too, so they could revoke the real member's identifier and lock them out of
+ * proving anything. Revocation removes a capability, so the party that granted
+ * it is the right one to remove it — and it is the party every reader already
+ * trusts about that identifier.
+ *
+ * AS2 `Undo`, because that is what it is: undoing the endorsement asserted
+ * earlier. `trackarr:succeededBy` names the key that took over, so a reader
+ * can see a person continued rather than vanished — it transfers nothing.
+ */
+export function projectRevocation(
+  did: string,
+  succeededBy: string | null,
+  revokedAt: Date,
+  issuerDid: string,
+): Record<string, unknown> {
+  return {
+    '@context': CONTEXT,
+    type: 'Undo',
+    object: did,
+    'trackarr:succeededBy': succeededBy,
+    published: revokedAt.toISOString(),
+    'trackarr:issuer': issuerDid,
+    'trackarr:replaces': null,
+  };
+}
+
+/**
+ * Publish a revocation for every key retired here and not yet announced.
+ *
+ * Once published a revocation is never superseded and never withdrawn. An
+ * identifier that stopped being a member does not start again — and a
+ * retraction of a retraction would be a way to un-say the one thing a member
+ * had to be able to say.
+ */
+export async function mintRevocations(
+  ctx: MintContext,
+): Promise<{ minted: number }> {
+  const retired = await db
+    .select({
+      did: schema.userSigningKeys.did,
+      succeededBy: schema.userSigningKeys.succeededBy,
+      revokedAt: schema.userSigningKeys.revokedAt,
+    })
+    .from(schema.userSigningKeys)
+    .where(isNotNull(schema.userSigningKeys.revokedAt));
+
+  let minted = 0;
+  for (const key of retired) {
+    const draft = projectRevocation(
+      key.did,
+      key.succeededBy,
+      key.revokedAt!,
+      ctx.did,
+    );
+    const contentHash = fingerprint(draft);
+
+    const [already] = await db
+      .select({ id: schema.catalogRecords.id })
+      .from(schema.catalogRecords)
+      .where(
+        and(
+          eq(schema.catalogRecords.kind, 'revocation'),
+          eq(schema.catalogRecords.contentHash, contentHash),
+        ),
+      )
+      .limit(1);
+    if (already) continue;
+
+    const signed = signRecord(draft as never, {
+      privateKeyPem: ctx.privateKeyPem,
+      did: ctx.did,
+    }) as SignedRecord;
+
+    await db
+      .insert(schema.catalogRecords)
+      .values({
+        id: signed.id,
+        torrentId: key.did,
+        infoHash: null,
+        issuer: ctx.did,
+        kind: 'revocation',
+        body: signed as unknown as Record<string, unknown>,
+        contentHash,
+      })
+      .onConflictDoNothing({ target: schema.catalogRecords.id });
+    minted++;
+  }
+
+  return { minted };
+}
+
+/**
+ * Take in a partner's revocation, and act on it.
+ *
+ * Acting on it is the point, and it is where this differs from every other
+ * kind of ingestion: recording that we heard would leave the leaked key still
+ * proving things. So everything the identifier was used for comes down —
+ * assertions other instances made with it, and any claim a local account
+ * proved with it.
+ *
+ * That last part is deliberately blunt. The local account that proved the old
+ * identifier may be the member; it may equally be whoever found their file.
+ * There is no way to tell from here, and the member can re-prove with an
+ * export only they can now obtain. Leaving the link standing on the chance
+ * that it is genuine would mean a revocation changed nothing for the one case
+ * it exists to fix.
+ *
+ * Only the instance that issued the identifier may withdraw it. A partner
+ * revoking somebody else's key would otherwise be able to unpick any link in
+ * the federation.
+ */
+export async function ingestRevocation(
+  peerId: string,
+  recordId: string,
+  issuer: string,
+  body: Record<string, unknown>,
+): Promise<boolean> {
+  const did = body.object;
+  if (typeof did !== 'string' || !did.startsWith('did:key:')) return false;
+
+  // Recorded against the ISSUER, not against the identifier. A withdrawal is
+  // only worth anything from whoever issued the identifier — and since a claim
+  // is only ever accepted on a known partner's endorsement, "did the endorser
+  // withdraw it?" is both the sufficient question and the exact one.
+  //
+  // Recorded even when we have never heard of the identifier, which is the case
+  // worth being ready for: a leaked file is used by whoever finds it, whenever
+  // they find it, and that may be long after its instance gave up on it.
+  await db
+    .insert(schema.revokedIdentities)
+    .values({
+      id: randomUUID(),
+      did,
+      issuer,
+      succeededBy: asStr(body['trackarr:succeededBy']),
+      recordId,
+    })
+    .onConflictDoUpdate({
+      target: [schema.revokedIdentities.issuer, schema.revokedIdentities.did],
+      set: { succeededBy: asStr(body['trackarr:succeededBy']), recordId },
+    });
+
+  // Bring down what THIS issuer's endorsement was holding up, and nothing
+  // else. Another partner's assertions about the same identifier are that
+  // partner's to withdraw.
+  await db
+    .delete(schema.remoteIdentityLinks)
+    .where(
+      and(
+        eq(schema.remoteIdentityLinks.issuer, issuer),
+        eq(schema.remoteIdentityLinks.aliasDid, did),
+      ),
+    );
+  await db
+    .delete(schema.remoteIdentityLinks)
+    .where(
+      and(
+        eq(schema.remoteIdentityLinks.issuer, issuer),
+        eq(schema.remoteIdentityLinks.subjectDid, did),
+      ),
+    );
+
+  // A local member proved this identifier on the partner that has now
+  // withdrawn it. The link comes down, bluntly: the account that proved it may
+  // be the member, and may equally be whoever found their file. There is no
+  // way to tell from here, and the member can re-prove from a fresh export.
+  // Leaving it standing on the chance it is genuine would mean a withdrawal
+  // changed nothing for the one case it exists to fix.
+  await db
+    .delete(schema.federatedIdentities)
+    .where(
+      and(
+        eq(schema.federatedIdentities.peerId, peerId),
+        eq(schema.federatedIdentities.subjectDid, did),
+      ),
+    );
+
+  return true;
+}
+
+/** Whether the instance that endorsed an identifier has since withdrawn it. */
+export async function isRevoked(did: string, issuer: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: schema.revokedIdentities.id })
+    .from(schema.revokedIdentities)
+    .where(
+      and(
+        eq(schema.revokedIdentities.did, did),
+        eq(schema.revokedIdentities.issuer, issuer),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
+
+function asStr(v: unknown): string | null {
+  return typeof v === 'string' && v.length ? v : null;
 }

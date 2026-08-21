@@ -537,7 +537,12 @@
       "confirm": "Ceci télécharge une clé privée.",
       "confirmAction": "Télécharger",
       "done": "Exportée.",
-      "failed": "Impossible d'exporter votre identité. Réessayez dans un instant."
+      "failed": "Impossible d'exporter votre identité. Réessayez dans un instant.",
+      "leaked": "Si le fichier venait à fuiter, retirez la clé : votre identifiant est révoqué partout et un nouveau prend sa place.",
+      "rotate": "Retirer cette clé",
+      "rotateWarning": "Tous les comptes que vous avez prouvés ailleurs seront déliés.",
+      "rotateConfirm": "La retirer",
+      "rotated": "Retirée. Votre nouvel identifiant :"
     }
   },
   "torrents": {

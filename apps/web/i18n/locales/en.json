@@ -537,7 +537,12 @@
       "confirm": "This downloads a private key.",
       "confirmAction": "Download it",
       "done": "Exported.",
-      "failed": "Could not export your identity. Try again in a moment."
+      "failed": "Could not export your identity. Try again in a moment.",
+      "leaked": "If the file ever gets out, retire the key: your identifier is withdrawn everywhere and a new one takes its place.",
+      "rotate": "Retire this key",
+      "rotateWarning": "Every account you have proven elsewhere will be unlinked.",
+      "rotateConfirm": "Retire it",
+      "rotated": "Retired. Your new identifier:"
     }
   },
   "torrents": {

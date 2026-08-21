@@ -33,7 +33,7 @@
  * rule the instance identity follows and for the same reason: key material you
  * did not need is key material you have to protect anyway.
  */
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { encryptJson, decryptJson } from '../channelSecrets';
 import { generateInstanceKeypair } from './keys';
@@ -51,7 +51,12 @@ export async function ensureUserDid(userId: string): Promise<string> {
   const [existing] = await db
     .select({ did: schema.userSigningKeys.did })
     .from(schema.userSigningKeys)
-    .where(eq(schema.userSigningKeys.userId, userId))
+    .where(
+      and(
+        eq(schema.userSigningKeys.userId, userId),
+        isNull(schema.userSigningKeys.revokedAt),
+      ),
+    )
     .limit(1);
   if (existing) return existing.did;
 
@@ -65,7 +70,7 @@ export async function ensureUserDid(userId: string): Promise<string> {
       publicKey: kp.publicKeyPem,
       privateKeyEnc: encryptJson({ pem: kp.privateKeyPem }),
     })
-    .onConflictDoNothing({ target: schema.userSigningKeys.userId })
+    .onConflictDoNothing({ target: schema.userSigningKeys.did })
     .returning({ did: schema.userSigningKeys.did });
   if (row) return row.did;
 
@@ -73,7 +78,12 @@ export async function ensureUserDid(userId: string): Promise<string> {
   const [winner] = await db
     .select({ did: schema.userSigningKeys.did })
     .from(schema.userSigningKeys)
-    .where(eq(schema.userSigningKeys.userId, userId))
+    .where(
+      and(
+        eq(schema.userSigningKeys.userId, userId),
+        isNull(schema.userSigningKeys.revokedAt),
+      ),
+    )
     .limit(1);
   return winner!.did;
 }
@@ -97,7 +107,12 @@ export async function ensureUserDids(
       did: schema.userSigningKeys.did,
     })
     .from(schema.userSigningKeys)
-    .where(inArray(schema.userSigningKeys.userId, wanted));
+    .where(
+      and(
+        inArray(schema.userSigningKeys.userId, wanted),
+        isNull(schema.userSigningKeys.revokedAt),
+      ),
+    );
 
   const out = new Map(rows.map((r) => [r.userId, r.did]));
   for (const id of wanted) {
@@ -120,10 +135,82 @@ export async function getUserPrivateKeyPem(
   const [row] = await db
     .select()
     .from(schema.userSigningKeys)
-    .where(eq(schema.userSigningKeys.userId, userId))
+    .where(
+      and(
+        eq(schema.userSigningKeys.userId, userId),
+        isNull(schema.userSigningKeys.revokedAt),
+      ),
+    )
     .limit(1);
   if (!row) return null;
   const dec = decryptJson<{ pem: string }>(row.privateKeyEnc);
   if (!dec?.pem) return null;
   return { did: row.did, publicKeyPem: row.publicKey, privateKeyPem: dec.pem };
+}
+
+/**
+ * Retire a member's key and give them a new one.
+ *
+ * The recourse for a member whose exported identity file got out. Nothing here
+ * can un-leak the old key — anybody holding it can still sign with it forever
+ * — so a rotation does not try to. It says the old identifier is no longer
+ * this person, and lets that statement travel: every instance that hears it
+ * drops what was proven with the old key and refuses it thereafter.
+ *
+ * The new key does NOT inherit the old one's links. It would be the obvious
+ * convenience and it is exactly wrong: the account that proved the old
+ * identifier somewhere else might be the very person who stole the file, and
+ * carrying the link forward would hand them the new name too. The member
+ * re-proves, with an export only they can now obtain.
+ *
+ * `succeededBy` is recorded all the same. It does not transfer anything; it
+ * lets a reader see that a person continued rather than vanished, and it is
+ * the hinge a future move to a member-held key turns on.
+ */
+export async function rotateUserKey(
+  userId: string,
+): Promise<{ previous: string | null; did: string }> {
+  const previous = await currentDid(userId);
+
+  const kp = generateInstanceKeypair();
+  const did = didKeyFromPublicKey(kp.publicKeyPem);
+
+  await db.transaction(async (tx) => {
+    if (previous) {
+      await tx
+        .update(schema.userSigningKeys)
+        .set({ revokedAt: new Date(), succeededBy: did })
+        .where(eq(schema.userSigningKeys.did, previous));
+    }
+    await tx.insert(schema.userSigningKeys).values({
+      did,
+      userId,
+      publicKey: kp.publicKeyPem,
+      privateKeyEnc: encryptJson({ pem: kp.privateKeyPem }),
+    });
+  });
+
+  // Whatever this member proved elsewhere was proven with a key that no longer
+  // speaks for them. Leaving the links standing would mean a rotation changed
+  // nothing for the one thing it exists to undo.
+  await db
+    .delete(schema.federatedIdentities)
+    .where(eq(schema.federatedIdentities.localUserId, userId));
+
+  return { previous, did };
+}
+
+/** The member's live identifier, or null if they have never had one. */
+export async function currentDid(userId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ did: schema.userSigningKeys.did })
+    .from(schema.userSigningKeys)
+    .where(
+      and(
+        eq(schema.userSigningKeys.userId, userId),
+        isNull(schema.userSigningKeys.revokedAt),
+      ),
+    )
+    .limit(1);
+  return row?.did ?? null;
 }

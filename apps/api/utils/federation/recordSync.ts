@@ -44,7 +44,7 @@ import { signedPost } from './signing';
 import { verifyRecord } from './record';
 import { notifyFollowersOfNewUploads } from './sidePasses';
 import { mirrorSet } from './recordSet';
-import { ingestIdentityRecord } from './identityRecord';
+import { ingestIdentityRecord, ingestRevocation } from './identityRecord';
 import { MAX_ROUNDS, opening, respond } from './rbsr';
 
 /** Records asked for per request. See `MAX_IDS` on the fetch endpoint. */
@@ -331,6 +331,18 @@ export async function ingestRecord(
   // is what lets one person's work be gathered across instances — see
   // `identityRecord.ts` for why the identifiers stay distinct rather than
   // being merged into one.
+  // A withdrawn identifier. Acted on rather than merely noted: recording that
+  // we heard would leave a leaked key still proving things.
+  if (record.type === 'Undo') {
+    await ingestRevocation(
+      peer.id,
+      String(record.id ?? ''),
+      verdict.signer!,
+      record,
+    );
+    return nothing;
+  }
+
   if (record.type === 'Person') {
     await ingestIdentityRecord(
       peer.id,

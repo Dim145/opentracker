@@ -78,10 +78,43 @@
       </template>
     </div>
 
+    <!-- The recourse, kept next to the thing that creates the risk. Somebody
+         reading about exporting a private key is exactly who needs to know
+         what happens if it gets out. -->
+    <div class="pid-rotate">
+      <p class="pid-rotate-text">{{ $t('settings.identityExport.leaked') }}</p>
+      <button
+        v-if="!rotateArmed"
+        type="button"
+        class="btn-ghost"
+        :disabled="busy"
+        @click="rotateArmed = true"
+      >
+        <Icon name="ph:arrows-clockwise-bold" />
+        {{ $t('settings.identityExport.rotate') }}
+      </button>
+      <template v-else>
+        <span class="pid-confirm">{{ $t('settings.identityExport.rotateWarning') }}</span>
+        <button type="button" class="btn-ghost" :disabled="busy" @click="rotateArmed = false">
+          {{ $t('common.cancel') }}
+        </button>
+        <button
+          type="button"
+          class="btn-ghost btn-ghost--danger"
+          :disabled="busy"
+          @click="rotate"
+        >
+          <Icon v-if="busy" name="ph:circle-notch" class="animate-spin" />
+          <Icon v-else name="ph:arrows-clockwise-bold" />
+          {{ $t('settings.identityExport.rotateConfirm') }}
+        </button>
+      </template>
+    </div>
+
     <p v-if="error" class="pid-error">{{ error }}</p>
     <p v-else-if="did" class="pid-done">
       <Icon name="ph:check-circle-bold" />
-      {{ $t('settings.identityExport.done') }}
+      {{ rotated ? $t('settings.identityExport.rotated') : $t('settings.identityExport.done') }}
       <code>{{ did }}</code>
     </p>
   </article>
@@ -91,12 +124,40 @@
 const { t } = useI18n();
 
 const armed = ref(false);
+const rotateArmed = ref(false);
+const rotated = ref(false);
 const busy = ref(false);
 const error = ref<string | null>(null);
 const did = ref<string | null>(null);
 
 interface ExportResponse {
   identity: { did: string } & Record<string, unknown>;
+}
+
+/**
+ * Retire the current key and take a new one.
+ *
+ * Everything the member proved elsewhere falls, and has to be re-proven from a
+ * fresh export. That is the point rather than a shortcoming: carrying the links
+ * forward would hand them to whoever took the file.
+ */
+async function rotate(): Promise<void> {
+  busy.value = true;
+  error.value = null;
+  try {
+    const res = await $fetch<{ did: string }>('/api/me/identity/rotate', {
+      method: 'POST',
+    });
+    did.value = res.did;
+    rotated.value = true;
+    rotateArmed.value = false;
+  } catch (e) {
+    error.value =
+      (e as { data?: { message?: string } })?.data?.message ??
+      t('settings.identityExport.failed');
+  } finally {
+    busy.value = false;
+  }
 }
 
 async function download(): Promise<void> {
@@ -217,6 +278,19 @@ async function download(): Promise<void> {
 .pid-confirm {
   font-size: 0.75rem;
   color: rgb(var(--fg-default));
+}
+.pid-rotate {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(var(--line-default));
+}
+.pid-rotate-text {
+  flex: 1 1 14rem;
+  font-size: 0.75rem;
+  color: rgb(var(--fg-muted));
 }
 .pid-error {
   font-size: 0.75rem;

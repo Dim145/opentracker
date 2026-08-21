@@ -9,10 +9,16 @@ import {
   aliasesOf,
   identitiesOfUser,
   ingestIdentityRecord,
+  ingestRevocation,
   mintIdentityRecords,
+  mintRevocations,
 } from '../../utils/federation/identityRecord';
 import { verifyRecord } from '../../utils/federation/record';
-import { ensureUserDid } from '../../utils/federation/userIdentity';
+import {
+  ensureUserDid,
+  getUserPrivateKeyPem,
+  rotateUserKey,
+} from '../../utils/federation/userIdentity';
 import type { MintContext } from '../../utils/federation/catalogRecord';
 
 // Publishing "our member is also that person elsewhere".
@@ -449,5 +455,164 @@ describe('the catalogue that survives its author', () => {
     expect(await identitiesOfUser(user)).toEqual(
       new Set([await ensureUserDid(user)]),
     );
+  });
+});
+
+describe('withdrawing an identifier', () => {
+  it('publishes the withdrawal so it can travel', async () => {
+    const user = await makeUser();
+    const first = await ensureUserDid(user);
+    const { previous, did } = await rotateUserKey(user);
+
+    expect(previous).toBe(first);
+    expect(did).not.toBe(first);
+    expect((await mintRevocations(ctx)).minted).toBe(1);
+
+    const [rec] = await db
+      .select()
+      .from(schema.catalogRecords)
+      .where(eq(schema.catalogRecords.kind, 'revocation'));
+    const body = rec!.body as Record<string, unknown>;
+    expect(body.type).toBe('Undo');
+    expect(body.object).toBe(first);
+    expect(body['trackarr:succeededBy']).toBe(did);
+    expect(verifyRecord(body).ok).toBe(true);
+  });
+
+  it('publishes each withdrawal once', async () => {
+    const user = await makeUser();
+    await ensureUserDid(user);
+    await rotateUserKey(user);
+    await mintRevocations(ctx);
+
+    expect((await mintRevocations(ctx)).minted).toBe(0);
+  });
+
+  it('drops the member\'s own proven links, so the old key proves nothing', async () => {
+    // Rotating is what a member does when their file got out. Leaving their
+    // links standing would mean it changed nothing for the one case it is for.
+    const user = await makeUser();
+    await recordClaim(user, exportedFrom(partner, member));
+    expect(
+      await db
+        .select()
+        .from(schema.federatedIdentities)
+        .where(eq(schema.federatedIdentities.localUserId, user)),
+    ).toHaveLength(1);
+
+    await rotateUserKey(user);
+
+    expect(
+      await db
+        .select()
+        .from(schema.federatedIdentities)
+        .where(eq(schema.federatedIdentities.localUserId, user)),
+    ).toHaveLength(0);
+  });
+
+  it('gives the member a working identity again immediately', async () => {
+    const user = await makeUser();
+    await ensureUserDid(user);
+    const { did } = await rotateUserKey(user);
+
+    expect(await ensureUserDid(user)).toBe(did);
+    expect((await getUserPrivateKeyPem(user))!.did).toBe(did);
+  });
+});
+
+describe('hearing that a partner withdrew one', () => {
+  it('refuses the leaked file from then on', async () => {
+    // The whole scenario, end to end. Nova's export gets out; somebody
+    // presents it here and it works, because it is genuine. Her instance
+    // withdraws the identifier; the same file stops working — and the
+    // signatures on it are still perfectly valid, which is exactly why the
+    // check has to exist rather than being implied by verification.
+    const thief = await makeUser('Thief');
+    const leaked = exportedFrom(partner, member);
+    expect((await recordClaim(thief, leaked)).ok).toBe(true);
+
+    await ingestRevocation(peerId, 'sha256:undo', partner.did, {
+      type: 'Undo',
+      object: member.did,
+      'trackarr:succeededBy': 'did:key:z6MkHerNewOne',
+    });
+
+    // The link that was already made is gone...
+    expect(
+      await db
+        .select()
+        .from(schema.federatedIdentities)
+        .where(eq(schema.federatedIdentities.localUserId, thief)),
+    ).toHaveLength(0);
+    // ...and presenting the same file again is refused.
+    const again = await recordClaim(thief, leaked);
+    expect(again.ok).toBe(false);
+    expect(again.reason).toMatch(/withdrawn/i);
+  });
+
+  it('blocks a file whose withdrawal arrived before anybody used it', async () => {
+    // The case worth being ready for: a leaked file is used by whoever finds
+    // it, whenever they find it, which may be long after.
+    await ingestRevocation(peerId, 'sha256:undo', partner.did, {
+      type: 'Undo',
+      object: member.did,
+    });
+
+    const user = await makeUser();
+    expect((await recordClaim(user, exportedFrom(partner, member))).ok).toBe(false);
+  });
+
+  it('drops the assertions other instances made with it', async () => {
+    const them = 'did:key:z6MkTheirMember';
+    await ingestIdentityRecord(peerId, 'sha256:rec', partner.did, {
+      'trackarr:subject': them,
+      alsoKnownAs: [member.did],
+      'trackarr:evidence': [exportedFrom(partner, member)],
+    });
+    expect(await db.select().from(schema.remoteIdentityLinks)).toHaveLength(1);
+
+    await ingestRevocation(peerId, 'sha256:undo', partner.did, {
+      type: 'Undo',
+      object: member.did,
+    });
+
+    expect(await db.select().from(schema.remoteIdentityLinks)).toHaveLength(0);
+    expect(await aliasesOf(them)).toEqual(new Set([them]));
+  });
+
+  it('lets nobody withdraw an identifier that is not theirs', async () => {
+    // Otherwise any partner could unpick any link in the federation by
+    // announcing withdrawals for keys it never issued.
+    const beta = keypair();
+    const betaPeer = await makePeer(beta, 'Beta');
+    const user = await makeUser();
+    await recordClaim(user, exportedFrom(partner, member));
+
+    await ingestRevocation(betaPeer, 'sha256:undo', beta.did, {
+      type: 'Undo',
+      object: member.did,
+    });
+
+    // Beta's word about Alpha's member changes nothing here.
+    expect(
+      await db
+        .select()
+        .from(schema.federatedIdentities)
+        .where(eq(schema.federatedIdentities.localUserId, user)),
+    ).toHaveLength(1);
+    expect((await recordClaim(user, exportedFrom(partner, member))).ok).toBe(true);
+  });
+
+  it('never throws on a malformed withdrawal', async () => {
+    for (const body of [
+      {},
+      { type: 'Undo' },
+      { type: 'Undo', object: 42 },
+      { type: 'Undo', object: 'https://not-a-did' },
+    ]) {
+      await expect(
+        ingestRevocation(peerId, 'sha256:undo', partner.did, body as never),
+      ).resolves.toBe(false);
+    }
   });
 });
