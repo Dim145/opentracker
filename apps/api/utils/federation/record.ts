@@ -93,6 +93,8 @@ export interface UnsignedRecord {
   /** ActivityStreams. */
   name: string;
   content?: string | null;
+  /** Where the release lives, on the instance that published it. */
+  url?: string | null;
   published: string;
   attributedTo?: string | null;
 

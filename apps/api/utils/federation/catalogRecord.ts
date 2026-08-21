@@ -101,6 +101,16 @@ function magnetFor(infoHash: string, name: string): string {
 export function projectTorrent(
   t: TorrentProjection,
   issuerDid: string,
+  /**
+   * Where this release can be fetched, on the instance that published it.
+   *
+   * Inside the record rather than derived from whoever handed it over,
+   * because those stop being the same thing the moment a record is relayed:
+   * a consumer three hops away has to know where the content actually is, and
+   * the relay's own address would send them to a stranger. AS2 `url`, which
+   * is also the field FEP-d8c8 points at.
+   */
+  publicUrl: string | null,
 ): UnsignedRecord {
   return {
     '@context': CONTEXT,
@@ -109,6 +119,7 @@ export function projectTorrent(
     'bt:infohash_v1': t.infoHash,
     'bt:magnet': magnetFor(t.infoHash, t.name),
 
+    url: publicUrl ? `${publicUrl.replace(/\/$/, '')}/torrents/${t.infoHash}` : null,
     name: t.name,
     content: t.description ? t.description.slice(0, MAX_DESCRIPTION) : null,
     published: t.liveAt.toISOString(),
@@ -218,6 +229,8 @@ export interface MintContext {
   privateKeyPem: string;
   /** `did:key:…` of this instance. */
   did: string;
+  /** This instance's public base URL, for the record's `url`. */
+  publicUrl: string | null;
 }
 
 /**
@@ -272,7 +285,7 @@ export async function mintRecords(
   let unchanged = 0;
 
   for (const p of projections) {
-    const draft = projectTorrent(p, ctx.did);
+    const draft = projectTorrent(p, ctx.did, ctx.publicUrl);
     const fingerprint = contentFingerprint(draft);
     const previous = currentBy.get(p.id);
 

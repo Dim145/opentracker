@@ -2390,6 +2390,25 @@ export const remoteTorrents = pgTable(
     seeders: integer('seeders').default(0).notNull(),
     leechers: integer('leechers').default(0).notNull(),
     completed: integer('completed').default(0).notNull(),
+    /**
+     * The signed record this row was ingested from — its content address.
+     *
+     * Present for anything that arrived through `/api/federation/records`.
+     * It is what makes an ingestion idempotent across relays: the same
+     * statement offered twice is the same id, whoever handed it over. Null on
+     * rows that predate signed records.
+     */
+    recordId: text('record_id'),
+    /** `did:key:…` of whoever SIGNED it, which need not be who relayed it. */
+    issuer: text('issuer'),
+    /**
+     * Whether the proof was checked and held.
+     *
+     * A column rather than an assumption: it is the difference between "a peer
+     * we trust told us this" and "this is signed by someone and we checked".
+     * Only the second survives being relayed.
+     */
+    verified: boolean('verified').default(false).notNull(),
     /** Remote display name only — never a local user id. */
     uploaderName: text('uploader_name'),
     remoteCreatedAt: timestamp('remote_created_at'),
@@ -2413,6 +2432,7 @@ export const remoteTorrents = pgTable(
     // scan of every partner's catalogue on every page.
     index('remote_torrents_igdb_idx').on(table.igdbId),
     index('remote_torrents_openlibrary_idx').on(table.openlibraryId),
+    index('remote_torrents_record_idx').on(table.recordId),
     index('remote_torrents_name_idx').on(table.name),
   ]
 );

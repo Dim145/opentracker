@@ -40,6 +40,7 @@ import {
   PUBLISHABLE,
   mintRecords,
   mintTombstone,
+  type MintContext,
 } from '~~/utils/federation/catalogRecord';
 import { getSetting, setSetting } from '~~/utils/server';
 import { withCronLock } from '~~/utils/cronLock';
@@ -86,10 +87,7 @@ interface TickResult {
   scanned: number;
 }
 
-async function tick(ctx: {
-  privateKeyPem: string;
-  did: string;
-}): Promise<TickResult> {
+async function tick(ctx: MintContext): Promise<TickResult> {
   const cursor = readCursor(await getSetting(CURSOR_KEY));
 
   const rows = await db
@@ -174,8 +172,13 @@ export default defineNitroPlugin(() => {
 
       // Cross-replica lock: every replica runs this plugin, and without it
       // they would walk the same cursor and race each other's writes.
+      const publicUrl = config!.publicUrl ?? null;
       await withCronLock('catalog_records:lock', 120, async () => {
-        const { minted, withdrawn, scanned } = await tick({ privateKeyPem, did });
+        const { minted, withdrawn, scanned } = await tick({
+          privateKeyPem,
+          did,
+          publicUrl,
+        });
         busy = scanned === BATCH_SIZE;
         if (minted || withdrawn) {
           console.log(

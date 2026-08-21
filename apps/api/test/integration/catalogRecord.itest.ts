@@ -36,6 +36,7 @@ function keypair(): MintContext {
     did: didKeyFromPublicKey(
       publicKey.export({ type: 'spki', format: 'pem' }).toString(),
     ),
+    publicUrl: 'https://origin.example',
   };
 }
 
