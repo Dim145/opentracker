@@ -83,10 +83,21 @@ Discover and search partner content without touching swarms.
 - **Cache mode (default).** A background cron (`FEDERATION_SYNC_INTERVAL`,
   15 min) pulls each `catalog`-sharing peer's catalogue into a local,
   read-only mirror (`remote_torrents`) via a signed, paginated
-  `GET /api/federation/catalog`. Browse it at **`/federated`**.
+  `GET /api/federation/records`. Browse it at **`/federated`**.
 - **Live mode.** Toggle **Live** on `/federated` to fan out a signed
   `GET /api/federation/search?q=` to every partner in real time
-  (time-bounded, best-effort).
+  (time-bounded, best-effort). It answers with the same signed records the
+  feed streams, so a live result is verified and cached exactly like a
+  synced one.
+- **Signed records.** Everything a partner asserts about a release travels
+  as an immutable record it signed with its own key, verified on arrival.
+  A partner can decline to answer or serve you nothing — it cannot forge a
+  release it did not publish, nor alter one in flight. New uploads, edits
+  and withdrawals all arrive in that one stream: an edit is a record that
+  supersedes another, a withdrawal is a tombstone.
+- **Swarm counts are the exception.** They change constantly, so they
+  cannot live inside an immutable record and travel unsigned on their own
+  feed. Treat a partner's seeder count as a hint, not a promise.
 - **Dedupe.** A remote item already present locally is flagged
   *"also here"* (same info-hash) or *"same content here"* (same
   content-signature, different info-hash). Hints only — the mirror is

@@ -1,14 +1,21 @@
 /**
  * GET /api/federation/catalog-stats?since=&sinceId=&limit=  — inbound, S2S.
  *
- * Swarm-count refresh feed. The append-forward catalogue sync freezes
- * seeders/leechers at first-mirror time for every torrent except the newest,
- * so partner mirrors drift. This feed walks our federatable torrents by their
- * `torrent_stats.updated_at` (composite cursor with info_hash) and a partner
- * upserts the fresh counts onto its `remote_torrents` rows.
+ * Swarm counts, and the only thing left that a signed record cannot carry.
+ * A record is immutable, so a seeder figure inside one would mint a new record
+ * every time somebody stopped seeding — the catalogue would churn constantly
+ * and say nothing more. Counts therefore travel here instead, unsigned, which
+ * is honest about what they are: a hint with a short shelf life rather than a
+ * claim anybody stands behind.
  *
- * Gated on the `catalog` scope. Same banned/accepted/active eligibility as the
- * catalogue, so a de-listed torrent's stale counts stop being refreshed.
+ * The feed walks our federatable torrents by `torrent_stats.updated_at`
+ * (composite cursor with info_hash) so the freshest changes land first, and a
+ * partner applies them to rows it already mirrors. It cannot create one: the
+ * ingesting side does UPDATEs and nothing else, which is what keeps the last
+ * unsigned path from being an insertion path.
+ *
+ * Gated on the `catalog` scope, with the same eligibility as minting, so a
+ * de-listed torrent's stale counts stop being refreshed.
  */
 import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
