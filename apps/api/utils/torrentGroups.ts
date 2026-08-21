@@ -1,5 +1,5 @@
 /**
- * Server-side release grouping.
+ * The vocabulary of release grouping.
  *
  * Several releases of the same work — a 2160p remux, a 1080p WEB-DL, a 720p
  * BluRay — are one entry in the catalogue and several rows underneath it. The
@@ -34,20 +34,14 @@
  * packs" is a question about how a release is cut, which no search term
  * expresses.
  *
- * ## Why the query is split in two
+ * ## What lives here, and what does not
  *
- * `GROUP BY` over the whole table costs a sequential scan and a hash aggregate
- * on every page — 180 ms over 200 000 rows here, growing linearly, unable to
- * stop early because ordering groups by recency needs every group before it
- * can pick 25.
- *
- * But a torrent with no external id is a group of one and needs no aggregation
- * at all. Separating the two halves lets the untagged side stream off an index
- * and stop at the limit, leaving only genuinely foldable rows in the aggregate.
- *
- * The ceiling is worth stating: on a catalogue where nearly everything is
- * tagged, the aggregate is back to covering most of the table. That is the
- * point at which a persisted group entity stops being optional.
+ * This file defines what a group IS — the key, the scope, the release
+ * identity, how a key is taken apart again — and nothing about how a page of
+ * them is fetched. That is `mixedGroups.ts`, which reads the local catalogue
+ * and the federated mirror through these same expressions. The split is
+ * deliberate: the vocabulary must not drift between the two catalogues, and
+ * the only way to guarantee that is for there to be one copy of it.
  */
 import { sql, type Column, type SQL } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
@@ -135,6 +129,22 @@ export function scopeExpr(c: GroupColumns): SQL {
   END`;
 }
 
+/**
+ * What makes two rows the same RELEASE, as opposed to the same work.
+ *
+ * The content signature when we have one, the info hash otherwise — the same
+ * key the mirror folds partner sources on, deliberately, so the two catalogues
+ * never disagree about what "one release" means.
+ *
+ * `nullif(…, '')` is not defensive noise. The content-signature backfill writes
+ * an empty string as a sentinel for "this blob could not be parsed, stop
+ * retrying". That never collides with a real digest when you compare
+ * signatures for equality, which is what the sentinel was designed for — but
+ * `coalesce` treats it as a value, so without the `nullif` every unsignable
+ * torrent in the catalogue would fold into a single release.
+ */
+export const LOCAL_RELEASE_KEY: SQL = sql`coalesce(nullif(${schema.torrents.contentSignature}, ''), ${schema.torrents.infoHash})`;
+
 /** The local catalogue's columns. */
 export const TORRENT_COLUMNS: GroupColumns = {
   igdbId: schema.torrents.igdbId,
@@ -142,20 +152,14 @@ export const TORRENT_COLUMNS: GroupColumns = {
   tmdbId: schema.torrents.tmdbId,
   season: schema.torrents.season,
   episode: schema.torrents.episode,
-  soloKey: schema.torrents.id,
+  // The release key, not the torrent id. Two rows of the same untagged release
+  // — a cross-seed here, or a copy mirrored from a partner — are one entry,
+  // and this is what lets the local and federated halves recognise each other.
+  soloKey: LOCAL_RELEASE_KEY,
 };
 
 export const groupKeySql: SQL = groupKeyExpr(TORRENT_COLUMNS);
 export const scopeSql: SQL = scopeExpr(TORRENT_COLUMNS);
-
-/** True for rows that can be folded with others. */
-const TAGGED = sql`(${schema.torrents.tmdbId} IS NOT NULL
-  OR ${schema.torrents.igdbId} IS NOT NULL
-  OR ${schema.torrents.openlibraryId} IS NOT NULL)`;
-
-const UNTAGGED = sql`(${schema.torrents.tmdbId} IS NULL
-  AND ${schema.torrents.igdbId} IS NULL
-  AND ${schema.torrents.openlibraryId} IS NULL)`;
 
 export const VISIBLE = sql`${schema.torrents.moderationStatus} = 'accepted'
   AND ${schema.torrents.isActive}`;
@@ -235,29 +239,6 @@ export interface GroupRow {
   defaultScope: GroupScope;
 }
 
-interface ListOptions {
-  limit: number;
-  offset: number;
-  /** Extra predicates over `torrents`, already composed. */
-  where?: SQL;
-  /** Keep only groups holding at least one release cut this way. */
-  scope?: GroupScope;
-}
-
-interface RawGroup extends RawScopeCounts {
-  gkey: string;
-  release_count: number;
-  latest: string;
-  min_size: string;
-  max_size: string;
-  lead_name: string;
-  category_ids: string[] | null;
-  seed_min: number | null;
-  seed_max: number | null;
-  leech_min: number | null;
-  leech_max: number | null;
-}
-
 /**
  * The four `FILTER (WHERE scope = …)` pairs, as they come back from either
  * table. Named so the two queries cannot drift on the column names.
@@ -299,132 +280,6 @@ export function pickDefault(scopes: ScopeSummary[]): GroupScope {
 }
 
 /**
- * One page of groups, newest first.
- *
- * Deliberately carries no releases. The row is collapsed, and a member who
- * never expands it should not have paid for a fan-out of sample queries and
- * Redis reads across twenty-five groups. Expanding asks for one scope of one
- * group, which is the only moment the releases are worth fetching.
- */
-export async function listGroups(
-  opts: ListOptions,
-): Promise<{ groups: GroupRow[]; total: number }> {
-  const extra = opts.where ? sql` AND (${opts.where})` : sql``;
-  // A scope filter is a predicate over the ROWS, so it composes with the rest:
-  // a group survives when at least one of its releases is cut that way, which
-  // is what filtering before the aggregate gives for free.
-  const scoped = opts.scope ? sql` AND (${scopeSql}) = ${opts.scope}` : sql``;
-  const filter = sql`${extra}${scoped}`;
-
-  // An untagged torrent is a group of one, and it is always cut one way — it
-  // carries no season, so its scope is `all` by construction. Any other scope
-  // filter therefore excludes the whole half, which is worth saying up front
-  // rather than making Postgres discover it row by row.
-  const soloFilter =
-    !opts.scope || opts.scope === 'all' ? extra : sql` AND false`;
-
-  const stats = schema.torrentStats;
-  const seeders = sql`coalesce(${stats.seeders}, 0)`;
-  const leechers = sql`coalesce(${stats.leechers}, 0)`;
-
-  // The two halves are separate queries over `torrents`, NOT two reads of a
-  // shared CTE. A CTE here is an optimisation fence: Postgres materialises it,
-  // which means scanning and joining all 200 000 rows before either half can
-  // start — the untagged side then top-N sorts what it should have streamed
-  // off an index and stopped at twenty-five. Measured: 3.7 ms split, 375 ms
-  // shared.
-  const rows = await db.execute<RawGroup>(sql`
-    WITH grouped AS (
-      SELECT ${groupKeySql} AS gkey,
-             count(*)::int AS release_count,
-             max(${LIVE_AT}) AS latest,
-             min(${schema.torrents.size}) AS min_size,
-             max(${schema.torrents.size}) AS max_size,
-             (array_agg(${schema.torrents.name}
-                        ORDER BY ${schema.torrents.size} DESC))[1] AS lead_name,
-             array_remove(array_agg(DISTINCT ${schema.torrents.categoryId}), NULL) AS category_ids,
-             min(${seeders})::int AS seed_min,
-             max(${seeders})::int AS seed_max,
-             min(${leechers})::int AS leech_min,
-             max(${leechers})::int AS leech_max,
-             count(DISTINCT (${schema.torrents.season}, ${schema.torrents.episode}))
-               FILTER (WHERE (${scopeSql}) = 'episode')::int AS ep_units,
-             max(${LIVE_AT}) FILTER (WHERE (${scopeSql}) = 'episode') AS ep_latest,
-             count(DISTINCT ${schema.torrents.season})
-               FILTER (WHERE (${scopeSql}) = 'season')::int AS season_units,
-             max(${LIVE_AT}) FILTER (WHERE (${scopeSql}) = 'season') AS season_latest,
-             count(*) FILTER (WHERE (${scopeSql}) = 'integral')::int AS integral_units,
-             max(${LIVE_AT}) FILTER (WHERE (${scopeSql}) = 'integral') AS integral_latest,
-             count(*) FILTER (WHERE (${scopeSql}) = 'all')::int AS all_units,
-             max(${LIVE_AT}) FILTER (WHERE (${scopeSql}) = 'all') AS all_latest
-        FROM ${schema.torrents}
-        LEFT JOIN ${stats} ON ${stats.infoHash} = ${schema.torrents.infoHash}
-       WHERE ${VISIBLE} AND ${TAGGED}${filter}
-       GROUP BY 1
-    ), solo AS (
-      SELECT ${groupKeySql} AS gkey,
-             1 AS release_count,
-             ${LIVE_AT} AS latest,
-             ${schema.torrents.size} AS min_size,
-             ${schema.torrents.size} AS max_size,
-             ${schema.torrents.name} AS lead_name,
-             array_remove(ARRAY[${schema.torrents.categoryId}], NULL) AS category_ids,
-             ${seeders}::int AS seed_min, ${seeders}::int AS seed_max,
-             ${leechers}::int AS leech_min, ${leechers}::int AS leech_max,
-             0 AS ep_units, NULL::timestamp AS ep_latest,
-             0 AS season_units, NULL::timestamp AS season_latest,
-             0 AS integral_units, NULL::timestamp AS integral_latest,
-             1 AS all_units, ${LIVE_AT} AS all_latest
-        FROM ${schema.torrents}
-        LEFT JOIN ${stats} ON ${stats.infoHash} = ${schema.torrents.infoHash}
-       WHERE ${VISIBLE} AND ${UNTAGGED}${soloFilter}
-       -- Matches torrents_ungrouped_idx expression for expression: this is
-       -- the ordering the index already holds, which is what lets the scan
-       -- stop at the limit instead of sorting the catalogue.
-       ORDER BY ${LIVE_AT} DESC
-       LIMIT ${opts.limit + opts.offset}
-    )
-    SELECT * FROM (SELECT * FROM grouped UNION ALL SELECT * FROM solo) u
-     ORDER BY latest DESC
-     LIMIT ${opts.limit} OFFSET ${opts.offset}
-  `);
-
-  const [countRow] = await db.execute<{ total: number }>(sql`
-    SELECT (
-      (SELECT count(DISTINCT ${groupKeySql})::int FROM ${schema.torrents}
-        WHERE ${VISIBLE} AND ${TAGGED}${filter})
-      +
-      (SELECT count(*)::int FROM ${schema.torrents}
-        WHERE ${VISIBLE} AND ${UNTAGGED}${soloFilter})
-    ) AS total`);
-
-  return {
-    groups: (rows as unknown as RawGroup[]).map((r) => {
-      const parsed = parseGroupKey(r.gkey);
-      const scopes = toScopes(r);
-      return {
-        key: r.gkey,
-        source: parsed.source,
-        externalId: parsed.externalId,
-        releaseCount: Number(r.release_count),
-        latest: new Date(r.latest),
-        minSize: Number(r.min_size),
-        maxSize: Number(r.max_size),
-        leadName: r.lead_name,
-        categoryIds: r.category_ids ?? [],
-        seedMin: Number(r.seed_min ?? 0),
-        seedMax: Number(r.seed_max ?? 0),
-        leechMin: Number(r.leech_min ?? 0),
-        leechMax: Number(r.leech_max ?? 0),
-        scopes,
-        defaultScope: pickDefault(scopes),
-      };
-    }),
-    total: Number((countRow as unknown as { total: number })?.total ?? 0),
-  };
-}
-
-/**
  * The predicate that selects one group's releases.
  *
  * Rebuilt from the parsed parts rather than compared against the key
@@ -444,7 +299,13 @@ export function groupMemberWhere(parsed: ParsedGroupKey): SQL {
         AND ${schema.torrents.openlibraryId} IS NULL
         AND ${schema.torrents.tmdbId} = ${parsed.externalId}`;
     default:
-      return sql`${VISIBLE} AND ${schema.torrents.id} = ${parsed.externalId}`;
+      // Either form of solo key: a release key (what the listing mints now) or
+      // a bare torrent id (what it minted before, and what is sitting in
+      // people's bookmarks). A uuid can never equal a hex digest or an info
+      // hash, so the two namespaces cannot collide and the OR resolves to a
+      // BitmapOr over two indexes rather than a scan.
+      return sql`${VISIBLE} AND (${schema.torrents.id} = ${parsed.externalId}
+                   OR ${LOCAL_RELEASE_KEY} = ${parsed.externalId})`;
   }
 }
 

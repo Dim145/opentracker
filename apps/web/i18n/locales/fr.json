@@ -795,9 +795,14 @@
       "download": "Télécharger le .torrent",
       "nEpisodes": "{n} épisode | {n} épisodes",
       "atOrigin": "Ouvrir sur l'instance d'origine",
-      "onPartners": "+{n} chez les partenaires",
-      "onPartnersHint": "Des partenaires ont des releases de cette œuvre que cette instance n'a pas",
-      "peerCount": "{n} partenaire | {n} partenaires"
+      "onPartners": "{n} aussi chez les partenaires",
+      "onPartnersHint": "Des partenaires ont aussi certaines de ces releases",
+      "peerCount": "{n} partenaire | {n} partenaires",
+      "partnersOnly": "{n} uniquement chez les partenaires",
+      "partnersOnlyHint": "Cette instance n'a aucune de ces releases — elles viennent des partenaires",
+      "sourcesAll": "Partout",
+      "sourcesLocal": "Ici seulement",
+      "sourcesHint": "Inclure les releases des instances partenaires"
     }
   },
   "users": {

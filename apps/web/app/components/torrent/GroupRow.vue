@@ -54,20 +54,30 @@
             />
           </button>
 
-          <!-- The one thing the local catalogue cannot answer about itself:
-               somebody else has more of this work. A link, not a merge — the
-               federated catalogue is a place, and this says it is worth
-               going. -->
-          <NuxtLink
-            v-if="group.partnerReleaseCount"
-            :to="`/federated?q=${encodeURIComponent(searchableTitle)}`"
+          <!-- Where this work lives. The releases from our partners are IN
+               this row now, so this is a fact about what expanding it will
+               show — not a link to a second catalogue to go and check.
+
+               Two shades, because they mean different things: some of it is
+               only theirs, or all of it is. A member deciding whether to click
+               cares which. -->
+          <span
+            v-if="group.partnerCount"
             class="grp-partners"
-            :title="$t('search.group.onPartnersHint')"
-            @click.stop
+            :class="{ 'grp-partners--only': !group.localCount }"
+            :title="
+              group.localCount
+                ? $t('search.group.onPartnersHint')
+                : $t('search.group.partnersOnlyHint')
+            "
           >
             <Icon name="ph:broadcast-bold" />
-            {{ $t('search.group.onPartners', { n: group.partnerReleaseCount }) }}
-          </NuxtLink>
+            {{
+              group.localCount
+                ? $t('search.group.onPartners', { n: group.partnerCount })
+                : $t('search.group.partnersOnly', { n: group.partnerCount })
+            }}
+          </span>
 
           <span v-if="group.peerCount" class="grp-peers">
             <Icon name="ph:broadcast-bold" />
@@ -140,13 +150,15 @@ export interface GroupSummary {
   scopes: ScopeSummary[];
   defaultScope: GroupScope;
   /**
-   * How many releases the PARTNERS hold for this same work. The bridge between
-   * the two catalogues, and deliberately a count rather than a merge: it
-   * answers the question a member actually has — does someone else have the
-   * season I am missing — for one indexed query per page.
+   * How this row's releases are split between the two catalogues.
+   *
+   * They overlap: a release we hold that a partner also holds counts in both,
+   * and in `releaseCount` exactly once. That is what lets the row say "seven
+   * releases, four of which are also on partners" rather than claiming eleven.
    */
-  partnerReleaseCount?: number;
-  /** On a federated row: how many partners contribute to this group. */
+  localCount?: number;
+  partnerCount?: number;
+  /** How many partners contribute at least one release to this group. */
   peerCount?: number;
 }
 
@@ -287,17 +299,6 @@ function span(min: number, max: number): string {
 
 const age = computed(() => formatAge(props.group.latest));
 
-/**
- * What to search the federated catalogue for. The resolved title when metadata
- * came back, otherwise the release name with its technical tail cut off — a
- * partner's copy of the same work almost never shares our filename, so sending
- * the whole thing would find nothing.
- */
-const searchableTitle = computed(() => {
-  if (poster.value?.title) return poster.value.title;
-  const { tag, lead, tail } = splitReleaseName(props.group.leadName);
-  return (tag + lead).trim() || tail;
-});
 </script>
 
 <style scoped>
@@ -435,9 +436,12 @@ const searchableTitle = computed(() => {
   color: rgb(125 211 252);
   white-space: nowrap;
 }
-.grp-partners:hover {
-  background: rgb(56 189 248 / 0.2);
+/* Nothing of this work is here. Filled rather than outlined, so the two states
+   are told apart at a glance instead of by reading the number. */
+.grp-partners--only {
   border-color: rgb(56 189 248 / 0.6);
+  background: rgb(56 189 248 / 0.22);
+  color: rgb(186 230 253);
 }
 
 /* ── Figures ─────────────────────────────────────────────────────────── */

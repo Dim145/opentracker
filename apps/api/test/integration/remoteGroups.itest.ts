@@ -2,10 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
-import {
-  listRemoteGroups,
-  partnerReleaseCounts,
-} from '../../utils/remoteGroups';
+import { listRemoteGroups } from '../../utils/remoteGroups';
 
 // The federated mirror, folded by work.
 //
@@ -16,9 +13,10 @@ import {
 // holds, which does not look like a bug. It looks like a well-stocked
 // catalogue, and it is the single most likely way this code goes wrong.
 //
-// The second property is that the two catalogues meet at a badge, not at a
-// merge: `partnerReleaseCounts` is what tells a member that somebody else has
-// the season they are missing.
+// This view is the partners' catalogue as a place of its own — browse by peer,
+// see what one partner holds. The MERGED listing, where their releases sit
+// alongside ours folded into the same rows, is `mixedGroups.ts` and is tested
+// there.
 
 let counter = 0;
 
@@ -77,18 +75,6 @@ async function mirror(rows: MirrorRow[]): Promise<void> {
         r.remoteCreatedAt === undefined ? new Date() : r.remoteCreatedAt,
     })),
   );
-}
-
-/** A local torrent, so the badge has something to hang off. */
-async function local(tmdbId: string, name: string): Promise<void> {
-  await db.insert(schema.torrents).values({
-    id: randomUUID(),
-    infoHash: (counter++).toString(16).padStart(40, 'c'),
-    name,
-    size: 1_000_000,
-    tmdbId,
-    moderationStatus: 'accepted',
-  });
 }
 
 const page = { limit: 25, offset: 0, showAdult: true };
@@ -226,90 +212,3 @@ describe('listRemoteGroups', () => {
   });
 });
 
-describe('partnerReleaseCounts — the bridge', () => {
-  it('counts distinct partner releases for a local group key', async () => {
-    const a = await makePeer();
-    const b = await makePeer();
-    for (const peerId of [a, b]) {
-      await mirror([
-        { peerId, name: 'S04E01', contentSignature: 'x1', tmdbId: 'tv/11', season: 4, episode: 1 },
-        { peerId, name: 'S04E02', contentSignature: 'x2', tmdbId: 'tv/11', season: 4, episode: 2 },
-      ]);
-    }
-    await local('tv/11', 'Show.S01E01-A');
-
-    const counts = await partnerReleaseCounts(['tmdb:tv/11'], true);
-    // Four mirror rows, two releases.
-    expect(counts.get('tmdb:tv/11')).toBe(2);
-  });
-
-  it('answers zero for a work no partner carries', async () => {
-    await makePeer();
-    const counts = await partnerReleaseCounts(['tmdb:tv/999'], true);
-    expect(counts.get('tmdb:tv/999')).toBeUndefined();
-  });
-
-  it('matches each id namespace against its own column', async () => {
-    const p = await makePeer();
-    await mirror([
-      { peerId: p, name: 'Game', igdbId: '1020' },
-      { peerId: p, name: 'Book', openlibraryId: 'OL1M' },
-      { peerId: p, name: 'Film', tmdbId: 'movie/12' },
-    ]);
-
-    const counts = await partnerReleaseCounts(
-      ['igdb:1020', 'openlibrary:OL1M', 'tmdb:movie/12'],
-      true,
-    );
-    expect(counts.get('igdb:1020')).toBe(1);
-    expect(counts.get('openlibrary:OL1M')).toBe(1);
-    expect(counts.get('tmdb:movie/12')).toBe(1);
-  });
-
-  it('skips keys with no external id rather than guessing', async () => {
-    // An untagged local torrent cannot be matched to a partner by id, and
-    // matching it by content signature is the "also available here" hint that
-    // the federated view already renders. Asking for one must not scan.
-    const p = await makePeer();
-    await mirror([{ peerId: p, name: 'Whatever' }]);
-
-    const counts = await partnerReleaseCounts(['solo:some-uuid'], true);
-    expect(counts.size).toBe(0);
-  });
-
-  it('applies the same peer and adult gates as the listing', async () => {
-    const gone = await makePeer({ status: 'blocked' });
-    const live = await makePeer();
-    await mirror([{ peerId: gone, name: 'From a blocked peer', tmdbId: 'tv/13' }]);
-    await mirror([{ peerId: live, name: 'Adult', tmdbId: 'tv/14', isAdult: true }]);
-
-    const counts = await partnerReleaseCounts(['tmdb:tv/13', 'tmdb:tv/14'], false);
-    expect(counts.get('tmdb:tv/13')).toBeUndefined();
-    expect(counts.get('tmdb:tv/14')).toBeUndefined();
-  });
-
-  it('reads the mirror through an index, not a scan', async () => {
-    // The badge runs on every page of the local catalogue. Comparing the group
-    // KEY expression to the list would be shorter to write and would scan every
-    // partner's catalogue each time; matching one id namespace at a time is
-    // what keeps it to an index lookup.
-    const p = await makePeer();
-    await mirror(
-      Array.from({ length: 40 }, (_, i) => ({
-        peerId: p,
-        name: `Film ${i}`,
-        tmdbId: `movie/${i}`,
-      })),
-    );
-
-    const text = await db.transaction(async (tx) => {
-      await tx.execute(sql`SET LOCAL enable_seqscan = off`);
-      const plan = await tx.execute<Record<string, string>>(sql`
-        EXPLAIN SELECT 1 FROM remote_torrents WHERE tmdb_id IN ('movie/1', 'movie/2')`);
-      return (plan as unknown as Array<Record<string, string>>)
-        .map((r) => r['QUERY PLAN'])
-        .join('\n');
-    });
-    expect(text).toContain('remote_torrents_tmdb_idx');
-  });
-});

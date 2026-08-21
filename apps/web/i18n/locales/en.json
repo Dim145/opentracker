@@ -795,9 +795,14 @@
       "download": "Download the .torrent",
       "nEpisodes": "{n} episode | {n} episodes",
       "atOrigin": "Open on the origin instance",
-      "onPartners": "+{n} on partners",
-      "onPartnersHint": "Partners hold releases of this work that this instance does not",
-      "peerCount": "{n} partner | {n} partners"
+      "onPartners": "{n} also on partners",
+      "onPartnersHint": "Partners carry some of these releases too",
+      "peerCount": "{n} partner | {n} partners",
+      "partnersOnly": "{n} on partners only",
+      "partnersOnlyHint": "This instance holds none of these releases — they come from partners",
+      "sourcesAll": "Everywhere",
+      "sourcesLocal": "Here only",
+      "sourcesHint": "Include releases held by partner instances"
     }
   },
   "users": {

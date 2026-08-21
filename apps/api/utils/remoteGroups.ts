@@ -27,7 +27,7 @@
  * that wrong and a group claims three times the content it holds — the kind of
  * error that looks like a well-stocked catalogue.
  */
-import { and, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import {
   groupKeyExpr,
@@ -46,11 +46,17 @@ const rt = schema.remoteTorrents;
 
 /**
  * What makes two mirror rows the same release: the content signature when the
- * partner computed one, the info hash otherwise. Identical to the key
- * `/api/federation/browse` already folds sources on — deliberately, so the two
- * views never disagree about what "one release" means.
+ * partner computed one, the info hash otherwise. Identical to the local
+ * `LOCAL_RELEASE_KEY` and to the key `/api/federation/browse` already folds
+ * sources on — deliberately, so the three never disagree about what "one
+ * release" means.
+ *
+ * The ingest coerces an empty signature to null, so the `nullif` is redundant
+ * here today. It is written anyway because the expression has to stay
+ * character-for-character equivalent to the local one: the moment they differ,
+ * a release stops recognising its own copy across the boundary.
  */
-export const RELEASE_KEY: SQL = sql`coalesce(${rt.contentSignature}, ${rt.infoHash})`;
+export const RELEASE_KEY: SQL = sql`coalesce(nullif(${rt.contentSignature}, ''), ${rt.infoHash})`;
 
 /**
  * When a mirrored release went live, as best we can tell.
@@ -258,67 +264,6 @@ export function remoteGroupWhere(
   const parts: SQL[] = [sql`${ACTIVE_PEER}`, remoteGroupMemberWhere(parsed)];
   if (!showAdult) parts.push(sql`${rt.isAdult} = false`);
   return sql.join(parts, sql` AND `);
-}
-
-/**
- * How many distinct releases the partners hold for each of these group keys.
- *
- * This is the bridge between the two catalogues, and it is deliberately a
- * BADGE rather than a merge. Folding remote rows into the local group query
- * would mean reconciling two notions of visibility, two adult gates and a
- * heuristic deduplication, inside an aggregate that already unions two halves
- * — for an answer the member can get by clicking through. A count answers the
- * question they actually have ("does a partner have the season I am missing?")
- * for one indexed query per page.
- *
- * Keys with no external id are skipped: an untagged local torrent cannot be
- * matched to a partner by id, and matching it by content signature is the
- * "also available here" hint that `/federated` already renders.
- */
-export async function partnerReleaseCounts(
-  keys: string[],
-  showAdult: boolean,
-): Promise<Map<string, number>> {
-  const tmdb: string[] = [];
-  const igdb: string[] = [];
-  const openlibrary: string[] = [];
-
-  for (const key of keys) {
-    const p = parseGroupKey(key);
-    if (p.source === 'tmdb') tmdb.push(p.externalId);
-    else if (p.source === 'igdb') igdb.push(p.externalId);
-    else if (p.source === 'openlibrary') openlibrary.push(p.externalId);
-  }
-  if (!tmdb.length && !igdb.length && !openlibrary.length) return new Map();
-
-  // One OR per id namespace, each against its own index. Building the key
-  // expression and comparing THAT to the list would be shorter to write and
-  // would scan the whole mirror.
-  //
-  // `inArray`, not a hand-written `= ANY($1)`: drizzle binds a JS array as ONE
-  // scalar parameter, so the raw form silently matches nothing. It fails as an
-  // empty badge rather than an error, which is the worst way for it to fail.
-  const matches: SQL[] = [];
-  if (tmdb.length) matches.push(sql`${inArray(rt.tmdbId, tmdb)}`);
-  if (igdb.length) matches.push(sql`${inArray(rt.igdbId, igdb)}`);
-  if (openlibrary.length) {
-    matches.push(sql`${inArray(rt.openlibraryId, openlibrary)}`);
-  }
-
-  const parts: SQL[] = [sql`${ACTIVE_PEER}`, sql`(${sql.join(matches, sql` OR `)})`];
-  if (!showAdult) parts.push(sql`${rt.isAdult} = false`);
-
-  const rows = (await db.execute<{ gkey: string; n: number }>(sql`
-    SELECT ${remoteGroupKeySql} AS gkey,
-           count(DISTINCT ${RELEASE_KEY})::int AS n
-      FROM ${rt}
-      INNER JOIN ${schema.federationPeers}
-              ON ${schema.federationPeers.id} = ${rt.peerId}
-     WHERE ${sql.join(parts, sql` AND `)}
-     GROUP BY 1
-  `)) as unknown as Array<{ gkey: string; n: number }>;
-
-  return new Map(rows.map((r) => [r.gkey, Number(r.n)]));
 }
 
 /** True when at least one partner is actively sharing a catalogue with us. */

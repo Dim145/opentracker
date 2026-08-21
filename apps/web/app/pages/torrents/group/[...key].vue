@@ -112,6 +112,9 @@ const { data, pending } = await useFetch<{
     source: 'tmdb' | 'igdb' | 'openlibrary' | 'solo';
     externalId: string;
     releaseCount: number;
+    /** How the work's releases split between the two catalogues; they overlap. */
+    localCount?: number;
+    partnerCount?: number;
     minSize: number;
     maxSize: number;
     leadName: string;
