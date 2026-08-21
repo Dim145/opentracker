@@ -35,8 +35,11 @@
     "hoursAgo": "{n}h ago",
     "clear": "Clear",
     "errors": {
-      "generic": "Something went wrong. Try again."
-    }
+      "generic": "Something went wrong. Try again.",
+      "load": "Could not load this data. Try again."
+    },
+    "enabled": "Enabled",
+    "disabled": "Disabled"
   },
   "nav": {
     "dashboard": "Dashboard",

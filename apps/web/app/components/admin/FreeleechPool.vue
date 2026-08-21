@@ -851,7 +851,7 @@ async function loadConfig() {
     );
     config.value = c;
   } catch (err: any) {
-    notifications.error(err?.data?.message ?? t('common.loadError'));
+    notifications.error(err?.data?.message ?? t('common.errors.load'));
   } finally {
     loadingConfig.value = false;
   }
@@ -864,7 +864,7 @@ async function loadWindows() {
     );
     windows.value = w;
   } catch (err: any) {
-    notifications.error(err?.data?.message ?? t('common.loadError'));
+    notifications.error(err?.data?.message ?? t('common.errors.load'));
   }
 }
 
@@ -876,7 +876,7 @@ async function loadCycles() {
     );
     cycles.value = rows;
   } catch (err: any) {
-    notifications.error(err?.data?.message ?? t('common.loadError'));
+    notifications.error(err?.data?.message ?? t('common.errors.load'));
   } finally {
     loadingCycles.value = false;
   }
@@ -1017,7 +1017,7 @@ async function toggleWindow(w: Window) {
     });
     await loadWindows();
   } catch (err: any) {
-    notifications.error(err?.data?.message ?? t('common.error'));
+    notifications.error(err?.data?.message ?? t('common.errors.generic'));
   }
 }
 
@@ -1033,7 +1033,7 @@ async function removeWindow(id: string) {
     await $fetch(`/api/admin/freeleech-pool/windows/${id}`, { method: 'DELETE' });
     await loadWindows();
   } catch (err: any) {
-    notifications.error(err?.data?.message ?? t('common.error'));
+    notifications.error(err?.data?.message ?? t('common.errors.generic'));
   }
 }
 
@@ -1052,7 +1052,7 @@ async function confirmReset() {
     notifications.success(t('admin.freeleechPool.toasts.reset'));
     await loadCycles();
   } catch (err: any) {
-    notifications.error(err?.data?.message ?? t('common.error'));
+    notifications.error(err?.data?.message ?? t('common.errors.generic'));
   } finally {
     resetting.value = false;
   }

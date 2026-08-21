@@ -35,8 +35,11 @@
     "hoursAgo": "il y a {n} h",
     "clear": "Effacer",
     "errors": {
-      "generic": "Une erreur est survenue. Réessayez."
-    }
+      "generic": "Une erreur est survenue. Réessayez.",
+      "load": "Impossible de charger ces données. Réessayez."
+    },
+    "enabled": "Activé",
+    "disabled": "Désactivé"
   },
   "nav": {
     "dashboard": "Accueil",
