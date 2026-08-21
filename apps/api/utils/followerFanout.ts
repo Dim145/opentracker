@@ -84,8 +84,8 @@ export async function fanoutFollowedUserUpload(
     // workers finish a 200-follower upload in 10 round-trip
     // batches and keep the connection pool from collapsing
     // even on a 50k-follower hot account.
-    await withConcurrency(followers, FANOUT_CONCURRENCY, (f) =>
-      notify(
+    await withConcurrency(followers, FANOUT_CONCURRENCY, async (f) => {
+      await notify(
         f.followerId,
         'followed_user_upload',
         {
@@ -94,8 +94,8 @@ export async function fanoutFollowedUserUpload(
           torrentName: input.torrentName,
         },
         `/torrents/${input.torrentInfoHash}`,
-      ),
-    );
+      );
+    });
   } catch (err) {
     console.warn(
       '[Follow] fan-out failed for uploader',

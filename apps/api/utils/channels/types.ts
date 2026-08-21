@@ -67,7 +67,12 @@ export interface NotificationPayload {
 }
 
 export type TestResult =
-  | { ok: true }
+  // `error?: undefined` on the success member is not decoration: the API
+  // typechecks with `strict: false` (Nitro's generated tsconfig), and without
+  // strictNullChecks a boolean discriminant does not narrow — every
+  // `r.ok ? … : r.error` read was a type error. Declaring the absent field on
+  // each side keeps those reads legal in both modes.
+  | { ok: true; error?: undefined }
   | { ok: false; error: string };
 
 export interface ChannelAdapter<TServer = unknown, TUser = unknown> {

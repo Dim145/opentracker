@@ -61,7 +61,7 @@ const querySchema = z.object({
 const MAX_EPISODES = 300;
 const MAX_RELEASES = 200;
 
-interface BucketRow {
+type BucketRow = {
   season: number | null;
   episode: number | null;
   release_count: number;
@@ -79,7 +79,7 @@ interface BucketRow {
    * still answer "is there a 4K in here".
    */
   resolutions: string[] | null;
-}
+};
 
 /** The five tiers a release name is expected to declare. */
 const RES = sql`substring(${schema.torrents.name} from '(2160p|1440p|1080p|720p|480p)')`;

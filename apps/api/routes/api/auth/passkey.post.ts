@@ -30,7 +30,7 @@ const bodySchema = z.object({
     // The frontend sends `{ confirm: true }` after the user accepts the
     // confirmation dialog. We reject anything else so a CSRF attempt
     // with an empty body can't silently rotate the key.
-    errorMap: () => ({ message: 'Passkey rotation must be confirmed' }),
+    error: 'Passkey rotation must be confirmed',
   }),
 });
 

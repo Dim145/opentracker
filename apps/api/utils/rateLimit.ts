@@ -414,7 +414,7 @@ export async function rateLimit(
     // RFC 6585: 429 responses SHOULD include Retry-After.
     // Fallback to the configured window if Redis didn't return one.
     const retryAfter = result.retryAfter ?? windowSec;
-    setResponseHeader(event, 'Retry-After', String(retryAfter));
+    setResponseHeader(event, 'Retry-After', retryAfter);
 
     throw createError({
       statusCode: 429,

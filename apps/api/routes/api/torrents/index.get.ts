@@ -127,7 +127,7 @@ export default defineEventHandler(async (event) => {
     // add category and subcategories filter
     const subcategories = await db.query.categories.findMany({
       where: eq(schema.categories.parentId, query.categoryId),
-      select: { id: true },
+      columns: { id: true },
     });
     conditions.push(
       or(

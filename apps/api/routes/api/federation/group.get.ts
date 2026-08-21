@@ -71,7 +71,7 @@ function scopeWhere(
   return out;
 }
 
-interface BucketRow {
+type BucketRow = {
   season: number | null;
   episode: number | null;
   release_count: number;
@@ -79,7 +79,7 @@ interface BucketRow {
   latest: string;
   seeders: number;
   resolutions: string[] | null;
-}
+};
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireAuthSession(event);
@@ -222,7 +222,7 @@ export default defineEventHandler(async (event) => {
         ? { season: openSeason }
         : undefined;
 
-  interface ReleaseRow {
+  type ReleaseRow = {
     release_key: string;
     id: string;
     info_hash: string;
@@ -233,7 +233,7 @@ export default defineEventHandler(async (event) => {
     latest: string;
     detail_url: string | null;
     peer_names: string[] | null;
-  }
+  };
 
   const rows = (await db.execute<ReleaseRow>(sql`
     SELECT ${RELEASE_KEY} AS release_key,

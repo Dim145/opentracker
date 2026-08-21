@@ -48,7 +48,10 @@ function rlKey(userId: string, channelType: string): string {
 export async function consumeRateBudget(
   userId: string,
   channelType: string
-): Promise<{ allowed: true } | { allowed: false; retryAfterS: number }> {
+): Promise<
+  | { allowed: true; retryAfterS?: undefined }
+  | { allowed: false; retryAfterS: number }
+> {
   try {
     const key = rlKey(userId, channelType);
     const used = await redis.incr(key);

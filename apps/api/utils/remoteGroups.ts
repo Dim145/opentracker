@@ -104,7 +104,7 @@ export interface RemoteGroupRow {
   defaultScope: GroupScope;
 }
 
-interface RawRemoteGroup extends RawScopeCounts {
+type RawRemoteGroup = RawScopeCounts & {
   gkey: string;
   release_count: number;
   peer_count: number;
@@ -115,7 +115,7 @@ interface RawRemoteGroup extends RawScopeCounts {
   category_slugs: string[] | null;
   seed_min: number | null;
   seed_max: number | null;
-}
+};
 
 interface ListOptions {
   limit: number;

@@ -15,6 +15,7 @@ import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
 import { desc, eq, ilike, and, or, inArray, notInArray, isNull, sql } from 'drizzle-orm';
 import { authenticateTorznab, sendTorznabError } from '../utils/auth';
+import type { TorznabUser } from '../utils/auth';
 import {
   buildCapsXml,
   buildSearchXml,
@@ -89,7 +90,7 @@ export default defineEventHandler(async (event) => {
 
   // All other functions require authentication
   // Wrap in try/catch to handle Torznab XML errors properly
-  let user: { passkey: string };
+  let user: TorznabUser;
   try {
     user = await authenticateTorznab(event);
   } catch (error: any) {
@@ -199,7 +200,7 @@ async function handleCaps(event: H3Event) {
 async function handleSearch(
   event: H3Event,
   query: z.infer<typeof torznabQuerySchema>,
-  user: { passkey: string }
+  user: TorznabUser
 ) {
   return performSearch(event, query, user);
 }
@@ -211,7 +212,7 @@ async function handleSearch(
 async function handleTvSearch(
   event: H3Event,
   query: z.infer<typeof torznabQuerySchema>,
-  user: { passkey: string }
+  user: TorznabUser
 ) {
   // Build search query with season/episode
   let searchQuery = query.q || '';
@@ -251,7 +252,7 @@ async function handleTvSearch(
 async function handleMovieSearch(
   event: H3Event,
   query: z.infer<typeof torznabQuerySchema>,
-  user: { passkey: string }
+  user: TorznabUser
 ) {
   // Force Movie categories if none specified
   if (!query.cat) {

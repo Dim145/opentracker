@@ -16,12 +16,16 @@ export interface SessionUser {
   isModerator: boolean;
   uploaded: number;
   downloaded: number;
-  invitesRemaining: number;
   [key: string]: unknown;
 }
 
 export interface UserSessionData {
   user?: SessionUser;
+  /**
+   * Login timestamp, written by the passkey and profile-patch paths. Declared
+   * here because a sealed cookie only round-trips what the type allows.
+   */
+  loggedInAt?: number;
 }
 
 const COOKIE_NAME = 'trackarr-session';

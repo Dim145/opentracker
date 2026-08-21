@@ -7,7 +7,7 @@ import pkg from '../package.json';
 // Version is injected by the running app via env when available, but
 // the API also ships with its own package.json — fall back to that so
 // the subtitle/footer surfaces never read "vdev" in a normal dev run.
-const appVersion = process.env.APP_VERSION || pkg.version || 'dev';
+export const appVersion = process.env.APP_VERSION || pkg.version || 'dev';
 
 // ============================================================================
 // Cross-instance cache invalidation via Redis pub/sub

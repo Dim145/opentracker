@@ -38,7 +38,11 @@ collectDefaultMetrics({ register: registry, prefix: 'trackarr_' });
 // silently ignored, which would route every gauge to prom-client's default
 // global registry instead of our custom one. Spent an embarrassing amount
 // of time staring at /metrics wondering where my counts went.
-const labelMeta = { registers: [registry] } as const;
+// Typed rather than `as const`: prom-client's configs declare
+// `registers: Registry[]`, and a readonly tuple is not assignable to a
+// mutable array — that single `as const` produced 55 of the API's type
+// errors, one per metric spread.
+const labelMeta: { registers: Registry[] } = { registers: [registry] };
 
 // ─── Business / content ──────────────────────────────────────────────────────
 

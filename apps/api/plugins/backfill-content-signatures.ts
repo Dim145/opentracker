@@ -20,7 +20,7 @@
  */
 import { db, schema } from '@trackarr/db';
 import { eq, isNull } from 'drizzle-orm';
-import parseTorrent from 'parse-torrent';
+import { parseTorrentFile } from '~~/utils/parseTorrentFile';
 import { computeContentSignature } from '~~/utils/contentSignature';
 import { withCronLock } from '~~/utils/cronLock';
 
@@ -49,7 +49,7 @@ async function tick(): Promise<{ processed: number; signed: number }> {
       continue;
     }
     try {
-      const parsed = await parseTorrent(Buffer.from(row.torrentData));
+      const parsed = await parseTorrentFile(Buffer.from(row.torrentData));
       const signature =
         computeContentSignature({
           name: parsed.name,
