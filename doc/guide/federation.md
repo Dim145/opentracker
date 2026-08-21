@@ -83,9 +83,15 @@ effect on the next request.
 Discover and search partner content without touching swarms.
 
 - **Cache mode (default).** A background cron (`FEDERATION_SYNC_INTERVAL`,
-  15 min) pulls each `catalog`-sharing peer's catalogue into a local,
-  read-only mirror (`remote_torrents`) via a signed, paginated
-  `GET /api/federation/records`. Browse it at **`/federated`**.
+  15 min) reconciles with each `catalog`-sharing peer and pulls whatever is
+  missing into a local, read-only mirror (`remote_torrents`). Browse it at
+  **`/federated`**.
+- **Reconciliation, not a cursor.** The two sides compare fingerprints of
+  ranges of their catalogues and converge on exactly what differs, in a
+  handful of round trips whatever the size. When nothing has changed that is
+  one request and one "we agree" — and unlike a watermark it is *proven*
+  rather than assumed, so a release that went missing for any reason is
+  found and repaired on the next pass instead of never.
 - **Live mode.** Toggle **Live** on `/federated` to fan out a signed
   `GET /api/federation/search?q=` to every partner in real time
   (time-bounded, best-effort). It answers with the same signed records the

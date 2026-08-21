@@ -2,7 +2,7 @@
  * GET /api/federation/search?q=<query>&limit=<n>  — inbound, S2S.
  *
  * Live federated search: a partner queries our catalogue in real time. It
- * answers with **the same signed records** `/api/federation/records` streams,
+ * answers with **the same signed records** a partner reconciles over,
  * not with a hand-shaped result object.
  *
  * That is the whole change here. The old handler projected columns into a

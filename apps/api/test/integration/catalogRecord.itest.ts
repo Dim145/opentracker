@@ -5,12 +5,12 @@ import { db, schema } from '@trackarr/db';
 import { didKeyFromPublicKey } from '../../utils/federation/did';
 import { verifyRecord } from '../../utils/federation/record';
 import {
-  SETTLE_SECONDS,
-  listRecordsSince,
   mintRecords,
   mintTombstone,
   type MintContext,
 } from '../../utils/federation/catalogRecord';
+import { publishedSet } from '../../utils/federation/recordSet';
+import { MIN_BOUND, fingerprint } from '../../utils/federation/rbsr';
 
 // Minting signed records out of the local catalogue.
 //
@@ -285,88 +285,107 @@ describe('mintTombstone', () => {
   });
 });
 
-describe('the record stream', () => {
-  /** Records are withheld for a few seconds; tests cannot wait for that. */
-  async function age(): Promise<void> {
-    await db.execute(
-      sql`UPDATE catalog_records
-             SET created_at = now() - interval '${sql.raw(String(SETTLE_SECONDS + 5))} seconds'`,
-    );
+describe('the set a partner reconciles against', () => {
+  /**
+   * The published set, read through the shipped source. No settle window and
+   * no cursor: what a partner compares against is simply what stands, and
+   * reconciliation does not care what order any of it was written in.
+   */
+  async function published(): Promise<string[]> {
+    return publishedSet().ids(MIN_BOUND, null, 1000);
   }
 
-  it('walks forward by seq, oldest first', async () => {
-    const ids = [await makeTorrent(), await makeTorrent(), await makeTorrent()];
-    await mintRecords(ids, ctx);
-    await age();
-
-    const first = await listRecordsSince(0, 2);
-    expect(first.records).toHaveLength(2);
-    expect(first.nextCursor).toBeGreaterThan(0);
-
-    const second = await listRecordsSince(first.nextCursor, 2);
-    expect(second.records).toHaveLength(1);
-
-    // No overlap and nothing missed: three records across the two pages.
-    const seen = new Set(
-      [...first.records, ...second.records].map((r) => (r as { id: string }).id),
-    );
-    expect(seen.size).toBe(3);
-  });
-
-  it('serves what stands, not what stood', async () => {
-    // A superseded record is history. Its successor carries `replaces` and
-    // arrives with a higher seq, so a partner learns of the change without
-    // ever being sent the old one.
+  it('holds what stands, not what stood', async () => {
+    // A superseded record is history. Its successor carries `replaces`, and a
+    // partner learns of the change by finding a new id in the set and losing
+    // the old one — no separate "this was edited" message exists or is needed.
     const id = await makeTorrent();
     await mintRecords([id], ctx);
+    const [before] = await published();
+
     await db
       .update(schema.torrents)
       .set({ name: 'Renamed-A' })
       .where(eq(schema.torrents.id, id));
     await mintRecords([id], ctx);
-    await age();
 
-    const { records } = await listRecordsSince(0, 50);
-    expect(records).toHaveLength(1);
-    expect((records[0] as { name: string }).name).toBe('Renamed-A');
-    expect((records[0] as Record<string, unknown>)['trackarr:replaces']).toBeTruthy();
+    const after = await published();
+    expect(after).toHaveLength(1);
+    expect(after[0]).not.toBe(before);
   });
 
-  it('serves a withdrawal as a statement, not as a gap', async () => {
+  it('holds a withdrawal as a statement, not as a gap', async () => {
     const id = await makeTorrent();
     await mintRecords([id], ctx);
     await mintTombstone(id, ctx);
-    await age();
 
-    const { records } = await listRecordsSince(0, 50);
-    expect(records).toHaveLength(1);
-    expect((records[0] as { type: string }).type).toBe('Tombstone');
+    const ids = await published();
+    expect(ids).toHaveLength(1);
+    const [row] = await db
+      .select({ kind: schema.catalogRecords.kind })
+      .from(schema.catalogRecords)
+      .where(eq(schema.catalogRecords.id, ids[0]!));
+    expect(row!.kind).toBe('tombstone');
   });
 
-  it('withholds a record until concurrent writers have committed', async () => {
-    // `seq` is a sequence, and a sequence is not a safe cursor: two
-    // transactions can take 5 and 6 and commit in the other order, so a reader
-    // paging strictly past the highest seq it saw would miss 5 forever. The
-    // settle window is what makes that vanishingly unlikely — and it is why a
-    // freshly minted record is not immediately visible.
+  it('serves a record the moment it is minted', async () => {
+    // The feed this replaces withheld anything younger than five seconds,
+    // because a sequence number can be handed out before it is committed and
+    // a cursor could step over it. Comparing sets has no such hazard, so the
+    // delay is gone — and with it a whole class of "why is this not there
+    // yet" that had no visible cause.
     const id = await makeTorrent();
     await mintRecords([id], ctx);
 
-    expect((await listRecordsSince(0, 50)).records).toHaveLength(0);
-    await age();
-    expect((await listRecordsSince(0, 50)).records).toHaveLength(1);
+    expect(await published()).toHaveLength(1);
   });
 
-  it('leaves the cursor where it was when there is nothing new', async () => {
-    // A partner that polls an idle instance must not have its cursor reset to
-    // zero and re-download the catalogue.
-    const id = await makeTorrent();
-    await mintRecords([id], ctx);
-    await age();
-    const { nextCursor } = await listRecordsSince(0, 50);
+  it('fingerprints exactly as the protocol says it should', async () => {
+    // The one that matters. The fingerprint is computed in SQL on this side
+    // and in TypeScript on the other; if the two ever disagree, two instances
+    // reconcile confidently to a set they do not share, and nothing anywhere
+    // reports a problem.
+    const ids = [await makeTorrent(), await makeTorrent(), await makeTorrent()];
+    await mintRecords(ids, ctx);
 
-    const idle = await listRecordsSince(nextCursor, 50);
-    expect(idle.records).toHaveLength(0);
-    expect(idle.nextCursor).toBe(nextCursor);
+    const set = publishedSet();
+    const all = await set.ids(MIN_BOUND, null, 1000);
+    const summary = await set.summary(MIN_BOUND, null);
+
+    expect(summary.n).toBe(3);
+    expect(summary.fp).toBe(fingerprint(all));
+  });
+
+  it('fingerprints an empty range the same way in both languages', async () => {
+    const set = publishedSet();
+    const summary = await set.summary('zzzz', null);
+    expect(summary.n).toBe(0);
+    expect(summary.fp).toBe(fingerprint([]));
+  });
+
+  it('cuts a range into pieces that cover it exactly and agree piece by piece', async () => {
+    // A bucket boundary that drifts leaves a sliver of the id space neither
+    // side ever compares — records that live there are invisible forever, and
+    // both sides report agreement.
+    const ids: string[] = [];
+    for (let i = 0; i < 40; i++) ids.push(await makeTorrent());
+    await mintRecords(ids, ctx);
+
+    const set = publishedSet();
+    const all = await set.ids(MIN_BOUND, null, 1000);
+    const buckets = await set.buckets(MIN_BOUND, null, 8);
+
+    expect(buckets[0]!.lo).toBe(MIN_BOUND);
+    expect(buckets[buckets.length - 1]!.hi).toBeNull();
+    expect(buckets.reduce((n, b) => n + b.n, 0)).toBe(all.length);
+    for (let i = 1; i < buckets.length; i++) {
+      // Every piece begins where the last one ended: no overlap, no gap.
+      expect(buckets[i]!.lo).toBe(buckets[i - 1]!.hi);
+    }
+    for (const b of buckets) {
+      const inside = all.filter((x) => x >= b.lo && (b.hi === null || x < b.hi));
+      expect(inside).toHaveLength(b.n);
+      expect(b.fp).toBe(fingerprint(inside));
+    }
   });
 });

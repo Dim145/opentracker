@@ -30,7 +30,7 @@
  * can be fetched. The mirror therefore keeps a row per peer, identified by the
  * record: same statement, several places to act on it.
  */
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
 import { db, schema } from '@trackarr/db';
 import type { FederationPeer } from '@trackarr/db/schema';
@@ -40,13 +40,21 @@ import {
   isFederationLive,
 } from './config';
 import { parseReleaseName } from '@trackarr/shared/releaseParse';
-import { signedGet } from './signing';
+import { signedPost } from './signing';
 import { verifyRecord } from './record';
 import { notifyFollowersOfNewUploads } from './sidePasses';
+import { mirrorSet } from './recordSet';
+import { MAX_ROUNDS, opening, respond } from './rbsr';
 
-const PAGE_LIMIT = 200;
-/** Pages per run. Bounded so one partner cannot monopolise a sync cycle. */
-const MAX_PAGES = 25;
+/** Records asked for per request. See `MAX_IDS` on the fetch endpoint. */
+const FETCH_BATCH = 200;
+/**
+ * Records taken in per run. A first sync against a large partner is drained
+ * over several ticks rather than in one request that times out halfway —
+ * reconciliation is happy to be interrupted, since the next run simply finds
+ * a smaller difference.
+ */
+const MAX_FETCH_PER_RUN = 5_000;
 /**
  * Hard cap on mirrored rows per partner.
  *
@@ -70,7 +78,12 @@ export interface RecordSyncResult {
   withdrawn: number;
   /** Records whose proof did not hold. The number an operator should watch. */
   rejected: number;
-  pages: number;
+  /**
+   * Round trips the reconciliation took. One means the two sides agreed
+   * outright; a figure that climbs run after run means something is diverging
+   * faster than it converges.
+   */
+  rounds: number;
   error?: string;
 }
 
@@ -96,7 +109,14 @@ function asHttpUrl(v: unknown): string | null {
   }
 }
 
-async function readCursor(peerId: string): Promise<number | null> {
+/**
+ * Have we ever synced this peer?
+ *
+ * The row used to hold a watermark and now holds only health, but this one
+ * bit still matters: `null` means an initial backfill, which must not notify
+ * followers about a partner's entire back catalogue at once.
+ */
+async function readState(peerId: string): Promise<{ rounds: number } | null> {
   const [state] = await db
     .select({ cursor: schema.federationSyncState.cursor })
     .from(schema.federationSyncState)
@@ -107,23 +127,29 @@ async function readCursor(peerId: string): Promise<number | null> {
       ),
     )
     .limit(1);
-  // `null` — never synced — is not the same as `0`. Only the first tells us
-  // this is an initial backfill, which must not notify followers about a
-  // partner's entire back catalogue at once.
   if (!state) return null;
   const n = parseInt(state.cursor ?? '0', 10);
-  return Number.isFinite(n) && n > 0 ? n : 0;
+  return { rounds: Number.isFinite(n) ? n : 0 };
 }
 
-async function saveCursor(
+/**
+ * Record how the last reconciliation went.
+ *
+ * `cursor` keeps its column but no longer means "where I stopped" — there is
+ * no such place any more. It holds the number of round trips the last
+ * conversation took, which is the one number that says whether reconciliation
+ * is behaving: one means the two sides agreed immediately, and a figure that
+ * climbs run after run means something is diverging faster than it converges.
+ */
+async function saveState(
   peerId: string,
-  cursor: number,
+  rounds: number,
   status: string,
   items: number,
   error: string | null,
 ): Promise<void> {
   const row = {
-    cursor: String(cursor),
+    cursor: String(rounds),
     lastRunAt: new Date(),
     lastStatus: status,
     itemsSynced: items,
@@ -139,6 +165,14 @@ async function saveCursor(
       ],
       set: row,
     });
+}
+
+/** Leave a failure where the federation health page will show it. */
+async function notePeerError(peerId: string, message: string): Promise<void> {
+  await db
+    .update(schema.federationPeers)
+    .set({ lastError: `Record sync: ${message}`, updatedAt: new Date() })
+    .where(eq(schema.federationPeers.id, peerId));
 }
 
 /**
@@ -339,10 +373,34 @@ export async function ingestRecord(
   };
 }
 
+/**
+ * Reconcile with one partner, then fetch what we turn out to be missing.
+ *
+ * Two phases, and the split is the point. Reconciliation decides WHICH
+ * records differ — cheaply, over fingerprints, converging in a handful of
+ * round trips whatever the size of the catalogue. Fetching then asks for those
+ * records by content address. Neither phase needs to know how the other
+ * reached its answer, which is what lets the same fetch serve a record learned
+ * from a relay, from a live search, or from here.
+ *
+ * What it costs in the common case — nothing new since last time — is one
+ * request and one `skip` back. That is barely more than the watermark it
+ * replaces, and unlike the watermark it has PROVEN the two sides agree rather
+ * than assumed it.
+ *
+ * Best-effort throughout: a partner that is down, slow, or serving nonsense
+ * costs a logged sync-state row and nothing else. Never throws — it runs in a
+ * loop over every peer.
+ */
 export async function syncPeerRecords(
   peer: FederationPeer,
 ): Promise<RecordSyncResult> {
-  const out: RecordSyncResult = { ingested: 0, withdrawn: 0, rejected: 0, pages: 0 };
+  const out: RecordSyncResult = {
+    ingested: 0,
+    withdrawn: 0,
+    rejected: 0,
+    rounds: 0,
+  };
   /** First-seen uploads, for the follow notification after the sync settles. */
   const fresh: NewItem[] = [];
 
@@ -351,64 +409,109 @@ export async function syncPeerRecords(
   const pk = getPrivateKeyPem(config!);
   if (!pk || !config!.instanceId) return out;
 
-  const stored = await readCursor(peer.id);
-  const isFirstSync = stored === null; // initial backfill — do NOT notify
-  let cursor = stored ?? 0;
+  const state = await readState(peer.id);
+  const isFirstSync = state === null; // initial backfill — do NOT notify
 
   const [{ existing }] = await db
     .select({ existing: sql<number>`count(*)::int` })
     .from(schema.remoteTorrents)
     .where(eq(schema.remoteTorrents.peerId, peer.id));
   if ((existing ?? 0) >= MAX_REMOTE_PER_PEER) {
-    await saveCursor(peer.id, cursor, 'ok', 0, 'row cap reached');
+    await saveState(peer.id, 0, 'ok', 0, 'row cap reached');
     return out;
   }
 
+  const mine = mirrorSet(peer.id);
+  const missing: string[] = [];
+  const extra: string[] = [];
+
   try {
-    for (let page = 0; page < MAX_PAGES; page++) {
-      const qs = new URLSearchParams({
-        since: String(cursor),
-        limit: String(PAGE_LIMIT),
-      });
-      const res = await signedGet({
+    let outgoing = await opening(mine);
+
+    while (outgoing.length && out.rounds < MAX_ROUNDS) {
+      out.rounds++;
+      const res = await signedPost({
         baseUrl: peer.baseUrl,
-        pathname: `/api/federation/records?${qs.toString()}`,
+        pathname: '/api/federation/reconcile',
+        body: { ranges: outgoing },
+        instanceId: config!.instanceId,
+        privateKeyPem: pk,
+        audienceInstanceId: peer.instanceId ?? undefined,
+      });
+      if (res.status !== 200 || !Array.isArray(res.data?.ranges)) {
+        out.error = `http ${res.status}`;
+        await saveState(peer.id, out.rounds, 'error', 0, out.error);
+        await notePeerError(peer.id, out.error);
+        return out;
+      }
+
+      // `echoIds: false` — we are the initiator. Answering their exact list
+      // with ours would have the two of us handing lists back and forth.
+      const step = await respond(res.data.ranges, mine, { echoIds: false });
+      missing.push(...step.missing);
+      extra.push(...step.extra);
+      outgoing = step.reply;
+    }
+
+    // ── Fetch what we are missing ────────────────────────────────────────
+    const wanted = [...new Set(missing)].slice(0, MAX_FETCH_PER_RUN);
+    for (let i = 0; i < wanted.length; i += FETCH_BATCH) {
+      const batch = wanted.slice(i, i + FETCH_BATCH);
+      // In the body, not the query string: two hundred content addresses is
+      // fifteen kilobytes, which is past what belongs in a URL and past what
+      // this server's own middleware allows in one parameter.
+      const res = await signedPost({
+        baseUrl: peer.baseUrl,
+        pathname: '/api/federation/records',
+        body: { ids: batch },
         instanceId: config!.instanceId,
         privateKeyPem: pk,
         audienceInstanceId: peer.instanceId ?? undefined,
       });
       if (res.status !== 200 || !Array.isArray(res.data?.records)) {
-        await saveCursor(peer.id, cursor, 'error', out.ingested, `http ${res.status}`);
         out.error = `http ${res.status}`;
-        return out;
+        break;
       }
-      out.pages++;
-
-      const records = res.data.records as unknown[];
-      if (!records.length) break;
-
-      for (const raw of records) {
+      for (const raw of res.data.records as unknown[]) {
         const r = await ingestRecord(peer, raw);
         out.ingested += r.ingested;
         out.withdrawn += r.withdrawn;
         out.rejected += r.rejected;
         if (r.fresh) fresh.push(r.fresh);
       }
-
-      const next = Number(res.data.nextCursor);
-      // A cursor that does not advance would loop forever on the same page.
-      if (!Number.isFinite(next) || next <= cursor) break;
-      cursor = next;
-      await saveCursor(peer.id, cursor, 'ok', out.ingested, null);
-      if (records.length < PAGE_LIMIT) break;
     }
 
-    await saveCursor(
+    // ── Drop what the partner no longer publishes ────────────────────────
+    //
+    // An absence IS a withdrawal, and this is where reconciliation earns its
+    // keep: no tombstone had to be sent, and a deletion we somehow missed is
+    // caught on the next pass rather than never.
+    //
+    // Safe because `extra` only ever comes from an interval whose contents we
+    // saw in full — never inferred from a fingerprint — so a reconciliation
+    // that failed halfway deletes nothing it should not.
+    const gone = [...new Set(extra)];
+    for (let i = 0; i < gone.length; i += FETCH_BATCH) {
+      const batch = gone.slice(i, i + FETCH_BATCH);
+      const res = await db
+        .delete(schema.remoteTorrents)
+        .where(
+          and(
+            eq(schema.remoteTorrents.peerId, peer.id),
+            inArray(schema.remoteTorrents.remoteId, batch),
+          ),
+        );
+      out.withdrawn += (res as unknown as { count?: number }).count ?? batch.length;
+    }
+
+    await saveState(
       peer.id,
-      cursor,
-      out.rejected ? 'partial' : 'ok',
+      out.rounds,
+      out.rejected ? 'partial' : out.error ? 'error' : 'ok',
       out.ingested,
-      out.rejected ? `${out.rejected} record(s) failed verification` : null,
+      out.rejected
+        ? `${out.rejected} record(s) failed verification`
+        : (out.error ?? null),
     );
 
     await db
@@ -419,11 +522,8 @@ export async function syncPeerRecords(
     if (!isFirstSync) await announceFresh(peer, fresh);
   } catch (err) {
     out.error = (err as Error).message;
-    await saveCursor(peer.id, cursor, 'error', out.ingested, out.error);
-    await db
-      .update(schema.federationPeers)
-      .set({ lastError: `Record sync: ${out.error}`, updatedAt: new Date() })
-      .where(eq(schema.federationPeers.id, peer.id));
+    await saveState(peer.id, out.rounds, 'error', out.ingested, out.error);
+    await notePeerError(peer.id, out.error);
   }
 
   return out;
@@ -470,7 +570,7 @@ export async function syncAllRecords(): Promise<{
     total.rejected += r.rejected;
     if (r.ingested || r.withdrawn || r.rejected) {
       console.log(
-        `[RecordSync] ${peer.displayName ?? peer.baseUrl}: ingested=${r.ingested} withdrawn=${r.withdrawn} rejected=${r.rejected}`,
+        `[RecordSync] ${peer.displayName ?? peer.baseUrl}: ingested=${r.ingested} withdrawn=${r.withdrawn} rejected=${r.rejected} rounds=${r.rounds}`,
       );
     }
   }

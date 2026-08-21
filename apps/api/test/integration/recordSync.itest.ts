@@ -23,23 +23,64 @@ import { CONTEXT, signRecord } from '../../utils/federation/record';
 // whether the issuer is honest. A signed `size: -1` is a perfectly valid
 // record.
 
+/**
+ * The partner is a real implementation of the other half.
+ *
+ * It answers reconciliation with `respond` over its own set and hands over
+ * records by id, which is exactly what a partner instance does — so these
+ * tests exercise the protocol rather than a fixture shaped like its output.
+ * The network is the only thing faked.
+ */
 const partner = vi.hoisted(() => ({
-  pages: [] as Array<{ records: unknown[]; nextCursor: number }>,
-  calls: [] as Array<{ since: string | null }>,
+  /** The partner's published set, keyed by content address. */
+  records: new Map<string, Record<string, unknown>>(),
+  calls: [] as string[],
   status: 200,
+  /** Rounds it took to converge, for the tests that care. */
+  rounds: 0,
 }));
 
-vi.mock('../../utils/federation/signing', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../utils/federation/signing')>()),
-  signedGet: async ({ pathname }: { pathname: string }) => {
-    const [, qs = ''] = pathname.split('?');
-    const params = new URLSearchParams(qs);
-    partner.calls.push({ since: params.get('since') });
-    if (partner.status !== 200) return { status: partner.status, data: null };
-    const page = partner.pages.shift() ?? { records: [], nextCursor: 0 };
-    return { status: 200, data: { ok: true, ...page } };
-  },
-}));
+vi.mock('../../utils/federation/signing', async (importOriginal) => {
+  const { respond, arraySource } = await import('../../utils/federation/rbsr');
+  return {
+    ...(await importOriginal<typeof import('../../utils/federation/signing')>()),
+    signedPost: async ({ pathname, body }: { pathname: string; body: unknown }) => {
+      partner.calls.push(pathname);
+      if (partner.status !== 200) return { status: partner.status, data: null };
+
+      if (pathname === '/api/federation/records') {
+        const ids = ((body as { ids?: unknown }).ids ?? []) as string[];
+        return {
+          status: 200,
+          data: {
+            ok: true,
+            records: ids.map((i) => partner.records.get(i)).filter(Boolean),
+          },
+        };
+      }
+
+      partner.rounds++;
+      const step = await respond(
+        (body as { ranges?: unknown }).ranges,
+        arraySource([...partner.records.keys()]),
+        { echoIds: true },
+      );
+      return { status: 200, data: { ok: true, ranges: step.reply } };
+    },
+
+  };
+});
+
+/** What the partner publishes. Replaces whatever it published before. */
+function serve(...records: Array<Record<string, unknown>>): void {
+  partner.records.clear();
+  for (const r of records) partner.records.set(String(r.id), r);
+}
+
+/** Publish more without retracting what is already there. */
+function alsoServe(...records: Array<Record<string, unknown>>): void {
+  for (const r of records) partner.records.set(String(r.id), r);
+}
 
 const { syncPeerRecords } = await import('../../utils/federation/recordSync');
 const { ensureFederationIdentity } = await import('../../utils/federation/config');
@@ -131,9 +172,10 @@ async function mirrored(peerId: string) {
 }
 
 beforeEach(async () => {
-  partner.pages = [];
+  partner.records.clear();
   partner.calls = [];
   partner.status = 200;
+  partner.rounds = 0;
   counter = 0;
   issuer = keypair();
   // The identity is provisioned but federation ships DISABLED, and
@@ -149,7 +191,7 @@ describe('accepting a record', () => {
   it('mirrors one that verifies, and marks it verified', async () => {
     const peer = await makePeer();
     const r = record();
-    partner.pages = [{ records: [r], nextCursor: 7 }];
+    serve(r);
 
     const out = await syncPeerRecords(peer);
     expect(out.ingested).toBe(1);
@@ -172,7 +214,7 @@ describe('accepting a record', () => {
     const peer = await makePeer();
     const tampered = JSON.parse(JSON.stringify(record()));
     tampered.name = 'Something.Else-A';
-    partner.pages = [{ records: [tampered], nextCursor: 1 }];
+    serve(tampered);
 
     const out = await syncPeerRecords(peer);
     expect(out.ingested).toBe(0);
@@ -184,7 +226,7 @@ describe('accepting a record', () => {
     const peer = await makePeer();
     const bare = JSON.parse(JSON.stringify(record()));
     delete bare.proof;
-    partner.pages = [{ records: [bare], nextCursor: 1 }];
+    serve(bare);
 
     expect((await syncPeerRecords(peer)).rejected).toBe(1);
     expect(await mirrored(peer.id)).toHaveLength(0);
@@ -196,7 +238,7 @@ describe('accepting a record', () => {
     const peer = await makePeer();
     const bad = JSON.parse(JSON.stringify(record()));
     bad['trackarr:size'] = 1;
-    partner.pages = [{ records: [record(), bad, record()], nextCursor: 3 }];
+    serve(record(), bad, record());
 
     const out = await syncPeerRecords(peer);
     expect(out.ingested).toBe(2);
@@ -208,7 +250,7 @@ describe('accepting a record', () => {
     const peer = await makePeer();
     const bad = JSON.parse(JSON.stringify(record()));
     bad.name = 'edited';
-    partner.pages = [{ records: [bad], nextCursor: 1 }];
+    serve(bad);
     await syncPeerRecords(peer);
 
     const [state] = await db
@@ -226,20 +268,13 @@ describe('a proof is not a validation', () => {
     // about whether the issuer is honest, and conflating the two is how
     // signed-data systems get compromised.
     const peer = await makePeer();
-    partner.pages = [
-      {
-        records: [
-          record({
+    serve(record({
             name: 'Unreadable.Upload',
             'trackarr:size': -5,
             'trackarr:season': 99_999,
             'trackarr:episode': 1.5,
             url: 'javascript:alert(1)',
-          }),
-        ],
-        nextCursor: 1,
-      },
-    ];
+          }));
 
     await syncPeerRecords(peer);
     const [row] = await mirrored(peer.id);
@@ -254,9 +289,7 @@ describe('a proof is not a validation', () => {
     // A record says where its content lives. The peer that handed it over is
     // not necessarily that place, and will not be once records are relayed.
     const peer = await makePeer();
-    partner.pages = [
-      { records: [record({ url: 'https://origin.example/torrents/xyz' })], nextCursor: 1 },
-    ];
+    serve(record({ url: 'https://origin.example/torrents/xyz' }));
 
     await syncPeerRecords(peer);
     const [row] = await mirrored(peer.id);
@@ -268,7 +301,7 @@ describe('the lifecycle a record carries', () => {
   it('replaces the generation it supersedes', async () => {
     const peer = await makePeer();
     const first = record({ name: 'First.Name-A' });
-    partner.pages = [{ records: [first], nextCursor: 1 }];
+    serve(first);
     await syncPeerRecords(peer);
 
     const second = record({
@@ -276,7 +309,7 @@ describe('the lifecycle a record carries', () => {
       'bt:infohash_v1': (first as unknown as Record<string, string>)['bt:infohash_v1'],
       'trackarr:replaces': first.id,
     });
-    partner.pages = [{ records: [second], nextCursor: 2 }];
+    serve(second);
     await syncPeerRecords(peer);
 
     const rows = await mirrored(peer.id);
@@ -288,12 +321,12 @@ describe('the lifecycle a record carries', () => {
   it('applies a withdrawal as a statement', async () => {
     const peer = await makePeer();
     const r = record();
-    partner.pages = [{ records: [r], nextCursor: 1 }];
+    serve(r);
     await syncPeerRecords(peer);
     expect(await mirrored(peer.id)).toHaveLength(1);
 
     const hash = (r as unknown as Record<string, string>)['bt:infohash_v1']!;
-    partner.pages = [{ records: [tombstone(r.id, hash)], nextCursor: 2 }];
+    serve(tombstone(r.id, hash));
     const out = await syncPeerRecords(peer);
 
     expect(out.withdrawn).toBeGreaterThan(0);
@@ -304,13 +337,15 @@ describe('the lifecycle a record carries', () => {
     // Otherwise anyone able to reach us could empty the mirror.
     const peer = await makePeer();
     const r = record();
-    partner.pages = [{ records: [r], nextCursor: 1 }];
+    serve(r);
     await syncPeerRecords(peer);
 
     const hash = (r as unknown as Record<string, string>)['bt:infohash_v1']!;
     const forged = JSON.parse(JSON.stringify(tombstone(r.id, hash)));
     forged['trackarr:issuer'] = 'did:key:zSomebodyElse';
-    partner.pages = [{ records: [forged], nextCursor: 2 }];
+    // Alongside, not instead: if the partner simply stopped publishing the
+    // record, its absence would retire it and the forgery would prove nothing.
+    alsoServe(forged);
 
     const out = await syncPeerRecords(peer);
     expect(out.rejected).toBe(1);
@@ -322,33 +357,81 @@ describe('the sync loop', () => {
   it('is idempotent — the same record twice is one row', async () => {
     const peer = await makePeer();
     const r = record();
-    partner.pages = [{ records: [r], nextCursor: 1 }];
+    serve(r);
     await syncPeerRecords(peer);
-    partner.pages = [{ records: [r], nextCursor: 1 }];
+    serve(r);
     await syncPeerRecords(peer);
 
     expect(await mirrored(peer.id)).toHaveLength(1);
   });
 
-  it('remembers where it stopped', async () => {
+  it('settles in a single exchange when nothing has changed', async () => {
+    // The steady state, and the case the watermark was cheap for. One
+    // request, one `skip` back, nothing fetched — and unlike the watermark,
+    // the two sides have PROVEN they agree rather than assumed it.
     const peer = await makePeer();
-    partner.pages = [{ records: [record()], nextCursor: 42 }];
+    for (let i = 0; i < 5; i++) alsoServe(record());
     await syncPeerRecords(peer);
 
-    partner.pages = [{ records: [], nextCursor: 42 }];
-    await syncPeerRecords(peer);
-    expect(partner.calls.at(-1)!.since).toBe('42');
+    partner.calls = [];
+    const out = await syncPeerRecords(peer);
+
+    expect(out.rounds).toBe(1);
+    expect(out.ingested).toBe(0);
+    expect(partner.calls).toEqual(['/api/federation/reconcile']);
   });
 
-  it('stops rather than looping when the cursor does not move', async () => {
-    // A partner that keeps answering with the same page and the same cursor
-    // would otherwise spin until the page budget ran out, every cycle.
+  it('converges without being told where to start', async () => {
+    // No watermark is exchanged and none is stored. The partner publishes a
+    // hundred records to a mirror that holds none, and the difference is
+    // worked out from fingerprints alone.
     const peer = await makePeer();
-    for (let i = 0; i < 5; i++) {
-      partner.pages.push({ records: [record()], nextCursor: 0 });
-    }
+    for (let i = 0; i < 100; i++) alsoServe(record());
+
+    const out = await syncPeerRecords(peer);
+
+    expect(out.ingested).toBe(100);
+    expect(await mirrored(peer.id)).toHaveLength(100);
+    // Logarithmic, not linear: a hundred records is a handful of exchanges.
+    expect(out.rounds).toBeLessThan(5);
+  });
+
+  it('notices a record it somehow missed, on the next pass', async () => {
+    // The failure a forward-only cursor could never recover from. Delete a
+    // mirrored row behind the sync's back — a bug, a crash mid-page, a
+    // partner that served a short page — and the next run must find it.
+    const peer = await makePeer();
+    for (let i = 0; i < 40; i++) alsoServe(record());
     await syncPeerRecords(peer);
-    expect(partner.calls).toHaveLength(1);
+
+    const [victim] = await mirrored(peer.id);
+    await db
+      .delete(schema.remoteTorrents)
+      .where(eq(schema.remoteTorrents.id, victim!.id));
+
+    const out = await syncPeerRecords(peer);
+
+    expect(out.ingested).toBe(1);
+    expect(await mirrored(peer.id)).toHaveLength(40);
+  });
+
+  it('drops what the partner has stopped publishing', async () => {
+    // An absence IS a withdrawal. No tombstone was sent here — the record is
+    // simply not in the partner's set any more, and that is enough.
+    const peer = await makePeer();
+    const keep = record();
+    const drop = record();
+    serve(keep, drop);
+    await syncPeerRecords(peer);
+    expect(await mirrored(peer.id)).toHaveLength(2);
+
+    serve(keep);
+    const out = await syncPeerRecords(peer);
+
+    expect(out.withdrawn).toBe(1);
+    const left = await mirrored(peer.id);
+    expect(left).toHaveLength(1);
+    expect(left[0]!.remoteId).toBe(keep.id);
   });
 
   it('records a transport failure without throwing', async () => {
@@ -372,9 +455,9 @@ describe('the sync loop', () => {
     const b = await makePeer();
     const r = record();
 
-    partner.pages = [{ records: [r], nextCursor: 1 }];
+    serve(r);
     await syncPeerRecords(a);
-    partner.pages = [{ records: [r], nextCursor: 1 }];
+    serve(r);
     await syncPeerRecords(b);
 
     expect(await mirrored(a.id)).toHaveLength(1);
@@ -388,7 +471,7 @@ describe('where a release belongs', () => {
 
   it('takes the position the record carries', async () => {
     const peer = await makePeer();
-    partner.pages = [{ records: [record()], nextCursor: 1 }];
+    serve(record());
 
     await syncPeerRecords(peer);
 
@@ -403,18 +486,11 @@ describe('where a release belongs', () => {
     // the local catalogue uses — so a release looks the same whichever side
     // of the federation it came from.
     const peer = await makePeer();
-    partner.pages = [
-      {
-        records: [
-          record({
+    serve(record({
             name: 'Another.Show.S04E11.2160p.WEB-DL',
             'trackarr:season': null,
             'trackarr:episode': null,
-          }),
-        ],
-        nextCursor: 1,
-      },
-    ];
+          }));
 
     await syncPeerRecords(peer);
 
@@ -425,18 +501,11 @@ describe('where a release belongs', () => {
 
   it('reads a season pack as a season with no episode', async () => {
     const peer = await makePeer();
-    partner.pages = [
-      {
-        records: [
-          record({
+    serve(record({
             name: 'Another.Show.S04.COMPLETE.1080p.WEB-DL',
             'trackarr:season': null,
             'trackarr:episode': null,
-          }),
-        ],
-        nextCursor: 1,
-      },
-    ];
+          }));
 
     await syncPeerRecords(peer);
 
@@ -447,18 +516,11 @@ describe('where a release belongs', () => {
 
   it('leaves a film with no position', async () => {
     const peer = await makePeer();
-    partner.pages = [
-      {
-        records: [
-          record({
+    serve(record({
             name: 'Some.Film.2024.1080p.BluRay',
             'trackarr:season': null,
             'trackarr:episode': null,
-          }),
-        ],
-        nextCursor: 1,
-      },
-    ];
+          }));
 
     await syncPeerRecords(peer);
 
@@ -472,18 +534,11 @@ describe('where a release belongs', () => {
     // guessed, and that correction is the better answer. The fallback must
     // not overrule it.
     const peer = await makePeer();
-    partner.pages = [
-      {
-        records: [
-          record({
+    serve(record({
             name: 'Show.S09E09.1080p-NTb',
             'trackarr:season': 1,
             'trackarr:episode': 2,
-          }),
-        ],
-        nextCursor: 1,
-      },
-    ];
+          }));
 
     await syncPeerRecords(peer);
 
@@ -501,18 +556,11 @@ describe('containing a hostile issuer', () => {
 
   it('truncates oversized fields instead of rejecting them', async () => {
     const peer = await makePeer();
-    partner.pages = [
-      {
-        records: [
-          record({
+    serve(record({
             name: 'N'.repeat(5_000),
             content: 'D'.repeat(80_000),
             'trackarr:tags': Array.from({ length: 400 }, (_, i) => `tag-${i}`),
-          }),
-        ],
-        nextCursor: 1,
-      },
-    ];
+          }));
 
     await syncPeerRecords(peer);
 
@@ -524,9 +572,7 @@ describe('containing a hostile issuer', () => {
 
   it('clamps absurd counters to what the column can hold', async () => {
     const peer = await makePeer();
-    partner.pages = [
-      { records: [record({ 'trackarr:size': 1e30 })], nextCursor: 1 },
-    ];
+    serve(record({ 'trackarr:size': 1e30 }));
 
     await syncPeerRecords(peer);
 
@@ -545,7 +591,7 @@ describe('containing a hostile issuer', () => {
              'Bulk ' || g, 0
       FROM generate_series(1, 100000) g
     `);
-    partner.pages = [{ records: [record()], nextCursor: 1 }];
+    serve(record());
 
     const out = await syncPeerRecords(peer);
 
@@ -582,9 +628,7 @@ describe('telling followers about a partner they follow', () => {
     const peer = await makePeer();
     const user = await makeUser();
     await follow(user, peer.id, 'RemoteUp');
-    partner.pages = [
-      { records: Array.from({ length: 5 }, () => record()), nextCursor: 1 },
-    ];
+    serve(...Array.from({ length: 5 }, () => record()));
 
     await syncPeerRecords(peer);
 
@@ -595,10 +639,10 @@ describe('telling followers about a partner they follow', () => {
     const peer = await makePeer();
     const user = await makeUser();
     await follow(user, peer.id, 'RemoteUp');
-    partner.pages = [{ records: [record()], nextCursor: 1 }];
+    serve(record());
     await syncPeerRecords(peer);
 
-    partner.pages = [{ records: [record()], nextCursor: 2 }];
+    serve(record());
     await syncPeerRecords(peer);
 
     const received = await notices(user);
@@ -616,11 +660,11 @@ describe('telling followers about a partner they follow', () => {
     const user = await makeUser();
     await follow(user, peer.id, 'RemoteUp');
     const same = record();
-    partner.pages = [{ records: [same], nextCursor: 1 }];
+    serve(same);
     await syncPeerRecords(peer);
-    partner.pages = [{ records: [same], nextCursor: 2 }];
+    serve(same);
     await syncPeerRecords(peer);
-    partner.pages = [{ records: [same], nextCursor: 3 }];
+    serve(same);
     await syncPeerRecords(peer);
 
     expect(await notices(user)).toHaveLength(0);
@@ -630,9 +674,9 @@ describe('telling followers about a partner they follow', () => {
     const peer = await makePeer();
     const user = await makeUser();
     await follow(user, peer.id, 'SomebodyElse');
-    partner.pages = [{ records: [record()], nextCursor: 1 }];
+    serve(record());
     await syncPeerRecords(peer);
-    partner.pages = [{ records: [record()], nextCursor: 2 }];
+    serve(record());
     await syncPeerRecords(peer);
 
     expect(await notices(user)).toHaveLength(0);
@@ -645,12 +689,10 @@ describe('telling followers about a partner they follow', () => {
     const peer = await makePeer();
     const user = await makeUser();
     await follow(user, peer.id, 'RemoteUp');
-    partner.pages = [{ records: [record()], nextCursor: 1 }];
+    serve(record());
     await syncPeerRecords(peer);
 
-    partner.pages = [
-      { records: Array.from({ length: 60 }, () => record()), nextCursor: 2 },
-    ];
+    alsoServe(...Array.from({ length: 60 }, () => record()));
     await syncPeerRecords(peer);
 
     expect(await notices(user)).toHaveLength(25);
@@ -664,7 +706,7 @@ describe('the switch', () => {
       .update(schema.federationConfig)
       .set({ enabled: false })
       .where(eq(schema.federationConfig.id, 'singleton'));
-    partner.pages = [{ records: [record()], nextCursor: 1 }];
+    serve(record());
 
     await syncPeerRecords(peer);
 

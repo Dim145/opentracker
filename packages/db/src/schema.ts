@@ -1052,12 +1052,17 @@ export const catalogRecords = pgTable(
     /** Content address — `sha256:<hex>` over the canonical body. */
     id: text('id').primaryKey(),
     /**
-     * Monotonic publication order, for a partner to page through.
+     * Monotonic publication order. Local, and no longer a sync cursor.
      *
-     * A sequence is not a safe cursor on its own: two concurrent inserts can
-     * commit out of order, so a reader paging strictly past the highest seq it
-     * saw can skip one. It is used for ORDERING here; the feed that reads it
-     * has to overlap, and set reconciliation replaces it outright later.
+     * It was one, and it was never safe as one: two concurrent inserts can
+     * commit out of order, so a reader paging strictly past the highest value
+     * it saw can step over a record it never received. Set reconciliation
+     * replaced it — a partner now compares SETS, which cannot skip and does
+     * not care what order anything was written in.
+     *
+     * Kept because it is the cheapest honest answer to "in what order did this
+     * instance publish these", which is worth having in an admin view and in a
+     * post-mortem. Nothing on the wire reads it.
      */
     seq: bigserial('seq', { mode: 'number' }).notNull(),
     /**
@@ -1098,6 +1103,16 @@ export const catalogRecords = pgTable(
   (table) => [
     index('catalog_records_seq_idx').on(table.seq),
     index('catalog_records_info_hash_idx').on(table.infoHash),
+    /**
+     * The set reconciliation reads: ordered ranges of `id` over the records
+     * that still stand. The primary key alone would have to visit the heap for
+     * every row to check `superseded_at`, which on a reconciliation that
+     * fingerprints the whole catalogue is the difference between an index-only
+     * scan and reading the table.
+     */
+    index('catalog_records_live_idx')
+      .on(table.id)
+      .where(sql`superseded_at IS NULL`),
     // The current record for a torrent — the only one the minting sweep needs
     // to compare against, and the only one a fresh reader wants.
     index('catalog_records_current_idx')

@@ -13,7 +13,7 @@
  * have bespoke status/signature rules) — but they call `assertNotReplayed`.
  */
 import { createHash } from 'node:crypto';
-import { createError, getRequestHeaders, type H3Event } from 'h3';
+import { createError, getRequestHeaders, readRawBody, type H3Event } from 'h3';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import type { FederationConfig, FederationPeer } from '@trackarr/db/schema';
@@ -82,15 +82,26 @@ export function assertBodyWithinLimit(
 export interface InboundContext {
   peer: FederationPeer;
   config: FederationConfig;
+  /** The verified request body, verbatim. Empty for a GET. */
+  rawBody: string;
 }
 
 /**
- * Run the full inbound gauntlet for a signed, scoped S2S GET and return the
- * verified peer + config (or throw the right H3 error).
+ * Run the full inbound gauntlet for a signed, scoped S2S request and return
+ * the verified peer + config (or throw the right H3 error).
+ *
+ * A POST is verified over the bytes actually received, not over a re-encoded
+ * parse of them: the digest covers the raw body, and re-serialising JSON
+ * before hashing would let key order or number formatting break a signature
+ * that was perfectly valid. The raw string is handed back so the handler can
+ * parse it once rather than reading the body a second time — Nitro caches it,
+ * but relying on that is relying on an implementation detail to keep a
+ * signature honest.
  */
 export async function verifyInboundS2S(
   event: H3Event,
   scope: Scope,
+  opts: { post?: boolean; maxBodyBytes?: number } = {},
 ): Promise<InboundContext> {
   await rateLimit(event, RATE_LIMITS.public);
 
@@ -98,6 +109,8 @@ export async function verifyInboundS2S(
   if (!isFederationLive(config)) {
     throw createError({ statusCode: 404, message: 'Federation not enabled' });
   }
+
+  if (opts.post) assertBodyWithinLimit(event, opts.maxBodyBytes);
 
   const headers = getRequestHeaders(event);
   const senderId = headers['x-trackarr-instance'];
@@ -123,12 +136,14 @@ export async function verifyInboundS2S(
     });
   }
 
+  const rawBody = opts.post ? ((await readRawBody(event, 'utf8')) ?? '') : '';
+
   // Verify the signature BEFORE the per-identity rate-limit, so a forged
   // x-trackarr-instance header can't exhaust a victim peer's bucket.
   const verdict = verifySignedRequest({
-    method: 'GET',
+    method: opts.post ? 'POST' : 'GET',
     pathname: event.path, // full path incl. query — matches what was signed
-    rawBody: '',
+    rawBody,
     headers,
     publicKeyPem: peer.publicKey,
     // Our own id, read from our config — never from the request. That is the
@@ -152,5 +167,5 @@ export async function verifyInboundS2S(
 
   await assertNotReplayed(headers['x-trackarr-signature']);
 
-  return { peer, config: config! };
+  return { peer, config: config!, rawBody };
 }
