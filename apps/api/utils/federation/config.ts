@@ -29,7 +29,9 @@ export async function getFederationConfig(): Promise<FederationConfig | null> {
 }
 
 /** True when federation is on AND the identity is fully provisioned. */
-export function isFederationLive(config: FederationConfig | null): boolean {
+export function isFederationLive(
+  config: FederationConfig | null
+): config is FederationConfig {
   return !!(
     config?.enabled &&
     config.instanceId &&

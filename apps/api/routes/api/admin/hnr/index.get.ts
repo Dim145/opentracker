@@ -1,6 +1,6 @@
 import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
-import { eq, desc, and, sql } from 'drizzle-orm';
+import { eq, desc, and, sql, type SQL } from 'drizzle-orm';
 import { checkAndMarkHnrs } from '~~/utils/server';
 
 export default defineEventHandler(async (event) => {
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     await checkAndMarkHnrs();
   }
 
-  const conditions = [];
+  const conditions: SQL[] = [];
   if (status === 'hnr') {
     conditions.push(eq(schema.hnrTracking.isHnr, true));
   } else if (status === 'pending') {
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
       and(
         eq(schema.hnrTracking.isHnr, false),
         sql`${schema.hnrTracking.completedAt} IS NULL`
-      )
+      )!
     );
   } else if (status === 'completed') {
     conditions.push(sql`${schema.hnrTracking.completedAt} IS NOT NULL`);

@@ -13,7 +13,7 @@ import type { H3Event } from 'h3';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
-import { desc, eq, ilike, and, or, inArray, notInArray, isNull, sql } from 'drizzle-orm';
+import { desc, eq, ilike, and, or, inArray, notInArray, isNull, sql, type SQL } from 'drizzle-orm';
 import { authenticateTorznab, sendTorznabError } from '../utils/auth';
 import type { TorznabUser } from '../utils/auth';
 import {
@@ -271,7 +271,7 @@ async function performSearch(
   user: { passkey: string; showAdultContent: boolean }
 ) {
   const baseUrl = getRequestURL(event).origin;
-  const conditions = [];
+  const conditions: SQL[] = [];
 
   // Only show active + accepted torrents — pending / changes-
   // requested / rejected rows never leak through Torznab feeds.
@@ -302,7 +302,7 @@ async function performSearch(
           ...terms.map((term) =>
             ilike(schema.torrents.name, `%${escapeLike(term)}%`)
           )
-        )
+        )!
       );
     }
   }

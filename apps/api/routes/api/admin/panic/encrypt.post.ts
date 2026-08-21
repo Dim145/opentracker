@@ -94,8 +94,8 @@ export default defineEventHandler(async (event) => {
     await db
       .update(users)
       .set({
-        authSalt: encryptField(user.authSalt, key),
-        authVerifier: encryptField(user.authVerifier, key),
+        authSalt: encryptField(user.authSalt, key)!,
+        authVerifier: encryptField(user.authVerifier, key)!,
         passkey: encryptField(user.passkey, key)!,
         lastIp: encryptField(user.lastIp, key) ?? undefined,
       })

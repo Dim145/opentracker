@@ -28,7 +28,10 @@ export default defineEventHandler(async (event) => {
   const trackerProtocols = { http: true, udp: false, ws: false };
 
   // Get global stats from cache
-  let globalStats = null;
+  let globalStats:
+    | Awaited<ReturnType<typeof getGlobalStats>>
+    | { error: string }
+    | null = null;
   try {
     globalStats = await getGlobalStats();
   } catch (err) {
