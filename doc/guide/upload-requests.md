@@ -9,6 +9,8 @@ validates the proposal after the configured timeout.
 The whole feature lives at `/requests`. Browse open bounties,
 post your own, fill someone else's, discuss in the thread.
 
+![The bounty board — open requests with their category, requester and staked reward](/screenshots/requests.png)
+
 ## Lifecycle
 
 ```

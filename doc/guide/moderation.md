@@ -43,7 +43,7 @@ When a torrent is in a non-final state (`pending` or `changes_requested`) the pa
 
 ### Admin queue (`/mod/pending`)
 
-![Moderation queue showing the segmented status filter and one rejected row](/screenshots/mod-pending.png)
+![Moderation queue — the segmented status filter (all / pending / changes requested / rejected) over three uploads awaiting review](/screenshots/mod-pending.png)
 
 The queue lists every row whose status isn't `accepted`. A segmented filter (All / Pending / Changes / Rejected) splits the buckets, each with its own colour rail. Clicking a row opens its detail page where the panel takes over.
 

@@ -2,6 +2,8 @@
 
 Trackarr's upload pipeline runs every new `.torrent` through a configurable gate before it reaches the moderation queue. The rules are admin-edited at `/admin/upload-rules` and live in two tables: a singleton (`upload_rules`) for the global toggles, and one row per leaf-category in `upload_rule_category_patterns` for the per-category title regex.
 
+![Admin · Upload rules — the six global gates with their numeric and regex knobs](/screenshots/upload-rules.png)
+
 ::: tip Upload rules vs Moderation
 Upload rules **reject** an upload outright with `400 Bad Request` before the row is created. They're enforced server-side on `POST /api/torrents`. **Moderation** then decides whether a row that *passed* the rules is publishable — see [Moderation](./moderation.md). The two systems are independent.
 :::

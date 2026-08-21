@@ -7,6 +7,8 @@ suspicious events to a moderation queue at `/mod/anti-cheat`.
 not an enforcement engine. Moderators review each flag and
 decide whether to issue a warning, monitor, or ban manually.
 
+![Moderation · Anti-cheat — the triage queue with per-detector counters and the evidence carried by each flag](/screenshots/anti-cheat.png)
+
 ## What gets flagged
 
 Three independent detectors run inside the Go tracker on every
