@@ -570,7 +570,13 @@ export async function applyAccountAgeMonthlyRule(args: {
   // 30-day window. Users created less than 30 d ago are skipped — the
   // first credit fires on the first cron tick after their 30 d
   // anniversary.
-  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  // ISO string, not the `Date` itself: inside a raw `sql` template there is
+  // no column type to drive drizzle's mapping, so postgres.js receives the
+  // object verbatim and throws ERR_INVALID_ARG_TYPE ("Received an instance of
+  // Date") while binding the parameter. That took down every collector tick.
+  // The database runs in UTC and `users.created_at` is `timestamp without time
+  // zone`, so the UTC serialisation compares exactly.
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   // One round-trip to find every user who's due: a LEFT JOIN LATERAL
   // pulls each user's latest `account_age_monthly` grant (if any)
   // alongside the user row, and the WHERE clause filters down to
