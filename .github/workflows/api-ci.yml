@@ -13,6 +13,16 @@
 # `pnpm install` runs apps/api's `prepare` script (`nitropack prepare`), so the
 # file exists by the time the typecheck starts; the root `typecheck` script
 # regenerates it anyway to stay honest about a stale checkout.
+#
+# There is deliberately no equivalent job for apps/web. A Nuxt typecheck needs
+# vue-tsc to read the SFCs, and vue-tsc 3.x cannot run on the TypeScript 7 this
+# repo is on: it resolves an internal tsc path that TS 7 no longer exports and
+# dies with ERR_PACKAGE_PATH_NOT_EXPORTED. Measured in a throwaway container, so
+# it is a hard blocker rather than a missing dependency. A tsc-only pass over the
+# web's plain .ts files was also tried: it reports mostly instrumentation noise
+# (Nuxt and Nitro auto-imports live in generated declarations, Vite `?url` asset
+# imports resolve only through Vite) and would need per-file excludes to stay
+# green, which is worse than no gate. Revisit when vue-tsc supports TS 7.
 name: API CI
 
 on:
