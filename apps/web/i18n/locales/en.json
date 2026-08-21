@@ -4150,6 +4150,15 @@
       "notVerified": "Code not found in your remote bio yet",
       "removed": "Link removed",
       "error": "Something went wrong"
+    },
+    "claim": {
+      "title": "Prove a past account",
+      "intro": "If your old instance gave you an identity file, it proves who you were there on its own — no need for that instance to still be running, or for you to still have an account on it.",
+      "placeholder": "Paste the identity file here, or pick it below.",
+      "pickFile": "Choose file",
+      "action": "Prove it",
+      "notJson": "That does not look like an identity file.",
+      "proven": "Proven: you are {name} on {peer}."
     }
   },
   "fiche": {

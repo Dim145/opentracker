@@ -2575,8 +2575,25 @@ export const federatedIdentities = pgTable(
       .references(() => federationPeers.id, { onDelete: 'cascade' }),
     /** Claimed username on the partner instance. */
     remoteUsername: text('remote_username').notNull(),
-    /** pending — awaiting bio-code verification; verified — proven. */
+    /** pending — awaiting verification; verified — proven. */
     status: text('status').notNull().default('pending'),
+    /**
+     * How the link was proven.
+     *
+     * `key` — the member presented an identity document signed by their own
+     * key and endorsed by the partner. Proven here, offline, with no help
+     * from the partner and no assumption that it is still running.
+     *
+     * `bio` — the older path: we asked the partner whether a one-time code
+     * was in the member's remote profile. It works against a partner that
+     * does not issue member keys yet, and only for as long as that partner is
+     * reachable. Kept as a fallback rather than deleted, because "the origin
+     * is gone" is exactly the case the key path exists for and exactly the
+     * case the bio path cannot serve.
+     */
+    method: text('method').notNull().default('bio'),
+    /** `did:key:…` the claim was proven against. Null on a bio-proven link. */
+    subjectDid: text('subject_did'),
     /** One-time code the user must place in their remote bio. Cleared
      *  once verified. */
     verifyCode: text('verify_code'),

@@ -23,6 +23,9 @@ export default defineEventHandler(async (event) => {
       peerId: schema.federatedIdentities.peerId,
       remoteUsername: schema.federatedIdentities.remoteUsername,
       status: schema.federatedIdentities.status,
+      /** `key` — proven offline from a signed document; `bio` — asked the partner. */
+      method: schema.federatedIdentities.method,
+      subjectDid: schema.federatedIdentities.subjectDid,
       verifyCode: schema.federatedIdentities.verifyCode,
       verifiedAt: schema.federatedIdentities.verifiedAt,
       peerName: schema.federationPeers.displayName,

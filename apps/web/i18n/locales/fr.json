@@ -4150,6 +4150,15 @@
       "notVerified": "Code introuvable dans votre bio distante pour l'instant",
       "removed": "Lien supprimé",
       "error": "Une erreur est survenue"
+    },
+    "claim": {
+      "title": "Prouver un ancien compte",
+      "intro": "Si votre ancienne instance vous a remis un fichier d'identité, il prouve à lui seul qui vous étiez là-bas — sans que cette instance ait besoin de tourner encore, ni que vous y ayez toujours un compte.",
+      "placeholder": "Collez le fichier d'identité ici, ou choisissez-le ci-dessous.",
+      "pickFile": "Choisir un fichier",
+      "action": "Le prouver",
+      "notJson": "Cela ne ressemble pas à un fichier d'identité.",
+      "proven": "Prouvé : vous êtes {name} sur {peer}."
     }
   },
   "fiche": {

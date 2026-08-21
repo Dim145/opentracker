@@ -40,6 +40,45 @@
       </div>
     </section>
 
+    <!-- Prove it with a file instead.
+
+         Above the bio flow rather than below it: this is the one that works
+         when the other instance is gone, and the other instance being gone is
+         the usual reason somebody is on this page. -->
+    <section class="card fid-claim">
+      <div class="card-header">
+        <Icon name="ph:seal-check-bold" />
+        <span class="h-card">{{ $t('federatedIdentity.claim.title') }}</span>
+      </div>
+      <div class="card-body">
+        <p class="note">{{ $t('federatedIdentity.claim.intro') }}</p>
+        <textarea
+          v-model="claimText"
+          class="input fid-claim-input"
+          rows="4"
+          :placeholder="$t('federatedIdentity.claim.placeholder')"
+        />
+        <div class="fid-claim-actions">
+          <label class="btn-ghost fid-file">
+            <Icon name="ph:paperclip-bold" />
+            {{ $t('federatedIdentity.claim.pickFile') }}
+            <input type="file" accept="application/json,.json" @change="loadFile" />
+          </label>
+          <button
+            class="btn btn-primary"
+            :disabled="busy.claim || !claimText.trim()"
+            @click="submitClaim"
+          >
+            <Icon
+              :name="busy.claim ? 'ph:circle-notch' : 'ph:seal-check-bold'"
+              :class="{ 'animate-spin': busy.claim }"
+            />
+            {{ $t('federatedIdentity.claim.action') }}
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- Linked accounts -->
     <section class="fid-list-section">
       <div class="section-head">
@@ -136,13 +175,76 @@ const identities = computed(() => idData.value?.identities ?? []);
 
 const selPeer = ref('');
 const remoteUser = ref('');
-const busy = reactive({ create: false, verify: '', remove: '' });
+const busy = reactive({ create: false, verify: '', remove: '', claim: false });
+const claimText = ref('');
 const flash = ref<{ msg: string; tone: 'ok' | 'error' } | null>(null);
 function showFlash(msg: string, tone: 'ok' | 'error' = 'ok') {
   flash.value = { msg, tone };
   setTimeout(() => {
     if (flash.value?.msg === msg) flash.value = null;
   }, 5000);
+}
+
+/**
+ * Prove a past account from the file its instance issued.
+ *
+ * Everything is checked on our side, from the bytes pasted here: the member's
+ * key proves they hold the identifier, the partner's endorsement proves it was
+ * their member. Nothing is asked of the other instance, which is the point —
+ * it may well be the reason this member is here.
+ */
+async function submitClaim() {
+  const raw = claimText.value.trim();
+  if (!raw) return;
+  busy.claim = true;
+  try {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      showFlash(t('federatedIdentity.claim.notJson'), 'error');
+      return;
+    }
+    // The export is a file with the document inside it. Accept either — a
+    // member pasting the whole file is doing the obvious thing.
+    const doc =
+      (parsed as { document?: unknown })?.document ??
+      (parsed as { identity?: { document?: unknown } })?.identity?.document ??
+      parsed;
+
+    const res = await $fetch<{ remoteUsername: string; peerName: string | null }>(
+      '/api/federation/identities/claim',
+      { method: 'POST', body: { document: doc } },
+    );
+    claimText.value = '';
+    await refresh();
+    showFlash(
+      t('federatedIdentity.claim.proven', {
+        name: res.remoteUsername,
+        peer: res.peerName ?? '',
+      }),
+      'ok',
+    );
+  } catch (e: unknown) {
+    showFlash(
+      (e as { data?: { message?: string } })?.data?.message ||
+        t('federatedIdentity.toast.error'),
+      'error',
+    );
+  } finally {
+    busy.claim = false;
+  }
+}
+
+/** Read the exported file straight into the box, so nobody has to open it. */
+function loadFile(event: Event): void {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    claimText.value = String(reader.result ?? '');
+  };
+  reader.readAsText(file);
 }
 
 async function createLink() {
@@ -202,6 +304,31 @@ function fmtDate(d: string | null) {
 </script>
 
 <style scoped>
+.fid-claim-input {
+  width: 100%;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  resize: vertical;
+}
+.fid-claim-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+.fid-file {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.fid-file input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .fid { max-width: 760px; margin: 0 auto; padding: 1.75rem var(--container-pad) 5rem; display: flex; flex-direction: column; gap: 1.5rem; }
 .fid-flash { display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.9rem; border-radius: var(--radius-md); font-size: 13px; border: 1px solid; }
 .fid-flash--ok { color: #4ade80; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
