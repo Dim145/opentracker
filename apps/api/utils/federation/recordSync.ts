@@ -44,6 +44,7 @@ import { signedPost } from './signing';
 import { verifyRecord } from './record';
 import { notifyFollowersOfNewUploads } from './sidePasses';
 import { mirrorSet } from './recordSet';
+import { ingestIdentityRecord } from './identityRecord';
 import { MAX_ROUNDS, opening, respond } from './rbsr';
 
 /** Records asked for per request. See `MAX_IDS` on the fetch endpoint. */
@@ -324,6 +325,20 @@ export async function ingestRecord(
       ...nothing,
       withdrawn: (gone as unknown as { count?: number }).count ?? 1,
     };
+  }
+
+  // An identity assertion is not a release. It goes to the alias graph, which
+  // is what lets one person's work be gathered across instances — see
+  // `identityRecord.ts` for why the identifiers stay distinct rather than
+  // being merged into one.
+  if (record.type === 'Person') {
+    await ingestIdentityRecord(
+      peer.id,
+      String(record.id ?? ''),
+      verdict.signer!,
+      record,
+    );
+    return nothing;
   }
 
   const row = toMirrorRow(peer, record, verdict.signer!);

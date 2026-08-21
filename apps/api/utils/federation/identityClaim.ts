@@ -36,6 +36,7 @@
  * this name — which is precisely what we already believe the partner about
  * when we mirror its catalogue, and no more.
  */
+import { randomUUID } from 'node:crypto';
 import { and, eq, ne } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { didKeyFromPublicKey } from './did';
@@ -139,6 +140,10 @@ export async function recordClaim(
     status: 'verified',
     method: 'key',
     subjectDid: check.subjectDid!,
+    // Kept so the link can be published with its proof attached. A partner's
+    // word that two identifiers are one person is worth what the document it
+    // saw is worth, and only one of those two can be handed on.
+    evidence: document as Record<string, unknown>,
     remoteUsername: check.remoteUsername!,
     // A proven link has no code to be pasted anywhere. Leaving a stale one
     // behind would be a live credential for a flow this one replaces.
@@ -149,7 +154,7 @@ export async function recordClaim(
   await db
     .insert(schema.federatedIdentities)
     .values({
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       localUserId,
       peerId: check.peerId!,
       ...row,

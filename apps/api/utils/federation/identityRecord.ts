@@ -1,0 +1,404 @@
+/**
+ * Publishing "our member is also that person elsewhere".
+ *
+ * Step 7c let a member prove, to this instance, that they were somebody on a
+ * partner. That proof then sat here and helped nobody: the partner does not
+ * know, the other partners do not know, and the member's work on the two
+ * instances stays two unrelated bodies of work.
+ *
+ * This publishes the link, as a record like any other. It reconciles, relays
+ * and outlives us exactly the way a torrent record does — which is the whole
+ * point, because the case that matters is the one where the instance holding
+ * the account is gone.
+ *
+ * ## Why an assertion and not a re-attribution
+ *
+ * The obvious move looks simpler: once Nova proves she was `did:key:X` on A,
+ * attribute her uploads HERE to `X` too, and her catalogue is one catalogue.
+ *
+ * It is the wrong move, for three reasons that only show up later. A member
+ * with proven accounts on two partners has two remote identifiers and no rule
+ * says which one wins. This instance would be signing records under an
+ * identifier whose key it does not hold and never did. And the link itself
+ * would become invisible — a reader would see records under `X` issued by two
+ * instances and have no way to learn why, or to check.
+ *
+ * So the identifiers stay distinct and the RELATION is published: our member
+ * is `did:key:LOCAL`, also known as `did:key:X`, and here is the document that
+ * proved it. Nothing is claimed under anybody else's key, several aliases
+ * compose without a tie-break, and a reader can verify the link instead of
+ * believing it. It is `alsoKnownAs`, which is the field ActivityPub and DID
+ * documents already use for exactly this.
+ *
+ * ## The evidence travels with the assertion
+ *
+ * A partner's word that two identifiers are one person is worth precisely as
+ * much as the document it saw. Carrying that document inside the record costs
+ * a couple of kilobytes and buys the difference between "B says so" and
+ * "anybody can check": the evidence is self-verifying, so a third instance
+ * confirms the link without trusting B and without asking A.
+ */
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { db, schema } from '@trackarr/db';
+import { canonicalBytes } from './jcs';
+import { createHash, randomUUID } from 'node:crypto';
+import { CONTEXT, signRecord, type SignedRecord } from './record';
+import { verifyIdentity } from './identityDoc';
+import { ensureUserDid } from './userIdentity';
+import type { MintContext } from './catalogRecord';
+
+/** What one member's identity record says. Nothing else may influence its id. */
+export interface IdentityProjection {
+  subjectDid: string;
+  /** Sorted. An unsorted array would mint a new record on every sweep. */
+  alsoKnownAs: string[];
+  /** The documents that proved them, in the same order as `alsoKnownAs`. */
+  evidence: Array<Record<string, unknown>>;
+  /**
+   * When the most recent link was proven.
+   *
+   * Not "now": a timestamp that moves on its own would change the record's
+   * content address on every sweep and republish it forever. The newest
+   * verification is stable, and moves exactly when the assertion changes.
+   */
+  provenAt: Date;
+}
+
+export function projectIdentity(
+  p: IdentityProjection,
+  issuerDid: string,
+): Record<string, unknown> {
+  return {
+    '@context': CONTEXT,
+    type: 'Person',
+    'trackarr:subject': p.subjectDid,
+    // AS2's own field for "the same person, under another identifier".
+    alsoKnownAs: [...p.alsoKnownAs].sort(),
+    'trackarr:evidence': p.evidence,
+    published: p.provenAt.toISOString(),
+    'trackarr:issuer': issuerDid,
+    'trackarr:replaces': null,
+  };
+}
+
+/**
+ * What this instance can say about its members' other names.
+ *
+ * Only links proven by key. A bio-proven link is a conversation we had with a
+ * partner that is not reproducible by anybody else — publishing it would be
+ * asking every reader to take our word for something we cannot show them.
+ */
+export async function loadIdentityProjections(
+  userIds?: string[],
+): Promise<Map<string, IdentityProjection>> {
+  const rows = await db
+    .select({
+      localUserId: schema.federatedIdentities.localUserId,
+      subjectDid: schema.federatedIdentities.subjectDid,
+      verifiedAt: schema.federatedIdentities.verifiedAt,
+      evidence: schema.federatedIdentities.evidence,
+    })
+    .from(schema.federatedIdentities)
+    .where(
+      userIds?.length
+        ? and(
+            eq(schema.federatedIdentities.method, 'key'),
+            eq(schema.federatedIdentities.status, 'verified'),
+            inArray(schema.federatedIdentities.localUserId, userIds),
+          )
+        : and(
+            eq(schema.federatedIdentities.method, 'key'),
+            eq(schema.federatedIdentities.status, 'verified'),
+          ),
+    )
+    .orderBy(asc(schema.federatedIdentities.subjectDid));
+
+  const byUser = new Map<string, IdentityProjection>();
+  for (const r of rows) {
+    if (!r.subjectDid || !r.evidence) continue;
+    const existing = byUser.get(r.localUserId);
+    const at = r.verifiedAt ?? new Date(0);
+    if (existing) {
+      existing.alsoKnownAs.push(r.subjectDid);
+      existing.evidence.push(r.evidence);
+      if (at > existing.provenAt) existing.provenAt = at;
+    } else {
+      byUser.set(r.localUserId, {
+        // Filled by the caller, which is the only place that may mint a key.
+        subjectDid: '',
+        alsoKnownAs: [r.subjectDid],
+        evidence: [r.evidence],
+        provenAt: at,
+      });
+    }
+  }
+  return byUser;
+}
+
+function fingerprint(doc: Record<string, unknown>): string {
+  return `sha256:${createHash('sha256').update(canonicalBytes(doc)).digest('hex')}`;
+}
+
+/**
+ * Mint the identity records that have changed, and retire the ones that have
+ * nothing left to say.
+ *
+ * Same discipline as the catalogue sweep, and for the same reason: the record
+ * is addressed by its content, so a projection that varies between two sweeps
+ * over unchanged data republishes itself forever. Everything that goes in is
+ * either stable or moves exactly when the assertion does.
+ */
+export async function mintIdentityRecords(
+  ctx: MintContext,
+): Promise<{ minted: number; withdrawn: number }> {
+  const projections = await loadIdentityProjections();
+  let minted = 0;
+
+  for (const [userId, projection] of projections) {
+    projection.subjectDid = await ensureUserDid(userId);
+    const draft = projectIdentity(projection, ctx.did);
+    const contentHash = fingerprint(draft);
+
+    const [current] = await db
+      .select()
+      .from(schema.catalogRecords)
+      .where(
+        and(
+          eq(schema.catalogRecords.kind, 'identity'),
+          eq(schema.catalogRecords.torrentId, userId),
+          isNull(schema.catalogRecords.supersededAt),
+        ),
+      )
+      .limit(1);
+
+    if (current?.contentHash === contentHash) continue;
+
+    const signed = signRecord(
+      { ...draft, 'trackarr:replaces': current?.id ?? null } as never,
+      { privateKeyPem: ctx.privateKeyPem, did: ctx.did },
+    ) as SignedRecord;
+
+    await db.transaction(async (tx) => {
+      if (current) {
+        await tx
+          .update(schema.catalogRecords)
+          .set({ supersededAt: new Date() })
+          .where(eq(schema.catalogRecords.id, current.id));
+      }
+      await tx
+        .insert(schema.catalogRecords)
+        .values({
+          id: signed.id,
+          // The subject, in the column that means "what this is about". Not a
+          // torrent id — the column is deliberately not a foreign key, which
+          // is what makes it usable for a record about something else.
+          torrentId: userId,
+          infoHash: null,
+          issuer: ctx.did,
+          kind: 'identity',
+          body: signed as unknown as Record<string, unknown>,
+          contentHash,
+          supersedes: current?.id ?? null,
+        })
+        .onConflictDoNothing({ target: schema.catalogRecords.id });
+    });
+    minted++;
+  }
+
+  // A member who unlinked everything: the assertion is no longer true and has
+  // to be retired, not merely stop being refreshed. Silence is not a retraction
+  // to anybody who already holds the record.
+  const live = await db
+    .select({ id: schema.catalogRecords.id, subject: schema.catalogRecords.torrentId })
+    .from(schema.catalogRecords)
+    .where(
+      and(
+        eq(schema.catalogRecords.kind, 'identity'),
+        isNull(schema.catalogRecords.supersededAt),
+      ),
+    );
+  let withdrawn = 0;
+  for (const row of live) {
+    if (row.subject && projections.has(row.subject)) continue;
+    await db
+      .update(schema.catalogRecords)
+      .set({ supersededAt: new Date() })
+      .where(eq(schema.catalogRecords.id, row.id));
+    withdrawn++;
+  }
+
+  return { minted, withdrawn };
+}
+
+/**
+ * Take in a partner's identity assertion.
+ *
+ * The record's own proof has already been checked by the ingest — that is what
+ * says the partner really published this. What is checked HERE is the part the
+ * partner cannot vouch for on its own: each piece of evidence must be a valid
+ * identity document whose subject is the alias being claimed. Without that, a
+ * partner could assert any two identifiers were one person, and every instance
+ * downstream would repeat it.
+ *
+ * An alias with no usable evidence is dropped and the rest are kept: one bad
+ * entry is not a reason to lose a member's real links.
+ */
+export async function ingestIdentityRecord(
+  peerId: string,
+  recordId: string,
+  issuer: string,
+  body: Record<string, unknown>,
+): Promise<number> {
+  const subject = body['trackarr:subject'];
+  if (typeof subject !== 'string' || !subject.startsWith('did:key:')) return 0;
+
+  const aliases = Array.isArray(body.alsoKnownAs) ? body.alsoKnownAs : [];
+  const evidence = Array.isArray(body['trackarr:evidence'])
+    ? (body['trackarr:evidence'] as unknown[])
+    : [];
+
+  // Index the evidence by the identifier it actually proves, rather than
+  // trusting it to line up positionally with the alias list — a partner that
+  // shuffled one of them would otherwise have every alias attested by the
+  // wrong document.
+  const proven = new Map<string, Record<string, unknown>>();
+  for (const doc of evidence) {
+    const v = verifyIdentity(doc);
+    if (v.ok && v.subject) proven.set(v.subject, doc as Record<string, unknown>);
+  }
+
+  let kept = 0;
+  for (const alias of aliases) {
+    if (typeof alias !== 'string' || !alias.startsWith('did:key:')) continue;
+    const doc = proven.get(alias);
+    if (!doc) continue;
+    await db
+      .insert(schema.remoteIdentityLinks)
+      .values({
+        id: randomUUID(),
+        peerId,
+        issuer,
+        subjectDid: subject,
+        aliasDid: alias,
+        evidence: doc,
+        recordId,
+      })
+      .onConflictDoUpdate({
+        target: [
+          schema.remoteIdentityLinks.peerId,
+          schema.remoteIdentityLinks.subjectDid,
+          schema.remoteIdentityLinks.aliasDid,
+        ],
+        set: { evidence: doc, recordId, issuer },
+      });
+    kept++;
+  }
+
+  // Anything this partner used to assert for this subject and no longer does.
+  // An assertion that stopped being made has stopped being true.
+  const keep = aliases.filter(
+    (a): a is string => typeof a === 'string' && proven.has(a),
+  );
+  const stale = await db
+    .select({ id: schema.remoteIdentityLinks.id, alias: schema.remoteIdentityLinks.aliasDid })
+    .from(schema.remoteIdentityLinks)
+    .where(
+      and(
+        eq(schema.remoteIdentityLinks.peerId, peerId),
+        eq(schema.remoteIdentityLinks.subjectDid, subject),
+      ),
+    );
+  const drop = stale.filter((r) => !keep.includes(r.alias)).map((r) => r.id);
+  if (drop.length) {
+    await db
+      .delete(schema.remoteIdentityLinks)
+      .where(inArray(schema.remoteIdentityLinks.id, drop));
+  }
+
+  return kept;
+}
+
+/**
+ * Every identifier that is the same person as this one.
+ *
+ * Walks the links in both directions and transitively: A says our member is
+ * also X, B says its member X is also Y, so all three are one person. Bounded
+ * by `maxHops` because a cycle of mutual assertions is trivial to create and
+ * would otherwise be walked forever.
+ *
+ * Includes the identifier it was asked about, so a caller can use the result
+ * as a set without special-casing the empty answer.
+ */
+export async function aliasesOf(
+  did: string,
+  maxHops = 3,
+): Promise<Set<string>> {
+  const seen = new Set<string>([did]);
+  let frontier = [did];
+
+  for (let hop = 0; hop < maxHops && frontier.length; hop++) {
+    const rows = await db
+      .select({
+        subjectDid: schema.remoteIdentityLinks.subjectDid,
+        aliasDid: schema.remoteIdentityLinks.aliasDid,
+      })
+      .from(schema.remoteIdentityLinks)
+      .where(
+        // Either end: the relation is symmetric even though the assertion is
+        // one-directional. "Our member is also X" and "we are the instance X
+        // came from" describe the same person.
+        inArray(schema.remoteIdentityLinks.subjectDid, frontier),
+      );
+    const back = await db
+      .select({
+        subjectDid: schema.remoteIdentityLinks.subjectDid,
+        aliasDid: schema.remoteIdentityLinks.aliasDid,
+      })
+      .from(schema.remoteIdentityLinks)
+      .where(inArray(schema.remoteIdentityLinks.aliasDid, frontier));
+
+    const next: string[] = [];
+    for (const r of [...rows, ...back]) {
+      for (const d of [r.subjectDid, r.aliasDid]) {
+        if (!seen.has(d)) {
+          seen.add(d);
+          next.push(d);
+        }
+      }
+    }
+    frontier = next;
+  }
+
+  return seen;
+}
+
+/**
+ * Every identifier one of OUR members answers to, anywhere.
+ *
+ * Starts from what we know first-hand — their local identifier, and the ones
+ * they proved to us — then walks the partners' assertions outward from all of
+ * them. Our own links are not in the alias graph: that table holds what other
+ * instances asserted, and we are not a partner to ourselves.
+ */
+export async function identitiesOfUser(userId: string): Promise<Set<string>> {
+  const mine = await db
+    .select({ subjectDid: schema.federatedIdentities.subjectDid })
+    .from(schema.federatedIdentities)
+    .where(
+      and(
+        eq(schema.federatedIdentities.localUserId, userId),
+        eq(schema.federatedIdentities.status, 'verified'),
+      ),
+    );
+
+  const roots = [
+    await ensureUserDid(userId),
+    ...mine.map((r) => r.subjectDid).filter((d): d is string => !!d),
+  ];
+
+  const all = new Set<string>(roots);
+  for (const root of roots) {
+    for (const d of await aliasesOf(root)) all.add(d);
+  }
+  return all;
+}

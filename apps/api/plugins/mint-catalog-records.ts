@@ -28,6 +28,7 @@
  * Nothing runs while federation is off: no key, no issuer, and no reason to
  * pay for it.
  */
+import { mintIdentityRecords } from '~~/utils/federation/identityRecord';
 import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import {
@@ -149,6 +150,18 @@ async function tick(ctx: MintContext): Promise<TickResult> {
   for (const s of stale) {
     if (!s.torrentId) continue;
     if (await mintTombstone(s.torrentId, ctx)) withdrawn++;
+  }
+
+  // Identity assertions, on the same sweep. Cheap — one query over the
+  // members who have proven a past account, which on most instances is none —
+  // and it keeps every kind of record this instance publishes on one clock.
+  try {
+    const ids = await mintIdentityRecords(ctx);
+    minted += ids.minted;
+    withdrawn += ids.withdrawn;
+  } catch (err) {
+    // A member's alias assertion failing must not stop the catalogue.
+    console.warn('[CatalogRecords] identity records:', (err as Error).message);
   }
 
   return { minted, withdrawn, scanned: rows.length };

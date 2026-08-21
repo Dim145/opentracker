@@ -1061,10 +1061,14 @@ export const catalogRecords = pgTable(
      * doing its job.
      */
     torrentId: text('torrent_id'),
-    infoHash: text('info_hash').notNull(),
+    /**
+     * The release this record is about. Null for a record that is not about a
+     * release at all — an identity assertion has a subject, not an infohash.
+     */
+    infoHash: text('info_hash'),
     /** `did:key:…` of the instance that signed it. */
     issuer: text('issuer').notNull(),
-    /** `torrent` | `tombstone` */
+    /** `torrent` | `tombstone` | `identity` */
     kind: text('kind').notNull().default('torrent'),
     /** The signed object, exactly as it goes on the wire. */
     body: jsonb('body').$type<Record<string, unknown>>().notNull(),
@@ -2594,6 +2598,14 @@ export const federatedIdentities = pgTable(
     method: text('method').notNull().default('bio'),
     /** `did:key:…` the claim was proven against. Null on a bio-proven link. */
     subjectDid: text('subject_did'),
+    /**
+     * The document that proved it, verbatim.
+     *
+     * Kept rather than discarded once checked, because it is what makes the
+     * link re-checkable by somebody else: publishing "our member is also X"
+     * without the evidence asks every reader to take our word for it.
+     */
+    evidence: jsonb('evidence').$type<Record<string, unknown>>(),
     /** One-time code the user must place in their remote bio. Cleared
      *  once verified. */
     verifyCode: text('verify_code'),
@@ -2610,3 +2622,48 @@ export const federatedIdentities = pgTable(
 );
 
 export type FederatedIdentity = typeof federatedIdentities.$inferSelect;
+
+/**
+ * "Our member is also this person elsewhere", as asserted by a partner.
+ *
+ * One row per (issuer, subject, alias). An instance publishes these for its
+ * own members once they have proven a past account, and every partner mirrors
+ * them — which is what lets one person's work be gathered across instances
+ * without any instance being the authority on who they are.
+ *
+ * The evidence travels with the assertion and is kept: a partner's word that
+ * two identifiers are one person is worth exactly as much as the document it
+ * saw, and keeping the document means anybody downstream can check rather than
+ * take our word for taking theirs.
+ */
+export const remoteIdentityLinks = pgTable(
+  'remote_identity_links',
+  {
+    id: text('id').primaryKey(),
+    peerId: text('peer_id')
+      .notNull()
+      .references(() => federationPeers.id, { onDelete: 'cascade' }),
+    /** `did:key:…` of the instance that asserted the link. */
+    issuer: text('issuer').notNull(),
+    /** The member on the asserting instance. */
+    subjectDid: text('subject_did').notNull(),
+    /** Who they also are, somewhere else. */
+    aliasDid: text('alias_did').notNull(),
+    /** The identity document that proved it, verbatim. */
+    evidence: jsonb('evidence').$type<Record<string, unknown>>(),
+    /** Content address of the record that carried this assertion. */
+    recordId: text('record_id'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('remote_identity_links_unique').on(
+      table.peerId,
+      table.subjectDid,
+      table.aliasDid,
+    ),
+    index('remote_identity_links_subject_idx').on(table.subjectDid),
+    index('remote_identity_links_alias_idx').on(table.aliasDid),
+  ],
+);
+
+export type RemoteIdentityLink = typeof remoteIdentityLinks.$inferSelect;
