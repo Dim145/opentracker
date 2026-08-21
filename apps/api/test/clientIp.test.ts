@@ -41,6 +41,10 @@ afterEach(() => {
 });
 
 describe('TRUST_PROXY off — the default', () => {
+  // The first `load()` pays for a cold import of the whole `@trackarr/db`
+  // graph — a second and a half on an idle machine, more than five on a busy
+  // one. The default budget made this the one test in the suite that failed
+  // for being on the wrong laptop.
   it('ignores every proxy header and uses the socket peer', async () => {
     const { getClientIP } = await load({ TRUST_PROXY: undefined });
     const event = eventWith({
@@ -49,7 +53,7 @@ describe('TRUST_PROXY off — the default', () => {
       'cf-connecting-ip': '9.9.9.9',
     });
     expect(getClientIP(event)).toBe('10.0.0.1');
-  });
+  }, 20_000);
 });
 
 describe('TRUST_PROXY on', () => {

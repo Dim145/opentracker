@@ -37,7 +37,7 @@
         v-model="searchQuery"
         :placeholder="$t('search.searchPlaceholder')"
         size="lg"
-        :loading="pending"
+        :loading="isLoading"
         @search="handleSearch"
         @media-id-search="handleMediaIdSearch"
       />
@@ -179,14 +179,21 @@
       class="results-head"
     >
       <div class="results-stats">
-        <span class="results-stat">
-          <Icon name="ph:hard-drive-bold" />
-          <strong>{{ formatSize(totalSize) }}</strong>
-        </span>
-        <span class="results-stat-sep" />
+<!-- Size is a flat-view fact; see `totalSize`. -->
+        <template v-if="totalSize > 0">
+          <span class="results-stat">
+            <Icon name="ph:hard-drive-bold" />
+            <strong>{{ formatSize(totalSize) }}</strong>
+          </span>
+          <span class="results-stat-sep" />
+        </template>
         <span class="results-stat">
           <strong>{{ pagination.total }}</strong>
-          {{ $t('search.torrentCount', pagination.total) }}
+          {{
+            view === 'grouped'
+              ? $t('search.group.workCount', pagination.total)
+              : $t('search.torrentCount', pagination.total)
+          }}
         </span>
       </div>
       <Pager
@@ -199,11 +206,11 @@
 
     <!-- ── Results body ──────────────────────────────────────── -->
     <section v-if="hasActiveQuery">
-      <div v-if="pending" class="results-loading">
+      <div v-if="isLoading" class="results-loading">
         <Icon name="ph:circle-notch" class="animate-spin h-8 w-8" />
         <p>{{ $t('search.searchingDatabase') }}</p>
       </div>
-      <div v-else-if="torrents.length === 0" class="results-empty">
+      <div v-else-if="resultCount === 0" class="results-empty">
         <Icon name="ph:magnifying-glass-x" class="results-empty-icon" />
         <h3>{{ $t('search.noResults') }}</h3>
         <p>{{ $t('search.noResultsHint') }}</p>
@@ -215,206 +222,24 @@
             <TorrentTable :torrents="torrents" :compact="false" />
           </div>
         </div>
-        <!-- Grouped: cluster releases by TMDb id, fall back to solo for
-             un-tagged torrents. The whole card is the toggle when there's
-             more than one release; solo cards behave like a normal row
-             link. Poster comes from TMDb for movies/series and IGDB for
-             games (cached); we soft-fade it in once the lookup resolves
-             so the layout doesn't jump. -->
+        <!-- Grouped: one row per work, collapsed.
+
+             The row states what the work is and HOW IT HAS BEEN CUT — per
+             episode, as season packs, as an integral — and each of those is a
+             way in as well as a label. Opening a row is for choosing a file;
+             finding out what exists happens without opening anything. -->
         <div v-else class="grouped-list">
-          <article
-            v-for="group in groupedResults"
+          <TorrentGroupRow
+            v-for="group in servedGroups"
             :key="group.key"
-            class="release-group"
-            :class="{
-              'release-group--solo': !group.externalId,
-              'release-group--open': expandedGroups.has(group.key),
-              'release-group--game': group.hint === 'game',
-              'release-group--book': group.hint === 'book',
-            }"
-          >
-            <component
-              :is="group.externalId && group.releases.length > 1 ? 'button' : 'div'"
-              :type="group.externalId && group.releases.length > 1 ? 'button' : undefined"
-              class="release-group-head"
-              :aria-expanded="
-                group.externalId && group.releases.length > 1
-                  ? expandedGroups.has(group.key)
-                  : undefined
-              "
-              @click="
-                group.releases.length > 1
-                  ? toggleGroup(group.key)
-                  : navigateTo(`/torrents/${group.lead.infoHash}`)
-              "
-            >
-              <!-- Poster slot — only renders when we have an external id
-                   and the lookup is configured. While the lookup is in
-                   flight we show a shimmering skeleton; on success the
-                   image fades in; on miss / source disabled we drop the
-                   poster column entirely so the head reflows full-width
-                   like a solo card. -->
-              <figure
-                v-if="group.externalId && (isPosterLoading(group) || posterFor(group))"
-                class="release-poster"
-                :class="{
-                  'release-poster--game': group.hint === 'game',
-                  'release-poster--book': group.hint === 'book',
-                }"
-              >
-                <img
-                  v-if="posterFor(group)?.posterUrl"
-                  :src="posterFor(group)!.posterUrl!"
-                  :alt="posterFor(group)?.title || group.fallbackTitle"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <Icon
-                  v-else-if="posterFor(group)"
-                  name="ph:image-broken-bold"
-                  class="release-poster-placeholder"
-                />
-                <span v-else class="release-poster-skeleton" />
-              </figure>
-
-              <div class="release-group-body">
-                <span class="release-group-eyebrow">
-                  <Icon
-                    :name="categoryIcon(group.lead.category?.slug || 'other')"
-                  />
-                  {{ group.lead.category?.name || $t('search.uncategorised') }}
-                  <template v-if="group.externalId">
-                    <span class="results-stat-sep" />
-                    <span
-                      v-if="group.hint === 'game'"
-                      class="release-group-src release-group-src--igdb"
-                    >
-                      <Icon name="ph:game-controller-fill" class="release-group-src-icon" />
-                      IGDB · GAME
-                    </span>
-                    <span
-                      v-else-if="group.hint === 'book'"
-                      class="release-group-src release-group-src--openlibrary"
-                    >
-                      <Icon name="ph:book-open-text-fill" class="release-group-src-icon" />
-                      OPEN LIBRARY · BOOK
-                    </span>
-                    <span v-else class="release-group-src release-group-src--tmdb">
-                      <Icon name="ph:popcorn-fill" class="release-group-src-icon" />
-                      TMDb {{ group.hint ? `· ${group.hint.toUpperCase()}` : '' }}
-                    </span>
-                  </template>
-                </span>
-
-                <h3 class="release-group-title">
-                  <template v-if="posterFor(group)?.title">
-                    {{ posterFor(group)?.title }}
-                    <span
-                      v-if="posterFor(group)?.year"
-                      class="release-group-year"
-                      >({{ posterFor(group)?.year }})</span
-                    >
-                  </template>
-                  <template
-                    v-else-if="group.externalId && isPosterLoading(group)"
-                  >
-                    <span class="release-group-title-loading">
-                      {{ $t('search.loadingTitle') }}
-                    </span>
-                  </template>
-                  <template v-else>
-                    <span class="release-group-title-mono">
-                      {{ group.fallbackTitle }}
-                    </span>
-                  </template>
-                </h3>
-
-                <p
-                  v-if="posterFor(group)?.overview"
-                  class="release-group-overview"
-                >
-                  {{ posterFor(group)!.overview }}
-                </p>
-
-                <p class="release-group-meta">
-                  <span>
-                    <strong>{{ group.releases.length }}</strong>
-                    {{ $t('search.releaseCount', group.releases.length) }}
-                  </span>
-                  <span class="results-stat-sep" />
-                  <span>{{ formatSize(group.totalSize) }}</span>
-                  <span class="results-stat-sep" />
-                  <span class="release-group-meta-seed">
-                    <Icon name="ph:arrow-up-bold" class="text-[10px]" />
-                    {{ group.totalSeeders }}
-                  </span>
-                  <span
-                    v-if="posterFor(group)?.voteAverage"
-                    class="results-stat-sep"
-                  />
-                  <span
-                    v-if="posterFor(group)?.voteAverage"
-                    class="release-group-rating"
-                  >
-                    <Icon name="ph:star-fill" />
-                    {{ posterFor(group)!.voteAverage!.toFixed(1) }}
-                  </span>
-                </p>
-              </div>
-
-              <Icon
-                v-if="group.releases.length > 1"
-                name="ph:caret-down-bold"
-                class="release-group-chev"
-                :class="{
-                  'release-group-chev--up': expandedGroups.has(group.key),
-                }"
-              />
-            </component>
-
-            <!-- Releases — always show the lead row in solo cards (it IS
-                 the result), and only show the rest when expanded. -->
-            <Transition name="releases">
-              <ul
-                v-if="
-                  !group.externalId ||
-                  expandedGroups.has(group.key) ||
-                  group.releases.length === 1
-                "
-                class="release-list"
-              >
-                <li
-                  v-for="t in group.externalId && expandedGroups.has(group.key)
-                    ? group.releases
-                    : !group.externalId
-                      ? group.releases
-                      : group.releases.slice(0, 1)"
-                  :key="t.id"
-                  class="release-row"
-                  @click.stop="navigateTo(`/torrents/${t.infoHash}`)"
-                >
-                  <span class="release-name" :title="t.name">{{ t.name }}</span>
-                  <span class="release-pills">
-                    <span class="stat-badge stat-seeders">
-                      <Icon name="ph:arrow-up-bold" class="text-[8px]" />
-                      {{ t.stats.seeders }}
-                    </span>
-                    <span class="stat-badge stat-leechers">
-                      <Icon name="ph:arrow-down-bold" class="text-[8px]" />
-                      {{ t.stats.leechers }}
-                    </span>
-                    <span class="release-size">{{ formatSize(t.size) }}</span>
-                    <span class="release-age">{{ formatAge(t.createdAt) }}</span>
-                  </span>
-                </li>
-              </ul>
-            </Transition>
-          </article>
+            :group="group"
+            :category-label="categoryLabel(group.categoryIds)"
+          />
         </div>
       </template>
 
       <!-- Bottom pagination -->
-      <div v-if="pagination.pages > 1 && torrents.length > 0" class="results-foot">
+      <div v-if="pagination.pages > 1 && resultCount > 0" class="results-foot">
         <p class="results-foot-summary">
           {{ $t('search.page') }} <strong>{{ pagination.page }}</strong> /
           {{ pagination.pages }}
@@ -489,11 +314,7 @@ interface TorrentWithStats {
   };
 }
 
-// `MediaPoster` is exported by the `useMediaPosters` composable; we
-// import the type when we need to lean on it directly. The previous
-// inline copy duplicated the same fields and went stale every time
-// the composable shape evolved.
-import type { MediaPoster } from '~/composables/useMediaPosters';
+import type { GroupScope } from '~/utils/groupScopes';
 
 interface Category {
   id: string;
@@ -533,8 +354,6 @@ const VIEW_LS_KEY = 'trackarr.torrents.view';
 const view = ref<'simple' | 'grouped'>(
   (route.query.v as string) === 'grouped' ? 'grouped' : 'simple'
 );
-const expandedGroups = ref<Set<string>>(new Set());
-
 import {
   detectMediaId,
   type DetectedMediaId,
@@ -604,6 +423,7 @@ function hasActiveSub(cat: Category): boolean {
 const {
   data: torrentsData,
   pending,
+  refresh: refreshTorrents,
 } = await useFetch<{
   data: TorrentWithStats[];
   pagination: {
@@ -629,13 +449,72 @@ const {
       tmdbid: m?.source === 'tmdb' ? m.id : undefined,
       tvdbid: m?.source === 'tvdb' ? m.id : undefined,
       page: page.value,
-      // The grouped view loads a bigger window so we have something to
-      // cluster — the page slicer is virtual on the FE side then.
-      limit: view.value === 'grouped' ? 60 : 20,
+      limit: 20,
     };
   }),
-  watch: [searchQuery, selectedCategory, selectedTags, mediaIdFilter, page, view],
+  // Refetching is driven by the explicit watcher below rather than by `watch:`,
+  // so that typing in one view does not also fetch pages for the other.
+  watch: false,
+  // The grouped view has its own endpoint; skip this one entirely rather than
+  // fetching a window we will not read.
+  immediate: view.value !== 'grouped',
 });
+
+/**
+ * One group as the API serves it — a collapsed row, carrying no releases.
+ * Those arrive per scope, on expansion, from `/api/torrents/group`.
+ */
+interface ServedGroup {
+  key: string;
+  source: 'tmdb' | 'igdb' | 'openlibrary' | 'solo';
+  externalId: string;
+  releaseCount: number;
+  latest: string;
+  minSize: number;
+  maxSize: number;
+  leadName: string;
+  categoryIds: string[];
+  seedMin: number;
+  seedMax: number;
+  leechMin: number;
+  leechMax: number;
+  scopes: Array<{ scope: GroupScope; units: number; latest: string }>;
+  defaultScope: GroupScope;
+  /** Releases the partners hold for the same work; 0 when not federating. */
+  partnerReleaseCount: number;
+}
+
+// Fetch groups — the grouped view's own endpoint. It folds the WHOLE catalogue,
+// not the page the flat listing happened to return, so its counts, episode sets
+// and pagination describe the catalogue rather than the window.
+const {
+  data: groupsData,
+  pending: groupsPending,
+  refresh: refreshGroups,
+} = await useFetch<{
+  groups: ServedGroup[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}>('/api/torrents/groups', {
+  query: computed(() => ({
+    search: searchQuery.value || undefined,
+    categoryId: selectedCategory.value || undefined,
+    page: page.value,
+    limit: 25,
+  })),
+  watch: false,
+  immediate: view.value === 'grouped',
+});
+
+// One watcher for both endpoints: whichever view is on screen is the one that
+// refetches. Switching views is itself a trigger, so the first switch loads the
+// side that was skipped at mount.
+watch(
+  [searchQuery, selectedCategory, selectedTags, mediaIdFilter, page, view],
+  () => {
+    if (view.value === 'grouped') refreshGroups();
+    else refreshTorrents();
+  }
+);
 
 // Trending — surface 10 latest torrents when there's no query.
 const { data: trendingData } = await useFetch<{ data: TorrentWithStats[] }>(
@@ -644,16 +523,42 @@ const { data: trendingData } = await useFetch<{ data: TorrentWithStats[] }>(
 );
 
 const torrents = computed(() => torrentsData.value?.data ?? []);
-const pagination = computed(
-  () => torrentsData.value?.pagination ?? { page: 1, pages: 1, total: 0 }
-);
 const trendingTorrents = computed(() => trendingData.value?.data ?? []);
+
+// ── View-aware result state ──────────────────────────────────
+//
+// Both views render through the same header, empty state and pager, so each of
+// those reads one accessor that answers for whichever view is on screen. The
+// alternative — duplicating the chrome per view — is how the two drift apart.
+
+const isLoading = computed(() =>
+  view.value === 'grouped' ? groupsPending.value : pending.value
+);
+
+const pagination = computed(() => {
+  if (view.value === 'grouped') {
+    const p = groupsData.value?.pagination;
+    return { page: p?.page ?? 1, pages: p?.totalPages ?? 1, total: p?.total ?? 0 };
+  }
+  return torrentsData.value?.pagination ?? { page: 1, pages: 1, total: 0 };
+});
+
+/** Rows on screen, whatever a "row" means in the current view. */
+const resultCount = computed(() =>
+  view.value === 'grouped' ? servedGroups.value.length : torrents.value.length
+);
 
 // Total size of the current page — the table displays per-row sizes; the
 // header summary helps the user gauge "is this 100 GB or 5 TB" at a
 // glance, matching the upstream screenshot's "4.193 To" pill.
+//
+// Zero in the grouped view, which hides the pill: a group carries only its
+// smallest and largest release, so any total we could add up there would be
+// the size of a selection nobody asked for. Better absent than invented.
 const totalSize = computed(() =>
-  torrents.value.reduce((acc, t) => acc + (t.size || 0), 0)
+  view.value === 'grouped'
+    ? 0
+    : torrents.value.reduce((acc, t) => acc + (t.size || 0), 0)
 );
 
 const hasActiveQuery = computed(
@@ -664,174 +569,37 @@ const hasActiveQuery = computed(
     Boolean(activeMediaId.value)
 );
 
-// ── Grouping (client-side) ───────────────────────────────────
-//
-// We bucket torrents by whichever external id makes sense for their
-// kind — TMDb for movies/series, IGDB for games — so every release of
-// the same title clusters into one card with a poster. A torrent
-// without any cluster id has nothing to cluster against, so it gets
-// its own one-element bucket and renders as a plain row (no poster,
-// just the filename). The TMDb `bare` form normalises the stored id
-// (which may carry a `movie/` or `tv/` prefix) so two siblings stored
-// the same way still match.
-function tmdbBucketKey(tmdbId: string | null | undefined): string | null {
-  if (!tmdbId) return null;
-  const m = tmdbId.match(/^(?:movie|tv)\/(\d+)$/);
-  const bare = m ? m[1] : tmdbId;
-  return `tmdb:${bare}`;
-}
-
-type GroupHint = 'movie' | 'tv' | 'game' | 'book' | null;
+/**
+ * The groups as served. No adaptation layer: the row component consumes the
+ * API's shape directly, because there is no longer a client-side grouping for
+ * it to be reconciled with.
+ */
+const servedGroups = computed(() => groupsData.value?.groups ?? []);
 
 /**
- * Pick the right bucket for a torrent. The mere presence of an
- * `igdbId` / `openlibraryId` is the authoritative "this is a game"
- * / "this is a book" signal — the upload flow only writes those
- * fields when the operator picks a matching hit (or when the
- * auto-detect resolves a console / PC / ebook release), so we
- * prefer them unconditionally over any stale TMDb id that may
- * also happen to be set. Falls back to TMDb, then to a "solo"
- * bucket keyed by torrent id for rows with none.
+ * Resolve a group's category to a label here rather than handing the row the
+ * whole table: the federated variant of the same row has slugs from a foreign
+ * namespace and no table to look them up in.
  */
-function bucketFor(t: TorrentWithStats): {
-  key: string;
-  externalId: string | null;
-  hint: GroupHint;
-} {
-  if (t.igdbId) {
-    return { key: `igdb:${t.igdbId}`, externalId: t.igdbId, hint: 'game' };
+function categoryLabel(ids: string[]): string | null {
+  for (const id of ids) {
+    const cat = categoryById.value.get(id);
+    if (cat) return cat.name;
   }
-  if (t.openlibraryId) {
-    return {
-      key: `openlibrary:${t.openlibraryId}`,
-      externalId: t.openlibraryId,
-      hint: 'book',
-    };
-  }
-  const tmdbKey = tmdbBucketKey(t.tmdbId);
-  if (tmdbKey) {
-    const prefixMatch = t.tmdbId?.match(/^(movie|tv)\//);
-    const hint: GroupHint =
-      (prefixMatch?.[1] as 'movie' | 'tv' | undefined) ??
-      (t.category?.type === 'movie' || t.category?.type === 'tv'
-        ? t.category.type
-        : null);
-    return { key: tmdbKey, externalId: tmdbKey.slice(5), hint };
-  }
-  return { key: `solo:${t.id}`, externalId: null, hint: null };
+  return null;
 }
 
-interface ReleaseGroup {
-  key: string;
-  /** Filename of the lead release — used as fallback title when no external metadata. */
-  fallbackTitle: string;
-  /** External id (TMDb bare or IGDB id); null for solo (un-tagged) torrents. */
-  externalId: string | null;
-  /** Source/type hint passed to the metadata lookup endpoint. */
-  hint: GroupHint;
-  releases: TorrentWithStats[];
-  lead: TorrentWithStats;
-  totalSize: number;
-  totalSeeders: number;
-  /**
-   * Epoch ms of the **newest** release in the bucket, using
-   * `moderatedAt ?? createdAt` (same coalesce the API applies). This
-   * drives the group-level sort so the grouped view keeps the same
-   * "most recently went live on the tracker" semantics as the flat
-   * view: a 2-release group whose newest publication is 4 months old
-   * has no business sitting above a fresh approval from this morning.
-   */
-  latestCreatedAt: number;
-}
-
-const groupedResults = computed<ReleaseGroup[]>(() => {
-  const buckets = new Map<string, ReleaseGroup>();
-  for (const t of torrents.value) {
-    const slot = bucketFor(t);
-    let group = buckets.get(slot.key);
-    if (!group) {
-      group = {
-        key: slot.key,
-        fallbackTitle: t.name,
-        externalId: slot.externalId,
-        hint: slot.hint,
-        releases: [],
-        lead: t,
-        totalSize: 0,
-        totalSeeders: 0,
-        latestCreatedAt: 0,
-      };
-      buckets.set(slot.key, group);
+/** Flat id → category, used by `categoryLabel`. */
+const categoryById = computed(() => {
+  const map = new Map<string, { name: string; slug: string }>();
+  for (const c of categories.value ?? []) {
+    map.set(c.id, { name: c.name, slug: c.slug });
+    for (const sub of c.subcategories ?? []) {
+      map.set(sub.id, { name: sub.name, slug: sub.slug });
     }
-    group.releases.push(t);
-    group.totalSize += t.size || 0;
-    group.totalSeeders += t.stats?.seeders || 0;
-    // Mirror the API's `COALESCE(moderated_at, created_at)` so the
-    // grouped view ranks each cluster by the moment its newest release
-    // actually went live on the tracker — not the moment the uploader
-    // hit "submit", which can be days or weeks earlier when moderation
-    // ran long.
-    const stamp = t.moderatedAt ?? t.createdAt;
-    const ts = stamp ? new Date(stamp).getTime() : 0;
-    if (ts > group.latestCreatedAt) group.latestCreatedAt = ts;
   }
-  // Sort each group's releases by seeders desc (best release first).
-  for (const g of buckets.values()) {
-    g.releases.sort(
-      (a, b) => (b.stats?.seeders || 0) - (a.stats?.seeders || 0)
-    );
-    g.lead = g.releases[0];
-  }
-  // Sort: clustered groups first, then solo torrents — that way browsing
-  // the grouped view always feels organised around real titles rather
-  // than orphan releases. Within each tier, order by the newest release's
-  // timestamp so the listing reads as a true "most recent first" feed:
-  // a group's effective date is `MAX(release.createdAt)` across its
-  // releases, not the seed-count it accumulated.
-  return Array.from(buckets.values()).sort((a, b) => {
-    if (!!a.externalId !== !!b.externalId) return a.externalId ? -1 : 1;
-    return b.latestCreatedAt - a.latestCreatedAt;
-  });
+  return map;
 });
-
-// ── External metadata fetch (grouped view only) ────────────
-//
-// All the state machinery (loading / hit / missing, per-source sticky
-// disabled flag, w500→w342 downscale for TMDb) lives in
-// `useMediaPosters` so this page, /downloads, and any future surface
-// share one cache. The composable routes to TMDb for `movie`/`tv` and
-// IGDB for `game`; local helpers adapt the group-shaped API to its
-// `(externalId, hint)` input.
-const postersComposable = useMediaPosters();
-
-function posterFor(group: ReleaseGroup): MediaPoster | null {
-  return postersComposable.posterFor(group.externalId, group.hint);
-}
-function isPosterLoading(group: ReleaseGroup): boolean {
-  return postersComposable.isPosterLoading(group.externalId, group.hint);
-}
-
-// Trigger fetches whenever the grouped view shows new clustered groups.
-watch(
-  [groupedResults, view],
-  () => {
-    if (view.value !== 'grouped') return;
-    for (const g of groupedResults.value) {
-      postersComposable.register(g.externalId, g.hint);
-    }
-  },
-  { immediate: true }
-);
-
-function toggleGroup(key: string) {
-  if (expandedGroups.value.has(key)) {
-    expandedGroups.value.delete(key);
-  } else {
-    expandedGroups.value.add(key);
-  }
-  // Force reactivity since Set mutations are not deeply reactive.
-  expandedGroups.value = new Set(expandedGroups.value);
-}
 
 function categoryIcon(slug: string): string {
   const icons: Record<string, string> = {
@@ -888,7 +656,6 @@ function updateUrl() {
 
 watch(view, (next) => {
   page.value = 1;
-  expandedGroups.value = new Set();
   updateUrl();
   // Persist the user's choice across reloads. We only touch localStorage
   // on the client; the early ref init runs identically on server and
@@ -1358,329 +1125,13 @@ useHead({
 }
 
 /* ─── Grouped view ──────────────────────────────────────── */
+/* The rows own their own appearance — `TorrentGroupRow`, `TorrentGroupTree`
+   and `TorrentReleaseRow`. All that is left here is the rhythm between
+   them, which belongs to the page. */
 .grouped-list {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-}
-.release-group {
-  background: rgb(var(--bg-surface));
-  border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
-  overflow: hidden;
-  transition: border-color 0.14s;
-}
-.release-group:hover {
-  border-color: rgb(var(--line-strong));
-}
-.release-group-head {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid rgb(var(--line-default));
-  background: rgb(var(--bg-elevated) / 0.4);
-  width: 100%;
-  text-align: left;
-  /* `<button>` reset — when the grouped head doubles as a toggle we need
-     it to look like the div variant. */
-  border-top: 0;
-  border-left: 0;
-  border-right: 0;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  transition: background 0.14s;
-}
-.release-group-head:not([type='button']) {
-  cursor: default;
-}
-button.release-group-head:hover {
-  background: rgb(var(--bg-elevated) / 0.7);
-}
-.release-group--solo .release-group-head {
-  grid-template-columns: 1fr auto;
-  cursor: pointer;
-}
-.release-group--solo .release-group-head:hover {
-  background: rgb(var(--bg-elevated) / 0.7);
-}
-/* When the poster is intentionally absent (no tmdbId, TMDb disabled, or
-   a 404 from the lookup) collapse to two columns so we don't carry an
-   empty gutter on the left. */
-.release-group-head:not(:has(.release-poster)) {
-  grid-template-columns: 1fr auto;
-}
-.release-group--open .release-group-head {
-  border-bottom-color: rgb(var(--line-strong));
-}
-
-/* Poster — fixed-width thumbnail with a subtle inset shadow when the
-   image lands. Skeleton/placeholder share the same footprint so the
-   layout never reflows. */
-.release-poster {
-  margin: 0;
-  width: 4.5rem;
-  aspect-ratio: 2 / 3;
-  border-radius: 4px;
-  overflow: hidden;
-  background: rgb(var(--bg-base));
-  border: 1px solid rgb(var(--line-default));
-  position: relative;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.release-poster img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  animation: poster-fade 0.32s ease both;
-}
-@keyframes poster-fade {
-  from { opacity: 0; transform: scale(1.02); }
-  to   { opacity: 1; transform: scale(1); }
-}
-.release-poster-placeholder {
-  font-size: 1.4rem;
-  color: rgb(var(--fg-faint));
-}
-.release-poster-skeleton {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    100deg,
-    rgb(var(--bg-base)) 30%,
-    rgb(var(--bg-elevated)) 50%,
-    rgb(var(--bg-base)) 70%
-  );
-  background-size: 220% 100%;
-  animation: poster-shimmer 1.4s ease-in-out infinite;
-}
-@keyframes poster-shimmer {
-  0%   { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
-}
-
-.release-group-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  min-width: 0;
-}
-.release-group-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgb(var(--fg-subtle));
-  flex-wrap: wrap;
-}
-/* Source pill — TMDb cyan for films/TV, IGDB violet for games. The
-   colour-coded icon makes the kind of cluster legible at a glance
-   while the label keeps the same monospace voice as the rest of the
-   eyebrow. */
-.release-group-src {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: rgb(var(--fg-muted));
-}
-.release-group-src-icon {
-  font-size: 10.5px;
-}
-.release-group-src--tmdb .release-group-src-icon {
-  color: #01b4e4;
-}
-.release-group-src--igdb {
-  color: #b48cff;
-}
-.release-group-src--igdb .release-group-src-icon {
-  color: #a26bff;
-  filter: drop-shadow(0 0 4px rgba(162, 107, 255, 0.45));
-}
-.release-group-src--openlibrary {
-  color: #f59e0b;
-}
-.release-group-src--openlibrary .release-group-src-icon {
-  color: #d97706;
-  filter: drop-shadow(0 0 4px rgba(217, 119, 6, 0.45));
-}
-
-/* Game / book cards — a whisper of source-coloured ink along the
-   lead edge so the cluster's origin is legible while scanning the
-   list, without shouting over the row body. */
-.release-group--game {
-  box-shadow: inset 3px 0 0 0 rgba(162, 107, 255, 0.5);
-}
-.release-group--game:hover {
-  box-shadow: inset 3px 0 0 0 rgba(162, 107, 255, 0.85);
-}
-.release-group--book {
-  box-shadow: inset 3px 0 0 0 rgba(217, 119, 6, 0.5);
-}
-.release-group--book:hover {
-  box-shadow: inset 3px 0 0 0 rgba(217, 119, 6, 0.85);
-}
-
-/* IGDB cover art is portrait 3:4 (Twitch's `t_cover_big_2x` source)
-   whereas TMDb posters are the classic 2:3 cinematic. Open Library
-   covers don't have a fixed aspect ratio — most book covers are
-   taller-than-wide so 2:3 is a safe default that still hosts most
-   inputs without crops; we just tint the border. Swap aspect on
-   game covers so we never letterbox a Twitch poster. */
-.release-poster--game {
-  aspect-ratio: 3 / 4;
-  border-color: rgba(162, 107, 255, 0.35);
-}
-.release-poster--book {
-  border-color: rgba(217, 119, 6, 0.35);
-}
-.release-group-title {
-  margin: 0;
-  font-size: 1.05rem;
-  line-height: 1.2;
-  font-weight: 700;
-  letter-spacing: -0.005em;
-  color: rgb(var(--fg-strong));
-  word-break: break-word;
-}
-.release-group-year {
-  color: rgb(var(--fg-muted));
-  font-weight: 500;
-  font-size: 0.95rem;
-  margin-left: 0.2rem;
-}
-.release-group-title-mono {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0;
-  color: rgb(var(--fg-default));
-}
-.release-group-title-loading {
-  color: rgb(var(--fg-faint));
-  font-style: italic;
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-.release-group-overview {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: rgb(var(--fg-muted));
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.release-group-meta {
-  margin: 0;
-  display: flex;
-  align-items: center;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  color: rgb(var(--fg-muted));
-  flex-wrap: wrap;
-}
-.release-group-meta strong {
-  color: rgb(var(--fg-strong));
-  font-weight: 700;
-}
-.release-group-meta-seed {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  color: rgb(var(--online));
-}
-.release-group-rating {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: #f5c518;
-  font-weight: 700;
-}
-.release-group-chev {
-  font-size: 0.95rem;
-  color: rgb(var(--fg-muted));
-  transition: transform 0.18s ease;
-  flex-shrink: 0;
-}
-.release-group-chev--up {
-  transform: rotate(-180deg);
-  color: rgb(var(--fg-strong));
-}
-
-.release-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.release-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.85rem;
-  align-items: center;
-  padding: 0.65rem 1rem;
-  border-bottom: 1px solid rgb(var(--line-default) / 0.6);
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.release-row:last-child {
-  border-bottom: 0;
-}
-.release-row:hover {
-  background: rgb(var(--fg-default) / 0.04);
-}
-.release-name {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
-  color: rgb(var(--fg-default));
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.release-pills {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  color: rgb(var(--fg-muted));
-}
-.release-size,
-.release-age {
-  white-space: nowrap;
-}
-.release-age {
-  color: rgb(var(--fg-faint));
-}
-
-/* Accordion transition — slide releases in/out under the head. We use
-   max-height so the height is animatable while the content keeps its
-   intrinsic size; the bound is generous enough for 20+ releases. */
-.releases-enter-active,
-.releases-leave-active {
-  transition: max-height 0.24s ease, opacity 0.18s ease;
-  overflow: hidden;
-}
-.releases-enter-from,
-.releases-leave-to {
-  max-height: 0;
-  opacity: 0;
-}
-.releases-enter-to,
-.releases-leave-from {
-  max-height: 800px;
-  opacity: 1;
 }
 
 /* ─── Bottom pagination ─────────────────────────────────── */
@@ -1848,29 +1299,9 @@ button.release-group-head:hover {
   .cats-row::-webkit-scrollbar {
     display: none;
   }
-  .release-row {
-    grid-template-columns: 1fr;
-  }
-  .release-pills {
-    flex-wrap: wrap;
-  }
-  /* On phones the release-group head reflows into a tighter card with a
-     smaller poster — readable but not eating half the screen. */
-  .release-group-head {
-    gap: 0.7rem;
-    padding: 0.7rem 0.85rem;
-  }
-  .release-poster {
-    width: 3.5rem;
-  }
-  .release-group-title {
-    font-size: 0.95rem;
-  }
-  .release-group-overview {
-    -webkit-line-clamp: 1;
-  }
   .filters-toggle {
     margin-left: 0;
   }
 }
+
 </style>

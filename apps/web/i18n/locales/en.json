@@ -772,6 +772,32 @@
       "pagination": "Pagination",
       "previousPage": "Previous page",
       "nextPage": "Next page"
+    },
+    "group": {
+      "back": "Back to the catalogue",
+      "releases": "release | releases",
+      "empty": "No release in this group.",
+      "truncated": "Only the first releases are shown.",
+      "episodeLadder": "{have} of {total} episodes held",
+      "qualityLadder": "Available in {list}",
+      "workCount": "work | works",
+      "scope": {
+        "episode": "Per episode ({n})",
+        "season": "Full seasons ({n})",
+        "integral": "Complete series ({n})",
+        "all": "{n} torrent | {n} torrents"
+      },
+      "season": "Season {n}",
+      "seasonUnknown": "Season unknown",
+      "nReleases": "{n} release | {n} releases",
+      "episodesTruncated": "Only the most recent episodes are listed — open the group page for the rest.",
+      "openPage": "Open the group page",
+      "download": "Download the .torrent",
+      "nEpisodes": "{n} episode | {n} episodes",
+      "atOrigin": "Open on the origin instance",
+      "onPartners": "+{n} on partners",
+      "onPartnersHint": "Partners hold releases of this work that this instance does not",
+      "peerCount": "{n} partner | {n} partners"
     }
   },
   "users": {
