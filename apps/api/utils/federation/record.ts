@@ -152,6 +152,75 @@ function signingInput(
   ]);
 }
 
+/**
+ * A proof over an arbitrary document, and the check for one.
+ *
+ * Split out of `signRecord`/`verifyRecord` because a torrent record is not the
+ * only thing this instance signs: an identity assertion is a different
+ * document with a different notion of `id`, and the one thing that must NOT
+ * differ between them is how the bytes are canonicalised and covered. Two
+ * implementations of "sign a JSON document" is precisely the drift that ends
+ * with one of them verifying something the other would reject.
+ */
+export function makeProof(
+  document: Record<string, unknown>,
+  opts: SignOptions,
+): DataIntegrityProof {
+  const proofConfig = {
+    type: PROOF_TYPE,
+    cryptosuite: CRYPTOSUITE,
+    created: (opts.created ?? new Date()).toISOString(),
+    verificationMethod: verificationMethodFor(opts.did),
+    proofPurpose: 'assertionMethod' as const,
+  };
+  const signature = edSign(
+    null,
+    signingInput(document, proofConfig),
+    opts.privateKeyPem,
+  );
+  return { ...proofConfig, proofValue: `u${signature.toString('base64url')}` };
+}
+
+/**
+ * Check one proof against one document. Total: it runs on bytes a stranger
+ * chose, so it reports a reason rather than throwing.
+ */
+export function checkProof(
+  document: Record<string, unknown>,
+  proof: unknown,
+): VerifyResult {
+  try {
+    if (!proof || typeof proof !== 'object') {
+      return { ok: false, reason: 'no proof' };
+    }
+    const p = proof as DataIntegrityProof;
+    if (p.type !== PROOF_TYPE || p.cryptosuite !== CRYPTOSUITE) {
+      return { ok: false, reason: 'unsupported proof suite' };
+    }
+    if (p.proofPurpose !== 'assertionMethod') {
+      return { ok: false, reason: 'wrong proof purpose' };
+    }
+    if (typeof p.proofValue !== 'string' || p.proofValue[0] !== 'u') {
+      return { ok: false, reason: 'malformed proofValue' };
+    }
+    if (typeof p.verificationMethod !== 'string') {
+      return { ok: false, reason: 'no verification method' };
+    }
+    const { proofValue, ...proofConfig } = p;
+    const did = didFromVerificationMethod(p.verificationMethod);
+    const key = publicKeyFromDidKey(did);
+    const ok = edVerify(
+      null,
+      signingInput(document, proofConfig as unknown as Record<string, unknown>),
+      key,
+      Buffer.from(proofValue.slice(1), 'base64url'),
+    );
+    return ok ? { ok, signer: did } : { ok: false, reason: 'bad signature' };
+  } catch (err) {
+    return { ok: false, reason: (err as Error).message };
+  }
+}
+
 export interface SignOptions {
   privateKeyPem: string;
   /** `did:key:…` of the signer. */
@@ -168,24 +237,10 @@ export function signRecord(
   const { proof: _p, id: _i, ...rest } = record as SignedRecord;
   const document = { ...rest, id } as Record<string, unknown>;
 
-  const proofConfig = {
-    type: PROOF_TYPE,
-    cryptosuite: CRYPTOSUITE,
-    created: (opts.created ?? new Date()).toISOString(),
-    verificationMethod: verificationMethodFor(opts.did),
-    proofPurpose: 'assertionMethod' as const,
-  };
-
-  const signature = edSign(
-    null,
-    signingInput(document, proofConfig),
-    opts.privateKeyPem,
-  );
-
   return {
     ...(document as unknown as UnsignedRecord),
     id,
-    proof: { ...proofConfig, proofValue: `u${signature.toString('base64url')}` },
+    proof: makeProof(document, opts),
   };
 }
 
@@ -211,24 +266,6 @@ export function verifyRecord(record: unknown): VerifyResult {
       return { ok: false, reason: 'not an object' };
     }
     const r = record as SignedRecord;
-    const proof = r.proof;
-    if (!proof || typeof proof !== 'object') {
-      return { ok: false, reason: 'no proof' };
-    }
-    if (proof.type !== PROOF_TYPE || proof.cryptosuite !== CRYPTOSUITE) {
-      return { ok: false, reason: 'unsupported proof suite' };
-    }
-    if (proof.proofPurpose !== 'assertionMethod') {
-      return { ok: false, reason: 'wrong proof purpose' };
-    }
-    if (typeof proof.proofValue !== 'string' || proof.proofValue[0] !== 'u') {
-      return { ok: false, reason: 'malformed proofValue' };
-    }
-    if (typeof proof.verificationMethod !== 'string') {
-      return { ok: false, reason: 'no verification method' };
-    }
-
-    const { proof: _p, ...document } = r as unknown as Record<string, unknown>;
 
     // The id is part of the document AND derived from it, so a record whose id
     // does not match its content is rejected before any cryptography — a
@@ -239,17 +276,8 @@ export function verifyRecord(record: unknown): VerifyResult {
       return { ok: false, reason: 'id does not match content' };
     }
 
-    const { proofValue, ...proofConfig } = proof;
-    const did = didFromVerificationMethod(proof.verificationMethod);
-    const key = publicKeyFromDidKey(did);
-
-    const ok = edVerify(
-      null,
-      signingInput(document, proofConfig as unknown as Record<string, unknown>),
-      key,
-      Buffer.from(proofValue.slice(1), 'base64url'),
-    );
-    return ok ? { ok, signer: did } : { ok: false, reason: 'bad signature' };
+    const { proof, ...document } = r as unknown as Record<string, unknown>;
+    return checkProof(document, proof);
   } catch (err) {
     // A stranger's bytes must never throw out of here: an exception on a
     // malformed record would take down whatever loop is ingesting a page of

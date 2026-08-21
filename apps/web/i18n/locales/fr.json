@@ -521,6 +521,23 @@
         "moderator": "Modérateur",
         "member": "Membre"
       }
+    },
+    "identityExport": {
+      "title": "Emportez votre identité",
+      "what": "Votre compte ici est aussi une clé à part entière. L'exporter permet à une autre instance de vous reconnaître comme la même personne — et aux uploads qui vous sont attribués de garder votre nom où qu'ils aillent.",
+      "travels": "Part avec vous",
+      "travelsName": "Votre identifiant, et le nom qui va avec",
+      "travelsUploads": "La paternité de tout ce que vous avez uploadé",
+      "stays": "Reste ici",
+      "staysRatio": "Votre ratio et votre crédit d'upload",
+      "staysBonus": "Vos points bonus",
+      "staysInvites": "Vos invitations et votre ancienneté",
+      "keyWarning": "Le fichier contient une clé privée. Quiconque la détient peut agir en votre nom. Gardez-la comme un mot de passe, et considérez-la comme compromise si vous la partagez — elle ne peut pas être révoquée depuis ici.",
+      "action": "Exporter mon identité",
+      "confirm": "Ceci télécharge une clé privée.",
+      "confirmAction": "Télécharger",
+      "done": "Exportée.",
+      "failed": "Impossible d'exporter votre identité. Réessayez dans un instant."
     }
   },
   "torrents": {

@@ -521,6 +521,23 @@
         "moderator": "Moderator",
         "member": "Member"
       }
+    },
+    "identityExport": {
+      "title": "Take your identity with you",
+      "what": "Your account here is also a key of its own. Exporting it lets another instance recognise you as the same person — and lets the uploads attributed to you keep your name wherever they travel.",
+      "travels": "Travels with you",
+      "travelsName": "Your identifier, and your name on it",
+      "travelsUploads": "Authorship of everything you have uploaded",
+      "stays": "Stays here",
+      "staysRatio": "Your ratio and upload credit",
+      "staysBonus": "Your bonus points",
+      "staysInvites": "Your invitations and standing",
+      "keyWarning": "The file contains a private key. Anyone who holds it can act as you. Keep it as you would keep a password, and treat it as compromised if you ever share it — it cannot be revoked from here.",
+      "action": "Export my identity",
+      "confirm": "This downloads a private key.",
+      "confirmAction": "Download it",
+      "done": "Exported.",
+      "failed": "Could not export your identity. Try again in a moment."
     }
   },
   "torrents": {

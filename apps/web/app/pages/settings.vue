@@ -419,6 +419,11 @@
                 {{ $t('settings.security.signOut') }}
               </button>
             </article>
+
+            <!-- Filed under security rather than under identity on purpose:
+                 the action hands over a private key, and that is what the
+                 member needs to have in mind while doing it. -->
+            <SettingsPortableIdentity />
           </div>
         </section>
 
