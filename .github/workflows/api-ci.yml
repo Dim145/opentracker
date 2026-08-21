@@ -1,0 +1,77 @@
+# API CI — TypeScript typecheck and unit tests.
+#
+# Nothing enforced that apps/api still typechecked. `nitropack build` inside
+# apps/api/Dockerfile is not a gate: it transpiles without checking types, and
+# it only runs once a release is already being published. The cost of that gap
+# was a `ReferenceError: offset is not defined` shipped in 0.28.x — a variable
+# that was never declared, in a query the compiler would have rejected on the
+# spot (the endpoint 500'd on every call, and the page it served hid the error
+# behind an empty state).
+#
+# The check runs against the tsconfig Nitro generates in .nitro/types, which is
+# what carries the auto-import declarations for h3 helpers and `~~/*` aliases.
+# `pnpm install` runs apps/api's `prepare` script (`nitropack prepare`), so the
+# file exists by the time the typecheck starts; the root `typecheck` script
+# regenerates it anyway to stay honest about a stale checkout.
+name: API CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig.base.json'
+      - '.github/workflows/api-ci.yml'
+  pull_request:
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig.base.json'
+      - '.github/workflows/api-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: typecheck + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Test-only checkout — nothing is pushed back.
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          # Matches `node:24-alpine` in apps/api/Dockerfile, so CI checks the
+          # runtime we actually ship.
+          node-version: 24
+
+      # corepack rather than a third-party setup action: the pinned pnpm
+      # version already lives in package.json's `packageManager` field, and the
+      # Dockerfiles activate it exactly this way.
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # Unit tests only. The integration suite needs Postgres and Redis and
+      # has its own runner (`pnpm --filter @trackarr/api test:integration`).
+      - name: Unit tests
+        run: pnpm --filter @trackarr/api test
