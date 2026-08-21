@@ -14,7 +14,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 
 [Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [Static deployment](#-static-deployment-no-ssr) • [Documentation](https://dim145.github.io/opentracker/) • [Live Demo](https://tracker.florianargaud.com/)
 
-![Trackarr Homepage](apps/web/public/images/image%20copy%203.png)
+![Trackarr — tracker state and latest releases](apps/web/public/images/screens/home.png)
 
 </div>
 
@@ -220,12 +220,33 @@ Security deep-dive: [doc/guide/security.md](doc/guide/security.md), [doc/guide/z
 
 ## 📸 Screenshots
 
-![Torrent List](apps/web/public/images/image.png)
-![Torrent Details](apps/web/public/images/image%20copy%202.png)
+Catalogue — full-text search, category facets, per-release tags and live swarm counts.
+
+![Torrent list](apps/web/public/images/screens/torrents.png)
+
+Release page — metadata pulled from TMDb / IMDb / IGDB / Open Library against the id stored on the torrent, swarm activity, and the uploader's notes.
+
+![Torrent details](apps/web/public/images/screens/torrent-detail.png)
+
+Forum — sections, threads and cross-instance federated threads.
+
 ![Forum](apps/web/public/images/screens/forum.png)
+
+Profile — ratio, bonus points, and the announce URL carrying your passkey.
+
 ![User profile](apps/web/public/images/screens/me.png)
+
+Admin dashboard — swarm vital signs and 30 days of time series.
+
 ![Admin dashboard](apps/web/public/images/screens/admin-dashboard.png)
+
+Moderation queue — every upload that isn't accepted yet, with its conversation thread.
+
 ![Moderation queue](apps/web/public/images/screens/mod-pending.png)
+
+Federation — link the tracker to instances you trust, and pick exactly what each link shares.
+
+![Federation](apps/web/public/images/screens/federation.png)
 
 ---
 

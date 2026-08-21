@@ -2,6 +2,8 @@
 
 A *hit-and-run* is a user who downloads a torrent and stops seeding before the operator-defined seed-time threshold. Trackarr enforces HnR at the per-(user, torrent) level so the consequences land on the responsible account, not the operator's mood.
 
+![Moderation · Hit & Run — flagged rows with seed time against the requirement, and the per-row clear / exempt actions](/screenshots/hnr.png)
+
 ## Concepts
 
 | Term                | Meaning                                                                                            |

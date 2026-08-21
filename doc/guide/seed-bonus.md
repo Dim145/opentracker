@@ -6,6 +6,8 @@ or revoke points by hand. Distinct from [bonus events](./bonus-events.md)
 (which scale `users.uploaded` deltas globally during a window), the
 bonus economy is per-user, persistent, and operator-tunable end-to-end.
 
+![The bonus shop — upload-credit and invitation items priced in points, with the member's reserve on the right](/screenshots/shop.png)
+
 ## What users see
 
 ### `/me` — Bonus reserve

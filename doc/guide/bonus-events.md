@@ -11,7 +11,7 @@ Any custom combination in `[0×, 2×]` download / `[0×, 10×]` upload is also a
 
 ## Admin surface (`/admin/bonus-events`)
 
-![Bonus events admin — active Freeleech window with start / end times and the day's deltas](/screenshots/admin-bonus-events.png)
+![Bonus events admin — a Freeleech window on air with its remaining time and multipliers, above the archive of past events](/screenshots/admin-bonus-events.png)
 
 The page lists every event (active, scheduled, ended, disabled) and exposes a **New event** modal. The modal carries:
 

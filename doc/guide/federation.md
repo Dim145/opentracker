@@ -9,6 +9,8 @@ data, and decides — per partner, per direction — exactly what it shares.
 Federation is **off by default** and only the **owner** (an admin) can turn
 it on, from `/admin/federation`.
 
+![Admin · Federation — the instance's own identity, the default sharing scopes proposed to new partners, and sync health](/screenshots/federation.png)
+
 ## Trust model
 
 There is no central authority and no PKI. Trust is established **once, by
