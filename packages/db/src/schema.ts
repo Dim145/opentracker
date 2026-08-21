@@ -2318,6 +2318,12 @@ export const remoteTorrents = pgTable(
     index('remote_torrents_content_sig_idx').on(table.contentSignature),
     index('remote_torrents_imdb_idx').on(table.imdbId),
     index('remote_torrents_tmdb_idx').on(table.tmdbId),
+    // The grouped catalogue matches a local group against the mirror one id
+    // namespace at a time — `tmdb_id = ANY(...) OR igdb_id = ANY(...) OR …` —
+    // so each namespace needs its own index or the badge query degrades into a
+    // scan of every partner's catalogue on every page.
+    index('remote_torrents_igdb_idx').on(table.igdbId),
+    index('remote_torrents_openlibrary_idx').on(table.openlibraryId),
     index('remote_torrents_name_idx').on(table.name),
   ]
 );

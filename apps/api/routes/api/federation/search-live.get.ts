@@ -1,16 +1,34 @@
 /**
  * GET /api/federation/search-live?q=<query>  — authenticated, local.
  *
- * The "live" search mode: fan out a signed GET /api/federation/search to every
- * active peer that shares its catalogue with us (`acceptsFromThem.catalog`),
- * aggregate the results, and tag each row with its origin + a local-dup hint.
- * Best-effort and time-bounded (per-peer timeout); a slow or erroring peer is
- * skipped. The "cache" mode (instant, cron-synced) is /api/federation/browse.
+ * The "live" search mode: fan out a signed `GET /api/federation/search` to every
+ * active peer that shares its catalogue with us, **write what comes back into
+ * the mirror**, then read the answer back out of the mirror.
  *
- * Like the cache view, a remote torrent links back to its origin instance — we
+ * ## Why it writes
+ *
+ * It used to hold the results in memory and shape its own response. That made
+ * it a parallel universe: a second deduplication, a second adult gate, a second
+ * idea of what a result is — and a standing question every time a field was
+ * added ("does live search carry it too?"). Two implementations of one concept
+ * is how they drift.
+ *
+ * Ingesting through the same `upsertRemoteTorrent` the cron uses collapses that
+ * to one path. The mirror then also warms on exactly what members search for,
+ * which is a better cache-fill policy than any cron interval — the periodic
+ * sync can afford to be lazier because the hot content arrives on demand.
+ *
+ * ## Why that is safe
+ *
+ * A partner could answer a search with fabricated rows. It could already do
+ * that through the catalogue feed: the mirror is scoped per peer, read-only,
+ * and never merged into the local catalogue, so the blast radius is unchanged.
+ * The fan-out is capped per peer, which caps what one search can insert.
+ *
+ * Like every federated view, a release links back to its origin instance — we
  * never serve remote `.torrent` bytes with the local passkey.
  */
-import { eq, inArray } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import {
   getFederationConfig,
@@ -18,18 +36,13 @@ import {
   isFederationLive,
 } from '~~/utils/federation/config';
 import { signedGet } from '~~/utils/federation/signing';
+import { upsertRemoteTorrent } from '~~/utils/federation/catalogSync';
+import { browseMirror } from '~~/utils/federation/browseMirror';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireAuthSession } from '~~/utils/adminAuth';
 
 const PER_PEER_TIMEOUT_MS = 6000;
 const PER_PEER_LIMIT = 30;
-
-function asStr(v: unknown): string | null {
-  return typeof v === 'string' && v.length ? v : null;
-}
-function asNum(v: unknown): number {
-  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
-}
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireAuthSession(event);
@@ -45,11 +58,15 @@ export default defineEventHandler(async (event) => {
   if (search.length < 2) {
     throw createError({ statusCode: 400, message: 'query too short' });
   }
+  const limit = Math.min(100, Math.max(1, parseInt(String(q.limit ?? '50'), 10) || 50));
+  const page = Math.max(1, parseInt(String(q.page ?? '1'), 10) || 1);
+
+  const empty = { items: [], pagination: { page, limit, total: 0, pages: 1 }, peers: 0, mode: 'live' as const };
 
   const config = await getFederationConfig();
-  if (!isFederationLive(config)) return { items: [], peers: 0, mode: 'live' };
+  if (!isFederationLive(config)) return empty;
   const pk = getPrivateKeyPem(config!);
-  if (!pk || !config!.instanceId) return { items: [], peers: 0, mode: 'live' };
+  if (!pk || !config!.instanceId) return empty;
   const instanceId = config!.instanceId;
 
   const peers = (
@@ -58,7 +75,7 @@ export default defineEventHandler(async (event) => {
       .from(schema.federationPeers)
       .where(eq(schema.federationPeers.status, 'active'))
   ).filter((p) => p.acceptsFromThem?.catalog);
-  if (!peers.length) return { items: [], peers: 0, mode: 'live' };
+  if (!peers.length) return empty;
 
   const qs = new URLSearchParams({ q: search, limit: String(PER_PEER_LIMIT) });
   const settled = await Promise.allSettled(
@@ -73,123 +90,34 @@ export default defineEventHandler(async (event) => {
     ),
   );
 
-  interface LiveItem {
-    infoHash: string;
-    contentSignature: string | null;
-    name: string;
-    size: number;
-    categorySlug: string | null;
-    categoryType: string | null;
-    isAdult: boolean;
-    tags: string[];
-    imdbId: string | null;
-    tmdbId: string | null;
-    seeders: number;
-    leechers: number;
-    uploaderName: string | null;
-    detailUrl: string | null;
-    peerId: string;
-    peerName: string | null;
-    peerBaseUrl: string;
-  }
-
-  const items: LiveItem[] = [];
-  let reached = 0;
+  // Ingest. A peer that times out, errors or answers garbage is skipped — the
+  // search still returns whatever the others said, and whatever the mirror
+  // already held for them.
+  const reachedIds: string[] = [];
   for (const s of settled) {
     if (s.status !== 'fulfilled') continue;
     const { peer, res } = s.value;
     if (res.status !== 200 || !Array.isArray(res.data?.items)) continue;
-    reached++;
+    reachedIds.push(peer.id);
     for (const raw of res.data.items as Record<string, unknown>[]) {
-      const infoHash = asStr(raw.infoHash);
-      const name = asStr(raw.name);
-      if (!infoHash || !name) continue;
-      // Adult gate, mirrored from the origin's category (search.get exports it).
-      if (!showAdult && raw.isAdult === true) continue;
-      items.push({
-        infoHash,
-        contentSignature: asStr(raw.contentSignature),
-        name: name.slice(0, 1000),
-        size: asNum(raw.size),
-        categorySlug: asStr(raw.categorySlug),
-        categoryType: asStr(raw.categoryType),
-        isAdult: raw.isAdult === true,
-        tags: Array.isArray(raw.tags)
-          ? (raw.tags.filter((t) => typeof t === 'string').slice(0, 50) as string[])
-          : [],
-        imdbId: asStr(raw.imdbId),
-        tmdbId: asStr(raw.tmdbId),
-        seeders: asNum(raw.seeders),
-        leechers: asNum(raw.leechers),
-        uploaderName: asStr(raw.uploaderName),
-        detailUrl: asStr(raw.detailUrl),
-        peerId: peer.id,
-        peerName: peer.displayName,
-        peerBaseUrl: peer.baseUrl,
-      });
+      try {
+        await upsertRemoteTorrent(peer.id, raw);
+      } catch {
+        // One malformed item must not lose the rest of the page.
+      }
     }
   }
+  if (!reachedIds.length) return empty;
 
-  // Local-dup hint: which of these info hashes already exist locally.
-  const hashes = [...new Set(items.map((i) => i.infoHash))];
-  const localHashes = new Set<string>();
-  if (hashes.length) {
-    const localRows = await db
-      .select({ infoHash: schema.torrents.infoHash })
-      .from(schema.torrents)
-      .where(inArray(schema.torrents.infoHash, hashes));
-    for (const l of localRows) localHashes.add(l.infoHash);
-  }
-  // Collapse the same release seen on multiple peers into one item carrying
-  // sources[], matching /api/federation/browse. Key = content_signature
-  // (cross-seed) || info_hash.
-  const groups = new Map<string, LiveItem[]>();
-  for (const i of items) {
-    const k = i.contentSignature || i.infoHash;
-    const arr = groups.get(k);
-    if (arr) arr.push(i);
-    else groups.set(k, [i]);
-  }
-  const deduped = [...groups.entries()].map(([key, grp]) => {
-    const rep = grp.reduce((a, b) => (b.seeders > a.seeders ? b : a), grp[0]!);
-    const sources = grp.map((s) => ({
-      id: `live-${s.peerId}-${s.infoHash}`,
-      peerId: s.peerId,
-      peerName: s.peerName,
-      peerBaseUrl: s.peerBaseUrl,
-      uploaderName: s.uploaderName,
-      categorySlug: s.categorySlug,
-      seeders: s.seeders,
-      leechers: s.leechers,
-      detailUrl: s.detailUrl,
-    }));
-    return {
-      id: `live-${rep.peerId}-${rep.infoHash}`,
-      key,
-      infoHash: rep.infoHash,
-      contentSignature: rep.contentSignature,
-      name: rep.name,
-      size: rep.size,
-      categorySlug: rep.categorySlug,
-      categoryType: rep.categoryType,
-      isAdult: rep.isAdult,
-      tags: rep.tags,
-      imdbId: rep.imdbId,
-      tmdbId: rep.tmdbId,
-      uploaderName: rep.uploaderName,
-      remoteCreatedAt: null,
-      seeders: grp.reduce((a, s) => a + (s.seeders || 0), 0),
-      leechers: grp.reduce((a, s) => a + (s.leechers || 0), 0),
-      peerId: rep.peerId,
-      peerName: rep.peerName,
-      peerBaseUrl: rep.peerBaseUrl,
-      detailUrl: rep.detailUrl,
-      sourceCount: sources.length,
-      sources,
-      existsLocally: grp.some((s) => localHashes.has(s.infoHash)),
-      sameContentLocally: false,
-    };
+  const result = await browseMirror({
+    search,
+    page,
+    limit,
+    showAdult,
+    // Only the partners that answered: otherwise a "live" result would quietly
+    // include stale cron rows from peers that were down.
+    peerIds: reachedIds,
   });
 
-  return { items: deduped, peers: peers.length, reached, mode: 'live' };
+  return { ...result, peers: reachedIds.length, mode: 'live' as const };
 });

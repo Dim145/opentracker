@@ -35,6 +35,8 @@ import {
 import { adultCategoryIds } from '~~/utils/adultContent';
 import { getSetting, SETTINGS_KEYS } from '~~/utils/server';
 import { GROUP_SCOPES, listGroups } from '~~/utils/torrentGroups';
+import { getFederationConfig, isFederationLive } from '~~/utils/federation/config';
+import { partnerReleaseCounts } from '~~/utils/remoteGroups';
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).max(10_000).default(1),
@@ -122,8 +124,28 @@ export default defineEventHandler(async (event) => {
     scope: query.scope as never,
   });
 
+  // The bridge to the federated catalogue: how many releases the partners hold
+  // for the works on this page. A badge, not a merge — see
+  // `partnerReleaseCounts` for why. Skipped entirely, at zero cost, on an
+  // instance that does not federate.
+  let partners = new Map<string, number>();
+  if (isFederationLive(await getFederationConfig())) {
+    try {
+      partners = await partnerReleaseCounts(
+        groups.map((g) => g.key),
+        !!me?.showAdultContent,
+      );
+    } catch {
+      // The local catalogue must render with or without the mirror. A badge
+      // that fails to load is a badge that is absent.
+    }
+  }
+
   return {
-    groups,
+    groups: groups.map((g) => ({
+      ...g,
+      partnerReleaseCount: partners.get(g.key) ?? 0,
+    })),
     pagination: {
       page: query.page,
       limit: query.limit,
