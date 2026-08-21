@@ -30,7 +30,7 @@
  * can be fetched. The mirror therefore keeps a row per peer, identified by the
  * record: same statement, several places to act on it.
  */
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
 import { db, schema } from '@trackarr/db';
 import type { FederationPeer } from '@trackarr/db/schema';
@@ -39,13 +39,31 @@ import {
   getPrivateKeyPem,
   isFederationLive,
 } from './config';
+import { parseReleaseName } from '@trackarr/shared/releaseParse';
 import { signedGet } from './signing';
 import { verifyRecord } from './record';
+import { notifyFollowersOfNewUploads } from './sidePasses';
 
 const PAGE_LIMIT = 200;
 /** Pages per run. Bounded so one partner cannot monopolise a sync cycle. */
 const MAX_PAGES = 25;
+/**
+ * Hard cap on mirrored rows per partner.
+ *
+ * Signatures do not make this unnecessary. A proof says a partner really did
+ * publish a release; it says nothing about how many it is entitled to publish,
+ * and minting a million valid records is no harder than minting one. The cap
+ * is the only thing standing between an over-enthusiastic — or hostile —
+ * partner and our disk.
+ */
+const MAX_REMOTE_PER_PEER = 100_000;
 const RESOURCE = 'records';
+
+interface NewItem {
+  uploaderName: string | null;
+  name: string;
+  infoHash: string;
+}
 
 export interface RecordSyncResult {
   ingested: number;
@@ -78,7 +96,7 @@ function asHttpUrl(v: unknown): string | null {
   }
 }
 
-async function readCursor(peerId: string): Promise<number> {
+async function readCursor(peerId: string): Promise<number | null> {
   const [state] = await db
     .select({ cursor: schema.federationSyncState.cursor })
     .from(schema.federationSyncState)
@@ -89,7 +107,11 @@ async function readCursor(peerId: string): Promise<number> {
       ),
     )
     .limit(1);
-  const n = parseInt(state?.cursor ?? '0', 10);
+  // `null` — never synced — is not the same as `0`. Only the first tells us
+  // this is an initial backfill, which must not notify followers about a
+  // partner's entire back catalogue at once.
+  if (!state) return null;
+  const n = parseInt(state.cursor ?? '0', 10);
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
@@ -159,8 +181,23 @@ function toMirrorRow(
     tvdbId: asStr(record['trackarr:tvdbId']),
     igdbId: asStr(record['trackarr:igdbId']),
     openlibraryId: asStr(record['trackarr:openlibraryId']),
-    season: asPosition(record['trackarr:season']),
-    episode: asPosition(record['trackarr:episode']),
+    // The issuer's own position wins; the parser only fills a gap, and only
+    // when the record offers no usable position at all. An issuer that never
+    // parsed the name would otherwise cost every partner the season a release
+    // belongs to — and a release with no season falls out of its group
+    // entirely. A position the record DOES carry is never second-guessed: the
+    // issuer saw the upload form, where a human may have corrected the parser.
+    ...(() => {
+      const season = asPosition(record['trackarr:season']);
+      const episode = asPosition(record['trackarr:episode']);
+      if (season !== null || episode !== null) return { season, episode };
+      try {
+        const parsed = parseReleaseName(name);
+        return { season: parsed.season, episode: parsed.episode };
+      } catch {
+        return { season: null, episode: null };
+      }
+    })(),
     uploaderName: asStr(record['trackarr:uploaderName']),
     remoteCreatedAt: (() => {
       const d = asStr(record.published);
@@ -192,17 +229,140 @@ function toMirrorRow(
  * costs a logged cursor row and nothing else. Never throws — it runs in a loop
  * over every peer.
  */
+/** What one record did to the mirror. */
+export interface IngestOutcome {
+  ingested: 0 | 1;
+  withdrawn: number;
+  rejected: 0 | 1;
+  /** Set only on a first insert, so a re-sync does not re-notify followers. */
+  fresh?: NewItem;
+}
+
+/**
+ * Apply a single record to the mirror.
+ *
+ * Deliberately independent of how the record arrived: the periodic sync walks
+ * a partner's stream, live search fans out and gets an answer back, a relay
+ * may hand one over later. All three land here, and all three are checked the
+ * same way — that is what makes "accepted on its proof" a property of the
+ * system rather than of one code path.
+ *
+ * Never throws on a bad record: an unverifiable or malformed one is counted
+ * and dropped, because losing a page over a single hostile item is exactly the
+ * denial of service an unauthenticated feed invites.
+ */
+export async function ingestRecord(
+  peer: FederationPeer,
+  raw: unknown,
+): Promise<IngestOutcome> {
+  const nothing: IngestOutcome = { ingested: 0, withdrawn: 0, rejected: 0 };
+
+  // The whole point: accepted on its proof, not on who sent it.
+  const verdict = verifyRecord(raw);
+  if (!verdict.ok) return { ...nothing, rejected: 1 };
+
+  const record = raw as Record<string, unknown>;
+  const replaces = asStr(record['trackarr:replaces']);
+
+  if (record.type === 'Tombstone') {
+    // A withdrawal is a statement, so it is applied rather than inferred from
+    // a gap. Match the record it retires; fall back to the info hash for a
+    // partner we started following after the fact.
+    const hash = asStr(record['bt:infohash_v1']);
+    const conditions = replaces
+      ? and(
+          eq(schema.remoteTorrents.peerId, peer.id),
+          eq(schema.remoteTorrents.recordId, replaces),
+        )!
+      : hash
+        ? and(
+            eq(schema.remoteTorrents.peerId, peer.id),
+            eq(schema.remoteTorrents.infoHash, hash),
+          )!
+        : null;
+    if (!conditions) return nothing;
+    const gone = await db.delete(schema.remoteTorrents).where(conditions);
+    return {
+      ...nothing,
+      withdrawn: (gone as unknown as { count?: number }).count ?? 1,
+    };
+  }
+
+  const row = toMirrorRow(peer, record, verdict.signer!);
+  if (!row) return { ...nothing, rejected: 1 };
+
+  // `xmax = 0` is true only for a fresh INSERT, which is what separates "a
+  // partner published something new" from "a partner restated what we already
+  // had" — and stops a re-sync from re-notifying every follower.
+  const [written] = await db
+    .insert(schema.remoteTorrents)
+    .values({
+      id: uuid(),
+      peerId: peer.id,
+      // The record IS the remote identity now. Reusing the existing
+      // `(peer, remoteId)` unique index keeps one notion of "the same row from
+      // this peer" rather than adding a second.
+      remoteId: row.recordId!,
+      fetchedAt: new Date(),
+      ...row,
+    })
+    .onConflictDoUpdate({
+      target: [schema.remoteTorrents.peerId, schema.remoteTorrents.remoteId],
+      set: { ...row, updatedAt: new Date() },
+    })
+    .returning({ isNew: sql<boolean>`(xmax = 0)` });
+
+  // An edit supersedes: drop the row the new record replaces, or the mirror
+  // would carry both generations side by side.
+  if (replaces) {
+    await db
+      .delete(schema.remoteTorrents)
+      .where(
+        and(
+          eq(schema.remoteTorrents.peerId, peer.id),
+          eq(schema.remoteTorrents.recordId, replaces),
+        ),
+      );
+  }
+
+  return {
+    ...nothing,
+    ingested: 1,
+    fresh:
+      written?.isNew && row.uploaderName
+        ? {
+            uploaderName: row.uploaderName,
+            name: row.name,
+            infoHash: row.infoHash,
+          }
+        : undefined,
+  };
+}
+
 export async function syncPeerRecords(
   peer: FederationPeer,
 ): Promise<RecordSyncResult> {
   const out: RecordSyncResult = { ingested: 0, withdrawn: 0, rejected: 0, pages: 0 };
+  /** First-seen uploads, for the follow notification after the sync settles. */
+  const fresh: NewItem[] = [];
 
   const config = await getFederationConfig();
   if (!isFederationLive(config)) return out;
   const pk = getPrivateKeyPem(config!);
   if (!pk || !config!.instanceId) return out;
 
-  let cursor = await readCursor(peer.id);
+  const stored = await readCursor(peer.id);
+  const isFirstSync = stored === null; // initial backfill — do NOT notify
+  let cursor = stored ?? 0;
+
+  const [{ existing }] = await db
+    .select({ existing: sql<number>`count(*)::int` })
+    .from(schema.remoteTorrents)
+    .where(eq(schema.remoteTorrents.peerId, peer.id));
+  if ((existing ?? 0) >= MAX_REMOTE_PER_PEER) {
+    await saveCursor(peer.id, cursor, 'ok', 0, 'row cap reached');
+    return out;
+  }
 
   try {
     for (let page = 0; page < MAX_PAGES; page++) {
@@ -228,77 +388,11 @@ export async function syncPeerRecords(
       if (!records.length) break;
 
       for (const raw of records) {
-        // The whole point: accepted on its proof, not on who sent it.
-        const verdict = verifyRecord(raw);
-        if (!verdict.ok) {
-          out.rejected++;
-          continue;
-        }
-        const record = raw as Record<string, unknown>;
-        const replaces = asStr(record['trackarr:replaces']);
-
-        if (record.type === 'Tombstone') {
-          // A withdrawal is a statement, so it is applied rather than inferred
-          // from a gap. Match the record it retires; fall back to the info
-          // hash for a partner we started following after the fact.
-          const hash = asStr(record['bt:infohash_v1']);
-          const conditions = replaces
-            ? and(
-                eq(schema.remoteTorrents.peerId, peer.id),
-                eq(schema.remoteTorrents.recordId, replaces),
-              )!
-            : hash
-              ? and(
-                  eq(schema.remoteTorrents.peerId, peer.id),
-                  eq(schema.remoteTorrents.infoHash, hash),
-                )!
-              : null;
-          if (conditions) {
-            const gone = await db.delete(schema.remoteTorrents).where(conditions);
-            out.withdrawn += (gone as unknown as { count?: number }).count ?? 1;
-          }
-          continue;
-        }
-
-        const row = toMirrorRow(peer, record, verdict.signer!);
-        if (!row) {
-          out.rejected++;
-          continue;
-        }
-
-        await db
-          .insert(schema.remoteTorrents)
-          .values({
-            id: uuid(),
-            peerId: peer.id,
-            // The record IS the remote identity now. Reusing the existing
-            // `(peer, remoteId)` unique index keeps one notion of "the same
-            // row from this peer" rather than adding a second.
-            remoteId: row.recordId!,
-            fetchedAt: new Date(),
-            ...row,
-          })
-          .onConflictDoUpdate({
-            target: [
-              schema.remoteTorrents.peerId,
-              schema.remoteTorrents.remoteId,
-            ],
-            set: { ...row, updatedAt: new Date() },
-          });
-        out.ingested++;
-
-        // An edit supersedes: drop the row the new record replaces, or the
-        // mirror would carry both generations side by side.
-        if (replaces) {
-          await db
-            .delete(schema.remoteTorrents)
-            .where(
-              and(
-                eq(schema.remoteTorrents.peerId, peer.id),
-                eq(schema.remoteTorrents.recordId, replaces),
-              ),
-            );
-        }
+        const r = await ingestRecord(peer, raw);
+        out.ingested += r.ingested;
+        out.withdrawn += r.withdrawn;
+        out.rejected += r.rejected;
+        if (r.fresh) fresh.push(r.fresh);
       }
 
       const next = Number(res.data.nextCursor);
@@ -316,16 +410,51 @@ export async function syncPeerRecords(
       out.ingested,
       out.rejected ? `${out.rejected} record(s) failed verification` : null,
     );
+
+    await db
+      .update(schema.federationPeers)
+      .set({ lastSeenAt: new Date(), lastError: null, updatedAt: new Date() })
+      .where(eq(schema.federationPeers.id, peer.id));
+
+    if (!isFirstSync) await announceFresh(peer, fresh);
   } catch (err) {
     out.error = (err as Error).message;
     await saveCursor(peer.id, cursor, 'error', out.ingested, out.error);
+    await db
+      .update(schema.federationPeers)
+      .set({ lastError: `Record sync: ${out.error}`, updatedAt: new Date() })
+      .where(eq(schema.federationPeers.id, peer.id));
   }
 
   return out;
 }
 
+/**
+ * Tell followers about first-seen uploads. After the cursor is safe, never
+ * before: a notification that throws must not cost the records we ingested.
+ */
+export async function announceFresh(
+  peer: FederationPeer,
+  fresh: NewItem[],
+): Promise<void> {
+  if (!fresh.length) return;
+  try {
+    await notifyFollowersOfNewUploads(peer, fresh);
+  } catch (err) {
+    console.warn(
+      '[RecordSync] follow notifications failed:',
+      (err as Error).message,
+    );
+  }
+}
+
 /** Every partner that offers us a catalogue, one after another. */
-export async function syncAllRecords(): Promise<void> {
+export async function syncAllRecords(): Promise<{
+  peers: number;
+  ingested: number;
+  withdrawn: number;
+  rejected: number;
+}> {
   const peers = (
     await db
       .select()
@@ -333,12 +462,17 @@ export async function syncAllRecords(): Promise<void> {
       .where(eq(schema.federationPeers.status, 'active'))
   ).filter((p) => p.acceptsFromThem?.catalog);
 
+  const total = { peers: peers.length, ingested: 0, withdrawn: 0, rejected: 0 };
   for (const peer of peers) {
     const r = await syncPeerRecords(peer);
+    total.ingested += r.ingested;
+    total.withdrawn += r.withdrawn;
+    total.rejected += r.rejected;
     if (r.ingested || r.withdrawn || r.rejected) {
       console.log(
         `[RecordSync] ${peer.displayName ?? peer.baseUrl}: ingested=${r.ingested} withdrawn=${r.withdrawn} rejected=${r.rejected}`,
       );
     }
   }
+  return total;
 }

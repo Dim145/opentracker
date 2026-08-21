@@ -1,17 +1,28 @@
 /**
  * GET /api/federation/search?q=<query>&limit=<n>  — inbound, S2S.
  *
- * Live federated search: a partner queries OUR catalogue in real time
- * (accepted + active, metadata only — never `torrent_data`). Same exposure
- * rules as /api/federation/catalog (links point back to us; we never hand over
- * `.torrent` bytes), gated on `sharesWithThem.catalog` + signature. This is the
- * "live" half of the two search modes; the "cache" half is the cron-synced
- * `remote_torrents` read by /api/federation/browse.
+ * Live federated search: a partner queries our catalogue in real time. It
+ * answers with **the same signed records** `/api/federation/records` streams,
+ * not with a hand-shaped result object.
+ *
+ * That is the whole change here. The old handler projected columns into a
+ * bespoke JSON shape, which made live search a second definition of "what a
+ * federated release is" — one that had to be kept in step with the catalogue
+ * feed by hand, and that a partner could only take on trust. Returning records
+ * means a searching partner verifies these results exactly like any other, and
+ * ingests them through the same path. Search becomes a way of *finding*
+ * records early, never a different kind of answer.
+ *
+ * `superseded_at IS NULL` is the only exposure rule, and it is not a rule this
+ * handler invents: what this instance is willing to publish was decided when
+ * the record was minted. The join onto `torrents` is a search index over
+ * records we already published, nothing more — it narrows which of them to
+ * return, it cannot widen it.
  *
  * Signature covers the full request path (incl. query); GET has no body so the
  * digest is over the empty string.
  */
-import { eq, and, or, ilike, desc, inArray, isNull } from 'drizzle-orm';
+import { eq, and, or, ilike, desc, isNull } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { verifyInboundS2S } from '~~/utils/federation/inbound';
 import { escapeLike } from '~~/utils/sql';
@@ -20,7 +31,7 @@ const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 25;
 
 export default defineEventHandler(async (event) => {
-  const { config } = await verifyInboundS2S(event, 'catalog');
+  await verifyInboundS2S(event, 'catalog');
 
   const q = getQuery(event);
   const search = typeof q.q === 'string' ? q.q.trim() : '';
@@ -34,103 +45,27 @@ export default defineEventHandler(async (event) => {
 
   const esc = `%${escapeLike(search)}%`;
   const rows = await db
-    .select({
-      id: schema.torrents.id,
-      infoHash: schema.torrents.infoHash,
-      contentSignature: schema.torrents.contentSignature,
-      name: schema.torrents.name,
-      size: schema.torrents.size,
-      description: schema.torrents.description,
-      categorySlug: schema.categories.slug,
-      categoryType: schema.categories.type,
-      isAdult: schema.categories.isAdult,
-      imdbId: schema.torrents.imdbId,
-      tmdbId: schema.torrents.tmdbId,
-      tvdbId: schema.torrents.tvdbId,
-      igdbId: schema.torrents.igdbId,
-      openlibraryId: schema.torrents.openlibraryId,
-      // Series position. Not decoration: the partner needs it to file a
-      // television release under the right season and episode, and the only
-      // alternative is re-parsing the name — which every consumer would then
-      // have to do, each with its own idea of what a season pack looks like.
-      season: schema.torrents.season,
-      episode: schema.torrents.episode,
-      uploaderName: schema.users.username,
-      seeders: schema.torrentStats.seeders,
-      leechers: schema.torrentStats.leechers,
-      completed: schema.torrentStats.completed,
-      createdAt: schema.torrents.createdAt,
-    })
-    .from(schema.torrents)
-    .leftJoin(
-      schema.categories,
-      eq(schema.torrents.categoryId, schema.categories.id),
-    )
-    .leftJoin(schema.users, eq(schema.torrents.uploaderId, schema.users.id))
-    .leftJoin(
-      schema.torrentStats,
-      eq(schema.torrents.infoHash, schema.torrentStats.infoHash),
+    .select({ body: schema.catalogRecords.body })
+    .from(schema.catalogRecords)
+    .innerJoin(
+      schema.torrents,
+      eq(schema.catalogRecords.torrentId, schema.torrents.id),
     )
     .where(
       and(
-        eq(schema.torrents.moderationStatus, 'accepted'),
-        eq(schema.torrents.isActive, true),
-        // Don't surface a banned uploader's content to a searching peer.
-        or(isNull(schema.users.id), eq(schema.users.isBanned, false))!,
+        eq(schema.catalogRecords.kind, 'torrent'),
+        isNull(schema.catalogRecords.supersededAt),
         or(
           ilike(schema.torrents.name, esc),
-          eq(schema.torrents.infoHash, search.toLowerCase()),
+          eq(schema.catalogRecords.infoHash, search.toLowerCase()),
         ),
       ),
     )
-    .orderBy(desc(schema.torrents.createdAt))
+    .orderBy(desc(schema.catalogRecords.seq))
     .limit(limit);
 
-  const ids = rows.map((r) => r.id);
-  const tagRows = ids.length
-    ? await db
-        .select({
-          torrentId: schema.torrentTags.torrentId,
-          name: schema.tags.name,
-        })
-        .from(schema.torrentTags)
-        .innerJoin(schema.tags, eq(schema.torrentTags.tagId, schema.tags.id))
-        .where(inArray(schema.torrentTags.torrentId, ids))
-    : [];
-  const tagsByTorrent = new Map<string, string[]>();
-  for (const t of tagRows) {
-    const list = tagsByTorrent.get(t.torrentId) ?? [];
-    list.push(t.name);
-    tagsByTorrent.set(t.torrentId, list);
-  }
-
-  const base = (config.publicUrl || '').replace(/\/$/, '');
-  const items = rows.map((r) => ({
-    remoteId: r.id,
-    infoHash: r.infoHash,
-    contentSignature: r.contentSignature,
-    name: r.name,
-    size: r.size,
-    description: r.description,
-    categorySlug: r.categorySlug,
-    categoryType: r.categoryType,
-    isAdult: !!r.isAdult,
-    tags: tagsByTorrent.get(r.id) ?? [],
-    imdbId: r.imdbId,
-    tmdbId: r.tmdbId,
-    tvdbId: r.tvdbId,
-    igdbId: r.igdbId,
-    openlibraryId: r.openlibraryId,
-    season: r.season,
-    episode: r.episode,
-    seeders: r.seeders ?? 0,
-    leechers: r.leechers ?? 0,
-    completed: r.completed ?? 0,
-    uploaderName: r.uploaderName,
-    createdAt: r.createdAt,
-    detailUrl: base ? `${base}/torrents/${r.infoHash}` : null,
-    downloadUrl: base ? `${base}/torrents/${r.infoHash}` : null,
-  }));
-
-  return { ok: true, items, count: items.length };
+  // Verbatim, like the record feed: a record rebuilt from parts is a second
+  // implementation of the format, and it eventually disagrees with the proof.
+  const records = rows.map((r) => r.body);
+  return { ok: true, records, count: records.length };
 });

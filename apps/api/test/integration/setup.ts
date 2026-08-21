@@ -18,8 +18,8 @@ beforeEach(async () => {
   //
   // The federation tables are named explicitly: `peers` is the root of the
   // mirror (remote_torrents, sync_state and follows hang off it), while
-  // `federation_config` and the tombstones reference nothing and would
-  // therefore survive a CASCADE from `users`.
+  // `federation_config` references nothing and would therefore survive a
+  // CASCADE from `users`.
   //
   // `catalog_records` is named for a subtler reason: its `torrent_id` is
   // deliberately NOT a foreign key, because a published record has to outlive
@@ -32,7 +32,7 @@ beforeEach(async () => {
           reports, torrents, tags, categories, settings,
           freeleech_pool_cycles, freeleech_pool_contributions,
           bonus_grants, bonus_rules,
-          federation_config, federation_peers, federation_catalog_removals,
+          federation_config, federation_peers,
           catalog_records,
           users
         RESTART IDENTITY CASCADE`,

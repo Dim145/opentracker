@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { randomUUID, generateKeyPairSync } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import type { FederationPeer } from '@trackarr/db/schema';
+import { makeUser } from './helpers';
 import { didKeyFromPublicKey } from '../../utils/federation/did';
 import { CONTEXT, signRecord } from '../../utils/federation/record';
 
@@ -229,6 +230,7 @@ describe('a proof is not a validation', () => {
       {
         records: [
           record({
+            name: 'Unreadable.Upload',
             'trackarr:size': -5,
             'trackarr:season': 99_999,
             'trackarr:episode': 1.5,
@@ -377,5 +379,296 @@ describe('the sync loop', () => {
 
     expect(await mirrored(a.id)).toHaveLength(1);
     expect(await mirrored(b.id)).toHaveLength(1);
+  });
+});
+
+describe('where a release belongs', () => {
+  // The grouped catalogue stands on season and episode: a release with no
+  // position does not merely lose a label, it falls out of its group.
+
+  it('takes the position the record carries', async () => {
+    const peer = await makePeer();
+    partner.pages = [{ records: [record()], nextCursor: 1 }];
+
+    await syncPeerRecords(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.season).toBe(2);
+    expect(row!.episode).toBe(3);
+  });
+
+  it('re-derives it from the name when the record carries none', async () => {
+    // The issuer may simply never have parsed. Re-parsing costs a handful of
+    // regexes over a string we are storing anyway, and it is the same parser
+    // the local catalogue uses — so a release looks the same whichever side
+    // of the federation it came from.
+    const peer = await makePeer();
+    partner.pages = [
+      {
+        records: [
+          record({
+            name: 'Another.Show.S04E11.2160p.WEB-DL',
+            'trackarr:season': null,
+            'trackarr:episode': null,
+          }),
+        ],
+        nextCursor: 1,
+      },
+    ];
+
+    await syncPeerRecords(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.season).toBe(4);
+    expect(row!.episode).toBe(11);
+  });
+
+  it('reads a season pack as a season with no episode', async () => {
+    const peer = await makePeer();
+    partner.pages = [
+      {
+        records: [
+          record({
+            name: 'Another.Show.S04.COMPLETE.1080p.WEB-DL',
+            'trackarr:season': null,
+            'trackarr:episode': null,
+          }),
+        ],
+        nextCursor: 1,
+      },
+    ];
+
+    await syncPeerRecords(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.season).toBe(4);
+    expect(row!.episode).toBeNull();
+  });
+
+  it('leaves a film with no position', async () => {
+    const peer = await makePeer();
+    partner.pages = [
+      {
+        records: [
+          record({
+            name: 'Some.Film.2024.1080p.BluRay',
+            'trackarr:season': null,
+            'trackarr:episode': null,
+          }),
+        ],
+        nextCursor: 1,
+      },
+    ];
+
+    await syncPeerRecords(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.season).toBeNull();
+    expect(row!.episode).toBeNull();
+  });
+
+  it('keeps a position the issuer corrected by hand', async () => {
+    // The issuer saw the upload form: a human may have fixed what the parser
+    // guessed, and that correction is the better answer. The fallback must
+    // not overrule it.
+    const peer = await makePeer();
+    partner.pages = [
+      {
+        records: [
+          record({
+            name: 'Show.S09E09.1080p-NTb',
+            'trackarr:season': 1,
+            'trackarr:episode': 2,
+          }),
+        ],
+        nextCursor: 1,
+      },
+    ];
+
+    await syncPeerRecords(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.season).toBe(1);
+    expect(row!.episode).toBe(2);
+  });
+});
+
+describe('containing a hostile issuer', () => {
+  // Signatures move the threat, they do not remove it. Anyone can mint a
+  // keypair, so "a valid record" is a statement about authorship and not about
+  // restraint: an issuer may sign a name the length of a novel, or a million
+  // records. These are the bounds that hold regardless of the proof.
+
+  it('truncates oversized fields instead of rejecting them', async () => {
+    const peer = await makePeer();
+    partner.pages = [
+      {
+        records: [
+          record({
+            name: 'N'.repeat(5_000),
+            content: 'D'.repeat(80_000),
+            'trackarr:tags': Array.from({ length: 400 }, (_, i) => `tag-${i}`),
+          }),
+        ],
+        nextCursor: 1,
+      },
+    ];
+
+    await syncPeerRecords(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.name.length).toBe(1_000);
+    expect(row!.description!.length).toBe(20_000);
+    expect(row!.tags).toHaveLength(50);
+  });
+
+  it('clamps absurd counters to what the column can hold', async () => {
+    const peer = await makePeer();
+    partner.pages = [
+      { records: [record({ 'trackarr:size': 1e30 })], nextCursor: 1 },
+    ];
+
+    await syncPeerRecords(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(Number(row!.size)).toBeLessThanOrEqual(Number.MAX_SAFE_INTEGER);
+  });
+
+  it('refuses to go past the per-partner row cap', async () => {
+    // Last-resort guard: past 100 000 mirrored rows we stop pulling from this
+    // partner. A proof does not entitle anybody to unbounded disk — minting a
+    // million valid records is no harder than minting one.
+    const peer = await makePeer();
+    await db.execute(sql`
+      INSERT INTO remote_torrents (id, peer_id, remote_id, info_hash, name, size)
+      SELECT gen_random_uuid()::text, ${peer.id}, 'bulk-' || g, lpad(g::text, 40, '0'),
+             'Bulk ' || g, 0
+      FROM generate_series(1, 100000) g
+    `);
+    partner.pages = [{ records: [record()], nextCursor: 1 }];
+
+    const out = await syncPeerRecords(peer);
+
+    expect(out.ingested).toBe(0);
+    expect(partner.calls).toHaveLength(0); // we do not even call the partner
+    const [state] = await db
+      .select()
+      .from(schema.federationSyncState)
+      .where(eq(schema.federationSyncState.peerId, peer.id));
+    expect(state!.lastError).toMatch(/row cap/i);
+  });
+});
+
+describe('telling followers about a partner they follow', () => {
+  async function follow(userId: string, peerId: string, uploader: string) {
+    await db.insert(schema.federatedFollows).values({
+      id: randomUUID(),
+      localUserId: userId,
+      peerId,
+      remoteUsername: uploader,
+    });
+  }
+
+  async function notices(userId: string) {
+    return db
+      .select()
+      .from(schema.notifications)
+      .where(eq(schema.notifications.userId, userId));
+  }
+
+  it('stays silent on the very first run', async () => {
+    // The first run pulls the partner's entire catalogue. Notifying on it
+    // would fire thousands of alerts at once for releases that are not new.
+    const peer = await makePeer();
+    const user = await makeUser();
+    await follow(user, peer.id, 'RemoteUp');
+    partner.pages = [
+      { records: Array.from({ length: 5 }, () => record()), nextCursor: 1 },
+    ];
+
+    await syncPeerRecords(peer);
+
+    expect(await notices(user)).toHaveLength(0);
+  });
+
+  it('tells the follower from the next run onwards', async () => {
+    const peer = await makePeer();
+    const user = await makeUser();
+    await follow(user, peer.id, 'RemoteUp');
+    partner.pages = [{ records: [record()], nextCursor: 1 }];
+    await syncPeerRecords(peer);
+
+    partner.pages = [{ records: [record()], nextCursor: 2 }];
+    await syncPeerRecords(peer);
+
+    const received = await notices(user);
+    expect(received).toHaveLength(1);
+    expect(received[0]!.type).toBe('federated_followed_upload');
+    expect((received[0]!.payload as Record<string, unknown>).uploaderName).toBe(
+      'RemoteUp',
+    );
+  });
+
+  it('does not ring twice for a record it already had', async () => {
+    // The distinction rests on `xmax = 0`: only a real INSERT counts as new.
+    // A partner re-serving its stream must not re-notify anybody.
+    const peer = await makePeer();
+    const user = await makeUser();
+    await follow(user, peer.id, 'RemoteUp');
+    const same = record();
+    partner.pages = [{ records: [same], nextCursor: 1 }];
+    await syncPeerRecords(peer);
+    partner.pages = [{ records: [same], nextCursor: 2 }];
+    await syncPeerRecords(peer);
+    partner.pages = [{ records: [same], nextCursor: 3 }];
+    await syncPeerRecords(peer);
+
+    expect(await notices(user)).toHaveLength(0);
+  });
+
+  it('does not tell a follower about a different uploader', async () => {
+    const peer = await makePeer();
+    const user = await makeUser();
+    await follow(user, peer.id, 'SomebodyElse');
+    partner.pages = [{ records: [record()], nextCursor: 1 }];
+    await syncPeerRecords(peer);
+    partner.pages = [{ records: [record()], nextCursor: 2 }];
+    await syncPeerRecords(peer);
+
+    expect(await notices(user)).toHaveLength(0);
+  });
+
+  it('caps the burst a partner can trigger', async () => {
+    // A partner minting 60 valid records from a followed uploader must not be
+    // able to trigger 60 notifications — and as many emails. The records are
+    // genuine; the flood is the problem.
+    const peer = await makePeer();
+    const user = await makeUser();
+    await follow(user, peer.id, 'RemoteUp');
+    partner.pages = [{ records: [record()], nextCursor: 1 }];
+    await syncPeerRecords(peer);
+
+    partner.pages = [
+      { records: Array.from({ length: 60 }, () => record()), nextCursor: 2 },
+    ];
+    await syncPeerRecords(peer);
+
+    expect(await notices(user)).toHaveLength(25);
+  });
+});
+
+describe('the switch', () => {
+  it('pulls nothing while federation is off', async () => {
+    const peer = await makePeer();
+    await db
+      .update(schema.federationConfig)
+      .set({ enabled: false })
+      .where(eq(schema.federationConfig.id, 'singleton'));
+    partner.pages = [{ records: [record()], nextCursor: 1 }];
+
+    await syncPeerRecords(peer);
+
+    expect(partner.calls).toHaveLength(0);
+    expect(await mirrored(peer.id)).toHaveLength(0);
   });
 });
