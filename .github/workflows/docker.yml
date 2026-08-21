@@ -75,6 +75,9 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.VERSION }}
+          # Build-only checkout: no push, so the token has no business
+          # surviving in .git/config for the rest of the job.
+          persist-credentials: false
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
@@ -127,6 +130,9 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.VERSION }}
+          # Build-only checkout: no push, so the token has no business
+          # surviving in .git/config for the rest of the job.
+          persist-credentials: false
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
@@ -179,6 +185,9 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.VERSION }}
+          # Build-only checkout: no push, so the token has no business
+          # surviving in .git/config for the rest of the job.
+          persist-credentials: false
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
@@ -230,6 +239,9 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.VERSION }}
+          # Build-only checkout: no push, so the token has no business
+          # surviving in .git/config for the rest of the job.
+          persist-credentials: false
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
@@ -285,6 +297,9 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           ref: ${{ env.VERSION }}
+          # Build-only checkout: no push, so the token has no business
+          # surviving in .git/config for the rest of the job.
+          persist-credentials: false
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2

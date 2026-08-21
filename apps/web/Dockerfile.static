@@ -65,6 +65,12 @@ COPY apps/web/docker/static/nginx.conf /etc/nginx/nginx.conf
 # including the rendered index.html and the hashed _nuxt/ chunks.
 COPY --from=builder --chown=nginx:nginx /app/apps/web/.output/public/ /usr/share/nginx/html/
 
+# Restate the image's own default (uid 65532, user `nginx`) instead of
+# leaving it implicit. Runtime behaviour is unchanged — it makes the
+# non-root guarantee readable in the Dockerfile and checkable by a
+# scanner that only sees the build recipe.
+USER 65532
+
 EXPOSE 3000
 STOPSIGNAL SIGQUIT
 

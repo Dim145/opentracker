@@ -52,11 +52,16 @@ async function getTransporter(server: SmtpServer) {
   });
 }
 
+// `"` and `'` matter as much as the angle brackets here: the result is
+// interpolated into `href="…"` below, and an unescaped quote would end
+// the attribute early and let the rest be read as markup.
 function escapeHtml(s: string): string {
   return s
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;');
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function buildHtml(payload: NotificationPayload): string {
