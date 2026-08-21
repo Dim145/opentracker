@@ -15,15 +15,22 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# Nothing beyond reading the repository is granted workflow-wide: the Pages
+# write scope and the OIDC token live on the single job that needs each of
+# them. A workflow-level `id-token: write` let the build job — the one that
+# runs `npm ci` on third-party code — mint provenance tokens it has no use
+# for.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # `configure-pages` reads the Pages configuration through the API.
+    # No `id-token` here: the build produces an artifact, it never deploys.
+    permissions:
+      contents: read
+      pages: write
     defaults:
       run:
         working-directory: ./doc
@@ -33,6 +40,9 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+          # Nothing here pushes; leaving the token in .git/config only
+          # widens what a compromised build step could exfiltrate.
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -58,6 +68,11 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # `deploy-pages` publishes the artifact and attests its origin, which
+    # is what actually needs the Pages scope and the OIDC token.
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

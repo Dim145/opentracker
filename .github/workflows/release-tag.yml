@@ -8,14 +8,22 @@ on:
         types: [closed]
         branches: [main]
 
+# Read-only by default. `create-tag` raises itself to `contents: write`
+# because it pushes a tag, cuts a Release and deletes the release branch;
+# `publish-images` declares its own scopes further down. Granting the write
+# workflow-wide handed it to every job, present and future.
 permissions:
-    contents: write
+    contents: read
 
 jobs:
     create-tag:
         # Only run if PR was merged (not just closed) and branch starts with release/
         if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
         runs-on: ubuntu-latest
+
+        # Pushes the tag, creates the Release, deletes the release branch.
+        permissions:
+            contents: write
 
         outputs:
             version: ${{ steps.version.outputs.version }}

@@ -64,6 +64,12 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf
 # The static bundle. nginx defaults to /usr/share/nginx/html.
 COPY --from=builder --chown=nginx:nginx /app/.vitepress/dist/ /usr/share/nginx/html/
 
+# Restate the image's own default (uid 65532, user `nginx`) instead of
+# leaving it implicit. Runtime behaviour is unchanged — it makes the
+# non-root guarantee readable in the Dockerfile and checkable by a
+# scanner that only sees the build recipe.
+USER 65532
+
 # Document the listening port. Caddy / k8s service / docker-compose
 # all map to whatever they want; the container itself listens here.
 EXPOSE 8080

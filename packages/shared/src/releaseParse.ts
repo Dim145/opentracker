@@ -349,12 +349,15 @@ export function parseReleaseName(
   const titleSlice = stopMatch
     ? titleSource.slice(0, stopMatch.index ?? titleSource.length)
     : titleSource;
-  let title = tokenise(titleSlice)
-    // Drop any trailing bracketed fragment left by the slice
-    // ("(2024" or "[NTb"). It would otherwise show up as stray
-    // opening punctuation.
-    .replace(/[\[\(].*$/, '')
-    .trim();
+  let title = tokenise(titleSlice);
+  // Drop any trailing bracketed fragment left by the slice
+  // ("(2024" or "[NTb"). It would otherwise show up as stray
+  // opening punctuation. Done with an index scan rather than
+  // `/[[(].*$/`: that regex retries `.*$` from every opening bracket,
+  // so a title made of many `(` costs quadratic time (ReDoS).
+  const bracketAt = title.search(/[[(]/);
+  if (bracketAt !== -1) title = title.slice(0, bracketAt);
+  title = title.trim();
 
   // 4) Year — always 19xx / 20xx that isn't part of a longer run.
   //    For books, the year is also a useful disambiguator for
