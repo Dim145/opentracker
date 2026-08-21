@@ -4159,6 +4159,11 @@
       "action": "Prove it",
       "notJson": "That does not look like an identity file.",
       "proven": "Proven: you are {name} on {peer}."
+    },
+    "elsewhere": {
+      "title": "Your work elsewhere",
+      "intro": "{n} release(s) on other instances are attributed to you. They stay yours whether or not those instances are still running.",
+      "truncated": "Only the most recent are shown."
     }
   },
   "fiche": {

@@ -132,6 +132,52 @@
         </div>
       </div>
     </section>
+
+    <!-- Your work, wherever it is.
+
+         The reason the rest of this page exists. A proven link that changes
+         nothing visible is a checkbox; this is what it was for. It appears
+         only when there is something to show, because an empty section here
+         reads as a feature that does not work rather than as an account with
+         nothing elsewhere. -->
+    <section v-if="elsewhere.length" class="fid-list-section">
+      <div class="section-head">
+        <span class="section-tag">
+          <Icon name="ph:stack-bold" />
+          {{ $t('federatedIdentity.elsewhere.title') }}
+        </span>
+        <span class="section-rule" />
+      </div>
+
+      <p class="note fid-elsewhere-note">
+        {{ $t('federatedIdentity.elsewhere.intro', { n: elsewhere.length }) }}
+      </p>
+
+      <ul class="fid-works">
+        <li v-for="w in elsewhere" :key="w.recordId ?? w.infoHash" class="fid-work">
+          <component
+            :is="w.detailUrl ? 'a' : 'span'"
+            v-bind="
+              w.detailUrl
+                ? { href: w.detailUrl, target: '_blank', rel: 'noopener noreferrer' }
+                : {}
+            "
+            class="fid-work-name"
+            :title="w.name"
+            >{{ w.name }}</component
+          >
+          <span class="fid-work-peer">{{ w.peerName }}</span>
+          <span class="fid-work-size">{{ formatSize(w.size) }}</span>
+          <span class="fid-work-seed" :class="{ dead: !w.seeders }">
+            <Icon name="ph:arrow-up-bold" />{{ w.seeders }}
+          </span>
+        </li>
+      </ul>
+
+      <p v-if="elsewhereTruncated" class="note">
+        {{ $t('federatedIdentity.elsewhere.truncated') }}
+      </p>
+    </section>
   </div>
 </template>
 
@@ -172,6 +218,32 @@ const partners = computed(() =>
   (partnersData.value?.partners ?? []).filter((p) => p.accountsEnabled),
 );
 const identities = computed(() => idData.value?.identities ?? []);
+
+/**
+ * The member's work across every identifier they answer to.
+ *
+ * Fetched alongside the links rather than per link: one person's catalogue is
+ * one list, and splitting it per partner would put the emphasis back on where
+ * a release happens to live — which is the thing this whole feature exists to
+ * stop mattering.
+ */
+interface RemoteWork {
+  recordId: string | null;
+  name: string;
+  size: number;
+  infoHash: string;
+  seeders: number;
+  detailUrl: string | null;
+  peerName: string | null;
+}
+const { data: elsewhereData, refresh: refreshElsewhere } = await useFetch<{
+  uploads: RemoteWork[];
+  truncated?: boolean;
+}>('/api/me/federated-uploads', { default: () => ({ uploads: [] }) });
+const elsewhere = computed(() => elsewhereData.value?.uploads ?? []);
+const elsewhereTruncated = computed(
+  () => elsewhereData.value?.truncated === true,
+);
 
 const selPeer = ref('');
 const remoteUser = ref('');
@@ -217,7 +289,7 @@ async function submitClaim() {
       { method: 'POST', body: { document: doc } },
     );
     claimText.value = '';
-    await refresh();
+    await Promise.all([refresh(), refreshElsewhere()]);
     showFlash(
       t('federatedIdentity.claim.proven', {
         name: res.remoteUsername,
@@ -304,6 +376,72 @@ function fmtDate(d: string | null) {
 </script>
 
 <style scoped>
+.fid-elsewhere-note {
+  margin-bottom: 0.6rem;
+}
+.fid-works {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+.fid-work {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.75rem;
+  border-bottom: 1px solid rgb(var(--line-default) / 0.5);
+}
+.fid-work:last-child {
+  border-bottom: 0;
+}
+.fid-work-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgb(var(--fg-default));
+  text-decoration: none;
+}
+a.fid-work-name:hover {
+  color: rgb(var(--accent));
+  text-decoration: underline;
+}
+/* Where it lives, said quietly: the point of the list is that it is one body
+   of work, not four lists that happen to be adjacent. */
+.fid-work-peer {
+  font-size: 0.625rem;
+  color: rgb(125 211 252);
+  white-space: nowrap;
+}
+.fid-work-size,
+.fid-work-seed {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  color: rgb(var(--fg-muted));
+  white-space: nowrap;
+}
+.fid-work-seed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: rgb(var(--success));
+}
+.fid-work-seed.dead {
+  color: rgb(var(--fg-faint));
+}
+@media (max-width: 640px) {
+  .fid-work {
+    grid-template-columns: 1fr auto;
+    row-gap: 0.2rem;
+  }
+}
+
 .fid-claim-input {
   width: 100%;
   font-family: var(--font-mono, ui-monospace, monospace);

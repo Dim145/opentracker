@@ -4159,6 +4159,11 @@
       "action": "Le prouver",
       "notJson": "Cela ne ressemble pas à un fichier d'identité.",
       "proven": "Prouvé : vous êtes {name} sur {peer}."
+    },
+    "elsewhere": {
+      "title": "Votre travail ailleurs",
+      "intro": "{n} release(s) sur d'autres instances vous sont attribuées. Elles restent les vôtres, que ces instances tournent encore ou non.",
+      "truncated": "Seules les plus récentes sont affichées."
     }
   },
   "fiche": {
