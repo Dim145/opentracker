@@ -101,6 +101,10 @@ What crosses the wire is metadata only: name, size, category, tags, media
 IDs, stats, and the uploader's **display name** — never the `.torrent`
 bytes nor a real user id.
 
+![The federated catalogue at `/federated` — each release carries the partner it
+came from, the remote uploader's display name, and that instance's swarm
+counts; **Open** hands you off to the origin tracker](/screenshots/federated-catalogue.png)
+
 ### Axis 2 — Social
 
 A light fediverse layer, pull-based and read-only.
