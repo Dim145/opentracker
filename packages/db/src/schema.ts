@@ -5,6 +5,7 @@ import {
   integer,
   smallint,
   bigint,
+  bigserial,
   boolean,
   jsonb,
   index,
@@ -1018,6 +1019,94 @@ export const torrentModerationMessages = pgTable(
     index('torrent_mod_messages_author_idx').on(table.authorId),
   ]
 );
+
+// ============================================================================
+// Catalogue Records (signed, content-addressed, immutable)
+// ============================================================================
+/**
+ * The federated catalogue as a set of signed artefacts rather than a query
+ * over `torrents`.
+ *
+ * Trust used to come from the CHANNEL — an Ed25519 signature over the HTTP
+ * request — which is enough to know who you are talking to and nothing more.
+ * It cannot answer "did C really say this?" about something B handed you, so
+ * every instance had to fetch from every other instance itself. Signing the
+ * RECORD moves trust into the data: it verifies in anybody's hands, having
+ * arrived by any route, which is what makes relaying, caching and gossip
+ * possible at all.
+ *
+ * **A record is immutable.** Editing a torrent mints a NEW record that
+ * supersedes the old one; hiding or deleting it mints a `tombstone`. That is
+ * why the body is stored rather than re-projected on read: re-projecting a
+ * record after its torrent changed would produce a different one, and the
+ * signature would no longer match the id anybody cached it under.
+ *
+ * Cost, stated plainly: the body duplicates the description, so a catalogue of
+ * long descriptions pays for them twice. That is the price of immutability and
+ * it is the right trade — a record nobody can re-derive is a record nobody can
+ * verify.
+ */
+export const catalogRecords = pgTable(
+  'catalog_records',
+  {
+    /** Content address — `sha256:<hex>` over the canonical body. */
+    id: text('id').primaryKey(),
+    /**
+     * Monotonic publication order, for a partner to page through.
+     *
+     * A sequence is not a safe cursor on its own: two concurrent inserts can
+     * commit out of order, so a reader paging strictly past the highest seq it
+     * saw can skip one. It is used for ORDERING here; the feed that reads it
+     * has to overlap, and set reconciliation replaces it outright later.
+     */
+    seq: bigserial('seq', { mode: 'number' }).notNull(),
+    /**
+     * The torrent this record describes. Deliberately NOT a foreign key.
+     *
+     * A record is a published artefact and has to outlive its subject: that is
+     * the whole point of a tombstone. An `ON DELETE SET NULL` would sever the
+     * link at exactly the moment it is needed, leaving nothing to say WHICH
+     * release was withdrawn, and no way for the sweep to notice the deletion
+     * at all. A dangling id here is not a broken reference — it is the record
+     * doing its job.
+     */
+    torrentId: text('torrent_id'),
+    infoHash: text('info_hash').notNull(),
+    /** `did:key:…` of the instance that signed it. */
+    issuer: text('issuer').notNull(),
+    /** `torrent` | `tombstone` */
+    kind: text('kind').notNull().default('torrent'),
+    /** The signed object, exactly as it goes on the wire. */
+    body: jsonb('body').$type<Record<string, unknown>>().notNull(),
+    /**
+     * Hash of the projection WITHOUT its lineage — what the torrent says,
+     * ignoring what it replaces.
+     *
+     * The id cannot serve as the idempotency key: it covers `replaces`, which
+     * differs for every generation, so an unchanged torrent would look changed
+     * on every sweep and re-mint forever. Splitting the two also keeps the
+     * rename-and-rename-back case honest — same content, different lineage,
+     * different address, no collision.
+     */
+    contentHash: text('content_hash').notNull(),
+    /** The record this one replaces, when it is an edit. */
+    supersedes: text('supersedes'),
+    /** Set when a newer record for the same torrent was minted. */
+    supersededAt: timestamp('superseded_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('catalog_records_seq_idx').on(table.seq),
+    index('catalog_records_info_hash_idx').on(table.infoHash),
+    // The current record for a torrent — the only one the minting sweep needs
+    // to compare against, and the only one a fresh reader wants.
+    index('catalog_records_current_idx')
+      .on(table.torrentId)
+      .where(sql`superseded_at IS NULL`),
+  ]
+);
+
+export type CatalogRecord = typeof catalogRecords.$inferSelect;
 
 // ============================================================================
 // Torrent Stats (Aggregated, updated periodically from Redis)
