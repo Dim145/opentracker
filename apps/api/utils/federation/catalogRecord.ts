@@ -27,6 +27,7 @@
  */
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
+import { ensureUserDids } from './userIdentity';
 import {
   CONTEXT,
   recordId,
@@ -77,6 +78,12 @@ export interface TorrentProjection {
   season: number | null;
   episode: number | null;
   uploaderName: string | null;
+  /**
+   * `did:key:…` of the uploader. A name nobody else can mint, and one that
+   * still means something after the record has been relayed past the instance
+   * that holds the account. Null only for a torrent with no uploader on file.
+   */
+  authorDid: string | null;
   /** `coalesce(moderated_at, created_at)` — when it went live here. */
   liveAt: Date;
   tags: string[];
@@ -123,9 +130,17 @@ export function projectTorrent(
     name: t.name,
     content: t.description ? t.description.slice(0, MAX_DESCRIPTION) : null,
     published: t.liveAt.toISOString(),
-    // Filled once uploaders have DIDs of their own. A display name is not an
-    // actor and does not belong in an AS2 field that means one.
-    attributedTo: null,
+    // The uploader, as an actor rather than as a caption. A display name is
+    // not an identity: two instances can both have a `Nova`, a member can
+    // rename themselves, and by the second relay hop nobody in the
+    // conversation can resolve the name anyway.
+    //
+    // Worth being precise about what this claims. The key is held by this
+    // instance, so the DID is a stable NAME and not evidence of who did
+    // anything — see `userIdentity.ts`. It is exactly as trustworthy as the
+    // instance signing the record, which is to say: as trustworthy as the
+    // rest of the record.
+    attributedTo: t.authorDid,
 
     'trackarr:size': t.size,
     'trackarr:contentSignature': t.contentSignature,
@@ -191,6 +206,7 @@ export async function loadProjections(
       season: schema.torrents.season,
       episode: schema.torrents.episode,
       uploaderName: schema.users.username,
+      uploaderId: schema.torrents.uploaderId,
       liveAt: sql<Date>`coalesce(${schema.torrents.moderatedAt}, ${schema.torrents.createdAt})`,
     })
     .from(schema.torrents)
@@ -217,9 +233,14 @@ export async function loadProjections(
     tagsBy.set(t.torrentId, list);
   }
 
-  return rows.map((r) => ({
+  // One batch for the whole sweep, minting only the keys that do not exist
+  // yet. An uploader costs a keypair once and never again.
+  const dids = await ensureUserDids(rows.map((r) => r.uploaderId));
+
+  return rows.map(({ uploaderId, ...r }) => ({
     ...r,
     isAdult: !!r.isAdult,
+    authorDid: uploaderId ? (dids.get(uploaderId) ?? null) : null,
     liveAt: new Date(r.liveAt as unknown as string),
     tags: tagsBy.get(r.id) ?? [],
   }));

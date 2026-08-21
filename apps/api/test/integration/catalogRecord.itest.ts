@@ -389,3 +389,94 @@ describe('the set a partner reconciles against', () => {
     }
   });
 });
+
+describe('the uploader gets a name of their own', () => {
+  // A display name is a caption, not an identity: two instances can both have
+  // a `Nova`, a member can rename themselves, and by the second relay hop
+  // nobody left in the conversation can resolve the name. A `did:key` is a
+  // name nobody else can mint and that still means something once the
+  // instance holding the account is gone.
+
+  async function makeUploader(username: string): Promise<string> {
+    const id = randomUUID();
+    await db.insert(schema.users).values({
+      id,
+      username,
+      authSalt: 'salt',
+      authVerifier: 'verifier',
+      passkey: randomUUID().replace(/-/g, ''),
+    });
+    return id;
+  }
+
+  it('mints one on first publication and puts it on the record', async () => {
+    const uploader = await makeUploader('Nova');
+    const id = await makeTorrent({ uploaderId: uploader });
+    await mintRecords([id], ctx);
+
+    const rec = await currentRecord(id);
+    const did = (rec!.body as Record<string, unknown>).attributedTo;
+    expect(String(did)).toMatch(/^did:key:z6Mk/);
+
+    const [key] = await db
+      .select()
+      .from(schema.userSigningKeys)
+      .where(eq(schema.userSigningKeys.userId, uploader));
+    expect(key!.did).toBe(did);
+  });
+
+  it('gives one uploader one name across everything they publish', async () => {
+    const uploader = await makeUploader('Nova');
+    const a = await makeTorrent({ uploaderId: uploader });
+    const b = await makeTorrent({ uploaderId: uploader });
+    await mintRecords([a, b], ctx);
+
+    const [ra, rb] = [await currentRecord(a), await currentRecord(b)];
+    expect((ra!.body as Record<string, unknown>).attributedTo).toBe(
+      (rb!.body as Record<string, unknown>).attributedTo,
+    );
+  });
+
+  it('gives two uploaders different names', async () => {
+    const one = await makeTorrent({ uploaderId: await makeUploader('Nova') });
+    const two = await makeTorrent({ uploaderId: await makeUploader('Vega') });
+    await mintRecords([one, two], ctx);
+
+    expect((await currentRecord(one))!.body.attributedTo).not.toBe(
+      (await currentRecord(two))!.body.attributedTo,
+    );
+  });
+
+  it('does not re-mint a record just because it now carries a DID', async () => {
+    // The DID is inside the hashed body, so a key that were regenerated — or
+    // simply read back differently — would change the record's id on every
+    // sweep and re-publish the whole catalogue, forever. This is the property
+    // that whole file exists to protect, applied to the new field.
+    const uploader = await makeUploader('Nova');
+    const id = await makeTorrent({ uploaderId: uploader });
+    await mintRecords([id], ctx);
+    const first = await currentRecord(id);
+
+    expect(await mintRecords([id], ctx)).toMatchObject({ minted: 0 });
+    expect(await mintRecords([id], ctx)).toMatchObject({ minted: 0 });
+    expect((await currentRecord(id))!.id).toBe(first!.id);
+  });
+
+  it('leaves a torrent with no uploader unattributed rather than inventing one', async () => {
+    const id = await makeTorrent({ uploaderId: null });
+    await mintRecords([id], ctx);
+
+    expect((await currentRecord(id))!.body.attributedTo).toBeNull();
+    expect(await db.select().from(schema.userSigningKeys)).toHaveLength(0);
+  });
+
+  it('creates no key material for a member who has published nothing', async () => {
+    // Key material you did not need is key material you have to protect
+    // anyway. Nothing is generated until a member's work is actually
+    // published — the same rule the instance identity follows.
+    await makeUploader('Lurker');
+    await mintRecords([], ctx);
+
+    expect(await db.select().from(schema.userSigningKeys)).toHaveLength(0);
+  });
+});

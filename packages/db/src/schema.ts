@@ -2403,6 +2403,21 @@ export const remoteTorrents = pgTable(
     /** `did:key:…` of whoever SIGNED it, which need not be who relayed it. */
     issuer: text('issuer'),
     /**
+     * `did:key:…` of whoever UPLOADED it, which need not be who signed it.
+     *
+     * The two differ, and the difference is the point of having both: the
+     * issuer is the instance vouching for the record, the author is the person
+     * the instance says wrote it. Keeping the author as a DID rather than as a
+     * display name is what lets "everything this person published" mean
+     * something across partners — and keep meaning it once the instance that
+     * knows their account is out of the picture.
+     *
+     * As trustworthy as the issuer, and no more: the author's key is held by
+     * their own instance, so this is that instance's word. Null on a record
+     * minted before uploaders had DIDs.
+     */
+    authorDid: text('author_did'),
+    /**
      * Whether the proof was checked and held.
      *
      * A column rather than an assumption: it is the difference between "a peer
@@ -2434,6 +2449,8 @@ export const remoteTorrents = pgTable(
     index('remote_torrents_igdb_idx').on(table.igdbId),
     index('remote_torrents_openlibrary_idx').on(table.openlibraryId),
     index('remote_torrents_record_idx').on(table.recordId),
+    /** Everything one remote uploader published, across partners. */
+    index('remote_torrents_author_idx').on(table.authorDid),
     index('remote_torrents_name_idx').on(table.name),
   ]
 );
@@ -2512,6 +2529,39 @@ export type FederatedFollow = typeof federatedFollows.$inferSelect;
 // placing a one-time code in their remote profile bio; we verify it over
 // signed S2S. Once `verified`, the partner's reputation (ratio, age, uploads)
 // can be shown read-only next to the link — never merged into local economy.
+
+/**
+ * An Ed25519 key per uploader, held by this instance.
+ *
+ * What it is for: attribution that survives the instance. A record says who
+ * uploaded it, and until now it said so with a display name — which means
+ * nothing once the record has been relayed twice and the instance that minted
+ * it is gone. A `did:key` is a name nobody else can mint and that stays the
+ * same wherever the record travels.
+ *
+ * What it is NOT, and this matters: proof. The private key is held here, so
+ * anything signed with it says exactly as much as this instance already
+ * asserts — a signature made with a key the server holds proves only what the
+ * server was already claiming. The DID is a stable NAME at this stage. It
+ * becomes a proof when the member holds the key themselves, which is a later
+ * step and a different threat model.
+ *
+ * That is also why the key is exportable but never re-imported: a key this
+ * server has seen cannot become a member's private property afterwards.
+ */
+export const userSigningKeys = pgTable('user_signing_keys', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** `did:key:z6Mk…` — the multicodec-tagged public key, self-describing. */
+  did: text('did').notNull().unique(),
+  publicKey: text('public_key').notNull(),
+  /** Encrypted at rest with the instance credential key. */
+  privateKeyEnc: text('private_key_enc').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type UserSigningKey = typeof userSigningKeys.$inferSelect;
 
 export const federatedIdentities = pgTable(
   'federated_identities',

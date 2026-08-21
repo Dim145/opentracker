@@ -714,3 +714,49 @@ describe('the switch', () => {
     expect(await mirrored(peer.id)).toHaveLength(0);
   });
 });
+
+describe('who wrote it, once it has travelled', () => {
+  it('keeps the author as a name, not as a caption', async () => {
+    // The display name arrives too, and stays a display name. What makes
+    // "everything this person published" answerable across partners is the
+    // DID, because it is the same string on every instance holding the record.
+    const peer = await makePeer();
+    const author = 'did:key:z6MkAuthorOfTheseThings';
+    serve(record({ attributedTo: author }));
+
+    await syncPeerRecords(peer);
+
+    const [row] = await mirrored(peer.id);
+    expect(row!.authorDid).toBe(author);
+    expect(row!.uploaderName).toBe('RemoteUp');
+    // The signer and the author are different facts about the same record.
+    expect(row!.issuer).not.toBe(author);
+  });
+
+  it('recognises one remote author across two partners', async () => {
+    // The reason the author is a DID and not a name. Two partners mirroring
+    // the same person's work must agree on who that person is without either
+    // of them having to ask the other.
+    const a = await makePeer('A');
+    const b = await makePeer('B');
+    const author = 'did:key:z6MkTheSamePersonBothTimes';
+
+    serve(record({ attributedTo: author }));
+    await syncPeerRecords(a);
+    serve(record({ attributedTo: author }));
+    await syncPeerRecords(b);
+
+    const rows = [...(await mirrored(a.id)), ...(await mirrored(b.id))];
+    expect(rows).toHaveLength(2);
+    expect(new Set(rows.map((r) => r.authorDid))).toEqual(new Set([author]));
+  });
+
+  it('leaves the author null rather than inventing one', async () => {
+    const peer = await makePeer();
+    serve(record({ attributedTo: null }));
+
+    await syncPeerRecords(peer);
+
+    expect((await mirrored(peer.id))[0]!.authorDid).toBeNull();
+  });
+});

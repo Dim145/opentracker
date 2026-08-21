@@ -233,6 +233,10 @@ function toMirrorRow(
       }
     })(),
     uploaderName: asStr(record['trackarr:uploaderName']),
+    // Who the issuer says wrote it. Kept as a DID rather than resolved to
+    // anything local: it names a person on another instance, and the only
+    // useful thing to do with it is recognise the same person again.
+    authorDid: asStr(record.attributedTo),
     remoteCreatedAt: (() => {
       const d = asStr(record.published);
       const at = d ? new Date(d) : null;
