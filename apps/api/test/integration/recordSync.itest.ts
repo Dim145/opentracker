@@ -93,7 +93,9 @@ function alsoServe(...records: SignedLike[]): void {
 }
 
 const { syncPeerRecords } = await import('../../utils/federation/recordSync');
-const { ensureFederationIdentity } = await import('../../utils/federation/config');
+const { ensureFederationIdentity, getPrivateKeyPem } = await import(
+  '../../utils/federation/config'
+);
 
 let issuer: ReturnType<typeof keypair>;
 let counter = 0;
@@ -200,9 +202,13 @@ beforeEach(async () => {
   // The identity is provisioned but federation ships DISABLED, and
   // `syncPeerRecords` refuses to run without it — as it should.
   await ensureFederationIdentity();
+  // Reset the switches too, not just `enabled`. The config row survives
+  // between tests, so a test that turns relaying on was leaving it on for
+  // every test after it — and a relaying instance behaves differently enough
+  // that the next failure would have looked like a defect in the code.
   await db
     .update(schema.federationConfig)
-    .set({ enabled: true })
+    .set({ enabled: true, relayEnabled: false, discoverable: false })
     .where(eq(schema.federationConfig.id, 'singleton'));
 });
 
@@ -913,6 +919,57 @@ describe('the set the two sides actually compare', () => {
     expect(second.ingested).toBe(0);
     expect(partner.calls).toEqual(['/api/federation/reconcile']);
     expect(await db.select().from(schema.catalogRecords)).toHaveLength(0);
+  });
+
+  it('does not mirror our own records handed back by a relay', async () => {
+    // Guaranteed the moment anybody relays for us: a relay serves what it took
+    // in first-hand, and what it took in first-hand includes ours. Left alone,
+    // an instance mirrors its whole catalogue once per relay — its own
+    // releases listed as somebody else's, its row cap spent on what it already
+    // has. A three-instance mesh showed exactly that, and nothing complained.
+    const config = (await db.select().from(schema.federationConfig).limit(1))[0]!;
+    const ourDid = didKeyFromPublicKey(config.publicKey!);
+    const ours = signRecord(
+      {
+        ...(JSON.parse(JSON.stringify(record())) as Record<string, unknown>),
+        proof: undefined,
+        id: undefined,
+        'trackarr:issuer': ourDid,
+      } as never,
+      { privateKeyPem: getPrivateKeyPem(config)!, did: ourDid },
+    );
+
+    // Minted here first, because that is the situation: we published it, a
+    // relay took it in, and now the relay is handing it back to us.
+    await db.insert(schema.catalogRecords).values({
+      id: ours.id,
+      torrentId: randomUUID(),
+      infoHash: (ours as unknown as Record<string, string>)['bt:infohash_v1']!,
+      issuer: ourDid,
+      kind: 'torrent',
+      body: ours as unknown as Record<string, unknown>,
+      contentHash: ours.id,
+      origin: 'local',
+    });
+
+    // The relay is a partner, and it countersigns — so this record IS admitted.
+    // What must not happen is the mirror row, not the admission.
+    const peer = await makePeer('Relay');
+    serve(ours);
+    const out = await syncPeerRecords(peer);
+
+    expect(out.rejected).toBe(0);
+    expect(await mirrored(peer.id)).toHaveLength(0);
+
+    // But the source IS noted, or the record stays permanently missing from
+    // our side of the comparison and is re-fetched on every tick forever —
+    // the exact defect this table was added to fix.
+    expect(await sourcedIds(peer.id)).toEqual([ours.id]);
+
+    partner.calls = [];
+    const second = await syncPeerRecords(peer);
+    expect(second.rounds).toBe(1);
+    expect(partner.calls).toEqual(['/api/federation/reconcile']);
   });
 
   it('still repairs a mirror row lost behind its back', async () => {

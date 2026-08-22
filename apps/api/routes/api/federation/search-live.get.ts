@@ -46,6 +46,7 @@ import {
 } from '~~/utils/federation/recordSync';
 import { browseMirror } from '~~/utils/federation/browseMirror';
 import { relayEnabled, trustedIssuers } from '~~/utils/federation/relay';
+import { didKeyFromPublicKey } from '~~/utils/federation/did';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireAuthSession } from '~~/utils/adminAuth';
 
@@ -106,6 +107,9 @@ export default defineEventHandler(async (event) => {
   // queries each, thirty records a partner, on every search anybody runs.
   const trusted = await trustedIssuers();
   const relaying = await relayEnabled();
+  // Our own records come back through any relay that carries for us; mirroring
+  // them would list our catalogue as somebody else's. See `ingestRecord`.
+  const ownDid = config!.publicKey ? didKeyFromPublicKey(config!.publicKey) : null;
 
   const reachedIds: string[] = [];
   let rejected = 0;
@@ -122,6 +126,7 @@ export default defineEventHandler(async (event) => {
           relayProof: relay,
           trusted,
           relaying,
+          ownDid,
         });
         rejected += r.rejected;
         if (r.fresh) fresh.push(r.fresh);

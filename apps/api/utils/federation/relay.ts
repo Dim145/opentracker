@@ -40,7 +40,7 @@
  * partners without asking them to extend it any trust at all — and why asking
  * several relays, or none, is always a valid strategy.
  */
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 
 /**
@@ -411,6 +411,16 @@ export async function repairMissingMirrors(peerId: string): Promise<number> {
         eq(schema.recordSources.peerId, peerId),
         eq(schema.recordSources.kind, 'torrent'),
         isNull(schema.remoteTorrents.id),
+        // Not one of ours. A record we published has no mirror row and never
+        // should — it is already in the catalogue as itself — so it looks
+        // exactly like a lost one from here. Forgetting the source would make
+        // reconciliation report it missing, fetch it, skip it as ours, and
+        // come round again on the next tick: the very loop this repair sits
+        // next to. Caught by a test written for the guard above, not for this.
+        sql`NOT EXISTS (
+          SELECT 1 FROM ${schema.catalogRecords} own
+           WHERE own.id = ${schema.recordSources.recordId}
+             AND own.origin = 'local')`,
       ),
     );
   if (!orphaned.length) return 0;

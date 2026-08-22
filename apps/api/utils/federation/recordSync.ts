@@ -42,6 +42,7 @@ import {
 import { parseReleaseName } from '@trackarr/shared/releaseParse';
 import { signedPost } from './signing';
 import { verifyRecord } from './record';
+import { didKeyFromPublicKey } from './did';
 import { notifyFollowersOfNewUploads } from './sidePasses';
 import { mirrorSet } from './recordSet';
 import { ingestIdentityRecord, ingestRevocation } from './identityRecord';
@@ -307,6 +308,8 @@ export async function ingestRecord(
     trusted?: Set<string>;
     /** Read once per batch; two queries per record otherwise. */
     relaying?: boolean;
+    /** Our own signing identity, so we can recognise our own work coming back. */
+    ownDid?: string | null;
   } = {},
 ): Promise<IngestOutcome> {
   const nothing: IngestOutcome = { ingested: 0, withdrawn: 0, rejected: 0 };
@@ -336,6 +339,26 @@ export async function ingestRecord(
   // reverse, is a disagreement nothing later would notice or repair.
   const relaying = opts.relaying ?? (await relayEnabled());
   const replaces = asStr(record['trackarr:replaces']);
+
+  // Our own work, handed back to us by a relay.
+  //
+  // Guaranteed the moment anybody relays for us: a relay serves what it took
+  // in first-hand, and what it took in first-hand includes ours. Left alone,
+  // an instance mirrors its whole catalogue once per relay — its own releases
+  // showing up as remote, its mirror row cap spent on things it already has.
+  // A three-instance mesh showed exactly that and nothing complained.
+  //
+  // The source is still recorded, deliberately. It is true — that partner does
+  // serve this record — and it is what reconciliation compares: refusing to
+  // note it would leave the record permanently missing from our side of the
+  // comparison, re-fetched on every tick forever. That is the defect this
+  // whole table exists to have fixed, and it would have been reintroduced by
+  // the obvious version of this guard.
+  const ownDid = opts.ownDid ?? null;
+  if (ownDid && verdict.signer === ownDid) {
+    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying);
+    return nothing;
+  }
 
   if (record.type === 'Tombstone') {
     // A withdrawal is a statement, so it is applied rather than inferred from
@@ -532,6 +555,7 @@ export async function syncPeerRecords(
     // One read each for the whole fetch, not one per batch.
     const trusted = await trustedIssuers();
     const relaying = await relayEnabled();
+    const ownDid = config!.publicKey ? didKeyFromPublicKey(config!.publicKey) : null;
 
     // ── Fetch what we are missing ────────────────────────────────────────
     //
@@ -566,6 +590,7 @@ export async function syncPeerRecords(
           relayProof: relay,
           trusted,
           relaying,
+          ownDid,
         });
         out.ingested += r.ingested;
         out.withdrawn += r.withdrawn;
