@@ -81,6 +81,33 @@
         </div>
       </SettingsGroup>
 
+      <!-- Federated releases in the feed -->
+      <SettingsGroup
+        :label="$t('admin.torznab.config.federatedLabel')"
+        :description="$t('admin.torznab.config.federatedDescription')"
+      >
+        <div class="flex items-center gap-3">
+          <button
+            @click="toggleFederated"
+            :disabled="saving"
+            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+            :class="
+              config?.includeFederated
+                ? 'bg-success'
+                : 'bg-bg-tertiary border border-border'
+            "
+          >
+            <span
+              class="inline-block h-4 w-4 transform rounded-full bg-fg-strong transition-transform"
+              :class="config?.includeFederated ? 'translate-x-6' : 'translate-x-1'"
+            />
+          </button>
+          <span class="text-sm text-text-muted">
+            {{ config?.includeFederated ? $t('admin.torznab.config.federatedEnabled') : $t('admin.torznab.config.federatedDisabled') }}
+          </span>
+        </div>
+      </SettingsGroup>
+
       <!-- API URL Info -->
       <SettingsGroup
         :label="$t('admin.torznab.config.endpointLabel')"
@@ -116,6 +143,7 @@ interface TorznabConfig {
   rateLimitWindow: number;
   enableLogging: boolean;
   allowedCategories: string[];
+  includeFederated: boolean;
 }
 
 const props = defineProps<{
@@ -141,6 +169,15 @@ async function toggleEnabled() {
   saving.value = true;
   try {
     emit('update', { enabled: !props.config?.enabled });
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function toggleFederated() {
+  saving.value = true;
+  try {
+    emit('update', { includeFederated: !props.config?.includeFederated });
   } finally {
     saving.value = false;
   }

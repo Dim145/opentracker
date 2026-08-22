@@ -107,6 +107,27 @@ Download a torrent file with your passkey embedded.
 curl -O "https://your-tracker.com/api/torznab/download?id=INFO_HASH&apikey=YOUR_PASSKEY"
 ```
 
+## Federated releases (opt-in)
+
+By default the feed carries only this instance's own catalogue. An admin can turn
+on **Federated releases** (Admin → Torznab) to also fold in releases mirrored
+from federated partners.
+
+Because the mirror is metadata only — there is no `.torrent` held here — a
+federated item's download link is a **magnet** built from its infohash, and its
+`<link>` points at the on-site `/federated/<id>` detail page rather than a
+download endpoint. A magnet resolves for anything with a reachable swarm; a
+release living on a partner's **private** swarm is only fetchable by a member of
+that partner, so for an \*arr stack these results are genuinely grabbable only for
+publicly-seedable content (or once a data-sharing path makes a partner's release
+retrievable from here). That is why the toggle is **off by default** — turning it
+on trades a fuller search for the chance of un-grabbable results in automation.
+
+Federated items are appended after local ones and never duplicate an infohash the
+local catalogue already serves. Their category respects the same taxonomy mapping
+the site uses (Admin → Federated taxonomy), falling back to the release's coarse
+type.
+
 ## Category Mapping
 
 Trackarr categories are automatically mapped to Newznab standard IDs:

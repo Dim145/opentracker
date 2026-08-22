@@ -36,6 +36,7 @@ interface TorznabConfig {
   rateLimitWindow: number;
   enableLogging: boolean;
   allowedCategories: string[];
+  includeFederated: boolean;
 }
 
 interface TorznabStats {

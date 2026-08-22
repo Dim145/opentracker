@@ -3237,6 +3237,10 @@
         "loggingDescription": "Enregistre toutes les requêtes API pour le débogage et la surveillance. Conservées 7 jours.",
         "loggingEnabled": "Journalisation activée",
         "loggingDisabled": "Journalisation désactivée",
+        "federatedLabel": "Releases fédérées",
+        "federatedDescription": "Inclure les releases miroir des partenaires fédérés dans le flux. Elles portent un lien magnet (pas de .torrent local), donc seulement récupérables là où le swarm est joignable. Désactivé par défaut.",
+        "federatedEnabled": "Releases fédérées incluses",
+        "federatedDisabled": "Releases locales uniquement",
         "endpointLabel": "Point de terminaison de l'API",
         "endpointDescription": "L'URL de base de l'API Torznab. Les utilisateurs l'ajoutent dans Prowlarr/Sonarr/Radarr.",
         "copyUrlTitle": "Copier l'URL"

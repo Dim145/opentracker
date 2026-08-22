@@ -32,7 +32,14 @@ import {
   getTorznabEnabled,
   getTorznabRateLimitOptions,
   getTorznabEnableLogging,
+  getTorznabIncludeFederated,
 } from '~~/utils/torznabSettings';
+import { getFederationConfig, isFederationLive } from '~~/utils/federation/config';
+import {
+  federatedFeedRows,
+  magnetLink,
+  newznabIdForType,
+} from '~~/utils/federation/feedRows';
 import {
   logTorznabRequest,
   isTorznabUserBlocked,
@@ -272,6 +279,9 @@ async function performSearch(
 ) {
   const baseUrl = getRequestURL(event).origin;
   const conditions: SQL[] = [];
+  // Captured from the category filter below so the federated feed (if on) can
+  // apply the same category, translated to the mirror's namespace.
+  let localCategoryIds: string[] | null = null;
 
   // Only show active + accepted torrents — pending / changes-
   // requested / rejected rows never leak through Torznab feeds.
@@ -352,6 +362,7 @@ async function performSearch(
 
     if (newznabIds.length > 0) {
       const trackarrCatIds = await filterCategoriesByNewznab(newznabIds);
+      localCategoryIds = trackarrCatIds;
       // Even when no Trackarr category matches the requested Newznab id we
       // must still apply a (deliberately empty) filter — otherwise an
       // unmatched `cat=` param silently widens to "all categories" and
@@ -408,6 +419,46 @@ async function performSearch(
       };
     })
   );
+
+  // Federated (mirrored) releases, opt-in and only once the local half has not
+  // already filled the page. We hold no `.torrent` for these, so the enclosure
+  // is a magnet the consumer resolves from the swarm; the link points at our
+  // detail page. Off by default — see `getTorznabIncludeFederated` for why.
+  if (items.length < query.limit && (await getTorznabIncludeFederated())) {
+    const config = await getFederationConfig();
+    if (isFederationLive(config)) {
+      const seen = new Set(items.map((i) => i.guid));
+      const remote = await federatedFeedRows({
+        search: query.q ?? null,
+        localCategoryIds,
+        showAdult: user.showAdultContent,
+        limit: query.limit - items.length,
+      });
+      for (const r of remote) {
+        // A release we already carry locally is already in the feed; do not
+        // duplicate its infohash from the mirror.
+        if (seen.has(r.infoHash)) continue;
+        items.push({
+          title: r.name,
+          guid: r.infoHash,
+          link: `${baseUrl}/federated/${r.id}`,
+          commentsUrl: `${baseUrl}/federated/${r.id}`,
+          pubDate: r.remoteCreatedAt ?? new Date(),
+          size: r.size,
+          description: r.description ?? undefined,
+          categoryName: r.categorySlug ?? r.categoryType ?? undefined,
+          // Newznab 8000 ("Other") when the mirror carries no usable type.
+          categoryId: newznabIdForType(r.categoryType) ?? 8000,
+          seeders: r.seeders,
+          leechers: r.leechers,
+          grabs: 0,
+          downloadUrl: magnetLink(r.infoHash, r.name),
+          downloadVolumeFactor: 1,
+          uploadVolumeFactor: 1,
+        });
+      }
+    }
+  }
 
   const xml = buildSearchXml({
     title: 'Trackarr',

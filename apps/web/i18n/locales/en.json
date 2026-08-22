@@ -3237,6 +3237,10 @@
         "loggingDescription": "Log all API requests for debugging and monitoring. Logs are stored for 7 days.",
         "loggingEnabled": "Logging enabled",
         "loggingDisabled": "Logging disabled",
+        "federatedLabel": "Federated releases",
+        "federatedDescription": "Include mirrored releases from federated partners in the feed. They carry a magnet link (no local .torrent), so they are only grabbable where the swarm is reachable. Off by default.",
+        "federatedEnabled": "Federated releases included",
+        "federatedDisabled": "Local releases only",
         "endpointLabel": "API Endpoint",
         "endpointDescription": "The base URL for the Torznab API. Users add this in Prowlarr/Sonarr/Radarr.",
         "copyUrlTitle": "Copy URL"
