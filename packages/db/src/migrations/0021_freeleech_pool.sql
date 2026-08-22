@@ -15,7 +15,7 @@
 --    distinguish admin-created windows from pool-triggered ones.
 ALTER TABLE "bonus_events"
   ADD COLUMN IF NOT EXISTS "source" text NOT NULL DEFAULT 'manual';
-
+--> statement-breakpoint
 -- 2. Singleton config table. Locked to `id = 1` by a partial unique
 --    index — belt-and-braces alongside the upsert in the admin route.
 CREATE TABLE IF NOT EXISTS "freeleech_pool_config" (
@@ -31,11 +31,11 @@ CREATE TABLE IF NOT EXISTS "freeleech_pool_config" (
   "event_long_description_template" text,
   "updated_at"                      timestamp
 );
-
+--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "freeleech_pool_config_singleton"
   ON "freeleech_pool_config" ("id")
   WHERE "id" = 1;
-
+--> statement-breakpoint
 -- 3. Optional contribution windows. Empty table → pool always open
 --    (subject to the `enabled` flag); otherwise contributions only
 --    accepted when *now* falls inside at least one window.
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS "freeleech_pool_windows" (
   "label"             text,
   "created_at"        timestamp NOT NULL DEFAULT NOW()
 );
-
+--> statement-breakpoint
 -- 3b. Rename historical 'recurring' rows so they line up with the
 --     new 'weekly' / 'monthly' / 'yearly' split. `kind` carried
 --     'recurring' for weekly rows in the pre-split design; the
@@ -78,15 +78,15 @@ ALTER TABLE "freeleech_pool_windows"
   ADD COLUMN IF NOT EXISTS "year_day_start"   integer,
   ADD COLUMN IF NOT EXISTS "year_month_end"   integer,
   ADD COLUMN IF NOT EXISTS "year_day_end"     integer;
-
+--> statement-breakpoint
 UPDATE "freeleech_pool_windows" SET "kind" = 'weekly' WHERE "kind" = 'recurring';
-
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "freeleech_pool_windows_kind_idx"
   ON "freeleech_pool_windows" ("kind", "enabled");
-
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "freeleech_pool_windows_oneoff_idx"
   ON "freeleech_pool_windows" ("starts_at", "ends_at");
-
+--> statement-breakpoint
 -- 4. Cycle ledger — one row per fill→trigger→end.
 --    Status: 'filling' | 'full_queued' | 'active' | 'ended' | 'cancelled'.
 --    A partial unique index keeps at most one open row at any time.
@@ -110,14 +110,14 @@ CREATE TABLE IF NOT EXISTS "freeleech_pool_cycles" (
   "created_at"                        timestamp NOT NULL DEFAULT NOW(),
   "closed_at"                         timestamp
 );
-
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "freeleech_pool_cycles_status_idx"
   ON "freeleech_pool_cycles" ("status", "created_at");
-
+--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "freeleech_pool_cycles_open_unique"
   ON "freeleech_pool_cycles" ("status")
   WHERE "status" IN ('filling', 'full_queued', 'active');
-
+--> statement-breakpoint
 -- 5. Append-only contribution ledger. We never merge rows for the
 --    same (cycle, user) so the audit + per-user cap check stay honest.
 CREATE TABLE IF NOT EXISTS "freeleech_pool_contributions" (
@@ -127,9 +127,9 @@ CREATE TABLE IF NOT EXISTS "freeleech_pool_contributions" (
   "amount"      integer NOT NULL,
   "created_at"  timestamp NOT NULL DEFAULT NOW()
 );
-
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "freeleech_pool_contributions_cycle_idx"
   ON "freeleech_pool_contributions" ("cycle_id", "created_at");
-
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "freeleech_pool_contributions_cycle_user_idx"
   ON "freeleech_pool_contributions" ("cycle_id", "user_id");

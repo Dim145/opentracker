@@ -4,4 +4,4 @@
 -- per category from the admin form. Null on every existing row;
 -- the frontend's `getCategoryIcon` helper falls back to the type
 -- mapping and finally to a generic file glyph when both are unset.
-ALTER TABLE "categories" ADD COLUMN "icon" text;
+ALTER TABLE "categories" ADD COLUMN IF NOT EXISTS "icon" text;
