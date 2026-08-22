@@ -138,3 +138,52 @@ describe('canonicalise', () => {
     expect(canonicalise(JSON.parse(once))).toBe(once);
   });
 });
+
+describe('RFC 8785 vectors and the toJSON trap', () => {
+  // The RFC 8785 property-ordering example: keys sort by UTF-16 code unit
+  // at the top level and at every depth. Written with \u escapes to pin
+  // the exact code points the RFC names (U+FB33 = precomposed Dalet+Dagesh).
+  it('orders the RFC 8785 key vector by code unit', () => {
+    const input: Record<string, string> = {
+      '\u20ac': 'Euro Sign',
+      '\r': 'Carriage Return',
+      '\ufb33': 'Hebrew Letter Dalet With Dagesh',
+      '1': 'One',
+      '\ud83d\ude00': 'Emoji: Grinning Face',
+      '\u007f': 'Control',
+      '\u00f6': 'Latin Small Letter O With Diaeresis',
+    };
+    const out = canonicalise(input);
+    const keysInOrder = out
+      .slice(1, -1)
+      .split(',')
+      .map((pair) => JSON.parse(pair.slice(0, pair.indexOf(':'))) as string);
+    expect(keysInOrder).toEqual([
+      '\r',
+      '1',
+      '\u007f',
+      '\u00f6',
+      '\u20ac',
+      '\ud83d\ude00',
+      '\ufb33',
+    ]);
+  });
+
+  it('serialises numbers as ECMAScript does', () => {
+    expect(canonicalise(1e21)).toBe('1e+21');
+    expect(canonicalise(5e-324)).toBe('5e-324');
+    expect(canonicalise(-0)).toBe('0');
+    expect(canonicalise(9007199254740992)).toBe('9007199254740992');
+  });
+
+  it('refuses a Date rather than signing an empty object', () => {
+    // A Date has no own enumerable keys, so it used to canonicalise to an
+    // empty object — the caller would sign nothing where it meant a timestamp.
+    expect(() =>
+      canonicalise({ published: new Date('2026-01-01T00:00:00Z') }),
+    ).toThrow();
+    expect(canonicalise({ published: '2026-01-01T00:00:00.000Z' })).toBe(
+      '{"published":"2026-01-01T00:00:00.000Z"}',
+    );
+  });
+});

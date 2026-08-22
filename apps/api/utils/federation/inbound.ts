@@ -146,6 +146,13 @@ export async function verifyInboundS2S(
   }
 
   const rawBody = opts.post ? ((await readRawBody(event, 'utf8')) ?? '') : '';
+  // `assertBodyWithinLimit` above trusts `Content-Length`, which a chunked
+  // request carries none of — so re-check the bytes actually read before they
+  // reach `JSON.parse`. The read itself is bounded by Nitro's own body limit;
+  // this stops the parse-amplification a chunked flood could otherwise reach.
+  if (opts.post && Buffer.byteLength(rawBody, 'utf8') > (opts.maxBodyBytes ?? MAX_S2S_BODY_BYTES)) {
+    throw createError({ statusCode: 413, message: 'Request body too large' });
+  }
 
   // Verify the signature BEFORE the per-identity rate-limit, so a forged
   // x-trackarr-instance header can't exhaust a victim peer's bucket.

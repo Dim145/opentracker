@@ -198,6 +198,36 @@ terminal; a pending handshake must be approved or deleted, not patched). Any
 non-`active` status immediately makes every inbound S2S endpoint reject the
 peer.
 
+## Standards, and where this diverges
+
+Federation reuses established formats where they fit, and says so where it does
+not:
+
+- **Records** are [FEP-d8c8](https://codeberg.org/fediverse/fep/src/branch/main/fep/d8c8)
+  `Torrent` objects — the same `type`, `@context` and `bt:infohash_v1` a generic
+  fediverse consumer understands — extended with a `trackarr:` vocabulary served
+  at `/api/federation/context`.
+- **Proofs** are W3C [Data Integrity](https://www.w3.org/TR/vc-di-eddsa/) with the
+  `eddsa-jcs-2022` cryptosuite (a Recommendation as of May 2025): the signing
+  input is `SHA-256(proofConfig) ‖ SHA-256(document)`, each canonicalised with
+  [RFC 8785 (JCS)](https://www.rfc-editor.org/rfc/rfc8785). Content addresses are
+  `sha256:<hex>` over the canonical bytes, excluding `proof` and `id`.
+- **Identity keys** are `did:key` (Ed25519, multicodec `0xed01`). `did:key` has
+  no rotation by construction — the identifier *is* the key — so succession and
+  revocation are layered on top rather than assumed from the method.
+
+**Divergence from [FEP-c390](https://codeberg.org/fediverse/fep/src/branch/main/fep/c390)
+(Identity Proofs), deliberate.** A portable-identity assertion here is a signed
+`Person` record carrying `alsoKnownAs` + the evidence that proved each alias,
+reconciled and relayed like any other record. FEP-c390 instead attaches a
+`VerifiableIdentityStatement` to an actor's `attachment`, with `alsoKnownAs`
+naming the actor's own id. The two express the same fact — "these identifiers
+are one person" — but this design makes the assertion a first-class, relayable
+record (so it survives the origin instance disappearing, which is the case that
+matters) rather than an attachment resolved by fetching a live actor. Converging
+on the FEP-c390 shape for cross-fediverse interoperability is possible later; it
+is not done today, and this note is the honest statement of that.
+
 ## Security
 
 | Concern        | Measure                                                                                       |

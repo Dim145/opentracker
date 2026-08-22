@@ -77,6 +77,18 @@ function write(value: unknown, depth: number): string {
     return `[${value.map((v) => write(v, depth + 1)).join(',')}]`;
   }
 
+  // A Date (or anything else carrying a `toJSON`) canonicalises to `{}` here —
+  // it has no enumerable own keys — which is silent data loss in a signing
+  // primitive: the caller thinks it signed a timestamp and signed an empty
+  // object. `JSON.stringify` would have called `toJSON`; we do not, on purpose
+  // (RFC 8785 works on JSON values, not on JS objects with hidden behaviour).
+  // So refuse it loudly. Callers pre-format dates with `.toISOString()`.
+  if (typeof (value as { toJSON?: unknown }).toJSON === 'function') {
+    throw new CanonicalisationError(
+      'cannot canonicalise an object with toJSON (e.g. a Date) — pass its serialised form',
+    );
+  }
+
   const obj = value as Record<string, unknown>;
   // Sorted by UTF-16 code unit, which is what the RFC specifies and what a
   // plain `<` comparison does. A locale-aware compare here would be a

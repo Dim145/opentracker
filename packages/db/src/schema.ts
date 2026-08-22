@@ -2419,6 +2419,11 @@ export const federationPeers = pgTable(
     lastHandshakeAt: timestamp('last_handshake_at'),
     lastSeenAt: timestamp('last_seen_at'),
     lastError: text('last_error'),
+    /** The partner's advertised federation protocol version, learned at
+     *  handshake/callback. Lets an operator tell "peer is on an old build" from
+     *  "peer is down", and know when it is safe to require audience-bound
+     *  signatures. Null for a link formed before versions were exchanged. */
+    protocolVersion: integer('protocol_version'),
     /** Owner who created / approved the link. */
     createdBy: text('created_by').references(() => users.id, {
       onDelete: 'set null',

@@ -122,6 +122,7 @@ export async function syncSwarmPeers(): Promise<{ torrents: number; peers: numbe
           pathname: `/api/federation/peers?infoHash=${infoHash}`,
           instanceId,
           privateKeyPem,
+          audienceInstanceId: peer.instanceId ?? undefined,
           timeoutMs: 8000,
         }),
       ),

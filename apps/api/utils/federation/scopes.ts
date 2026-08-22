@@ -8,6 +8,14 @@ import type { FederationScopes } from '@trackarr/db/schema';
 
 export const SCOPE_KEYS = ['catalog', 'social', 'accounts', 'swarm'] as const;
 
+/**
+ * The federation wire-protocol version this build speaks. Bumped when a
+ * breaking change to the S2S contract lands. Exchanged at handshake so a
+ * partner on an old build is diagnosable — a 404 on a new endpoint then reads
+ * as "too old" rather than "down".
+ */
+export const PROTOCOL_VERSION = 1;
+
 export const EMPTY_SCOPES: FederationScopes = {
   catalog: false,
   social: false,

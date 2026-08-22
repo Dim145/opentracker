@@ -37,6 +37,7 @@ const bodySchema = z.object({
   baseUrl: z.string().url().max(255),
   name: z.string().max(120).optional().nullable(),
   scopesOffered: federationScopesSchema.optional(),
+  protocolVersion: z.number().int().min(1).max(100000).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -110,6 +111,7 @@ export default defineEventHandler(async (event) => {
         lastHandshakeAt: now,
         lastSeenAt: now,
         updatedAt: now,
+        protocolVersion: parsed.protocolVersion ?? existing.protocolVersion ?? null,
       })
       .where(eq(schema.federationPeers.id, existing.id));
   } else {
@@ -124,6 +126,7 @@ export default defineEventHandler(async (event) => {
         status: 'pending_in',
         lastHandshakeAt: now,
         lastSeenAt: now,
+        protocolVersion: parsed.protocolVersion ?? null,
       })
       // Same URL already linked under a different identity: ignore rather
       // than 500. The owner can resolve the conflict manually.

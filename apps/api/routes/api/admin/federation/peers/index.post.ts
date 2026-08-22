@@ -23,7 +23,7 @@ import {
 } from '~~/utils/federation/config';
 import { signedPost } from '~~/utils/federation/signing';
 import { computeInstanceId } from '~~/utils/federation/keys';
-import { federationScopesSchema } from '~~/utils/federation/scopes';
+import { federationScopesSchema, PROTOCOL_VERSION } from '~~/utils/federation/scopes';
 
 const bodySchema = z.object({
   baseUrl: z.string().trim().url().max(255),
@@ -107,6 +107,7 @@ export default defineEventHandler(async (event) => {
         baseUrl: live.publicUrl ?? '',
         name: live.instanceName ?? null,
         scopesOffered: scopes,
+        protocolVersion: PROTOCOL_VERSION,
       },
       instanceId: live.instanceId,
       privateKeyPem,

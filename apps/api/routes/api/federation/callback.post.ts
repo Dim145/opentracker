@@ -31,6 +31,7 @@ const PATHNAME = '/api/federation/callback';
 const bodySchema = z.object({
   acceptsFromYou: federationScopesSchema.optional(),
   sharesWithYou: federationScopesSchema.optional(),
+  protocolVersion: z.number().int().min(1).max(100000).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -127,6 +128,7 @@ export default defineEventHandler(async (event) => {
       lastSeenAt: now,
       lastError: null,
       updatedAt: now,
+      protocolVersion: parsed.protocolVersion ?? peer.protocolVersion ?? null,
     })
     .where(eq(schema.federationPeers.id, peer.id));
 
