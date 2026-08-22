@@ -1,12 +1,13 @@
 /**
  * POST /api/me/templates
  *
- * Create a presentation template owned by the caller.
+ * Create a presentation template owned by the caller. Always private: a
+ * member cannot put a template in front of the whole site, and there is no
+ * request field that would let them try. The catalogue everybody sees is
+ * written only by /api/admin/templates.
  *
- * Two rules are enforced here rather than in the UI:
- *   - the per-user quota (admin setting, default 5), counted over the
- *     caller's own rows only
- *   - `visibility: 'published'` requires staff, re-read live from the DB
+ * One rule is enforced here rather than in the UI: the per-user quota (admin
+ * setting, default 5), counted over the caller's own rows.
  *
  * The template source is stored byte-for-byte. A template is
  * whitespace-sensitive — leading spaces, blank lines and the absence of
@@ -18,23 +19,19 @@ import { count, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
-import { TemplateError, assertTemplateValid } from '@trackarr/shared/templateEngine';
-import { readLiveRoles } from '~~/utils/adminAuth';
+import { assertTemplateGrammar } from '~~/utils/templateGrammar';
 import { getTemplateQuotaPerUser } from '~~/utils/settings';
-import {
-  resolveTemplateVisibility,
-  templateQuotaMessage,
-} from '~~/utils/templatePolicy';
+import { templateQuotaMessage } from '~~/utils/templatePolicy';
 
 const bodySchema = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).optional().nullable(),
   category: z.enum(['universal', 'video']).default('universal'),
-  // 15 000 chars: the client-side engine refuses to render past 200 000,
-  // and the largest thing a listing template has to hold is the default
-  // one plus commentary. Validation of the template *grammar* stays on
-  // the client — the engine lives in apps/web/app/utils and Nitro cannot
-  // import it — so this cap is the server's only structural defence.
+  // 15 000 chars: the renderer refuses to emit past 200 000, and the largest
+  // thing a listing template has to hold is the built-in one plus commentary.
+  // The size cap and the *grammar* are two different defences and both live on
+  // this side — assertTemplateGrammar below runs the same parser the browser
+  // renders with, so a template that stores cannot fail to render.
   content: z
     .string()
     .min(1)
@@ -42,57 +39,13 @@ const bodySchema = z.object({
     .refine((v) => v.trim().length > 0, {
       message: 'Template content cannot be blank',
     }),
-  visibility: z.enum(['private', 'published']).default('private'),
 });
-
-/**
- * Reject a template whose grammar cannot be parsed, at the door.
- *
- * The cap on `content` was enforced server-side but the grammar was not, so an
- * unclosed `{{#SECTION}}` stored fine and only failed at render — and once a
- * staffer published it, it failed for every viewer instead of for its author.
- * The parser is the same one the browser renders with (it moved into
- * @trackarr/shared for exactly this), so a template that passes here cannot
- * throw there.
- *
- * Cheap by construction: parsing is linear and the body is capped at 15 kB.
- */
-function assertGrammar(content: string): void {
-  try {
-    assertTemplateValid(content);
-  } catch (err) {
-    throw createError({
-      statusCode: 400,
-      message:
-        err instanceof TemplateError
-          ? `Template syntax error — ${err.message}`
-          : 'Template syntax error',
-    });
-  }
-}
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
   const body = await readValidatedBody(event, bodySchema.parse);
-  assertGrammar(body.content);
-
-  // Publishing is visible to the whole site, so the flags are re-read
-  // from the DB (≤60 s stale) instead of trusted from the sealed cookie:
-  // a demoted staffer must not keep publishing off a week-old session.
-  // The route itself stays user-level — hence readLiveRoles rather than
-  // requireModeratorSession, which would lock non-staff out of creating
-  // an ordinary private template.
-  const live = await readLiveRoles(user.id);
-  const isStaff = !!live && (live.isAdmin || live.isModerator);
-  const decision = resolveTemplateVisibility({
-    requested: body.visibility,
-    current: 'private',
-    isStaff,
-  });
-  if (!decision.ok) {
-    throw createError({ statusCode: 403, message: decision.message });
-  }
+  assertTemplateGrammar(body.content);
 
   const quota = await getTemplateQuotaPerUser();
   const id = randomUUID();
@@ -140,7 +93,7 @@ export default defineEventHandler(async (event) => {
       description: body.description || null,
       category: body.category,
       content: body.content,
-      visibility: decision.visibility,
+      visibility: 'private',
       isDefault,
     });
     return { ok: true as const, isDefault };

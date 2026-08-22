@@ -8,10 +8,12 @@
     modal shape is `components/admin/Shop.vue`.
 
     Three groups, in the order a user needs them: the built-in layout
-    (always there, never editable), their own templates, and whatever
-    staff have published. The built-in one is a CONSTANT, not a row —
+    (always there, never editable), their own templates, and the site
+    catalogue an admin curates. The built-in one is a CONSTANT, not a row —
     `DEFAULT_FICHE_TEMPLATE` — so it has no id, cannot be deleted, and
-    the only way to change it is to duplicate it first.
+    the only way to change it is to duplicate it first. Nothing on this page
+    writes the catalogue: a member cannot put a template in front of the
+    site, and the API has no field that would let them ask.
   -->
   <div class="upload-page tpl-page">
     <header class="upload-header">
@@ -75,8 +77,8 @@
 
     <!-- Only the FIRST load gets the spinner. `pending` is true on every
          refresh too, so keying the skeleton off it tore the whole list down
-         and replaced it with a centred spinner after each save, delete and
-         publish — a jump on the very actions that should feel settled. Once
+         and replaced it with a centred spinner after each save and delete —
+         a jump on the very actions that should feel settled. Once
          there is data, a refresh happens under the existing rows. -->
     <div v-if="pending && !data" class="py-16 flex justify-center">
       <Icon name="ph:circle-notch" class="animate-spin text-2xl text-text-muted" />
@@ -91,48 +93,54 @@
           <span class="section-rule" />
         </header>
         <div class="section-body">
-          <article class="tpl-card tpl-card--builtin" :class="{ 'tpl-card--active': isBuiltInDefault }">
-            <div class="tpl-card-top">
-              <h3 class="tpl-card-name">{{ $t('templates.builtIn.name') }}</h3>
-              <span class="tpl-badge tpl-badge--builtin">
-                <Icon name="ph:lock-simple" class="text-[10px]" aria-hidden="true" />
-                {{ $t('templates.badges.builtIn') }}
-              </span>
-              <span v-if="isBuiltInDefault" class="tpl-badge tpl-badge--default">
-                <Icon name="ph:star-fill" class="text-[10px]" aria-hidden="true" />
-                {{ $t('templates.badges.default') }}
-              </span>
-            </div>
-            <p class="tpl-card-desc">{{ $t('templates.builtIn.description') }}</p>
-            <p class="tpl-card-meta">
-              <span>{{ $t('templates.meta.chars', { n: builtInLength }) }}</span>
-            </p>
-            <div class="tpl-card-actions">
-              <button type="button" class="btn btn-xs btn-ghost" @click="viewBuiltIn">
-                <Icon name="ph:eye" class="text-sm" />
-                {{ $t('templates.actions.view') }}
-              </button>
-              <button
-                type="button"
-                class="btn btn-xs btn-ghost"
-                :disabled="quotaFull"
-                @click="duplicateBuiltIn"
-              >
-                <Icon name="ph:copy" class="text-sm" />
-                {{ $t('templates.actions.duplicateToEdit') }}
-              </button>
-              <button
-                v-if="!isBuiltInDefault"
-                type="button"
-                class="btn btn-xs btn-ghost"
-                :disabled="settingDefault"
-                @click="useBuiltInDefault"
-              >
-                <Icon name="ph:star" class="text-sm" />
-                {{ $t('templates.actions.setDefault') }}
-              </button>
-            </div>
-          </article>
+          <!-- In the same grid as the other two sections, not full-bleed above
+               them: a lone card that spans the page while a lone card below it
+               takes one column reads as two different kinds of thing. One
+               column each, and the sections line up. -->
+          <div class="tpl-grid">
+            <article class="tpl-card tpl-card--builtin" :class="{ 'tpl-card--active': isBuiltInDefault }">
+              <div class="tpl-card-top">
+                <h3 class="tpl-card-name">{{ $t('templates.builtIn.name') }}</h3>
+                <span class="tpl-badge tpl-badge--builtin">
+                  <Icon name="ph:lock-simple" class="text-[10px]" aria-hidden="true" />
+                  {{ $t('templates.badges.builtIn') }}
+                </span>
+                <span v-if="isBuiltInDefault" class="tpl-badge tpl-badge--default">
+                  <Icon name="ph:star-fill" class="text-[10px]" aria-hidden="true" />
+                  {{ $t('templates.badges.default') }}
+                </span>
+              </div>
+              <p class="tpl-card-desc">{{ $t('templates.builtIn.description') }}</p>
+              <p class="tpl-card-meta">
+                <span>{{ $t('templates.meta.chars', { n: builtInLength }) }}</span>
+              </p>
+              <div class="tpl-card-actions">
+                <button type="button" class="btn btn-xs btn-ghost" @click="viewBuiltIn">
+                  <Icon name="ph:eye" class="text-sm" />
+                  {{ $t('templates.actions.view') }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-xs btn-ghost"
+                  :disabled="quotaFull"
+                  @click="duplicateBuiltIn"
+                >
+                  <Icon name="ph:copy" class="text-sm" />
+                  {{ $t('templates.actions.duplicateToEdit') }}
+                </button>
+                <button
+                  v-if="!isBuiltInDefault"
+                  type="button"
+                  class="btn btn-xs btn-ghost"
+                  :disabled="settingDefault === data?.defaultTemplateId"
+                  @click="useBuiltInDefault"
+                >
+                  <Icon name="ph:star" class="text-sm" />
+                  {{ $t('templates.actions.setDefault') }}
+                </button>
+                </div>
+            </article>
+          </div>
         </div>
       </section>
 
@@ -183,10 +191,6 @@
                   <Icon name="ph:star-fill" class="text-[10px]" aria-hidden="true" />
                   {{ $t('templates.badges.default') }}
                 </span>
-                <span v-if="row.visibility === 'published'" class="tpl-badge tpl-badge--published">
-                  <Icon name="ph:seal-check" class="text-[10px]" aria-hidden="true" />
-                  {{ $t('templates.badges.published') }}
-                </span>
                 <span class="tpl-badge">{{ $t(`templates.categories.${row.category}`) }}</span>
               </div>
               <p v-if="row.description" class="tpl-card-desc">{{ row.description }}</p>
@@ -216,44 +220,11 @@
                   v-if="!row.isDefault"
                   type="button"
                   class="btn btn-xs btn-ghost"
-                  :disabled="settingDefault"
+                  :disabled="settingDefault === row.id"
                   @click="setDefault(row)"
                 >
                   <Icon name="ph:star" class="text-sm" />
                   {{ $t('templates.actions.setDefault') }}
-                </button>
-                <!-- Publishing is a staff action, so the control only exists
-                     for staff. A member seeing a button that always 403s is
-                     worse than not seeing it: the API refuses either way, but
-                     only one of the two teaches them something. -->
-                <button
-                  v-if="isStaff"
-                  type="button"
-                  class="btn btn-xs btn-ghost"
-                  :disabled="publishing === row.id"
-                  :aria-label="
-                    row.visibility === 'published'
-                      ? $t('templates.actions.unpublishNamed', { name: row.name })
-                      : $t('templates.actions.publishNamed', { name: row.name })
-                  "
-                  @click="togglePublish(row)"
-                >
-                  <Icon
-                    :name="
-                      publishing === row.id
-                        ? 'ph:circle-notch'
-                        : row.visibility === 'published'
-                          ? 'ph:seal-warning'
-                          : 'ph:seal-check'
-                    "
-                    :class="publishing === row.id ? 'text-sm animate-spin' : 'text-sm'"
-                    aria-hidden="true"
-                  />
-                  {{
-                    row.visibility === 'published'
-                      ? $t('templates.actions.unpublish')
-                      : $t('templates.actions.publish')
-                  }}
                 </button>
                 <button
                   type="button"
@@ -270,34 +241,30 @@
         </div>
       </section>
 
-      <!-- ─── 03 · Published by staff ──────────────────────────── -->
-      <section v-if="published.length" class="form-section" aria-labelledby="tpl-h-published">
+      <!-- ─── 03 · Site templates ──────────────────────────────── -->
+      <section v-if="siteTemplates.length" class="form-section" aria-labelledby="tpl-h-site">
         <header class="section-head">
           <span class="section-number">03</span>
-          <h2 id="tpl-h-published" class="section-title">{{ $t('templates.groupPublished') }}</h2>
+          <h2 id="tpl-h-site" class="section-title">{{ $t('templates.groupSite') }}</h2>
           <span class="section-rule" />
         </header>
         <div class="section-body">
-          <p class="section-help">{{ $t('templates.publishedHelp') }}</p>
+          <p class="section-help">{{ $t('templates.siteHelp') }}</p>
           <div class="tpl-grid">
             <!-- No "default" badge and no "set as default" action here: the
                  flag lives on the row and these rows are not the caller's, so
                  the only route to using one is the copy that Duplicate makes. -->
-            <article v-for="row in published" :key="row.id" class="tpl-card">
+            <article v-for="row in siteTemplates" :key="row.id" class="tpl-card">
               <div class="tpl-card-top">
                 <h3 class="tpl-card-name">{{ row.name }}</h3>
-                <span class="tpl-badge tpl-badge--published">
-                  <Icon name="ph:seal-check" class="text-[10px]" aria-hidden="true" />
-                  {{ $t('templates.badges.published') }}
+                <span class="tpl-badge tpl-badge--site">
+                  <Icon name="ph:buildings" class="text-[10px]" aria-hidden="true" />
+                  {{ $t('templates.badges.site') }}
                 </span>
                 <span class="tpl-badge">{{ $t(`templates.categories.${row.category}`) }}</span>
               </div>
               <p v-if="row.description" class="tpl-card-desc">{{ row.description }}</p>
               <p class="tpl-card-meta">
-                <span v-if="row.owner.username">
-                  {{ $t('templates.meta.by', { name: row.owner.username }) }}
-                </span>
-                <span v-if="row.owner.username" aria-hidden="true">·</span>
                 <span>{{ $t('templates.meta.chars', { n: row.content.length }) }}</span>
               </p>
               <div class="tpl-card-actions">
@@ -313,25 +280,6 @@
                 >
                   <Icon name="ph:copy" class="text-sm" />
                   {{ $t('templates.actions.duplicate') }}
-                </button>
-                <!-- The takedown path. Somebody has to be able to retract a
-                     template the whole site reads, and the author may be gone
-                     or no longer staff — so any staffer can, on a row they do
-                     not own. -->
-                <button
-                  v-if="isStaff"
-                  type="button"
-                  class="btn btn-xs btn-ghost text-warning"
-                  :disabled="publishing === row.id"
-                  :aria-label="$t('templates.actions.unpublishNamed', { name: row.name })"
-                  @click="togglePublish(row)"
-                >
-                  <Icon
-                    :name="publishing === row.id ? 'ph:circle-notch' : 'ph:seal-warning'"
-                    :class="publishing === row.id ? 'text-sm animate-spin' : 'text-sm'"
-                    aria-hidden="true"
-                  />
-                  {{ $t('templates.actions.unpublish') }}
                 </button>
               </div>
             </article>
@@ -370,9 +318,9 @@ useHead({ title: () => t('templates.pageTitle') });
 
 /**
  * `limit=50` is the route's ceiling and there is no pager here on purpose: a
- * user's own rows are capped by the quota (5 by default), so only the
- * staff-published list could ever overflow — and a site with more than fifty
- * published layouts has a curation problem, not a pagination one.
+ * user's own rows are capped by the quota (5 by default), so only the site
+ * catalogue could ever overflow — and a site with more than fifty curated
+ * layouts has a curation problem, not a pagination one.
  */
 const { data, pending, refresh, error } = await useFetch<FicheTemplateListResponse>(
   '/api/me/templates',
@@ -403,12 +351,13 @@ const isBuiltInDefault = computed(() => (data.value?.defaultTemplateId ?? null) 
 
 const mine = computed(() => rows.value.filter((r) => r.isMine));
 /**
- * Staff-published rows the caller does not own. `scope=all` returns the union,
- * and a row that is both mine and published comes back once — so filtering on
- * `!isMine` here is what keeps it out of this list and in "My templates".
+ * The site catalogue. A site row has no owner at all, so `isMine` is false on
+ * every one of them and the two lists cannot overlap — unlike the previous
+ * model, where a member's own site-wide template belonged in both and had to
+ * be filtered out of one by hand.
  */
-const published = computed(
-  () => rows.value.filter((r) => !r.isMine && r.visibility === 'published'),
+const siteTemplates = computed(
+  () => rows.value.filter((r) => r.visibility === 'site'),
 );
 
 const builtInLength = DEFAULT_FICHE_TEMPLATE.length;
@@ -530,69 +479,14 @@ async function confirmDelete(row: FicheTemplateRow) {
   }
 }
 
-// ── Publishing (staff) ──────────────────────────────────────────
-/**
- * Staff only, and read off the session rather than from the row.
- *
- * The API re-reads the role live from the database on every publish, so this
- * flag decides what is *shown*, never what is allowed — a stale cookie can
- * reveal a button whose request then fails, which is the right way round.
- */
-const { user } = useUserSession();
-const isStaff = computed(() => !!(user.value?.isAdmin || user.value?.isModerator));
-
-/** The row currently being published, so only its own button spins. */
-const publishing = ref<string | null>(null);
-
-/**
- * Publishing asks first; unpublishing asks harder.
- *
- * Both directions change what the whole site sees, and the second one takes
- * something away that members may already be building on — so the retract
- * confirm names the template and is styled as destructive, while publishing
- * just states the consequence.
- */
-async function togglePublish(row: FicheTemplateRow) {
-  if (publishing.value) return;
-  const next = row.visibility === 'published' ? 'private' : 'published';
-  const ok = await confirm(
-    next === 'published'
-      ? {
-          title: t('templates.confirm.publishTitle'),
-          message: t('templates.confirm.publishMessage', { name: row.name }),
-          confirmText: t('templates.actions.publish'),
-        }
-      : {
-          title: t('templates.confirm.unpublishTitle'),
-          message: t('templates.confirm.unpublishMessage', { name: row.name }),
-          confirmText: t('templates.actions.unpublish'),
-          destructive: true,
-        },
-  );
-  if (!ok) return;
-
-  publishing.value = row.id;
-  try {
-    await $fetch(`/api/me/templates/${row.id}`, {
-      method: 'PATCH',
-      body: { visibility: next },
-    });
-    notifications.success(
-      next === 'published'
-        ? t('templates.toasts.published')
-        : t('templates.toasts.unpublished'),
-    );
-    await refresh();
-  } catch (err: unknown) {
-    const e = err as { data?: { message?: string } };
-    notifications.error(e.data?.message ?? t('templates.toasts.publishFailed'));
-  } finally {
-    publishing.value = null;
-  }
-}
-
 // ── Default selection ───────────────────────────────────────────
-const settingDefault = ref(false);
+/**
+ * The row whose default is being written, not a bare boolean. A single flag
+ * disabled "set as default" on EVERY card while one request was in flight,
+ * which reads as the page having frozen; keyed by id, only the button you
+ * pressed goes quiet.
+ */
+const settingDefault = ref<string | null>(null);
 
 async function setDefault(row: FicheTemplateRow) {
   await writeDefault(row.id, true);
@@ -611,7 +505,7 @@ async function useBuiltInDefault() {
 
 async function writeDefault(templateId: string, isDefault: boolean) {
   if (settingDefault.value) return;
-  settingDefault.value = true;
+  settingDefault.value = templateId;
   try {
     await $fetch(`/api/me/templates/${templateId}/default`, {
       method: 'PUT',
@@ -623,7 +517,7 @@ async function writeDefault(templateId: string, isDefault: boolean) {
     const e = err as { data?: { message?: string } };
     notifications.error(e?.data?.message || t('templates.errors.defaultFailed'));
   } finally {
-    settingDefault.value = false;
+    settingDefault.value = null;
   }
 }
 
@@ -813,7 +707,7 @@ function formatDate(iso: string): string {
   background-color: rgb(var(--accent) / 0.12);
   color: rgb(var(--accent));
 }
-.tpl-badge--published {
+.tpl-badge--site {
   border-color: rgb(var(--info) / 0.5);
   background-color: rgb(var(--info) / 0.12);
   color: rgb(var(--info));

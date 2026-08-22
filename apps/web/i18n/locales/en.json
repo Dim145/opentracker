@@ -1498,9 +1498,25 @@
         "discardTitle": "Discard your changes?",
         "discardMessage": "This template has unsaved changes. Closing now loses them.",
         "resetTitle": "Replace the source?",
-        "resetMessage": "The editor content will be replaced by the site default layout. Nothing is saved until you save."
+        "resetMessage": "The editor content will be replaced by the site default layout. Nothing is saved until you save.",
+        "revertTitle": "Undo your changes?",
+        "revertMessage": "The source goes back to the version you last saved. Anything typed since is lost."
       },
-      "previewTooLarge": "This template renders too large to preview live. It will still generate — only the preview is skipped."
+      "previewTooLarge": "This template renders too large to preview live. It will still generate — only the preview is skipped.",
+      "revertToSaved": "Revert to saved",
+      "toolbar": {
+        "label": "BBCode tags",
+        "bold": "Bold",
+        "italic": "Italic",
+        "underline": "Underline",
+        "link": "Link",
+        "image": "Image",
+        "center": "Centre",
+        "color": "Colour",
+        "size": "Text size",
+        "undoHint": "Undo and redo work as usual",
+        "disable": "Switch the selected lines off"
+      }
     }
   },
   "admin": {
@@ -1523,7 +1539,8 @@
       "branding": "Branding",
       "notifications": "Notifications",
       "settings": "Settings",
-      "federation": "Federation"
+      "federation": "Federation",
+      "listingTemplates": "Listing templates"
     },
     "descriptions": {
       "dashboard": "Tracker configuration and node management",
@@ -1542,7 +1559,8 @@
       "branding": "Customize site appearance and branding",
       "notifications": "Configure external notification channels (email, Discord, Telegram, …)",
       "settings": "System-wide registration and tracker settings",
-      "federation": "Link this tracker with trusted Trackarr instances"
+      "federation": "Link this tracker with trusted Trackarr instances",
+      "listingTemplates": "Curate the listing layouts every member can pick in the upload wizard."
     },
     "federation": {
       "intro": "Connect this tracker to other Trackarr instances you trust. You decide who you link with and exactly what you share — inbound links need your approval.",
@@ -3058,11 +3076,30 @@
       "saveContent": "Save Homepage Content"
     },
     "templates": {
-      "title": "Presentation templates",
+      "title": "Site templates",
       "description": "Users can save their own BBCode templates for the listing generator. The built-in default template is always available and is not counted here.",
       "quotaPerUser": "Templates per user",
       "quotaHint": "How many templates a single user may own, published ones included. 1–100. Default: 5.",
-      "templatesLabel": "templates"
+      "templatesLabel": "templates",
+      "lede": "Layouts offered to every member in the upload wizard, next to the built-in default. Members cannot add one — this page is the only way in. Copies members already made are theirs and are not affected by anything you change here.",
+      "empty": "No site template yet. Members see only the built-in layout and whatever they write themselves.",
+      "loadFailed": "The site templates could not be loaded.",
+      "actions": {
+        "add": "Add a template",
+        "removeNamed": "Remove “{name}” from the site catalogue"
+      },
+      "meta": {
+        "addedBy": "Added by {name}",
+        "addedByUnknown": "Added by a deleted account"
+      },
+      "confirm": {
+        "removeTitle": "Remove this template?",
+        "removeMessage": "“{name}” stops being offered to members. Copies they already made stay theirs, and listings already posted are untouched."
+      },
+      "toasts": {
+        "removed": "Template removed from the catalogue",
+        "removeFailed": "The template could not be removed"
+      }
     },
     "requests": {
       "title": "Bounty board",
@@ -4302,11 +4339,11 @@
       "template": "Listing template",
       "templateBuiltin": "Built-in template",
       "templateMine": "My templates",
-      "templateShared": "Published by the staff",
       "templateDefaultOption": "{name} (default)",
       "manageTemplates": "Manage my templates",
       "templateBroken": "This template could not be rendered, so the built-in listing is shown instead:",
-      "templateNoTechnicalGate": "This template does not gate its technical section: the values are emptied, but the labels it writes itself stay."
+      "templateNoTechnicalGate": "This template does not gate its technical section: the values are emptied, but the labels it writes itself stay.",
+      "templateSite": "Site templates"
     },
     "preview": {
       "title": "Preview"
@@ -4331,8 +4368,6 @@
     "quotaReached": "You have reached your limit of {max} templates. Delete one to make room.",
     "groupBuiltIn": "Built-in layout",
     "groupMine": "My templates",
-    "groupPublished": "Published by staff",
-    "publishedHelp": "Read-only. Duplicate one to get an editable copy of your own; the original keeps working even after you change your copy.",
     "noDescription": "No description",
     "copyOf": "{name} (copy)",
     "builtIn": {
@@ -4341,13 +4376,12 @@
     },
     "meta": {
       "chars": "{n} characters",
-      "updated": "Updated {date}",
-      "by": "By {name}"
+      "updated": "Updated {date}"
     },
     "badges": {
       "builtIn": "Built-in",
       "default": "Default",
-      "published": "Published"
+      "site": "Site"
     },
     "categories": {
       "universal": "Universal",
@@ -4393,11 +4427,7 @@
       "setDefault": "Set as default",
       "startFromBuiltIn": "Start from the default layout",
       "retry": "Retry",
-      "deleteNamed": "Delete the template “{name}”",
-      "publish": "Publish",
-      "unpublish": "Unpublish",
-      "publishNamed": "Publish \"{name}\" to the whole site",
-      "unpublishNamed": "Unpublish \"{name}\" and hide it from the site"
+      "deleteNamed": "Delete the template “{name}”"
     },
     "empty": {
       "title": "No template of your own yet",
@@ -4405,25 +4435,20 @@
     },
     "confirm": {
       "deleteTitle": "Delete this template?",
-      "deleteMessage": "“{name}” will be removed for good. Listings already published are untouched.",
-      "publishTitle": "Publish this template?",
-      "publishMessage": "Every member will see \"{name}\" in their listing generator and be able to copy it. Any image it loads from another site will log each viewer’s IP address there. You can unpublish it later.",
-      "unpublishTitle": "Unpublish this template?",
-      "unpublishMessage": "Members will no longer see \"{name}\" or be able to copy it. Anyone who already copied it keeps their copy, and listings already posted are unaffected."
+      "deleteMessage": "“{name}” will be removed for good. Listings already published are untouched."
     },
     "toasts": {
       "created": "Template created",
       "updated": "Template saved",
       "deleted": "Template deleted",
-      "defaultSet": "Default layout changed",
-      "published": "Template published to the whole site",
-      "unpublished": "Template unpublished",
-      "publishFailed": "Could not change the template visibility"
+      "defaultSet": "Default layout changed"
     },
     "errors": {
       "loadFailed": "Your templates could not be loaded.",
       "deleteFailed": "The template could not be deleted.",
       "defaultFailed": "The default layout could not be changed."
-    }
+    },
+    "groupSite": "Site templates",
+    "siteHelp": "Layouts the staff curated for everyone, alongside the built-in one. Read-only: duplicate one to get an editable copy of your own."
   }
 }

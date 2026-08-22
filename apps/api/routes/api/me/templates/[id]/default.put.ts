@@ -5,10 +5,13 @@
  * `{ "isDefault": false }`.
  *
  * The flag lives on the row, so only a template the caller owns can be
- * their default: to build on somebody else's published template you copy
- * it into one of your own first. That is a deliberate consequence of the
- * one-column model — the alternative (a per-user pointer table) would buy
- * nothing, since a copy is what you want anyway the moment you edit.
+ * their default: to make a site template your default you duplicate it into
+ * one of your own first. That is a deliberate consequence of the one-column
+ * model, and the CHECK constraint spells it out — a site template has no
+ * owner, so it cannot carry one member's preference. A per-user pointer table
+ * would buy the ability to default straight to a site template without a copy;
+ * it would also mean an admin editing that template silently changes what
+ * every member's next upload looks like, which a copy makes explicit.
  *
  * Own endpoint rather than a PATCH field because setting a default is a
  * single-winner move: it has to clear the previous holder in the same
@@ -44,7 +47,11 @@ export default defineEventHandler(async (event) => {
   }
   const body = parsed.data;
 
-  const now = new Date();
+  // `updatedAt` is deliberately left alone by both statements below. It means
+  // "when was this template last changed", and the list page renders it as
+  // "Updated <date>" next to the character count — moving it because the
+  // reader flipped which template is preselected told them the template had
+  // been edited when nothing about it had.
   await db.transaction(async (tx) => {
     // Ownership is checked BEFORE anything is written, and the failure is
     // thrown from inside the transaction so it rolls back.
@@ -74,7 +81,7 @@ export default defineEventHandler(async (event) => {
     if (body.isDefault) {
       await tx
         .update(schema.presentationTemplates)
-        .set({ isDefault: false, updatedAt: now })
+        .set({ isDefault: false })
         .where(
           and(
             eq(schema.presentationTemplates.ownerId, user.id),
@@ -88,7 +95,7 @@ export default defineEventHandler(async (event) => {
     // true even if the two statements are ever reordered.
     await tx
       .update(schema.presentationTemplates)
-      .set({ isDefault: body.isDefault, updatedAt: now })
+      .set({ isDefault: body.isDefault })
       .where(
         and(
           eq(schema.presentationTemplates.id, id),

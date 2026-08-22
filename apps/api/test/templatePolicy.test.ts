@@ -1,17 +1,20 @@
 /**
- * The three decisions behind presentation templates: how many a user may
- * own, who may read one, and who may publish one.
+ * The quota behind presentation templates: how many a member may own, and
+ * what the refusal tells them.
  *
- * All pure on purpose. "Can a stranger read a private template" and "can
- * a non-staff user publish site-wide" are exactly the rules a later edit
- * inverts by accident, and a test that needs Postgres to catch that is a
- * test nobody runs.
+ * Pure on purpose. A cap read from a hand-editable settings row is exactly
+ * the kind of value a later edit turns into NaN or a negative number, and a
+ * test that needs Postgres to catch that is a test nobody runs.
+ *
+ * The visibility suites that used to sit below (`canWriteTemplate`,
+ * `resolveTemplateVisibility`) are gone with the functions: members cannot
+ * make a template site-wide at all now, and the site catalogue is written by
+ * /api/admin/templates behind `requireAdminSession`, which is a route guard
+ * rather than a decision to unit-test.
  */
 import { describe, it, expect } from 'vitest';
 import {
-  canWriteTemplate,
   clampTemplateQuota,
-  resolveTemplateVisibility,
   templateQuotaMessage,
   TEMPLATE_QUOTA_DEFAULT,
   TEMPLATE_QUOTA_MAX,
@@ -70,114 +73,5 @@ describe('templateQuotaMessage', () => {
 
   it('does not say "1 templates"', () => {
     expect(templateQuotaMessage(1)).toContain('1 template ');
-  });
-});
-
-describe('canWriteTemplate', () => {
-  const me = { id: 'me', isStaff: false };
-  const meStaff = { id: 'me', isStaff: true };
-
-  it('is owner-only on a private draft, staff or not', () => {
-    expect(canWriteTemplate({ ownerId: 'me', visibility: 'private' }, me)).toBe(true);
-    expect(canWriteTemplate({ ownerId: 'them', visibility: 'private' }, me)).toBe(false);
-    // Staff get no read or write bypass on somebody's draft: there is no
-    // moderation case for it, and the publish action works on your own rows.
-    expect(canWriteTemplate({ ownerId: 'them', visibility: 'private' }, meStaff)).toBe(
-      false,
-    );
-  });
-
-  it('requires a live staff role to write a published template, even your own', () => {
-    // The demotion hole this closes: publish while staff, lose the role,
-    // keep rewriting what the whole site renders.
-    expect(canWriteTemplate({ ownerId: 'me', visibility: 'published' }, me)).toBe(false);
-    expect(canWriteTemplate({ ownerId: 'me', visibility: 'published' }, meStaff)).toBe(
-      true,
-    );
-  });
-
-  it('lets staff take down a published template they do not own', () => {
-    // Without this a published template whose author went inactive had no
-    // removal path at all.
-    expect(canWriteTemplate({ ownerId: 'them', visibility: 'published' }, meStaff)).toBe(
-      true,
-    );
-  });
-
-  it('refuses an anonymous caller whatever the row', () => {
-    const anon = { id: null, isStaff: false };
-    const anonStaff = { id: null, isStaff: true };
-    expect(canWriteTemplate({ ownerId: 'them', visibility: 'private' }, anon)).toBe(false);
-    // isStaff without an id is nonsense, but the guard must not be reachable.
-    expect(canWriteTemplate({ ownerId: 'them', visibility: 'published' }, anonStaff)).toBe(
-      false,
-    );
-  });
-
-  it('treats an unrecognised visibility as private', () => {
-    // The column is plain text; a hand-edited row must fail closed.
-    expect(canWriteTemplate({ ownerId: 'them', visibility: 'draft' }, meStaff)).toBe(
-      false,
-    );
-    expect(canWriteTemplate({ ownerId: 'me', visibility: 'draft' }, me)).toBe(true);
-  });
-});
-
-describe('resolveTemplateVisibility', () => {
-  it('leaves the current value alone when the field is absent', () => {
-    // A rename must not unpublish anything.
-    const d = resolveTemplateVisibility({
-      current: 'published',
-      isStaff: false,
-    });
-    expect(d).toEqual({ ok: true, visibility: 'published' });
-  });
-
-  it('lets a non-staff user restate the value they already have', () => {
-    const d = resolveTemplateVisibility({
-      requested: 'private',
-      current: 'private',
-      isStaff: false,
-    });
-    expect(d).toEqual({ ok: true, visibility: 'private' });
-  });
-
-  it('refuses a non-staff user publishing site-wide', () => {
-    const d = resolveTemplateVisibility({
-      requested: 'published',
-      current: 'private',
-      isStaff: false,
-    });
-    expect(d.ok).toBe(false);
-    // The message is shown verbatim by the FE, so it has to name the rule.
-    expect(d.ok === false && d.message).toContain('staff');
-  });
-
-  it('refuses a non-staff user unpublishing too', () => {
-    // Retracting a template the site relies on is as disruptive as
-    // publishing an unvetted one.
-    const d = resolveTemplateVisibility({
-      requested: 'private',
-      current: 'published',
-      isStaff: false,
-    });
-    expect(d.ok).toBe(false);
-  });
-
-  it('lets staff move it in both directions', () => {
-    expect(
-      resolveTemplateVisibility({
-        requested: 'published',
-        current: 'private',
-        isStaff: true,
-      }),
-    ).toEqual({ ok: true, visibility: 'published' });
-    expect(
-      resolveTemplateVisibility({
-        requested: 'private',
-        current: 'published',
-        isStaff: true,
-      }),
-    ).toEqual({ ok: true, visibility: 'private' });
   });
 });

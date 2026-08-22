@@ -218,6 +218,13 @@
       "when": 1787416630820,
       "tag": "0030_nebulous_supreme_intelligence",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1787432207086,
+      "tag": "0031_same_silvermane",
+      "breakpoints": true
     }
   ]
 }

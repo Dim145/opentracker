@@ -7,12 +7,13 @@
  * it grows a helper that decides anything, that decision belongs to whichever
  * surface asked for it.
  *
- * Mirrored from apps/api/routes/api/me/templates/*. Every shape here is what
+ * Mirrored from apps/api/routes/api/me/templates/* and, for the site
+ * catalogue, apps/api/routes/api/admin/templates/*. Every shape here is what
  * those handlers actually return — including the field names that do not read
  * the way you would guess (`data` not `items`, `isMine` not `isOwn`,
  * `visibility` rather than a boolean).
  *
- *   GET    /api/me/templates?scope=all|mine|published&category=&page=&limit=
+ *   GET    /api/me/templates?scope=all|mine|site&category=&page=&limit=
  *          -> FicheTemplateListResponse   (limit caps at 50, default 24)
  *   POST   /api/me/templates              body FicheTemplateWriteBody
  *          -> { id, isDefault }           (the FIRST template a user creates
@@ -21,6 +22,15 @@
  *          -> { success: true }
  *   DELETE /api/me/templates/:id          -> { success: true }
  *   PUT    /api/me/templates/:id/default  body { isDefault?: boolean }
+ *
+ * And the admin screen's own four, which are the ONLY way a `site` row comes
+ * into being — there is no member path to one:
+ *
+ *   GET    /api/admin/templates           -> { data: SiteTemplateRow[] }
+ *          (unpaginated: a curated catalogue an operator audits, not a feed)
+ *   POST   /api/admin/templates           body FicheTemplateWriteBody -> { id }
+ *   PATCH  /api/admin/templates/:id       body: any subset -> { success: true }
+ *   DELETE /api/admin/templates/:id       -> { success: true }
  *
  * There is no endpoint that selects the built-in default, because the built-in
  * default is `DEFAULT_FICHE_TEMPLATE` — a constant, with no row to point at.
@@ -42,8 +52,16 @@ export const FICHE_TEMPLATE_CATEGORIES = ['universal', 'video'] as const;
 
 export type FicheTemplateCategory = (typeof FICHE_TEMPLATE_CATEGORIES)[number];
 
-/** `published` is staff-only, enforced server-side against the live role. */
-export type FicheTemplateVisibility = 'private' | 'published';
+/**
+ * `private` is a member's own template. `site` is one an admin put in the
+ * catalogue every member sees, alongside the built-in default.
+ *
+ * There is no member-facing way to produce a `site` row: the member write
+ * routes have no `visibility` field at all, and the only endpoints that set it
+ * are under /api/admin/templates behind `requireAdminSession`. A UI that
+ * offered "publish" would be offering something the API refuses to hear.
+ */
+export type FicheTemplateVisibility = 'private' | 'site';
 
 /**
  * The same 15 000 the create and edit routes cap `content` at in zod. Kept as
@@ -64,12 +82,19 @@ export interface FicheTemplateRow {
   /** Raw template source, byte-for-byte as the author stored it. */
   content: string;
   visibility: FicheTemplateVisibility;
-  /** The caller's own default pick. Always false on somebody else's row. */
+  /** The caller's own default pick. A site template can never carry one. */
   isDefault: boolean;
   /** Computed server-side. The UI only hides buttons with it — the route decides. */
   isMine: boolean;
+  /**
+   * The same rule the write routes enforce: a member may edit their own
+   * template and nothing else. False on every site template, whoever is
+   * looking — an admin edits those on the admin screen, through a different
+   * route with a different guard.
+   */
   canEdit: boolean;
-  owner: { id: string; username: string | null };
+  /** null on a site template: it belongs to the site, not to a person. */
+  owner: { id: string; username: string | null } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -83,9 +108,31 @@ export interface FicheTemplateListResponse {
   pagination: { page: number; limit: number; total: number; pages: number };
 }
 
+/**
+ * The body every write route takes — member and admin alike. There is
+ * deliberately no `visibility` here: whether a row is private or site-wide is
+ * decided by WHICH endpoint you reach, never by a field the client sends.
+ */
 export interface FicheTemplateWriteBody {
   name: string;
   description: string | null;
   category: FicheTemplateCategory;
   content: string;
+}
+
+/**
+ * A site catalogue row as the admin screen sees it. Same template, one extra
+ * fact: who added it — the only trace of a staff action the schema keeps.
+ * `createdBy` is null once that account is gone (ON DELETE SET NULL), which is
+ * why losing the name cannot lose the row.
+ */
+export interface SiteTemplateRow {
+  id: string;
+  name: string;
+  description: string | null;
+  category: FicheTemplateCategory;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: { id: string; username: string | null } | null;
 }

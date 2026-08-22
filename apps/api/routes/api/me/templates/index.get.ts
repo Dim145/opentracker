@@ -1,9 +1,9 @@
 /**
  * GET /api/me/templates
  *
- * The caller's presentation templates, plus the staff-published ones
- * everybody can copy from. Query params:
- *   - scope: 'mine' | 'published' | 'all' (default 'all')
+ * The caller's own presentation templates, plus the site templates an admin
+ * curated for everybody. Query params:
+ *   - scope: 'mine' | 'site' | 'all' (default 'all')
  *   - category: 'universal' | 'video'
  *   - page, limit
  *
@@ -11,7 +11,8 @@
  * per-template GET, and the fiche wizard needs the source to render a
  * preview the moment the picker changes. That is also why `limit` is
  * capped lower than the usual 100 — a page here is up to 50 × 15 000
- * characters of template source.
+ * characters of template source, and why the route is rate limited despite
+ * being a read: `?scope=all&limit=50` is ~750 kB of answer.
  *
  * The response carries the caller's quota alongside the rows so the UI
  * can render "3 / 5" without a second round-trip, and so the number it
@@ -20,12 +21,13 @@
  * default may sit on a page they are not currently looking at.
  */
 import { db, schema } from '@trackarr/db';
-import { and, desc, eq, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { getTemplateQuotaPerUser } from '~~/utils/settings';
 
 const querySchema = z.object({
-  scope: z.enum(['mine', 'published', 'all']).default('all'),
+  scope: z.enum(['mine', 'site', 'all']).default('all'),
   category: z.enum(['universal', 'video']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(24),
@@ -33,31 +35,36 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
+  // A read, but an expensive one — see the header. The generous `public`
+  // bucket (100/min) rather than `mutation` (10/min): the list page and the
+  // wizard both refetch after every write, and throttling those alongside
+  // the writes themselves would make the UI stall on ordinary use.
+  await rateLimit(event, RATE_LIMITS.public);
   const query = querySchema.parse(getQuery(event));
   const offset = (query.page - 1) * query.limit;
 
   const mine = eq(schema.presentationTemplates.ownerId, user.id);
-  const published = eq(schema.presentationTemplates.visibility, 'published');
+  const site = eq(schema.presentationTemplates.visibility, 'site');
 
   const conditions: SQL[] = [];
   if (query.scope === 'mine') {
     conditions.push(mine);
-  } else if (query.scope === 'published') {
-    conditions.push(published);
+  } else if (query.scope === 'site') {
+    conditions.push(site);
   } else {
     // THIS is where read access is decided: a template is visible to its
-    // owner, or to anybody once it is published, and to nobody else. The
-    // rule used to be restated as a `canReadTemplate()` helper in
-    // utils/templatePolicy.ts — exported, unit-tested, and called by no
-    // route. That is worse than no helper: an auditor reads a one-line
+    // owner, or to everybody once an admin has made it a site template, and
+    // to nobody else. The rule used to be restated as a `canReadTemplate()`
+    // helper in utils/templatePolicy.ts — exported, unit-tested, and called
+    // by no route. That is worse than no helper: an auditor reads a one-line
     // answer to "can a stranger read a private draft" and believes it is
     // enforced, while the enforcement is here and free to drift away from
     // it. The rule lives with its implementation instead.
     //
-    // A row that is both mine and published must appear once, which is
-    // what OR gives us — the alternative (two queries, concatenated)
-    // would have to dedupe and would break the pagination count.
-    conditions.push(or(mine, published) as SQL);
+    // A site row has no owner, so the two branches cannot both match and no
+    // dedupe is needed — but OR is still what keeps the pagination count
+    // honest against the alternative of two concatenated queries.
+    conditions.push(or(mine, site) as SQL);
   }
   if (query.category) {
     conditions.push(eq(schema.presentationTemplates.category, query.category));
@@ -86,21 +93,26 @@ export default defineEventHandler(async (event) => {
         ownerUsername: schema.users.username,
       })
       .from(schema.presentationTemplates)
-      .innerJoin(
+      // LEFT, not INNER: a site template has no owner at all, and an inner
+      // join would silently drop the whole site catalogue.
+      .leftJoin(
         schema.users,
         eq(schema.presentationTemplates.ownerId, schema.users.id),
       )
       .where(where)
-      .orderBy(desc(schema.presentationTemplates.createdAt))
+      // `id` breaks the tie. Two rows created in the same microsecond would
+      // otherwise have no defined order, and a row can appear on two pages
+      // or on none when the sort is unstable.
+      .orderBy(desc(schema.presentationTemplates.createdAt), asc(schema.presentationTemplates.id))
       .limit(query.limit)
       .offset(offset),
     db
       .select({ value: sql<number>`count(*)::int` })
       .from(schema.presentationTemplates)
       .where(where),
-    // The quota counts the caller's own rows only, published ones
-    // included — publishing is a visibility flag, not a hand-off, so
-    // the row still belongs to (and is maintained by) its author.
+    // The quota counts the caller's own rows only. Site templates have no
+    // owner, so they cannot land in this count — an admin curating the site
+    // catalogue does not spend their personal allowance on it.
     db
       .select({ value: sql<number>`count(*)::int` })
       .from(schema.presentationTemplates)
@@ -118,7 +130,7 @@ export default defineEventHandler(async (event) => {
   ]);
 
   const data = rows.map((r) => {
-    const isMine = r.ownerId === user.id;
+    const isMine = r.ownerId !== null && r.ownerId === user.id;
     return {
       id: r.id,
       name: r.name,
@@ -126,19 +138,19 @@ export default defineEventHandler(async (event) => {
       category: r.category,
       content: r.content,
       visibility: r.visibility,
-      // Another user's default pick is their business — reporting it
-      // would have the picker highlight a row the caller never chose.
-      isDefault: isMine ? r.isDefault : false,
+      isDefault: r.isDefault,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
       isMine,
-      // Computed server-side so the UI never re-derives the rule (a
-      // published template is readable by all, writable by its owner).
+      // Computed server-side so the UI never re-derives the rule, and it is
+      // now the same rule the write routes enforce: a member may write to
+      // their own template and to nothing else. A site template is read-only
+      // here whoever is asking — admins edit it on the admin screen, which
+      // is a different route with a different guard.
       canEdit: isMine,
-      owner: {
-        id: r.ownerId,
-        username: r.ownerUsername,
-      },
+      // A site template has no owner to attribute. `null` rather than an
+      // empty object so the UI cannot render "by " with nothing after it.
+      owner: r.ownerId === null ? null : { id: r.ownerId, username: r.ownerUsername },
     };
   });
 

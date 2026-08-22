@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   primaryKey,
   customType,
+  check,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 import { ftsVector } from './search';
@@ -2518,12 +2519,21 @@ export const presentationTemplates = pgTable(
   'presentation_templates',
   {
     id: text('id').primaryKey(), // UUID
-    // The template dies with its author. Even a published one: consumers
-    // copy it into a template of their own rather than referencing it, so
-    // cascading costs nobody their work.
-    ownerId: text('owner_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+    // NULL for a site template, which belongs to the site rather than to a
+    // person: an admin adds it, and it has to outlive whoever that was.
+    // Members' own templates keep an owner and still cascade away with the
+    // account, so a deleted user leaves no orphan drafts behind.
+    ownerId: text('owner_id').references(() => users.id, {
+      onDelete: 'cascade',
+    }),
+    // Attribution only, and only meaningful on a site template — "who put
+    // this in front of the whole site". SET NULL rather than cascade: losing
+    // the name of the admin who added it must not take the template with it.
+    // This is the closest thing the app has to an audit trail; there is no
+    // staff action log anywhere in the schema.
+    createdBy: text('created_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     name: text('name').notNull(),
     description: text('description'),
     // universal | video — what the template's variables assume about the
@@ -2537,7 +2547,13 @@ export const presentationTemplates = pgTable(
      *  trimmed or normalised. The 15 000-character cap lives in zod: the
      *  schema has no varchar and no CHECK constraint anywhere. */
     content: text('content').notNull(),
-    // private | published
+    // private | site
+    //
+    // `private` is a member's own template. `site` is one an admin added for
+    // everybody, alongside the built-in default — the word is deliberately
+    // not "published": nobody publishes anything here any more, members
+    // cannot make a template site-wide at all, and only the admin screen
+    // writes this value.
     visibility: text('visibility').default('private').notNull(),
     // The owner's own pick, pre-selected by the wizard. Not a site-wide
     // default — that one is the code constant and cannot be overridden.
@@ -2551,13 +2567,13 @@ export const presentationTemplates = pgTable(
       table.ownerId,
       table.createdAt,
     ),
-    // Partial, because the shared catalogue is a handful of rows inside a
+    // Partial, because the site catalogue is a handful of rows inside a
     // table that is otherwise all private drafts: a plain index on
     // `visibility` would be mostly dead weight and would still have to
-    // filter. Category leads the key since the picker always scopes by it.
-    index('presentation_templates_published_idx')
+    // filter. Category leads the key since the picker scopes by it.
+    index('presentation_templates_site_idx')
       .on(table.category, table.createdAt)
-      .where(sql`${table.visibility} = 'published'`),
+      .where(sql`${table.visibility} = 'site'`),
     // One default per owner, enforced structurally. The endpoint that
     // moves the flag clears the previous holder in the same transaction;
     // this index makes a codepath that forgets impossible rather than
@@ -2566,6 +2582,16 @@ export const presentationTemplates = pgTable(
     uniqueIndex('presentation_templates_default_unique')
       .on(table.ownerId)
       .where(sql`${table.isDefault}`),
+    // The two shapes a row is allowed to have, so no codepath can invent a
+    // third. A member's template has an owner; a site template has none and
+    // is nobody's personal default — which also keeps the partial unique
+    // index above meaningful, since NULL owners would otherwise let any
+    // number of site rows claim `is_default`.
+    check(
+      'presentation_templates_scope_ck',
+      sql`(${table.visibility} = 'private' AND ${table.ownerId} IS NOT NULL)
+          OR (${table.visibility} = 'site' AND ${table.ownerId} IS NULL AND ${table.isDefault} = false)`,
+    ),
   ],
 );
 

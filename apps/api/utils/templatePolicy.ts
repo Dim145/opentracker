@@ -1,17 +1,20 @@
 /**
- * Pure decisions for presentation templates: how many a user may own,
- * who may see one, and who may publish one.
+ * Pure decisions for presentation templates: how many a member may own, and
+ * what they are told when they hit the ceiling.
  *
- * These live outside the route handlers on purpose. Every one of them is
- * a rule an auditor will want to read in isolation — "can a stranger read
- * a private template" is a one-line question that should not require
- * reconstructing a Nitro handler in your head — and being side-effect
- * free they are the only part of the feature apps/api/test can cover
- * without a database.
+ * These live outside the route handlers on purpose. The quota is a rule an
+ * auditor will want to read in isolation, and being side-effect free it is the
+ * part of the feature apps/api/test can cover without a database.
+ *
+ * There is deliberately no visibility policy here any more. Members own
+ * private templates and nothing else; the catalogue everybody sees is written
+ * only by /api/admin/templates, which is gated by `requireAdminSession` and
+ * has no per-row rule to express. The helpers that used to decide "may this
+ * viewer write to a published row" (`canWriteTemplate`,
+ * `resolveTemplateVisibility`) are gone rather than kept for symmetry: a
+ * policy function nothing calls is worse than none, because it reads like
+ * enforcement while the real enforcement drifts away from it.
  */
-
-/** private — owner only. published — readable by everyone, copyable. */
-export type TemplateVisibility = 'private' | 'published';
 
 // The quota bounds. The default is deliberately low: a template is a
 // stored-text surface, and an operator who wants generosity only has to
@@ -60,76 +63,4 @@ export function templateQuotaMessage(quota: number): string {
   return `You have reached your limit of ${quota} template${
     quota === 1 ? '' : 's'
   } — delete one before creating another`;
-}
-
-/**
- * Who may write to a template — and it depends on whether the site is
- * reading it.
- *
- * A private template is a draft: owner only, nobody else has any business
- * there. A PUBLISHED one is site-wide content, and two problems come with
- * treating it as ordinary property.
- *
- * The first is that a staffer who publishes and is later demoted keeps
- * editing what everyone sees. Gating publish/unpublish on a live role
- * check while leaving `content` ungated meant an ex-staffer could rewrite
- * the body of a template the whole site renders — the role check simply
- * never fired, because `visibility` was not the field being changed.
- *
- * The second is the mirror image: with write locked to the owner, a
- * published template nobody could reach was unremovable. No route, no
- * admin screen, no bypass — if the author went inactive the site was
- * stuck with it.
- *
- * So: writing to a published row requires a LIVE staff role, whether you
- * own it or not. That closes the demotion hole and hands the operator a
- * takedown path in the same rule. The cost is that a non-staff owner
- * cannot edit their own published template — correct, since they could
- * not have published it either, and a copy is one click away.
- */
-export function canWriteTemplate(
-  row: { ownerId: string; visibility: string },
-  viewer: { id: string | null; isStaff: boolean },
-): boolean {
-  if (viewer.id === null) return false;
-  if (row.visibility === 'published') return viewer.isStaff;
-  return row.ownerId === viewer.id;
-}
-
-export type VisibilityDecision =
-  | { ok: true; visibility: TemplateVisibility }
-  | { ok: false; message: string };
-
-/**
- * Resolve the visibility a write should land on.
- *
- * `requested` absent means "leave it alone", which is why `current` has
- * to be passed: a non-staff owner editing the name of a template a
- * staffer published (they can't — but the rule has to hold anyway) must
- * not silently unpublish it by omitting the field.
- *
- * Both directions are gated on staff, not just publishing. Unpublishing
- * is equally a change to what the whole site sees, and an ex-staffer
- * quietly retracting a template the community had come to rely on is the
- * same disruption as an unvetted one appearing.
- */
-export function resolveTemplateVisibility(args: {
-  requested?: TemplateVisibility;
-  current: TemplateVisibility;
-  isStaff: boolean;
-}): VisibilityDecision {
-  const { requested, current, isStaff } = args;
-  if (requested === undefined || requested === current) {
-    return { ok: true, visibility: current };
-  }
-  if (!isStaff) {
-    return {
-      ok: false,
-      message:
-        requested === 'published'
-          ? 'Only staff can publish a template to the whole site'
-          : 'Only staff can unpublish a template',
-    };
-  }
-  return { ok: true, visibility: requested };
 }

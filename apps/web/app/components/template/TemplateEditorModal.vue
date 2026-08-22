@@ -99,19 +99,55 @@
             <label class="tpl-label" for="tpl-content">
               {{ $t('components.templateEditor.fields.source') }}
             </label>
+            <div class="flex items-center gap-1 flex-wrap">
+              <button
+                v-if="canRevert"
+                type="button"
+                class="btn btn-xs btn-ghost"
+                @click="revertToSaved"
+              >
+                <Icon name="ph:clock-counter-clockwise" class="text-sm" />
+                {{ $t('components.templateEditor.revertToSaved') }}
+              </button>
+              <button
+                v-if="!readonly"
+                type="button"
+                class="btn btn-xs btn-ghost"
+                @click="resetToDefault"
+              >
+                <Icon name="ph:arrow-counter-clockwise" class="text-sm" />
+                {{ $t('components.templateEditor.resetToDefault') }}
+              </button>
+            </div>
+          </div>
+          <!-- Tag buttons for the BBCode the scaffolding is made of, mirroring
+               the code mode of the upload editor. Every one of them is also a
+               shortcut, and the shortcut is in the tooltip: a toolbar that
+               teaches its own keyboard equivalent is how people stop using the
+               toolbar. -->
+          <div v-if="!readonly" class="tpl-toolbar" role="group" :aria-label="$t('components.templateEditor.toolbar.label')">
             <button
-              v-if="!readonly"
+              v-for="tool in TOOLS"
+              :key="tool.key"
               type="button"
-              class="btn btn-xs btn-ghost"
-              @click="resetToDefault"
+              class="tpl-tool"
+              :title="
+                tool.hint
+                  ? `${$t(`components.templateEditor.toolbar.${tool.key}`)} · ${tool.hint}`
+                  : $t(`components.templateEditor.toolbar.${tool.key}`)
+              "
+              :aria-label="$t(`components.templateEditor.toolbar.${tool.key}`)"
+              @click="applyTool(tool)"
             >
-              <Icon name="ph:arrow-counter-clockwise" class="text-sm" />
-              {{ $t('components.templateEditor.resetToDefault') }}
+              <Icon :name="tool.icon" aria-hidden="true" />
             </button>
+            <span class="tpl-toolbar-sep" aria-hidden="true" />
+            <span class="tpl-toolbar-hint">{{ $t('components.templateEditor.toolbar.undoHint') }}</span>
           </div>
           <textarea
             id="tpl-content"
             ref="editorRef"
+            @keydown="source.onKeydown"
             v-model="content"
             class="input tpl-source"
             rows="16"
@@ -120,6 +156,7 @@
             autocomplete="off"
             :readonly="readonly"
             :aria-describedby="contentDescribedBy"
+            :aria-invalid="templateIssue ? 'true' : undefined"
             :placeholder="$t('components.templateEditor.fields.sourcePlaceholder')"
           />
           <div class="flex items-start justify-between gap-3">
@@ -329,6 +366,7 @@ import {
   type FicheVariableGroup,
 } from '~/utils/ficheTemplate';
 import { sanitizeRichHtml } from '~/utils/markdown';
+import { DISABLED_BLOCK_NAME, type SourceWrap } from '~/composables/useSourceEditor';
 import {
   TemplateError,
   assertTemplateValid,
@@ -353,14 +391,26 @@ const props = withDefaults(
     /** Pre-fills a brand-new template — the duplicate and "start from built-in" flows. */
     initialName?: string;
     initialContent?: string;
-    /** A published template the caller does not own: everything visible, nothing writable. */
+    /** A site template the caller cannot write: everything visible, nothing writable. */
     readonly?: boolean;
+    /**
+     * Where a save goes. `/api/me/templates` for a member's own; the admin
+     * screen passes `/api/admin/templates` so the site catalogue is edited by
+     * this same editor — same grammar check, same preview, same variables
+     * palette — instead of a second one that would drift from it.
+     *
+     * A prop rather than a computed guess: which endpoint to write is the
+     * caller's business, and a component that infers it from a row's shape is
+     * one refactor away from writing to the wrong one.
+     */
+    endpoint?: string;
   }>(),
   {
     template: null,
     initialName: '',
     initialContent: '',
     readonly: false,
+    endpoint: '/api/me/templates',
   },
 );
 
@@ -401,6 +451,58 @@ const formError = ref<string | null>(null);
 const editorRef = ref<HTMLTextAreaElement | null>(null);
 
 /**
+ * Programmatic edits go through here rather than assigning to `content`.
+ *
+ * Assigning wipes the textarea's native undo stack, so one click on a variable
+ * chip used to cost the author every Ctrl+Z step they had. See
+ * composables/useSourceEditor.ts — the edits are replayed as real insertions,
+ * which the browser records, so undo and redo keep working and need no
+ * bindings of our own.
+ */
+const source = useSourceEditor(editorRef, { readonly: () => props.readonly });
+
+/**
+ * The toolbar, and the shortcuts it doubles.
+ *
+ * Deliberately short. These are the tags the built-in scaffolding is built
+ * from — everything else a template needs is a variable, and those have their
+ * own palette on the right. `hint` is the printed shortcut rather than a
+ * derived one: showing "Ctrl+B" to a mac user would be wrong, so the label is
+ * built from the platform once, below.
+ */
+const isMac =
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+const MOD = isMac ? '\u2318' : 'Ctrl';
+
+interface SourceTool {
+  key: string;
+  icon: string;
+  hint: string;
+  wrap?: SourceWrap;
+  disable?: true;
+}
+
+const TOOLS: SourceTool[] = [
+  { key: 'bold', icon: 'ph:text-b-bold', hint: `${MOD}+B`, wrap: { open: '[b]', close: '[/b]' } },
+  { key: 'italic', icon: 'ph:text-italic', hint: `${MOD}+I`, wrap: { open: '[i]', close: '[/i]' } },
+  { key: 'underline', icon: 'ph:text-underline', hint: `${MOD}+U`, wrap: { open: '[u]', close: '[/u]' } },
+  { key: 'link', icon: 'ph:link-simple', hint: `${MOD}+K`, wrap: { open: '[url=]', close: '[/url]' } },
+  { key: 'image', icon: 'ph:image', hint: '', wrap: { open: '[img]', close: '[/img]' } },
+  { key: 'center', icon: 'ph:text-align-center', hint: '', wrap: { open: '[center]', close: '[/center]' } },
+  { key: 'color', icon: 'ph:palette', hint: '', wrap: { open: '[color=#3d85c6]', close: '[/color]' } },
+  { key: 'size', icon: 'ph:text-aa', hint: '', wrap: { open: '[size=13]', close: '[/size]' } },
+  { key: 'disable', icon: 'ph:eye-slash', hint: `${MOD}+/`, disable: true },
+];
+
+function applyTool(tool: SourceTool) {
+  if (tool.disable) {
+    source.toggleDisabled();
+    return;
+  }
+  if (tool.wrap) source.wrap(tool.wrap);
+}
+
+/**
  * The state as it was when the modal opened. Comparing against a snapshot
  * rather than tracking a `dirty` flag per field means a user who types a
  * character and deletes it again is not asked to confirm a discard.
@@ -409,7 +511,26 @@ const snapshot = () =>
   JSON.stringify([name.value, description.value, category.value, content.value]);
 let pristine = snapshot();
 
+/**
+ * The source as stored, kept so the author can walk back to it.
+ *
+ * "Reset to default" replaces the body with the BUILT-IN layout, which is the
+ * one thing an editor of a saved template almost never wants: it throws away
+ * their work AND the version they had saved. Reverting is the other direction
+ * and the common one — undo everything since I opened this — so it needs its
+ * own control rather than a comment explaining why the reset button is not it.
+ *
+ * A ref, not a plain string, because the revert control appears and disappears
+ * with it.
+ */
+const savedContent = ref('');
+
 const dirty = computed(() => !props.readonly && snapshot() !== pristine);
+
+/** Editing a stored template whose body has moved since it was opened. */
+const canRevert = computed(
+  () => !props.readonly && props.template !== null && content.value !== savedContent.value,
+);
 
 // ── Seeding ─────────────────────────────────────────────────────
 // One instance serves create, edit and read-only view; the parent swaps the
@@ -431,6 +552,10 @@ watch(
     // Reopening after a dialog was dismissed mid-flight must not leave the
     // guard stuck true, or every later close would be swallowed silently.
     confirmOpen = false;
+    // Only a stored template has a version to go back to; a create starts
+    // from the built-in layout or a duplicate, and "revert" there would mean
+    // the same thing as "reset", which already has a button.
+    savedContent.value = row ? row.content : '';
     pristine = snapshot();
   },
   { immediate: true },
@@ -466,7 +591,16 @@ const templateIssue = computed<string | null>(() => {
   }
 });
 
-const KNOWN_NAMES = new Set(FICHE_VARIABLES.map((v) => v.name));
+/**
+ * `OFF` joins the catalogue for the purposes of this warning only. It is not a
+ * variable — it is the name the "switch this block off" button writes, and a
+ * section on it never renders precisely BECAUSE nothing fills it. Flagging it
+ * as an unknown variable would scold the author for using the button.
+ */
+const KNOWN_NAMES = new Set([
+  ...FICHE_VARIABLES.map((v) => v.name),
+  DISABLED_BLOCK_NAME,
+]);
 
 /**
  * An unknown variable renders EMPTY by design, so `{{TITRE}}` is invisible
@@ -587,21 +721,17 @@ function variableLabel(v: FicheVariable): string {
 function insertVariable(varName: string) {
   if (props.readonly) return;
   const snippet = `{{${varName}}}`;
-  const el = editorRef.value;
-  if (!el) {
+  if (!editorRef.value) {
+    // The pane is not rendered (nothing to put a caret in), so appending is
+    // the only sensible reading of "insert".
     content.value += snippet;
     return;
   }
-  const start = el.selectionStart ?? content.value.length;
-  const end = el.selectionEnd ?? start;
-  content.value = content.value.slice(0, start) + snippet + content.value.slice(end);
-  // Focus returns to the textarea with the caret after the insertion, so a
-  // keyboard user can chain "insert, type, insert" without re-tabbing.
-  nextTick(() => {
-    el.focus();
-    const caret = start + snippet.length;
-    el.setSelectionRange(caret, caret);
-  });
+  // Recorded as an edit, so Ctrl+Z takes the variable back out and leaves
+  // everything typed before it intact. `insert` also returns focus with the
+  // caret after the snippet, so "insert, type, insert" chains without
+  // re-tabbing.
+  source.insert(snippet);
 }
 
 /**
@@ -661,6 +791,27 @@ async function resetToDefault() {
   }
 }
 
+async function revertToSaved() {
+  if (!canRevert.value) return;
+  // Shares `confirmOpen` with the reset and the discard dialogs: three
+  // confirms on one modal, and stacking any two of them leaves the second
+  // unreachable behind the first.
+  if (confirmOpen) return;
+  confirmOpen = true;
+  try {
+    const ok = await confirm({
+      title: t('components.templateEditor.confirm.revertTitle'),
+      message: t('components.templateEditor.confirm.revertMessage'),
+      confirmText: t('components.templateEditor.revertToSaved'),
+      cancelText: t('common.cancel'),
+      destructive: true,
+    });
+    if (ok) source.replaceAll(savedContent.value);
+  } finally {
+    confirmOpen = false;
+  }
+}
+
 async function runResetConfirm() {
   const ok = await confirm({
     title: t('components.templateEditor.confirm.resetTitle'),
@@ -669,7 +820,7 @@ async function runResetConfirm() {
     cancelText: t('common.cancel'),
   });
   if (!ok) return;
-  content.value = DEFAULT_FICHE_TEMPLATE;
+  source.replaceAll(DEFAULT_FICHE_TEMPLATE);
 }
 
 // ── Closing ─────────────────────────────────────────────────────
@@ -737,10 +888,10 @@ async function save() {
   saving.value = true;
   try {
     if (props.template) {
-      await $fetch(`/api/me/templates/${props.template.id}`, { method: 'PATCH', body });
+      await $fetch(`${props.endpoint}/${props.template.id}`, { method: 'PATCH', body });
       notifications.success(t('templates.toasts.updated'));
     } else {
-      await $fetch('/api/me/templates', { method: 'POST', body });
+      await $fetch(props.endpoint, { method: 'POST', body });
       notifications.success(t('templates.toasts.created'));
     }
     pristine = snapshot();
@@ -785,6 +936,20 @@ async function save() {
   .tpl-pane--side {
     border-left: none;
     border-top: 1px solid rgb(var(--line-default));
+  }
+
+  /* Stacked, the two panes fight for the fold. A 16-row source box pushes the
+     preview entirely off-screen, which costs the editor its whole point: you
+     type on one screenful and the consequence is on another. Shortening the
+     source and capping the pane brings both back inside one scroll of each
+     other. `rows="16"` stays the desktop shape; this only overrides the
+     rendered height. */
+  .tpl-source {
+    height: 34vh;
+    min-height: 9rem;
+  }
+  .tpl-panel {
+    max-height: 40vh;
   }
 }
 
@@ -837,7 +1002,53 @@ async function save() {
   color: rgb(var(--danger));
 }
 
+/* Tag buttons. Sits flush on top of the textarea — one control surface, not
+   a strip floating above an unrelated box. */
+.tpl-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-wrap: wrap;
+  padding: 0.25rem 0.3rem;
+  border: 1px solid rgb(var(--line-default));
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  background: rgb(var(--bg-inset, var(--bg-elevated)));
+}
+.tpl-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 26px, over the 24 CSS px WCAG 2.2 asks of a target — unlike the 22px
+     `btn-xs` the other controls in this modal inherit. */
+  width: 26px;
+  height: 26px;
+  border-radius: 2px;
+  font-size: 0.85rem;
+  color: rgb(var(--fg-muted));
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.tpl-tool:hover {
+  background: rgb(var(--fg-default) / 0.08);
+  color: rgb(var(--fg-strong));
+}
+.tpl-toolbar-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 0.25rem;
+  background: rgb(var(--line-default));
+}
+.tpl-toolbar-hint {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: rgb(var(--fg-faint));
+}
+
 .tpl-source {
+  /* Square top corners: the toolbar above owns that edge. */
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
   width: 100%;
   font-family: var(--font-mono);
   font-size: 12px;

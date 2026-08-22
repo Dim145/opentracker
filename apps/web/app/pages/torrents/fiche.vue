@@ -453,31 +453,47 @@ interface FicheTemplateRow {
    API, and the empty string is not one. */
 const BUILTIN_TEMPLATE_ID = '';
 
-/* The wizard's only request that is not a TMDb lookup. `server: false` keeps
-   it off the SSR path — the page always renders on step 1, the picker lives on
-   step 4 — and a catalogue that answers 404 or 500 leaves the list empty,
-   which degrades to the built-in template instead of breaking the step.
-   The response shape is read leniently for the same reason: the list route may
-   paginate (`data`) or not (`items`), and neither spelling should decide
-   whether a listing can be generated at all. */
-const { data: templateList } = await useFetch<{
-  data?: FicheTemplateRow[];
-  items?: FicheTemplateRow[];
-}>('/api/me/templates', { lazy: true, server: false, default: () => ({ data: [] }) });
+/* The wizard's only requests that are not a TMDb lookup, and there are TWO of
+   them on purpose.
+   One call with `scope=all` returned a single page of the union ordered by
+   creation date, so a member whose own template was older than 24 curated site
+   templates did not get it back at all: their default silently fell through to
+   the built-in layout and their own work was missing from the picker. Asking
+   for the two scopes separately makes that impossible — `scope=mine` is
+   bounded by the quota, so the member's own rows are always all of them.
+   `server: false` keeps both off the SSR path — the page always renders on
+   step 1, the picker lives on step 4 — and a catalogue that answers 404 or 500
+   leaves the list empty, which degrades to the built-in template instead of
+   breaking the step. The response shape is read leniently for the same reason:
+   the list route may paginate (`data`) or not (`items`), and neither spelling
+   should decide whether a listing can be generated at all. */
+type TemplateListShape = { data?: FicheTemplateRow[]; items?: FicheTemplateRow[] };
 
-const templates = computed<FicheTemplateRow[]>(() => {
-  const rows = templateList.value?.data ?? templateList.value?.items ?? [];
-  // A row without its content cannot render anything; offering its name would
-  // offer an empty listing.
-  return Array.isArray(rows) ? rows.filter((r) => r && typeof r.content === 'string') : [];
+const { data: mineList } = await useFetch<TemplateListShape>('/api/me/templates', {
+  key: 'fiche-templates-mine',
+  query: { scope: 'mine', limit: 50 },
+  lazy: true,
+  server: false,
+  default: () => ({ data: [] }),
+});
+const { data: siteList } = await useFetch<TemplateListShape>('/api/me/templates', {
+  key: 'fiche-templates-site',
+  query: { scope: 'site', limit: 50 },
+  lazy: true,
+  server: false,
+  default: () => ({ data: [] }),
 });
 
-/* `isMine` is the list route's spelling — see ficheTemplateApi.ts, which
-   mirrors the response shape. A row missing the flag is grouped with the
-   user's own: the flag only picks the optgroup label, never whether the
-   template can be selected. */
-const myTemplates = computed(() => templates.value.filter((r) => r.isMine !== false));
-const sharedTemplates = computed(() => templates.value.filter((r) => r.isMine === false));
+/* A row without its content cannot render anything; offering its name would
+   offer an empty listing. */
+const usable = (list: TemplateListShape | null | undefined): FicheTemplateRow[] => {
+  const rows = list?.data ?? list?.items ?? [];
+  return Array.isArray(rows) ? rows.filter((r) => r && typeof r.content === 'string') : [];
+};
+
+const myTemplates = computed(() => usable(mineList.value));
+const siteTemplates = computed(() => usable(siteList.value));
+const templates = computed(() => [...myTemplates.value, ...siteTemplates.value]);
 
 const templateId = ref(BUILTIN_TEMPLATE_ID);
 
@@ -500,6 +516,7 @@ const activeTemplate = computed(
 /* Falls back to the built-in when the selected row is gone, so a template
    deleted in another tab cannot blank the output. */
 const templateSource = computed(() => activeTemplate.value?.content ?? DEFAULT_FICHE_TEMPLATE);
+
 
 const renderWith = (template: string) =>
   renderFiche(template, work, release, sheet.value, options);
@@ -524,6 +541,24 @@ const rendered = computed<{ bbcode: string; error: string | null }>(() => {
   }
 });
 const bbcode = computed(() => rendered.value.bbcode);
+
+/**
+ * The first line the chosen template actually emits, so the picker says
+ * something about the layout before it is applied.
+ *
+ * Rendered output rather than raw source: `[center][font=Verdana][color=…]` is
+ * not a description of anything, whereas the title line it produces is. Taken
+ * from the already-computed listing so this costs nothing — and truncated,
+ * because this is a hint next to a control, not a second preview.
+ */
+const templateShape = computed(() => {
+  const line = bbcode.value
+    .split('\n')
+    .map((l) => l.replace(/\[[^\]]*\]/g, '').trim())
+    .find((l) => l.length > 0);
+  if (!line) return '';
+  return line.length > 72 ? `${line.slice(0, 71)}…` : line;
+});
 const templateError = computed(() => rendered.value.error);
 
 /* Three of the four checkboxes are folded into the variables themselves
@@ -1034,19 +1069,47 @@ onMounted(() => {
                     </option>
                   </optgroup>
                   <optgroup
-                    v-if="sharedTemplates.length"
-                    :label="$t('fiche.output.templateShared')"
+                    v-if="siteTemplates.length"
+                    :label="$t('fiche.output.templateSite')"
                   >
-                    <option v-for="tpl in sharedTemplates" :key="tpl.id" :value="tpl.id">
+                    <option v-for="tpl in siteTemplates" :key="tpl.id" :value="tpl.id">
                       {{ tpl.name }}
                     </option>
                   </optgroup>
                 </select>
-                <NuxtLink to="/templates" class="btn-ghost btn-ghost--small fiche-template-link">
+                <!-- New tab, deliberately. Everything typed into this wizard
+                     lives in component state — no store, no localStorage, no
+                     route guard — so navigating away from step 4 threw away
+                     the title, cast, synopsis, audio tracks and screenshots
+                     the author had just entered, with no warning. -->
+                <NuxtLink
+                  to="/templates"
+                  target="_blank"
+                  rel="noopener"
+                  class="btn-ghost btn-ghost--small fiche-template-link"
+                >
                   <Icon name="ph:sliders-bold" />
                   {{ $t('fiche.output.manageTemplates') }}
                 </NuxtLink>
               </div>
+              <!-- What the choice above actually means, before the author
+                   scrolls down to the output: which kind of release the
+                   template was written for, and the shape of what it emits.
+                   A bare <select> made you pick first and find out after. -->
+              <p v-if="templateShape" class="fiche-template-about">
+                <!-- Keyed on the shape, not on `activeTemplate`: the built-in
+                     layout is what most members have selected and it is not a
+                     stored row, so gating the whole line on one left the
+                     default case with no summary at all. Category and
+                     description exist only on a stored template. -->
+                <span v-if="activeTemplate" class="fiche-template-cat">
+                  {{ $t(`templates.categories.${activeTemplate.category}`) }}
+                </span>
+                <span v-if="activeTemplate?.description" class="fiche-template-desc">
+                  {{ activeTemplate.description }}
+                </span>
+                <span class="fiche-template-shape fiche-mono">{{ templateShape }}</span>
+              </p>
               <p v-if="templateError" class="fiche-template-error">
                 {{ $t('fiche.output.templateBroken') }}
                 <span class="fiche-mono">{{ templateError }}</span>
@@ -1415,6 +1478,44 @@ onMounted(() => {
   line-height: 1.5;
   color: rgb(var(--danger));
   overflow-wrap: anywhere;
+}
+/* One line under the picker: what the template is for, what it is called, and
+   the first line it renders. Flex-wrapped rather than a grid so the three
+   parts collapse in reading order on a narrow screen. */
+.fiche-template-about {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.6rem;
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: rgb(var(--fg-muted));
+}
+.fiche-template-cat {
+  flex: none;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 2px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+}
+.fiche-template-desc {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+/* The rendered first line. Dimmer than the description and clipped, because
+   it is a sample of the output rather than a statement about the template. */
+.fiche-template-shape {
+  flex: 1 1 14rem;
+  min-width: 0;
+  color: rgb(var(--fg-subtle));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .fiche-options {
   display: grid;

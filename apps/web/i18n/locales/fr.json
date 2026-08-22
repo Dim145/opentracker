@@ -1498,9 +1498,25 @@
         "discardTitle": "Abandonner vos modifications ?",
         "discardMessage": "Ce modèle contient des modifications non enregistrées. Fermer maintenant les perd.",
         "resetTitle": "Remplacer la source ?",
-        "resetMessage": "Le contenu de l’éditeur sera remplacé par la mise en page par défaut du site. Rien n’est enregistré tant que vous n’enregistrez pas."
+        "resetMessage": "Le contenu de l’éditeur sera remplacé par la mise en page par défaut du site. Rien n’est enregistré tant que vous n’enregistrez pas.",
+        "revertTitle": "Annuler vos modifications ?",
+        "revertMessage": "La source revient à la dernière version enregistrée. Tout ce qui a été tapé depuis est perdu."
       },
-      "previewTooLarge": "Ce template produit un rendu trop volumineux pour l’aperçu en direct. Il fonctionnera quand même — seul l’aperçu est ignoré."
+      "previewTooLarge": "Ce template produit un rendu trop volumineux pour l’aperçu en direct. Il fonctionnera quand même — seul l’aperçu est ignoré.",
+      "revertToSaved": "Revenir à la version enregistrée",
+      "toolbar": {
+        "label": "Balises BBCode",
+        "bold": "Gras",
+        "italic": "Italique",
+        "underline": "Souligné",
+        "link": "Lien",
+        "image": "Image",
+        "center": "Centrer",
+        "color": "Couleur",
+        "size": "Taille du texte",
+        "undoHint": "Annuler et rétablir fonctionnent normalement",
+        "disable": "Désactiver les lignes sélectionnées"
+      }
     }
   },
   "admin": {
@@ -1523,7 +1539,8 @@
       "branding": "Identité visuelle",
       "notifications": "Notifications",
       "settings": "Paramètres",
-      "federation": "Fédération"
+      "federation": "Fédération",
+      "listingTemplates": "Modèles de fiche"
     },
     "descriptions": {
       "dashboard": "Configuration du tracker et gestion des nœuds",
@@ -1542,7 +1559,8 @@
       "branding": "Personnaliser l'apparence et l'identité visuelle du site",
       "notifications": "Configurer les canaux de notifications externes (email, Discord, Telegram, …)",
       "settings": "Paramètres globaux d'inscription et de tracker",
-      "federation": "Relier ce tracker à des instances Trackarr de confiance"
+      "federation": "Relier ce tracker à des instances Trackarr de confiance",
+      "listingTemplates": "Choisir les mises en page de fiche proposées à tous les membres dans l'assistant d'upload."
     },
     "federation": {
       "intro": "Reliez ce tracker à d'autres instances Trackarr de confiance. Vous décidez avec qui vous vous liez et exactement ce que vous partagez — les liens entrants requièrent votre approbation.",
@@ -3058,11 +3076,30 @@
       "saveContent": "Enregistrer la page d'accueil"
     },
     "templates": {
-      "title": "Modèles de présentation",
+      "title": "Modèles du site",
       "description": "Les utilisateurs peuvent enregistrer leurs propres modèles BBCode pour le générateur de fiches. Le modèle par défaut intégré reste toujours disponible et n’est pas compté ici.",
       "quotaPerUser": "Modèles par utilisateur",
       "quotaHint": "Combien de modèles un même utilisateur peut posséder, publiés compris. 1–100. Défaut : 5.",
-      "templatesLabel": "modèles"
+      "templatesLabel": "modèles",
+      "lede": "Mises en page proposées à tous les membres dans l'assistant d'upload, à côté de celle d'origine. Un membre ne peut pas en ajouter : cette page est la seule entrée. Les copies déjà faites par les membres leur appartiennent et ne sont pas touchées par ce que vous changez ici.",
+      "empty": "Aucun modèle de site pour l'instant. Les membres ne voient que la mise en page d'origine et celles qu'ils écrivent eux-mêmes.",
+      "loadFailed": "Les modèles du site n’ont pas pu être chargés.",
+      "actions": {
+        "add": "Ajouter un modèle",
+        "removeNamed": "Retirer « {name} » du catalogue du site"
+      },
+      "meta": {
+        "addedBy": "Ajouté par {name}",
+        "addedByUnknown": "Ajouté par un compte supprimé"
+      },
+      "confirm": {
+        "removeTitle": "Retirer ce modèle ?",
+        "removeMessage": "« {name} » ne sera plus proposé aux membres. Les copies qu'ils ont déjà faites restent les leurs, et les fiches déjà publiées ne changent pas."
+      },
+      "toasts": {
+        "removed": "Modèle retiré du catalogue",
+        "removeFailed": "Le modèle n’a pas pu être retiré"
+      }
     },
     "requests": {
       "title": "Bourse aux demandes",
@@ -4302,11 +4339,11 @@
       "template": "Modèle de fiche",
       "templateBuiltin": "Modèle intégré",
       "templateMine": "Mes modèles",
-      "templateShared": "Publiés par le staff",
       "templateDefaultOption": "{name} (par défaut)",
       "manageTemplates": "Gérer mes modèles",
       "templateBroken": "Ce modèle n’a pas pu être rendu, la fiche intégrée est affichée à la place :",
-      "templateNoTechnicalGate": "Ce modèle ne conditionne pas sa section technique : les valeurs sont vidées, mais les libellés qu’il écrit lui-même restent affichés."
+      "templateNoTechnicalGate": "Ce modèle ne conditionne pas sa section technique : les valeurs sont vidées, mais les libellés qu’il écrit lui-même restent affichés.",
+      "templateSite": "Modèles du site"
     },
     "preview": {
       "title": "Aperçu"
@@ -4331,8 +4368,6 @@
     "quotaReached": "Vous avez atteint votre limite de {max} modèles. Supprimez-en un pour faire de la place.",
     "groupBuiltIn": "Mise en page intégrée",
     "groupMine": "Mes modèles",
-    "groupPublished": "Publiés par l’équipe",
-    "publishedHelp": "En lecture seule. Dupliquez-en un pour en obtenir une copie modifiable ; l’original continue de fonctionner même après modification de votre copie.",
     "noDescription": "Sans description",
     "copyOf": "{name} (copie)",
     "builtIn": {
@@ -4341,13 +4376,12 @@
     },
     "meta": {
       "chars": "{n} caractères",
-      "updated": "Modifié le {date}",
-      "by": "Par {name}"
+      "updated": "Modifié le {date}"
     },
     "badges": {
       "builtIn": "Intégrée",
       "default": "Par défaut",
-      "published": "Publié"
+      "site": "Site"
     },
     "categories": {
       "universal": "Universel",
@@ -4393,11 +4427,7 @@
       "setDefault": "Définir par défaut",
       "startFromBuiltIn": "Partir de la mise en page par défaut",
       "retry": "Réessayer",
-      "deleteNamed": "Supprimer le modèle « {name} »",
-      "publish": "Publier",
-      "unpublish": "Dépublier",
-      "publishNamed": "Publier « {name} » pour tout le site",
-      "unpublishNamed": "Dépublier « {name} » et le masquer du site"
+      "deleteNamed": "Supprimer le modèle « {name} »"
     },
     "empty": {
       "title": "Aucun modèle personnel pour l’instant",
@@ -4405,25 +4435,20 @@
     },
     "confirm": {
       "deleteTitle": "Supprimer ce modèle ?",
-      "deleteMessage": "« {name} » sera supprimé définitivement. Les fiches déjà publiées ne changent pas.",
-      "publishTitle": "Publier ce template ?",
-      "publishMessage": "Tous les membres verront « {name} » dans leur générateur de fiche et pourront le copier. Toute image chargée depuis un autre site y enregistrera l’adresse IP de chaque visiteur. Vous pourrez le dépublier plus tard.",
-      "unpublishTitle": "Dépublier ce template ?",
-      "unpublishMessage": "Les membres ne verront plus « {name} » et ne pourront plus le copier. Ceux qui l’ont déjà copié gardent leur copie, et les fiches déjà publiées ne changent pas."
+      "deleteMessage": "« {name} » sera supprimé définitivement. Les fiches déjà publiées ne changent pas."
     },
     "toasts": {
       "created": "Modèle créé",
       "updated": "Modèle enregistré",
       "deleted": "Modèle supprimé",
-      "defaultSet": "Mise en page par défaut modifiée",
-      "published": "Template publié pour tout le site",
-      "unpublished": "Template dépublié",
-      "publishFailed": "Impossible de changer la visibilité du template"
+      "defaultSet": "Mise en page par défaut modifiée"
     },
     "errors": {
       "loadFailed": "Impossible de charger vos modèles.",
       "deleteFailed": "Impossible de supprimer le modèle.",
       "defaultFailed": "Impossible de changer la mise en page par défaut."
-    }
+    },
+    "groupSite": "Modèles du site",
+    "siteHelp": "Mises en page retenues par le staff pour tout le monde, à côté de celle d'origine. En lecture seule : dupliquez-en une pour obtenir votre propre copie modifiable."
   }
 }
