@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
-import { db } from '@trackarr/db';
+import { db, schema } from '@trackarr/db';
 import { torrents, torrentComments } from '@trackarr/db/schema';
+import { canComment } from '~~/utils/commentPolicy';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import {
   validateParam,
@@ -22,6 +23,11 @@ export default defineEventHandler(async (event) => {
   // Find torrent by hash to get its UUID
   const torrent = await db.query.torrents.findFirst({
     where: eq(torrents.infoHash, hash.toLowerCase()),
+    with: {
+      // Only the uploader's comment policy — this handler has no
+      // business reading the rest of their row.
+      uploader: { columns: { id: true, restrictComments: true } },
+    },
   });
 
   if (!torrent) {
@@ -29,6 +35,34 @@ export default defineEventHandler(async (event) => {
       statusCode: 404,
       message: 'Torrent not found',
     });
+  }
+
+  // The uploader may require a minimum account age from commenters.
+  // Checked here rather than in the client because the client is not a
+  // security boundary: the toggle is meant to stop a throwaway account
+  // from posting, and a throwaway account can call the API directly.
+  //
+  // `createdAt` is not in the session cookie, so it costs one read on a
+  // primary key — only when the uploader has the restriction on, so the
+  // default path pays nothing.
+  if (torrent.uploader?.restrictComments) {
+    const author = await db.query.users.findFirst({
+      where: eq(schema.users.id, session.user.id),
+      columns: { id: true, createdAt: true, isAdmin: true, isModerator: true },
+    });
+    if (!author) {
+      throw createError({ statusCode: 401, message: 'Session user not found' });
+    }
+    const verdict = canComment({ uploader: torrent.uploader, author });
+    if (!verdict.allowed) {
+      // 403 with the wait in the payload so the UI can say how long
+      // rather than showing a bare refusal.
+      throw createError({
+        statusCode: 403,
+        message: 'COMMENTS_RESTRICTED_ACCOUNT_AGE',
+        data: { daysRemaining: verdict.daysRemaining },
+      });
+    }
   }
 
   const comment = await db

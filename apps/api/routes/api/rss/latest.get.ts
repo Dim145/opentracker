@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
     with: {
       category: true,
       uploader: {
-        columns: { username: true },
+        columns: { username: true, anonymousUploads: true },
       },
     },
     orderBy: [desc(schema.torrents.createdAt)],
@@ -161,7 +161,10 @@ function buildItemDescription(torrent: any): string {
     `Completed: ${torrent.stats.completed}`,
   ];
 
-  if (torrent.uploader?.username) {
+  // A feed URL is a bearer token that can be pasted anywhere, and there
+  // is no viewer to exempt, so an uploader who asked for anonymity gets
+  // it here unconditionally — staff read the site, not the RSS.
+  if (torrent.uploader?.username && !torrent.uploader.anonymousUploads) {
     parts.push(`Uploader: ${torrent.uploader.username}`);
   }
 

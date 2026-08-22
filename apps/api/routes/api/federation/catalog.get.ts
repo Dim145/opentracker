@@ -83,6 +83,7 @@ export default defineEventHandler(async (event) => {
       season: schema.torrents.season,
       episode: schema.torrents.episode,
       uploaderName: schema.users.username,
+      uploaderAnonymous: schema.users.anonymousUploads,
       seeders: schema.torrentStats.seeders,
       leechers: schema.torrentStats.leechers,
       completed: schema.torrentStats.completed,
@@ -146,7 +147,11 @@ export default defineEventHandler(async (event) => {
     seeders: r.seeders ?? 0,
     leechers: r.leechers ?? 0,
     completed: r.completed ?? 0,
-    uploaderName: r.uploaderName,
+    // An uploader who asked for anonymity gets it across the mesh too:
+    // a peer that received the name once has it for good, and we cannot
+    // reach into its cache, so the only useful moment is before it
+    // leaves. Peers already tolerate a null here (uploader deleted).
+    uploaderName: r.uploaderAnonymous ? null : r.uploaderName,
     createdAt: r.createdAt,
     // Links back to the origin instance — followed with a local account
     // there. We never hand over the `.torrent` itself.

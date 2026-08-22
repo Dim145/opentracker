@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   // Verify user exists
   const user = await db.query.users.findFirst({
     where: eq(schema.users.id, params.id),
-    columns: { id: true },
+    columns: { id: true, anonymousUploads: true },
   });
 
   if (!user) {
@@ -65,6 +65,23 @@ export default defineEventHandler(async (event) => {
       }
     }
   }
+  // "Uploader searches will not find you": with anonymous uploads on,
+  // this listing stops answering for the account. Placed after `seeAll`
+  // so the owner still sees their own uploads on their own profile and
+  // staff keep the traceability the moderation queue depends on.
+  //
+  // An empty page rather than a 404: the profile itself is not secret,
+  // only the link between it and the releases, and `anonymous` lets the
+  // page say "this member uploads anonymously" instead of the plain
+  // "no uploads yet" that would be a lie.
+  if (!seeAll && user.anonymousUploads) {
+    return {
+      data: [],
+      pagination: { page: query.page, limit: query.limit, total: 0, pages: 0 },
+      anonymous: true,
+    };
+  }
+
   const where = and(...conditions);
 
   // Get user's uploads
@@ -109,5 +126,6 @@ export default defineEventHandler(async (event) => {
       total,
       pages: Math.ceil(total / query.limit),
     },
+    anonymous: false,
   };
 });

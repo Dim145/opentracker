@@ -1,6 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq } from 'drizzle-orm';
 import { getPeers, getStats } from '~~/utils/server';
+import { redactUploader } from '~~/utils/uploaderVisibility';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
 
 export default defineEventHandler(async (event) => {
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
       // username — we don't need the full user shape and the public
       // detail endpoint should not leak email / role bits.
       uploader: {
-        columns: { id: true, username: true },
+        columns: { id: true, username: true, anonymousUploads: true },
       },
       comments: {
         with: {
@@ -103,8 +104,18 @@ export default defineEventHandler(async (event) => {
 
   const tags = torrent.torrentTags?.map((tt) => tt.tag) || [];
 
+  // Uploader anonymity. Spread order matters: this has to land *after*
+  // `...torrent` so it overwrites both the relation and the raw
+  // `uploaderId` the spread carries.
+  const uploaderView = redactUploader(torrent.uploader, {
+    id: session.id,
+    isAdmin: session.isAdmin,
+    isModerator: session.isModerator,
+  });
+
   return {
     ...torrent,
+    ...uploaderView,
     tags,
     torrentTags: undefined,
     stats: {
