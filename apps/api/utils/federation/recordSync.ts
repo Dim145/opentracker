@@ -217,6 +217,10 @@ function toMirrorRow(
   return {
     infoHash,
     contentSignature: asStr(record['trackarr:contentSignature']),
+    // v2 content addressing carried over verbatim; null when the origin's
+    // record predates it. `contentRootV2` is the cross-tracker match key.
+    infoHashV2: asStr(record['bt:infohash_v2']),
+    contentRootV2: asStr(record['trackarr:contentRootV2']),
     name: name.slice(0, 1000),
     size: Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, asNum(record['trackarr:size']))),
     description:

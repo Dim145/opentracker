@@ -75,6 +75,9 @@ export interface TorrentProjection {
   igdbId: string | null;
   openlibraryId: string | null;
   contentSignature: string | null;
+  /** BitTorrent v2 (BEP 52): hybrid infohash + cross-tracker content key. */
+  infoHashV2: string | null;
+  contentRootV2: string | null;
   season: number | null;
   episode: number | null;
   uploaderName: string | null;
@@ -124,6 +127,8 @@ export function projectTorrent(
     type: 'Torrent',
 
     'bt:infohash_v1': t.infoHash,
+    // FEP-d8c8's field for the v2 infohash; null for a v1-only torrent.
+    'bt:infohash_v2': t.infoHashV2,
     'bt:magnet': magnetFor(t.infoHash, t.name),
 
     url: publicUrl ? `${publicUrl.replace(/\/$/, '')}/torrents/${t.infoHash}` : null,
@@ -144,6 +149,9 @@ export function projectTorrent(
 
     'trackarr:size': t.size,
     'trackarr:contentSignature': t.contentSignature,
+    // The cross-tracker content key — preferred over contentSignature by any
+    // consumer matching content across instances. Null when the origin has no v2.
+    'trackarr:contentRootV2': t.contentRootV2,
     'trackarr:category': t.categorySlug,
     'trackarr:categoryType': t.categoryType,
     'trackarr:isAdult': t.isAdult,
@@ -203,6 +211,8 @@ export async function loadProjections(
       igdbId: schema.torrents.igdbId,
       openlibraryId: schema.torrents.openlibraryId,
       contentSignature: schema.torrents.contentSignature,
+      infoHashV2: schema.torrents.infoHashV2,
+      contentRootV2: schema.torrents.contentRootV2,
       season: schema.torrents.season,
       episode: schema.torrents.episode,
       // An uploader who asked for anonymity gets it across the mesh too. The

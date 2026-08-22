@@ -946,6 +946,14 @@ export const torrents = pgTable(
     // Nullable so older rows uploaded before this column existed can
     // be backfilled lazily by `plugins/backfill-content-signatures.ts`.
     contentSignature: text('content_signature'),
+    // BitTorrent v2 (BEP 52) content addressing — see utils/bittorrentV2.
+    // `infoHashV2` is the SHA-256 of the v2 `info` dict (hybrid announce, M3);
+    // `contentRootV2` is the cross-tracker content key over the per-file Merkle
+    // roots — the cryptographic upgrade of `content_signature`, preferred over it
+    // when present. Both null for a v1-only torrent; backfilled from the stored
+    // `.torrent` by `plugins/backfill-content-roots.ts`.
+    infoHashV2: text('info_hash_v2'),
+    contentRootV2: text('content_root_v2'),
     isActive: boolean('is_active').default(true).notNull(),
     // Per-torrent opt-in for swarm federation (Phase 4). When true AND the
     // owner has a swarm-scoped peer link, this torrent's peers may be shared
@@ -1015,6 +1023,8 @@ export const torrents = pgTable(
     index('torrents_tvdb_idx').on(table.tvdbId),
     index('torrents_igdb_idx').on(table.igdbId),
     index('torrents_content_signature_idx').on(table.contentSignature),
+    // The cross-tracker content key drives cross-seed / fill matching joins.
+    index('torrents_content_root_v2_idx').on(table.contentRootV2),
     index('torrents_openlibrary_idx').on(table.openlibraryId),
     index('torrents_moderation_status_idx').on(table.moderationStatus),
     // GIN rather than GiST: it is the recommended opclass for LIKE/ILIKE and,
@@ -2485,6 +2495,11 @@ export const remoteTorrents = pgTable(
     remoteId: text('remote_id').notNull(),
     infoHash: text('info_hash').notNull(),
     contentSignature: text('content_signature'),
+    // v2 content addressing carried over from the partner's record (BEP 52).
+    // `contentRootV2` is the cross-tracker key that lets a mirrored release match
+    // a local one by content; null when the origin record predates v2.
+    infoHashV2: text('info_hash_v2'),
+    contentRootV2: text('content_root_v2'),
     name: text('name').notNull(),
     size: bigint('size', { mode: 'number' }).notNull(),
     description: text('description'),
@@ -2563,6 +2578,8 @@ export const remoteTorrents = pgTable(
       table.remoteId
     ),
     index('remote_torrents_info_hash_idx').on(table.infoHash),
+    // Match a mirrored release to a local one by cross-tracker content key.
+    index('remote_torrents_content_root_v2_idx').on(table.contentRootV2),
     index('remote_torrents_content_sig_idx').on(table.contentSignature),
     index('remote_torrents_imdb_idx').on(table.imdbId),
     index('remote_torrents_tmdb_idx').on(table.tmdbId),
