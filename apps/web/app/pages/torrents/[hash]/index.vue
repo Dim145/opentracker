@@ -531,6 +531,13 @@
       <p class="cross-note">
         <Icon name="ph:info-bold" class="cross-note-icon" />
         {{ $t('torrents.detail.crossSeedFederatedNote') }}
+        <span
+          v-if="federatedCrossSeeds.availability.seeders > 0"
+          class="cross-mesh"
+        >
+          <Icon name="ph:users-three-bold" />
+          {{ $t('torrents.detail.crossSeedMeshSeeders', { n: federatedCrossSeeds.availability.seeders }) }}
+        </span>
       </p>
       <ul class="cross-list">
         <li v-for="m in federatedCrossSeeds.items" :key="m.id" class="cross-item">
@@ -539,6 +546,8 @@
             <span class="cross-name">{{ m.name }}</span>
             <span class="cross-meta">
               <span class="cross-meta-cat">{{ m.peerName }}</span>
+              <span class="cross-meta-sep">·</span>
+              <span class="cross-meta-seed">▲ {{ m.seeders }}</span>
               <span class="cross-meta-sep">·</span>
               <span class="cross-meta-size">{{ formatSize(m.size) }}</span>
               <span class="cross-meta-sep">·</span>
@@ -797,6 +806,8 @@ interface FederatedCrossSeedItem {
   infoHash: string;
   name: string;
   size: number;
+  seeders: number;
+  leechers: number;
   peerName: string;
   detailUrl: string | null;
   matchType: 'v2' | 'signature';
@@ -804,8 +815,13 @@ interface FederatedCrossSeedItem {
 const { data: federatedCrossSeeds } = await useFetch<{
   items: FederatedCrossSeedItem[];
   total: number;
+  availability: { releases: number; seeders: number; leechers: number };
 }>(`/api/torrents/${hash}/cross-seeds-federated`, {
-  default: () => ({ items: [], total: 0 }),
+  default: () => ({
+    items: [],
+    total: 0,
+    availability: { releases: 0, seeders: 0, leechers: 0 },
+  }),
 });
 
 // Cross-seed KPIs (peer counts + volume share). Same side-fetch
@@ -2296,6 +2312,19 @@ async function confirmDelete() {
   color: rgb(var(--fg-subtle));
   background: rgb(var(--bg-inset));
   border-color: rgb(var(--line-default));
+}
+.cross-meta-seed { color: #4ade80; font-family: var(--font-mono, monospace); font-size: 0.72rem; }
+.cross-mesh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 99px;
+  font-weight: 600;
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
 }
 @media (max-width: 720px) {
   .cross-link {

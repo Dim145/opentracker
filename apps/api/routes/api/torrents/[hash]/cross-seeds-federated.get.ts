@@ -11,7 +11,10 @@
  */
 import { db } from '@trackarr/db';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
-import { federatedCrossSeedMatches } from '~~/utils/federation/crossSeed';
+import {
+  federatedContentAvailability,
+  federatedCrossSeedMatches,
+} from '~~/utils/federation/crossSeed';
 
 export default defineEventHandler(async (event) => {
   const { user: session } = await requireUserSession(event);
@@ -40,10 +43,17 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const items = await federatedCrossSeedMatches({
+  const key = {
     contentRootV2: source.contentRootV2,
     contentSignature: source.contentSignature,
-  });
+  };
+  const [items, availability] = await Promise.all([
+    federatedCrossSeedMatches(key),
+    federatedContentAvailability(key),
+  ]);
 
-  return { items, total: items.length };
+  // A health signal, not a swarm bridge: partner swarms only interconnect with
+  // ours when the infohash actually matches, so this tells the member the content
+  // is alive across the mesh — worth cross-seeding — nothing more.
+  return { items, total: items.length, availability };
 });

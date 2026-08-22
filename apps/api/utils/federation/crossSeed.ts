@@ -24,11 +24,40 @@ export interface CrossSeedMatch {
   infoHash: string;
   name: string;
   size: number;
+  seeders: number;
+  leechers: number;
   peerName: string;
   /** The partner's own detail page — where the member grabs it with THEIR passkey. */
   detailUrl: string | null;
   /** `v2` = proven identical content; `signature` = same names/sizes (a hint). */
   matchType: 'v2' | 'signature';
+}
+
+/**
+ * The content key match predicate, shared by the list and the aggregate. Built
+ * from the source values known in JS, referencing `remote_torrents` by name.
+ */
+function keyMatchFor(source: {
+  contentRootV2: string | null;
+  contentSignature: string | null;
+}): SQL | null {
+  const rt = schema.remoteTorrents;
+  if (source.contentRootV2) {
+    const parts: SQL[] = [eq(rt.contentRootV2, source.contentRootV2)];
+    if (source.contentSignature) {
+      parts.push(
+        and(
+          sql`${rt.contentRootV2} IS NULL`,
+          eq(rt.contentSignature, source.contentSignature),
+        )!,
+      );
+    }
+    return or(...parts)!;
+  }
+  if (source.contentSignature) {
+    return eq(rt.contentSignature, source.contentSignature);
+  }
+  return null;
 }
 
 /**
@@ -40,26 +69,8 @@ export async function federatedCrossSeedMatches(source: {
   contentSignature: string | null;
 }): Promise<CrossSeedMatch[]> {
   const rt = schema.remoteTorrents;
-
-  let keyMatch: SQL;
-  if (source.contentRootV2) {
-    const parts: SQL[] = [eq(rt.contentRootV2, source.contentRootV2)];
-    if (source.contentSignature) {
-      // A v1-only partner row can only be matched by signature; a partner row
-      // that DOES carry a (different) v2 root is provably not this content.
-      parts.push(
-        and(
-          sql`${rt.contentRootV2} IS NULL`,
-          eq(rt.contentSignature, source.contentSignature),
-        )!,
-      );
-    }
-    keyMatch = or(...parts)!;
-  } else if (source.contentSignature) {
-    keyMatch = eq(rt.contentSignature, source.contentSignature);
-  } else {
-    return [];
-  }
+  const keyMatch = keyMatchFor(source);
+  if (!keyMatch) return [];
 
   const rows = await db
     .selectDistinctOn([rt.infoHash], {
@@ -67,6 +78,8 @@ export async function federatedCrossSeedMatches(source: {
       infoHash: rt.infoHash,
       name: rt.name,
       size: rt.size,
+      seeders: rt.seeders,
+      leechers: rt.leechers,
       contentRootV2: rt.contentRootV2,
       peerName: sql<string>`coalesce(${schema.federationPeers.displayName}, ${schema.federationPeers.baseUrl})`,
       detailUrl: rt.remoteDetailUrl,
@@ -82,6 +95,8 @@ export async function federatedCrossSeedMatches(source: {
     infoHash: r.infoHash,
     name: r.name,
     size: r.size,
+    seeders: r.seeders,
+    leechers: r.leechers,
     peerName: r.peerName,
     detailUrl: r.detailUrl,
     matchType:
@@ -89,4 +104,49 @@ export async function federatedCrossSeedMatches(source: {
         ? 'v2'
         : 'signature',
   }));
+}
+
+export interface ContentAvailability {
+  /** Distinct content-equivalent releases across active partners. */
+  releases: number;
+  seeders: number;
+  leechers: number;
+}
+
+/**
+ * Mesh-wide availability of the SAME content: how many distinct partner releases
+ * carry it and their total seeders/leechers. This is a health signal, not a swarm
+ * bridge — a partner's swarm only interconnects with ours when the infohash
+ * actually matches (see the module header). It tells a member the content is alive
+ * across the mesh, and is worth cross-seeding. Deduped by infohash (best-seeded
+ * copy per release), aggregated over the WHOLE match set (not just the listed 50).
+ */
+export async function federatedContentAvailability(source: {
+  contentRootV2: string | null;
+  contentSignature: string | null;
+}): Promise<ContentAvailability> {
+  const rt = schema.remoteTorrents;
+  const keyMatch = keyMatchFor(source);
+  if (!keyMatch) return { releases: 0, seeders: 0, leechers: 0 };
+
+  const deduped = db
+    .selectDistinctOn([rt.infoHash], {
+      seeders: rt.seeders,
+      leechers: rt.leechers,
+    })
+    .from(rt)
+    .innerJoin(schema.federationPeers, eq(schema.federationPeers.id, rt.peerId))
+    .where(and(eq(schema.federationPeers.status, 'active'), NOT_MASKED, keyMatch))
+    .orderBy(rt.infoHash, desc(rt.seeders))
+    .as('deduped');
+
+  const [agg] = await db
+    .select({
+      releases: sql<number>`count(*)::int`,
+      seeders: sql<number>`coalesce(sum(${deduped.seeders}), 0)::int`,
+      leechers: sql<number>`coalesce(sum(${deduped.leechers}), 0)::int`,
+    })
+    .from(deduped);
+
+  return agg ?? { releases: 0, seeders: 0, leechers: 0 };
 }

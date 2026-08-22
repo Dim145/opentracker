@@ -729,6 +729,7 @@
       },
       "crossSeedNote": "Grouped by matching file names and sizes only — a discovery hint, not a verified-content guarantee.",
       "crossSeedFederatedNote": "The same content on a partner instance. If you have an account there, cross-seed it from the files you already hold — fetched with your own partner passkey.",
+      "crossSeedMeshSeeders": "{n} seeders across the mesh",
       "crossMatchVerified": "verified",
       "crossMatchHint": "likely",
       "hero": {
