@@ -44,6 +44,7 @@ import {
   getNotificationsRetentionUnreadDays,
   getRequestAutoValidateHours,
   getRequestMaxFillsPerUser,
+  getTemplateQuotaPerUser,
 } from '~~/utils/settings';
 
 /**
@@ -94,6 +95,7 @@ export default defineEventHandler(async (event) => {
   const searchFuzzy = parseSearchFuzzy(await getSetting(SEARCH_FUZZY_SETTING));
   const requestAutoValidateHours = await getRequestAutoValidateHours();
   const requestMaxFillsPerUser = await getRequestMaxFillsPerUser();
+  const templateQuotaPerUser = await getTemplateQuotaPerUser();
 
   return {
     registrationOpen,
@@ -131,6 +133,7 @@ export default defineEventHandler(async (event) => {
     notificationsRetentionUnreadDays,
     requestAutoValidateHours,
     requestMaxFillsPerUser,
+    templateQuotaPerUser,
     searchFields,
     searchFuzzy,
   };

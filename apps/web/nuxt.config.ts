@@ -237,6 +237,16 @@ export default defineNuxtConfig({
         'ph:plus-bold',
         'ph:caret-down-bold',
         'ph:circle-notch',
+        // Variable-group icons in template/TemplateEditorModal.vue. They come
+        // from a GROUP_ICONS record rather than a literal `name=`, so the
+        // scanner cannot see them.
+        'ph:text-aa',
+        'ph:list-dashes',
+        'ph:star',
+        'ph:article',
+        'ph:sliders-horizontal',
+        'ph:package',
+        'ph:toggle-left',
       ],
     },
   },

@@ -98,6 +98,7 @@ export default defineConfig({
         {
           text: 'Community',
           items: [
+            { text: 'Presentation Templates', link: '/guide/presentation-templates' },
             { text: 'Upload Requests', link: '/guide/upload-requests' },
             { text: 'Favorites', link: '/guide/favorites' },
             { text: 'Follows', link: '/guide/follows' },

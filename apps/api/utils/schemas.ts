@@ -250,6 +250,11 @@ export const adminSettingsSchema = z.object({
     .min(1)
     .max(20)
     .optional(),
+  // How many presentation templates one user may own. Bounds mirror
+  // TEMPLATE_QUOTA_MIN/MAX in utils/templatePolicy — kept as literals
+  // here because this schema is serialised into openapi.json, where an
+  // imported constant would render as an opaque number anyway.
+  templateQuotaPerUser: z.number().int().min(1).max(100).optional(),
 });
 
 // ============================================================================

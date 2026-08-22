@@ -286,6 +286,40 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* The compact variant. It lived only in MediaSearchPicker.vue's *scoped*
+   style, so the three pages that import this file — fiche, upload and the
+   torrent edit form — carried `btn-ghost--small` on eleven buttons that
+   silently rendered at full size, the modifier matching nothing. Scoped
+   styles do not leak, and a class name that does nothing is worse than no
+   class: it reads as intent that was honoured.
+
+   Declarations are copied verbatim from that scoped rule so the buttons
+   which already worked do not move. MediaSearchPicker keeps its own copy on
+   purpose — it does not import this file. */
+.btn-ghost--small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 9999px;
+  color: rgb(var(--fg-default));
+  background: rgb(var(--bg-elevated));
+  transition: all 0.15s;
+}
+.btn-ghost--small:hover:not(:disabled) {
+  border-color: rgb(var(--fg-default) / 0.3);
+  color: rgb(var(--fg-strong));
+}
+.btn-ghost--small:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .lookup-error {
   font-size: 11px;
   color: rgb(var(--danger));
