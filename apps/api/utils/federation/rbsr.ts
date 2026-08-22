@@ -170,6 +170,13 @@ export interface ReconcileStep {
    * reconciliation that fails halfway can be acted on safely.
    */
   extra: string[];
+  /**
+   * Incoming ranges this call did not process because the reply hit its size
+   * budget. The caller carries them to the next round rather than dropping
+   * them — the difference between converging on the whole set and silently
+   * converging on a fraction.
+   */
+  pending: Range[];
 }
 
 export interface RespondOptions {
@@ -190,6 +197,44 @@ export interface RespondOptions {
  * oversized is dropped: losing an interval costs a slower convergence, while
  * throwing would let a partner end our sync by sending a single bad range.
  */
+/** Stay comfortably under the receiver's `MAX_BODY_BYTES` (512 KB). */
+export const MAX_MESSAGE_BYTES = 480 * 1024;
+
+/** A single range's worst-case reply is one `ids` list of `MAX_IDS_PER_RANGE`. */
+const MAX_SINGLE_RANGE_BYTES = MAX_IDS_PER_RANGE * 72 + 128;
+
+/** Rough serialized size of a range, good enough to budget a message by. */
+function sizeOfRange(r: Range): number {
+  if (r.mode === 'ids' && Array.isArray(r.ids)) {
+    return 48 + r.ids.reduce((a, s) => a + (typeof s === 'string' ? s.length + 4 : 0), 0);
+  }
+  return 96; // fp (lo/hi/fp/n) or skip
+}
+
+/**
+ * Split a range list into what fits in one message and what has to wait.
+ *
+ * The caps exist because the receiver hard-413s a body over 512 KB before it
+ * reads a byte, and a reply is up to 512 ranges each of which can enumerate
+ * 2 000 ids — 75 MB in the worst case. This bounds every message by both count
+ * and bytes; the tail is carried to the next round rather than dropped, which
+ * is what stops both the silent truncation and the permanent 413 deadlock the
+ * old `.slice` produced.
+ */
+export function boundMessage(ranges: Range[]): { head: Range[]; tail: Range[] } {
+  const head: Range[] = [];
+  let bytes = 2;
+  let i = 0;
+  for (; i < ranges.length; i++) {
+    const s = sizeOfRange(ranges[i]!);
+    if (head.length >= MAX_RANGES_PER_MESSAGE) break;
+    if (head.length && bytes + s > MAX_MESSAGE_BYTES) break;
+    head.push(ranges[i]!);
+    bytes += s;
+  }
+  return { head, tail: ranges.slice(i) };
+}
+
 export async function respond(
   incoming: unknown,
   mine: SetSource,
@@ -198,9 +243,30 @@ export async function respond(
   const reply: Range[] = [];
   const missing: string[] = [];
   const extra: string[] = [];
+  const pending: Range[] = [];
+  // Recomputed from `reply` at the top of each iteration rather than tracked
+  // incrementally, because the branches below `continue` from several push
+  // sites — n ≤ 512 so the O(n²) is trivial and there is no drift to chase.
+  let replyBytes = 2;
 
   const list = Array.isArray(incoming) ? incoming : [];
-  for (const raw of list.slice(0, MAX_RANGES_PER_MESSAGE)) {
+  for (let idx = 0; idx < list.length; idx++) {
+    replyBytes = 2 + reply.reduce((a, rr) => a + sizeOfRange(rr), 0);
+    // Stop once the reply is close enough to the cap that the next range's
+    // worst case would blow it, and carry the rest of the incoming ranges to
+    // `pending`. They are small (fp/skip/bounded-ids) and get processed next
+    // round, so no interval is ever silently forgotten.
+    if (
+      reply.length >= MAX_RANGES_PER_MESSAGE ||
+      replyBytes + MAX_SINGLE_RANGE_BYTES > MAX_MESSAGE_BYTES
+    ) {
+      for (let j = idx; j < list.length; j++) {
+        const rr = list[j] as Range;
+        if (rr && typeof rr === 'object') pending.push(rr);
+      }
+      break;
+    }
+    const raw = list[idx];
     const r = raw as Range;
     if (!r || typeof r !== 'object') continue;
     if (typeof r.lo !== 'string') continue;
@@ -256,7 +322,7 @@ export async function respond(
     }
   }
 
-  return { reply: reply.slice(0, MAX_RANGES_PER_MESSAGE), missing, extra };
+  return { reply, missing, extra, pending };
 }
 
 /**

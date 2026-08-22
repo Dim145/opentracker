@@ -55,7 +55,7 @@ import {
   sourceRecord,
   trustedIssuers,
 } from './relay';
-import { MAX_ROUNDS, opening, respond } from './rbsr';
+import { MAX_ROUNDS, boundMessage, opening, respond, type Range } from './rbsr';
 
 /** Records asked for per request. See `MAX_IDS` on the fetch endpoint. */
 const FETCH_BATCH = 200;
@@ -521,10 +521,14 @@ export async function syncPeerRecords(
     .select({ existing: sql<number>`count(*)::int` })
     .from(schema.remoteTorrents)
     .where(eq(schema.remoteTorrents.peerId, peer.id));
-  if ((existing ?? 0) >= MAX_REMOTE_PER_PEER) {
-    await saveState(peer.id, 0, 'ok', 0, 'row cap reached');
-    return out;
-  }
+  // At the cap we stop GROWING the mirror, not everything. Returning here — as
+  // this used to — also skipped reconciliation and the withdrawal sweep, so the
+  // mirror could never shrink back under the cap and the link was dead forever,
+  // reported as `ok`. Now reconciliation still runs (so a partner's deletions
+  // drain the mirror and it recovers), only the fetch of NEW records is
+  // skipped, and the state is `partial` rather than `ok` so the dashboard shows
+  // a degraded peer instead of a green one.
+  const atCap = (existing ?? 0) >= MAX_REMOTE_PER_PEER;
 
   // Before comparing: forget any source whose mirror row has gone missing, so
   // the comparison finds the hole rather than reporting agreement over it.
@@ -535,14 +539,24 @@ export async function syncPeerRecords(
   const extra: string[] = [];
 
   try {
-    let outgoing = await opening(mine);
+    // Two queues rather than one `outgoing`. `toSend` is our questions for the
+    // partner; `toProcess` is the partner's ranges we have not answered yet
+    // because a previous round's reply hit its size budget. Both messages —
+    // ours out and theirs back — are bounded, and neither side ever drops an
+    // interval on the floor: the overflow waits its turn. This is what turns
+    // the old `.slice` (which silently discarded up to 87% of the id space on a
+    // large sync, and could build a request the partner permanently 413s) into
+    // a sync that converges over as many rounds as it takes.
+    let toSend = await opening(mine);
+    let toProcess: Range[] = [];
 
-    while (outgoing.length && out.rounds < MAX_ROUNDS) {
+    while ((toSend.length || toProcess.length) && out.rounds < MAX_ROUNDS) {
       out.rounds++;
+      const { head: send, tail: sendOverflow } = boundMessage(toSend);
       const res = await signedPost({
         baseUrl: peer.baseUrl,
         pathname: '/api/federation/reconcile',
-        body: { ranges: outgoing },
+        body: { ranges: send },
         instanceId: config!.instanceId,
         privateKeyPem: pk,
         audienceInstanceId: peer.instanceId ?? undefined,
@@ -553,13 +567,23 @@ export async function syncPeerRecords(
         await notePeerError(peer.id, out.error);
         return out;
       }
+      // Ranges of ours the partner had no room to answer — re-ask them.
+      const responderPending = Array.isArray(res.data?.pending)
+        ? (res.data.pending as Range[])
+        : [];
 
       // `echoIds: false` — we are the initiator. Answering their exact list
       // with ours would have the two of us handing lists back and forth.
-      const step = await respond(res.data.ranges, mine, { echoIds: false });
+      const step = await respond([...res.data.ranges, ...toProcess], mine, {
+        echoIds: false,
+      });
       missing.push(...step.missing);
       extra.push(...step.extra);
-      outgoing = step.reply;
+      // Next round: our new questions, plus the questions they skipped, plus
+      // what we could not fit this round. Their answers we could not process go
+      // to `toProcess` to be answered next round.
+      toSend = [...step.reply, ...responderPending, ...sendOverflow];
+      toProcess = step.pending;
     }
 
     // One read each for the whole fetch, not one per batch.
@@ -576,7 +600,9 @@ export async function syncPeerRecords(
     if (relaying) {
       missing.push(...(await unstoredSources(peer.id, MAX_FETCH_PER_RUN)));
     }
-    const wanted = [...new Set(missing)].slice(0, MAX_FETCH_PER_RUN);
+    // Skip fetching new records at the cap — but only the fetch. The `extra`
+    // sweep below still runs, so the mirror keeps draining toward recovery.
+    const wanted = atCap ? [] : [...new Set(missing)].slice(0, MAX_FETCH_PER_RUN);
     for (let i = 0; i < wanted.length; i += FETCH_BATCH) {
       const batch = wanted.slice(i, i + FETCH_BATCH);
       // In the body, not the query string: two hundred content addresses is
@@ -640,11 +666,13 @@ export async function syncPeerRecords(
     await saveState(
       peer.id,
       out.rounds,
-      out.rejected ? 'partial' : out.error ? 'error' : 'ok',
+      atCap || out.rejected ? 'partial' : out.error ? 'error' : 'ok',
       out.ingested,
-      out.rejected
-        ? `${out.rejected} record(s) failed verification`
-        : (out.error ?? null),
+      atCap
+        ? 'row cap reached — not fetching new records until the mirror drains'
+        : out.rejected
+          ? `${out.rejected} record(s) failed verification`
+          : (out.error ?? null),
     );
 
     await db

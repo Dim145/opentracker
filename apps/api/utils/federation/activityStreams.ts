@@ -165,9 +165,20 @@ export async function outboxPage(
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE);
 
-  // Verbatim, like everywhere else a record leaves this instance. A record
-  // rebuilt for presentation is a record whose proof no longer holds.
-  return rows.map((r) => r.body);
+  // The uploader's display name is stripped on this — the ONE unauthenticated
+  // surface. Partners reach records through signed S2S (`records.post`) and get
+  // them verbatim and proof-verifiable; the public outbox is discovery, and on
+  // a private tracker it must not hand a crawler a member's name tied to their
+  // whole upload history. The actor (`attributedTo`, a DID) still identifies
+  // the uploader for anyone entitled to resolve it. Dropping one `trackarr:`
+  // field means a public-outbox item is not proof-verifiable — deliberately, on
+  // this surface only.
+  return rows.map((r) => {
+    const body = r.body as Record<string, unknown>;
+    if (body['trackarr:uploaderName'] == null) return body;
+    const { ['trackarr:uploaderName']: _omit, ...rest } = body;
+    return rest;
+  });
 }
 
 /**

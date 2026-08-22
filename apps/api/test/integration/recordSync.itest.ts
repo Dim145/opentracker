@@ -605,10 +605,14 @@ describe('containing a hostile issuer', () => {
     expect(Number(row!.size)).toBeLessThanOrEqual(Number.MAX_SAFE_INTEGER);
   });
 
-  it('refuses to go past the per-partner row cap', async () => {
-    // Last-resort guard: past 100 000 mirrored rows we stop pulling from this
-    // partner. A proof does not entitle anybody to unbounded disk — minting a
-    // million valid records is no harder than minting one.
+  it('stops fetching at the row cap but keeps reconciling so it can drain', async () => {
+    // Past 100 000 mirrored rows we stop pulling NEW records from this partner
+    // — a proof does not entitle anybody to unbounded disk. But we must not
+    // stop reconciling: doing that (as the code once did) meant withdrawals
+    // never applied, so the mirror could never shrink back under the cap and
+    // the link was dead forever, reported as `ok`. Now it still reconciles (so
+    // the partner's deletions drain it), only the fetch is skipped, and the
+    // state is `partial` so the dashboard shows a degraded peer.
     const peer = await makePeer();
     await db.execute(sql`
       INSERT INTO remote_torrents (id, peer_id, remote_id, info_hash, name, size)
@@ -620,12 +624,14 @@ describe('containing a hostile issuer', () => {
 
     const out = await syncPeerRecords(peer);
 
-    expect(out.ingested).toBe(0);
-    expect(partner.calls).toHaveLength(0); // we do not even call the partner
+    expect(out.ingested).toBe(0); // no new record pulled…
+    expect(partner.calls).toContain('/api/federation/reconcile'); // …but we DID reconcile
+    expect(partner.calls).not.toContain('/api/federation/records'); // and did NOT fetch
     const [state] = await db
       .select()
       .from(schema.federationSyncState)
       .where(eq(schema.federationSyncState.peerId, peer.id));
+    expect(state!.lastStatus).toBe('partial'); // degraded, not green
     expect(state!.lastError).toMatch(/row cap/i);
   });
 });

@@ -476,7 +476,9 @@
       "hideDownloadHistory": "Masquer mon historique de téléchargements",
       "hideDownloadHistoryHint": "Cesse de servir la liste de vos téléchargements, afin qu'une session dérobée ne puisse pas énumérer ce que vous avez récupéré. Cela masque la liste, cela ne l'efface pas : le suivi des hit-and-run, l'accumulation de bonus et les rôles automatiques continuent de lire ces lignes, et l'équipe garde accès aux relevés de hit-and-run.",
       "restrictComments": "Restreindre qui peut commenter mes publications",
-      "restrictCommentsHint": "Seuls les comptes d'au moins 30 jours peuvent commenter vos torrents — la réponse au compte jetable créé pour harceler un uploadeur. Vous et l'équipe n'y êtes jamais soumis, afin qu'un fil reste répondable et modérable."
+      "restrictCommentsHint": "Seuls les comptes d'au moins 30 jours peuvent commenter vos torrents — la réponse au compte jetable créé pour harceler un uploadeur. Vous et l'équipe n'y êtes jamais soumis, afin qu'un fil reste répondable et modérable.",
+      "shareReputationFederated": "Partager la réputation avec les partenaires",
+      "shareReputationFederatedHint": "Autorise les trackers fédérés avec cette instance à lire votre ratio, vos volumes et votre date d’inscription. Désactivé par défaut ; rien de vous ne quitte l’instance tant que vous ne l’activez pas."
     },
     "security": {
       "title": "Sécurité",
@@ -1628,7 +1630,8 @@
         "storeIngested": "reçus de pairs",
         "storeRelayable": "seraient relayés",
         "storeSuperseded": "remplacés",
-        "sourcedHint": "Enregistrements détenus pour ce pair, puis lignes du miroir local. Les assertions d'identité et les retraits n'ont pas de ligne miroir : les deux diffèrent."
+        "sourcedHint": "Enregistrements détenus pour ce pair, puis lignes du miroir local. Les assertions d'identité et les retraits n'ont pas de ligne miroir : les deux diffèrent.",
+        "tileDegraded": "Dégradé"
       },
       "relay": {
         "title": "Relais",

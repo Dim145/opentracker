@@ -318,6 +318,59 @@ export async function sourceRecord(
  * record something we no longer hold — and only then is there anything to
  * clean up.
  */
+/**
+ * Delete every ingested record no source references any more.
+ *
+ * `catalog_records` has no foreign key to `federation_peers` (a record can
+ * outlive the peer that introduced it), so cascading a peer delete leaves its
+ * ingested records behind — held, relayed onward, and impossible to remove
+ * through the product. This is the sweep that collects them: a record we took
+ * from partners, that no `record_sources` row points at any more, has no
+ * reason to exist. Our own (`origin='local'`) records are never touched.
+ */
+export async function purgeOrphanedIngested(): Promise<number> {
+  const res = await db
+    .delete(schema.catalogRecords)
+    .where(
+      and(
+        eq(schema.catalogRecords.origin, 'ingested'),
+        sql`NOT EXISTS (
+          SELECT 1 FROM ${schema.recordSources} rs
+           WHERE rs.record_id = ${schema.catalogRecords.id})`,
+      ),
+    );
+  return (res as unknown as { count?: number }).count ?? 0;
+}
+
+/**
+ * Forget everything we hold on one peer's behalf.
+ *
+ * Cutting a link is supposed to purge the cached remote data — the schema says
+ * so on the `status` column — and nothing did it. This removes the mirror, the
+ * sources and the alias assertions we ingested from the peer, optionally its
+ * public key (so its signed requests stop verifying for good), and then sweeps
+ * any ingested record left orphaned by the removal. It deliberately leaves our
+ * members' own data alone: `federated_identities` (accounts they proved) and
+ * `federated_follows` (people they chose to follow) are theirs, not the peer's.
+ */
+export async function forgetPeerData(
+  peerId: string,
+  opts: { forgetKey?: boolean } = {},
+): Promise<void> {
+  await db.delete(schema.remoteTorrents).where(eq(schema.remoteTorrents.peerId, peerId));
+  await db.delete(schema.recordSources).where(eq(schema.recordSources.peerId, peerId));
+  await db
+    .delete(schema.remoteIdentityLinks)
+    .where(eq(schema.remoteIdentityLinks.peerId, peerId));
+  if (opts.forgetKey) {
+    await db
+      .update(schema.federationPeers)
+      .set({ publicKey: null })
+      .where(eq(schema.federationPeers.id, peerId));
+  }
+  await purgeOrphanedIngested();
+}
+
 export async function dropSources(
   peerId: string,
   recordIds: string[],

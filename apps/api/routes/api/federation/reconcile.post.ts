@@ -28,7 +28,7 @@
 import { verifyInboundS2S } from '~~/utils/federation/inbound';
 import { publishedSet } from '~~/utils/federation/recordSet';
 import { relayEnabled } from '~~/utils/federation/relay';
-import { MAX_RANGES_PER_MESSAGE, respond } from '~~/utils/federation/rbsr';
+import { respond } from '~~/utils/federation/rbsr';
 
 /**
  * A message is a few hundred ranges at most, each a couple of bounds and a
@@ -58,8 +58,12 @@ export default defineEventHandler(async (event) => {
     echoIds: true,
   });
 
+  // `pending` carries back the ranges the reply had no room for. The initiator
+  // re-sends them, so a large first sync converges over several rounds instead
+  // of losing 87% of the id space to a `.slice` — silently — every tick.
   return {
     ok: true,
-    ranges: step.reply.slice(0, MAX_RANGES_PER_MESSAGE),
+    ranges: step.reply,
+    pending: step.pending,
   };
 });

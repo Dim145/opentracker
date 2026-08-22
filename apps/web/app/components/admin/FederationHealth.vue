@@ -168,7 +168,7 @@ interface Resource {
   lastStatus: string | null;
   itemsSynced: number;
   lastError: string | null;
-  verdict: 'ok' | 'stale' | 'error' | 'never';
+  verdict: 'ok' | 'stale' | 'degraded' | 'error' | 'never';
 }
 interface Peer {
   id: string;
@@ -181,7 +181,7 @@ interface Peer {
   mirrored: number;
   sourced: number;
   resources: Resource[];
-  verdict: 'ok' | 'stale' | 'error' | 'never' | null;
+  verdict: 'ok' | 'stale' | 'degraded' | 'error' | 'never' | null;
 }
 interface Health {
   enabled: boolean;
@@ -192,6 +192,7 @@ interface Health {
     peersActive: number;
     ok: number;
     stale: number;
+    degraded: number;
     error: number;
     never: number;
     mirroredTotal: number;
@@ -255,6 +256,7 @@ const tiles = computed(() => {
   return [
     { key: 'ok', n: s?.ok ?? 0, tone: 'ok', label: t('admin.federation.health.tileOk') },
     { key: 'stale', n: s?.stale ?? 0, tone: 'warn', label: t('admin.federation.health.tileStale') },
+    { key: 'degraded', n: s?.degraded ?? 0, tone: 'warn', label: t('admin.federation.health.tileDegraded') },
     { key: 'error', n: s?.error ?? 0, tone: 'error', label: t('admin.federation.health.tileError') },
     { key: 'mirror', n: s?.mirroredTotal ?? 0, tone: 'neutral', label: t('admin.federation.health.tileMirrored') },
   ];
@@ -420,6 +422,7 @@ function hostOf(url: string): string {
 .fh-tile--ok { --tone: var(--online); }
 .fh-tile--warn { --tone: var(--warning); }
 .fh-tile--error { --tone: var(--danger); }
+.fh-tile--warn { --tone: var(--warning); }
 .fh-tile-n {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 1.35rem;
@@ -449,6 +452,7 @@ function hostOf(url: string): string {
 }
 .fh-peer--stale { --tone: var(--warning); }
 .fh-peer--error { --tone: var(--danger); }
+.fh-peer--degraded { --tone: var(--warning); }
 .fh-peer--never { --tone: var(--fg-subtle); }
 
 .fh-peer-head {
@@ -588,6 +592,7 @@ function hostOf(url: string): string {
 }
 .fh-dot--stale { background: rgb(var(--warning)); }
 .fh-dot--error { background: rgb(var(--danger)); }
+.fh-dot--degraded { background: rgb(var(--warning)); }
 .fh-dot--never { background: rgb(var(--fg-subtle)); }
 .fh-res-name { color: rgb(var(--fg-default)); }
 .fh-res-items,

@@ -126,6 +126,16 @@ export const users = pgTable(
     // staff are never held to it, so a thread stays answerable and
     // moderatable. Threshold: utils/commentPolicy.ts.
     restrictComments: boolean('restrict_comments').default(false).notNull(),
+    // Opt-in: may a federated partner read this member's reputation
+    // (ratio, upload/download, member-since) over the `accounts` scope?
+    // Off by default and required by the member concerned, not just the
+    // owner — the federation proposal is explicit that the `accounts`
+    // scope needs the consent of the user whose data it exposes.
+    // `/api/federation/user-reputation` answers only for members who set
+    // this. See utils/federation and routes/api/federation/user-reputation.
+    shareReputationFederated: boolean('share_reputation_federated')
+      .default(false)
+      .notNull(),
     // 'light' | 'dark'. Persisted server-side so the chosen theme
     // follows the user across devices instead of being trapped in a
     // single browser's localStorage.
@@ -1009,6 +1019,16 @@ export const torrents = pgTable(
       ftsVector(table.description)
     ),
     index('torrents_fts_nfo_idx').using('gin', ftsVector(table.nfo)),
+    // The federation mint cursor walks and sorts on `coalesce(updated_at,
+    // created_at)` every tick. `torrents_updated_at_idx` is on `updated_at`
+    // alone and does not serve the coalesce, so the walk was a sequential scan
+    // of the whole table on every pass — 5-minutely in steady state, and once
+    // per 3-second tick during a backfill. This expression index is what the
+    // cursor actually orders by.
+    index('torrents_mint_cursor_idx').on(
+      sql`coalesce(${table.updatedAt}, ${table.createdAt})`,
+      table.id
+    ),
   ]
 );
 

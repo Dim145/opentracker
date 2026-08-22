@@ -24,6 +24,7 @@ export default defineEventHandler(async (event) => {
       downloaded: schema.users.downloaded,
       createdAt: schema.users.createdAt,
       isBanned: schema.users.isBanned,
+      shareReputationFederated: schema.users.shareReputationFederated,
     })
     .from(schema.users)
     .where(eq(schema.users.username, username))
@@ -31,7 +32,13 @@ export default defineEventHandler(async (event) => {
   // A banned user must not present a healthy reputation to peers. Return the
   // same 404 as a missing user so a banned account simply stops federating its
   // reputation / verified-identity standing (closes the laundering vector).
-  if (!u || u.isBanned) {
+  //
+  // The same 404 also answers a member who has NOT opted in. The `accounts`
+  // scope exposes a person's ratio and volumes, so it needs that person's
+  // consent, not just the owner's — the proposal is explicit. An
+  // indistinguishable 404 means a partner cannot even enumerate who exists by
+  // probing usernames.
+  if (!u || u.isBanned || !u.shareReputationFederated) {
     throw createError({ statusCode: 404, message: 'User not found' });
   }
 

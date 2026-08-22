@@ -476,7 +476,9 @@
       "hideDownloadHistory": "Hide my download history",
       "hideDownloadHistoryHint": "Stops serving your snatch list, so a session someone else got hold of cannot enumerate what you have downloaded. This hides the list, it does not erase it: hit-and-run tracking, bonus accrual and automatic roles all keep reading those rows, and staff keep seeing hit-and-run records.",
       "restrictComments": "Restrict who can comment on my uploads",
-      "restrictCommentsHint": "Only accounts at least 30 days old may comment on your torrents — the answer to a throwaway account made to harass an uploader. You and the staff are never held to it, so a thread stays answerable and moderatable."
+      "restrictCommentsHint": "Only accounts at least 30 days old may comment on your torrents — the answer to a throwaway account made to harass an uploader. You and the staff are never held to it, so a thread stays answerable and moderatable.",
+      "shareReputationFederated": "Share reputation with partners",
+      "shareReputationFederatedHint": "Let trackers this instance federates with read your ratio, upload/download totals and join date. Off by default; nothing about you leaves this instance until you turn it on."
     },
     "security": {
       "title": "Security",
@@ -1628,7 +1630,8 @@
         "storeIngested": "taken from partners",
         "storeRelayable": "would be passed on",
         "storeSuperseded": "replaced",
-        "sourcedHint": "Records held from this partner, then rows in the local mirror. Identity assertions and withdrawals have no mirror row, so the two differ."
+        "sourcedHint": "Records held from this partner, then rows in the local mirror. Identity assertions and withdrawals have no mirror row, so the two differ.",
+        "tileDegraded": "Degraded"
       },
       "relay": {
         "title": "Relay",

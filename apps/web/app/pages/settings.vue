@@ -243,6 +243,30 @@
                 </p>
               </div>
             </label>
+
+            <label
+              class="toggle-row"
+              :class="{ 'toggle-row--on': form.shareReputationFederated }"
+            >
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="form.shareReputationFederated"
+                class="toggle"
+                :class="{ 'toggle--on': form.shareReputationFederated }"
+                @click="form.shareReputationFederated = !form.shareReputationFederated"
+              >
+                <span class="toggle-knob" />
+              </button>
+              <div class="toggle-body">
+                <p class="toggle-title">
+                  {{ $t('settings.privacy.shareReputationFederated') }}
+                </p>
+                <p class="toggle-sub">
+                  {{ $t('settings.privacy.shareReputationFederatedHint') }}
+                </p>
+              </div>
+            </label>
           </div>
         </section>
 
@@ -624,6 +648,7 @@ interface MeProfile {
   anonymousUploads: boolean;
   hideDownloadHistory: boolean;
   restrictComments: boolean;
+  shareReputationFederated: boolean;
   isAdmin: boolean;
   isModerator: boolean;
   role: { id: string; name: string; color: string } | null;
@@ -670,6 +695,7 @@ const form = reactive({
   anonymousUploads: false,
   hideDownloadHistory: false,
   restrictComments: false,
+  shareReputationFederated: false,
 });
 const snapshot = ref<{
   displayName: string;
@@ -679,6 +705,7 @@ const snapshot = ref<{
   anonymousUploads: boolean;
   hideDownloadHistory: boolean;
   restrictComments: boolean;
+  shareReputationFederated: boolean;
 } | null>(null);
 
 function hydrate() {
@@ -691,6 +718,7 @@ function hydrate() {
   form.anonymousUploads = profile.value.anonymousUploads ?? false;
   form.hideDownloadHistory = profile.value.hideDownloadHistory ?? false;
   form.restrictComments = profile.value.restrictComments ?? false;
+  form.shareReputationFederated = profile.value.shareReputationFederated ?? false;
   snapshot.value = {
     displayName: form.displayName,
     bio: form.bio,
@@ -699,6 +727,8 @@ function hydrate() {
     anonymousUploads: form.anonymousUploads,
     hideDownloadHistory: form.hideDownloadHistory,
     restrictComments: form.restrictComments,
+    shareReputationFederated: form.shareReputationFederated,
+    shareReputationFederated: form.shareReputationFederated,
   };
 }
 watch(profile, hydrate, { immediate: true });

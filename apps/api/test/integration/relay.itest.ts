@@ -8,7 +8,10 @@ import {
   admit,
   countersign,
   countersigner,
+  forgetPeerData,
   keepForRelay,
+  purgeOrphanedIngested,
+  sourceRecord,
   trustedIssuers,
 } from '../../utils/federation/relay';
 import { publishedSet } from '../../utils/federation/recordSet';
@@ -381,5 +384,75 @@ describe('a relayed record cannot retire another issuer\'s work', () => {
       .from(schema.catalogRecords)
       .where(eq(schema.catalogRecords.id, first.id));
     expect(old!.supersededAt).toBeTruthy();
+  });
+});
+
+describe('tearing a link down actually forgets what it left behind', () => {
+  // `catalog_records` has no FK to the peer, so a plain peer delete used to
+  // leave its ingested records behind — held and relayed onward forever. The
+  // purge is the missing half of cutting a link.
+
+  it('sweeps an ingested record no source references any more', async () => {
+    const origin = keypair();
+    const peerId = await makePeer(keypair());
+    const r = record(origin);
+    // Held for relay, sourced from the peer.
+    await keepForRelay(r as unknown as Record<string, unknown>, origin.did, 1);
+    await sourceRecord(r as unknown as Record<string, unknown>, origin.did, 1, peerId, true);
+    // Simulate the peer delete's cascade dropping its sources.
+    await db.delete(schema.recordSources).where(eq(schema.recordSources.peerId, peerId));
+
+    const swept = await purgeOrphanedIngested();
+    expect(swept).toBeGreaterThanOrEqual(1);
+    const [gone] = await db
+      .select()
+      .from(schema.catalogRecords)
+      .where(eq(schema.catalogRecords.id, r.id));
+    expect(gone).toBeUndefined();
+  });
+
+  it('never sweeps our own local records', async () => {
+    const me = keypair();
+    const mine = record(me);
+    await db.insert(schema.catalogRecords).values({
+      id: mine.id,
+      torrentId: randomUUID(),
+      infoHash: mine['bt:infohash_v1'],
+      issuer: me.did,
+      kind: 'torrent',
+      body: mine as unknown as Record<string, unknown>,
+      contentHash: mine.id,
+      origin: 'local',
+    });
+    await purgeOrphanedIngested();
+    const [still] = await db
+      .select()
+      .from(schema.catalogRecords)
+      .where(eq(schema.catalogRecords.id, mine.id));
+    expect(still).toBeTruthy();
+  });
+
+  it('forgets a blocked peer\'s mirror, sources and key', async () => {
+    const origin = keypair();
+    const peerId = await makePeer(keypair());
+    const r = record(origin);
+    await keepForRelay(r as unknown as Record<string, unknown>, origin.did, 1);
+    await sourceRecord(r as unknown as Record<string, unknown>, origin.did, 1, peerId, true);
+
+    await forgetPeerData(peerId, { forgetKey: true });
+
+    expect(await db.select().from(schema.recordSources).where(eq(schema.recordSources.peerId, peerId))).toHaveLength(0);
+    expect(await db.select().from(schema.remoteTorrents).where(eq(schema.remoteTorrents.peerId, peerId))).toHaveLength(0);
+    const [peer] = await db
+      .select({ publicKey: schema.federationPeers.publicKey })
+      .from(schema.federationPeers)
+      .where(eq(schema.federationPeers.id, peerId));
+    expect(peer!.publicKey).toBeNull();
+    // And the ingested record it left is gone with it.
+    const [gone] = await db
+      .select()
+      .from(schema.catalogRecords)
+      .where(eq(schema.catalogRecords.id, r.id));
+    expect(gone).toBeUndefined();
   });
 });

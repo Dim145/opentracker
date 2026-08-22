@@ -150,15 +150,19 @@ describe('the outbox', () => {
     expect(page.map((r) => r.id)).toEqual([second.id, first.id]);
   });
 
-  it('hands records over exactly as signed', async () => {
-    // The whole value of the surface. A record rebuilt for presentation is a
-    // record whose proof no longer holds, and a consumer that could not verify
-    // what it fetched would be back to trusting whoever served it.
+  it('strips the uploader name from this unauthenticated surface', async () => {
+    // The public outbox is the one surface a stranger reads without a
+    // handshake. On a private tracker it must not tie a member's name to their
+    // upload history for any crawler. Partners get the verbatim, verifiable
+    // record over signed S2S; here the `trackarr:uploaderName` is gone while
+    // the actor DID that identifies the uploader stays.
     const me = keypair();
-    await publish(me);
+    const r = await publish(me);
+    expect(r['trackarr:uploaderName']).toBeTruthy(); // it IS in the record…
 
     const [served] = await outboxPage(1);
-    expect(verifyRecord(served).ok).toBe(true);
+    expect(served!['trackarr:uploaderName']).toBeUndefined(); // …but not here.
+    expect(served!.attributedTo).toBe(r.attributedTo); // the DID remains
   });
 
   it('carries the interoperable core a stranger can act on', async () => {

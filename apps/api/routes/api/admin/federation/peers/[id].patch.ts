@@ -20,6 +20,7 @@ import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 import { federationScopesSchema } from '~~/utils/federation/scopes';
 import { canGovernanceTransition } from '~~/utils/federation/peerLifecycle';
+import { forgetPeerData } from '~~/utils/federation/relay';
 
 const bodySchema = z
   .object({
@@ -70,6 +71,13 @@ export default defineEventHandler(async (event) => {
     .update(schema.federationPeers)
     .set(set)
     .where(eq(schema.federationPeers.id, peerId));
+
+  // Blocking or revoking cuts the link for good, so it purges what we cached
+  // from the peer and forgets its key — the schema's `status` comment promises
+  // exactly this. Suspending is a reversible pause and keeps everything.
+  if (body.status === 'blocked' || body.status === 'revoked') {
+    await forgetPeerData(peerId, { forgetKey: true });
+  }
 
   return { ok: true, status: (set.status as string) ?? peer.status };
 });

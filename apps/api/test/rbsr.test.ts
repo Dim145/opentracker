@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import {
   MAX_ROUNDS,
   arraySource,
+  boundMessage,
   fingerprint,
   opening,
   respond,
@@ -29,19 +30,27 @@ async function reconcile(
 ): Promise<{ missing: string[]; extra: string[]; rounds: number }> {
   const missing = new Set<string>();
   const extra = new Set<string>();
-  let out = await opening(mine);
+  // The real driver's two queues: questions to send, and the partner's answers
+  // we have not processed yet because a round's reply hit its size budget.
+  // Carrying both is what makes a large or scattered set converge instead of
+  // losing whatever a single message could not hold.
+  let toSend = await opening(mine);
+  let toProcess: Awaited<ReturnType<typeof opening>> = [];
   let rounds = 0;
 
-  while (out.length && rounds < MAX_ROUNDS) {
+  while ((toSend.length || toProcess.length) && rounds < MAX_ROUNDS) {
     rounds++;
+    const { head: send, tail: overflow } = boundMessage(toSend);
     // The responder answers, learning nothing it needs to keep.
-    const server = await respond(out, theirs, { echoIds: true });
-    if (!server.reply.length) break;
+    const server = await respond(send, theirs, { echoIds: true });
     // The puller consumes, accumulating the difference.
-    const client = await respond(server.reply, mine, { echoIds: false });
+    const client = await respond([...server.reply, ...toProcess], mine, {
+      echoIds: false,
+    });
     for (const id of client.missing) missing.add(id);
     for (const id of client.extra) extra.add(id);
-    out = client.reply;
+    toSend = [...client.reply, ...server.pending, ...overflow];
+    toProcess = client.pending;
   }
 
   return { missing: [...missing].sort(), extra: [...extra].sort(), rounds };
@@ -279,4 +288,52 @@ describe('what the initiator may act on', () => {
     expect(step.extra).toEqual([]);
     expect(step.missing).toEqual([]);
   });
+});
+
+describe('bounded messages (no 413, no silent truncation)', () => {
+  // The two failures the review found in one place: a message big enough to be
+  // 413'd by the receiver, and `reply.slice` dropping ranges with nothing to
+  // re-queue them, so a large sync converged on a fraction in silence.
+
+  it('stays under the receiver cap and converges over ticks, not in silence', async () => {
+    // Two disjoint sets of 20k — the worst case for message size. Each sync
+    // tick runs up to MAX_ROUNDS and is interrupted; the next tick resumes from
+    // the smaller remaining difference, exactly as the real loop does across
+    // scheduler ticks. The two things being pinned: no message ever approaches
+    // the 512 KB body cap (the old code built a 14.5 MB reply and a 544 KB
+    // request that 413'd forever), and the difference is fully found over a
+    // bounded number of ticks (the old `.slice` converged on a fraction and
+    // stopped, silently).
+    const mine = arraySource(ids(20_000, 'a'));
+    const theirs = arraySource(ids(20_000, 'b'));
+    const missing = new Set<string>();
+    let maxBytes = 0;
+    let toSend = await opening(mine);
+    let toProcess: Range[] = [];
+    // A high round cap stands in for "as many ticks as it takes": the real loop
+    // caps rounds per tick and resumes next tick, which is the same walk split
+    // across the scheduler. What matters is that it terminates and finds all.
+    let rounds = 0;
+    while ((toSend.length || toProcess.length) && rounds < 400) {
+      rounds++;
+      const { head: send, tail: overflow } = boundMessage(toSend);
+      maxBytes = Math.max(maxBytes, Buffer.byteLength(JSON.stringify({ ranges: send })));
+      const server = await respond(send, theirs, { echoIds: true });
+      maxBytes = Math.max(
+        maxBytes,
+        Buffer.byteLength(
+          JSON.stringify({ ranges: server.reply, pending: server.pending }),
+        ),
+      );
+      const client = await respond([...server.reply, ...toProcess], mine, {
+        echoIds: false,
+      });
+      for (const id of client.missing) missing.add(id);
+      toSend = [...client.reply, ...server.pending, ...overflow];
+      toProcess = client.pending;
+    }
+
+    expect(maxBytes).toBeLessThan(512 * 1024);
+    expect(missing.size).toBe(20_000);
+  }, 60_000);
 });

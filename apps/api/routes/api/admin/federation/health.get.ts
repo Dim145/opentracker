@@ -22,7 +22,7 @@ import { recordStore, sourcedByPeer } from '~~/utils/federation/storeCounts';
 /** A peer is "behind" past three intervals with no run. */
 const STALE_INTERVALS = 3;
 
-type Verdict = 'ok' | 'stale' | 'error' | 'never';
+type Verdict = 'ok' | 'stale' | 'degraded' | 'error' | 'never';
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
@@ -96,6 +96,11 @@ export default defineEventHandler(async (event) => {
     lastStatus: string | null
   ): Verdict => {
     if (lastStatus === 'error') return 'error';
+    // `partial` means the run completed but something inside it did not — some
+    // records failed verification, or the mirror hit its row cap and stopped
+    // fetching. It used to fall through to `ok`, painting a peer that has
+    // partly stopped working green. It is a degraded peer, and says so.
+    if (lastStatus === 'partial') return 'degraded';
     if (!lastRunAt) return 'never';
     return now - lastRunAt.getTime() > staleAfterMs ? 'stale' : 'ok';
   };
@@ -113,7 +118,7 @@ export default defineEventHandler(async (event) => {
 
     // The peer's verdict: the worst of its resources. A catalogue succeeding
     // while removals fail is not a healthy peer.
-    const order: Verdict[] = ['ok', 'stale', 'never', 'error'];
+    const order: Verdict[] = ['ok', 'stale', 'degraded', 'never', 'error'];
     const worst = resources.reduce<Verdict>(
       (acc, r) => (order.indexOf(r.verdict) > order.indexOf(acc) ? r.verdict : acc),
       resources.length ? 'ok' : 'never'
@@ -135,6 +140,7 @@ export default defineEventHandler(async (event) => {
     peersActive: active.length,
     ok: active.filter((r) => r.verdict === 'ok').length,
     stale: active.filter((r) => r.verdict === 'stale').length,
+    degraded: active.filter((r) => r.verdict === 'degraded').length,
     error: active.filter((r) => r.verdict === 'error').length,
     never: active.filter((r) => r.verdict === 'never').length,
     mirroredTotal: rows.reduce((n, r) => n + r.mirrored, 0),
