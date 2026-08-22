@@ -50,6 +50,7 @@ import {
   dropSources,
   relayEnabled,
   repairMissingMirrors,
+  unstoredSources,
   sourceRecord,
   trustedIssuers,
 } from './relay';
@@ -528,7 +529,19 @@ export async function syncPeerRecords(
       outgoing = step.reply;
     }
 
+    // One read each for the whole fetch, not one per batch.
+    const trusted = await trustedIssuers();
+    const relaying = await relayEnabled();
+
     // ── Fetch what we are missing ────────────────────────────────────────
+    //
+    // Plus, while relaying, the records this partner serves whose bytes we
+    // never kept. Reconciliation cannot ask for those: it compares which
+    // records we hold FROM a partner, and by that measure we hold them. See
+    // `unstoredSources` for why turning the switch on has to reach backwards.
+    if (relaying) {
+      missing.push(...(await unstoredSources(peer.id, MAX_FETCH_PER_RUN)));
+    }
     const wanted = [...new Set(missing)].slice(0, MAX_FETCH_PER_RUN);
     for (let i = 0; i < wanted.length; i += FETCH_BATCH) {
       const batch = wanted.slice(i, i + FETCH_BATCH);
@@ -547,11 +560,6 @@ export async function syncPeerRecords(
         out.error = `http ${res.status}`;
         break;
       }
-      // One read of the trusted set per batch: it is two small queries, and
-      // reading it per record would be a hundred round trips to answer the
-      // same question.
-      const trusted = await trustedIssuers();
-      const relaying = await relayEnabled();
       for (const envelope of res.data.records as unknown[]) {
         const { record, relay } = unwrap(envelope);
         const r = await ingestRecord(peer, record, {

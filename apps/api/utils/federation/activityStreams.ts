@@ -59,7 +59,22 @@ export const AS2_CONTENT_TYPE =
  * the opposite, so there is no setting for it yet — when somebody does, it is
  * one boolean and this comment is where it goes.
  */
-const NOT_ADULT = sql`coalesce(${schema.catalogRecords.body}->>'trackarr:isAdult', 'false') <> 'true'`;
+const NOT_ADULT = sql`
+  coalesce(${schema.catalogRecords.body}->>'trackarr:isAdult', 'false') <> 'true'
+  -- And the withdrawal of one. A tombstone carries no name and no flag of its
+  -- own, only an infohash and the id it replaces — so filtering on the body
+  -- alone let deleting an adult release publish its infohash to a surface
+  -- that had never been shown the release. Found by running the thing rather
+  -- than by reading it.
+  --
+  -- Which is also the coherent answer: a withdrawal for a record that was
+  -- never in this collection tells a reader nothing they can act on. They
+  -- would look for an id they never held.
+  AND NOT EXISTS (
+    SELECT 1 FROM ${schema.catalogRecords} prior
+     WHERE prior.id = ${schema.catalogRecords.body}->>'trackarr:replaces'
+       AND coalesce(prior.body->>'trackarr:isAdult', 'false') = 'true'
+  )`;
 
 /** Records per outbox page. Large enough to be useful, small enough to serve. */
 export const PAGE_SIZE = 50;

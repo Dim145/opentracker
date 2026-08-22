@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import {
   MAX_IDS,
   envelopesFor,
@@ -12,6 +12,7 @@ import {
   PAGE_SIZE,
 } from '../utils/federation/activityStreams';
 import { absentBecause } from '../utils/federation/discoverable';
+import { syncIntervalMs } from '../utils/federation/config';
 import type { FederationConfig } from '@trackarr/db/schema';
 
 // The decisions the three federation endpoints make.
@@ -267,5 +268,38 @@ describe('whether the public surface exists at all', () => {
     // out advertising a signing key that does not exist, so a consumer could
     // verify nothing it fetched. Being absent is the honest answer.
     expect(absentBecause(config({ publicKey: null }))).toBe('not-live');
+  });
+});
+
+describe('how often the sync is supposed to run', () => {
+  // One setting, two readers, and they disagreed: the cron read
+  // `FEDERATION_SYNC_INTERVAL` — the documented name — and the health view
+  // read `FEDERATION_SYNC_INTERVAL_MS`, which nothing sets. So the gauge was
+  // always drawn against fifteen minutes, and an instance deliberately syncing
+  // more slowly than the stale threshold showed every healthy partner as
+  // behind, forever.
+  const saved = process.env.FEDERATION_SYNC_INTERVAL;
+  afterEach(() => {
+    if (saved === undefined) delete process.env.FEDERATION_SYNC_INTERVAL;
+    else process.env.FEDERATION_SYNC_INTERVAL = saved;
+  });
+
+  it('reads the name both guides document', () => {
+    process.env.FEDERATION_SYNC_INTERVAL = '20000';
+    expect(syncIntervalMs()).toBe(20_000);
+  });
+
+  it('falls back to fifteen minutes when unset', () => {
+    delete process.env.FEDERATION_SYNC_INTERVAL;
+    expect(syncIntervalMs()).toBe(900_000);
+  });
+
+  it('ignores a value that would break the gauge', () => {
+    // Zero or a typo would make everything instantly "behind", or divide by
+    // nothing in the view. A bad setting should be inert, not destructive.
+    for (const bad of ['0', '-5', 'soon', '']) {
+      process.env.FEDERATION_SYNC_INTERVAL = bad;
+      expect(syncIntervalMs()).toBe(900_000);
+    }
   });
 });

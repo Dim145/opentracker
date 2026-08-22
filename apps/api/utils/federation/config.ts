@@ -95,3 +95,20 @@ export function getPrivateKeyPem(config: FederationConfig): string | null {
   const dec = decryptJson<{ pem: string }>(config.privateKeyEnc);
   return dec?.pem ?? null;
 }
+
+/**
+ * How often the catalogue sync runs, in milliseconds.
+ *
+ * One reader, because there used to be two and they disagreed: the cron read
+ * `FEDERATION_SYNC_INTERVAL` — the name both guides document — while the health
+ * view read `FEDERATION_SYNC_INTERVAL_MS`, which nothing sets and nothing
+ * documents. So the view always drew its gauge against fifteen minutes. On an
+ * instance syncing faster that is merely wrong; on one syncing slower than the
+ * "behind" threshold it marks every healthy partner as behind, permanently.
+ * Found by reading a live page that said "every 15 min" over a mesh ticking
+ * every twenty seconds.
+ */
+export function syncIntervalMs(): number {
+  const raw = Number(process.env.FEDERATION_SYNC_INTERVAL);
+  return Number.isFinite(raw) && raw > 0 ? raw : 900_000;
+}

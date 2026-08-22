@@ -17,6 +17,7 @@ import { eq, inArray } from 'drizzle-orm';
 import {
   getFederationConfig,
   isFederationLive,
+  syncIntervalMs,
 } from '~~/utils/federation/config';
 
 const LAST_TICK_KEY = 'federation:sync:last_tick_ms';
@@ -24,10 +25,9 @@ const LOCK_KEY = 'federation:sync:lock';
 const LOCK_TTL_S = 5 * 60;
 
 export default defineNitroPlugin(async () => {
-  const INTERVAL_MS = parseInt(
-    process.env.FEDERATION_SYNC_INTERVAL || '900000',
-    10,
-  );
+  // Shared with the health view, which reads the same number to decide what
+  // "behind" means. Two readers of one setting is one reader too many.
+  const INTERVAL_MS = syncIntervalMs();
   console.log(`[Federation Sync] Initialized — interval=${INTERVAL_MS}ms`);
 
   // Retire the bookkeeping of the three feeds records replaced. Left behind,

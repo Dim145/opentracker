@@ -70,9 +70,13 @@
              what we said, what we took in, what we would pass on, and what
              has been replaced. -->
         <div class="fh-store">
+          <!-- Only what exists is drawn. A segment keeps a 2px minimum so a
+               tiny share stays visible, which on a zero would have painted a
+               sliver standing for nothing — a bar built to be read honestly
+               should not do that. The figure stays in the legend below. -->
           <div class="fh-store-bar">
             <span
-              v-for="seg in storeBar"
+              v-for="seg in storeBar.filter((s) => s.n > 0)"
               :key="seg.key"
               class="fh-seg"
               :class="`fh-seg--${seg.key}`"

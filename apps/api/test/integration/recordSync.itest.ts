@@ -868,6 +868,53 @@ describe('the set the two sides actually compare', () => {
     expect(third.withdrawn).toBe(0);
   });
 
+  it('picks up what it already knew about when relaying is switched on', async () => {
+    // A defect a live mesh found and this file did not. Storage is
+    // conditional, so an instance with relaying off holds a partner's records
+    // as associations and no bytes. Reconciliation then agrees with the
+    // partner forever — correctly, the sets DO match — so flipping the switch
+    // would have carried only what happened to arrive afterwards, while the
+    // interface said "carrying partners' records and handing them on".
+    const peer = await makePeer();
+    for (let i = 0; i < 3; i++) alsoServe(record());
+    await syncPeerRecords(peer);
+    expect(await sourcedIds(peer.id)).toHaveLength(3);
+    expect(await db.select().from(schema.catalogRecords)).toHaveLength(0);
+
+    await db
+      .update(schema.federationConfig)
+      .set({ relayEnabled: true })
+      .where(eq(schema.federationConfig.id, 'singleton'));
+
+    await syncPeerRecords(peer);
+    const held = await db.select().from(schema.catalogRecords);
+    expect(held).toHaveLength(3);
+    expect(held.every((r) => r.origin === 'ingested')).toBe(true);
+
+    // And it converges: the next pass asks for nothing, or turning the switch
+    // on would re-fetch the partner's catalogue on every tick from then on —
+    // the very shape of defect this describe block exists for.
+    partner.calls = [];
+    const after = await syncPeerRecords(peer);
+    expect(after.ingested).toBe(0);
+    expect(partner.calls).toEqual(['/api/federation/reconcile']);
+  });
+
+  it('asks for nothing extra while relaying stays off', async () => {
+    // The backfill must not fire on an instance that never opted in, or the
+    // storage split buys nothing and every instance pays for a relay it does
+    // not run.
+    const peer = await makePeer();
+    for (let i = 0; i < 3; i++) alsoServe(record());
+    await syncPeerRecords(peer);
+
+    partner.calls = [];
+    const second = await syncPeerRecords(peer);
+    expect(second.ingested).toBe(0);
+    expect(partner.calls).toEqual(['/api/federation/reconcile']);
+    expect(await db.select().from(schema.catalogRecords)).toHaveLength(0);
+  });
+
   it('still repairs a mirror row lost behind its back', async () => {
     // Comparing the mirror gave this for free and cost the bug above. Now it
     // is a deliberate step, so it needs a deliberate test.

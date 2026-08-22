@@ -268,10 +268,15 @@ export async function keepForRelay(
  * The BODY is kept only when this instance relays. It is the larger cost by
  * three orders of magnitude — measured at about 1.4 kB a record — and an
  * instance that will never hand one on has no use for it: the mirror row
- * carries everything the interface reads. An operator who turns relaying on
- * later starts relaying what arrives from then on, which is honest: the served
- * set is computed from what we actually hold, so it is never larger than the
- * truth.
+ * carries everything the interface reads.
+ *
+ * Turning relaying on later reaches backwards — see `unstoredSources`. An
+ * earlier version of this comment argued it did not need to, on the grounds
+ * that the served set is computed from what we hold and is therefore never
+ * larger than the truth. True, and beside the point: a live mesh showed an
+ * instance that had switched relaying on carrying precisely nothing, forever,
+ * because reconciliation had already agreed with the partner and would never
+ * ask again.
  */
 export async function sourceRecord(
   record: Record<string, unknown>,
@@ -352,6 +357,44 @@ export async function dropSources(
  * mirror used to give for free — without the permanent re-fetching of every
  * record that was never a torrent, which is what it cost.
  */
+/**
+ * Records a partner serves us, whose bytes we do not hold.
+ *
+ * The other half of making storage conditional. Turning relaying ON used to be
+ * retroactive by accident — the bytes were kept whether or not they would ever
+ * be served, so the moment the switch flipped there was something to serve.
+ * Splitting storage out fixed the waste and broke that: reconciliation is
+ * quiet once the sets agree, so nothing would ever be fetched again and the
+ * instance would carry only what happened to arrive afterwards. An operator
+ * reading "carrying partners' records and handing them on" would have been
+ * told something that was not true of anything already in the catalogue.
+ *
+ * So the fetch list is topped up with these. It converges: every kind of
+ * record is stored by `keepForRelay`, so what is fetched here is held
+ * afterwards and does not come back. Bounded, because the first pass after the
+ * switch asks for a partner's whole catalogue.
+ */
+export async function unstoredSources(
+  peerId: string,
+  limit: number,
+): Promise<string[]> {
+  const rows = await db
+    .select({ recordId: schema.recordSources.recordId })
+    .from(schema.recordSources)
+    .leftJoin(
+      schema.catalogRecords,
+      eq(schema.catalogRecords.id, schema.recordSources.recordId),
+    )
+    .where(
+      and(
+        eq(schema.recordSources.peerId, peerId),
+        isNull(schema.catalogRecords.id),
+      ),
+    )
+    .limit(limit);
+  return rows.map((r) => r.recordId);
+}
+
 export async function repairMissingMirrors(peerId: string): Promise<number> {
   const orphaned = await db
     .select({ recordId: schema.recordSources.recordId })

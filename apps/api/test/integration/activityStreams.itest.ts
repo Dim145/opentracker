@@ -218,6 +218,74 @@ describe('the outbox', () => {
     expect((await outboxPage(1)).map((r) => r.id)).toEqual([ordinary.id]);
   });
 
+  it('keeps the withdrawal of an adult release off it too', async () => {
+    // The hole the filter had, found by running a mesh rather than reading
+    // the query. A tombstone carries an infohash and the id it replaces —
+    // no name, no flag — so deleting an adult release published its infohash
+    // on a surface that had never been shown the release.
+    const me = keypair();
+    const hidden = await publish(me, true);
+    const tomb = signRecord(
+      {
+        '@context': CONTEXT,
+        type: 'Tombstone',
+        'bt:infohash_v1': hidden['bt:infohash_v1'],
+        published: '2026-05-02T00:00:00.000Z',
+        'trackarr:issuer': me.did,
+        'trackarr:replaces': hidden.id,
+      } as never,
+      { privateKeyPem: me.privateKeyPem, did: me.did },
+    );
+    await db.insert(schema.catalogRecords).values({
+      id: tomb.id,
+      torrentId: randomUUID(),
+      infoHash: hidden['bt:infohash_v1'],
+      issuer: me.did,
+      kind: 'tombstone',
+      body: tomb as unknown as Record<string, unknown>,
+      contentHash: tomb.id,
+      origin: 'local',
+    });
+
+    expect(await outboxSize()).toBe(0);
+    expect(await outboxPage(1)).toEqual([]);
+  });
+
+  it('still publishes the withdrawal of an ordinary release', async () => {
+    // The filter must not swallow every tombstone: a partner needs these to
+    // learn a release is gone, and one that never arrives leaves a dead entry
+    // in every downstream catalogue.
+    const me = keypair();
+    const ordinary = await publish(me);
+    const tomb = signRecord(
+      {
+        '@context': CONTEXT,
+        type: 'Tombstone',
+        'bt:infohash_v1': ordinary['bt:infohash_v1'],
+        published: '2026-05-02T00:00:00.000Z',
+        'trackarr:issuer': me.did,
+        'trackarr:replaces': ordinary.id,
+      } as never,
+      { privateKeyPem: me.privateKeyPem, did: me.did },
+    );
+    await db.insert(schema.catalogRecords).values({
+      id: tomb.id,
+      torrentId: randomUUID(),
+      infoHash: ordinary['bt:infohash_v1'],
+      issuer: me.did,
+      kind: 'tombstone',
+      body: tomb as unknown as Record<string, unknown>,
+      contentHash: tomb.id,
+      origin: 'local',
+    });
+    await db
+      .update(schema.catalogRecords)
+      .set({ supersededAt: new Date() })
+      .where(eq(schema.catalogRecords.id, ordinary.id));
+
+    expect((await outboxPage(1)).map((r) => r.id)).toEqual([tomb.id]);
+  });
+
   it('counts and lists the same set, or paging walks off the end', async () => {
     // A filter applied to the page but not to the count is the classic way to
     // break a collection: the header promises more than the pages hold, and a

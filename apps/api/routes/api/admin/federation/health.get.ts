@@ -16,7 +16,7 @@
 import { db, schema } from '@trackarr/db';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { requireAdminSession } from '~~/utils/adminAuth';
-import { getFederationConfig } from '~~/utils/federation/config';
+import { getFederationConfig, syncIntervalMs } from '~~/utils/federation/config';
 import { recordStore, sourcedByPeer } from '~~/utils/federation/storeCounts';
 
 /** A peer is "behind" past three intervals with no run. */
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
 
   const config = await getFederationConfig();
-  const intervalMs = Number(process.env.FEDERATION_SYNC_INTERVAL_MS || 900_000);
+  const intervalMs = syncIntervalMs();
   const staleAfterMs = intervalMs * STALE_INTERVALS;
   const now = Date.now();
 
