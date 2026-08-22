@@ -101,11 +101,11 @@ const ariaLabel = computed(() => {
 
 .sort-head--btn:hover,
 .sort-head--btn:focus-visible {
-  color: var(--color-text-primary);
+  color: rgb(var(--fg-strong));
 }
 
 .sort-head--btn.is-active {
-  color: var(--color-text-primary);
+  color: rgb(var(--fg-strong));
 }
 
 .sort-head-caret {

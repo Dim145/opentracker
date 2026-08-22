@@ -288,13 +288,13 @@ const searchableTitle = computed(() => {
 }
 
 .gtr:hover {
-  background: color-mix(in oklab, var(--color-fg-default) 4%, transparent);
+  background: rgb(var(--bg-hover));
 }
 
 /* An open row and its releases read as one block: the parent keeps the hover
    tint so the eye does not lose which work it opened. */
 .gtr--open {
-  background: color-mix(in oklab, var(--color-fg-default) 5%, transparent);
+  background: rgb(var(--bg-hover));
 }
 
 .gtr-name-inner {
@@ -321,7 +321,7 @@ const searchableTitle = computed(() => {
 .gtr-title {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: rgb(var(--fg-strong));
   line-height: 1.3;
   overflow-wrap: anywhere;
   text-wrap: pretty;
@@ -337,7 +337,7 @@ const searchableTitle = computed(() => {
 }
 
 .gtr-year {
-  color: var(--color-text-muted);
+  color: rgb(var(--fg-faint));
   font-weight: 400;
 }
 
@@ -350,41 +350,52 @@ const searchableTitle = computed(() => {
 }
 
 .gtr-cat {
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-muted);
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: rgb(167 139 250 / 0.15);
+  color: rgb(196 181 253);
+  white-space: nowrap;
 }
 
 .gtr-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
   font: inherit;
-  font-size: 0.6875rem;
-  color: var(--color-text-secondary);
-  background: color-mix(in oklab, var(--color-fg-default) 6%, transparent);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  padding: 0.0625rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid rgb(var(--line-strong));
+  background: transparent;
+  color: rgb(var(--fg-muted));
   cursor: pointer;
+  white-space: nowrap;
   transition:
-    color 0.12s ease,
-    border-color 0.12s ease;
+    border-color 120ms ease,
+    color 120ms ease,
+    background-color 120ms ease;
 }
 
 .gtr-scope:hover {
-  color: var(--color-text-primary);
-  border-color: color-mix(in oklab, var(--color-accent) 60%, transparent);
+  color: rgb(var(--fg-default));
+  border-color: rgb(var(--fg-faint));
 }
 
 /* Lit: the cut a plain row click will open. Filled: the cut currently showing. */
 .gtr-scope--default {
-  border-color: color-mix(in oklab, var(--color-accent) 45%, transparent);
-  color: var(--color-text-primary);
+  background: rgb(167 139 250 / 0.09);
+  border-color: rgb(167 139 250 / 0.35);
+  color: rgb(196 181 253);
 }
 
 .gtr-scope--active {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: var(--color-bg-primary);
+  background: rgb(167 139 250 / 0.18);
+  border-color: rgb(167 139 250 / 0.5);
+  color: rgb(196 181 253);
 }
 
 .gtr-partners {
@@ -392,7 +403,7 @@ const searchableTitle = computed(() => {
   align-items: center;
   gap: 0.1875rem;
   font-size: 0.6875rem;
-  color: var(--color-accent);
+  color: rgb(var(--accent));
 }
 
 .gtr-num {
@@ -402,12 +413,12 @@ const searchableTitle = computed(() => {
 
 .gtr-completed {
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: rgb(var(--fg-default));
   font-variant-numeric: tabular-nums;
 }
 
 .gtr-dash {
-  color: var(--color-text-muted);
+  color: rgb(var(--fg-faint));
 }
 
 .gtr-size,
@@ -415,20 +426,20 @@ const searchableTitle = computed(() => {
   text-align: right;
   white-space: nowrap;
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: rgb(var(--fg-default));
   font-variant-numeric: tabular-nums;
 }
 
 .gtr-chev {
   text-align: center;
-  color: var(--color-text-muted);
+  color: rgb(var(--fg-faint));
 }
 
 .gtr-expanded > td {
   /* The releases sit inside the row's width with no cell padding of their own:
      the tree brings its own rhythm and a second inset would stack two. */
   padding: 0;
-  background: var(--color-bg-secondary);
+  background: rgb(var(--bg-inset));
 }
 
 .gtr-more {
@@ -437,7 +448,7 @@ const searchableTitle = computed(() => {
   gap: 0.25rem;
   padding: 0.5rem 0.75rem;
   font-size: 0.75rem;
-  color: var(--color-accent);
+  color: rgb(var(--accent));
 }
 
 .is-dead {
