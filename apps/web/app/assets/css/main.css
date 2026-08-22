@@ -58,6 +58,16 @@
      the rgb() pattern. */
   --bg-pattern:     rgba(255, 255, 255, 0.025);
 
+  /* Typography. `--font-mono` has to exist here because 52 declarations
+     across 11 components already ask for it, and it had never been defined:
+     31 of them carried a fallback and quietly rendered the system mono
+     instead of the app's face, and the 21 in FreeleechPool.vue wrote
+     `var(--font-mono)` with no fallback at all, which makes the whole
+     declaration invalid — those elements were not monospace, they were Inter.
+     Kept identical to tailwind.config.ts `fontFamily.mono` so the token and
+     the `font-mono` utility can never drift apart. */
+  --font-mono:      'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
   /* Spacing tokens */
   --header-h:       56px;
   --announcement-h: 0px;
