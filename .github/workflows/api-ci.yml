@@ -85,3 +85,48 @@ jobs:
       # has its own runner (`pnpm --filter @trackarr/api test:integration`).
       - name: Unit tests
         run: pnpm --filter @trackarr/api test
+
+  schema-parity:
+    name: schema.ts matches the migrations
+    runs-on: ubuntu-latest
+    # The gate against the drift this repo already lived through: `push`
+    # maintained the real schema for most of the project while the migration
+    # files fell 24 tables, 37 columns and 9 indexes behind, and nothing
+    # compared them. Two checks — `generate` must produce nothing, and the
+    # chain must apply to an empty database. See
+    # packages/db/scripts/check-schema-parity.mjs for why neither compares
+    # against `push`.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: parity
+          POSTGRES_USER: parity
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U parity"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check schema parity
+        env:
+          BASE_DATABASE_URL: postgres://parity:parity@localhost:5432/postgres
+        run: pnpm check:schema-parity
