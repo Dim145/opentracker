@@ -61,6 +61,38 @@
         </label>
       </div>
 
+      <!-- Discoverability.
+
+           The one switch here that changes who can SEE the catalogue rather
+           than who can talk to it. Everything else is a signed conversation
+           between instances that agreed to know each other; this is the door
+           for somebody who has not. -->
+      <div class="fed-master fed-relay" :class="{ 'is-on': cfg?.discoverable }">
+        <span class="fed-master-ring"><Icon name="ph:globe-hemisphere-west-bold" /></span>
+        <div class="fed-master-txt">
+          <div class="fed-master-h">
+            {{ $t('admin.federation.discover.title') }}
+            <span class="fed-dot" :class="cfg?.discoverable ? 'on' : 'idle'" />
+          </div>
+          <p>
+            {{
+              cfg?.discoverable
+                ? $t('admin.federation.discover.on')
+                : $t('admin.federation.discover.off')
+            }}
+          </p>
+        </div>
+        <label class="switch">
+          <input
+            type="checkbox"
+            :checked="cfg?.discoverable"
+            :disabled="busy.master"
+            @change="toggleDiscoverable"
+          />
+          <span class="track" /><span class="thumb" />
+        </label>
+      </div>
+
       <!-- Identity + default scopes -->
       <div class="fed-grid">
         <section class="card">
@@ -267,6 +299,7 @@ interface Scopes {
 interface Cfg {
   enabled: boolean;
   relayEnabled: boolean;
+  discoverable: boolean;
   instanceName: string | null;
   publicUrl: string | null;
   instanceId: string | null;
@@ -381,6 +414,19 @@ async function toggleMaster(e: Event) {
   const enabled = (e.target as HTMLInputElement).checked;
   busy.master = true;
   await run(() => $fetch('/api/admin/federation', { method: 'PUT', body: { enabled } }), t('admin.federation.toast.saved'));
+}
+
+/** Publish an unauthenticated view of the catalogue. Nobody's default. */
+async function toggleDiscoverable(e: Event) {
+  const discoverable = (e.target as HTMLInputElement).checked;
+  await run(
+    () =>
+      $fetch('/api/admin/federation', {
+        method: 'PUT',
+        body: { discoverable },
+      }),
+    t('admin.federation.toast.saved'),
+  );
 }
 
 /** Carry and hand on what partners publish. A cost, so it is a choice. */

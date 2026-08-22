@@ -1612,6 +1612,11 @@
         "title": "Relay",
         "on": "Carrying partners' records and handing them on. Their partners can reach your catalogue through one link instead of many.",
         "off": "Not carrying anything but your own. Partners still exchange with you directly."
+      },
+      "discover": {
+        "title": "Public catalogue",
+        "on": "Anyone can read what you publish — an actor document and a collection of your releases' metadata. No .torrent files, no member data.",
+        "off": "Only partners you have accepted can see anything. Nothing is served to strangers."
       }
     },
     "notifications": {

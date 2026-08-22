@@ -1612,6 +1612,11 @@
         "title": "Relais",
         "on": "Porte les enregistrements des partenaires et les transmet. Leurs partenaires atteignent votre catalogue par un seul lien au lieu de plusieurs.",
         "off": "Ne porte que le vôtre. Les partenaires échangent toujours directement avec vous."
+      },
+      "discover": {
+        "title": "Catalogue public",
+        "on": "N'importe qui peut lire ce que vous publiez — un document d'acteur et une collection des métadonnées de vos releases. Aucun fichier .torrent, aucune donnée de membre.",
+        "off": "Seuls les partenaires que vous avez acceptés voient quoi que ce soit. Rien n'est servi aux inconnus."
       }
     },
     "notifications": {

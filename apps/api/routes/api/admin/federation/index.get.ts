@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
       ? {
           enabled: config.enabled,
           relayEnabled: config.relayEnabled,
+          discoverable: config.discoverable,
           instanceName: config.instanceName,
           publicUrl: config.publicUrl,
           instanceId: config.instanceId,
@@ -39,6 +40,7 @@ export default defineEventHandler(async (event) => {
       : {
           enabled: false,
           relayEnabled: false,
+          discoverable: false,
           instanceName: null,
           publicUrl: null,
           instanceId: null,

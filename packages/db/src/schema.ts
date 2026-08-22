@@ -2301,6 +2301,19 @@ export const federationConfig = pgTable('federation_config', {
    * offered at all without asking partners to extend it any trust.
    */
   relayEnabled: boolean('relay_enabled').default(false).notNull(),
+  /**
+   * Serve a public, unauthenticated ActivityStreams view of what this instance
+   * publishes: an actor document and an outbox anyone can read.
+   *
+   * Off by default, and the one switch here that changes who can see the
+   * catalogue rather than who can talk to it. Everything else in federation is
+   * a signed conversation between instances that agreed to know each other;
+   * this is the door for somebody who has not. It carries metadata only — no
+   * `.torrent` bytes, no passkey, no member behind a name — but a private
+   * tracker's catalogue is itself the thing some operators keep private, so
+   * the choice is theirs and it is made explicitly.
+   */
+  discoverable: boolean('discoverable').default(false).notNull(),
   /** Human-facing name advertised to partners during the handshake. */
   instanceName: text('instance_name'),
   /** This instance's public base URL (e.g. https://tracker.example.fr),
