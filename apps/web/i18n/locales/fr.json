@@ -393,7 +393,17 @@
       "appearance": "Apparence",
       "security": "Sécurité",
       "notifications": "Notifications",
-      "accountInfo": "Compte"
+      "accountInfo": "Compte",
+      "danger": "Zone de danger"
+    },
+    "danger": {
+      "deleteTitle": "Supprimer ce compte",
+      "deleteBody": "Efface vos données personnelles — profil, passkey, second facteur, appareils, notifications, abonnements et favoris — et rétracte votre identité fédérée pour que les instances partenaires abandonnent vos liens. Vos uploads et messages du forum demeurent mais ne sont plus rattachés à un nom. Action irréversible.",
+      "confirmLabel": "Tapez votre nom d'utilisateur ({username}) pour confirmer",
+      "deleteButton": "Supprimer mon compte",
+      "deleting": "Suppression…",
+      "reauthRequired": "Par sécurité, une connexion récente est requise. Déconnectez-vous, reconnectez-vous, puis réessayez.",
+      "error": "Impossible de supprimer le compte. Veuillez réessayer."
     },
     "notifications": {
       "eyebrow": "Notifications externes",

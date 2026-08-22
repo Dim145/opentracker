@@ -587,6 +587,58 @@
             </dl>
           </div>
         </section>
+
+        <!-- Danger zone — irreversible self-service account erasure. Kept last
+             and visually apart so it is never a mis-click away from a save. -->
+        <section id="danger" class="form-section">
+          <header class="section-head">
+            <span class="section-number section-number--danger">!</span>
+            <h2 class="section-title">{{ $t('settings.sections.danger') }}</h2>
+            <span class="section-rule" />
+          </header>
+
+          <div class="section-body">
+            <div class="danger-card">
+              <div class="danger-copy">
+                <h3 class="danger-title">
+                  <Icon name="ph:warning-octagon-bold" />
+                  {{ $t('settings.danger.deleteTitle') }}
+                </h3>
+                <p class="danger-text">{{ $t('settings.danger.deleteBody') }}</p>
+              </div>
+
+              <label class="danger-field">
+                <span class="field-label">
+                  {{ $t('settings.danger.confirmLabel', { username: form.username }) }}
+                </span>
+                <input
+                  v-model="deleteConfirm"
+                  class="danger-input"
+                  :placeholder="form.username"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </label>
+
+              <p v-if="deleteError" class="danger-error">
+                <Icon name="ph:warning-circle-fill" /> {{ deleteError }}
+              </p>
+
+              <button
+                type="button"
+                class="danger-btn"
+                :disabled="deleting || deleteConfirm !== form.username"
+                @click="deleteAccount"
+              >
+                <Icon
+                  :name="deleting ? 'ph:circle-notch' : 'ph:trash-bold'"
+                  :class="{ 'animate-spin': deleting }"
+                />
+                {{ deleting ? $t('settings.danger.deleting') : $t('settings.danger.deleteButton') }}
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
 
@@ -1000,6 +1052,36 @@ async function signOut() {
   }
   await clearSession();
   router.push('/auth/login');
+}
+
+// ── Delete account (GDPR erasure) ───────────────────────────────
+// Typing the exact username arms the button; the server re-checks it and also
+// demands a fresh login. On success the account is already refused everywhere,
+// so we just drop the local session and leave.
+const deleteConfirm = ref('');
+const deleting = ref(false);
+const deleteError = ref('');
+async function deleteAccount() {
+  if (deleteConfirm.value !== form.username) return;
+  deleting.value = true;
+  deleteError.value = '';
+  try {
+    await $fetch('/api/me', {
+      method: 'DELETE',
+      body: { confirm: deleteConfirm.value },
+    });
+    await clearSession();
+    router.push('/auth/login');
+  } catch (err: unknown) {
+    const e = err as { statusCode?: number; data?: { message?: string; data?: { reauthRequired?: boolean } }; message?: string };
+    if (e?.data?.data?.reauthRequired || e?.statusCode === 401) {
+      deleteError.value = t('settings.danger.reauthRequired');
+    } else {
+      deleteError.value = e?.data?.message || e?.message || t('settings.danger.error');
+    }
+  } finally {
+    deleting.value = false;
+  }
 }
 
 // ── Account info derivations ────────────────────────────────────
@@ -1910,5 +1992,84 @@ onBeforeRouteLeave((_to, _from, next) => {
 .pwd-fade-leave-to {
   opacity: 0;
   transform: translateY(-6px);
+}
+
+/* Danger zone — account erasure */
+.section-number--danger {
+  color: rgb(var(--danger));
+  border-color: rgb(var(--danger) / 0.4);
+  background: rgb(var(--danger) / 0.08);
+}
+.danger-card {
+  border: 1px solid rgb(var(--danger) / 0.35);
+  border-radius: 0.75rem;
+  background: rgb(var(--danger) / 0.04);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 640px;
+}
+.danger-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgb(var(--danger));
+}
+.danger-text {
+  color: rgb(var(--fg-muted));
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-top: 0.35rem;
+}
+.danger-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.danger-input {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgb(var(--danger) / 0.4);
+  border-radius: 0.5rem;
+  background: rgb(var(--bg-inset) / 0.6);
+  color: rgb(var(--fg-default));
+  font-size: 0.9rem;
+  font-family: var(--font-mono, monospace);
+}
+.danger-input:focus {
+  outline: none;
+  border-color: rgb(var(--danger));
+}
+.danger-error {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: rgb(var(--danger));
+  font-size: 0.82rem;
+}
+.danger-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid rgb(var(--danger) / 0.6);
+  border-radius: 0.5rem;
+  background: rgb(var(--danger) / 0.12);
+  color: rgb(var(--danger));
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+.danger-btn:hover:not(:disabled) {
+  background: rgb(var(--danger) / 0.2);
+  border-color: rgb(var(--danger));
+}
+.danger-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 </style>

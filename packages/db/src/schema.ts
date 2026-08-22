@@ -162,6 +162,16 @@ export const users = pgTable(
     trustDevicesEnabled: boolean('trust_devices_enabled').default(false).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     lastSeen: timestamp('last_seen').defaultNow().notNull(),
+    /**
+     * Set when the account is erased (GDPR right to erasure — see
+     * `utils/account/eraseAccount`). The row survives so the catalogue,
+     * moderation log and economy it touched stay intact, but every personal
+     * field on it is scrubbed and the account is refused at the door: the cached
+     * auth gate reads this alongside `is_banned` and treats a set value as
+     * `gone`, so a stale session cookie is dead on its next request. Not the
+     * same as a ban — a ban is reversible and keeps the person; this does not.
+     */
+    deletedAt: timestamp('deleted_at'),
   },
   (table) => [uniqueIndex('users_passkey_idx').on(table.passkey)]
 );
@@ -891,7 +901,14 @@ export const torrents = pgTable(
     description: text('description'), // Rich text/Markdown description
     nfo: text('nfo'), // Optional plain-text NFO release notes (preserve formatting)
     torrentData: bytea('torrent_data'), // Raw .torrent file for download
-    uploaderId: text('uploader_id').references(() => users.id),
+    // `set null` rather than the default `no action`: a torrent has to outlive
+    // its uploader (the whole catalogue would otherwise be undeletable while a
+    // single member holds one release), and an erased account keeps its row but
+    // may one day be hard-purged. A null uploader reads as "anonymous / former
+    // member", which every surface already tolerates.
+    uploaderId: text('uploader_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     categoryId: text('category_id').references(() => categories.id),
     // External media-database tags (issue #47). Stored as canonical
     // ids — `imdb_id` keeps the `tt` prefix; `tmdb_id`, `tvdb_id`

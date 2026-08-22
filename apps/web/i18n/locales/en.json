@@ -393,7 +393,17 @@
       "appearance": "Appearance",
       "security": "Security",
       "notifications": "Notifications",
-      "accountInfo": "Account info"
+      "accountInfo": "Account info",
+      "danger": "Danger zone"
+    },
+    "danger": {
+      "deleteTitle": "Delete this account",
+      "deleteBody": "This erases your personal data — profile, passkey, second factor, devices, notifications, follows and favourites — and retracts your federated identity so partner instances drop your links. Your uploads and forum posts stay but are no longer attributed to a name. This cannot be undone.",
+      "confirmLabel": "Type your username ({username}) to confirm",
+      "deleteButton": "Delete my account",
+      "deleting": "Deleting…",
+      "reauthRequired": "For your safety this needs a fresh login. Sign out, sign back in, then try again.",
+      "error": "Could not delete the account. Please try again."
     },
     "notifications": {
       "eyebrow": "External notifications",
