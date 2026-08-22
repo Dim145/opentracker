@@ -2075,7 +2075,10 @@ export const uploadRequests = pgTable(
     //     targeting the members who also have an account there).
     //   - `federatedInfoHash` — the origin's v1 infohash, for dedup + display.
     //   - `federatedContentRootV2` — the origin's cross-tracker content key
-    //     (§1); a fill whose own root equals this IS the same content, proven.
+    //     (§1). A fill whose own root EQUALS this is the same content (shown as
+    //     "content-verified"); an unequal root is NOT proof of difference —
+    //     content_root_v2 spans aux files (.nfo/subs), so it is advisory only,
+    //     never a gate on the fill.
     federatedPeerId: text('federated_peer_id').references(() => federationPeers.id, {
       onDelete: 'set null',
     }),

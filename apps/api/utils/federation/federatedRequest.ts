@@ -78,16 +78,3 @@ export async function fillersForPeer(
     (uid) => uid !== excludeUserId,
   );
 }
-
-/**
- * The content proof. True — reject the fill — only when BOTH sides carry a v2
- * content root and they differ: that is cryptographic proof of a different
- * release. Missing a root on either side is not a mismatch; the human validation
- * still applies, exactly as for a local request.
- */
-export function contentRootMismatch(
-  requestRoot: string | null | undefined,
-  torrentRoot: string | null | undefined,
-): boolean {
-  return !!requestRoot && !!torrentRoot && requestRoot !== torrentRoot;
-}

@@ -69,6 +69,11 @@ function collectRoots(
   out: Array<{ path: string; root: string }>,
 ): boolean {
   if (isLeaf(node)) {
+    // A file node carries ONLY the reserved empty-string key. A node with both
+    // `''` and named children is malformed — refusing it (rather than reading it
+    // as a file and silently dropping the children) keeps the content address
+    // honest about what it covered.
+    if (Object.keys(node).length !== 1) return false;
     const meta = node[''] as Record<string, unknown> | undefined;
     if (!meta || typeof meta !== 'object') return false;
     const attr = toStr(meta['attr']);
@@ -133,6 +138,15 @@ export function extractV2(torrentBytes: Buffer | Uint8Array): V2Content | null {
 
   roots.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 
+  // NOTE: this hashes a RE-ENCODE of the decoded info dict, not the original
+  // byte slice. For a canonical torrent (sorted keys, UTF-8 paths) that equals
+  // the true BEP-52 infohash; for a non-canonical dict, or a path that is not
+  // valid UTF-8 (which `bencode` surfaces as a hex string), it diverges. We can
+  // afford that because `infoHashV2` is only stored and carried in the record —
+  // nothing joins or matches on it — and `contentRootV2` (the key that IS
+  // matched) stays deterministic within this codebase, so opentracker↔opentracker
+  // matching is unaffected. If a future consumer needs the portable, exact v2
+  // infohash, compute it from the original info-dict byte range instead.
   let infoHashV2: string;
   try {
     infoHashV2 = createHash('sha256').update(bencode.encode(info)).digest('hex');

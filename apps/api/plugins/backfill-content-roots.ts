@@ -40,17 +40,14 @@ async function tick(): Promise<{ processed: number; v2: number }> {
   let v2count = 0;
   for (const row of rows) {
     if (!row.torrentData || row.torrentData.length === 0) continue;
+    // Extraction is deterministic — a throw here means a genuinely unparseable
+    // blob, so we skip it and let the cursor move on (re-parsing would fail the
+    // same way forever). The UPDATE is the only part that can fail transiently;
+    // it is deliberately OUTSIDE this catch, so a deadlock/timeout aborts the
+    // tick WITHOUT advancing the cursor, and the row is retried next tick.
+    let v2: ReturnType<typeof extractV2> = null;
     try {
-      const v2 = extractV2(Buffer.from(row.torrentData));
-      if (v2) {
-        await db
-          .update(schema.torrents)
-          .set({ infoHashV2: v2.infoHashV2, contentRootV2: v2.contentRootV2 })
-          .where(eq(schema.torrents.id, row.id));
-        v2count += 1;
-      }
-      // v1-only: leave both null. The cursor advancing past it is what stops
-      // the re-scan — no sentinel needed.
+      v2 = extractV2(Buffer.from(row.torrentData));
     } catch (err) {
       console.warn(
         '[ContentRootV2] extract failed for torrent',
@@ -58,9 +55,21 @@ async function tick(): Promise<{ processed: number; v2: number }> {
         ':',
         (err as Error).message,
       );
+      v2 = null;
     }
+    if (v2) {
+      await db
+        .update(schema.torrents)
+        .set({ infoHashV2: v2.infoHashV2, contentRootV2: v2.contentRootV2 })
+        .where(eq(schema.torrents.id, row.id));
+      v2count += 1;
+    }
+    // v1-only (or unparseable): leave both null. The cursor advancing past it is
+    // what stops the re-scan — no sentinel needed.
   }
 
+  // Only reached if every UPDATE in the batch committed: a failed one throws out
+  // of here first, leaving the cursor where it was so the batch is re-attempted.
   await setSetting(CURSOR_KEY, rows[rows.length - 1]!.id);
   return { processed: rows.length, v2: v2count };
 }

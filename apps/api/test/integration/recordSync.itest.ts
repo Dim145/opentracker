@@ -6,6 +6,7 @@ import type { FederationPeer } from '@trackarr/db/schema';
 import { makeUser } from './helpers';
 import { didKeyFromPublicKey } from '../../utils/federation/did';
 import { CONTEXT, signRecord } from '../../utils/federation/record';
+import { federatedCrossSeedMatches } from '../../utils/federation/crossSeed';
 
 // Ingesting signed records.
 //
@@ -1098,5 +1099,44 @@ describe('a refused record stops being re-fetched', () => {
     const second = await syncPeerRecords(peer);
     expect(second.rejected).toBe(0);
     expect(partner.calls).toEqual(['/api/federation/reconcile']);
+  });
+});
+
+// A mesh end-to-end for the data-sharing spine: a partner publishes a v2-addressed
+// release, our instance ingests it through the real sync path, and a local torrent
+// of the same content matches it by content root — §1 (v2 in the record) → mirror
+// ingest → M2 (cross-instance cross-seed), across the instance boundary.
+describe('mesh E2E — v2 content addressing crosses instances', () => {
+  it('ingests a partner v2 record and cross-seed-matches it by content root', async () => {
+    const peer = await makePeer();
+    const root = 'c'.repeat(64);
+    const v2 = 'd'.repeat(64);
+    const hash = 'fa'.repeat(20);
+
+    // Instance B publishes a v2-addressed release.
+    serve(
+      record({
+        'bt:infohash_v1': hash,
+        'bt:infohash_v2': v2,
+        'trackarr:contentRootV2': root,
+        name: 'Mesh.Release.2160p',
+      }),
+    );
+    const out = await syncPeerRecords(peer);
+    expect(out.ingested).toBe(1);
+
+    // The mirror carried the v2 fields across the boundary.
+    const rows = await mirrored(peer.id);
+    const row = rows.find((r) => r.infoHash === hash)!;
+    expect(row.contentRootV2).toBe(root);
+    expect(row.infoHashV2).toBe(v2);
+
+    // A local torrent of the same content cross-seed-matches the partner's,
+    // proven by the shared v2 content root.
+    const matches = await federatedCrossSeedMatches({
+      contentRootV2: root,
+      contentSignature: null,
+    });
+    expect(matches.some((m) => m.infoHash === hash && m.matchType === 'v2')).toBe(true);
   });
 });

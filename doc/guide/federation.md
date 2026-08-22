@@ -295,6 +295,14 @@ torrents.federate_swarm  per-torrent swarm opt-in flag
 Swarm cross-announce uses **no table** — it's a Redis cache
 (`remote_peers:{infoHash}`) read by the Go tracker behind its flag.
 
+## Sharing data, not just metadata
+
+Federation mirrors a partner's catalogue; on its own that only lets you *see* what
+exists elsewhere. Turning "I see it" into "I can act on it" — content addressing
+(BEP 52), **Request here**, cross-seed matching, mesh availability, and the credit
+settlement a future content relay needs — is its own guide:
+[federation-data-sharing.md](./federation-data-sharing.md).
+
 ## Pages at a glance
 
 | Page                    | What                                                       |

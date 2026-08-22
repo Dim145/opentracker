@@ -161,6 +161,13 @@ export async function applyContributionAttestation(opts: {
     // must not both read the pre-credit total and both credit up to the cap.
     await tx.execute(sql`SELECT id FROM ${schema.users} WHERE id = ${localUserId} FOR UPDATE`);
 
+    // The cap is per MEMBER, across all peers — it bounds how much bonus ratio
+    // any one member can gain in a day, which is the inflation that matters. Note
+    // the blast radius of a single dishonest/compromised (but accounts-accepted)
+    // peer is bounded only by this per-member ceiling times the member count: it
+    // could name every member up to the cap. That is inside the stated trust
+    // model — you enable crediting only for a partner you trust to be honest
+    // about bytes — but an operator wary of a partner should keep the cap low.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const [usedRow] = await tx
       .select({ used: sql<number>`coalesce(sum(${schema.federationCreditGrants.bytes}), 0)::bigint` })

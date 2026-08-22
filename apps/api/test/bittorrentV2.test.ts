@@ -95,6 +95,16 @@ describe('extractV2', () => {
     expect(extractV2(torrentOf(info))).toBeNull();
   });
 
+  it('rejects a malformed node that is both a file and a directory', () => {
+    const info = v2Info({
+      weird: {
+        '': { length: 10, 'pieces root': Buffer.alloc(32, 1) },
+        'child.mkv': leaf(20, 2),
+      },
+    });
+    expect(extractV2(torrentOf(info))).toBeNull();
+  });
+
   it('returns null on garbage input', () => {
     expect(extractV2(Buffer.from('not bencode'))).toBeNull();
   });

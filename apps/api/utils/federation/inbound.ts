@@ -101,7 +101,20 @@ export interface InboundContext {
 export async function verifyInboundS2S(
   event: H3Event,
   scope: Scope,
-  opts: { post?: boolean; maxBodyBytes?: number } = {},
+  opts: {
+    post?: boolean;
+    maxBodyBytes?: number;
+    /**
+     * Which per-peer flag authorises this exchange. `'share'` (default) checks
+     * `sharesWithThem[scope]` — correct when the peer READS what we publish (a
+     * GET, or a pull-driven ingest that is part of a mutual relationship).
+     * `'accept'` checks `acceptsFromThem[scope]` — the right gate when the peer
+     * PUSHES data we then act on locally (e.g. contribution attestations that
+     * credit a member): accepting a partner's assertions is a distinct, and
+     * opposite-direction, trust decision from letting it read ours.
+     */
+    direction?: 'share' | 'accept';
+  } = {},
 ): Promise<InboundContext> {
   await rateLimit(event, RATE_LIMITS.public);
 
@@ -138,10 +151,17 @@ export async function verifyInboundS2S(
   if (peer.status !== 'active') {
     throw createError({ statusCode: 403, message: 'Peer not active' });
   }
-  if (!peer.sharesWithThem?.[scope]) {
+  const authorised =
+    opts.direction === 'accept'
+      ? peer.acceptsFromThem?.[scope]
+      : peer.sharesWithThem?.[scope];
+  if (!authorised) {
     throw createError({
       statusCode: 403,
-      message: `${scope} not shared with this peer`,
+      message:
+        opts.direction === 'accept'
+          ? `${scope} not accepted from this peer`
+          : `${scope} not shared with this peer`,
     });
   }
 

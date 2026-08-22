@@ -14,8 +14,13 @@ import { applyContributionAttestation } from '~~/utils/federation/credit';
 const MAX_ATTESTATIONS = 500;
 
 export default defineEventHandler(async (event) => {
+  // 'accept' direction: crediting a member on a partner's word is authorised by
+  // `acceptsFromThem.accounts` (we accept this peer's account assertions), NOT by
+  // `sharesWithThem.accounts` (we let this peer read our reputation) — two
+  // opposite trust decisions that must not collapse into one flag.
   const { peer, rawBody } = await verifyInboundS2S(event, 'accounts', {
     post: true,
+    direction: 'accept',
   });
 
   let body: unknown;

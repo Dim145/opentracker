@@ -22,7 +22,6 @@ import { db, schema } from '@trackarr/db';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notify } from '~~/utils/notify';
 import { getRequestMaxFillsPerUser } from '~~/utils/settings';
-import { contentRootMismatch } from '~~/utils/federation/federatedRequest';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 const bodySchema = z.object({
@@ -90,18 +89,15 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Federated-origin content proof. When the request came from a partner release
-  // AND both sides carry a v2 content root (§1), the fill must BE that content —
-  // the roots are cryptographic, so a mismatch is a different release wearing a
-  // similar name. When either side has no v2 root, we do not gate here: the
-  // requester still confirms at validation, exactly as for a local request.
-  if (contentRootMismatch(request.federatedContentRootV2, torrent.contentRootV2)) {
-    throw createError({
-      statusCode: 400,
-      message:
-        "This torrent's content does not match the requested release (v2 content root differs).",
-    });
-  }
+  // Federated-origin content proof is ADVISORY, not a gate. When the request's
+  // and the fill's v2 roots are EQUAL that proves the same content, and the
+  // request page shows a "content-verified" badge. But INEQUALITY does not prove
+  // difference: content_root_v2 spans every non-padding file, so the same movie
+  // with a different .nfo / subs / sample legitimately hashes differently. And
+  // the request's root is an unverified partner claim. So a mismatch must not
+  // block a real fill — the requester validates by hand exactly as for a local
+  // or v1-only request. (Kept as a note; the positive signal lives in the
+  // request detail's `contentVerified`.)
 
   // Category match. Exact-match is too strict — a request filed
   // against "TV" should accept a fill in any "TV/*" subcategory.

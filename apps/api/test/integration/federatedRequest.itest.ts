@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto';
 import { db, schema } from '@trackarr/db';
 import { makeUser, makeCategory } from './helpers';
 import {
-  contentRootMismatch,
   fillersForPeer,
   openFederatedRequestId,
   resolveLocalCategoryForRemote,
@@ -129,13 +128,4 @@ describe('federated request bridge (M1)', () => {
     });
   });
 
-  describe('contentRootMismatch', () => {
-    it('is true only when both roots exist and differ', () => {
-      expect(contentRootMismatch('a'.repeat(64), 'b'.repeat(64))).toBe(true);
-      expect(contentRootMismatch('a'.repeat(64), 'a'.repeat(64))).toBe(false);
-      expect(contentRootMismatch(null, 'a'.repeat(64))).toBe(false);
-      expect(contentRootMismatch('a'.repeat(64), null)).toBe(false);
-      expect(contentRootMismatch(null, null)).toBe(false);
-    });
-  });
 });

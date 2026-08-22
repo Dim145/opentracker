@@ -74,11 +74,12 @@ Two things ride along automatically:
   federated identity links) are notified first — they are the most
   likely to already hold it.
 - If both the requested release and the filling upload carry a
-  **BitTorrent v2 content root**, the fill is accepted only when the
-  roots match: cryptographic proof it is the same content, not a
-  look-alike. The request page shows a **content-verified** signal so
-  you can validate with confidence. Older v1-only releases fall back
-  to the usual human check.
+  **BitTorrent v2 content root** and they are equal, the request page
+  shows a **content-verified** signal — cryptographic proof it is the
+  same content. This is advisory, not a gate: an unequal root does not
+  prove a different release (the key spans `.nfo`/subs/sample files that
+  honestly differ), so you validate by hand exactly as for a v1-only
+  release.
 
 ## Filling a request
 
