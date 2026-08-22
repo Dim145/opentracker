@@ -724,9 +724,13 @@
         "note": "Uploader's note",
         "nfo": "NFO",
         "crossSeeds": "Cross-seeds",
+        "crossSeedsFederated": "Cross-seed on partners",
         "swarm": "Peer list"
       },
       "crossSeedNote": "Grouped by matching file names and sizes only — a discovery hint, not a verified-content guarantee.",
+      "crossSeedFederatedNote": "The same content on a partner instance. If you have an account there, cross-seed it from the files you already hold — fetched with your own partner passkey.",
+      "crossMatchVerified": "verified",
+      "crossMatchHint": "likely",
       "hero": {
         "case": "Release"
       },
