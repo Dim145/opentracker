@@ -13,6 +13,11 @@
  *     ignored at display time.
  *   - showLastSeen: when false, public profile responses redact the
  *     `lastSeen` timestamp. Moderator/admin views always see it.
+ *   - anonymousUploads / hideDownloadHistory / restrictComments: the
+ *     three privacy toggles. All three are account-level and take
+ *     effect retroactively — they gate read paths and the comment
+ *     handler rather than rewriting any stored row, so turning one off
+ *     again restores the previous behaviour exactly.
  *
  * Auth: any logged-in user; rate-limited via the standard mutation
  * bucket so a hijacked session can't churn updates faster than the
@@ -42,6 +47,15 @@ const bodySchema = z
     // settings.vue flips this and the read paths immediately stop
     // returning adult-tagged categories / torrents.
     showAdultContent: z.boolean().optional(),
+    // Detach the uploader's name from their releases, for other
+    // members and for federated peers. Staff still see it.
+    anonymousUploads: z.boolean().optional(),
+    // Stop serving the member's own snatch list. A display
+    // preference: `hnr_tracking` keeps being written either way.
+    hideDownloadHistory: z.boolean().optional(),
+    // Demand a minimum account age from anyone commenting on this
+    // member's uploads.
+    restrictComments: z.boolean().optional(),
     theme: z.enum(['light', 'dark']).optional(),
     // Language preference — must match one of the locale bundles
     // shipped under `apps/web/i18n/locales/`. Adding a locale means
@@ -64,6 +78,9 @@ export default defineEventHandler(async (event) => {
     bio: string | null;
     showLastSeen: boolean;
     showAdultContent: boolean;
+    anonymousUploads: boolean;
+    hideDownloadHistory: boolean;
+    restrictComments: boolean;
     theme: 'light' | 'dark';
     language: 'en' | 'fr';
   }> = {};
@@ -80,6 +97,15 @@ export default defineEventHandler(async (event) => {
   }
   if (body.showAdultContent !== undefined) {
     updates.showAdultContent = body.showAdultContent;
+  }
+  if (body.anonymousUploads !== undefined) {
+    updates.anonymousUploads = body.anonymousUploads;
+  }
+  if (body.hideDownloadHistory !== undefined) {
+    updates.hideDownloadHistory = body.hideDownloadHistory;
+  }
+  if (body.restrictComments !== undefined) {
+    updates.restrictComments = body.restrictComments;
   }
   if (body.theme !== undefined) {
     updates.theme = body.theme;
@@ -103,6 +129,9 @@ export default defineEventHandler(async (event) => {
       bio: schema.users.bio,
       showLastSeen: schema.users.showLastSeen,
       showAdultContent: schema.users.showAdultContent,
+      anonymousUploads: schema.users.anonymousUploads,
+      hideDownloadHistory: schema.users.hideDownloadHistory,
+      restrictComments: schema.users.restrictComments,
       theme: schema.users.theme,
       language: schema.users.language,
     });

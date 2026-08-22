@@ -70,6 +70,23 @@ export async function fanoutFollowedUserUpload(
   input: FanoutInput,
 ): Promise<void> {
   try {
+    // An uploader who publishes anonymously gets no fan-out at all.
+    //
+    // Redacting the username here would not be enough: the notification
+    // says "someone you follow uploaded X", and following is one-sided
+    // and needs no consent, so anyone could follow an account and read
+    // the link between it and every release straight off their bell.
+    // Someone following exactly one person would not even need to
+    // guess. Suppressing the whole notification is the only version of
+    // this that holds, and it is checked here rather than at the two
+    // call sites so the upload path and the moderation transition
+    // cannot drift apart.
+    const uploader = await db.query.users.findFirst({
+      where: eq(schema.users.id, input.uploaderId),
+      columns: { anonymousUploads: true },
+    });
+    if (uploader?.anonymousUploads) return;
+
     const followers = await db
       .select({ followerId: schema.userFollows.followerId })
       .from(schema.userFollows)

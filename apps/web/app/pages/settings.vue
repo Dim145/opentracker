@@ -165,6 +165,84 @@
                 </p>
               </div>
             </label>
+
+            <!--
+              The three account-level privacy toggles. Each one gates a
+              server read path, so the switch here is a statement of
+              intent, not the enforcement: see utils/uploaderVisibility.ts
+              and utils/commentPolicy.ts on the API side.
+            -->
+            <label
+              class="toggle-row"
+              :class="{ 'toggle-row--on': form.anonymousUploads }"
+            >
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="form.anonymousUploads"
+                class="toggle"
+                :class="{ 'toggle--on': form.anonymousUploads }"
+                @click="form.anonymousUploads = !form.anonymousUploads"
+              >
+                <span class="toggle-knob" />
+              </button>
+              <div class="toggle-body">
+                <p class="toggle-title">
+                  {{ $t('settings.privacy.anonymousUploads') }}
+                </p>
+                <p class="toggle-sub">
+                  {{ $t('settings.privacy.anonymousUploadsHint') }}
+                </p>
+              </div>
+            </label>
+
+            <label
+              class="toggle-row"
+              :class="{ 'toggle-row--on': form.hideDownloadHistory }"
+            >
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="form.hideDownloadHistory"
+                class="toggle"
+                :class="{ 'toggle--on': form.hideDownloadHistory }"
+                @click="form.hideDownloadHistory = !form.hideDownloadHistory"
+              >
+                <span class="toggle-knob" />
+              </button>
+              <div class="toggle-body">
+                <p class="toggle-title">
+                  {{ $t('settings.privacy.hideDownloadHistory') }}
+                </p>
+                <p class="toggle-sub">
+                  {{ $t('settings.privacy.hideDownloadHistoryHint') }}
+                </p>
+              </div>
+            </label>
+
+            <label
+              class="toggle-row"
+              :class="{ 'toggle-row--on': form.restrictComments }"
+            >
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="form.restrictComments"
+                class="toggle"
+                :class="{ 'toggle--on': form.restrictComments }"
+                @click="form.restrictComments = !form.restrictComments"
+              >
+                <span class="toggle-knob" />
+              </button>
+              <div class="toggle-body">
+                <p class="toggle-title">
+                  {{ $t('settings.privacy.restrictComments') }}
+                </p>
+                <p class="toggle-sub">
+                  {{ $t('settings.privacy.restrictCommentsHint') }}
+                </p>
+              </div>
+            </label>
           </div>
         </section>
 
@@ -538,6 +616,9 @@ interface MeProfile {
   bio: string | null;
   showLastSeen: boolean;
   showAdultContent: boolean;
+  anonymousUploads: boolean;
+  hideDownloadHistory: boolean;
+  restrictComments: boolean;
   isAdmin: boolean;
   isModerator: boolean;
   role: { id: string; name: string; color: string } | null;
@@ -564,6 +645,16 @@ const { data: profile, refresh: refreshProfile } = await useFetch<MeProfile>(
 );
 const loaded = computed(() => !!profile.value);
 
+// The three account privacy toggles behave identically — read, diff and
+// send — so they are driven off one list rather than three copies of the
+// same four lines. Adding a fourth toggle means adding it here and in the
+// template, not hunting for every place a boolean was spelled out.
+const PRIVACY_TOGGLES = [
+  'anonymousUploads',
+  'hideDownloadHistory',
+  'restrictComments',
+] as const;
+
 // ── Form state (Identity + Privacy) ─────────────────────────────
 const form = reactive({
   username: '',
@@ -571,12 +662,18 @@ const form = reactive({
   bio: '',
   showLastSeen: true,
   showAdultContent: false,
+  anonymousUploads: false,
+  hideDownloadHistory: false,
+  restrictComments: false,
 });
 const snapshot = ref<{
   displayName: string;
   bio: string;
   showLastSeen: boolean;
   showAdultContent: boolean;
+  anonymousUploads: boolean;
+  hideDownloadHistory: boolean;
+  restrictComments: boolean;
 } | null>(null);
 
 function hydrate() {
@@ -586,11 +683,17 @@ function hydrate() {
   form.bio = profile.value.bio ?? '';
   form.showLastSeen = profile.value.showLastSeen;
   form.showAdultContent = profile.value.showAdultContent ?? false;
+  form.anonymousUploads = profile.value.anonymousUploads ?? false;
+  form.hideDownloadHistory = profile.value.hideDownloadHistory ?? false;
+  form.restrictComments = profile.value.restrictComments ?? false;
   snapshot.value = {
     displayName: form.displayName,
     bio: form.bio,
     showLastSeen: form.showLastSeen,
     showAdultContent: form.showAdultContent,
+    anonymousUploads: form.anonymousUploads,
+    hideDownloadHistory: form.hideDownloadHistory,
+    restrictComments: form.restrictComments,
   };
 }
 watch(profile, hydrate, { immediate: true });
@@ -603,6 +706,7 @@ const dirtyCount = computed(() => {
   if (s.bio !== form.bio) n++;
   if (s.showLastSeen !== form.showLastSeen) n++;
   if (s.showAdultContent !== form.showAdultContent) n++;
+  for (const k of PRIVACY_TOGGLES) if (s[k] !== form[k]) n++;
   return n;
 });
 
@@ -638,6 +742,7 @@ async function save() {
       payload.showLastSeen = form.showLastSeen;
     if (s.showAdultContent !== form.showAdultContent)
       payload.showAdultContent = form.showAdultContent;
+    for (const k of PRIVACY_TOGGLES) if (s[k] !== form[k]) payload[k] = form[k];
 
     await $fetch('/api/me', { method: 'PATCH', body: payload });
     await refreshProfile();

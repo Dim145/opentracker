@@ -12,6 +12,15 @@
  * isn't available rather than silently treating the data as zero.
  *
  * Pagination: default 25, max 100. Auth: any logged-in user.
+ *
+ * Honours `users.hide_download_history`: with it on, this returns an
+ * empty page carrying `hidden: true` rather than the rows. The rows
+ * themselves keep being written — `hnr_tracking` feeds the hit-and-run
+ * job, bonus accrual and the auto-role rules, so a member ticking a box
+ * must not be able to erase the evidence of a hit and run. What the
+ * toggle buys is that a stolen session cannot enumerate the snatch
+ * list, and `hidden` lets the page say so instead of rendering an empty
+ * state that reads as "you have never downloaded anything".
  */
 import { db, schema } from '@trackarr/db';
 import { count, desc, eq } from 'drizzle-orm';
@@ -25,6 +34,24 @@ const querySchema = z.object({
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
   const params = querySchema.parse(getQuery(event));
+
+  // Read the preference before the listing: when the history is hidden
+  // there is nothing to page over, so we skip both queries rather than
+  // fetching rows we are about to discard.
+  const me = await db.query.users.findFirst({
+    where: eq(schema.users.id, user.id),
+    columns: { hideDownloadHistory: true },
+  });
+
+  if (me?.hideDownloadHistory) {
+    return {
+      items: [],
+      total: 0,
+      page: params.page,
+      pageSize: params.pageSize,
+      hidden: true,
+    };
+  }
 
   const where = eq(schema.hnrTracking.userId, user.id);
 
@@ -88,5 +115,6 @@ export default defineEventHandler(async (event) => {
     total,
     page: params.page,
     pageSize: params.pageSize,
+    hidden: false,
   };
 });
