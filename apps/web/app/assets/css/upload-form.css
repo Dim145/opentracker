@@ -309,7 +309,7 @@
   flex-direction: column;
   gap: 1rem;
   padding: 1.5rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
   /* Cap the height so a long progress list doesn't push the card

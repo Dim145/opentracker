@@ -1418,7 +1418,7 @@ function formatDuration(seconds: number) {
       rgba(108, 209, 97, 0.12),
       transparent 60%
     ),
-    rgb(var(--bg-secondary));
+    rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
 }
 .hero::before {
@@ -2320,7 +2320,7 @@ function formatDuration(seconds: number) {
   flex-direction: column;
   gap: 0.6rem;
   padding: 1rem 1.1rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
 }
@@ -2407,7 +2407,7 @@ function formatDuration(seconds: number) {
   gap: 0.4rem;
   flex-wrap: wrap;
   padding: 0.4rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 9999px;
   align-self: flex-start;
@@ -2456,7 +2456,7 @@ function formatDuration(seconds: number) {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.6rem;
   padding: 1rem 1rem 1.25rem;

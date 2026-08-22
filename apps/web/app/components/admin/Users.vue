@@ -1535,7 +1535,7 @@ async function onDetachRole(roleId: string) {
   flex-direction: column;
   gap: 0.45rem;
   padding: 1rem 1.1rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
   transition: all 0.15s;
@@ -1620,7 +1620,7 @@ async function onDetachRole(roleId: string) {
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem 1.1rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
 }
@@ -1736,7 +1736,7 @@ async function onDetachRole(roleId: string) {
 .table-wrap {
   position: relative;
   overflow-x: auto;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
 }
@@ -1760,7 +1760,7 @@ async function onDetachRole(roleId: string) {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border-bottom: 1px solid rgb(var(--line-default));
   white-space: nowrap;
 }

@@ -767,7 +767,7 @@ async function resolveManual() {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-left: 3px solid #6cd161;
   border-radius: 0.4rem;
