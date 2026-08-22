@@ -69,12 +69,6 @@ describe('buildTorrentOrderBy', () => {
     }
   });
 
-  it('orders categories by name rather than by id', () => {
-    const [primary] = render('category', 'asc');
-    expect(primary).toContain('categories');
-    expect(primary).toContain('lower');
-  });
-
   it('covers every key the API accepts', () => {
     // A key added to the shared list without a mapping would render as
     // `undefined` here rather than failing loudly at request time.

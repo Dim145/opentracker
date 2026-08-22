@@ -137,6 +137,17 @@ export interface GroupSummary {
   /** Absent on the federated mirror, which does not track leechers per source. */
   leechMin?: number;
   leechMax?: number;
+  /**
+   * Totals across the group. The rows show the spans above — what tells a
+   * member whether the release they want is dead — while the listing sorts on
+   * these, because "which work is most alive" is a question about the whole
+   * group. Absent on the federated mirror.
+   */
+  seedTotal?: number;
+  leechTotal?: number;
+  completedTotal?: number;
+  totalSize?: number;
+  oldest?: string;
   scopes: ScopeSummary[];
   defaultScope: GroupScope;
   /**

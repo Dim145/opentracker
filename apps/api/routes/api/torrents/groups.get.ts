@@ -22,6 +22,7 @@
  * upload; a grouped view has no such job, and letting one leak in would show a
  * release count the rest of the site disagrees with.
  */
+import { TORRENT_SORT_KEYS } from '@trackarr/shared';
 import { and, eq, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema, ftsVector } from '@trackarr/db';
@@ -46,6 +47,10 @@ const querySchema = z.object({
   // The filter the flat listing cannot express: "show me the season packs" is
   // a question about how a release is cut, not about what it contains.
   scope: z.enum(GROUP_SCOPES as unknown as [string, ...string[]]).optional(),
+  // Same vocabulary as the flat listing, so switching views keeps the sort.
+  // What each key means across a group is `buildGroupOrderBy`'s business.
+  sortBy: z.enum(TORRENT_SORT_KEYS).default('age'),
+  order: z.enum(['asc', 'desc']).default('desc'),
 });
 
 export default defineEventHandler(async (event) => {
@@ -122,6 +127,8 @@ export default defineEventHandler(async (event) => {
     offset: (query.page - 1) * query.limit,
     where,
     scope: query.scope as never,
+    sortBy: query.sortBy,
+    order: query.order,
   });
 
   // The bridge to the federated catalogue: how many releases the partners hold

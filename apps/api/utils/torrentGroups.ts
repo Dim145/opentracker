@@ -49,6 +49,7 @@
  * tagged, the aggregate is back to covering most of the table. That is the
  * point at which a persisted group entity stops being optional.
  */
+import type { SortDirection, TorrentSortKey } from '@trackarr/shared';
 import { sql, type Column, type SQL } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 
@@ -218,6 +219,18 @@ export interface GroupRow {
   seedMax: number;
   leechMin: number;
   leechMax: number;
+  /**
+   * Totals across the group. The row shows the spans above — what tells you
+   * whether the one release you want is dead — while these are what the
+   * listing sorts on, because "which work is most alive" is a question about
+   * the whole group. See `buildGroupOrderBy`.
+   */
+  seedTotal: number;
+  leechTotal: number;
+  completedTotal: number;
+  totalSize: number;
+  /** Oldest release in the group; the other end of the age span. */
+  oldest: Date;
   /** Non-empty scopes, richest first. Drives the chips on the row. */
   scopes: ScopeSummary[];
   /**
@@ -242,6 +255,56 @@ interface ListOptions {
   where?: SQL;
   /** Keep only groups holding at least one release cut this way. */
   scope?: GroupScope;
+  /** Column to order by. Defaults to the newest release in the group. */
+  sortBy?: TorrentSortKey;
+  order?: SortDirection;
+}
+
+/**
+ * Ordering for the grouped catalogue.
+ *
+ * A group is many releases, so each column has to decide what it means across
+ * them. The rules are not interchangeable — they are what a member reads off
+ * the row:
+ *
+ *   · seeders / leechers / completed — the group's TOTAL. A series with forty
+ *     half-seeded episodes is more alive than a film with one release on
+ *     twenty seeders, and the total is the only figure that says so. (The row
+ *     shows the min–max span, because that is what tells you whether the one
+ *     episode you want is dead; the sort answers a different question.)
+ *   · size — the total weight of the group, for the same reason.
+ *   · age — the NEWEST release descending, the OLDEST ascending. Anything else
+ *     makes "oldest first" rank works by their most recent upload, which is not
+ *     what anyone means by it.
+ *   · name — the group's lead release name, which is what the server has. The
+ *     heading a member sees can come from resolved metadata; the two agree on
+ *     the leading word, which is what an alphabetical listing is read by.
+ */
+export function buildGroupOrderBy(
+  sortBy: TorrentSortKey,
+  order: SortDirection
+): SQL {
+  const dir = order === 'asc' ? sql`ASC` : sql`DESC`;
+  const nulls = order === 'asc' ? sql`NULLS FIRST` : sql`NULLS LAST`;
+
+  if (sortBy === 'age') {
+    // Both ends of the span, so each direction reads the release a member
+    // would point at.
+    return order === 'asc' ? sql`oldest ASC` : sql`latest DESC`;
+  }
+
+  const key = {
+    name: sql`lower(lead_name)`,
+    size: sql`total_size`,
+    seeders: sql`seed_total`,
+    leechers: sql`leech_total`,
+    completed: sql`completed_total`,
+  }[sortBy];
+
+  // `latest DESC` breaks ties: Postgres promises nothing about equal keys, and
+  // without it a member paging through "most seeded" can meet the same work
+  // twice.
+  return sql`${key} ${dir} ${nulls}, latest DESC`;
 }
 
 type RawGroup = RawScopeCounts & {
@@ -256,6 +319,11 @@ type RawGroup = RawScopeCounts & {
   seed_max: number | null;
   leech_min: number | null;
   leech_max: number | null;
+  seed_total: number | null;
+  leech_total: number | null;
+  completed_total: number | null;
+  total_size: string | null;
+  oldest: Date;
 };
 
 /**
@@ -326,6 +394,7 @@ export async function listGroups(
   const stats = schema.torrentStats;
   const seeders = sql`coalesce(${stats.seeders}, 0)`;
   const leechers = sql`coalesce(${stats.leechers}, 0)`;
+  const completed = sql`coalesce(${stats.completed}, 0)`;
 
   // The two halves are separate queries over `torrents`, NOT two reads of a
   // shared CTE. A CTE here is an optimisation fence: Postgres materialises it,
@@ -333,6 +402,14 @@ export async function listGroups(
   // start — the untagged side then top-N sorts what it should have streamed
   // off an index and stopped at twenty-five. Measured: 3.7 ms split, 375 ms
   // shared.
+  const sortBy = opts.sortBy ?? 'age';
+  const order = opts.order ?? 'desc';
+  const orderBy = buildGroupOrderBy(sortBy, order);
+  const soloCap =
+    sortBy === 'age' && order === 'desc'
+      ? sql`LIMIT ${opts.limit + opts.offset}`
+      : sql``;
+
   const rows = await db.execute<RawGroup>(sql`
     WITH grouped AS (
       SELECT ${groupKeySql} AS gkey,
@@ -347,6 +424,17 @@ export async function listGroups(
              max(${seeders})::int AS seed_max,
              min(${leechers})::int AS leech_min,
              max(${leechers})::int AS leech_max,
+             -- Totals, for the columns that sort on the whole group rather than
+             -- on any one release: a work with forty half-seeded episodes is
+             -- more alive than one with a single release on twenty seeders.
+             sum(${seeders})::int AS seed_total,
+             sum(${leechers})::int AS leech_total,
+             sum(${completed})::int AS completed_total,
+             sum(${schema.torrents.size})::bigint AS total_size,
+             -- The other end of the age span. Descending sorts read the newest
+             -- release in the group, ascending reads the oldest — otherwise
+             -- "oldest first" would rank works by their most recent upload.
+             min(${LIVE_AT}) AS oldest,
              count(DISTINCT (${schema.torrents.season}, ${schema.torrents.episode}))
                FILTER (WHERE (${scopeSql}) = 'episode')::int AS ep_units,
              max(${LIVE_AT}) FILTER (WHERE (${scopeSql}) = 'episode') AS ep_latest,
@@ -371,6 +459,11 @@ export async function listGroups(
              array_remove(ARRAY[${schema.torrents.categoryId}], NULL) AS category_ids,
              ${seeders}::int AS seed_min, ${seeders}::int AS seed_max,
              ${leechers}::int AS leech_min, ${leechers}::int AS leech_max,
+             ${seeders}::int AS seed_total,
+             ${leechers}::int AS leech_total,
+             ${completed}::int AS completed_total,
+             ${schema.torrents.size}::bigint AS total_size,
+             ${LIVE_AT} AS oldest,
              0 AS ep_units, NULL::timestamp AS ep_latest,
              0 AS season_units, NULL::timestamp AS season_latest,
              0 AS integral_units, NULL::timestamp AS integral_latest,
@@ -381,11 +474,17 @@ export async function listGroups(
        -- Matches torrents_ungrouped_idx expression for expression: this is
        -- the ordering the index already holds, which is what lets the scan
        -- stop at the limit instead of sorting the catalogue.
+       --
+       -- The shortcut only holds while the outer sort is recency too. On any
+       -- other key, truncating here by date would drop candidates before they
+       -- were compared — a long-dormant release with a huge swarm would never
+       -- reach the "most seeded" page it belongs on. So the cap is lifted for
+       -- those, trading the index scan for correctness.
        ORDER BY ${LIVE_AT} DESC
-       LIMIT ${opts.limit + opts.offset}
+       ${soloCap}
     )
     SELECT * FROM (SELECT * FROM grouped UNION ALL SELECT * FROM solo) u
-     ORDER BY latest DESC
+     ORDER BY ${orderBy}
      LIMIT ${opts.limit} OFFSET ${opts.offset}
   `);
 
@@ -416,6 +515,11 @@ export async function listGroups(
         seedMax: Number(r.seed_max ?? 0),
         leechMin: Number(r.leech_min ?? 0),
         leechMax: Number(r.leech_max ?? 0),
+        seedTotal: Number(r.seed_total ?? 0),
+        leechTotal: Number(r.leech_total ?? 0),
+        completedTotal: Number(r.completed_total ?? 0),
+        totalSize: Number(r.total_size ?? 0),
+        oldest: r.oldest,
         scopes,
         defaultScope: pickDefault(scopes),
       };

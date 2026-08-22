@@ -234,13 +234,16 @@
              episode, as season packs, as an integral — and each of those is a
              way in as well as a label. Opening a row is for choosing a file;
              finding out what exists happens without opening anything. -->
-        <div v-else class="grouped-list">
-          <TorrentGroupRow
-            v-for="group in servedGroups"
-            :key="group.key"
-            :group="group"
-            :category-label="categoryLabel(group.categoryIds)"
-          />
+        <div v-else class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <TorrentGroupTable
+              :groups="servedGroups"
+              :category-label="categoryLabel"
+              :sort-by="sortBy"
+              :order="sortOrder"
+              @sort="applySort"
+            />
+          </div>
         </div>
       </template>
 
@@ -530,6 +533,13 @@ interface ServedGroup {
   seedMax: number;
   leechMin: number;
   leechMax: number;
+  /** Group totals, which is what the listing sorts on. */
+  seedTotal: number;
+  leechTotal: number;
+  completedTotal: number;
+  totalSize: number;
+  /** Oldest release, the other end of the age span. */
+  oldest: string;
   scopes: Array<{ scope: GroupScope; units: number; latest: string }>;
   defaultScope: GroupScope;
   /** Releases the partners hold for the same work; 0 when not federating. */
@@ -552,6 +562,10 @@ const {
     categoryId: selectedCategory.value || undefined,
     page: page.value,
     limit: 25,
+    // Same keys as the flat listing: switching views keeps the order, even
+    // though what each key means across a group is decided server-side.
+    sortBy: sortBy.value,
+    order: sortOrder.value,
   })),
   watch: false,
   immediate: view.value === 'grouped',
@@ -1186,16 +1200,6 @@ useHead({
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   color: rgb(var(--fg-muted));
   max-width: 36ch;
-}
-
-/* ─── Grouped view ──────────────────────────────────────── */
-/* The rows own their own appearance — `TorrentGroupRow`, `TorrentGroupTree`
-   and `TorrentReleaseRow`. All that is left here is the rhythm between
-   them, which belongs to the page. */
-.grouped-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 /* ─── Bottom pagination ─────────────────────────────────── */

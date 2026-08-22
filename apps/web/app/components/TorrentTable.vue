@@ -152,47 +152,17 @@
 
   <!-- ≥ md: original table preserved verbatim. -->
   <table class="data-table hidden md:table">
-    <thead>
-      <tr>
-        <th class="w-1/2" :aria-sort="ariaSort('name')">
-          <SortHeader v-bind="sortProps('name')">{{ $t('components.torrentTable.name') }}</SortHeader>
-        </th>
-        <th v-if="!compact" :aria-sort="ariaSort('category')">
-          <SortHeader v-bind="sortProps('category')">{{ $t('components.torrentTable.category') }}</SortHeader>
-        </th>
-        <th v-if="!compact">{{ $t('components.torrentTable.hash') }}</th>
-        <th class="text-center w-16" :aria-sort="ariaSort('seeders')">
-          <SortHeader v-bind="sortProps('seeders')" align="center" :title="$t('components.torrentTable.seedersTitle')">
-            <Icon name="ph:arrow-up-bold" class="text-success" />
-            <span>{{ $t('components.torrentTable.seeders') }}</span>
-          </SortHeader>
-        </th>
-        <th class="text-center w-16" :aria-sort="ariaSort('leechers')">
-          <SortHeader v-bind="sortProps('leechers')" align="center" :title="$t('components.torrentTable.leechersTitle')">
-            <Icon name="ph:arrow-down-bold" class="text-warning" />
-            <span>{{ $t('components.torrentTable.leechers') }}</span>
-          </SortHeader>
-        </th>
-        <th v-if="!compact" class="text-center w-16" :aria-sort="ariaSort('completed')">
-          <SortHeader v-bind="sortProps('completed')" align="center" :title="$t('components.torrentTable.completedTitle')">
-            <Icon name="ph:check-bold" class="text-text-secondary" />
-            <span>{{ $t('components.torrentTable.completed') }}</span>
-          </SortHeader>
-        </th>
-        <th v-if="!compact" :aria-sort="ariaSort('size')">
-          <SortHeader v-bind="sortProps('size')">{{ $t('components.torrentTable.size') }}</SortHeader>
-        </th>
-        <th class="text-right w-16" :aria-sort="ariaSort('age')">
-          <SortHeader v-bind="sortProps('age')" align="right">{{ $t('components.torrentTable.age') }}</SortHeader>
-        </th>
-        <th v-if="hasFavoriteColumn" class="w-10"></th>
-        <th v-if="admin" class="w-12"></th>
-      </tr>
-    </thead>
+    <TorrentTableHead
+      :sort-by="sortBy"
+      :order="order"
+      :compact="compact"
+      :trailing-columns="(hasFavoriteColumn ? 1 : 0) + (admin ? 1 : 0)"
+      @sort="(key) => emit('sort', key)"
+    />
     <tbody>
       <tr v-if="torrents.length === 0">
         <td
-          :colspan="(compact ? 4 : 8) + (admin ? 1 : 0) + (hasFavoriteColumn ? 1 : 0)"
+          :colspan="(compact ? 4 : 6) + (admin ? 1 : 0) + (hasFavoriteColumn ? 1 : 0)"
           class="text-center text-text-muted py-8"
         >
           {{ $t('components.torrentTable.noTorrents') }}
@@ -228,25 +198,6 @@
               {{ tag.name }}
             </span>
           </div>
-        </td>
-        <td v-if="!compact">
-          <span
-            v-if="torrent.category"
-            class="text-[10px] bg-bg-tertiary border border-border px-1.5 py-0.5 rounded-sm text-text-secondary uppercase font-bold tracking-wider"
-          >
-            {{ getCategoryDisplayName(torrent.category) }}
-          </span>
-          <span v-else class="text-xs text-text-muted">—</span>
-        </td>
-        <td v-if="!compact">
-          <code
-            class="truncate-hash text-text-muted bg-bg-tertiary/50 px-1 rounded"
-            :title="torrent.infoHash"
-          >
-            {{ torrent.infoHash.slice(0, 8) }}...{{
-              torrent.infoHash.slice(-4)
-            }}
-          </code>
         </td>
         <td class="text-center">
           <span class="stat-badge stat-seeders">
@@ -372,48 +323,6 @@ const emit = defineEmits<{
   sort: [key: TorrentSortKey];
 }>();
 
-/**
- * Props for one header cell. `sortBy` being undefined disables the whole row,
- * so a caller opts in simply by passing the current sort.
- */
-const { t: tt } = useI18n();
-
-/**
- * Mobile chips, in the column order of the desktop table so the two read the
- * same. The swarm columns use their spelled-out labels — "S" and "L" only work
- * next to an arrow in a header.
- */
-const mobileSortOptions = computed(() =>
-  (
-    [
-      ['name', 'name'],
-      ['category', 'category'],
-      ['seeders', 'seedersTitle'],
-      ['leechers', 'leechersTitle'],
-      ['completed', 'completedTitle'],
-      ['size', 'size'],
-      ['age', 'age'],
-    ] as [TorrentSortKey, string][]
-  ).map(([key, label]) => ({
-    key,
-    label: tt(`components.torrentTable.${label}`),
-  }))
-);
-
-/** `aria-sort` value for a header cell, per the WAI-ARIA table pattern. */
-function ariaSort(key: TorrentSortKey) {
-  if (props.sortBy !== key) return undefined;
-  return props.order === 'asc' ? 'ascending' : 'descending';
-}
-
-function sortProps(key: TorrentSortKey) {
-  return {
-    sortable: props.sortBy !== undefined,
-    active: props.sortBy === key,
-    order: props.order ?? 'desc',
-    onSort: () => emit('sort', key),
-  };
-}
 
 // Header for the favorite column appears as soon as ANY row in
 // the current page carries a `viewerFavorited` flag — the parent

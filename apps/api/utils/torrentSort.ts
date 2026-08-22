@@ -41,7 +41,6 @@ const SORT_KEYS: Record<TorrentSortKey, SQL> = {
   seeders: swarmColumn('seeders'),
   leechers: swarmColumn('leechers'),
   completed: swarmColumn('completed'),
-  category: sql`(SELECT lower(c.name) FROM categories c WHERE c.id = ${schema.torrents.categoryId})`,
 };
 
 /**

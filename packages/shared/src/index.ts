@@ -18,7 +18,6 @@ export type ThemePreference = 'light' | 'dark';
  */
 export const TORRENT_SORT_KEYS = [
   'name',
-  'category',
   'seeders',
   'leechers',
   'completed',
