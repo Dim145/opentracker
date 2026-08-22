@@ -18,12 +18,11 @@
     :aria-expanded="open"
     @click="toggle()"
   >
-    <td class="gtr-name">
+    <td>
       <div class="gtr-name-inner">
         <!-- Forty pixels is enough to recognise something already known; the
              hover preview is for everything else. -->
         <TorrentPosterHover
-          class="gtr-poster"
           :src="poster?.posterUrl"
           :large="largePoster"
           :alt="title"
@@ -302,14 +301,6 @@ const searchableTitle = computed(() => {
   align-items: center;
   gap: 0.625rem;
   min-width: 0;
-}
-
-.gtr-poster {
-  flex-shrink: 0;
-  width: 2rem;
-  height: 3rem;
-  border-radius: 0.1875rem;
-  overflow: hidden;
 }
 
 .gtr-text {
