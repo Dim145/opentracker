@@ -2411,7 +2411,7 @@ async function confirmDelete() {
   position: relative;
   border: 1px solid rgb(var(--line-default));
   border-left: 3px solid rgb(var(--danger));
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   /* Subtle danger hatching tints the whole document so it reads as
      "warning surface" without overwhelming the actual content. */
   background-image: repeating-linear-gradient(
@@ -2784,7 +2784,7 @@ async function confirmDelete() {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
 }
 .adult-gate__foot-mono {
   text-transform: lowercase;

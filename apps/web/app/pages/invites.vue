@@ -508,10 +508,10 @@ async function confirmDelete() {
   --gild: #d4a574;
   --gild-soft: rgba(212, 165, 116, 0.16);
   --gild-line: rgba(212, 165, 116, 0.38);
-  --paper: color-mix(in srgb, var(--bg-secondary) 88%, var(--bg-primary));
-  --ink: var(--text-primary);
-  --ink-soft: var(--text-secondary);
-  --ink-muted: var(--text-muted);
+  --paper: color-mix(in srgb, rgb(var(--bg-surface)) 88%, rgb(var(--bg-base)));
+  --ink: rgb(var(--fg-default));
+  --ink-soft: rgb(var(--fg-muted));
+  --ink-muted: rgb(var(--fg-subtle));
 
   position: relative;
   display: grid;
@@ -661,7 +661,7 @@ async function confirmDelete() {
   text-transform: uppercase;
   color: var(--ink-muted);
   border: 1px solid rgb(var(--line-default));
-  background: color-mix(in srgb, var(--bg-secondary) 60%, transparent);
+  background: color-mix(in srgb, rgb(var(--bg-surface)) 60%, transparent);
 }
 .reg-pill-dot {
   width: 5px;
@@ -794,7 +794,7 @@ async function confirmDelete() {
   grid-template-columns: repeat(5, 1fr);
   gap: 6px;
   border: 1.5px solid rgb(var(--line-default));
-  background: var(--bg-primary);
+  background: rgb(var(--bg-base));
   border-radius: 10px;
   padding: 6px;
 }
@@ -863,8 +863,8 @@ async function confirmDelete() {
   border: 1.5px solid var(--gild);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--gild) 16%, var(--bg-primary)),
-    color-mix(in srgb, var(--gild) 4%, var(--bg-primary))
+    color-mix(in srgb, var(--gild) 16%, rgb(var(--bg-base))),
+    color-mix(in srgb, var(--gild) 4%, rgb(var(--bg-base)))
   );
   color: var(--ink);
   cursor: pointer;
@@ -885,7 +885,7 @@ async function confirmDelete() {
      stray input field — desaturate the gilt and switch to a
      dashed neutral border. */
   cursor: not-allowed;
-  background: var(--bg-tertiary);
+  background: rgb(var(--bg-elevated));
   border-color: rgb(var(--line-default));
   border-style: dashed;
   color: var(--ink-muted);
@@ -1046,7 +1046,7 @@ async function confirmDelete() {
   letter-spacing: 0.04em;
   color: var(--ink);
   padding: 0.3rem 0.625rem;
-  background: var(--bg-primary);
+  background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
   border-radius: 6px;
   word-break: break-all;
@@ -1078,7 +1078,7 @@ async function confirmDelete() {
 }
 .ledger-row--expired .ledger-status {
   color: var(--ink-muted);
-  background: var(--bg-tertiary);
+  background: rgb(var(--bg-elevated));
   border-color: rgb(var(--line-default));
 }
 
@@ -1148,9 +1148,9 @@ async function confirmDelete() {
   border-color: var(--gild-line);
 }
 .ledger-action--danger:hover:not(:disabled) {
-  color: var(--error);
-  background: color-mix(in srgb, var(--error) 8%, transparent);
-  border-color: color-mix(in srgb, var(--error) 30%, transparent);
+  color: rgb(var(--danger));
+  background: color-mix(in srgb, rgb(var(--danger)) 8%, transparent);
+  border-color: color-mix(in srgb, rgb(var(--danger)) 30%, transparent);
 }
 .ledger-action:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -1263,7 +1263,7 @@ async function confirmDelete() {
       transparent 12px,
       transparent 24px
     ),
-    var(--bg-primary);
+    rgb(var(--bg-base));
   border: 1px solid var(--gild-line);
   border-radius: 10px;
   padding: 1.25rem;
@@ -1312,7 +1312,7 @@ async function confirmDelete() {
   font-size: 0.95rem;
   font-weight: 500;
   border: 1.5px solid rgb(var(--line-default));
-  background: var(--bg-primary);
+  background: rgb(var(--bg-base));
   color: var(--ink-soft);
   cursor: pointer;
   transition:
@@ -1331,8 +1331,8 @@ async function confirmDelete() {
 .seal-btn--primary {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--gild) 22%, var(--bg-primary)),
-    color-mix(in srgb, var(--gild) 8%, var(--bg-primary))
+    color-mix(in srgb, var(--gild) 22%, rgb(var(--bg-base))),
+    color-mix(in srgb, var(--gild) 8%, rgb(var(--bg-base)))
   );
   border-color: var(--gild);
   color: var(--ink);
@@ -1341,15 +1341,15 @@ async function confirmDelete() {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--gild) 14%, transparent);
 }
 .seal-btn--ghost {
-  background: var(--bg-tertiary);
+  background: rgb(var(--bg-elevated));
 }
 .seal-btn--danger {
-  background: color-mix(in srgb, var(--error) 18%, var(--bg-primary));
-  border-color: color-mix(in srgb, var(--error) 50%, transparent);
+  background: color-mix(in srgb, rgb(var(--danger)) 18%, rgb(var(--bg-base)));
+  border-color: color-mix(in srgb, rgb(var(--danger)) 50%, transparent);
   color: var(--ink);
 }
 .seal-btn--danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--error) 28%, var(--bg-primary));
+  background: color-mix(in srgb, rgb(var(--danger)) 28%, rgb(var(--bg-base)));
 }
 .seal-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 

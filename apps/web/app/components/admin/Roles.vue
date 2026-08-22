@@ -927,7 +927,7 @@ async function recompute() {
   padding: 4rem 1rem;
   border: 1px dashed rgb(var(--line-default));
   border-radius: 0.5rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   color: rgb(var(--fg-muted));
   text-align: center;
 }
@@ -966,7 +966,7 @@ async function recompute() {
   padding: 1.1rem 1.2rem 1rem;
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.55rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   position: relative;
   overflow: hidden;
 }
@@ -996,7 +996,7 @@ async function recompute() {
   border-radius: 9999px;
   margin-top: 0.5rem;
   flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgb(var(--bg-secondary)),
+  box-shadow: 0 0 0 2px rgb(var(--bg-surface)),
     0 0 6px currentColor;
 }
 .role-card__id-body {
@@ -1316,7 +1316,7 @@ async function recompute() {
   border-color: rgb(var(--fg-default) / 0.25);
 }
 .mode-card--on {
-  background: rgb(var(--bg-tertiary));
+  background: rgb(var(--bg-hover));
   box-shadow: inset 3px 0 0 #34d4d8;
 }
 .mode-card input {
@@ -1390,7 +1390,7 @@ async function recompute() {
   height: 1.5rem;
   border-radius: 9999px;
   border: 1px solid rgb(var(--line-default));
-  background: rgb(var(--bg-tertiary));
+  background: rgb(var(--bg-elevated));
   cursor: pointer;
 }
 .toggle--on {
@@ -1408,7 +1408,7 @@ async function recompute() {
   width: 1.15rem;
   height: 1.15rem;
   border-radius: 9999px;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--fg-muted));
   transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
@@ -1468,7 +1468,7 @@ async function recompute() {
   padding: 0.45rem 0.65rem;
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.4rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
 }
 @media (max-width: 720px) {
   .cond-row {

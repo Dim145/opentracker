@@ -1,4 +1,5 @@
 import { db, schema } from '@trackarr/db';
+import { buildTorrentOrderBy } from '~~/utils/torrentSort';
 import { getStats } from '~~/utils/server';
 import { eq, sql, and, or, inArray, notInArray, isNull, type SQL } from 'drizzle-orm';
 import { validateQuery, torrentQuerySchema } from '~~/utils/schemas';
@@ -239,20 +240,12 @@ export default defineEventHandler(async (event) => {
   }
 
   // Get torrents with optional search.
-  //
-  // Order: "most recently *made available*" rather than "most recently
-  // uploaded". For auto-approved torrents the two timestamps are
-  // identical (both are set to `now` in the upload handler), so the
-  // ordering is unchanged for the common case. For torrents that sat
-  // in the moderation queue for a while, the approval date is what the
-  // user thinks of as "when this appeared on the tracker" — sorting by
-  // upload date instead would bury a torrent that was just approved
-  // simply because the moderator took their time.
-  //
-  // `COALESCE(moderated_at, created_at)` falls back to the upload
-  // timestamp for rows where `moderated_at` is NULL (pending torrents
-  // visible to their own uploader, plus everything visible to
-  // admins/moderators), so the sort key is always defined.
+  // Ordering lives in `utils/torrentSort` so the key-to-SQL mapping can be
+  // tested without a request; see the notes there on why the swarm columns read
+  // the collector's snapshot and why every non-default sort carries a
+  // tiebreaker.
+  const orderByClause = buildTorrentOrderBy(query.sortBy, query.order);
+
   const torrents = await db.query.torrents.findMany({
     where: whereClause,
     // Negative projection: select every column EXCEPT the raw .torrent
@@ -267,9 +260,7 @@ export default defineEventHandler(async (event) => {
       category: true,
       torrentTags: { with: { tag: true } },
     },
-    orderBy: [
-      sql`COALESCE(${schema.torrents.moderatedAt}, ${schema.torrents.createdAt}) DESC`,
-    ],
+    orderBy: orderByClause,
     limit: query.limit,
     offset,
   });

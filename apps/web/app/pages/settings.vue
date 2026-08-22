@@ -1006,7 +1006,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   flex-direction: column;
   gap: 0.25rem;
   padding: 0.75rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
 }
@@ -1195,7 +1195,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: flex-start;
   gap: 1rem;
   padding: 0.95rem 1.1rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
   cursor: pointer;
@@ -1282,7 +1282,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 0.85rem 1rem;
   border-radius: 0.5rem;
   border: 1px solid rgb(var(--line-default));
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   color: rgb(var(--fg-default));
   text-align: left;
   cursor: pointer;
@@ -1381,7 +1381,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 0.85rem 1rem;
   border-radius: 0.5rem;
   border: 1px solid rgb(var(--line-default));
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   color: rgb(var(--fg-default));
   text-align: left;
   cursor: pointer;
@@ -1416,7 +1416,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .lang-btn:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px rgb(var(--bg-primary)),
+    0 0 0 2px rgb(var(--bg-base)),
     0 0 0 3px rgb(var(--fg-strong));
 }
 .lang-btn:disabled {
@@ -1541,7 +1541,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   justify-content: space-between;
   gap: 1.25rem;
   padding: 1rem 1.1rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
   flex-wrap: wrap;
@@ -1578,7 +1578,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   flex-direction: column;
   gap: 1.1rem;
   padding: 1.1rem 1.2rem 1.5rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px dashed rgb(var(--line-default));
   border-radius: 0.5rem;
 }
