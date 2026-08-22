@@ -393,7 +393,8 @@
       "appearance": "Apparence",
       "security": "Sécurité",
       "notifications": "Notifications",
-      "accountInfo": "Compte"
+      "accountInfo": "Compte",
+      "templates": "Modèles de fiche"
     },
     "notifications": {
       "eyebrow": "Notifications externes",
@@ -527,6 +528,10 @@
         "moderator": "Modérateur",
         "member": "Membre"
       }
+    },
+    "templates": {
+      "blurb": "L’assistant d’upload construit une fiche BBCode à partir d’une mise en page. Conservez ici les vôtres et choisissez celle dont l’assistant part.",
+      "manage": "Gérer les modèles de fiche"
     }
   },
   "torrents": {
@@ -1448,6 +1453,54 @@
       "inactive": "Trier par {column}",
       "activeAsc": "{column}, tri croissant. Activer pour inverser.",
       "activeDesc": "{column}, tri décroissant. Activer pour inverser."
+    },
+    "templateEditor": {
+      "createTitle": "Nouveau modèle",
+      "editTitle": "Modifier le modèle",
+      "viewTitle": "Consulter le modèle",
+      "formPane": "Informations et source du modèle",
+      "sidePane": "Aperçu et variables",
+      "optional": "(facultatif)",
+      "resetToDefault": "Rétablir la mise en page par défaut",
+      "keepEditing": "Continuer à modifier",
+      "insertVariable": "Insérer {name} à l’emplacement du curseur",
+      "unknownVariables": "Variable inconnue, elle ne rendra rien : {names}",
+      "previewBlocked": "Corrigez l’erreur ci-dessus pour voir l’aperçu.",
+      "previewEmpty": "Rien à prévisualiser pour l’instant.",
+      "panes": {
+        "preview": "Aperçu",
+        "variables": "Variables"
+      },
+      "fields": {
+        "name": "Nom",
+        "namePlaceholder": "Films — compact",
+        "description": "Description",
+        "descriptionPlaceholder": "À quoi sert cette mise en page",
+        "category": "Catégorie",
+        "source": "Source du modèle",
+        "sourcePlaceholder": "BBCode, avec les variables de la palette…"
+      },
+      "hints": {
+        "category": "Universel convient à toute release ; Vidéo expose les mêmes variables et signale un modèle destiné aux films et séries.",
+        "blocks": "Les blocs arrivent déjà composés : les intitulés qu’ils contiennent ne sont pas modifiables, seule la structure autour l’est.",
+        "preview": "Rendu avec des métadonnées d’exemple — un vrai upload remplit les siennes.",
+        "variables": "Cliquez une variable pour l’insérer à l’emplacement du curseur.",
+        "variablesReadonly": "Les variables que ce modèle peut utiliser."
+      },
+      "errors": {
+        "nameRequired": "Un nom est obligatoire.",
+        "nameTooLong": "Le nom ne peut pas dépasser {max} caractères.",
+        "tooLong": "Le modèle dépasse {max} caractères.",
+        "contentRequired": "Le modèle ne peut pas être vide.",
+        "saveFailed": "Impossible d’enregistrer le modèle."
+      },
+      "confirm": {
+        "discardTitle": "Abandonner vos modifications ?",
+        "discardMessage": "Ce modèle contient des modifications non enregistrées. Fermer maintenant les perd.",
+        "resetTitle": "Remplacer la source ?",
+        "resetMessage": "Le contenu de l’éditeur sera remplacé par la mise en page par défaut du site. Rien n’est enregistré tant que vous n’enregistrez pas."
+      },
+      "previewTooLarge": "Ce template produit un rendu trop volumineux pour l’aperçu en direct. Il fonctionnera quand même — seul l’aperçu est ignoré."
     }
   },
   "admin": {
@@ -3004,6 +3057,13 @@
       "saved": "Enregistré",
       "saveContent": "Enregistrer la page d'accueil"
     },
+    "templates": {
+      "title": "Modèles de présentation",
+      "description": "Les utilisateurs peuvent enregistrer leurs propres modèles BBCode pour le générateur de fiches. Le modèle par défaut intégré reste toujours disponible et n’est pas compté ici.",
+      "quotaPerUser": "Modèles par utilisateur",
+      "quotaHint": "Combien de modèles un même utilisateur peut posséder, publiés compris. 1–100. Défaut : 5.",
+      "templatesLabel": "modèles"
+    },
     "requests": {
       "title": "Bourse aux demandes",
       "description": "Réglage de la temporisation d'auto-validation et du plafond de propositions par utilisateur pour le marché des demandes d'upload.",
@@ -4238,7 +4298,15 @@
       "screenshotsPlaceholder": "Une URL par ligne",
       "bbcode": "BBCode généré",
       "viewNfo": "Voir le NFO",
-      "nfoTitle": "NFO généré"
+      "nfoTitle": "NFO généré",
+      "template": "Modèle de fiche",
+      "templateBuiltin": "Modèle intégré",
+      "templateMine": "Mes modèles",
+      "templateShared": "Publiés par le staff",
+      "templateDefaultOption": "{name} (par défaut)",
+      "manageTemplates": "Gérer mes modèles",
+      "templateBroken": "Ce modèle n’a pas pu être rendu, la fiche intégrée est affichée à la place :",
+      "templateNoTechnicalGate": "Ce modèle ne conditionne pas sa section technique : les valeurs sont vidées, mais les libellés qu’il écrit lui-même restent affichés."
     },
     "preview": {
       "title": "Aperçu"
@@ -4249,6 +4317,113 @@
       "copied": "Copié",
       "copyFailed": "La copie a échoué.",
       "hint": "La description, le NFO et le nom de release sont repris dans le formulaire."
+    }
+  },
+  "templates": {
+    "pageTitle": "Modèles de fiche",
+    "eyebrow": "Compte · Modèles",
+    "titleMain": "Modèles",
+    "titleAccent": "de fiche",
+    "subtitle": "Un modèle, c’est la mise en page que l’assistant d’upload remplit : votre structure, votre ordre de sections, les métadonnées posées sous forme de variables.",
+    "backToSettings": "Retour aux réglages",
+    "quotaLabel": "Modèles",
+    "quotaTooltip": "Vous pouvez conserver jusqu’à {max} modèles personnels.",
+    "quotaReached": "Vous avez atteint votre limite de {max} modèles. Supprimez-en un pour faire de la place.",
+    "groupBuiltIn": "Mise en page intégrée",
+    "groupMine": "Mes modèles",
+    "groupPublished": "Publiés par l’équipe",
+    "publishedHelp": "En lecture seule. Dupliquez-en un pour en obtenir une copie modifiable ; l’original continue de fonctionner même après modification de votre copie.",
+    "noDescription": "Sans description",
+    "copyOf": "{name} (copie)",
+    "builtIn": {
+      "name": "Mise en page par défaut",
+      "description": "La mise en page utilisée par toutes les fiches tant que vous n’en choisissez pas une autre. Elle fait partie du site : ni modifiable ni supprimable — dupliquez-la pour vous l’approprier."
+    },
+    "meta": {
+      "chars": "{n} caractères",
+      "updated": "Modifié le {date}",
+      "by": "Par {name}"
+    },
+    "badges": {
+      "builtIn": "Intégrée",
+      "default": "Par défaut",
+      "published": "Publié"
+    },
+    "categories": {
+      "universal": "Universel",
+      "video": "Vidéo"
+    },
+    "groups": {
+      "header": "En-tête",
+      "facts": "Informations",
+      "rating": "Note",
+      "synopsis": "Synopsis",
+      "technical": "Technique",
+      "release": "Release",
+      "options": "Options"
+    },
+    "vars": {
+      "TITLE": "Le titre tel qu’il est saisi. Le BBCode qu’il contient passe tel quel.",
+      "YEAR": "Année de sortie. Vide si inconnue, ce qui fait disparaître ce qui l’entoure.",
+      "IS_MOVIE": "Condition : vrai pour un film, faux pour une série.",
+      "POSTER_URL": "Adresse de l’affiche. Vide si l’option affiche est désactivée.",
+      "FACTS_BLOCK": "Pays, genres, date de sortie, titre original, durée, saisons, réalisateurs et acteurs — une ligne chacun.",
+      "CAST_PHOTOS_BLOCK": "Vignettes des acteurs, collées bord à bord sur une seule ligne.",
+      "VOTE_AVERAGE": "Note sur dix, deux décimales. Vide en l’absence de note.",
+      "VOTE_COUNT": "Nombre de votes, sans mise en forme.",
+      "TMDB_ID": "Identifiant TMDb. À utiliser comme condition du lien TMDb.",
+      "TMDB_TYPE": "Segment d’adresse TMDb : movie ou tv.",
+      "OVERVIEW": "Synopsis, éventuellement sur plusieurs lignes. Vide si l’option est désactivée.",
+      "SPECS_BLOCK": "Source, qualité vidéo, conteneur, codec vidéo et débit vidéo.",
+      "AUDIO_BLOCK": "Une ligne par piste audio : drapeau, langue, canaux, codec, débit.",
+      "SUBTITLES_BLOCK": "Une ligne par piste de sous-titres. Vide si la release n’en a aucune.",
+      "SIZE_BLOCK": "Taille totale et nombre de fichiers.",
+      "SCREENSHOTS_BLOCK": "Les captures collées dans l’assistant, une image par ligne.",
+      "RELEASE_NAME": "Nom de la release. Vide, il fait disparaître le bloc qui l’entoure.",
+      "INCLUDE_POSTER": "Condition : la case affiche. Déjà intégrée à POSTER_URL.",
+      "INCLUDE_SYNOPSIS": "Condition : la case synopsis. Déjà intégrée à OVERVIEW.",
+      "INCLUDE_TECHNICAL": "Condition : la case technique. Englobez-y toute la partie technique — l’intitulé des sous-titres dépend de l’option, pas des données.",
+      "INCLUDE_CAST_PHOTOS": "Condition : la case photos des acteurs. Déjà intégrée à CAST_PHOTOS_BLOCK."
+    },
+    "actions": {
+      "new": "Nouveau modèle",
+      "view": "Consulter",
+      "duplicate": "Dupliquer",
+      "duplicateToEdit": "Dupliquer pour modifier",
+      "setDefault": "Définir par défaut",
+      "startFromBuiltIn": "Partir de la mise en page par défaut",
+      "retry": "Réessayer",
+      "deleteNamed": "Supprimer le modèle « {name} »",
+      "publish": "Publier",
+      "unpublish": "Dépublier",
+      "publishNamed": "Publier « {name} » pour tout le site",
+      "unpublishNamed": "Dépublier « {name} » et le masquer du site"
+    },
+    "empty": {
+      "title": "Aucun modèle personnel pour l’instant",
+      "body": "Toutes vos fiches sont pour le moment construites avec la mise en page du site. Dupliquez-la pour en obtenir une copie modifiable, déplacez les sections, posez les variables voulues — l’assistant la remplira ensuite."
+    },
+    "confirm": {
+      "deleteTitle": "Supprimer ce modèle ?",
+      "deleteMessage": "« {name} » sera supprimé définitivement. Les fiches déjà publiées ne changent pas.",
+      "publishTitle": "Publier ce template ?",
+      "publishMessage": "Tous les membres verront « {name} » dans leur générateur de fiche et pourront le copier. Toute image chargée depuis un autre site y enregistrera l’adresse IP de chaque visiteur. Vous pourrez le dépublier plus tard.",
+      "unpublishTitle": "Dépublier ce template ?",
+      "unpublishMessage": "Les membres ne verront plus « {name} » et ne pourront plus le copier. Ceux qui l’ont déjà copié gardent leur copie, et les fiches déjà publiées ne changent pas."
+    },
+    "toasts": {
+      "created": "Modèle créé",
+      "updated": "Modèle enregistré",
+      "deleted": "Modèle supprimé",
+      "defaultSet": "Mise en page par défaut modifiée",
+      "published": "Template publié pour tout le site",
+      "unpublished": "Template dépublié",
+      "publishFailed": "Impossible de changer la visibilité du template"
+    },
+    "errors": {
+      "loadFailed": "Impossible de charger vos modèles.",
+      "deleteFailed": "Impossible de supprimer le modèle.",
+      "defaultFailed": "Impossible de changer la mise en page par défaut."
     }
   }
 }
