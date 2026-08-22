@@ -219,7 +219,13 @@
         <!-- Simple: classic table -->
         <div v-if="view === 'simple'" class="card overflow-hidden">
           <div class="overflow-x-auto">
-            <TorrentTable :torrents="torrents" :compact="false" />
+            <TorrentTable
+              :torrents="torrents"
+              :compact="false"
+              :sort-by="sortBy"
+              :order="sortOrder"
+              @sort="applySort"
+            />
           </div>
         </div>
         <!-- Grouped: one row per work, collapsed.
@@ -259,7 +265,13 @@
     <section v-else class="trending">
       <p class="cats-eyebrow">{{ $t('search.trending') }}</p>
       <div class="card overflow-hidden">
-        <TorrentTable :torrents="trendingTorrents" :compact="true" />
+        <TorrentTable
+          :torrents="trendingTorrents"
+          :compact="true"
+          :sort-by="sortBy"
+          :order="sortOrder"
+          @sort="applySort"
+        />
       </div>
     </section>
   </div>
@@ -267,6 +279,8 @@
 
 <script setup lang="ts">
 import { formatSize, formatAge } from '~/utils/format';
+import { TORRENT_SORT_KEYS } from '@trackarr/shared';
+import type { TorrentSortKey, SortDirection } from '@trackarr/shared';
 import Pager from '~/components/search/Pager.vue';
 
 interface TorrentTag {
@@ -338,6 +352,42 @@ const selectedTags = ref<string[]>(
 );
 const filtersOpen = ref(selectedTags.value.length > 0);
 const page = ref(parseInt((route.query.p as string) || '1', 10));
+
+/**
+ * Sort, in the URL so a sorted listing can be linked, bookmarked and walked
+ * back through with the browser's own history — the same contract the search,
+ * category and tag filters already have.
+ *
+ * The server does the ordering: sorting a page of 20 client-side would order
+ * twenty rows out of twelve thousand, which reads as a broken feature the
+ * moment a member pages forward.
+ */
+const sortBy = ref<TorrentSortKey>(
+  (TORRENT_SORT_KEYS as readonly string[]).includes(route.query.s as string)
+    ? (route.query.s as TorrentSortKey)
+    : 'age'
+);
+const sortOrder = ref<SortDirection>(
+  (route.query.d as string) === 'asc' ? 'asc' : 'desc'
+);
+
+/**
+ * Clicking the active column reverses it; clicking another switches to it.
+ *
+ * A fresh column starts descending, which is what every one of these means when
+ * you first ask for it: newest, biggest, most seeded. `name` and `category` are
+ * the exceptions — nobody wants Z-to-A first.
+ */
+function applySort(key: TorrentSortKey) {
+  if (sortBy.value === key) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortBy.value = key;
+    sortOrder.value = key === 'name' || key === 'category' ? 'asc' : 'desc';
+  }
+  page.value = 1;
+  updateUrl();
+}
 // View preference is persisted in localStorage so the user keeps the
 // same mode across visits. Precedence:
 //   1. `?v=…` in the URL — wins on every render so a shared link forces
@@ -450,6 +500,8 @@ const {
       tvdbid: m?.source === 'tvdb' ? m.id : undefined,
       page: page.value,
       limit: 20,
+      sortBy: sortBy.value,
+      order: sortOrder.value,
     };
   }),
   // Refetching is driven by the explicit watcher below rather than by `watch:`,
@@ -509,7 +561,7 @@ const {
 // refetches. Switching views is itself a trigger, so the first switch loads the
 // side that was skipped at mount.
 watch(
-  [searchQuery, selectedCategory, selectedTags, mediaIdFilter, page, view],
+  [searchQuery, selectedCategory, selectedTags, mediaIdFilter, page, view, sortBy, sortOrder],
   () => {
     if (view.value === 'grouped') refreshGroups();
     else refreshTorrents();
@@ -566,7 +618,16 @@ const hasActiveQuery = computed(
     Boolean(searchQuery.value) ||
     Boolean(selectedCategory.value) ||
     selectedTags.value.length > 0 ||
-    Boolean(activeMediaId.value)
+    Boolean(activeMediaId.value) ||
+    // Sorting is a query too. Clicking "size" on the landing view means "show
+    // me the biggest releases", which is a question about the catalogue — not
+    // about the ten rows the trending teaser happens to be showing.
+    isSorted.value
+);
+
+/** True once the user has moved off the default ordering. */
+const isSorted = computed(
+  () => sortBy.value !== 'age' || sortOrder.value !== 'desc'
 );
 
 /**
@@ -650,6 +711,9 @@ function updateUrl() {
       tvdbid: m?.source === 'tvdb' ? m.id : undefined,
       p: page.value > 1 ? page.value : undefined,
       v: view.value === 'grouped' ? 'grouped' : undefined,
+      // Omitted while on the default so a plain listing keeps a clean URL.
+      s: sortBy.value !== 'age' ? sortBy.value : undefined,
+      d: sortOrder.value !== 'desc' ? sortOrder.value : undefined,
     },
   });
 }

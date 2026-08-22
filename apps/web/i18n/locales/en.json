@@ -1327,7 +1327,8 @@
       "errors": {
         "deleteFailed": "Failed to delete torrent",
         "favoriteFailed": "Could not update favorites"
-      }
+      },
+      "sortedBy": "Sort"
     },
     "wysiwyg": {
       "placeholderDefault": "Start typing…",
@@ -1433,6 +1434,11 @@
       "viewOnOpenLibrary": "View on Open Library",
       "viewOnGoogle": "View on Google Books",
       "votesOnGoogle": "{n} ratings on Google Books"
+    },
+    "sortHeader": {
+      "inactive": "Sort by {column}",
+      "activeAsc": "{column}, sorted ascending. Activate to reverse.",
+      "activeDesc": "{column}, sorted descending. Activate to reverse."
     }
   },
   "admin": {

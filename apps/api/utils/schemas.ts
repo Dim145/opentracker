@@ -3,6 +3,7 @@
  * Centralized request validation schemas for all API endpoints
  */
 
+import { TORRENT_SORT_KEYS } from '@trackarr/shared';
 import { z } from 'zod/v4';
 
 // ============================================================================
@@ -98,9 +99,17 @@ export const torrentQuerySchema = z.object({
   imdbid: z.string().max(255).optional(),
   tmdbid: z.string().max(255).optional(),
   tvdbid: z.string().max(255).optional(),
-  sortBy: z
-    .enum(['uploaded', 'name', 'size', 'seeders', 'leechers'])
-    .default('uploaded'),
+  // Sort keys map to the columns the catalogue table shows, so every header
+  // the user can click has one. `age` is the default and means the same thing
+  // the listing has always been ordered by: COALESCE(moderated_at, created_at),
+  // i.e. when the torrent became available rather than when it was uploaded.
+  //
+  // `seeders`, `leechers` and `completed` order off the `torrent_stats`
+  // snapshot the stats collector maintains, not off Redis: a listing cannot
+  // fan out one Redis read per candidate row before it knows which page it is
+  // serving. Displayed counts stay live — only the ordering is as of the last
+  // collection pass.
+  sortBy: z.enum(TORRENT_SORT_KEYS).default('age'),
   order: z.enum(['asc', 'desc']).default('desc'),
 });
 

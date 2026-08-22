@@ -1327,7 +1327,8 @@
       "errors": {
         "deleteFailed": "Échec de la suppression du torrent",
         "favoriteFailed": "Impossible de modifier les favoris"
-      }
+      },
+      "sortedBy": "Tri"
     },
     "wysiwyg": {
       "placeholderDefault": "Commencez à écrire…",
@@ -1433,6 +1434,11 @@
       "viewOnOpenLibrary": "Voir sur Open Library",
       "viewOnGoogle": "Voir sur Google Books",
       "votesOnGoogle": "{n} notes sur Google Books"
+    },
+    "sortHeader": {
+      "inactive": "Trier par {column}",
+      "activeAsc": "{column}, tri croissant. Activer pour inverser.",
+      "activeDesc": "{column}, tri décroissant. Activer pour inverser."
     }
   },
   "admin": {
