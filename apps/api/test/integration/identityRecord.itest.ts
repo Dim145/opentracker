@@ -616,3 +616,55 @@ describe('hearing that a partner withdrew one', () => {
     }
   });
 });
+
+describe('a rotation does not orphan the work that came before it', () => {
+  it('keeps a member\'s own past uploads theirs', async () => {
+    // The defect this exists to prevent: rotate a key and your own catalogue
+    // stops being yours, because everything you published is attributed to
+    // the identifier you just retired.
+    const user = await makeUser();
+    const old = await ensureUserDid(user);
+    const { did } = await rotateUserKey(user);
+
+    const identities = await identitiesOfUser(user);
+    expect(identities.has(did)).toBe(true);
+    expect(identities.has(old)).toBe(true);
+  });
+
+  it('follows a partner\'s succession when gathering a catalogue', async () => {
+    // Their member rotated over there. The work published under the old
+    // identifier is the same person's, and the partner is the authority that
+    // says so — the same authority its endorsement already rests on.
+    const user = await makeUser();
+    await recordClaim(user, exportedFrom(partner, member));
+    const successor = 'did:key:z6MkTheirNewKey';
+
+    await ingestRevocation(peerId, 'sha256:undo', partner.did, {
+      type: 'Undo',
+      object: member.did,
+      'trackarr:succeededBy': successor,
+    });
+
+    // The CLAIM is gone — it came down because whoever made it might be the
+    // thief — but the identifiers are still known to be one person.
+    expect(await aliasesOf(member.did)).toEqual(
+      new Set([member.did, successor]),
+    );
+  });
+
+  it('does not resurrect the claim a withdrawal tore down', async () => {
+    const thief = await makeUser('Thief');
+    await recordClaim(thief, exportedFrom(partner, member));
+    await ingestRevocation(peerId, 'sha256:undo', partner.did, {
+      type: 'Undo',
+      object: member.did,
+      'trackarr:succeededBy': 'did:key:z6MkHerNewOne',
+    });
+
+    // Succession connects identifiers. It says nothing about which local
+    // account is entitled to them, so the thief reaches neither.
+    const theirs = await identitiesOfUser(thief);
+    expect(theirs.has(member.did)).toBe(false);
+    expect(theirs.has('did:key:z6MkHerNewOne')).toBe(false);
+  });
+});

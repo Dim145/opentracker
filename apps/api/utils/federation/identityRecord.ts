@@ -337,6 +337,29 @@ export async function aliasesOf(
   let frontier = [did];
 
   for (let hop = 0; hop < maxHops && frontier.length; hop++) {
+    // Succession, in both directions. A rotation is not a different person:
+    // the issuer that endorsed both identifiers said so, which is the same
+    // authority the endorsement itself rests on.
+    //
+    // This connects IDENTIFIERS, for the purpose of gathering a body of work.
+    // It deliberately does not resurrect the CLAIMS a revocation tore down —
+    // those came down because the account that made them might be whoever
+    // took the file, and succession says nothing about that.
+    const succ = await db
+      .select({
+        did: schema.revokedIdentities.did,
+        succeededBy: schema.revokedIdentities.succeededBy,
+      })
+      .from(schema.revokedIdentities)
+      .where(inArray(schema.revokedIdentities.did, frontier));
+    const preceded = await db
+      .select({
+        did: schema.revokedIdentities.did,
+        succeededBy: schema.revokedIdentities.succeededBy,
+      })
+      .from(schema.revokedIdentities)
+      .where(inArray(schema.revokedIdentities.succeededBy, frontier));
+
     const rows = await db
       .select({
         subjectDid: schema.remoteIdentityLinks.subjectDid,
@@ -358,13 +381,19 @@ export async function aliasesOf(
       .where(inArray(schema.remoteIdentityLinks.aliasDid, frontier));
 
     const next: string[] = [];
-    for (const r of [...rows, ...back]) {
-      for (const d of [r.subjectDid, r.aliasDid]) {
-        if (!seen.has(d)) {
-          seen.add(d);
-          next.push(d);
-        }
+    const add = (d: string | null) => {
+      if (d && !seen.has(d)) {
+        seen.add(d);
+        next.push(d);
       }
+    };
+    for (const r of [...rows, ...back]) {
+      add(r.subjectDid);
+      add(r.aliasDid);
+    }
+    for (const r of [...succ, ...preceded]) {
+      add(r.did);
+      add(r.succeededBy);
     }
     frontier = next;
   }
@@ -391,8 +420,17 @@ export async function identitiesOfUser(userId: string): Promise<Set<string>> {
       ),
     );
 
+  // Every key this member has ever held here, not only the live one. A
+  // rotation retires an identifier; it does not un-write the work published
+  // under it, and a member who rotates must not watch their own catalogue stop
+  // being theirs.
+  const held = await db
+    .select({ did: schema.userSigningKeys.did })
+    .from(schema.userSigningKeys)
+    .where(eq(schema.userSigningKeys.userId, userId));
+
   const roots = [
-    await ensureUserDid(userId),
+    ...(held.length ? held.map((r) => r.did) : [await ensureUserDid(userId)]),
     ...mine.map((r) => r.subjectDid).filter((d): d is string => !!d),
   ];
 
