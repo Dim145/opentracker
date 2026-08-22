@@ -75,6 +75,19 @@
       </NuxtLink>
 
       <NuxtLink
+        to="/mod/federation-masks"
+        class="tile tile--masks"
+        :style="{ '--stagger': '90ms' }"
+      >
+        <span class="tile-label">{{ $t('mod.dashboard.tiles.masks') }}</span>
+        <span class="tile-value"><Icon name="ph:eye-slash-bold" /></span>
+        <span class="tile-foot">
+          {{ $t('mod.dashboard.tiles.masksHint') }}
+          <Icon name="ph:arrow-up-right-bold" class="tile-arrow" />
+        </span>
+      </NuxtLink>
+
+      <NuxtLink
         to="/mod/hnr"
         class="tile tile--hnr"
         :style="{ '--stagger': '120ms' }"

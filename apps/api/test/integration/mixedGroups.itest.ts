@@ -483,3 +483,50 @@ describe('the total', () => {
     expect(total).toBe(2);
   });
 });
+
+describe('local moderation of federated content (masks)', () => {
+  it('hides a masked release from the grouped listing, and shows it again when lifted', async () => {
+    const { maskRemote, unmaskRemote } = await import('../../utils/federation/remoteMask');
+    const peer = await makePeer();
+    const hash = 'dddd0000dddd0000dddd0000dddd0000dddd0000';
+    await mirror([{ peerId: peer, name: 'Bad.Release.1080p', tmdbId: 'tv/424242', infoHash: hash }]);
+
+    // Visible before.
+    const before = await listMixedGroups(page);
+    expect(before.groups.some((g) => g.leadName === 'Bad.Release.1080p')).toBe(true);
+
+    const id = await maskRemote('infohash', hash, { reason: 'illegal' });
+
+    // Gone from the merged listing after masking — the peer is untouched.
+    const masked = await listMixedGroups(page);
+    expect(masked.groups.some((g) => g.leadName === 'Bad.Release.1080p')).toBe(false);
+
+    // And back when the mask is lifted.
+    expect(await unmaskRemote(id)).toBe(true);
+    const after = await listMixedGroups(page);
+    expect(after.groups.some((g) => g.leadName === 'Bad.Release.1080p')).toBe(true);
+  });
+
+  it('mutes every release from one author DID at once', async () => {
+    const { maskRemote } = await import('../../utils/federation/remoteMask');
+    const peer = await makePeer();
+    const did = 'did:key:zBadUploader';
+    await db.insert(schema.remoteTorrents).values([
+      { id: randomUUID(), peerId: peer, remoteId: `sha256:${randomUUID().replace(/-/g, '')}`, infoHash: 'aa'.repeat(20), name: 'A.1080p', tmdbId: 'tv/700', authorDid: did, size: 1, seeders: 0, leechers: 0, isAdult: false, categorySlug: 'movies', remoteCreatedAt: new Date() },
+      { id: randomUUID(), peerId: peer, remoteId: `sha256:${randomUUID().replace(/-/g, '')}`, infoHash: 'bb'.repeat(20), name: 'B.1080p', tmdbId: 'tv/701', authorDid: did, size: 1, seeders: 0, leechers: 0, isAdult: false, categorySlug: 'movies', remoteCreatedAt: new Date() },
+    ]);
+
+    await maskRemote('author', did);
+
+    const listed = await listMixedGroups(page);
+    expect(listed.groups.some((g) => g.leadName === 'A.1080p')).toBe(false);
+    expect(listed.groups.some((g) => g.leadName === 'B.1080p')).toBe(false);
+  });
+
+  it('is idempotent on the same (scope, value)', async () => {
+    const { maskRemote } = await import('../../utils/federation/remoteMask');
+    const a = await maskRemote('infohash', 'cc'.repeat(20));
+    const b = await maskRemote('infohash', 'cc'.repeat(20));
+    expect(a).toBe(b);
+  });
+});

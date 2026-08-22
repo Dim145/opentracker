@@ -2859,6 +2859,51 @@ export const recordSources = pgTable(
 export type RecordSource = typeof recordSources.$inferSelect;
 
 /**
+ * Locally-hidden federated content.
+ *
+ * The moderation gap the review found: the only lever over a partner's
+ * catalogue was suspend/block/delete the WHOLE peer, which throws away
+ * everything good it carries to hide one bad release. This is the surface
+ * below that — a mask hides a mirrored release from every local read path
+ * without touching the peer or the record itself.
+ *
+ * A mask matches by ONE of three keys, chosen by `scope`:
+ *   - `record`   — one specific record (its content address). The sharpest.
+ *   - `infohash` — a release by its v1 infohash, whoever serves it. Catches
+ *                  the same bad content mirrored from several partners.
+ *   - `author`   — every release attributed to one uploader DID (a mute).
+ *
+ * It is local and reversible: nothing is deleted, nothing is signalled to the
+ * partner (that is a separate, optional step), and lifting the mask makes the
+ * content reappear on the next read. It is the tracker's own editorial line
+ * over what it re-exposes, which the design has always said stays sovereign.
+ */
+export const remoteMasks = pgTable(
+  'remote_masks',
+  {
+    id: text('id').primaryKey(),
+    /** `record` | `infohash` | `author` — which column of the mirror to match. */
+    scope: text('scope').notNull(),
+    /** The value to match: a record id, an infohash, or an author DID. */
+    value: text('value').notNull(),
+    /** Free-text note for the mod log. */
+    reason: text('reason'),
+    createdBy: text('created_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // One mask per (scope, value) — re-masking the same thing is a no-op.
+    uniqueIndex('remote_masks_scope_value_idx').on(table.scope, table.value),
+    // The read-path predicate looks masks up by value, so index it.
+    index('remote_masks_value_idx').on(table.value),
+  ],
+);
+
+export type RemoteMask = typeof remoteMasks.$inferSelect;
+
+/**
  * Identifiers a partner has withdrawn.
  *
  * The recourse a member has when their exported identity file gets out. Their

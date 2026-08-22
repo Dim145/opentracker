@@ -71,6 +71,7 @@
 import { sql, type SQL } from 'drizzle-orm';
 import type { SortDirection, TorrentSortKey } from '@trackarr/shared';
 import { db, schema } from '@trackarr/db';
+import { NOT_MASKED } from './federation/remoteMask';
 import {
   LIVE_AT,
   LOCAL_RELEASE_KEY,
@@ -115,7 +116,10 @@ const REMOTE_UNTAGGED = sql`(${rt.tmdbId} IS NULL
   AND ${rt.igdbId} IS NULL
   AND ${rt.openlibraryId} IS NULL)`;
 
-const ACTIVE_PEER = sql`${schema.federationPeers.status} = 'active'`;
+// Active peer AND not locally masked — folded together so every remote read in
+// this file (the grouped listing and a group's detail) hides moderated content
+// without each having to remember to.
+const ACTIVE_PEER = sql`${schema.federationPeers.status} = 'active' AND ${NOT_MASKED}`;
 
 export interface MixedGroupRow {
   key: string;

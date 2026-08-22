@@ -3466,7 +3466,9 @@
         "hnr": "H&R actifs",
         "hnrHint": "Appliquer la règle",
         "myActions": "Mes actions · 7 j",
-        "myActionsHint": "{n} signalements clos"
+        "myActionsHint": "{n} signalements clos",
+        "masks": "Masques fédérés",
+        "masksHint": "Masquer du contenu partenaire"
       },
       "queue": {
         "title": "Plus frais en attente",
@@ -3500,6 +3502,21 @@
         "title": "H&R récents",
         "body": "Surveillez les utilisateurs qui ne reseedent pas.",
         "cta": "Voir les H&R"
+      }
+    },
+    "masks": {
+      "title": "Contenu fédéré masqué",
+      "sub": "Releases cachées de toute vue locale du catalogue partenaire. Rien n’est supprimé et aucun partenaire n’est prévenu — retirez un masque et le contenu réapparaît.",
+      "hide": "Masquer",
+      "lift": "Afficher",
+      "empty": "Rien n’est masqué.",
+      "noSample": "(pas actuellement miroité)",
+      "valuePlaceholder": "id d’enregistrement / infohash / did auteur",
+      "reasonPlaceholder": "raison (optionnel)",
+      "scope": {
+        "record": "Cet enregistrement",
+        "infohash": "Cet infohash",
+        "author": "Cet uploadeur"
       }
     }
   },

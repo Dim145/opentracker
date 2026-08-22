@@ -16,6 +16,7 @@
  */
 import { ilike, and, or, eq, sql, inArray } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
+import { NOT_MASKED } from './remoteMask';
 import { escapeLike } from '~~/utils/sql';
 
 export interface BrowseMirrorOptions {
@@ -45,7 +46,7 @@ export async function browseMirror(opts: BrowseMirrorOptions) {
   // without a signature.
   const gkey = sql<string>`coalesce(${schema.remoteTorrents.contentSignature}, ${schema.remoteTorrents.infoHash})`;
 
-  const conditions = [eq(schema.federationPeers.status, 'active')];
+  const conditions = [eq(schema.federationPeers.status, 'active'), NOT_MASKED];
   if (!showAdult) conditions.push(eq(schema.remoteTorrents.isAdult, false));
   if (search) {
     const esc = `%${escapeLike(search)}%`;

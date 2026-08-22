@@ -16,6 +16,7 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
+import { NOT_MASKED } from '~~/utils/federation/remoteMask';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { sql, type SQL } from 'drizzle-orm';
 import {
@@ -92,7 +93,9 @@ export default defineEventHandler(async (event) => {
     where: eq(schema.users.id, user.id),
     columns: { showAdultContent: true },
   });
-  const base = remoteGroupWhere(parsed, !!me?.showAdultContent);
+  // Locally-masked releases are hidden here too, or a group detail would show
+  // what the listing that led to it does not.
+  const base = sql`(${remoteGroupWhere(parsed, !!me?.showAdultContent)}) AND ${NOT_MASKED}`;
   const join = sql`FROM ${rt} INNER JOIN ${peers} ON ${peers.id} = ${rt.peerId}`;
 
   // ── The scopes this group offers ───────────────────────────────────────

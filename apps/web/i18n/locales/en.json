@@ -3466,7 +3466,9 @@
         "hnr": "Active H&R",
         "hnrHint": "Enforce policy",
         "myActions": "My actions · 7 days",
-        "myActionsHint": "{n} reports closed"
+        "myActionsHint": "{n} reports closed",
+        "masks": "Federated masks",
+        "masksHint": "Hide partner content"
       },
       "queue": {
         "title": "Freshest pending",
@@ -3500,6 +3502,21 @@
         "title": "Recent H&R",
         "body": "Monitor users who are not seeding back.",
         "cta": "View H&R"
+      }
+    },
+    "masks": {
+      "title": "Masked federated content",
+      "sub": "Releases hidden from every local view of the partner catalogue. Nothing is deleted and no partner is told — lift a mask and the content reappears.",
+      "hide": "Hide",
+      "lift": "Show",
+      "empty": "Nothing is masked.",
+      "noSample": "(not currently mirrored)",
+      "valuePlaceholder": "record id / infohash / author did",
+      "reasonPlaceholder": "reason (optional)",
+      "scope": {
+        "record": "This record",
+        "infohash": "This infohash",
+        "author": "This uploader"
       }
     }
   },
