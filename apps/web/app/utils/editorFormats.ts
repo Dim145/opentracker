@@ -98,16 +98,20 @@ function replaceUntilStable(
    tag so the alignment block can host nested block-level content
    (img, blockquote, list) without producing the invalid <p><p>
    nesting the previous version emitted. */
-const SIMPLE_TAGS: Array<[RegExp, string]> = [
-  [/\[b\](.*?)\[\/b\]/gis, '<strong>$1</strong>'],
-  [/\[i\](.*?)\[\/i\]/gis, '<em>$1</em>'],
-  [/\[u\](.*?)\[\/u\]/gis, '<u>$1</u>'],
-  [/\[s\](.*?)\[\/s\]/gis, '<s>$1</s>'],
-  [/\[code\](.*?)\[\/code\]/gis, '<pre><code>$1</code></pre>'],
-  [/\[h([1-6])\](.*?)\[\/h\1\]/gis, '<h$1>$2</h$1>'],
-  [/\[center\]([\s\S]*?)\[\/center\]/gi, '<div style="text-align:center">$1</div>'],
-  [/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align:right">$1</div>'],
-  [/\[left\]([\s\S]*?)\[\/left\]/gi, '<div style="text-align:left">$1</div>'],
+// Third element is the closing literal the loop probes for before running the
+// pattern — see the note in bbcodeToHtml. `[/h` covers all six heading levels
+// with one check: the pattern back-references the level, so probing each would
+// be six scans to save one.
+const SIMPLE_TAGS: Array<[RegExp, string, string]> = [
+  [/\[b\](.*?)\[\/b\]/gis, '<strong>$1</strong>', '[/b]'],
+  [/\[i\](.*?)\[\/i\]/gis, '<em>$1</em>', '[/i]'],
+  [/\[u\](.*?)\[\/u\]/gis, '<u>$1</u>', '[/u]'],
+  [/\[s\](.*?)\[\/s\]/gis, '<s>$1</s>', '[/s]'],
+  [/\[code\](.*?)\[\/code\]/gis, '<pre><code>$1</code></pre>', '[/code]'],
+  [/\[h([1-6])\](.*?)\[\/h\1\]/gis, '<h$1>$2</h$1>', '[/h'],
+  [/\[center\]([\s\S]*?)\[\/center\]/gi, '<div style="text-align:center">$1</div>', '[/center]'],
+  [/\[right\]([\s\S]*?)\[\/right\]/gi, '<div style="text-align:right">$1</div>', '[/right]'],
+  [/\[left\]([\s\S]*?)\[\/left\]/gi, '<div style="text-align:left">$1</div>', '[/left]'],
 ];
 
 
@@ -181,35 +185,54 @@ export function bbcodeToHtml(input: string): string {
   s = s.replace(/\n{2,}/g, '<br><br>');
   s = s.replace(/\n/g, '<br>');
 
+  /* Every pass below is skipped when its closing tag is nowhere in the
+     string, and that guard is not a micro-optimisation.
+
+     These are lazy-quantifier pairs — `\[b\](.*?)\[\/b\]` and friends. Given
+     openers with no matching closer, the engine still tries every opener
+     position and expands `.*?` to the end of the input from each one, so `[b]`
+     repeated k times costs k×n while nothing can ever match. On a large paste
+     of unbalanced BBCode that is a frozen tab for seconds.
+
+     A substring check is one linear scan and cannot change the result: a
+     pattern whose closing literal is absent has no possible match, so skipping
+     it is exactly equivalent to running it. The honest fix is a single-pass
+     tokeniser with a stack — it would also retire the `maxPasses` ceiling — but
+     that is a rewrite of this module, not a guard on it. */
+
   // [url=https://…]label[/url] and [url]https://…[/url]
-  s = s.replace(
-    /\[url=([^\]\s]+)\](.*?)\[\/url\]/gis,
-    (_m, href: string, label: string) => {
-      // Unescape the URL we previously escaped, then re-escape as an attr.
+  if (s.includes('[/url]')) {
+    s = s.replace(
+      /\[url=([^\]\s]+)\](.*?)\[\/url\]/gis,
+      (_m, href: string, label: string) => {
+        // Unescape the URL we previously escaped, then re-escape as an attr.
+        const decoded = unescapeHtml(href);
+        if (!/^https?:\/\//i.test(decoded)) return label; // drop unsafe schemes
+        return `<a href="${escapeAttr(decoded)}" rel="noopener noreferrer" target="_blank">${label}</a>`;
+      }
+    );
+    s = s.replace(/\[url\](.*?)\[\/url\]/gis, (_m, href: string) => {
       const decoded = unescapeHtml(href);
-      if (!/^https?:\/\//i.test(decoded)) return label; // drop unsafe schemes
-      return `<a href="${escapeAttr(decoded)}" rel="noopener noreferrer" target="_blank">${label}</a>`;
-    }
-  );
-  s = s.replace(/\[url\](.*?)\[\/url\]/gis, (_m, href: string) => {
-    const decoded = unescapeHtml(href);
-    if (!/^https?:\/\//i.test(decoded)) return decoded;
-    return `<a href="${escapeAttr(decoded)}" rel="noopener noreferrer" target="_blank">${escapeHtml(decoded)}</a>`;
-  });
+      if (!/^https?:\/\//i.test(decoded)) return decoded;
+      return `<a href="${escapeAttr(decoded)}" rel="noopener noreferrer" target="_blank">${escapeHtml(decoded)}</a>`;
+    });
+  }
 
   /* [img]url[/img] and its sized forms — [img width=75]url[/img],
      [img=320x180]url[/img]. Release listings use them for cast thumbnails;
      without these variants the tag stayed as plain text in the middle of the
      preview. Only numeric dimensions are carried over. */
-  s = s.replace(/\[img([^\]]*)\]([\s\S]*?)\[\/img\]/gi, (_m, attrs: string, src: string) => {
-    const decoded = unescapeHtml(src.trim());
-    if (!/^https?:\/\//i.test(decoded)) return '';
-    const dims = /^=\s*(\d{1,4})\s*x\s*(\d{1,4})\s*$/i.exec(attrs);
-    const w = /\bwidth\s*=\s*"?(\d{1,4})/i.exec(attrs)?.[1] ?? dims?.[1];
-    const h = /\bheight\s*=\s*"?(\d{1,4})/i.exec(attrs)?.[1] ?? dims?.[2];
-    const size = `${w ? ` width="${w}"` : ''}${h ? ` height="${h}"` : ''}`;
-    return `<img src="${escapeAttr(decoded)}" alt=""${size} />`;
-  });
+  if (s.includes('[/img]')) {
+    s = s.replace(/\[img([^\]]*)\]([\s\S]*?)\[\/img\]/gi, (_m, attrs: string, src: string) => {
+      const decoded = unescapeHtml(src.trim());
+      if (!/^https?:\/\//i.test(decoded)) return '';
+      const dims = /^=\s*(\d{1,4})\s*x\s*(\d{1,4})\s*$/i.exec(attrs);
+      const w = /\bwidth\s*=\s*"?(\d{1,4})/i.exec(attrs)?.[1] ?? dims?.[1];
+      const h = /\bheight\s*=\s*"?(\d{1,4})/i.exec(attrs)?.[1] ?? dims?.[2];
+      const size = `${w ? ` width="${w}"` : ''}${h ? ` height="${h}"` : ''}`;
+      return `<img src="${escapeAttr(decoded)}" alt=""${size} />`;
+    });
+  }
 
   /* Nestable inline wrappers — `[color]`, `[size]`, `[font]` can
      all be nested inside themselves in real-world BBCode (the
@@ -225,65 +248,77 @@ export function bbcodeToHtml(input: string): string {
      cross over another opener of the same kind, then iterate until
      stable so each outward layer is resolved on a subsequent
      pass. */
-  s = replaceUntilStable(s, (str) =>
-    str.replace(
-      /\[color=([^\]]+)\]((?:(?!\[color=)[\s\S])*?)\[\/color\]/gi,
-      (_m, raw: string, content: string) => {
-        const c = safeColor(unescapeHtml(raw));
-        return c ? `<span style="color:${c}">${content}</span>` : content;
-      }
-    )
-  );
-
-  s = replaceUntilStable(s, (str) =>
-    str.replace(
-      /\[size=(\d{1,3})(?:px|pt)?\]((?:(?!\[size=)[\s\S])*?)\[\/size\]/gi,
-      (_m, raw: string, content: string) => {
-        const n = parseInt(raw, 10) || 3;
-        if (n >= 1 && n <= 7) {
-          const em = (0.7 + n * 0.1).toFixed(2); // 1→0.8em, 7→1.4em
-          return `<span style="font-size:${em}em">${content}</span>`;
+  if (s.includes('[/color]')) {
+    s = replaceUntilStable(s, (str) =>
+      str.replace(
+        /\[color=([^\]]+)\]((?:(?!\[color=)[\s\S])*?)\[\/color\]/gi,
+        (_m, raw: string, content: string) => {
+          const c = safeColor(unescapeHtml(raw));
+          return c ? `<span style="color:${c}">${content}</span>` : content;
         }
-        // Pixel value path. Cap at 48 so a stray `[size=300]`
-        // doesn't blow out the layout.
-        const px = Math.max(8, Math.min(48, n));
-        return `<span style="font-size:${px}px">${content}</span>`;
-      }
-    )
-  );
+      )
+    );
+  }
+
+  if (s.includes('[/size]')) {
+    s = replaceUntilStable(s, (str) =>
+      str.replace(
+        /\[size=(\d{1,3})(?:px|pt)?\]((?:(?!\[size=)[\s\S])*?)\[\/size\]/gi,
+        (_m, raw: string, content: string) => {
+          const n = parseInt(raw, 10) || 3;
+          if (n >= 1 && n <= 7) {
+            const em = (0.7 + n * 0.1).toFixed(2); // 1→0.8em, 7→1.4em
+            return `<span style="font-size:${em}em">${content}</span>`;
+          }
+          // Pixel value path. Cap at 48 so a stray `[size=300]`
+          // doesn't blow out the layout.
+          const px = Math.max(8, Math.min(48, n));
+          return `<span style="font-size:${px}px">${content}</span>`;
+        }
+      )
+    );
+  }
 
   // [font=Verdana] / [font="Comic Sans"] — common in forum-exported
   // BBCode, useless on a tracker (web fonts aren't guaranteed).
   // Same nesting fix as size / colour above — without the
   // lookahead, the outer `[font]` matches the inner `[/font]` and
   // the inner `[font=Verdana]` is left as literal text.
-  s = replaceUntilStable(s, (str) =>
-    str.replace(
-      /\[font=[^\]]+\]((?:(?!\[font=)[\s\S])*?)\[\/font\]/gi,
-      '$1'
-    )
-  );
+  if (s.includes('[/font]')) {
+    s = replaceUntilStable(s, (str) =>
+      str.replace(
+        /\[font=[^\]]+\]((?:(?!\[font=)[\s\S])*?)\[\/font\]/gi,
+        '$1'
+      )
+    );
+  }
 
   // [quote] and [quote=author]
-  s = s.replace(
-    /\[quote(?:=[^\]]+)?\](.*?)\[\/quote\]/gis,
-    '<blockquote>$1</blockquote>'
-  );
+  if (s.includes('[/quote]')) {
+    s = s.replace(
+      /\[quote(?:=[^\]]+)?\](.*?)\[\/quote\]/gis,
+      '<blockquote>$1</blockquote>'
+    );
+  }
 
   // Lists: [list] [*]item [*]item [/list], optionally [list=1] for ordered.
-  s = s.replace(
-    /\[list(=1)?\]([\s\S]*?)\[\/list\]/gi,
-    (_m, ordered, body: string) => {
-      const items = body
-        .split(/\[\*\]/g)
-        .map((it: string) => it.trim())
-        .filter(Boolean);
-      const tag = ordered ? 'ol' : 'ul';
-      return `<${tag}>${items.map((it: string) => `<li>${it}</li>`).join('')}</${tag}>`;
-    }
-  );
+  if (s.includes('[/list]')) {
+    s = s.replace(
+      /\[list(=1)?\]([\s\S]*?)\[\/list\]/gi,
+      (_m, ordered, body: string) => {
+        const items = body
+          .split(/\[\*\]/g)
+          .map((it: string) => it.trim())
+          .filter(Boolean);
+        const tag = ordered ? 'ol' : 'ul';
+        return `<${tag}>${items.map((it: string) => `<li>${it}</li>`).join('')}</${tag}>`;
+      }
+    );
+  }
 
-  for (const [re, html] of SIMPLE_TAGS) s = s.replace(re, html);
+  for (const [re, html, closer] of SIMPLE_TAGS) {
+    if (s.includes(closer)) s = s.replace(re, html);
+  }
 
   /* Trim leading/trailing `<br>` that the pre-process step left
      when the input had whitespace before the first tag or after
