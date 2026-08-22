@@ -914,6 +914,10 @@
       "title": "The stage is empty",
       "sub": "Nobody in your cast yet. Visit an uploader's profile, follow them, and you'll be pinged the moment they release.",
       "cta": "Browse the tracker"
+    },
+    "federated": {
+      "title": "Across the mesh",
+      "unfollow": "Unfollow"
     }
   },
   "requests": {

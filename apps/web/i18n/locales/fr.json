@@ -914,6 +914,10 @@
       "title": "La scène est vide",
       "sub": "Personne dans ta distribution pour l'instant. Visite le profil d'un uploader, suis-le, et tu seras averti dès qu'il publie une nouvelle release.",
       "cta": "Parcourir le tracker"
+    },
+    "federated": {
+      "title": "À travers le maillage",
+      "unfollow": "Ne plus suivre"
     }
   },
   "requests": {
