@@ -27,6 +27,7 @@
  */
 import { verifyInboundS2S } from '~~/utils/federation/inbound';
 import { publishedSet } from '~~/utils/federation/recordSet';
+import { relayEnabled } from '~~/utils/federation/relay';
 import { MAX_RANGES_PER_MESSAGE, respond } from '~~/utils/federation/rbsr';
 
 /**
@@ -53,7 +54,9 @@ export default defineEventHandler(async (event) => {
   // `echoIds: true` — the responder answers an exact list with its own exact
   // list, which is what makes an interval terminal. The initiator does not,
   // or the two would hand each other lists forever.
-  const step = await respond(ranges, publishedSet(), { echoIds: true });
+  const step = await respond(ranges, publishedSet(await relayEnabled()), {
+    echoIds: true,
+  });
 
   return {
     ok: true,

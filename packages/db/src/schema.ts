@@ -1068,8 +1068,30 @@ export const catalogRecords = pgTable(
     infoHash: text('info_hash'),
     /** `did:key:…` of the instance that signed it. */
     issuer: text('issuer').notNull(),
-    /** `torrent` | `tombstone` | `identity` */
+    /** `torrent` | `tombstone` | `identity` | `revocation` */
     kind: text('kind').notNull().default('torrent'),
+    /**
+     * Who made this record: `local` if we minted it, `ingested` if we took it
+     * in from somebody else.
+     *
+     * The table stopped being "what we published" the moment relaying arrived
+     * and became "records we hold" — which is the right model, and a sharp
+     * edge. Every sweep that decides what to WITHDRAW has to say `local`, or
+     * it will happily mint tombstones for other people's catalogues: an
+     * ingested record has no local torrent behind it, which is exactly what
+     * "this release is gone" looks like from the inside.
+     */
+    origin: text('origin').notNull().default('local'),
+    /**
+     * How far this record travelled to reach us. 0 = we minted it, 1 = we took
+     * it from the instance that did, 2 = a partner relayed it to us.
+     *
+     * It is what bounds the network at two hops: we relay what we got at one
+     * hop and never what was already relayed to us. Enforced here rather than
+     * by asking a partner how far it came, because a partner that lies about
+     * that is precisely the case the bound exists for.
+     */
+    hops: integer('hops').notNull().default(0),
     /** The signed object, exactly as it goes on the wire. */
     body: jsonb('body').$type<Record<string, unknown>>().notNull(),
     /**
@@ -1093,6 +1115,8 @@ export const catalogRecords = pgTable(
     index('catalog_records_info_hash_idx').on(table.infoHash),
     /** Newest first, for the live-search answer. */
     index('catalog_records_created_idx').on(table.createdAt),
+    /** What we are willing to hand on: ours, and what we got first-hand. */
+    index('catalog_records_relayable_idx').on(table.origin, table.hops),
     /**
      * The set reconciliation reads: ordered ranges of `id` over the records
      * that still stand. The primary key alone would have to visit the heap for
@@ -2264,6 +2288,19 @@ export const federationConfig = pgTable('federation_config', {
   /** Owner master switch. When false the instance is unreachable for
    *  handshakes and the (future) catalogue sync does not run. */
   enabled: boolean('enabled').default(false).notNull(),
+  /**
+   * Carry other instances' records, and hand them on.
+   *
+   * Off by default: relaying means storing somebody else's catalogue and
+   * serving it, which costs disk and puts this instance's name on records it
+   * did not make. It is also what turns a mesh where everybody polls everybody
+   * into a star — so it is a real choice, and an operator's to make.
+   *
+   * A relay is not trusted by anyone: every record carries its own proof, so a
+   * relay can omit or delay, never forge or alter. That is why relaying can be
+   * offered at all without asking partners to extend it any trust.
+   */
+  relayEnabled: boolean('relay_enabled').default(false).notNull(),
   /** Human-facing name advertised to partners during the handshake. */
   instanceName: text('instance_name'),
   /** This instance's public base URL (e.g. https://tracker.example.fr),

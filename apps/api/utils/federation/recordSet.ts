@@ -101,9 +101,14 @@ function sqlSource(idCol: SQL, from: SQL, where: SQL): SetSource {
 }
 
 /**
- * What this instance publishes: every record it has minted and not
- * superseded, tombstones included — a withdrawal is a record like any other
- * and a partner needs it to learn the release is gone.
+ * What this instance serves: every record it has minted and not superseded,
+ * tombstones included — a withdrawal is a record like any other and a partner
+ * needs it to learn the release is gone.
+ *
+ * With relaying on, it also serves what it took in at first hand. A partner
+ * reconciling against us then converges on a set larger than our own
+ * catalogue, which is the whole point: one link to us instead of one link to
+ * everyone we know.
  *
  * No settle window, unlike the feed this replaces. That five-second delay
  * existed because a sequence number can be assigned before it is committed,
@@ -111,11 +116,20 @@ function sqlSource(idCol: SQL, from: SQL, where: SQL): SetSource {
  * ordering assumption at all: a record that appears in the middle of a
  * conversation is simply picked up by the next one.
  */
-export function publishedSet(): SetSource {
+export function publishedSet(relaying = false): SetSource {
+  // What we hand on when relaying: ours, plus what we took FIRST-HAND. Never
+  // what was already relayed to us — that is where the two-hop bound is
+  // enforced, and it is enforced here rather than by trusting a partner's
+  // account of how far a record has travelled.
+  const scope = relaying
+    ? sql`(${schema.catalogRecords.origin} = 'local'
+           OR (${schema.catalogRecords.origin} = 'ingested' AND ${schema.catalogRecords.hops} <= 1))`
+    : sql`${schema.catalogRecords.origin} = 'local'`;
+
   return sqlSource(
     sql`${schema.catalogRecords.id}`,
     sql`${schema.catalogRecords}`,
-    sql`${schema.catalogRecords.supersededAt} IS NULL`,
+    sql`${schema.catalogRecords.supersededAt} IS NULL AND ${scope}`,
   );
 }
 

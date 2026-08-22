@@ -141,6 +141,10 @@ async function tick(ctx: MintContext): Promise<TickResult> {
       and(
         isNull(schema.catalogRecords.supersededAt),
         eq(schema.catalogRecords.kind, 'torrent'),
+        // Ours only. An ingested record has no local torrent behind it, which
+        // from in here is indistinguishable from "this release was deleted" —
+        // without this the sweep would tombstone every partner's catalogue.
+        eq(schema.catalogRecords.origin, 'local'),
         // Gone, or no longer publishable — a ban counts, which is why the
         // condition is the same one minting uses rather than a copy that can
         // drift away from it.

@@ -55,6 +55,10 @@ export default defineEventHandler(async (event) => {
       and(
         eq(schema.catalogRecords.kind, 'torrent'),
         isNull(schema.catalogRecords.supersededAt),
+        // Live search answers about OUR catalogue. Relayed records reach a
+        // partner through reconciliation, where they arrive countersigned;
+        // handing one over here would be vouching for it without saying so.
+        eq(schema.catalogRecords.origin, 'local'),
         or(
           ilike(schema.torrents.name, esc),
           eq(schema.catalogRecords.infoHash, search.toLowerCase()),
@@ -66,6 +70,6 @@ export default defineEventHandler(async (event) => {
 
   // Verbatim, like the record feed: a record rebuilt from parts is a second
   // implementation of the format, and it eventually disagrees with the proof.
-  const records = rows.map((r) => r.body);
+  const records = rows.map((r) => ({ record: r.body, relay: null }));
   return { ok: true, records, count: records.length };
 });

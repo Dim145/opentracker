@@ -45,6 +45,7 @@ import { verifyRecord } from './record';
 import { notifyFollowersOfNewUploads } from './sidePasses';
 import { mirrorSet } from './recordSet';
 import { ingestIdentityRecord, ingestRevocation } from './identityRecord';
+import { admit, keepForRelay, trustedIssuers } from './relay';
 import { MAX_ROUNDS, opening, respond } from './rbsr';
 
 /** Records asked for per request. See `MAX_IDS` on the fetch endpoint. */
@@ -293,6 +294,7 @@ export interface IngestOutcome {
 export async function ingestRecord(
   peer: FederationPeer,
   raw: unknown,
+  opts: { relayProof?: unknown; trusted?: Set<string> } = {},
 ): Promise<IngestOutcome> {
   const nothing: IngestOutcome = { ingested: 0, withdrawn: 0, rejected: 0 };
 
@@ -301,6 +303,24 @@ export async function ingestRecord(
   if (!verdict.ok) return { ...nothing, rejected: 1 };
 
   const record = raw as Record<string, unknown>;
+
+  // Verified is not the same as wanted. A valid proof from a stranger is a
+  // valid proof from a stranger, and an instance that stored every record that
+  // verified would be an open index rather than a curated catalogue. Either
+  // the issuer is a partner, or a partner put its name to the introduction.
+  const trusted = opts.trusted ?? (await trustedIssuers());
+  const pass = admit(
+    verdict.signer!,
+    String(record.id ?? ''),
+    opts.relayProof,
+    trusted,
+  );
+  if (!pass.ok) return { ...nothing, rejected: 1 };
+
+  // Kept as bytes so it can be handed on. The mirror row below is a view for
+  // browsing; this is the record itself, and the only form it can be relayed
+  // in.
+  await keepForRelay(record, verdict.signer!, pass.hops!);
   const replaces = asStr(record['trackarr:replaces']);
 
   if (record.type === 'Tombstone') {
@@ -503,8 +523,13 @@ export async function syncPeerRecords(
         out.error = `http ${res.status}`;
         break;
       }
-      for (const raw of res.data.records as unknown[]) {
-        const r = await ingestRecord(peer, raw);
+      // One read of the trusted set per batch: it is two small queries, and
+      // reading it per record would be a hundred round trips to answer the
+      // same question.
+      const trusted = await trustedIssuers();
+      for (const envelope of res.data.records as unknown[]) {
+        const { record, relay } = unwrap(envelope);
+        const r = await ingestRecord(peer, record, { relayProof: relay, trusted });
         out.ingested += r.ingested;
         out.withdrawn += r.withdrawn;
         out.rejected += r.rejected;
@@ -577,6 +602,21 @@ export async function announceFresh(
       (err as Error).message,
     );
   }
+}
+
+/**
+ * Read one item off the wire, whichever shape it is in.
+ *
+ * A partner that relays sends `{ record, relay }`; one that only serves its
+ * own may send the record bare. Accepting both costs four lines and means the
+ * two do not have to be upgraded in step.
+ */
+export function unwrap(item: unknown): { record: unknown; relay: unknown } {
+  if (item && typeof item === 'object' && 'record' in item) {
+    const e = item as { record: unknown; relay?: unknown };
+    return { record: e.record, relay: e.relay ?? null };
+  }
+  return { record: item, relay: null };
 }
 
 /** Every partner that offers us a catalogue, one after another. */

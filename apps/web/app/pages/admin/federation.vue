@@ -29,6 +29,38 @@
     </div>
 
     <template v-if="cfg?.enabled">
+      <!-- Relaying.
+
+           Its own switch rather than a scope, because it is a decision about
+           what this instance CARRIES rather than about what it shares with any
+           one partner: storing other people's catalogues and putting our name
+           on the introductions. Off by default for that reason. -->
+      <div class="fed-master fed-relay" :class="{ 'is-on': cfg?.relayEnabled }">
+        <span class="fed-master-ring"><Icon name="ph:share-network-bold" /></span>
+        <div class="fed-master-txt">
+          <div class="fed-master-h">
+            {{ $t('admin.federation.relay.title') }}
+            <span class="fed-dot" :class="cfg?.relayEnabled ? 'on' : 'idle'" />
+          </div>
+          <p>
+            {{
+              cfg?.relayEnabled
+                ? $t('admin.federation.relay.on')
+                : $t('admin.federation.relay.off')
+            }}
+          </p>
+        </div>
+        <label class="switch">
+          <input
+            type="checkbox"
+            :checked="cfg?.relayEnabled"
+            :disabled="busy.master"
+            @change="toggleRelay"
+          />
+          <span class="track" /><span class="thumb" />
+        </label>
+      </div>
+
       <!-- Identity + default scopes -->
       <div class="fed-grid">
         <section class="card">
@@ -234,6 +266,7 @@ interface Scopes {
 }
 interface Cfg {
   enabled: boolean;
+  relayEnabled: boolean;
   instanceName: string | null;
   publicUrl: string | null;
   instanceId: string | null;
@@ -348,6 +381,19 @@ async function toggleMaster(e: Event) {
   const enabled = (e.target as HTMLInputElement).checked;
   busy.master = true;
   await run(() => $fetch('/api/admin/federation', { method: 'PUT', body: { enabled } }), t('admin.federation.toast.saved'));
+}
+
+/** Carry and hand on what partners publish. A cost, so it is a choice. */
+async function toggleRelay(e: Event) {
+  const relayEnabled = (e.target as HTMLInputElement).checked;
+  await run(
+    () =>
+      $fetch('/api/admin/federation', {
+        method: 'PUT',
+        body: { relayEnabled },
+      }),
+    t('admin.federation.toast.saved'),
+  );
   busy.master = false;
 }
 async function saveIdentity() {
@@ -443,6 +489,12 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 </script>
 
 <style scoped>
+/* Quieter than the master switch: relaying is a refinement of federating, not
+   a second thing of the same weight. */
+.fed-relay {
+  margin-top: 0.75rem;
+}
+
 .fed { display: flex; flex-direction: column; gap: 1.25rem; }
 .fed-intro { font-size: 13px; color: rgb(var(--fg-muted)); line-height: 1.55; max-width: 70ch; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .fed-owner { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 11px; font-weight: 600; color: var(--gold, #d4a734); border: 1px solid color-mix(in srgb, var(--gold, #d4a734) 30%, transparent); background: color-mix(in srgb, var(--gold, #d4a734) 10%, transparent); padding: 0.15rem 0.5rem; border-radius: 99px; }

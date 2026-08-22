@@ -1607,6 +1607,11 @@
         "tileMirrored": "Torrents miroir",
         "noPeers": "Aucun partenaire actif.",
         "neverSynced": "Jamais synchronisé."
+      },
+      "relay": {
+        "title": "Relais",
+        "on": "Porte les enregistrements des partenaires et les transmet. Leurs partenaires atteignent votre catalogue par un seul lien au lieu de plusieurs.",
+        "off": "Ne porte que le vôtre. Les partenaires échangent toujours directement avec vous."
       }
     },
     "notifications": {

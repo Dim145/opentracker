@@ -1607,6 +1607,11 @@
         "tileMirrored": "Mirrored torrents",
         "noPeers": "No active partner.",
         "neverSynced": "Never synced."
+      },
+      "relay": {
+        "title": "Relay",
+        "on": "Carrying partners' records and handing them on. Their partners can reach your catalogue through one link instead of many.",
+        "off": "Not carrying anything but your own. Partners still exchange with you directly."
       }
     },
     "notifications": {

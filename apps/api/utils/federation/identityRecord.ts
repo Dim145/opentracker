@@ -167,6 +167,7 @@ export async function mintIdentityRecords(
           eq(schema.catalogRecords.kind, 'identity'),
           eq(schema.catalogRecords.torrentId, userId),
           isNull(schema.catalogRecords.supersededAt),
+          eq(schema.catalogRecords.origin, 'local'),
         ),
       )
       .limit(1);
@@ -215,6 +216,9 @@ export async function mintIdentityRecords(
       and(
         eq(schema.catalogRecords.kind, 'identity'),
         isNull(schema.catalogRecords.supersededAt),
+        // Ours only: retiring a partner's assertion about its own members is
+        // not ours to do.
+        eq(schema.catalogRecords.origin, 'local'),
       ),
     );
   let withdrawn = 0;

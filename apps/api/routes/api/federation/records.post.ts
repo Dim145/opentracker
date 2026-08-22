@@ -28,6 +28,12 @@
 import { inArray } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { verifyInboundS2S } from '~~/utils/federation/inbound';
+import { countersign, relayEnabled } from '~~/utils/federation/relay';
+import {
+  getFederationConfig,
+  getPrivateKeyPem,
+} from '~~/utils/federation/config';
+import { didKeyFromPublicKey } from '~~/utils/federation/did';
 
 /**
  * How many records one request may name. A record is a few hundred bytes, so
@@ -63,8 +69,14 @@ export default defineEventHandler(async (event) => {
 
   if (!ids.length) return { ok: true, records: [], count: 0 };
 
+  const relaying = await relayEnabled();
   const rows = await db
-    .select({ body: schema.catalogRecords.body })
+    .select({
+      id: schema.catalogRecords.id,
+      body: schema.catalogRecords.body,
+      origin: schema.catalogRecords.origin,
+      hops: schema.catalogRecords.hops,
+    })
     .from(schema.catalogRecords)
     .where(inArray(schema.catalogRecords.id, ids));
 
@@ -75,6 +87,25 @@ export default defineEventHandler(async (event) => {
   // by id has a reason to want that generation — a lineage it is walking back,
   // or a range it reconciled before the edit landed. Withholding it would
   // answer "no such record", which is false.
-  const records = rows.map((r) => r.body);
-  return { ok: true, records, count: records.length };
+  // Ours go out bare; somebody else's go out countersigned. The
+  // countersignature is what says "we are handing you this one", and it is the
+  // only thing that lets a partner take in a record from an instance it does
+  // not federate with — the record itself is unchanged, because its address
+  // covers its content and a field added in transit would rename it.
+  const config = await getFederationConfig();
+  const privateKeyPem = config ? getPrivateKeyPem(config) : null;
+  const ourDid = config?.publicKey ? didKeyFromPublicKey(config.publicKey) : null;
+
+  const envelopes = rows
+    .filter((r) => relaying || r.origin === 'local')
+    .filter((r) => r.origin === 'local' || r.hops <= 1)
+    .map((r) => ({
+      record: r.body,
+      relay:
+        r.origin === 'local' || !privateKeyPem || !ourDid
+          ? null
+          : countersign(r.id, ourDid, privateKeyPem),
+    }));
+
+  return { ok: true, records: envelopes, count: envelopes.length };
 });

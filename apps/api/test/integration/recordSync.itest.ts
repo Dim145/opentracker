@@ -95,16 +95,16 @@ function alsoServe(...records: SignedLike[]): void {
 const { syncPeerRecords } = await import('../../utils/federation/recordSync');
 const { ensureFederationIdentity } = await import('../../utils/federation/config');
 
-let issuer: { privateKeyPem: string; did: string };
+let issuer: ReturnType<typeof keypair>;
 let counter = 0;
 
 function keypair() {
   const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+  const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
   return {
+    publicKeyPem,
     privateKeyPem: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
-    did: didKeyFromPublicKey(
-      publicKey.export({ type: 'spki', format: 'pem' }).toString(),
-    ),
+    did: didKeyFromPublicKey(publicKeyPem),
   };
 }
 
@@ -157,12 +157,21 @@ function tombstone(replaces: string, infoHash: string) {
   );
 }
 
+/**
+ * A partner whose key is the one signing these records.
+ *
+ * Records are only taken in from an instance we federate with, or on a
+ * partner's countersignature — so a peer row without the issuer's public key
+ * is a peer whose records are all refused, which is correct and useless as a
+ * fixture.
+ */
 async function makePeer(displayName = 'Partner'): Promise<FederationPeer> {
   const id = randomUUID();
   const [row] = await db
     .insert(schema.federationPeers)
     .values({
       id,
+      publicKey: issuer.publicKeyPem,
       baseUrl: `https://p-${id.slice(0, 8)}.example`,
       displayName,
       instanceId: `tk_${id.slice(0, 10)}`,

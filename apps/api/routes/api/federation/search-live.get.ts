@@ -39,7 +39,11 @@ import {
   isFederationLive,
 } from '~~/utils/federation/config';
 import { signedGet } from '~~/utils/federation/signing';
-import { announceFresh, ingestRecord } from '~~/utils/federation/recordSync';
+import {
+  announceFresh,
+  ingestRecord,
+  unwrap,
+} from '~~/utils/federation/recordSync';
 import { browseMirror } from '~~/utils/federation/browseMirror';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireAuthSession } from '~~/utils/adminAuth';
@@ -105,9 +109,10 @@ export default defineEventHandler(async (event) => {
     if (res.status !== 200 || !Array.isArray(res.data?.records)) continue;
     reachedIds.push(peer.id);
     const fresh: NonNullable<Awaited<ReturnType<typeof ingestRecord>>['fresh']>[] = [];
-    for (const raw of res.data.records as unknown[]) {
+    for (const item of res.data.records as unknown[]) {
       try {
-        const r = await ingestRecord(peer, raw);
+        const { record, relay } = unwrap(item);
+        const r = await ingestRecord(peer, record, { relayProof: relay });
         rejected += r.rejected;
         if (r.fresh) fresh.push(r.fresh);
       } catch {

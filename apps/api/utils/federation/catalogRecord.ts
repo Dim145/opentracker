@@ -298,6 +298,7 @@ export async function mintRecords(
       and(
         inArray(schema.catalogRecords.torrentId, torrentIds),
         isNull(schema.catalogRecords.supersededAt),
+        eq(schema.catalogRecords.origin, 'local'),
       ),
     );
   const currentBy = new Map(current.map((c) => [c.torrentId!, c]));
@@ -371,6 +372,7 @@ export async function mintTombstone(
       and(
         eq(schema.catalogRecords.torrentId, torrentId),
         isNull(schema.catalogRecords.supersededAt),
+        eq(schema.catalogRecords.origin, 'local'),
       ),
     )
     .limit(1);
