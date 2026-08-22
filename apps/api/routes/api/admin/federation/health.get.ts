@@ -21,6 +21,15 @@ import { recordStore, sourcedByPeer } from '~~/utils/federation/storeCounts';
 
 /** A peer is "behind" past three intervals with no run. */
 const STALE_INTERVALS = 3;
+/**
+ * …but never sooner than this, however short the sync interval is set.
+ *
+ * Without a floor the "behind" threshold is just `3 × interval`, so an operator
+ * lowering the interval to sync faster would make the threshold shorter than a
+ * single real tick and paint every healthy partner amber. A tick that ran in
+ * the last quarter-hour is not behind, whatever the interval.
+ */
+const MIN_STALE_AFTER_MS = 15 * 60 * 1000;
 
 type Verdict = 'ok' | 'stale' | 'degraded' | 'error' | 'never';
 
@@ -29,7 +38,7 @@ export default defineEventHandler(async (event) => {
 
   const config = await getFederationConfig();
   const intervalMs = syncIntervalMs();
-  const staleAfterMs = intervalMs * STALE_INTERVALS;
+  const staleAfterMs = Math.max(intervalMs * STALE_INTERVALS, MIN_STALE_AFTER_MS);
   const now = Date.now();
 
   // Only active peers count: a pending or blocked peer is not supposed to

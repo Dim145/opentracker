@@ -8,6 +8,7 @@ import {
   mintRecords,
   mintTombstone,
   type MintContext,
+  pruneSupersededRecords,
 } from '../../utils/federation/catalogRecord';
 import { publishedSet } from '../../utils/federation/recordSet';
 import { MIN_BOUND, fingerprint } from '../../utils/federation/rbsr';
@@ -532,5 +533,50 @@ describe('an uploader who asked not to be named', () => {
 
     const body = (await currentRecord(id))!.body as Record<string, unknown>;
     expect(body.attributedTo).toMatch(/^did:key:z/);
+  });
+});
+
+describe('pruning superseded generations', () => {
+  it('does nothing when retention is off', async () => {
+    const id = await makeTorrent();
+    await mintRecords([id], ctx);
+    // Force a superseded generation.
+    await db
+      .update(schema.catalogRecords)
+      .set({ supersededAt: new Date('2020-01-01') })
+      .where(eq(schema.catalogRecords.torrentId, id));
+
+    expect(await pruneSupersededRecords(0)).toBe(0);
+    expect(await allRecords(id)).toHaveLength(1);
+  });
+
+  it('removes an old superseded tail no live record supersedes', async () => {
+    const id = await makeTorrent();
+    await mintRecords([id], ctx);
+    const [old] = await allRecords(id);
+    await db
+      .update(schema.catalogRecords)
+      .set({ supersededAt: new Date('2020-01-01') })
+      .where(eq(schema.catalogRecords.id, old!.id));
+
+    const removed = await pruneSupersededRecords(30);
+    expect(removed).toBe(1);
+    expect(await allRecords(id)).toHaveLength(0);
+  });
+
+  it('keeps a superseded record a live generation still points at', async () => {
+    // The lineage a consumer might walk back must survive.
+    const id = await makeTorrent();
+    await mintRecords([id], ctx);
+    const [first] = await allRecords(id);
+    // Edit → a live successor whose `supersedes` = first.id.
+    await db.update(schema.torrents).set({ name: 'Renamed.1080p' }).where(eq(schema.torrents.id, id));
+    await mintRecords([id], ctx);
+    await db
+      .update(schema.catalogRecords)
+      .set({ supersededAt: new Date('2020-01-01') })
+      .where(eq(schema.catalogRecords.id, first!.id));
+
+    expect(await pruneSupersededRecords(30)).toBe(0);
   });
 });

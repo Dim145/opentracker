@@ -1631,7 +1631,9 @@
         "storeRelayable": "seraient relayés",
         "storeSuperseded": "remplacés",
         "sourcedHint": "Enregistrements détenus pour ce pair, puis lignes du miroir local. Les assertions d'identité et les retraits n'ont pas de ligne miroir : les deux diffèrent.",
-        "tileDegraded": "Dégradé"
+        "tileDegraded": "Dégradé",
+        "resync": "Resynchroniser",
+        "resyncHint": "Réconcilier avec ce partenaire maintenant, sans attendre le prochain tic planifié."
       },
       "relay": {
         "title": "Relais",

@@ -138,6 +138,11 @@ export const SETTINGS_KEYS = {
   // they've observed real usage.
   NOTIFICATIONS_RETENTION_READ_DAYS: 'notifications_retention_read_days',
   NOTIFICATIONS_RETENTION_UNREAD_DAYS: 'notifications_retention_unread_days',
+  // Days to keep a superseded federation record generation before pruning it.
+  // 0 (default) keeps them forever — the safe default, since a consumer walking
+  // a lineage needs the chain. The prune only ever removes a superseded record
+  // nothing live still supersedes.
+  FEDERATION_RECORD_RETENTION_DAYS: 'federation_record_retention_days',
   // ── Upload requests (bounty board) ─────────────────────────
   // Hours a request can sit in `filled` state before the cron
   // auto-validates and pays the filler. 168 h (7 days) is the

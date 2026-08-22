@@ -220,14 +220,30 @@ first enable.
 
 | Variable                   | Read by | Default           | Purpose                                                              |
 | -------------------------- | ------- | ----------------- | -------------------------------------------------------------------- |
-| `FEDERATION_SYNC_INTERVAL` | api     | `900000` (15 min) | Catalogue-sync cron period (ms). No-op while federation is disabled. |
+| `FEDERATION_SYNC_INTERVAL` | api     | `900000` (15 min) | Catalogue-sync cron period (ms). No-op while federation is disabled. The health page's "behind" threshold is `3 ×` this, floored at 15 min — lowering it to sync faster will **not** paint healthy peers amber. |
+| `FEDERATION_REQUIRE_AUDIENCE` | api  | `false`           | Reject inbound S2S signatures that carry no audience binding. Turn on only once every partner runs a build that sends it. |
 | `TRACKER_FEDERATION_SWARM` | tracker | `false`           | Master switch for swarm cross-announce on the Go tracker.            |
 | `CHANNEL_ENCRYPTION_KEY`   | api     | —                 | Encrypts the instance private key at rest (falls back to `NUXT_SESSION_SECRET`). |
+
+::: warning Clocks must be in sync
+Every S2S request carries a signed timestamp and is rejected outside a ±5-minute
+window. A partner whose clock drifts past that becomes **unreachable in both
+directions**, surfaced only as `http 401` in its last error. Run NTP on every
+instance in a mesh.
+:::
+
+::: warning Relay and public catalogue are one-way doors, and relay costs disk
+Turning **relay** on retroactively pulls every partner's whole catalogue (their
+bytes, not just yours) and re-advertises it to your other partners — plan for
+the disk. Neither relay nor the **public catalogue** can un-publish what has
+already left: a partner that took a record in holds a signed copy, and a
+withdrawal is a request it may ignore.
+:::
 
 ::: tip Local two-instance testing
 `safeFetch` blocks loopback and private ranges by design, so two instances
 on the same host/LAN can't federate over `localhost`/RFC-1918 addresses.
-Use public hostnames (an explicit host allow-list is not implemented yet).
+Use public hostnames or set `SAFE_FETCH_ALLOW_HOSTS` to the peer hostnames.
 :::
 
 ## Data model

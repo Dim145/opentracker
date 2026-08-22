@@ -1631,7 +1631,9 @@
         "storeRelayable": "would be passed on",
         "storeSuperseded": "replaced",
         "sourcedHint": "Records held from this partner, then rows in the local mirror. Identity assertions and withdrawals have no mirror row, so the two differ.",
-        "tileDegraded": "Degraded"
+        "tileDegraded": "Degraded",
+        "resync": "Resync",
+        "resyncHint": "Reconcile with this partner now instead of waiting for the next scheduled tick."
       },
       "relay": {
         "title": "Relay",

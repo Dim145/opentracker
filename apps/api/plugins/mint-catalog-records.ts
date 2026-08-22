@@ -44,9 +44,11 @@ import {
   PUBLISHABLE,
   mintRecords,
   mintTombstone,
+  pruneSupersededRecords,
   type MintContext,
 } from '~~/utils/federation/catalogRecord';
 import { getSetting, setSetting } from '~~/utils/server';
+import { SETTINGS_KEYS } from '~~/utils/settings';
 import { withCronLock } from '~~/utils/cronLock';
 
 // Signing is microseconds; the cost is one transaction per new record. A
@@ -171,6 +173,15 @@ async function tick(ctx: MintContext): Promise<TickResult> {
     // A member's alias assertion failing must not stop the catalogue.
     console.warn('[CatalogRecords] identity records:', (err as Error).message);
   }
+
+  // Retention: prune superseded generations older than the configured window,
+  // if any. Off by default; the sweep only removes tails of a lineage nothing
+  // live still points at. Cheap enough to run every tick — the DELETE touches
+  // only rows past the cutoff.
+  const retentionDays = Number(
+    (await getSetting(SETTINGS_KEYS.FEDERATION_RECORD_RETENTION_DAYS)) ?? '0',
+  );
+  if (retentionDays > 0) await pruneSupersededRecords(retentionDays);
 
   return { minted, withdrawn, scanned: rows.length };
 }

@@ -425,3 +425,35 @@ export async function mintTombstone(
 
   return signed;
 }
+
+/**
+ * Prune old superseded record generations.
+ *
+ * `catalog_records` never shrank: every metadata edit mints a new generation
+ * and marks the old one superseded, and nothing ever deleted them. Over a
+ * long-lived instance that is unbounded growth of full signed JSON bodies.
+ *
+ * The rule is conservative, because a consumer walking a `replaces` lineage
+ * needs the chain: only a superseded record OLDER than the retention window AND
+ * that no LIVE record still points at (`supersedes = its id`) is removed — the
+ * tail of a lineage, never a link somebody might still be walking back. Off by
+ * default (`retentionDays <= 0`), so nothing is pruned unless an operator opts
+ * in. Returns how many rows it removed.
+ */
+export async function pruneSupersededRecords(
+  retentionDays: number,
+): Promise<number> {
+  if (!Number.isFinite(retentionDays) || retentionDays <= 0) return 0;
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+
+  const res = await db.execute(sql`
+    DELETE FROM ${schema.catalogRecords} old
+     WHERE old.superseded_at IS NOT NULL
+       AND old.superseded_at < ${cutoff.toISOString()}::timestamp
+       AND NOT EXISTS (
+         SELECT 1 FROM ${schema.catalogRecords} live
+          WHERE live.supersedes = old.id
+            AND live.superseded_at IS NULL)
+  `);
+  return (res as unknown as { count?: number }).count ?? 0;
+}

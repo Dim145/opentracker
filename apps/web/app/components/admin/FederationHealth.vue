@@ -131,6 +131,18 @@
               <Icon name="ph:database-bold" />
               {{ formatInt(peer.mirrored) }}
             </span>
+            <button
+              class="fh-recover"
+              :disabled="recovering === peer.id"
+              :title="$t('admin.federation.health.resyncHint')"
+              @click="recover(peer.id)"
+            >
+              <Icon
+                name="ph:arrows-clockwise-bold"
+                :class="{ 'animate-spin': recovering === peer.id }"
+              />
+              {{ $t('admin.federation.health.resync') }}
+            </button>
           </header>
 
           <p v-if="!peer.resources.length" class="fh-empty">
@@ -212,6 +224,23 @@ const { t, locale } = useI18n();
 const { data, pending, refresh } = await useFetch<Health>(
   '/api/admin/federation/health',
 );
+
+/** Kick a reconciliation for one peer now, instead of waiting for the tick. */
+const recovering = ref<string | null>(null);
+async function recover(peerId: string): Promise<void> {
+  recovering.value = peerId;
+  try {
+    await $fetch(`/api/admin/federation/peers/${peerId}/recover`, {
+      method: 'POST',
+      body: { mode: 'resync' },
+    });
+    await refresh();
+  } catch {
+    /* the health card surfaces the peer's error on the next refresh */
+  } finally {
+    recovering.value = null;
+  }
+}
 
 /* The clock advances on its own: without this the gauge freezes at the moment of
    chargement et une page laissée ouverte ment sur l'état réel. */
@@ -554,6 +583,20 @@ function hostOf(url: string): string {
 .fh-kind-n { color: rgb(var(--fg)); font-weight: 600; }
 
 .fh-peer-sep { color: rgb(var(--fg-subtle)); }
+.fh-recover {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid rgb(var(--border) / 0.8);
+  border-radius: 0.4rem;
+  background: rgb(var(--bg-subtle) / 0.5);
+  color: rgb(var(--fg-muted));
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.fh-recover:hover:not(:disabled) { color: rgb(var(--fg)); border-color: rgb(var(--accent) / 0.6); }
+.fh-recover:disabled { opacity: 0.5; cursor: default; }
 .fh-peer-mirror {
   margin-left: auto;
   display: inline-flex;
