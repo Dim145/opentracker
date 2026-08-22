@@ -470,7 +470,13 @@
       "showLastSeen": "Show last-seen on my public profile",
       "showLastSeenHint": "When off, members visiting your public profile see \"Hidden\" instead of a timestamp. Mods and admins always see the real value for moderation.",
       "showAdultContent": "Show adult content (XXX)",
-      "showAdultContentHint": "Hides every torrent in the XXX category tree from listings, searches, RSS and the homepage feed. The individual torrent pages render a \"content filtered\" notice in place of the actual data when this is off. Default off — flip it on only if that's what you want."
+      "showAdultContentHint": "Hides every torrent in the XXX category tree from listings, searches, RSS and the homepage feed. The individual torrent pages render a \"content filtered\" notice in place of the actual data when this is off. Default off — flip it on only if that's what you want.",
+      "anonymousUploads": "Upload anonymously",
+      "anonymousUploadsHint": "Detaches your name from your releases, including the ones already posted. Other members see \"Anonymous\" on the torrent page, the RSS feeds drop the uploader line, the catalogue we publish to federated peers omits it, and your uploads stop being listed on your profile. Mods and admins still see who uploaded what — moderation depends on it.",
+      "hideDownloadHistory": "Hide my download history",
+      "hideDownloadHistoryHint": "Stops serving your snatch list, so a session someone else got hold of cannot enumerate what you have downloaded. This hides the list, it does not erase it: hit-and-run tracking, bonus accrual and automatic roles all keep reading those rows, and staff keep seeing hit-and-run records.",
+      "restrictComments": "Restrict who can comment on my uploads",
+      "restrictCommentsHint": "Only accounts at least 30 days old may comment on your torrents — the answer to a throwaway account made to harass an uploader. You and the staff are never held to it, so a thread stays answerable and moderatable."
     },
     "security": {
       "title": "Security",
@@ -746,7 +752,9 @@
         "enable": "Enable adult content",
         "browseSafe": "Browse safe categories",
         "footer": "Document withheld at viewer request"
-      }
+      },
+      "uploaderAnonymous": "Anonymous",
+      "uploaderAnonymousTooltip": "This member chose not to have their name attached to their releases."
     }
   },
   "search": {
@@ -834,7 +842,8 @@
           "unfollowed": "You are no longer following this user.",
           "failed": "Action failed. Try again."
         }
-      }
+      },
+      "uploadsAnonymous": "This member publishes anonymously — their releases are not listed here."
     }
   },
   "following": {
@@ -3713,6 +3722,11 @@
     },
     "footer": {
       "pageSummary": "Page {current} / {total} · {count} total"
+    },
+    "hidden": {
+      "title": "Your download history is hidden",
+      "body": "You turned this off in your privacy settings, so the list is not served. The records themselves still exist — hit-and-run tracking and bonus accrual read them — this only stops them being shown.",
+      "cta": "Privacy settings"
     }
   },
   "invites": {

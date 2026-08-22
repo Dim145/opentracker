@@ -319,6 +319,18 @@
               <Icon name="ph:user-bold" class="hero-meta-user-icon" />
               @{{ torrent.uploader.username }}
             </NuxtLink>
+            <!-- A concealed uploader and a deleted one both arrive as a
+                 null `uploader`; only `uploaderAnonymous` separates them,
+                 and saying "Account deleted" about a member who is still
+                 here would be plainly wrong. -->
+            <span
+              v-else-if="torrent.uploaderAnonymous"
+              class="hero-meta-user hero-meta-user--anon"
+              :title="$t('torrents.detail.uploaderAnonymousTooltip')"
+            >
+              <Icon name="ph:user-bold" class="hero-meta-user-icon" />
+              {{ $t('torrents.detail.uploaderAnonymous') }}
+            </span>
             <span
               v-else
               class="hero-meta-user hero-meta-user--gone"
