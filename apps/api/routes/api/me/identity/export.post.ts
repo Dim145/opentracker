@@ -32,10 +32,15 @@ import {
   getPrivateKeyPem,
 } from '~~/utils/federation/config';
 import { didKeyFromPublicKey } from '~~/utils/federation/did';
-import { signIdentity, PORTABILITY_NOTE } from '~~/utils/federation/identityDoc';
+import {
+  endorseIdentity,
+  signIdentity,
+  PORTABILITY_NOTE,
+} from '~~/utils/federation/identityDoc';
 import {
   ensureUserDid,
   getUserPrivateKeyPem,
+  hasCustody,
 } from '~~/utils/federation/userIdentity';
 
 export default defineEventHandler(async (event) => {
@@ -62,19 +67,38 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  await ensureUserDid(me.id);
+  const did = await ensureUserDid(me.id);
+  const instanceDid = didKeyFromPublicKey(config.publicKey);
+  const claim = {
+    did,
+    username: me.username,
+    instanceUrl: config.publicUrl ?? null,
+    instanceDid,
+  };
+
+  // A member who holds their own key gets the half we are entitled to assert
+  // and nothing more. We cannot sign as them — that is what custody means —
+  // so their browser adds the subject proof over the same bytes.
+  if (await hasCustody(me.id)) {
+    return {
+      ok: true,
+      custody: 'member' as const,
+      identity: {
+        did,
+        /** Endorsed, unsigned by the subject. Incomplete until they sign it. */
+        document: endorseIdentity(claim, instancePrivateKeyPem),
+        note: PORTABILITY_NOTE,
+      },
+    };
+  }
+
   const keys = await getUserPrivateKeyPem(me.id);
   if (!keys) {
     throw createError({ statusCode: 500, message: 'Identity unavailable' });
   }
 
   const document = signIdentity(
-    {
-      did: keys.did,
-      username: me.username,
-      instanceUrl: config.publicUrl ?? null,
-      instanceDid: didKeyFromPublicKey(config.publicKey),
-    },
+    claim,
     {
       subjectPrivateKeyPem: keys.privateKeyPem,
       instancePrivateKeyPem,
@@ -83,6 +107,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     ok: true,
+    custody: 'instance' as const,
     /** Everything below is the file. Keeping it one object keeps it one file. */
     identity: {
       did: keys.did,

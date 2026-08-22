@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, generateKeyPairSync } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import {
+  adoptUserKey,
   ensureUserDid,
   ensureUserDids,
   getUserPrivateKeyPem,
+  hasCustody,
 } from '../../utils/federation/userIdentity';
 import { didKeyFromPublicKey } from '../../utils/federation/did';
 import { signIdentity, verifyIdentity } from '../../utils/federation/identityDoc';
@@ -22,6 +24,30 @@ import {
 // one that went in produces a document that verifies nowhere — which is the
 // kind of failure that shows up as "the other instance says my export is
 // invalid" and nothing more.
+
+function keypair() {
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+  const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+  return {
+    publicKeyPem,
+    privateKeyPem: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
+    did: didKeyFromPublicKey(publicKeyPem),
+  };
+}
+
+/** A partner to hang a link off, so the link has somewhere to be dropped from. */
+async function makePeerRow(): Promise<string> {
+  const id = randomUUID();
+  await db.insert(schema.federationPeers).values({
+    id,
+    baseUrl: `https://p-${id.slice(0, 8)}.example`,
+    instanceId: `tk_${id.slice(0, 12)}`,
+    publicKey: keypair().publicKeyPem,
+    displayName: 'Alpha',
+    status: 'active',
+  });
+  return id;
+}
 
 async function makeUser(username = 'Nova'): Promise<string> {
   const id = randomUUID();
@@ -174,5 +200,95 @@ describe('the export a member walks away with', () => {
     await db.delete(schema.users).where(eq(schema.users.id, user));
 
     expect(await db.select().from(schema.userSigningKeys)).toHaveLength(0);
+  });
+});
+
+describe('a key the instance does not hold', () => {
+  it('stops the instance being able to sign as the member', async () => {
+    // The whole of custody, in one assertion. Before: we could produce their
+    // subject proof, so every "I am Nova" a partner accepted was our word
+    // twice over. After: there is nothing here to sign with.
+    const user = await makeUser();
+    await ensureUserDid(user);
+    expect(await getUserPrivateKeyPem(user)).not.toBeNull();
+
+    const { publicKeyPem, did } = keypair();
+    await adoptUserKey(user, did, publicKeyPem);
+
+    expect(await hasCustody(user)).toBe(true);
+    expect(await getUserPrivateKeyPem(user)).toBeNull();
+    expect(await ensureUserDid(user)).toBe(did);
+  });
+
+  it('retires the old key with a succession, not a deletion', async () => {
+    // Their catalogue is attributed to the old identifier. Taking custody must
+    // not cost them the work they published before they did.
+    const user = await makeUser();
+    const old = await ensureUserDid(user);
+    const { publicKeyPem, did } = keypair();
+
+    await adoptUserKey(user, did, publicKeyPem);
+
+    const [retired] = await db
+      .select()
+      .from(schema.userSigningKeys)
+      .where(eq(schema.userSigningKeys.did, old));
+    expect(retired!.revokedAt).toBeTruthy();
+    expect(retired!.succeededBy).toBe(did);
+  });
+
+  it('drops the links proven with the key we used to hold', async () => {
+    // Those were proven with a key this server could sign with. Re-proving
+    // from a key only they hold is the point, not an inconvenience.
+    const user = await makeUser();
+    await ensureUserDid(user);
+    await db.insert(schema.federatedIdentities).values({
+      id: randomUUID(),
+      localUserId: user,
+      peerId: await makePeerRow(),
+      remoteUsername: 'Nova',
+      status: 'verified',
+      method: 'key',
+      subjectDid: 'did:key:z6MkSomewhereElse',
+      verifiedAt: new Date(),
+    });
+
+    const { publicKeyPem, did } = keypair();
+    await adoptUserKey(user, did, publicKeyPem);
+
+    expect(
+      await db
+        .select()
+        .from(schema.federatedIdentities)
+        .where(eq(schema.federatedIdentities.localUserId, user)),
+    ).toHaveLength(0);
+  });
+
+  it('lets a member re-adopt a key they had retired', async () => {
+    const user = await makeUser();
+    const { publicKeyPem, did } = keypair();
+    await adoptUserKey(user, did, publicKeyPem);
+
+    const other = keypair();
+    await adoptUserKey(user, other.did, other.publicKeyPem);
+    await adoptUserKey(user, did, publicKeyPem);
+
+    expect(await ensureUserDid(user)).toBe(did);
+    expect(await hasCustody(user)).toBe(true);
+  });
+
+  it('is a no-op when the member already holds that exact key', async () => {
+    const user = await makeUser();
+    const { publicKeyPem, did } = keypair();
+    await adoptUserKey(user, did, publicKeyPem);
+
+    const again = await adoptUserKey(user, did, publicKeyPem);
+    expect(again.previous).toBeNull();
+    expect(
+      await db
+        .select()
+        .from(schema.userSigningKeys)
+        .where(eq(schema.userSigningKeys.userId, user)),
+    ).toHaveLength(1);
   });
 });

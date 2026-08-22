@@ -542,7 +542,13 @@
       "rotate": "Retirer cette clé",
       "rotateWarning": "Tous les comptes que vous avez prouvés ailleurs seront déliés.",
       "rotateConfirm": "La retirer",
-      "rotated": "Retirée. Votre nouvel identifiant :"
+      "rotated": "Retirée. Votre nouvel identifiant :",
+      "custodyOff": "Cette instance détient votre clé pour vous. Vous pouvez la reprendre : elle est générée dans votre navigateur et n'en sort jamais.",
+      "custodyOn": "Vous détenez votre clé. Cette instance ne peut pas signer à votre place.",
+      "takeCustody": "Détenir ma clé",
+      "custodyWarning": "Seul ce navigateur l'aura. La perdre, c'est perdre l'identifiant — téléchargez le fichier juste après.",
+      "custodyConfirm": "La générer ici",
+      "keyMissing": "Votre clé n'est pas dans ce navigateur. Importez-la, ou reprenez-en une."
     }
   },
   "torrents": {

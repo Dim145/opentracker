@@ -142,7 +142,10 @@ export async function getUserPrivateKeyPem(
       ),
     )
     .limit(1);
-  if (!row) return null;
+  // No stored private key means the member holds it. Saying so with `null` is
+  // the honest answer: there is nothing here to hand over, and a caller that
+  // needed one has to take the custody path instead.
+  if (!row || row.privateKeyEnc === null) return null;
   const dec = decryptJson<{ pem: string }>(row.privateKeyEnc);
   if (!dec?.pem) return null;
   return { did: row.did, publicKeyPem: row.publicKey, privateKeyPem: dec.pem };
@@ -213,4 +216,65 @@ export async function currentDid(userId: string): Promise<string | null> {
     )
     .limit(1);
   return row?.did ?? null;
+}
+
+/**
+ * Take a key the member generated, and stop holding one for them.
+ *
+ * The same shape as a rotation, and for the same reasons: the old identifier
+ * is retired with a succession so their catalogue stays connected, and every
+ * link they proved elsewhere comes down, because those were proven with a key
+ * this server could sign with. Re-proving from a key only they hold is the
+ * point of the exercise, not an inconvenience on the way to it.
+ *
+ * The row is stored with a NULL private key. That null IS the custody: a key
+ * this server never generated and cannot sign with is one it cannot use to
+ * speak as the member.
+ */
+export async function adoptUserKey(
+  userId: string,
+  did: string,
+  publicKeyPem: string,
+): Promise<{ previous: string | null; did: string }> {
+  const previous = await currentDid(userId);
+  if (previous === did) return { previous: null, did };
+
+  await db.transaction(async (tx) => {
+    if (previous) {
+      await tx
+        .update(schema.userSigningKeys)
+        .set({ revokedAt: new Date(), succeededBy: did })
+        .where(eq(schema.userSigningKeys.did, previous));
+    }
+    await tx
+      .insert(schema.userSigningKeys)
+      .values({ did, userId, publicKey: publicKeyPem, privateKeyEnc: null })
+      .onConflictDoUpdate({
+        target: schema.userSigningKeys.did,
+        // Re-adopting a key they already had here: clear the retirement rather
+        // than fail, so a member who rotated back is not stuck.
+        set: { userId, publicKey: publicKeyPem, privateKeyEnc: null, revokedAt: null, succeededBy: null },
+      });
+  });
+
+  await db
+    .delete(schema.federatedIdentities)
+    .where(eq(schema.federatedIdentities.localUserId, userId));
+
+  return { previous, did };
+}
+
+/** True when this instance no longer holds the member's private key. */
+export async function hasCustody(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ enc: schema.userSigningKeys.privateKeyEnc })
+    .from(schema.userSigningKeys)
+    .where(
+      and(
+        eq(schema.userSigningKeys.userId, userId),
+        isNull(schema.userSigningKeys.revokedAt),
+      ),
+    )
+    .limit(1);
+  return !!row && row.enc === null;
 }

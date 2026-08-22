@@ -111,6 +111,37 @@
       </template>
     </div>
 
+    <!-- Custody. Offered, never imposed: a key only the member holds is a key
+         only the member can lose, and that is not a trade to make on somebody
+         else's behalf. -->
+    <div v-if="canHoldKey" class="pid-rotate">
+      <p class="pid-rotate-text">
+        {{ held ? $t('settings.identityExport.custodyOn') : $t('settings.identityExport.custodyOff') }}
+      </p>
+      <button
+        v-if="!held && !custodyArmed"
+        type="button"
+        class="btn-ghost"
+        :disabled="busy"
+        @click="custodyArmed = true"
+      >
+        <Icon name="ph:key-bold" />
+        {{ $t('settings.identityExport.takeCustody') }}
+      </button>
+      <template v-else-if="!held">
+        <span class="pid-confirm">{{ $t('settings.identityExport.custodyWarning') }}</span>
+        <button type="button" class="btn-ghost" :disabled="busy" @click="custodyArmed = false">
+          {{ $t('common.cancel') }}
+        </button>
+        <button type="button" class="btn-ghost btn-ghost--danger" :disabled="busy" @click="takeCustody">
+          <Icon v-if="busy" name="ph:circle-notch" class="animate-spin" />
+          <Icon v-else name="ph:key-bold" />
+          {{ $t('settings.identityExport.custodyConfirm') }}
+        </button>
+      </template>
+      <code v-else class="pid-held">{{ held.did }}</code>
+    </div>
+
     <p v-if="error" class="pid-error">{{ error }}</p>
     <p v-else-if="did" class="pid-done">
       <Icon name="ph:check-circle-bold" />
@@ -121,17 +152,67 @@
 </template>
 
 <script setup lang="ts">
+import * as identityKey from '~/utils/identityKey';
+
 const { t } = useI18n();
 
 const armed = ref(false);
 const rotateArmed = ref(false);
+const custodyArmed = ref(false);
 const rotated = ref(false);
+
+/**
+ * A key this browser holds, and whether it could hold one at all.
+ *
+ * Checked rather than assumed: Ed25519 in WebCrypto is recent enough that some
+ * browsers in use will not have it, and offering an option that throws on
+ * click is worse than not offering it.
+ */
+const held = ref<identityKey.HeldKey | null>(null);
+const canHoldKey = ref(false);
+onMounted(async () => {
+  held.value = identityKey.load();
+  canHoldKey.value = held.value !== null || (await identityKey.supported());
+});
+
+/**
+ * Generate a key here and have the instance endorse it.
+ *
+ * From this point the server cannot sign as this member. It can still withhold
+ * its endorsement, and it can still mint a different key and endorse THAT as
+ * them — custody stops a forged proof for the key they actually use, not an
+ * invented rival. The copy says as much.
+ */
+async function takeCustody(): Promise<void> {
+  busy.value = true;
+  error.value = null;
+  try {
+    const fresh = await identityKey.generate();
+    await $fetch('/api/me/identity/adopt', {
+      method: 'POST',
+      body: { publicKeyPem: fresh.publicKeyPem, possession: fresh.possession },
+    });
+    // Stored only after the server accepted it: a key it does not know about
+    // is a key that proves nothing, and keeping one would be a quiet lie.
+    identityKey.store(fresh);
+    held.value = fresh;
+    did.value = fresh.did;
+    custodyArmed.value = false;
+  } catch (e) {
+    error.value =
+      (e as { data?: { message?: string } })?.data?.message ??
+      t('settings.identityExport.failed');
+  } finally {
+    busy.value = false;
+  }
+}
 const busy = ref(false);
 const error = ref<string | null>(null);
 const did = ref<string | null>(null);
 
 interface ExportResponse {
-  identity: { did: string } & Record<string, unknown>;
+  custody: 'member' | 'instance';
+  identity: { did: string; document: unknown } & Record<string, unknown>;
 }
 
 /**
@@ -167,6 +248,20 @@ async function download(): Promise<void> {
     const res = await $fetch<ExportResponse>('/api/me/identity/export', {
       method: 'POST',
     });
+    // Under custody the server hands over its endorsement and nothing else —
+    // it has no key to sign the member's half with. The browser completes the
+    // document over the same bytes.
+    if (res.custody === 'member') {
+      const key = identityKey.load();
+      if (!key || key.did !== res.identity.did) {
+        error.value = t('settings.identityExport.keyMissing');
+        return;
+      }
+      res.identity.document = await identityKey.signDocument(
+        res.identity.document as Record<string, unknown>,
+        key,
+      );
+    }
     // Built and saved in the browser: the file holds a private key, and the
     // fewer places it is written down the better. No server-side artefact, no
     // URL anybody can be sent, nothing in a proxy's cache.
@@ -291,6 +386,12 @@ async function download(): Promise<void> {
   flex: 1 1 14rem;
   font-size: 0.75rem;
   color: rgb(var(--fg-muted));
+}
+.pid-held {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.625rem;
+  color: rgb(var(--success));
+  word-break: break-all;
 }
 .pid-error {
   font-size: 0.75rem;

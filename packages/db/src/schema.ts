@@ -2567,8 +2567,16 @@ export const userSigningKeys = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     publicKey: text('public_key').notNull(),
-    /** Encrypted at rest with the instance credential key. */
-    privateKeyEnc: text('private_key_enc').notNull(),
+    /**
+     * Encrypted at rest with the instance credential key — or NULL, when the
+     * member holds the key themselves.
+     *
+     * That null is the whole of custody. A key this server never generated and
+     * cannot sign with is one the server cannot use to speak as the member,
+     * and the difference between "we would not" and "we could not" is the only
+     * one that survives the server being compromised.
+     */
+    privateKeyEnc: text('private_key_enc'),
     /**
      * Set when the member rotated away from it.
      *

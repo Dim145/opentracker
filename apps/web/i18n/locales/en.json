@@ -542,7 +542,13 @@
       "rotate": "Retire this key",
       "rotateWarning": "Every account you have proven elsewhere will be unlinked.",
       "rotateConfirm": "Retire it",
-      "rotated": "Retired. Your new identifier:"
+      "rotated": "Retired. Your new identifier:",
+      "custodyOff": "This instance holds your key for you. You can take it over: it is generated in your browser and never leaves it.",
+      "custodyOn": "You hold your own key. This instance cannot sign as you.",
+      "takeCustody": "Hold my own key",
+      "custodyWarning": "Only this browser will have it. Lose it and you lose the identifier — download the file straight after.",
+      "custodyConfirm": "Generate it here",
+      "keyMissing": "Your key is not in this browser. Import it, or take a new one."
     }
   },
   "torrents": {

@@ -98,6 +98,39 @@ function base(doc: IdentityDocument): Record<string, unknown> {
 }
 
 /**
+ * The document, and this instance's endorsement of it — nothing else.
+ *
+ * What the export returns to a member who holds their own key. We can say
+ * "that identifier is our member Nova"; we cannot say "and here is Nova
+ * signing", because we cannot sign as her any more. That is the entire point
+ * of custody, and this is where it becomes visible in the code: the half we
+ * are entitled to assert is the half we produce.
+ *
+ * The member's browser adds the subject proof over the same bytes.
+ */
+export function endorseIdentity(
+  claim: IdentityClaim,
+  instancePrivateKeyPem: string,
+): IdentityDocument {
+  const doc: IdentityDocument = {
+    '@context': IDENTITY_CONTEXT,
+    type: 'Person',
+    id: claim.did,
+    preferredUsername: claim.username,
+    published: (claim.issuedAt ?? new Date()).toISOString(),
+    'trackarr:instance': claim.instanceUrl,
+    'trackarr:instanceDid': claim.instanceDid,
+    'trackarr:note': PORTABILITY_NOTE,
+  };
+  doc['trackarr:endorsement'] = makeProof(base(doc), {
+    privateKeyPem: instancePrivateKeyPem,
+    did: claim.instanceDid,
+    created: claim.issuedAt,
+  });
+  return doc;
+}
+
+/**
  * Build and sign the claim.
  *
  * Both proofs cover the SAME bytes — the document without either of them — so

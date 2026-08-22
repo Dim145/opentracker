@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./releaseParse": "./src/releaseParse.ts"
+    "./releaseParse": "./src/releaseParse.ts",
+    "./didProof": "./src/didProof.ts"
   },
   "dependencies": {
     "zod": "^4.4.3"

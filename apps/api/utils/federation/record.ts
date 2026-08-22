@@ -46,6 +46,10 @@
 import { createHash, sign as edSign, verify as edVerify } from 'node:crypto';
 import { canonicalBytes } from './jcs';
 import {
+  composeSigningInput,
+  proofConfigFor,
+} from '@trackarr/shared/didProof';
+import {
   didFromVerificationMethod,
   publicKeyFromDidKey,
   verificationMethodFor,
@@ -141,15 +145,24 @@ export function recordId(record: UnsignedRecord | SignedRecord): string {
   return `sha256:${sha256(canonicalBytes(document)).toString('hex')}`;
 }
 
-/** The bytes a proof signs: its own configuration, then the document. */
+/**
+ * The bytes a proof signs: its own configuration, then the document.
+ *
+ * The composition is `@trackarr/shared`'s, so a member signing in a browser
+ * assembles exactly the same input from exactly the same canonical bytes. Only
+ * the hash is ours — Node's here, WebCrypto's there — which is the one part
+ * that has no business being shared.
+ */
 function signingInput(
   document: Record<string, unknown>,
   proofConfig: Record<string, unknown>,
 ): Buffer {
-  return Buffer.concat([
-    sha256(canonicalBytes(proofConfig)),
-    sha256(canonicalBytes(document)),
-  ]);
+  return Buffer.from(
+    composeSigningInput(
+      sha256(canonicalBytes(proofConfig)),
+      sha256(canonicalBytes(document)),
+    ),
+  );
 }
 
 /**
@@ -166,16 +179,10 @@ export function makeProof(
   document: Record<string, unknown>,
   opts: SignOptions,
 ): DataIntegrityProof {
-  const proofConfig = {
-    type: PROOF_TYPE,
-    cryptosuite: CRYPTOSUITE,
-    created: (opts.created ?? new Date()).toISOString(),
-    verificationMethod: verificationMethodFor(opts.did),
-    proofPurpose: 'assertionMethod' as const,
-  };
+  const proofConfig = proofConfigFor(opts.did, opts.created ?? new Date());
   const signature = edSign(
     null,
-    signingInput(document, proofConfig),
+    signingInput(document, proofConfig as unknown as Record<string, unknown>),
     opts.privateKeyPem,
   );
   return { ...proofConfig, proofValue: `u${signature.toString('base64url')}` };
