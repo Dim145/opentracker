@@ -2496,3 +2496,79 @@ export const federatedIdentities = pgTable(
 );
 
 export type FederatedIdentity = typeof federatedIdentities.$inferSelect;
+
+// ============================================================================
+// Presentation templates (the BBCode listing produced by /torrents/fiche)
+// ============================================================================
+//
+// The fiche wizard renders its listing from a template. The built-in
+// default is a CODE constant in the web app, deliberately not a row here:
+// seeding it would make the one template everybody depends on deletable,
+// and every instance would silently fork away from later improvements to
+// it. This table therefore only ever holds templates a human wrote.
+//
+// Two ownership flavours share the table, discriminated by `visibility`:
+//   private   — the owner alone can see it (the common case)
+//   published — staff-published; readable by everyone, copyable by
+//               anyone, still owned and edited by the staffer
+// There is no moderation queue because only staff may set `published`,
+// so a published row is vetted by construction.
+
+export const presentationTemplates = pgTable(
+  'presentation_templates',
+  {
+    id: text('id').primaryKey(), // UUID
+    // The template dies with its author. Even a published one: consumers
+    // copy it into a template of their own rather than referencing it, so
+    // cascading costs nobody their work.
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    // universal | video — what the template's variables assume about the
+    // work being described. Text + this comment rather than a pgEnum (the
+    // file has none) so adding music/ebook/game later is a zod edit, not
+    // a migration.
+    category: text('category').default('universal').notNull(),
+    /** Raw BBCode template source, stored verbatim. A template is
+     *  whitespace-sensitive — leading spaces, blank lines and a missing
+     *  final newline all change the rendered listing — so nothing here is
+     *  trimmed or normalised. The 15 000-character cap lives in zod: the
+     *  schema has no varchar and no CHECK constraint anywhere. */
+    content: text('content').notNull(),
+    // private | published
+    visibility: text('visibility').default('private').notNull(),
+    // The owner's own pick, pre-selected by the wizard. Not a site-wide
+    // default — that one is the code constant and cannot be overridden.
+    isDefault: boolean('is_default').default(false).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // "my templates, newest first" — the only listing an owner ever sees.
+    index('presentation_templates_owner_idx').on(
+      table.ownerId,
+      table.createdAt,
+    ),
+    // Partial, because the shared catalogue is a handful of rows inside a
+    // table that is otherwise all private drafts: a plain index on
+    // `visibility` would be mostly dead weight and would still have to
+    // filter. Category leads the key since the picker always scopes by it.
+    index('presentation_templates_published_idx')
+      .on(table.category, table.createdAt)
+      .where(sql`${table.visibility} = 'published'`),
+    // One default per owner, enforced structurally. The endpoint that
+    // moves the flag clears the previous holder in the same transaction;
+    // this index makes a codepath that forgets impossible rather than
+    // merely unlikely (same reasoning as
+    // upload_request_fill_attempts_active_unique).
+    uniqueIndex('presentation_templates_default_unique')
+      .on(table.ownerId)
+      .where(sql`${table.isDefault}`),
+  ],
+);
+
+export type PresentationTemplate = typeof presentationTemplates.$inferSelect;
+export type NewPresentationTemplate =
+  typeof presentationTemplates.$inferInsert;
