@@ -1,7 +1,23 @@
 // Distroless-friendly entrypoint (no shell available).
 // 1. Push the database schema via drizzle-kit (replaces the previous
 //    `pnpm --filter @trackarr/db exec drizzle-kit push --force`).
-// 2. Boot the Nitro server in-process.
+// 2. Abort the boot if that push did not actually apply.
+// 3. Boot the Nitro server in-process.
+//
+// Step 2 is not paranoia. drizzle-kit can print a fatal error, apply nothing,
+// and exit 0 — so this used to log "Schema up to date" and start the API on a
+// schema that had not been migrated, turning a boot-time failure into runtime
+// errors with a boot log that claimed success. The outcome is now read from the
+// output too; see scripts/migrationOutcome.mjs for the signatures and why no
+// env var can auto-answer a rename prompt. Two switches:
+//
+//   SKIP_DB_MIGRATIONS=true          don't push at all (schema managed
+//                                    elsewhere, or applied by hand)
+//   IGNORE_DB_MIGRATION_FAILURE=true push, and boot even if it failed
+//
+// stdin is /dev/null rather than inherited, so the prompt fails the same way
+// whether or not someone passed `docker run -it`: a container entrypoint that
+// blocks on a question nobody is watching is worse than one that exits.
 //
 // Why MIGRATIONS_DATABASE_URL is separate from DATABASE_URL:
 //   In the prod compose the runtime DATABASE_URL points to PgBouncer in
@@ -27,8 +43,17 @@
 // from Docker/Kubernetes reach Nitro directly.
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import {
+  classifyPushOutcome,
+  formatPushFailure,
+} from './migrationOutcome.mjs';
 
 const SKIP = process.env.SKIP_DB_MIGRATIONS === 'true';
+// Boot anyway when the push failed. Off by default: a container that starts on
+// a schema it failed to migrate serves runtime errors while its boot log claims
+// success, which is the exact trap this replaced. Kept as an opt-out for stacks
+// that manage the schema elsewhere and only want the API up.
+const IGNORE_FAILURE = process.env.IGNORE_DB_MIGRATION_FAILURE === 'true';
 // pnpm hoists most deps to db-tools/node_modules/.pnpm/<pkg>@<ver>/node_modules,
 // then symlinks them under the consuming workspace. drizzle-kit's binary is
 // reachable via the symlinked package dir.
@@ -70,7 +95,11 @@ if (!SKIP) {
 
   console.log('[Boot] Pushing database schema...');
   const t0 = Date.now();
-  await new Promise((resolve, reject) => {
+  // Output is captured as well as forwarded: drizzle-kit can fail and still
+  // exit 0 (see scripts/migrationOutcome.mjs), so the status code alone cannot
+  // be trusted. Forwarding keeps the operator's diagnostics in the container
+  // log; capturing lets us read them back.
+  const { code, output } = await new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
       [
@@ -82,7 +111,7 @@ if (!SKIP) {
         `--url=${migrationUrl}`,
       ],
       {
-        stdio: 'inherit',
+        stdio: ['ignore', 'pipe', 'pipe'],
         cwd: '/app/db-tools',
         env: {
           ...process.env,
@@ -96,14 +125,36 @@ if (!SKIP) {
         },
       }
     );
+    let buf = '';
+    child.stdout.on('data', (d) => {
+      buf += d;
+      process.stdout.write(d);
+    });
+    child.stderr.on('data', (d) => {
+      buf += d;
+      process.stderr.write(d);
+    });
     child.on('error', reject);
-    child.on('exit', (code) =>
-      code === 0
-        ? resolve()
-        : reject(new Error(`drizzle-kit push exited with ${code}`))
-    );
+    child.on('exit', (c) => resolve({ code: c, output: buf }));
   });
-  console.log(`[Boot] Schema up to date (${Date.now() - t0}ms)`);
+
+  const outcome = classifyPushOutcome({ code, output });
+  if (!outcome.ok) {
+    console.error(formatPushFailure(outcome));
+    if (!IGNORE_FAILURE) {
+      console.error(
+        '[Boot] Refusing to start on a schema that was not migrated. Set ' +
+          'IGNORE_DB_MIGRATION_FAILURE=true to boot anyway.'
+      );
+      process.exit(1);
+    }
+    console.warn(
+      '[Boot] IGNORE_DB_MIGRATION_FAILURE=true — starting anyway. Queries ' +
+        'against missing columns will fail at runtime.'
+    );
+  } else {
+    console.log(`[Boot] Schema up to date (${Date.now() - t0}ms)`);
+  }
 } else {
   console.log('[Boot] Skipping schema push (SKIP_DB_MIGRATIONS=true)');
 }

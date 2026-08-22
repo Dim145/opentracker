@@ -7,7 +7,8 @@
 #     the server itself)
 #   - a minimal /app/db-tools tree containing just drizzle-kit and what it
 #     needs to apply schema changes at boot via `drizzle-kit push --force`
-#   - a Node-based entrypoint (.mjs) that runs the schema push then loads
+#   - a Node-based entrypoint (.mjs) that runs the schema push, aborts the
+#     boot if it did not apply, then loads
 #     the Nitro server in-process (no shell, signals reach Nitro directly)
 #
 # The previous runtime image carried the full monorepo node_modules + pnpm +
@@ -81,6 +82,7 @@ WORKDIR /app
 COPY --from=builder --chown=nonroot:nonroot /app/apps/api/.output ./.output
 COPY --from=db-tools --chown=nonroot:nonroot /db-tools ./db-tools
 COPY --chown=nonroot:nonroot apps/api/scripts/entrypoint.mjs ./entrypoint.mjs
+COPY --chown=nonroot:nonroot apps/api/scripts/migrationOutcome.mjs ./migrationOutcome.mjs
 COPY --chown=nonroot:nonroot apps/api/scripts/healthcheck.mjs ./healthcheck.mjs
 
 USER nonroot
