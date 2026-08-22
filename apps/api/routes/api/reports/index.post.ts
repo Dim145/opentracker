@@ -56,10 +56,11 @@ export default defineEventHandler(async (event) => {
       targetExists = !!comment;
       break;
     case 'remote':
-      // A mirrored release the member saw on /federated. Identified by the
-      // record id it carries — so a moderator can mask exactly that record.
+      // A mirrored release the member saw on /federated, identified by its
+      // infohash — durable across re-syncs and across peers, and exactly the
+      // key a moderator masks by. (The mirror row's own UUID is ephemeral.)
       const remote = await db.query.remoteTorrents.findFirst({
-        where: (r, { eq }) => eq(r.recordId, data.targetId),
+        where: (r, { eq }) => eq(r.infoHash, data.targetId),
       });
       targetExists = !!remote;
       break;

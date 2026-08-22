@@ -1316,7 +1316,8 @@
         "torrent": "Torrent",
         "user": "User",
         "post": "Post",
-        "comment": "Comment"
+        "comment": "Comment",
+        "remote": "Federated release"
       },
       "reasons": {
         "spam": "Spam or advertising",
@@ -4178,7 +4179,8 @@
       "comments": "Comments",
       "noComments": "No comments on the source instance yet.",
       "commentsError": "Couldn't load comments from the source instance.",
-      "commentOnSource": "Comment on {peer}"
+      "commentOnSource": "Comment on {peer}",
+      "report": "Report"
     }
   },
   "forumFederated": {

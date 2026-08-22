@@ -1316,7 +1316,8 @@
         "torrent": "Torrent",
         "user": "Utilisateur",
         "post": "Message",
-        "comment": "Commentaire"
+        "comment": "Commentaire",
+        "remote": "Release fédérée"
       },
       "reasons": {
         "spam": "Spam ou publicité",
@@ -4178,7 +4179,8 @@
       "comments": "Commentaires",
       "noComments": "Aucun commentaire sur l'instance d'origine pour l'instant.",
       "commentsError": "Impossible de charger les commentaires depuis l'instance d'origine.",
-      "commentOnSource": "Commenter sur {peer}"
+      "commentOnSource": "Commenter sur {peer}",
+      "report": "Signaler"
     }
   },
   "forumFederated": {
