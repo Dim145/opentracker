@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import {
   listMixedGroups,
@@ -528,5 +528,67 @@ describe('local moderation of federated content (masks)', () => {
     const a = await maskRemote('infohash', 'cc'.repeat(20));
     const b = await maskRemote('infohash', 'cc'.repeat(20));
     expect(a).toBe(b);
+  });
+});
+
+// A partner files releases under its own category vocabulary. When the slug is
+// not one we share, the release falls out of every local category unless an
+// operator maps the foreign slug onto one of ours. `makeCategory` gives the
+// local category a random slug, so 'films' never matches by convention — the
+// mapping is the only thing that can bridge it.
+describe('federated taxonomy mapping', () => {
+  it('brings a foreign-slug release into a local category once mapped', async () => {
+    const { remoteCategoryFilter, setRemoteCategoryMapping } = await import(
+      '../../utils/federation/categoryMap'
+    );
+    const peer = await makePeer();
+    await mirror([
+      { peerId: peer, name: 'Foreign.Slug.1080p', tmdbId: 'tv/999', categorySlug: 'films' },
+    ]);
+
+    // The mapping predicate alone catches nothing before the mapping exists.
+    const before = await listMixedGroups({
+      ...page,
+      remoteWhere: remoteCategoryFilter([categoryId]),
+    });
+    expect(before.groups.some((g) => g.leadName === 'Foreign.Slug.1080p')).toBe(false);
+
+    await setRemoteCategoryMapping('films', categoryId);
+
+    const after = await listMixedGroups({
+      ...page,
+      remoteWhere: remoteCategoryFilter([categoryId]),
+    });
+    expect(after.groups.some((g) => g.leadName === 'Foreign.Slug.1080p')).toBe(true);
+  });
+
+  it('resolves mapped slugs to the local category and omits unmapped ones', async () => {
+    const { resolveRemoteSlugs, setRemoteCategoryMapping } = await import(
+      '../../utils/federation/categoryMap'
+    );
+    await setRemoteCategoryMapping('films', categoryId);
+    const resolved = await resolveRemoteSlugs(['films', 'never-seen']);
+    expect(resolved.get('films')?.categoryId).toBe(categoryId);
+    expect(resolved.get('films')?.name).toBe('Movies');
+    expect(resolved.has('never-seen')).toBe(false);
+  });
+
+  it('re-points a slug in place instead of forking it', async () => {
+    const { resolveRemoteSlugs, setRemoteCategoryMapping } = await import(
+      '../../utils/federation/categoryMap'
+    );
+    const other = await makeCategory();
+    await setRemoteCategoryMapping('films', categoryId);
+    await setRemoteCategoryMapping('films', other);
+
+    const resolved = await resolveRemoteSlugs(['films']);
+    expect(resolved.get('films')?.categoryId).toBe(other);
+
+    // The unique index on the slug held: one row, re-pointed, never duplicated.
+    const rows = await db
+      .select()
+      .from(schema.remoteCategoryMap)
+      .where(eq(schema.remoteCategoryMap.remoteSlug, 'films'));
+    expect(rows.length).toBe(1);
   });
 });

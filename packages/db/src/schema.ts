@@ -2904,6 +2904,49 @@ export const remoteMasks = pgTable(
 export type RemoteMask = typeof remoteMasks.$inferSelect;
 
 /**
+ * Taxonomy bridge: a partner's category slug → one of our local categories.
+ *
+ * A mirrored release carries the slug its origin filed it under (`category_slug`
+ * on {@link remoteTorrents}), drawn from that instance's own vocabulary. When
+ * both sides share the conventional slug the browse filter already matches by
+ * equality; when a partner names the same shelf differently ("films" vs
+ * "movies", "series-vf" vs "tv"), the release silently falls out of every local
+ * category. This table lets an operator declare the equivalence once, after
+ * which the grouped browse filter treats the foreign slug as if it were ours and
+ * the read paths can show a real category name instead of the raw foreign token.
+ *
+ * Global by design — a slug maps the same way whoever sent it. Two partners that
+ * genuinely mean different things by one slug are rare; the honest recourse there
+ * is a per-author mask, not a per-peer taxonomy fork. `remote_slug` is therefore
+ * the natural key.
+ */
+export const remoteCategoryMap = pgTable(
+  'remote_category_map',
+  {
+    id: text('id').primaryKey(),
+    /** The partner's category slug, exactly as it arrives on the mirror. */
+    remoteSlug: text('remote_slug').notNull(),
+    /** The local category it resolves to. */
+    localCategoryId: text('local_category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'cascade' }),
+    createdBy: text('created_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // One mapping per foreign slug — re-declaring it updates in place.
+    uniqueIndex('remote_category_map_slug_idx').on(table.remoteSlug),
+    // The reverse lookup ("which foreign slugs land in this category") drives
+    // both the filter expansion and the admin screen.
+    index('remote_category_map_category_idx').on(table.localCategoryId),
+  ],
+);
+
+export type RemoteCategoryMap = typeof remoteCategoryMap.$inferSelect;
+
+/**
  * Identifiers a partner has withdrawn.
  *
  * The recourse a member has when their exported identity file gets out. Their

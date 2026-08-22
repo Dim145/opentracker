@@ -1512,7 +1512,8 @@
       "branding": "Identité visuelle",
       "notifications": "Notifications",
       "settings": "Paramètres",
-      "federation": "Fédération"
+      "federation": "Fédération",
+      "federationTaxonomy": "Taxonomie fédérée"
     },
     "descriptions": {
       "dashboard": "Configuration du tracker et gestion des nœuds",
@@ -1531,7 +1532,24 @@
       "branding": "Personnaliser l'apparence et l'identité visuelle du site",
       "notifications": "Configurer les canaux de notifications externes (email, Discord, Telegram, …)",
       "settings": "Paramètres globaux d'inscription et de tracker",
-      "federation": "Relier ce tracker à des instances Trackarr de confiance"
+      "federation": "Relier ce tracker à des instances Trackarr de confiance",
+      "federationTaxonomy": "Faire correspondre les slugs de catégorie des partenaires à vos propres catégories"
+    },
+    "taxonomy": {
+      "title": "Taxonomie fédérée",
+      "sub": "Les partenaires classent leurs releases sous leurs propres slugs de catégorie. Reliez un slug étranger à l'une de vos catégories et le filtre du catalogue fera remonter les releases de ce partenaire dessous — sinon une catégorie nommée différemment reste invisible pour un membre qui filtre par catégorie.",
+      "mapped": "Correspondances déclarées",
+      "noMappings": "Aucune correspondance pour l'instant. Reliez un slug depuis la liste ci-dessous.",
+      "remove": "Retirer",
+      "addTitle": "Relier un slug à la main",
+      "slugPlaceholder": "slug partenaire (ex. films)",
+      "pickCategory": "Choisir une catégorie locale…",
+      "map": "Relier",
+      "unmapped": "Slugs non reliés sur le miroir",
+      "unmappedHint": "Slugs étrangers actuellement portés par des releases miroir qui ne correspondent à aucune catégorie locale, les plus fournis en premier.",
+      "allMapped": "Tous les slugs étrangers du miroir sont reliés.",
+      "releases": "{n} releases",
+      "adultTag": "adulte"
     },
     "federation": {
       "intro": "Reliez ce tracker à d'autres instances Trackarr de confiance. Vous décidez avec qui vous vous liez et exactement ce que vous partagez — les liens entrants requièrent votre approbation.",

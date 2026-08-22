@@ -1512,7 +1512,8 @@
       "branding": "Branding",
       "notifications": "Notifications",
       "settings": "Settings",
-      "federation": "Federation"
+      "federation": "Federation",
+      "federationTaxonomy": "Federated taxonomy"
     },
     "descriptions": {
       "dashboard": "Tracker configuration and node management",
@@ -1531,7 +1532,24 @@
       "branding": "Customize site appearance and branding",
       "notifications": "Configure external notification channels (email, Discord, Telegram, …)",
       "settings": "System-wide registration and tracker settings",
-      "federation": "Link this tracker with trusted Trackarr instances"
+      "federation": "Link this tracker with trusted Trackarr instances",
+      "federationTaxonomy": "Map partners' category slugs onto your own categories"
+    },
+    "taxonomy": {
+      "title": "Federated taxonomy",
+      "sub": "Partners file releases under their own category slugs. Map a foreign slug onto one of your categories and the browse filter will surface that partner's releases under it — otherwise a differently-named category stays invisible to a member browsing by category.",
+      "mapped": "Declared mappings",
+      "noMappings": "No mappings yet. Map a slug from the worklist below.",
+      "remove": "Remove",
+      "addTitle": "Map a slug by hand",
+      "slugPlaceholder": "partner slug (e.g. films)",
+      "pickCategory": "Pick a local category…",
+      "map": "Map",
+      "unmapped": "Unmapped slugs on the mirror",
+      "unmappedHint": "Foreign slugs currently carried by mirrored releases that resolve to no local category, heaviest first.",
+      "allMapped": "Every foreign slug on the mirror is mapped.",
+      "releases": "{n} releases",
+      "adultTag": "adult"
     },
     "federation": {
       "intro": "Connect this tracker to other Trackarr instances you trust. You decide who you link with and exactly what you share — inbound links need your approval.",

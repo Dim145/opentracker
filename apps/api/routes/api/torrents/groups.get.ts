@@ -52,6 +52,7 @@ import { GROUP_SCOPES } from '~~/utils/torrentGroups';
 import { listMixedGroups } from '~~/utils/mixedGroups';
 import { getFederationConfig, isFederationLive } from '~~/utils/federation/config';
 import { hasActiveCataloguePeer } from '~~/utils/remoteGroups';
+import { remoteCategoryFilter } from '~~/utils/federation/categoryMap';
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).max(10_000).default(1),
@@ -116,11 +117,14 @@ export default defineEventHandler(async (event) => {
         ...subcategories.map((sub) => eq(schema.torrents.categoryId, sub.id)),
       )!,
     );
-    // Slugs are the only bridge between the two namespaces: a partner has
+    // Slugs are the first bridge between the two namespaces: a partner has
     // never heard of our category ids, and both sides derive their slugs from
-    // the same conventional vocabulary. An unmatched slug filters the mirror
-    // out of that category, which is the honest answer — we cannot claim a
-    // partner's release belongs to a category it never named.
+    // the same conventional vocabulary. The second bridge is an operator-declared
+    // mapping (utils/federation/categoryMap) for a partner that names the same
+    // shelf differently. A release matches if EITHER holds — the mapping only
+    // ever widens what a category shows. An unmatched slug with no mapping filters
+    // the mirror out, which is the honest answer: we cannot claim a partner's
+    // release belongs to a category it never named nor was mapped to.
     const [self] = await db
       .select({ slug: schema.categories.slug })
       .from(schema.categories)
@@ -129,7 +133,13 @@ export default defineEventHandler(async (event) => {
     const slugs = [self?.slug, ...subcategories.map((s) => s.slug)].filter(
       (s): s is string => !!s,
     );
-    remote.push(slugs.length ? inArray(rt.categorySlug, slugs) : sql`false`);
+    const localIds = [query.categoryId, ...subcategories.map((s) => s.id)];
+    remote.push(
+      or(
+        slugs.length ? inArray(rt.categorySlug, slugs) : sql`false`,
+        remoteCategoryFilter(localIds),
+      )!,
+    );
   }
 
   // Search folds into the group filter: a group matches when ANY of its
