@@ -2998,6 +2998,50 @@ export const remoteCategoryMap = pgTable(
 export type RemoteCategoryMap = typeof remoteCategoryMap.$inferSelect;
 
 /**
+ * Inter-instance credit ledger — the record of contribution attestations we have
+ * honoured (the foundation the webseed relay, M4, is built on).
+ *
+ * A partner that a member served bytes to can sign an attestation — "your member
+ * DID X contributed N bytes" — and send it over the accounts channel. We verify
+ * it is signed by that partner, resolve the DID to a local member, and credit
+ * their bonus upload, capped per day and applied at most once. Every honoured
+ * attestation lands here so the credit is idempotent (the row id IS the
+ * attestation's content address) and auditable.
+ *
+ * Off by default: an operator chooses whether to trust a partner's word about
+ * what its users pulled — see `federation_credit_enabled`.
+ */
+export const federationCreditGrants = pgTable(
+  'federation_credit_grants',
+  {
+    /** The attestation's content-address id — dedup key, so each credits once. */
+    id: text('id').primaryKey(),
+    peerId: text('peer_id').references(() => federationPeers.id, {
+      onDelete: 'set null',
+    }),
+    /** The `did:key:…` the attestation credited. */
+    subjectDid: text('subject_did').notNull(),
+    /** The local member it resolved to, credited. */
+    localUserId: text('local_user_id').references(() => users.id, {
+      onDelete: 'cascade',
+    }),
+    /** Bytes actually credited (after the daily cap clamp). */
+    bytes: bigint('bytes', { mode: 'number' }).notNull(),
+    reason: text('reason'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // Sum a member's credits over a window for the daily cap.
+    index('federation_credit_grants_user_idx').on(
+      table.localUserId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export type FederationCreditGrant = typeof federationCreditGrants.$inferSelect;
+
+/**
  * Identifiers a partner has withdrawn.
  *
  * The recourse a member has when their exported identity file gets out. Their

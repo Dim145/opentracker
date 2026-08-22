@@ -1684,6 +1684,12 @@
         "on": "N'importe qui peut lire ce que vous publiez — un document d'acteur et une collection des métadonnées de vos releases. Aucun fichier .torrent, aucune donnée de membre.",
         "off": "Seuls les partenaires que vous avez acceptés voient quoi que ce soit. Rien n'est servi aux inconnus.",
         "oneWay": "Un catalogue qui a été lu a été lu. Désactiver ferme la porte pour la suite ; cela n'atteint ni les caches, ni les robots, ni les copies déjà faites."
+      },
+      "credit": {
+        "title": "Honorer le crédit de contribution",
+        "on": "Les partenaires peuvent créditer le bonus upload de vos membres pour les octets qu'ils ont servis, via des attestations signées que vous vérifiez. La fondation qu'un relais webseed exige avant de déplacer des octets.",
+        "off": "Les attestations de contribution des partenaires sont ignorées — le ratio d'aucun membre n'est modifié sur la parole d'un partenaire.",
+        "cap": "Plafonné à {gb} Go de bonus upload par membre et par jour."
       }
     },
     "notifications": {

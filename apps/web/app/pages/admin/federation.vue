@@ -106,6 +106,36 @@
         </label>
       </div>
 
+      <div class="fed-master fed-relay" :class="{ 'is-on': cfg?.creditEnabled }">
+        <span class="fed-master-ring"><Icon name="ph:scales-bold" /></span>
+        <div class="fed-master-txt">
+          <div class="fed-master-h">
+            {{ $t('admin.federation.credit.title') }}
+            <span class="fed-dot" :class="cfg?.creditEnabled ? 'on' : 'idle'" />
+          </div>
+          <p>
+            {{
+              cfg?.creditEnabled
+                ? $t('admin.federation.credit.on')
+                : $t('admin.federation.credit.off')
+            }}
+          </p>
+          <p class="fed-oneway">
+            <Icon name="ph:arrow-elbow-down-right-bold" />
+            {{ $t('admin.federation.credit.cap', { gb: Math.round((cfg?.creditDailyCapBytes ?? 0) / (1024 ** 3)) }) }}
+          </p>
+        </div>
+        <label class="switch">
+          <input
+            type="checkbox"
+            :checked="cfg?.creditEnabled"
+            :disabled="busy.master"
+            @change="toggleCredit"
+          />
+          <span class="track" /><span class="thumb" />
+        </label>
+      </div>
+
       <!-- Identity + default scopes -->
       <div class="fed-grid">
         <section class="card">
@@ -320,6 +350,8 @@ interface Cfg {
   fingerprint: string | null;
   defaultScopes: Scopes;
   provisioned: boolean;
+  creditEnabled: boolean;
+  creditDailyCapBytes: number;
 }
 interface Peer {
   id: string;
@@ -440,6 +472,21 @@ async function toggleDiscoverable(e: Event) {
       }),
     t('admin.federation.toast.saved'),
   );
+}
+
+/** Honour partners' signed contribution attestations (credit model / M4). */
+async function toggleCredit(e: Event) {
+  const creditEnabled = (e.target as HTMLInputElement).checked;
+  busy.master = true;
+  await run(
+    () =>
+      $fetch('/api/admin/federation', {
+        method: 'PUT',
+        body: { creditEnabled },
+      }),
+    t('admin.federation.toast.saved'),
+  );
+  busy.master = false;
 }
 
 /** Carry and hand on what partners publish. A cost, so it is a choice. */

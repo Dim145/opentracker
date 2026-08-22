@@ -1684,6 +1684,12 @@
         "on": "Anyone can read what you publish — an actor document and a collection of your releases' metadata. No .torrent files, no member data.",
         "off": "Only partners you have accepted can see anything. Nothing is served to strangers.",
         "oneWay": "A catalogue that has been read has been read. Turning this off closes the door for the future; it does not reach into caches, crawlers or copies already made."
+      },
+      "credit": {
+        "title": "Honour contribution credit",
+        "on": "Partners can credit your members' bonus upload for bytes they served, via signed attestations you verify. The foundation a webseed relay needs before it moves bytes.",
+        "off": "Partners' contribution attestations are ignored — no member's ratio is changed by a partner's word.",
+        "cap": "Capped at {gb} GB of bonus upload per member per day."
       }
     },
     "notifications": {
