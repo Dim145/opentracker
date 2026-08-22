@@ -29,6 +29,7 @@ import { inArray } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { verifyInboundS2S } from '~~/utils/federation/inbound';
 import { countersign, relayEnabled } from '~~/utils/federation/relay';
+import { MAX_IDS, envelopesFor, wantedIds } from '~~/utils/federation/serveRecords';
 import {
   getFederationConfig,
   getPrivateKeyPem,
@@ -36,13 +37,13 @@ import {
 import { didKeyFromPublicKey } from '~~/utils/federation/did';
 
 /**
- * How many records one request may name. A record is a few hundred bytes, so
- * this is a response of a megabyte or two — and a partner with more than this
- * to catch up on is better served by several requests than by one that times
- * out halfway.
+ * `MAX_IDS` (500) lives with the rule it bounds, in `serveRecords.ts`. A record
+ * is a few hundred bytes, so that is a response of a megabyte or two — and a
+ * partner with more than this to catch up on is better served by several
+ * requests than by one that times out halfway.
+ *
+ * 500 content addresses, generously.
  */
-const MAX_IDS = 500;
-/** 500 content addresses, generously. */
 const MAX_BODY_BYTES = 128 * 1024;
 
 export default defineEventHandler(async (event) => {
@@ -51,21 +52,12 @@ export default defineEventHandler(async (event) => {
     maxBodyBytes: MAX_BODY_BYTES,
   });
 
-  let wanted: unknown = [];
+  let ids: string[];
   try {
-    wanted = (JSON.parse(rawBody || '{}') as { ids?: unknown })?.ids ?? [];
+    ids = wantedIds(JSON.parse(rawBody || '{}'));
   } catch {
     throw createError({ statusCode: 400, message: 'Malformed body' });
   }
-
-  const ids = [
-    ...new Set(
-      (Array.isArray(wanted) ? wanted : [])
-        .filter((s): s is string => typeof s === 'string')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0 && s.length <= 128),
-    ),
-  ].slice(0, MAX_IDS);
 
   if (!ids.length) return { ok: true, records: [], count: 0 };
 
@@ -87,25 +79,21 @@ export default defineEventHandler(async (event) => {
   // by id has a reason to want that generation — a lineage it is walking back,
   // or a range it reconciled before the edit landed. Withholding it would
   // answer "no such record", which is false.
-  // Ours go out bare; somebody else's go out countersigned. The
-  // countersignature is what says "we are handing you this one", and it is the
-  // only thing that lets a partner take in a record from an instance it does
-  // not federate with — the record itself is unchanged, because its address
-  // covers its content and a field added in transit would rename it.
+  //
+  // Which of them we are willing to hand on, and under whose name, is decided
+  // by `envelopesFor` — see there for the three rules and why the two-hop
+  // bound belongs on this side of the wire.
   const config = await getFederationConfig();
   const privateKeyPem = config ? getPrivateKeyPem(config) : null;
   const ourDid = config?.publicKey ? didKeyFromPublicKey(config.publicKey) : null;
 
-  const envelopes = rows
-    .filter((r) => relaying || r.origin === 'local')
-    .filter((r) => r.origin === 'local' || r.hops <= 1)
-    .map((r) => ({
-      record: r.body,
-      relay:
-        r.origin === 'local' || !privateKeyPem || !ourDid
-          ? null
-          : countersign(r.id, ourDid, privateKeyPem),
-    }));
+  const envelopes = envelopesFor(rows, {
+    relaying,
+    signer:
+      privateKeyPem && ourDid
+        ? { did: ourDid, countersign: (id) => countersign(id, ourDid, privateKeyPem) }
+        : null,
+  });
 
   return { ok: true, records: envelopes, count: envelopes.length };
 });

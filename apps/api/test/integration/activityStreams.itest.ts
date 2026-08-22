@@ -33,7 +33,7 @@ function keypair() {
   };
 }
 
-function record(issuer: ReturnType<typeof keypair>) {
+function record(issuer: ReturnType<typeof keypair>, adult = false) {
   return signRecord(
     {
       '@context': CONTEXT,
@@ -49,7 +49,7 @@ function record(issuer: ReturnType<typeof keypair>) {
       'trackarr:contentSignature': null,
       'trackarr:category': null,
       'trackarr:categoryType': null,
-      'trackarr:isAdult': false,
+      'trackarr:isAdult': adult,
       'trackarr:tags': [],
       'trackarr:imdbId': null,
       'trackarr:tmdbId': null,
@@ -67,8 +67,8 @@ function record(issuer: ReturnType<typeof keypair>) {
 }
 
 /** A record this instance published, as the minter would have left it. */
-async function publish(issuer: ReturnType<typeof keypair>) {
-  const r = record(issuer);
+async function publish(issuer: ReturnType<typeof keypair>, adult = false) {
+  const r = record(issuer, adult);
   await db.insert(schema.catalogRecords).values({
     id: r.id,
     torrentId: randomUUID(),
@@ -200,6 +200,36 @@ describe('the outbox', () => {
 
     expect(await outboxSize()).toBe(0);
     expect(await outboxPage(1)).toEqual([]);
+  });
+
+  it('keeps adult-flagged releases off the public collection', async () => {
+    // The distinction the first version of this endpoint missed. Federating
+    // with chosen partners and being readable by anyone are two decisions, and
+    // an operator making the second one has not thereby made a third about
+    // what a stranger, logged in nowhere, sees by default.
+    //
+    // The flag itself still travels on every record that does go out, so a
+    // consumer keeps its own say.
+    const me = keypair();
+    const ordinary = await publish(me);
+    await publish(me, true);
+
+    expect(await outboxSize()).toBe(1);
+    expect((await outboxPage(1)).map((r) => r.id)).toEqual([ordinary.id]);
+  });
+
+  it('counts and lists the same set, or paging walks off the end', async () => {
+    // A filter applied to the page but not to the count is the classic way to
+    // break a collection: the header promises more than the pages hold, and a
+    // consumer walks past the end looking for the difference.
+    const me = keypair();
+    await publish(me);
+    await publish(me, true);
+    await publish(me);
+
+    const total = await outboxSize();
+    const listed = (await outboxPage(1)).length;
+    expect(listed).toBe(total);
   });
 
   it('pages without repeating or skipping', async () => {

@@ -28,6 +28,7 @@ import {
   composeSigningInput,
   didKeyFromRaw,
   proofConfigFor,
+  rawFromDidKey,
 } from '@trackarr/shared/didProof';
 
 /** Where the browser keeps it. One key, one member, one origin. */
@@ -160,4 +161,74 @@ export async function signDocument(
     proof: { ...config, proofValue: `u${b64url(toB64(signature))}` },
     ...(endorsement ? { 'trackarr:endorsement': endorsement } : {}),
   };
+}
+
+/** PKCS#8 base64 back to the PEM an export should carry. */
+export function toPem(privateKeyB64: string): string {
+  const body = privateKeyB64.replace(/(.{64})/g, '$1\n');
+  return `-----BEGIN PRIVATE KEY-----\n${body}\n-----END PRIVATE KEY-----\n`;
+}
+
+/**
+ * Read a downloaded identity file, whatever shape it arrived in.
+ *
+ * The export nests the identity under `identity`; a file somebody edited by
+ * hand, or produced by another tool, may hold it bare. Both name the same key,
+ * so both are read. This lives here rather than in the component because it is
+ * a decision about a file format, and a decision in a component is a decision
+ * nothing tests.
+ */
+export async function readExportFile(
+  parsed: Record<string, unknown>,
+): Promise<HeldKey | null> {
+  const nested = parsed.identity;
+  const source =
+    nested && typeof nested === 'object'
+      ? (nested as Record<string, unknown>)
+      : parsed;
+  return fromExport(source);
+}
+
+/**
+ * Rebuild a held key from an exported file.
+ *
+ * Verified rather than trusted: the private half is imported and used to sign
+ * a probe, and the signature is checked against the public half the file
+ * claims. A file whose two halves do not belong together would otherwise leave
+ * a member signing claims that verify against nobody, and they would find out
+ * on the far side of a move.
+ */
+export async function fromExport(
+  source: Record<string, unknown>,
+): Promise<HeldKey | null> {
+  const did = typeof source.did === 'string' ? source.did : null;
+  const pem = typeof source.privateKeyPem === 'string' ? source.privateKeyPem : null;
+  const publicKeyPem =
+    typeof source.publicKeyPem === 'string' ? source.publicKeyPem : null;
+  if (!did || !pem || !publicKeyPem) return null;
+
+  const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+  try {
+    const priv = await crypto.subtle.importKey(
+      'pkcs8',
+      fromB64(b64),
+      { name: 'Ed25519' },
+      false,
+      ['sign'],
+    );
+    // The identifier IS the public key, so deriving it back from the file and
+    // comparing is what proves the two halves belong together.
+    const raw = rawFromDidKey(did);
+    const pub = await crypto.subtle.importKey('raw', raw, { name: 'Ed25519' }, false, [
+      'verify',
+    ]);
+    const probe = new TextEncoder().encode(did);
+    const sig = await crypto.subtle.sign({ name: 'Ed25519' }, priv, probe);
+    if (!(await crypto.subtle.verify({ name: 'Ed25519' }, pub, sig, probe))) {
+      return null;
+    }
+    return { did, privateKeyB64: b64, publicKeyPem };
+  } catch {
+    return null;
+  }
 }

@@ -118,16 +118,20 @@
       <p class="pid-rotate-text">
         {{ held ? $t('settings.identityExport.custodyOn') : $t('settings.identityExport.custodyOff') }}
       </p>
-      <button
-        v-if="!held && !custodyArmed"
-        type="button"
-        class="btn-ghost"
-        :disabled="busy"
-        @click="custodyArmed = true"
-      >
-        <Icon name="ph:key-bold" />
-        {{ $t('settings.identityExport.takeCustody') }}
-      </button>
+      <template v-if="!held && !custodyArmed">
+        <button type="button" class="btn-ghost" :disabled="busy" @click="custodyArmed = true">
+          <Icon name="ph:key-bold" />
+          {{ $t('settings.identityExport.takeCustody') }}
+        </button>
+        <!-- The other half of custody: a member arriving in a new browser has
+             the file and needs to put it back. Without this, "hold your own
+             key" means "hold it in exactly one browser, forever". -->
+        <label class="btn-ghost fid-file">
+          <Icon name="ph:upload-simple-bold" />
+          {{ $t('settings.identityExport.importKey') }}
+          <input type="file" accept="application/json,.json" @change="importKey" />
+        </label>
+      </template>
       <template v-else-if="!held">
         <span class="pid-confirm">{{ $t('settings.identityExport.custodyWarning') }}</span>
         <button type="button" class="btn-ghost" :disabled="busy" @click="custodyArmed = false">
@@ -139,7 +143,14 @@
           {{ $t('settings.identityExport.custodyConfirm') }}
         </button>
       </template>
-      <code v-else class="pid-held">{{ held.did }}</code>
+      <template v-else>
+        <code class="pid-held">{{ held.did }}</code>
+        <label class="btn-ghost fid-file">
+          <Icon name="ph:upload-simple-bold" />
+          {{ $t('settings.identityExport.importKey') }}
+          <input type="file" accept="application/json,.json" @change="importKey" />
+        </label>
+      </template>
     </div>
 
     <p v-if="error" class="pid-error">{{ error }}</p>
@@ -241,6 +252,37 @@ async function rotate(): Promise<void> {
   }
 }
 
+/**
+ * Put a previously exported key back into this browser.
+ *
+ * Nothing is sent: the server already knows the public half, and the private
+ * half is the one thing it must never see. What is checked is that the file
+ * actually holds the key the instance has on record — importing a key the
+ * server has never heard of would leave a member signing claims that verify
+ * against nobody.
+ */
+async function importKey(event: Event): Promise<void> {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  busy.value = true;
+  error.value = null;
+  try {
+    const parsed = JSON.parse(await file.text()) as Record<string, unknown>;
+    const restored = await identityKey.readExportFile(parsed);
+    if (!restored) {
+      error.value = t('settings.identityExport.importBad');
+      return;
+    }
+    identityKey.store(restored);
+    held.value = restored;
+    did.value = restored.did;
+  } catch {
+    error.value = t('settings.identityExport.importBad');
+  } finally {
+    busy.value = false;
+  }
+}
+
 async function download(): Promise<void> {
   busy.value = true;
   error.value = null;
@@ -261,6 +303,13 @@ async function download(): Promise<void> {
         res.identity.document as Record<string, unknown>,
         key,
       );
+      // And the key itself. Under custody the server has nothing to hand over,
+      // so if this file did not carry it the member's only copy would be this
+      // browser's storage — one cleared cache from losing an identity with no
+      // recovery. The whole point of holding your own key is that you hold it.
+      (res.identity as Record<string, unknown>).privateKeyPem =
+        identityKey.toPem(key.privateKeyB64);
+      (res.identity as Record<string, unknown>).publicKeyPem = key.publicKeyPem;
     }
     // Built and saved in the browser: the file holds a private key, and the
     // fewer places it is written down the better. No server-side artefact, no

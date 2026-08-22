@@ -203,7 +203,7 @@ export function makeProof(
 export function checkProof(
   document: Record<string, unknown>,
   proof: unknown,
-): VerifyResult {
+): RecordVerification {
   try {
     if (!proof || typeof proof !== 'object') {
       return { ok: false, reason: 'no proof' };
@@ -259,7 +259,18 @@ export function signRecord(
   };
 }
 
-export interface VerifyResult {
+/**
+ * Named for the record, not the act, and deliberately so.
+ *
+ * `signing.ts` has a `VerifyResult` of its own — same two leading fields,
+ * different third: that one carries the sender's `instanceId` and answers
+ * "did this HTTP request come from a partner", this one carries the signing
+ * DID and answers "does this document stand up by itself". Two names for two
+ * questions. Sharing one would have handed Nitro's auto-import a choice
+ * between them, and a file that used the name without importing it would have
+ * silently got whichever the resolver preferred.
+ */
+export interface RecordVerification {
   ok: boolean;
   /** Why it failed. Never shown to a partner — logged, and used to score them. */
   reason?: string;
@@ -275,7 +286,7 @@ export interface VerifyResult {
  * matters. This function is the reason a record can be relayed — and the reason
  * it must be **total**, because it runs on bytes a stranger chose.
  */
-export function verifyRecord(record: unknown): VerifyResult {
+export function verifyRecord(record: unknown): RecordVerification {
   try {
     if (!record || typeof record !== 'object') {
       return { ok: false, reason: 'not an object' };

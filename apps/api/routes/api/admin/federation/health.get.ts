@@ -17,6 +17,7 @@ import { db, schema } from '@trackarr/db';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { getFederationConfig } from '~~/utils/federation/config';
+import { recordStore, sourcedByPeer } from '~~/utils/federation/storeCounts';
 
 /** A peer is "behind" past three intervals with no run. */
 const STALE_INTERVALS = 3;
@@ -51,7 +52,7 @@ export default defineEventHandler(async (event) => {
   // One round trip per table rather than one per peer: the peer count is
   // small but the page auto-refreshes, and an N+1 on an automatic refresh is
   // paid for every single day.
-  const [states, mirrorCounts] = await Promise.all([
+  const [states, mirrorCounts, sourced, records] = await Promise.all([
     peerIds.length
       ? db
           .select()
@@ -68,6 +69,12 @@ export default defineEventHandler(async (event) => {
           .where(inArray(schema.remoteTorrents.peerId, peerIds))
           .groupBy(schema.remoteTorrents.peerId)
       : [],
+    // Both counts live in `storeCounts.ts`, where a real database can be
+    // pointed at them: an aggregate behind an admin session on a page that
+    // refreshes itself either shows a wrong number for months or throws where
+    // nobody is looking, and neither failure announces itself.
+    sourcedByPeer(peerIds),
+    recordStore(),
   ]);
 
   // `as const` keeps each entry a 2-tuple. Without it `.map` widens to
@@ -116,6 +123,7 @@ export default defineEventHandler(async (event) => {
       ...peer,
       active: peer.status === 'active',
       mirrored: mirrorByPeer.get(peer.id) ?? 0,
+      sourced: sourced.get(peer.id) ?? 0,
       resources,
       verdict: peer.status === 'active' ? worst : null,
     };
@@ -130,6 +138,7 @@ export default defineEventHandler(async (event) => {
     error: active.filter((r) => r.verdict === 'error').length,
     never: active.filter((r) => r.verdict === 'never').length,
     mirroredTotal: rows.reduce((n, r) => n + r.mirrored, 0),
+    records,
     // Last run across all resources: federation's "heartbeat", and the first
     // thing anyone looks at.
     lastRunAt:

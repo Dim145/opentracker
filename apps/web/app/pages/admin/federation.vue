@@ -49,6 +49,15 @@
                 : $t('admin.federation.relay.off')
             }}
           </p>
+          <!-- Said before the switch is flipped, not after. Nothing built here
+               can un-publish: a partner that took a record in holds bytes that
+               prove themselves, and a withdrawal is a request they are free to
+               ignore. An operator deserves to know which switches are doors
+               that only open. -->
+          <p class="fed-oneway">
+            <Icon name="ph:arrow-elbow-down-right-bold" />
+            {{ $t('admin.federation.relay.oneWay') }}
+          </p>
         </div>
         <label class="switch">
           <input
@@ -80,6 +89,10 @@
                 ? $t('admin.federation.discover.on')
                 : $t('admin.federation.discover.off')
             }}
+          </p>
+          <p class="fed-oneway">
+            <Icon name="ph:arrow-elbow-down-right-bold" />
+            {{ $t('admin.federation.discover.oneWay') }}
           </p>
         </div>
         <label class="switch">
@@ -557,6 +570,20 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 .fed-master.is-on .fed-master-ring { background: rgba(34, 197, 94, 0.12); color: rgb(var(--online)); }
 .fed-master-txt { flex: 1; min-width: 0; }
 .fed-master-h { display: flex; align-items: center; gap: 0.5rem; font-size: 16px; font-weight: 600; color: rgb(var(--fg-strong)); }
+.fed-oneway {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin-top: 0.4rem !important;
+  font-size: 0.72rem !important;
+  line-height: 1.45;
+  color: rgb(var(--fg-subtle)) !important;
+}
+.fed-oneway svg {
+  flex: none;
+  margin-top: 0.15em;
+  opacity: 0.7;
+}
 .fed-master-txt p { font-size: 12.5px; color: rgb(var(--fg-muted)); margin-top: 0.2rem; }
 
 .fed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }

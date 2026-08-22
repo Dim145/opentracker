@@ -779,3 +779,109 @@ describe('who wrote it, once it has travelled', () => {
     expect((await mirrored(peer.id))[0]!.authorDid).toBeNull();
   });
 });
+
+describe('the set the two sides actually compare', () => {
+  // The defect this file did not catch, and the review did.
+  //
+  // Reconciliation used to compare the MIRROR against what a partner served.
+  // The mirror only holds torrents, so a tombstone — or an identity assertion,
+  // or a revocation — was permanently missing from our side: fetched again on
+  // every tick, ingested to no effect, still missing. With `ingested=0`,
+  // `status=ok` and no log line, because nothing about it moved a counter.
+  //
+  // Every test below drives TWO syncs and asserts the second one is quiet.
+  // That is the property that was broken, and asserting a single sync's
+  // outcome is exactly what missed it.
+
+  async function sourcedIds(peerId: string): Promise<string[]> {
+    const rows = await db
+      .select({ id: schema.recordSources.recordId })
+      .from(schema.recordSources)
+      .where(eq(schema.recordSources.peerId, peerId));
+    return rows.map((r) => r.id).sort();
+  }
+
+  it('holds a tombstone in the compared set, so it is fetched once', async () => {
+    const peer = await makePeer();
+    const r = record();
+    serve(r);
+    await syncPeerRecords(peer);
+
+    const hash = (r as unknown as Record<string, string>)['bt:infohash_v1']!;
+    serve(tombstone(r.id, hash));
+    const first = await syncPeerRecords(peer);
+    expect(first.withdrawn).toBe(1);
+
+    // The second pass must find nothing to do. Before the fix it fetched the
+    // tombstone again here, and would have gone on doing so forever.
+    partner.calls = [];
+    const second = await syncPeerRecords(peer);
+    expect(second.ingested).toBe(0);
+    expect(second.withdrawn).toBe(0);
+    expect(second.rounds).toBe(1);
+    expect(partner.calls).toEqual(['/api/federation/reconcile']);
+  });
+
+  it('settles after an identity assertion, which has no mirror row at all', async () => {
+    const peer = await makePeer();
+    const person = signRecord(
+      {
+        '@context': CONTEXT,
+        type: 'Person',
+        'trackarr:subject': 'did:key:z6MkTheirMember',
+        alsoKnownAs: [],
+        'trackarr:evidence': [],
+        published: '2026-05-01T00:00:00.000Z',
+        'trackarr:issuer': issuer.did,
+        'trackarr:replaces': null,
+      } as never,
+      { privateKeyPem: issuer.privateKeyPem, did: issuer.did },
+    );
+    serve(person);
+
+    await syncPeerRecords(peer);
+    partner.calls = [];
+    const second = await syncPeerRecords(peer);
+
+    expect(second.rounds).toBe(1);
+    expect(partner.calls).toEqual(['/api/federation/reconcile']);
+    expect(await sourcedIds(peer.id)).toEqual([person.id]);
+  });
+
+  it('forgets a source when the partner stops serving it', async () => {
+    // Otherwise the record stays in the set we compare and the next round
+    // reports it missing again — the same defect, pointing the other way.
+    const peer = await makePeer();
+    const keep = record();
+    const drop = record();
+    serve(keep, drop);
+    await syncPeerRecords(peer);
+    expect(await sourcedIds(peer.id)).toHaveLength(2);
+
+    serve(keep);
+    await syncPeerRecords(peer);
+    expect(await sourcedIds(peer.id)).toEqual([keep.id]);
+
+    partner.calls = [];
+    const third = await syncPeerRecords(peer);
+    expect(third.rounds).toBe(1);
+    expect(third.withdrawn).toBe(0);
+  });
+
+  it('still repairs a mirror row lost behind its back', async () => {
+    // Comparing the mirror gave this for free and cost the bug above. Now it
+    // is a deliberate step, so it needs a deliberate test.
+    const peer = await makePeer();
+    for (let i = 0; i < 5; i++) alsoServe(record());
+    await syncPeerRecords(peer);
+
+    const [victim] = await mirrored(peer.id);
+    await db
+      .delete(schema.remoteTorrents)
+      .where(eq(schema.remoteTorrents.id, victim!.id));
+
+    const out = await syncPeerRecords(peer);
+    expect(out.ingested).toBe(1);
+    expect(await mirrored(peer.id)).toHaveLength(5);
+  });
+});

@@ -40,8 +40,18 @@
  * partners without asking them to extend it any trust at all — and why asking
  * several relays, or none, is always a valid strategy.
  */
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
+
+/**
+ * A database handle, or the transaction standing in for one.
+ *
+ * Narrowed to what these functions use rather than to drizzle's full type: a
+ * transaction is not a `PostgresJsDatabase` and saying it is would be a lie the
+ * compiler catches. This says what is actually needed — insert, update, delete
+ * — which both satisfy.
+ */
+type Writer = Pick<typeof db, 'insert' | 'update' | 'delete'>;
 import { didKeyFromPublicKey } from './did';
 import { checkProof, makeProof, type DataIntegrityProof } from './record';
 
@@ -184,15 +194,30 @@ export function admit(
  * second implementation of the format, and it would eventually disagree with
  * the proof.
  */
+/** What sort of statement a record is, from its AS2 type. */
+export function kindOf(record: Record<string, unknown>): string {
+  switch (record.type) {
+    case 'Tombstone':
+      return 'tombstone';
+    case 'Person':
+      return 'identity';
+    case 'Undo':
+      return 'revocation';
+    default:
+      return 'torrent';
+  }
+}
+
 export async function keepForRelay(
   record: Record<string, unknown>,
   issuer: string,
   hops: number,
+  tx: Writer = db,
 ): Promise<void> {
   const id = typeof record.id === 'string' ? record.id : null;
   if (!id) return;
 
-  await db
+  await tx
     .insert(schema.catalogRecords)
     .values({
       id,
@@ -202,14 +227,7 @@ export async function keepForRelay(
           ? (record['bt:infohash_v1'] as string)
           : null,
       issuer,
-      kind:
-        record.type === 'Tombstone'
-          ? 'tombstone'
-          : record.type === 'Person'
-            ? 'identity'
-            : record.type === 'Undo'
-              ? 'revocation'
-              : 'torrent',
+      kind: kindOf(record),
       body: record,
       // The address of a record with no lineage IS its fingerprint; for one
       // that supersedes another they differ, and we have no way to recompute
@@ -229,7 +247,7 @@ export async function keepForRelay(
   // offering a generation its own issuer has replaced.
   const replaces = record['trackarr:replaces'];
   if (typeof replaces === 'string' && replaces) {
-    await db
+    await tx
       .update(schema.catalogRecords)
       .set({ supersededAt: new Date() })
       .where(
@@ -239,6 +257,133 @@ export async function keepForRelay(
         ),
       );
   }
+}
+
+/**
+ * Note that a partner serves a record, and keep the bytes if we will relay it.
+ *
+ * The association is always recorded: it is two identifiers, it is what
+ * reconciliation compares, and it is how we know a record is still wanted.
+ *
+ * The BODY is kept only when this instance relays. It is the larger cost by
+ * three orders of magnitude — measured at about 1.4 kB a record — and an
+ * instance that will never hand one on has no use for it: the mirror row
+ * carries everything the interface reads. An operator who turns relaying on
+ * later starts relaying what arrives from then on, which is honest: the served
+ * set is computed from what we actually hold, so it is never larger than the
+ * truth.
+ */
+export async function sourceRecord(
+  record: Record<string, unknown>,
+  issuer: string,
+  hops: number,
+  peerId: string,
+  relaying: boolean,
+  tx: Writer = db,
+): Promise<void> {
+  const id = typeof record.id === 'string' ? record.id : null;
+  if (!id) return;
+
+  await tx
+    .insert(schema.recordSources)
+    .values({ recordId: id, peerId, kind: kindOf(record) })
+    .onConflictDoNothing({
+      target: [schema.recordSources.peerId, schema.recordSources.recordId],
+    });
+
+  if (relaying) await keepForRelay(record, issuer, hops, tx);
+}
+
+/**
+ * A partner has stopped serving these. Forget that it did, and forget the
+ * records themselves once nobody serves them at all.
+ *
+ * Two steps rather than one because they answer different questions. Losing a
+ * source is a fact about that partner; losing the last source is what makes a
+ * record something we no longer hold — and only then is there anything to
+ * clean up.
+ */
+export async function dropSources(
+  peerId: string,
+  recordIds: string[],
+): Promise<void> {
+  if (!recordIds.length) return;
+
+  await db
+    .delete(schema.recordSources)
+    .where(
+      and(
+        eq(schema.recordSources.peerId, peerId),
+        inArray(schema.recordSources.recordId, recordIds),
+      ),
+    );
+
+  // Anything still served by somebody else stays. A record we minted stays
+  // whatever partners do with it — it is ours, and their silence is not a
+  // retraction of our own publication.
+  const stillSourced = await db
+    .select({ recordId: schema.recordSources.recordId })
+    .from(schema.recordSources)
+    .where(inArray(schema.recordSources.recordId, recordIds));
+  const keep = new Set(stillSourced.map((r) => r.recordId));
+  const orphaned = recordIds.filter((id) => !keep.has(id));
+  if (!orphaned.length) return;
+
+  await db
+    .delete(schema.catalogRecords)
+    .where(
+      and(
+        inArray(schema.catalogRecords.id, orphaned),
+        eq(schema.catalogRecords.origin, 'ingested'),
+      ),
+    );
+}
+
+/**
+ * Forget any source whose mirror row has gone missing.
+ *
+ * The mirror is a view of torrents derived from records, and the set we
+ * reconcile is the sources — so a mirror row lost to a bug or a manual delete
+ * would never be noticed: our set still says we hold the record, the partner
+ * agrees, and both sides report success over a hole.
+ *
+ * Dropping the source is the repair. It costs one round trip on the next
+ * reconciliation and restores exactly the self-healing that comparing the
+ * mirror used to give for free — without the permanent re-fetching of every
+ * record that was never a torrent, which is what it cost.
+ */
+export async function repairMissingMirrors(peerId: string): Promise<number> {
+  const orphaned = await db
+    .select({ recordId: schema.recordSources.recordId })
+    .from(schema.recordSources)
+    .leftJoin(
+      schema.remoteTorrents,
+      and(
+        eq(schema.remoteTorrents.peerId, schema.recordSources.peerId),
+        eq(schema.remoteTorrents.remoteId, schema.recordSources.recordId),
+      ),
+    )
+    .where(
+      and(
+        eq(schema.recordSources.peerId, peerId),
+        eq(schema.recordSources.kind, 'torrent'),
+        isNull(schema.remoteTorrents.id),
+      ),
+    );
+  if (!orphaned.length) return 0;
+
+  await db
+    .delete(schema.recordSources)
+    .where(
+      and(
+        eq(schema.recordSources.peerId, peerId),
+        inArray(
+          schema.recordSources.recordId,
+          orphaned.map((r) => r.recordId),
+        ),
+      ),
+    );
+  return orphaned.length;
 }
 
 /** Whether this instance is willing to carry other people's records. */

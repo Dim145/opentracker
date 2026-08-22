@@ -45,7 +45,14 @@ import { verifyRecord } from './record';
 import { notifyFollowersOfNewUploads } from './sidePasses';
 import { mirrorSet } from './recordSet';
 import { ingestIdentityRecord, ingestRevocation } from './identityRecord';
-import { admit, keepForRelay, trustedIssuers } from './relay';
+import {
+  admit,
+  dropSources,
+  relayEnabled,
+  repairMissingMirrors,
+  sourceRecord,
+  trustedIssuers,
+} from './relay';
 import { MAX_ROUNDS, opening, respond } from './rbsr';
 
 /** Records asked for per request. See `MAX_IDS` on the fetch endpoint. */
@@ -294,7 +301,12 @@ export interface IngestOutcome {
 export async function ingestRecord(
   peer: FederationPeer,
   raw: unknown,
-  opts: { relayProof?: unknown; trusted?: Set<string> } = {},
+  opts: {
+    relayProof?: unknown;
+    trusted?: Set<string>;
+    /** Read once per batch; two queries per record otherwise. */
+    relaying?: boolean;
+  } = {},
 ): Promise<IngestOutcome> {
   const nothing: IngestOutcome = { ingested: 0, withdrawn: 0, rejected: 0 };
 
@@ -317,10 +329,11 @@ export async function ingestRecord(
   );
   if (!pass.ok) return { ...nothing, rejected: 1 };
 
-  // Kept as bytes so it can be handed on. The mirror row below is a view for
-  // browsing; this is the record itself, and the only form it can be relayed
-  // in.
-  await keepForRelay(record, verdict.signer!, pass.hops!);
+  // Noting the source is what reconciliation compares; keeping the bytes is
+  // what relaying needs, and only that. Both go in the same transaction as the
+  // mirror write below — a record we have sourced but not mirrored, or the
+  // reverse, is a disagreement nothing later would notice or repair.
+  const relaying = opts.relaying ?? (await relayEnabled());
   const replaces = asStr(record['trackarr:replaces']);
 
   if (record.type === 'Tombstone') {
@@ -339,12 +352,14 @@ export async function ingestRecord(
             eq(schema.remoteTorrents.infoHash, hash),
           )!
         : null;
-    if (!conditions) return nothing;
-    const gone = await db.delete(schema.remoteTorrents).where(conditions);
-    return {
-      ...nothing,
-      withdrawn: (gone as unknown as { count?: number }).count ?? 1,
-    };
+    let removed = 0;
+    await db.transaction(async (tx) => {
+      await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying, tx);
+      if (!conditions) return;
+      const gone = await tx.delete(schema.remoteTorrents).where(conditions);
+      removed = (gone as unknown as { count?: number }).count ?? 1;
+    });
+    return { ...nothing, withdrawn: removed };
   }
 
   // An identity assertion is not a release. It goes to the alias graph, which
@@ -354,6 +369,7 @@ export async function ingestRecord(
   // A withdrawn identifier. Acted on rather than merely noted: recording that
   // we heard would leave a leaked key still proving things.
   if (record.type === 'Undo') {
+    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying);
     await ingestRevocation(
       peer.id,
       String(record.id ?? ''),
@@ -364,6 +380,7 @@ export async function ingestRecord(
   }
 
   if (record.type === 'Person') {
+    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying);
     await ingestIdentityRecord(
       peer.id,
       String(record.id ?? ''),
@@ -379,7 +396,9 @@ export async function ingestRecord(
   // `xmax = 0` is true only for a fresh INSERT, which is what separates "a
   // partner published something new" from "a partner restated what we already
   // had" — and stops a re-sync from re-notifying every follower.
-  const [written] = await db
+  const [written] = await db.transaction(async (tx) => {
+    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying, tx);
+    return tx
     .insert(schema.remoteTorrents)
     .values({
       id: uuid(),
@@ -396,6 +415,7 @@ export async function ingestRecord(
       set: { ...row, updatedAt: new Date() },
     })
     .returning({ isNew: sql<boolean>`(xmax = 0)` });
+  });
 
   // An edit supersedes: drop the row the new record replaces, or the mirror
   // would carry both generations side by side.
@@ -472,6 +492,10 @@ export async function syncPeerRecords(
     return out;
   }
 
+  // Before comparing: forget any source whose mirror row has gone missing, so
+  // the comparison finds the hole rather than reporting agreement over it.
+  await repairMissingMirrors(peer.id);
+
   const mine = mirrorSet(peer.id);
   const missing: string[] = [];
   const extra: string[] = [];
@@ -527,9 +551,14 @@ export async function syncPeerRecords(
       // reading it per record would be a hundred round trips to answer the
       // same question.
       const trusted = await trustedIssuers();
+      const relaying = await relayEnabled();
       for (const envelope of res.data.records as unknown[]) {
         const { record, relay } = unwrap(envelope);
-        const r = await ingestRecord(peer, record, { relayProof: relay, trusted });
+        const r = await ingestRecord(peer, record, {
+          relayProof: relay,
+          trusted,
+          relaying,
+        });
         out.ingested += r.ingested;
         out.withdrawn += r.withdrawn;
         out.rejected += r.rejected;
@@ -558,6 +587,11 @@ export async function syncPeerRecords(
           ),
         );
       out.withdrawn += (res as unknown as { count?: number }).count ?? batch.length;
+      // And stop calling this partner a source. Without it the record stays in
+      // the set we compare, so the next round would report it missing again —
+      // which is the shape of the defect this whole change exists to fix, just
+      // pointing the other way.
+      await dropSources(peer.id, batch);
     }
 
     await saveState(

@@ -63,6 +63,38 @@
           </div>
         </div>
 
+        <!-- ── The record store ──────────────────────────────────────
+             What is actually held, which appeared nowhere before: an
+             operator could turn relaying on and have no way to see whether
+             anything was being carried. Read left to right it is a ledger —
+             what we said, what we took in, what we would pass on, and what
+             has been replaced. -->
+        <div class="fh-store">
+          <div class="fh-store-bar">
+            <span
+              v-for="seg in storeBar"
+              :key="seg.key"
+              class="fh-seg"
+              :class="`fh-seg--${seg.key}`"
+              :style="{ flexGrow: seg.n }"
+              :title="`${seg.label} · ${formatInt(seg.n)}`"
+            />
+          </div>
+          <ul class="fh-store-legend">
+            <li v-for="seg in storeBar" :key="seg.key" class="fh-store-item">
+              <span class="fh-swatch" :class="`fh-seg--${seg.key}`" />
+              <span class="fh-store-n tabular-nums">{{ formatInt(seg.n) }}</span>
+              <span class="fh-store-l">{{ seg.label }}</span>
+            </li>
+          </ul>
+          <div v-if="kinds.length" class="fh-kinds">
+            <span v-for="k in kinds" :key="k.kind" class="fh-kind">
+              <span class="fh-kind-k">{{ k.kind }}</span>
+              <span class="fh-kind-n tabular-nums">{{ formatInt(k.n) }}</span>
+            </span>
+          </div>
+        </div>
+
         <!-- ── Détail par pair ───────────────────────────────────────── -->
         <p v-if="!activePeers.length" class="fed-hint">
           {{ $t('admin.federation.health.noPeers') }}
@@ -79,7 +111,19 @@
               {{ peer.displayName || hostOf(peer.baseUrl) }}
             </span>
             <span class="fh-peer-url">{{ hostOf(peer.baseUrl) }}</span>
-            <span class="fh-peer-mirror tabular-nums">
+            <!-- Two counts, deliberately side by side. The left is what we
+                 hold FROM this peer — the set reconciliation compares. The
+                 right is what landed in the local mirror. They differ by the
+                 records that have no mirror row (tombstones, identities), so
+                 a wildly wrong gap is a defect you can see rather than one
+                 that quietly re-fetches forever. -->
+            <span
+              class="fh-peer-mirror tabular-nums"
+              :title="$t('admin.federation.health.sourcedHint')"
+            >
+              <Icon name="ph:stack-bold" />
+              {{ formatInt(peer.sourced) }}
+              <span class="fh-peer-sep">/</span>
               <Icon name="ph:database-bold" />
               {{ formatInt(peer.mirrored) }}
             </span>
@@ -131,6 +175,7 @@ interface Peer {
   lastSeenAt: string | null;
   lastError: string | null;
   mirrored: number;
+  sourced: number;
   resources: Resource[];
   verdict: 'ok' | 'stale' | 'error' | 'never' | null;
 }
@@ -146,6 +191,13 @@ interface Health {
     error: number;
     never: number;
     mirroredTotal: number;
+    records: {
+      local: number;
+      ingested: number;
+      relayable: number;
+      superseded: number;
+      byKind: Record<string, number>;
+    };
     lastRunAt: string | null;
   };
   peers: Peer[];
@@ -203,6 +255,31 @@ const tiles = computed(() => {
     { key: 'mirror', n: s?.mirroredTotal ?? 0, tone: 'neutral', label: t('admin.federation.health.tileMirrored') },
   ];
 });
+
+/**
+ * The store as proportional segments.
+ *
+ * A bar rather than four more tiles: the interesting thing about these numbers
+ * is their ratio — how much of what we hold is ours, how much of what we took
+ * in we would actually pass on — and a ratio is the one thing a row of figures
+ * makes you compute yourself.
+ */
+const storeBar = computed(() => {
+  const r = data.value?.summary.records;
+  return [
+    { key: 'local', n: r?.local ?? 0, label: t('admin.federation.health.storeLocal') },
+    { key: 'ingested', n: r?.ingested ?? 0, label: t('admin.federation.health.storeIngested') },
+    { key: 'relay', n: r?.relayable ?? 0, label: t('admin.federation.health.storeRelayable') },
+    { key: 'old', n: r?.superseded ?? 0, label: t('admin.federation.health.storeSuperseded') },
+  ];
+});
+
+/** Per kind, biggest first. A tombstone backlog should be readable as one. */
+const kinds = computed(() =>
+  Object.entries(data.value?.summary.records.byKind ?? {})
+    .map(([kind, n]) => ({ kind, n }))
+    .sort((a, b) => b.n - a.n),
+);
 
 /** The first error encountered, peer or resource — that is the blocking one. */
 function peerError(p: Peer): string | null {
@@ -386,6 +463,89 @@ function hostOf(url: string): string {
   font-size: 0.72rem;
   color: rgb(var(--fg-subtle));
 }
+/* ── The store ────────────────────────────────────────────────────────
+   A single rule read left to right, then its key. The bar is proportional,
+   so an instance carrying ten times what it publishes looks like it — no
+   figure to divide in your head. */
+.fh-store {
+  border: 1px solid rgb(var(--border) / 0.7);
+  border-radius: 0.5rem;
+  padding: 0.7rem 0.8rem;
+  background: rgb(var(--bg-subtle) / 0.35);
+}
+.fh-store-bar {
+  display: flex;
+  height: 6px;
+  gap: 2px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgb(var(--border) / 0.4);
+}
+.fh-seg {
+  min-width: 2px;
+  flex-basis: 0;
+  background: var(--seg);
+}
+/* Ours is the accent; what we carry is cooler; what we would pass on is the
+   accent again, dimmed, because it IS a subset of what we carry. */
+.fh-seg--local { --seg: rgb(var(--accent)); }
+.fh-seg--ingested { --seg: rgb(var(--info, var(--accent)) / 0.55); }
+.fh-seg--relay { --seg: rgb(var(--accent) / 0.4); }
+.fh-seg--old { --seg: rgb(var(--fg-subtle) / 0.35); }
+.fh-store-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.1rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.fh-store-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+.fh-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--seg);
+  transform: translateY(-1px);
+}
+.fh-store-n {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgb(var(--fg));
+}
+.fh-store-l {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgb(var(--fg-muted));
+}
+.fh-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed rgb(var(--border) / 0.6);
+}
+.fh-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  background: rgb(var(--bg-subtle) / 0.8);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+}
+.fh-kind-k { color: rgb(var(--fg-muted)); }
+.fh-kind-n { color: rgb(var(--fg)); font-weight: 600; }
+
+.fh-peer-sep { color: rgb(var(--fg-subtle)); }
 .fh-peer-mirror {
   margin-left: auto;
   display: inline-flex;

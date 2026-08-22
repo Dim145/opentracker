@@ -134,17 +134,22 @@ export function publishedSet(relaying = false): SetSource {
 }
 
 /**
- * What we hold from one partner.
+ * What we hold from one partner — every record, of every kind.
  *
- * Keyed on `remote_id`, which the record sync sets to the record's content
- * address — so the two sides are comparing the same names for the same
- * things. The `(peer_id, remote_id)` unique index is exactly the ordering
- * these range scans need, which is why this costs almost nothing.
+ * This used to read the MIRROR, and that was wrong in a way that cost nothing
+ * visible and never stopped costing. `remote_torrents` holds torrents; a
+ * partner's set also holds tombstones, identity assertions and revocations. So
+ * every one of those was permanently missing from our side: fetched again on
+ * every tick, ingested to no effect, still missing — with `ingested=0`,
+ * `status=ok` and no log line, because nothing about it moved a counter.
+ *
+ * A record is content-addressed, so a partner offers a set of ids. This is the
+ * same kind of thing on our side, which is the only reason the two compare.
  */
 export function mirrorSet(peerId: string): SetSource {
   return sqlSource(
-    sql`${schema.remoteTorrents.remoteId}`,
-    sql`${schema.remoteTorrents}`,
-    sql`${schema.remoteTorrents.peerId} = ${peerId}`,
+    sql`${schema.recordSources.recordId}`,
+    sql`${schema.recordSources}`,
+    sql`${schema.recordSources.peerId} = ${peerId}`,
   );
 }

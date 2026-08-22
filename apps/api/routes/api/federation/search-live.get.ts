@@ -45,6 +45,7 @@ import {
   unwrap,
 } from '~~/utils/federation/recordSync';
 import { browseMirror } from '~~/utils/federation/browseMirror';
+import { relayEnabled, trustedIssuers } from '~~/utils/federation/relay';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireAuthSession } from '~~/utils/adminAuth';
 
@@ -101,6 +102,11 @@ export default defineEventHandler(async (event) => {
   // Ingest. A peer that times out, errors or answers garbage is skipped — the
   // search still returns whatever the others said, and whatever the mirror
   // already held for them.
+  // Both read once for the whole fan-out. Asked per record they were two
+  // queries each, thirty records a partner, on every search anybody runs.
+  const trusted = await trustedIssuers();
+  const relaying = await relayEnabled();
+
   const reachedIds: string[] = [];
   let rejected = 0;
   for (const s of settled) {
@@ -112,7 +118,11 @@ export default defineEventHandler(async (event) => {
     for (const item of res.data.records as unknown[]) {
       try {
         const { record, relay } = unwrap(item);
-        const r = await ingestRecord(peer, record, { relayProof: relay });
+        const r = await ingestRecord(peer, record, {
+          relayProof: relay,
+          trusted,
+          relaying,
+        });
         rejected += r.rejected;
         if (r.fresh) fresh.push(r.fresh);
       } catch {

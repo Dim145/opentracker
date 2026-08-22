@@ -18,7 +18,8 @@
 import { z } from 'zod';
 import {
   AS2_CONTENT_TYPE,
-  PAGE_SIZE,
+  collectionHeader,
+  collectionPage,
   outboxPage,
   outboxSize,
 } from '~~/utils/federation/activityStreams';
@@ -37,26 +38,6 @@ export default defineEventHandler(async (event) => {
   const total = await outboxSize();
   setHeader(event, 'content-type', AS2_CONTENT_TYPE);
 
-  if (!page) {
-    return {
-      '@context': 'https://www.w3.org/ns/activitystreams',
-      type: 'OrderedCollection',
-      id,
-      totalItems: total,
-      first: total ? `${id}?page=1` : undefined,
-    };
-  }
-
-  const items = await outboxPage(page);
-  const hasNext = page * PAGE_SIZE < total;
-  return {
-    '@context': 'https://www.w3.org/ns/activitystreams',
-    type: 'OrderedCollectionPage',
-    id: `${id}?page=${page}`,
-    partOf: id,
-    totalItems: total,
-    orderedItems: items,
-    ...(hasNext ? { next: `${id}?page=${page + 1}` } : {}),
-    ...(page > 1 ? { prev: `${id}?page=${page - 1}` } : {}),
-  };
+  if (!page) return collectionHeader(id, total);
+  return collectionPage(id, page, total, await outboxPage(page));
 });

@@ -548,7 +548,9 @@
       "takeCustody": "Hold my own key",
       "custodyWarning": "Only this browser will have it. Lose it and you lose the identifier — download the file straight after.",
       "custodyConfirm": "Generate it here",
-      "keyMissing": "Your key is not in this browser. Import it, or take a new one."
+      "keyMissing": "Your key is not in this browser. Import it, or take a new one.",
+      "importKey": "Import a key file",
+      "importBad": "That file does not hold a usable key for this account."
     }
   },
   "torrents": {
@@ -1606,17 +1608,24 @@
         "tileError": "Failing",
         "tileMirrored": "Mirrored torrents",
         "noPeers": "No active partner.",
-        "neverSynced": "Never synced."
+        "neverSynced": "Never synced.",
+        "storeLocal": "published here",
+        "storeIngested": "taken from partners",
+        "storeRelayable": "would be passed on",
+        "storeSuperseded": "replaced",
+        "sourcedHint": "Records held from this partner, then rows in the local mirror. Identity assertions and withdrawals have no mirror row, so the two differ."
       },
       "relay": {
         "title": "Relay",
         "on": "Carrying partners' records and handing them on. Their partners can reach your catalogue through one link instead of many.",
-        "off": "Not carrying anything but your own. Partners still exchange with you directly."
+        "off": "Not carrying anything but your own. Partners still exchange with you directly.",
+        "oneWay": "Turning this off stops new records being carried. It does not recall the ones already handed on — a partner that took them holds signed copies that stand on their own."
       },
       "discover": {
         "title": "Public catalogue",
         "on": "Anyone can read what you publish — an actor document and a collection of your releases' metadata. No .torrent files, no member data.",
-        "off": "Only partners you have accepted can see anything. Nothing is served to strangers."
+        "off": "Only partners you have accepted can see anything. Nothing is served to strangers.",
+        "oneWay": "A catalogue that has been read has been read. Turning this off closes the door for the future; it does not reach into caches, crawlers or copies already made."
       }
     },
     "notifications": {

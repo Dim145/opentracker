@@ -40,13 +40,26 @@
  * without re-cutting anything. If that trade ever changes, it changes once and
  * deliberately.
  */
-import { eq, and, isNull, desc, count } from 'drizzle-orm';
+import { eq, and, isNull, desc, count, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { didKeyFromPublicKey } from './did';
 import type { FederationConfig } from '@trackarr/db/schema';
 
 export const AS2_CONTENT_TYPE =
   'application/activity+json; charset=utf-8';
+
+/**
+ * Adult-flagged releases stay out of the public collection.
+ *
+ * Not a filter a consumer asked for — the flag is on every record and anybody
+ * reading them can apply their own rule. This is about what an unauthenticated
+ * endpoint publishes by default on a private tracker: an operator turning on
+ * "public catalogue" is agreeing to be discoverable, and it should take a
+ * further, separate decision before that includes this. Nobody has asked for
+ * the opposite, so there is no setting for it yet — when somebody does, it is
+ * one boolean and this comment is where it goes.
+ */
+const NOT_ADULT = sql`coalesce(${schema.catalogRecords.body}->>'trackarr:isAdult', 'false') <> 'true'`;
 
 /** Records per outbox page. Large enough to be useful, small enough to serve. */
 export const PAGE_SIZE = 50;
@@ -113,6 +126,7 @@ export async function outboxSize(): Promise<number> {
         // others — a relayed record belongs in its author's outbox, and
         // claiming it here would be attributing somebody else's work to us.
         eq(schema.catalogRecords.origin, 'local'),
+        NOT_ADULT,
       ),
     );
   return Number(row?.n ?? 0);
@@ -129,6 +143,7 @@ export async function outboxPage(
       and(
         isNull(schema.catalogRecords.supersededAt),
         eq(schema.catalogRecords.origin, 'local'),
+        NOT_ADULT,
       ),
     )
     .orderBy(desc(schema.catalogRecords.createdAt))
@@ -174,5 +189,55 @@ export function contextDocument(config: FederationConfig): Record<string, unknow
       endorsement: term('endorsement'),
       succeededBy: { '@id': term('succeededBy'), '@type': '@id' },
     },
+  };
+}
+
+/**
+ * The two collection shapes, built rather than typed out in the handler.
+ *
+ * They look trivial and they are the part a stranger's software actually
+ * parses. Getting `partOf` wrong, or emitting `next` on the last page, or
+ * `first` on an empty collection, produces a document that reads fine to a
+ * human and walks forever — or stops after one page — for a consumer. Those
+ * are exactly the mistakes a test catches and a manual pass does not, and
+ * until now nothing in this repository asserted any of them.
+ */
+const AS2_CONTEXT = 'https://www.w3.org/ns/activitystreams';
+
+/** The header: how many, and where to start. */
+export function collectionHeader(
+  id: string,
+  total: number,
+): Record<string, unknown> {
+  return {
+    '@context': AS2_CONTEXT,
+    type: 'OrderedCollection',
+    id,
+    totalItems: total,
+    // No `first` on an empty collection. Advertising a page that would come
+    // back empty invites a consumer to walk a collection that has nothing to
+    // walk, and a link to nothing is worse than no link.
+    ...(total ? { first: `${id}?page=1` } : {}),
+  };
+}
+
+/** One page, with only the neighbours that exist. */
+export function collectionPage(
+  id: string,
+  page: number,
+  total: number,
+  items: unknown[],
+): Record<string, unknown> {
+  return {
+    '@context': AS2_CONTEXT,
+    type: 'OrderedCollectionPage',
+    id: `${id}?page=${page}`,
+    partOf: id,
+    totalItems: total,
+    orderedItems: items,
+    // `next` only while there is one. A page that always links onward is a
+    // collection a well-behaved consumer never finishes reading.
+    ...(page * PAGE_SIZE < total ? { next: `${id}?page=${page + 1}` } : {}),
+    ...(page > 1 ? { prev: `${id}?page=${page - 1}` } : {}),
   };
 }

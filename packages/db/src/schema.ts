@@ -2757,6 +2757,55 @@ export const remoteIdentityLinks = pgTable(
 export type RemoteIdentityLink = typeof remoteIdentityLinks.$inferSelect;
 
 /**
+ * Which partner serves which record.
+ *
+ * This is the set reconciliation actually compares, and getting that wrong is
+ * the most expensive mistake this subsystem has made. It used to compare the
+ * MIRROR — `remote_torrents` — against what a partner served. The mirror only
+ * holds torrents, so every tombstone, identity assertion and revocation was
+ * permanently "missing": fetched again on every tick, ingested to no effect,
+ * still missing. Silently, because nothing about it moved a counter.
+ *
+ * A record is content-addressed, so what a partner offers is a set of ids and
+ * nothing more. This table is the same kind of thing on our side, which is why
+ * the two can be compared at all.
+ *
+ * It also answers the question relaying needs — where can this record be got —
+ * and it is what says a record is still wanted: when the last partner stops
+ * serving one, nothing sources it any more.
+ */
+export const recordSources = pgTable(
+  'record_sources',
+  {
+    /** Content address. Deliberately not a foreign key: see `catalogRecords`. */
+    recordId: text('record_id').notNull(),
+    peerId: text('peer_id')
+      .notNull()
+      .references(() => federationPeers.id, { onDelete: 'cascade' }),
+    /**
+     * `torrent` | `tombstone` | `identity` | `revocation`.
+     *
+     * Kept here so a lost mirror row can be found again. The mirror is a view
+     * of torrents derived from records; if one goes missing — a bug, a manual
+     * delete, a half-applied write — nothing else would notice, because the
+     * set we reconcile is this table and it would still say we hold the
+     * record. Knowing which sources OUGHT to have a mirror row is what lets
+     * that be checked, and the repair is to forget the source so the next
+     * reconciliation fetches it again.
+     */
+    kind: text('kind').notNull().default('torrent'),
+    firstSeenAt: timestamp('first_seen_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.peerId, table.recordId] }),
+    /** Everyone who serves one record — the question a relay asks. */
+    index('record_sources_record_idx').on(table.recordId),
+  ],
+);
+
+export type RecordSource = typeof recordSources.$inferSelect;
+
+/**
  * Identifiers a partner has withdrawn.
  *
  * The recourse a member has when their exported identity file gets out. Their

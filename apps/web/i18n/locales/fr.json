@@ -548,7 +548,9 @@
       "takeCustody": "Détenir ma clé",
       "custodyWarning": "Seul ce navigateur l'aura. La perdre, c'est perdre l'identifiant — téléchargez le fichier juste après.",
       "custodyConfirm": "La générer ici",
-      "keyMissing": "Votre clé n'est pas dans ce navigateur. Importez-la, ou reprenez-en une."
+      "keyMissing": "Votre clé n'est pas dans ce navigateur. Importez-la, ou reprenez-en une.",
+      "importKey": "Importer un fichier de clé",
+      "importBad": "Ce fichier ne contient pas de clé utilisable pour ce compte."
     }
   },
   "torrents": {
@@ -1606,17 +1608,24 @@
         "tileError": "En erreur",
         "tileMirrored": "Torrents miroir",
         "noPeers": "Aucun partenaire actif.",
-        "neverSynced": "Jamais synchronisé."
+        "neverSynced": "Jamais synchronisé.",
+        "storeLocal": "publiés ici",
+        "storeIngested": "reçus de pairs",
+        "storeRelayable": "seraient relayés",
+        "storeSuperseded": "remplacés",
+        "sourcedHint": "Enregistrements détenus pour ce pair, puis lignes du miroir local. Les assertions d'identité et les retraits n'ont pas de ligne miroir : les deux diffèrent."
       },
       "relay": {
         "title": "Relais",
         "on": "Porte les enregistrements des partenaires et les transmet. Leurs partenaires atteignent votre catalogue par un seul lien au lieu de plusieurs.",
-        "off": "Ne porte que le vôtre. Les partenaires échangent toujours directement avec vous."
+        "off": "Ne porte que le vôtre. Les partenaires échangent toujours directement avec vous.",
+        "oneWay": "Désactiver arrête d'en transporter de nouveaux. Cela ne rappelle pas ceux déjà transmis : un pair qui les a pris détient des copies signées qui se suffisent à elles-mêmes."
       },
       "discover": {
         "title": "Catalogue public",
         "on": "N'importe qui peut lire ce que vous publiez — un document d'acteur et une collection des métadonnées de vos releases. Aucun fichier .torrent, aucune donnée de membre.",
-        "off": "Seuls les partenaires que vous avez acceptés voient quoi que ce soit. Rien n'est servi aux inconnus."
+        "off": "Seuls les partenaires que vous avez acceptés voient quoi que ce soit. Rien n'est servi aux inconnus.",
+        "oneWay": "Un catalogue qui a été lu a été lu. Désactiver ferme la porte pour la suite ; cela n'atteint ni les caches, ni les robots, ni les copies déjà faites."
       }
     },
     "notifications": {
