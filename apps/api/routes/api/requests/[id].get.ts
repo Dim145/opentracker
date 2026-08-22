@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
     row.filledTorrentId
       ? db.query.torrents.findFirst({
           where: eq(schema.torrents.id, row.filledTorrentId),
-          columns: { id: true, infoHash: true, name: true },
+          columns: { id: true, infoHash: true, name: true, contentRootV2: true },
         })
       : Promise.resolve(null),
     db.query.uploadRequestComments.findMany({
@@ -131,6 +131,32 @@ export default defineEventHandler(async (event) => {
   const maxFills = await getRequestMaxFillsPerUser();
   const callerAttempts = attemptCount[0]?.value ?? 0;
 
+  // Federated origin (M1). When the request was raised from a mirrored release,
+  // surface where from and whether the current fill's content is cryptographically
+  // the same as the origin's — a green light the requester can validate against.
+  let federated: {
+    peerName: string;
+    infoHash: string;
+    contentVerified: boolean;
+  } | null = null;
+  if (row.federatedInfoHash) {
+    const peer = row.federatedPeerId
+      ? await db.query.federationPeers.findFirst({
+          where: eq(schema.federationPeers.id, row.federatedPeerId),
+          columns: { displayName: true, baseUrl: true },
+        })
+      : null;
+    federated = {
+      peerName: peer?.displayName || peer?.baseUrl || 'a partner',
+      infoHash: row.federatedInfoHash,
+      contentVerified: !!(
+        row.federatedContentRootV2 &&
+        torrent?.contentRootV2 &&
+        row.federatedContentRootV2 === torrent.contentRootV2
+      ),
+    };
+  }
+
   // Discussion is closed once the request resolves — validated
   // and cancelled rows turn read-only so the thread doesn't keep
   // accumulating noise after the case is settled.
@@ -151,6 +177,7 @@ export default defineEventHandler(async (event) => {
     category: category ?? null,
     filler: filler ?? null,
     torrent: torrent ?? null,
+    federated,
     comments: comments.map((c) => ({
       id: c.id,
       body: c.deletedAt ? null : c.body,

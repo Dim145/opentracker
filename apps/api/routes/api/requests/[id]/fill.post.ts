@@ -22,6 +22,7 @@ import { db, schema } from '@trackarr/db';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notify } from '~~/utils/notify';
 import { getRequestMaxFillsPerUser } from '~~/utils/settings';
+import { contentRootMismatch } from '~~/utils/federation/federatedRequest';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 const bodySchema = z.object({
@@ -70,6 +71,7 @@ export default defineEventHandler(async (event) => {
       uploaderId: true,
       categoryId: true,
       moderationStatus: true,
+      contentRootV2: true,
     },
   });
   if (!torrent) {
@@ -85,6 +87,19 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 403,
       message: 'Only the uploader of the torrent can use it as a fill',
+    });
+  }
+
+  // Federated-origin content proof. When the request came from a partner release
+  // AND both sides carry a v2 content root (§1), the fill must BE that content —
+  // the roots are cryptographic, so a mismatch is a different release wearing a
+  // similar name. When either side has no v2 root, we do not gate here: the
+  // requester still confirms at validation, exactly as for a local request.
+  if (contentRootMismatch(request.federatedContentRootV2, torrent.contentRootV2)) {
+    throw createError({
+      statusCode: 400,
+      message:
+        "This torrent's content does not match the requested release (v2 content root differs).",
     });
   }
 

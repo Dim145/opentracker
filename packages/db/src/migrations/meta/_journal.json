@@ -267,6 +267,13 @@
       "when": 1787433416240,
       "tag": "0037_panoramic_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1787434749303,
+      "tag": "0038_spotty_sir_ram",
+      "breakpoints": true
     }
   ]
 }

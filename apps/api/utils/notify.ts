@@ -101,7 +101,10 @@ export type NotificationType =
   | 'federation_request_received'
   // A followed uploader on a partner instance published a new torrent
   // (detected by the catalogue sync). Notifies the local follower.
-  | 'federated_followed_upload';
+  | 'federated_followed_upload'
+  // A member raised a request here for a release seen on a partner (M1). Sent to
+  // the members who also hold an account on that partner — the people who can fill.
+  | 'federated_request_created';
 
 export interface NotificationRecord {
   id: string;

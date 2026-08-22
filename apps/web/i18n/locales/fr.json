@@ -4118,6 +4118,10 @@
       "federated_followed_upload": {
         "title": "Nouvelle release d'un uploadeur suivi",
         "desc": "{uploaderName} sur {peerName} a publié « {torrentName} »."
+      },
+      "federated_request_created": {
+        "title": "Une release que vous avez peut-être est demandée",
+        "desc": "« {title} » — vue sur {peerName} — a été demandée ici. Remplissez-la pour +{rewardPoints} pts."
       }
     }
   },
@@ -4212,7 +4216,9 @@
       "noComments": "Aucun commentaire sur l'instance d'origine pour l'instant.",
       "commentsError": "Impossible de charger les commentaires depuis l'instance d'origine.",
       "commentOnSource": "Commenter sur {peer}",
-      "report": "Signaler"
+      "report": "Signaler",
+      "requestHere": "Demander ici",
+      "requestError": "Impossible de créer une demande pour cette release."
     }
   },
   "forumFederated": {

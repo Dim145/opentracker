@@ -200,6 +200,10 @@ const EN: Dict = {
     title: 'New release from a followed uploader',
     desc: '{uploaderName} on {peerName} published “{torrentName}”.',
   },
+  federated_request_created: {
+    title: 'A release you may have is requested',
+    desc: '“{title}” — seen on {peerName} — was requested here. Fill it for +{rewardPoints} pts.',
+  },
 };
 
 const FR: Dict = {
@@ -378,6 +382,10 @@ const FR: Dict = {
   federated_followed_upload: {
     title: 'Nouvelle release suivie',
     desc: '{uploaderName} sur {peerName} a publié « {torrentName} ».',
+  },
+  federated_request_created: {
+    title: 'Une release que vous avez peut-être est demandée',
+    desc: '« {title} » — vue sur {peerName} — a été demandée ici. Remplissez-la pour +{rewardPoints} pts.',
   },
 };
 

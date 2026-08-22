@@ -4118,6 +4118,10 @@
       "federated_followed_upload": {
         "title": "New release from a followed uploader",
         "desc": "{uploaderName} on {peerName} published “{torrentName}”."
+      },
+      "federated_request_created": {
+        "title": "A release you may have is requested",
+        "desc": "“{title}” — seen on {peerName} — was requested here. Fill it for +{rewardPoints} pts."
       }
     }
   },
@@ -4212,7 +4216,9 @@
       "noComments": "No comments on the source instance yet.",
       "commentsError": "Couldn't load comments from the source instance.",
       "commentOnSource": "Comment on {peer}",
-      "report": "Report"
+      "report": "Report",
+      "requestHere": "Request here",
+      "requestError": "Couldn't raise a request for this release."
     }
   },
   "forumFederated": {

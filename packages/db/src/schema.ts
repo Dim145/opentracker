@@ -2066,12 +2066,29 @@ export const uploadRequests = pgTable(
     filledAt: timestamp('filled_at'),
     validatedAt: timestamp('validated_at'),
     cancelledAt: timestamp('cancelled_at'),
+    // Federated origin (M1 request→fill bridge). Set when a request was raised
+    // from a mirrored release a member saw on a partner but could not pull: the
+    // request lives entirely on this tracker (a local member fills it by
+    // uploading here), and these only remember where it came from and how to
+    // prove a fill is the same content.
+    //   - `federatedPeerId`  — which partner the release was seen on (for
+    //     targeting the members who also have an account there).
+    //   - `federatedInfoHash` — the origin's v1 infohash, for dedup + display.
+    //   - `federatedContentRootV2` — the origin's cross-tracker content key
+    //     (§1); a fill whose own root equals this IS the same content, proven.
+    federatedPeerId: text('federated_peer_id').references(() => federationPeers.id, {
+      onDelete: 'set null',
+    }),
+    federatedInfoHash: text('federated_info_hash'),
+    federatedContentRootV2: text('federated_content_root_v2'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => [
     // Listing index: open requests, newest first.
     index('upload_requests_status_idx').on(table.status, table.createdAt),
+    // Dedup: "is this federated release already requested here?"
+    index('upload_requests_federated_info_hash_idx').on(table.federatedInfoHash),
     // "Show me my own requests" + chronological order.
     index('upload_requests_requester_idx').on(
       table.requesterId,
