@@ -6,6 +6,30 @@
 export type ThemePreference = 'light' | 'dark';
 
 /**
+ * Columns the catalogue listing can be ordered by. Every entry corresponds to a
+ * column the table renders, so each header the user sees can be clicked.
+ *
+ * `age` is the default and means "when the torrent became available"
+ * (`COALESCE(moderated_at, created_at)`), not when it was uploaded — a release
+ * that spent a week in the moderation queue appears where a member expects it.
+ *
+ * The order of this array is the order of the columns in the table; keep them
+ * in step so a reader can map one onto the other.
+ */
+export const TORRENT_SORT_KEYS = [
+  'name',
+  'seeders',
+  'leechers',
+  'completed',
+  'size',
+  'age',
+] as const;
+
+export type TorrentSortKey = (typeof TORRENT_SORT_KEYS)[number];
+
+export type SortDirection = 'asc' | 'desc';
+
+/**
  * Locale codes that the web frontend bundles. Keep this in lock-step
  * with `apps/web/i18n/locales/*.json` and the `locales` array in
  * `apps/web/nuxt.config.ts`. The DB column is a free-form `text` so

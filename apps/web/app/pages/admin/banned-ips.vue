@@ -665,7 +665,7 @@ async function onUnban(item: BannedIp) {
   flex-direction: column;
   gap: 0.45rem;
   padding: 1rem 1.1rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
 }
@@ -702,7 +702,7 @@ async function onUnban(item: BannedIp) {
 .add-card {
   position: relative;
   padding: 1.25rem 1.4rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-left: 3px solid rgb(var(--danger));
   border-radius: 0.5rem;
@@ -827,7 +827,7 @@ async function onUnban(item: BannedIp) {
 /* ─── Filters ───────────────────────────────────────────────── */
 .filters {
   padding: 0.85rem 1rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
 }
@@ -879,7 +879,7 @@ async function onUnban(item: BannedIp) {
 .table-wrap {
   position: relative;
   overflow-x: auto;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
 }
@@ -900,7 +900,7 @@ async function onUnban(item: BannedIp) {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border-bottom: 1px solid rgb(var(--line-default));
   white-space: nowrap;
 }

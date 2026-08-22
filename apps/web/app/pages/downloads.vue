@@ -35,6 +35,19 @@
       <div v-for="i in 5" :key="`sk-${i}`" class="dl-row dl-row--skeleton" />
     </div>
 
+    <!-- Hidden by choice comes before the empty state: both arrive as
+         zero rows, and "you have not downloaded anything yet" would be
+         a lie told to the one person who knows better. -->
+    <div v-else-if="data?.hidden" class="dl-empty">
+      <Icon name="ph:eye-closed" class="dl-empty-icon" />
+      <h3>{{ $t('downloads.hidden.title') }}</h3>
+      <p>{{ $t('downloads.hidden.body') }}</p>
+      <NuxtLink to="/settings#privacy" class="dl-btn">
+        <Icon name="ph:sliders-horizontal" />
+        {{ $t('downloads.hidden.cta') }}
+      </NuxtLink>
+    </div>
+
     <div
       v-else-if="!data || data.items.length === 0"
       class="dl-empty"
@@ -213,6 +226,8 @@ interface DownloadsPayload {
   total: number;
   page: number;
   pageSize: number;
+  /** True when the member asked for their history not to be served. */
+  hidden: boolean;
 }
 
 // `auth.global.ts` already gates every non-public route, so we don't

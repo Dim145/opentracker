@@ -9,13 +9,13 @@
 --   * is_banned=false        → not banned (the timestamp may linger
 --     after a manual unban; we don't bother clearing it)
 ALTER TABLE "users"
-  ADD COLUMN "banned_until" timestamp,
-  ADD COLUMN "ban_reason"   text;
-
+  ADD COLUMN IF NOT EXISTS "banned_until" timestamp,
+  ADD COLUMN IF NOT EXISTS "ban_reason"   text;
+--> statement-breakpoint
 -- The ban-expiry cron scans on this index every 5 min. Partial so it
 -- only carries rows that are actually banned with a timestamp — keeps
 -- the index lean (most users never get banned, and permanent bans
 -- never appear here either).
-CREATE INDEX "users_banned_until_idx"
+CREATE INDEX IF NOT EXISTS "users_banned_until_idx"
   ON "users" ("banned_until")
   WHERE "is_banned" = true AND "banned_until" IS NOT NULL;

@@ -50,6 +50,181 @@
       "when": 1766960891724,
       "tag": "0006_misty_wolf_cub",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778105370000,
+      "tag": "0007_subcategories",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778105371000,
+      "tag": "0008_zke_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778105372000,
+      "tag": "0009_roles_moderation",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778105372001,
+      "tag": "0009a_schema_catchup",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1778105373000,
+      "tag": "0010_torznab_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1778769477000,
+      "tag": "0011_igdb_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1778775521000,
+      "tag": "0012_openlibrary_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1778786522000,
+      "tag": "0013_first_seeder_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1778894559000,
+      "tag": "0014_category_icon",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1778902722000,
+      "tag": "0015_anticheat_flags",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1778941396000,
+      "tag": "0016_user_ban_expiry",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1778943432000,
+      "tag": "0017_torrent_favorites",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1778947597000,
+      "tag": "0018_user_follows",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1778958493000,
+      "tag": "0019_upload_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1778960815000,
+      "tag": "0020_request_fill_attempts_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1779034345000,
+      "tag": "0021_freeleech_pool",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1779045684000,
+      "tag": "0022_anticheat_no_leecher_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1780139672000,
+      "tag": "0023_panic_kdf_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1781377290000,
+      "tag": "0024_federation_catalog_removals",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1781377291000,
+      "tag": "0025_torrents_updated_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1787366772000,
+      "tag": "0026_user_privacy_toggles",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1787366773000,
+      "tag": "0026a_column_catchup",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1787405150711,
+      "tag": "0029_wild_lady_vermin",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1787407195821,
+      "tag": "0030_supreme_nighthawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1787407237284,
+      "tag": "0031_supreme_machine_man",
+      "breakpoints": true
     }
   ]
 }

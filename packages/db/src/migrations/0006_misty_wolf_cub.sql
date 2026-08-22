@@ -1,4 +1,4 @@
-CREATE TABLE "hnr_tracking" (
+CREATE TABLE IF NOT EXISTS "hnr_tracking" (
 	"id" text PRIMARY KEY NOT NULL,
 	"user_id" text NOT NULL,
 	"torrent_id" text NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE "hnr_tracking" (
 	"completed_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "invitations" (
+CREATE TABLE IF NOT EXISTS "invitations" (
 	"id" text PRIMARY KEY NOT NULL,
 	"code" text NOT NULL,
 	"created_by" text NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE "invitations" (
 	CONSTRAINT "invitations_code_unique" UNIQUE("code")
 );
 --> statement-breakpoint
-CREATE TABLE "panic_state" (
+CREATE TABLE IF NOT EXISTS "panic_state" (
 	"id" text PRIMARY KEY DEFAULT 'singleton' NOT NULL,
 	"is_encrypted" boolean DEFAULT false NOT NULL,
 	"encrypted_at" timestamp,
@@ -29,7 +29,7 @@ CREATE TABLE "panic_state" (
 	"encryption_iv" text
 );
 --> statement-breakpoint
-CREATE TABLE "reports" (
+CREATE TABLE IF NOT EXISTS "reports" (
 	"id" text PRIMARY KEY NOT NULL,
 	"reporter_id" text NOT NULL,
 	"target_type" text NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE "reports" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "site_stats" (
+CREATE TABLE IF NOT EXISTS "site_stats" (
 	"id" text PRIMARY KEY NOT NULL,
 	"users_count" integer NOT NULL,
 	"torrents_count" integer NOT NULL,
@@ -54,7 +54,7 @@ CREATE TABLE "site_stats" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "tags" (
+CREATE TABLE IF NOT EXISTS "tags" (
 	"id" text PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"slug" text NOT NULL,
@@ -64,34 +64,98 @@ CREATE TABLE "tags" (
 	CONSTRAINT "tags_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
-CREATE TABLE "torrent_tags" (
+CREATE TABLE IF NOT EXISTS "torrent_tags" (
 	"torrent_id" text NOT NULL,
 	"tag_id" text NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "categories" DROP CONSTRAINT "categories_name_unique";--> statement-breakpoint
-ALTER TABLE "categories" ADD COLUMN "parent_id" text;--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "invites_remaining" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
-ALTER TABLE "users" ADD COLUMN "panic_password_hash" text;--> statement-breakpoint
-ALTER TABLE "hnr_tracking" ADD CONSTRAINT "hnr_tracking_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "hnr_tracking" ADD CONSTRAINT "hnr_tracking_torrent_id_torrents_id_fk" FOREIGN KEY ("torrent_id") REFERENCES "public"."torrents"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "invitations" ADD CONSTRAINT "invitations_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "invitations" ADD CONSTRAINT "invitations_used_by_users_id_fk" FOREIGN KEY ("used_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "reports" ADD CONSTRAINT "reports_reporter_id_users_id_fk" FOREIGN KEY ("reporter_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "reports" ADD CONSTRAINT "reports_resolved_by_users_id_fk" FOREIGN KEY ("resolved_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "torrent_tags" ADD CONSTRAINT "torrent_tags_torrent_id_torrents_id_fk" FOREIGN KEY ("torrent_id") REFERENCES "public"."torrents"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "torrent_tags" ADD CONSTRAINT "torrent_tags_tag_id_tags_id_fk" FOREIGN KEY ("tag_id") REFERENCES "public"."tags"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "hnr_user_idx" ON "hnr_tracking" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "hnr_torrent_idx" ON "hnr_tracking" USING btree ("torrent_id");--> statement-breakpoint
-CREATE INDEX "hnr_status_idx" ON "hnr_tracking" USING btree ("is_hnr");--> statement-breakpoint
-CREATE UNIQUE INDEX "hnr_user_torrent_idx" ON "hnr_tracking" USING btree ("user_id","torrent_id");--> statement-breakpoint
-CREATE INDEX "invitations_created_by_idx" ON "invitations" USING btree ("created_by");--> statement-breakpoint
-CREATE INDEX "invitations_code_idx" ON "invitations" USING btree ("code");--> statement-breakpoint
-CREATE INDEX "reports_reporter_idx" ON "reports" USING btree ("reporter_id");--> statement-breakpoint
-CREATE INDEX "reports_target_idx" ON "reports" USING btree ("target_type","target_id");--> statement-breakpoint
-CREATE INDEX "reports_status_idx" ON "reports" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "site_stats_created_at_idx" ON "site_stats" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "torrent_tags_torrent_idx" ON "torrent_tags" USING btree ("torrent_id");--> statement-breakpoint
-CREATE INDEX "torrent_tags_tag_idx" ON "torrent_tags" USING btree ("tag_id");--> statement-breakpoint
-CREATE INDEX "categories_parent_idx" ON "categories" USING btree ("parent_id");
+ALTER TABLE "categories" DROP CONSTRAINT IF EXISTS "categories_name_unique";
+--> statement-breakpoint
+ALTER TABLE "categories" ADD COLUMN IF NOT EXISTS "parent_id" text;
+--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "invites_remaining" integer DEFAULT 0 NOT NULL;
+--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "panic_password_hash" text;
+--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'hnr_tracking_user_id_users_id_fk' AND conrelid = 'public.hnr_tracking'::regclass) THEN
+    ALTER TABLE "hnr_tracking" ADD CONSTRAINT "hnr_tracking_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'hnr_tracking_torrent_id_torrents_id_fk' AND conrelid = 'public.hnr_tracking'::regclass) THEN
+    ALTER TABLE "hnr_tracking" ADD CONSTRAINT "hnr_tracking_torrent_id_torrents_id_fk" FOREIGN KEY ("torrent_id") REFERENCES "public"."torrents"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'invitations_created_by_users_id_fk' AND conrelid = 'public.invitations'::regclass) THEN
+    ALTER TABLE "invitations" ADD CONSTRAINT "invitations_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'invitations_used_by_users_id_fk' AND conrelid = 'public.invitations'::regclass) THEN
+    ALTER TABLE "invitations" ADD CONSTRAINT "invitations_used_by_users_id_fk" FOREIGN KEY ("used_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'reports_reporter_id_users_id_fk' AND conrelid = 'public.reports'::regclass) THEN
+    ALTER TABLE "reports" ADD CONSTRAINT "reports_reporter_id_users_id_fk" FOREIGN KEY ("reporter_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'reports_resolved_by_users_id_fk' AND conrelid = 'public.reports'::regclass) THEN
+    ALTER TABLE "reports" ADD CONSTRAINT "reports_resolved_by_users_id_fk" FOREIGN KEY ("resolved_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'torrent_tags_torrent_id_torrents_id_fk' AND conrelid = 'public.torrent_tags'::regclass) THEN
+    ALTER TABLE "torrent_tags" ADD CONSTRAINT "torrent_tags_torrent_id_torrents_id_fk" FOREIGN KEY ("torrent_id") REFERENCES "public"."torrents"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                 WHERE conname = 'torrent_tags_tag_id_tags_id_fk' AND conrelid = 'public.torrent_tags'::regclass) THEN
+    ALTER TABLE "torrent_tags" ADD CONSTRAINT "torrent_tags_tag_id_tags_id_fk" FOREIGN KEY ("tag_id") REFERENCES "public"."tags"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "hnr_user_idx" ON "hnr_tracking" USING btree ("user_id");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "hnr_torrent_idx" ON "hnr_tracking" USING btree ("torrent_id");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "hnr_status_idx" ON "hnr_tracking" USING btree ("is_hnr");
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "hnr_user_torrent_idx" ON "hnr_tracking" USING btree ("user_id","torrent_id");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "invitations_created_by_idx" ON "invitations" USING btree ("created_by");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "invitations_code_idx" ON "invitations" USING btree ("code");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "reports_reporter_idx" ON "reports" USING btree ("reporter_id");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "reports_target_idx" ON "reports" USING btree ("target_type","target_id");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "reports_status_idx" ON "reports" USING btree ("status");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "site_stats_created_at_idx" ON "site_stats" USING btree ("created_at");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "torrent_tags_torrent_idx" ON "torrent_tags" USING btree ("torrent_id");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "torrent_tags_tag_idx" ON "torrent_tags" USING btree ("tag_id");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "categories_parent_idx" ON "categories" USING btree ("parent_id");

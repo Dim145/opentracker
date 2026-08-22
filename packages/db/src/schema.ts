@@ -98,6 +98,34 @@ export const users = pgTable(
     // newly-registered user never sees the XXX tree until they
     // explicitly turn it on in their profile settings.
     showAdultContent: boolean('show_adult_content').default(false).notNull(),
+    // Detaches the uploader's name from their releases, retroactively:
+    // the flag lives on the account, not on the row, so flipping it
+    // covers everything already uploaded. Read paths that face other
+    // members drop the name (detail page, cross-seed list, RSS, the
+    // federated catalogue we publish to peers) and the per-user upload
+    // listing stops answering for this account. The uploader and staff
+    // always see the real name — moderation has to stay able to tie a
+    // release to whoever posted it, so this is concealment from peers,
+    // never from the operator.
+    anonymousUploads: boolean('anonymous_uploads').default(false).notNull(),
+    // Hides the member's own snatch list from `/downloads`.
+    //
+    // Deliberately a *display* preference: the underlying rows are
+    // `hnr_tracking`, which the hit-and-run job, the bonus accrual and
+    // the auto-role rules all read, so the tracker cannot stop writing
+    // them without letting a member evade HnR by ticking a box. What
+    // this buys is that a session someone else got hold of cannot
+    // enumerate what was downloaded, and the settings copy says exactly
+    // that rather than implying the history is gone.
+    hideDownloadHistory: boolean('hide_download_history')
+      .default(false)
+      .notNull(),
+    // Requires a minimum account age before someone may comment on
+    // this member's uploads — the answer to a fresh throwaway account
+    // being used to harass an uploader. The uploader themselves and
+    // staff are never held to it, so a thread stays answerable and
+    // moderatable. Threshold: utils/commentPolicy.ts.
+    restrictComments: boolean('restrict_comments').default(false).notNull(),
     // 'light' | 'dark'. Persisted server-side so the chosen theme
     // follows the user across devices instead of being trapped in a
     // single browser's localStorage.

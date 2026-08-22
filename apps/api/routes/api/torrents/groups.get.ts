@@ -35,6 +35,7 @@
  * the partner's own slugs on the mirror. Writing them once and hoping would
  * mean one of the two silently filtering nothing.
  */
+import { TORRENT_SORT_KEYS } from '@trackarr/shared';
 import { and, eq, inArray, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema, ftsVector } from '@trackarr/db';
@@ -62,6 +63,10 @@ const querySchema = z.object({
   scope: z.enum(GROUP_SCOPES as unknown as [string, ...string[]]).optional(),
   /** `local` leaves the mirror out; the default merges it in. */
   sources: z.enum(['all', 'local']).default('all'),
+  // Same vocabulary as the flat listing, so switching views keeps the sort.
+  // What each key means across a group is `buildGroupOrderBy`'s business.
+  sortBy: z.enum(TORRENT_SORT_KEYS).default('age'),
+  order: z.enum(['asc', 'desc']).default('desc'),
 });
 
 export default defineEventHandler(async (event) => {
@@ -178,6 +183,8 @@ export default defineEventHandler(async (event) => {
     remoteWhere: remote.length ? and(...remote) : undefined,
     localOnly,
     scope: query.scope as never,
+    sortBy: query.sortBy,
+    order: query.order,
   });
 
   return {

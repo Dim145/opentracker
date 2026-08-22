@@ -292,3 +292,71 @@ describe('a key the instance does not hold', () => {
     ).toHaveLength(1);
   });
 });
+
+describe('two mints landing at once', () => {
+  // The guarantee is "one live key per member", and it is held by an index —
+  // `user_signing_keys_current`, partial unique over `(user_id) WHERE
+  // revoked_at IS NULL`. This is the test that says so, because both halves
+  // of it were wrong at once and neither announced itself.
+  //
+  // `drizzle-kit push` never created that index, so every push-maintained
+  // database was without it: two concurrent mints generate two DIFFERENT
+  // keypairs, collide on nothing, and a member ends up with two live keys.
+  // Restoring the index under the migration chain then turned that silence
+  // into a thrown unique violation, because the conflict clause named the
+  // primary key and cannot absorb a violation of a different index.
+
+  it('leaves the member with exactly one live key', async () => {
+    const userId = await makeUser('Racer');
+
+    const dids = await Promise.all(
+      Array.from({ length: 5 }, () => ensureUserDid(userId)),
+    );
+
+    // Every caller comes back with the same answer, not just without throwing.
+    expect(new Set(dids).size).toBe(1);
+
+    const live = await db
+      .select()
+      .from(schema.userSigningKeys)
+      .where(eq(schema.userSigningKeys.userId, userId));
+    expect(live.filter((r) => r.revokedAt === null)).toHaveLength(1);
+  });
+
+  it('is the index enforcing it, not luck', async () => {
+    // Written the other way round: insert a second live key by hand and
+    // require the database to refuse it. Without this, the test above passes
+    // on any database where the timing happens not to overlap.
+    const userId = await makeUser('Twice');
+    await ensureUserDid(userId);
+
+    await expect(
+      db.insert(schema.userSigningKeys).values({
+        did: 'did:key:zSecondLiveKey',
+        userId,
+        publicKey: 'pem',
+        privateKeyEnc: null,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('lets a retired key be replaced', async () => {
+    // The index must not forbid succession, or rotating would be impossible.
+    const userId = await makeUser('Rotator');
+    const first = await ensureUserDid(userId);
+    await db
+      .update(schema.userSigningKeys)
+      .set({ revokedAt: new Date() })
+      .where(eq(schema.userSigningKeys.did, first));
+
+    const second = await ensureUserDid(userId);
+    expect(second).not.toBe(first);
+
+    const rows = await db
+      .select()
+      .from(schema.userSigningKeys)
+      .where(eq(schema.userSigningKeys.userId, userId));
+    expect(rows).toHaveLength(2);
+    expect(rows.filter((r) => r.revokedAt === null)).toHaveLength(1);
+  });
+});

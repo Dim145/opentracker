@@ -48,7 +48,7 @@ the running app never reads them directly.
 | Variable                      | Read by   | Default       | Purpose                                                                |
 | ----------------------------- | --------- | ------------- | ---------------------------------------------------------------------- |
 | `DATABASE_URL`                | api, tracker | —          | PostgreSQL DSN. **Required**.                                          |
-| `MIGRATIONS_DATABASE_URL`     | api       | `DATABASE_URL`| Direct postgres DSN (bypasses PgBouncer) used by `drizzle-kit push`.   |
+| `MIGRATIONS_DATABASE_URL`     | api       | `DATABASE_URL`| Direct postgres DSN (bypasses PgBouncer) used by the boot-time migration step.   |
 | `DB_USER`                     | compose   | `tracker`     | Postgres role; renders into the DSN.                                   |
 | `DB_PASSWORD`                 | compose   | `tracker`     | Postgres password; renders into the DSN.                               |
 | `DB_NAME`                     | compose   | `trackarr`    | Database name.                                                         |

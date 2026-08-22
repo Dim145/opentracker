@@ -19,6 +19,7 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq, ne } from 'drizzle-orm';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
+import { redactUploader } from '~~/utils/uploaderVisibility';
 
 export default defineEventHandler(async (event) => {
   const { user: session } = await requireUserSession(event);
@@ -78,15 +79,27 @@ export default defineEventHandler(async (event) => {
         columns: { id: true, name: true, slug: true, type: true },
       },
       uploader: {
-        columns: { id: true, username: true },
+        columns: { id: true, username: true, anonymousUploads: true },
       },
     },
     orderBy: (t, { desc }) => [desc(t.createdAt)],
     limit: 50,
   });
 
+  // Same anonymity rule as the detail page: a cross-seed row names an
+  // uploader too, so hiding it on one surface and not the other would
+  // just move the leak.
+  const items = rows.map((row) => ({
+    ...row,
+    ...redactUploader(row.uploader, {
+      id: session.id,
+      isAdmin: session.isAdmin,
+      isModerator: session.isModerator,
+    }),
+  }));
+
   return {
-    items: rows,
-    total: rows.length,
+    items,
+    total: items.length,
   };
 });

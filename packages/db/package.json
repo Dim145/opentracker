@@ -10,7 +10,9 @@
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "check:schema-parity": "node scripts/check-schema-parity.mjs",
+    "db:baseline": "node scripts/baseline.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

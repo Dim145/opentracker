@@ -42,10 +42,23 @@ import { didKeyFromPublicKey } from './did';
 /**
  * The DID for one member, creating the key the first time it is asked for.
  *
- * Races are resolved by the primary key rather than by a lock: two concurrent
- * mints for the same uploader would both generate a keypair, and the loser's
- * insert does nothing. Whichever key lands first is the one that stands, and
- * the caller re-reads rather than assuming its own.
+ * Races are resolved by a unique index rather than by a lock, and it has to be
+ * the RIGHT one. Two concurrent mints generate two different keypairs, so they
+ * have two different DIDs and never collide on the primary key — the arbiter
+ * this used to name. What actually stops them is `user_signing_keys_current`,
+ * the partial unique index over `(user_id) WHERE revoked_at IS NULL`, which
+ * says a member has at most one live key.
+ *
+ * So the conflict clause names no target: either arbiter means the same thing
+ * here — somebody else got there first — and the caller re-reads rather than
+ * assuming its own key won.
+ *
+ * Worth stating because both halves were wrong at once. The index is one of
+ * the fifteen `drizzle-kit push` never created, so on every push-maintained
+ * database it did not exist and a race left a member holding two live keys,
+ * silently. Restoring it under the migration chain would then have turned that
+ * into a thrown unique violation, because a conflict clause naming `did`
+ * cannot absorb a violation of a different index.
  */
 export async function ensureUserDid(userId: string): Promise<string> {
   const [existing] = await db
@@ -70,7 +83,7 @@ export async function ensureUserDid(userId: string): Promise<string> {
       publicKey: kp.publicKeyPem,
       privateKeyEnc: encryptJson({ pem: kp.privateKeyPem }),
     })
-    .onConflictDoNothing({ target: schema.userSigningKeys.did })
+    .onConflictDoNothing()
     .returning({ did: schema.userSigningKeys.did });
   if (row) return row.did;
 

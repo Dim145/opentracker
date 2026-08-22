@@ -3,8 +3,13 @@
 # against an ephemeral Postgres. Requires only Docker on the host.
 #
 #   1. starts postgres:17-alpine on a private docker network
-#   2. pushes the drizzle schema (the same `drizzle-kit push --force` the
-#      API container runs at boot)
+#   2. applies the committed migrations — the same chain the API container
+#      runs at boot. It used to push schema.ts instead, which was the boot
+#      step at the time; it no longer is, and a suite that builds its schema
+#      differently from production is a suite that cannot fail on a broken
+#      migration. Measurably not equivalent either: a push of this schema onto
+#      a database one version behind stops on an interactive rename prompt and
+#      exits 0, applying nothing.
 #   3. installs deps + runs the integration suite inside node:24-alpine
 #   4. tears the database + network down on exit (success or failure)
 #
@@ -65,9 +70,9 @@ printf '\n'
 [ "$ready" = 1 ] || { echo "postgres did not become ready in time"; exit 1; }
 
 # The schema declares trigram and full-text indexes that need pg_trgm. The
-# real migrations create the extension, but `drizzle-kit push` works from
-# schema.ts and doesn't run migration SQL, so create it here or push aborts
-# mid-way on gin_trgm_ops.
+# migrations do create the extension, so this is belt and braces — but it is
+# also what the production image relies on `docker/postgres/init.sql` for, and
+# a database without it fails on gin_trgm_ops rather than on anything legible.
 docker exec "$PG" psql -U tracker -d trackarr -v ON_ERROR_STOP=1 \
   -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;' >/dev/null
 
@@ -99,8 +104,17 @@ docker run --rm --network "$NET" \
     corepack enable
     pnpm config set store-dir /pnpm-store >/dev/null
     pnpm install --filter '@trackarr/api...' --filter '@trackarr/db...'
-    echo '=== drizzle-kit push (schema) ==='
-    pnpm --filter @trackarr/db exec drizzle-kit push --force
+    echo '=== migrations ==='
+    # The same runner the container boots with, not \`drizzle-kit migrate\`.
+    # On a chain it cannot apply, drizzle-kit prints a spinner and exits 1
+    # naming neither the migration nor the statement; the migrator underneath
+    # throws the failing query. Here that is the whole value of the step.
+    # Copied in rather than run in place, because Node resolves \`postgres\`
+    # and \`drizzle-orm\` from the script's own directory. This is exactly what
+    # the API image does: the Dockerfile lands it in the db tree it ships.
+    cp apps/api/scripts/migrate.mjs packages/db/migrate.mjs
+    (cd packages/db && node migrate.mjs)
+    rm -f packages/db/migrate.mjs
     echo '=== integration tests ==='
     pnpm --filter @trackarr/api exec vitest run --config vitest.integration.config.ts $*
   "

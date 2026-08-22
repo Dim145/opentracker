@@ -78,7 +78,7 @@ No shells, no package managers, signed images, non-root by default.
 
 | Store | Purpose |
 | --- | --- |
-| **Postgres** | All persistent state — users, torrents, sessions, bonus ledger, notification rows. Schema in `packages/db/src/schema.ts`, applied at API boot via `drizzle-kit push --force`. |
+| **Postgres** | All persistent state — users, torrents, sessions, bonus ledger, notification rows. Schema in `packages/db/src/schema.ts`; the committed SQL migrations under `packages/db/src/migrations` are applied at API boot. |
 | **PgBouncer** | Connection pool between the API and Postgres. The api fans out a handful of connections per request handler; PgBouncer keeps the per-Postgres-backend count bounded. |
 | **Redis** | The peer store (one hash per torrent), sessions, rate-limit windows, the seed-bonus accumulator, the in-app notification pub/sub fan-out, and a few opportunistic caches (metadata, channel-encryption-key). The Go tracker and the Nitro API agree on a shared `REDIS_KEY_PREFIX` so both see the same keyspace. |
 

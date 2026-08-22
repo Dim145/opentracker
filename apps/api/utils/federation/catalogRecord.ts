@@ -205,7 +205,13 @@ export async function loadProjections(
       contentSignature: schema.torrents.contentSignature,
       season: schema.torrents.season,
       episode: schema.torrents.episode,
-      uploaderName: schema.users.username,
+      // An uploader who asked for anonymity gets it across the mesh too. The
+      // moment matters more here than it did on the feed this replaced: a
+      // record is signed, content-addressed and relayed, so a name that
+      // leaves once cannot be recalled by any later setting. Before minting
+      // is the only place the choice can still be honoured.
+      uploaderName: sql<string | null>`CASE WHEN ${schema.users.anonymousUploads}
+        THEN NULL ELSE ${schema.users.username} END`,
       uploaderId: schema.torrents.uploaderId,
       liveAt: sql<Date>`coalesce(${schema.torrents.moderatedAt}, ${schema.torrents.createdAt})`,
     })

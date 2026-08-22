@@ -69,12 +69,14 @@
  * it is folded so it can still stream off its partial index.
  */
 import { sql, type SQL } from 'drizzle-orm';
+import type { SortDirection, TorrentSortKey } from '@trackarr/shared';
 import { db, schema } from '@trackarr/db';
 import {
   LIVE_AT,
   LOCAL_RELEASE_KEY,
   TORRENT_COLUMNS,
   VISIBLE,
+  buildGroupOrderBy,
   groupKeyExpr,
   parseGroupKey,
   pickDefault,
@@ -153,6 +155,13 @@ export interface MixedListOptions {
   /** Leave the mirror out — the member asked for our catalogue only. */
   localOnly?: boolean;
   scope?: GroupScope;
+  /**
+   * Same vocabulary as the flat listing and the same meanings across a group —
+   * `buildGroupOrderBy` owns both, so the merged catalogue cannot answer "most
+   * seeded" differently from the local one.
+   */
+  sortBy?: TorrentSortKey;
+  order?: SortDirection;
 }
 
 type RawMixedGroup = RawScopeCounts & {
@@ -196,6 +205,7 @@ function localProjection(where: SQL, tagged: boolean, windowRows?: number): SQL 
            ${schema.torrents.name} AS name,
            coalesce(${stats.seeders}, 0) AS seeders,
            coalesce(${stats.leechers}, 0) AS leechers,
+           coalesce(${stats.completed}, 0) AS completed,
            true AS is_local,
            NULL::text AS peer_id,
            ${schema.torrents.categoryId} AS category_id,
@@ -221,6 +231,7 @@ function remoteProjection(where: SQL, tagged: boolean, windowRows?: number): SQL
            ${rt.name} AS name,
            coalesce(${rt.seeders}, 0) AS seeders,
            coalesce(${rt.leechers}, 0) AS leechers,
+           coalesce(${rt.completed}, 0) AS completed,
            false AS is_local,
            ${rt.peerId} AS peer_id,
            NULL::text AS category_id,
@@ -231,7 +242,21 @@ function remoteProjection(where: SQL, tagged: boolean, windowRows?: number): SQL
      WHERE ${ACTIVE_PEER} AND ${half} AND (${where})${window}`;
 }
 
-/** The aggregate, written once and applied to whichever half is passed in. */
+/**
+ * The aggregate, written once and applied to whichever half is passed in.
+ *
+ * The totals need one row per RELEASE, and the union holds one row per release
+ * PER SOURCE — the same file on our tracker and on two partners is three rows.
+ * Summing those would tell a member a group weighs three times what it does,
+ * and would count one swarm three times. So a window function elects one row
+ * per release and the sums read only those.
+ *
+ * Which row wins is a decision, not a tie-break: ours first, then the
+ * best-seeded partner. Our own figures come from our own tracker, and between
+ * two partners' hearsay the livelier reading is the one a member can act on.
+ * The min–max span the row displays still reads every source — it is answering
+ * a different question, namely whether the copy you want is dead.
+ */
 function aggregate(source: SQL): SQL {
   return sql`
     SELECT gkey,
@@ -240,6 +265,13 @@ function aggregate(source: SQL): SQL {
            count(DISTINCT rkey) FILTER (WHERE NOT is_local)::int AS partner_count,
            count(DISTINCT peer_id)::int AS peer_count,
            max(live_at) AS latest,
+           -- The other end of the age span. "Oldest first" has to rank a
+           -- group by its oldest release, not by its newest.
+           min(live_at) AS oldest,
+           sum(size) FILTER (WHERE rn = 1) AS total_size,
+           sum(seeders) FILTER (WHERE rn = 1)::int AS seed_total,
+           sum(leechers) FILTER (WHERE rn = 1)::int AS leech_total,
+           sum(completed) FILTER (WHERE rn = 1)::int AS completed_total,
            min(size) AS min_size,
            max(size) AS max_size,
            (array_agg(name ORDER BY size DESC))[1] AS lead_name,
@@ -264,7 +296,14 @@ function aggregate(source: SQL): SQL {
            max(live_at) FILTER (WHERE scope = 'integral') AS integral_latest,
            count(DISTINCT rkey) FILTER (WHERE scope = 'all')::int AS all_units,
            max(live_at) FILTER (WHERE scope = 'all') AS all_latest
-      FROM (${source}) r
+      FROM (
+        SELECT u.*,
+               row_number() OVER (
+                 PARTITION BY u.gkey, u.rkey
+                 ORDER BY u.is_local DESC, u.seeders DESC
+               ) AS rn
+          FROM (${source}) u
+      ) r
      GROUP BY 1`;
 }
 
@@ -330,7 +369,7 @@ export async function listMixedGroups(
       UNION ALL
       ${aggregate(soloSource)}
     ) u
-     ORDER BY latest DESC
+     ORDER BY ${buildGroupOrderBy(opts.sortBy ?? 'age', opts.order ?? 'desc')}
      LIMIT ${opts.limit} OFFSET ${opts.offset}
   `)) as unknown as RawMixedGroup[];
 
@@ -402,6 +441,7 @@ function groupUnion(local: SQL, remote: SQL, localOnly: boolean): SQL {
            ${schema.torrents.infoHash} AS info_hash,
            coalesce(${stats.seeders}, 0) AS seeders,
            coalesce(${stats.leechers}, 0) AS leechers,
+           coalesce(${stats.completed}, 0) AS completed,
            true AS is_local,
            ${schema.torrents.id} AS torrent_id,
            ${schema.torrents.categoryId} AS category_id,
@@ -427,6 +467,7 @@ function groupUnion(local: SQL, remote: SQL, localOnly: boolean): SQL {
            ${rt.infoHash} AS info_hash,
            coalesce(${rt.seeders}, 0) AS seeders,
            coalesce(${rt.leechers}, 0) AS leechers,
+           coalesce(${rt.completed}, 0) AS completed,
            false AS is_local,
            NULL::text AS torrent_id,
            NULL::text AS category_id,

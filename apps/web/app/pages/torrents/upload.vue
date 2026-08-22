@@ -1252,7 +1252,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   padding: 2.5rem 1.5rem;
   border: 1.5px dashed rgb(var(--line-default));
   border-radius: 0.5rem;
-  background: rgb(var(--bg-secondary) / 0.4);
+  background: rgb(var(--bg-surface) / 0.4);
   cursor: pointer;
   transition: all 0.18s ease;
 }
@@ -1447,7 +1447,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   width: 100%;
   max-width: 560px;
   padding: 2rem;
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-radius: 0.5rem;
   display: flex;

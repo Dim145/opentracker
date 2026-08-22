@@ -470,7 +470,13 @@
       "showLastSeen": "Afficher ma dernière connexion sur mon profil public",
       "showLastSeenHint": "Lorsque désactivé, les membres voient « Caché » au lieu de la date sur votre profil public. Les modérateurs et admins voient toujours la vraie valeur.",
       "showAdultContent": "Afficher le contenu pour adultes (XXX)",
-      "showAdultContentHint": "Masque tous les torrents de l'arborescence XXX dans les listes, recherches, flux RSS et le fil d'accueil. Les pages individuelles affichent un avis « contenu filtré » à la place des données quand cette option est désactivée. Désactivé par défaut — ne l'activez que si c'est vraiment ce que vous voulez."
+      "showAdultContentHint": "Masque tous les torrents de l'arborescence XXX dans les listes, recherches, flux RSS et le fil d'accueil. Les pages individuelles affichent un avis « contenu filtré » à la place des données quand cette option est désactivée. Désactivé par défaut — ne l'activez que si c'est vraiment ce que vous voulez.",
+      "anonymousUploads": "Publier anonymement",
+      "anonymousUploadsHint": "Détache votre nom de vos publications, y compris celles déjà en ligne. Les autres membres voient « Anonyme » sur la page du torrent, les flux RSS retirent la ligne d'uploadeur, le catalogue publié aux instances fédérées l'omet, et vos publications cessent d'être listées sur votre profil. Les modérateurs et administrateurs continuent de voir qui a publié quoi — la modération en dépend.",
+      "hideDownloadHistory": "Masquer mon historique de téléchargements",
+      "hideDownloadHistoryHint": "Cesse de servir la liste de vos téléchargements, afin qu'une session dérobée ne puisse pas énumérer ce que vous avez récupéré. Cela masque la liste, cela ne l'efface pas : le suivi des hit-and-run, l'accumulation de bonus et les rôles automatiques continuent de lire ces lignes, et l'équipe garde accès aux relevés de hit-and-run.",
+      "restrictComments": "Restreindre qui peut commenter mes publications",
+      "restrictCommentsHint": "Seuls les comptes d'au moins 30 jours peuvent commenter vos torrents — la réponse au compte jetable créé pour harceler un uploadeur. Vous et l'équipe n'y êtes jamais soumis, afin qu'un fil reste répondable et modérable."
     },
     "security": {
       "title": "Sécurité",
@@ -776,7 +782,9 @@
         "enable": "Activer le contenu adulte",
         "browseSafe": "Parcourir les catégories sûres",
         "footer": "Document retenu à la demande du visiteur"
-      }
+      },
+      "uploaderAnonymous": "Anonyme",
+      "uploaderAnonymousTooltip": "Ce membre a choisi de ne pas associer son nom à ses publications."
     }
   },
   "search": {
@@ -869,7 +877,8 @@
           "unfollowed": "Vous ne suivez plus cet utilisateur.",
           "failed": "Action impossible. Réessayez."
         }
-      }
+      },
+      "uploadsAnonymous": "Ce membre publie anonymement — ses publications ne sont pas listées ici."
     }
   },
   "following": {
@@ -1362,7 +1371,8 @@
       "errors": {
         "deleteFailed": "Échec de la suppression du torrent",
         "favoriteFailed": "Impossible de modifier les favoris"
-      }
+      },
+      "sortedBy": "Tri"
     },
     "wysiwyg": {
       "placeholderDefault": "Commencez à écrire…",
@@ -1468,6 +1478,11 @@
       "viewOnOpenLibrary": "Voir sur Open Library",
       "viewOnGoogle": "Voir sur Google Books",
       "votesOnGoogle": "{n} notes sur Google Books"
+    },
+    "sortHeader": {
+      "inactive": "Trier par {column}",
+      "activeAsc": "{column}, tri croissant. Activer pour inverser.",
+      "activeDesc": "{column}, tri décroissant. Activer pour inverser."
     }
   },
   "admin": {
@@ -3759,6 +3774,11 @@
     },
     "footer": {
       "pageSummary": "Page {current} / {total} · {count} au total"
+    },
+    "hidden": {
+      "title": "Votre historique de téléchargements est masqué",
+      "body": "Vous avez désactivé cela dans vos paramètres de confidentialité, la liste n'est donc pas servie. Les enregistrements existent toujours — le suivi des hit-and-run et l'accumulation de bonus les lisent — cela empêche seulement leur affichage.",
+      "cta": "Paramètres de confidentialité"
     }
   },
   "invites": {

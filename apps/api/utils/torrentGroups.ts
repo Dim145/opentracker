@@ -44,6 +44,7 @@
  * the only way to guarantee that is for there to be one copy of it.
  */
 import { sql, type Column, type SQL } from 'drizzle-orm';
+import type { SortDirection, TorrentSortKey } from '@trackarr/shared';
 import { db, schema } from '@trackarr/db';
 
 export type GroupSource = 'tmdb' | 'igdb' | 'openlibrary' | 'solo';
@@ -277,6 +278,53 @@ export function pickDefault(scopes: ScopeSummary[]): GroupScope {
     if (!best || s.latest > best.latest) best = s;
   }
   return best?.scope ?? 'all';
+}
+
+/**
+ * Ordering for the grouped catalogue.
+ *
+ * A group is many releases, so each column has to decide what it means across
+ * them. The rules are not interchangeable — they are what a member reads off
+ * the row:
+ *
+ *   · seeders / leechers / completed — the group's TOTAL. A series with forty
+ *     half-seeded episodes is more alive than a film with one release on
+ *     twenty seeders, and the total is the only figure that says so. (The row
+ *     shows the min–max span, because that is what tells you whether the one
+ *     episode you want is dead; the sort answers a different question.)
+ *   · size — the total weight of the group, for the same reason.
+ *   · age — the NEWEST release descending, the OLDEST ascending. Anything else
+ *     makes "oldest first" rank works by their most recent upload, which is not
+ *     what anyone means by it.
+ *   · name — the group's lead release name, which is what the server has. The
+ *     heading a member sees can come from resolved metadata; the two agree on
+ *     the leading word, which is what an alphabetical listing is read by.
+ */
+export function buildGroupOrderBy(
+  sortBy: TorrentSortKey,
+  order: SortDirection
+): SQL {
+  const dir = order === 'asc' ? sql`ASC` : sql`DESC`;
+  const nulls = order === 'asc' ? sql`NULLS FIRST` : sql`NULLS LAST`;
+
+  if (sortBy === 'age') {
+    // Both ends of the span, so each direction reads the release a member
+    // would point at.
+    return order === 'asc' ? sql`oldest ASC` : sql`latest DESC`;
+  }
+
+  const key = {
+    name: sql`lower(lead_name)`,
+    size: sql`total_size`,
+    seeders: sql`seed_total`,
+    leechers: sql`leech_total`,
+    completed: sql`completed_total`,
+  }[sortBy];
+
+  // `latest DESC` breaks ties: Postgres promises nothing about equal keys, and
+  // without it a member paging through "most seeded" can meet the same work
+  // twice.
+  return sql`${key} ${dir} ${nulls}, latest DESC`;
 }
 
 /**

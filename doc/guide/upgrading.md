@@ -1,8 +1,14 @@
 # Upgrading
 
-Trackarr pushes its schema at boot (`drizzle-kit push --force` against
-`schema.ts`), so an upgrade is normally: pull the new images, restart, done. No
-migration to run by hand, no downtime window to plan beyond the restart itself.
+Trackarr applies its committed SQL migrations at boot, so an upgrade is
+normally: pull the new images, restart, done. No migration to run by hand, no
+downtime window to plan beyond the restart itself.
+
+It used to `drizzle-kit push --force` instead, diffing `schema.ts` against the
+live database on every start. If you are coming from an image that did, there
+is **one command to run once** before the first boot on a migrating image — see
+[Coming from a pushing image](#coming-from-a-pushing-image-one-time-baseline)
+below. It is the only upgrade on this page that cannot be skipped.
 
 This page records the upgrades that need more than that.
 
@@ -11,6 +17,49 @@ This page records the upgrades that need more than that.
 Take a database backup before pulling new images. See
 [Backup & restore](./backup-restore.md). Everything below assumes you can roll
 back.
+
+## Coming from a pushing image — one-time baseline
+
+**Who this is for:** every instance that existed before the switch to
+migrations. If your database was created by a Trackarr image that pushed its
+schema at boot, this applies to you, whatever version you are on.
+
+**What goes wrong without it.** The migrator applies everything recorded after
+the newest row in `drizzle.__drizzle_migrations`. A database that has never held
+that table has no rows, so "everything after" is the whole chain from 0000 —
+run against a schema that already contains most of it. Baselining writes the
+rows for what the database already has, so the boot applies only the rest.
+
+Run it once, against the database, before starting the new image:
+
+```
+DATABASE_URL=postgres://user:pass@host:5432/trackarr pnpm db:baseline
+```
+
+It refuses to do anything on a database that already has rows, so running it
+twice is safe. Then start the new image as usual; the boot log will say which
+migrations it applied.
+
+**What to expect.** Rehearsed on both kinds of database this applies to, with
+a restored dump each time:
+
+| Coming from | Tables | Indexes | Data |
+|---|---|---|---|
+| 0.21.x | 47 → 58 | 128 → 176 | untouched |
+| an instance push had kept current | 58 → 58 | 161 → 176 | untouched |
+
+Both end column-for-column and index-for-index identical to a database the
+chain builds from empty. The index counts are the point of the exercise: `push`
+had drifted past 15 indexes that `schema.ts` declares, so they existed in no
+push-maintained database. Most are speed — the full-text indexes on `torrents`
+and the two the grouped catalogue rides, which had been sequential scans — but
+`user_signing_keys_current` is a partial unique index, and it is the only thing
+enforcing one live signing key per member.
+
+If a migration fails the boot stops and prints the failing statement, which is
+deliberate: serving on a half-migrated schema is worse. `SKIP_DB_MIGRATIONS=true`
+skips the step and `IGNORE_DB_MIGRATION_FAILURE=true` boots anyway, both for
+getting out of a hole rather than for normal use.
 
 ## Upgrading to 0.27 or later — account secrets are encrypted at rest
 

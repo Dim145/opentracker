@@ -319,6 +319,18 @@
               <Icon name="ph:user-bold" class="hero-meta-user-icon" />
               @{{ torrent.uploader.username }}
             </NuxtLink>
+            <!-- A concealed uploader and a deleted one both arrive as a
+                 null `uploader`; only `uploaderAnonymous` separates them,
+                 and saying "Account deleted" about a member who is still
+                 here would be plainly wrong. -->
+            <span
+              v-else-if="torrent.uploaderAnonymous"
+              class="hero-meta-user hero-meta-user--anon"
+              :title="$t('torrents.detail.uploaderAnonymousTooltip')"
+            >
+              <Icon name="ph:user-bold" class="hero-meta-user-icon" />
+              {{ $t('torrents.detail.uploaderAnonymous') }}
+            </span>
             <span
               v-else
               class="hero-meta-user hero-meta-user--gone"
@@ -2411,7 +2423,7 @@ async function confirmDelete() {
   position: relative;
   border: 1px solid rgb(var(--line-default));
   border-left: 3px solid rgb(var(--danger));
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
   /* Subtle danger hatching tints the whole document so it reads as
      "warning surface" without overwhelming the actual content. */
   background-image: repeating-linear-gradient(
@@ -2784,7 +2796,7 @@ async function confirmDelete() {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  background: rgb(var(--bg-secondary));
+  background: rgb(var(--bg-surface));
 }
 .adult-gate__foot-mono {
   text-transform: lowercase;

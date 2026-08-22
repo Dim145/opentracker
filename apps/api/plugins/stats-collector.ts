@@ -19,6 +19,51 @@ import { withCronLock } from '~~/utils/cronLock';
  * short by the time budget saw an arbitrary subset, and zeroing everything it
  * missed would report a healthy catalogue as dead.
  */
+/**
+ * Persist the cumulative completion counter into `torrent_stats`.
+ *
+ * `completed` is not a fact about the current swarm — the swarm tally above
+ * cannot see it — so it is read from its own Redis keys (`stats:<hash>`), the
+ * ones `incrementCompleted` bumps on each completed announce.
+ *
+ * Written with GREATEST, never overwritten. Redis runs with an LRU eviction
+ * policy here, so a `stats:` key can disappear under memory pressure and come
+ * back counting from zero; taking the max means an eviction costs us the
+ * increments since the last pass instead of the whole history. It also means
+ * this pass never needs the "reset what I did not see" sweep the swarm counts
+ * require — a counter that is missing is not a counter that is zero.
+ */
+async function writeCompletedCounts(
+  perTorrent: Map<string, number>
+): Promise<void> {
+  if (perTorrent.size === 0) return;
+  try {
+    const CHUNK = 1_000;
+    const entries = [...perTorrent.entries()];
+    for (let i = 0; i < entries.length; i += CHUNK) {
+      const slice = entries.slice(i, i + CHUNK);
+      const values = sql.join(
+        slice.map(([hash, c]) => sql`(${hash}, ${c}::int)`),
+        sql`, `
+      );
+      await db.execute(sql`
+        INSERT INTO torrent_stats (info_hash, completed, updated_at)
+        SELECT v.info_hash, v.completed, now()
+          FROM (VALUES ${values}) AS v(info_hash, completed)
+         WHERE EXISTS (SELECT 1 FROM torrents t WHERE t.info_hash = v.info_hash)
+            ON CONFLICT (info_hash) DO UPDATE
+           SET completed = GREATEST(torrent_stats.completed, excluded.completed),
+               updated_at = now()
+      `);
+    }
+  } catch (err) {
+    console.warn(
+      '[Stats Collector] completion counters not persisted:',
+      (err as Error).message
+    );
+  }
+}
+
 async function writeTorrentStats(
   perTorrent: Map<string, { seeders: number; leechers: number }>,
   scanTruncated: boolean
@@ -170,6 +215,36 @@ export default defineNitroPlugin((nitroApp) => {
       }
 
       await writeTorrentStats(perTorrent, scanTruncated);
+
+      // Completion counters live in their own keyspace, so they need their own
+      // pass. It shares the tick's deadline: falling short here only means some
+      // rows keep the count from an earlier pass, which GREATEST makes safe.
+      const perTorrentCompleted = new Map<string, number>();
+      let statsCursor = '0';
+      do {
+        if (Date.now() > scanDeadline) break;
+        const [nextCursor, keys] = await redis.scan(
+          statsCursor,
+          'MATCH',
+          `${keyPrefix}stats:*`,
+          'COUNT',
+          100
+        );
+        statsCursor = nextCursor;
+        for (const fullKey of keys) {
+          const key = fullKey.startsWith(keyPrefix)
+            ? fullKey.slice(keyPrefix.length)
+            : fullKey;
+          const infoHash = key.slice('stats:'.length);
+          if (!infoHash) continue;
+          const raw = await redis.hget(key, 'completed');
+          const completed = parseInt(raw ?? '0', 10);
+          if (Number.isFinite(completed) && completed > 0) {
+            perTorrentCompleted.set(infoHash, completed);
+          }
+        }
+      } while (statsCursor !== '0');
+      await writeCompletedCounts(perTorrentCompleted);
 
       // 4. Redis Memory Usage
       const info = await redis.info('memory');

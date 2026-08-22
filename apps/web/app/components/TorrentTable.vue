@@ -4,6 +4,38 @@
        a card on every page. The card layout keeps the same data
        (name + tags + category + S/L + size + age) but reflows it into
        readable blocks with a 44 px-min tap target. -->
+  <!-- Mobile sort bar. The cards carry no header row, so the columns become
+       chips; the active one shows its direction and reverses when tapped
+       again, exactly like the desktop headers. -->
+  <div
+    v-if="sortBy !== undefined && torrents.length > 0"
+    class="md:hidden flex items-center gap-1.5 px-3 py-2 overflow-x-auto no-scrollbar border-b border-border"
+  >
+    <span class="text-[10px] uppercase tracking-wider text-text-muted shrink-0">
+      {{ $t('components.torrentTable.sortedBy') }}
+    </span>
+    <button
+      v-for="opt in mobileSortOptions"
+      :key="opt.key"
+      type="button"
+      class="shrink-0 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors"
+      :class="
+        sortBy === opt.key
+          ? 'border-accent text-text-primary'
+          : 'border-border text-text-muted'
+      "
+      :aria-pressed="sortBy === opt.key"
+      @click="emit('sort', opt.key)"
+    >
+      {{ opt.label }}
+      <Icon
+        v-if="sortBy === opt.key"
+        :name="order === 'asc' ? 'ph:caret-up-bold' : 'ph:caret-down-bold'"
+        class="w-3 h-3"
+      />
+    </button>
+  </div>
+
   <div class="md:hidden divide-y divide-border">
     <p
       v-if="torrents.length === 0"
@@ -120,39 +152,17 @@
 
   <!-- ≥ md: original table preserved verbatim. -->
   <table class="data-table hidden md:table">
-    <thead>
-      <tr>
-        <th class="w-1/2">{{ $t('components.torrentTable.name') }}</th>
-        <th v-if="!compact">{{ $t('components.torrentTable.category') }}</th>
-        <th v-if="!compact">{{ $t('components.torrentTable.hash') }}</th>
-        <th class="text-center w-16">
-          <div class="flex items-center justify-center gap-1" :title="$t('components.torrentTable.seedersTitle')">
-            <Icon name="ph:arrow-up-bold" class="text-success" />
-            <span>{{ $t('components.torrentTable.seeders') }}</span>
-          </div>
-        </th>
-        <th class="text-center w-16">
-          <div class="flex items-center justify-center gap-1" :title="$t('components.torrentTable.leechersTitle')">
-            <Icon name="ph:arrow-down-bold" class="text-warning" />
-            <span>{{ $t('components.torrentTable.leechers') }}</span>
-          </div>
-        </th>
-        <th v-if="!compact" class="text-center w-16">
-          <div class="flex items-center justify-center gap-1" :title="$t('components.torrentTable.completedTitle')">
-            <Icon name="ph:check-bold" class="text-text-secondary" />
-            <span>{{ $t('components.torrentTable.completed') }}</span>
-          </div>
-        </th>
-        <th v-if="!compact">{{ $t('components.torrentTable.size') }}</th>
-        <th class="text-right w-16">{{ $t('components.torrentTable.age') }}</th>
-        <th v-if="hasFavoriteColumn" class="w-10"></th>
-        <th v-if="admin" class="w-12"></th>
-      </tr>
-    </thead>
+    <TorrentTableHead
+      :sort-by="sortBy"
+      :order="order"
+      :compact="compact"
+      :trailing-columns="(hasFavoriteColumn ? 1 : 0) + (admin ? 1 : 0)"
+      @sort="(key) => emit('sort', key)"
+    />
     <tbody>
       <tr v-if="torrents.length === 0">
         <td
-          :colspan="(compact ? 4 : 8) + (admin ? 1 : 0) + (hasFavoriteColumn ? 1 : 0)"
+          :colspan="(compact ? 4 : 6) + (admin ? 1 : 0) + (hasFavoriteColumn ? 1 : 0)"
           class="text-center text-text-muted py-8"
         >
           {{ $t('components.torrentTable.noTorrents') }}
@@ -188,25 +198,6 @@
               {{ tag.name }}
             </span>
           </div>
-        </td>
-        <td v-if="!compact">
-          <span
-            v-if="torrent.category"
-            class="text-[10px] bg-bg-tertiary border border-border px-1.5 py-0.5 rounded-sm text-text-secondary uppercase font-bold tracking-wider"
-          >
-            {{ getCategoryDisplayName(torrent.category) }}
-          </span>
-          <span v-else class="text-xs text-text-muted">—</span>
-        </td>
-        <td v-if="!compact">
-          <code
-            class="truncate-hash text-text-muted bg-bg-tertiary/50 px-1 rounded"
-            :title="torrent.infoHash"
-          >
-            {{ torrent.infoHash.slice(0, 8) }}...{{
-              torrent.infoHash.slice(-4)
-            }}
-          </code>
         </td>
         <td class="text-center">
           <span class="stat-badge stat-seeders">
@@ -271,6 +262,7 @@
 </template>
 
 <script setup lang="ts">
+import type { TorrentSortKey } from '@trackarr/shared';
 import { withWrapHints } from '~/utils/displayTitle';
 import { getCategoryIcon } from '~/utils/categoryIcon';
 
@@ -315,11 +307,22 @@ const props = defineProps<{
   torrents: TorrentWithStats[];
   compact?: boolean;
   admin?: boolean;
+  /**
+   * Active sort, owned by the parent — the table is presentational and the
+   * server does the ordering, so the page that holds the query owns the state.
+   * Left undefined (the default) the headers render as plain labels, which is
+   * what any caller that lists a fixed, already-ordered slice wants.
+   */
+  sortBy?: TorrentSortKey;
+  order?: 'asc' | 'desc';
 }>();
 
 const emit = defineEmits<{
   deleted: [infoHash: string];
+  /** A header was activated. The parent decides what that does to the query. */
+  sort: [key: TorrentSortKey];
 }>();
+
 
 // Header for the favorite column appears as soon as ANY row in
 // the current page carries a `viewerFavorited` flag — the parent

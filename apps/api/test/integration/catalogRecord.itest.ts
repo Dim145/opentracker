@@ -480,3 +480,57 @@ describe('the uploader gets a name of their own', () => {
     expect(await db.select().from(schema.userSigningKeys)).toHaveLength(0);
   });
 });
+
+describe('an uploader who asked not to be named', () => {
+  // The account toggle says the name is detached from their releases. Here it
+  // has to be decided BEFORE minting, and that is the whole point: a record is
+  // signed, content-addressed and relayed, so a name that leaves once cannot
+  // be recalled by any later setting. Every other read path can redact on the
+  // way out; this one gets a single chance.
+  //
+  // It moved here when the catalogue feed was replaced by signed records —
+  // that feed carried the check and nothing carried it afterwards.
+
+  async function uploader(anonymous: boolean): Promise<string> {
+    const id = randomUUID();
+    await db.insert(schema.users).values({
+      id,
+      username: anonymous ? 'ghost' : 'nova',
+      authSalt: 'salt',
+      authVerifier: 'verifier',
+      passkey: id.replace(/-/g, '').slice(0, 30),
+      anonymousUploads: anonymous,
+    });
+    return id;
+  }
+
+  it('leaves the name out of the record', async () => {
+    const id = await makeTorrent({ uploaderId: await uploader(true) });
+    await mintRecords([id], ctx);
+
+    const body = (await currentRecord(id))!.body as Record<string, unknown>;
+    expect(body['trackarr:uploaderName']).toBeNull();
+    // And nowhere else in the body, either: this is the last chance to check.
+    expect(JSON.stringify(body)).not.toContain('ghost');
+  });
+
+  it('still names an uploader who did not ask', async () => {
+    const id = await makeTorrent({ uploaderId: await uploader(false) });
+    await mintRecords([id], ctx);
+
+    const body = (await currentRecord(id))!.body as Record<string, unknown>;
+    expect(body['trackarr:uploaderName']).toBe('nova');
+  });
+
+  it('still attributes the release to their DID', async () => {
+    // Concealment of the NAME, not of the pseudonym. The DID is a random key,
+    // reveals nothing about the account, and is what lets a member gather
+    // their own uploads across instances — dropping it would quietly disable
+    // that for anyone who ticked this box.
+    const id = await makeTorrent({ uploaderId: await uploader(true) });
+    await mintRecords([id], ctx);
+
+    const body = (await currentRecord(id))!.body as Record<string, unknown>;
+    expect(body.attributedTo).toMatch(/^did:key:z/);
+  });
+});

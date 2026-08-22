@@ -194,6 +194,14 @@
           <Icon name="ph:spinner-bold" class="loader-spin" />
         </div>
 
+        <!-- Publishing anonymously reaches us as an empty page, same as
+             having uploaded nothing. Saying "no uploads yet" about a
+             prolific uploader would be both wrong and a hint. -->
+        <div v-else-if="uploads?.anonymous" class="upload-empty">
+          <Icon name="ph:eye-closed" class="upload-empty-icon" />
+          <p>{{ $t('users.profile.uploadsAnonymous') }}</p>
+        </div>
+
         <div v-else-if="!uploads?.data?.length" class="upload-empty">
           <Icon name="ph:files-bold" class="upload-empty-icon" />
           <p>{{ $t('me.stats.noUploadsYet') }}</p>
@@ -337,6 +345,8 @@ interface TorrentItem {
 interface UploadsResponse {
   data: TorrentItem[];
   pagination: { page: number; limit: number; total: number; pages: number };
+  /** True when this member publishes anonymously and we are not staff. */
+  anonymous: boolean;
 }
 
 const route = useRoute();
