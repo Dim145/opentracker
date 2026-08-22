@@ -19,7 +19,7 @@ import { db, schema } from '@trackarr/db';
 import type { FederationConfig, FederationPeer } from '@trackarr/db/schema';
 import { redis } from '~~/utils/server';
 import { rateLimit, rateLimitIdentity, RATE_LIMITS } from '~~/utils/rateLimit';
-import { getFederationConfig, isFederationLive } from './config';
+import { getFederationConfig, isFederationLive, federationSuspended } from './config';
 import { verifySignedRequest } from './signing';
 import { SCOPE_KEYS } from './scopes';
 
@@ -108,6 +108,15 @@ export async function verifyInboundS2S(
   const config = await getFederationConfig();
   if (!isFederationLive(config)) {
     throw createError({ statusCode: 404, message: 'Federation not enabled' });
+  }
+
+  // Panic mode stops serving the catalogue, which is the point of it: an
+  // instance under an incident should not answer a partner's reconcile or
+  // records fetch with data it is in the middle of encrypting. 503 rather than
+  // 404 so a partner treats it as transient and retries after the operator
+  // restores, instead of concluding federation was switched off.
+  if (await federationSuspended()) {
+    throw createError({ statusCode: 503, message: 'Federation temporarily suspended' });
   }
 
   if (opts.post) assertBodyWithinLimit(event, opts.maxBodyBytes);

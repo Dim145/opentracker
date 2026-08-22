@@ -164,6 +164,11 @@ export function base58btcEncode(bytes: Uint8Array): string {
 }
 
 export function base58btcDecode(text: string): Uint8Array {
+  // O(n²) in the input (a growing BigInt, multiplied per character), so it is
+  // bounded before it runs: a did:key for Ed25519 is 47 base58 characters, and
+  // this decodes a peer- or file-supplied string. See the server copy in
+  // `apps/api/utils/federation/did.ts` for the measured cost of not capping it.
+  if (text.length > 64) throw new Error('base58btc string too long');
   let n = 0n;
   for (const ch of text) {
     const i = ALPHABET.indexOf(ch);

@@ -184,6 +184,13 @@ export default defineNitroPlugin(() => {
         setTimeout(run, IDLE_INTERVAL_MS).unref?.();
         return;
       }
+      // Panic mode suspends minting. Without this the panic UPDATE — which
+      // bumps every torrent's `updated_at` — would march the cursor over the
+      // whole catalogue and publish an encrypted record for each one.
+      if (await federationSuspended()) {
+        setTimeout(run, IDLE_INTERVAL_MS).unref?.();
+        return;
+      }
       const privateKeyPem = getPrivateKeyPem(config!);
       if (!privateKeyPem || !config!.publicKey) {
         setTimeout(run, IDLE_INTERVAL_MS).unref?.();

@@ -12,7 +12,7 @@
  */
 import { createError, type H3Event } from 'h3';
 import type { FederationConfig } from '@trackarr/db/schema';
-import { getFederationConfig, isFederationLive } from './config';
+import { federationSuspended, getFederationConfig, isFederationLive } from './config';
 import { rateLimit, RATE_LIMITS } from '../rateLimit';
 
 /** Why the surface is absent, when it is. Never returned to a caller. */
@@ -41,6 +41,11 @@ export async function requireDiscoverable(
   event: H3Event,
 ): Promise<FederationConfig> {
   await rateLimit(event, RATE_LIMITS.public);
+
+  // Panic mode takes the public surface down with the rest of federation.
+  if (await federationSuspended()) {
+    throw createError({ statusCode: 503, message: 'Temporarily unavailable' });
+  }
 
   const config = await getFederationConfig();
   if (absentBecause(config)) {

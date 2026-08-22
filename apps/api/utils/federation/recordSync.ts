@@ -364,16 +364,24 @@ export async function ingestRecord(
     // A withdrawal is a statement, so it is applied rather than inferred from
     // a gap. Match the record it retires; fall back to the info hash for a
     // partner we started following after the fact.
+    // Scoped to the tombstone's OWN issuer. `remote_torrents.issuer` records
+    // who signed the mirrored record; matching on `(peer, recordId)` or
+    // `(peer, infoHash)` alone would let any admitted issuer — including one
+    // reaching us at two hops through a partner's relay — delete a mirror row
+    // issued by somebody else entirely, simply by naming its infohash. A
+    // withdrawal only speaks for the identity that made it.
     const hash = asStr(record['bt:infohash_v1']);
     const conditions = replaces
       ? and(
           eq(schema.remoteTorrents.peerId, peer.id),
           eq(schema.remoteTorrents.recordId, replaces),
+          eq(schema.remoteTorrents.issuer, verdict.signer!),
         )!
       : hash
         ? and(
             eq(schema.remoteTorrents.peerId, peer.id),
             eq(schema.remoteTorrents.infoHash, hash),
+            eq(schema.remoteTorrents.issuer, verdict.signer!),
           )!
         : null;
     let removed = 0;
@@ -442,7 +450,8 @@ export async function ingestRecord(
   });
 
   // An edit supersedes: drop the row the new record replaces, or the mirror
-  // would carry both generations side by side.
+  // would carry both generations side by side. Same issuer scope as the
+  // tombstone path — an edit signed by X may only retire X's own row.
   if (replaces) {
     await db
       .delete(schema.remoteTorrents)
@@ -450,6 +459,7 @@ export async function ingestRecord(
         and(
           eq(schema.remoteTorrents.peerId, peer.id),
           eq(schema.remoteTorrents.recordId, replaces),
+          eq(schema.remoteTorrents.issuer, verdict.signer!),
         ),
       );
   }

@@ -48,8 +48,23 @@ export function base58btcEncode(bytes: Uint8Array): string {
   return out;
 }
 
+/**
+ * A did:key for an Ed25519 key is 2 multicodec bytes + 32 key bytes = 34,
+ * which base58btc-encodes to 47 characters. 64 is generous headroom and still
+ * a hard ceiling — because the decode below is O(n²) in the input length (a
+ * growing BigInt multiplied per character), and this runs on a peer-supplied
+ * `verificationMethod` BEFORE any signature is checked. Measured: 128 KB of
+ * base58 is 13 s of blocked event loop, 500 KB is nearly 5 minutes, on a
+ * single-threaded runtime that stops serving everything else meanwhile. The
+ * cap makes the whole class of input free.
+ */
+const MAX_BASE58_LENGTH = 64;
+
 export function base58btcDecode(text: string): Uint8Array {
   if (text.length === 0) return new Uint8Array();
+  if (text.length > MAX_BASE58_LENGTH) {
+    throw new DidError('base58 string too long to be a did:key');
+  }
 
   let n = 0n;
   for (const ch of text) {

@@ -15,6 +15,7 @@ import { syncSwarmPeers } from '~~/utils/federation/swarmSync';
 import { db, schema } from '@trackarr/db';
 import { eq, inArray } from 'drizzle-orm';
 import {
+  federationSuspended,
   getFederationConfig,
   isFederationLive,
   syncIntervalMs,
@@ -52,6 +53,8 @@ export default defineNitroPlugin(async () => {
     const start = Date.now();
     const config = await getFederationConfig().catch(() => null);
     if (!isFederationLive(config)) return; // federation off — nothing to do
+    // Panic mode suspends the whole exchange, incoming and outgoing.
+    if (await federationSuspended().catch(() => false)) return;
 
     const owner = `${process.pid}:${start}`;
     let holdsLock = false;

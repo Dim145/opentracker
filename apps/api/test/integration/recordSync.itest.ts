@@ -989,3 +989,71 @@ describe('the set the two sides actually compare', () => {
     expect(await mirrored(peer.id)).toHaveLength(5);
   });
 });
+
+describe('a withdrawal only speaks for its own issuer', () => {
+  // Under relaying, one peer carries records from several issuers. A tombstone
+  // matched only on (peer, infohash) would let issuer X delete a mirror row
+  // issued by Y — censoring somebody else's release by naming its infohash.
+  // The fix scopes the delete to the tombstone's own issuer.
+
+  async function trust(kp: ReturnType<typeof keypair>): Promise<void> {
+    // Registering an issuer as an active peer is what puts it in
+    // `trustedIssuers`, so a record it signs is admitted first-hand.
+    await db.insert(schema.federationPeers).values({
+      id: randomUUID(),
+      publicKey: kp.publicKeyPem,
+      baseUrl: `https://i-${counter++}.example`,
+      displayName: 'Issuer',
+      instanceId: `tk_iss_${counter}`,
+      status: 'active',
+      sharesWithThem: { catalog: true, social: false, accounts: false, swarm: false },
+      acceptsFromThem: { catalog: true, social: false, accounts: false, swarm: false },
+    });
+  }
+
+  it('does not delete a co-mirrored row issued by somebody else', async () => {
+    const peer = await makePeer('Relay');
+    const attacker = keypair();
+    const victim = keypair();
+    await trust(attacker);
+
+    const hash = 'cccc1111cccc1111cccc1111cccc1111cccc1111';
+    // Two rows the relay carries for the same infohash, different issuers.
+    for (const [rid, iss] of [
+      ['sha256:attacker-gen', attacker.did],
+      ['sha256:victim-gen', victim.did],
+    ]) {
+      await db.insert(schema.remoteTorrents).values({
+        id: randomUUID(),
+        peerId: peer.id,
+        remoteId: rid,
+        recordId: rid,
+        infoHash: hash,
+        issuer: iss,
+        name: 'Shared.Content.1080p',
+        size: 1000,
+        fetchedAt: new Date(),
+      });
+    }
+
+    // The attacker tombstones by infohash.
+    const tomb = signRecord(
+      {
+        '@context': CONTEXT,
+        type: 'Tombstone',
+        'bt:infohash_v1': hash,
+        published: '2026-05-02T00:00:00.000Z',
+        'trackarr:issuer': attacker.did,
+        'trackarr:replaces': null,
+      } as never,
+      { privateKeyPem: attacker.privateKeyPem, did: attacker.did },
+    );
+    serve(tomb);
+    await syncPeerRecords(peer);
+
+    const rows = await mirrored(peer.id);
+    const issuers = rows.map((r) => r.issuer).sort();
+    // The victim's row survives; only the attacker's own generation is gone.
+    expect(issuers).toEqual([victim.did]);
+  });
+});

@@ -245,6 +245,15 @@ export async function keepForRelay(
 
   // A record that supersedes another retires it here too, or we would go on
   // offering a generation its own issuer has replaced.
+  //
+  // Scoped to the SAME issuer, and that scope is load-bearing. `replaces` is an
+  // arbitrary string from a peer's record and `catalog_records.id` is a global
+  // content address — our own local records share the table. Without the issuer
+  // check, any partner (relaying on) could mint a valid record naming one of
+  // OUR ids in `replaces` and permanently un-publish it: gone from the served
+  // set, the public outbox and live search, and a first-generation re-mint
+  // recomputes the same id so `onConflictDoNothing` never restores it. A record
+  // may only retire a generation from the identity that signed it.
   const replaces = record['trackarr:replaces'];
   if (typeof replaces === 'string' && replaces) {
     await tx
@@ -253,6 +262,7 @@ export async function keepForRelay(
       .where(
         and(
           eq(schema.catalogRecords.id, replaces),
+          eq(schema.catalogRecords.issuer, issuer),
           isNull(schema.catalogRecords.supersededAt),
         ),
       );

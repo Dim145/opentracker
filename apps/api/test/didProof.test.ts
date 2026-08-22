@@ -207,3 +207,31 @@ describe('a browser signature the server accepts', () => {
     expect(verifyIdentity(doc).ok).toBe(false);
   });
 });
+
+describe('base58 decode is bounded (DoS)', () => {
+  // The decode is O(n²) in the input and runs on a peer-supplied
+  // verificationMethod BEFORE any signature check. Measured unbounded: 128 KB
+  // = 13 s of blocked event loop, 500 KB ≈ 5 minutes, on a single-threaded
+  // runtime. The cap makes the whole input class free.
+  it('refuses a base58 string longer than a did:key can be', async () => {
+    const { base58btcDecode } = await import('../utils/federation/did');
+    const start = Date.now();
+    expect(() => base58btcDecode('z'.repeat(500_000))).toThrow();
+    // The point is that it threw immediately, not after minutes of BigInt math.
+    expect(Date.now() - start).toBeLessThan(50);
+  });
+
+  it('still decodes a real did:key body', async () => {
+    const { base58btcDecode, didKeyFromPublicKey, publicKeyFromDidKey } = await import(
+      '../utils/federation/did'
+    );
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { publicKey } = generateKeyPairSync('ed25519');
+    const did = didKeyFromPublicKey(
+      publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+    );
+    // The whole did:key round-trips, so the cap does not clip a legitimate one.
+    expect(() => publicKeyFromDidKey(did)).not.toThrow();
+    expect(base58btcDecode(did.slice('did:key:z'.length)).length).toBe(34);
+  });
+});

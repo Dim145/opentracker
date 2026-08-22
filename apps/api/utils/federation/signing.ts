@@ -192,6 +192,50 @@ export interface SignedResponse {
 }
 
 /**
+ * How much of a partner's response we will read into memory.
+ *
+ * `res.text()` is unbounded: a hostile — or merely buggy — partner can answer
+ * with a multi-gigabyte stream and the only thing standing between that and an
+ * out-of-memory crash is the abort timeout, which on a fast link is far too
+ * late. A reconcile answer is a few hundred KB, a records batch of 200 is a
+ * megabyte or two; 16 MB is orders of magnitude above either and still a hard
+ * ceiling. Over it, the read aborts and the caller sees a thrown error, mapped
+ * to the peer's `last_error` like any other failed exchange.
+ */
+export const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
+
+/**
+ * Read a response body, refusing to buffer more than `MAX_RESPONSE_BYTES`.
+ *
+ * Reads the stream in chunks and counts bytes rather than trusting
+ * `Content-Length`, which a peer controls and may omit (a chunked response
+ * carries none at all). No body — a bare status — reads as the empty string.
+ */
+export async function readCappedText(res: { body: ReadableStream<Uint8Array> | null; text: () => Promise<string> }): Promise<string> {
+  const stream = res.body;
+  if (!stream) return res.text();
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        total += value.byteLength;
+        if (total > MAX_RESPONSE_BYTES) {
+          throw new Error('peer response exceeds size limit');
+        }
+        chunks.push(value);
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks.map((c) => Buffer.from(c))).toString('utf8');
+}
+
+/**
  * Signed POST to a partner instance. JSON in, JSON out. Hardened against
  * SSRF (safeFetch) and hangs (AbortController timeout). Network / parse
  * failures surface as a thrown error for the caller to map to a peer
@@ -226,7 +270,7 @@ export async function signedPost(opts: {
       body: bodyStr,
       signal: controller.signal,
     });
-    const text = await res.text();
+    const text = await readCappedText(res);
     let data: any = null;
     try {
       data = text ? JSON.parse(text) : null;
@@ -273,7 +317,7 @@ export async function signedGet(opts: {
       headers,
       signal: controller.signal,
     });
-    const text = await res.text();
+    const text = await readCappedText(res);
     let data: any = null;
     try {
       data = text ? JSON.parse(text) : null;

@@ -313,3 +313,73 @@ describe('the store stays ours to sweep', () => {
     expect(sweepable).toHaveLength(0);
   });
 });
+
+describe('a relayed record cannot retire another issuer\'s work', () => {
+  // The sharpest hole the review found: `keepForRelay` set `superseded_at` on
+  // whatever id a peer named in `trackarr:replaces`, with no issuer check, and
+  // `catalog_records.id` is a global content address — our own local records
+  // share the table. One partner (relaying on) could permanently un-publish
+  // any record it could name. The fix scopes the supersede to the same issuer.
+
+  it('leaves our own local record published when a stranger names it in replaces', async () => {
+    const us = keypair();
+    const stranger = keypair();
+
+    // A record we minted and published ourselves.
+    const mine = record(us);
+    await db.insert(schema.catalogRecords).values({
+      id: mine.id,
+      torrentId: randomUUID(),
+      infoHash: mine['bt:infohash_v1'],
+      issuer: us.did,
+      kind: 'torrent',
+      body: mine as unknown as Record<string, unknown>,
+      contentHash: mine.id,
+      origin: 'local',
+    });
+
+    // The stranger mints a valid record claiming to replace ours.
+    const attack = signRecord(
+      {
+        ...(JSON.parse(JSON.stringify(record(stranger))) as Record<string, unknown>),
+        proof: undefined,
+        id: undefined,
+        'trackarr:replaces': mine.id,
+      } as never,
+      { privateKeyPem: stranger.privateKeyPem, did: stranger.did },
+    );
+    await keepForRelay(attack as unknown as Record<string, unknown>, stranger.did, 1);
+
+    const [row] = await db
+      .select()
+      .from(schema.catalogRecords)
+      .where(eq(schema.catalogRecords.id, mine.id));
+    expect(row!.supersededAt).toBeNull();
+  });
+
+  it('still lets an issuer retire its own earlier generation', async () => {
+    // The scope must not break legitimate edits: a record signed by X retiring
+    // an earlier record also signed by X.
+    const origin = keypair();
+    const first = record(origin);
+    await keepForRelay(first as unknown as Record<string, unknown>, origin.did, 1);
+
+    const second = signRecord(
+      {
+        ...(JSON.parse(JSON.stringify(first)) as Record<string, unknown>),
+        proof: undefined,
+        id: undefined,
+        name: 'Renamed.1080p',
+        'trackarr:replaces': first.id,
+      } as never,
+      { privateKeyPem: origin.privateKeyPem, did: origin.did },
+    );
+    await keepForRelay(second as unknown as Record<string, unknown>, origin.did, 1);
+
+    const [old] = await db
+      .select()
+      .from(schema.catalogRecords)
+      .where(eq(schema.catalogRecords.id, first.id));
+    expect(old!.supersededAt).toBeTruthy();
+  });
+});
