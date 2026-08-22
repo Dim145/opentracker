@@ -252,6 +252,22 @@ export async function adoptUserKey(
   const previous = await currentDid(userId);
   if (previous === did) return { previous: null, did };
 
+  // A revoked identifier is not adoptable. Revocation exists for the leaked
+  // key, and a member (or whoever holds their session AND the leaked file)
+  // must not be able to bring it back to life — a resurrected key would go
+  // live locally while every partner keeps refusing it, because the `Undo`
+  // that retired it has already propagated and is never un-said. A member who
+  // wants a key again generates a fresh one; reusing a retired identifier has
+  // no legitimate need and is exactly the hole revocation closes.
+  const [existing] = await db
+    .select({ revokedAt: schema.userSigningKeys.revokedAt })
+    .from(schema.userSigningKeys)
+    .where(eq(schema.userSigningKeys.did, did))
+    .limit(1);
+  if (existing?.revokedAt) {
+    throw new Error('this identifier has been revoked and cannot be re-adopted');
+  }
+
   await db.transaction(async (tx) => {
     if (previous) {
       await tx
@@ -264,9 +280,8 @@ export async function adoptUserKey(
       .values({ did, userId, publicKey: publicKeyPem, privateKeyEnc: null })
       .onConflictDoUpdate({
         target: schema.userSigningKeys.did,
-        // Re-adopting a key they already had here: clear the retirement rather
-        // than fail, so a member who rotated back is not stuck.
-        set: { userId, publicKey: publicKeyPem, privateKeyEnc: null, revokedAt: null, succeededBy: null },
+        // A live key re-adopted is a no-op; a revoked one was refused above.
+        set: { userId, publicKey: publicKeyPem, privateKeyEnc: null },
       });
   });
 

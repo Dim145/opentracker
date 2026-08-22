@@ -49,6 +49,7 @@ import { ingestIdentityRecord, ingestRevocation } from './identityRecord';
 import {
   admit,
   dropSources,
+  sourceRejected,
   relayEnabled,
   repairMissingMirrors,
   unstoredSources,
@@ -76,6 +77,13 @@ const MAX_FETCH_PER_RUN = 5_000;
  * partner and our disk.
  */
 const MAX_REMOTE_PER_PEER = 100_000;
+/**
+ * Hard cap on TOTAL records sourced from one partner — torrents plus the
+ * kinds that never touch the mirror (tombstones, identities, revocations).
+ * Above the mirror cap because a partner legitimately serves more of these
+ * than torrents, and still a hard ceiling on what one peer can grow on us.
+ */
+const MAX_SOURCES_PER_PEER = 250_000;
 const RESOURCE = 'records';
 
 interface NewItem {
@@ -331,7 +339,14 @@ export async function ingestRecord(
     opts.relayProof,
     trusted,
   );
-  if (!pass.ok) return { ...nothing, rejected: 1 };
+  if (!pass.ok) {
+    // Verified, so its content address is real, but not admitted — a stranger's
+    // record a partner did not vouch for. Note it as a rejected source so we
+    // stop re-fetching it every tick; the ordinary sweep drops it if the
+    // partner stops serving it.
+    await sourceRejected(peer.id, String(record.id ?? ''));
+    return { ...nothing, rejected: 1 };
+  }
 
   // Noting the source is what reconciliation compares; keeping the bytes is
   // what relaying needs, and only that. Both go in the same transaction as the
@@ -423,7 +438,13 @@ export async function ingestRecord(
   }
 
   const row = toMirrorRow(peer, record, verdict.signer!);
-  if (!row) return { ...nothing, rejected: 1 };
+  if (!row) {
+    // Verified and admitted, but a Torrent record with no usable name/infohash
+    // — nothing to mirror. Same treatment: source it as rejected so the
+    // reconciliation loop does not ask for it again on every pass.
+    await sourceRejected(peer.id, String(record.id ?? ''));
+    return { ...nothing, rejected: 1 };
+  }
 
   // `xmax = 0` is true only for a fresh INSERT, which is what separates "a
   // partner published something new" from "a partner restated what we already
@@ -521,14 +542,24 @@ export async function syncPeerRecords(
     .select({ existing: sql<number>`count(*)::int` })
     .from(schema.remoteTorrents)
     .where(eq(schema.remoteTorrents.peerId, peer.id));
-  // At the cap we stop GROWING the mirror, not everything. Returning here — as
-  // this used to — also skipped reconciliation and the withdrawal sweep, so the
-  // mirror could never shrink back under the cap and the link was dead forever,
+  // Count the SOURCES too, not just the mirror. `remote_torrents` holds
+  // torrents; tombstones, identity assertions and revocations are sourced but
+  // never mirrored, so a partner spamming 5 000 random-DID `Undo` records a
+  // tick would grow `record_sources` (and `revoked_identities`) without ever
+  // moving the mirror count — unbounded disk the mirror cap could not see.
+  const [{ sources }] = await db
+    .select({ sources: sql<number>`count(*)::int` })
+    .from(schema.recordSources)
+    .where(eq(schema.recordSources.peerId, peer.id));
+  // At the cap we stop GROWING, not everything. Returning here — as this used
+  // to — also skipped reconciliation and the withdrawal sweep, so the store
+  // could never shrink back under the cap and the link was dead forever,
   // reported as `ok`. Now reconciliation still runs (so a partner's deletions
-  // drain the mirror and it recovers), only the fetch of NEW records is
-  // skipped, and the state is `partial` rather than `ok` so the dashboard shows
-  // a degraded peer instead of a green one.
-  const atCap = (existing ?? 0) >= MAX_REMOTE_PER_PEER;
+  // drain it and it recovers), only the fetch of NEW records is skipped, and
+  // the state is `partial` rather than `ok` so the dashboard shows a degraded
+  // peer instead of a green one.
+  const atCap =
+    (existing ?? 0) >= MAX_REMOTE_PER_PEER || (sources ?? 0) >= MAX_SOURCES_PER_PEER;
 
   // Before comparing: forget any source whose mirror row has gone missing, so
   // the comparison finds the hole rather than reporting agreement over it.
@@ -620,7 +651,22 @@ export async function syncPeerRecords(
         out.error = `http ${res.status}`;
         break;
       }
-      for (const envelope of res.data.records as unknown[]) {
+      // Apply retractions AFTER the records they retire, within the batch. A
+      // records fetch has no `ORDER BY`, so a Tombstone or Undo can arrive
+      // before the Torrent/Person it supersedes; applying it first would delete
+      // nothing (its target is not stored yet) and then the target would land
+      // un-retired and linger. Sorting retractions last makes the common
+      // same-batch case order-correct; a split across batches still self-heals
+      // on the next pass.
+      const ordered = [...(res.data.records as unknown[])].sort((a, b) => {
+        const rank = (e: unknown) => {
+          const rec = unwrap(e).record as { type?: unknown } | null;
+          const t = rec?.type;
+          return t === 'Tombstone' || t === 'Undo' ? 1 : 0;
+        };
+        return rank(a) - rank(b);
+      });
+      for (const envelope of ordered) {
         const { record, relay } = unwrap(envelope);
         const r = await ingestRecord(peer, record, {
           relayProof: relay,

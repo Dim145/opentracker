@@ -371,6 +371,31 @@ export async function forgetPeerData(
   await purgeOrphanedIngested();
 }
 
+/**
+ * Note that a partner serves a record we looked at and will not take.
+ *
+ * A verified-but-unwanted record (issuer not admitted, or a Torrent record
+ * with no usable name/infohash) used to return before it was sourced, so
+ * reconciliation kept reporting it missing and we re-fetched it every tick,
+ * forever, for nothing. Recording it as a source with a `rejected` kind puts
+ * it in the compared set — the re-fetch stops — while keeping it out of the
+ * mirror and out of `repairMissingMirrors`, which only ever repairs torrents.
+ * If the partner stops serving it, the ordinary `extra` sweep drops it like
+ * any other source.
+ */
+export async function sourceRejected(
+  peerId: string,
+  recordId: string,
+): Promise<void> {
+  if (!recordId) return;
+  await db
+    .insert(schema.recordSources)
+    .values({ recordId, peerId, kind: 'rejected' })
+    .onConflictDoNothing({
+      target: [schema.recordSources.peerId, schema.recordSources.recordId],
+    });
+}
+
 export async function dropSources(
   peerId: string,
   recordIds: string[],

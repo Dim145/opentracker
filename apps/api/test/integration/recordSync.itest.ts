@@ -65,7 +65,7 @@ vi.mock('../../utils/federation/signing', async (importOriginal) => {
         arraySource([...partner.records.keys()]),
         { echoIds: true },
       );
-      return { status: 200, data: { ok: true, ranges: step.reply } };
+      return { status: 200, data: { ok: true, ranges: step.reply, pending: step.pending } };
     },
 
   };
@@ -1061,5 +1061,42 @@ describe('a withdrawal only speaks for its own issuer', () => {
     const issuers = rows.map((r) => r.issuer).sort();
     // The victim's row survives; only the attacker's own generation is gone.
     expect(issuers).toEqual([victim.did]);
+  });
+});
+
+describe('a refused record stops being re-fetched', () => {
+  // Three ways a record is refused — bad proof, unadmitted issuer, unusable
+  // torrent row — all used to return before sourcing it, so it stayed
+  // "missing" in the compared set and was fetched again every tick, forever.
+  // The two with a trustworthy id now record a rejected source, which takes it
+  // out of the compared set without mirroring or relaying it.
+
+  it('does not re-fetch a verified record from an unadmitted issuer', async () => {
+    const peer = await makePeer('Relay');
+    // A record signed by a stranger the peer does not vouch for: it verifies
+    // (good proof) but is not admitted (issuer is not a partner, no
+    // countersignature). `record()` always signs with the peer's own key, so
+    // build this one by hand with a foreign key.
+    const stranger = keypair();
+    const r = signRecord(
+      {
+        ...(JSON.parse(JSON.stringify(record())) as Record<string, unknown>),
+        proof: undefined,
+        id: undefined,
+        'trackarr:issuer': stranger.did,
+      } as never,
+      { privateKeyPem: stranger.privateKeyPem, did: stranger.did },
+    );
+    serve(r);
+
+    const first = await syncPeerRecords(peer);
+    expect(first.rejected).toBe(1);
+
+    // The second pass must ask for nothing — the rejected record is now in the
+    // set we compare, so reconciliation agrees instead of re-requesting it.
+    partner.calls = [];
+    const second = await syncPeerRecords(peer);
+    expect(second.rejected).toBe(0);
+    expect(partner.calls).toEqual(['/api/federation/reconcile']);
   });
 });

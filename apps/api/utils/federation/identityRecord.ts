@@ -39,6 +39,7 @@
  * confirms the link without trusting B and without asking A.
  */
 import { and, asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { didKeyFromPublicKey } from './did';
 import { db, schema } from '@trackarr/db';
 import { canonicalBytes } from './jcs';
 import { createHash, randomUUID } from 'node:crypto';
@@ -256,10 +257,22 @@ export async function ingestIdentityRecord(
   const subject = body['trackarr:subject'];
   if (typeof subject !== 'string' || !subject.startsWith('did:key:')) return 0;
 
-  const aliases = Array.isArray(body.alsoKnownAs) ? body.alsoKnownAs : [];
-  const evidence = Array.isArray(body['trackarr:evidence'])
-    ? (body['trackarr:evidence'] as unknown[])
-    : [];
+  // Bounded before we do any work on them: both arrays are peer-supplied, and
+  // each alias costs an INSERT and each evidence doc up to two Ed25519 verifies.
+  // A record claiming a hundred thousand aliases must not turn into a hundred
+  // thousand round trips a partner sized for us. A real member has a handful of
+  // identities; these caps are far above that and far below abuse.
+  const MAX_ALIASES = 16;
+  const MAX_EVIDENCE = 32;
+  const aliases = (Array.isArray(body.alsoKnownAs) ? body.alsoKnownAs : []).slice(
+    0,
+    MAX_ALIASES,
+  );
+  const evidence = (
+    Array.isArray(body['trackarr:evidence'])
+      ? (body['trackarr:evidence'] as unknown[])
+      : []
+  ).slice(0, MAX_EVIDENCE);
 
   // Index the evidence by the identifier it actually proves, rather than
   // trusting it to line up positionally with the alias list — a partner that
@@ -626,16 +639,33 @@ export async function ingestRevocation(
   // withdrawn it. The link comes down, bluntly: the account that proved it may
   // be the member, and may equally be whoever found their file. There is no
   // way to tell from here, and the member can re-prove from a fresh export.
-  // Leaving it standing on the chance it is genuine would mean a withdrawal
-  // changed nothing for the one case it exists to fix.
-  await db
-    .delete(schema.federatedIdentities)
-    .where(
-      and(
-        eq(schema.federatedIdentities.peerId, peerId),
-        eq(schema.federatedIdentities.subjectDid, did),
-      ),
-    );
+  //
+  // Scoped to the ISSUER's peer, not the delivering one. `federated_identities`
+  // has no issuer column — it records the partner a member proved an account
+  // ON — so the correct rows are those proved on the peer whose instance key is
+  // the revocation's issuer. Under relaying the delivering peer is somebody
+  // else entirely, and scoping on it would tear down claims proved on the
+  // relay while leaving the ones this withdrawal is actually about standing.
+  const issuerPeer = (
+    await db
+      .select({
+        id: schema.federationPeers.id,
+        publicKey: schema.federationPeers.publicKey,
+      })
+      .from(schema.federationPeers)
+      .where(isNotNull(schema.federationPeers.publicKey))
+  ).find((p) => p.publicKey && didKeyFromPublicKey(p.publicKey) === issuer);
+
+  if (issuerPeer) {
+    await db
+      .delete(schema.federatedIdentities)
+      .where(
+        and(
+          eq(schema.federatedIdentities.peerId, issuerPeer.id),
+          eq(schema.federatedIdentities.subjectDid, did),
+        ),
+      );
+  }
 
   return true;
 }

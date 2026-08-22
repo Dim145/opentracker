@@ -264,17 +264,21 @@ describe('a key the instance does not hold', () => {
     ).toHaveLength(0);
   });
 
-  it('lets a member re-adopt a key they had retired', async () => {
+  it('refuses to re-adopt a key it has already retired', async () => {
+    // Retiring a key mints a withdrawal that propagates to every partner and is
+    // never un-said, so bringing the key back locally would leave the local and
+    // federated views permanently disagreeing — the member signing under a
+    // key partners refuse. A member who wants a key again makes a fresh one.
     const user = await makeUser();
     const { publicKeyPem, did } = keypair();
     await adoptUserKey(user, did, publicKeyPem);
 
     const other = keypair();
-    await adoptUserKey(user, other.did, other.publicKeyPem);
-    await adoptUserKey(user, did, publicKeyPem);
+    await adoptUserKey(user, other.did, other.publicKeyPem); // retires `did`
 
-    expect(await ensureUserDid(user)).toBe(did);
-    expect(await hasCustody(user)).toBe(true);
+    await expect(adoptUserKey(user, did, publicKeyPem)).rejects.toThrow(/revoked/i);
+    // The current identity is unchanged — the refused re-adoption did nothing.
+    expect(await ensureUserDid(user)).toBe(other.did);
   });
 
   it('is a no-op when the member already holds that exact key', async () => {
@@ -358,5 +362,21 @@ describe('two mints landing at once', () => {
       .where(eq(schema.userSigningKeys.userId, userId));
     expect(rows).toHaveLength(2);
     expect(rows.filter((r) => r.revokedAt === null)).toHaveLength(1);
+  });
+});
+
+describe('a revoked identifier cannot be re-adopted', () => {
+  // Revocation exists for the leaked key. Bringing it back to life locally,
+  // while every partner keeps refusing it because the Undo already propagated,
+  // is exactly the divergence revocation is meant to prevent.
+  it('refuses adoption of a DID whose key is revoked', async () => {
+    const userId = await makeUser('Leaky');
+    const did = await ensureUserDid(userId);
+    await db
+      .update(schema.userSigningKeys)
+      .set({ revokedAt: new Date() })
+      .where(eq(schema.userSigningKeys.did, did));
+
+    await expect(adoptUserKey(userId, did, 'pem')).rejects.toThrow(/revoked/i);
   });
 });
