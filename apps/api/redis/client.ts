@@ -119,7 +119,12 @@ export async function connectRedis(): Promise<void> {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('[Redis] Shutting down gracefully...');
-  await redis.quit();
+  // `quit()` rejects when the client never connected, or already closed — and a
+  // shutdown hook that throws turns an orderly stop into an unhandled
+  // rejection. That is not only a test concern: a SIGTERM arriving during a
+  // Redis outage hit the same path in production. `disconnect()` is the
+  // synchronous, always-safe fallback.
+  await redis.quit().catch(() => redis.disconnect());
 });
 
 /**

@@ -104,7 +104,7 @@ export default defineEventHandler(async (event) => {
     const { peer, res } = s.value;
     if (res.status !== 200 || !Array.isArray(res.data?.records)) continue;
     reachedIds.push(peer.id);
-    const fresh = [];
+    const fresh: NonNullable<Awaited<ReturnType<typeof ingestRecord>>['fresh']>[] = [];
     for (const raw of res.data.records as unknown[]) {
       try {
         const r = await ingestRecord(peer, raw);

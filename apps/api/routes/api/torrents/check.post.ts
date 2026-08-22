@@ -14,7 +14,7 @@
  * full detail just for the warning row.
  */
 import { db } from '@trackarr/db';
-import parseTorrent from 'parse-torrent';
+import { parseTorrentFile } from '~~/utils/parseTorrentFile';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 export default defineEventHandler(async (event) => {
@@ -48,9 +48,9 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  let parsed: Awaited<ReturnType<typeof parseTorrent>>;
+  let parsed: Awaited<ReturnType<typeof parseTorrentFile>>;
   try {
-    parsed = await parseTorrent(file.data);
+    parsed = await parseTorrentFile(file.data);
   } catch {
     throw createError({ statusCode: 400, message: 'Invalid torrent file' });
   }

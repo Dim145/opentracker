@@ -33,7 +33,7 @@ import { CONTEXT, signRecord } from '../../utils/federation/record';
  */
 const partner = vi.hoisted(() => ({
   /** The partner's published set, keyed by content address. */
-  records: new Map<string, Record<string, unknown>>(),
+  records: new Map<string, unknown>(),
   calls: [] as string[],
   status: 200,
   /** Rounds it took to converge, for the tests that care. */
@@ -71,14 +71,24 @@ vi.mock('../../utils/federation/signing', async (importOriginal) => {
   };
 });
 
+/**
+ * Anything with an id that the partner can hand over.
+ *
+ * Deliberately not `SignedRecord`: half these tests serve records that have
+ * been tampered with, stripped of their proof, or hand-built to be refused,
+ * and a type admitting only well-formed ones would rule out exactly the cases
+ * worth testing. The ingest takes `unknown` for the same reason.
+ */
+type SignedLike = { id?: unknown };
+
 /** What the partner publishes. Replaces whatever it published before. */
-function serve(...records: Array<Record<string, unknown>>): void {
+function serve(...records: SignedLike[]): void {
   partner.records.clear();
   for (const r of records) partner.records.set(String(r.id), r);
 }
 
 /** Publish more without retracting what is already there. */
-function alsoServe(...records: Array<Record<string, unknown>>): void {
+function alsoServe(...records: SignedLike[]): void {
   for (const r of records) partner.records.set(String(r.id), r);
 }
 
@@ -147,14 +157,14 @@ function tombstone(replaces: string, infoHash: string) {
   );
 }
 
-async function makePeer(): Promise<FederationPeer> {
+async function makePeer(displayName = 'Partner'): Promise<FederationPeer> {
   const id = randomUUID();
   const [row] = await db
     .insert(schema.federationPeers)
     .values({
       id,
       baseUrl: `https://p-${id.slice(0, 8)}.example`,
-      displayName: 'Partner',
+      displayName,
       instanceId: `tk_${id.slice(0, 10)}`,
       status: 'active',
       sharesWithThem: { catalog: true, social: false, accounts: false, swarm: false },

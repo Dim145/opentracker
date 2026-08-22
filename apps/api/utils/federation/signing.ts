@@ -250,6 +250,10 @@ export async function signedGet(opts: {
   pathname: string;
   instanceId: string;
   privateKeyPem: string;
+  /** Recipient's instanceId, forwarded to `buildSignedHeaders` for the v2
+   *  audience binding. Every caller already passed it; the type did not
+   *  declare it, so nothing checked that they kept doing so. */
+  audienceInstanceId?: string;
   timeoutMs?: number;
 }): Promise<SignedResponse> {
   const headers = buildSignedHeaders({

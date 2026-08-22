@@ -22,7 +22,7 @@
  */
 import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
-import { and, desc, eq, isNotNull, isNull, sql, inArray } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, isNull, sql, inArray, type SQL } from 'drizzle-orm';
 
 const ALLOWED_KINDS = ['velocity', 'no_leecher', 'unknown_client'] as const;
 
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
   const limit = Math.min(100, Math.max(1, parseInt(query.limit as string) || 25));
   const offset = (page - 1) * limit;
 
-  const filters = [];
+  const filters: SQL[] = [];
   if (status === 'unreviewed') filters.push(isNull(schema.anticheatFlags.reviewedAt));
   if (status === 'reviewed') filters.push(isNotNull(schema.anticheatFlags.reviewedAt));
   if (kind) filters.push(eq(schema.anticheatFlags.kind, kind));

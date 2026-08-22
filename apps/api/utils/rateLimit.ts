@@ -286,7 +286,7 @@ async function rateLimitRedis(
 
     if (count > maxRequests) {
       // Calculate retry after based on oldest request in window
-      const oldestResult = await redis.zrange(redisKey, 0, 0, 'WITHSCORES');
+      const oldestResult = await redis.zrange(redisKey, '0', '0', 'WITHSCORES');
       const oldestTime =
         oldestResult.length >= 2 ? parseInt(oldestResult[1]) : now;
       const retryAfter = Math.ceil((oldestTime + windowMs - now) / 1000);
@@ -414,7 +414,7 @@ export async function rateLimit(
     // RFC 6585: 429 responses SHOULD include Retry-After.
     // Fallback to the configured window if Redis didn't return one.
     const retryAfter = result.retryAfter ?? windowSec;
-    setResponseHeader(event, 'Retry-After', String(retryAfter));
+    setResponseHeader(event, 'Retry-After', retryAfter);
 
     throw createError({
       statusCode: 429,

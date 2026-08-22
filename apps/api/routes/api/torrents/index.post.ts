@@ -1,7 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
-import parseTorrent from 'parse-torrent';
+import { parseTorrentFile } from '~~/utils/parseTorrentFile';
 import bencode from 'bencode';
 import { parseReleaseName } from '@trackarr/shared/releaseParse';
 import { computeContentSignature } from '~~/utils/contentSignature';
@@ -207,9 +207,9 @@ export default defineEventHandler(async (event) => {
 
   // Parse the normalised bytes so name / size / files / infoHash all
   // describe exactly what we store and serve.
-  let parsed: Awaited<ReturnType<typeof parseTorrent>>;
+  let parsed: Awaited<ReturnType<typeof parseTorrentFile>>;
   try {
-    parsed = await parseTorrent(normalizedData);
+    parsed = await parseTorrentFile(normalizedData);
   } catch (_err) {
     throw createError({
       statusCode: 400,

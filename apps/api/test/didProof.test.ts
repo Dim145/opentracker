@@ -98,7 +98,7 @@ describe('a browser signature the server accepts', () => {
     const pair = (await subtle.generateKey({ name: 'Ed25519' }, true, [
       'sign',
       'verify',
-    ])) as CryptoKeyPair;
+    ])) as unknown as CryptoKeyPair;
     const rawPublic = new Uint8Array(await subtle.exportKey('raw', pair.publicKey));
     const memberDid = didKeyFromRaw(rawPublic);
 

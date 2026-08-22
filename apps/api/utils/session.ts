@@ -16,12 +16,16 @@ export interface SessionUser {
   isModerator: boolean;
   uploaded: number;
   downloaded: number;
-  invitesRemaining: number;
   [key: string]: unknown;
 }
 
 export interface UserSessionData {
   user?: SessionUser;
+  /**
+   * Login timestamp, written by the passkey and profile-patch paths. Declared
+   * here because a sealed cookie only round-trips what the type allows.
+   */
+  loggedInAt?: number;
 }
 
 const COOKIE_NAME = 'trackarr-session';
@@ -92,6 +96,16 @@ export async function clearUserSession(event: H3Event): Promise<void> {
  */
 export async function getSessionId(event: H3Event): Promise<string> {
   const s = await session(event);
+  if (!s.id) {
+    // h3 types the id as optional. It is always set once the session is
+    // loaded, but returning `undefined` here would silently key the
+    // fresh-auth window on nothing — the exact regression the note above
+    // describes — so fail loudly rather than degrade.
+    throw createError({
+      statusCode: 500,
+      message: 'Session has no id; cannot resolve the fresh-auth window',
+    });
+  }
   return s.id;
 }
 

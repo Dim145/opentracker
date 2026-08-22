@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   const showAdult = me?.showAdultContent ?? false;
 
   // Build where clause
-  const conditions = [];
+  const conditions: SQL[] = [];
 
   // Only show accepted torrents to regular users (but show their own
   // pending / changes_requested / rejected so they can find them in
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
       or(
         eq(schema.torrents.moderationStatus, 'accepted'),
         eq(schema.torrents.uploaderId, user.id)
-      )
+      )!
     );
   }
 
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
         or(
           isNull(schema.torrents.categoryId),
           notInArray(schema.torrents.categoryId, adultIds)
-        )
+        )!
       );
     }
   }
@@ -127,13 +127,13 @@ export default defineEventHandler(async (event) => {
     // add category and subcategories filter
     const subcategories = await db.query.categories.findMany({
       where: eq(schema.categories.parentId, query.categoryId),
-      select: { id: true },
+      columns: { id: true },
     });
     conditions.push(
       or(
           eq(schema.torrents.categoryId, query.categoryId),
           ...subcategories.map((subcat) => eq(schema.torrents.categoryId, subcat.id))
-      )
+      )!
     );
   }
 

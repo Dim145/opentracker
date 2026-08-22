@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
 
   await db.delete(forumPosts).where(eq(forumPosts.id, id));
 
-  if (!isAuthor && isModerator) {
+  if (!isAuthor && isModerator && post.authorId) {
     void notify(
       post.authorId,
       'forum_post_deleted_by_staff',

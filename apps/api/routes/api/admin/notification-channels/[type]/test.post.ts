@@ -16,6 +16,7 @@ import { eq } from 'drizzle-orm';
 import { decryptJson } from '~~/utils/channelSecrets';
 import { getAdapter } from '~~/utils/channels';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import type { TestResult } from '~~/utils/channels/types';
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
@@ -41,7 +42,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  let result: { ok: true } | { ok: false; error: string };
+  let result: TestResult;
   if (!adapter.hasServerConfig || !adapter.testServer) {
     // Pure user-owned channels (Discord/Slack/Mattermost): nothing
     // to validate server-side. Accept as OK so users get access.

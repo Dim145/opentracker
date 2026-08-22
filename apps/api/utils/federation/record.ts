@@ -185,7 +185,15 @@ export function makeProof(
     signingInput(document, proofConfig as unknown as Record<string, unknown>),
     opts.privateKeyPem,
   );
-  return { ...proofConfig, proofValue: `u${signature.toString('base64url')}` };
+  // The shared config types `type` and `cryptosuite` as plain strings, since
+  // it has no business knowing which suite a caller uses. Here they are the
+  // literals the record format pins, so the narrowing is ours to assert.
+  return {
+    ...proofConfig,
+    type: PROOF_TYPE,
+    cryptosuite: CRYPTOSUITE,
+    proofValue: `u${signature.toString('base64url')}`,
+  };
 }
 
 /**

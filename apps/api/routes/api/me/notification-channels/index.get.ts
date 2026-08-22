@@ -26,8 +26,11 @@ export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
 
   const allMeta = listChannelMetas();
-  const adminRows = await db.query.notificationChannels.findMany({});
-  const byType = new Map(adminRows.map((r) => [r.type, r]));
+  // Core select: `db.query.notificationChannels.findMany({})` came back as
+  // `unknown[]` here, which propagated all the way to the `serverConfig`
+  // decrypt below.
+  const adminRows = await db.select().from(schema.notificationChannels);
+  const byType = new Map(adminRows.map((r) => [r.type, r] as const));
   const availableMeta = allMeta.filter((m) => {
     const row = byType.get(m.type);
     return row?.enabled && row.lastTestStatus === 'ok';

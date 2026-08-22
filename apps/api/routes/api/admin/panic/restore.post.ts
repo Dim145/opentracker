@@ -75,7 +75,11 @@ export default defineEventHandler(async (event) => {
   );
 
   // Check if database is encrypted
-  const currentState = await db.query.panicState.findFirst();
+  // Core select rather than `db.query.panicState.findFirst()`: the relational
+  // builder hands back an untyped row here, which left `kdfVersion` and
+  // `encryptionSalt` as `unknown` — the version comparison and both
+  // `Buffer.from` calls below were unchecked.
+  const [currentState] = await db.select().from(schema.panicState).limit(1);
   if (!currentState?.isEncrypted) {
     throw createError({
       statusCode: 400,
@@ -137,8 +141,8 @@ export default defineEventHandler(async (event) => {
       await db
         .update(users)
         .set({
-          authSalt: decryptField(user.authSalt, key, legacyIv),
-          authVerifier: decryptField(user.authVerifier, key, legacyIv),
+          authSalt: decryptField(user.authSalt, key, legacyIv)!,
+          authVerifier: decryptField(user.authVerifier, key, legacyIv)!,
           passkey: decryptField(user.passkey, key, legacyIv)!,
           lastIp: decryptField(user.lastIp, key, legacyIv) ?? undefined,
         })

@@ -243,7 +243,7 @@ export interface GroupRow {
  * The four `FILTER (WHERE scope = …)` pairs, as they come back from either
  * table. Named so the two queries cannot drift on the column names.
  */
-export interface RawScopeCounts {
+export type RawScopeCounts = {
   ep_units: number;
   ep_latest: string | null;
   season_units: number;
@@ -252,7 +252,7 @@ export interface RawScopeCounts {
   integral_latest: string | null;
   all_units: number;
   all_latest: string | null;
-}
+};
 
 export function toScopes(r: RawScopeCounts): ScopeSummary[] {
   const raw: Array<[GroupScope, number, string | null]> = [

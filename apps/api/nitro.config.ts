@@ -6,6 +6,26 @@ const root = fileURLToPath(new URL('.', import.meta.url));
 export default defineNitroConfig({
   compatibilityDate: '2025-07-15',
   srcDir: '.',
+
+  // Nitro regenerates .nitro/types/tsconfig.json on every `prepare`, and that
+  // is the config `pnpm typecheck` runs against — so the strictness has to be
+  // declared here rather than edited into the generated file.
+  //
+  // strictNullChecks only. Full `strict` additionally turns on
+  // noImplicitAny/strictFunctionTypes and friends, which this codebase does not
+  // satisfy yet; the null checking is the part that catches bugs rather than
+  // style. Enabling it surfaced 47 findings, all fixed — among them a federated
+  // inbound path that dereferenced a possibly-null config, two notifications
+  // handed a null recipient id when the author's account was gone, and a
+  // session-id helper that could hand back `undefined` and quietly disable the
+  // fresh-auth window.
+  typescript: {
+    tsConfig: {
+      compilerOptions: {
+        strictNullChecks: true,
+      },
+    },
+  },
   scanDirs: ['routes', 'middleware', 'plugins', 'utils', 'redis'],
 
   // esbuild target. Nitro's default is `es2019` — far older than what

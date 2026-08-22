@@ -13,7 +13,7 @@
  * board reads three columns and avoids per-row round-trips.
  */
 import { db, schema } from '@trackarr/db';
-import { and, desc, eq, ilike, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { escapeLike } from '~~/utils/sql';
 
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   const query = querySchema.parse(getQuery(event));
   const offset = (query.page - 1) * query.limit;
 
-  const conditions = [];
+  const conditions: SQL[] = [];
   if (query.status) {
     conditions.push(eq(schema.uploadRequests.status, query.status));
   }

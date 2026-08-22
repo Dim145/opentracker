@@ -92,7 +92,9 @@ export default defineEventHandler(async (event) => {
   const isFirstUser = userCount[0].count === 0;
 
   // If not first user, check if registration is open or invite code is valid
-  let validInvite = null;
+  let validInvite: Awaited<
+    ReturnType<typeof db.query.invitations.findFirst>
+  > | null = null;
   if (!isFirstUser) {
     const regOpen = await isRegistrationOpen();
     const inviteEnabled = await isInviteEnabled();

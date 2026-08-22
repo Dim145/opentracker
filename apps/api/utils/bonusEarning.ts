@@ -99,13 +99,17 @@ const accountAgeMonthlyConfig = z
   })
   .strict();
 
-export const bonusRuleConfigSchemas: Record<BonusRuleKind, z.ZodTypeAny> = {
+// `satisfies` rather than a `Record<BonusRuleKind, z.ZodTypeAny>` annotation:
+// the annotation still checked that every kind is covered, but it widened each
+// value to `ZodTypeAny`, so `safeParse(...).data` came back as `{}` and every
+// caller passed an untyped config into the rule appliers.
+export const bonusRuleConfigSchemas = {
   seeding: seedingConfig,
   first_seeder: firstSeederConfig,
   seeding_milestone: seedingMilestoneConfig,
   daily_login: dailyLoginConfig,
   account_age_monthly: accountAgeMonthlyConfig,
-};
+} satisfies Record<BonusRuleKind, z.ZodTypeAny>;
 
 export function validateBonusRuleConfig(
   kind: BonusRuleKind,

@@ -42,7 +42,14 @@ function renderHtml(payload: NotificationPayload): string {
   return lines.join('\n');
 }
 
-async function api<T>(token: string, method: string, body: Record<string, unknown>): Promise<{ ok: true; result: T } | { ok: false; error: string }> {
+async function api<T>(
+  token: string,
+  method: string,
+  body: Record<string, unknown>
+): Promise<
+  | { ok: true; result: T; error?: undefined }
+  | { ok: false; error: string; result?: undefined }
+> {
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
       method: 'POST',

@@ -155,7 +155,7 @@ export interface MixedListOptions {
   scope?: GroupScope;
 }
 
-interface RawMixedGroup extends RawScopeCounts {
+type RawMixedGroup = RawScopeCounts & {
   gkey: string;
   release_count: number;
   local_count: number;
@@ -171,7 +171,7 @@ interface RawMixedGroup extends RawScopeCounts {
   seed_max: number | null;
   leech_min: number | null;
   leech_max: number | null;
-}
+};
 
 /**
  * Both catalogues projected into one shape: a release, wherever it lives.

@@ -1,6 +1,6 @@
 {
   "name": "trackarr",
-  "version": "0.28.2",
+  "version": "0.28.3",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.33.2",
@@ -8,6 +8,7 @@
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
+    "typecheck": "pnpm --filter @trackarr/api run openapi && pnpm --filter @trackarr/api exec nitropack prepare && tsc -p apps/api/.nitro/types/tsconfig.json --noEmit",
     "test:load": "tsx tests/load/load-test.ts",
     "db:push": "pnpm --filter @trackarr/db run db:push",
     "db:generate": "pnpm --filter @trackarr/db run db:generate",

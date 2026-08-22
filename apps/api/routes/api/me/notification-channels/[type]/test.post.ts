@@ -15,6 +15,7 @@ import { decryptJson } from '~~/utils/channelSecrets';
 import { getAdapter } from '~~/utils/channels';
 import { renderNotification, buildTestPayload } from '~~/utils/notifyRenderer';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import type { TestResult } from '~~/utils/channels/types';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
@@ -49,7 +50,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Not configured yet' });
   }
 
-  let result: { ok: true } | { ok: false; error: string };
+  let result: TestResult;
   try {
     const server = adminRow.serverConfig
       ? decryptJson(adminRow.serverConfig)

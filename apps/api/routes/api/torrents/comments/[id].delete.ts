@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
   // When staff (mod/admin) deletes someone else's comment, notify
   // the original author. Self-deletion doesn't fire — that's a
   // deliberate user action.
-  if (!isAuthor && isModerator) {
+  if (!isAuthor && isModerator && comment.authorId) {
     void notify(
       comment.authorId,
       'comment_deleted_by_staff',

@@ -70,7 +70,13 @@ export default defineEventHandler(async (event) => {
       : [],
   ]);
 
-  const mirrorByPeer = new Map(mirrorCounts.map((r) => [r.peerId, r.count]));
+  // `as const` keeps each entry a 2-tuple. Without it `.map` widens to
+  // `(string | number)[]`, `new Map` finds no matching overload, and the map's
+  // values degrade to `unknown` — which is what made `n + r.mirrored` below
+  // fail to typecheck.
+  const mirrorByPeer = new Map(
+    mirrorCounts.map((r) => [r.peerId, r.count] as const)
+  );
   const statesByPeer = new Map<string, typeof states>();
   for (const s of states) {
     const list = statesByPeer.get(s.peerId) ?? [];

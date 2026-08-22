@@ -13,7 +13,7 @@
  */
 import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
-import { eq, desc, and, sql, inArray } from 'drizzle-orm';
+import { eq, desc, and, sql, inArray, type SQL } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   await requireModeratorSession(event);
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   const limit = Math.min(parseInt(query.limit as string) || 20, 50);
   const offset = (page - 1) * limit;
 
-  const conditions = [];
+  const conditions: SQL[] = [];
   if (status && ['pending', 'resolved', 'dismissed', 'withdrawn'].includes(status)) {
     conditions.push(eq(schema.reports.status, status));
   }

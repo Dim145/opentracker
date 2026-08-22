@@ -374,7 +374,12 @@ export async function mintTombstone(
       ),
     )
     .limit(1);
-  if (!previous || previous.kind === 'tombstone') return null;
+  // A record with no info hash is not about a release, so there is nothing to
+  // withdraw with a tombstone. Only identity records are shaped that way, and
+  // they are retired by superseding them instead.
+  if (!previous || previous.kind === 'tombstone' || !previous.infoHash) {
+    return null;
+  }
 
   const draft = projectTombstone(
     previous.infoHash,

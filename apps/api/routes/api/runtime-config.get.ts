@@ -22,6 +22,8 @@
  * a valid passkey. Cached for 5 minutes by the CDN/edge to amortise
  * the round-trip across page loads.
  */
+import { appVersion } from '~~/utils/settings';
+
 export default defineEventHandler((event) => {
   const cfg = useRuntimeConfig();
   setHeader(event, 'cache-control', 'public, max-age=300');
@@ -29,6 +31,11 @@ export default defineEventHandler((event) => {
     trackerHttpUrl: (cfg.public.trackerHttpUrl as string) ?? '',
     trackerUdpUrl: (cfg.public.trackerUdpUrl as string) ?? '',
     trackerWsUrl: (cfg.public.trackerWsUrl as string) ?? '',
-    appVersion: (cfg.public.appVersion as string) ?? '',
+    // `appVersion` was read off `cfg.public`, where it was never declared —
+    // Nitro only maps env vars onto declared runtime-config keys, so this
+    // always served an empty string and the web fell back to whatever version
+    // was baked into its own build (footer and header disagreed). Read the
+    // same resolved value the rest of the API uses.
+    appVersion,
   };
 });
