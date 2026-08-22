@@ -1,8 +1,8 @@
 /**
- * Did the boot-time schema push actually work?
+ * Did the boot-time schema step actually work?
  *
  * This exists because the obvious answer — look at the exit code — is wrong.
- * `drizzle-kit push` can print a fatal error, apply nothing, and still exit 0.
+ * The drizzle tooling can print a fatal error, apply nothing, and still exit 0.
  * Observed on drizzle-kit 0.31.10:
  *
  *   [✓] Pulling schema from database...
@@ -29,8 +29,10 @@
  */
 
 /**
- * `drizzle-kit push` needs a human when the diff is ambiguous. The one that
- * bites in a container is the table resolver: when one table exists only in
+ * `drizzle-kit push` needs a human when the diff is ambiguous. The boot no
+ * longer uses push — it applies committed migrations — but the check stays: a
+ * `pnpm db:push` in dev hits it, and so would anyone reverting the boot step.
+ * The one that bites is the table resolver: when one table exists only in
  * the database and another only in schema.ts, it asks whether that is a rename
  * or a create-plus-drop.
  *
@@ -79,7 +81,7 @@ export function classifyPushOutcome({ code, output }) {
       ok: false,
       reason: `drizzle-kit push exited with ${code}`,
       detail:
-        'The push reported a hard failure. If the message above mentions ' +
+        'The step reported a hard failure. If the message above mentions ' +
         'prepared statements or a lost session, the migration URL is probably ' +
         'pointing at a transaction pooler: set MIGRATIONS_DATABASE_URL to a ' +
         'direct Postgres URL.',

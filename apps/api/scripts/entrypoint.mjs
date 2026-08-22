@@ -1,23 +1,25 @@
 // Distroless-friendly entrypoint (no shell available).
-// 1. Push the database schema via drizzle-kit (replaces the previous
-//    `pnpm --filter @trackarr/db exec drizzle-kit push --force`).
-// 2. Abort the boot if that push did not actually apply.
+// 1. Apply the committed SQL migrations.
+// 2. Abort the boot if they did not apply.
 // 3. Boot the Nitro server in-process.
 //
-// Step 2 is not paranoia. drizzle-kit can print a fatal error, apply nothing,
-// and exit 0 — so this used to log "Schema up to date" and start the API on a
-// schema that had not been migrated, turning a boot-time failure into runtime
-// errors with a boot log that claimed success. The outcome is now read from the
-// output too; see scripts/migrationOutcome.mjs for the signatures and why no
-// env var can auto-answer a rename prompt. Two switches:
+// Step 1 used to be `drizzle-kit push --force`, which diffed schema.ts against
+// the live database at every boot. Two things made that untenable. It asks
+// questions — an ambiguous rename stops the deploy on a prompt no container can
+// answer — and, worse, it silently DROPS anything present in the database and
+// absent from schema.ts: a table with data, deleted at boot, logged as "Schema
+// up to date". Migrations only do what their SQL says.
 //
-//   SKIP_DB_MIGRATIONS=true          don't push at all (schema managed
+// Step 2 is not paranoia either. The tool can report failure by exiting 0, so
+// the outcome is read from the output as well; see scripts/migrationOutcome.mjs.
+// Two switches:
+//
+//   SKIP_DB_MIGRATIONS=true          don't migrate at all (schema managed
 //                                    elsewhere, or applied by hand)
-//   IGNORE_DB_MIGRATION_FAILURE=true push, and boot even if it failed
+//   IGNORE_DB_MIGRATION_FAILURE=true migrate, and boot even if it failed
 //
-// stdin is /dev/null rather than inherited, so the prompt fails the same way
-// whether or not someone passed `docker run -it`: a container entrypoint that
-// blocks on a question nobody is watching is worse than one that exits.
+// stdin is /dev/null rather than inherited: a container entrypoint that can
+// block on a question nobody is watching is worse than one that exits.
 //
 // Why MIGRATIONS_DATABASE_URL is separate from DATABASE_URL:
 //   In the prod compose the runtime DATABASE_URL points to PgBouncer in
@@ -57,9 +59,10 @@ const IGNORE_FAILURE = process.env.IGNORE_DB_MIGRATION_FAILURE === 'true';
 // pnpm hoists most deps to db-tools/node_modules/.pnpm/<pkg>@<ver>/node_modules,
 // then symlinks them under the consuming workspace. drizzle-kit's binary is
 // reachable via the symlinked package dir.
-const DRIZZLE_BIN =
-  '/app/db-tools/packages/db/node_modules/drizzle-kit/bin.cjs';
-const SCHEMA = '/app/db-tools/packages/db/src/schema.ts';
+const DB_TOOLS = '/app/db-tools/packages/db';
+// Spawned with DB_TOOLS as cwd so `postgres` / `drizzle-orm` resolve from the
+// tree the image ships, and so the migrator's relative folder path is right.
+const MIGRATE_SCRIPT = `${DB_TOOLS}/migrate.mjs`;
 const SERVER_ENTRY = '/app/.output/server/index.mjs';
 
 if (!process.env.DATABASE_URL) {
@@ -73,8 +76,8 @@ if (!existsSync(SERVER_ENTRY)) {
 }
 
 if (!SKIP) {
-  if (!existsSync(DRIZZLE_BIN)) {
-    console.error(`[Boot] drizzle-kit missing at ${DRIZZLE_BIN}`);
+  if (!existsSync(MIGRATE_SCRIPT)) {
+    console.error(`[Boot] migration runner missing at ${MIGRATE_SCRIPT}`);
     process.exit(1);
   }
 
@@ -89,11 +92,11 @@ if (!SKIP) {
     console.warn(
       '[Boot] DATABASE_URL appears to point at PgBouncer. Set ' +
         'MIGRATIONS_DATABASE_URL to a direct Postgres URL to avoid ' +
-        'transaction-pool incompatibilities with drizzle-kit push.'
+        'transaction-pool incompatibilities while migrating.'
     );
   }
 
-  console.log('[Boot] Pushing database schema...');
+  console.log('[Boot] Applying database migrations...');
   const t0 = Date.now();
   // Output is captured as well as forwarded: drizzle-kit can fail and still
   // exit 0 (see scripts/migrationOutcome.mjs), so the status code alone cannot
@@ -102,24 +105,14 @@ if (!SKIP) {
   const { code, output } = await new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
-      [
-        DRIZZLE_BIN,
-        'push',
-        '--force',
-        `--schema=${SCHEMA}`,
-        '--dialect=postgresql',
-        `--url=${migrationUrl}`,
-      ],
+      [MIGRATE_SCRIPT],
       {
         stdio: ['ignore', 'pipe', 'pipe'],
-        cwd: '/app/db-tools',
+        cwd: DB_TOOLS,
         env: {
           ...process.env,
-          // drizzle-kit renders a TTY spinner by default. In Docker the
-          // entrypoint is non-interactive, and on stdout-piped runtimes
-          // (k8s, journald) the spinner's escape codes garble the log.
-          // CI=1 and NO_COLOR=1 switch it to plain logging — same effect
-          // as `--force` already gives for prompts, but for output too.
+          // Plain logging: on stdout-piped runtimes (k8s, journald) a
+          // spinner's escape codes garble the log.
           CI: '1',
           NO_COLOR: '1',
         },
@@ -153,7 +146,7 @@ if (!SKIP) {
         'against missing columns will fail at runtime.'
     );
   } else {
-    console.log(`[Boot] Schema up to date (${Date.now() - t0}ms)`);
+    console.log(`[Boot] Migrations up to date (${Date.now() - t0}ms)`);
   }
 } else {
   console.log('[Boot] Skipping schema push (SKIP_DB_MIGRATIONS=true)');
