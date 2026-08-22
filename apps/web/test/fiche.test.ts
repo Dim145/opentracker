@@ -293,3 +293,163 @@ describe('buildFiche', () => {
     expect(bb).not.toContain('NaN');
   });
 });
+
+// The listing's byte contract.
+//
+// Everything above pins a behaviour; nothing pinned the bytes, and the bytes
+// are the product: the four spaces before the year, the space "Audio :" has
+// and "Sous-titres :" has not, the two size labels left un-italicised, the ⭐
+// and the │. Each of them was copied from the listing the original tool
+// produced and each is invisible to a behavioural assertion — a refactor can
+// drop any of them with every test above still green.
+//
+// One maximal fixture and one empty fixture is enough to cover the scaffolding
+// in both directions, and they are the reference `test/ficheTemplate.test.ts`
+// compares the template engine against: the equality it asserts is only worth
+// something because these two pin the target.
+//
+// If the date ever comes out as "2026-03-07" here, the runtime is missing its
+// ICU data rather than the generator being wrong — and every listing it emits
+// is wrong with it, which is exactly why the date stays in the fixture.
+const GOLDEN_MAXIMAL = `[center][font=Verdana][color=#3d85c6][size=29][b]My Title[/b]
+    (2026)[/size][/color][/font]
+
+[img]https://example.org/p.jpg[/img]
+
+[img]https://i.imgur.com/u3WEe1w.png[/img]
+
+[font=Verdana][size=13][b][color=#3d85c6]Pays :[/color][/b] [i]Japon, France[/i]
+[b][color=#3d85c6]Genres :[/color][/b] [i]Animation, Drame[/i]
+[b][color=#3d85c6]Date de sortie :[/color][/b] [i]7 mars 2026[/i]
+[b][color=#3d85c6]Titre original :[/color][/b] [i]Mon Titre[/i]
+[b][color=#3d85c6]Durée :[/color][/b] [i]2h 22min[/i]
+[b][color=#3d85c6]Nombre de saisons :[/color][/b] [i]2[/i]
+[b][color=#3d85c6]Nombre d’épisodes :[/color][/b] [i]24[/i]
+[b][color=#3d85c6]Créateur(s) :[/color][/b] [i]A. Réal[/i]
+[b][color=#3d85c6]Acteurs :[/color][/b] [i]Actor One, Actor Two, Actor Three[/i]
+[img width=75]https://img.example/1.jpg[/img][img width=75]https://img.example/2.jpg[/img]
+
+⭐ [i]8.23 (1234)[/i]
+
+ [url=https://www.themoviedb.org/tv/999][img]https://i.imgur.com/mxI05s2.png[/img][/url] │
+
+[img]https://i.imgur.com/W3pvv6q.png[/img]
+
+A synopsis.
+
+
+[img]https://i.imgur.com/KMZsqZn.png[/img]
+[b][color=#3d85c6]Release source :[/color][/b] [i]WEB-DL[/i]
+[b][color=#3d85c6]Qualité vidéo :[/color][/b] [i]1080p[/i]
+[b][color=#3d85c6]Format vidéo :[/color][/b] [i]MKV[/i]
+[b][color=#3d85c6]Codec vidéo :[/color][/b] [i]x264[/i]
+[b][color=#3d85c6]Débit vidéo :[/color][/b] [i]8 Mbps[/i]
+
+[b][color=#3d85c6] Audio :[/color][/b]
+ 🇯🇵 Japonais [2.0] AAC @ 192 Kbps
+ 🇫🇷 Français [5.1] DTS-HD MA @ 1.5 Mbps
+[b][color=#3d85c6]Sous-titres :[/color][/b]
+🇫🇷 Français (ASS - complets)
+🇬🇧 Anglais (SRT - Forcé)
+
+[img]https://i.imgur.com/KFsABlN.png[/img]
+[b][color=#3d85c6]Taille totale :[/color][/b] 1.37 GiB
+[b][color=#3d85c6]Nombre de fichier :[/color][/b] 3
+[/size][/font][/center]
+
+[center][img]https://s.example/a.png[/img]
+[img]https://s.example/b.png[/img][/center]
+
+[left][size=13][b][color=#3d85c6]Nom release :[/color][/b] My.Title.2026.1080p-NTb[/size][/left]
+
+[right][size=10][i] Propulsé par Trackarr[/i][/size][/right]`;
+
+const GOLDEN_MINIMAL = `[center][font=Verdana][color=#3d85c6][size=29][b]No metadata[/b][/size][/color][/font]
+
+[img]https://i.imgur.com/EXBOmiU.png[/img]
+
+[font=Verdana][size=13]
+[b][color=#3d85c6]Sous-titres :[/color][/b]
+Aucun
+[/size][/font][/center]
+
+[right][size=10][i] Propulsé par Trackarr[/i][/size][/right]`;
+
+describe('buildFiche byte contract', () => {
+  const work: FicheWork = {
+    type: 'tv',
+    title: 'My Title',
+    originalTitle: 'Mon Titre',
+    year: 2026,
+    releaseDate: '2026-03-07',
+    runtime: 142,
+    genres: ['Animation', 'Drame'],
+    countries: ['Japon', 'France'],
+    directors: ['A. Réal'],
+    cast: [
+      { name: 'Actor One', photoUrl: 'https://img.example/1.jpg' },
+      { name: 'Actor Two', photoUrl: 'https://img.example/2.jpg' },
+      { name: 'Actor Three' },
+    ],
+    seasonCount: 2,
+    episodeCount: 24,
+    overview: 'A synopsis.',
+    posterUrl: 'https://example.org/p.jpg',
+    voteAverage: 8.23,
+    voteCount: 1234,
+    tmdbId: 999,
+  };
+  const release: FicheRelease = {
+    source: 'WEB-DL',
+    quality: '1080p',
+    container: 'MKV',
+    videoCodec: 'x264',
+    videoBitRate: 8_000_000,
+    videoBitRateUnit: 'Mbps',
+    totalSize: 1_473_173_712,
+    totalSizeUnit: 'GiB',
+    fileCount: 3,
+    releaseName: 'My.Title.2026.1080p-NTb',
+  };
+  const full = sheet({
+    audio: [
+      {
+        kind: 'audio',
+        format: 'AAC',
+        channels: '2.0',
+        bitRate: 192_000,
+        bitRateUnit: 'Kbps',
+        language: 'ja',
+      },
+      {
+        kind: 'audio',
+        format: 'DTS',
+        profile: 'MA',
+        channels: '5.1',
+        bitRate: 1_500_000,
+        bitRateUnit: 'Mbps',
+        language: 'fr',
+      },
+    ],
+    text: [
+      { kind: 'text', format: 'ASS', language: 'fr-FR' },
+      { kind: 'text', format: 'SRT', language: 'en', isForced: true },
+    ],
+  });
+
+  it('emits the maximal listing byte for byte', () => {
+    const bb = buildFiche(work, release, full, {
+      ...defaultOptions(),
+      screenshots: 'https://s.example/a.png\nhttps://s.example/b.png',
+    });
+    expect(bb).toBe(GOLDEN_MAXIMAL);
+  });
+
+  it('emits the empty listing byte for byte, orphan newline included', () => {
+    // No metadata, no technical sheet: the bare `[font][size=13]` line keeps
+    // its trailing newline and "Sous-titres :/Aucun" still shows. Both are
+    // easy to lose in a rewrite and both are part of the contract.
+    const bb = buildFiche({ type: 'movie', title: 'No metadata' }, {}, emptySheet(), defaultOptions());
+    expect(bb).toBe(GOLDEN_MINIMAL);
+  });
+});

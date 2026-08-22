@@ -115,7 +115,13 @@ function field(label: string, value: string): string {
   return `[b][color=${ACCENT}]${label} :[/color][/b] [i]${value}[/i]`;
 }
 
-function frenchDate(iso?: string | null): string | undefined {
+/**
+ * Exported for `ficheTemplate.ts`, which pre-renders this value before handing
+ * it to a template: the result depends on the runtime's ICU data, so it has to
+ * be computed once, here, rather than reimplemented on the template side where
+ * the two spellings would drift apart on the first exotic locale.
+ */
+export function frenchDate(iso?: string | null): string | undefined {
   const raw = text(iso).trim();
   if (!/^\d{4}-\d{2}-\d{2}/.test(raw)) return undefined;
   const d = new Date(`${raw.slice(0, 10)}T00:00:00Z`);
@@ -128,7 +134,12 @@ function frenchDate(iso?: string | null): string | undefined {
   });
 }
 
-function runtimeLabel(minutes?: number | null): string | undefined {
+/**
+ * Exported for the same reason as `frenchDate`. Mind the asymmetry it encodes:
+ * `2h 22min` has no space before "min" while the under-an-hour form `45 min`
+ * does. That is the original template's spelling and a rewrite must keep it.
+ */
+export function runtimeLabel(minutes?: number | null): string | undefined {
   if (!minutes || minutes <= 0) return undefined;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
