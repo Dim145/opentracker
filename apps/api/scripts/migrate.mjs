@@ -28,9 +28,46 @@ if (!url) {
 // hundred of those bury the one line that matters.
 const sql = postgres(url, { max: 1, onnotice: () => {} });
 
+/**
+ * Serialises migration across replicas.
+ *
+ * drizzle-orm's migrator takes no lock. It reads the newest recorded migration,
+ * then applies everything after it inside one transaction — so two replicas
+ * booting together both read the same starting point and both apply the same
+ * chain.
+ *
+ * Measured, two migrators started at once against an empty database: the first
+ * succeeds and the second fails outright on `CREATE TABLE IF NOT EXISTS
+ * "announce_log"`. IF NOT EXISTS is not atomic against a concurrent create —
+ * both transactions pass the existence check, then one loses. Idempotent DDL
+ * does not help here. And because a failed migration now aborts the boot, that
+ * replica crash-loops through the deploy.
+ *
+ * A session-level advisory lock is the standard answer and costs nothing:
+ * whoever gets there first migrates, the others block, then find the work done
+ * and apply nothing. Session-level rather than transaction-level is what makes
+ * it safe against a replica that dies mid-migration: the connection goes, the
+ * lock goes with it, and the next boot proceeds instead of waiting forever on a
+ * lock nobody holds.
+ *
+ * The key is arbitrary but must never change: a different number is a different
+ * lock, which is no lock at all.
+ */
+const LOCK_KEY = 49192221;
+
+let waited = false;
+{
+  const [{ locked }] = await sql`SELECT pg_try_advisory_lock(${LOCK_KEY}) AS locked`;
+  if (!locked) {
+    console.log('[Migrate] another instance is migrating — waiting for it');
+    waited = true;
+    await sql`SELECT pg_advisory_lock(${LOCK_KEY})`;
+  }
+}
+
 try {
   await migrate(drizzle(sql), { migrationsFolder: './src/migrations' });
-  console.log('[Migrate] applied');
+  console.log(waited ? '[Migrate] applied (after waiting)' : '[Migrate] applied');
 } catch (err) {
   // The failing statement is the useful part, and it is on `err.message` for
   // postgres.js. Printed in full rather than truncated: a migration statement
@@ -43,5 +80,8 @@ try {
   }
   process.exitCode = 1;
 } finally {
+  // Best-effort: ending the session releases it anyway, so a failure here is
+  // not worth masking the migration's own error with.
+  await sql`SELECT pg_advisory_unlock(${LOCK_KEY})`.catch(() => {});
   await sql.end({ timeout: 5 });
 }
