@@ -22,7 +22,7 @@ DELETE FROM "bonus_grants" a
     AND a.torrent_id IS NOT NULL
     AND a.torrent_id = b.torrent_id
     AND (a.created_at, a.id) > (b.created_at, b.id);
-
-CREATE UNIQUE INDEX "bonus_grants_first_seeder_unique_idx"
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "bonus_grants_first_seeder_unique_idx"
   ON "bonus_grants" ("torrent_id")
   WHERE source = 'first_seeder' AND torrent_id IS NOT NULL;

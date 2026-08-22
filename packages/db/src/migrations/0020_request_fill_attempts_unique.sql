@@ -4,6 +4,6 @@
 -- against any future codepath (or migration) that forgets to
 -- check. Rejected / validated rows stay outside the index so
 -- the historical audit trail isn't constrained.
-CREATE UNIQUE INDEX "upload_request_fill_attempts_active_unique"
+CREATE UNIQUE INDEX IF NOT EXISTS "upload_request_fill_attempts_active_unique"
   ON "upload_request_fill_attempts" ("request_id", "user_id")
   WHERE "status" = 'proposed';

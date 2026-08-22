@@ -3,7 +3,7 @@
 -- peer_id signature, `completed` without `started`, …) it drops a row
 -- here. Manual triage from /mod/anti-cheat — nothing is ever auto-
 -- banned; the table is the queue + paper-trail.
-CREATE TABLE "anticheat_flags" (
+CREATE TABLE IF NOT EXISTS "anticheat_flags" (
   "id"               text PRIMARY KEY,
   "user_id"          text NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
   "torrent_id"       text REFERENCES "torrents"("id") ON DELETE SET NULL,
@@ -20,7 +20,9 @@ CREATE TABLE "anticheat_flags" (
   "review_verdict"   text,
   "review_note"      text
 );
-
-CREATE INDEX "anticheat_flags_user_idx" ON "anticheat_flags" ("user_id", "created_at");
-CREATE INDEX "anticheat_flags_unreviewed_idx" ON "anticheat_flags" ("reviewed_at");
-CREATE INDEX "anticheat_flags_kind_idx" ON "anticheat_flags" ("kind");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "anticheat_flags_user_idx" ON "anticheat_flags" ("user_id", "created_at");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "anticheat_flags_unreviewed_idx" ON "anticheat_flags" ("reviewed_at");
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "anticheat_flags_kind_idx" ON "anticheat_flags" ("kind");
