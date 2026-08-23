@@ -13,12 +13,20 @@ import (
 )
 
 // Open returns a configured pgxpool.Pool. Caller is responsible for Close().
-func Open(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
+//
+// `maxConns` is per instance — see Config.DBMaxConns for why that matters once
+// the tracker runs behind a load balancer. A non-positive value falls back to
+// the historical 20 rather than letting pgx pick its own default (which is
+// derived from CPU count and would change silently with the host).
+func Open(ctx context.Context, dsn string, maxConns int) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
 	}
-	cfg.MaxConns = 20
+	if maxConns <= 0 {
+		maxConns = 20
+	}
+	cfg.MaxConns = int32(maxConns)
 	cfg.MinConns = 2
 	cfg.MaxConnIdleTime = 30 * time.Second
 	cfg.ConnConfig.ConnectTimeout = 10 * time.Second

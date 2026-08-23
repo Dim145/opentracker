@@ -28,6 +28,15 @@ type Config struct {
 	// silently zero every delta on the next announce, so the loader
 	// clamps to a sane minimum (see minPeerTTL in peers.go).
 	PeerTTL time.Duration
+	// DBMaxConns caps this instance's Postgres pool.
+	//
+	// It is per INSTANCE, which is the whole reason it is configurable: run
+	// four trackers behind a load balancer and the cluster opens 4 × this
+	// many connections, before counting the API's own replicas. PgBouncer's
+	// `default_pool_size` and Postgres's `max_connections` have to be sized
+	// for the product, and the only way to tune the other side of it was
+	// previously to edit the source.
+	DBMaxConns int
 }
 
 // defaultPeerTTL is the fallback applied when `TRACKER_PEER_TTL` is unset
@@ -55,6 +64,10 @@ func Load() (*Config, error) {
 		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
 		RedisKeyPrefix:  getEnvDefault("REDIS_KEY_PREFIX", "ot:"),
 		IPHashSecret:    os.Getenv("IP_HASH_SECRET"),
+		// 20 is what the pool was hardcoded to before this became a
+		// setting; keeping it as the default means an existing deployment
+		// behaves identically after the upgrade.
+		DBMaxConns:      getEnvInt("TRACKER_DB_MAX_CONNS", 20),
 		Debug:           os.Getenv("TRACKER_DEBUG") == "true",
 		FederationSwarm: getEnvDefault("TRACKER_FEDERATION_SWARM", "false") == "true",
 		PeerTTL:         getEnvDuration("TRACKER_PEER_TTL", defaultPeerTTL),

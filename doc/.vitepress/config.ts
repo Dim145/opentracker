@@ -62,6 +62,7 @@ export default defineConfig({
             { text: 'Backup & Restore', link: '/guide/backup-restore' },
             { text: 'Upgrading', link: '/guide/upgrading' },
             { text: 'Local Production', link: '/guide/local-production' },
+            { text: 'Scaling Out', link: '/guide/scaling' },
             { text: 'Roadmap', link: '/guide/roadmap' },
           ],
         },

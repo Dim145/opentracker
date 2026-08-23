@@ -49,6 +49,7 @@ the running app never reads them directly.
 | ----------------------------- | --------- | ------------- | ---------------------------------------------------------------------- |
 | `DATABASE_URL`                | api, tracker | —          | PostgreSQL DSN. **Required**.                                          |
 | `MIGRATIONS_DATABASE_URL`     | api       | `DATABASE_URL`| Direct postgres DSN (bypasses PgBouncer) used by the boot migrations.     |
+| `TRACKER_DB_MAX_CONNS`        | tracker   | `20`          | Postgres pool cap **per tracker instance**; multiply by the instance count when sizing PgBouncer. |
 | `DB_USER`                     | compose   | `tracker`     | Postgres role; renders into the DSN.                                   |
 | `DB_PASSWORD`                 | compose   | `tracker`     | Postgres password; renders into the DSN.                               |
 | `DB_NAME`                     | compose   | `trackarr`    | Database name.                                                         |

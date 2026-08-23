@@ -1,8 +1,12 @@
 package server
 
 import (
+	"context"
+	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // dedupWindow matches the legacy 2-second deduplication window. Many
@@ -24,27 +28,82 @@ const dedupCleanupEvery = 10 * time.Second
 // the lock.
 const dedupMaxEntries = 100_000
 
-// dedup is an in-memory cache used solely to skip duplicate announces
-// occurring within dedupWindow.
+// dedupRedisTimeout bounds the SET NX round-trip. The dedup sits on the
+// announce hot path, so a stalled Redis must degrade to the local map
+// rather than hold the request: 150 ms is far above a healthy round-trip
+// and far below any client's patience.
+const dedupRedisTimeout = 150 * time.Millisecond
+
+// dedup decides whether an announce (or one of its side effects) has
+// already been booked inside `dedupWindow`.
+//
+// TWO layers, and both are load-bearing:
+//
+//  1. an in-process map — free, catches the common case (one client
+//     announcing over IPv4 and IPv6 milliseconds apart, landing on this
+//     same process), and remains the answer when Redis is unreachable;
+//  2. a Redis `SET NX PX` — catches the case the map cannot see, which is
+//     the same announce arriving at a DIFFERENT process.
+//
+// Layer 2 exists because layer 1 is silently wrong the moment the tracker
+// runs more than once. Measured on two instances behind a round-robin: the
+// same announce credited its byte delta TWICE (1 MB transferred, 2 MB
+// credited), because each process read the same Redis baseline, computed the
+// same delta, and neither could see the other's map. `users.uploaded` is an
+// atomic `+=`, so the over-credit is durable, and it propagates to ratio,
+// bonus and hit-and-run.
+//
+// The same guard covers all three call sites — the per-event announce key,
+// the `:credit` key that gates the byte delta (finding M5) and the
+// `:seedtime` key that gates seed-time accrual (finding M7) — so all three
+// become correct across instances at once.
+//
+// Note what is NOT fixed here: the rate ceiling on the delta is derived from
+// `prev.UpdatedAt`, which lives in Redis and is therefore already shared, so
+// two instances compute the same allowance. It bounds the size of a credit;
+// it never deduplicated one.
 type dedup struct {
 	mu   sync.Mutex
 	seen map[string]time.Time
 	stop chan struct{}
+
+	// rdb may be nil: unit tests construct a local-only dedup, and a
+	// single-instance deployment loses nothing by it.
+	rdb    *redis.Client
+	prefix string
 }
 
-func newDedup() *dedup {
+func newDedup(rdb *redis.Client, keyPrefix string) *dedup {
 	d := &dedup{
-		seen: make(map[string]time.Time),
-		stop: make(chan struct{}),
+		seen:   make(map[string]time.Time),
+		stop:   make(chan struct{}),
+		rdb:    rdb,
+		prefix: keyPrefix,
 	}
 	go d.cleanupLoop()
 	return d
 }
 
 // CheckAndMark returns true if this is a fresh announce (not a duplicate).
-// Marks it as seen on the way in. Drops the oldest half of entries when
-// the map exceeds `dedupMaxEntries` to keep memory bounded under spam.
-func (d *dedup) CheckAndMark(key string) bool {
+// Marks it as seen on the way in, locally and in Redis.
+//
+// A key must be fresh in BOTH layers to be accepted. The local check runs
+// first because it is free and because a duplicate caught there needs no
+// round-trip at all.
+func (d *dedup) CheckAndMark(ctx context.Context, key string) bool {
+	if !d.checkLocal(key) {
+		return false
+	}
+	if d.rdb == nil {
+		return true
+	}
+	return d.checkRedis(ctx, key)
+}
+
+// checkLocal is the original in-process behaviour, unchanged. Drops the
+// oldest half of entries when the map exceeds `dedupMaxEntries` to keep
+// memory bounded under spam.
+func (d *dedup) checkLocal(key string) bool {
 	now := time.Now()
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -56,6 +115,31 @@ func (d *dedup) CheckAndMark(key string) bool {
 	}
 	d.seen[key] = now
 	return true
+}
+
+// checkRedis claims the key for `dedupWindow` across every instance.
+//
+// `SET key 1 NX PX <window>` is the whole mechanism: one atomic round-trip,
+// self-expiring, no cleanup path, and the winner is decided by Redis rather
+// than by which process happened to be asked first.
+//
+// On error we return TRUE — the local layer already said this key was fresh,
+// so we degrade to exactly the single-instance behaviour rather than dropping
+// a member's bytes because Redis hiccuped. That direction is also the only
+// coherent one: the byte delta is computed from a baseline that lives in
+// Redis, so a Redis outage means `prev` is nil and there is no delta to
+// double-credit in the first place.
+func (d *dedup) checkRedis(ctx context.Context, key string) bool {
+	ctx, cancel := context.WithTimeout(ctx, dedupRedisTimeout)
+	defer cancel()
+
+	ok, err := d.rdb.SetNX(ctx, d.prefix+"dedup:"+key, 1, dedupWindow).Result()
+	if err != nil {
+		slog.Warn("dedup: redis unreachable, falling back to the local window",
+			"err", err)
+		return true
+	}
+	return ok
 }
 
 // Stop signals the cleanup goroutine to exit.
