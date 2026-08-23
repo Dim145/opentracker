@@ -549,3 +549,114 @@ func formatInt(n int64) string {
 	}
 	return string(buf[i:])
 }
+
+// TestSet_DropsStaleConcurrentWrite covers the race that load balancing made
+// reachable: two announces for one peer handled at the same moment, the
+// later-arriving one carrying LOWER cumulative counters. Letting it land would
+// move the baseline backwards, and a baseline that goes backwards inflates the
+// next delta — credited bytes the member never transferred.
+func TestSet_DropsStaleConcurrentWrite(t *testing.T) {
+	s, mr := newTestStore(t, time.Hour)
+	defer mr.Close()
+	ctx := context.Background()
+	const ih = "aabb"
+
+	fresh := samplePeer("peer1", "1.2.3.4", 6881, true)
+	fresh.Uploaded = 1_000_000
+	if err := s.Set(ctx, ih, fresh); err != nil {
+		t.Fatalf("set fresh: %v", err)
+	}
+
+	stale := samplePeer("peer1", "1.2.3.4", 6881, true)
+	stale.Uploaded = 900_000 // the other half of a concurrent pair
+	if err := s.Set(ctx, ih, stale); err != nil {
+		t.Fatalf("set stale: %v", err)
+	}
+
+	got, err := s.Get(ctx, ih, "peer1")
+	if err != nil || got == nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.Uploaded != 1_000_000 {
+		t.Fatalf("baseline moved backwards: got %d, want 1000000", got.Uploaded)
+	}
+}
+
+// TestSet_AllowsRestartAfterWindow is the other half of the rule, and the
+// reason it is time-scoped instead of "counters may only increase". A client
+// that restarts reports from zero again; the handler needs that lower value
+// stored so it can re-establish a baseline. Refusing it would leave the peer
+// pinned to an old high-water mark and silently deny them credit until they
+// climbed back over it.
+func TestSet_AllowsRestartAfterWindow(t *testing.T) {
+	s, mr := newTestStore(t, time.Hour)
+	defer mr.Close()
+	ctx := context.Background()
+	const ih = "aabb"
+
+	old := samplePeer("peer1", "1.2.3.4", 6881, true)
+	old.Uploaded = 1_000_000
+	if err := s.Set(ctx, ih, old); err != nil {
+		t.Fatalf("set old: %v", err)
+	}
+
+	// Age the stored snapshot past the concurrency window.
+	aged := samplePeer("peer1", "1.2.3.4", 6881, true)
+	aged.Uploaded = 1_000_000
+	aged.UpdatedAt = time.Now().UnixMilli() - (staleWriteWindowMs + 60_000)
+	injectPeer(t, mr, ih, *aged)
+
+	restarted := samplePeer("peer1", "1.2.3.4", 6881, true)
+	restarted.Uploaded = 0
+	if err := s.Set(ctx, ih, restarted); err != nil {
+		t.Fatalf("set restarted: %v", err)
+	}
+
+	got, err := s.Get(ctx, ih, "peer1")
+	if err != nil || got == nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.Uploaded != 0 {
+		t.Fatalf("a restarted client must be able to re-baseline: got %d, want 0", got.Uploaded)
+	}
+}
+
+// TestSet_HigherCountersAlwaysWin: the guard must never block genuine progress,
+// which is the overwhelmingly common case.
+func TestSet_HigherCountersAlwaysWin(t *testing.T) {
+	s, mr := newTestStore(t, time.Hour)
+	defer mr.Close()
+	ctx := context.Background()
+	const ih = "aabb"
+
+	first := samplePeer("peer1", "1.2.3.4", 6881, true)
+	first.Uploaded = 1_000
+	if err := s.Set(ctx, ih, first); err != nil {
+		t.Fatalf("set first: %v", err)
+	}
+	second := samplePeer("peer1", "1.2.3.4", 6881, true)
+	second.Uploaded = 2_000
+	if err := s.Set(ctx, ih, second); err != nil {
+		t.Fatalf("set second: %v", err)
+	}
+	got, _ := s.Get(ctx, ih, "peer1")
+	if got == nil || got.Uploaded != 2_000 {
+		t.Fatalf("progress was blocked: %+v", got)
+	}
+}
+
+// TestSet_RefreshesTTL guards the behaviour the old TxPipeline provided: the
+// hash must never be left without an expiry.
+func TestSet_RefreshesTTL(t *testing.T) {
+	s, mr := newTestStore(t, 30*time.Minute)
+	defer mr.Close()
+	ctx := context.Background()
+	const ih = "aabb"
+
+	if err := s.Set(ctx, ih, samplePeer("peer1", "1.2.3.4", 6881, true)); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if ttl := mr.TTL("ot:peers:" + ih); ttl <= 0 {
+		t.Fatalf("hash left without a TTL: %v", ttl)
+	}
+}

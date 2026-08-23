@@ -93,7 +93,7 @@ func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *pee
 		redis:           rclient,
 		peers:           store,
 		bonus:           bonus.New(rclient, redisKeyPrefix),
-		dedup:           newDedup(),
+		dedup:           newDedup(rclient, redisKeyPrefix),
 		ipHashSecret:    ipHashSecret,
 		debug:           debug,
 		federationSwarm: federationSwarm,
@@ -322,7 +322,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// 4. Dedup window — skip if same {hash,peer,event} fired within 2 seconds
 	peerHex := hexBytes(req.PeerID[:])
 	dedupKey := infoHashHex + ":" + peerHex + ":" + req.Event.String()
-	if !s.dedup.CheckAndMark(dedupKey) {
+	if !s.dedup.CheckAndMark(ctx, dedupKey) {
 		seeders, leechers, _ := s.peers.Counts(ctx, infoHashHex)
 		return AnnounceOutcome{
 			Seeders:     seeders,
@@ -413,6 +413,30 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 			SwarmSeeders:    preSeeders,
 			SwarmLeechers:   preLeechers,
 		})
+		// Drop the flags a concurrent announce already raised. Two
+		// announces for the same peer that differ in event both run the
+		// detectors, and behind a load balancer they run in different
+		// processes — so the same evidence produced two rows in the
+		// moderation queue. Only `no_leecher` was protected, by the
+		// partial unique index it upserts against; every other kind was
+		// a plain INSERT.
+		//
+		// Keyed per KIND, and on the same 2 s window as the credit: two
+		// announces milliseconds apart are one event and should be one
+		// flag, while the same detector firing again ten minutes later is
+		// new evidence and must still be recorded.
+		//
+		// The filter lives here rather than in the anticheat package so
+		// that package stays free of Redis and remains a pure detector.
+		if len(acFlags) > 0 {
+			fresh := acFlags[:0]
+			for _, f := range acFlags {
+				if s.dedup.CheckAndMark(ctx, infoHashHex+":"+peerHex+":acflag:"+f.Kind) {
+					fresh = append(fresh, f)
+				}
+			}
+			acFlags = fresh
+		}
 		if len(acFlags) > 0 {
 			s.bgTasks.Add(1)
 			go func(flags []anticheat.Flag) {
@@ -533,12 +557,13 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// same `prev` baseline, and would each credit the same delta —
 	// an N× over-credit (finding M5). Gate the credit itself on an
 	// event-independent key so the byte delta is booked at most once
-	// per (hash,peer) per 2 s window. CheckAndMark is mutex-guarded,
-	// so exactly one of a concurrent pair wins. The per-event dedup
-	// above still lets distinct events run their own side effects
-	// (completed counter, stopped removal).
+	// per (hash,peer) per 2 s window. CheckAndMark is mutex-guarded AND
+	// Redis-backed, so exactly one of a concurrent pair wins whether the
+	// two land on the same process or on two instances behind a load
+	// balancer. The per-event dedup above still lets distinct events run
+	// their own side effects (completed counter, stopped removal).
 	creditKey := infoHashHex + ":" + peerHex + ":credit"
-	if (deltaUp > 0 || deltaDown > 0) && s.dedup.CheckAndMark(creditKey) {
+	if (deltaUp > 0 || deltaDown > 0) && s.dedup.CheckAndMark(ctx, creditKey) {
 		if err := s.db.Q.IncrementUserStats(ctx, queries.IncrementUserStatsParams{
 			Uploaded:   deltaUp,
 			Downloaded: deltaDown,
@@ -656,7 +681,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	if req.IsSeeder() && prev != nil {
 		elapsed := (time.Now().UnixMilli() - prev.UpdatedAt) / 1000
 		seedKey := infoHashHex + ":" + peerHex + ":seedtime"
-		if elapsed > 0 && elapsed < 3600 && s.dedup.CheckAndMark(seedKey) {
+		if elapsed > 0 && elapsed < 3600 && s.dedup.CheckAndMark(ctx, seedKey) {
 			s.bgTasks.Add(1)
 			go s.recordSeedTime(req.Passkey, infoHashHex, int32(elapsed))
 		}
