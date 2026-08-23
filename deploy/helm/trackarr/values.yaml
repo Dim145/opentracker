@@ -175,10 +175,23 @@ api:
   # tracker's pool before comparing with the pooler's own limits.
   dbPoolMax: 10
 
-  # The API sits behind an ingress, so it must read the client IP from
-  # X-Forwarded-For. See the ingress notes — the ingress MUST overwrite that
-  # header rather than forward what the client sent.
+  # Honour X-Forwarded-For / X-Real-IP for the client address.
+  #
+  # `true` is correct only when something in front SETS that header from the
+  # real peer — the chart's ingress, your own ingress, or a proxy. Set it to
+  # `false` when the API is reached directly (ingress.enabled=false with a
+  # LoadBalancer or NodePort Service): with `true` and nothing in front, a
+  # client can send its own X-Forwarded-For and be believed, which defeats the
+  # IP-based anti-cheat, the ban list and the rate limits.
+  #
+  # The application itself defaults to false; the chart defaults to true because
+  # its own ingress is on by default.
   trustProxy: true
+  # Honour CF-Connecting-IP. Keep false unless you are actually behind
+  # Cloudflare AND have locked ingress to its published ranges — on any other
+  # edge the header is client-supplied, and the reference Caddy configuration
+  # strips it for that reason. Requires trustProxy.
+  trustCfConnectingIp: false
 
   # Uploaded files (torrent files, images, branding assets) are written to a
   # filesystem path, NOT to object storage — there is no S3 client in the API
@@ -223,7 +236,18 @@ tracker:
     port: 8080
   service:
     type: ClusterIP
+    # The port the Service publishes. Defaults to http.port; set it to 80 when
+    # exposing the tracker directly through a LoadBalancer, since BitTorrent
+    # clients announce to whatever is in NUXT_PUBLIC_TRACKER_HTTP_URL.
+    port: ""
     annotations: {}
+
+  # Same meaning and the same warning as api.trustProxy, and it matters more
+  # here: the announcing peer's address is what goes into the swarm, so
+  # believing a forged header hands every other peer the wrong IP and lets a
+  # member walk around an IP ban. `false` when the tracker is reached directly.
+  trustProxy: true
+  trustCfConnectingIp: false
 
   # UDP announces. A separate Service because UDP and TCP cannot share a
   # LoadBalancer on every provider, and because UDP needs the client's real
@@ -286,6 +310,17 @@ tracker:
 #   /           -> web
 # -----------------------------------------------------------------------------
 ingress:
+  # false covers two situations, and they need different follow-up:
+  #
+  #   1. An ingress already exists, or you route with something the chart does
+  #      not template (a Gateway API HTTPRoute, an external proxy, a service
+  #      mesh). Point it at the three Services — `helm status` prints their
+  #      names and ports — and reproduce the routing table below. Leave
+  #      trustProxy on, since your proxy sets the header.
+  #
+  #   2. There is no proxy at all and the Services are exposed directly
+  #      (type: LoadBalancer or NodePort). Then set api.trustProxy and
+  #      tracker.trustProxy to FALSE, or clients can forge X-Forwarded-For.
   enabled: true
   className: nginx
   # READ THIS BEFORE CHANGING THE ANNOTATIONS.

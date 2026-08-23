@@ -43,7 +43,7 @@ spec:
               service:
                 name: {{ $full }}-tracker
                 port:
-                  number: {{ $.Values.tracker.http.port }}
+                  number: {{ $.Values.tracker.service.port | default $.Values.tracker.http.port }}
           {{- if $.Values.ingress.exposeScrape }}
           - path: /scrape
             pathType: Prefix
@@ -51,7 +51,7 @@ spec:
               service:
                 name: {{ $full }}-tracker
                 port:
-                  number: {{ $.Values.tracker.http.port }}
+                  number: {{ $.Values.tracker.service.port | default $.Values.tracker.http.port }}
           {{- end }}
           {{- end }}
           {{- if $.Values.api.enabled }}

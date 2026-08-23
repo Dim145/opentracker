@@ -73,14 +73,15 @@ To keep Redis proper, disable the subchart and point `externalRedis` at your own
 
 ## Three things that will bite
 
-**The ingress must set `X-Forwarded-For` itself.** Both the API and the tracker
-run with `TRUST_PROXY=true`, so they believe that header. If the controller
-forwards one the client sent, a member can announce as any IP they like — which
-defeats the IP-based anti-cheat and the ban list. On ingress-nginx that means
-leaving `use-forwarded-headers` off, which is the default. The reference
-`docker/caddy/Caddyfile` also strips `CF-Connecting-IP` and `True-Client-IP`;
-nothing strips them for you here, and the annotation to reproduce it ships
-commented in `values.yaml`.
+**Whatever is in front must set `X-Forwarded-For` itself.** `api.trustProxy` and
+`tracker.trustProxy` default to on, so both believe that header — and that is
+only safe when something upstream sets it from the real peer. If nothing does,
+or the controller forwards one the client sent, a member can announce as any IP
+they like, which defeats the IP-based anti-cheat and the ban list. On
+ingress-nginx that means leaving `use-forwarded-headers` off, which is the
+default. The reference `docker/caddy/Caddyfile` also strips `CF-Connecting-IP`
+and `True-Client-IP`; nothing strips them for you here, and the annotation to
+reproduce it ships commented in `values.yaml`.
 
 **Uploads need `ReadWriteMany`.** There is no S3 client in the API — uploaded
 torrent files and images go to a filesystem path — so every API replica writes
@@ -92,6 +93,29 @@ update would otherwise deadlock on a volume the old pod still holds.
 `X-Forwarded-For`, so the tracker reads the packet's source address. With
 `Cluster`, kube-proxy rewrites it to a node address and every peer in the swarm
 is handed the wrong IP.
+
+## Without the chart's ingress
+
+`ingress.enabled=false` omits the Ingress and changes nothing else, which covers
+both an ingress that already exists and having none at all. The two need
+different follow-up.
+
+If **an ingress or proxy already exists** — or you route with a Gateway API
+`HTTPRoute`, a mesh, or anything else this chart does not template — point it at
+the three Services and reproduce the routing table above. `helm status` prints
+their names and ports. Leave `trustProxy` on: your proxy is what sets the
+header.
+
+If **nothing sits in front** and the Services are exposed directly
+(`LoadBalancer` or `NodePort`), set `api.trustProxy=false` and
+`tracker.trustProxy=false`. Otherwise clients reach the pods with no proxy to
+sanitise `X-Forwarded-For`, and the tracker will put a forged address into the
+swarm. `tracker.service.port` exists for this case: BitTorrent clients announce
+to whatever `NUXT_PUBLIC_TRACKER_HTTP_URL` says, so a directly exposed tracker
+usually wants 80 rather than 8080.
+
+The chart cannot tell the two apart, so `helm status` warns whenever a Service
+is non-`ClusterIP` while `trustProxy` is still on.
 
 ## Secrets
 

@@ -56,6 +56,7 @@ helm upgrade --install trackarr deploy/helm/trackarr \
 | --- | --- | --- |
 | Postgres | `postgresql.enabled=false` | `externalDatabase.url` (and `externalDatabase.migrationsUrl`), or `externalDatabase.existingSecret` |
 | Valkey / Redis | `valkey.enabled=false` | `externalRedis.host`, optionally `externalRedis.existingSecret` |
+| Ingress | `ingress.enabled=false` | see below — nothing else is required, but check `trustProxy` |
 | Web | `web.enabled=false` | — |
 | API | `api.enabled=false` | — |
 | Tracker | `tracker.enabled=false` | — |
@@ -144,13 +145,55 @@ file.
 
 ## Read this before you open the site
 
-Both the API and the tracker run with `TRUST_PROXY=true`, so they believe
-`X-Forwarded-For`. **Your ingress controller must set that header from the real
-peer address and must not forward one the client sent**, or a member can announce
-as any IP they like — which defeats the IP-based anti-cheat and the ban list.
+`api.trustProxy` and `tracker.trustProxy` default to **on**, so both believe
+`X-Forwarded-For`. That is only safe when something in front SETS that header
+from the real peer address. **If nothing does — or if it forwards one the client
+sent — a member can announce as any IP they like**, which defeats the IP-based
+anti-cheat, the ban list and the rate limits. The tracker case is the worse one:
+the announcing address is what enters the swarm.
 
 On ingress-nginx that means leaving `use-forwarded-headers` off in the controller
 ConfigMap, which is the default.
+
+Note the application itself defaults both flags to `false`. The chart defaults
+them to `true` because its own ingress is on by default — so turning the ingress
+off is exactly when you have to revisit them.
+
+`trustCfConnectingIp` is separate and stays off unless you are genuinely behind
+Cloudflare with ingress locked to its published ranges. On any other edge
+`CF-Connecting-IP` is client-supplied, which is why the reference Caddy
+configuration strips it.
+
+## Running without the chart's ingress
+
+`ingress.enabled=false` omits the Ingress and changes nothing else. It covers two
+situations that need different follow-up.
+
+**An ingress or proxy already exists**, or you route with something this chart
+does not template — a Gateway API `HTTPRoute`, a service mesh, an external
+proxy. Point it at the three Services and reproduce the routing table below;
+`helm status` prints the names and ports. Leave `trustProxy` on, because your
+proxy is the thing setting the header.
+
+**Nothing sits in front and the Services are exposed directly**
+(`type: LoadBalancer` or `NodePort`). Then:
+
+```bash
+helm upgrade --install trackarr deploy/helm/trackarr -n trackarr \
+  --set ingress.enabled=false \
+  --set tracker.service.type=LoadBalancer --set tracker.service.port=80 \
+  --set api.trustProxy=false --set tracker.trustProxy=false
+```
+
+`tracker.service.port` exists for this: BitTorrent clients announce to whatever
+`NUXT_PUBLIC_TRACKER_HTTP_URL` says, so a directly exposed tracker usually wants
+80 rather than 8080. It moves the Service port and `TRACKER_INTERNAL_URL`
+together, not the container port.
+
+The chart cannot tell which of the two situations you are in, so `helm status`
+warns whenever a Service is non-`ClusterIP` while `trustProxy` is still on. If a
+cloud load balancer or CDN in the path does rewrite the header, that warning is
+a false positive — ignore it deliberately rather than by accident.
 
 The reference `docker/caddy/Caddyfile` additionally strips `CF-Connecting-IP` and
 `True-Client-IP`. Nothing strips them for you here. Reproduce it — the annotation

@@ -52,16 +52,49 @@ Read the admin API key:
 
 {{- if .Values.ingress.enabled }}
 
-CHECK THIS BEFORE OPENING THE SITE. Both the API and the tracker run with
-TRUST_PROXY=true, so they believe X-Forwarded-For. Your ingress controller must
-SET that header from the real peer address and must not pass through one the
-client sent, or a member can announce as any IP they like — which defeats the
+CHECK THIS BEFORE OPENING THE SITE. api.trustProxy and tracker.trustProxy are
+on, so both believe X-Forwarded-For. Your ingress controller must SET that
+header from the real peer address and must not pass through one the client
+sent, or a member can announce as any IP they like — which defeats the
 IP-based anti-cheat and the ban list.
 
 On ingress-nginx, leave `use-forwarded-headers` off in the controller ConfigMap
 (the default). Also strip CF-Connecting-IP and True-Client-IP, which the
 reference Caddy configuration removes and which nothing removes for you here:
 see the commented `configuration-snippet` annotation in values.yaml.
+{{- else }}
+
+NO INGRESS WAS CREATED (ingress.enabled=false). Route to these Services:
+
+{{- if .Values.web.enabled }}
+  /            -> {{ include "trackarr.fullname" . }}-web:{{ .Values.web.service.port }}   ({{ .Values.web.service.type }})
+{{- end }}
+{{- if .Values.api.enabled }}
+  /api, /uploads -> {{ include "trackarr.fullname" . }}-api:{{ .Values.api.service.port }}   ({{ .Values.api.service.type }})
+{{- end }}
+{{- if .Values.tracker.enabled }}
+  /announce    -> {{ include "trackarr.fullname" . }}-tracker:{{ .Values.tracker.service.port | default .Values.tracker.http.port }}   ({{ .Values.tracker.service.type }})
+{{- end }}
+
+Most specific prefix first, or /announce ends up at the website. /scrape is
+deliberately absent — it hands swarm counts for any info_hash to anyone asking.
+
+{{- $exposed := list }}
+{{- if and .Values.web.enabled (ne .Values.web.service.type "ClusterIP") }}{{ $exposed = append $exposed "web" }}{{ end }}
+{{- if and .Values.api.enabled (ne .Values.api.service.type "ClusterIP") }}{{ $exposed = append $exposed "api" }}{{ end }}
+{{- if and .Values.tracker.enabled (ne .Values.tracker.service.type "ClusterIP") }}{{ $exposed = append $exposed "tracker" }}{{ end }}
+{{- if and $exposed (or .Values.api.trustProxy .Values.tracker.trustProxy) }}
+WARNING: exposed outside the cluster while trustProxy is still on —
+{{ range $i, $c := $exposed }}{{ if $i }}, {{ end }}{{ $c }}={{ index (dict "web" $.Values.web.service.type "api" $.Values.api.service.type "tracker" $.Values.tracker.service.type) $c }}{{ end }}.
+If nothing sits in front setting X-Forwarded-For, a client can send its own and
+be believed — an announce then enters the swarm under a forged IP and walks
+around an IP ban. Set api.trustProxy=false and tracker.trustProxy=false unless
+there IS a proxy in the path (a cloud load balancer or CDN that rewrites it).
+{{- else if or .Values.api.trustProxy .Values.tracker.trustProxy }}
+trustProxy is on and every Service is ClusterIP, which is right if your own
+ingress or proxy sets X-Forwarded-For. If anything reaches these pods directly,
+turn it off.
+{{- end }}
 {{- end }}
 
 {{- if and .Values.api.uploads.enabled (not .Values.api.uploads.existingClaim) (ne .Values.api.uploads.accessMode "ReadWriteMany") }}

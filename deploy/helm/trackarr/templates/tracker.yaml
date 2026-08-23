@@ -83,12 +83,15 @@ spec:
             {{- end }}
             - name: TRACKER_DEBUG
               value: {{ .Values.tracker.debug | quote }}
-            # Announces arrive through the ingress, so the client address is in
-            # X-Forwarded-For. Read the ingress notes in values.yaml: if the
-            # controller forwards a client-supplied header instead of setting
-            # it, a client can announce as any IP it likes.
+            # The announcing peer's address is what goes into the swarm, so
+            # this must match what is actually in front. `true` requires a
+            # proxy that SETS X-Forwarded-For from the real peer; with nothing
+            # in front, a client sends its own and is believed — which hands
+            # every other peer the wrong IP and walks around an IP ban.
             - name: TRUST_PROXY
-              value: "true"
+              value: {{ .Values.tracker.trustProxy | quote }}
+            - name: TRUST_CF_CONNECTING_IP
+              value: {{ .Values.tracker.trustCfConnectingIp | quote }}
             {{- with .Values.config.extraEnv }}{{ toYaml . | nindent 12 }}{{- end }}
             {{- with .Values.tracker.extraEnv }}{{ toYaml . | nindent 12 }}{{- end }}
           startupProbe:
@@ -128,7 +131,7 @@ spec:
   type: {{ .Values.tracker.service.type }}
   ports:
     - name: http
-      port: {{ .Values.tracker.http.port }}
+      port: {{ .Values.tracker.service.port | default .Values.tracker.http.port }}
       targetPort: http
       protocol: TCP
   selector:

@@ -84,6 +84,8 @@ spec:
             {{- include "trackarr.redisEnv" . | nindent 12 }}
             - name: TRUST_PROXY
               value: {{ .Values.api.trustProxy | quote }}
+            - name: TRUST_CF_CONNECTING_IP
+              value: {{ .Values.api.trustCfConnectingIp | quote }}
             {{- if .Values.api.uploads.enabled }}
             - name: UPLOADS_DIR
               value: {{ .Values.api.uploads.mountPath | quote }}
