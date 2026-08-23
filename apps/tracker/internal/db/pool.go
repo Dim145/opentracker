@@ -34,17 +34,21 @@ func Open(ctx context.Context, dsn string, maxConns int) (*pgxpool.Pool, error) 
 	if err != nil {
 		return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
 	}
-	// Both bounds, and the upper one is not decoration: `maxConns` arrives
-	// from strconv.Atoi as a platform int, and narrowing an unchecked one to
-	// pgx's int32 turns `TRACKER_DB_MAX_CONNS=3000000000` into a NEGATIVE
-	// pool size. Checking `<= 0` after the conversion would be too late, so
-	// the range check happens first and rejects the value outright — a
-	// four-digit pool is a typo, not a request (same reasoning as
-	// clampTemplateQuota in apps/api).
-	if maxConns <= 0 || maxConns > maxDBConns {
-		maxConns = defaultDBConns
+	// `maxConns` arrives from strconv.Atoi as a platform int, and narrowing an
+	// unchecked one to pgx's int32 turns `TRACKER_DB_MAX_CONNS=3000000000`
+	// into a NEGATIVE pool size — a guard placed after the conversion cannot
+	// see that. So the conversion happens only inside the branch that has
+	// already compared the value against both constants; outside it, the
+	// default is used and nothing is narrowed.
+	//
+	// Rejecting rather than clamping to the ceiling: a four-digit pool is a
+	// typo, not a request, and Postgres could not satisfy it anyway (same
+	// reasoning as clampTemplateQuota in apps/api).
+	conns := int32(defaultDBConns)
+	if maxConns >= 1 && maxConns <= maxDBConns {
+		conns = int32(maxConns)
 	}
-	cfg.MaxConns = int32(maxConns)
+	cfg.MaxConns = conns
 	cfg.MinConns = 2
 	cfg.MaxConnIdleTime = 30 * time.Second
 	cfg.ConnConfig.ConnectTimeout = 10 * time.Second
