@@ -588,6 +588,27 @@
           </div>
         </section>
 
+        <!-- 07 LISTING TEMPLATES
+             A pointer, not a panel: the editor is a two-pane modal that
+             needs the full viewport width, so it lives on its own route
+             and this section only carries the doorway. -->
+        <section id="templates" class="form-section">
+          <header class="section-head">
+            <span class="section-number">07</span>
+            <h2 class="section-title">{{ $t('settings.sections.templates') }}</h2>
+            <span class="section-rule" />
+          </header>
+
+          <div class="section-body">
+            <p class="templates-blurb">{{ $t('settings.templates.blurb') }}</p>
+            <NuxtLink to="/templates" class="btn btn-secondary btn-sm templates-link">
+              <Icon name="ph:brackets-curly" />
+              {{ $t('settings.templates.manage') }}
+              <Icon name="ph:arrow-right" class="text-xs" />
+            </NuxtLink>
+          </div>
+        </section>
+
         <!-- Danger zone — irreversible self-service account erasure. Kept last
              and visually apart so it is never a mis-click away from a save. -->
         <section id="danger" class="form-section">
@@ -847,7 +868,14 @@ async function save() {
 }
 
 // ── Anchor nav ──────────────────────────────────────────────────
-type SectionKey = 'identity' | 'privacy' | 'appearance' | 'security' | 'account';
+type SectionKey =
+  | 'identity'
+  | 'privacy'
+  | 'appearance'
+  | 'security'
+  | 'notifications'
+  | 'account'
+  | 'templates';
 const sections = computed<
   Array<{ key: SectionKey; num: string; label: string; icon: string }>
 >(() => [
@@ -857,6 +885,7 @@ const sections = computed<
   { key: 'security', num: '04', label: t('settings.sections.security'), icon: 'ph:lock-key' },
   { key: 'notifications', num: '05', label: t('settings.sections.notifications'), icon: 'ph:bell-ringing' },
   { key: 'account', num: '06', label: t('settings.sections.accountInfo'), icon: 'ph:info' },
+  { key: 'templates', num: '07', label: t('settings.sections.templates'), icon: 'ph:brackets-curly' },
 ]);
 const activeSection = ref<SectionKey>('identity');
 onMounted(() => {
@@ -1922,6 +1951,20 @@ onBeforeRouteLeave((_to, _from, next) => {
 .info-dim {
   color: rgb(var(--fg-muted));
   opacity: 0.6;
+}
+
+/* ─── Listing templates doorway ───────────────────────────── */
+.templates-blurb {
+  margin: 0 0 1rem;
+  max-width: 60ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgb(var(--fg-muted));
+}
+.templates-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 /* ─── Sticky action bar ────────────────────────────────────── */

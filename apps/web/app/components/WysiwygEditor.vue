@@ -465,6 +465,17 @@ const mode = ref<EditorMode>(
 );
 const codeAreaRef = ref<HTMLTextAreaElement | null>(null);
 
+/**
+ * Code-mode edits go through this rather than emitting a new value.
+ *
+ * Emitting replaces the textarea's value wholesale, which clears the browser's
+ * undo stack — so in code mode a single tag button used to cost the author
+ * every Ctrl+Z step they had, while the same shortcut worked fine in visual
+ * mode (TipTap keeps its own history). Routing the insertion through
+ * `useSourceEditor` replays it as a real edit, so both modes now undo.
+ */
+const codeEditor = useSourceEditor(codeAreaRef);
+
 /* Preview routes through <DescriptionRender>, which calls
    `toEditorHtml` internally — same code path as the public detail
    page. We just hand it the *raw* source: HTML straight from
@@ -662,21 +673,13 @@ function onCodeInput(e: Event) {
    between the tags so the user can keep typing without having to
    reach for the mouse. */
 function insertTag(tag: CodeTag) {
-  const ta = codeAreaRef.value;
-  if (!ta) return;
-  ta.focus();
-  const value = ta.value;
-  const start = ta.selectionStart ?? value.length;
-  const end = ta.selectionEnd ?? value.length;
-  const selected = value.slice(start, end);
+  if (!codeAreaRef.value) return;
   const openTag = `[${tag.open ?? tag.label}]`;
   const closeTag = tag.selfClosing ? '' : `[${tag.close ?? `/${tag.label}`}]`;
-  const next = value.slice(0, start) + openTag + selected + closeTag + value.slice(end);
-  emit('update:modelValue', next);
-  nextTick(() => {
-    const caret = start + openTag.length + selected.length;
-    ta.setSelectionRange(caret, caret);
-  });
+  // `wrap` performs the edit as an insertion, so it lands in the undo stack
+  // and the textarea's own `input` event carries it to `onCodeInput` — no
+  // emit here, or the value would be written twice.
+  codeEditor.wrap({ open: openTag, close: closeTag || null });
 }
 
 /* The lock can drop after the fact: the listing comes back from the generator

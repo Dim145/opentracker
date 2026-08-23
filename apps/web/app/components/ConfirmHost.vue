@@ -19,6 +19,9 @@
           role="dialog"
           aria-modal="true"
           :aria-labelledby="`confirm-title-${current.id}`"
+          :aria-describedby="
+            current.message ? `confirm-body-${current.id}` : undefined
+          "
         >
           <div
             class="flex items-center gap-2 px-4 py-3 border-b border-border bg-bg-tertiary/50"
@@ -41,6 +44,7 @@
           <div class="p-6">
             <p
               v-if="current.message"
+              :id="`confirm-body-${current.id}`"
               class="text-sm text-text-secondary mb-6"
             >
               {{ current.message }}

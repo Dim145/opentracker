@@ -2,6 +2,7 @@ import { requireAdminSession } from '~~/utils/adminAuth';
 import {
   setRegistrationOpen,
   setSetting,
+  setTemplateQuotaPerUser,
   SETTINGS_KEYS,
 } from '~~/utils/server';
 import { validateBody, adminSettingsSchema } from '~~/utils/schemas';
@@ -239,6 +240,13 @@ export default defineEventHandler(async (event) => {
       SETTINGS_KEYS.REQUEST_MAX_FILLS_PER_USER,
       String(Math.floor(body.requestMaxFillsPerUser)),
     );
+  }
+
+  // Presentation-template quota. Written through the shared clamp rather
+  // than an inline bounds check so the stored string can never be a value
+  // the reader would reject and silently replace with the default.
+  if (typeof body.templateQuotaPerUser === 'number') {
+    await setTemplateQuotaPerUser(body.templateQuotaPerUser);
   }
 
   return {

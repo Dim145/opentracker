@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { settings } from '@trackarr/db/schema';
 import { redis } from '../redis/client';
+import { clampTemplateQuota } from './templatePolicy';
 import pkg from '../package.json';
 
 // Version is injected by the running app via env when available, but
@@ -163,6 +164,12 @@ export const SETTINGS_KEYS = {
   // ("I'll just keep throwing torrents until something sticks")
   // without forcing perfect first tries.
   REQUEST_MAX_FILLS_PER_USER: 'request_max_fills_per_user',
+  // ── Presentation templates ─────────────────────────────────
+  // How many templates one user may own. Templates are cheap rows
+  // but they are also a stored-text surface, so the cap exists to
+  // bound abuse rather than to ration a scarce resource — hence a
+  // low default (5) an operator can lift freely.
+  TEMPLATE_QUOTA_PER_USER: 'template_quota_per_user',
   // Fields scanned by free-text search, as CSV: name,description,nfo,tags.
   SEARCH_FIELDS: 'search_fields',
   // Typo fallback. Expensive (word_similarity re-reads many candidate rows):
@@ -520,5 +527,23 @@ export async function setRequestMaxFillsPerUser(value: number): Promise<void> {
   await setSetting(
     SETTINGS_KEYS.REQUEST_MAX_FILLS_PER_USER,
     String(value),
+  );
+}
+
+// ── Presentation templates ──────────────────────────────────────
+// The clamp lives in utils/templatePolicy so the number the create
+// endpoint enforces and the number the unit tests pin are the same
+// function, not two copies of the same bounds.
+
+export async function getTemplateQuotaPerUser(): Promise<number> {
+  return clampTemplateQuota(
+    await getSetting(SETTINGS_KEYS.TEMPLATE_QUOTA_PER_USER),
+  );
+}
+
+export async function setTemplateQuotaPerUser(value: number): Promise<void> {
+  await setSetting(
+    SETTINGS_KEYS.TEMPLATE_QUOTA_PER_USER,
+    String(clampTemplateQuota(value)),
   );
 }

@@ -160,6 +160,12 @@ const menuItems = computed(() => [
     description: t('admin.descriptions.uploadRules'),
   },
   {
+    label: t('admin.nav.listingTemplates'),
+    path: '/admin/templates',
+    icon: 'ph:brackets-curly',
+    description: t('admin.descriptions.listingTemplates'),
+  },
+  {
     label: t('admin.nav.invitations'),
     path: '/admin/invites',
     icon: 'ph:envelope-simple',

@@ -182,3 +182,40 @@ describe('markdown ↔ html round trip', () => {
     expect(second).toBe(first);
   });
 });
+
+describe('bbcodeToHtml — the unmatched-opener guard', () => {
+  // Each pass is skipped when its closing tag is absent. The guard is only
+  // sound if it cannot change the output, so that is what these assert — the
+  // speed is the reason it exists, not the property being protected.
+  it('leaves unmatched openers as literal text, exactly as before', () => {
+    for (const open of ['[b]', '[i]', '[u]', '[s]', '[code]', '[h2]', '[center]',
+                        '[url=https://x.test]', '[img]', '[quote]', '[list]',
+                        '[color=red]', '[size=13]', '[font=Verdana]']) {
+      const html = bbcodeToHtml(`${open}hello`);
+      // The opener never becomes a tag, and the text survives.
+      expect(html).toContain('hello');
+      expect(html).not.toMatch(/<(strong|em|u|s|pre|h2|div|a |img|blockquote|ul|span)/);
+    }
+  });
+
+  it('still converts a tag that IS closed, including nested and mixed input', () => {
+    expect(bbcodeToHtml('[b]bold[/b]')).toBe('<strong>bold</strong>');
+    // A stray opener next to a closed pair must not disable the pair.
+    expect(bbcodeToHtml('[i][b]bold[/b]')).toContain('<strong>bold</strong>');
+    expect(bbcodeToHtml('[i][b]bold[/b]')).toContain('[i]');
+    expect(bbcodeToHtml('[h3]t[/h3]')).toBe('<h3>t</h3>');
+  });
+
+  it('does not choke on thousands of unmatched openers', () => {
+    /* The behaviour this guards. Lazy quantifiers made the engine retry from
+       every opener and expand to the end of input each time — k×n — so a paste
+       like this froze the tab. The threshold is loose on purpose: it has to
+       fail on quadratic and pass on linear, not measure a machine. */
+    const pathological = '[b][i][u][color=red][size=13]'.repeat(4_000);
+    const started = Date.now();
+    const html = bbcodeToHtml(pathological);
+    const elapsed = Date.now() - started;
+    expect(html.length).toBeGreaterThan(0);
+    expect(elapsed).toBeLessThan(1_000);
+  });
+});

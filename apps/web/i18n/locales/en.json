@@ -394,7 +394,8 @@
       "security": "Security",
       "notifications": "Notifications",
       "accountInfo": "Account info",
-      "danger": "Danger zone"
+      "danger": "Danger zone",
+      "templates": "Listing templates"
     },
     "danger": {
       "deleteTitle": "Delete this account",
@@ -569,6 +570,10 @@
       "keyMissing": "Your key is not in this browser. Import it, or take a new one.",
       "importKey": "Import a key file",
       "importBad": "That file does not hold a usable key for this account."
+    },
+    "templates": {
+      "blurb": "The upload wizard builds a BBCode listing from a layout. Keep your own layouts here and pick which one the wizard starts from.",
+      "manage": "Manage listing templates"
     }
   },
   "torrents": {
@@ -1505,6 +1510,70 @@
       "inactive": "Sort by {column}",
       "activeAsc": "{column}, sorted ascending. Activate to reverse.",
       "activeDesc": "{column}, sorted descending. Activate to reverse."
+    },
+    "templateEditor": {
+      "createTitle": "New template",
+      "editTitle": "Edit template",
+      "viewTitle": "View template",
+      "formPane": "Template details and source",
+      "sidePane": "Preview and variables",
+      "optional": "(optional)",
+      "resetToDefault": "Reset to default",
+      "keepEditing": "Keep editing",
+      "insertVariable": "Insert {name} at the cursor",
+      "unknownVariables": "Unknown variable, it will render as nothing: {names}",
+      "previewBlocked": "Fix the error above to see the preview.",
+      "previewEmpty": "Nothing to preview yet.",
+      "panes": {
+        "preview": "Preview",
+        "variables": "Variables"
+      },
+      "fields": {
+        "name": "Name",
+        "namePlaceholder": "Films — compact",
+        "description": "Description",
+        "descriptionPlaceholder": "What this layout is for",
+        "category": "Category",
+        "source": "Template source",
+        "sourcePlaceholder": "BBCode, plus the variables from the palette…"
+      },
+      "hints": {
+        "category": "Universal fits any release; Video exposes the same variables and marks the template as meant for films and series.",
+        "blocks": "Blocks arrive ready-made: the labels inside them are not editable, only the scaffolding around them.",
+        "preview": "Rendered with sample metadata — a real upload fills in its own.",
+        "variables": "Click a variable to insert it where the cursor is.",
+        "variablesReadonly": "The variables this template may use."
+      },
+      "errors": {
+        "nameRequired": "A name is required.",
+        "nameTooLong": "The name cannot exceed {max} characters.",
+        "tooLong": "The template exceeds {max} characters.",
+        "contentRequired": "The template cannot be empty.",
+        "saveFailed": "The template could not be saved."
+      },
+      "confirm": {
+        "discardTitle": "Discard your changes?",
+        "discardMessage": "This template has unsaved changes. Closing now loses them.",
+        "resetTitle": "Replace the source?",
+        "resetMessage": "The editor content will be replaced by the site default layout. Nothing is saved until you save.",
+        "revertTitle": "Undo your changes?",
+        "revertMessage": "The source goes back to the version you last saved. Anything typed since is lost."
+      },
+      "previewTooLarge": "This template renders too large to preview live. It will still generate — only the preview is skipped.",
+      "revertToSaved": "Revert to saved",
+      "toolbar": {
+        "label": "BBCode tags",
+        "bold": "Bold",
+        "italic": "Italic",
+        "underline": "Underline",
+        "link": "Link",
+        "image": "Image",
+        "center": "Centre",
+        "color": "Colour",
+        "size": "Text size",
+        "undoHint": "Undo and redo work as usual",
+        "disable": "Switch the selected lines off"
+      }
     }
   },
   "admin": {
@@ -1528,7 +1597,8 @@
       "notifications": "Notifications",
       "settings": "Settings",
       "federation": "Federation",
-      "federationTaxonomy": "Federated taxonomy"
+      "federationTaxonomy": "Federated taxonomy",
+      "listingTemplates": "Listing templates"
     },
     "descriptions": {
       "dashboard": "Tracker configuration and node management",
@@ -1548,7 +1618,8 @@
       "notifications": "Configure external notification channels (email, Discord, Telegram, …)",
       "settings": "System-wide registration and tracker settings",
       "federation": "Link this tracker with trusted Trackarr instances",
-      "federationTaxonomy": "Map partners' category slugs onto your own categories"
+      "federationTaxonomy": "Map partners' category slugs onto your own categories",
+      "listingTemplates": "Curate the listing layouts every member can pick in the upload wizard."
     },
     "taxonomy": {
       "title": "Federated taxonomy",
@@ -3105,6 +3176,32 @@
       "saved": "Saved",
       "saveContent": "Save Homepage Content"
     },
+    "templates": {
+      "title": "Site templates",
+      "description": "Users can save their own BBCode templates for the listing generator. The built-in default template is always available and is not counted here.",
+      "quotaPerUser": "Templates per user",
+      "quotaHint": "How many templates a single user may own, published ones included. 1–100. Default: 5.",
+      "templatesLabel": "templates",
+      "lede": "Layouts offered to every member in the upload wizard, next to the built-in default. Members cannot add one — this page is the only way in. Copies members already made are theirs and are not affected by anything you change here.",
+      "empty": "No site template yet. Members see only the built-in layout and whatever they write themselves.",
+      "loadFailed": "The site templates could not be loaded.",
+      "actions": {
+        "add": "Add a template",
+        "removeNamed": "Remove “{name}” from the site catalogue"
+      },
+      "meta": {
+        "addedBy": "Added by {name}",
+        "addedByUnknown": "Added by a deleted account"
+      },
+      "confirm": {
+        "removeTitle": "Remove this template?",
+        "removeMessage": "“{name}” stops being offered to members. Copies they already made stay theirs, and listings already posted are untouched."
+      },
+      "toasts": {
+        "removed": "Template removed from the catalogue",
+        "removeFailed": "The template could not be removed"
+      }
+    },
     "requests": {
       "title": "Bounty board",
       "description": "Configure the auto-validation timeout and the per-user proposal cap for the upload-request marketplace.",
@@ -4381,7 +4478,15 @@
       "screenshotsPlaceholder": "One URL per line",
       "bbcode": "Generated BBCode",
       "viewNfo": "View NFO",
-      "nfoTitle": "Generated NFO"
+      "nfoTitle": "Generated NFO",
+      "template": "Listing template",
+      "templateBuiltin": "Built-in template",
+      "templateMine": "My templates",
+      "templateDefaultOption": "{name} (default)",
+      "manageTemplates": "Manage my templates",
+      "templateBroken": "This template could not be rendered, so the built-in listing is shown instead:",
+      "templateNoTechnicalGate": "This template does not gate its technical section: the values are emptied, but the labels it writes itself stay.",
+      "templateSite": "Site templates"
     },
     "preview": {
       "title": "Preview"
@@ -4393,5 +4498,100 @@
       "copyFailed": "Copy failed.",
       "hint": "Description, NFO and release name are carried into the form."
     }
+  },
+  "templates": {
+    "pageTitle": "Listing templates",
+    "eyebrow": "Account · Templates",
+    "titleMain": "Listing",
+    "titleAccent": "templates",
+    "subtitle": "A template is the layout the upload wizard fills in: your scaffolding, your section order, the metadata dropped in as variables.",
+    "backToSettings": "Back to settings",
+    "quotaLabel": "Templates",
+    "quotaTooltip": "You may keep up to {max} templates of your own.",
+    "quotaReached": "You have reached your limit of {max} templates. Delete one to make room.",
+    "groupBuiltIn": "Built-in layout",
+    "groupMine": "My templates",
+    "noDescription": "No description",
+    "copyOf": "{name} (copy)",
+    "builtIn": {
+      "name": "Default layout",
+      "description": "The layout every listing uses unless you choose another one. It is part of the site, so it can neither be edited nor deleted — duplicate it to make it yours."
+    },
+    "meta": {
+      "chars": "{n} characters",
+      "updated": "Updated {date}"
+    },
+    "badges": {
+      "builtIn": "Built-in",
+      "default": "Default",
+      "site": "Site"
+    },
+    "categories": {
+      "universal": "Universal",
+      "video": "Video"
+    },
+    "groups": {
+      "header": "Header",
+      "facts": "Facts",
+      "rating": "Rating",
+      "synopsis": "Synopsis",
+      "technical": "Technical",
+      "release": "Release",
+      "options": "Options"
+    },
+    "vars": {
+      "TITLE": "Title as typed. BBCode written inside it is passed through untouched.",
+      "YEAR": "Release year. Empty when unknown, which drops whatever surrounds it.",
+      "IS_MOVIE": "Condition: true for a film, false for a series.",
+      "POSTER_URL": "Poster address. Empty when the poster option is switched off.",
+      "FACTS_BLOCK": "Country, genres, release date, original title, runtime, seasons, directors and cast — one line each.",
+      "CAST_PHOTOS_BLOCK": "Cast thumbnails, glued edge to edge on a single line.",
+      "VOTE_AVERAGE": "Rating out of ten, two decimals. Empty when there is no rating.",
+      "VOTE_COUNT": "Number of votes, unformatted.",
+      "TMDB_ID": "TMDb identifier. Use it as the condition for the TMDb link.",
+      "TMDB_TYPE": "TMDb address segment: movie or tv.",
+      "OVERVIEW": "Synopsis, possibly several lines. Empty when the synopsis option is off.",
+      "SPECS_BLOCK": "Source, video quality, container, video codec and video bitrate.",
+      "AUDIO_BLOCK": "One line per audio track: flag, language, layout, codec, bitrate.",
+      "SUBTITLES_BLOCK": "One line per subtitle track. Empty when the release has none.",
+      "SIZE_BLOCK": "Total size and file count.",
+      "SCREENSHOTS_BLOCK": "The screenshots pasted in the wizard, one image per line.",
+      "RELEASE_NAME": "Release name. Empty drops the block around it.",
+      "INCLUDE_POSTER": "Condition: the poster checkbox. Already folded into POSTER_URL.",
+      "INCLUDE_SYNOPSIS": "Condition: the synopsis checkbox. Already folded into OVERVIEW.",
+      "INCLUDE_TECHNICAL": "Condition: the technical checkbox. Wrap the whole technical part in it — the subtitle heading depends on the option, not on the data.",
+      "INCLUDE_CAST_PHOTOS": "Condition: the cast-photos checkbox. Already folded into CAST_PHOTOS_BLOCK."
+    },
+    "actions": {
+      "new": "New template",
+      "view": "View",
+      "duplicate": "Duplicate",
+      "duplicateToEdit": "Duplicate to edit",
+      "setDefault": "Set as default",
+      "startFromBuiltIn": "Start from the default layout",
+      "retry": "Retry",
+      "deleteNamed": "Delete the template “{name}”"
+    },
+    "empty": {
+      "title": "No template of your own yet",
+      "body": "Every listing you upload is currently built with the site default. Duplicate it to get an editable copy, move the sections around, drop in the variables you want — the wizard will fill it in from then on."
+    },
+    "confirm": {
+      "deleteTitle": "Delete this template?",
+      "deleteMessage": "“{name}” will be removed for good. Listings already published are untouched."
+    },
+    "toasts": {
+      "created": "Template created",
+      "updated": "Template saved",
+      "deleted": "Template deleted",
+      "defaultSet": "Default layout changed"
+    },
+    "errors": {
+      "loadFailed": "Your templates could not be loaded.",
+      "deleteFailed": "The template could not be deleted.",
+      "defaultFailed": "The default layout could not be changed."
+    },
+    "groupSite": "Site templates",
+    "siteHelp": "Layouts the staff curated for everyone, alongside the built-in one. Read-only: duplicate one to get an editable copy of your own."
   }
 }
