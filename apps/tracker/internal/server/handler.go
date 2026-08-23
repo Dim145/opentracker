@@ -252,7 +252,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	infoHashHex := hexBytes(req.InfoHash[:])
 
 	// 1. Resolve & validate the user
-	user, err := s.db.Q.FindUserByPasskey(ctx, req.Passkey)
+	user, err := s.db.UserByPasskey(ctx, req.Passkey)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return AnnounceOutcome{Failure: "Invalid passkey"}
@@ -283,6 +283,10 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 			slog.Error("internal error", "where", "lazy unban", "err", err)
 			return AnnounceOutcome{Failure: "Internal tracker error"}
 		}
+		// The row just changed under us. Nothing cached it (banned users
+		// never are), but dropping the key is what makes that guarantee
+		// hold if the rule above ever loosens.
+		s.db.InvalidatePasskey(ctx, req.Passkey)
 		// fall through — the user is effectively unbanned now;
 		// the cron will (idempotently) fire `account_unbanned` on
 		// its next sweep.

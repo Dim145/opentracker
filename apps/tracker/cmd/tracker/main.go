@@ -87,7 +87,7 @@ func main() {
 	logger.Info("redis connected")
 
 	store := peers.New(rclient, cfg.RedisKeyPrefix, cfg.PeerTTL)
-	database := db.New(pool)
+	database := db.New(pool, rclient, cfg.RedisKeyPrefix)
 	srv := server.New(ctx, database, rclient, store, cfg.RedisKeyPrefix, cfg.IPHashSecret, cfg.Debug, cfg.FederationSwarm)
 	defer srv.Stop()
 
