@@ -62,7 +62,7 @@ func main() {
 	defer cancel()
 
 	// Postgres
-	pool, err := db.Open(ctx, cfg.DatabaseURL, cfg.DBMaxConns)
+	pool, err := db.Open(ctx, cfg.DatabaseURL, cfg.DBMaxConns, cfg.SynchronousCommit)
 	if err != nil {
 		logger.Error("open postgres", "err", err)
 		os.Exit(1)

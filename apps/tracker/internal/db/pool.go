@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -29,7 +30,7 @@ const maxDBConns = 1000
 // the tracker runs behind a load balancer. A value outside the bounds falls
 // back to the historical 20 rather than letting pgx pick its own default
 // (which is derived from CPU count and would change silently with the host).
-func Open(ctx context.Context, dsn string, maxConns int) (*pgxpool.Pool, error) {
+func Open(ctx context.Context, dsn string, maxConns int, syncCommit string) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("parse DATABASE_URL: %w", err)
@@ -50,6 +51,29 @@ func Open(ctx context.Context, dsn string, maxConns int) (*pgxpool.Pool, error) 
 	}
 	cfg.MaxConns = conns
 	cfg.MinConns = 2
+
+	// `synchronous_commit` is set once per connection rather than per
+	// transaction: every statement this pool runs is on the announce path, so
+	// there is nothing here that wants a different level, and a `SET LOCAL` per
+	// transaction would add a round-trip to the very path being optimised.
+	//
+	// Only the three values Postgres accepts for this purpose are allowed
+	// through. The setting is spliced into SQL — an env var is operator-chosen
+	// text, and `off; DROP …` must not be a thing that can happen even from a
+	// trusted source.
+	switch syncCommit {
+	case "on", "off", "local":
+		stmt := "SET synchronous_commit = " + syncCommit
+		cfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+			_, err := conn.Exec(ctx, stmt)
+			return err
+		}
+	case "":
+		// Unset: leave the server default alone.
+	default:
+		return nil, fmt.Errorf(
+			"TRACKER_SYNCHRONOUS_COMMIT must be on, off or local (got %q)", syncCommit)
+	}
 	cfg.MaxConnIdleTime = 30 * time.Second
 	cfg.ConnConfig.ConnectTimeout = 10 * time.Second
 
