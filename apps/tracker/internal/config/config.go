@@ -57,13 +57,13 @@ func Load() (*Config, error) {
 		// tweaking. UDP support is opt-in via TRACKER_UDP_ENABLED so an
 		// operator who doesn't want to expose it (HTTPS-only deployments,
 		// strict firewall rules, etc.) can keep the listener off.
-		UDPPort:         getEnvInt("TRACKER_UDP_PORT", 6969),
-		UDPEnabled:      getEnvDefault("TRACKER_UDP_ENABLED", "true") == "true",
-		DatabaseURL:     os.Getenv("DATABASE_URL"),
-		RedisURL:        os.Getenv("REDIS_URL"),
-		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
-		RedisKeyPrefix:  getEnvDefault("REDIS_KEY_PREFIX", "ot:"),
-		IPHashSecret:    os.Getenv("IP_HASH_SECRET"),
+		UDPPort:        getEnvInt("TRACKER_UDP_PORT", 6969),
+		UDPEnabled:     getEnvDefault("TRACKER_UDP_ENABLED", "true") == "true",
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		RedisURL:       os.Getenv("REDIS_URL"),
+		RedisPassword:  os.Getenv("REDIS_PASSWORD"),
+		RedisKeyPrefix: getEnvDefault("REDIS_KEY_PREFIX", "ot:"),
+		IPHashSecret:   os.Getenv("IP_HASH_SECRET"),
 		// 20 is what the pool was hardcoded to before this became a
 		// setting; keeping it as the default means an existing deployment
 		// behaves identically after the upgrade.

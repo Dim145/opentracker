@@ -144,7 +144,7 @@ func TestDedup_ConcurrentSafe(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			for j := 0; j < 50; j++ {
-				if d.CheckAndMark(ctx, itoa(i*1000 + j)) {
+				if d.CheckAndMark(ctx, itoa(i*1000+j)) {
 					atomic.AddInt64(&accepted, 1)
 				} else {
 					atomic.AddInt64(&rejected, 1)
