@@ -16,7 +16,7 @@ database quietly stop meaning what they say.
 | **Web (Nuxt SSR)** | Yes | none |
 | **API (Nitro)** | Yes | shared storage for uploads |
 | **Tracker (Go)** | Yes | align the secrets, size the connection budget, get `TRUST_PROXY` right |
-| **Postgres** | Single primary | not a throughput ceiling — 0.4 ms per announce, measured. The limits are write amplification and maintenance; see [The actual limit](#the-actual-limit) |
+| **Postgres** | Single primary | see [High availability](./high-availability) for the standby story. Not a throughput ceiling — 0.4 ms per announce, measured. The limits are write amplification and maintenance; see [The actual limit](#the-actual-limit) |
 
 ## Web and API
 

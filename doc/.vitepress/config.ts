@@ -63,6 +63,7 @@ export default defineConfig({
             { text: 'Upgrading', link: '/guide/upgrading' },
             { text: 'Local Production', link: '/guide/local-production' },
             { text: 'Scaling Out', link: '/guide/scaling' },
+            { text: 'High Availability', link: '/guide/high-availability' },
             { text: 'Roadmap', link: '/guide/roadmap' },
           ],
         },
