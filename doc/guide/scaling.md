@@ -155,6 +155,7 @@ know the consequences:
 | --- | --- | --- |
 | Settings | 60 s | a settings change takes up to a minute to apply everywhere |
 | IP bans | 60 s | **a newly banned IP keeps announcing for up to a minute** |
+| Passkeys | 60 s | **a newly banned MEMBER keeps announcing for up to a minute.** Shared in Redis rather than per instance, and a banned row is never cached, so an unban takes effect at once. There is deliberately no invalidation: bans are written in six places across the API and the tracker, and an invalidation someone forgets is worse than a bounded, documented delay |
 | Swarm counts | short | two clients may see slightly different seeder counts |
 
 ## The actual limit
@@ -179,18 +180,35 @@ announces/s** in steady state, and 300–600/s at peak once events and the 900 s
 `min_interval` are counted. That is roughly **600 reads/s and 900 writes/s**
 through PgBouncer, on the same primary that serves the website.
 
-Two changes move that ceiling, and **neither has been made**:
+Two changes move that ceiling. **One is done, one is not.**
 
-1. **Cache `FindUserByPasskey` in Redis.** The hottest query in the system, run
-   on every single announce. A short TTL removes almost all of it.
-2. **Batch the stat increments.** Accumulate deltas in Redis and flush
-   periodically in one multi-row `UPDATE`. This turns ~900 writes/s into a
-   handful of grouped transactions — and it moves the crash-loss window from
-   "one announce" to "one flush interval", which is a trade to make
-   deliberately rather than by accident.
+**Done — the passkey lookup is cached.** `FindUserByPasskey` runs on every
+announce, before anything else, and a duplicate announce cannot avoid it: the
+dedup that collapses an IPv4/IPv6 pair sits four checks later, so both copies
+reach Postgres. The cache is in Redis rather than in each process precisely
+because a balancer sends those copies to different instances.
 
-Do these before, or alongside, adding tracker instances. Adding instances first
-brings the ceiling closer.
+Measured on this workload, interleaved and with Redis and the peer state reset
+between every run: **about 26 % fewer Postgres transactions** (2925 / 2555
+without, 2201 / 1845 with — the absolute saving was 724 and 710, which is the
+consistency that makes it believable). Throughput was unchanged, because on a
+single host Postgres was never the limit.
+
+Read that 26 % as an upper bound, not a forecast. The harness announces a
+baseline and then credits 6 seconds later, so the cache is warm when the
+credited pair arrives; real traffic puts 90 seconds or more between one
+member's announces, and the 60 s entry will often have expired. What survives
+in production is the duplicate-and-retry traffic, which is exactly what this
+was built for.
+
+**Not done — batching the stat increments.** Accumulate deltas in Redis and
+flush periodically in one multi-row `UPDATE`. That turns ~900 writes/s into a
+handful of grouped transactions, and it is the change that actually raises the
+ceiling. It also moves the crash-loss window from "one announce" to "one flush
+interval", which is a trade to make deliberately rather than by accident.
+
+Do the remaining one before, or alongside, adding tracker instances. Adding
+instances first brings the ceiling closer.
 
 ## Two races that load balancing widened
 
