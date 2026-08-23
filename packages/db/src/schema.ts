@@ -153,8 +153,13 @@ export const users = pgTable(
     trustDevicesEnabled: boolean('trust_devices_enabled').default(false).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     lastSeen: timestamp('last_seen').defaultNow().notNull(),
-  },
-  (table) => [uniqueIndex('users_passkey_idx').on(table.passkey)]
+  }
+  // No index list at all. `passkey` already carries `.unique()` on the column
+  // above, which drizzle renders as `users_passkey_unique`; the explicit
+  // `uniqueIndex('users_passkey_idx')` that used to sit here produced a
+  // SECOND, identical unique index on the same column. Two identical indexes
+  // double the maintenance on any write touching the column and answer no
+  // query the other could not.
 );
 
 // ============================================================================
@@ -1653,9 +1658,15 @@ export const hnrTracking = pgTable(
     downloaded: bigint('downloaded', { mode: 'number' }).default(0).notNull(),
   },
   (table) => [
-    index('hnr_user_idx').on(table.userId),
+    // No standalone (user_id) index: it is a leading prefix of BOTH
+    // `hnr_user_torrent_idx` and `hnr_user_is_hnr_idx` below, so Postgres can
+    // serve a user_id-only lookup from either. It was pure write amplification
+    // on a table the announce path updates once per announce.
     index('hnr_torrent_idx').on(table.torrentId),
-    index('hnr_status_idx').on(table.isHnr),
+    // Partial. `is_hnr` is a boolean and the interesting side is the rare one:
+    // a full index spends most of its pages describing the rows nobody
+    // queries, and every announce that updates a tracking row maintains them.
+    index('hnr_status_idx').on(table.isHnr).where(sql`${table.isHnr}`),
     uniqueIndex('hnr_user_torrent_idx').on(table.userId, table.torrentId),
     // Speeds up moderator queries "list HnR violations for user X"
     index('hnr_user_is_hnr_idx').on(table.userId, table.isHnr),
