@@ -239,6 +239,41 @@ again ten minutes later is new evidence and is still recorded.
 The filter lives in the announce handler rather than in the `anticheat` package,
 which stays a pure detector with no Redis dependency.
 
+## What the battery measured
+
+Two to five instances against one Postgres and one Redis, each announce
+duplicated across different instances so the dedup is what stands between the
+run and a double credit.
+
+**Correctness — the result that matters.** Exact at every level, including the
+hardest arrangement: the same announce fired at *all* N instances at once.
+
+| Instances | Copies of each announce | Requests | Credited | Expected |
+| --- | --- | --- | --- | --- |
+| 2 | 2 | 16 | 8 000 000 | 8 000 000 |
+| 3 | 3 | 24 | 8 000 000 | 8 000 000 |
+| 4 | 4 | 32 | 8 000 000 | 8 000 000 |
+| 5 | 5 | 40 | 8 000 000 | 8 000 000 |
+
+Under load — 300 peers, 600 requests, every announce sent twice — the credited
+total was exactly 300 000 000 at 1, 2, 3 and 5 instances. Repeated with one
+user row per peer, to remove row-lock contention as a variable: same exact
+total.
+
+**Throughput — and why this test cannot answer that question.** It went *down*
+as instances were added: 665 → 444 req/s on the credited path, 1 to 5. Before
+reading that as an argument against load balancing, note the control: the
+`/scrape` path, which touches Redis and never writes to Postgres, is flat
+across the same range (1443 / 1307 / 1165 / 1355 req/s — noise, no trend).
+
+A path with no database writes that also fails to scale can only be limited by
+the host. Everything here — the load generator, five tracker processes,
+Postgres, Redis and the rest of the stack — shares one machine, so there is no
+capacity to add and instances only add overhead. **The battery validates
+correctness under concurrency; it says nothing about throughput**, and any real
+measurement needs the instances on separate hardware with the load generator
+somewhere else again.
+
 ## Reproducing the measurements
 
 The two-instance experiment is worth keeping in your hands, because it is the
