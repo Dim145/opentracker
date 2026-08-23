@@ -1,0 +1,3 @@
+# Fetched by `helm dependency build`. Chart.lock IS committed, so a build is
+# reproducible without shipping ~200 kB of upstream tarballs.
+charts/

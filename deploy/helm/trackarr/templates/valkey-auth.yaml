@@ -1,0 +1,22 @@
+{{- if and .Values.valkey.enabled .Values.valkey.auth.enabled (not .Values.externalRedis.existingSecret) }}
+{{/*
+Its own Secret, with a name derived only from the release, because the Valkey
+subchart renders `auth.usersExistingSecret` as a template and the value has to
+stay predictable no matter what nameOverride is set to.
+
+The password must be stable for the same reason as the app secrets: rotating it
+on every upgrade would leave the running Valkey with the old ACL and every
+client failing to authenticate until the pod is replaced.
+*/}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-valkey-auth
+  labels:
+    {{- include "trackarr.labels" . | nindent 4 }}
+  annotations:
+    {{- include "trackarr.annotations" . | nindent 4 }}
+type: Opaque
+stringData:
+  VALKEY_PASSWORD: {{ include "trackarr.valkeyPassword" . | quote }}
+{{- end }}

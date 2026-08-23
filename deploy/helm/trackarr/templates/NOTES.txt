@@ -1,0 +1,76 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}" in namespace {{ .Release.Namespace }}.
+
+Site:     https://{{ .Values.site.host }}
+Announce: {{ include "trackarr.trackerHttpUrl" . }}
+{{- if .Values.tracker.udp.enabled }}
+UDP:      {{ include "trackarr.trackerUdpUrl" . }}
+{{- end }}
+
+Watch it come up:
+
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "trackarr.fullname" . }}-api
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+{{- if .Values.postgresql.enabled }}
+
+Postgres is managed by CloudNativePG. If the Cluster stays absent, the operator
+is not installed — it is cluster-scoped and owns the CRDs, so it goes in once
+per cluster rather than once per release:
+
+  helm repo add cnpg https://cloudnative-pg.github.io/charts
+  helm install cnpg cnpg/cloudnative-pg -n cnpg-system --create-namespace
+
+  kubectl -n {{ .Release.Namespace }} get cluster {{ include "trackarr.pgClusterName" . }}
+  kubectl cnpg status {{ include "trackarr.pgClusterName" . }} -n {{ .Release.Namespace }}   # needs the kubectl-cnpg plugin
+
+Applications reach it through the operator-managed pooler,
+{{ include "trackarr.pgPoolerHost" . }}, which follows the primary on its own.
+Migrations deliberately go straight to {{ include "trackarr.pgRwHost" . }}: the
+migration runner takes a session-level advisory lock, and those must not be
+taken on a transaction-pooled connection.
+{{- end }}
+{{- if not .Values.postgresql.enabled }}
+
+Postgres is external. Check that externalDatabase.migrationsUrl bypasses any
+transaction pooler — the migration runner takes a SESSION-level advisory lock.
+{{- end }}
+
+{{- if .Values.secrets.create }}
+
+Three generated secrets must survive every upgrade, and this chart reads its own
+Secret back to keep them: NUXT_SESSION_SECRET (rotating it signs everyone out),
+IP_HASH_SECRET (rotating it breaks IP-hash continuity against rows already
+written) and ADMIN_API_KEY. Take a copy before you ever delete the release:
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "trackarr.secretName" . }} -o yaml > trackarr-secrets.backup.yaml
+
+Read the admin API key:
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "trackarr.secretName" . }} \
+    -o jsonpath='{.data.ADMIN_API_KEY}' | base64 -d; echo
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+CHECK THIS BEFORE OPENING THE SITE. Both the API and the tracker run with
+TRUST_PROXY=true, so they believe X-Forwarded-For. Your ingress controller must
+SET that header from the real peer address and must not pass through one the
+client sent, or a member can announce as any IP they like — which defeats the
+IP-based anti-cheat and the ban list.
+
+On ingress-nginx, leave `use-forwarded-headers` off in the controller ConfigMap
+(the default). Also strip CF-Connecting-IP and True-Client-IP, which the
+reference Caddy configuration removes and which nothing removes for you here:
+see the commented `configuration-snippet` annotation in values.yaml.
+{{- end }}
+
+{{- if and .Values.api.uploads.enabled (not .Values.api.uploads.existingClaim) (ne .Values.api.uploads.accessMode "ReadWriteMany") }}
+
+WARNING: api.uploads.accessMode is {{ .Values.api.uploads.accessMode }} and
+api.replicaCount is {{ .Values.api.replicaCount }}. Uploaded files go to a
+filesystem path — there is no S3 client in the API — so every replica needs to
+write the same volume. With anything but ReadWriteMany, run a single replica.
+{{- end }}
+
+Sizing, with measurements rather than guesses: doc/guide/scaling.md.
+Making Postgres and Valkey highly available: doc/guide/high-availability.md.

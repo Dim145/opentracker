@@ -1,0 +1,169 @@
+{{- if .Values.tracker.enabled }}
+{{- $c := "tracker" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "trackarr.fullname" . }}-tracker
+  labels:
+    {{- include "trackarr.componentLabels" (dict "ctx" $ "component" $c) | nindent 4 }}
+  annotations:
+    {{- include "trackarr.annotations" . | nindent 4 }}
+spec:
+  {{- if not .Values.tracker.autoscaling.enabled }}
+  replicas: {{ .Values.tracker.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "trackarr.componentSelectorLabels" (dict "ctx" $ "component" $c) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "trackarr.componentSelectorLabels" (dict "ctx" $ "component" $c) | nindent 8 }}
+        {{- with .Values.tracker.podLabels }}{{ toYaml . | nindent 8 }}{{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.tracker.podAnnotations }}{{ toYaml . | nindent 8 }}{{- end }}
+    spec:
+      serviceAccountName: {{ include "trackarr.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "trackarr.podSecurityContext" . | nindent 8 }}
+      # An announce sleeps to a 30 ms floor and the tracker drains in-flight
+      # HnR writes on shutdown with an 8 s budget (bgDrainTimeout). Give it
+      # room to finish rather than losing those writes on every rollout.
+      terminationGracePeriodSeconds: 30
+      {{- with .Values.tracker.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tracker.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tracker.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tracker.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: tracker
+          image: {{ include "trackarr.image" (dict "ctx" $ "image" .Values.tracker.image) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            {{- include "trackarr.containerSecurityContext" . | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.tracker.http.port }}
+              protocol: TCP
+            {{- if .Values.tracker.udp.enabled }}
+            - name: udp
+              containerPort: {{ .Values.tracker.udp.port }}
+              protocol: UDP
+            {{- end }}
+          envFrom:
+            {{- include "trackarr.envFrom" . | nindent 12 }}
+          env:
+            {{- include "trackarr.dbEnv" . | nindent 12 }}
+            {{- include "trackarr.redisEnv" . | nindent 12 }}
+            - name: TRACKER_HTTP_PORT
+              value: {{ .Values.tracker.http.port | quote }}
+            - name: TRACKER_UDP_ENABLED
+              value: {{ .Values.tracker.udp.enabled | quote }}
+            - name: TRACKER_UDP_PORT
+              value: {{ .Values.tracker.udp.port | quote }}
+            - name: TRACKER_DB_MAX_CONNS
+              value: {{ .Values.tracker.dbMaxConns | quote }}
+            - name: TRACKER_SYNCHRONOUS_COMMIT
+              value: {{ .Values.tracker.synchronousCommit | quote }}
+            {{- with .Values.tracker.peerTtl }}
+            - name: TRACKER_PEER_TTL
+              value: {{ . | quote }}
+            {{- end }}
+            - name: TRACKER_DEBUG
+              value: {{ .Values.tracker.debug | quote }}
+            # Announces arrive through the ingress, so the client address is in
+            # X-Forwarded-For. Read the ingress notes in values.yaml: if the
+            # controller forwards a client-supplied header instead of setting
+            # it, a client can announce as any IP it likes.
+            - name: TRUST_PROXY
+              value: "true"
+            {{- with .Values.config.extraEnv }}{{ toYaml . | nindent 12 }}{{- end }}
+            {{- with .Values.tracker.extraEnv }}{{ toYaml . | nindent 12 }}{{- end }}
+          startupProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 3
+            failureThreshold: 20
+          readinessProbe:
+            # /health reports on Postgres AND Redis, which is right here: a
+            # tracker that cannot reach either should not be sent announces.
+            httpGet: { path: /health, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            # NOT /health — see the api Deployment for why. A dependency-aware
+            # liveness probe restarts every replica during a database failover.
+            tcpSocket: { port: http }
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.tracker.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "trackarr.fullname" . }}-tracker
+  labels:
+    {{- include "trackarr.componentLabels" (dict "ctx" $ "component" $c) | nindent 4 }}
+  {{- with .Values.tracker.service.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.tracker.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.tracker.http.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "trackarr.componentSelectorLabels" (dict "ctx" $ "component" $c) | nindent 4 }}
+{{- if .Values.tracker.udp.enabled }}
+---
+# UDP gets its own Service. Two reasons: not every load-balancer implementation
+# will put UDP and TCP on one address, and UDP announces carry no
+# X-Forwarded-For, so the tracker reads the packet's source address directly.
+# externalTrafficPolicy: Local is what preserves it — with Cluster, kube-proxy
+# rewrites the source to a node address and every peer in the swarm is handed
+# the wrong IP.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "trackarr.fullname" . }}-tracker-udp
+  labels:
+    {{- include "trackarr.componentLabels" (dict "ctx" $ "component" $c) | nindent 4 }}
+  {{- with .Values.tracker.udp.service.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.tracker.udp.service.type }}
+  {{- if eq .Values.tracker.udp.service.type "LoadBalancer" }}
+  externalTrafficPolicy: {{ .Values.tracker.udp.service.externalTrafficPolicy }}
+  {{- with .Values.tracker.udp.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  {{- end }}
+  ports:
+    - name: udp
+      port: {{ .Values.tracker.udp.port }}
+      targetPort: udp
+      protocol: UDP
+  selector:
+    {{- include "trackarr.componentSelectorLabels" (dict "ctx" $ "component" $c) | nindent 4 }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,172 @@
+# =============================================================================
+# Example overrides for a ~350 000-member instance.
+#
+#   helm upgrade --install trackarr deploy/helm/trackarr \
+#     -n trackarr --create-namespace \
+#     -f deploy/helm/trackarr/values-production.yaml \
+#     --set site.host=tracker.yourdomain.example
+#
+# Sized from the measurements in doc/guide/scaling.md. At 350 000 members with a
+# 25 % active share and 4 torrents each, that is roughly 195 announces/s steady
+# and 585 at peak — against a measured 1 934 announces/s from a single tracker
+# instance. Everything below is therefore headroom, not a fit.
+# =============================================================================
+
+site:
+  host: tracker.example.com
+
+global:
+  # Never :latest in production — a pod rescheduled onto a new node would pull
+  # a different build than its neighbours.
+  imageTag: "0.29.0"
+
+web:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 200m, memory: 384Mi }
+    limits: { memory: 768Mi }
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: web
+
+api:
+  replicaCount: 3
+  # 3 replicas x 10 = 30 client connections into the pooler, which multiplexes
+  # them. Add the tracker's 2 x 20 pgx connections before comparing with
+  # max_connections on the primary.
+  dbPoolMax: 10
+  resources:
+    requests: { cpu: 500m, memory: 512Mi }
+    limits: { memory: 1536Mi }
+  uploads:
+    # Three replicas all writing uploads, so this has to be shared storage.
+    accessMode: ReadWriteMany
+    size: 100Gi
+    # storageClass: nfs-client   # or cephfs, efs, azurefile…
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: api
+
+tracker:
+  # Two for availability. One instance handled 1 934 announces/s in the
+  # battery, more than three times this tier's peak.
+  replicaCount: 2
+  dbMaxConns: 20
+  synchronousCommit: "off"
+  udp:
+    enabled: true
+    service:
+      type: LoadBalancer
+      # Required: with Cluster, kube-proxy rewrites the source address and
+      # every peer in the swarm is handed the wrong IP.
+      externalTrafficPolicy: Local
+  resources:
+    requests: { cpu: 500m, memory: 256Mi }
+    limits: { memory: 768Mi }
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: tracker
+
+ingress:
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "32m"
+    # Reproduces what docker/caddy/Caddyfile does. Without it a client can
+    # present its own CF-Connecting-IP and be believed, because the API and the
+    # tracker both run with TRUST_PROXY=true. Needs
+    # `allow-snippet-annotations: true` on the ingress-nginx controller.
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header CF-Connecting-IP "";
+      proxy_set_header True-Client-IP "";
+  tls:
+    enabled: true
+    certManagerClusterIssuer: letsencrypt-prod
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
+postgresql:
+  cluster:
+    # Three gives CloudNativePG a quorum and a real switchover target.
+    instances: 3
+    storage:
+      size: 200Gi
+    # Roughly 890 bytes of WAL per credited announce is about 15 GB/day at 200
+    # announces/s. Keeping it off the data volume stops a WAL spike from
+    # filling the database.
+    walStorage:
+      enabled: true
+      size: 100Gi
+    resources:
+      requests: { cpu: "4", memory: 16Gi }
+      limits: { memory: 16Gi }
+    postgresql:
+      parameters:
+        # 25 % of 16 GB. It must hold the hot set — users + hnr_tracking +
+        # torrents was 711 MB at 350 000 members, so this is comfortable. The
+        # measured penalty for a cache that does not fit was 3.3x the Postgres
+        # time per announce and a 13x worse p99.
+        shared_buffers: 4GB
+        effective_cache_size: 12GB
+        maintenance_work_mem: 1GB
+    monitoring:
+      enabled: true
+  poolers:
+    - name: rw
+      type: rw
+      instances: 2
+      parameters:
+        max_client_conn: "1000"
+        default_pool_size: "40"
+        max_prepared_statements: "200"
+      monitoring:
+        enabled: true
+  backups:
+    enabled: false
+    # Point this at your object storage. CloudNativePG uses Barman, so
+    # destinationPath + endpointURL + s3.* and a scheduledBackup is all it
+    # takes. Rehearse the restore — doc/guide/high-availability.md argues that
+    # an untested restore is worse than no HA.
+
+valkey:
+  dataStorage:
+    requestedSize: 20Gi
+  # ~290 bytes per peer, measured. 350 000 members at a 25 % active share is
+  # ~350 000 concurrent peers, so ~150 MB with the 1.5x margin — 2 GB is
+  # generous and leaves room for the caches and dedup markers. Alarm at 70 %:
+  # `peers:*` is authoritative swarm state, not a cache, and evicting it
+  # silently stops crediting members.
+  valkeyConfig: |
+    maxmemory 2gb
+    maxmemory-policy volatile-lru
+    appendonly yes
+    appendfsync everysec
+  # One replica, so a lost primary is a promotion rather than a rebuild. The
+  # subchart requires its own storage size for replicas and refuses to render
+  # without it.
+  replica:
+    enabled: true
+    replicas: 1
+    persistence:
+      size: 20Gi
+      # className: ""
+    # Require the replica to be in sync before accepting writes. Peer state is
+    # authoritative, so losing the last seconds of it costs credit.
+    minReplicasToWrite: 1
+  resources:
+    requests: { cpu: 500m, memory: 2560Mi }
+    limits: { memory: 3Gi }

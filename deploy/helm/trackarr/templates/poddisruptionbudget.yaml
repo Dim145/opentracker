@@ -1,0 +1,19 @@
+{{- range $name, $cfg := dict "web" $.Values.web "api" $.Values.api "tracker" $.Values.tracker }}
+{{- if and $cfg.enabled $cfg.podDisruptionBudget.enabled }}
+{{- $replicas := $cfg.autoscaling.enabled | ternary $cfg.autoscaling.minReplicas $cfg.replicaCount }}
+{{- if gt (int $replicas) 1 }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "trackarr.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "trackarr.componentLabels" (dict "ctx" $ "component" $name) | nindent 4 }}
+spec:
+  minAvailable: {{ $cfg.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "trackarr.componentSelectorLabels" (dict "ctx" $ "component" $name) | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- end }}
