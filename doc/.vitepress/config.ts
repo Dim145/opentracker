@@ -64,6 +64,7 @@ export default defineConfig({
             { text: 'Local Production', link: '/guide/local-production' },
             { text: 'Scaling Out', link: '/guide/scaling' },
             { text: 'High Availability', link: '/guide/high-availability' },
+            { text: 'Kubernetes', link: '/guide/kubernetes' },
             { text: 'Roadmap', link: '/guide/roadmap' },
           ],
         },

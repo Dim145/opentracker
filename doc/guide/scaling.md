@@ -9,6 +9,8 @@ Read this before adding a replica of anything. The failures in here are silent
 ones: the schema keeps working, the site keeps serving, and the numbers in the
 database quietly stop meaning what they say.
 
+Deploying the replicas on Kubernetes: [Kubernetes](./kubernetes).
+
 ## The short version
 
 | Service | Multiple replicas? | Blockers |

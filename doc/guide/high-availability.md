@@ -212,6 +212,10 @@ Not as a way to serve more announces.
 
 The three mature options, and how they fit a Docker Compose stack:
 
+The Helm chart in [Kubernetes](./kubernetes) already runs the CloudNativePG
+option, including the operator-managed pooler that fixes the static-host problem
+below.
+
 | Option | Fits | Notes |
 | --- | --- | --- |
 | **Patroni** + etcd + HAProxy | 3+ nodes, VMs or Compose | the industry standard; needs a real quorum, so three nodes minimum |

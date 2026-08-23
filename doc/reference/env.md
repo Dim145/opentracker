@@ -50,6 +50,7 @@ the running app never reads them directly.
 | `DATABASE_URL`                | api, tracker | —          | PostgreSQL DSN. **Required**.                                          |
 | `MIGRATIONS_DATABASE_URL`     | api       | `DATABASE_URL`| Direct postgres DSN (bypasses PgBouncer) used by the boot migrations.     |
 | `TRACKER_DB_MAX_CONNS`        | tracker   | `20`          | Postgres pool cap **per tracker instance**; multiply by the instance count when sizing PgBouncer. |
+| `TRACKER_SYNCHRONOUS_COMMIT`  | tracker   | `off`         | Applied to the tracker's connections only, never the cluster: losing the last few announce deltas in a crash is acceptable, losing a password change is not. One of `on`, `off`, `local`, `remote_write`, `remote_apply` — anything else and the tracker refuses to start. Measured effect at realistic rates: within noise, because the 30 ms announce floor hides it. |
 | `DB_USER`                     | compose   | `tracker`     | Postgres role; renders into the DSN.                                   |
 | `DB_PASSWORD`                 | compose   | `tracker`     | Postgres password; renders into the DSN.                               |
 | `DB_NAME`                     | compose   | `trackarr`    | Database name.                                                         |
