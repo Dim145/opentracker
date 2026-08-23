@@ -28,7 +28,7 @@ helm.sh/chart: {{ include "trackarr.chart" . }}
 {{ include "trackarr.selectorLabels" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- with .Values.global.commonLabels }}
+{{- with .Values.commonLabels }}
 {{ toYaml . }}
 {{- end }}
 {{- end -}}
@@ -50,7 +50,7 @@ app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 
 {{- define "trackarr.annotations" -}}
-{{- with .Values.global.commonAnnotations }}
+{{- with .Values.commonAnnotations }}
 {{ toYaml . }}
 {{- end }}
 {{- end -}}
@@ -59,8 +59,8 @@ app.kubernetes.io/component: {{ .component }}
 
 {{/* (dict "ctx" $ "image" .Values.api.image) */}}
 {{- define "trackarr.image" -}}
-{{- $tag := .image.tag | default .ctx.Values.global.imageTag | default .ctx.Chart.AppVersion -}}
-{{- printf "%s/%s:%s" (.ctx.Values.global.imageRegistry | trimSuffix "/") .image.repository $tag -}}
+{{- $tag := .image.tag | default .ctx.Values.image.tag | default .ctx.Chart.AppVersion -}}
+{{- printf "%s/%s:%s" (.ctx.Values.image.registry | trimSuffix "/") .image.repository $tag -}}
 {{- end -}}
 
 {{- define "trackarr.serviceAccountName" -}}

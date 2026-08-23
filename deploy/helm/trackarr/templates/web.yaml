@@ -28,7 +28,7 @@ spec:
     spec:
       serviceAccountName: {{ include "trackarr.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
-      {{- with .Values.global.imagePullSecrets }}
+      {{- with .Values.image.pullSecrets }}
       imagePullSecrets: {{- toYaml . | nindent 8 }}
       {{- end }}
       securityContext:
@@ -48,7 +48,7 @@ spec:
       containers:
         - name: web
           image: {{ include "trackarr.image" (dict "ctx" $ "image" .Values.web.image) }}
-          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             {{- include "trackarr.containerSecurityContext" . | nindent 12 }}
           ports:
@@ -65,14 +65,23 @@ spec:
             {{- with .Values.config.extraEnv }}{{ toYaml . | nindent 12 }}{{- end }}
             {{- with .Values.web.extraEnv }}{{ toYaml . | nindent 12 }}{{- end }}
           startupProbe:
+            # `/` renders a full SSR page and 302s to /auth/login, which kubelet
+            # follows and renders too. A cold render comfortably exceeds the
+            # default 1 s timeout, so this needs a real one — measured failing
+            # at 1 s on a test cluster.
             httpGet: { path: /, port: http }
-            periodSeconds: 3
+            timeoutSeconds: 5
+            periodSeconds: 5
             failureThreshold: 30
           readinessProbe:
             httpGet: { path: /, port: http }
-            periodSeconds: 10
+            timeoutSeconds: 5
+            periodSeconds: 15
           livenessProbe:
-            httpGet: { path: /, port: http }
+            # A socket check, not `/`: re-rendering the login page every 20 s to
+            # ask whether the process is alive is pure waste, and a slow render
+            # under load would restart a pod that is merely busy.
+            tcpSocket: { port: http }
             periodSeconds: 20
             failureThreshold: 3
           resources:

@@ -215,6 +215,18 @@ failover would have Kubernetes kill and restart every replica at once, which
 lengthens the outage and produces a reconnect storm when the database returns. So
 liveness is a socket check on both.
 
+## The tracker restarts a few times on a first install
+
+Expected, and self-resolving. `cmd/tracker/main.go` exits if it cannot open
+Postgres, so while CloudNativePG is still running `initdb` the tracker container
+exits and Kubernetes backs off and retries. On a test cluster that was three
+restarts over about 45 seconds, after which it connected and stayed up. The API
+does the same, then blocks on the migration lock.
+
+Nothing is added here to paper over it: an initContainer polling the pooler would
+mean another image to pull and another thing to keep current, to replace a
+back-off that already works.
+
 ## Migrations
 
 They run at API boot, and `api.runMigrations=true` is the default.
@@ -253,6 +265,94 @@ CloudNativePG's own retention leaves. What does **not**: the generated Secret.
 Take the copy first if you intend to recreate the release — without
 `IP_HASH_SECRET` the ban and anti-cheat history no longer matches the rows in the
 database.
+
+## Testing a change in a throwaway cluster
+
+Everything below runs in containers — no cluster tooling on your machine, and a
+single `docker rm` at the end removes the lot, because k3s keeps its images,
+etcd and provisioned volumes inside its own container.
+
+```bash
+docker network create helmtest
+docker run -d --name k3s-test --privileged --network helmtest --network-alias k3s \
+  --tmpfs /run --tmpfs /var/run \
+  rancher/k3s:v1.30.6-k3s1 server \
+    --disable traefik --disable metrics-server --tls-san k3s --write-kubeconfig-mode 644
+
+# Wait for the node, then take the kubeconfig and repoint it at the network alias
+until docker exec k3s-test kubectl get nodes 2>/dev/null | grep -q " Ready"; do sleep 5; done
+mkdir -p /tmp/k8s && docker cp k3s-test:/etc/rancher/k3s/k3s.yaml /tmp/k8s/kubeconfig
+sed -i '' 's#https://127.0.0.1:6443#https://k3s:6443#' /tmp/k8s/kubeconfig
+```
+
+A `helm` that can reach it:
+
+```bash
+helmc() {
+  docker run --rm --network helmtest \
+    -v /tmp/k8s:/kube -v "$PWD/deploy/helm:/charts" \
+    -e KUBECONFIG=/kube/kubeconfig -e HELM_CACHE_HOME=/kube/.cache \
+    -e HELM_CONFIG_HOME=/kube/.config -e HELM_DATA_HOME=/kube/.data \
+    --entrypoint helm alpine/helm:latest "$@"
+}
+```
+
+Then the operator, an ingress controller, and the chart. `local-path` — k3s's
+provisioner — does not do ReadWriteMany, so the uploads volume has to be RWO for
+this, which conveniently exercises the `Recreate` branch:
+
+```bash
+helmc repo add cnpg https://cloudnative-pg.github.io/charts
+helmc repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helmc repo update
+helmc install cnpg cnpg/cloudnative-pg -n cnpg-system --create-namespace --wait
+helmc install ingress-nginx ingress-nginx/ingress-nginx -n ingress-nginx \
+  --create-namespace --set controller.service.type=LoadBalancer
+
+helmc dependency build /charts/trackarr
+helmc install trackarr /charts/trackarr -n trackarr --create-namespace \
+  --set site.host=tracker.test.local --set ingress.className=nginx \
+  --set ingress.tls.enabled=false --set image.tag=0.29.0 \
+  --set web.replicaCount=1 --set api.replicaCount=1 --set tracker.replicaCount=1 \
+  --set api.uploads.accessMode=ReadWriteOnce --set api.uploads.size=1Gi \
+  --set postgresql.cluster.instances=1 \
+  --set postgresql.cluster.storage.size=2Gi \
+  --set postgresql.cluster.walStorage.size=1Gi \
+  --set postgresql.cluster.postgresql.parameters.shared_buffers=128MB \
+  --set postgresql.cluster.postgresql.parameters.max_wal_size=512MB \
+  --set postgresql.cluster.postgresql.parameters.min_wal_size=80MB
+```
+
+That last pair matters: CloudNativePG's webhook rejects `min_wal_size` greater
+than or equal to `max_wal_size`, so lowering one means lowering the other.
+
+Prove the routing, which is the part `helm template` cannot check. klipper-lb
+gives the ingress controller the k3s container's address on `helmtest`:
+
+```bash
+LB=$(docker exec k3s-test kubectl get svc -n ingress-nginx ingress-nginx-controller \
+       -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+curl() { docker run --rm --network helmtest curlimages/curl:latest -s \
+           -H "Host: tracker.test.local" "$@"; }
+
+curl "http://$LB/api/health"     # {"status":"healthy", ...}          -> api
+curl "http://$LB/announce"       # d14:failure reason15:Invalid passkeye -> tracker
+curl -o /dev/null -w '%{http_code}\n' "http://$LB/"   # 302 to /auth/login -> web
+```
+
+The bencoded `Invalid passkey` is the useful one: it means the request reached
+the Go tracker *and* the tracker reached Postgres through the pooler to look the
+passkey up.
+
+Teardown, leaving nothing:
+
+```bash
+docker rm -f k3s-test
+docker network rm helmtest
+rm -rf /tmp/k8s
+# the k3s image declares VOLUMEs, so it leaves a few anonymous ones behind
+docker volume ls -qf dangling=true | xargs -r docker volume rm
+```
 
 ## Validating a change to this chart
 

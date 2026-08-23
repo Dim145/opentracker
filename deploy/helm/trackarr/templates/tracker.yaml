@@ -26,7 +26,7 @@ spec:
     spec:
       serviceAccountName: {{ include "trackarr.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
-      {{- with .Values.global.imagePullSecrets }}
+      {{- with .Values.image.pullSecrets }}
       imagePullSecrets: {{- toYaml . | nindent 8 }}
       {{- end }}
       securityContext:
@@ -50,7 +50,7 @@ spec:
       containers:
         - name: tracker
           image: {{ include "trackarr.image" (dict "ctx" $ "image" .Values.tracker.image) }}
-          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             {{- include "trackarr.containerSecurityContext" . | nindent 12 }}
           ports:

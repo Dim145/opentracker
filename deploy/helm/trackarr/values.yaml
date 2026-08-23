@@ -11,17 +11,25 @@
 # announce. The defaults here suit roughly 50 000 members.
 # =============================================================================
 
-global:
+# Images for the three application services.
+#
+# Deliberately NOT under a `global:` key. Helm passes `global` to every
+# subchart, and `global.imageRegistry` is a convention the Valkey chart
+# honours — putting our registry there made it try to pull
+# ghcr.io/dim145/opentracker/valkey/valkey. Anything meant for this chart alone
+# stays out of `global`.
+image:
   # Registry and repository prefix for the three application images.
-  imageRegistry: ghcr.io/dim145/opentracker
+  registry: ghcr.io/dim145/opentracker
   # Applied to every app image when its own `tag` is empty. Empty means
   # Chart.appVersion — pin it explicitly for anything you care about.
-  imageTag: ""
-  imagePullPolicy: IfNotPresent
-  imagePullSecrets: []
-  # Added to every object this chart creates.
-  commonLabels: {}
-  commonAnnotations: {}
+  tag: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# Added to every object this chart creates.
+commonLabels: {}
+commonAnnotations: {}
 
 nameOverride: ""
 fullnameOverride: ""
@@ -401,6 +409,9 @@ postgresql:
         maintenance_work_mem: 512MB
         # Checkpoints triggered by volume rather than by time are what produce
         # full-page-write storms.
+        # CloudNativePG's admission webhook rejects min_wal_size >= max_wal_size,
+        # and also min_wal_size larger than cluster.walStorage.size. Lower
+        # max_wal_size for a small deployment and you must lower this too.
         max_wal_size: 4GB
         min_wal_size: 1GB
         checkpoint_completion_target: "0.9"

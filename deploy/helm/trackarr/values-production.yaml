@@ -15,10 +15,10 @@
 site:
   host: tracker.example.com
 
-global:
+image:
   # Never :latest in production — a pod rescheduled onto a new node would pull
   # a different build than its neighbours.
-  imageTag: "0.29.0"
+  tag: "0.29.0"
 
 web:
   replicaCount: 2
