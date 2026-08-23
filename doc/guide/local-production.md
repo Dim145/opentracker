@@ -34,8 +34,8 @@ and `caddy`. The whole stack is reachable through Caddy on `:80` /
 `:443`. The first boot:
 
 1. waits for Postgres + Redis health checks,
-2. lets the API container run `drizzle-kit push --force` against
-   `packages/db/src/schema.ts` to land any schema delta,
+2. lets the API container apply the committed migrations under
+   `packages/db/src/migrations/`,
 3. boots the web frontend.
 
 ### Without TLS termination
@@ -118,14 +118,16 @@ containers read `${DB_USER}`, `${DB_PASSWORD}`, `${DB_NAME}` from
 the same file; a typo there shows up as `password authentication
 failed for user "tracker"` in the API logs.
 
-### Drizzle push hangs at boot
+### Migrations hang at boot
 
-The API container runs `drizzle-kit push --force` against
-`schema.ts` on first start. If you suspect a runaway migration:
+The API container applies the committed migrations on start, holding a
+`pg_advisory_lock` so two containers cannot migrate at once. If you suspect a
+runaway migration:
 
 ```bash
-docker compose -f docker-compose.prod.yml logs api | grep drizzle
+docker compose -f docker-compose.prod.yml logs api | grep -E '\[Boot\]|\[Migrate\]'
 ```
 
-A clean push exits within a few seconds; anything longer means
-Postgres is unresponsive (check `docker compose logs postgres`).
+A clean run reports `Migrations up to date` within a few seconds; anything
+longer means Postgres is unresponsive (check `docker compose logs postgres`) or
+another container is holding the advisory lock.

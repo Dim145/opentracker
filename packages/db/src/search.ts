@@ -6,11 +6,15 @@
  * `ftsVector()` to declare the GIN indexes, the search route calls it to build
  * its predicate. They cannot diverge.
  *
- * Choosing expression indexes over `GENERATED … STORED` columns is dictated by
- * how the schema is managed: the API container runs `drizzle-kit push --force`
- * at boot, reconciling the database with `schema.ts`. Indexes are ground push
- * handles well; generated columns less so, and they would duplicate in the
- * table a vector the index already holds.
+ * Expression indexes rather than `GENERATED … STORED` columns, because a
+ * stored column would duplicate in the table a vector the index already holds,
+ * for no gain: the predicate is built from the same expression, so the index is
+ * used either way.
+ *
+ * (The original reason given here was that the API pushed `schema.ts` at boot
+ * and push handled indexes better than generated columns. That mechanism is
+ * gone — the boot applies committed migrations — and the choice stands on its
+ * own, so the reason has been replaced rather than deleted.)
  */
 import { sql, type SQL } from 'drizzle-orm';
 import type { AnyColumn } from 'drizzle-orm';

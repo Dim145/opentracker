@@ -131,8 +131,9 @@ The first start does the following, in order:
 
 1. Build the Trackarr image (Nuxt SSR + tracker bundled together).
 2. Start PostgreSQL, Redis, PgBouncer, the app, and Caddy.
-3. The app's entrypoint pushes the schema with `drizzle-kit push` and seeds
-   default categories.
+3. The app's entrypoint applies the committed migrations and seeds default
+   categories. A migration that fails aborts the boot rather than starting
+   against a half-applied schema.
 4. Caddy requests Let's Encrypt certificates for `DOMAIN` and `TRACKER_DOMAIN`.
 
 Once everything is healthy:
@@ -173,8 +174,8 @@ git pull origin main
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-The entrypoint runs `drizzle-kit push` on every start, so schema migrations
-are applied automatically. Volumes (`postgres_data`, `redis_data`,
+The entrypoint applies any pending migration on every start, so a schema
+change ships with its image. Volumes (`postgres_data`, `redis_data`,
 `uploads_data`, `caddy_data`) survive rebuilds.
 
 ::: warning Breaking schema changes

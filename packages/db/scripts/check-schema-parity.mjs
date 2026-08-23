@@ -12,7 +12,7 @@
  *   1. `drizzle-kit generate` must produce nothing. It diffs schema.ts against
  *      the snapshot chain, so an empty diff means every schema change has a
  *      migration. This is the check that fails the moment someone edits
- *      schema.ts and relies on a boot-time push to catch up.
+ *      schema.ts and expects some later step to catch the database up.
  *
  *   2. The chain must apply to an empty database. A migration that only exists
  *      as a file is not a migration; this is what caught 14 hand-written files
@@ -73,8 +73,9 @@ if (gen.status !== 0) {
 if (newSql.length > 0) {
   console.error(
     'schema.ts has changes with no migration.\n\n' +
-      'Generate one and commit it — do not rely on a boot-time push, which\n' +
-      'does not create indexes or foreign keys at all:\n' +
+      'Generate one and commit it. The boot applies committed migrations and\n' +
+      'nothing else, and push — which is not run anywhere any more — never\n' +
+      'created indexes or foreign keys in the first place:\n' +
       '  pnpm --filter @trackarr/db exec drizzle-kit generate\n\n' +
       `What is missing (${newSql.join(', ')}):\n`
   );

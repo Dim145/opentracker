@@ -1,8 +1,9 @@
 # Upgrading
 
-Trackarr pushes its schema at boot (`drizzle-kit push --force` against
-`schema.ts`), so an upgrade is normally: pull the new images, restart, done. No
-migration to run by hand, no downtime window to plan beyond the restart itself.
+Trackarr applies its committed migrations at boot, so an upgrade is normally:
+pull the new images, restart, done. No migration to run by hand, no downtime
+window to plan beyond the restart itself. A migration that fails aborts the
+boot, so a container that comes up has the schema its release expects.
 
 This page records the upgrades that need more than that.
 
