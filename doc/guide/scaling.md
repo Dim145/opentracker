@@ -134,9 +134,10 @@ size PgBouncer's `default_pool_size` and Postgres's `max_connections` for that,
 or lower `TRACKER_DB_MAX_CONNS` so the product stays where it was — four
 instances at `5` cost the cluster exactly what one at `20` did.
 
-A non-positive value falls back to 20 rather than letting pgx derive its own
-default from the host's CPU count, which would change silently when you move
-hosts.
+Anything outside `1..1000` falls back to 20, rather than letting pgx derive its
+own default from the host's CPU count — which would change silently when you
+move hosts. The upper bound is not decoration: the value is narrowed to pgx's
+`int32`, so an unchecked `3000000000` would land as a *negative* pool size.
 
 ### UDP needs a layer-4 balancer
 
