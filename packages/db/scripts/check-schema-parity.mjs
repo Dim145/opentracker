@@ -20,6 +20,16 @@
  *      BASE_DATABASE_URL is set, so the check still works locally without a
  *      Postgres to hand.
  *
+ *   3. Every .sql file must be IN the journal. Neither check above can see an
+ *      orphan, because both start from the journal — so a file that looks like
+ *      part of the chain, is numbered like the others, and is never applied
+ *      sits there indefinitely. 0006_hnr_tags_invites_reports.sql was one: a
+ *      survivor of the cleanup in (2), duplicating 0006_misty_wolf_cub.sql with
+ *      Postgres-default constraint names instead of drizzle's. Anyone reading
+ *      the directory rather than the journal — or applying `*.sql` in a loop,
+ *      which is an obvious thing to do — got 74 foreign keys where the real
+ *      chain produces 66, the extra 8 being duplicates under a second name.
+ *
  * Deliberately not compared against `push`. Measured on drizzle-kit 0.31.10:
  * push creates tables, columns and their primary/unique keys but *no secondary
  * indexes and no foreign keys* on the tables it creates. Nine indexes schema.ts
@@ -92,6 +102,28 @@ if (newSql.length > 0) {
 }
 
 console.log('schema.ts and the migrations agree — generate produced nothing.');
+
+// ── 3. No .sql file outside the journal ────────────────────────────────
+// Cheap, no database needed, and it runs before the apply check so the
+// failure names the file rather than showing up as a puzzling schema diff.
+const journalTags = new Set(
+  JSON.parse(readFileSync(JOURNAL, 'utf8')).entries.map((e) => `${e.tag}.sql`)
+);
+const orphans = [...sqlFiles()].filter((f) => !journalTags.has(f)).sort();
+if (orphans.length) {
+  console.error(
+    `${orphans.length} migration file(s) are not in _journal.json, so nothing ` +
+      'ever applies them:\n'
+  );
+  for (const f of orphans) console.error(`  ${MIGRATIONS}/${f}`);
+  console.error(
+    '\nA file in this directory that is not in the journal is worse than no ' +
+      'file: it reads as part of the chain and is not. Either add it to the ' +
+      'journal with a snapshot (drizzle-kit generate, not by hand) or delete it.'
+  );
+  process.exit(1);
+}
+console.log(`every .sql file is in the journal (${journalTags.size} entries).`);
 
 // ── 2. The chain must apply to an empty database ───────────────────────
 const BASE = process.env.BASE_DATABASE_URL;
