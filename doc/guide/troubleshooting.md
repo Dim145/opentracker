@@ -207,6 +207,64 @@ e21V5@postgres:5432/trackarr = host=postgres port=5432 auth_user=tracker
 
 ---
 
+### Logo or Favicon Upload Returns 500
+
+**Symptoms:** `POST /api/admin/logo` (or `/api/admin/favicon`) answers 500, and
+the API log carries:
+
+```
+Cannot write to the uploads directory /app/data/uploads (EACCES).
+This process runs as uid 65532:65532, so the volume mounted there is most
+likely owned by someone else.
+```
+
+**Cause:** the `uploads_data` volume is owned by `root` while the API container
+runs as uid 65532. Docker seeds a *new, empty* named volume from whatever the
+image holds at the mount point — ownership included — so a volume created by a
+version whose image lacked `/app/data/uploads` was created `root:root` and is
+not writable by the API. The image now ships that directory owned by 65532, but
+Docker will not re-seed a volume that already exists.
+
+**Solutions:**
+
+1. Hand the volume over, once. Stop the API first so nothing is mid-write:
+
+   ```bash
+   docker compose -f docker-compose.prod.yml stop api
+   ```
+
+   ```bash
+   docker run --rm -v trackarr_uploads_data:/d alpine chown -R 65532:65532 /d
+   ```
+
+   ```bash
+   docker compose -f docker-compose.prod.yml start api
+   ```
+
+   The volume name is prefixed with your compose project — check it with
+   `docker volume ls | grep uploads`.
+
+2. Or sidestep the volume entirely by moving uploads to object storage, which is
+   also what lets you run more than one API replica:
+   [Object storage](./object-storage).
+
+**On Kubernetes** the cause is different, because a PVC is never seeded from the
+image. There the pod runs as uid 1001 with `fsGroup: 1001`, and the fsGroup is
+what grants access — the kubelet chowns the volume to `root:1001` and adds
+`g+rwx`. Some NFS and CIFS provisioners ignore fsGroup, which leaves the volume
+`root:root` and unwritable. Check it:
+
+```bash
+kubectl -n trackarr exec deploy/trackarr-api -- ls -ldn /app/data/uploads
+```
+
+`root:1001` with `drwxrwsr-x` is correct; `root:root` with `drwxr-xr-x` means
+your StorageClass dropped the fsGroup. Fix it in the provisioner (many accept
+`mountOptions` with `uid`/`gid`), or move to
+[Object storage](./object-storage).
+
+---
+
 ## Tracker Issues
 
 ### Torrents Show 0 Seeders/Leechers
