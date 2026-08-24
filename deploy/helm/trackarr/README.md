@@ -59,7 +59,7 @@ helm upgrade --install trackarr deploy/helm/trackarr \
 | --- | --- | --- |
 | Postgres | `postgresql.enabled=false` | `externalDatabase.url` (and `externalDatabase.migrationsUrl`), or `externalDatabase.existingSecret` |
 | Valkey / Redis | `valkey.enabled=false` | `externalRedis.host`, optionally `externalRedis.existingSecret` |
-| Object store | `rustfs.enabled=false` (the default) | nothing, unless `storage.driver=s3` — then `storage.s3.endpoint` and credentials |
+| Object store | `rustfs.enabled=false` (the default) | nothing, unless `storage.driver=s3` — then `storage.s3.endpoint` and credentials for the external store. With `rustfs.enabled=true` the credentials are generated |
 | Ingress | `ingress.enabled=false` | see below — nothing else is required, but check `trustProxy` |
 | Web | `web.enabled=false` | — |
 | API | `api.enabled=false` | — |
@@ -113,6 +113,31 @@ reading its own Secret back before generating anything:
 
 `helm template` and `--dry-run` cannot read the cluster, so they show freshly
 generated values. Nothing is applied, so nothing rotates.
+
+### Object-store credentials are generated too
+
+With `rustfs.enabled: true` there is nothing to supply. The chart mints an
+access key and a secret key on the first install and keeps them stable
+afterwards by reading its own Secret back — rotating them would leave the API
+presenting keys the store no longer accepts, or the reverse, depending on which
+pod restarted first.
+
+Helm cannot hand a generated value to a subchart's *values*, which is what made
+this look impossible. It can hand it a Secret **name**:
+`rustfs.secret.existingSecret` names the Secret this chart creates, the subchart
+resolves it at runtime, and that Secret carries both formats — `S3_ACCESS_KEY_ID`
+/ `S3_SECRET_ACCESS_KEY` for the API, `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY`
+for the server. One render writes both, so they cannot drift.
+
+Because that value reaches the subchart unrendered it has to be a literal, so
+the default Secret name is not release-scoped. Two releases in one namespace:
+override `rustfs.secret.existingSecret` on the second and the parent follows it.
+
+An **external** store is different — the chart will not invent credentials it
+cannot also configure on the far end. Supply `storage.s3.accessKeyId` and
+`storage.s3.secretAccessKey`, or `storage.s3.existingSecret` naming a Secret
+with `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`. Rendering fails if neither is
+given.
 
 ### Bringing your own
 
@@ -281,9 +306,7 @@ helm upgrade --install trackarr deploy/helm/trackarr \
   -n trackarr --create-namespace \
   --set site.host=tracker.yourdomain.example \
   --set storage.driver=s3 \
-  --set rustfs.enabled=true \
-  --set rustfs.secret.rustfs.access_key="$(openssl rand -hex 12)" \
-  --set rustfs.secret.rustfs.secret_key="$(openssl rand -hex 32)"
+  --set rustfs.enabled=true
 ```
 
 The chart defaults RustFS to **standalone**: one pod, one PVC, no erasure
@@ -487,8 +510,6 @@ so the same cluster is a good place to exercise the other branch — swap the tw
 ```bash
   --set storage.driver=s3 --set rustfs.enabled=true \
   --set rustfs.storageclass.dataStorageSize=1Gi \
-  --set rustfs.secret.rustfs.access_key="$(openssl rand -hex 12)" \
-  --set rustfs.secret.rustfs.secret_key="$(openssl rand -hex 32)" \
 ```
 
 Then upload a logo in the admin UI and fetch it back through `/uploads/...`; a

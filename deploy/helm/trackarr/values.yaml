@@ -278,17 +278,17 @@ storage:
     createBucket: true
     timeoutMs: 30000
 
-    # Credentials. Supply them here, or name a Secret carrying
-    # S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY.
+    # Credentials.
     #
-    # When `rustfs.enabled` is on, leave these empty and set the pair ONCE
-    # under `rustfs.secret.rustfs` instead — the API reads them from there, so
-    # the object store and its client cannot drift apart. (Helm cannot pass a
-    # generated value into a subchart's values, which is why this is the one
-    # credential in the chart you have to write down yourself:
-    #   openssl rand -hex 12   # access key
-    #   openssl rand -hex 32   # secret key
-    # )
+    # With `rustfs.enabled` on, leave all three empty: the chart generates the
+    # pair, keeps it stable across upgrades by reading its own Secret back, and
+    # writes it in both formats — S3_* for the API, RUSTFS_* for the server —
+    # so the store and its client cannot disagree. Nothing to write down.
+    #
+    # For an EXTERNAL store the chart will not invent credentials it cannot also
+    # configure on the far end, so supply them: either the pair here, or
+    # existingSecret naming a Secret with S3_ACCESS_KEY_ID and
+    # S3_SECRET_ACCESS_KEY. Rendering fails if neither is given.
     accessKeyId: ""
     secretAccessKey: ""
     existingSecret: ""
@@ -734,10 +734,30 @@ rustfs:
   drivesPerNode: 1
 
   secret:
-    existingSecret: ""
+    # Names the Secret the chart creates (templates/storage-auth.yaml), which is
+    # how a generated credential reaches a subchart at all: this value arrives
+    # here UNRENDERED — the subchart emits it raw — so it must be a literal, and
+    # the parent takes its Secret name from this same value rather than
+    # computing one. Two releases in one namespace: override this, and the
+    # parent follows.
+    existingSecret: trackarr-s3-auth
+    # Leave empty. Setting these takes over from the generated pair, and then
+    # you are back to keeping two places in step by hand.
     rustfs:
       access_key: ""
       secret_key: ""
+  # Setting existingSecret makes the subchart stop injecting
+  # RUSTFS_LOCAL_ENDPOINT_HOST, because it cannot know whether the Secret hides
+  # runtime overrides. Ours carries credentials and nothing else, which is the
+  # case its own values tell you to set this true for.
+  #
+  # Inert in the default standalone mode — that path renders a Deployment and
+  # the injection lives in the StatefulSet — so this changes nothing today and
+  # is here for distributed mode, where it would otherwise silently regress the
+  # moment someone turns it on. Verified: RUSTFS_LOCAL_ENDPOINT_HOST appears
+  # zero times before and after this whole change.
+  localEndpointHost:
+    autoInject: true
 
   ingress:
     enabled: false

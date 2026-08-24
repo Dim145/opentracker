@@ -105,7 +105,7 @@ defaults to `fs`, so an existing release keeps exactly the environment it had.
 {{- define "trackarr.storageEnv" -}}
 {{- if eq .Values.storage.driver "s3" }}
 {{- $s3 := .Values.storage.s3 }}
-{{- $secret := $s3.existingSecret | default (printf "%s-s3-auth" .Release.Name) }}
+{{- $secret := include "trackarr.s3SecretName" . }}
 - name: STORAGE_DRIVER
   value: "s3"
 - name: S3_ENDPOINT

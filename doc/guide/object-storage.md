@@ -93,19 +93,29 @@ helm upgrade --install trackarr deploy/helm/trackarr \
   -n trackarr --create-namespace \
   --set site.host=tracker.example.com \
   --set storage.driver=s3 \
-  --set rustfs.enabled=true \
-  --set rustfs.secret.rustfs.access_key="$(openssl rand -hex 12)" \
-  --set rustfs.secret.rustfs.secret_key="$(openssl rand -hex 32)"
+  --set rustfs.enabled=true
 ```
 
 With `storage.driver: s3` the chart creates no uploads PVC and mounts no
 volume, so `api.replicaCount` becomes as unconstrained as the web tier's.
 
-The endpoint is derived from the RustFS Service, and the credentials are read
-from `rustfs.secret.rustfs.*` — set once, used by both. They are the one
-credential in the chart you have to write down yourself: Helm cannot hand a
-value it generated into a subchart's values, and the object store and its
-client must agree.
+The endpoint is derived from the RustFS Service, and the credentials are
+generated — nothing to write down. The chart mints a pair on the first install
+and keeps it stable afterwards by reading its own Secret back, the same way it
+handles the session and IP-hash secrets; rotating these would lock the API out
+of every object the store already holds.
+
+The trick is that Helm cannot hand a *generated value* to a subchart's values,
+but it can hand it a *Secret name*. `rustfs.secret.existingSecret` names the
+Secret the chart creates, the subchart resolves it at runtime, and that one
+Secret carries both formats — `S3_*` for the API, `RUSTFS_*` for the server — so
+the store and its client cannot disagree.
+
+For an **external** store the chart will not invent credentials it has no way to
+configure on the far end. Supply `storage.s3.accessKeyId` and
+`storage.s3.secretAccessKey`, or `storage.s3.existingSecret` naming a Secret
+with `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`. Rendering fails if neither
+is given, rather than deploying an API that 500s on the first upload.
 
 RustFS defaults to **standalone** here — one pod, one PVC, no erasure coding, no
 ingress — which suits branding assets and keeps the footprint small, but does

@@ -157,12 +157,71 @@ store that enforces them.
 {{- end -}}
 {{- end -}}
 
+{{/*
+The name of the Secret this chart creates for the object store.
+
+With the bundled RustFS it must be the LITERAL in rustfs.secret.existingSecret,
+because that value reaches the subchart unrendered — its _helpers.tpl emits it
+raw, so a `{{ .Release.Name }}` in there would land in a manifest verbatim. One
+value therefore names the Secret on both sides and they cannot drift. Overriding
+it is also how a second release in one namespace stays out of the first's way.
+
+Without RustFS there is no subchart to agree with, so the name is release-scoped
+as usual.
+*/}}
+{{- define "trackarr.s3SecretName" -}}
+{{- if .Values.storage.s3.existingSecret -}}
+{{- .Values.storage.s3.existingSecret -}}
+{{- else if and .Values.rustfs.enabled (((.Values.rustfs).secret).existingSecret) -}}
+{{- ((.Values.rustfs).secret).existingSecret -}}
+{{- else -}}
+{{- printf "%s-s3-auth" .Release.Name -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The object-store credentials, generated when nobody supplied them.
+
+Read back from the Secret first, for the same reason as the app secrets: a bare
+randAlphaNum would mint a new pair on every `helm upgrade`, and rotating these
+locks the API out of every object RustFS already holds — the server would come
+up with new keys while the running API still presents the old ones, or the other
+way round depending on which pod restarts first.
+
+Generated ONLY for the bundled RustFS. An external store's credentials are not
+ours to invent, so that path still requires them and assertS3Credentials still
+refuses to render without them.
+*/}}
+{{- define "trackarr.s3GeneratedCredential" -}}
+{{- $name := include "trackarr.s3SecretName" .ctx -}}
+{{- $existing := lookup "v1" "Secret" .ctx.Release.Namespace $name -}}
+{{- $current := "" -}}
+{{- if and $existing $existing.data -}}
+{{- $current = index $existing.data .key | default "" -}}
+{{- end -}}
+{{- if $current -}}
+{{- $current | b64dec -}}
+{{- else -}}
+{{- randAlphaNum (.len | int) -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "trackarr.s3AccessKeyId" -}}
-{{- .Values.storage.s3.accessKeyId | default (and .Values.rustfs.enabled (((.Values.rustfs).secret).rustfs).access_key) | default "" -}}
+{{- $explicit := .Values.storage.s3.accessKeyId | default (and .Values.rustfs.enabled (((.Values.rustfs).secret).rustfs).access_key) | default "" -}}
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else if .Values.rustfs.enabled -}}
+{{- include "trackarr.s3GeneratedCredential" (dict "ctx" . "key" "S3_ACCESS_KEY_ID" "len" 24) -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "trackarr.s3SecretAccessKey" -}}
-{{- .Values.storage.s3.secretAccessKey | default (and .Values.rustfs.enabled (((.Values.rustfs).secret).rustfs).secret_key) | default "" -}}
+{{- $explicit := .Values.storage.s3.secretAccessKey | default (and .Values.rustfs.enabled (((.Values.rustfs).secret).rustfs).secret_key) | default "" -}}
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else if .Values.rustfs.enabled -}}
+{{- include "trackarr.s3GeneratedCredential" (dict "ctx" . "key" "S3_SECRET_ACCESS_KEY" "len" 48) -}}
+{{- end -}}
 {{- end -}}
 
 {{/*
@@ -179,7 +238,7 @@ first upload.
 {{- $id := include "trackarr.s3AccessKeyId" . -}}
 {{- $key := include "trackarr.s3SecretAccessKey" . -}}
 {{- if or (not $id) (not $key) -}}
-{{- fail "storage.driver is s3 but no credentials were given. Set storage.s3.accessKeyId + storage.s3.secretAccessKey, or storage.s3.existingSecret (keys S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY), or — with rustfs.enabled — rustfs.secret.rustfs.access_key + .secret_key." -}}
+{{- fail "storage.driver is s3 with an external store, but no credentials were given. Set storage.s3.accessKeyId + storage.s3.secretAccessKey, or storage.s3.existingSecret (keys S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY). Credentials are only generated for the bundled store — set rustfs.enabled if that is what you wanted." -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}
