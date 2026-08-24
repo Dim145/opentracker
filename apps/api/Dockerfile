@@ -22,7 +22,7 @@
 # Install dependencies for the API build (cached on package.json + lockfile)
 # -----------------------------------------------------------------------------
 FROM node:24-alpine AS deps
-RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
@@ -34,7 +34,7 @@ RUN pnpm install --filter "@trackarr/api..." --frozen-lockfile
 # Build Nitro (produces apps/api/.output, fully self-contained)
 # -----------------------------------------------------------------------------
 FROM node:24-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
@@ -55,7 +55,7 @@ RUN pnpm --filter @trackarr/api build
 # stays isolated from the Nitro bundle's own (inlined) node_modules.
 # -----------------------------------------------------------------------------
 FROM node:24-alpine AS db-tools
-RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 WORKDIR /db-tools
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/db ./packages/db

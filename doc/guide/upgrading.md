@@ -13,6 +13,141 @@ Take a database backup before pulling new images. See
 [Backup & restore](./backup-restore.md). Everything below assumes you can roll
 back.
 
+## Upgrading to PostgreSQL 18 and Redis 8
+
+The compose files moved from `postgres:16-alpine` to `postgres:18.6-alpine` and
+from `redis:7` to `redis:8.10.1-alpine`. One of those is a restart. The other is
+not.
+
+### Redis 8 is a restart
+
+RDB and AOF are forward-compatible from 7, so pull and restart. The 8.0 breaking
+change was ACL categories absorbing the Search, JSON, time-series and
+probabilistic commands; this stack authenticates with `requirepass` rather than
+ACLs, so it is unaffected.
+
+Verified against the production hardening — `read_only: true`, `cap_drop: ALL`
+plus SETGID/SETUID/DAC_OVERRIDE — with the primitives the tracker actually
+relies on: single-key Lua scripts, `SET NX PX` for the credit dedup,
+`volatile-lru`, and AOF `everysec`. All behave as on 7.
+
+### PostgreSQL 18 is not
+
+A major version will not read an older data directory. Pull the new image
+without doing anything else and Postgres exits immediately:
+
+```
+FATAL:  database files are incompatible with server
+DETAIL: The data directory was initialized by PostgreSQL version 16,
+        which is not compatible with this version 18.6.
+```
+
+**And there is a second change specific to the Docker image.** From 18 on, the
+official image's default `PGDATA` moved to `/var/lib/postgresql/<major>/docker`,
+while this stack has always mounted its volume at `/var/lib/postgresql/data`.
+The compose files therefore now set `PGDATA: /var/lib/postgresql/data`
+explicitly. Keep that line: it is what makes an upgraded cluster be found where
+it already lives.
+
+### The procedure: dump, restore into a new volume
+
+Recommended over an in-place `pg_upgrade` for one reason — it never touches the
+old volume, so rolling back is starting the old container again.
+
+```bash
+cd /path/to/trackarr
+
+# 1. Stop everything that writes. Postgres stays up; nothing else may hold a
+#    connection while the dump runs.
+docker compose -f docker-compose.prod.yml --env-file .env stop web api tracker
+
+# 2. Dump globals and all databases from the RUNNING old container.
+#    pg_dumpall, not pg_dump: it carries the roles too.
+docker compose -f docker-compose.prod.yml --env-file .env exec -T postgres \
+  pg_dumpall -U "${DB_USER:-tracker}" > trackarr-pg16.sql
+
+# 3. Check it is not empty before you trust it.
+wc -l trackarr-pg16.sql && tail -1 trackarr-pg16.sql
+
+# 4. Take the old volume out of the way, keeping it. Renaming beats deleting:
+#    this is the rollback.
+docker compose -f docker-compose.prod.yml --env-file .env down
+docker volume create trackarr_postgres_data_pg16
+docker run --rm -v trackarr_postgres_data:/from \
+  -v trackarr_postgres_data_pg16:/to alpine:3 \
+  sh -c 'cd /from && cp -a . /to'
+docker volume rm trackarr_postgres_data
+
+# 5. Bring up ONLY Postgres 18 — it initialises a fresh cluster on the empty
+#    volume — then restore.
+docker compose -f docker-compose.prod.yml --env-file .env up -d postgres
+until docker compose -f docker-compose.prod.yml --env-file .env exec -T postgres \
+        pg_isready -U "${DB_USER:-tracker}"; do sleep 2; done
+docker compose -f docker-compose.prod.yml --env-file .env exec -T postgres \
+  psql -U "${DB_USER:-tracker}" -d postgres < trackarr-pg16.sql
+
+# 6. Everything else.
+docker compose -f docker-compose.prod.yml --env-file .env up -d
+```
+
+Step 5 prints two errors and both are harmless, because `pg_dumpall` emits
+`DROP ROLE`/`CREATE ROLE` for the role you are connected as:
+
+```
+ERROR:  current user cannot be dropped
+ERROR:  role "tracker" already exists
+```
+
+Anything else in that output is not harmless. Read it.
+
+**What the restore carries over**, verified on a seeded cluster: every row, the
+`pg_trgm` extension and its GIN trigram indexes, the per-table `reloptions` that
+migration 0032 sets (`fillfactor=85`, the autovacuum scale factors) and all
+roles. A `pg_dumpall` restore is not a downgrade in fidelity.
+
+**Afterwards**, once the site is confirmed working, reclaim the space:
+
+```bash
+docker volume rm trackarr_postgres_data_pg16
+rm trackarr-pg16.sql
+```
+
+Do that last, not first. The dump file contains every credential hash in the
+database — treat it like a backup, and delete it rather than leaving it in the
+deploy directory.
+
+### Rolling back
+
+Nothing was destroyed, so: `down`, restore the volume copy back over
+`trackarr_postgres_data`, put `postgres:16-alpine` back in the compose file,
+drop the `PGDATA` line, `up -d`.
+
+### On pgautoupgrade
+
+`pgautoupgrade/pgautoupgrade` runs `pg_upgrade --link` in place and looks
+attractive because it is one command. Two things to know before reaching for it.
+
+It reads `PGDATA`, and its 18 images default to the *new* path. Run it against
+this stack's mount without setting `PGDATA=/var/lib/postgresql/data` and it
+finds nothing to upgrade at the path it looked at, initialises an empty cluster,
+prints `no upgrade to do` — **and exits 0.** Start the stack after that and the
+site is up with an empty database while the upgrade appears to have succeeded.
+
+And `--link` rewrites the volume in place, so an interruption leaves it
+half-converted (`old/`, `new/` and an `upgrade_in_progress.lock`) rather than
+leaving you a clean rollback. Recoverable, but not while the site is down and
+you are reading its source to work out what state it is in.
+
+If you use it anyway: set `PGDATA` explicitly, and copy the volume first.
+
+### Kubernetes
+
+The Helm chart sets `postgresql.version.postgresql: "18"`, which CloudNativePG
+turns into the operand image. Changing that value on a cluster that already has
+data is a major upgrade the operator performs *offline* — it stops the cluster,
+runs `pg_upgrade` and restarts. None of the above applies; read CloudNativePG's
+own documentation for it, and take a backup first regardless.
+
 ## Upgrading to 0.27 or later — account secrets are encrypted at rest
 
 **Nothing is required. One thing is strongly recommended.**

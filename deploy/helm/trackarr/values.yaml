@@ -478,7 +478,11 @@ postgresql:
   type: postgresql
   mode: standalone
   version:
-    postgresql: "16"
+    # CloudNativePG picks the operand image from this. Changing it on a LIVE
+    # cluster is a major-version upgrade, which CNPG performs offline: it stops
+    # the cluster, runs pg_upgrade, and restarts. Read the operator's own
+    # documentation before editing it on anything with data in it.
+    postgresql: "18"
 
   cluster:
     # Three gives you a quorum and lets CNPG do a real switchover. Two is the
