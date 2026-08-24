@@ -19,6 +19,37 @@ import { generateInstanceKeypair } from './keys';
 
 const SINGLETON = 'singleton';
 
+/**
+ * Is federation on? Cached for a minute, and ONLY for cosmetic callers.
+ *
+ * `/api/branding` is fetched on every page navigation by every user, and every
+ * other field it returns comes from the settings cache — so it costs no query
+ * in the steady state and keeps serving through a brief database hiccup.
+ * Reading the config directly there would have given up both: one query per
+ * page load, and a 500 on the endpoint the whole site depends on whenever
+ * Postgres blinks.
+ *
+ * Deliberately NOT used by getFederationConfig's other callers. inbound.ts
+ * gates on it (404 when federation is off), so caching there would leave a
+ * just-disabled instance accepting federated requests until the entry expired.
+ * The cost of staleness is asymmetric: a nav item that lingers for up to a
+ * minute is cosmetic, an authorisation check that lingers is not.
+ *
+ * No invalidation on write for the same reason it needs none: nothing about a
+ * nav item justifies wiring another pub/sub channel. The bound is the TTL.
+ */
+const ENABLED_TTL_MS = 60_000;
+let enabledCache: { value: boolean; at: number } | null = null;
+
+export async function isFederationEnabledCosmetic(): Promise<boolean> {
+  if (enabledCache && Date.now() - enabledCache.at < ENABLED_TTL_MS) {
+    return enabledCache.value;
+  }
+  const value = (await getFederationConfig())?.enabled ?? false;
+  enabledCache = { value, at: Date.now() };
+  return value;
+}
+
 export async function getFederationConfig(): Promise<FederationConfig | null> {
   const [row] = await db
     .select()

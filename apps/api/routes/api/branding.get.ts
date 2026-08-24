@@ -11,7 +11,7 @@ import {
   getFooterText,
   getPageTitleSuffix,
 } from '~~/utils/server';
-import { getFederationConfig } from '~~/utils/federation/config';
+import { isFederationEnabledCosmetic } from '~~/utils/federation/config';
 
 /**
  * GET /api/branding
@@ -21,11 +21,9 @@ import { getFederationConfig } from '~~/utils/federation/config';
  * than behind its own endpoint because the default layout already awaits this
  * payload on every page, so gating a nav item on it costs no extra round trip.
  *
- * Note the asymmetry: everything above reads through the settings cache and so
- * costs no query in the steady state, while getFederationConfig() is an
- * uncached single-row lookup on a singleton — the same uncached read its twenty
- * other call sites use. Cheap, but it is the one query on this endpoint, which
- * is where to look first if it ever shows up in a profile.
+ * Every field here reads from a cache, so the endpoint costs no query in the
+ * steady state and keeps answering through a brief database hiccup — which is
+ * worth preserving on the one route every page load depends on.
  */
 export default defineEventHandler(async () => {
   const siteName = await getSiteName();
@@ -39,7 +37,7 @@ export default defineEventHandler(async () => {
   const authSubtitle = await getAuthSubtitle();
   const footerText = await getFooterText();
   const pageTitleSuffix = await getPageTitleSuffix();
-  const federation = await getFederationConfig();
+  const federationEnabled = await isFederationEnabledCosmetic();
 
   return {
     siteName,
@@ -53,8 +51,8 @@ export default defineEventHandler(async () => {
     authSubtitle,
     footerText,
     pageTitleSuffix,
-    // Null when federation was never configured, which is the same answer as
+    // False when federation was never configured, which is the same answer as
     // configured-and-off for anything the browser does with it.
-    federationEnabled: federation?.enabled ?? false,
+    federationEnabled,
   };
 });

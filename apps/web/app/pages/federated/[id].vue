@@ -1,5 +1,6 @@
 <template>
-  <div class="fdetail">
+  <FederationOff v-if="!federationEnabled" />
+  <div v-else class="fdetail">
     <NuxtLink to="/federated" class="fd-back"><Icon name="ph:arrow-left-bold" /> {{ $t('federated.detail.back') }}</NuxtLink>
 
     <div v-if="!t" class="fd-missing">
@@ -80,7 +81,19 @@ interface Detail {
 }
 
 const route = useRoute();
-const { data } = await useFetch<Detail>(`/api/federation/remote/${route.params.id}`);
+// Federation off is a real state a user can land in by typing the URL or
+// following an old link — the nav items that lead here are already hidden.
+// `branding` is fetched by the layout on every page, so this costs nothing.
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
+
+// immediate: no partner to ask when federation is off.
+const { data } = await useFetch<Detail>(
+  `/api/federation/remote/${route.params.id}`,
+  { immediate: federationEnabled.value },
+);
 const t = computed(() => data.value?.torrent ?? null);
 const comments = computed(() => data.value?.comments ?? []);
 const commentsError = computed(() => !!data.value?.commentsError);

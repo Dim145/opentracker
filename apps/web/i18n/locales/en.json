@@ -4247,6 +4247,13 @@
       "error": "Something went wrong"
     }
   },
+  "federationOff": {
+    "title": "Federation is off",
+    "lead": "This instance is not federated. There are no partner instances to browse, and no federated identity to link.",
+    "adminHint": "You are an admin, so you can turn it on. Enabling federation generates this instance’s identity key and lets you start pairing with partners.",
+    "goToSettings": "Federation settings",
+    "back": "Back to torrents"
+  },
   "fiche": {
     "title": "Release sheet builder",
     "titleLead": "Sheet",
