@@ -449,6 +449,18 @@ Scale `shared_buffers` and `effective_cache_size` with RAM and leave the rest
 alone. On 4 GB use `shared_buffers = 1GB` / `effective_cache_size = 3GB`; on
 32 GB, `8GB` / `24GB`.
 
+### What PostgreSQL 18 changed under this
+
+Four defaults moved, checked against `pg_settings` on 18.6 rather than release
+notes:
+
+| Setting | 18 default | Bearing on the above |
+| --- | --- | --- |
+| `data_checksums` | **`on`** (was off) | a cluster created by a dump/restore upgrade gains checksums the old one may not have had. Cheap, and worth having |
+| `io_method` | **`worker`**, `io_workers = 3` | the new asynchronous I/O subsystem. It does nothing for the 100 %-buffer-hit case measured above, and everything for the cache-miss case that cost 3.3× — `io_uring` is available on Linux if you are already I/O-bound |
+| `effective_io_concurrency` | **`16`** (was 1) | the `200` recommended above is still a deliberate SSD override, just a smaller jump than it used to be |
+| `autovacuum_worker_slots` | **`16`** (new) | `autovacuum_max_workers` is now changeable at runtime up to this, so raising it no longer needs a restart. The `4` above is well under the cap |
+
 ## What to watch
 
 Four queries. If these four are healthy, the write path is healthy.

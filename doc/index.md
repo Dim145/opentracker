@@ -65,8 +65,8 @@ This documentation covers the [`Dim145/opentracker`](https://github.com/Dim145/o
 | Frontend | Nuxt 4, Vue 3, Tailwind CSS         | SSR (or fully static SPA), Composition |
 | Backend  | Nitro Server Engine                 | API routes, middleware                 |
 | Tracker  | Go (custom)                         | HTTP announces, peer store, bonus mul. |
-| Database | PostgreSQL 16 + Drizzle ORM         | Data persistence, full-text search     |
-| Cache    | Redis 7                             | Peer lists, sessions, rate limiting    |
+| Database | PostgreSQL 18 + Drizzle ORM         | Data persistence, full-text search     |
+| Cache    | Redis 8                             | Peer lists, sessions, rate limiting    |
 | Crypto   | Web Crypto API, scrypt, AES-256-GCM | ZKE auth, panic encryption             |
 | 2FA      | otplib + @simplewebauthn            | TOTP + WebAuthn passkeys               |
 

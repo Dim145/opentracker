@@ -231,9 +231,9 @@ change end to end.
 | Frontend         | Nuxt 4, Vue 3, Tailwind CSS, Tiptap       | SSR by default, opt-in static SPA build            |
 | API              | Nitro 4 (Node 24), Drizzle ORM, Zod       | Standalone container, distroless runtime           |
 | Tracker          | Go 1.25, sqlc                             | `scratch`-based image, sub-ms announce p99         |
-| Database         | PostgreSQL 16                             | `gin_trgm_ops` full-text, drizzle-kit `push`       |
+| Database         | PostgreSQL 18                             | `gin_trgm_ops` full-text, migrations at API boot   |
 | Connection pool  | PgBouncer                                 | Transaction-mode pooling                           |
-| Cache / queue    | Redis 7                                   | Peer hashes, sessions, rate-limit windows, pub/sub |
+| Cache / queue    | Redis 8                                   | Peer hashes, sessions, rate-limit windows, pub/sub |
 | Reverse proxy    | Caddy 2                                   | Auto-HTTPS, HTTP/3                                 |
 | Crypto           | Web Crypto API, scrypt, AES-256-GCM       | ZKE auth, Panic encryption                         |
 | Observability    | Prometheus `/metrics`                     | Dedicated port on the API container                |

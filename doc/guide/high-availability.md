@@ -255,12 +255,15 @@ different: pgx *does* support multi-host DSNs with `target_session_attrs`, so
 the tracker could skip the proxy if you wanted it to. Keeping both on the same
 path is worth more than saving the tracker one hop.
 
-**4. Verify prepared statements against the new hop.** `packages/db/src/index.ts`
-sets `prepare: true` and connects through PgBouncer in `transaction` mode. That
-combination needs PgBouncer ≥ 1.21 with `max_prepared_statements > 0`, and the
-Compose file does not set it. It works today; adding a proxy layer is exactly
-the kind of change that surfaces this, so confirm it deliberately rather than
-discovering it during a failover.
+**4. Prepared statements through the pooler: measured, and fine.**
+`packages/db/src/index.ts` sets `prepare: true` and connects through PgBouncer in
+`transaction` mode — the combination usually said to need
+`max_prepared_statements > 0`, which the Compose file does not set. Tested
+directly against PgBouncer 1.25.2 in transaction mode with `postgres.js` 3.4.9
+and Postgres 18.6: 80 statements reused across separate transactions, no error,
+behaviour identical to connecting straight to Postgres. postgres.js accounts for
+the pooling mode itself. Nothing to do — recorded so the question is not
+reopened every time the pooling layer changes.
 
 **5. Decide what `synchronous_commit` means with a standby.** The tracker sets
 `synchronous_commit=off` on its own connections

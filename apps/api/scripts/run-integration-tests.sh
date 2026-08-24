@@ -2,9 +2,11 @@
 # Run the @trackarr/api integration suite (test/integration/*.itest.ts)
 # against an ephemeral Postgres. Requires only Docker on the host.
 #
-#   1. starts postgres:17-alpine on a private docker network
-#   2. pushes the drizzle schema (the same `drizzle-kit push --force` the
-#      API container runs at boot)
+#   1. starts postgres on a private docker network
+#   2. pushes the drizzle schema with `drizzle-kit push --force`. NOT what the
+#      API container does at boot — that runs the committed migrations. push
+#      works from schema.ts and creates no secondary indexes and no foreign
+#      keys, so it is a fast harness, never a schema reference.
 #   3. installs deps + runs the integration suite inside node:24-alpine
 #   4. tears the database + network down on exit (success or failure)
 #
@@ -16,8 +18,8 @@ REPO_ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 NET=trackarr-itest-net
 PG=trackarr-itest-pg
 RD=trackarr-itest-redis
-PG_IMAGE=postgres:17-alpine
-RD_IMAGE=redis:7
+PG_IMAGE=postgres:18.6-alpine
+RD_IMAGE=redis:8.10.1-alpine
 NODE_IMAGE=node:24-alpine
 DB_URL="postgres://tracker:tracker@${PG}:5432/trackarr"
 RD_PASS=itest-redis-password
