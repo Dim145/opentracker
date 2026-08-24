@@ -666,7 +666,10 @@ function useCounter(target: Ref<number>) {
 
 /* ─── Background atmospherics ───────────────────────────── */
 .mc-bg {
-  position: absolute;
+  /* fixed, not absolute: the page wrapper is a centred max-width column, so an
+     absolute backdrop was clipped to it and stopped short of the viewport on
+     every side. Matches .shop-bg, which already had this right. */
+  position: fixed;
   inset: -1rem -1rem auto -1rem;
   height: 70vh;
   pointer-events: none;

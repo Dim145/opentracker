@@ -428,7 +428,10 @@ function kindIcon(kind: string): string {
 
 /* ── Atmospheric background ────────────────────────────────────── */
 .page-aura {
-  position: absolute;
+  /* fixed, not absolute: the page wrapper is a centred max-width column, so an
+     absolute backdrop was clipped to it and stopped short of the viewport on
+     every side. Matches .shop-bg, which already had this right. */
+  position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
