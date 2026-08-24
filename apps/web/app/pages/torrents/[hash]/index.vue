@@ -513,8 +513,11 @@
       </ul>
     </section>
 
-    <!-- § FEDERATION SWARM — per-torrent opt-in (uploader / staff). -->
-    <section v-if="canEdit" class="section">
+    <!-- § FEDERATION SWARM — per-torrent opt-in (uploader / staff).
+         Hidden entirely when the instance is not federated: there is nothing
+         to share the swarm WITH, so offering the switch only invites the
+         question of why flipping it does nothing. -->
+    <section v-if="canEdit && federationEnabled" class="section">
       <header class="section-head">
         <span class="section-head-mark" aria-hidden="true">§</span>
         <h2 class="section-head-title">{{ $t('torrents.detail.fedSwarm.title') }}</h2>
@@ -965,6 +968,13 @@ const metadata = computed(
 
 // Get current user session
 const { loggedIn, user } = useUserSession();
+
+// `branding` is fetched by the layout on every page, so reading it here is
+// free — and it carries whether this instance is federated at all.
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
 
 // Phase 4 — per-torrent swarm-federation opt-in (uploader / staff only).
 const fedSwarm = ref(false);
