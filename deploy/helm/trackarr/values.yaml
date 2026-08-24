@@ -206,11 +206,12 @@ api:
   # If your cluster has no ReadWriteMany class, `storage.driver: s3` is the
   # way out; see the storage block below.
   #
-  # Writability depends on `fsGroup: 1001` (trackarr.podSecurityContext) being
-  # honoured by the CSI driver: the kubelet chowns the volume to root:1001 and
-  # adds g+rwx, and that is what lets the container — which the chart runs as
-  # uid 1001 — write. Measured against the real image: root:1001 mode 2775
-  # writes fine, root:root mode 0755 fails with EACCES.
+  # Writability depends on `fsGroup: 65532` (trackarr.podSecurityContext) being
+  # honoured by the CSI driver: the kubelet chowns the volume to root:65532 and
+  # adds g+rwx, and that is what lets the container — which runs as uid 65532,
+  # the user all three images are built for — write. Measured against the real
+  # image: root:65532 mode 2775 writes fine, root:root mode 0755 fails with
+  # EACCES.
   #
   # Some NFS and CIFS provisioners ignore fsGroup, and those are exactly the
   # ReadWriteMany classes this block asks for. If the first branding upload

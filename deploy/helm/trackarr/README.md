@@ -384,6 +384,29 @@ The Go tracker exposes no metrics endpoint today, so only the API is scraped. Th
 Valkey subchart ships its own exporter under `valkey.metrics`, and CloudNativePG
 has `postgresql.cluster.monitoring.enabled`.
 
+## Upgrading from a release older than the uid alignment
+
+The pods used to run as uid 1001 while all three images are built for 65532 —
+`gcr.io/distroless/nodejs24-debian13:nonroot` for the api and web, an explicit
+`USER 65532:65532` for the tracker. It worked only because the bundles are
+world-readable. The chart now runs them as the uid they were built for.
+
+If you use `storage.driver: fs`, that means `fsGroup` changes from 1001 to
+65532, so the first restart has the kubelet re-chown the uploads volume's group.
+Nothing is lost — the files are reached through the group either way, and this
+was measured on a cluster: a volume written under 1001 is still served after the
+upgrade, and new uploads succeed. `fsGroupChangePolicy: OnRootMismatch` keeps
+that walk to the one time it is needed rather than every pod start, which is
+what otherwise makes a large volume slow to mount.
+
+Two cases to know about:
+
+- **A StorageClass that ignores `fsGroup`** (several NFS and CIFS provisioners
+  do) never applied 1001 either, so nothing changes — it was already broken, and
+  [Troubleshooting](../../../doc/guide/troubleshooting.md) has the diagnosis.
+- **`storage.driver: s3`** has no volume at all, so there is nothing to
+  re-chown.
+
 ## Uninstalling
 
 ```bash

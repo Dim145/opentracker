@@ -179,9 +179,36 @@ in Kubernetes terms.
 */}}
 {{- define "trackarr.podSecurityContext" -}}
 runAsNonRoot: true
-runAsUser: 1001
-runAsGroup: 1001
-fsGroup: 1001
+{{/*
+65532 because that is what all three images actually are, verified in their
+Dockerfiles rather than assumed: the api and web runtimes are
+gcr.io/distroless/nodejs24-debian13:nonroot, whose `nonroot` user is 65532, and
+apps/tracker/Dockerfile says `USER 65532:65532` with a comment about staying
+consistent with them.
+
+It used to say 1001, which worked only by accident — the bundles are
+world-readable, so a mismatched uid could still execute them. Anything the
+images had chosen to keep private would have failed, and `ls -l` inside a pod
+disagreed with the image for no reason a reader could recover.
+*/ -}}
+runAsUser: 65532
+runAsGroup: 65532
+{{/*
+fsGroup is what makes a volume writable: the kubelet chowns it to root:<fsGroup>
+and adds g+rwx. Measured against the real image — root:65532 mode 2775 writes,
+root:root mode 0755 fails with EACCES — so a CSI driver that ignores fsGroup
+leaves the uploads PVC unwritable. Several NFS and CIFS provisioners do, and
+those are exactly the ReadWriteMany classes `storage.driver: fs` asks for with
+more than one replica. See doc/guide/troubleshooting.md.
+
+UPGRADING an existing release: this value changed from 1001, so on the first
+restart the kubelet re-chowns the uploads volume's group from 1001 to 65532.
+Files keep working — they are reached through the group either way — and
+OnRootMismatch keeps that walk to the one time it is needed instead of every
+pod start, which is what makes a large volume slow to mount.
+*/ -}}
+fsGroup: 65532
+fsGroupChangePolicy: OnRootMismatch
 seccompProfile:
   type: RuntimeDefault
 {{- end -}}
