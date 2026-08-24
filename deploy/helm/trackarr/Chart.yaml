@@ -5,10 +5,10 @@ type: application
 home: https://github.com/Dim145/opentracker
 sources:
   - https://github.com/Dim145/opentracker
-version: 0.1.0
+version: 0.2.0
 # Matches the application release this chart was validated against. Override
 # the image tags in values.yaml to run a different one.
-appVersion: "0.29.0"
+appVersion: "0.30.0"
 kubeVersion: ">=1.27.0-0"
 maintainers:
   - name: Dim145
