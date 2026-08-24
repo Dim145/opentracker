@@ -97,12 +97,42 @@ turn it off.
 {{- end }}
 {{- end }}
 
-{{- if and .Values.api.uploads.enabled (not .Values.api.uploads.existingClaim) (ne .Values.api.uploads.accessMode "ReadWriteMany") }}
+{{- if eq .Values.storage.driver "s3" }}
+
+Uploads go to {{ include "trackarr.s3Endpoint" . }}, bucket
+{{ .Values.storage.s3.bucket }}{{ with .Values.storage.s3.prefix }}, prefix {{ . }}{{ end }}. No uploads volume is
+created, so api.replicaCount is free.
+{{- if .Values.rustfs.enabled }}
+
+The bucket is served by the bundled RustFS:
+
+  kubectl -n {{ .Release.Namespace }} rollout status statefulset/{{ include "trackarr.rustfsFullname" . }}
+
+It is a ClusterIP with no ingress on purpose — the API streams objects to
+visitors itself, so nothing outside the cluster needs to reach it.
+{{- if and .Values.rustfs.mode.standalone.enabled (not .Values.rustfs.mode.distributed.enabled) }}
+Standalone mode: ONE pod on ONE PVC, so the object store is now the piece of
+this deployment that is not redundant. Back the PVC up, or switch to
+distributed mode (rustfs.mode.distributed.enabled=true, replicaCount >= 2).
+{{- end }}
+{{- else }}
+
+{{- if .Values.storage.s3.createBucket }}
+The API creates the bucket on its first write if it is missing. Turn
+storage.s3.createBucket off if those credentials should not be able to.
+{{- else }}
+storage.s3.createBucket is off, so bucket {{ .Values.storage.s3.bucket }} must already exist —
+the first branding upload fails with NoSuchBucket otherwise.
+{{- end }}
+{{- end }}
+{{- else if and .Values.api.uploads.enabled (not .Values.api.uploads.existingClaim) (ne .Values.api.uploads.accessMode "ReadWriteMany") }}
 
 WARNING: api.uploads.accessMode is {{ .Values.api.uploads.accessMode }} and
-api.replicaCount is {{ .Values.api.replicaCount }}. Uploaded files go to a
-filesystem path — there is no S3 client in the API — so every replica needs to
-write the same volume. With anything but ReadWriteMany, run a single replica.
+api.replicaCount is {{ .Values.api.replicaCount }}. With storage.driver=fs,
+uploaded files go to a filesystem path, so every replica needs to write the
+same volume. With anything but ReadWriteMany, run a single replica — or set
+storage.driver=s3 (doc/guide/object-storage.md), which removes the volume
+altogether.
 {{- end }}
 
 Sizing, with measurements rather than guesses: doc/guide/scaling.md.

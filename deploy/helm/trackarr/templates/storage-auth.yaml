@@ -1,0 +1,25 @@
+{{- if and (eq .Values.storage.driver "s3") (not .Values.storage.s3.existingSecret) }}
+{{- include "trackarr.assertS3Credentials" . }}
+{{/*
+The API's S3 credentials, in their own Secret rather than in the app Secret.
+
+Two reasons. The app Secret is optional — `secrets.existingSecret` replaces it
+entirely — and the object-store credentials should not have to be pasted into
+whatever Secret an operator already manages. And unlike the session and IP-hash
+secrets, these cannot be generated: Helm has no way to hand a generated value
+to a subchart's values, so the same pair must be written down for RustFS and
+read back here. `trackarr.s3AccessKeyId` is what does the reading.
+*/}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-s3-auth
+  labels:
+    {{- include "trackarr.labels" . | nindent 4 }}
+  annotations:
+    {{- include "trackarr.annotations" . | nindent 4 }}
+type: Opaque
+stringData:
+  S3_ACCESS_KEY_ID: {{ include "trackarr.s3AccessKeyId" . | quote }}
+  S3_SECRET_ACCESS_KEY: {{ include "trackarr.s3SecretAccessKey" . | quote }}
+{{- end }}

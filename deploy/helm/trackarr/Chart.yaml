@@ -24,9 +24,15 @@ maintainers:
 #     commercial — and the Valkey chart exists precisely because of Bitnami's
 #     2025 catalogue change. Valkey is protocol-compatible: ioredis, go-redis
 #     and the tracker's Lua scripts run against it unchanged.
+#   - RustFS: the RustFS project's own chart. An in-cluster S3-compatible
+#     object store for `storage.driver: s3`, which is what lets the API run
+#     more than one replica without a ReadWriteMany volume. Off by default,
+#     and pointless without `storage.driver: s3` — nothing else reads it.
 #
-# Both are optional. Set `postgresql.enabled: false` / `valkey.enabled: false`
-# and point `externalDatabase` / `externalRedis` at your own.
+# All three are optional. Set `postgresql.enabled: false` /
+# `valkey.enabled: false` and point `externalDatabase` / `externalRedis` at
+# your own; leave `rustfs.enabled: false` and set `storage.s3.endpoint` to
+# reach an object store you already run.
 dependencies:
   - name: cluster
     alias: postgresql
@@ -47,3 +53,8 @@ dependencies:
     version: 0.11.0
     repository: https://valkey.io/valkey-helm
     condition: valkey.enabled
+
+  - name: rustfs
+    version: 0.12.0
+    repository: https://charts.rustfs.com
+    condition: rustfs.enabled

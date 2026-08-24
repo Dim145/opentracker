@@ -12,7 +12,7 @@ spec:
   {{- if not .Values.api.autoscaling.enabled }}
   replicas: {{ .Values.api.replicaCount }}
   {{- end }}
-  {{- if and .Values.api.uploads.enabled (not .Values.api.uploads.existingClaim) (eq .Values.api.uploads.accessMode "ReadWriteOnce") }}
+  {{- if and (include "trackarr.uploadsVolumeEnabled" .) (not .Values.api.uploads.existingClaim) (eq .Values.api.uploads.accessMode "ReadWriteOnce") }}
   # A ReadWriteOnce volume can only be attached to one node, so a rolling
   # update would deadlock: the new pod waits for a volume the old one still
   # holds. Recreate accepts the downtime instead of hanging.
@@ -86,9 +86,12 @@ spec:
               value: {{ .Values.api.trustProxy | quote }}
             - name: TRUST_CF_CONNECTING_IP
               value: {{ .Values.api.trustCfConnectingIp | quote }}
-            {{- if .Values.api.uploads.enabled }}
+            {{- if include "trackarr.uploadsVolumeEnabled" . }}
             - name: UPLOADS_DIR
               value: {{ .Values.api.uploads.mountPath | quote }}
+            {{- end }}
+            {{- with (include "trackarr.storageEnv" . | trim) }}
+            {{- . | nindent 12 }}
             {{- end }}
             {{- if .Values.metrics.enabled }}
             - name: METRICS_ENABLED
@@ -130,14 +133,14 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-            {{- if .Values.api.uploads.enabled }}
+            {{- if include "trackarr.uploadsVolumeEnabled" . }}
             - name: uploads
               mountPath: {{ .Values.api.uploads.mountPath }}
             {{- end }}
       volumes:
         - name: tmp
           emptyDir: {}
-        {{- if .Values.api.uploads.enabled }}
+        {{- if include "trackarr.uploadsVolumeEnabled" . }}
         - name: uploads
           persistentVolumeClaim:
             claimName: {{ include "trackarr.uploadsClaimName" . }}
@@ -167,7 +170,7 @@ spec:
     {{- end }}
   selector:
     {{- include "trackarr.componentSelectorLabels" (dict "ctx" $ "component" $c) | nindent 4 }}
-{{- if and .Values.api.uploads.enabled (not .Values.api.uploads.existingClaim) }}
+{{- if and (include "trackarr.uploadsVolumeEnabled" .) (not .Values.api.uploads.existingClaim) }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

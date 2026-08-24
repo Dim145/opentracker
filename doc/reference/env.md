@@ -35,7 +35,7 @@ The application refuses to start without these. The tracker (Go binary) prints
 | `NITRO_HOST`       | api (compose)       | `0.0.0.0`                | Bind interface.                                                      |
 | `TZ`               | api (compose)       | `Europe/Paris`           | Container timezone — used for `bonus_grants.created_at` and similar. |
 | `LOG_LEVEL`        | api                 | `info` (prod), `debug`   | `trace`/`debug`/`info`/`warn`/`error`. Wires into the slog handler.  |
-| `UPLOADS_DIR`      | api                 | `./data/uploads`         | Filesystem root for logos, favicons, NFOs. Inside the API container. |
+| `UPLOADS_DIR`      | api                 | `./data/uploads`         | Filesystem root for logos, favicons, NFOs, inside the API container. Ignored when `STORAGE_DRIVER=s3`. |
 | `API_INTERNAL_URL` | web                 | `http://api:4000`        | Used by Nuxt SSR to fetch from the API across the docker network.    |
 | `IMAGE_TAG`        | compose             | `latest`                 | GHCR tag pulled by `docker-compose.prod.yml`. Pin in production.     |
 
@@ -98,6 +98,33 @@ Announce interval (`1800` s), min interval (`900` s) and per-response peer cap
 `apps/tracker/internal/server/response.go`. Rebuild the binary if you need to
 change them.
 :::
+
+## Object storage (uploads)
+
+Uploaded files go to a filesystem directory by default. `STORAGE_DRIVER=s3`
+sends them to an S3-compatible bucket instead, which is what removes the
+API's need for a shared volume when running several replicas — see
+[Object storage](../guide/object-storage).
+
+The credentials are read through the same `readSecret()` path as the rest, so
+each also accepts a Docker secret via `<NAME>_FILE`.
+
+| Variable                | Read by | Default       | Purpose                                                                                          |
+| ----------------------- | ------- | ------------- | ------------------------------------------------------------------------------------------------ |
+| `STORAGE_DRIVER`        | api     | `fs`          | `fs` or `s3`. Anything else refuses to start.                                                    |
+| `S3_ENDPOINT`           | api     | *required*    | Base URL of the store, e.g. `https://s3.eu-west-3.amazonaws.com` or `http://minio:9000`.         |
+| `S3_BUCKET`             | api     | *required*    | Bucket name.                                                                                     |
+| `S3_REGION`             | api     | `us-east-1`   | Part of the SigV4 signing scope, so it must match the bucket's or every request is a `403`.      |
+| `S3_ACCESS_KEY_ID`      | api     | *required*    | Also `S3_ACCESS_KEY_ID_FILE`.                                                                    |
+| `S3_SECRET_ACCESS_KEY`  | api     | *required*    | Also `S3_SECRET_ACCESS_KEY_FILE`.                                                                |
+| `S3_SESSION_TOKEN`      | api     | —             | Temporary STS credentials. Also `S3_SESSION_TOKEN_FILE`.                                         |
+| `S3_PREFIX`             | api     | *(empty)*     | Key prefix, so one bucket can hold more than one thing. Changing it hides existing objects.      |
+| `S3_FORCE_PATH_STYLE`   | api     | `true`        | `endpoint/bucket/key` rather than `bucket.endpoint/key`. Needed by MinIO, RustFS, Ceph RGW; set `false` for AWS. |
+| `S3_CREATE_BUCKET`      | api     | `false`       | Create the bucket on the first write if it is missing.                                           |
+| `S3_TIMEOUT_MS`         | api     | `30000`       | Per-request timeout against the store.                                                           |
+
+*required* means required **when `STORAGE_DRIVER=s3`**; with the default `fs`
+none of these are read.
 
 ## Security & sessions
 

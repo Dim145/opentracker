@@ -97,6 +97,46 @@ connection leaks to whoever borrows it next.
 {{- end }}
 {{- end -}}
 
+{{/*
+Where the API puts uploaded files. Nothing is emitted for the `fs` driver:
+UPLOADS_DIR is set next to the volume mount in api.yaml, and the application
+defaults to `fs`, so an existing release keeps exactly the environment it had.
+*/}}
+{{- define "trackarr.storageEnv" -}}
+{{- if eq .Values.storage.driver "s3" }}
+{{- $s3 := .Values.storage.s3 }}
+{{- $secret := $s3.existingSecret | default (printf "%s-s3-auth" .Release.Name) }}
+- name: STORAGE_DRIVER
+  value: "s3"
+- name: S3_ENDPOINT
+  value: {{ include "trackarr.s3Endpoint" . | quote }}
+- name: S3_REGION
+  value: {{ $s3.region | default "us-east-1" | quote }}
+- name: S3_BUCKET
+  value: {{ required "storage.s3.bucket is required when storage.driver is s3" $s3.bucket | quote }}
+{{- with $s3.prefix }}
+- name: S3_PREFIX
+  value: {{ . | quote }}
+{{- end }}
+- name: S3_FORCE_PATH_STYLE
+  value: {{ $s3.forcePathStyle | quote }}
+- name: S3_CREATE_BUCKET
+  value: {{ $s3.createBucket | quote }}
+- name: S3_TIMEOUT_MS
+  value: {{ $s3.timeoutMs | default 30000 | quote }}
+- name: S3_ACCESS_KEY_ID
+  valueFrom:
+    secretKeyRef:
+      name: {{ $secret }}
+      key: S3_ACCESS_KEY_ID
+- name: S3_SECRET_ACCESS_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ $secret }}
+      key: S3_SECRET_ACCESS_KEY
+{{- end }}
+{{- end -}}
+
 {{/* Non-secret config plus the three app secrets, for every container. */}}
 {{- define "trackarr.envFrom" -}}
 - configMapRef:

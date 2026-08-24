@@ -136,8 +136,26 @@ services:
       IP_HASH_SECRET: ${IP_HASH_SECRET}
       # Caddy is in front — trust proxy headers for real client IPs
       TRUST_PROXY: "true"
-      # Uploads directory (volume-mounted)
+      # Uploads: filesystem by default, into the volume mounted below.
+      #
+      # STORAGE_DRIVER=s3 sends them to an S3-compatible object store instead
+      # (AWS, MinIO, RustFS, Ceph, Garage, R2) and the volume stops being
+      # needed — which is what lets you run more than one API replica without a
+      # shared mount. See doc/guide/object-storage.md.
+      #
+      # Every S3_* credential also accepts a Docker secret through the matching
+      # *_FILE variable, e.g. S3_SECRET_ACCESS_KEY_FILE=/run/secrets/s3_secret.
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-fs}
       UPLOADS_DIR: /app/data/uploads
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_PREFIX: ${S3_PREFIX:-}
+      # true for MinIO / RustFS / Ceph RGW; false for AWS.
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      S3_CREATE_BUCKET: ${S3_CREATE_BUCKET:-false}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
       # Tracker URLs are also exposed by the API for endpoints like
       # GET /api/torrents/[hash]/download (announce embedded in .torrent files).
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-https://localhost/announce}
@@ -429,5 +447,8 @@ volumes:
     driver: local
   caddy_logs:
     driver: local
+  # Only used with STORAGE_DRIVER=fs (the default). With `s3` the API writes
+  # to the bucket instead and nothing mounts this — but it is left declared so
+  # switching back, or copying the old files out, needs no edit here.
   uploads_data:
     driver: local

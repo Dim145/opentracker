@@ -2,11 +2,17 @@
 # Run the @trackarr/api integration suite (test/integration/*.itest.ts)
 # against an ephemeral Postgres. Requires only Docker on the host.
 #
-#   1. starts postgres:17-alpine on a private docker network
+#   1. starts postgres:17-alpine, redis and rustfs on a private docker network
 #   2. pushes the drizzle schema (the same `drizzle-kit push --force` the
 #      API container runs at boot)
 #   3. installs deps + runs the integration suite inside node:24-alpine
-#   4. tears the database + network down on exit (success or failure)
+#   4. tears the containers + network down on exit (success or failure)
+#
+# RustFS is here for objectStorage.itest.ts, which exercises the S3 driver
+# against a real server — the one thing the unit suite cannot check is that
+# the bytes we sign are the bytes we send. It is the same object store the
+# Helm chart ships as an optional subchart. That file skips when
+# S3_TEST_ENDPOINT is unset, so the suite still runs without it.
 #
 # Usage:  sh apps/api/scripts/run-integration-tests.sh [vitest args…]
 #         sh apps/api/scripts/run-integration-tests.sh test/integration/search.itest.ts
@@ -16,16 +22,23 @@ REPO_ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 NET=trackarr-itest-net
 PG=trackarr-itest-pg
 RD=trackarr-itest-redis
+S3=trackarr-itest-rustfs
 PG_IMAGE=postgres:17-alpine
 RD_IMAGE=redis:7
+S3_IMAGE=rustfs/rustfs:latest
 NODE_IMAGE=node:24-alpine
 DB_URL="postgres://tracker:tracker@${PG}:5432/trackarr"
 RD_PASS=itest-redis-password
 RD_URL="redis://${RD}:6379"
+S3_URL="http://${S3}:9000"
+S3_KEY=trackarritest
+S3_SECRET=trackarritestsecret
+S3_BUCKET=trackarr-itest
 
 cleanup() {
   docker rm -f "$PG" >/dev/null 2>&1 || true
   docker rm -f "$RD" >/dev/null 2>&1 || true
+  docker rm -f "$S3" >/dev/null 2>&1 || true
   docker network rm "$NET" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT INT TERM
@@ -42,6 +55,13 @@ docker run -d --name "$PG" --network "$NET" \
 # is precisely what makes the guarantee.
 docker run -d --name "$RD" --network "$NET" \
   "$RD_IMAGE" redis-server --requirepass "$RD_PASS" >/dev/null
+
+# Single-drive standalone mode: enough to answer S3 verbs, and it starts in
+# about a second. The driver creates the bucket itself on the first write.
+docker run -d --name "$S3" --network "$NET" \
+  -e RUSTFS_ACCESS_KEY="$S3_KEY" -e RUSTFS_SECRET_KEY="$S3_SECRET" \
+  -e RUSTFS_VOLUMES=/data -e RUSTFS_ADDRESS=:9000 \
+  "$S3_IMAGE" >/dev/null
 
 # Readiness: run a real query, not `pg_isready`. The postgres image starts a
 # temporary server to run initdb and *then* restarts for real; pg_isready
@@ -78,6 +98,17 @@ for _ in $(seq 1 30); do
 done
 printf '\n'
 
+# An unauthenticated GET / answers 403 once the S3 API is listening, which is
+# a fine readiness signal and needs no client in the image.
+printf 'waiting for rustfs'
+for _ in $(seq 1 60); do
+  code=$(docker run --rm --network "$NET" curlimages/curl:latest \
+    -s -o /dev/null -w '%{http_code}' --max-time 2 "$S3_URL/" 2>/dev/null || true)
+  [ -n "$code" ] && [ "$code" != "000" ] && break
+  printf '.'; sleep 1
+done
+printf '\n'
+
 # node_modules are masked with named volumes rather than inherited from the
 # host bind mount. The host installs darwin/win32 binaries; rollup, esbuild
 # and friends ship per-platform native modules, so a macOS node_modules
@@ -94,6 +125,10 @@ docker run --rm --network "$NET" \
   -e DATABASE_URL="$DB_URL" -e DB_SSL=false \
   -e REDIS_URL="$RD_URL" -e REDIS_PASSWORD="$RD_PASS" \
   -e CHANNEL_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \
+  -e S3_TEST_ENDPOINT="$S3_URL" \
+  -e S3_TEST_ACCESS_KEY_ID="$S3_KEY" \
+  -e S3_TEST_SECRET_ACCESS_KEY="$S3_SECRET" \
+  -e S3_TEST_BUCKET="$S3_BUCKET" \
   "$NODE_IMAGE" sh -c "
     set -e
     corepack enable

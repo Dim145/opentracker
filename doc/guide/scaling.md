@@ -16,7 +16,7 @@ Deploying the replicas on Kubernetes: [Kubernetes](./kubernetes).
 | Service | Multiple replicas? | Blockers |
 | --- | --- | --- |
 | **Web (Nuxt SSR)** | Yes | none |
-| **API (Nitro)** | Yes | shared storage for uploads |
+| **API (Nitro)** | Yes | shared storage for uploads — or `STORAGE_DRIVER=s3`, which removes the requirement |
 | **Tracker (Go)** | Yes | align the secrets, size the connection budget, get `TRUST_PROXY` right |
 | **Postgres** | Single primary | see [High availability](./high-availability) for the standby story. Not a throughput ceiling — 0.4 ms per announce, measured. The limits are write amplification and maintenance; see [The actual limit](#the-actual-limit) |
 
@@ -43,9 +43,19 @@ into the API. With replicas on more than one host, a `.torrent` written by
 replica A is simply missing on replica B — a download 404s depending on which
 replica answered.
 
-Give `UPLOADS_DIR` shared storage (NFS, or an object store behind a small
-adapter) before adding the second API replica. Nothing else about the API
-needs changing.
+Two ways out, and only one of them needs new infrastructure to be found:
+
+- **Shared filesystem.** Point `UPLOADS_DIR` at NFS, or at a `ReadWriteMany`
+  PVC on Kubernetes. Works, but most default `StorageClass`es are
+  ReadWriteOnce — k3s's `local-path`, EBS, GCE PD and Azure Disk all are — so
+  in practice this means standing up NFS, CephFS, EFS or Azure Files.
+- **Object storage.** `STORAGE_DRIVER=s3` sends uploads to an S3-compatible
+  bucket instead, and the shared volume stops existing as a requirement. The
+  Helm chart's `storage:` block does the wiring and can install RustFS
+  in-cluster if you have no store already. See
+  [Object storage](./object-storage).
+
+Either way, nothing else about the API needs changing.
 
 ### And one thing to check
 

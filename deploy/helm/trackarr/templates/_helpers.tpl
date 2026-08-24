@@ -73,14 +73,16 @@ app.kubernetes.io/component: {{ .component }}
 
 {{/* ------------------------------------------------------------ subchart names
 
-The two subcharts are aliased, so their resources are named after the ALIAS,
-not after their upstream chart name. Rendered and verified rather than assumed:
+The Postgres subchart is aliased, so its resources are named after the ALIAS,
+not after its upstream chart name. Rendered and verified rather than assumed:
 
   postgresql  -> Cluster {release}-postgresql
                  services {release}-postgresql-rw / -ro / -r
                  Pooler   {release}-postgresql-pooler-rw
                  Secret   {release}-postgresql-app  (username/password/dbname)
   valkey      -> Service  {release}-valkey
+  rustfs      -> Service  {release}-rustfs-svc  (S3 API on 9000)
+                 Secret   {release}-rustfs-secret
                                                                              */}}
 
 {{- define "trackarr.pgClusterName" -}}
@@ -114,6 +116,79 @@ not after their upstream chart name. Rendered and verified rather than assumed:
 
 {{- define "trackarr.valkeyHost" -}}
 {{- printf "%s-valkey" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+The RustFS subchart follows the same aliasing rule: its `rustfs.fullname` is
+`{release}-rustfs` unless the release name already contains "rustfs", and the
+Service it exposes the S3 API on is that plus `-svc`. Rendered and verified,
+not assumed.
+*/}}
+{{- define "trackarr.rustfsFullname" -}}
+{{- if contains "rustfs" .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-rustfs" .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "trackarr.rustfsEndpoint" -}}
+{{- $port := (((.Values.rustfs).service).endpoint).port | default 9000 -}}
+{{- printf "http://%s-svc:%v" (include "trackarr.rustfsFullname" .) $port -}}
+{{- end -}}
+
+{{/* ----------------------------------------------------------- object store
+
+`storage.s3.*` wins; otherwise the bundled RustFS supplies both the endpoint
+and the credentials. Helm cannot pass a generated value INTO a subchart's
+values, so unlike the session and IP-hash secrets these cannot be minted for
+you — they have to be written down once, and the natural place is next to the
+store that enforces them.
+                                                                             */}}
+
+{{- define "trackarr.s3Endpoint" -}}
+{{- $explicit := .Values.storage.s3.endpoint | default "" -}}
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else if .Values.rustfs.enabled -}}
+{{- include "trackarr.rustfsEndpoint" . -}}
+{{- else -}}
+{{- fail "storage.driver is s3 but storage.s3.endpoint is empty and rustfs.enabled is false — set one of them" -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "trackarr.s3AccessKeyId" -}}
+{{- .Values.storage.s3.accessKeyId | default (and .Values.rustfs.enabled (((.Values.rustfs).secret).rustfs).access_key) | default "" -}}
+{{- end -}}
+
+{{- define "trackarr.s3SecretAccessKey" -}}
+{{- .Values.storage.s3.secretAccessKey | default (and .Values.rustfs.enabled (((.Values.rustfs).secret).rustfs).secret_key) | default "" -}}
+{{- end -}}
+
+{{/*
+Where the API's S3 credentials come from. Three cases, checked in order, and
+the last one stops the render rather than shipping an API that 500s on the
+first upload.
+*/}}
+{{- define "trackarr.assertS3Credentials" -}}
+{{/* Endpoint first: it is the more fundamental of the two, so an operator who
+     set neither should be told about it rather than about credentials for a
+     store the chart cannot even name. */}}
+{{- $_ := include "trackarr.s3Endpoint" . -}}
+{{- if not .Values.storage.s3.existingSecret -}}
+{{- $id := include "trackarr.s3AccessKeyId" . -}}
+{{- $key := include "trackarr.s3SecretAccessKey" . -}}
+{{- if or (not $id) (not $key) -}}
+{{- fail "storage.driver is s3 but no credentials were given. Set storage.s3.accessKeyId + storage.s3.secretAccessKey, or storage.s3.existingSecret (keys S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY), or — with rustfs.enabled — rustfs.secret.rustfs.access_key + .secret_key." -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/* True when uploads need a filesystem volume, i.e. the fs driver is in use. */}}
+{{- define "trackarr.uploadsVolumeEnabled" -}}
+{{- if and .Values.api.uploads.enabled (ne .Values.storage.driver "s3") -}}
+true
+{{- end -}}
 {{- end -}}
 
 {{/* --------------------------------------------------------------- our names */}}

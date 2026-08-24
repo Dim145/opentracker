@@ -83,11 +83,16 @@ default. The reference `docker/caddy/Caddyfile` also strips `CF-Connecting-IP`
 and `True-Client-IP`; nothing strips them for you here, and the annotation to
 reproduce it ships commented in `values.yaml`.
 
-**Uploads need `ReadWriteMany`.** There is no S3 client in the API — uploaded
-torrent files and images go to a filesystem path — so every API replica writes
-the same volume. With `ReadWriteOnce`, run a single replica; the chart switches
-that Deployment to `Recreate` when it sees the combination, because a rolling
-update would otherwise deadlock on a volume the old pod still holds.
+**Uploads need `ReadWriteMany`, or an object store.** With the default
+`storage.driver: fs`, uploaded torrent files and images go to a filesystem path,
+so every API replica writes the same volume. With `ReadWriteOnce`, run a single
+replica; the chart switches that Deployment to `Recreate` when it sees the
+combination, because a rolling update would otherwise deadlock on a volume the
+old pod still holds.
+
+`storage.driver: s3` removes the volume instead, which is usually the easier
+answer on a cluster with no RWX StorageClass — `rustfs.enabled: true` brings an
+object store with it. See [Object storage](./object-storage).
 
 **UDP needs `externalTrafficPolicy: Local`.** A UDP announce carries no
 `X-Forwarded-For`, so the tracker reads the packet's source address. With

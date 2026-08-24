@@ -193,11 +193,28 @@ api:
   # strips it for that reason. Requires trustProxy.
   trustCfConnectingIp: false
 
-  # Uploaded files (torrent files, images, branding assets) are written to a
-  # filesystem path, NOT to object storage — there is no S3 client in the API
-  # today. So more than one replica needs a volume they can all write:
-  # ReadWriteMany. With ReadWriteOnce, keep replicaCount at 1 or the second
-  # pod will not schedule.
+  # The uploads volume. Only used when `storage.driver` is `fs` (the default);
+  # with `storage.driver: s3` no claim is created and no volume is mounted,
+  # because uploaded files then live in the bucket.
+  #
+  # With `fs`, every API replica writes the same files, so the volume must be
+  # ReadWriteMany and the StorageClass must actually support it (NFS, CephFS,
+  # EFS, Azure Files). With ReadWriteOnce, keep replicaCount at 1 — the second
+  # pod will not schedule, and the chart switches the Deployment to `Recreate`
+  # so a rolling update does not deadlock.
+  #
+  # If your cluster has no ReadWriteMany class, `storage.driver: s3` is the
+  # way out; see the storage block below.
+  #
+  # Writability depends on `fsGroup: 1001` (trackarr.podSecurityContext) being
+  # honoured by the CSI driver: the kubelet chowns the volume to root:1001 and
+  # adds g+rwx, and that is what lets the container — which the chart runs as
+  # uid 1001 — write. Measured against the real image: root:1001 mode 2775
+  # writes fine, root:root mode 0755 fails with EACCES.
+  #
+  # Some NFS and CIFS provisioners ignore fsGroup, and those are exactly the
+  # ReadWriteMany classes this block asks for. If the first branding upload
+  # returns 500, that is the reason — see doc/guide/troubleshooting.md.
   uploads:
     enabled: true
     existingClaim: ""
@@ -220,6 +237,60 @@ api:
   podAnnotations: {}
   podLabels: {}
   extraEnv: []
+
+# -----------------------------------------------------------------------------
+# Storage for uploaded files
+#
+# `fs` keeps the historical behaviour: files under api.uploads.mountPath, which
+# every replica has to share — a ReadWriteMany PVC. That requirement is the
+# API's only real obstacle to scaling out (doc/guide/scaling.md), and plenty of
+# clusters have no RWX StorageClass at all: k3s's local-path does not, and
+# neither do most cloud block-storage defaults.
+#
+# `s3` removes it. Any S3-compatible store works — AWS S3, Ceph RGW, MinIO,
+# Garage, R2 — and `rustfs.enabled` below installs one inside the cluster if
+# you do not already have one. Reads stream back through the API rather than
+# redirecting to a presigned URL, deliberately: the in-cluster store has no
+# public name, and the API's `nosniff` + SVG-sandbox headers are a security
+# control that a redirect would hand to the object store instead.
+# See doc/guide/object-storage.md.
+# -----------------------------------------------------------------------------
+storage:
+  # fs | s3
+  driver: fs
+
+  s3:
+    # Leave empty to point at the bundled RustFS when `rustfs.enabled` is on.
+    # Otherwise the full URL of your store, e.g.
+    # https://s3.eu-west-3.amazonaws.com or http://minio.storage.svc:9000
+    endpoint: ""
+    region: us-east-1
+    bucket: trackarr-uploads
+    # Optional key prefix, so one bucket can hold more than one thing.
+    prefix: ""
+    # Path-style addressing (endpoint/bucket/key). Required by RustFS, MinIO
+    # and Ceph RGW unless they have wildcard DNS. Set false for AWS.
+    forcePathStyle: true
+    # Create the bucket on the first write if it is missing. On by default
+    # because the bundled RustFS ships no bucket; turn it off if the
+    # credentials you hand the API are not allowed to create buckets.
+    createBucket: true
+    timeoutMs: 30000
+
+    # Credentials. Supply them here, or name a Secret carrying
+    # S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY.
+    #
+    # When `rustfs.enabled` is on, leave these empty and set the pair ONCE
+    # under `rustfs.secret.rustfs` instead — the API reads them from there, so
+    # the object store and its client cannot drift apart. (Helm cannot pass a
+    # generated value into a subchart's values, which is why this is the one
+    # credential in the chart you have to write down yourself:
+    #   openssl rand -hex 12   # access key
+    #   openssl rand -hex 32   # secret key
+    # )
+    accessKeyId: ""
+    secretAccessKey: ""
+    existingSecret: ""
 
 # -----------------------------------------------------------------------------
 # Tracker — Go
@@ -595,3 +666,72 @@ externalRedis:
   existingSecret: ""
   password: ""
   keyPrefix: "ot:"
+
+# -----------------------------------------------------------------------------
+# RustFS — the optional in-cluster object store, for storage.driver=s3
+#
+# The RustFS project's own chart, like every other dependency here. It only
+# does anything when `storage.driver: s3`; enabling it on its own installs an
+# object store nothing reads or writes.
+#
+# The defaults below are a deliberate departure from the upstream chart's,
+# which assume a 4-node erasure-coded cluster on a `local-path` StorageClass:
+#
+#   - standalone rather than distributed. A single pod on one PVC, which is
+#     what a tracker's branding assets and torrent files need. Switch to
+#     distributed (mode.distributed.enabled=true, replicaCount >= 2) if you
+#     want the erasure coding — that is a real decision about durability, not
+#     a default we should make for you.
+#   - ingress off. The API streams objects to visitors itself, so nothing
+#     outside the cluster ever talks to this Service. Publishing it would add
+#     a hostname, a certificate and an attack surface for no gain.
+#   - storageclass.name empty, so the cluster default applies. The upstream
+#     default of `local-path` is k3s-specific and simply does not exist on
+#     most clusters, which fails as an unschedulable pod.
+#
+# CREDENTIALS: set both, and the API picks the same pair up automatically —
+# storage.s3.accessKeyId/secretAccessKey stay empty. The chart refuses to
+# render with `storage.driver: s3` and no credentials anywhere.
+#
+#   openssl rand -hex 12    # access_key
+#   openssl rand -hex 32    # secret_key
+# -----------------------------------------------------------------------------
+rustfs:
+  enabled: false
+
+  mode:
+    standalone:
+      enabled: true
+    distributed:
+      enabled: false
+  replicaCount: 1
+  drivesPerNode: 1
+
+  secret:
+    existingSecret: ""
+    rustfs:
+      access_key: ""
+      secret_key: ""
+
+  ingress:
+    enabled: false
+
+  service:
+    type: ClusterIP
+    endpoint:
+      port: 9000
+
+  storageclass:
+    name: ""
+    dataStorageSize: 20Gi
+    logStorageSize: 1Gi
+
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 1Gi }
+
+  # One replica has nothing to spread, and the anti-affinity would only make
+  # it harder to schedule. Turn this back on with distributed mode.
+  affinity:
+    podAntiAffinity:
+      enabled: false

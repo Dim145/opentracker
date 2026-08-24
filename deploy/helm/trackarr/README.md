@@ -1,7 +1,8 @@
 # Trackarr Helm chart
 
 Deploys the whole stack on Kubernetes: the Nuxt SSR web front end, the Nitro
-API, the Go tracker, and — optionally — Postgres and Valkey.
+API, the Go tracker, and — optionally — Postgres, Valkey and an S3-compatible
+object store for uploads.
 
 Sizing numbers quoted here are measured, not estimated. The workings are in
 [`doc/guide/scaling.md`](../../../doc/guide/scaling.md); making the stateful
@@ -12,7 +13,9 @@ parts highly available is in
 
 - Kubernetes ≥ 1.27
 - Helm ≥ 3.8
-- An ingress controller, and a `StorageClass` for the uploads volume
+- An ingress controller, and a `StorageClass` for the uploads volume —
+  `ReadWriteMany` if you keep `storage.driver: fs` and run more than one API
+  replica, or none at all with `storage.driver: s3`
 - **The CloudNativePG operator**, when `postgresql.enabled` is true (below)
 - Optional: cert-manager for TLS, the Prometheus Operator CRDs for the
   `ServiceMonitor`
@@ -56,6 +59,7 @@ helm upgrade --install trackarr deploy/helm/trackarr \
 | --- | --- | --- |
 | Postgres | `postgresql.enabled=false` | `externalDatabase.url` (and `externalDatabase.migrationsUrl`), or `externalDatabase.existingSecret` |
 | Valkey / Redis | `valkey.enabled=false` | `externalRedis.host`, optionally `externalRedis.existingSecret` |
+| Object store | `rustfs.enabled=false` (the default) | nothing, unless `storage.driver=s3` — then `storage.s3.endpoint` and credentials |
 | Ingress | `ingress.enabled=false` | see below — nothing else is required, but check `trustProxy` |
 | Web | `web.enabled=false` | — |
 | API | `api.enabled=false` | — |
@@ -67,8 +71,8 @@ that cannot connect.
 
 ### Why these dependencies, and not Bitnami's
 
-Bitnami's 2025 catalogue change is the reason both of these are the projects'
-own charts.
+Bitnami's 2025 catalogue change is the reason these are the projects' own
+charts.
 
 **Postgres — [CloudNativePG](https://cloudnative-pg.io/charts/).** The operator's
 own `cluster` chart. Beyond being maintained by the project, it solves a problem
@@ -88,6 +92,13 @@ was measured at 0.60 of a core while serving 4 811 announces/s.
 
 To keep Redis proper, set `valkey.enabled=false` and point `externalRedis` at
 your own.
+
+**Object store — [RustFS](https://charts.rustfs.com).** The RustFS project's own
+chart, and off by default: it does nothing unless `storage.driver: s3`. It is
+here so that "run more than one API replica" does not require finding a
+`ReadWriteMany` StorageClass first — see [Uploads](#uploads) below. Any other
+S3-compatible store works just as well; point `storage.s3.endpoint` at it and
+leave `rustfs.enabled` false.
 
 ## Secrets
 
@@ -221,12 +232,17 @@ Mirrors the Caddyfile exactly:
 it either: it hands swarm counts for any info_hash to anyone who asks. Set
 `ingress.exposeScrape=true` if you want it.
 
-## Uploads need shared storage
+## Uploads
 
-There is no S3 client in the API — uploaded torrent files and images are written
-to a filesystem path (`UPLOADS_DIR`). So every API replica has to write the same
-volume, which means `ReadWriteMany` and a `StorageClass` that supports it (NFS,
-CephFS, EFS, Azure Files).
+Two backends, chosen with `storage.driver`. The default is `fs`, so an existing
+release upgrades with no change in behaviour.
+
+### `storage.driver: fs` (default)
+
+Uploaded images and torrent files are written to a filesystem path
+(`api.uploads.mountPath`, exported as `UPLOADS_DIR`). Every API replica has to
+write the same volume, which means `ReadWriteMany` and a `StorageClass` that
+supports it — NFS, CephFS, EFS, Azure Files.
 
 With `ReadWriteOnce`, keep `api.replicaCount: 1`. The chart switches that
 Deployment to the `Recreate` strategy when it detects the combination, because a
@@ -235,6 +251,78 @@ holds.
 
 The claim carries `helm.sh/resource-policy: keep`: uploads are not reproducible,
 so deleting the release leaves the data.
+
+One thing to check on an RWX class: the pod runs as uid 1001 with
+`fsGroup: 1001`, and it is the fsGroup that makes the volume writable — the
+kubelet chowns it to `root:1001` and adds `g+rwx`. Several NFS and CIFS
+provisioners ignore fsGroup, and those are precisely the ReadWriteMany classes
+this needs. Verified against the real image: `root:1001` mode 2775 writes,
+`root:root` mode 0755 fails with `EACCES`. If the first branding upload returns
+500, that is where to look.
+
+### `storage.driver: s3`
+
+The API talks to an S3-compatible object store instead, and no uploads volume is
+created at all — `api.replicaCount` becomes as free as the web tier's. This is
+the only blocker `doc/guide/scaling.md` lists against scaling the API out, and
+this is how you remove it.
+
+Reads still go **through** the API rather than by presigned redirect. That is
+deliberate, and the reasoning is in `apps/api/utils/storage/s3Driver.ts`: an
+in-cluster store has no name a browser can resolve, and the `nosniff` +
+SVG-sandbox response headers on `/uploads/*` are a security control that a
+redirect would hand over to the object store.
+
+**With the bundled RustFS.** Nothing else to install. Write the credentials down
+once, under `rustfs`, and the API reads the same pair:
+
+```bash
+helm upgrade --install trackarr deploy/helm/trackarr \
+  -n trackarr --create-namespace \
+  --set site.host=tracker.yourdomain.example \
+  --set storage.driver=s3 \
+  --set rustfs.enabled=true \
+  --set rustfs.secret.rustfs.access_key="$(openssl rand -hex 12)" \
+  --set rustfs.secret.rustfs.secret_key="$(openssl rand -hex 32)"
+```
+
+The chart defaults RustFS to **standalone**: one pod, one PVC, no erasure
+coding, no ingress. That suits a tracker's branding assets and torrent files,
+and it keeps the footprint honest — but it does mean the object store is then
+the one part of the deployment with no redundancy. Back the PVC up, or set
+`rustfs.mode.distributed.enabled=true` with `rustfs.replicaCount: 4`.
+
+Unlike `NUXT_SESSION_SECRET` and friends, these credentials cannot be generated
+for you: Helm has no way to pass a value it generated into a subchart's values,
+and RustFS needs the same pair the API uses. Keep them with your other release
+values.
+
+**With a store you already run.** Leave `rustfs.enabled` false:
+
+```yaml
+storage:
+  driver: s3
+  s3:
+    endpoint: https://s3.eu-west-3.amazonaws.com
+    region: eu-west-3
+    bucket: trackarr-uploads
+    forcePathStyle: false      # true for MinIO, Ceph RGW, RustFS
+    createBucket: false        # the bucket already exists
+    existingSecret: trackarr-s3   # keys: S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY
+```
+
+**Migrating an existing release.** Nothing copies the old files for you. Sync
+the PVC's contents into the bucket first, then flip the driver — the object keys
+are the filenames, with `storage.s3.prefix` in front if you set one:
+
+```bash
+kubectl -n trackarr exec deploy/trackarr-api -- tar -C /app/data/uploads -cf - . \
+  | tar -C ./uploads-backup -xf -
+aws s3 sync ./uploads-backup s3://trackarr-uploads/
+```
+
+Leave `api.uploads.enabled: true` while you do it: the PVC keeps its
+`resource-policy: keep` annotation and survives the switch, so you can go back.
 
 ## UDP announces
 
@@ -369,6 +457,21 @@ helmc install trackarr /charts/trackarr -n trackarr --create-namespace \
 That last pair matters: CloudNativePG's webhook rejects `min_wal_size` greater
 than or equal to `max_wal_size`, so lowering one means lowering the other.
 
+`local-path`'s lack of ReadWriteMany is exactly what `storage.driver=s3` is for,
+so the same cluster is a good place to exercise the other branch — swap the two
+`api.uploads.*` lines for:
+
+```bash
+  --set storage.driver=s3 --set rustfs.enabled=true \
+  --set rustfs.storageclass.dataStorageSize=1Gi \
+  --set rustfs.secret.rustfs.access_key="$(openssl rand -hex 12)" \
+  --set rustfs.secret.rustfs.secret_key="$(openssl rand -hex 32)" \
+```
+
+Then upload a logo in the admin UI and fetch it back through `/uploads/...`; a
+200 with the right `Content-Type` means the whole path worked, since the API is
+the only thing that ever talks to the bucket.
+
 Prove the routing, which is the part `helm template` cannot check. klipper-lb
 gives the ingress controller the k3s container's address on `helmtest`:
 
@@ -393,8 +496,21 @@ Teardown, leaving nothing:
 docker rm -f k3s-test
 docker network rm helmtest
 rm -rf /tmp/k8s
-# the k3s image declares VOLUMEs, so it leaves a few anonymous ones behind
-docker volume ls -qf dangling=true | xargs -r docker volume rm
+```
+
+The k3s image declares `VOLUME`s, so it leaves a few anonymous volumes behind.
+Resist `docker volume ls -qf dangling=true | xargs -r docker volume rm` to clear
+them: "dangling" only means *no container currently references it*, so that list
+includes every stopped project's database. On the machine this walkthrough was
+last run, it would have taken out the e2e Postgres and Redis volumes and two
+unrelated projects' data. Snapshot first and remove only the difference:
+
+```bash
+docker volume ls -q | sort > /tmp/vols-before   # BEFORE creating the cluster
+```
+
+```bash
+comm -13 /tmp/vols-before <(docker volume ls -q | sort) | xargs -r docker volume rm
 ```
 
 ## Validating a change to this chart
@@ -426,7 +542,10 @@ in place, with the measurement behind it where there is one. The highlights:
 | --- | --- | --- |
 | `site.host` | `tracker.example.com` | must be the name clients resolve; the announce URLs are derived from it |
 | `global.imageTag` | `""` → `Chart.appVersion` | pin it |
-| `api.uploads.accessMode` | `ReadWriteMany` | see above |
+| `storage.driver` | `fs` | `s3` drops the uploads volume entirely; see [Uploads](#uploads) |
+| `storage.s3.forcePathStyle` | `true` | right for RustFS/MinIO/Ceph, wrong for AWS |
+| `rustfs.enabled` | `false` | an in-cluster object store for `storage.driver=s3` |
+| `api.uploads.accessMode` | `ReadWriteMany` | `storage.driver=fs` only; see above |
 | `tracker.replicaCount` | `2` | for availability; one instance served 1 934 announces/s |
 | `tracker.dbMaxConns` | `20` | per replica |
 | `tracker.synchronousCommit` | `off` | the tracker's connections only, never the cluster |

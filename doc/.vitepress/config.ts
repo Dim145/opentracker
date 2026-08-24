@@ -63,6 +63,7 @@ export default defineConfig({
             { text: 'Upgrading', link: '/guide/upgrading' },
             { text: 'Local Production', link: '/guide/local-production' },
             { text: 'Scaling Out', link: '/guide/scaling' },
+            { text: 'Object Storage', link: '/guide/object-storage' },
             { text: 'High Availability', link: '/guide/high-availability' },
             { text: 'Kubernetes', link: '/guide/kubernetes' },
             { text: 'Roadmap', link: '/guide/roadmap' },
