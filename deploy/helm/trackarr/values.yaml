@@ -666,9 +666,30 @@ valkey:
 externalRedis:
   host: ""
   port: 6379
-  # A Secret with a REDIS_PASSWORD key. Leave both empty for no auth.
+
+  # Bring your own Secret for the password. WHICH KEY IS READ DEPENDS ON THE
+  # CASE, which is a trap worth spelling out:
+  #
+  #   valkey.enabled: false  ->  key REDIS_PASSWORD
+  #       the ordinary "point me at my own Redis" case.
+  #   valkey.enabled: true   ->  key VALKEY_PASSWORD
+  #       here it means "do not generate the bundled Valkey's password, use
+  #       mine" — the subchart reads the same Secret through
+  #       valkey.auth.usersExistingSecret, so it has to carry the key Valkey's
+  #       own chart expects.
   existingSecret: ""
+
+  # The password inline instead. With valkey.enabled: false the chart puts it
+  # in `{release}-valkey-auth` and points the apps at it; with the bundled
+  # Valkey it pins that instance's password rather than generating one.
   password: ""
+
+  # Leaving BOTH empty means no authentication, which is a supported choice on
+  # a network where Redis is unreachable from outside — the Go tracker has
+  # always allowed it, and the API now does too (it used to refuse to start,
+  # crash-looping every replica). The apps log a warning in production, because
+  # peer state and the rate-limit counters live in there.
+
   keyPrefix: "ot:"
 
 # -----------------------------------------------------------------------------

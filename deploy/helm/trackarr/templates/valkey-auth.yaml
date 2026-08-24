@@ -1,4 +1,8 @@
-{{- if and .Values.valkey.enabled .Values.valkey.auth.enabled (not .Values.externalRedis.existingSecret) }}
+{{- $ownsSecret := and
+      (not .Values.externalRedis.existingSecret)
+      (or (and .Values.valkey.enabled .Values.valkey.auth.enabled)
+          (and (not .Values.valkey.enabled) .Values.externalRedis.password)) }}
+{{- if $ownsSecret }}
 {{/*
 Its own Secret, with a name derived only from the release, because the Valkey
 subchart renders `auth.usersExistingSecret` as a template and the value has to
@@ -7,6 +11,21 @@ stay predictable no matter what nameOverride is set to.
 The password must be stable for the same reason as the app secrets: rotating it
 on every upgrade would leave the running Valkey with the old ACL and every
 client failing to authenticate until the pod is replaced.
+
+It is rendered in TWO cases, and the second one is why the condition above is
+not simply `valkey.enabled`:
+
+  1. the bundled Valkey with auth on — the subchart and the apps both read this
+     Secret, so one value has one source;
+  2. `valkey.enabled: false` with `externalRedis.password` — trackarr.redisEnv
+     points the apps at this same Secret, and until the condition was widened
+     nothing created it. The pods came up with CreateContainerConfigError,
+     which nobody noticed because the chart defaults to the bundled Valkey.
+
+The name keeps saying "valkey" in the second case, where no Valkey exists. That
+is deliberate: it is the name trackarr.redisEnv and valkey.auth.usersExistingSecret
+already reference, and renaming it would silently orphan the Secret of every
+release that has one.
 */}}
 apiVersion: v1
 kind: Secret

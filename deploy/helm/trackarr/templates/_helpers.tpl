@@ -184,6 +184,21 @@ first upload.
 {{- end -}}
 {{- end -}}
 
+{{/*
+`storage.driver` must be one of the two the application knows. Without this the
+chart treated anything that is not "s3" as "fs" — so a typo, or a plausible
+guess like `minio`, deployed an fs-mode API with a PVC and silently ignored what
+the operator asked for. utils/storage/index.ts already refuses an unknown
+STORAGE_DRIVER at runtime; this makes the chart refuse it at render time, which
+is where it is cheap to fix.
+*/}}
+{{- define "trackarr.assertStorageDriver" -}}
+{{- $d := .Values.storage.driver | default "" -}}
+{{- if not (or (eq $d "fs") (eq $d "s3")) -}}
+{{- fail (printf "storage.driver must be \"fs\" or \"s3\" (got %q)" $d) -}}
+{{- end -}}
+{{- end -}}
+
 {{/* True when uploads need a filesystem volume, i.e. the fs driver is in use. */}}
 {{- define "trackarr.uploadsVolumeEnabled" -}}
 {{- if and .Values.api.uploads.enabled (ne .Values.storage.driver "s3") -}}

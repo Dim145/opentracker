@@ -35,6 +35,17 @@ Postgres is external. Check that externalDatabase.migrationsUrl bypasses any
 transaction pooler — the migration runner takes a SESSION-level advisory lock.
 {{- end }}
 
+{{- if and (not .Values.valkey.enabled) (not .Values.externalRedis.existingSecret) (not .Values.externalRedis.password) }}
+
+Redis is external and NO PASSWORD was configured, so the apps will connect
+without authentication. That is supported — the tracker has always allowed it
+and the API no longer refuses to start — but everything in there is
+unprotected: peer state, the rate-limit counters, the cron locks. Only leave it
+this way if {{ .Values.externalRedis.host }} is unreachable from outside the
+trusted network. Otherwise set externalRedis.password or
+externalRedis.existingSecret (key REDIS_PASSWORD).
+{{- end }}
+
 {{- if .Values.secrets.create }}
 
 Three generated secrets must survive every upgrade, and this chart reads its own
@@ -106,7 +117,11 @@ created, so api.replicaCount is free.
 
 The bucket is served by the bundled RustFS:
 
+{{- if .Values.rustfs.mode.distributed.enabled }}
   kubectl -n {{ .Release.Namespace }} rollout status statefulset/{{ include "trackarr.rustfsFullname" . }}
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "trackarr.rustfsFullname" . }}
+{{- end }}
 
 It is a ClusterIP with no ingress on purpose — the API streams objects to
 visitors itself, so nothing outside the cluster needs to reach it.

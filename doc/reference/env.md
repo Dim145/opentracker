@@ -66,7 +66,7 @@ the running app never reads them directly.
 | Variable                        | Read by      | Default                    | Purpose                                                              |
 | ------------------------------- | ------------ | -------------------------- | -------------------------------------------------------------------- |
 | `REDIS_URL`                     | api, tracker | —                          | DSN. **Required**.                                                   |
-| `REDIS_PASSWORD`                | api, tracker | unset                      | When set, used in the URL or as an `AUTH` argument.                  |
+| `REDIS_PASSWORD`                | api, tracker | unset                      | Optional in both. When set, sent as `AUTH`; when unset, the client connects unauthenticated and the API logs a warning in production. |
 | `REDIS_KEY_PREFIX`              | api, tracker | `ot:`                      | Namespace for every key. Must match across api ⇄ tracker.            |
 | `REDIS_TLS`                     | api          | `false`                    | `true` forces TLS even when the URL scheme is `redis://`.            |
 | `REDIS_TLS_REJECT_UNAUTHORIZED` | api          | `true`                     | Disable cert validation when set to `false`.                         |

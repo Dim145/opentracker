@@ -533,6 +533,23 @@ docker run --rm -v /tmp:/w ghcr.io/yannh/kubeconform \
 `-ignore-missing-schemas` is what skips the three CRDs (`Cluster`, `Pooler`,
 `ServiceMonitor`); everything else is checked.
 
+Neither of those catches the class of bug that actually bites, though: a render
+that is valid YAML, passes the schema, and still cannot run. `check-render.sh`
+asserts the shape instead —
+
+```bash
+sh deploy/helm/trackarr/check-render.sh
+```
+
+Its main assertion is that every `secretKeyRef` in the render names a Secret the
+chart also creates, or one the operator was explicitly asked to supply. That is
+what had been missing: with `valkey.enabled: false` and `externalRedis.password`
+set, two containers pointed at `{release}-valkey-auth` while `valkey-auth.yaml`
+was gated on `valkey.enabled`, so nothing created it and every pod came up
+`CreateContainerConfigError`. `helm lint`, `helm template` and kubeconform were
+all green on that release. The rest of the file covers the storage driver's
+wiring and the combinations that must fail at render time rather than install.
+
 ## Values
 
 `helm show values deploy/helm/trackarr` is the reference — every key is commented

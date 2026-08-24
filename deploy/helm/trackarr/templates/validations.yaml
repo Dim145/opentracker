@@ -1,0 +1,10 @@
+{{/*
+Value combinations checked at render time, so a release that cannot work is
+refused before it is installed rather than after.
+
+This template deliberately produces NO output. Helm still evaluates it, which
+is what makes the assertions run whichever other templates a given values file
+happens to enable — an assertion living inside, say, api.yaml would go quiet
+the moment someone set `api.enabled: false`.
+*/}}
+{{- include "trackarr.assertStorageDriver" . -}}
