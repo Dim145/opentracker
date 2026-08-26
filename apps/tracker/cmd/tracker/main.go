@@ -62,7 +62,7 @@ func main() {
 	defer cancel()
 
 	// Postgres
-	pool, err := db.Open(ctx, cfg.DatabaseURL)
+	pool, err := db.Open(ctx, cfg.DatabaseURL, cfg.DBMaxConns, cfg.SynchronousCommit)
 	if err != nil {
 		logger.Error("open postgres", "err", err)
 		os.Exit(1)
@@ -87,7 +87,7 @@ func main() {
 	logger.Info("redis connected")
 
 	store := peers.New(rclient, cfg.RedisKeyPrefix, cfg.PeerTTL)
-	database := db.New(pool)
+	database := db.New(pool, rclient, cfg.RedisKeyPrefix)
 	srv := server.New(ctx, database, rclient, store, cfg.RedisKeyPrefix, cfg.IPHashSecret, cfg.Debug, cfg.FederationSwarm)
 	defer srv.Stop()
 

@@ -1,5 +1,6 @@
 <template>
-  <div class="fbrowse">
+  <FederationOff v-if="!federationEnabled" />
+  <div v-else class="fbrowse">
     <header class="fb-head">
       <div>
         <p class="eyebrow"><span class="eyebrow-rule" /> {{ $t('federated.eyebrow') }}</p>
@@ -152,6 +153,15 @@
 
 <script setup lang="ts">
 import { safeHttpUrl } from '~/utils/safeUrl';
+
+// Federation off is a real state a user can land in by typing the URL or
+// following an old link — the nav items that lead here are already hidden.
+// `branding` is fetched by the layout on every page, so this costs nothing.
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
+
 
 interface Source {
   id: string;

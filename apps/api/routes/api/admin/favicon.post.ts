@@ -2,9 +2,8 @@ import { requireAdminSession } from '~~/utils/adminAuth';
 import { setSetting, SETTINGS_KEYS } from '~~/utils/server';
 import { randomBytes } from 'crypto';
 import { assertImageType } from '~~/utils/imageSniff';
-import { writeFile, mkdir, unlink } from 'fs/promises';
-import { join, resolve, sep } from 'path';
-import { existsSync } from 'fs';
+import { getStorage } from '~~/utils/storage';
+import { resolveObjectKey } from '~~/utils/storage/keys';
 
 /**
  * POST /api/admin/favicon
@@ -76,23 +75,16 @@ export default defineEventHandler(async (event) => {
   // Generate unique filename
   const filename = `favicon-${randomBytes(8).toString('hex')}.${ext}`;
 
-  // Ensure uploads directory exists. Defaults to a volume-mounted dir.
-  const uploadsDir =
-    process.env.UPLOADS_DIR ||
-    (process.env.NODE_ENV === 'production'
-      ? '/app/data/uploads'
-      : join(process.cwd(), 'public', 'uploads'));
-  if (!existsSync(uploadsDir)) {
-    await mkdir(uploadsDir, { recursive: true });
-  }
+  // Whichever backend STORAGE_DRIVER selected: the filesystem under
+  // UPLOADS_DIR (default, unchanged behaviour) or an S3-compatible bucket.
+  const storage = getStorage();
 
   // Get current favicon to delete old one
   const { getSiteFavicon } = await import('~~/utils/server');
   const currentFavicon = await getSiteFavicon();
 
   // Save file
-  const filePath = join(uploadsDir, filename);
-  await writeFile(filePath, file.data);
+  await storage.put(filename, file.data, actualType);
 
   // File URL (relative to public folder)
   const fileUrl = `/uploads/${filename}`;
@@ -100,16 +92,14 @@ export default defineEventHandler(async (event) => {
   // Save to settings
   await setSetting(SETTINGS_KEYS.SITE_FAVICON, fileUrl);
 
-  // Delete old favicon if it exists and is in uploads folder
+  // Delete old favicon if it exists and is in uploads folder. The setting is
+  // written by this route, so the value should always be a plain filename —
+  // resolveObjectKey is what makes that an assertion rather than a hope.
   if (currentFavicon && currentFavicon.startsWith('/uploads/')) {
-    const oldName = currentFavicon.replace(/^\/uploads\//, '');
-    const uploadsRoot = resolve(uploadsDir);
-    const oldPath = resolve(uploadsRoot, oldName);
-    if (oldPath === uploadsRoot || oldPath.startsWith(uploadsRoot + sep)) {
+    const oldKey = resolveObjectKey(currentFavicon.replace(/^\/uploads\//, ''));
+    if (oldKey) {
       try {
-        if (existsSync(oldPath)) {
-          await unlink(oldPath);
-        }
+        await storage.delete(oldKey);
       } catch {
         // Ignore deletion errors
       }

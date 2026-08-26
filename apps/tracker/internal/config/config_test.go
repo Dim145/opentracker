@@ -39,6 +39,15 @@ func unsetIfWritable(t *testing.T, k string) error {
 	return nil
 }
 
+// requiredEnv sets the three variables Load() refuses to start without, so a
+// test can then assert on the optional ones in isolation.
+func requiredEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("DATABASE_URL", "postgres://x")
+	t.Setenv("REDIS_URL", "redis://localhost:6379")
+	t.Setenv("IP_HASH_SECRET", "test-secret-0123456789abcdef0123")
+}
+
 // ----------------------------------------------------------------------------
 // Load — required field rejection
 // ----------------------------------------------------------------------------
@@ -226,5 +235,41 @@ func TestLoad_PeerTTLOverride(t *testing.T) {
 	cfg, _ := Load()
 	if cfg.PeerTTL != 6*time.Hour {
 		t.Errorf("PeerTTL: got %v, want 6h", cfg.PeerTTL)
+	}
+}
+
+func TestLoad_SynchronousCommitDefaultsToOff(t *testing.T) {
+	requiredEnv(t)
+	t.Setenv("TRACKER_SYNCHRONOUS_COMMIT", "")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if cfg.SynchronousCommit != "off" {
+		t.Fatalf("default: got %q, want off", cfg.SynchronousCommit)
+	}
+}
+
+func TestLoad_SynchronousCommitHonoursTheEnv(t *testing.T) {
+	requiredEnv(t)
+	t.Setenv("TRACKER_SYNCHRONOUS_COMMIT", "on")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if cfg.SynchronousCommit != "on" {
+		t.Fatalf("got %q, want on", cfg.SynchronousCommit)
+	}
+}
+
+func TestLoad_DBMaxConnsDefaultsTo20(t *testing.T) {
+	requiredEnv(t)
+	t.Setenv("TRACKER_DB_MAX_CONNS", "")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if cfg.DBMaxConns != 20 {
+		t.Fatalf("got %d, want 20 — an existing deployment must be unchanged", cfg.DBMaxConns)
 	}
 }

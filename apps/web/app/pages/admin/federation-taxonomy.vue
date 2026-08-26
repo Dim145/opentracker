@@ -1,5 +1,6 @@
 <template>
-  <div class="tax">
+  <FederationOff v-if="!federationEnabled" />
+  <div v-else class="tax">
     <header class="tax-head">
       <div>
         <h1 class="tax-title">{{ $t('admin.taxonomy.title') }}</h1>
@@ -118,8 +119,15 @@ interface Resp {
 }
 
 const { t } = useI18n();
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
+
 const { data, refresh } = await useFetch<Resp>('/api/admin/federation/taxonomy', {
+  // immediate: no partner vocabulary to map when federation is off.
   default: () => ({ mappings: [], unmapped: [], categories: [] }),
+  immediate: federationEnabled.value,
 });
 const mappings = computed(() => data.value?.mappings ?? []);
 const unmapped = computed(() => data.value?.unmapped ?? []);

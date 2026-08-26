@@ -1,5 +1,5 @@
 /**
- * Whether the boot-time schema push is judged to have worked.
+ * Whether the boot-time migration step is judged to have worked.
  *
  * The case that matters most is the one the exit code gets wrong: drizzle-kit
  * printing a fatal error and exiting 0. The first assertion below is the
@@ -8,8 +8,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  classifyPushOutcome,
-  formatPushFailure,
+  classifyMigrationOutcome,
+  formatMigrationFailure,
 } from '../scripts/migrationOutcome.mjs';
 
 interface PushFailure {
@@ -36,24 +36,24 @@ Error: Interactive prompts require a TTY terminal (process.stdin.isTTY or proces
     at render10 (/app/db-tools/node_modules/.pnpm/drizzle-kit@0.31.10/node_modules/drizzle-kit/bin.cjs:1450:31)
     at tablesResolver (/app/db-tools/node_modules/.pnpm/drizzle-kit@0.31.10/node_modules/drizzle-kit/bin.cjs:32001:60)`;
 
-describe('classifyPushOutcome', () => {
+describe('classifyMigrationOutcome', () => {
   it('fails a push that printed the TTY prompt error but exited 0', () => {
     // The whole point: exit code 0 must not be enough to call this a success.
-    const out = expectFailure(classifyPushOutcome({ code: 0, output: TTY_FAILURE }));
+    const out = expectFailure(classifyMigrationOutcome({ code: 0, output: TTY_FAILURE }));
     expect(out.reason).toMatch(/interactive/i);
   });
 
   it('explains that no flag can answer the rename question', () => {
     // If this text ever drifts into promising a magic env var, the operator
     // will go looking for one instead of reconciling the schema.
-    const out = expectFailure(classifyPushOutcome({ code: 0, output: TTY_FAILURE }));
+    const out = expectFailure(classifyMigrationOutcome({ code: 0, output: TTY_FAILURE }));
     expect(out.detail).toMatch(/rename/i);
     expect(out.detail).toMatch(/--force/);
     expect(out.remedy.join(' ')).toMatch(/SKIP_DB_MIGRATIONS/);
   });
 
   it('passes a clean push', () => {
-    const out = classifyPushOutcome({
+    const out = classifyMigrationOutcome({
       code: 0,
       output: '[✓] Pulling schema from database...\nNo changes detected\n',
     });
@@ -62,7 +62,7 @@ describe('classifyPushOutcome', () => {
 
   it('fails on a non-zero exit even with no recognisable message', () => {
     const out = expectFailure(
-      classifyPushOutcome({ code: 1, output: 'something went sideways' })
+      classifyMigrationOutcome({ code: 1, output: 'something went sideways' })
     );
     expect(out.reason).toMatch(/exited with 1/);
   });
@@ -71,7 +71,7 @@ describe('classifyPushOutcome', () => {
     // The recurring one before MIGRATIONS_DATABASE_URL existed: pgbouncer in
     // transaction mode drops the session state the introspection needs.
     const out = expectFailure(
-      classifyPushOutcome({ code: 1, output: 'prepared statement does not exist' })
+      classifyMigrationOutcome({ code: 1, output: 'prepared statement does not exist' })
     );
     expect(out.detail).toMatch(/MIGRATIONS_DATABASE_URL/);
   });
@@ -80,7 +80,7 @@ describe('classifyPushOutcome', () => {
     // Exit codes cannot be trusted from this tool, so an `Error:` line is
     // taken at its word rather than matched against a list.
     const out = expectFailure(
-      classifyPushOutcome({
+      classifyMigrationOutcome({
         code: 0,
         output: 'Error: relation "users" does not exist',
       })
@@ -90,7 +90,7 @@ describe('classifyPushOutcome', () => {
 
   it('does not mistake the word error inside ordinary output for a failure', () => {
     // `Error:` is anchored to the start of a line; prose must not trip it.
-    const out = classifyPushOutcome({
+    const out = classifyMigrationOutcome({
       code: 0,
       output: 'Applying changes... no error handling needed here\nDone\n',
     });
@@ -100,14 +100,14 @@ describe('classifyPushOutcome', () => {
   it('takes a null exit code as a failure', () => {
     // A process killed by a signal reports code null — the schema is in an
     // unknown state, which is not a success.
-    expectFailure(classifyPushOutcome({ code: null, output: '' }));
+    expectFailure(classifyMigrationOutcome({ code: null, output: '' }));
   });
 });
 
-describe('formatPushFailure', () => {
+describe('formatMigrationFailure', () => {
   it('states plainly that nothing was applied, and every remedy', () => {
-    const out = expectFailure(classifyPushOutcome({ code: 0, output: TTY_FAILURE }));
-    const text = formatPushFailure(out);
+    const out = expectFailure(classifyMigrationOutcome({ code: 0, output: TTY_FAILURE }));
+    const text = formatMigrationFailure(out);
     expect(text).toMatch(/schema was not applied/i);
     for (const step of out.remedy) {
       expect(text).toContain(step);

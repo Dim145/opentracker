@@ -1,0 +1,783 @@
+# =============================================================================
+# Trackarr — Helm values
+#
+# The three application services (web, api, tracker) are stateless and scale
+# horizontally. Postgres and Valkey are optional subcharts: turn either off and
+# point the matching `external*` block at your own.
+#
+# Sizing guidance, with measurements, lives in doc/guide/scaling.md. The short
+# version: an announce is floored at 30 ms on purpose, so tracker capacity is
+# set by concurrent requests rather than CPU, and Postgres costs 0.375 ms per
+# announce. The defaults here suit roughly 50 000 members.
+# =============================================================================
+
+# Images for the three application services.
+#
+# Deliberately NOT under a `global:` key. Helm passes `global` to every
+# subchart, and `global.imageRegistry` is a convention the Valkey chart
+# honours — putting our registry there made it try to pull
+# ghcr.io/dim145/opentracker/valkey/valkey. Anything meant for this chart alone
+# stays out of `global`.
+image:
+  # Registry and repository prefix for the three application images.
+  registry: ghcr.io/dim145/opentracker
+  # Applied to every app image when its own `tag` is empty. Empty means
+  # Chart.appVersion — pin it explicitly for anything you care about.
+  tag: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# Added to every object this chart creates.
+commonLabels: {}
+commonAnnotations: {}
+
+nameOverride: ""
+fullnameOverride: ""
+
+# -----------------------------------------------------------------------------
+# Site
+# -----------------------------------------------------------------------------
+site:
+  # The public hostname. Used for the ingress host and to derive the announce
+  # URLs handed to BitTorrent clients, so it must be the name clients resolve.
+  host: tracker.example.com
+  # Leave empty to derive from `host`. Set them when the tracker is reached on
+  # a different name or port than the website.
+  trackerHttpUrl: ""   # default: https://{host}/announce
+  trackerUdpUrl: ""    # default: udp://{host}:{tracker.udp.port}/announce
+  trackerWsUrl: ""     # default: wss://{host}/ws
+  timezone: Europe/Paris
+
+# -----------------------------------------------------------------------------
+# Secrets
+#
+# Three secrets must be STABLE across upgrades, which is why this chart reads
+# back its own Secret before generating anything:
+#
+#   NUXT_SESSION_SECRET  rotating it signs everyone out
+#   IP_HASH_SECRET       rotating it breaks IP-hash continuity, so the
+#                        anti-cheat and ban history stop matching old rows
+#   ADMIN_API_KEY        rotating it breaks whatever calls the admin API
+#
+# `helm template` and `--dry-run` cannot read the cluster, so they will show
+# freshly generated values. That is expected and nothing is applied.
+# -----------------------------------------------------------------------------
+secrets:
+  create: true
+  # Bring your own instead. Must contain: NUXT_SESSION_SECRET, ADMIN_API_KEY,
+  # IP_HASH_SECRET (>= 32 characters — the tracker refuses to start otherwise).
+  existingSecret: ""
+  # Pin any of these to a known value rather than generating it. Useful when
+  # migrating an existing deployment: copy the values out of your .env first,
+  # or every session and every IP hash changes.
+  sessionSecret: ""
+  adminApiKey: ""
+  ipHashSecret: ""
+
+# -----------------------------------------------------------------------------
+# Non-secret configuration
+# -----------------------------------------------------------------------------
+config:
+  # Replace the generated ConfigMap entirely with your own. The chart still
+  # builds DATABASE_URL and REDIS_URL, because those depend on release-scoped
+  # service names; everything else comes from your ConfigMap.
+  existingConfigMap: ""
+  # Appended to all three app containers, last, so it wins.
+  extraEnv: []
+  #  - name: LOG_LEVEL
+  #    value: debug
+
+  # Optional third-party metadata providers. Prefer metadataExistingSecret in
+  # production — anything set here lands in a Secret this chart manages, which
+  # means it is also in your values file.
+  metadata:
+    tmdbApiKey: ""
+    igdbId: ""
+    igdbSecret: ""
+    googleBooksApiKey: ""
+  # Secret holding TMDB_API_KEY / IGDB_ID / IGDB_SECRET / GOOGLE_BOOKS_API_KEY.
+  # Keys are optional; only those present are wired in.
+  metadataExistingSecret: ""
+
+# -----------------------------------------------------------------------------
+# How the apps are wired to the database
+# -----------------------------------------------------------------------------
+database:
+  # sslmode for the in-cluster connections. CloudNativePG's default pg_hba
+  # accepts non-TLS scram over the pod network (`host all all all
+  # scram-sha-256`) and the Pooler serves plain TCP, so `disable` is correct
+  # inside a cluster. Use `require` when the pod network is not trusted and you
+  # have configured certificates on both ends.
+  sslMode: disable
+
+# -----------------------------------------------------------------------------
+# Web — Nuxt SSR
+# -----------------------------------------------------------------------------
+web:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: front-ssr
+    tag: ""
+  containerPort: 3000
+  service:
+    type: ClusterIP
+    port: 3000
+    annotations: {}
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 512Mi }
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: ""
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  podAnnotations: {}
+  podLabels: {}
+  extraEnv: []
+
+# -----------------------------------------------------------------------------
+# API — Nitro
+# -----------------------------------------------------------------------------
+api:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: api
+    tag: ""
+  containerPort: 4000
+  service:
+    type: ClusterIP
+    port: 4000
+    annotations: {}
+  resources:
+    requests: { cpu: 200m, memory: 384Mi }
+    limits: { memory: 1Gi }
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: ""
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+  # postgres.js pool, PER REPLICA. Multiply by replicaCount and add the
+  # tracker's pool before comparing with the pooler's own limits.
+  dbPoolMax: 10
+
+  # Honour X-Forwarded-For / X-Real-IP for the client address.
+  #
+  # `true` is correct only when something in front SETS that header from the
+  # real peer — the chart's ingress, your own ingress, or a proxy. Set it to
+  # `false` when the API is reached directly (ingress.enabled=false with a
+  # LoadBalancer or NodePort Service): with `true` and nothing in front, a
+  # client can send its own X-Forwarded-For and be believed, which defeats the
+  # IP-based anti-cheat, the ban list and the rate limits.
+  #
+  # The application itself defaults to false; the chart defaults to true because
+  # its own ingress is on by default.
+  trustProxy: true
+  # Honour CF-Connecting-IP. Keep false unless you are actually behind
+  # Cloudflare AND have locked ingress to its published ranges — on any other
+  # edge the header is client-supplied, and the reference Caddy configuration
+  # strips it for that reason. Requires trustProxy.
+  trustCfConnectingIp: false
+
+  # The uploads volume. Only used when `storage.driver` is `fs` (the default);
+  # with `storage.driver: s3` no claim is created and no volume is mounted,
+  # because uploaded files then live in the bucket.
+  #
+  # With `fs`, every API replica writes the same files, so the volume must be
+  # ReadWriteMany and the StorageClass must actually support it (NFS, CephFS,
+  # EFS, Azure Files). With ReadWriteOnce, keep replicaCount at 1 — the second
+  # pod will not schedule, and the chart switches the Deployment to `Recreate`
+  # so a rolling update does not deadlock.
+  #
+  # If your cluster has no ReadWriteMany class, `storage.driver: s3` is the
+  # way out; see the storage block below.
+  #
+  # Writability depends on `fsGroup: 65532` (trackarr.podSecurityContext) being
+  # honoured by the CSI driver: the kubelet chowns the volume to root:65532 and
+  # adds g+rwx, and that is what lets the container — which runs as uid 65532,
+  # the user all three images are built for — write. Measured against the real
+  # image: root:65532 mode 2775 writes fine, root:root mode 0755 fails with
+  # EACCES.
+  #
+  # Some NFS and CIFS provisioners ignore fsGroup, and those are exactly the
+  # ReadWriteMany classes this block asks for. If the first branding upload
+  # returns 500, that is the reason — see doc/guide/troubleshooting.md.
+  uploads:
+    enabled: true
+    existingClaim: ""
+    accessMode: ReadWriteMany
+    size: 20Gi
+    storageClass: ""
+    mountPath: /app/data/uploads
+
+  # Migrations run at API boot. scripts/migrate.mjs takes
+  # pg_advisory_lock(49192221) first, so N replicas serialise safely: the first
+  # one migrates and the others block, then find the work done. It deliberately
+  # connects around the pooler — a session-level advisory lock on a pooled
+  # connection would leak to the next borrower.
+  runMigrations: true
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  podAnnotations: {}
+  podLabels: {}
+  extraEnv: []
+
+# -----------------------------------------------------------------------------
+# Storage for uploaded files
+#
+# `fs` keeps the historical behaviour: files under api.uploads.mountPath, which
+# every replica has to share — a ReadWriteMany PVC. That requirement is the
+# API's only real obstacle to scaling out (doc/guide/scaling.md), and plenty of
+# clusters have no RWX StorageClass at all: k3s's local-path does not, and
+# neither do most cloud block-storage defaults.
+#
+# `s3` removes it. Any S3-compatible store works — AWS S3, Ceph RGW, MinIO,
+# Garage, R2 — and `rustfs.enabled` below installs one inside the cluster if
+# you do not already have one. Reads stream back through the API rather than
+# redirecting to a presigned URL, deliberately: the in-cluster store has no
+# public name, and the API's `nosniff` + SVG-sandbox headers are a security
+# control that a redirect would hand to the object store instead.
+# See doc/guide/object-storage.md.
+# -----------------------------------------------------------------------------
+storage:
+  # fs | s3
+  driver: fs
+
+  s3:
+    # Leave empty to point at the bundled RustFS when `rustfs.enabled` is on.
+    # Otherwise the full URL of your store, e.g.
+    # https://s3.eu-west-3.amazonaws.com or http://minio.storage.svc:9000
+    endpoint: ""
+    region: us-east-1
+    bucket: trackarr-uploads
+    # Optional key prefix, so one bucket can hold more than one thing.
+    prefix: ""
+    # Path-style addressing (endpoint/bucket/key). Required by RustFS, MinIO
+    # and Ceph RGW unless they have wildcard DNS. Set false for AWS.
+    forcePathStyle: true
+    # Create the bucket on the first write if it is missing. On by default
+    # because the bundled RustFS ships no bucket; turn it off if the
+    # credentials you hand the API are not allowed to create buckets.
+    createBucket: true
+    timeoutMs: 30000
+
+    # Credentials.
+    #
+    # With `rustfs.enabled` on, leave all three empty: the chart generates the
+    # pair, keeps it stable across upgrades by reading its own Secret back, and
+    # writes it in both formats — S3_* for the API, RUSTFS_* for the server —
+    # so the store and its client cannot disagree. Nothing to write down.
+    #
+    # For an EXTERNAL store the chart will not invent credentials it cannot also
+    # configure on the far end, so supply them: either the pair here, or
+    # existingSecret naming a Secret with S3_ACCESS_KEY_ID and
+    # S3_SECRET_ACCESS_KEY. Rendering fails if neither is given.
+    accessKeyId: ""
+    secretAccessKey: ""
+    existingSecret: ""
+
+# -----------------------------------------------------------------------------
+# Tracker — Go
+# -----------------------------------------------------------------------------
+tracker:
+  enabled: true
+  # Two for availability, not for throughput: one instance served 1934
+  # announces/s in the battery. See doc/guide/scaling.md.
+  replicaCount: 2
+  image:
+    repository: tracker
+    tag: ""
+  http:
+    port: 8080
+  service:
+    type: ClusterIP
+    # The port the Service publishes. Defaults to http.port; set it to 80 when
+    # exposing the tracker directly through a LoadBalancer, since BitTorrent
+    # clients announce to whatever is in NUXT_PUBLIC_TRACKER_HTTP_URL.
+    port: ""
+    annotations: {}
+
+  # Same meaning and the same warning as api.trustProxy, and it matters more
+  # here: the announcing peer's address is what goes into the swarm, so
+  # believing a forged header hands every other peer the wrong IP and lets a
+  # member walk around an IP ban. `false` when the tracker is reached directly.
+  trustProxy: true
+  trustCfConnectingIp: false
+
+  # UDP announces. A separate Service because UDP and TCP cannot share a
+  # LoadBalancer on every provider, and because UDP needs the client's real
+  # source address: `externalTrafficPolicy: Local` preserves it, `Cluster`
+  # replaces it with a node address and every peer in the swarm gets the wrong
+  # IP.
+  udp:
+    enabled: false
+    port: 6969
+    service:
+      type: LoadBalancer
+      externalTrafficPolicy: Local
+      loadBalancerIP: ""
+      annotations: {}
+
+  # pgx pool size, PER REPLICA. 20 is the value that used to be compiled in.
+  dbMaxConns: 20
+
+  # Applied to the tracker's own connections, not the cluster: losing the last
+  # few announce deltas in a crash is acceptable, losing a password change is
+  # not. Measured effect at realistic rates: within noise, because the 30 ms
+  # announce floor hides it. One of on | off | local | remote_write |
+  # remote_apply — anything else and the tracker refuses to start.
+  synchronousCommit: "off"
+
+  # Empty means the built-in default. Format is a Go duration ("45m", "2h").
+  peerTtl: ""
+  debug: false
+
+  resources:
+    requests: { cpu: 200m, memory: 128Mi }
+    limits: { memory: 512Mi }
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    # Announces spend 30 ms asleep on purpose, so a tracker pod under real load
+    # looks idle. CPU is a poor scaling signal here; scale on replicas you have
+    # sized from the announce rate, or drive it from a custom metric.
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: ""
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  podAnnotations: {}
+  podLabels: {}
+  extraEnv: []
+
+# -----------------------------------------------------------------------------
+# Ingress
+#
+# Mirrors docker/caddy/Caddyfile:
+#   /announce*  -> tracker      (NOT /scrape: Caddy does not expose it either)
+#   /api/*      -> api
+#   /uploads/*  -> api
+#   /           -> web
+# -----------------------------------------------------------------------------
+ingress:
+  # false covers two situations, and they need different follow-up:
+  #
+  #   1. An ingress already exists, or you route with something the chart does
+  #      not template (a Gateway API HTTPRoute, an external proxy, a service
+  #      mesh). Point it at the three Services — `helm status` prints their
+  #      names and ports — and reproduce the routing table below. Leave
+  #      trustProxy on, since your proxy sets the header.
+  #
+  #   2. There is no proxy at all and the Services are exposed directly
+  #      (type: LoadBalancer or NodePort). Then set api.trustProxy and
+  #      tracker.trustProxy to FALSE, or clients can forge X-Forwarded-For.
+  enabled: true
+  className: nginx
+  # READ THIS BEFORE CHANGING THE ANNOTATIONS.
+  #
+  # Both the API and the tracker run with TRUST_PROXY=true, so they believe
+  # X-Forwarded-For. The ingress must therefore SET that header from the real
+  # peer address and must not forward a client-supplied one. On
+  # ingress-nginx that means leaving `use-forwarded-headers` off in the
+  # controller ConfigMap (the default).
+  #
+  # Caddy additionally strips CF-Connecting-IP and True-Client-IP. Reproduce
+  # that or a client can hand you any address it likes: uncomment the snippet
+  # below (it needs `allow-snippet-annotations: true` on the controller), or
+  # do the same in your own controller's language.
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "32m"
+    # nginx.ingress.kubernetes.io/configuration-snippet: |
+    #   proxy_set_header CF-Connecting-IP "";
+    #   proxy_set_header True-Client-IP "";
+  # Extra host names to serve alongside site.host.
+  extraHosts: []
+  tls:
+    enabled: true
+    # Leave empty for "{release}-tls".
+    secretName: ""
+    # cert-manager users: name your issuer and the annotation is added for you.
+    certManagerClusterIssuer: ""
+    certManagerIssuer: ""
+  # Expose /scrape publicly. Off by default because the reference Caddy
+  # configuration does not route it either: /scrape leaks swarm counts for any
+  # info_hash to anyone who asks.
+  exposeScrape: false
+
+# -----------------------------------------------------------------------------
+# Observability
+# -----------------------------------------------------------------------------
+# Prometheus. The API exposes metrics on a DEDICATED port rather than on the
+# Nitro listener, and it binds 127.0.0.1 unless told otherwise — so scraping
+# from another pod needs both the flag and the bind address. The API logs a
+# warning if you open it beyond loopback without a token, so this chart
+# generates one and hands it to the ServiceMonitor.
+#
+# The Go tracker exposes no metrics endpoint today; only the API is scraped.
+metrics:
+  enabled: false
+  port: 9090
+  path: /metrics
+  # Empty means generate one and keep it stable across upgrades, like the other
+  # app secrets.
+  authToken: ""
+  serviceMonitor:
+    # Requires the Prometheus Operator CRDs.
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+# Deny-by-default policies for the three app tiers. Off by default because a
+# cluster without a NetworkPolicy-capable CNI silently ignores them, which is
+# worse than not pretending.
+networkPolicy:
+  enabled: false
+
+# =============================================================================
+# Postgres — CloudNativePG (subchart: cnpg/cluster)
+#
+# Everything under `postgresql` except `enabled` goes straight to the subchart.
+# Its own documentation: https://github.com/cloudnative-pg/charts
+# =============================================================================
+postgresql:
+  enabled: true
+
+  # The CNPG operator must already be installed. Once per cluster:
+  #   helm repo add cnpg https://cloudnative-pg.github.io/charts
+  #   helm install cnpg cnpg/cloudnative-pg -n cnpg-system --create-namespace
+  # Or flip postgresqlOperator.enabled below for a throwaway cluster.
+
+  type: postgresql
+  mode: standalone
+  version:
+    # CloudNativePG picks the operand image from this. Changing it on a LIVE
+    # cluster is a major-version upgrade, which CNPG performs offline: it stops
+    # the cluster, runs pg_upgrade, and restarts. Read the operator's own
+    # documentation before editing it on anything with data in it.
+    postgresql: "18"
+
+  cluster:
+    # Three gives you a quorum and lets CNPG do a real switchover. Two is the
+    # minimum for any availability at all.
+    instances: 2
+    storage:
+      size: 50Gi
+      storageClass: ""
+    # A separate volume for the WAL. Worth it here: roughly 890 bytes of WAL
+    # per credited announce is about 15 GB/day at 200 announces/s, and keeping
+    # that off the data volume keeps a WAL spike from filling the database.
+    walStorage:
+      enabled: true
+      size: 20Gi
+      storageClass: ""
+    resources:
+      requests: { cpu: "1", memory: 4Gi }
+      limits: { memory: 4Gi }
+
+    postgresql:
+      # Every per-statement number in doc/guide/scaling.md came from
+      # pg_stat_statements. It is not optional on a tracker: without it,
+      # "Postgres is slow" is unfalsifiable.
+      shared_preload_libraries:
+        - pg_stat_statements
+      parameters:
+        # The highest-impact setting measured. It must hold the hot set —
+        # users + hnr_tracking + torrents, 711 MB at 350 000 members. Going
+        # from a cache that fits to one that does not cost 3.3x the Postgres
+        # time per announce and a 13x worse p99. Scale with memory: 25 %.
+        shared_buffers: 1GB
+        effective_cache_size: 3GB
+        work_mem: 16MB
+        maintenance_work_mem: 512MB
+        # Checkpoints triggered by volume rather than by time are what produce
+        # full-page-write storms.
+        # CloudNativePG's admission webhook rejects min_wal_size >= max_wal_size,
+        # and also min_wal_size larger than cluster.walStorage.size. Lower
+        # max_wal_size for a small deployment and you must lower this too.
+        max_wal_size: 4GB
+        min_wal_size: 1GB
+        checkpoint_completion_target: "0.9"
+        wal_compression: "on"
+        # The 4.0 default assumes spinning rust.
+        random_page_cost: "1.1"
+        effective_io_concurrency: "200"
+        # Dead tuples arrive at the announce rate. Per-table scale factors of
+        # 0.02 are already set by migration 0032 on users, hnr_tracking and
+        # anticheat_flags; these let those actually run. The 200 default for
+        # the cost limit throttles vacuum into irrelevance.
+        autovacuum_max_workers: "4"
+        autovacuum_naptime: 15s
+        autovacuum_vacuum_cost_limit: "2000"
+        pg_stat_statements.track: all
+        track_io_timing: "on"
+
+    initdb:
+      database: trackarr
+      owner: trackarr
+
+    monitoring:
+      enabled: false
+
+    # `helm show values cnpg/cluster` for the full set — affinity, certificates,
+    # imageCatalogRef, roles and so on all pass through.
+
+  # Operator-managed PgBouncer. This is the reason to use CNPG rather than a
+  # hand-written Deployment: the Pooler follows the primary across a failover
+  # by itself, which is exactly the problem a static DB_HOST has.
+  #
+  # Transaction pooling is required, not a preference: every advisory lock on
+  # the request path is pg_advisory_xact_lock, released by COMMIT. Session
+  # pooling would work too but wastes the multiplexing; STATEMENT pooling would
+  # break multi-statement transactions outright.
+  poolers:
+    - name: rw
+      type: rw
+      instances: 2
+      parameters:
+        max_client_conn: "500"
+        default_pool_size: "25"
+        # postgres.js runs with prepare: true. Transaction pooling needs
+        # PgBouncer >= 1.21 with this above zero, or the second use of a named
+        # prepared statement fails.
+        max_prepared_statements: "100"
+      monitoring:
+        enabled: false
+
+  backups:
+    enabled: false
+    # CNPG backs up to S3-compatible storage via Barman. Point it at whatever
+    # you have — the chart's own keys are documented upstream:
+    #   backups.destinationPath, backups.endpointURL, backups.s3.*
+    #   backups.scheduledBackups, backups.retentionPolicy
+
+# The CNPG OPERATOR. Cluster-scoped, owns CRDs, so normally installed once per
+# cluster rather than per release. Enable only for a throwaway or CI cluster,
+# and never for two releases in the same cluster.
+postgresqlOperator:
+  enabled: false
+
+# Used when postgresql.enabled is false.
+externalDatabase:
+  # Full DSN, including credentials. Prefer existingSecret.
+  url: ""
+  # Must bypass any transaction pooler: the migration runner takes a
+  # SESSION-level advisory lock. Leave empty to reuse `url`, which is only
+  # correct if `url` already points straight at Postgres.
+  migrationsUrl: ""
+  # A Secret with DATABASE_URL and, optionally, MIGRATIONS_DATABASE_URL.
+  existingSecret: ""
+
+# =============================================================================
+# Valkey (subchart: valkey/valkey)
+#
+# Protocol-compatible with Redis: the app's ioredis and go-redis clients, and
+# the tracker's Lua scripts, run against it unchanged.
+#
+# Note what this holds. `peers:*` is not a cache — it is the authoritative
+# swarm state, and the baseline the next announce is measured against. Evicting
+# it does not slow the tracker down, it silently stops crediting members.
+# =============================================================================
+valkey:
+  enabled: true
+
+  auth:
+    enabled: true
+    # This chart creates "{release}-valkey-auth" with a VALKEY_PASSWORD key and
+    # points both the subchart and the app at it — one value, one source. The
+    # name is a template string because the subchart renders it (a documented
+    # feature of this chart), and it is deliberately its own Secret rather than
+    # the app Secret so the name stays predictable regardless of nameOverride.
+    #
+    # Managing the credential yourself: set externalRedis.existingSecret to
+    # your Secret (key VALKEY_PASSWORD) and change usersExistingSecret to match.
+    usersExistingSecret: '{{ .Release.Name }}-valkey-auth'
+    aclUsers:
+      default:
+        permissions: "~* &* +@all"
+        passwordKey: VALKEY_PASSWORD
+
+  dataStorage:
+    enabled: true
+    requestedSize: 8Gi
+    className: ""
+
+  # Appended to valkey.conf.
+  #
+  # maxmemory: measured at ~290 bytes per peer, so size it from the peer count
+  # rather than a round number — concurrent_peers x 300 B x 1.5. 1 GB carries
+  # roughly 2.3 M concurrent peers.
+  #
+  # volatile-lru, not allkeys-lru: every key the tracker writes has a TTL, so
+  # the practical behaviour is the same, but it says the intent and it protects
+  # anything added later that lacks one. Reaching the policy at all is an
+  # incident — alarm at 70 % of maxmemory.
+  valkeyConfig: |
+    maxmemory 1gb
+    maxmemory-policy volatile-lru
+    appendonly yes
+    appendfsync everysec
+    save 900 1
+    save 300 10
+    save 60 10000
+
+  # A replica turns a lost primary into a promotion instead of a rebuild. The
+  # subchart refuses to render with replicas enabled and no persistence size.
+  replica:
+    enabled: false
+    replicas: 1
+    persistence:
+      size: 8Gi
+
+  resources:
+    requests: { cpu: 100m, memory: 1280Mi }
+    limits: { memory: 1536Mi }
+
+# Used when valkey.enabled is false. Point it at your own Redis or Valkey —
+# including a Sentinel-fronted one, which is what doc/guide/high-availability.md
+# recommends over a cluster for this workload.
+externalRedis:
+  host: ""
+  port: 6379
+
+  # Bring your own Secret for the password. WHICH KEY IS READ DEPENDS ON THE
+  # CASE, which is a trap worth spelling out:
+  #
+  #   valkey.enabled: false  ->  key REDIS_PASSWORD
+  #       the ordinary "point me at my own Redis" case.
+  #   valkey.enabled: true   ->  key VALKEY_PASSWORD
+  #       here it means "do not generate the bundled Valkey's password, use
+  #       mine" — the subchart reads the same Secret through
+  #       valkey.auth.usersExistingSecret, so it has to carry the key Valkey's
+  #       own chart expects.
+  existingSecret: ""
+
+  # The password inline instead. With valkey.enabled: false the chart puts it
+  # in `{release}-valkey-auth` and points the apps at it; with the bundled
+  # Valkey it pins that instance's password rather than generating one.
+  password: ""
+
+  # Leaving BOTH empty means no authentication, which is a supported choice on
+  # a network where Redis is unreachable from outside — the Go tracker has
+  # always allowed it, and the API now does too (it used to refuse to start,
+  # crash-looping every replica). The apps log a warning in production, because
+  # peer state and the rate-limit counters live in there.
+
+  keyPrefix: "ot:"
+
+# -----------------------------------------------------------------------------
+# RustFS — the optional in-cluster object store, for storage.driver=s3
+#
+# The RustFS project's own chart, like every other dependency here. It only
+# does anything when `storage.driver: s3`; enabling it on its own installs an
+# object store nothing reads or writes.
+#
+# The defaults below are a deliberate departure from the upstream chart's,
+# which assume a 4-node erasure-coded cluster on a `local-path` StorageClass:
+#
+#   - standalone rather than distributed. A single pod on one PVC, which is
+#     what a tracker's branding assets and torrent files need. Switch to
+#     distributed (mode.distributed.enabled=true, replicaCount >= 2) if you
+#     want the erasure coding — that is a real decision about durability, not
+#     a default we should make for you.
+#   - ingress off. The API streams objects to visitors itself, so nothing
+#     outside the cluster ever talks to this Service. Publishing it would add
+#     a hostname, a certificate and an attack surface for no gain.
+#   - storageclass.name empty, so the cluster default applies. The upstream
+#     default of `local-path` is k3s-specific and simply does not exist on
+#     most clusters, which fails as an unschedulable pod.
+#
+# CREDENTIALS: set both, and the API picks the same pair up automatically —
+# storage.s3.accessKeyId/secretAccessKey stay empty. The chart refuses to
+# render with `storage.driver: s3` and no credentials anywhere.
+#
+#   openssl rand -hex 12    # access_key
+#   openssl rand -hex 32    # secret_key
+# -----------------------------------------------------------------------------
+rustfs:
+  enabled: false
+
+  mode:
+    standalone:
+      enabled: true
+    distributed:
+      enabled: false
+  replicaCount: 1
+  drivesPerNode: 1
+
+  secret:
+    # Names the Secret the chart creates (templates/storage-auth.yaml), which is
+    # how a generated credential reaches a subchart at all: this value arrives
+    # here UNRENDERED — the subchart emits it raw — so it must be a literal, and
+    # the parent takes its Secret name from this same value rather than
+    # computing one. Two releases in one namespace: override this, and the
+    # parent follows.
+    existingSecret: trackarr-s3-auth
+    # Leave empty. Setting these takes over from the generated pair, and then
+    # you are back to keeping two places in step by hand.
+    rustfs:
+      access_key: ""
+      secret_key: ""
+  # Setting existingSecret makes the subchart stop injecting
+  # RUSTFS_LOCAL_ENDPOINT_HOST, because it cannot know whether the Secret hides
+  # runtime overrides. Ours carries credentials and nothing else, which is the
+  # case its own values tell you to set this true for.
+  #
+  # Inert in the default standalone mode — that path renders a Deployment and
+  # the injection lives in the StatefulSet — so this changes nothing today and
+  # is here for distributed mode, where it would otherwise silently regress the
+  # moment someone turns it on. Verified: RUSTFS_LOCAL_ENDPOINT_HOST appears
+  # zero times before and after this whole change.
+  localEndpointHost:
+    autoInject: true
+
+  ingress:
+    enabled: false
+
+  service:
+    type: ClusterIP
+    endpoint:
+      port: 9000
+
+  storageclass:
+    name: ""
+    dataStorageSize: 20Gi
+    logStorageSize: 1Gi
+
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 1Gi }
+
+  # One replica has nothing to spread, and the anti-affinity would only make
+  # it harder to schedule. Turn this back on with distributed mode.
+  affinity:
+    podAntiAffinity:
+      enabled: false

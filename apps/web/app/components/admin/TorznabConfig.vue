@@ -82,7 +82,11 @@
       </SettingsGroup>
 
       <!-- Federated releases in the feed -->
+      <!-- The feed already gates server-side on federation being live, so
+           offering the switch here would only invite the question of why
+           flipping it does nothing. -->
       <SettingsGroup
+        v-if="federationEnabled"
         :label="$t('admin.torznab.config.federatedLabel')"
         :description="$t('admin.torznab.config.federatedDescription')"
       >
@@ -136,6 +140,11 @@
 </template>
 
 <script setup lang="ts">
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
+
 interface TorznabConfig {
   enabled: boolean;
   rateLimitSearch: number;

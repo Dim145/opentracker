@@ -12,7 +12,7 @@
  * hold an account on that partner — the people most able to fill — are notified
  * first.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
@@ -20,6 +20,7 @@ import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { holdReward, RewardError } from '~~/utils/requestPoints';
 import { notifyMany } from '~~/utils/notify';
+import { NOT_MASKED } from '~~/utils/federation/remoteMask';
 import {
   fillersForPeer,
   openFederatedRequestId,
@@ -50,7 +51,9 @@ export default defineEventHandler(async (event) => {
       recordId: schema.remoteTorrents.recordId,
     })
     .from(schema.remoteTorrents)
-    .where(eq(schema.remoteTorrents.id, id))
+    // Masked by a moderator = not a release this instance re-exposes, so it is
+    // not one a member may turn into a public request either.
+    .where(and(eq(schema.remoteTorrents.id, id), NOT_MASKED))
     .limit(1);
   if (!row) {
     throw createError({ statusCode: 404, message: 'Federated release not found' });
@@ -76,9 +79,15 @@ export default defineEventHandler(async (event) => {
 
   const peer = await db.query.federationPeers.findFirst({
     where: eq(schema.federationPeers.id, row.peerId),
-    columns: { displayName: true, baseUrl: true },
+    columns: { displayName: true, baseUrl: true, status: true },
   });
-  const peerName = peer?.displayName || peer?.baseUrl || 'a partner';
+  // De-trusted peer: its cached rows are not purged on a status change, so a
+  // stale mirror row must not seed a request. The detail route refuses the same
+  // way.
+  if (!peer || peer.status !== 'active') {
+    throw createError({ statusCode: 404, message: 'Federated release not found' });
+  }
+  const peerName = peer.displayName || peer.baseUrl || 'a partner';
 
   const requestId = randomUUID();
   try {

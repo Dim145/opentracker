@@ -21,6 +21,8 @@ export interface BrandingPayload {
   authSubtitle: string | null;
   footerText: string | null;
   pageTitleSuffix: string | null;
+  /** Gates the federation nav items. False when federation was never set up. */
+  federationEnabled: boolean;
 }
 
 export async function useBranding() {

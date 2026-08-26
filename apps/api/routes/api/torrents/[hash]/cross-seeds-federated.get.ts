@@ -10,6 +10,7 @@
  * (never 404 on the matching itself) when nothing federated matches.
  */
 import { db } from '@trackarr/db';
+import { getFederationConfig, isFederationLive } from '~~/utils/federation/config';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
 import {
   federatedContentAvailability,
@@ -19,6 +20,12 @@ import {
 export default defineEventHandler(async (event) => {
   const { user: session } = await requireUserSession(event);
   const infoHash = validateParam(event, 'hash', infoHashSchema);
+
+  // Nothing to match against when the instance does not federate — skip the
+  // mirror scans entirely rather than paying for them on every page view.
+  if (!isFederationLive(await getFederationConfig())) {
+    return { items: [], total: 0, availability: { releases: 0, seeders: 0, leechers: 0 } };
+  }
 
   const source = await db.query.torrents.findFirst({
     where: (t, { eq }) => eq(t.infoHash, infoHash),

@@ -70,7 +70,7 @@ Each set is four booleans:
 | `catalog`  | torrent metadata discovery (browse + search)                  |
 | `social`   | federated comments & forum, follow notifications              |
 | `accounts` | identity-link verification + read-only reputation             |
-| `swarm`    | peer cross-announce (highest risk — see [Swarm](#axis-4-swarm))|
+| `swarm`    | peer cross-announce (highest risk — see [Swarm](#axis-4--swarm))|
 
 You can cut one scope without touching the others (e.g. drop `social`,
 keep `catalog`) at any time from the peer's **Manage** dialog — it takes

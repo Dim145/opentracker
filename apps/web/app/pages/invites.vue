@@ -530,7 +530,10 @@ async function confirmDelete() {
 
 /* Subtle parchment-like grain overlay across the whole page. */
 .reg-grain {
-  position: absolute;
+  /* fixed, not absolute: the page wrapper is a centred max-width column, so an
+     absolute backdrop was clipped to it and stopped short of the viewport on
+     every side. Matches .shop-bg, which already had this right. */
+  position: fixed;
   inset: 0;
   pointer-events: none;
   background:

@@ -223,6 +223,7 @@ export async function loadProjections(
       uploaderName: sql<string | null>`CASE WHEN ${schema.users.anonymousUploads}
         THEN NULL ELSE ${schema.users.username} END`,
       uploaderId: schema.torrents.uploaderId,
+      anonymous: schema.users.anonymousUploads,
       liveAt: sql<Date>`coalesce(${schema.torrents.moderatedAt}, ${schema.torrents.createdAt})`,
     })
     .from(schema.torrents)
@@ -253,10 +254,15 @@ export async function loadProjections(
   // yet. An uploader costs a keypair once and never again.
   const dids = await ensureUserDids(rows.map((r) => r.uploaderId));
 
-  return rows.map(({ uploaderId, ...r }) => ({
+  return rows.map(({ uploaderId, anonymous, ...r }) => ({
     ...r,
     isAdult: !!r.isAdult,
-    authorDid: uploaderId ? (dids.get(uploaderId) ?? null) : null,
+    // Anonymity has to cover the DID too, not just the name. The DID is stable
+    // and permanent, so a record carrying it beside an "anonymous" upload lets
+    // any partner group that upload with the member's named ones — one
+    // `GROUP BY author_did` away. A record, once relayed, cannot be recalled,
+    // so this is the only place the choice can still be honoured.
+    authorDid: uploaderId && !anonymous ? (dids.get(uploaderId) ?? null) : null,
     liveAt: new Date(r.liveAt as unknown as string),
     tags: tagsBy.get(r.id) ?? [],
   }));

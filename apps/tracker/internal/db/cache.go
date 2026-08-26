@@ -10,14 +10,18 @@ package db
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"log/slog"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/florianjs/trackarr/apps/tracker/internal/queries"
 )
@@ -45,6 +49,13 @@ type DB struct {
 
 	ipBanMu    sync.RWMutex
 	ipBanCache map[string]cachedIPBan
+
+	// rdb backs the passkey cache. Redis rather than a process-local map
+	// like the two above, and the reason is the load balancer — see
+	// UserByPasskey. nil disables the cache entirely, which is what the
+	// tests use.
+	rdb       *redis.Client
+	keyPrefix string
 }
 
 type cachedSetting struct {
@@ -57,13 +68,16 @@ type cachedIPBan struct {
 	cachedAt time.Time
 }
 
-// New wraps a pool and the generated queries.
-func New(pool *pgxpool.Pool) *DB {
+// New wraps a pool and the generated queries. `rdb` may be nil, which turns
+// the passkey cache off and sends every lookup to Postgres.
+func New(pool *pgxpool.Pool, rdb *redis.Client, keyPrefix string) *DB {
 	return &DB{
 		Pool:       pool,
 		Q:          queries.New(pool),
 		cache:      make(map[string]cachedSetting),
 		ipBanCache: make(map[string]cachedIPBan),
+		rdb:        rdb,
+		keyPrefix:  keyPrefix,
 	}
 }
 
@@ -207,4 +221,105 @@ func NewID() (string, error) {
 	out[23] = '-'
 	hex.Encode(out[24:36], b[10:16])
 	return string(out), nil
+}
+
+// ── Passkey cache ───────────────────────────────────────────────
+
+// passkeyTTL is how long a resolved passkey stays cached. Hoisted into a var
+// so tests can shrink it.
+//
+// 60 s, the same budget the settings and IP-ban caches above already spend,
+// and the ceiling is set by the same thing: a ban applied through the web UI
+// is not visible to the tracker until the entry expires. That is the identical
+// contract the IP-ban cache next door already carries, and it is written down
+// in doc/guide/scaling.md rather than left for someone to discover.
+var passkeyTTL = 60 * time.Second
+
+// cachedUser is the subset of the users row the announce path needs. Kept as
+// its own type rather than reusing the sqlc row so adding a column to the
+// query cannot silently start being cached.
+type cachedUser struct {
+	ID         string `json:"id"`
+	Uploaded   int64  `json:"up"`
+	Downloaded int64  `json:"down"`
+}
+
+// passkeyKey is the Redis key for a resolved passkey.
+//
+// The passkey is HASHED, never stored. It is the announce credential: anyone
+// who can read Redis could otherwise impersonate every member on the swarm.
+// This mirrors the rule apps/api/utils/torznabStats.ts already follows for its
+// own per-passkey keys, and 16 hex chars is 64 bits — far past collision range
+// for any realistic member count.
+func (d *DB) passkeyKey(passkey string) string {
+	sum := sha256.Sum256([]byte(passkey))
+	return d.keyPrefix + "trk:pk:" + hex.EncodeToString(sum[:])[:16]
+}
+
+// UserByPasskey resolves a passkey, through a short-lived Redis cache.
+//
+// This is the single hottest query in the system: `FindUserByPasskey` runs on
+// EVERY announce, before anything else. It is also the one query a duplicate
+// announce cannot avoid — the dedup that collapses an IPv4/IPv6 pair lives at
+// step 4 of the handler, four checks later, so both copies reach Postgres.
+//
+// Redis rather than a process-local map like the caches above, and the load
+// balancer is the whole reason: those duplicate copies arrive milliseconds
+// apart on DIFFERENT instances, so a per-process cache would miss exactly the
+// case worth catching. A shared entry means the second copy — wherever it
+// lands — costs one Redis GET instead of a Postgres round-trip.
+//
+// Two rules keep it honest:
+//
+//   - A BANNED user is never cached. The handler's lazy-unban path writes to
+//     Postgres and then falls through, so a cached "banned" would keep a
+//     just-unbanned member locked out for the rest of the TTL. Banned users
+//     are also the cold path by definition, so they lose nothing by paying for
+//     a query.
+//   - A MISS is never cached. An unknown passkey is either a typo or someone
+//     probing, and neither repeats the same value often enough to be worth a
+//     round-trip — while caching one would make a newly created member's first
+//     announce fail for a minute if anything had probed their passkey first.
+func (d *DB) UserByPasskey(ctx context.Context, passkey string) (queries.FindUserByPasskeyRow, error) {
+	if d.rdb == nil {
+		return d.Q.FindUserByPasskey(ctx, passkey)
+	}
+	key := d.passkeyKey(passkey)
+
+	if raw, err := d.rdb.Get(ctx, key).Bytes(); err == nil {
+		var c cachedUser
+		if json.Unmarshal(raw, &c) == nil && c.ID != "" {
+			return queries.FindUserByPasskeyRow{
+				ID: c.ID, IsBanned: false, Uploaded: c.Uploaded, Downloaded: c.Downloaded,
+			}, nil
+		}
+		// Unreadable entry: drop it and fall through to Postgres.
+		_ = d.rdb.Del(ctx, key).Err()
+	} else if err != redis.Nil {
+		// Redis unreachable — the query still works, so say so once and carry
+		// on rather than failing an announce over a cache.
+		slog.Debug("passkey cache unavailable", "err", err)
+	}
+
+	row, err := d.Q.FindUserByPasskey(ctx, passkey)
+	if err != nil || row.IsBanned {
+		return row, err
+	}
+	if data, mErr := json.Marshal(cachedUser{
+		ID: row.ID, Uploaded: row.Uploaded, Downloaded: row.Downloaded,
+	}); mErr == nil {
+		_ = d.rdb.Set(ctx, key, data, passkeyTTL).Err()
+	}
+	return row, nil
+}
+
+// InvalidatePasskey drops a cached passkey. Called from the tracker's own
+// lazy-unban path, which is the one place the tracker itself changes a user's
+// ban state; every other ban and unban happens in apps/api, and is covered by
+// the TTL rather than by an invalidation contract spread over six write sites.
+func (d *DB) InvalidatePasskey(ctx context.Context, passkey string) {
+	if d.rdb == nil {
+		return
+	}
+	_ = d.rdb.Del(ctx, d.passkeyKey(passkey)).Err()
 }

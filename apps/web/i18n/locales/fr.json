@@ -2973,7 +2973,8 @@
         "torrent": "Torrent",
         "user": "Utilisateur",
         "post": "Message",
-        "comment": "Commentaire"
+        "comment": "Commentaire",
+        "remote": "Release fédérée"
       },
       "toasts": {
         "resolved": "Signalement accepté",
@@ -4261,7 +4262,8 @@
       "torrent": "Torrent",
       "user": "Utilisateur",
       "post": "Post du forum",
-      "comment": "Commentaire"
+      "comment": "Commentaire",
+      "remote": "Release fédérée"
     },
     "targetGone": "Cible indisponible",
     "resolvedBy": "par",
@@ -4389,6 +4391,13 @@
       "intro": "{n} release(s) sur d'autres instances vous sont attribuées. Elles restent les vôtres, que ces instances tournent encore ou non.",
       "truncated": "Seules les plus récentes sont affichées."
     }
+  },
+  "federationOff": {
+    "title": "La fédération est désactivée",
+    "lead": "Cette instance n’est pas fédérée. Il n’y a aucune instance partenaire à parcourir, ni d’identité fédérée à relier.",
+    "adminHint": "Vous êtes administrateur, vous pouvez donc l’activer. L’activation génère l’identité de cette instance et permet de commencer à vous lier à des partenaires.",
+    "goToSettings": "Réglages de fédération",
+    "back": "Retour aux torrents"
   },
   "fiche": {
     "title": "Générateur de fiche",

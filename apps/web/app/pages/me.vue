@@ -1337,7 +1337,10 @@ function formatDuration(seconds: number) {
    so the gradient escapes the centred 1280-px wrapper and the page
    reads edge-to-edge on wide viewports. */
 .me-aura {
-  position: absolute;
+  /* fixed, not absolute: the page wrapper is a centred max-width column, so an
+     absolute backdrop was clipped to it and stopped short of the viewport on
+     every side. Matches .shop-bg, which already had this right. */
+  position: fixed;
   top: -2rem;
   left: 50%;
   width: 100vw;

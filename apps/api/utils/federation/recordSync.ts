@@ -522,6 +522,26 @@ export async function ingestRecord(
  * costs a logged sync-state row and nothing else. Never throws — it runs in a
  * loop over every peer.
  */
+/**
+ * Is this peer at either growth cap?
+ *
+ * Exported so every path that INGESTS obeys the same ceiling, not just the sync
+ * sweep: live search ingests too, and without this it walked straight around
+ * "the only thing standing between an over-enthusiastic — or hostile — partner
+ * and our disk".
+ */
+export async function peerAtGrowthCap(peerId: string): Promise<boolean> {
+  const [mirror] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(schema.remoteTorrents)
+    .where(eq(schema.remoteTorrents.peerId, peerId));
+  const [srcs] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(schema.recordSources)
+    .where(eq(schema.recordSources.peerId, peerId));
+  return (mirror?.n ?? 0) >= MAX_REMOTE_PER_PEER || (srcs?.n ?? 0) >= MAX_SOURCES_PER_PEER;
+}
+
 export async function syncPeerRecords(
   peer: FederationPeer,
 ): Promise<RecordSyncResult> {

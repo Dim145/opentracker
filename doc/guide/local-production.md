@@ -34,7 +34,8 @@ and `caddy`. The whole stack is reachable through Caddy on `:80` /
 `:443`. The first boot:
 
 1. waits for Postgres + Redis health checks,
-2. lets the API container apply the committed migrations,
+2. lets the API container apply the committed migrations under
+   `packages/db/src/migrations/`,
 3. boots the web frontend.
 
 ### Without TLS termination
@@ -117,17 +118,20 @@ containers read `${DB_USER}`, `${DB_PASSWORD}`, `${DB_NAME}` from
 the same file; a typo there shows up as `password authentication
 failed for user "tracker"` in the API logs.
 
-### The migration step hangs or fails at boot
+### Migrations hang at boot
 
-The API container applies the committed migrations on start, and stops rather
-than serving a half-migrated schema. The log names the failing statement:
+The API container applies the committed migrations on start, holding a
+`pg_advisory_lock` so two containers cannot migrate at once. If you suspect a
+runaway migration:
 
 ```bash
-docker compose -f docker-compose.prod.yml logs api | grep -i migrat
+docker compose -f docker-compose.prod.yml logs api | grep -E '\[Boot\]|\[Migrate\]'
 ```
 
-Coming from an image that pushed the schema instead, run the one-time baseline
-first — see [Upgrading](./upgrading.md#coming-from-a-pushing-image-one-time-baseline).
+A clean run reports `Migrations up to date` within a few seconds; anything
+longer means Postgres is unresponsive (check `docker compose logs postgres`) or
+another container is holding the advisory lock.
 
-A clean push exits within a few seconds; anything longer means
-Postgres is unresponsive (check `docker compose logs postgres`).
+Coming from an image that pushed the schema instead, run the one-time
+baseline first — see
+[Upgrading](./upgrading.md#coming-from-a-pushing-image-one-time-baseline).

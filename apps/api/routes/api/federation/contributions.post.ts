@@ -21,6 +21,10 @@ export default defineEventHandler(async (event) => {
   const { peer, rawBody } = await verifyInboundS2S(event, 'accounts', {
     post: true,
     direction: 'accept',
+    // MAX_ATTESTATIONS below is 500 and a signed attestation is ~1 KB, so the
+    // 16 KB default would 413 every real settlement past ~15 members — and
+    // `issueContributions` posts the batch whole, so it would retry forever.
+    maxBodyBytes: 512 * 1024,
   });
 
   let body: unknown;

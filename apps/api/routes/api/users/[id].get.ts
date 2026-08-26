@@ -25,8 +25,17 @@ export default defineEventHandler(async (event) => {
       showLastSeen: true,
       createdAt: true,
       lastSeen: true,
+      deletedAt: true,
     },
   });
+
+  // An erased account keeps its row so the catalogue and moderation log it
+  // touched stay intact — but the person is gone, so their profile is gone with
+  // them. Same 404 as an id that never existed: an erasure that still leaves a
+  // browsable page is not an erasure.
+  if (user?.deletedAt) {
+    throw createError({ statusCode: 404, message: 'User not found' });
+  }
 
   if (!user) {
     throw createError({

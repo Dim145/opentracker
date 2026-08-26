@@ -1,5 +1,5 @@
 {
-  "id": "07efb284-f05c-4b39-aa17-1d1c71f5b6d7",
+  "id": "675243f6-9f1f-45ed-88be-6546c6474cd2",
   "prevId": "42e02745-1432-4964-b5a8-7b73925f935f",
   "version": "7",
   "dialect": "postgresql",
@@ -884,179 +884,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.catalog_records": {
-      "name": "catalog_records",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "torrent_id": {
-          "name": "torrent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "info_hash": {
-          "name": "info_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "issuer": {
-          "name": "issuer",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'torrent'"
-        },
-        "origin": {
-          "name": "origin",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'local'"
-        },
-        "hops": {
-          "name": "hops",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "body": {
-          "name": "body",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "content_hash": {
-          "name": "content_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "supersedes": {
-          "name": "supersedes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "superseded_at": {
-          "name": "superseded_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "catalog_records_info_hash_idx": {
-          "name": "catalog_records_info_hash_idx",
-          "columns": [
-            {
-              "expression": "info_hash",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "catalog_records_created_idx": {
-          "name": "catalog_records_created_idx",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "catalog_records_relayable_idx": {
-          "name": "catalog_records_relayable_idx",
-          "columns": [
-            {
-              "expression": "origin",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "hops",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "catalog_records_live_idx": {
-          "name": "catalog_records_live_idx",
-          "columns": [
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "superseded_at IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "catalog_records_current_idx": {
-          "name": "catalog_records_current_idx",
-          "columns": [
-            {
-              "expression": "torrent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "superseded_at IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.categories": {
       "name": "categories",
       "schema": "",
@@ -1305,25 +1132,6 @@
           "notNull": true,
           "default": "'pending'"
         },
-        "method": {
-          "name": "method",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'bio'"
-        },
-        "subject_did": {
-          "name": "subject_did",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "evidence": {
-          "name": "evidence",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "verify_code": {
           "name": "verify_code",
           "type": "text",
@@ -1492,20 +1300,6 @@
         },
         "enabled": {
           "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "relay_enabled": {
-          "name": "relay_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "discoverable": {
-          "name": "discoverable",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -3165,31 +2959,70 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.record_sources": {
-      "name": "record_sources",
+    "public.presentation_templates": {
+      "name": "presentation_templates",
       "schema": "",
       "columns": {
-        "record_id": {
-          "name": "record_id",
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "owner_id": {
+          "name": "owner_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "peer_id": {
-          "name": "peer_id",
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "kind": {
-          "name": "kind",
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'torrent'"
+          "default": "'universal'"
         },
-        "first_seen_at": {
-          "name": "first_seen_at",
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'private'"
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
@@ -3197,11 +3030,17 @@
         }
       },
       "indexes": {
-        "record_sources_record_idx": {
-          "name": "record_sources_record_idx",
+        "presentation_templates_owner_idx": {
+          "name": "presentation_templates_owner_idx",
           "columns": [
             {
-              "expression": "record_id",
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3211,15 +3050,53 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "presentation_templates_published_idx": {
+          "name": "presentation_templates_published_idx",
+          "columns": [
+            {
+              "expression": "category",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"presentation_templates\".\"visibility\" = 'published'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "presentation_templates_default_unique": {
+          "name": "presentation_templates_default_unique",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"presentation_templates\".\"is_default\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "record_sources_peer_id_federation_peers_id_fk": {
-          "name": "record_sources_peer_id_federation_peers_id_fk",
-          "tableFrom": "record_sources",
-          "tableTo": "federation_peers",
+        "presentation_templates_owner_id_users_id_fk": {
+          "name": "presentation_templates_owner_id_users_id_fk",
+          "tableFrom": "presentation_templates",
+          "tableTo": "users",
           "columnsFrom": [
-            "peer_id"
+            "owner_id"
           ],
           "columnsTo": [
             "id"
@@ -3228,15 +3105,7 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "record_sources_peer_id_record_id_pk": {
-          "name": "record_sources_peer_id_record_id_pk",
-          "columns": [
-            "peer_id",
-            "record_id"
-          ]
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -3302,140 +3171,6 @@
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.remote_identity_links": {
-      "name": "remote_identity_links",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "peer_id": {
-          "name": "peer_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "issuer": {
-          "name": "issuer",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "subject_did": {
-          "name": "subject_did",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "alias_did": {
-          "name": "alias_did",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "evidence": {
-          "name": "evidence",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "record_id": {
-          "name": "record_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "remote_identity_links_unique": {
-          "name": "remote_identity_links_unique",
-          "columns": [
-            {
-              "expression": "peer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "subject_did",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "alias_did",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "remote_identity_links_subject_idx": {
-          "name": "remote_identity_links_subject_idx",
-          "columns": [
-            {
-              "expression": "subject_did",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "remote_identity_links_alias_idx": {
-          "name": "remote_identity_links_alias_idx",
-          "columns": [
-            {
-              "expression": "alias_did",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "remote_identity_links_peer_id_federation_peers_id_fk": {
-          "name": "remote_identity_links_peer_id_federation_peers_id_fk",
-          "tableFrom": "remote_identity_links",
-          "tableTo": "federation_peers",
-          "columnsFrom": [
-            "peer_id"
           ],
           "columnsTo": [
             "id"
@@ -3590,31 +3325,6 @@
           "notNull": true,
           "default": 0
         },
-        "record_id": {
-          "name": "record_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "issuer": {
-          "name": "issuer",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "author_did": {
-          "name": "author_did",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "verified": {
-          "name": "verified",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "uploader_name": {
           "name": "uploader_name",
           "type": "text",
@@ -3756,36 +3466,6 @@
           "columns": [
             {
               "expression": "openlibrary_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "remote_torrents_record_idx": {
-          "name": "remote_torrents_record_idx",
-          "columns": [
-            {
-              "expression": "record_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "remote_torrents_author_idx": {
-          "name": "remote_torrents_author_idx",
-          "columns": [
-            {
-              "expression": "author_did",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3993,93 +3673,6 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.revoked_identities": {
-      "name": "revoked_identities",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "did": {
-          "name": "did",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "issuer": {
-          "name": "issuer",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "succeeded_by": {
-          "name": "succeeded_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "record_id": {
-          "name": "record_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "revoked_at": {
-          "name": "revoked_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "revoked_identities_unique": {
-          "name": "revoked_identities_unique",
-          "columns": [
-            {
-              "expression": "issuer",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "did",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "revoked_identities_did_idx": {
-          "name": "revoked_identities_did_idx",
-          "columns": [
-            {
-              "expression": "did",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -6574,108 +6167,6 @@
           ]
         }
       },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.user_signing_keys": {
-      "name": "user_signing_keys",
-      "schema": "",
-      "columns": {
-        "did": {
-          "name": "did",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "public_key": {
-          "name": "public_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "private_key_enc": {
-          "name": "private_key_enc",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "revoked_at": {
-          "name": "revoked_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "succeeded_by": {
-          "name": "succeeded_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "user_signing_keys_current": {
-          "name": "user_signing_keys_current",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "revoked_at IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "user_signing_keys_user_idx": {
-          "name": "user_signing_keys_user_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "user_signing_keys_user_id_users_id_fk": {
-          "name": "user_signing_keys_user_id_users_id_fk",
-          "tableFrom": "user_signing_keys",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

@@ -1,6 +1,6 @@
 {
-  "id": "68f4d8a4-77d9-4f74-92de-7c71281e3a96",
-  "prevId": "582dbbe9-1700-45a6-bab1-6b255f3cc0a6",
+  "id": "0af35469-812d-46d6-909a-31271c3a554d",
+  "prevId": "1a06cb1b-d5f3-4dca-946f-46184176f564",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3250,108 +3250,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.remote_category_map": {
-      "name": "remote_category_map",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "remote_slug": {
-          "name": "remote_slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "local_category_id": {
-          "name": "local_category_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "remote_category_map_slug_idx": {
-          "name": "remote_category_map_slug_idx",
-          "columns": [
-            {
-              "expression": "remote_slug",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "remote_category_map_category_idx": {
-          "name": "remote_category_map_category_idx",
-          "columns": [
-            {
-              "expression": "local_category_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "remote_category_map_local_category_id_categories_id_fk": {
-          "name": "remote_category_map_local_category_id_categories_id_fk",
-          "tableFrom": "remote_category_map",
-          "tableTo": "categories",
-          "columnsFrom": [
-            "local_category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "remote_category_map_created_by_users_id_fk": {
-          "name": "remote_category_map_created_by_users_id_fk",
-          "tableFrom": "remote_category_map",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.remote_identity_links": {
       "name": "remote_identity_links",
       "schema": "",
@@ -3477,107 +3375,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.remote_masks": {
-      "name": "remote_masks",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "scope": {
-          "name": "scope",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "value": {
-          "name": "value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "remote_masks_scope_value_idx": {
-          "name": "remote_masks_scope_value_idx",
-          "columns": [
-            {
-              "expression": "scope",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "value",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "remote_masks_value_idx": {
-          "name": "remote_masks_value_idx",
-          "columns": [
-            {
-              "expression": "value",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "remote_masks_created_by_users_id_fk": {
-          "name": "remote_masks_created_by_users_id_fk",
-          "tableFrom": "remote_masks",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -5612,7 +5409,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "torrents_category_id_categories_id_fk": {
@@ -7066,12 +6863,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {

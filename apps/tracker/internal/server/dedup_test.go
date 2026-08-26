@@ -1,39 +1,46 @@
 package server
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 )
 
 func TestDedup_FirstCall_ReturnsTrue(t *testing.T) {
-	d := newDedup()
+	ctx := context.Background()
+	d := newDedup(nil, "ot:")
 	defer d.Stop()
-	if !d.CheckAndMark("k1") {
+	if !d.CheckAndMark(ctx, "k1") {
 		t.Fatal("first CheckAndMark should return true")
 	}
 }
 
 func TestDedup_DuplicateWithinWindow_ReturnsFalse(t *testing.T) {
-	d := newDedup()
+	ctx := context.Background()
+	d := newDedup(nil, "ot:")
 	defer d.Stop()
-	d.CheckAndMark("k1")
-	if d.CheckAndMark("k1") {
+	d.CheckAndMark(ctx, "k1")
+	if d.CheckAndMark(ctx, "k1") {
 		t.Fatal("second CheckAndMark within the window should return false (dup)")
 	}
 }
 
 func TestDedup_DifferentKeysIndependent(t *testing.T) {
-	d := newDedup()
+	ctx := context.Background()
+	d := newDedup(nil, "ot:")
 	defer d.Stop()
-	if !d.CheckAndMark("a") {
+	if !d.CheckAndMark(ctx, "a") {
 		t.Fatal("a: first should be true")
 	}
-	if !d.CheckAndMark("b") {
+	if !d.CheckAndMark(ctx, "b") {
 		t.Fatal("b: first should be true (independent key)")
 	}
-	if d.CheckAndMark("a") {
+	if d.CheckAndMark(ctx, "a") {
 		t.Fatal("a: second should be dup")
 	}
 }
@@ -43,15 +50,16 @@ func TestDedup_DifferentKeysIndependent(t *testing.T) {
 // time by injecting an old timestamp directly into the map under the
 // lock.
 func TestDedup_AfterWindowExpires(t *testing.T) {
-	d := newDedup()
+	ctx := context.Background()
+	d := newDedup(nil, "ot:")
 	defer d.Stop()
-	d.CheckAndMark("k1")
+	d.CheckAndMark(ctx, "k1")
 
 	d.mu.Lock()
 	d.seen["k1"] = time.Now().Add(-2 * dedupWindow) // long ago
 	d.mu.Unlock()
 
-	if !d.CheckAndMark("k1") {
+	if !d.CheckAndMark(ctx, "k1") {
 		t.Fatal("after window: should accept as fresh")
 	}
 }
@@ -62,7 +70,7 @@ func TestDedup_AfterWindowExpires(t *testing.T) {
 // we shrink the cap conceptually by checking the eviction code on
 // a small set with one stale entry.
 func TestDedup_EvictHalfLocked(t *testing.T) {
-	d := newDedup()
+	d := newDedup(nil, "ot:")
 	defer d.Stop()
 
 	d.mu.Lock()
@@ -91,7 +99,7 @@ func TestDedup_EvictHalfLocked(t *testing.T) {
 }
 
 func TestDedup_EvictHalf_EmptyMap_NoCrash(t *testing.T) {
-	d := newDedup()
+	d := newDedup(nil, "ot:")
 	defer d.Stop()
 	d.mu.Lock()
 	d.evictHalfLocked() // no-op
@@ -101,7 +109,7 @@ func TestDedup_EvictHalf_EmptyMap_NoCrash(t *testing.T) {
 // TestDedup_Sweep ensures the periodic sweep removes entries older
 // than 2× the window.
 func TestDedup_Sweep(t *testing.T) {
-	d := newDedup()
+	d := newDedup(nil, "ot:")
 	defer d.Stop()
 
 	d.mu.Lock()
@@ -125,7 +133,8 @@ func TestDedup_Sweep(t *testing.T) {
 // to make sure the mutex coverage is correct. Run with `-race` to
 // surface any unprotected access.
 func TestDedup_ConcurrentSafe(t *testing.T) {
-	d := newDedup()
+	ctx := context.Background()
+	d := newDedup(nil, "ot:")
 	defer d.Stop()
 
 	var wg sync.WaitGroup
@@ -135,7 +144,7 @@ func TestDedup_ConcurrentSafe(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			for j := 0; j < 50; j++ {
-				if d.CheckAndMark(itoa(i*1000 + j)) {
+				if d.CheckAndMark(ctx, itoa(i*1000+j)) {
 					atomic.AddInt64(&accepted, 1)
 				} else {
 					atomic.AddInt64(&rejected, 1)
@@ -173,4 +182,75 @@ func itoa(n int) string {
 		buf[i] = '-'
 	}
 	return string(buf[i:])
+}
+
+// TestDedup_CrossInstance is the test the outage was missing.
+//
+// Two `dedup` values stand in for two tracker processes behind a load
+// balancer: separate in-memory maps, one shared Redis. The same key must be
+// accepted exactly once across BOTH, which is what stops the same announce
+// crediting its byte delta twice.
+//
+// Measured before the Redis layer existed: 1 MB transferred, 2 MB credited.
+func TestDedup_CrossInstance(t *testing.T) {
+	ctx := context.Background()
+	mr := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+
+	a := newDedup(client, "ot:")
+	defer a.Stop()
+	b := newDedup(client, "ot:")
+	defer b.Stop()
+
+	if !a.CheckAndMark(ctx, "hash:peer:credit") {
+		t.Fatal("instance A: first call should be fresh")
+	}
+	if b.CheckAndMark(ctx, "hash:peer:credit") {
+		t.Fatal("instance B: the SAME key must be a duplicate — this is the double-credit bug")
+	}
+	// A different key is unaffected: the guard must not become a global lock.
+	if !b.CheckAndMark(ctx, "hash:other-peer:credit") {
+		t.Fatal("instance B: a distinct key should be fresh")
+	}
+}
+
+// TestDedup_CrossInstance_WindowExpires proves the Redis claim self-expires,
+// so a peer announcing every 30 minutes is never mistaken for a duplicate.
+func TestDedup_CrossInstance_WindowExpires(t *testing.T) {
+	ctx := context.Background()
+	mr := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+
+	a := newDedup(client, "ot:")
+	defer a.Stop()
+	b := newDedup(client, "ot:")
+	defer b.Stop()
+
+	if !a.CheckAndMark(ctx, "k") {
+		t.Fatal("A: first should be fresh")
+	}
+	mr.FastForward(dedupWindow + time.Second)
+	if !b.CheckAndMark(ctx, "k") {
+		t.Fatal("B: after the window the key must be claimable again")
+	}
+}
+
+// TestDedup_RedisDown_FallsBackToLocal keeps the degradation honest: with
+// Redis unreachable the guard must behave exactly as it did before this
+// layer existed — protective within a process, silent across them — rather
+// than dropping a member's bytes.
+func TestDedup_RedisDown_FallsBackToLocal(t *testing.T) {
+	ctx := context.Background()
+	mr := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	d := newDedup(client, "ot:")
+	defer d.Stop()
+	mr.Close() // pull the plug
+
+	if !d.CheckAndMark(ctx, "k") {
+		t.Fatal("with Redis down the first call must still be accepted")
+	}
+	if d.CheckAndMark(ctx, "k") {
+		t.Fatal("with Redis down the local window must still catch the duplicate")
+	}
 }

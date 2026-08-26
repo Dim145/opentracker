@@ -1,0 +1,58 @@
+# Documentation CI — does the site still build?
+#
+# Until this existed, nothing checked the docs on a pull request. The deploy
+# workflow builds them, but only on push to `main`, so a page that breaks the
+# VitePress build merges with every PR check green and the failure lands on
+# `main` afterwards — where nobody is looking at Actions.
+#
+# That is not hypothetical: PR #17 merged a page containing `{{VARIABLE}}` in a
+# table. VitePress hands markdown to the Vue compiler, which read it as an
+# interpolation (`Private names are only allowed in property accesses`), and
+# the site failed to deploy for a day.
+#
+# Build only. No Pages scope, no artifact, no deploy — this job answers one
+# question and needs no privilege to answer it.
+name: Docs CI
+
+on:
+  pull_request:
+    paths:
+      - 'doc/**'
+      - '.github/workflows/docs-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: doc
+
+jobs:
+  build:
+    name: vitepress build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './doc/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # VitePress fails the build on a dead internal link as well as on a
+      # template error, so this one command covers both classes.
+      - name: Build documentation
+        run: npm run build

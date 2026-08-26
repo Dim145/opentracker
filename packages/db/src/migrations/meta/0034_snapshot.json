@@ -1,6 +1,6 @@
 {
-  "id": "b384786b-f519-4dee-9d37-788cf64d05b4",
-  "prevId": "0af35469-812d-46d6-909a-31271c3a554d",
+  "id": "26346ece-6a32-451c-ae0b-8283c6f4c185",
+  "prevId": "07efb284-f05c-4b39-aa17-1d1c71f5b6d7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1569,12 +1569,6 @@
         "last_error": {
           "name": "last_error",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "protocol_version": {
-          "name": "protocol_version",
-          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -3375,107 +3369,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.remote_masks": {
-      "name": "remote_masks",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "scope": {
-          "name": "scope",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "value": {
-          "name": "value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "remote_masks_scope_value_idx": {
-          "name": "remote_masks_scope_value_idx",
-          "columns": [
-            {
-              "expression": "scope",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "value",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "remote_masks_value_idx": {
-          "name": "remote_masks_value_idx",
-          "columns": [
-            {
-              "expression": "value",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "remote_masks_created_by_users_id_fk": {
-          "name": "remote_masks_created_by_users_id_fk",
-          "tableFrom": "remote_masks",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -5476,27 +5369,6 @@
           "concurrently": false,
           "method": "gin",
           "with": {}
-        },
-        "torrents_mint_cursor_idx": {
-          "name": "torrents_mint_cursor_idx",
-          "columns": [
-            {
-              "expression": "coalesce(\"updated_at\", \"created_at\")",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -6905,13 +6777,6 @@
         },
         "restrict_comments": {
           "name": "restrict_comments",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "share_reputation_federated": {
-          "name": "share_reputation_federated",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,

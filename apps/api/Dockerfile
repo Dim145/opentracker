@@ -22,7 +22,7 @@
 # Install dependencies for the API build (cached on package.json + lockfile)
 # -----------------------------------------------------------------------------
 FROM node:24-alpine AS deps
-RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
@@ -34,7 +34,7 @@ RUN pnpm install --filter "@trackarr/api..." --frozen-lockfile
 # Build Nitro (produces apps/api/.output, fully self-contained)
 # -----------------------------------------------------------------------------
 FROM node:24-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
@@ -55,7 +55,7 @@ RUN pnpm --filter @trackarr/api build
 # stays isolated from the Nitro bundle's own (inlined) node_modules.
 # -----------------------------------------------------------------------------
 FROM node:24-alpine AS db-tools
-RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 WORKDIR /db-tools
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/db ./packages/db
@@ -72,6 +72,12 @@ RUN find node_modules \
  && rm -rf node_modules/.cache \
  && find node_modules -path '*esbuild-*-32/bin*' -delete 2>/dev/null || true
 
+# An empty directory for the runtime stage to copy in as the uploads mount
+# point. It has to be minted in a stage that HAS a shell — the distroless
+# runtime has none, so `RUN mkdir` is not available there. See the runtime
+# stage for why the directory must exist in the image at all.
+RUN mkdir -p /seed/uploads
+
 # -----------------------------------------------------------------------------
 # Final runtime — distroless nonroot
 # Entrypoint of this base image is `/nodejs/bin/node`; CMD is just the script.
@@ -81,6 +87,25 @@ WORKDIR /app
 
 COPY --from=builder --chown=nonroot:nonroot /app/apps/api/.output ./.output
 COPY --from=db-tools --chown=nonroot:nonroot /db-tools ./db-tools
+
+# The uploads mount point, present in the IMAGE and owned by the runtime user.
+#
+# This is load-bearing, and the reason is not obvious. Docker seeds a brand-new
+# named volume from whatever the image has at the mount point — contents AND
+# ownership. When the path is absent from the image, as it was, the volume is
+# created root:root 0755 instead, and the API runs as uid 65532. So on a fresh
+# `docker compose up` the very first branding upload died with
+#
+#   EACCES: permission denied, open '/app/data/uploads/logo-<hex>.png'
+#
+# while an older deployment kept working, because its volume had been seeded
+# back when the image still ran as root. Creating the directory here makes the
+# volume inherit 65532:65532 and the write succeed with no manual chown.
+#
+# Existing volumes are NOT retro-fixed by this — Docker only seeds a volume
+# that is empty. Those already work; one created empty by an affected version
+# needs a one-off `chown 65532:65532` (see doc/guide/troubleshooting.md).
+COPY --from=db-tools --chown=nonroot:nonroot /seed/uploads ./data/uploads
 COPY --chown=nonroot:nonroot apps/api/scripts/entrypoint.mjs ./entrypoint.mjs
 COPY --chown=nonroot:nonroot apps/api/scripts/migrationOutcome.mjs ./migrationOutcome.mjs
 # Beside the db tree so `postgres` / `drizzle-orm` resolve for it.

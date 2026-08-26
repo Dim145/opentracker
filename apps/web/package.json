@@ -1,6 +1,6 @@
 {
   "name": "@trackarr/web",
-  "version": "0.28.3",
+  "version": "0.30.1",
   "private": true,
   "type": "module",
   "scripts": {

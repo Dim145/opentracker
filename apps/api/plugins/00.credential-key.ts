@@ -51,7 +51,7 @@ export default defineNitroPlugin(async () => {
   try {
     stored = await getSetting(KCV_SETTING);
   } catch (err) {
-    // Database not reachable yet (first boot racing the schema push). Skip the
+    // Database not reachable yet (first boot racing the migrations). Skip the
     // check rather than block startup — the next boot performs it.
     console.warn(
       '[credential-key] Could not read the key fingerprint, skipping the check this boot:',

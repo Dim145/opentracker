@@ -1,0 +1,45 @@
+{{- if and (eq .Values.storage.driver "s3") (not .Values.storage.s3.existingSecret) }}
+{{- include "trackarr.assertS3Credentials" . }}
+{{/*
+The object-store credentials, in their own Secret rather than in the app Secret:
+that one is optional — `secrets.existingSecret` replaces it entirely — and store
+credentials should not have to be pasted into whatever Secret an operator
+already manages.
+
+Four keys, one pair of values. The API reads S3_*; the RustFS server reads
+RUSTFS_* through `envFrom` on its own StatefulSet. Writing both from the same
+render is what makes it impossible for the store and its client to disagree —
+which is the failure the previous shape invited, since it asked the operator to
+type the same pair into two places.
+
+Helm cannot hand a generated value to a subchart's *values*, which is what made
+this look impossible. It can hand it a Secret NAME: rustfs.secret.existingSecret
+names this Secret, the subchart resolves it at runtime, and nothing has to be
+written down.
+*/}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "trackarr.s3SecretName" . }}
+  labels:
+    {{- include "trackarr.labels" . | nindent 4 }}
+  annotations:
+    {{- include "trackarr.annotations" . | nindent 4 }}
+type: Opaque
+{{/*
+Resolved into locals and used twice each, NOT called twice. Each `include` of a
+generating helper runs randAlphaNum again, and `lookup` returns nothing on a
+first install — so calling them per key handed the API one pair and the server
+another, which is the exact drift this Secret exists to prevent. Caught on the
+first render.
+*/}}
+{{- $id := include "trackarr.s3AccessKeyId" . }}
+{{- $key := include "trackarr.s3SecretAccessKey" . }}
+stringData:
+  S3_ACCESS_KEY_ID: {{ $id | quote }}
+  S3_SECRET_ACCESS_KEY: {{ $key | quote }}
+  {{- if .Values.rustfs.enabled }}
+  RUSTFS_ACCESS_KEY: {{ $id | quote }}
+  RUSTFS_SECRET_KEY: {{ $key | quote }}
+  {{- end }}
+{{- end }}

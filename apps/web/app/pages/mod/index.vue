@@ -74,7 +74,9 @@
         </span>
       </NuxtLink>
 
+      <!-- Nothing to mask on an instance that mirrors no partner. -->
       <NuxtLink
+        v-if="federationEnabled"
         to="/mod/federation-masks"
         class="tile tile--masks"
         :style="{ '--stagger': '90ms' }"
@@ -217,6 +219,10 @@
 
 <script setup lang="ts">
 const { t, locale } = useI18n();
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
 
 definePageMeta({
   middleware: 'moderator' as any,

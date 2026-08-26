@@ -46,12 +46,12 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import {
-  classifyPushOutcome,
-  formatPushFailure,
+  classifyMigrationOutcome,
+  formatMigrationFailure,
 } from './migrationOutcome.mjs';
 
 const SKIP = process.env.SKIP_DB_MIGRATIONS === 'true';
-// Boot anyway when the migration failed. Off by default: a container that starts on
+// Boot anyway when the push failed. Off by default: a container that starts on
 // a schema it failed to migrate serves runtime errors while its boot log claims
 // success, which is the exact trap this replaced. Kept as an opt-out for stacks
 // that manage the schema elsewhere and only want the API up.
@@ -131,9 +131,9 @@ if (!SKIP) {
     child.on('exit', (c) => resolve({ code: c, output: buf }));
   });
 
-  const outcome = classifyPushOutcome({ code, output });
+  const outcome = classifyMigrationOutcome({ code, output });
   if (!outcome.ok) {
-    console.error(formatPushFailure(outcome));
+    console.error(formatMigrationFailure(outcome));
     if (!IGNORE_FAILURE) {
       console.error(
         '[Boot] Refusing to start on a schema that was not migrated. Set ' +
@@ -149,7 +149,7 @@ if (!SKIP) {
     console.log(`[Boot] Migrations up to date (${Date.now() - t0}ms)`);
   }
 } else {
-  console.log('[Boot] Skipping migrations (SKIP_DB_MIGRATIONS=true)');
+  console.log('[Boot] Skipping database migrations (SKIP_DB_MIGRATIONS=true)');
 }
 
 console.log('[Boot] Starting Nitro server...');

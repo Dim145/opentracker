@@ -197,6 +197,31 @@ The static bundle fetches `GET /api/runtime-config` on boot and patches
 `useRuntimeConfig().public`, so the same image is portable across domains —
 only the API container needs the `NUXT_PUBLIC_TRACKER_*_URL` vars.
 
+## ☸️ Kubernetes
+
+A Helm chart lives in [`deploy/helm/trackarr`](deploy/helm/trackarr) and deploys
+web, api and tracker, bringing its own Postgres and cache or using yours.
+
+```bash
+helm dependency build deploy/helm/trackarr
+helm upgrade --install trackarr deploy/helm/trackarr -n trackarr --create-namespace \
+  -f deploy/helm/trackarr/values-production.yaml \
+  --set site.host=tracker.yourdomain.example
+```
+
+Dependencies are the projects' own charts rather than Bitnami's:
+[CloudNativePG](https://cloudnative-pg.io/charts/) for Postgres — its
+operator-managed PgBouncer follows the primary across a failover on its own —
+and [the Valkey project's chart](https://valkey.io/valkey-helm/) for the cache,
+since Redis OSS has no official chart and Valkey is protocol-compatible. Both are
+optional; point `externalDatabase` / `externalRedis` at your own instead.
+
+The chart's [README](deploy/helm/trackarr/README.md) covers the parts that bite:
+the ingress must set `X-Forwarded-For` itself (both the API and the tracker run
+with `TRUST_PROXY=true`), uploads need `ReadWriteMany` because there is no S3
+client yet, and it includes a throwaway k3s-in-Docker procedure for testing a
+change end to end.
+
 ---
 
 ## 🏗️ Tech stack
@@ -206,9 +231,9 @@ only the API container needs the `NUXT_PUBLIC_TRACKER_*_URL` vars.
 | Frontend         | Nuxt 4, Vue 3, Tailwind CSS, Tiptap       | SSR by default, opt-in static SPA build            |
 | API              | Nitro 4 (Node 24), Drizzle ORM, Zod       | Standalone container, distroless runtime           |
 | Tracker          | Go 1.25, sqlc                             | `scratch`-based image, sub-ms announce p99         |
-| Database         | PostgreSQL 16                             | `gin_trgm_ops` full-text, drizzle-kit `push`       |
+| Database         | PostgreSQL 18                             | `gin_trgm_ops` full-text, migrations at API boot   |
 | Connection pool  | PgBouncer                                 | Transaction-mode pooling                           |
-| Cache / queue    | Redis 7                                   | Peer hashes, sessions, rate-limit windows, pub/sub |
+| Cache / queue    | Redis 8                                   | Peer hashes, sessions, rate-limit windows, pub/sub |
 | Reverse proxy    | Caddy 2                                   | Auto-HTTPS, HTTP/3                                 |
 | Crypto           | Web Crypto API, scrypt, AES-256-GCM       | ZKE auth, Panic encryption                         |
 | Observability    | Prometheus `/metrics`                     | Dedicated port on the API container                |

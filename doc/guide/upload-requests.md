@@ -75,7 +75,7 @@ Two things ride along automatically:
   likely to already hold it.
 - If both the requested release and the filling upload carry a
   **BitTorrent v2 content root** and they are equal, the request page
-  shows a **content-verified** signal — cryptographic proof it is the
+  exposes a **content-verified** flag on the request API — cryptographic proof it is the
   same content. This is advisory, not a gate: an unequal root does not
   prove a different release (the key spans `.nfo`/subs/sample files that
   honestly differ), so you validate by hand exactly as for a v1-only

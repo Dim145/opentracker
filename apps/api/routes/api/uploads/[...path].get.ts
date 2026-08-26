@@ -1,20 +1,31 @@
 /**
  * GET /api/uploads/[...path]
  *
- * Serve uploaded files from `/app/data/uploads` in prod, or
- * `public/uploads` in dev. Path-traversal mitigation uses
- * `path.resolve` + a relative-prefix check + `realpathSync` so:
- *   - URL-decoded `..` segments collapse correctly
- *   - Absolute paths in the URL ("/etc/passwd") get rebased
- *   - Symlinks pointing outside the uploads dir are caught after
- *     resolving the link
+ * Serve an uploaded file from whichever storage driver is configured — the
+ * filesystem under `UPLOADS_DIR`, or an S3-compatible bucket. See
+ * `utils/storage/` for the driver selection and for why S3 reads stream
+ * through the API rather than redirecting to a presigned URL.
  *
- * The earlier substring check (`path.includes('..')`) was incomplete
- * — `path.join('/app/data/uploads', '/etc/passwd')` collapses the
- * left side and returns `/etc/passwd`, which would have been served.
+ * Path-traversal mitigation is now `resolveObjectKey()`, which is shared with
+ * the write routes and with the S3 driver so both backends address the same
+ * object and neither can be walked out of. It rejects `..` outright instead of
+ * resolving it — a `..` is inert on a filesystem after a prefix check but not
+ * on S3, where `fetch()` collapses it in the URL before the request is sent.
+ *
+ * In front of this, `middleware/security.ts` already answers 400 to any path
+ * containing `..`, and h3 decodes the path before routing, so the encoded
+ * spellings are caught there too. Both were checked against a running API.
+ * This is the layer that still has to hold if that middleware is ever
+ * narrowed.
+ *
+ * The filesystem driver keeps the two containment checks that were here: a
+ * `resolve()` prefix test, and a `realpath()` prefix test that catches a
+ * symlink inside the uploads directory pointing out of it. Neither an earlier
+ * substring check (`path.includes('..')`) nor `resolveObjectKey()` alone would
+ * catch that one.
  */
-import { createReadStream, existsSync, realpathSync, statSync } from 'fs';
-import { resolve, sep } from 'path';
+import { getStorage } from '~~/utils/storage';
+import { resolveObjectKey } from '~~/utils/storage/keys';
 
 export default defineEventHandler(async (event) => {
   const requested = getRouterParam(event, 'path');
@@ -22,48 +33,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'File path required' });
   }
 
-  const isProduction = process.env.NODE_ENV === 'production';
-  const baseDir = isProduction
-    ? '/app/data/uploads'
-    : resolve(process.cwd(), 'public', 'uploads');
-  const baseReal = realpathSync.native(baseDir);
-
-  // Strip a leading separator so `resolve(baseReal, requested)`
-  // doesn't switch to the absolute-path semantics of the second arg.
-  const safeRequested = requested.replace(/^[\\/]+/, '');
-  const candidate = resolve(baseReal, safeRequested);
-
-  // First containment check before touching the filesystem — a
-  // requested path that resolves outside `baseReal` already screams
-  // traversal.
-  if (
-    candidate !== baseReal &&
-    !candidate.startsWith(baseReal + sep)
-  ) {
+  const key = resolveObjectKey(requested);
+  if (!key) {
     throw createError({ statusCode: 400, message: 'Invalid file path' });
   }
 
-  if (!existsSync(candidate)) {
+  const object = await getStorage().get(key);
+  if (!object) {
     throw createError({ statusCode: 404, message: 'File not found' });
   }
 
-  // Second containment check after resolving symlinks — an upload
-  // dir might contain a `latest -> ../secret` style trap. realpath
-  // dereferences it and we re-assert the prefix.
-  const finalPath = realpathSync.native(candidate);
-  if (
-    finalPath !== baseReal &&
-    !finalPath.startsWith(baseReal + sep)
-  ) {
-    throw createError({ statusCode: 400, message: 'Invalid file path' });
-  }
-
-  const stats = statSync(finalPath);
-  if (stats.isDirectory()) {
-    throw createError({ statusCode: 400, message: 'Cannot serve directory' });
-  }
-
-  const ext = requested.split('.').pop()?.toLowerCase();
+  // Content type comes from the extension, never from what the backend
+  // reports. It is what the SVG sandbox below keys off, so it has to be
+  // derived from the same string the URL carries.
+  const ext = key.split('.').pop()?.toLowerCase();
   const mimeTypes: Record<string, string> = {
     png: 'image/png',
     jpg: 'image/jpeg',
@@ -85,7 +68,10 @@ export default defineEventHandler(async (event) => {
       "default-src 'none'; style-src 'unsafe-inline'; sandbox"
     );
   }
+  if (object.size !== undefined) {
+    setHeader(event, 'Content-Length', object.size);
+  }
   setHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable');
 
-  return sendStream(event, createReadStream(finalPath));
+  return sendStream(event, object.body);
 });

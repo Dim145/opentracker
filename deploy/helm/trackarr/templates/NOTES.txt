@@ -1,0 +1,154 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed as release "{{ .Release.Name }}" in namespace {{ .Release.Namespace }}.
+
+Site:     https://{{ .Values.site.host }}
+Announce: {{ include "trackarr.trackerHttpUrl" . }}
+{{- if .Values.tracker.udp.enabled }}
+UDP:      {{ include "trackarr.trackerUdpUrl" . }}
+{{- end }}
+
+Watch it come up:
+
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "trackarr.fullname" . }}-api
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+{{- if .Values.postgresql.enabled }}
+
+Postgres is managed by CloudNativePG. If the Cluster stays absent, the operator
+is not installed — it is cluster-scoped and owns the CRDs, so it goes in once
+per cluster rather than once per release:
+
+  helm repo add cnpg https://cloudnative-pg.github.io/charts
+  helm install cnpg cnpg/cloudnative-pg -n cnpg-system --create-namespace
+
+  kubectl -n {{ .Release.Namespace }} get cluster {{ include "trackarr.pgClusterName" . }}
+  kubectl cnpg status {{ include "trackarr.pgClusterName" . }} -n {{ .Release.Namespace }}   # needs the kubectl-cnpg plugin
+
+Applications reach it through the operator-managed pooler,
+{{ include "trackarr.pgPoolerHost" . }}, which follows the primary on its own.
+Migrations deliberately go straight to {{ include "trackarr.pgRwHost" . }}: the
+migration runner takes a session-level advisory lock, and those must not be
+taken on a transaction-pooled connection.
+{{- end }}
+{{- if not .Values.postgresql.enabled }}
+
+Postgres is external. Check that externalDatabase.migrationsUrl bypasses any
+transaction pooler — the migration runner takes a SESSION-level advisory lock.
+{{- end }}
+
+{{- if and (not .Values.valkey.enabled) (not .Values.externalRedis.existingSecret) (not .Values.externalRedis.password) }}
+
+Redis is external and NO PASSWORD was configured, so the apps will connect
+without authentication. That is supported — the tracker has always allowed it
+and the API no longer refuses to start — but everything in there is
+unprotected: peer state, the rate-limit counters, the cron locks. Only leave it
+this way if {{ .Values.externalRedis.host }} is unreachable from outside the
+trusted network. Otherwise set externalRedis.password or
+externalRedis.existingSecret (key REDIS_PASSWORD).
+{{- end }}
+
+{{- if .Values.secrets.create }}
+
+Three generated secrets must survive every upgrade, and this chart reads its own
+Secret back to keep them: NUXT_SESSION_SECRET (rotating it signs everyone out),
+IP_HASH_SECRET (rotating it breaks IP-hash continuity against rows already
+written) and ADMIN_API_KEY. Take a copy before you ever delete the release:
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "trackarr.secretName" . }} -o yaml > trackarr-secrets.backup.yaml
+
+Read the admin API key:
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "trackarr.secretName" . }} \
+    -o jsonpath='{.data.ADMIN_API_KEY}' | base64 -d; echo
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+CHECK THIS BEFORE OPENING THE SITE. api.trustProxy and tracker.trustProxy are
+on, so both believe X-Forwarded-For. Your ingress controller must SET that
+header from the real peer address and must not pass through one the client
+sent, or a member can announce as any IP they like — which defeats the
+IP-based anti-cheat and the ban list.
+
+On ingress-nginx, leave `use-forwarded-headers` off in the controller ConfigMap
+(the default). Also strip CF-Connecting-IP and True-Client-IP, which the
+reference Caddy configuration removes and which nothing removes for you here:
+see the commented `configuration-snippet` annotation in values.yaml.
+{{- else }}
+
+NO INGRESS WAS CREATED (ingress.enabled=false). Route to these Services:
+
+{{- if .Values.web.enabled }}
+  /            -> {{ include "trackarr.fullname" . }}-web:{{ .Values.web.service.port }}   ({{ .Values.web.service.type }})
+{{- end }}
+{{- if .Values.api.enabled }}
+  /api, /uploads -> {{ include "trackarr.fullname" . }}-api:{{ .Values.api.service.port }}   ({{ .Values.api.service.type }})
+{{- end }}
+{{- if .Values.tracker.enabled }}
+  /announce    -> {{ include "trackarr.fullname" . }}-tracker:{{ .Values.tracker.service.port | default .Values.tracker.http.port }}   ({{ .Values.tracker.service.type }})
+{{- end }}
+
+Most specific prefix first, or /announce ends up at the website. /scrape is
+deliberately absent — it hands swarm counts for any info_hash to anyone asking.
+
+{{- $exposed := list }}
+{{- if and .Values.web.enabled (ne .Values.web.service.type "ClusterIP") }}{{ $exposed = append $exposed "web" }}{{ end }}
+{{- if and .Values.api.enabled (ne .Values.api.service.type "ClusterIP") }}{{ $exposed = append $exposed "api" }}{{ end }}
+{{- if and .Values.tracker.enabled (ne .Values.tracker.service.type "ClusterIP") }}{{ $exposed = append $exposed "tracker" }}{{ end }}
+{{- if and $exposed (or .Values.api.trustProxy .Values.tracker.trustProxy) }}
+WARNING: exposed outside the cluster while trustProxy is still on —
+{{ range $i, $c := $exposed }}{{ if $i }}, {{ end }}{{ $c }}={{ index (dict "web" $.Values.web.service.type "api" $.Values.api.service.type "tracker" $.Values.tracker.service.type) $c }}{{ end }}.
+If nothing sits in front setting X-Forwarded-For, a client can send its own and
+be believed — an announce then enters the swarm under a forged IP and walks
+around an IP ban. Set api.trustProxy=false and tracker.trustProxy=false unless
+there IS a proxy in the path (a cloud load balancer or CDN that rewrites it).
+{{- else if or .Values.api.trustProxy .Values.tracker.trustProxy }}
+trustProxy is on and every Service is ClusterIP, which is right if your own
+ingress or proxy sets X-Forwarded-For. If anything reaches these pods directly,
+turn it off.
+{{- end }}
+{{- end }}
+
+{{- if eq .Values.storage.driver "s3" }}
+
+Uploads go to {{ include "trackarr.s3Endpoint" . }}, bucket
+{{ .Values.storage.s3.bucket }}{{ with .Values.storage.s3.prefix }}, prefix {{ . }}{{ end }}. No uploads volume is
+created, so api.replicaCount is free.
+{{- if .Values.rustfs.enabled }}
+
+The bucket is served by the bundled RustFS:
+
+{{- if .Values.rustfs.mode.distributed.enabled }}
+  kubectl -n {{ .Release.Namespace }} rollout status statefulset/{{ include "trackarr.rustfsFullname" . }}
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "trackarr.rustfsFullname" . }}
+{{- end }}
+
+It is a ClusterIP with no ingress on purpose — the API streams objects to
+visitors itself, so nothing outside the cluster needs to reach it.
+{{- if and .Values.rustfs.mode.standalone.enabled (not .Values.rustfs.mode.distributed.enabled) }}
+Standalone mode: ONE pod on ONE PVC, so the object store is now the piece of
+this deployment that is not redundant. Back the PVC up, or switch to
+distributed mode (rustfs.mode.distributed.enabled=true, replicaCount >= 2).
+{{- end }}
+{{- else }}
+
+{{- if .Values.storage.s3.createBucket }}
+The API creates the bucket on its first write if it is missing. Turn
+storage.s3.createBucket off if those credentials should not be able to.
+{{- else }}
+storage.s3.createBucket is off, so bucket {{ .Values.storage.s3.bucket }} must already exist —
+the first branding upload fails with NoSuchBucket otherwise.
+{{- end }}
+{{- end }}
+{{- else if and .Values.api.uploads.enabled (not .Values.api.uploads.existingClaim) (ne .Values.api.uploads.accessMode "ReadWriteMany") }}
+
+WARNING: api.uploads.accessMode is {{ .Values.api.uploads.accessMode }} and
+api.replicaCount is {{ .Values.api.replicaCount }}. With storage.driver=fs,
+uploaded files go to a filesystem path, so every replica needs to write the
+same volume. With anything but ReadWriteMany, run a single replica — or set
+storage.driver=s3 (doc/guide/object-storage.md), which removes the volume
+altogether.
+{{- end }}
+
+Sizing, with measurements rather than guesses: doc/guide/scaling.md.
+Making Postgres and Valkey highly available: doc/guide/high-availability.md.

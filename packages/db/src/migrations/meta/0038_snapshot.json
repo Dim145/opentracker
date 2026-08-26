@@ -1,6 +1,6 @@
 {
-  "id": "ccdafb29-f886-4c0a-a766-d8efa4a86405",
-  "prevId": "f9cd5dba-0a4e-4c14-8a7b-e057b9ab7f4e",
+  "id": "582dbbe9-1700-45a6-bab1-6b255f3cc0a6",
+  "prevId": "b384786b-f519-4dee-9d37-788cf64d05b4",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3621,18 +3621,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "info_hash_v2": {
-          "name": "info_hash_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "content_root_v2": {
-          "name": "content_root_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "name": {
           "name": "name",
           "type": "text",
@@ -3830,21 +3818,6 @@
           "columns": [
             {
               "expression": "info_hash",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "remote_torrents_content_root_v2_idx": {
-          "name": "remote_torrents_content_root_v2_idx",
-          "columns": [
-            {
-              "expression": "content_root_v2",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -5279,18 +5252,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "info_hash_v2": {
-          "name": "info_hash_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "content_root_v2": {
-          "name": "content_root_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
@@ -5527,21 +5488,6 @@
           "method": "btree",
           "with": {}
         },
-        "torrents_content_root_v2_idx": {
-          "name": "torrents_content_root_v2_idx",
-          "columns": [
-            {
-              "expression": "content_root_v2",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "torrents_openlibrary_idx": {
           "name": "torrents_openlibrary_idx",
           "columns": [
@@ -5666,7 +5612,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "torrents_category_id_categories_id_fk": {
@@ -6162,24 +6108,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "federated_peer_id": {
-          "name": "federated_peer_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "federated_info_hash": {
-          "name": "federated_info_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "federated_content_root_v2": {
-          "name": "federated_content_root_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -6207,21 +6135,6 @@
             },
             {
               "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "upload_requests_federated_info_hash_idx": {
-          "name": "upload_requests_federated_info_hash_idx",
-          "columns": [
-            {
-              "expression": "federated_info_hash",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -6315,19 +6228,6 @@
           "tableTo": "torrents",
           "columnsFrom": [
             "filled_torrent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "upload_requests_federated_peer_id_federation_peers_id_fk": {
-          "name": "upload_requests_federated_peer_id_federation_peers_id_fk",
-          "tableFrom": "upload_requests",
-          "tableTo": "federation_peers",
-          "columnsFrom": [
-            "federated_peer_id"
           ],
           "columnsTo": [
             "id"
@@ -7166,12 +7066,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {

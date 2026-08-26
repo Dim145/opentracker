@@ -33,7 +33,7 @@ import { withCronLock } from '~~/utils/cronLock';
 // entire cost.
 const BUSY_INTERVAL_MS = 2_000;
 const IDLE_INTERVAL_MS = 5 * 60 * 1000;
-const FIRST_RUN_DELAY_MS = 90 * 1000; // after the schema push has settled
+const FIRST_RUN_DELAY_MS = 90 * 1000; // after the boot migrations have settled
 const BATCH_SIZE = 2_000;
 
 const CURSOR_KEY = 'series_position_backfill_cursor';

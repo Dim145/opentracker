@@ -523,12 +523,32 @@ describe('an uploader who asked not to be named', () => {
     expect(body['trackarr:uploaderName']).toBe('nova');
   });
 
-  it('still attributes the release to their DID', async () => {
-    // Concealment of the NAME, not of the pseudonym. The DID is a random key,
-    // reveals nothing about the account, and is what lets a member gather
-    // their own uploads across instances — dropping it would quietly disable
-    // that for anyone who ticked this box.
+  it('withholds the DID too, so the anonymous uploads cannot be correlated', async () => {
+    // This used to publish the DID, on the reading that the toggle conceals the
+    // NAME and not the pseudonym — a DID being a random key that reveals nothing
+    // about the account on its own.
+    //
+    // It does not hold across the mesh. The DID is stable and permanent per
+    // member, so a partner that already mirrors this member's NAMED records
+    // holds both halves: one `GROUP BY author_did` re-attaches every "anonymous"
+    // release to the name beside it. The toggle promises the name is detached
+    // from the releases and that they are not listed under the member; a
+    // correlatable pseudonym published next to named records does not keep that
+    // promise. Records are immutable, content-addressed and relayed, so this is
+    // the last point at which the choice can be honoured.
+    //
+    // The cost, stated plainly: an anonymous release is no longer gathered under
+    // the member's cross-instance identity. That is the trade — and it is the
+    // one the member asked for by ticking the box.
     const id = await makeTorrent({ uploaderId: await uploader(true) });
+    await mintRecords([id], ctx);
+
+    const body = (await currentRecord(id))!.body as Record<string, unknown>;
+    expect(body.attributedTo).toBeNull();
+  });
+
+  it('still attributes a release whose uploader did not ask for anonymity', async () => {
+    const id = await makeTorrent({ uploaderId: await uploader(false) });
     await mintRecords([id], ctx);
 
     const body = (await currentRecord(id))!.body as Record<string, unknown>;

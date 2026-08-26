@@ -6,7 +6,9 @@ services:
   # REVERSE PROXY - Caddy with automatic HTTPS
   # =============================================================================
   caddy:
-    image: caddy:2-alpine
+    # Pinned rather than floating on 2-alpine: a rescheduled container should
+    # not pull a different Caddy than the one the TLS setup was verified on.
+    image: caddy:2.11.4-alpine
     container_name: trackarr-caddy
     restart: always
     # Caddy already runs from a tight image; lock the rootfs and only
@@ -136,8 +138,26 @@ services:
       IP_HASH_SECRET: ${IP_HASH_SECRET}
       # Caddy is in front — trust proxy headers for real client IPs
       TRUST_PROXY: "true"
-      # Uploads directory (volume-mounted)
+      # Uploads: filesystem by default, into the volume mounted below.
+      #
+      # STORAGE_DRIVER=s3 sends them to an S3-compatible object store instead
+      # (AWS, MinIO, RustFS, Ceph, Garage, R2) and the volume stops being
+      # needed — which is what lets you run more than one API replica without a
+      # shared mount. See doc/guide/object-storage.md.
+      #
+      # Every S3_* credential also accepts a Docker secret through the matching
+      # *_FILE variable, e.g. S3_SECRET_ACCESS_KEY_FILE=/run/secrets/s3_secret.
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-fs}
       UPLOADS_DIR: /app/data/uploads
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_PREFIX: ${S3_PREFIX:-}
+      # true for MinIO / RustFS / Ceph RGW; false for AWS.
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      S3_CREATE_BUCKET: ${S3_CREATE_BUCKET:-false}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
       # Tracker URLs are also exposed by the API for endpoints like
       # GET /api/torrents/[hash]/download (announce embedded in .torrent files).
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-https://localhost/announce}
@@ -235,7 +255,10 @@ services:
   # DATABASE - PostgreSQL
   # =============================================================================
   postgres:
-    image: postgres:16-alpine
+    # PostgreSQL 18. NOT an in-place bump from 16: the server refuses a data
+    # directory written by an older major ("database files are incompatible
+    # with server"). Follow doc/guide/upgrading.md before pulling this.
+    image: postgres:18.6-alpine
     container_name: trackarr-db
     restart: always
     cap_drop:
@@ -254,6 +277,11 @@ services:
       POSTGRES_DB: ${DB_NAME:-trackarr}
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      # REQUIRED from 18 on. The official image moved its default PGDATA to
+      # /var/lib/postgresql/<major>/docker; setting it back keeps the volume
+      # layout this stack has always used, so the mount below stays correct
+      # and an upgraded cluster is found where it already lives.
+      PGDATA: /var/lib/postgresql/data
     expose:
       - "5432"
     volumes:
@@ -296,11 +324,9 @@ services:
   # CONNECTION POOLING - PgBouncer
   # =============================================================================
   pgbouncer:
-    # NOTE: pin to a digest (edoburu/pgbouncer@sha256:...) rather than the
-    # floating :latest before production, and consider running non-root +
-    # read_only with a tmpfs for its runtime dir once verified against the
-    # image (finding L14).
-    image: edoburu/pgbouncer:latest
+    # NOTE: consider running non-root + read_only with a tmpfs for its runtime
+    # dir once verified against the image (finding L14).
+    image: edoburu/pgbouncer:v1.25.2-p0
     container_name: trackarr-pgbouncer
     restart: always
     # Match the privilege reduction every other service in the stack gets —
@@ -346,7 +372,11 @@ services:
   # CACHE - Redis with persistence
   # =============================================================================
   redis:
-    image: redis:7
+    # Redis 8. RDB and AOF are forward-compatible from 7, so this one IS an
+    # in-place bump — stop, pull, start. The 8.0 breaking change was ACL
+    # categories absorbing the Search/JSON/timeseries commands, and this stack
+    # authenticates with requirepass rather than ACLs, so it is unaffected.
+    image: redis:8.10.1-alpine
     container_name: trackarr-redis
     restart: always
     # Redis only writes to /data (volume-mounted below) — locking the
@@ -429,5 +459,8 @@ volumes:
     driver: local
   caddy_logs:
     driver: local
+  # Only used with STORAGE_DRIVER=fs (the default). With `s3` the API writes
+  # to the bucket instead and nothing mounts this — but it is left declared so
+  # switching back, or copying the old files out, needs no edit here.
   uploads_data:
     driver: local

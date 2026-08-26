@@ -1,5 +1,6 @@
 <template>
-  <div class="masks">
+  <FederationOff v-if="!federationEnabled" />
+  <div v-else class="masks">
     <header class="masks-head">
       <div>
         <h1 class="masks-title">{{ $t('mod.masks.title') }}</h1>
@@ -57,6 +58,11 @@ definePageMeta({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   middleware: 'moderator' as any,
 });
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
+
 
 interface Mask {
   id: string;
@@ -69,7 +75,8 @@ interface Mask {
 
 const { data, refresh } = await useFetch<{ masks: Mask[] }>(
   '/api/mod/federation/masks',
-  { default: () => ({ masks: [] }) },
+  // immediate: nothing is mirrored to mask when federation is off.
+  { default: () => ({ masks: [] }), immediate: federationEnabled.value },
 );
 const masks = computed(() => data.value?.masks ?? []);
 

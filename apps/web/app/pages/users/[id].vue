@@ -547,7 +547,10 @@ useHead({
 
 /* ── Atmosphere ────────────────────────────────────────────────── */
 .profile-aura {
-  position: absolute;
+  /* fixed, not absolute: the page wrapper is a centred max-width column, so an
+     absolute backdrop was clipped to it and stopped short of the viewport on
+     every side. Matches .shop-bg, which already had this right. */
+  position: fixed;
   /* Break out of the centred 1080-px wrapper to span the full
      viewport width: anchor at left:50%, pull back by 50 vw via a
      negative margin so the aura's edges line up with the

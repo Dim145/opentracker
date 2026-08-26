@@ -132,7 +132,8 @@ The first start does the following, in order:
 1. Build the Trackarr image (Nuxt SSR + tracker bundled together).
 2. Start PostgreSQL, Redis, PgBouncer, the app, and Caddy.
 3. The app's entrypoint applies the committed migrations and seeds default
-   categories.
+   categories. A migration that fails aborts the boot rather than starting
+   against a half-applied schema.
 4. Caddy requests Let's Encrypt certificates for `DOMAIN` and `TRACKER_DOMAIN`.
 
 Once everything is healthy:
@@ -173,10 +174,11 @@ git pull origin main
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-The entrypoint applies the committed migrations on every start, so a schema
-change lands with the restart. On an existing database created by an older
+The entrypoint applies any pending migration on every start, so a schema
+change ships with its image. On an existing database created by an older
 image that pushed `schema.ts` instead, run the one-time baseline first — see
-[Upgrading](./upgrading.md#coming-from-a-pushing-image-one-time-baseline). Volumes (`postgres_data`, `redis_data`,
+[Upgrading](./upgrading.md#coming-from-a-pushing-image-one-time-baseline).
+Volumes (`postgres_data`, `redis_data`,
 `uploads_data`, `caddy_data`) survive rebuilds.
 
 ::: warning Breaking schema changes

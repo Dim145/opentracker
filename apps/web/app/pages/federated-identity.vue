@@ -1,5 +1,6 @@
 <template>
-  <div class="fid">
+  <FederationOff v-if="!federationEnabled" />
+  <div v-else class="fid">
     <Transition name="fid-flash">
       <div v-if="flash" class="fid-flash" :class="`fid-flash--${flash.tone}`">
         <Icon :name="flash.tone === 'error' ? 'ph:warning-circle-fill' : 'ph:check-circle-fill'" />
@@ -206,13 +207,23 @@ interface Partner {
 }
 
 const { t } = useI18n();
+// Federation off is a real state a user can land in by typing the URL or
+// following an old link — the nav items that lead here are already hidden.
+// `branding` is fetched by the layout on every page, so this costs nothing.
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
+
+// immediate: nothing to ask for when federation is off, and the page renders
+// FederationOff in that case anyway.
 const { data: partnersData } = await useFetch<{ partners: Partner[] }>(
   '/api/federation/partners',
-  { default: () => ({ partners: [] }) },
+  { default: () => ({ partners: [] }), immediate: federationEnabled.value },
 );
 const { data: idData, refresh } = await useFetch<{ identities: Identity[] }>(
   '/api/me/federated-identities',
-  { default: () => ({ identities: [] }) },
+  { default: () => ({ identities: [] }), immediate: federationEnabled.value },
 );
 const partners = computed(() =>
   (partnersData.value?.partners ?? []).filter((p) => p.accountsEnabled),
@@ -239,7 +250,7 @@ interface RemoteWork {
 const { data: elsewhereData, refresh: refreshElsewhere } = await useFetch<{
   uploads: RemoteWork[];
   truncated?: boolean;
-}>('/api/me/federated-uploads', { default: () => ({ uploads: [] }) });
+}>('/api/me/federated-uploads', { default: () => ({ uploads: [] , immediate: federationEnabled.value}) });
 const elsewhere = computed(() => elsewhereData.value?.uploads ?? []);
 const elsewhereTruncated = computed(
   () => elsewhereData.value?.truncated === true,

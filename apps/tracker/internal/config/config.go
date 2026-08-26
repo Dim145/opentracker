@@ -28,6 +28,31 @@ type Config struct {
 	// silently zero every delta on the next announce, so the loader
 	// clamps to a sane minimum (see minPeerTTL in peers.go).
 	PeerTTL time.Duration
+	// DBMaxConns caps this instance's Postgres pool.
+	//
+	// It is per INSTANCE, which is the whole reason it is configurable: run
+	// four trackers behind a load balancer and the cluster opens 4 × this
+	// many connections, before counting the API's own replicas. PgBouncer's
+	// `default_pool_size` and Postgres's `max_connections` have to be sized
+	// for the product, and the only way to tune the other side of it was
+	// previously to edit the source.
+	DBMaxConns int
+	// SynchronousCommit is the `synchronous_commit` level the tracker's own
+	// pool runs at — `on`, `off` or `local`.
+	//
+	// Default `off`, which is a deliberate change of durability and worth
+	// understanding. Every write the tracker makes is a counter or a piece of
+	// telemetry: byte deltas, seed time, anti-cheat flags, the lazy unban. With
+	// `off`, a crash can lose the last few hundred milliseconds of those (the
+	// window is `wal_writer_delay`, 200 ms by default) — while the announce
+	// path already forfeits up to a whole announce interval of credit whenever
+	// a peer's Redis baseline has expired. The system's own tolerance is three
+	// orders of magnitude coarser than what this gives up, and in exchange the
+	// fsync leaves the commit path of the hottest writes in the deployment.
+	//
+	// Set it back to `on` if that trade is not yours to make. It applies ONLY
+	// to the tracker's connections; the API keeps full durability.
+	SynchronousCommit string
 }
 
 // defaultPeerTTL is the fallback applied when `TRACKER_PEER_TTL` is unset
@@ -48,16 +73,21 @@ func Load() (*Config, error) {
 		// tweaking. UDP support is opt-in via TRACKER_UDP_ENABLED so an
 		// operator who doesn't want to expose it (HTTPS-only deployments,
 		// strict firewall rules, etc.) can keep the listener off.
-		UDPPort:         getEnvInt("TRACKER_UDP_PORT", 6969),
-		UDPEnabled:      getEnvDefault("TRACKER_UDP_ENABLED", "true") == "true",
-		DatabaseURL:     os.Getenv("DATABASE_URL"),
-		RedisURL:        os.Getenv("REDIS_URL"),
-		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
-		RedisKeyPrefix:  getEnvDefault("REDIS_KEY_PREFIX", "ot:"),
-		IPHashSecret:    os.Getenv("IP_HASH_SECRET"),
-		Debug:           os.Getenv("TRACKER_DEBUG") == "true",
-		FederationSwarm: getEnvDefault("TRACKER_FEDERATION_SWARM", "false") == "true",
-		PeerTTL:         getEnvDuration("TRACKER_PEER_TTL", defaultPeerTTL),
+		UDPPort:        getEnvInt("TRACKER_UDP_PORT", 6969),
+		UDPEnabled:     getEnvDefault("TRACKER_UDP_ENABLED", "true") == "true",
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		RedisURL:       os.Getenv("REDIS_URL"),
+		RedisPassword:  os.Getenv("REDIS_PASSWORD"),
+		RedisKeyPrefix: getEnvDefault("REDIS_KEY_PREFIX", "ot:"),
+		IPHashSecret:   os.Getenv("IP_HASH_SECRET"),
+		// 20 is what the pool was hardcoded to before this became a
+		// setting; keeping it as the default means an existing deployment
+		// behaves identically after the upgrade.
+		DBMaxConns:        getEnvInt("TRACKER_DB_MAX_CONNS", 20),
+		SynchronousCommit: getEnvDefault("TRACKER_SYNCHRONOUS_COMMIT", "off"),
+		Debug:             os.Getenv("TRACKER_DEBUG") == "true",
+		FederationSwarm:   getEnvDefault("TRACKER_FEDERATION_SWARM", "false") == "true",
+		PeerTTL:           getEnvDuration("TRACKER_PEER_TTL", defaultPeerTTL),
 	}
 
 	if cfg.DatabaseURL == "" {

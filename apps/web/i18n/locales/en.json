@@ -2973,7 +2973,8 @@
         "torrent": "Torrent",
         "user": "User",
         "post": "Post",
-        "comment": "Comment"
+        "comment": "Comment",
+        "remote": "Federated release"
       },
       "toasts": {
         "resolved": "Report accepted",
@@ -4261,7 +4262,8 @@
       "torrent": "Torrent",
       "user": "User",
       "post": "Forum post",
-      "comment": "Comment"
+      "comment": "Comment",
+      "remote": "Federated release"
     },
     "targetGone": "Target no longer available",
     "resolvedBy": "by",
@@ -4389,6 +4391,13 @@
       "intro": "{n} release(s) on other instances are attributed to you. They stay yours whether or not those instances are still running.",
       "truncated": "Only the most recent are shown."
     }
+  },
+  "federationOff": {
+    "title": "Federation is off",
+    "lead": "This instance is not federated. There are no partner instances to browse, and no federated identity to link.",
+    "adminHint": "You are an admin, so you can turn it on. Enabling federation generates this instance’s identity key and lets you start pairing with partners.",
+    "goToSettings": "Federation settings",
+    "back": "Back to torrents"
   },
   "fiche": {
     "title": "Release sheet builder",

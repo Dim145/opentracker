@@ -1,0 +1,83 @@
+{{- if .Values.ingress.enabled }}
+{{- $full := include "trackarr.fullname" . }}
+{{- $hosts := prepend .Values.ingress.extraHosts .Values.site.host }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $full }}
+  labels:
+    {{- include "trackarr.labels" . | nindent 4 }}
+  annotations:
+    {{- with .Values.ingress.tls.certManagerClusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ . | quote }}
+    {{- end }}
+    {{- with .Values.ingress.tls.certManagerIssuer }}
+    cert-manager.io/issuer: {{ . | quote }}
+    {{- end }}
+    {{- with .Values.ingress.annotations }}{{ toYaml . | nindent 4 }}{{- end }}
+    {{- include "trackarr.annotations" . | nindent 4 }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        {{- range $hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ include "trackarr.tlsSecretName" . }}
+  {{- end }}
+  rules:
+    {{- range $hosts }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          # Order matters: the most specific prefixes first, because a
+          # controller that evaluates in document order would otherwise send
+          # /announce to the website. This mirrors docker/caddy/Caddyfile.
+          {{- if $.Values.tracker.enabled }}
+          - path: /announce
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $full }}-tracker
+                port:
+                  number: {{ $.Values.tracker.service.port | default $.Values.tracker.http.port }}
+          {{- if $.Values.ingress.exposeScrape }}
+          - path: /scrape
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $full }}-tracker
+                port:
+                  number: {{ $.Values.tracker.service.port | default $.Values.tracker.http.port }}
+          {{- end }}
+          {{- end }}
+          {{- if $.Values.api.enabled }}
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $full }}-api
+                port:
+                  number: {{ $.Values.api.service.port }}
+          - path: /uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $full }}-api
+                port:
+                  number: {{ $.Values.api.service.port }}
+          {{- end }}
+          {{- if $.Values.web.enabled }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $full }}-web
+                port:
+                  number: {{ $.Values.web.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

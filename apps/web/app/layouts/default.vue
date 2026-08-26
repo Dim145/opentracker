@@ -287,6 +287,7 @@
                     {{ $t('nav.following') }}
                   </NuxtLink>
                   <NuxtLink
+                    v-if="branding?.federationEnabled"
                     to="/federated-identity"
                     class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
                     @click="showUserMenu = false"
@@ -909,7 +910,9 @@ async function refreshStats() {
 // would muddy the meaning of the link.
 const navLinks = [
   { to: '/torrents', labelKey: 'nav.torrents', icon: 'ph:files', adminOnly: false },
-  { to: '/federated', labelKey: 'nav.federated', icon: 'ph:broadcast', adminOnly: false },
+  // federationOnly: the page browses partner catalogues, so it has nothing to
+  // show — and no partners to ask — until federation is switched on.
+  { to: '/federated', labelKey: 'nav.federated', icon: 'ph:broadcast', adminOnly: false, federationOnly: true },
   { to: '/requests', labelKey: 'nav.requests', icon: 'ph:megaphone-bold', adminOnly: false },
   { to: '/forum', labelKey: 'nav.forum', icon: 'ph:chat-centered-text', adminOnly: false },
   { to: '/admin', labelKey: 'nav.admin', icon: 'ph:shield-check', adminOnly: true },
@@ -921,6 +924,8 @@ const visibleNavLinks = computed(() =>
     if (link.adminOnly && !user.value?.isAdmin) return false;
     if (link.modOnly && !user.value?.isAdmin && !user.value?.isModerator)
       return false;
+    // `branding` is a ref here, unlike in the template where Vue unwraps it.
+    if (link.federationOnly && !branding.value?.federationEnabled) return false;
     return true;
   })
 );

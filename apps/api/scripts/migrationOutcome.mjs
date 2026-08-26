@@ -15,8 +15,8 @@
  * The entrypoint dutifully checked the exit code, saw 0, logged "Schema up to
  * date" and booted the API against a database missing the columns the release
  * needed. Every query touching them then failed at runtime, with the boot log
- * claiming success. That is the failure this module is here to stop: a boot
- * step that lies is worse than one that dies.
+ * claiming success. That is the failure this module is here to stop: a step
+ * that lies is worse than a step that dies.
  *
  * So the outcome is read from the output as well as the status, and anything
  * that looks like a failure is treated as one. Erring towards a container that
@@ -52,7 +52,7 @@ const ERROR_LINE = /^Error:.*$/m;
  * @param {{ code: number | null, output: string }} result
  * @returns {{ ok: true } | { ok: false, reason: string, detail: string, remedy: string[] }}
  */
-export function classifyPushOutcome({ code, output }) {
+export function classifyMigrationOutcome({ code, output }) {
   const text = output ?? '';
 
   if (INTERACTIVE_PROMPT.test(text)) {
@@ -71,7 +71,7 @@ export function classifyPushOutcome({ code, output }) {
         'Compare the table names in packages/db/src/schema.ts against the live ' +
           'database and reconcile the pair that diverges.',
         'Or apply the SQL under packages/db/src/migrations/ by hand, then boot ' +
-          'with SKIP_DB_MIGRATIONS=true so the step is not attempted.',
+          'with SKIP_DB_MIGRATIONS=true so migrations are not attempted.',
       ],
     };
   }
@@ -86,7 +86,7 @@ export function classifyPushOutcome({ code, output }) {
         'pointing at a transaction pooler: set MIGRATIONS_DATABASE_URL to a ' +
         'direct Postgres URL.',
       remedy: [
-        'Read the output above — the migrator names the statement it could ' +
+        'Read the drizzle-kit output above — it names the statement it could ' +
           'not apply.',
       ],
     };
@@ -100,7 +100,7 @@ export function classifyPushOutcome({ code, output }) {
       detail: errorLine[0],
       remedy: [
         'Read the drizzle-kit output above. The exit code cannot be trusted ' +
-          'here, so any reported error is treated as a failed migration.',
+          'here, so any reported error is treated as a failure.',
       ],
     };
   }
@@ -115,7 +115,7 @@ export function classifyPushOutcome({ code, output }) {
  * @param {{ reason: string, detail: string, remedy: string[] }} failure
  * @returns {string}
  */
-export function formatPushFailure(failure) {
+export function formatMigrationFailure(failure) {
   const lines = [
     '[Boot] Database migration FAILED — the schema was not applied.',
     `[Boot] Reason: ${failure.reason}`,

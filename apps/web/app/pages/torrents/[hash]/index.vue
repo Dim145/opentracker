@@ -517,7 +517,7 @@
          have an account there, you can cross-seed it from the bytes you already
          hold, fetched with your own partner passkey. -->
     <section
-      v-if="federatedCrossSeeds && federatedCrossSeeds.items.length > 0"
+      v-if="federationEnabled && federatedCrossSeeds && federatedCrossSeeds.items.length > 0"
       class="section section--cross"
     >
       <header class="section-head">
@@ -564,8 +564,11 @@
       </ul>
     </section>
 
-    <!-- § FEDERATION SWARM — per-torrent opt-in (uploader / staff). -->
-    <section v-if="canEdit" class="section">
+    <!-- § FEDERATION SWARM — per-torrent opt-in (uploader / staff).
+         Hidden entirely when the instance is not federated: there is nothing
+         to share the swarm WITH, so offering the switch only invites the
+         question of why flipping it does nothing. -->
+    <section v-if="canEdit && federationEnabled" class="section">
       <header class="section-head">
         <span class="section-head-mark" aria-hidden="true">§</span>
         <h2 class="section-head-title">{{ $t('torrents.detail.fedSwarm.title') }}</h2>
@@ -812,11 +815,21 @@ interface FederatedCrossSeedItem {
   detailUrl: string | null;
   matchType: 'v2' | 'signature';
 }
+// `branding` is fetched by the layout on every page, so reading it here is
+// free — and it carries whether this instance is federated at all.
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
+
 const { data: federatedCrossSeeds } = await useFetch<{
   items: FederatedCrossSeedItem[];
   total: number;
   availability: { releases: number; seeders: number; leechers: number };
 }>(`/api/torrents/${hash}/cross-seeds-federated`, {
+  // immediate: a non-federated instance has no partners to match against, and
+  // this fires on every torrent page view.
+  immediate: federationEnabled.value,
   default: () => ({
     items: [],
     total: 0,
@@ -1042,6 +1055,7 @@ const metadata = computed(
 // Get current user session
 const { loggedIn, user } = useUserSession();
 
+
 // Phase 4 — per-torrent swarm-federation opt-in (uploader / staff only).
 const fedSwarm = ref(false);
 const fedSwarmBusy = ref(false);
@@ -1266,7 +1280,10 @@ async function confirmDelete() {
    the page dark (it stays a dark theme) but warms it enough to feel
    "rich" rather than just "operator console". */
 .release-aura {
-  position: absolute;
+  /* fixed, not absolute: the page wrapper is a centred max-width column, so an
+     absolute backdrop was clipped to it and stopped short of the viewport on
+     every side. Matches .shop-bg, which already had this right. */
+  position: fixed;
   /* Break out of the centred 1180-px wrapper to span the full
      viewport width: anchor at left:50% then pull back by 50 vw with
      a negative margin so the aura's left/right edges line up with

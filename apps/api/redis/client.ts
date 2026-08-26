@@ -1,5 +1,5 @@
 import Redis, { type RedisOptions } from 'ioredis';
-import { readSecret } from '../utils/secrets';
+import { readOptionalSecret } from '../utils/secrets';
 
 /**
  * Secure Redis Client Configuration
@@ -11,11 +11,39 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // Parse Redis URL and build secure options
 function buildRedisOptions(): RedisOptions {
-  // Read Redis password from Docker secret or environment variable
-  const redisPassword = readSecret('REDIS_PASSWORD');
+  // Read Redis password from Docker secret or environment variable.
+  //
+  // OPTIONAL, on purpose. `readSecret` throws when the variable is unset, and
+  // this module is built at import time, so an unauthenticated Redis used to
+  // kill the API before it served a single request — while the Go tracker,
+  // pointed at the same instance, connected happily:
+  //
+  //   if password != "" { opts.Password = password }
+  //       — apps/tracker/internal/peers/peers.go
+  //
+  // doc/guide/scaling.md requires REDIS_URL and REDIS_PASSWORD to match on
+  // every instance, so the two had to agree, and the tracker's behaviour is
+  // the defensible one: a Redis with no AUTH on a trusted network is a
+  // deployment choice, not a configuration error. It is what
+  // `externalRedis.host` with no password renders in the Helm chart, and that
+  // combination crash-looped every API pod on a real cluster.
+  const redisPassword = readOptionalSecret('REDIS_PASSWORD');
+
+  if (!redisPassword && isProduction) {
+    // Not fatal, but say it once: peer state and rate-limit counters live in
+    // here, and an unauthenticated Redis reachable beyond the pod network is
+    // a real exposure.
+    console.warn(
+      '[Redis] No REDIS_PASSWORD set — connecting without authentication. ' +
+        'Only safe when Redis is unreachable from outside the trusted network.'
+    );
+  }
 
   const options: RedisOptions = {
-    password: redisPassword,
+    // ioredis sends AUTH only when this is set, so leaving it undefined is
+    // how "no authentication" is expressed. An empty string would still
+    // trigger AUTH and be rejected by a server that has no password.
+    ...(redisPassword ? { password: redisPassword } : {}),
     maxRetriesPerRequest: 3,
     lazyConnect: true,
     // Connection security

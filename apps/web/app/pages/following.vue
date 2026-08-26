@@ -233,6 +233,12 @@ definePageMeta({ title: 'Following' });
 
 const { t, locale } = useI18n();
 const notifications = useNotificationStore();
+// `/following` is an ordinary member page, so it carries no federation-only nav
+// flag — the federated half below has to gate itself.
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
 useHead({ title: () => t('following.headTitle') });
 
 type Sort = 'recent' | 'alpha';
@@ -281,7 +287,8 @@ interface FedFollow {
 }
 const { data: fedData, refresh: refreshFed } = await useFetch<{ data: FedFollow[] }>(
   '/api/me/federated-follows',
-  { default: () => ({ data: [] }) },
+  // immediate: nothing to follow across a mesh this instance is not part of.
+  { default: () => ({ data: [] }), immediate: federationEnabled.value },
 );
 const fedFollows = computed(() => fedData.value?.data ?? []);
 const fedLeaving = ref(new Set<string>());
@@ -459,7 +466,10 @@ async function unfollow(row: PersonaRow) {
 
 /* ── Atmospheric stage ──────────────────────────────────────── */
 .cast-aura {
-  position: absolute;
+  /* fixed, not absolute: the page wrapper is a centred max-width column, so an
+     absolute backdrop was clipped to it and stopped short of the viewport on
+     every side. Matches .shop-bg, which already had this right. */
+  position: fixed;
   top: -2rem;
   left: 50%;
   width: 100vw;

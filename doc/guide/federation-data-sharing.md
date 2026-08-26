@@ -72,7 +72,7 @@ Two things ride along:
   (federated identity links) are notified first — they are the most likely to hold
   it.
 - **Content-verified signal.** If the request and the filling upload have an equal
-  `content_root_v2`, the request page shows a **content-verified** badge — proof it is
+  `content_root_v2`, the request API reports **content-verified** — proof it is
   the same content. This is advisory, not a gate: an *unequal* root does not prove a
   different release (the key spans `.nfo`/subs/sample files, which honestly differ),
   and the requester validates by hand exactly as for a v1-only release.
@@ -122,6 +122,11 @@ upload** (never real upload). Honouring it is:
 - **Capped** — bytes credited per member per rolling day are clamped
   (`federation_credit_daily_cap_bytes`), under a row lock so concurrent attestations
   cannot race past the ceiling.
+
+Only the **receiving** half runs today: an attestation that arrives is verified and
+honoured. The sending half exists as a signing-and-delivery function with no caller
+— nothing yet counts per-member bytes to attest to, which is exactly what a relay
+would supply.
 
 What a webseed relay still needs on top: the *data source* (per-member bytes actually
 served — a capability token attributes that cleanly), and an explicit risk decision

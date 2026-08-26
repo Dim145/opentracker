@@ -37,10 +37,10 @@ Two constructs beyond plain text:
 
 | Syntax | Meaning |
 | --- | --- |
-| `{{VARIABLE}}` | Replaced by the value. Unknown names render empty. |
-| `{{#VARIABLE}}…{{/VARIABLE}}` | Kept only when the value is non-empty. |
-| `{{^VARIABLE}}…{{/VARIABLE}}` | Kept only when it *is* empty. |
-| `{{! note }}` | A comment. Never rendered. |
+| <code v-pre>{{VARIABLE}}</code> | Replaced by the value. Unknown names render empty. |
+| <code v-pre>{{#VARIABLE}}…{{/VARIABLE}}</code> | Kept only when the value is non-empty. |
+| <code v-pre>{{^VARIABLE}}…{{/VARIABLE}}</code> | Kept only when it *is* empty. |
+| <code v-pre>{{! note }}</code> | A comment. Never rendered. |
 
 A section tag alone on its line takes the whole line with it, so
 a block that renders nothing leaves no blank line behind. That is
@@ -66,10 +66,10 @@ insertion (`document.execCommand('insertText')`), so undo and redo keep working
 across toolbar clicks and variable insertions alike. The same fix applies to the
 BBCode source mode of the upload editor, which had the identical problem.
 
-**Switching a block off** wraps it in `{{#OFF}}` / `{{/OFF}}` rather than in a
-comment. That is not a stylistic choice: a `{{! … }}` comment ends at the first
+**Switching a block off** wraps it in <code v-pre>{{#OFF}}</code> / <code v-pre>{{/OFF}}</code> rather than in a
+comment. That is not a stylistic choice: a <code v-pre>{{! … }}</code> comment ends at the first
 `}}`, so commenting out a line containing a variable leaves the tail of it
-rendering — `{{! [b]{{TITLE}}[/b] }}` really does emit `[/b] }}`. A section on a
+rendering — <code v-pre>{{! [b]{{TITLE}}[/b] }}</code> really does emit `[/b] }}`. A section on a
 name nothing fills renders nothing whatever its body holds, and the
 standalone-line rule removes the two markers cleanly, so switching a block off
 and on again gives the template back unchanged.
@@ -78,7 +78,7 @@ The **Variables** pane lists every name the generator can fill,
 grouped, with a description. Clicking one inserts it at the
 cursor. Names outside that list are flagged as you type — an
 unknown variable renders empty rather than erroring, so a typo
-like `{{TITRE}}` would otherwise be invisible until the listing
+like <code v-pre>{{TITRE}}</code> would otherwise be invisible until the listing
 came out short.
 
 **Category** (`Universal` / `Video`) records what a template's variables

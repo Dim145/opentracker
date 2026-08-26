@@ -1,0 +1,23 @@
+{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled .Values.api.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "trackarr.fullname" . }}-api
+  labels:
+    {{- include "trackarr.componentLabels" (dict "ctx" $ "component" "api") | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}{{ toYaml . | nindent 4 }}{{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "trackarr.componentSelectorLabels" (dict "ctx" $ "component" "api") | nindent 6 }}
+  endpoints:
+    - port: metrics
+      path: {{ .Values.metrics.path }}
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout }}
+      # The endpoint is bound to 0.0.0.0 so Prometheus can reach it, which is
+      # exactly the case the API warns about. Authenticate the scrape.
+      bearerTokenSecret:
+        name: {{ include "trackarr.secretName" . }}
+        key: METRICS_AUTH_TOKEN
+{{- end }}

@@ -29,6 +29,7 @@
  */
 import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
+import { NOT_MASKED } from './federation/remoteMask';
 import {
   groupKeyExpr,
   parseGroupKey,
@@ -88,7 +89,10 @@ export const remoteScopeSql: SQL = scopeExpr(REMOTE_COLUMNS);
  * only a hard delete removes them — so the gate has to be applied at read
  * time, exactly as `browse.get.ts` does.
  */
-const ACTIVE_PEER = eq(schema.federationPeers.status, 'active');
+// Active peer AND not locally masked — folded together so every mirror read in
+// this file inherits moderation without each call site having to remember it.
+// `mixedGroups.ts` composes the identical predicate for the merged catalogue.
+const ACTIVE_PEER = sql`${schema.federationPeers.status} = 'active' AND ${NOT_MASKED}`;
 
 export interface RemoteGroupRow {
   key: string;

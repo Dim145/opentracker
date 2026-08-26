@@ -889,7 +889,10 @@ async function fill() {
 .tabular-nums { font-variant-numeric: tabular-nums; }
 
 .dossier-aura {
-  position: absolute;
+  /* fixed, not absolute: the page wrapper is a centred max-width column, so an
+     absolute backdrop was clipped to it and stopped short of the viewport on
+     every side. Matches .shop-bg, which already had this right. */
+  position: fixed;
   top: -2rem;
   left: 50%;
   width: 100vw;

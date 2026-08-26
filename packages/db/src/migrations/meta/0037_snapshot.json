@@ -1,6 +1,6 @@
 {
-  "id": "f9cd5dba-0a4e-4c14-8a7b-e057b9ab7f4e",
-  "prevId": "68f4d8a4-77d9-4f74-92de-7c71281e3a96",
+  "id": "b384786b-f519-4dee-9d37-788cf64d05b4",
+  "prevId": "0af35469-812d-46d6-909a-31271c3a554d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3250,108 +3250,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.remote_category_map": {
-      "name": "remote_category_map",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "remote_slug": {
-          "name": "remote_slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "local_category_id": {
-          "name": "local_category_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "remote_category_map_slug_idx": {
-          "name": "remote_category_map_slug_idx",
-          "columns": [
-            {
-              "expression": "remote_slug",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "remote_category_map_category_idx": {
-          "name": "remote_category_map_category_idx",
-          "columns": [
-            {
-              "expression": "local_category_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "remote_category_map_local_category_id_categories_id_fk": {
-          "name": "remote_category_map_local_category_id_categories_id_fk",
-          "tableFrom": "remote_category_map",
-          "tableTo": "categories",
-          "columnsFrom": [
-            "local_category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "remote_category_map_created_by_users_id_fk": {
-          "name": "remote_category_map_created_by_users_id_fk",
-          "tableFrom": "remote_category_map",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.remote_identity_links": {
       "name": "remote_identity_links",
       "schema": "",
@@ -3621,18 +3519,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "info_hash_v2": {
-          "name": "info_hash_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "content_root_v2": {
-          "name": "content_root_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "name": {
           "name": "name",
           "type": "text",
@@ -3830,21 +3716,6 @@
           "columns": [
             {
               "expression": "info_hash",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "remote_torrents_content_root_v2_idx": {
-          "name": "remote_torrents_content_root_v2_idx",
-          "columns": [
-            {
-              "expression": "content_root_v2",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -5279,18 +5150,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "info_hash_v2": {
-          "name": "info_hash_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "content_root_v2": {
-          "name": "content_root_v2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
@@ -5527,21 +5386,6 @@
           "method": "btree",
           "with": {}
         },
-        "torrents_content_root_v2_idx": {
-          "name": "torrents_content_root_v2_idx",
-          "columns": [
-            {
-              "expression": "content_root_v2",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "torrents_openlibrary_idx": {
           "name": "torrents_openlibrary_idx",
           "columns": [
@@ -5666,7 +5510,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "torrents_category_id_categories_id_fk": {
@@ -7120,12 +6964,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {

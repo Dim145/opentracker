@@ -42,6 +42,7 @@ import { signedGet } from '~~/utils/federation/signing';
 import {
   announceFresh,
   ingestRecord,
+  peerAtGrowthCap,
   unwrap,
 } from '~~/utils/federation/recordSync';
 import { browseMirror } from '~~/utils/federation/browseMirror';
@@ -55,7 +56,9 @@ const PER_PEER_LIMIT = 30;
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireAuthSession(event);
-  await rateLimit(event, RATE_LIMITS.public);
+  // A fan-out that also WRITES: bucket it like local search, not like a public
+  // read. At the public bucket a member could drive 100 fan-outs a minute.
+  await rateLimit(event, RATE_LIMITS.search);
   const me = await db.query.users.findFirst({
     where: eq(schema.users.id, user.id),
     columns: { showAdultContent: true },
@@ -118,6 +121,9 @@ export default defineEventHandler(async (event) => {
     const { peer, res } = s.value;
     if (res.status !== 200 || !Array.isArray(res.data?.records)) continue;
     reachedIds.push(peer.id);
+    // Same ceiling the sync sweep enforces: at the cap we stop GROWING. Without
+    // this, live search is an uncapped ingest path.
+    if (await peerAtGrowthCap(peer.id)) continue;
     const fresh: NonNullable<Awaited<ReturnType<typeof ingestRecord>>['fresh']>[] = [];
     for (const item of res.data.records as unknown[]) {
       try {

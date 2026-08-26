@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -142,27 +143,90 @@ func New(client *redis.Client, keyPrefix string, ttl time.Duration) *Store {
 	return &Store{client: client, prefix: keyPrefix, peerTTL: ttl}
 }
 
+// staleWriteWindowMs bounds how recently the stored snapshot must have been
+// written for a lower-counter write to be treated as an out-of-order duplicate
+// rather than as a client that restarted.
+//
+// 5 s is chosen to sit far above a request round-trip and far below the
+// announce interval (900 s minimum): two announces for one peer inside 5 s are
+// the same moment seen twice, while a client that genuinely restarted and now
+// reports lower totals is minutes away and must be allowed to re-baseline.
+const staleWriteWindowMs = 5000
+
+// setPeerScript writes the peer snapshot unless a FRESHER one is already
+// stored, in which case this write is the stale half of a concurrent pair and
+// is dropped.
+//
+// Why this exists: `Set` used to overwrite unconditionally, so two announces
+// for the same peer handled at the same moment — trivial to arrange once the
+// tracker runs behind a load balancer — could leave the baseline at whichever
+// value happened to land last. A baseline that goes backwards inflates the
+// NEXT delta, which is credited bytes the member never transferred.
+//
+// The guard is deliberately time-scoped rather than a plain "counters may only
+// increase". A monotonic rule would be wrong: a client that restarts reports
+// from zero again, and the handler relies on being able to store that lower
+// value to re-establish a baseline (it forfeits one interval of credit and
+// then resumes). Only a *recent* stored snapshot can be the other half of a
+// concurrent pair, so only a recent one blocks the write.
+//
+// cjson is used to READ the two counters for comparison and nothing else — the
+// value written is the payload Go marshalled, byte for byte. Re-encoding in
+// Lua would round int64 byte counts through a double.
+var setPeerScript = redis.NewScript(`
+local cur = redis.call('HGET', KEYS[1], ARGV[1])
+if cur then
+  local ok, d = pcall(cjson.decode, cur)
+  if ok and type(d) == 'table' then
+    local age = tonumber(ARGV[5]) - (tonumber(d.updatedAt) or 0)
+    if age >= 0 and age <= tonumber(ARGV[6]) then
+      if (tonumber(d.uploaded) or 0) > tonumber(ARGV[3])
+         or (tonumber(d.downloaded) or 0) > tonumber(ARGV[4]) then
+        return 0
+      end
+    end
+  end
+end
+redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+redis.call('EXPIRE', KEYS[1], ARGV[7])
+return 1
+`)
+
 // Set inserts or updates a peer in the swarm and refreshes the TTL.
-// HSet+Expire run in a TxPipeline so they're applied atomically on
-// the Redis side: a server crash between the two commands can't
-// leave the hash without a TTL (which previously caused slow memory
-// leaks on swarms that went idle right after their first peer).
+//
+// HSET and EXPIRE run inside the Lua script above, so they are applied as one
+// step on the Redis side: a crash between the two cannot leave the hash without
+// a TTL (which previously caused slow memory leaks on swarms that went idle
+// right after their first peer). The same script is what drops a stale
+// concurrent write.
 func (s *Store) Set(ctx context.Context, infoHashHex string, p *PeerData) error {
-	p.UpdatedAt = time.Now().UnixMilli()
+	now := time.Now().UnixMilli()
+	p.UpdatedAt = now
 	data, err := json.Marshal(p)
 	if err != nil {
 		return err
 	}
 	key := s.peerKey(infoHashHex)
-	pipe := s.client.TxPipeline()
-	pipe.HSet(ctx, key, p.PeerID, data)
-	pipe.Expire(ctx, key, s.peerTTL)
-	_, err = pipe.Exec(ctx)
+	written, err := setPeerScript.Run(ctx, s.client,
+		[]string{key},
+		p.PeerID, data, p.Uploaded, p.Downloaded,
+		now, staleWriteWindowMs, int(s.peerTTL.Seconds()),
+	).Int()
+	if err != nil {
+		return err
+	}
+	if written == 0 {
+		// Not an error: a concurrent announce already stored a fresher
+		// snapshot for this peer, so ours is the one to drop.
+		slog.Debug("peers: skipped a stale concurrent write",
+			"info_hash", infoHashHex, "peer_id", p.PeerID)
+		return nil
+	}
 	// Invalidate the (seeders, leechers) cache for this swarm so a
 	// stopped-and-restarted peer surfaces in counts immediately
 	// instead of waiting out the cache TTL.
 	s.invalidateCounts(infoHashHex)
-	return err
+	return nil
 }
 
 // Get returns nil if the peer is unknown or the stored JSON is unreadable.

@@ -6,9 +6,10 @@
  * (best-effort, requires the `social` scope). Read-only — to comment, the
  * user follows the link back to the source instance.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
+import { NOT_MASKED } from '~~/utils/federation/remoteMask';
 import {
   getFederationConfig,
   getPrivateKeyPem,
@@ -30,7 +31,10 @@ export default defineEventHandler(async (event) => {
   const [rt] = await db
     .select()
     .from(schema.remoteTorrents)
-    .where(eq(schema.remoteTorrents.id, id))
+    // A moderator's mask hides a mirrored release from every read path — this
+    // one included, or a direct link would still serve what the flat browse,
+    // the merged catalogue and the feeds all refuse to show.
+    .where(and(eq(schema.remoteTorrents.id, id), NOT_MASKED))
     .limit(1);
   if (!rt) throw createError({ statusCode: 404, message: 'Federated torrent not found' });
 
