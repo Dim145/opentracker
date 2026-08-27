@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizePrefix, resolveObjectKey } from '../utils/storage/keys';
+import { servedObjectHeaders } from '../utils/storage/served';
 
 // The one piece of the storage abstraction that is load-bearing for security.
 //
@@ -151,5 +152,74 @@ describe('normalizePrefix', () => {
     expect(() => normalizePrefix('../other')).toThrow(/must not contain/);
     expect(() => normalizePrefix('uploads/../other')).toThrow(/must not contain/);
     expect(() => normalizePrefix('./uploads')).toThrow(/must not contain/);
+  });
+});
+
+describe('the headers a served object gets', () => {
+  // T2: neither read route was tested, and the two kept their own copies of
+  // this policy — which had already drifted on the MIME map AND on what
+  // happens for an extension neither knew. Pure function, so it is testable
+  // without a Nitro event, a storage backend or a running server.
+
+  it('maps every type the tracker actually writes', () => {
+    for (const [name, type] of [
+      ['logo-abc.png', 'image/png'],
+      ['poster.jpg', 'image/jpeg'],
+      ['poster.jpeg', 'image/jpeg'],
+      ['banner.webp', 'image/webp'],
+      ['anim.gif', 'image/gif'],
+      ['favicon.ico', 'image/x-icon'],
+      ['art.avif', 'image/avif'],
+      ['release.torrent', 'application/x-bittorrent'],
+      ['logo.svg', 'image/svg+xml'],
+    ] as const) {
+      expect(servedObjectHeaders(name)['Content-Type'], name).toBe(type);
+    }
+  });
+
+  it('falls back to octet-stream rather than to nothing', () => {
+    // `/uploads/:name` used to set no Content-Type at all here, while its
+    // sibling defaulted to octet-stream. `.ico` (written by favicon.post.ts)
+    // and `.gif` fell in that hole on one route and not the other.
+    for (const name of ['thing.bin', 'noextension', 'archive.tar.zst', '']) {
+      expect(servedObjectHeaders(name)['Content-Type']).toBe(
+        'application/octet-stream',
+      );
+    }
+  });
+
+  it('is case-insensitive about the extension', () => {
+    expect(servedObjectHeaders('LOGO.PNG')['Content-Type']).toBe('image/png');
+  });
+
+  it('always forbids sniffing', () => {
+    // The header that makes the octet-stream fallback safe: without it a
+    // browser may sniff HTML out of the bytes and treat the response as a
+    // same-origin document.
+    for (const name of ['a.png', 'b.svg', 'c.bin', 'd']) {
+      expect(servedObjectHeaders(name)['X-Content-Type-Options']).toBe('nosniff');
+    }
+  });
+
+  it('sandboxes an SVG, and only an SVG', () => {
+    // An SVG is raw XML served same-origin, so a hostile one carrying inline
+    // <script>/onload would execute if a victim opened the file URL directly.
+    const svg = servedObjectHeaders('logo.svg');
+    expect(svg['Content-Security-Policy']).toBe(
+      "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+    );
+    expect(svg['Content-Type']).toBe('image/svg+xml');
+
+    for (const name of ['a.png', 'b.bin', 'c.torrent']) {
+      expect(servedObjectHeaders(name)['Content-Security-Policy']).toBeUndefined();
+    }
+  });
+
+  it('reads the extension from the last dot, not the first', () => {
+    // A key like `logo.dark.svg` has to sandbox, and `evil.svg.png` must not be
+    // treated as an SVG.
+    expect(servedObjectHeaders('logo.dark.svg')['Content-Security-Policy']).toBeTruthy();
+    expect(servedObjectHeaders('evil.svg.png')['Content-Security-Policy']).toBeUndefined();
+    expect(servedObjectHeaders('evil.svg.png')['Content-Type']).toBe('image/png');
   });
 });

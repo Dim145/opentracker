@@ -22,6 +22,7 @@
 
 import { readOptionalSecret, readSecret } from '../secrets';
 import { FilesystemStorage, defaultUploadsDir } from './fsDriver';
+import { redactUrl } from './keys';
 import { S3Storage } from './s3Driver';
 import type { ObjectStorage, StorageDriverName } from './types';
 
@@ -87,7 +88,7 @@ function buildS3Storage(): S3Storage {
     // `new URL` throws a bare "Invalid URL" that names nothing. Say which
     // variable, and what it is missing — a scheme, nine times out of ten.
     throw new Error(
-      `S3_ENDPOINT is not a valid URL: "${endpoint}". ` +
+      `S3_ENDPOINT is not a valid URL: "${redactUrl(endpoint!)}". ` +
         'It needs a scheme, e.g. https://s3.eu-west-3.amazonaws.com'
     );
   }
@@ -96,7 +97,7 @@ function buildS3Storage(): S3Storage {
   // Catch the missing scheme here, where we can name the variable.
   if (parsedEndpoint.protocol !== 'http:' && parsedEndpoint.protocol !== 'https:') {
     throw new Error(
-      `S3_ENDPOINT is not a valid URL: "${endpoint}". ` +
+      `S3_ENDPOINT is not a valid URL: "${redactUrl(endpoint!)}". ` +
         'It needs an http:// or https:// scheme, e.g. http://rustfs-svc:9000'
     );
   }

@@ -76,12 +76,34 @@ environment:
 
 `S3_SESSION_TOKEN` is read the same way, for temporary STS credentials.
 
+### Set `S3_PREFIX` if the bucket holds anything else
+
+The two read routes are unauthenticated by design — they serve the logo, the
+favicon and the poster art a browser fetches before anyone has logged in — and
+what they will serve is *the bucket, under the prefix*. With no prefix set, that
+is the whole bucket: `GET /api/uploads/<key>` reads any object in it.
+
+Nothing of the tracker's own is guessable (its keys are
+`logo-<16 hex>.png` and the like), so this is not an exposure of tracker data.
+It is an exposure of anything **else** sharing the bucket, whose keys somebody
+may well know. So:
+
+- give the tracker its own bucket, or
+- set `S3_PREFIX=trackarr/` and keep everything else outside it.
+
+Either is one line. Sharing a bucket with no prefix is the one arrangement to
+avoid.
+
 ### What the credentials need to be allowed to do
 
 `GetObject`, `PutObject` and `DeleteObject` on the bucket, plus `CreateBucket`
 only if `S3_CREATE_BUCKET=true`. Nothing lists, nothing reads bucket policy,
 nothing touches versioning. A policy scoped to `arn:aws:s3:::bucket/*` is
 enough — add `arn:aws:s3:::bucket` itself only for bucket creation.
+
+Scoping the policy to the prefix instead — `arn:aws:s3:::bucket/trackarr/*` —
+enforces the paragraph above at the credential rather than at the config, which
+is the stronger version of it.
 
 ## Kubernetes
 
@@ -215,7 +237,7 @@ tracker's health probe and every page the web tier renders.
 | Works with `curl`, `403` from the API | `S3_FORCE_PATH_STYLE` — a path-style request to a virtual-hosted-only endpoint signs a different host than it reaches |
 | Uploads succeed, reads 404 | `S3_PREFIX` differs from the value in force when the file was written |
 | `STORAGE_DRIVER=s3 but S3_ENDPOINT … not set` | exactly what it says; each name in that message also accepts `<NAME>_FILE` |
-| Timeouts under load | `S3_TIMEOUT_MS` (default 30 000) is per request, and the store is on the critical path of a page render |
+| Timeouts under load | `S3_TIMEOUT_MS` (default 30 000) is per request — connect and headers — and the store is on the critical path of a page render. It deliberately stops applying once the response headers are in, so a slow *client* downloading a large object is not aborted mid-stream |
 
 ## Implementation notes
 

@@ -1,5 +1,6 @@
 import { getStorage } from '~~/utils/storage';
 import { resolveObjectKey } from '~~/utils/storage/keys';
+import { servedObjectHeaders } from '~~/utils/storage/served';
 
 /**
  * GET /uploads/[name]
@@ -34,33 +35,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'File not found' });
   }
 
-  // Set appropriate headers
-  const ext = name.split('.').pop()?.toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    svg: 'image/svg+xml',
-    webp: 'image/webp',
-  };
-
-  if (ext && mimeTypes[ext]) {
-    setHeader(event, 'Content-Type', mimeTypes[ext]);
-  }
-
-  // Never let the browser sniff a different (e.g. HTML) type.
-  setHeader(event, 'X-Content-Type-Options', 'nosniff');
-  // SVGs are uploaded by admins as raw XML and served same-origin;
-  // a hostile SVG can carry inline <script>/onload that would run
-  // if a victim navigates to the file URL directly. Lock such a
-  // document down so it can render as a picture but can never
-  // execute script or load anything external (finding: SVG XSS).
-  if (ext === 'svg') {
-    setHeader(
-      event,
-      'Content-Security-Policy',
-      "default-src 'none'; style-src 'unsafe-inline'; sandbox"
-    );
+  // Content type, nosniff and the SVG sandbox, from one place shared with the
+  // `/api` sibling — the two used to keep their own copies and had drifted.
+  for (const [name_, value] of Object.entries(servedObjectHeaders(name))) {
+    setHeader(event, name_, value);
   }
 
   if (object.size !== undefined) {

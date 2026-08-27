@@ -110,3 +110,31 @@ export function normalizePrefix(prefix: string | undefined): string {
   }
   return `${trimmed}/`;
 }
+
+/**
+ * A configured URL, safe to print.
+ *
+ * `S3_ENDPOINT` is operator-supplied and nothing stops it being written
+ * `https://KEY:SECRET@host` — a shape that would not authenticate against S3
+ * anyway, but would land in the logs and in error messages the moment anything
+ * described the driver. The contract on `ObjectStorage.describe()` says no
+ * secrets; this is what makes that true rather than trusted.
+ *
+ * Defensive about parsing on purpose: the callers that most want this are the
+ * ones reporting that the value is NOT a valid URL.
+ */
+export function redactUrl(raw: string): string {
+  try {
+    const url = new URL(raw);
+    if (!url.username && !url.password) return raw; // nothing to hide
+    url.username = '';
+    url.password = '';
+    // `toString()` rather than `raw` here: the point is to print the value
+    // WITHOUT what was stripped, and it normalises the URL in passing, which
+    // matters not at all next to that.
+    return `${url.toString()} (credentials removed)`;
+  } catch {
+    // Unparseable. Strip anything shaped like userinfo and say so.
+    return raw.replace(/\/\/[^/@\s]*@/, '//<redacted>@');
+  }
+}

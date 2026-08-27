@@ -40,7 +40,7 @@
  * `fetch` with a timeout is correct here.
  */
 
-import { normalizePrefix } from './keys';
+import { normalizePrefix, redactUrl } from './keys';
 import {
   EMPTY_PAYLOAD_SHA256,
   encodeObjectPath,
@@ -121,7 +121,7 @@ export class S3Storage implements ObjectStorage {
   describe(): string {
     const style = this.config.forcePathStyle ? 'path-style' : 'virtual-hosted';
     const prefix = this.prefix ? ` prefix=${this.prefix}` : '';
-    return `s3 ${this.config.endpoint} bucket=${this.config.bucket} region=${this.config.region} ${style}${prefix}`;
+    return `s3 ${redactUrl(this.config.endpoint)} bucket=${this.config.bucket} region=${this.config.region} ${style}${prefix}`;
   }
 
   /**
@@ -179,16 +179,40 @@ export class S3Storage implements ObjectStorage {
       credentials: this.config.credentials,
     });
 
-    return fetch(url, {
-      method,
-      headers: signed,
-      body: options.body as BodyInit | undefined,
-      signal: AbortSignal.timeout(this.config.timeoutMs),
-      // Sign one URL and send that URL. A redirect would be re-issued against
-      // a host the signature does not cover, so it would fail anyway — better
-      // to say so than to emit a confusing 403 from somewhere else.
-      redirect: 'error',
-    });
+    // `S3_TIMEOUT_MS` is a deadline on the REQUEST, and it has to stop being
+    // one the moment the headers are in.
+    //
+    // `AbortSignal.timeout()` attached to the fetch stays attached to the
+    // response BODY, and `get()` hands that body straight to the client. So the
+    // deadline was really being applied to the download: a visitor on a slow
+    // connection fetching a 5 MB image had the stream aborted at 30 s through
+    // backpressure — after the 200 and the headers were already flushed, so it
+    // could not even degrade to an error. Below ~170 KB/s no large object was
+    // reachable at all, and nothing in the logs said why.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.config.timeoutMs);
+    try {
+      return await fetch(url, {
+        method,
+        headers: {
+          ...signed,
+          // Not signed (added after `signRequest`, so it is not in
+          // `SignedHeaders`): a proxy rewriting it must not invalidate the
+          // signature. See `get()` for why we ask for no encoding at all.
+          'accept-encoding': 'identity',
+        },
+        body: options.body as BodyInit | undefined,
+        signal: controller.signal,
+        // Sign one URL and send that URL. A redirect would be re-issued against
+        // a host the signature does not cover, so it would fail anyway — better
+        // to say so than to emit a confusing 403 from somewhere else.
+        redirect: 'error',
+      });
+    } finally {
+      // Headers are in, or the fetch threw. Either way the request is over and
+      // whatever happens to the body next is not this timeout's business.
+      clearTimeout(timer);
+    }
   }
 
   private async fail(
@@ -196,7 +220,16 @@ export class S3Storage implements ObjectStorage {
     key: string,
     response: Response
   ): Promise<never> {
-    const body = await response.text().catch(() => '');
+    // The request deadline is cleared once the headers arrive (see `send`), so
+    // this read needs its own bound — otherwise a store that answers 500 and
+    // then dribbles the body holds a request handler open indefinitely. Five
+    // seconds is generous for an error document; past that the status code is
+    // the whole of the diagnosis.
+    const body = await Promise.race([
+      response.text(),
+      new Promise<string>((resolve) => setTimeout(() => resolve(''), 5_000)),
+    ]).catch(() => '');
+    await response.body?.cancel().catch(() => {});
     const code = parseErrorCode(body);
     throw new S3StorageError(
       `S3 ${action} of "${key}" failed: ${response.status} ${response.statusText}${
@@ -219,7 +252,23 @@ export class S3Storage implements ObjectStorage {
       return this.fail('read', key, response);
     }
 
-    const length = response.headers.get('content-length');
+    // `content-length` is only the size of what the caller will receive when
+    // the body was not compressed in transit.
+    //
+    // undici adds `accept-encoding: gzip, deflate` of its own accord and then
+    // transparently decompresses, leaving the COMPRESSED length in the header —
+    // which the read routes echo as their outgoing `Content-Length`. Measured:
+    // a 4046-byte SVG served gzipped reports `content-length: 86`, and the
+    // client gets 86 bytes with a 200 and a year of `immutable` caching over the
+    // top. Any gzipping proxy in front of the store does it, and so does an
+    // object stored with `Content-Encoding: gzip`.
+    //
+    // `send()` asks for `identity` to stop it happening; this ignores the
+    // header if it happened anyway. A missing size is handled everywhere —
+    // the route simply omits `Content-Length` and the response is chunked.
+    const encoding = response.headers.get('content-encoding');
+    const encoded = !!encoding && encoding.toLowerCase() !== 'identity';
+    const length = encoded ? null : response.headers.get('content-length');
     return {
       body: response.body,
       size: length ? Number(length) : undefined,

@@ -229,6 +229,97 @@ describe('S3Storage — request shape', () => {
     expect(headers['content-type']).toBe('image/png');
   });
 
+  describe('what get() reports about the body it hands over', () => {
+    it('ignores content-length when the response was compressed', async () => {
+      // The bug that served a truncated file with a 200 and a year of
+      // `immutable` caching on top. undici adds `accept-encoding: gzip,
+      // deflate` itself and transparently decompresses, leaving the COMPRESSED
+      // length in the header — which the read routes echo as their outgoing
+      // `Content-Length`. Measured on a real store: a 4046-byte SVG reported
+      // `content-length: 86`, and the client got 86 bytes.
+      fetchMock.mockImplementation(
+        async () =>
+          new Response('decompressed body', {
+            status: 200,
+            headers: {
+              'content-length': '86',
+              'content-encoding': 'gzip',
+              'content-type': 'image/svg+xml',
+            },
+          }),
+      );
+      const storage = new S3Storage(baseConfig);
+      const object = await storage.get('logo.svg');
+
+      expect(object).toBeTruthy();
+      expect(object!.size).toBeUndefined(); // no claim beats a wrong one
+      expect(object!.contentType).toBe('image/svg+xml');
+    });
+
+    it('trusts content-length when the encoding is identity', async () => {
+      fetchMock.mockImplementation(
+        async () =>
+          new Response('body', {
+            status: 200,
+            headers: { 'content-length': '4', 'content-encoding': 'identity' },
+          }),
+      );
+      const storage = new S3Storage(baseConfig);
+      expect((await storage.get('a.bin'))!.size).toBe(4);
+    });
+
+    it('reports no size when the store sends no content-length', async () => {
+      fetchMock.mockImplementation(
+        async () => new Response('chunked body', { status: 200 }),
+      );
+      const storage = new S3Storage(baseConfig);
+      expect((await storage.get('a.bin'))!.size).toBeUndefined();
+    });
+
+    it('asks the store not to compress', async () => {
+      const storage = new S3Storage(baseConfig);
+      fetchMock.mockImplementation(
+        async () => new Response('x', { status: 200 }),
+      );
+      await storage.get('a.bin');
+      expect(lastHeaders()['accept-encoding']).toBe('identity');
+      // …and not by signing it: a proxy rewriting the header must not
+      // invalidate the signature.
+      expect(lastHeaders().authorization).not.toContain('accept-encoding');
+    });
+
+    it('leaves the deadline off the body it hands over', async () => {
+      // `S3_TIMEOUT_MS` is a deadline on the request. It used to be attached to
+      // the fetch as an `AbortSignal.timeout`, which stays attached to the
+      // response BODY — so a slow client reading a large object had the stream
+      // aborted mid-download, after the 200 was already flushed.
+      const storage = new S3Storage(baseConfig);
+      fetchMock.mockImplementation(
+        async () => new Response('x', { status: 200 }),
+      );
+      const object = await storage.get('a.bin');
+
+      const signal = (fetchMock.mock.calls.at(-1)![1] as RequestInit)
+        .signal as AbortSignal;
+      expect(signal.aborted).toBe(false);
+      // The timer is cleared once the headers are in, so nothing can abort the
+      // stream afterwards. Reading it to the end proves it survives.
+      const text = await new Response(object!.body as ReadableStream).text();
+      expect(text).toBe('x');
+    });
+
+    it('turns a 403 read into a legible error, not a null', async () => {
+      fetchMock.mockImplementation(
+        async () =>
+          new Response('<Error><Code>AccessDenied</Code></Error>', {
+            status: 403,
+          }),
+      );
+      const storage = new S3Storage(baseConfig);
+      await expect(storage.get('a.bin')).rejects.toThrow(/AccessDenied/);
+    });
+  });
+
   it('turns a 404 read into null rather than an error', async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 404 }));
     const storage = new S3Storage(baseConfig);

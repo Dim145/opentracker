@@ -161,6 +161,48 @@ describe('SigV4 details that only bite on unusual keys', () => {
     expect(canonicalRequest.split('\n')[2]).toBe('a=1&b=2&c=3');
   });
 
+  it('orders repeated keys by value, as SigV4 requires', () => {
+    // Sorting by key alone left two values under one name in insertion order,
+    // which is a signature that does not match what AWS computes.
+    const { canonicalRequest } = buildCanonicalRequest({
+      method: 'GET',
+      url: new URL('https://example.test/?a=2&a=1&b=0'),
+      headers: { host: 'example.test' },
+      payloadHash: AWS_EXAMPLE.emptyPayload,
+    });
+    expect(canonicalRequest.split('\n')[2]).toBe('a=1&a=2&b=0');
+  });
+
+  it('keeps a percent-encoded plus a plus, rather than turning it into a space', () => {
+    // The dormant half of the same line. `url.searchParams` decodes
+    // form-encoding, in which `+` means space — so a `%2B` came back as ' '
+    // and re-encoded to `%20`: we would sign one string and send another, and
+    // the store would answer 403 with nothing to say about why. The values this
+    // bites are exactly the ones a `list()` would introduce, since continuation
+    // tokens are base64 and base64 contains `+`.
+    const { canonicalRequest } = buildCanonicalRequest({
+      method: 'GET',
+      url: new URL(
+        'https://example.test/?list-type=2&continuation-token=1%2Ba%2Fb%3D',
+      ),
+      headers: { host: 'example.test' },
+      payloadHash: AWS_EXAMPLE.emptyPayload,
+    });
+    const query = canonicalRequest.split('\n')[2]!;
+    expect(query).toBe('continuation-token=1%2Ba%2Fb%3D&list-type=2');
+    expect(query).not.toContain('%20');
+  });
+
+  it('handles a parameter with no value', () => {
+    const { canonicalRequest } = buildCanonicalRequest({
+      method: 'GET',
+      url: new URL('https://example.test/?acl'),
+      headers: { host: 'example.test' },
+      payloadHash: AWS_EXAMPLE.emptyPayload,
+    });
+    expect(canonicalRequest.split('\n')[2]).toBe('acl=');
+  });
+
   it('trims and collapses whitespace in header values', () => {
     const { canonicalRequest } = buildCanonicalRequest({
       method: 'PUT',
