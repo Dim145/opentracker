@@ -29,6 +29,15 @@ const bodySchema = z.object({
   /** Credit model (M4 prerequisite): honour partner contribution attestations. */
   creditEnabled: z.boolean().optional(),
   creditDailyCapBytes: z.coerce.number().int().min(0).max(1024 ** 5).optional(),
+  /** Ceiling for ONE partner, across all members. 0 = unbounded. */
+  creditPeerDailyCapBytes: z.coerce.number().int().min(0).max(1024 ** 5).optional(),
+  /** Ceiling for the whole mesh. 0 = unbounded. */
+  creditInstanceDailyCapBytes: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(1024 ** 5)
+    .optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -72,6 +81,18 @@ export default defineEventHandler(async (event) => {
     await setSetting(
       SETTINGS_KEYS.FEDERATION_CREDIT_DAILY_CAP_BYTES,
       String(body.creditDailyCapBytes),
+    );
+  }
+  if (body.creditPeerDailyCapBytes !== undefined) {
+    await setSetting(
+      SETTINGS_KEYS.FEDERATION_CREDIT_PEER_DAILY_CAP_BYTES,
+      String(body.creditPeerDailyCapBytes),
+    );
+  }
+  if (body.creditInstanceDailyCapBytes !== undefined) {
+    await setSetting(
+      SETTINGS_KEYS.FEDERATION_CREDIT_INSTANCE_DAILY_CAP_BYTES,
+      String(body.creditInstanceDailyCapBytes),
     );
   }
 

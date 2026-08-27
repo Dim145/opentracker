@@ -3043,6 +3043,22 @@ export const federationCreditGrants = pgTable(
     /** Bytes actually credited (after the daily cap clamp). */
     bytes: bigint('bytes', { mode: 'number' }).notNull(),
     reason: text('reason'),
+    /**
+     * The settlement window the attestation claimed, recorded so the NEXT one
+     * can be required to start where this ended.
+     *
+     * Without it the ledger deduplicated on content address alone, which an
+     * honest replay satisfies and a dishonest one walks straight past: move
+     * `periodEnd` by a millisecond and the same real transfer addresses to a
+     * new id, so it is a new row and a second credit. Bounding the period
+     * makes the ledger monotone per (peer, subject) — the same property the
+     * announce path gets from only ever crediting the difference between two
+     * announces, rather than trusting a standalone cumulative total.
+     *
+     * Nullable because rows written before 0043 have no period to record.
+     */
+    periodStart: timestamp('period_start'),
+    periodEnd: timestamp('period_end'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
@@ -3051,6 +3067,15 @@ export const federationCreditGrants = pgTable(
       table.localUserId,
       table.createdAt,
     ),
+    // The high-water mark for one (peer, subject) settlement stream, and — on
+    // its leading column — the per-peer daily sum.
+    index('federation_credit_grants_period_idx').on(
+      table.peerId,
+      table.subjectDid,
+      table.periodEnd,
+    ),
+    // Instance-wide daily minting, across every peer and member.
+    index('federation_credit_grants_created_idx').on(table.createdAt),
   ],
 );
 

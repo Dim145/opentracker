@@ -117,11 +117,31 @@ upload** (never real upload). Honouring it is:
 - **Off by default** (`federation_credit_enabled`) — trusting a partner's word about
   what its users pulled is the operator's call.
 - **Signature-bound** — the attestation must be signed by the sending peer's key.
+- **Relationship-bound** — a partner may only credit a member who has a *proven
+  identity on that partner* (`federated_identities`, verified). Member DIDs travel in
+  every catalogue record, so the list of them is not a secret; without this check one
+  accounts-accepting partner could name every member on the instance and mint the
+  per-member cap for each. This narrows the reach of a dishonest partner from "every
+  member" to "the members who actually cross to it".
+- **Audience-bound** — the attestation names the instance it is for. A member may
+  hold the same key on two instances (that is what portable identity means), so an
+  unaddressed attestation would credit the same bytes on both.
+- **Period-bound** — the settlement window is checked, not just signed. It must
+  advance, end in the past, be no longer than 30 days, carry no more than
+  80 MiB/s × its length (the same rate the announce anti-cheat clamps to), and start
+  where the last window for that (peer, member) ended. That last rule is what makes
+  the ledger monotone: content-address dedup alone let the same real transfer be
+  re-issued with `periodEnd` moved a millisecond, which is a new address and so a
+  second credit.
 - **Idempotent** — the ledger row id *is* the attestation's content address, so a
-  replay credits nothing.
-- **Capped** — bytes credited per member per rolling day are clamped
-  (`federation_credit_daily_cap_bytes`), under a row lock so concurrent attestations
-  cannot race past the ceiling.
+  replay credits nothing, and an exact replay is reported as a duplicate rather than
+  as an overlap.
+- **Ban- and erasure-aware** — neither a banned nor an erased account is credited,
+  matching what the minting side is willing to publish.
+- **Capped three ways** — per member, per peer and instance-wide, each per rolling
+  day, under a row lock so concurrent attestations cannot race past a ceiling. The
+  per-member cap bounds what one account can gain; the other two are the levers for
+  trusting partner A more than partner B, and for bounding total daily minting.
 
 Only the **receiving** half runs today: an attestation that arrives is verified and
 honoured. The sending half exists as a signing-and-delivery function with no caller
@@ -140,10 +160,18 @@ doing nothing on its own.
 | per-torrent `federate_swarm` | off | Opt a torrent into swarm cross-announce (Axis 4). |
 | `federation_credit_enabled` | off | Honour partner contribution attestations. |
 | `federation_credit_daily_cap_bytes` | 50 GiB | Max bonus upload credited per member per day. |
+| `federation_credit_peer_daily_cap_bytes` | 0 (unbounded) | Max bonus upload ONE partner may mint per day, across all members. |
+| `federation_credit_instance_daily_cap_bytes` | 0 (unbounded) | Max bonus upload credited from all partners per day. |
 | `torznab_include_federated` | off | Fold federated releases into Torznab/RSS (magnet, discovery). |
 
 All off by default: the mesh reads before it writes, and nothing touches ratio or a
 machine feed until an operator opts in.
+
+The two peer/instance ceilings default to *unbounded* rather than to a number,
+because a default nobody measured would silently throttle a legitimate mesh on
+upgrade — what was missing was the lever, not a value. Set them from what your
+economy can absorb: a per-peer cap is how you take a partner at less than their
+word, and the instance cap is how you bound the total whatever the mesh claims.
 
 ## Honest limits
 
