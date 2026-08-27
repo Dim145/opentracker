@@ -115,7 +115,7 @@ jobs:
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes "{}@${DIGEST}"
 
 
   build-tracker:
@@ -170,7 +170,7 @@ jobs:
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes "{}@${DIGEST}"
 
 
   build-front-ssr:
@@ -225,7 +225,7 @@ jobs:
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes "{}@${DIGEST}"
 
   build-front:
     runs-on: ubuntu-latest
@@ -279,7 +279,7 @@ jobs:
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes "{}@${DIGEST}"
 
   # Documentation site (VitePress static + distroless nginx).
   # Self-contained npm project under ./doc — context scoped there
@@ -347,7 +347,7 @@ jobs:
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes "{}@${DIGEST}"
 
   # Post-condition: a tag must never exist without five images behind it.
   #

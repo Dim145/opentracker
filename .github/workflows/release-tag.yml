@@ -30,7 +30,16 @@ jobs:
             created: ${{ steps.check_tag.outputs.exists == 'false' }}
 
         steps:
+            # The one checkout in this repository that KEEPS its credentials,
+            # because the job's whole purpose is to push a tag and cut a
+            # Release with them. zizmor flags credential persistence
+            # (`artipacked`) on the grounds that a later step can capture
+            # `.git/config` into an artifact — this job uploads nothing, runs
+            # no third-party action after the checkout, and is gated on a
+            # release/* branch having been merged by someone with write access.
+            # Recorded as a decision rather than left as an unexplained warning.
             - name: Checkout
+              # zizmor: ignore[artipacked]
               uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
               with:
                   fetch-depth: 0
@@ -75,11 +84,16 @@ jobs:
             - name: Check if tag exists
               id: check_tag
               run: |
+                  # Quoted: `$GITHUB_OUTPUT` is a path, and an unquoted one
+                  # word-splits on any space in the runner's temp directory.
+                  # SC2086 flagged it, and the workflow that creates release
+                  # tags is not the place to leave a redirection target to
+                  # chance.
                   if git rev-parse "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
-                    echo "exists=true" >> $GITHUB_OUTPUT
+                    echo "exists=true" >> "$GITHUB_OUTPUT"
                     echo "Tag ${{ steps.version.outputs.version }} already exists"
                   else
-                    echo "exists=false" >> $GITHUB_OUTPUT
+                    echo "exists=false" >> "$GITHUB_OUTPUT"
                   fi
 
             - name: Create and push tag

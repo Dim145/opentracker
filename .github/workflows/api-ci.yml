@@ -1,4 +1,4 @@
-# API CI — TypeScript typecheck and unit tests.
+# API CI — TypeScript typecheck, unit tests and the integration suite.
 #
 # Nothing enforced that apps/api still typechecked. `nitropack build` inside
 # apps/api/Dockerfile is not a gate: it transpiles without checking types, and
@@ -132,6 +132,155 @@ jobs:
         env:
           BASE_DATABASE_URL: postgres://parity:parity@localhost:5432/postgres
         run: pnpm check:schema-parity
+
+  integration:
+    name: integration suite (postgres + redis + object store)
+    runs-on: ubuntu-latest
+    # The suite that was written and then never run by anything.
+    #
+    # `apps/api/scripts/run-integration-tests.sh` existed and no workflow
+    # referenced it, so every `*.itest.ts` was a local-only check — and one of
+    # them degraded WORSE than being skipped: `objectStorage.itest.ts` is gated
+    # on `S3_TEST_ENDPOINT`, which only that script sets, so with the variable
+    # unset it became `describe.skip` and reported success. It is the one test
+    # that proves the bytes we sign are the bytes we send, and it would have
+    # caught a compressed response being served truncated with a 200 and a year
+    # of `immutable` caching.
+    #
+    # Services rather than the shell script: the script starts its own
+    # containers, which cannot reach a job-level service network, and GitHub's
+    # `services` already gives health-gated Postgres and Redis. RustFS runs the
+    # same way, so the S3 suite runs here too instead of skipping.
+    services:
+      postgres:
+        image: postgres:18.6-alpine
+        env:
+          POSTGRES_USER: tracker
+          POSTGRES_PASSWORD: tracker
+          POSTGRES_DB: trackarr
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tracker -d trackarr"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:8.10.1-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      rustfs:
+        # Pinned rather than `:latest`. The suite it serves asserts byte-exact
+        # SigV4 behaviour, so a floating tag is a test that can start failing
+        # for a reason that is not in this repository.
+        image: rustfs/rustfs:1.0.0-rc.3
+        env:
+          RUSTFS_ACCESS_KEY: trackarritest
+          RUSTFS_SECRET_KEY: trackarritestsecret
+          RUSTFS_VOLUMES: /data
+          RUSTFS_ADDRESS: ':9000'
+        ports:
+          - 9000:9000
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The schema declares trigram and full-text indexes that need pg_trgm.
+      # The migrations create the extension; this is what the production image
+      # relies on docker/postgres/init.sql for, and a database without it fails
+      # on gin_trgm_ops rather than on anything legible.
+      - name: Enable pg_trgm
+        env:
+          PGPASSWORD: tracker
+        run: psql -h localhost -U tracker -d trackarr -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;'
+
+      # The same runner the container boots with, not `drizzle-kit migrate`. On
+      # a chain it cannot apply, drizzle-kit prints a spinner and exits 1 naming
+      # neither the migration nor the statement; the migrator underneath throws
+      # the failing query, which is the whole value of the step.
+      - name: Apply the committed migrations
+        env:
+          DATABASE_URL: postgres://tracker:tracker@localhost:5432/trackarr
+          DB_SSL: 'false'
+        run: |
+          cp apps/api/scripts/migrate.mjs packages/db/migrate.mjs
+          node packages/db/migrate.mjs
+          rm -f packages/db/migrate.mjs
+        working-directory: .
+
+      # RustFS answers 403 to an unauthenticated GET / once its API is
+      # listening, which is a fine readiness signal and needs no client.
+      - name: Wait for the object store
+        run: |
+          for _ in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 http://localhost:9000/ || true)
+            if [ -n "$code" ] && [ "$code" != "000" ]; then exit 0; fi
+            sleep 1
+          done
+          echo "rustfs did not start"; exit 1
+
+      - name: Integration tests
+        env:
+          DATABASE_URL: postgres://tracker:tracker@localhost:5432/trackarr
+          DB_SSL: 'false'
+          REDIS_URL: redis://localhost:6379
+          # Explicitly empty. A service container runs `redis-server` with no
+          # `--requirepass`, and the integration vitest config defaults this to
+          # a fake password when it is UNSET — which would make the client send
+          # AUTH to a server that has none and be rejected on every connection.
+          # The client omits `password` when it is falsy, so '' is the value
+          # that means "no authentication" rather than "not configured".
+          REDIS_PASSWORD: ''
+          CHANNEL_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          S3_TEST_ENDPOINT: http://localhost:9000
+          S3_TEST_ACCESS_KEY_ID: trackarritest
+          S3_TEST_SECRET_ACCESS_KEY: trackarritestsecret
+          S3_TEST_BUCKET: trackarr-itest
+        run: |
+          pnpm --filter @trackarr/api exec vitest run \
+            --config vitest.integration.config.ts \
+            --reporter=default --reporter=json --outputFile=/tmp/itest.json
+
+      # A suite that skipped is worse than one that failed: it reports success.
+      # `objectStorage.itest.ts` is gated on `S3_TEST_ENDPOINT` and degraded to
+      # `describe.skip` with no signal for as long as nothing set it, which is
+      # how the one test proving "the bytes we sign are the bytes we send" came
+      # to never run. This asserts it actually did.
+      - name: The object-storage suite must not have skipped
+        run: |
+          node -e '
+            const r = JSON.parse(require("fs").readFileSync("/tmp/itest.json", "utf8"));
+            const f = (r.testResults || []).find((t) =>
+              String(t.name || "").includes("objectStorage.itest"));
+            if (!f) {
+              console.error("objectStorage.itest.ts is not in the report at all.");
+              process.exit(1);
+            }
+            const ran = (f.assertionResults || []).filter(
+              (a) => a.status === "passed" || a.status === "failed").length;
+            if (!ran) {
+              console.error("objectStorage.itest.ts ran 0 tests — it skipped.");
+              process.exit(1);
+            }
+            console.log("objectStorage.itest.ts: " + ran + " test(s) ran.");
+          '
 
   uploads-volume:
     name: uploads volume is writable on a fresh install
