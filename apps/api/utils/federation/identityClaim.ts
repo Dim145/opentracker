@@ -37,7 +37,7 @@
  * when we mirror its catalogue, and no more.
  */
 import { randomUUID } from 'node:crypto';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { didKeyFromPublicKey } from './did';
 import { verifyIdentity } from './identityDoc';
@@ -126,6 +126,17 @@ export async function checkClaim(document: unknown): Promise<ClaimOutcome> {
  * than moving it: whoever holds the file can present it, so a silent takeover
  * of an established link is the worse of the two failures. An operator can
  * unpick a genuine dispute; nobody can unpick one they were never told about.
+ *
+ * The check and the insert are one transaction under an advisory lock on
+ * `(peer, subject)`, because the rule is a read-then-write and the table has no
+ * unique index that expresses it — `federated_identities_unique` is over
+ * `(local_user_id, peer_id, remote_username)`, which says nothing about the
+ * subject DID. Two accounts posting the same leaked document at the same moment
+ * both read "not taken" and both wrote, which is exactly the takeover the
+ * paragraph above says must not happen quietly. A lock rather than a new index:
+ * the constraint is conditional on the OTHER account, so it is not a shape a
+ * unique index states, and adding one over `(peer_id, subject_did)` would fail
+ * to build on any database where the race had already happened.
  */
 export async function recordClaim(
   localUserId: string,
@@ -134,52 +145,59 @@ export async function recordClaim(
   const check = await checkClaim(document);
   if (!check.ok) return check;
 
-  const [taken] = await db
-    .select({ id: schema.federatedIdentities.id })
-    .from(schema.federatedIdentities)
-    .where(
-      and(
-        eq(schema.federatedIdentities.peerId, check.peerId!),
-        eq(schema.federatedIdentities.subjectDid, check.subjectDid!),
-        ne(schema.federatedIdentities.localUserId, localUserId),
-      ),
-    )
-    .limit(1);
-  if (taken) {
-    return { ok: false, reason: 'already linked to another account here' };
-  }
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(7412, hashtext(${`${check.peerId}:${check.subjectDid}`}))`,
+    );
 
-  const row = {
-    status: 'verified',
-    method: 'key',
-    subjectDid: check.subjectDid!,
-    // Kept so the link can be published with its proof attached. A partner's
-    // word that two identifiers are one person is worth what the document it
-    // saw is worth, and only one of those two can be handed on.
-    evidence: document as Record<string, unknown>,
-    remoteUsername: check.remoteUsername!,
-    // A proven link has no code to be pasted anywhere. Leaving a stale one
-    // behind would be a live credential for a flow this one replaces.
-    verifyCode: null,
-    verifiedAt: new Date(),
-  };
+    const [taken] = await tx
+      .select({ id: schema.federatedIdentities.id })
+      .from(schema.federatedIdentities)
+      .where(
+        and(
+          eq(schema.federatedIdentities.peerId, check.peerId!),
+          eq(schema.federatedIdentities.subjectDid, check.subjectDid!),
+          ne(schema.federatedIdentities.localUserId, localUserId),
+        ),
+      )
+      .limit(1);
+    if (taken) {
+      return { ok: false, reason: 'already linked to another account here' };
+    }
 
-  await db
-    .insert(schema.federatedIdentities)
-    .values({
-      id: randomUUID(),
-      localUserId,
-      peerId: check.peerId!,
-      ...row,
-    })
-    .onConflictDoUpdate({
-      target: [
-        schema.federatedIdentities.localUserId,
-        schema.federatedIdentities.peerId,
-        schema.federatedIdentities.remoteUsername,
-      ],
-      set: row,
-    });
+    const row = {
+      status: 'verified',
+      method: 'key',
+      subjectDid: check.subjectDid!,
+      // Kept so the link can be published with its proof attached. A partner's
+      // word that two identifiers are one person is worth what the document it
+      // saw is worth, and only one of those two can be handed on.
+      evidence: document as Record<string, unknown>,
+      remoteUsername: check.remoteUsername!,
+      // A proven link has no code to be pasted anywhere. Leaving a stale one
+      // behind would be a live credential for a flow this one replaces.
+      verifyCode: null,
+      verifiedAt: new Date(),
+    };
 
-  return check;
+    await tx
+      .insert(schema.federatedIdentities)
+      .values({
+        id: randomUUID(),
+        localUserId,
+        peerId: check.peerId!,
+        ...row,
+      })
+      .onConflictDoUpdate({
+        target: [
+          schema.federatedIdentities.localUserId,
+          schema.federatedIdentities.peerId,
+          schema.federatedIdentities.remoteUsername,
+        ],
+        set: row,
+      });
+
+    return check;
+  });
 }
+
