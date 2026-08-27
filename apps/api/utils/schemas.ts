@@ -32,6 +32,15 @@ export const passkeySchema = z
   .length(40, 'Passkey must be exactly 40 characters')
   .regex(/^[a-f0-9]{40}$/, 'Invalid passkey format');
 
+// Hex colour with optional shorthand (`#abc` → `#aabbcc`). The actual storage
+// is the raw value; the FE expands shorthand at render time. Pinning the shape
+// is what keeps an admin-supplied colour from carrying CSS syntax anywhere it
+// is interpolated — a `:style` binding rejects a malformed value wholesale, a
+// generated stylesheet would not.
+export const hexColourSchema = z
+  .string()
+  .regex(/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i, 'Color must be a hex value');
+
 // ============================================================================
 // Auth Schemas (Zero Knowledge Encryption)
 // ============================================================================
@@ -192,7 +201,11 @@ export const adminSettingsSchema = z.object({
   siteLogo: z.string().min(1).max(100).optional(),
   siteLogoImage: z.string().max(500).optional().nullable(),
   siteSubtitle: z.string().max(500).optional().nullable(),
-  siteNameColor: z.string().max(50).optional().nullable(),
+  // Hex-only: this one is served publicly by GET /api/branding and bound into
+  // a style on every page, so it must never be able to hold CSS syntax. Both
+  // '' and null are kept as accepted inputs because settings.put.ts maps
+  // either to the empty stored value that getSiteNameColor() reads as null.
+  siteNameColor: hexColourSchema.or(z.literal('')).optional().nullable(),
   siteNameBold: z.boolean().optional(),
   // Extended branding
   authTitle: z.string().max(500).optional().nullable(),
@@ -261,19 +274,13 @@ export const adminSettingsSchema = z.object({
 // Forum Schemas
 // ============================================================================
 
-// Hex colour with optional shorthand (`#abc` → `#aabbcc`). The actual storage
-// is the raw value; the FE expands shorthand at render time.
-const hexColour = z
-  .string()
-  .regex(/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i, 'Color must be a hex value');
-
 export const forumCategorySchema = z.object({
   name: z.string().min(1, 'Category name is required').max(100),
   description: z.string().max(500).optional().nullable(),
   // The newsroom redesign lets admins paint each category with a hex
   // accent and a Phosphor icon id. Both are optional — if absent the UI
   // falls back to the neutral chrome (`fg-muted` border, list icon).
-  color: hexColour.optional().nullable(),
+  color: hexColourSchema.optional().nullable(),
   icon: z.string().max(64).optional().nullable(),
   order: z.coerce.number().int().min(0).default(0),
 });
