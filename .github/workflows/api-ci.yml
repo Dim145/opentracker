@@ -220,10 +220,14 @@ jobs:
           DATABASE_URL: postgres://tracker:tracker@localhost:5432/trackarr
           DB_SSL: 'false'
         run: |
+          # Copied in and run FROM `packages/db`, not from the root: the
+          # migrator resolves `meta/_journal.json` and `drizzle-orm` relative
+          # to the working directory, so running it in place fails with
+          # "Can't find meta/_journal.json". This is what the API image does —
+          # the Dockerfile lands the script in the db tree it ships.
           cp apps/api/scripts/migrate.mjs packages/db/migrate.mjs
-          node packages/db/migrate.mjs
-          rm -f packages/db/migrate.mjs
-        working-directory: .
+          cd packages/db && node migrate.mjs
+          rm -f migrate.mjs
 
       # RustFS answers 403 to an unauthenticated GET / once its API is
       # listening, which is a fine readiness signal and needs no client.
