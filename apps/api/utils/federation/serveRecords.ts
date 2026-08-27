@@ -39,7 +39,19 @@ export interface ServableRow {
 /** The instance's signing identity, or nothing if it has none yet. */
 export interface Signer {
   did: string;
-  countersign: (recordId: string) => DataIntegrityProof;
+  /**
+   * Both forms of the vouching, for one record.
+   *
+   * `relay` is the bare statement every partner already rebuilds; `audience` is
+   * the same statement naming the recipient, which is what makes the vouch
+   * non-transferable. `audience` is null when we do not know the recipient's
+   * `instanceId` — a peer we have not handshaked with — because a binding to
+   * nobody is worse than none: it would verify at no partner at all.
+   */
+  countersign: (recordId: string) => {
+    relay: DataIntegrityProof;
+    audience: DataIntegrityProof | null;
+  };
 }
 
 /**
@@ -81,6 +93,9 @@ export function wantedIds(raw: unknown): string[] {
  * one" and the only thing that lets the receiver take in a record from an
  * instance it does not federate with. The record itself is never touched — its
  * address covers its content, so a field added in transit would rename it.
+ *
+ * Two countersignatures, not one: see `Signer.countersign`. The pair is what
+ * lets the audience binding ship without a flag day for correctness.
  */
 export function envelopesFor(
   rows: ServableRow[],
@@ -91,11 +106,17 @@ export function envelopesFor(
       if (r.origin === 'local') return true;
       return opts.relaying && r.hops <= 1;
     })
-    .map((r) => ({
-      record: r.body,
-      relay:
-        r.origin === 'local' || !opts.signer
-          ? null
-          : opts.signer.countersign(r.id),
-    }));
+    .map((r) => {
+      if (r.origin === 'local' || !opts.signer) {
+        return { record: r.body, relay: null };
+      }
+      const { relay, audience } = opts.signer.countersign(r.id);
+      // Both go out. The bare one keeps a partner on an older build working;
+      // the bound one is what a current partner prefers and what
+      // `FEDERATION_REQUIRE_AUDIENCE` will one day require. Emitting only the
+      // bound one would break relaying toward every partner that rebuilds the
+      // statement without it — which is why this is additive rather than a
+      // change to the field that already exists.
+      return { record: r.body, relay, relayAudience: audience };
+    });
 }

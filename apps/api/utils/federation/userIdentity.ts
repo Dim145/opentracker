@@ -59,8 +59,21 @@ import { didKeyFromPublicKey } from './did';
  * silently. Restoring it under the migration chain would then have turned that
  * into a thrown unique violation, because a conflict clause naming `did`
  * cannot absorb a violation of a different index.
+ *
+ * ## Null for an erased account, and why that is the important line here
+ *
+ * Erasure revokes every key the member held and publishes the revocations. It
+ * does not, and cannot, stop somebody EDITING one of their still-published
+ * releases afterwards — and that edit bumps `updated_at`, so the mint sweep
+ * picks the torrent up, asks for the uploader's DID, finds no live key, and
+ * used to mint a fresh keypair against the erased account. The member had a
+ * live federated identifier again, their records were republished under it, and
+ * no `Undo` was ever published for it because nothing knew it existed.
+ *
+ * So this refuses. The caller treats the absence the same way it treats an
+ * anonymous upload: the record goes out with no author.
  */
-export async function ensureUserDid(userId: string): Promise<string> {
+export async function ensureUserDid(userId: string): Promise<string | null> {
   const [existing] = await db
     .select({ did: schema.userSigningKeys.did })
     .from(schema.userSigningKeys)
@@ -72,6 +85,15 @@ export async function ensureUserDid(userId: string): Promise<string> {
     )
     .limit(1);
   if (existing) return existing.did;
+
+  // No key, and none may be made: an erased account does not acquire a new
+  // federated identity as a side effect of somebody touching its old work.
+  const [account] = await db
+    .select({ deletedAt: schema.users.deletedAt })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+  if (!account || account.deletedAt) return null;
 
   const kp = generateInstanceKeypair();
   const did = didKeyFromPublicKey(kp.publicKeyPem);
@@ -98,7 +120,7 @@ export async function ensureUserDid(userId: string): Promise<string> {
       ),
     )
     .limit(1);
-  return winner!.did;
+  return winner?.did ?? null;
 }
 
 /**
@@ -129,7 +151,12 @@ export async function ensureUserDids(
 
   const out = new Map(rows.map((r) => [r.userId, r.did]));
   for (const id of wanted) {
-    if (!out.has(id)) out.set(id, await ensureUserDid(id));
+    if (out.has(id)) continue;
+    // Absent from the map is how "no identifier" travels: the projection reads
+    // it as an anonymous upload. An erased account gets no key minted for it,
+    // so it lands here and stays absent.
+    const did = await ensureUserDid(id);
+    if (did) out.set(id, did);
   }
   return out;
 }

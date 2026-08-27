@@ -97,6 +97,20 @@ function exportedFrom(
   );
 }
 
+/**
+ * The same document with the endorsement removed — a keypair proving it holds
+ * itself, and nothing about where the account ever was.
+ */
+function unendorsed(
+  instance: ReturnType<typeof keypair>,
+  subject: ReturnType<typeof keypair>,
+  username = 'Nova',
+) {
+  const doc = exportedFrom(instance, subject, username);
+  delete (doc as Record<string, unknown>)['trackarr:endorsement'];
+  return doc;
+}
+
 async function liveIdentityRecords() {
   return db
     .select()
@@ -187,18 +201,63 @@ describe('what this instance publishes about its members', () => {
     );
   });
 
-  it('retires the assertion when the member unlinks everything', async () => {
-    // Silence is not a retraction to anybody who already holds the record.
+  it('PUBLISHES a retraction when the member unlinks everything', async () => {
+    // Silence is not a retraction to anybody who already holds the record —
+    // which is what this used to be. Setting `superseded_at` locally and
+    // minting nothing meant removing ONE of two links propagated (the shorter
+    // `alsoKnownAs` triggers the partner's stale-drop) while removing the ONLY
+    // one propagated nothing at all, so every partner went on asserting and
+    // relaying that correlation forever. The case where a member most wants the
+    // link gone was the one case that did not travel.
     const user = await makeUser();
     await recordClaim(user, exportedFrom(partner, member));
     await mintIdentityRecords(ctx);
+    const [first] = await liveIdentityRecords();
 
     await db
       .delete(schema.federatedIdentities)
       .where(eq(schema.federatedIdentities.localUserId, user));
 
     expect((await mintIdentityRecords(ctx)).withdrawn).toBe(1);
-    expect(await liveIdentityRecords()).toHaveLength(0);
+
+    // An assertion with an empty `alsoKnownAs`: no new record kind and no new
+    // ingest path, because a partner reading it drops every link it held for
+    // the subject by exactly the mechanism a shortened list already used.
+    const live = await liveIdentityRecords();
+    expect(live).toHaveLength(1);
+    expect(live[0]!.id).not.toBe(first!.id);
+    expect(live[0]!.supersedes).toBe(first!.id);
+    const body = live[0]!.body as Record<string, unknown>;
+    expect(body.alsoKnownAs).toEqual([]);
+    expect(body['trackarr:evidence']).toEqual([]);
+    expect(body['trackarr:subject']).toBe(
+      (first!.body as Record<string, unknown>)['trackarr:subject'],
+    );
+    // …and it still verifies as a record in its own right.
+    expect(verifyRecord(JSON.parse(JSON.stringify(body))).ok).toBe(true);
+  });
+
+  it('does not retract a retraction, every sweep, forever', async () => {
+    // The retraction becomes the live identity record for that subject, and the
+    // member still has no projection — so without an idempotence guard the next
+    // sweep would supersede it with another one, and the one after that too.
+    const user = await makeUser();
+    await recordClaim(user, exportedFrom(partner, member));
+    await mintIdentityRecords(ctx);
+    await db
+      .delete(schema.federatedIdentities)
+      .where(eq(schema.federatedIdentities.localUserId, user));
+    await mintIdentityRecords(ctx);
+    const afterFirst = await liveIdentityRecords();
+
+    expect((await mintIdentityRecords(ctx)).withdrawn).toBe(1);
+    const afterSecond = await liveIdentityRecords();
+
+    // The second pass retires the retraction locally (nothing left to say) and
+    // publishes no further generation.
+    expect(afterFirst).toHaveLength(1);
+    expect(afterSecond).toHaveLength(0);
+    expect((await mintIdentityRecords(ctx)).withdrawn).toBe(0);
   });
 
   it('publishes nothing for a link only proven by a profile bio', async () => {
@@ -286,6 +345,91 @@ describe('taking in a partner\'s assertion', () => {
       'trackarr:subject': SUBJECT,
       alsoKnownAs: [a.did],
       'trackarr:evidence': [exportedFrom(partner, a)],
+    });
+
+    const links = await db.select().from(schema.remoteIdentityLinks);
+    expect(links.map((l) => l.aliasDid)).toEqual([a.did]);
+  });
+
+  it('refuses to let a partner speak about OUR member\u2019s identifier', async () => {
+    // The graft. Indexing the evidence by `v.subject` proves the ALIAS side and
+    // only that side — nothing ever touched `trackarr:subject`. And our
+    // members' subject DIDs are published in every catalogue record we sign, so
+    // the list is not a secret: a partner names one as the subject, invents a
+    // keypair for the alias, self-signs its evidence, and every check passed.
+    // `aliasesOf` treats the relation as symmetric and transitive, so the
+    // attacker's uploads then appeared in that member's federated uploads.
+    const ourMember = keypair();
+    const local = await makeUser('Bob');
+    await db.insert(schema.userSigningKeys).values({
+      did: ourMember.did,
+      userId: local,
+      publicKey: ourMember.publicKeyPem,
+    });
+    const attacker = keypair();
+
+    const kept = await ingestIdentityRecord(peerId, 'sha256:graft', partner.did, {
+      'trackarr:subject': ourMember.did,
+      alsoKnownAs: [attacker.did],
+      'trackarr:evidence': [exportedFrom(partner, attacker)],
+    });
+
+    expect(kept).toBe(0);
+    expect(await db.select().from(schema.remoteIdentityLinks)).toHaveLength(0);
+  });
+
+  it('refuses our member\u2019s identifier as an ALIAS too', async () => {
+    // The mirror image: naming our member as somebody else's alias grafts just
+    // as well, in the other direction.
+    const ourMember = keypair();
+    const local = await makeUser('Bob');
+    await db.insert(schema.userSigningKeys).values({
+      did: ourMember.did,
+      userId: local,
+      publicKey: ourMember.publicKeyPem,
+    });
+
+    const kept = await ingestIdentityRecord(peerId, 'sha256:graft2', partner.did, {
+      'trackarr:subject': SUBJECT,
+      alsoKnownAs: [ourMember.did],
+      'trackarr:evidence': [exportedFrom(partner, ourMember)],
+    });
+
+    expect(kept).toBe(0);
+    expect(await db.select().from(schema.remoteIdentityLinks)).toHaveLength(0);
+  });
+
+  it('refuses evidence nobody endorsed', async () => {
+    // A self-signed document proves possession of a key and says nothing about
+    // where the account was. `verifyIdentity` already computed `endorsedBy` and
+    // reported it; nothing demanded it, so a keypair made ten seconds ago was
+    // sufficient evidence of a past account.
+    const stranger = keypair();
+    const kept = await ingestIdentityRecord(peerId, 'sha256:bare', partner.did, {
+      'trackarr:subject': SUBJECT,
+      alsoKnownAs: [stranger.did],
+      'trackarr:evidence': [unendorsed(partner, stranger)],
+    });
+
+    expect(kept).toBe(0);
+    expect(await db.select().from(schema.remoteIdentityLinks)).toHaveLength(0);
+  });
+
+  it('drops a link a new guard now refuses, rather than merely not renewing it', async () => {
+    const a = keypair();
+    const b = keypair();
+    await ingestIdentityRecord(peerId, 'sha256:one', partner.did, {
+      'trackarr:subject': SUBJECT,
+      alsoKnownAs: [a.did, b.did],
+      'trackarr:evidence': [exportedFrom(partner, a), exportedFrom(partner, b)],
+    });
+    expect(await db.select().from(schema.remoteIdentityLinks)).toHaveLength(2);
+
+    // Same assertion, but b's evidence has lost its endorsement.
+    await ingestIdentityRecord(peerId, 'sha256:two', partner.did, {
+      'trackarr:subject': SUBJECT,
+      alsoKnownAs: [a.did, b.did],
+      'trackarr:evidence': [exportedFrom(partner, a), unendorsed(partner, b)],
     });
 
     const links = await db.select().from(schema.remoteIdentityLinks);
@@ -420,7 +564,7 @@ describe('the catalogue that survives its author', () => {
 
     const identities = await identitiesOfUser(user);
     expect(identities.has(member.did)).toBe(true);
-    expect(identities.has(await ensureUserDid(user))).toBe(true);
+    expect(identities.has((await ensureUserDid(user))!)).toBe(true);
 
     const mine = await db
       .select({ name: schema.remoteTorrents.name })
@@ -623,7 +767,7 @@ describe('a rotation does not orphan the work that came before it', () => {
     // stops being yours, because everything you published is attributed to
     // the identifier you just retired.
     const user = await makeUser();
-    const old = await ensureUserDid(user);
+    const old = (await ensureUserDid(user))!;
     const { did } = await rotateUserKey(user);
 
     const identities = await identitiesOfUser(user);
@@ -650,6 +794,40 @@ describe('a rotation does not orphan the work that came before it', () => {
     expect(await aliasesOf(member.did)).toEqual(
       new Set([member.did, successor]),
     );
+  });
+
+  it('refuses a succession from an issuer with no standing over the identifier', async () => {
+    // The unverified equivalence edge. `succeeded_by` is stored verbatim and
+    // `aliasesOf` joins its two ends in both directions with no issuer
+    // predicate — so a partner publishing
+    // `Undo{object: <victim>, succeededBy: <its own key>}` merged itself into
+    // the victim. Every other reader of that table is issuer-scoped.
+    const beta = keypair();
+    const betaPeer = await makePeer(beta, 'Beta');
+    const victim = keypair();
+    const attacker = keypair();
+
+    // Alpha is the instance that actually vouches for `victim`.
+    const user = await makeUser();
+    await recordClaim(user, exportedFrom(partner, victim));
+
+    // Beta, which has never said anything about `victim`, announces a
+    // successor for it.
+    await ingestRevocation(betaPeer, 'sha256:undo', beta.did, {
+      type: 'Undo',
+      object: victim.did,
+      'trackarr:succeededBy': attacker.did,
+    });
+
+    // Recorded as a withdrawal — that part needs no standing — but not as an
+    // equivalence.
+    const [row] = await db
+      .select()
+      .from(schema.revokedIdentities)
+      .where(eq(schema.revokedIdentities.did, victim.did));
+    expect(row).toBeTruthy();
+    expect(row!.succeededBy).toBeNull();
+    expect(await aliasesOf(victim.did)).not.toContain(attacker.did);
   });
 
   it('does not resurrect the claim a withdrawal tore down', async () => {

@@ -92,6 +92,14 @@ Discover and search partner content without touching swarms.
   one request and one "we agree" — and unlike a watermark it is *proven*
   rather than assumed, so a release that went missing for any reason is
   found and repaired on the next pass instead of never.
+- **The partner drives our work, so the work is budgeted.** A range that is
+  open at an end costs an aggregate over most of the record set — measured at
+  115–145 ms, and 300–465 ms more when the two sides disagree, over 200 000
+  records. Four such ranges per message and 120 per minute per peer, which is
+  five times what a real sync needs (two per message, twelve rounds a tick).
+  Over budget, the expensive ranges come back as `pending` and the initiator
+  re-sends them: a throttled round is *deferred*, never failed, so nothing is
+  lost and no healthy peer ever shows an error for it.
 - **Live mode.** Toggle **Live** on `/federated` to fan out a signed
   `GET /api/federation/search?q=` to every partner in real time
   (time-bounded, best-effort). It answers with the same signed records the
@@ -251,7 +259,7 @@ first enable.
 | Variable                   | Read by | Default           | Purpose                                                              |
 | -------------------------- | ------- | ----------------- | -------------------------------------------------------------------- |
 | `FEDERATION_SYNC_INTERVAL` | api     | `900000` (15 min) | Catalogue-sync cron period (ms). No-op while federation is disabled. The health page's "behind" threshold is `3 ×` this, floored at 15 min — lowering it to sync faster will **not** paint healthy peers amber. |
-| `FEDERATION_REQUIRE_AUDIENCE` | api  | `false`           | Reject inbound S2S signatures that carry no audience binding. Turn on only once every partner runs a build that sends it. |
+| `FEDERATION_REQUIRE_AUDIENCE` | api  | `false`           | Reject inbound S2S signatures — and relay countersignatures — that carry no audience binding. Turn on only once every partner runs a build that sends it. |
 | `TRACKER_FEDERATION_SWARM` | tracker | `false`           | Master switch for swarm cross-announce on the Go tracker.            |
 | `CHANNEL_ENCRYPTION_KEY`   | api     | —                 | Encrypts the instance private key at rest (falls back to `NUXT_SESSION_SECRET`). |
 

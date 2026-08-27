@@ -279,6 +279,29 @@ FEDERATION_REQUIRE_AUDIENCE=true
 
 Setting it while a partner is still on an older version breaks that link.
 
+### The same flag now also covers relay countersignatures
+
+A relay's countersignature — the "I am handing you this one" that lets a record
+from an instance you do not federate with be taken in — used to name only the
+record and the relay. It was therefore transferable: B's introduction to C
+verified at D as well, so C could forward it and have the record admitted as
+though B had handed it over.
+
+It now binds the recipient too, and travels the same way the request signature
+does: **both** forms go out on every relayed record (`relay` and
+`relayAudience`), so a partner on any version keeps working. `unwrap` ignores
+fields it does not know, which is what makes that true in the older direction.
+
+One flag rather than a second one, because it is the same question — has every
+partner upgraded — and two switches for one fact are two things to get out of
+step.
+
+The failure mode if you turn it on early is quieter here than on the request
+signature, and worth knowing: a refused record is recorded as a rejected source,
+so reconciliation stops asking for it. The partner's relayed catalogue simply
+stops growing, with no error anywhere. Check `/admin/federation` shows every
+peer on a current build first.
+
 ## Upgrading from 0.21.x
 
 No required variable was added between 0.21 and 0.26. Two optional ones appeared

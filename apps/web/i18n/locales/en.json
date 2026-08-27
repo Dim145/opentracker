@@ -735,8 +735,10 @@
       "crossSeedNote": "Grouped by matching file names and sizes only — a discovery hint, not a verified-content guarantee.",
       "crossSeedFederatedNote": "The same content on a partner instance. If you have an account there, cross-seed it from the files you already hold — fetched with your own partner passkey.",
       "crossSeedMeshSeeders": "{n} seeders across the mesh",
-      "crossMatchVerified": "verified",
+      "crossMatchVerified": "v2 root",
       "crossMatchHint": "likely",
+      "crossMatchV2Title": "The partner's release declares the same v2 content root as this one. A v2 root is a hash of the content, so it is a strong match — but the value is the partner's own claim about its bytes, not something this tracker verified.",
+      "crossMatchHintTitle": "The file names and sizes match. That is a hint rather than a match: two different releases can share both.",
       "hero": {
         "case": "Release"
       },
@@ -3658,7 +3660,8 @@
       "scope": {
         "record": "This record",
         "infohash": "This infohash",
-        "author": "This uploader"
+        "author": "This uploader",
+        "issuer": "This instance"
       }
     }
   },

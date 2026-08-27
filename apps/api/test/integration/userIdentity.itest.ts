@@ -68,8 +68,8 @@ beforeEach(async () => {
 describe('a member key', () => {
   it('is minted once and then answered from storage', async () => {
     const user = await makeUser();
-    const first = await ensureUserDid(user);
-    const second = await ensureUserDid(user);
+    const first = (await ensureUserDid(user))!;
+    const second = (await ensureUserDid(user))!;
 
     expect(first).toBe(second);
     expect(first).toMatch(/^did:key:z6Mk/);
@@ -85,7 +85,7 @@ describe('a member key', () => {
     // The DID IS the public key. If the two ever drift apart, every signature
     // this member makes verifies against a key nobody can find.
     const user = await makeUser();
-    const did = await ensureUserDid(user);
+    const did = (await ensureUserDid(user))!;
     const [row] = await db
       .select()
       .from(schema.userSigningKeys)
@@ -96,7 +96,7 @@ describe('a member key', () => {
 
   it('survives the encryption at rest', async () => {
     const user = await makeUser();
-    const did = await ensureUserDid(user);
+    const did = (await ensureUserDid(user))!;
 
     const keys = await getUserPrivateKeyPem(user);
     expect(keys!.did).toBe(did);
@@ -163,7 +163,7 @@ describe('a member key', () => {
 describe('the export a member walks away with', () => {
   it('is endorsed by this instance, and says by whom', async () => {
     const user = await makeUser();
-    const did = await ensureUserDid(user);
+    const did = (await ensureUserDid(user))!;
     const keys = await getUserPrivateKeyPem(user);
     const config = await ensureFederationIdentity();
     const instanceDid = didKeyFromPublicKey(config.publicKey!);
@@ -224,7 +224,7 @@ describe('a key the instance does not hold', () => {
     // Their catalogue is attributed to the old identifier. Taking custody must
     // not cost them the work they published before they did.
     const user = await makeUser();
-    const old = await ensureUserDid(user);
+    const old = (await ensureUserDid(user))!;
     const { publicKeyPem, did } = keypair();
 
     await adoptUserKey(user, did, publicKeyPem);
@@ -347,13 +347,13 @@ describe('two mints landing at once', () => {
   it('lets a retired key be replaced', async () => {
     // The index must not forbid succession, or rotating would be impossible.
     const userId = await makeUser('Rotator');
-    const first = await ensureUserDid(userId);
+    const first = (await ensureUserDid(userId))!;
     await db
       .update(schema.userSigningKeys)
       .set({ revokedAt: new Date() })
       .where(eq(schema.userSigningKeys.did, first));
 
-    const second = await ensureUserDid(userId);
+    const second = (await ensureUserDid(userId))!;
     expect(second).not.toBe(first);
 
     const rows = await db
@@ -371,7 +371,7 @@ describe('a revoked identifier cannot be re-adopted', () => {
   // is exactly the divergence revocation is meant to prevent.
   it('refuses adoption of a DID whose key is revoked', async () => {
     const userId = await makeUser('Leaky');
-    const did = await ensureUserDid(userId);
+    const did = (await ensureUserDid(userId))!;
     await db
       .update(schema.userSigningKeys)
       .set({ revokedAt: new Date() })

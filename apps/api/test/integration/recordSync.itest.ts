@@ -1136,7 +1136,7 @@ describe('mesh E2E — v2 content addressing crosses instances', () => {
     const matches = await federatedCrossSeedMatches({
       contentRootV2: root,
       contentSignature: null,
-    });
+    }, { showAdult: true });
     expect(matches.some((m) => m.infoHash === hash && m.matchType === 'v2')).toBe(true);
   });
 });

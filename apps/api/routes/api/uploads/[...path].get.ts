@@ -26,6 +26,7 @@
  */
 import { getStorage } from '~~/utils/storage';
 import { resolveObjectKey } from '~~/utils/storage/keys';
+import { servedObjectHeaders } from '~~/utils/storage/served';
 
 export default defineEventHandler(async (event) => {
   const requested = getRouterParam(event, 'path');
@@ -43,30 +44,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'File not found' });
   }
 
-  // Content type comes from the extension, never from what the backend
-  // reports. It is what the SVG sandbox below keys off, so it has to be
-  // derived from the same string the URL carries.
-  const ext = key.split('.').pop()?.toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    svg: 'image/svg+xml',
-    webp: 'image/webp',
-    gif: 'image/gif',
-  };
-  const contentType = mimeTypes[ext || ''] || 'application/octet-stream';
-  setHeader(event, 'Content-Type', contentType);
-  // Block content sniffing, and sandbox SVGs so a hostile inline
-  // <script>/onload cannot execute if the file URL is opened
-  // directly as a same-origin document (finding: SVG XSS).
-  setHeader(event, 'X-Content-Type-Options', 'nosniff');
-  if (ext === 'svg') {
-    setHeader(
-      event,
-      'Content-Security-Policy',
-      "default-src 'none'; style-src 'unsafe-inline'; sandbox"
-    );
+  // Content type, nosniff and the SVG sandbox, from one place shared with the
+  // `/uploads/:name` sibling — the two used to keep their own copies and had
+  // drifted on both the map and the fallback.
+  for (const [name, value] of Object.entries(servedObjectHeaders(key))) {
+    setHeader(event, name, value);
   }
   if (object.size !== undefined) {
     setHeader(event, 'Content-Length', object.size);

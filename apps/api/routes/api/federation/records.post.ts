@@ -47,7 +47,9 @@ import { didKeyFromPublicKey } from '~~/utils/federation/did';
 const MAX_BODY_BYTES = 128 * 1024;
 
 export default defineEventHandler(async (event) => {
-  const { rawBody } = await verifyInboundS2S(event, 'catalog', {
+  // `peer` is needed as well as the body: a countersignature now names the
+  // instance it is for, and that instance is whoever is asking.
+  const { peer, rawBody } = await verifyInboundS2S(event, 'catalog', {
     post: true,
     maxBodyBytes: MAX_BODY_BYTES,
   });
@@ -91,7 +93,20 @@ export default defineEventHandler(async (event) => {
     relaying,
     signer:
       privateKeyPem && ourDid
-        ? { did: ourDid, countersign: (id) => countersign(id, ourDid, privateKeyPem) }
+        ? {
+            did: ourDid,
+            countersign: (id) => ({
+              relay: countersign(id, ourDid, privateKeyPem),
+              // Null when this peer has no `instanceId` — a link that never
+              // completed a handshake. There is nothing to bind to, and binding
+              // to a guess would produce a proof that verifies nowhere.
+              audience: peer.instanceId
+                ? countersign(id, ourDid, privateKeyPem, {
+                    audience: peer.instanceId,
+                  })
+                : null,
+            }),
+          }
         : null,
   });
 

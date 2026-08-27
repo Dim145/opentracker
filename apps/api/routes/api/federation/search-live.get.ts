@@ -46,7 +46,11 @@ import {
   unwrap,
 } from '~~/utils/federation/recordSync';
 import { browseMirror } from '~~/utils/federation/browseMirror';
-import { relayEnabled, trustedIssuers } from '~~/utils/federation/relay';
+import {
+  blockedIssuers,
+  relayEnabled,
+  trustedIssuers,
+} from '~~/utils/federation/relay';
 import { didKeyFromPublicKey } from '~~/utils/federation/did';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireAuthSession } from '~~/utils/adminAuth';
@@ -109,6 +113,7 @@ export default defineEventHandler(async (event) => {
   // Both read once for the whole fan-out. Asked per record they were two
   // queries each, thirty records a partner, on every search anybody runs.
   const trusted = await trustedIssuers();
+  const blocked = await blockedIssuers();
   const relaying = await relayEnabled();
   // Our own records come back through any relay that carries for us; mirroring
   // them would list our catalogue as somebody else's. See `ingestRecord`.
@@ -125,14 +130,22 @@ export default defineEventHandler(async (event) => {
     // this, live search is an uncapped ingest path.
     if (await peerAtGrowthCap(peer.id)) continue;
     const fresh: NonNullable<Awaited<ReturnType<typeof ingestRecord>>['fresh']>[] = [];
-    for (const item of res.data.records as unknown[]) {
+    // Only as many as we asked for. `limit` is a query parameter and a hostile
+    // partner ignores it; the only other bound was the 16 MB response cap, and
+    // the growth ceiling above is read ONCE per peer, so an oversized page
+    // walked past it. Each item costs an Ed25519 verify plus up to three
+    // writes, on a route any member can trigger.
+    for (const item of (res.data.records as unknown[]).slice(0, PER_PEER_LIMIT)) {
       try {
-        const { record, relay } = unwrap(item);
+        const { record, relay, relayAudience } = unwrap(item);
         const r = await ingestRecord(peer, record, {
           relayProof: relay,
+          relayAudienceProof: relayAudience,
           trusted,
+          blocked,
           relaying,
           ownDid,
+          audienceInstanceId: config!.instanceId,
         });
         rejected += r.rejected;
         if (r.fresh) fresh.push(r.fresh);

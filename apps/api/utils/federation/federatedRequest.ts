@@ -45,8 +45,16 @@ export async function resolveLocalCategoryForRemote(
  */
 export async function openFederatedRequestId(
   infoHash: string,
+  /**
+   * Run inside a caller's transaction when the answer has to be trusted.
+   *
+   * Outside one this is a hint: by the time the caller acts on it another
+   * request may have been raised. The bounty route therefore re-asks under an
+   * advisory lock, in its own transaction, and passes it here.
+   */
+  tx: Pick<typeof db, 'query'> = db,
 ): Promise<string | null> {
-  const existing = await db.query.uploadRequests.findFirst({
+  const existing = await tx.query.uploadRequests.findFirst({
     where: and(
       eq(schema.uploadRequests.federatedInfoHash, infoHash),
       inArray(schema.uploadRequests.status, ['requested', 'filled']),

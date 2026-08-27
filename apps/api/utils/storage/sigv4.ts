@@ -98,11 +98,54 @@ export function buildCanonicalRequest(input: {
   // different string than the wire carries is the classic SigV4 failure.
   const canonicalUri = input.url.pathname || '/';
 
-  const params = [...input.url.searchParams.entries()].sort(([a], [b]) =>
-    a < b ? -1 : a > b ? 1 : 0
-  );
+  // The query string, canonicalised from the RAW `search` rather than from
+  // `searchParams`.
+  //
+  // Two bugs in one line, both dormant only because no request this driver
+  // makes carries a query yet:
+  //
+  //   - `searchParams` decodes application/x-www-form-urlencoded, in which `+`
+  //     means space. So a literal `+` in a value came back as a space and
+  //     re-encoded to `%20` — we would sign one string and send another, which
+  //     is a 403 the store cannot explain. The values this bites are exactly
+  //     the ones a `list` implementation would introduce: continuation tokens
+  //     are base64 and base64 contains `+`.
+  //   - The sort was by key only. SigV4 orders repeated keys by value, so two
+  //     values under one name could be signed in the wrong order.
+  //
+  // Splitting the raw string and decoding with `decodeURIComponent` treats `+`
+  // as itself, which is what a URI query component means by it.
+  //
+  // The contract this puts on callers: build the query with
+  // `encodeURIComponent` (or `uriEncode`), so a literal `+` is on the wire as
+  // `%2B`. SigV4's canonical form is RFC 3986, so a URL that carries a bare `+`
+  // cannot be signed correctly by anyone — AWS re-encodes it to `%2B` on its
+  // side and the signatures part company. Encode at the point the URL is built
+  // and this round trip is exact.
+  const raw = input.url.search.replace(/^\?/, '');
+  const params = raw
+    ? raw.split('&').map((pair) => {
+        const eq = pair.indexOf('=');
+        const [k, v] =
+          eq === -1 ? [pair, ''] : [pair.slice(0, eq), pair.slice(eq + 1)];
+        const decode = (x: string) => {
+          try {
+            return decodeURIComponent(x);
+          } catch {
+            // Not valid percent-encoding. Signing it verbatim is the only
+            // choice that keeps the signed string equal to the sent one.
+            return x;
+          }
+        };
+        return [decode(k), decode(v)] as const;
+      })
+    : [];
   const canonicalQuery = params
-    .map(([k, v]) => `${uriEncode(k)}=${uriEncode(v)}`)
+    .map(([k, v]) => [uriEncode(k), uriEncode(v)] as const)
+    .sort(([ka, va], [kb, vb]) =>
+      ka < kb ? -1 : ka > kb ? 1 : va < vb ? -1 : va > vb ? 1 : 0
+    )
+    .map(([k, v]) => `${k}=${v}`)
     .join('&');
 
   const normalized = Object.entries(input.headers)

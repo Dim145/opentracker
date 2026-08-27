@@ -14,15 +14,24 @@ import { EMPTY_SCOPES } from '~~/utils/federation/scopes';
 import {
   getCreditEnabled,
   getCreditDailyCapBytes,
+  getCreditPeerDailyCapBytes,
+  getCreditInstanceDailyCapBytes,
 } from '~~/utils/federation/credit';
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
 
   const config = await getFederationConfig();
-  const [creditEnabled, creditDailyCapBytes] = await Promise.all([
+  const [
+    creditEnabled,
+    creditDailyCapBytes,
+    creditPeerDailyCapBytes,
+    creditInstanceDailyCapBytes,
+  ] = await Promise.all([
     getCreditEnabled(),
     getCreditDailyCapBytes(),
+    getCreditPeerDailyCapBytes(),
+    getCreditInstanceDailyCapBytes(),
   ]);
   const peers = await db
     .select()
@@ -46,6 +55,10 @@ export default defineEventHandler(async (event) => {
           provisioned: !!(config.instanceId && config.publicKey),
           creditEnabled,
           creditDailyCapBytes,
+          // 0 = unbounded, for both. See `SETTINGS_KEYS` for why they default
+          // that way rather than to a number nobody measured.
+          creditPeerDailyCapBytes: creditPeerDailyCapBytes ?? 0,
+          creditInstanceDailyCapBytes: creditInstanceDailyCapBytes ?? 0,
         }
       : {
           enabled: false,
@@ -60,6 +73,10 @@ export default defineEventHandler(async (event) => {
           provisioned: false,
           creditEnabled,
           creditDailyCapBytes,
+          // 0 = unbounded, for both. See `SETTINGS_KEYS` for why they default
+          // that way rather than to a number nobody measured.
+          creditPeerDailyCapBytes: creditPeerDailyCapBytes ?? 0,
+          creditInstanceDailyCapBytes: creditInstanceDailyCapBytes ?? 0,
         },
     peers: peers.map((p) => ({
       id: p.id,

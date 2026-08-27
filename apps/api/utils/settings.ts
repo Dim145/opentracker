@@ -152,6 +152,17 @@ export const SETTINGS_KEYS = {
   // per rolling day, so a compromised or over-generous partner cannot mint
   // unbounded ratio. Bytes; default set in the reader.
   FEDERATION_CREDIT_DAILY_CAP_BYTES: 'federation_credit_daily_cap_bytes',
+  // Ceiling on bonus bytes ONE PARTNER can mint per rolling day, across all of
+  // our members. The per-member cap above bounds inflation for a member; it
+  // does not bound a partner, whose reach is that cap times the number of our
+  // members it can name. This is the lever for trusting partner A more than
+  // partner B. 0 (default) means no per-peer ceiling.
+  FEDERATION_CREDIT_PEER_DAILY_CAP_BYTES: 'federation_credit_peer_daily_cap_bytes',
+  // Ceiling on bonus bytes credited from ALL partners per rolling day. The
+  // total-inflation lever: whatever the mesh claims, the economy absorbs at
+  // most this per day. 0 (default) means no instance-wide ceiling.
+  FEDERATION_CREDIT_INSTANCE_DAILY_CAP_BYTES:
+    'federation_credit_instance_daily_cap_bytes',
   // ── Upload requests (bounty board) ─────────────────────────
   // Hours a request can sit in `filled` state before the cron
   // auto-validates and pays the filler. 168 h (7 days) is the

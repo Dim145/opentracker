@@ -42,6 +42,7 @@ import {
 import { didKeyFromPublicKey } from '~~/utils/federation/did';
 import {
   PUBLISHABLE,
+  forgetErasedUploaderRecords,
   mintRecords,
   mintTombstone,
   pruneSupersededRecords,
@@ -173,6 +174,12 @@ async function tick(ctx: MintContext): Promise<TickResult> {
     // A member's alias assertion failing must not stop the catalogue.
     console.warn('[CatalogRecords] identity records:', (err as Error).message);
   }
+
+  // Erasure: drop the generations that still named an erased member, now that
+  // the re-mint above has replaced them. Not retention — this one is not
+  // optional and has no window, because the claim it answers is not "old
+  // records cost disk" but "that name should no longer leave this instance".
+  await forgetErasedUploaderRecords();
 
   // Retention: prune superseded generations older than the configured window,
   // if any. Off by default; the sweep only removes tails of a lineage nothing

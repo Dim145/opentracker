@@ -6,7 +6,9 @@ import { didKeyFromPublicKey } from '../../utils/federation/did';
 import { CONTEXT, signRecord, verifyRecord } from '../../utils/federation/record';
 import {
   admit,
+  blockedIssuers,
   countersign,
+  relayStatement,
   countersigner,
   forgetPeerData,
   keepForRelay,
@@ -183,6 +185,200 @@ describe('who we will take a record from', () => {
       .where(eq(schema.federationPeers.id, peerId));
 
     expect((await trustedIssuers()).has(partner.did)).toBe(false);
+  });
+
+  it('refuses a blocked instance\u2019s record however it arrives', async () => {
+    // The hole a block did not close. Removing X from `trustedIssuers` stops
+    // the front door; any still-active partner B that took X's records
+    // first-hand countersigns them and they came in at two hops, under B's
+    // `peer_id`, with X's DID in `issuer`. `forgetPeerData` purged rows keyed
+    // on X's own `peer_id` and never saw those. An operator blocking X over
+    // content they must not host watched it return, every tick, forever.
+    const partner = keypair();
+    const blockedPeer = keypair();
+    await makePeer(partner);
+    const blockedId = await makePeer(blockedPeer);
+    await db
+      .update(schema.federationPeers)
+      .set({ status: 'blocked' })
+      .where(eq(schema.federationPeers.id, blockedId));
+
+    const r = record(blockedPeer);
+    const vouch = countersign(r.id, partner.did, partner.privateKeyPem);
+    const blocked = await blockedIssuers();
+    expect(blocked.has(blockedPeer.did)).toBe(true);
+
+    const pass = admit(blockedPeer.did, r.id, vouch, await trustedIssuers(), {
+      blocked,
+    });
+    expect(pass.ok).toBe(false);
+    expect(pass.reason).toMatch(/blocked/i);
+  });
+
+  it('keeps a suspended partner out of the blocked set', async () => {
+    // Suspension is documented as a reversible pause that keeps everything. It
+    // already removes the peer from `trustedIssuers`; it is not a judgement
+    // about the content, so it does not reach through a relay.
+    const partner = keypair();
+    const peerId = await makePeer(partner);
+    await db
+      .update(schema.federationPeers)
+      .set({ status: 'suspended' })
+      .where(eq(schema.federationPeers.id, peerId));
+
+    expect((await blockedIssuers()).has(partner.did)).toBe(false);
+  });
+
+  it('refuses a vouching that has gone stale', async () => {
+    // A countersignature carried no time bound and `checkProof` never reads
+    // `created`, so one was good forever — and one that is good forever is one
+    // whoever collected it can keep passing around. Our own side mints a fresh
+    // one on every serve, so the window costs nothing.
+    const partner = keypair();
+    await makePeer(partner);
+    const origin = keypair();
+    const r = record(origin);
+
+    const fresh = countersign(r.id, partner.did, partner.privateKeyPem);
+    expect(countersigner(r.id, fresh)).toBe(partner.did);
+
+    for (const created of [
+      new Date(Date.now() - 40 * 60 * 60 * 1000), // most of two days old
+      new Date(Date.now() + 60 * 60 * 1000), // an hour ahead
+    ]) {
+      // Re-signed at that date rather than edited: `created` is inside the
+      // signature (the proof covers its own config), so an edited one would be
+      // rejected for the wrong reason and prove nothing.
+      const dated = countersign(r.id, partner.did, partner.privateKeyPem, {
+        created,
+      });
+      expect(countersigner(r.id, dated)).toBeNull();
+      expect(admit(origin.did, r.id, dated, await trustedIssuers()).ok).toBe(false);
+    }
+  });
+
+  describe('a vouching names the instance it was made for', () => {
+    const OURS = 'our-instance-id';
+    const THEIRS = 'somebody-elses-instance-id';
+
+    it('accepts one bound to us', async () => {
+      const partner = keypair();
+      await makePeer(partner);
+      const origin = keypair();
+      const r = record(origin);
+      const bound = countersign(r.id, partner.did, partner.privateKeyPem, {
+        audience: OURS,
+      });
+
+      const pass = admit(origin.did, r.id, null, await trustedIssuers(), {
+        boundProof: bound,
+        audienceInstanceId: OURS,
+      });
+      expect(pass.ok).toBe(true);
+      expect(pass.hops).toBe(2);
+      expect(pass.via).toBe(partner.did);
+      expect(pass.audienceBound).toBe(true);
+    });
+
+    it('refuses one bound to somebody else — the transfer this closes', async () => {
+      // The residue the freshness bound could not reach. B vouches to C; C
+      // forwards `{record, B's proof}` to us, and we also trust B — so the
+      // record used to be admitted at two hops as though B had handed it to us.
+      // A bound proof is a statement about one recipient, so C has nothing to
+      // forward.
+      const partner = keypair();
+      await makePeer(partner);
+      const origin = keypair();
+      const r = record(origin);
+      const boundElsewhere = countersign(
+        r.id,
+        partner.did,
+        partner.privateKeyPem,
+        { audience: THEIRS },
+      );
+
+      expect(countersigner(r.id, boundElsewhere, OURS)).toBeNull();
+      const pass = admit(origin.did, r.id, null, await trustedIssuers(), {
+        boundProof: boundElsewhere,
+        audienceInstanceId: OURS,
+      });
+      expect(pass.ok).toBe(false);
+    });
+
+    it('does not read the audience out of the proof it is checking', async () => {
+      // A proof that names its own audience proves nothing about who it was
+      // for. The statement is rebuilt with OUR id, so the only proof that
+      // verifies is one made for us.
+      const partner = keypair();
+      await makePeer(partner);
+      const origin = keypair();
+      const r = record(origin);
+      const boundElsewhere = countersign(
+        r.id,
+        partner.did,
+        partner.privateKeyPem,
+        { audience: THEIRS },
+      );
+
+      expect(countersigner(r.id, boundElsewhere, THEIRS)).toBe(partner.did);
+      expect(countersigner(r.id, boundElsewhere, OURS)).toBeNull();
+    });
+
+    it('still takes the bare form, so an older partner keeps working', async () => {
+      // The reason the binding is a SECOND proof. Emitting it in place of the
+      // first would have stopped relaying toward every partner that rebuilds
+      // the statement without it — silently, since a refused record is sourced
+      // as rejected and never asked for again.
+      const partner = keypair();
+      await makePeer(partner);
+      const origin = keypair();
+      const r = record(origin);
+      const bare = countersign(r.id, partner.did, partner.privateKeyPem);
+
+      const pass = admit(origin.did, r.id, bare, await trustedIssuers(), {
+        audienceInstanceId: OURS,
+      });
+      expect(pass.ok).toBe(true);
+      expect(pass.audienceBound).toBe(false);
+    });
+
+    it('prefers the bound proof when both are present', async () => {
+      const partner = keypair();
+      const other = keypair();
+      await makePeer(partner);
+      await makePeer(other, 'Other');
+      const origin = keypair();
+      const r = record(origin);
+
+      const pass = admit(
+        origin.did,
+        r.id,
+        countersign(r.id, other.did, other.privateKeyPem),
+        await trustedIssuers(),
+        {
+          boundProof: countersign(r.id, partner.did, partner.privateKeyPem, {
+            audience: OURS,
+          }),
+          audienceInstanceId: OURS,
+        },
+      );
+      expect(pass.via).toBe(partner.did);
+      expect(pass.audienceBound).toBe(true);
+    });
+
+    it('the bare statement is byte-identical to what it always was', async () => {
+      // The compatibility guarantee, pinned. If `relayStatement` ever starts
+      // emitting the key with a null value instead of omitting it, every
+      // existing partner's verification of the bare proof breaks at once.
+      expect(relayStatement('sha256:abc', 'did:key:zRelay')).toEqual({
+        type: 'Announce',
+        object: 'sha256:abc',
+        'trackarr:issuer': 'did:key:zRelay',
+      });
+      expect(
+        'trackarr:audience' in relayStatement('sha256:abc', 'did:key:zRelay'),
+      ).toBe(false);
+    });
   });
 
   it('never throws on a malformed vouching', async () => {
@@ -454,5 +650,143 @@ describe('tearing a link down actually forgets what it left behind', () => {
       .from(schema.catalogRecords)
       .where(eq(schema.catalogRecords.id, r.id));
     expect(gone).toBeUndefined();
+  });
+
+  describe('who introduced a record, and what cutting them means', () => {
+    it('records the voucher, so the introduction is not anonymous', async () => {
+      // `admit` computed `via` and threw it away. A column nobody writes is a
+      // lever nobody has: with the introduction unrecorded there was no way to
+      // find, mask or purge what one partner had vouched for.
+      const relayPeer = keypair();
+      const origin = keypair();
+      const peerId = await makePeer(relayPeer);
+      const r = record(origin);
+
+      await sourceRecord(
+        r as unknown as Record<string, unknown>,
+        origin.did,
+        2,
+        peerId,
+        true,
+        db,
+        relayPeer.did,
+      );
+
+      const [stored] = await db
+        .select()
+        .from(schema.catalogRecords)
+        .where(eq(schema.catalogRecords.id, r.id));
+      expect(stored!.via).toBe(relayPeer.did);
+      expect(stored!.issuer).toBe(origin.did); // still whoever signed it
+      expect(stored!.hops).toBe(2);
+    });
+
+    it('leaves `via` null on a record taken first-hand', async () => {
+      const origin = keypair();
+      const peerId = await makePeer(origin);
+      const r = record(origin);
+      await sourceRecord(
+        r as unknown as Record<string, unknown>,
+        origin.did,
+        1,
+        peerId,
+        true,
+      );
+
+      const [stored] = await db
+        .select()
+        .from(schema.catalogRecords)
+        .where(eq(schema.catalogRecords.id, r.id));
+      expect(stored!.via).toBeNull();
+    });
+
+    it('cutting the voucher takes down what it introduced, under any peer id', async () => {
+      // The gap `via` exists to close. A record B vouched for arrives under the
+      // RELAY's `peer_id` with B's DID only in `via`, so every delete keyed on
+      // `peer_id` or on `issuer` walked past it — and the re-fetch loop
+      // restored it on the next tick.
+      const voucher = keypair();
+      const carrier = keypair();
+      const origin = keypair();
+      const voucherId = await makePeer(voucher, 'Voucher');
+      const carrierId = await makePeer(carrier, 'Carrier');
+      const r = record(origin);
+
+      // Delivered by the carrier, on the voucher's introduction.
+      await sourceRecord(
+        r as unknown as Record<string, unknown>,
+        origin.did,
+        2,
+        carrierId,
+        true,
+        db,
+        voucher.did,
+      );
+      await db.insert(schema.remoteTorrents).values({
+        id: randomUUID(),
+        peerId: carrierId,
+        remoteId: r.id,
+        recordId: r.id,
+        issuer: origin.did,
+        infoHash: r['bt:infohash_v1'],
+        name: 'Introduced.By.The.Voucher',
+        size: 1000,
+        remoteDetailUrl: 'https://origin.example/t/1',
+        remoteCreatedAt: new Date(),
+      });
+
+      await forgetPeerData(voucherId, { forgetKey: true });
+
+      // Gone: the record, its source row and the mirror row — none of which
+      // were keyed on the peer being cut.
+      expect(
+        await db
+          .select()
+          .from(schema.catalogRecords)
+          .where(eq(schema.catalogRecords.id, r.id)),
+      ).toHaveLength(0);
+      expect(
+        await db
+          .select()
+          .from(schema.remoteTorrents)
+          .where(eq(schema.remoteTorrents.recordId, r.id)),
+      ).toHaveLength(0);
+      expect(
+        await db
+          .select()
+          .from(schema.recordSources)
+          .where(eq(schema.recordSources.recordId, r.id)),
+      ).toHaveLength(0);
+    });
+
+    it('does not touch what another partner introduced', async () => {
+      const cut = keypair();
+      const kept = keypair();
+      const carrier = keypair();
+      const origin = keypair();
+      const cutId = await makePeer(cut, 'Cut');
+      await makePeer(kept, 'Kept');
+      const carrierId = await makePeer(carrier, 'Carrier');
+      const mine = record(origin);
+
+      await sourceRecord(
+        mine as unknown as Record<string, unknown>,
+        origin.did,
+        2,
+        carrierId,
+        true,
+        db,
+        kept.did,
+      );
+
+      await forgetPeerData(cutId, { forgetKey: true });
+
+      const [still] = await db
+        .select()
+        .from(schema.catalogRecords)
+        .where(eq(schema.catalogRecords.id, mine.id));
+      expect(still).toBeTruthy();
+      expect(still!.via).toBe(kept.did);
+    });
   });
 });

@@ -68,6 +68,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const did = await ensureUserDid(me.id);
+  // Only an erased account has no identifier and cannot be given one — which is
+  // an account that cannot reach here, since the auth gate refuses it. Handled
+  // rather than asserted, because the alternative is signing a document whose
+  // subject is `null`.
+  if (!did) {
+    throw createError({
+      statusCode: 409,
+      message: 'This account has no federated identity',
+    });
+  }
   const instanceDid = didKeyFromPublicKey(config.publicKey);
   const claim = {
     did,

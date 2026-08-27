@@ -18,6 +18,13 @@
         <option value="record">{{ $t('mod.masks.scope.record') }}</option>
         <option value="infohash">{{ $t('mod.masks.scope.infohash') }}</option>
         <option value="author">{{ $t('mod.masks.scope.author') }}</option>
+        <!-- Everything an instance signed, whoever hands it to us. Blocking a
+             peer removes it from the trusted issuers, but a still-active
+             partner that took its records first-hand can relay them, and those
+             copies arrive under the RELAY's peer id with the blocked
+             instance's DID as `issuer`. This is the read-path lever for that;
+             `relay.ts` refuses them on the way in. -->
+        <option value="issuer">{{ $t('mod.masks.scope.issuer') }}</option>
       </select>
       <input
         v-model="form.value"
@@ -133,6 +140,9 @@ async function lift(id: string): Promise<void> {
 .masks-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.8rem; border: 1px solid rgb(var(--border) / 0.7); border-radius: 0.5rem; background: rgb(var(--bg-subtle) / 0.4); }
 .masks-scope { text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.05em; padding: 0.15rem 0.45rem; border-radius: 0.3rem; background: rgb(var(--border) / 0.6); color: rgb(var(--fg-muted)); flex: none; }
 .masks-scope--author { background: rgb(var(--warning) / 0.2); color: rgb(var(--warning)); }
+/* An issuer mask hides everything one instance signed, whoever serves it —
+   the widest of the four, so it reads as the strongest. */
+.masks-scope--issuer { background: rgb(var(--danger) / 0.2); color: rgb(var(--danger)); }
 .masks-val { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .masks-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .masks-code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.7rem; color: rgb(var(--fg-subtle)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

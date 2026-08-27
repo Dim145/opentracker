@@ -551,9 +551,15 @@
               <span class="cross-meta-sep">·</span>
               <span class="cross-meta-size">{{ formatSize(m.size) }}</span>
               <span class="cross-meta-sep">·</span>
+              <!-- "v2 root", not "verified": the root is a value the partner
+                   published about its own release, and nothing here checked it
+                   against their bytes. It is a strong match KEY — a v2 root is
+                   a hash of the content — and it is still their claim. The
+                   title says which. -->
               <span
                 class="cross-badge"
                 :class="m.matchType === 'v2' ? 'cross-badge--verified' : 'cross-badge--hint'"
+                :title="m.matchType === 'v2' ? $t('torrents.detail.crossMatchV2Title') : $t('torrents.detail.crossMatchHintTitle')"
               >
                 {{ m.matchType === 'v2' ? $t('torrents.detail.crossMatchVerified') : $t('torrents.detail.crossMatchHint') }}
               </span>

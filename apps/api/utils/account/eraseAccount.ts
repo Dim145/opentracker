@@ -21,13 +21,44 @@
  *      next mint sweep, which reaches the same state from the same rows.
  *   2. The personal rows are deleted: sessions' second factors, passkeys,
  *      trusted devices, notification routes, the social graph, favourites, and
- *      the federated-identity links themselves.
+ *      the federated-identity links themselves. Raw client identifiers kept
+ *      elsewhere are cleared in place — an anti-cheat flag keeps the finding and
+ *      loses the IP and User-Agent that raised it.
  *   3. The account row is scrubbed and stamped `deleted_at`. The cached auth
  *      gate reads that stamp and refuses the account like a missing one, so a
  *      session cookie still in a browser is dead on its next request.
  *
  * Steps 2 and 3 are one transaction: a half-scrubbed account that could still
  * authenticate is the one outcome worse than not starting.
+ *
+ * ## The catalogue, which is where this used to stop short
+ *
+ * The signed records this instance had already published carried the member's
+ * `trackarr:uploaderName` and their author DID, and were served verbatim to any
+ * partner asking for them by id. So the sentence above — a tombstone nobody can
+ * trace back — was true of the database join and false of the catalogue.
+ *
+ * Three things close that. The projection reads an erased account as anonymous,
+ * so a re-mint carries no name and no DID; `ensureUserDid` refuses to mint a
+ * fresh key for an erased account, so the re-mint cannot resurrect the
+ * identifier; and the member's torrents get their `updated_at` bumped here, so
+ * the forward-only mint sweep actually revisits them. The sweep then deletes the
+ * generations that carried the name, once their replacement exists.
+ *
+ * What no amount of this reaches: bytes already handed to a partner. A signed
+ * record is immutable and relayable, so the honest statement is that this stops
+ * US serving the name and publishes a revocation saying the identifier is
+ * retired. It is not a recall.
+ *
+ * ## What is kept, and on what basis
+ *
+ * Not everything touching the account goes. `notifications`, `hnr_tracking`,
+ * `bonus_events`, `invitations` and `reports` survive, attached to the scrubbed
+ * row. Each is either a record of an obligation between the tracker and other
+ * members (a hit-and-run, an invitation tree, a report somebody else filed) or
+ * part of the economy's audit trail, and none of them holds a raw identifier
+ * once step 2 has run. Stated here because an unstated retention is
+ * indistinguishable from an oversight.
  */
 import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -117,15 +148,44 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
         ),
       );
 
+    // 2b. Anything that ties a raw client identifier to the person. An
+    // anti-cheat flag carries the IP and the User-Agent of the announce that
+    // raised it, which is personal data by any reading and was being kept past
+    // the account it described. The flags themselves are moderation history, so
+    // the row survives with the identifiers cleared rather than being deleted:
+    // "this account was flagged for cross-seeding" stays true and traceable to
+    // nobody.
+    await tx
+      .update(schema.anticheatFlags)
+      .set({ ip: null, userAgent: null })
+      .where(eq(schema.anticheatFlags.userId, userId));
+
+    // 2c. Move the member's releases forward in the mint sweep's clock.
+    //
+    // The sweep walks `coalesce(updated_at, created_at)` forward only, so a
+    // record already minted is never re-read unless the torrent moves — and
+    // erasure changes what the projection SAYS about it (no uploader name, no
+    // author DID) without touching the torrent. Without this bump the released
+    // catalogue keeps naming the member forever. Same mechanism the panic
+    // switch uses, for the same reason.
+    await tx
+      .update(schema.torrents)
+      .set({ updatedAt: now })
+      .where(eq(schema.torrents.uploaderId, userId));
+
     // 3. Scrub the row itself. The passkey is rotated to a fresh unusable value
     // so any announce URL the member kept stops working; the SRP material is
     // replaced with random bytes no client can reproduce; the profile text and
     // the last-seen IP are cleared. `deleted_at` is the gate the rest keys on.
-    // The username must stay unique and non-null — the account id is both.
+    //
+    // The username must stay unique and non-null, and it used to be
+    // `deleted-<account id>` — which published the internal primary key as a
+    // public username, for no gain: a random suffix satisfies the same
+    // constraint and identifies nothing.
     await tx
       .update(schema.users)
       .set({
-        username: `deleted-${userId}`,
+        username: `deleted-${randomBytes(12).toString('hex')}`,
         displayName: null,
         bio: null,
         lastIp: null,

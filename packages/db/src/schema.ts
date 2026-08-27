@@ -1173,6 +1173,21 @@ export const catalogRecords = pgTable(
      * that is precisely the case the bound exists for.
      */
     hops: integer('hops').notNull().default(0),
+    /**
+     * The instance that vouched for this copy — the countersigner's `did:key`.
+     *
+     * Null for our own records and for one we took first-hand: nobody had to
+     * introduce it. Set only on a relayed copy, where it is the answer to "on
+     * whose word did we take this in".
+     *
+     * `admit` computed this and threw it away, and the absence had a cost.
+     * Cutting a peer purged the rows under ITS `peer_id`, but a record it
+     * vouched for arrives under the RELAY's `peer_id` — so the introduction
+     * survived the instance that made it, with nothing left to find it by.
+     * Same shape as the `issuer` gap: a column nobody wrote is a lever nobody
+     * has.
+     */
+    via: text('via'),
     /** The signed object, exactly as it goes on the wire. */
     body: jsonb('body').$type<Record<string, unknown>>().notNull(),
     /**
@@ -3043,6 +3058,22 @@ export const federationCreditGrants = pgTable(
     /** Bytes actually credited (after the daily cap clamp). */
     bytes: bigint('bytes', { mode: 'number' }).notNull(),
     reason: text('reason'),
+    /**
+     * The settlement window the attestation claimed, recorded so the NEXT one
+     * can be required to start where this ended.
+     *
+     * Without it the ledger deduplicated on content address alone, which an
+     * honest replay satisfies and a dishonest one walks straight past: move
+     * `periodEnd` by a millisecond and the same real transfer addresses to a
+     * new id, so it is a new row and a second credit. Bounding the period
+     * makes the ledger monotone per (peer, subject) — the same property the
+     * announce path gets from only ever crediting the difference between two
+     * announces, rather than trusting a standalone cumulative total.
+     *
+     * Nullable because rows written before 0043 have no period to record.
+     */
+    periodStart: timestamp('period_start'),
+    periodEnd: timestamp('period_end'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
@@ -3051,6 +3082,15 @@ export const federationCreditGrants = pgTable(
       table.localUserId,
       table.createdAt,
     ),
+    // The high-water mark for one (peer, subject) settlement stream, and — on
+    // its leading column — the per-peer daily sum.
+    index('federation_credit_grants_period_idx').on(
+      table.peerId,
+      table.subjectDid,
+      table.periodEnd,
+    ),
+    // Instance-wide daily minting, across every peer and member.
+    index('federation_credit_grants_created_idx').on(table.createdAt),
   ],
 );
 

@@ -12,7 +12,7 @@
  * hold an account on that partner — the people most able to fill — are notified
  * first.
  */
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
@@ -90,8 +90,31 @@ export default defineEventHandler(async (event) => {
   const peerName = peer.displayName || peer.baseUrl || 'a partner';
 
   const requestId = randomUUID();
+  let deduped: string | null = null;
   try {
     await db.transaction(async (tx) => {
+      // Serialise on the infohash and re-check inside the transaction.
+      //
+      // The dedup above is a read-then-write, and
+      // `upload_requests_federated_info_hash_idx` is a plain index — it makes
+      // the read fast and enforces nothing — so two clicks a few milliseconds
+      // apart both read "no open request" and both raised a bounty. No points
+      // were minted (the escrow is atomic), so this is a product wart rather
+      // than a money bug: two competing bounties for one release, splitting
+      // attention and any reward.
+      //
+      // A lock rather than a unique index, because the rule is conditional on
+      // `status` — a cancelled request must not block a new one — and a partial
+      // unique index would fail to build on any database where the race had
+      // already happened.
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(7413, hashtext(${row.infoHash}))`,
+      );
+      const raced = await openFederatedRequestId(row.infoHash, tx);
+      if (raced) {
+        deduped = raced;
+        return;
+      }
       if (body.rewardPoints > 0) {
         await holdReward(tx, user.id, body.rewardPoints);
       }
@@ -114,6 +137,10 @@ export default defineEventHandler(async (event) => {
     }
     throw err;
   }
+
+  // Lost the race inside the transaction: hand back the bounty that won, which
+  // is what the pre-transaction check would have done a moment earlier.
+  if (deduped) return { id: deduped, deduped: true };
 
   // Notify the members who also have a proven account on that partner — the ones
   // most likely to already hold the content. Best-effort; a notify hiccup must

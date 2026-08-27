@@ -38,7 +38,7 @@
  * "anybody can check": the evidence is self-verifying, so a third instance
  * confirms the link without trusting B and without asking A.
  */
-import { and, asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, or } from 'drizzle-orm';
 import { didKeyFromPublicKey } from './did';
 import { db, schema } from '@trackarr/db';
 import { canonicalBytes } from './jcs';
@@ -156,7 +156,15 @@ export async function mintIdentityRecords(
   let minted = 0;
 
   for (const [userId, projection] of projections) {
-    projection.subjectDid = await ensureUserDid(userId);
+    // No identifier means no assertion to make. An erased account cannot be
+    // given a fresh one (see `ensureUserDid`), and dropping it from the map
+    // here is what makes the withdrawal loop below retire whatever it had.
+    const subjectDid = await ensureUserDid(userId);
+    if (!subjectDid) {
+      projections.delete(userId);
+      continue;
+    }
+    projection.subjectDid = subjectDid;
     const draft = projectIdentity(projection, ctx.did);
     const contentHash = fingerprint(draft);
 
@@ -210,8 +218,25 @@ export async function mintIdentityRecords(
   // A member who unlinked everything: the assertion is no longer true and has
   // to be retired, not merely stop being refreshed. Silence is not a retraction
   // to anybody who already holds the record.
+  //
+  // Which is what this used to do anyway. It set `superseded_at` locally and
+  // minted nothing, so removing ONE of two links propagated — the shorter
+  // `alsoKnownAs` triggers the stale-drop in `ingestIdentityRecord` — while
+  // removing the ONLY one propagated nothing at all, and every partner went on
+  // asserting and relaying that correlation forever. The asymmetry was the bug:
+  // the case where a member most wants the link gone was the one case that did
+  // not travel.
+  //
+  // The retraction is an assertion with an empty `alsoKnownAs`, which needs no
+  // new record kind and no new ingest path: a partner reading it drops every
+  // link it held for that subject, by exactly the mechanism a shortened list
+  // already used.
   const live = await db
-    .select({ id: schema.catalogRecords.id, subject: schema.catalogRecords.torrentId })
+    .select({
+      id: schema.catalogRecords.id,
+      subject: schema.catalogRecords.torrentId,
+      body: schema.catalogRecords.body,
+    })
     .from(schema.catalogRecords)
     .where(
       and(
@@ -225,10 +250,61 @@ export async function mintIdentityRecords(
   let withdrawn = 0;
   for (const row of live) {
     if (row.subject && projections.has(row.subject)) continue;
-    await db
-      .update(schema.catalogRecords)
-      .set({ supersededAt: new Date() })
-      .where(eq(schema.catalogRecords.id, row.id));
+
+    const body = (row.body ?? {}) as Record<string, unknown>;
+    // A retraction of a retraction says nothing and would be minted again on
+    // every sweep, since the member still has no projection. This is what makes
+    // the operation idempotent.
+    const alreadyRetracted =
+      Array.isArray(body.alsoKnownAs) && body.alsoKnownAs.length === 0;
+    const subjectDid = body['trackarr:subject'];
+
+    if (alreadyRetracted || typeof subjectDid !== 'string') {
+      // Nothing publishable to say. Retire it locally, as before.
+      await db
+        .update(schema.catalogRecords)
+        .set({ supersededAt: new Date() })
+        .where(eq(schema.catalogRecords.id, row.id));
+      withdrawn++;
+      continue;
+    }
+
+    const draft = projectIdentity(
+      {
+        subjectDid,
+        alsoKnownAs: [],
+        evidence: [],
+        // The moment the assertion stopped being true. Stable in the record
+        // because the record is minted exactly once — the generation it
+        // replaces is superseded in the same transaction.
+        provenAt: new Date(),
+      },
+      ctx.did,
+    );
+    const signed = signRecord(
+      { ...draft, 'trackarr:replaces': row.id } as never,
+      { privateKeyPem: ctx.privateKeyPem, did: ctx.did },
+    ) as SignedRecord;
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.catalogRecords)
+        .set({ supersededAt: new Date() })
+        .where(eq(schema.catalogRecords.id, row.id));
+      await tx
+        .insert(schema.catalogRecords)
+        .values({
+          id: signed.id,
+          torrentId: row.subject,
+          infoHash: null,
+          issuer: ctx.did,
+          kind: 'identity',
+          body: signed as unknown as Record<string, unknown>,
+          contentHash: fingerprint(draft),
+          supersedes: row.id,
+        })
+        .onConflictDoNothing({ target: schema.catalogRecords.id });
+    });
     withdrawn++;
   }
 
@@ -247,6 +323,33 @@ export async function mintIdentityRecords(
  *
  * An alias with no usable evidence is dropped and the rest are kept: one bad
  * entry is not a reason to lose a member's real links.
+ *
+ * ## What the evidence check does NOT establish, and the two guards that do
+ *
+ * Indexing the evidence by `v.subject` proves the ALIAS side and only that
+ * side: the alias's own key signed a document naming itself. Nothing in it
+ * touched `trackarr:subject`. So a partner could publish `subject` = one of OUR
+ * members' identifiers — public in every catalogue record we sign — with
+ * `alsoKnownAs` = [a keypair it made ten seconds ago], self-signed evidence,
+ * and every check passed. `aliasesOf` treats the relation as symmetric and
+ * transitive, so the attacker's work appeared in that member's federated
+ * uploads as their own.
+ *
+ *   1. **Neither end may be an identifier this instance issued.** Our members'
+ *      other names are ours to assert, in `federated_identities`, and
+ *      `identitiesOfUser` already starts from those first-hand facts. A partner
+ *      has no standing to add to them — in either direction, since naming our
+ *      member as somebody else's ALIAS grafts just as well as the reverse.
+ *
+ *   2. **The evidence must be endorsed by the instance it names.** An
+ *      unendorsed document proves possession of a key and nothing about where
+ *      the account was; `verifyIdentity` already computes `endorsedBy` — set
+ *      only when the endorsement's signer is the document's own
+ *      `trackarr:instanceDid` — and this is what finally demands it. It is not
+ *      a trust anchor (a partner can invent an instance DID and sign as it),
+ *      but it makes every link attributable to a named endorser rather than to
+ *      a bare keypair, which is what `ingestRevocation` needs in order to be
+ *      able to tear one down.
  */
 export async function ingestIdentityRecord(
   peerId: string,
@@ -256,6 +359,10 @@ export async function ingestIdentityRecord(
 ): Promise<number> {
   const subject = body['trackarr:subject'];
   if (typeof subject !== 'string' || !subject.startsWith('did:key:')) return 0;
+
+  // Guard 1, subject side. Cheap, and it is the exact shape of the graft: the
+  // subject DIDs of our own members are published in every record we sign.
+  if (await isLocallyIssued(subject)) return 0;
 
   // Bounded before we do any work on them: both arrays are peer-supplied, and
   // each alias costs an INSERT and each evidence doc up to two Ed25519 verifies.
@@ -281,12 +388,20 @@ export async function ingestIdentityRecord(
   const proven = new Map<string, Record<string, unknown>>();
   for (const doc of evidence) {
     const v = verifyIdentity(doc);
-    if (v.ok && v.subject) proven.set(v.subject, doc as Record<string, unknown>);
+    // Guard 2: `endorsedBy` is set only when the endorsement proof's signer IS
+    // the `trackarr:instanceDid` the document names. Demanding it is what makes
+    // a self-made keypair with a self-signed document insufficient.
+    if (v.ok && v.subject && v.endorsedBy) {
+      proven.set(v.subject, doc as Record<string, unknown>);
+    }
   }
 
   let kept = 0;
+  const keptAliases: string[] = [];
   for (const alias of aliases) {
     if (typeof alias !== 'string' || !alias.startsWith('did:key:')) continue;
+    // Guard 1, alias side.
+    if (await isLocallyIssued(alias)) continue;
     const doc = proven.get(alias);
     if (!doc) continue;
     await db
@@ -309,13 +424,14 @@ export async function ingestIdentityRecord(
         set: { evidence: doc, recordId, issuer },
       });
     kept++;
+    keptAliases.push(alias);
   }
 
   // Anything this partner used to assert for this subject and no longer does.
-  // An assertion that stopped being made has stopped being true.
-  const keep = aliases.filter(
-    (a): a is string => typeof a === 'string' && proven.has(a),
-  );
+  // An assertion that stopped being made has stopped being true — and the list
+  // is what we actually WROTE rather than a second reading of the input, so a
+  // link a new guard now refuses is dropped rather than merely not renewed.
+  const keep = keptAliases;
   const stale = await db
     .select({ id: schema.remoteIdentityLinks.id, alias: schema.remoteIdentityLinks.aliasDid })
     .from(schema.remoteIdentityLinks)
@@ -333,6 +449,22 @@ export async function ingestIdentityRecord(
   }
 
   return kept;
+}
+
+/**
+ * Is this identifier one THIS instance issued to one of its own members?
+ *
+ * The question a partner's assertion about it has to fail. Includes retired
+ * keys on purpose: a rotation does not hand an old identifier to somebody else,
+ * so a partner claiming an alias for one is making the same graft a beat later.
+ */
+async function isLocallyIssued(did: string): Promise<boolean> {
+  const [row] = await db
+    .select({ did: schema.userSigningKeys.did })
+    .from(schema.userSigningKeys)
+    .where(eq(schema.userSigningKeys.did, did))
+    .limit(1);
+  return !!row;
 }
 
 /**
@@ -357,6 +489,13 @@ export async function aliasesOf(
     // Succession, in both directions. A rotation is not a different person:
     // the issuer that endorsed both identifiers said so, which is the same
     // authority the endorsement itself rests on.
+    //
+    // The authority is checked when the withdrawal is INGESTED, not here — see
+    // `ingestRevocation`. It has to be: a withdrawal tears down the links and
+    // the proven claims that evidenced the issuer's standing, so by the time
+    // this walk runs there is nothing left to check against. A `succeeded_by`
+    // in this table therefore already means "asserted by an issuer that had
+    // standing over the identifier", and matching on it is sound.
     //
     // This connects IDENTIFIERS, for the purpose of gathering a body of work.
     // It deliberately does not resurrect the CLAIMS a revocation tore down —
@@ -449,7 +588,7 @@ export async function identitiesOfUser(userId: string): Promise<Set<string>> {
   const roots = [
     ...(held.length ? held.map((r) => r.did) : [await ensureUserDid(userId)]),
     ...mine.map((r) => r.subjectDid).filter((d): d is string => !!d),
-  ];
+  ].filter((d): d is string => !!d);
 
   const all = new Set<string>(roots);
   for (const root of roots) {
@@ -593,6 +732,64 @@ export async function ingestRevocation(
   const did = body.object;
   if (typeof did !== 'string' || !did.startsWith('did:key:')) return false;
 
+  // The issuer's standing over this identifier, measured BEFORE the deletes
+  // below remove the evidence for it.
+  //
+  // `trackarr:succeededBy` is not a withdrawal, it is an equivalence: `aliasesOf`
+  // joins the two identifiers in both directions and treats them as one person.
+  // Stored verbatim it was an unverified edge — a partner publishing
+  // `Undo{object: <victim's DID>, 'trackarr:succeededBy': <its own key>}` merged
+  // itself into the victim, and every other reader of this table is
+  // issuer-scoped precisely because that matters.
+  //
+  // Checked here rather than in `aliasesOf` because it can only be checked
+  // here: a withdrawal tears down the links and the proven claims that ARE the
+  // standing, so a later reader has nothing to check against. Either shape
+  // counts — the issuer published an assertion about the identifier that we
+  // accepted, or one of our members proved it on the issuer's own instance.
+  const issuerPeer = (
+    await db
+      .select({
+        id: schema.federationPeers.id,
+        publicKey: schema.federationPeers.publicKey,
+      })
+      .from(schema.federationPeers)
+      .where(isNotNull(schema.federationPeers.publicKey))
+  ).find((p) => p.publicKey && didKeyFromPublicKey(p.publicKey) === issuer);
+
+  const [assertedByIssuer] = await db
+    .select({ id: schema.remoteIdentityLinks.id })
+    .from(schema.remoteIdentityLinks)
+    .where(
+      and(
+        eq(schema.remoteIdentityLinks.issuer, issuer),
+        or(
+          eq(schema.remoteIdentityLinks.subjectDid, did),
+          eq(schema.remoteIdentityLinks.aliasDid, did),
+        ),
+      ),
+    )
+    .limit(1);
+
+  const [provenOnIssuer] = issuerPeer
+    ? await db
+        .select({ id: schema.federatedIdentities.id })
+        .from(schema.federatedIdentities)
+        .where(
+          and(
+            eq(schema.federatedIdentities.peerId, issuerPeer.id),
+            eq(schema.federatedIdentities.subjectDid, did),
+          ),
+        )
+        .limit(1)
+    : [];
+
+  const hadStanding = !!assertedByIssuer || !!provenOnIssuer;
+  // No standing, no equivalence. The withdrawal itself is still recorded — that
+  // is what `isRevoked` reads and it is the part a leaked key needs — so an
+  // unknown identifier being retired still works exactly as before.
+  const succeededBy = hadStanding ? asStr(body['trackarr:succeededBy']) : null;
+
   // Recorded against the ISSUER, not against the identifier. A withdrawal is
   // only worth anything from whoever issued the identifier — and since a claim
   // is only ever accepted on a known partner's endorsement, "did the endorser
@@ -607,12 +804,15 @@ export async function ingestRevocation(
       id: randomUUID(),
       did,
       issuer,
-      succeededBy: asStr(body['trackarr:succeededBy']),
+      succeededBy,
       recordId,
     })
     .onConflictDoUpdate({
       target: [schema.revokedIdentities.issuer, schema.revokedIdentities.did],
-      set: { succeededBy: asStr(body['trackarr:succeededBy']), recordId },
+      // A second withdrawal from an issuer that has since lost its standing
+      // must not clear a successor it legitimately asserted, so this only ever
+      // fills one in.
+      set: succeededBy ? { succeededBy, recordId } : { recordId },
     });
 
   // Bring down what THIS issuer's endorsement was holding up, and nothing
@@ -646,16 +846,6 @@ export async function ingestRevocation(
   // the revocation's issuer. Under relaying the delivering peer is somebody
   // else entirely, and scoping on it would tear down claims proved on the
   // relay while leaving the ones this withdrawal is actually about standing.
-  const issuerPeer = (
-    await db
-      .select({
-        id: schema.federationPeers.id,
-        publicKey: schema.federationPeers.publicKey,
-      })
-      .from(schema.federationPeers)
-      .where(isNotNull(schema.federationPeers.publicKey))
-  ).find((p) => p.publicKey && didKeyFromPublicKey(p.publicKey) === issuer);
-
   if (issuerPeer) {
     await db
       .delete(schema.federatedIdentities)

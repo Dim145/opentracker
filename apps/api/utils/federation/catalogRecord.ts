@@ -220,7 +220,15 @@ export async function loadProjections(
       // record is signed, content-addressed and relayed, so a name that
       // leaves once cannot be recalled by any later setting. Before minting
       // is the only place the choice can still be honoured.
-      uploaderName: sql<string | null>`CASE WHEN ${schema.users.anonymousUploads}
+      // An erased account is treated exactly like an anonymous one. Its
+      // `username` is a tombstone by then, not a name — but a tombstone is
+      // still a per-member handle a partner can group an upload history under,
+      // and the whole point of erasure is that there is nothing left to group.
+      // The DID goes the same way: `ensureUserDids` returns nothing for an
+      // erased account, so `authorDid` below lands null too.
+      uploaderName: sql<string | null>`CASE
+        WHEN ${schema.users.anonymousUploads}
+          OR ${schema.users.deletedAt} IS NOT NULL
         THEN NULL ELSE ${schema.users.username} END`,
       uploaderId: schema.torrents.uploaderId,
       anonymous: schema.users.anonymousUploads,
@@ -470,6 +478,61 @@ export async function pruneSupersededRecords(
          SELECT 1 FROM ${schema.catalogRecords} live
           WHERE live.supersedes = old.id
             AND live.superseded_at IS NULL)
+  `);
+  return (res as unknown as { count?: number }).count ?? 0;
+}
+
+/**
+ * Drop the record generations that still name an erased member.
+ *
+ * Erasure scrubs the account row and retracts the identity, and until now that
+ * was where it stopped: the records this instance had already signed carried
+ * `trackarr:uploaderName: "alice"` and were served verbatim to any partner that
+ * asked for them by id. The docstring on `eraseAccount` claimed a tombstone
+ * "nobody can trace back", which was true of the database join and not of the
+ * catalogue.
+ *
+ * What makes the retraction possible at all is that the projection now reads an
+ * erased account as anonymous, so the sweep re-mints each release WITHOUT the
+ * name and supersedes the generation that had it. This deletes those superseded
+ * generations, once a replacement exists.
+ *
+ * Two deliberate limits:
+ *
+ * - Immutable signed bytes already handed to a partner cannot be recalled. This
+ *   stops US serving them; it cannot un-send them. The revocation is what tells
+ *   a partner the identifier is retired.
+ * - A lineage a consumer was walking loses its tail. That is the same hole
+ *   retention pruning already opens, and erasure is the stronger claim.
+ *
+ * Runs on the sweep rather than inside the erasure request: the re-mint it
+ * depends on happens there, and a member with a large catalogue must not turn
+ * "delete my account" into a request that times out.
+ */
+export async function forgetErasedUploaderRecords(
+  limit = 500,
+): Promise<number> {
+  const res = await db.execute(sql`
+    DELETE FROM ${schema.catalogRecords}
+     WHERE id IN (
+       SELECT old.id
+         FROM ${schema.catalogRecords} old
+         JOIN ${schema.torrents} t ON t.id = old.torrent_id
+         JOIN ${schema.users} u ON u.id = t.uploader_id
+        WHERE old.superseded_at IS NOT NULL
+          AND old.origin = 'local'
+          AND old.kind = 'torrent'
+          AND u.deleted_at IS NOT NULL
+          -- Only once something stands in its place. Deleting the last thing we
+          -- ever said about a release would leave partners holding a record we
+          -- can no longer explain, replace or withdraw.
+          AND EXISTS (
+            SELECT 1 FROM ${schema.catalogRecords} live
+             WHERE live.torrent_id = old.torrent_id
+               AND live.superseded_at IS NULL
+               AND live.origin = 'local')
+        LIMIT ${limit}
+     )
   `);
   return (res as unknown as { count?: number }).count ?? 0;
 }
