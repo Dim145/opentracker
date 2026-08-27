@@ -50,13 +50,22 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // The member's adult-content preference covers the mirror, the same way it
+  // covers the federated browse. Neither query applied it, so a member who had
+  // switched adult content off still saw adult partner releases here.
+  const me = await db.query.users.findFirst({
+    where: (u, { eq }) => eq(u.id, session.id),
+    columns: { showAdultContent: true },
+  });
+  const showAdult = me?.showAdultContent ?? false;
+
   const key = {
     contentRootV2: source.contentRootV2,
     contentSignature: source.contentSignature,
   };
   const [items, availability] = await Promise.all([
-    federatedCrossSeedMatches(key),
-    federatedContentAvailability(key),
+    federatedCrossSeedMatches(key, { showAdult }),
+    federatedContentAvailability(key, { showAdult }),
   ]);
 
   // A health signal, not a swarm bridge: partner swarms only interconnect with

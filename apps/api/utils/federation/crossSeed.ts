@@ -61,16 +61,32 @@ function keyMatchFor(source: {
 }
 
 /**
+ * The member's adult-content preference, applied to the mirror.
+ *
+ * Both queries here read `remote_torrents` and neither applied it, unlike
+ * `browseMirror`, so a member who had switched adult content off still saw
+ * adult partner releases on a torrent page — which the guide says is a setting
+ * that covers the mirror too.
+ */
+function adultGateFor(showAdult: boolean): SQL | undefined {
+  return showAdult ? undefined : eq(schema.remoteTorrents.isAdult, false);
+}
+
+/**
  * Find mirrored releases that are the same content as a local torrent. Returns
  * [] when the source can be matched on neither key. Deduplicated by infohash.
  */
-export async function federatedCrossSeedMatches(source: {
-  contentRootV2: string | null;
-  contentSignature: string | null;
-}): Promise<CrossSeedMatch[]> {
+export async function federatedCrossSeedMatches(
+  source: {
+    contentRootV2: string | null;
+    contentSignature: string | null;
+  },
+  opts: { showAdult: boolean },
+): Promise<CrossSeedMatch[]> {
   const rt = schema.remoteTorrents;
   const keyMatch = keyMatchFor(source);
   if (!keyMatch) return [];
+  const adultGate = adultGateFor(opts.showAdult);
 
   const rows = await db
     .selectDistinctOn([rt.infoHash], {
@@ -86,7 +102,14 @@ export async function federatedCrossSeedMatches(source: {
     })
     .from(rt)
     .innerJoin(schema.federationPeers, eq(schema.federationPeers.id, rt.peerId))
-    .where(and(eq(schema.federationPeers.status, 'active'), NOT_MASKED, keyMatch))
+    .where(
+      and(
+        eq(schema.federationPeers.status, 'active'),
+        NOT_MASKED,
+        adultGate,
+        keyMatch,
+      ),
+    )
     .orderBy(rt.infoHash, desc(rt.seeders))
     .limit(50);
 
@@ -121,13 +144,17 @@ export interface ContentAvailability {
  * across the mesh, and is worth cross-seeding. Deduped by infohash (best-seeded
  * copy per release), aggregated over the WHOLE match set (not just the listed 50).
  */
-export async function federatedContentAvailability(source: {
-  contentRootV2: string | null;
-  contentSignature: string | null;
-}): Promise<ContentAvailability> {
+export async function federatedContentAvailability(
+  source: {
+    contentRootV2: string | null;
+    contentSignature: string | null;
+  },
+  opts: { showAdult: boolean },
+): Promise<ContentAvailability> {
   const rt = schema.remoteTorrents;
   const keyMatch = keyMatchFor(source);
   if (!keyMatch) return { releases: 0, seeders: 0, leechers: 0 };
+  const adultGate = adultGateFor(opts.showAdult);
 
   const deduped = db
     .selectDistinctOn([rt.infoHash], {
@@ -136,17 +163,37 @@ export async function federatedContentAvailability(source: {
     })
     .from(rt)
     .innerJoin(schema.federationPeers, eq(schema.federationPeers.id, rt.peerId))
-    .where(and(eq(schema.federationPeers.status, 'active'), NOT_MASKED, keyMatch))
+    .where(
+      and(
+        eq(schema.federationPeers.status, 'active'),
+        NOT_MASKED,
+        adultGate,
+        keyMatch,
+      ),
+    )
     .orderBy(rt.infoHash, desc(rt.seeders))
     .as('deduped');
 
   const [agg] = await db
     .select({
       releases: sql<number>`count(*)::int`,
-      seeders: sql<number>`coalesce(sum(${deduped.seeders}), 0)::int`,
-      leechers: sql<number>`coalesce(sum(${deduped.leechers}), 0)::int`,
+      // `::bigint`, not `::int`. Partner counts are clamped to exactly int4 max
+      // on the way in (`sidePasses.asCount`), so two matched releases at the
+      // clamp overflow the sum and Postgres raises `integer out of range` —
+      // a 500 on the availability panel, produced by valid mirrored data.
+      seeders: sql<number>`coalesce(sum(${deduped.seeders}), 0)::bigint`,
+      leechers: sql<number>`coalesce(sum(${deduped.leechers}), 0)::bigint`,
     })
     .from(deduped);
 
-  return agg ?? { releases: 0, seeders: 0, leechers: 0 };
+  // `bigint` arrives as a string from postgres-js; the shape this returns is a
+  // number, and the values are peer counts rather than byte totals so nothing
+  // here approaches the safe-integer boundary.
+  return agg
+    ? {
+        releases: Number(agg.releases),
+        seeders: Number(agg.seeders),
+        leechers: Number(agg.leechers),
+      }
+    : { releases: 0, seeders: 0, leechers: 0 };
 }

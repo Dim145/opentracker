@@ -735,8 +735,10 @@
       "crossSeedNote": "Regroupés uniquement sur la correspondance des noms et tailles de fichiers — un indice de découverte, pas une garantie de contenu vérifié.",
       "crossSeedFederatedNote": "Le même contenu sur une instance partenaire. Si vous y avez un compte, cross-seedez-le depuis les fichiers que vous détenez déjà — récupéré avec votre propre passkey partenaire.",
       "crossSeedMeshSeeders": "{n} seeders sur le mesh",
-      "crossMatchVerified": "vérifié",
+      "crossMatchVerified": "racine v2",
       "crossMatchHint": "probable",
+      "crossMatchV2Title": "La version du partenaire déclare la même racine de contenu v2 que celle-ci. Une racine v2 est un hachage du contenu, donc la correspondance est forte — mais la valeur reste ce que le partenaire affirme de ses octets, pas quelque chose que ce tracker a vérifié.",
+      "crossMatchHintTitle": "Les noms de fichiers et les tailles correspondent. C'est un indice, pas une correspondance : deux versions différentes peuvent partager les deux.",
       "hero": {
         "case": "Dossier"
       },
