@@ -48,6 +48,7 @@ import { mirrorSet } from './recordSet';
 import { ingestIdentityRecord, ingestRevocation } from './identityRecord';
 import {
   admit,
+  blockedIssuers,
   dropSources,
   sourceRejected,
   relayEnabled,
@@ -108,6 +109,26 @@ export interface RecordSyncResult {
 
 function asStr(v: unknown): string | null {
   return typeof v === 'string' && v.length ? v : null;
+}
+/**
+ * A hex digest of exactly `chars` nibbles, or null.
+ *
+ * `asStr` accepted any non-empty string of any length, which for the two
+ * content keys meant two problems at once. The match key: a partner setting
+ * `trackarr:contentRootV2` to a LOCAL torrent's root gets its release badged as
+ * content-identical to ours — the badge reads as proof and the value is an
+ * unverified claim, which the codebase already says out loud on the fill path.
+ * A shape check does not make the claim true, but it does stop anything that is
+ * not a v2 root from being treated as one.
+ *
+ * And the write: `remote_torrents_content_root_v2_idx` is a btree, so a value
+ * past ~2704 bytes fails the INSERT — one oversized field losing the whole
+ * mirror row.
+ */
+function asHexDigest(v: unknown, chars: number): string | null {
+  const s = asStr(v);
+  if (!s || s.length !== chars || !/^[0-9a-f]+$/i.test(s)) return null;
+  return s.toLowerCase();
 }
 function asNum(v: unknown): number {
   return typeof v === 'number' && Number.isFinite(v) ? Math.trunc(v) : 0;
@@ -216,11 +237,15 @@ function toMirrorRow(
   const base = peer.baseUrl.replace(/\/$/, '');
   return {
     infoHash,
-    contentSignature: asStr(record['trackarr:contentSignature']),
+    // The local signature is `sha256` hex over paths+sizes (64 chars); anything
+    // else is not one, and an uncapped string here has the same btree problem
+    // as the root below.
+    contentSignature: asHexDigest(record['trackarr:contentSignature'], 64),
     // v2 content addressing carried over verbatim; null when the origin's
-    // record predates it. `contentRootV2` is the cross-tracker match key.
-    infoHashV2: asStr(record['bt:infohash_v2']),
-    contentRootV2: asStr(record['trackarr:contentRootV2']),
+    // record predates it. `contentRootV2` is the cross-tracker match key, and
+    // BEP 52 makes it a sha256 root — 64 hex characters, never anything else.
+    infoHashV2: asHexDigest(record['bt:infohash_v2'], 64),
+    contentRootV2: asHexDigest(record['trackarr:contentRootV2'], 64),
     name: name.slice(0, 1000),
     size: Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, asNum(record['trackarr:size']))),
     description:
@@ -317,7 +342,13 @@ export async function ingestRecord(
   raw: unknown,
   opts: {
     relayProof?: unknown;
+    /** The audience-bound countersignature, when the sender emitted one. */
+    relayAudienceProof?: unknown;
     trusted?: Set<string>;
+    /** Issuers refused however they arrive. Read once per batch, like `trusted`. */
+    blocked?: Set<string>;
+    /** OUR `instanceId`. Read once per batch; a bound proof has to name it. */
+    audienceInstanceId?: string | null;
     /** Read once per batch; two queries per record otherwise. */
     relaying?: boolean;
     /** Our own signing identity, so we can recognise our own work coming back. */
@@ -337,12 +368,12 @@ export async function ingestRecord(
   // verified would be an open index rather than a curated catalogue. Either
   // the issuer is a partner, or a partner put its name to the introduction.
   const trusted = opts.trusted ?? (await trustedIssuers());
-  const pass = admit(
-    verdict.signer!,
-    String(record.id ?? ''),
-    opts.relayProof,
-    trusted,
-  );
+  const blocked = opts.blocked ?? (await blockedIssuers());
+  const pass = admit(verdict.signer!, String(record.id ?? ''), opts.relayProof, trusted, {
+    blocked,
+    boundProof: opts.relayAudienceProof,
+    audienceInstanceId: opts.audienceInstanceId,
+  });
   if (!pass.ok) {
     // Verified, so its content address is real, but not admitted — a stranger's
     // record a partner did not vouch for. Note it as a rejected source so we
@@ -375,7 +406,7 @@ export async function ingestRecord(
   // the obvious version of this guard.
   const ownDid = opts.ownDid ?? null;
   if (ownDid && verdict.signer === ownDid) {
-    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying);
+    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying, db, pass.via ?? null);
     return nothing;
   }
 
@@ -405,7 +436,7 @@ export async function ingestRecord(
         : null;
     let removed = 0;
     await db.transaction(async (tx) => {
-      await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying, tx);
+      await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying, tx, pass.via ?? null);
       if (!conditions) return;
       const gone = await tx.delete(schema.remoteTorrents).where(conditions);
       removed = (gone as unknown as { count?: number }).count ?? 1;
@@ -420,7 +451,7 @@ export async function ingestRecord(
   // A withdrawn identifier. Acted on rather than merely noted: recording that
   // we heard would leave a leaked key still proving things.
   if (record.type === 'Undo') {
-    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying);
+    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying, db, pass.via ?? null);
     await ingestRevocation(
       peer.id,
       String(record.id ?? ''),
@@ -431,7 +462,7 @@ export async function ingestRecord(
   }
 
   if (record.type === 'Person') {
-    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying);
+    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying, db, pass.via ?? null);
     await ingestIdentityRecord(
       peer.id,
       String(record.id ?? ''),
@@ -454,7 +485,7 @@ export async function ingestRecord(
   // partner published something new" from "a partner restated what we already
   // had" — and stops a re-sync from re-notifying every follower.
   const [written] = await db.transaction(async (tx) => {
-    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying, tx);
+    await sourceRecord(record, verdict.signer!, pass.hops!, peer.id, relaying, tx, pass.via ?? null);
     return tx
     .insert(schema.remoteTorrents)
     .values({
@@ -643,6 +674,7 @@ export async function syncPeerRecords(
 
     // One read each for the whole fetch, not one per batch.
     const trusted = await trustedIssuers();
+    const blocked = await blockedIssuers();
     const relaying = await relayEnabled();
     const ownDid = config!.publicKey ? didKeyFromPublicKey(config!.publicKey) : null;
 
@@ -682,7 +714,15 @@ export async function syncPeerRecords(
       // un-retired and linger. Sorting retractions last makes the common
       // same-batch case order-correct; a split across batches still self-heals
       // on the next pass.
-      const ordered = [...(res.data.records as unknown[])].sort((a, b) => {
+      // Only as many records as we asked for. `ids` is a request parameter and
+      // a hostile partner ignores it: the only other bound was
+      // `MAX_RESPONSE_BYTES` (16 MB), which is thousands of records, and each
+      // one costs an Ed25519 verify plus up to three writes — a rejected one
+      // still inserts a `record_sources` row. The per-peer growth ceilings are
+      // read once, before this loop, so one oversized response walked straight
+      // past them.
+      const answer = (res.data.records as unknown[]).slice(0, batch.length);
+      const ordered = [...answer].sort((a, b) => {
         const rank = (e: unknown) => {
           const rec = unwrap(e).record as { type?: unknown } | null;
           const t = rec?.type;
@@ -691,12 +731,15 @@ export async function syncPeerRecords(
         return rank(a) - rank(b);
       });
       for (const envelope of ordered) {
-        const { record, relay } = unwrap(envelope);
+        const { record, relay, relayAudience } = unwrap(envelope);
         const r = await ingestRecord(peer, record, {
           relayProof: relay,
+          relayAudienceProof: relayAudience,
           trusted,
+          blocked,
           relaying,
           ownDid,
+          audienceInstanceId: config!.instanceId,
         });
         out.ingested += r.ingested;
         out.withdrawn += r.withdrawn;
@@ -786,12 +829,27 @@ export async function announceFresh(
  * own may send the record bare. Accepting both costs four lines and means the
  * two do not have to be upgraded in step.
  */
-export function unwrap(item: unknown): { record: unknown; relay: unknown } {
+export function unwrap(item: unknown): {
+  record: unknown;
+  relay: unknown;
+  relayAudience: unknown;
+} {
   if (item && typeof item === 'object' && 'record' in item) {
-    const e = item as { record: unknown; relay?: unknown };
-    return { record: e.record, relay: e.relay ?? null };
+    const e = item as {
+      record: unknown;
+      relay?: unknown;
+      relayAudience?: unknown;
+    };
+    // `relayAudience` is absent from a partner on an older build, which is the
+    // whole reason it is a second field: reading it as null there costs nothing
+    // and the bare `relay` still admits the record.
+    return {
+      record: e.record,
+      relay: e.relay ?? null,
+      relayAudience: e.relayAudience ?? null,
+    };
   }
-  return { record: item, relay: null };
+  return { record: item, relay: null, relayAudience: null };
 }
 
 /** Every partner that offers us a catalogue, one after another. */

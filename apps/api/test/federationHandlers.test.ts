@@ -33,9 +33,22 @@ function row(over: Partial<ServableRow> = {}): ServableRow {
   };
 }
 
-/** A signer that records what it was asked to vouch for. */
-function signer(): { asked: string[]; signer: Signer } {
+/**
+ * A signer that records what it was asked to vouch for.
+ *
+ * `bound: false` stands in for a peer with no `instanceId` — a link that never
+ * completed a handshake — where there is nothing to bind the vouching to.
+ */
+function signer(bound = true): { asked: string[]; signer: Signer } {
   const asked: string[] = [];
+  const proof = (id: string, audience?: string) => ({
+    type: 'DataIntegrityProof' as const,
+    cryptosuite: 'eddsa-jcs-2022' as const,
+    created: '2026-05-01T00:00:00Z',
+    verificationMethod: 'did:key:zUs#zUs',
+    proofPurpose: 'assertionMethod' as const,
+    proofValue: `z${id}${audience ? `:${audience}` : ''}`,
+  });
   return {
     asked,
     signer: {
@@ -43,12 +56,8 @@ function signer(): { asked: string[]; signer: Signer } {
       countersign: (id: string) => {
         asked.push(id);
         return {
-          type: 'DataIntegrityProof',
-          cryptosuite: 'eddsa-jcs-2022',
-          created: '2026-05-01T00:00:00Z',
-          verificationMethod: 'did:key:zUs#zUs',
-          proofPurpose: 'assertionMethod',
-          proofValue: `z${id}`,
+          relay: proof(id),
+          audience: bound ? proof(id, 'them') : null,
         };
       },
     },
@@ -127,6 +136,28 @@ describe('what we will hand over, and under whose name', () => {
 
     expect(out).toHaveLength(1);
     expect(out[0]!.relay).toMatchObject({ proofValue: 'zsha256:theirs' });
+    // Both forms go out. The bare one keeps a partner on an older build
+    // working; the bound one is what a current partner prefers and what
+    // FEDERATION_REQUIRE_AUDIENCE will require. Emitting only the bound one
+    // would break relaying toward every partner that rebuilds the statement
+    // without it — silently, since a refused record is sourced as rejected and
+    // never asked for again.
+    expect(out[0]!.relayAudience).toMatchObject({
+      proofValue: 'zsha256:theirs:them',
+    });
+  });
+
+  it('carries no bound vouching for a peer we cannot address', () => {
+    // A link that never completed a handshake has no `instanceId`. Binding to a
+    // guess would produce a proof that verifies nowhere, so the bare form goes
+    // out alone and the receiver takes it unless it requires the binding.
+    const s = signer(false);
+    const out = envelopesFor([row({ origin: 'ingested', hops: 1 })], {
+      relaying: true,
+      signer: s.signer,
+    });
+    expect(out[0]!.relay).toBeTruthy();
+    expect(out[0]!.relayAudience).toBeNull();
   });
 
   it('never hands on what was already relayed to it', () => {

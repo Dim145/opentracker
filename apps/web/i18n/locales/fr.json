@@ -3658,7 +3658,8 @@
       "scope": {
         "record": "Cet enregistrement",
         "infohash": "Cet infohash",
-        "author": "Cet uploadeur"
+        "author": "Cet uploadeur",
+        "issuer": "Cette instance"
       }
     }
   },

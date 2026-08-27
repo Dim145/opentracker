@@ -69,7 +69,13 @@ function signingStringV2(
 }
 
 /** Refuse a request that carries only the audience-less v1 signature. */
-const REQUIRE_AUDIENCE = process.env.FEDERATION_REQUIRE_AUDIENCE === 'true';
+/**
+ * Exported because the relay countersignature has the same downgrade and takes
+ * the same decision. One flag rather than two: an operator who has verified the
+ * mesh emits audience-bound HTTP signatures has verified the same builds, and
+ * two switches for one fact is two things to get out of step.
+ */
+export const REQUIRE_AUDIENCE = process.env.FEDERATION_REQUIRE_AUDIENCE === 'true';
 
 export type SignedHeaders = Record<string, string>;
 

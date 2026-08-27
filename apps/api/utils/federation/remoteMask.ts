@@ -8,30 +8,46 @@
  * partner anything. It is the tracker's editorial line over what it re-exposes,
  * which federation has always said stays each instance's own to draw.
  *
- * A mask matches by one of three keys (`scope`): a specific record, an infohash
- * (whoever serves it), or an author DID (a mute of one uploader). The read-path
- * predicate below is one `NOT EXISTS`, and every mirror query composes it in.
+ * A mask matches by one of four keys (`scope`): a specific record, an infohash
+ * (whoever serves it), an author DID (a mute of one uploader), or an ISSUER —
+ * the instance that signed the record. The read-path predicate below is one
+ * `NOT EXISTS`, and every mirror query composes it in.
+ *
+ * The issuer scope is the lever that was missing entirely. Blocking a peer
+ * removes it from `trustedIssuers`, but a still-active partner that took its
+ * records first-hand can countersign them, and those copies arrive under the
+ * RELAY's `peer_id` with the blocked instance's DID in `issuer`. Nothing here
+ * matched on that column, so there was no way — mask, block or purge — to say
+ * "not this instance's records, whoever is handing them to me". `relay.ts` now
+ * refuses them on the way in; this is the editorial version, for content an
+ * operator will not re-expose without cutting the link that carries it.
  */
 import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db, schema } from '@trackarr/db';
 
-export type MaskScope = 'record' | 'infohash' | 'author';
-export const MASK_SCOPES: readonly MaskScope[] = ['record', 'infohash', 'author'];
+export type MaskScope = 'record' | 'infohash' | 'author' | 'issuer';
+export const MASK_SCOPES: readonly MaskScope[] = [
+  'record',
+  'infohash',
+  'author',
+  'issuer',
+];
 
 /**
  * The predicate: a `remote_torrents` row is shown only when nothing masks it.
  *
  * References the table by name, which is correct in every read path because
  * they all read the real `remote_torrents` (aliased in JS, never in SQL). One
- * index on `remote_masks(value)` serves all three branches, and the table is
- * tiny, so the cost next to a mirror scan is nil.
+ * index on `remote_masks(value)` serves every branch, and the table is tiny, so
+ * the cost next to a mirror scan is nil.
  */
 export const NOT_MASKED: SQL = sql`NOT EXISTS (
   SELECT 1 FROM ${schema.remoteMasks} m
    WHERE (m.scope = 'record'   AND m.value = ${schema.remoteTorrents.recordId})
       OR (m.scope = 'infohash' AND m.value = ${schema.remoteTorrents.infoHash})
       OR (m.scope = 'author'   AND m.value = ${schema.remoteTorrents.authorDid})
+      OR (m.scope = 'issuer'   AND m.value = ${schema.remoteTorrents.issuer})
 )`;
 
 /** Hide a mirrored release. Idempotent on `(scope, value)`. Returns the id. */

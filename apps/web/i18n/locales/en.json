@@ -3658,7 +3658,8 @@
       "scope": {
         "record": "This record",
         "infohash": "This infohash",
-        "author": "This uploader"
+        "author": "This uploader",
+        "issuer": "This instance"
       }
     }
   },

@@ -54,13 +54,46 @@ import { db, schema } from '@trackarr/db';
 type Writer = Pick<typeof db, 'insert' | 'update' | 'delete'>;
 import { didKeyFromPublicKey } from './did';
 import { checkProof, makeProof, type DataIntegrityProof } from './record';
+import { REQUIRE_AUDIENCE } from './signing';
 
 /** A record on the wire, with the vouching that carried it here. */
 export interface Envelope {
   record: unknown;
   /** Present only when the sender is passing on somebody else's work. */
   relay?: DataIntegrityProof | null;
+  /**
+   * The same vouching, bound to the instance it was made for.
+   *
+   * A SECOND proof rather than a changed one, which is what makes the binding
+   * deployable at all: the verifier rebuilds the statement itself, so a field
+   * added to the only proof would fail to verify at every partner that does not
+   * rebuild it — relaying would break in one direction on upgrade. `unwrap`
+   * ignores unknown fields, so an older partner reads `relay` exactly as before
+   * while a current one prefers this. `FEDERATION_REQUIRE_AUDIENCE` closes the
+   * downgrade once the mesh has moved, and it is the same flag, with the same
+   * meaning and the same warning, that the HTTP signature already uses.
+   */
+  relayAudience?: DataIntegrityProof | null;
 }
+
+/**
+ * How long a relay's countersignature is worth anything.
+ *
+ * A countersignature carried no time bound at all, and `checkProof` does not
+ * look at `proof.created`, so one was valid forever. Our own side mints a fresh
+ * one on every serve (`envelopesFor` calls `countersign` per response), so a
+ * generous window costs nothing and closes the "eternal" half of a
+ * transferable vouch.
+ *
+ * The other half is the AUDIENCE, and it is now bound: a countersignature names
+ * the instance it was made for, so B's vouch to C is not a vouch to D. It could
+ * not be done by changing the one proof — the verifier rebuilds the statement
+ * itself, so a new field would fail to verify at every partner that does not
+ * rebuild it. It is carried as a second proof instead (`Envelope.relayAudience`),
+ * which an older partner ignores, with `FEDERATION_REQUIRE_AUDIENCE` closing the
+ * downgrade once the mesh has moved.
+ */
+const MAX_RELAY_PROOF_AGE_MS = 24 * 60 * 60 * 1000;
 
 /**
  * What a relay signs.
@@ -69,40 +102,83 @@ export interface Envelope {
  * binds the whole record without duplicating a byte of it. Adding anything to
  * the record itself was never an option — its address covers its content, so a
  * field appended in transit would change what it is called.
+ *
+ * `audience` is the recipient's `instanceId`, and it is omitted rather than
+ * nulled when absent: the audience-less statement has to stay byte-identical to
+ * what every existing partner rebuilds, or the bare proof stops verifying
+ * everywhere at once.
  */
-export function relayStatement(recordId: string, relayDid: string): Record<string, unknown> {
+export function relayStatement(
+  recordId: string,
+  relayDid: string,
+  audience?: string,
+): Record<string, unknown> {
   return {
     type: 'Announce',
     object: recordId,
     'trackarr:issuer': relayDid,
+    ...(audience ? { 'trackarr:audience': audience } : {}),
   };
 }
 
-/** Sign "I am handing you this one". */
+/**
+ * Sign "I am handing you this one".
+ *
+ * `created` is a seam for the tests: it is inside the signature (the proof
+ * covers its own config), so a stale countersignature cannot be produced by
+ * editing a fresh one — it has to be signed at that date.
+ *
+ * `audience` binds the statement to one recipient. Pass it and you get the
+ * bound form; omit it and you get the bare form every partner already reads.
+ * The serving path emits both.
+ */
 export function countersign(
   recordId: string,
   relayDid: string,
   privateKeyPem: string,
+  opts: { created?: Date; audience?: string } = {},
 ): DataIntegrityProof {
-  return makeProof(relayStatement(recordId, relayDid), {
+  return makeProof(relayStatement(recordId, relayDid, opts.audience), {
     privateKeyPem,
     did: relayDid,
+    created: opts.created,
   });
 }
 
-/** The DID that vouched for a relayed record, or null if nobody did. */
+/**
+ * The DID that vouched for a relayed record, or null if nobody did.
+ *
+ * `audience` must be OUR `instanceId` when checking a bound proof, and absent
+ * when checking a bare one — the statement is rebuilt either way, so passing the
+ * wrong one simply fails to verify. Never read from the proof itself: a proof
+ * that names its own audience proves nothing about who it was for.
+ */
 export function countersigner(
   recordId: string,
   proof: unknown,
+  audience?: string,
 ): string | null {
   if (!proof || typeof proof !== 'object') return null;
   const vm = (proof as DataIntegrityProof).verificationMethod;
   if (typeof vm !== 'string') return null;
   const did = vm.split('#')[0] ?? '';
+
+  // A vouch has a shelf life. `checkProof` pins the type, the cryptosuite and
+  // the purpose but never reads `created`, so without this a countersignature
+  // made once was good forever — and one that is good forever is one that can
+  // be passed around indefinitely by whoever collected it.
+  const created = (proof as DataIntegrityProof).created;
+  const at = typeof created === 'string' ? Date.parse(created) : NaN;
+  if (!Number.isFinite(at)) return null;
+  const age = Date.now() - at;
+  // Symmetric: a proof dated in the future is as unusable as an ancient one,
+  // and the tolerance is the same clock skew the S2S signature allows.
+  if (age > MAX_RELAY_PROOF_AGE_MS || age < -5 * 60 * 1000) return null;
+
   // Checked against a statement rebuilt from the id WE computed, never from
   // one the sender supplied: a countersignature over an id we did not derive
   // ourselves would vouch for whatever the sender said it vouched for.
-  const verdict = checkProof(relayStatement(recordId, did), proof);
+  const verdict = checkProof(relayStatement(recordId, did, audience), proof);
   return verdict.ok && verdict.signer === did ? did : null;
 }
 
@@ -144,6 +220,39 @@ export async function trustedIssuers(): Promise<Set<string>> {
   return out;
 }
 
+/**
+ * The instances whose records we refuse whoever hands them to us.
+ *
+ * `trustedIssuers` answers "may this instance's records come in through the
+ * front door", and a blocked peer simply leaves that set. That was not enough:
+ * any still-active partner B that took X's records first-hand countersigns them
+ * and `admit` takes them at two hops, under B's `peer_id`, with `issuer` = X.
+ * `forgetPeerData` purged rows keyed on X's own `peer_id` and did not see them,
+ * and the read-path mask matched record / infohash / author DID but never
+ * `issuer` — so an operator who blocked X over content they must not host
+ * watched it come back through B, every tick, forever.
+ *
+ * `blocked` and `revoked` only. Suspension is documented as a reversible pause
+ * that keeps everything, and a pause is not a judgement about the content.
+ */
+export async function blockedIssuers(): Promise<Set<string>> {
+  const peers = await db
+    .select({ publicKey: schema.federationPeers.publicKey })
+    .from(schema.federationPeers)
+    .where(inArray(schema.federationPeers.status, ['blocked', 'revoked']));
+
+  const out = new Set<string>();
+  for (const p of peers) {
+    if (!p.publicKey) continue;
+    try {
+      out.add(didKeyFromPublicKey(p.publicKey));
+    } catch {
+      /* an unusable key cannot be matched against an issuer either way */
+    }
+  }
+  return out;
+}
+
 export interface Admission {
   ok: boolean;
   reason?: string;
@@ -151,6 +260,18 @@ export interface Admission {
   hops?: number;
   /** Who vouched, on a relayed record. */
   via?: string;
+  /** Whether the vouching named us, rather than being transferable. */
+  audienceBound?: boolean;
+}
+
+/** Everything `admit` needs beyond the issuer and the record. */
+export interface AdmitOptions {
+  /** Refused however they arrive. See `blockedIssuers`. */
+  blocked?: Set<string>;
+  /** The audience-bound proof, when the sender emitted one. */
+  boundProof?: unknown;
+  /** OUR `instanceId` — what a bound proof has to name to count. */
+  audienceInstanceId?: string | null;
 }
 
 /**
@@ -167,10 +288,34 @@ export function admit(
   recordId: string,
   relayProof: unknown,
   trusted: Set<string>,
+  opts: AdmitOptions = {},
 ): Admission {
+  // First, before anything else can vouch it back in. A block is a decision
+  // about the ISSUER, so no partner's countersignature may override it — which
+  // is exactly what a relay was doing.
+  if (opts.blocked?.has(issuer)) {
+    return { ok: false, reason: 'issuer is a blocked instance' };
+  }
   if (trusted.has(issuer)) return { ok: true, hops: 1 };
 
-  const via = countersigner(recordId, relayProof);
+  // The bound form first. A proof that names us is one C cannot have collected
+  // from a conversation between B and somebody else.
+  const bound = opts.audienceInstanceId
+    ? countersigner(recordId, opts.boundProof, opts.audienceInstanceId)
+    : null;
+
+  // The bare form is transferable by construction — B's vouch to C verifies at
+  // D too — so it is a downgrade, and `FEDERATION_REQUIRE_AUDIENCE` is what
+  // refuses it once every partner emits the bound one. Same flag, same meaning
+  // and the same sharp edge as on the HTTP signature: turned on too early it
+  // silently stops taking a partner's relayed records.
+  if (!bound && REQUIRE_AUDIENCE) {
+    return {
+      ok: false,
+      reason: 'audience-bound countersignature required (FEDERATION_REQUIRE_AUDIENCE)',
+    };
+  }
+  const via = bound ?? countersigner(recordId, relayProof);
   if (!via) {
     return { ok: false, reason: 'issuer is not a partner and nobody vouched' };
   }
@@ -182,7 +327,7 @@ export function admit(
   // a trusted voucher either. A guard for it here would look like a security
   // check and never fire, which is worse than none — the day somebody reorders
   // these two branches it would go on looking like protection.
-  return { ok: true, hops: 2, via };
+  return { ok: true, hops: 2, via, audienceBound: !!bound };
 }
 
 /**
@@ -213,6 +358,8 @@ export async function keepForRelay(
   issuer: string,
   hops: number,
   tx: Writer = db,
+  /** The instance that vouched, on a relayed copy. See `catalog_records.via`. */
+  via: string | null = null,
 ): Promise<void> {
   const id = typeof record.id === 'string' ? record.id : null;
   if (!id) return;
@@ -240,6 +387,7 @@ export async function keepForRelay(
           : null,
       origin: 'ingested',
       hops,
+      via,
     })
     .onConflictDoNothing({ target: schema.catalogRecords.id });
 
@@ -295,6 +443,8 @@ export async function sourceRecord(
   peerId: string,
   relaying: boolean,
   tx: Writer = db,
+  /** Who vouched, when a partner relayed it rather than issuing it. */
+  via: string | null = null,
 ): Promise<void> {
   const id = typeof record.id === 'string' ? record.id : null;
   if (!id) return;
@@ -306,7 +456,7 @@ export async function sourceRecord(
       target: [schema.recordSources.peerId, schema.recordSources.recordId],
     });
 
-  if (relaying) await keepForRelay(record, issuer, hops, tx);
+  if (relaying) await keepForRelay(record, issuer, hops, tx, via);
 }
 
 /**
@@ -357,6 +507,62 @@ export async function forgetPeerData(
   peerId: string,
   opts: { forgetKey?: boolean } = {},
 ): Promise<void> {
+  // Relayed copies first, and by ISSUER rather than by `peer_id`.
+  //
+  // A record X issued that partner B handed us sits under B's `peer_id`, so
+  // every delete below walks straight past it. Cutting X while keeping a mirror
+  // of X's catalogue under somebody else's name is not cutting X — and the
+  // re-fetch loop would restore it on the next tick regardless.
+  const [peer] = await db
+    .select({ publicKey: schema.federationPeers.publicKey })
+    .from(schema.federationPeers)
+    .where(eq(schema.federationPeers.id, peerId))
+    .limit(1);
+  if (peer?.publicKey) {
+    let cutDid: string | null = null;
+    try {
+      cutDid = didKeyFromPublicKey(peer.publicKey);
+    } catch {
+      /* nothing to match on */
+    }
+    if (cutDid) {
+      await db
+        .delete(schema.remoteTorrents)
+        .where(eq(schema.remoteTorrents.issuer, cutDid));
+      await db
+        .delete(schema.remoteIdentityLinks)
+        .where(eq(schema.remoteIdentityLinks.issuer, cutDid));
+
+      // …and what it merely INTRODUCED. A record this peer countersigned
+      // arrives under the relay's `peer_id` with the peer's DID only in `via`,
+      // so every delete keyed on `peer_id` or on `issuer` walks past it. The
+      // introduction has to fall with the instance that made it, or cutting a
+      // partner leaves the catalogue it vouched for standing under somebody
+      // else's name — and the re-fetch loop restores it on the next tick.
+      const introduced = await db
+        .select({ id: schema.catalogRecords.id })
+        .from(schema.catalogRecords)
+        .where(
+          and(
+            eq(schema.catalogRecords.origin, 'ingested'),
+            eq(schema.catalogRecords.via, cutDid),
+          ),
+        );
+      if (introduced.length) {
+        const ids = introduced.map((r) => r.id);
+        await db
+          .delete(schema.remoteTorrents)
+          .where(inArray(schema.remoteTorrents.recordId, ids));
+        await db
+          .delete(schema.recordSources)
+          .where(inArray(schema.recordSources.recordId, ids));
+        await db
+          .delete(schema.catalogRecords)
+          .where(inArray(schema.catalogRecords.id, ids));
+      }
+    }
+  }
+
   await db.delete(schema.remoteTorrents).where(eq(schema.remoteTorrents.peerId, peerId));
   await db.delete(schema.recordSources).where(eq(schema.recordSources.peerId, peerId));
   await db

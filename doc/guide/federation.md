@@ -251,7 +251,7 @@ first enable.
 | Variable                   | Read by | Default           | Purpose                                                              |
 | -------------------------- | ------- | ----------------- | -------------------------------------------------------------------- |
 | `FEDERATION_SYNC_INTERVAL` | api     | `900000` (15 min) | Catalogue-sync cron period (ms). No-op while federation is disabled. The health page's "behind" threshold is `3 ×` this, floored at 15 min — lowering it to sync faster will **not** paint healthy peers amber. |
-| `FEDERATION_REQUIRE_AUDIENCE` | api  | `false`           | Reject inbound S2S signatures that carry no audience binding. Turn on only once every partner runs a build that sends it. |
+| `FEDERATION_REQUIRE_AUDIENCE` | api  | `false`           | Reject inbound S2S signatures — and relay countersignatures — that carry no audience binding. Turn on only once every partner runs a build that sends it. |
 | `TRACKER_FEDERATION_SWARM` | tracker | `false`           | Master switch for swarm cross-announce on the Go tracker.            |
 | `CHANNEL_ENCRYPTION_KEY`   | api     | —                 | Encrypts the instance private key at rest (falls back to `NUXT_SESSION_SECRET`). |
 

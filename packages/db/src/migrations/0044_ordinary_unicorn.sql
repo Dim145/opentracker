@@ -1,0 +1,1 @@
+ALTER TABLE "catalog_records" ADD COLUMN "via" text;

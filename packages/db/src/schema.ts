@@ -1173,6 +1173,21 @@ export const catalogRecords = pgTable(
      * that is precisely the case the bound exists for.
      */
     hops: integer('hops').notNull().default(0),
+    /**
+     * The instance that vouched for this copy — the countersigner's `did:key`.
+     *
+     * Null for our own records and for one we took first-hand: nobody had to
+     * introduce it. Set only on a relayed copy, where it is the answer to "on
+     * whose word did we take this in".
+     *
+     * `admit` computed this and threw it away, and the absence had a cost.
+     * Cutting a peer purged the rows under ITS `peer_id`, but a record it
+     * vouched for arrives under the RELAY's `peer_id` — so the introduction
+     * survived the instance that made it, with nothing left to find it by.
+     * Same shape as the `issuer` gap: a column nobody wrote is a lever nobody
+     * has.
+     */
+    via: text('via'),
     /** The signed object, exactly as it goes on the wire. */
     body: jsonb('body').$type<Record<string, unknown>>().notNull(),
     /**
