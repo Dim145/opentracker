@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
 import {
   MAX_ROUNDS,
+  MAX_SET_QUERIES_PER_MESSAGE,
+  MAX_WIDE_RANGES_PER_MESSAGE,
   arraySource,
   boundMessage,
   fingerprint,
@@ -236,6 +238,167 @@ describe('a partner is not to be trusted with our loop', () => {
     }));
     const r = await respond(many, source, { echoIds: true });
     expect(r.reply.length).toBeLessThanOrEqual(512);
+  });
+
+  it('answers a flood of identical ranges with one scan', async () => {
+    // The amplification. A 512 KB body holds ~11 000 copies of
+    // `{lo:"", hi:null, mode:"fp", fp:"00", n:0}`; the incoming count was never
+    // capped and identical ranges were never deduplicated, so each one that got
+    // processed before the reply filled cost a `string_agg` + `sha256` over the
+    // WHOLE live record set — and a wide one an `ntile` window on top. The
+    // reply-length cap bounded the ANSWER, not the work.
+    let scans = 0;
+    const counting: SetSource = {
+      async summary() {
+        scans++;
+        return { fp: 'disagree', n: 10 };
+      },
+      async ids() {
+        scans++;
+        return ids(10, 'x');
+      },
+      async buckets() {
+        scans++;
+        return [];
+      },
+    };
+    const flood = Array.from({ length: 11_000 }, () => ({
+      lo: '',
+      hi: null,
+      mode: 'fp' as const,
+      fp: '00',
+      n: 0,
+    }));
+
+    const r = await respond(flood, counting, { echoIds: true });
+    // One question asked once.
+    expect(scans).toBeLessThanOrEqual(2);
+    expect(r.reply.length).toBeLessThanOrEqual(2);
+  });
+
+  it('bounds the scans a message can cause, carrying the rest to pending', async () => {
+    // Distinct ranges cannot be deduplicated away, so there is a second bound:
+    // a budget on aggregate queries. Whatever it does not reach goes back as
+    // `pending`, which the initiator re-sends — the same mechanism the
+    // reply-byte cap already uses, so convergence is slower and nothing is
+    // lost.
+    let scans = 0;
+    const counting: SetSource = {
+      async summary() {
+        scans++;
+        return { fp: 'disagree', n: 10 };
+      },
+      async ids() {
+        scans++;
+        return ids(10, 'y');
+      },
+      async buckets() {
+        scans++;
+        return [];
+      },
+    };
+    // 400 distinct wide ranges: each a different `lo`, each disagreeing.
+    const distinct = Array.from({ length: 400 }, (_, i) => ({
+      lo: String(i).padStart(6, '0'),
+      hi: null,
+      mode: 'fp' as const,
+      fp: 'nope',
+      n: 1_000_000,
+    }));
+
+    const r = await respond(distinct, counting, { echoIds: true });
+    // Every one of them is open at the top end, so the wide-range budget is
+    // what bites — 16, not 400 near-full-set aggregates.
+    expect(scans).toBeLessThanOrEqual(2 * MAX_WIDE_RANGES_PER_MESSAGE);
+    expect(scans).toBeLessThanOrEqual(MAX_SET_QUERIES_PER_MESSAGE);
+    expect(r.pending.length).toBeGreaterThan(0);
+  });
+
+  it('reports what the expensive work actually cost, so it can be billed', async () => {
+    // The route bills `wideUsed` against a per-minute allowance. It has to be
+    // what was ANSWERED, not what arrived: the reply-size and query budgets can
+    // end the loop early, and charging a partner for work we chose not to do
+    // would throttle it for our own truncation.
+    const source = arraySource(ids(50, 'w'));
+    const one = await respond(
+      [{ lo: '', hi: null, mode: 'fp', fp: 'disagree', n: 1 }],
+      source,
+      { echoIds: true },
+    );
+    expect(one.wideUsed).toBe(1);
+
+    const narrow = await respond(
+      [{ lo: 'sha256:1', hi: 'sha256:2', mode: 'fp', fp: 'disagree', n: 1 }],
+      source,
+      { echoIds: true },
+    );
+    expect(narrow.wideUsed).toBe(0); // both bounds set: an index range scan
+  });
+
+  it('defers every wide range when the allowance is spent, and still answers 200', async () => {
+    // What a throttled round looks like. `maxWideRanges: 0` is the route saying
+    // "this peer has used its minute" — and the answer is a normal reply with
+    // the expensive ranges in `pending`, not an error. A 429 would land on the
+    // peer's dashboard as `lastError`, which is an alarm about our accounting
+    // rather than about the peer.
+    let scans = 0;
+    const counting: SetSource = {
+      async summary() {
+        scans++;
+        return { fp: 'disagree', n: 10 };
+      },
+      async ids() {
+        scans++;
+        return ids(10, 'z');
+      },
+      async buckets() {
+        scans++;
+        return [];
+      },
+    };
+    const wide = [
+      { lo: '', hi: null, mode: 'fp' as const, fp: 'a', n: 1 },
+      { lo: 'sha256:0', hi: null, mode: 'fp' as const, fp: 'b', n: 1 },
+    ];
+
+    const r = await respond(wide, counting, { echoIds: true, maxWideRanges: 0 });
+    expect(scans).toBe(0);
+    expect(r.wideUsed).toBe(0);
+    expect(r.pending).toHaveLength(2); // nothing lost, everything deferred
+    expect(r.reply).toHaveLength(0);
+  });
+
+  it('never lets a caller raise the per-message cap', async () => {
+    // The allowance can only ever lower it. A route bug that passed a large
+    // number must not turn into an unbounded message.
+    let scans = 0;
+    const counting: SetSource = {
+      async summary() {
+        scans++;
+        return { fp: 'disagree', n: 10 };
+      },
+      async ids() {
+        scans++;
+        return ids(10, 'y');
+      },
+      async buckets() {
+        scans++;
+        return [];
+      },
+    };
+    const many = Array.from({ length: 40 }, (_, i) => ({
+      lo: String(i).padStart(6, '0'),
+      hi: null,
+      mode: 'fp' as const,
+      fp: 'nope',
+      n: 1,
+    }));
+
+    const r = await respond(many, counting, {
+      echoIds: true,
+      maxWideRanges: 10_000,
+    });
+    expect(r.wideUsed).toBeLessThanOrEqual(MAX_WIDE_RANGES_PER_MESSAGE);
   });
 
   it('does not hand over a range too large to name, it narrows it', async () => {

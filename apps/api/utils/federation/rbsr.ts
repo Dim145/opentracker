@@ -117,6 +117,51 @@ export const BUCKETS = 16;
 export const MAX_RANGES_PER_MESSAGE = 512;
 export const MAX_ROUNDS = 12;
 
+/**
+ * The work one message may cause, bounded two ways.
+ *
+ * The cap that was missing. `MAX_RANGES_PER_MESSAGE` bounded the REPLY, and the
+ * reply-byte cap bounded the loop — but every `fp` range costs a `string_agg` +
+ * `sha256` over its interval, and a disagreeing one an `ntile` window over the
+ * same interval on top. A partner could put ~11 000 copies of
+ * `{lo:"", hi:null, mode:"fp", fp:"00", n:0}` in a 512 KB body: the incoming
+ * count was never capped, identical ranges were never deduplicated, and each of
+ * the ~32 processed before the reply filled was a scan of the WHOLE live record
+ * set.
+ *
+ * Deduplication (below) answers the identical flood. These two answer the rest:
+ *
+ * - `MAX_WIDE_RANGES_PER_MESSAGE` bounds the ranges that are open at an end,
+ *   which are the expensive ones — an interval with both bounds is an index
+ *   range scan over few rows, while `('', null)` is the entire set.
+ *
+ *   Four, and that is a measured number rather than a guess. Instrumenting a
+ *   full reconciliation of two disjoint sets: **two** wide ranges per message,
+ *   at 1 000 records (2 rounds) and at 20 000 (17 rounds) alike. `initial`
+ *   sends exactly one, and `buckets` leaves the outer bound open only on the
+ *   first and last piece, so two is the structural maximum and four is one
+ *   doubling of slack. An earlier 16 was eight times what anything needs.
+ *
+ *   The cost it bounds, measured on Postgres 18 with 200 000 published records:
+ *   `summary('', null)` 115-145 ms, `buckets('', null, 16)` 300-465 ms. So a
+ *   wide range that disagrees costs ~0.5 s, and at 120 requests/min per peer
+ *   (`verifyInboundS2S`) a cap of 16 was worth about thirteen saturated cores
+ *   to one hostile partner. At four it is under one, and `reconcile.post`
+ *   tightens the request budget on top.
+ *
+ * - `MAX_SET_QUERIES_PER_MESSAGE` is the runaway backstop. It is deliberately
+ *   ABOVE what a legitimate message needs (a 512-range reply means the next
+ *   message carries up to 512 ranges, each costing one or two queries), because
+ *   a budget tight enough to be interesting is a budget that stalls
+ *   convergence: at 64 a 20 000-record set never finished reconciling.
+ *
+ * Ranges past either bound go to `pending`, which the initiator re-sends — the
+ * same mechanism the reply-byte cap already uses, so convergence is slower and
+ * nothing is lost.
+ */
+export const MAX_SET_QUERIES_PER_MESSAGE = 1_024;
+export const MAX_WIDE_RANGES_PER_MESSAGE = 4;
+
 /** The fingerprint of an ascending list of ids. See the header. */
 export function fingerprint(ids: string[]): string {
   return createHash('sha256')
@@ -177,6 +222,15 @@ export interface ReconcileStep {
    * converging on a fraction.
    */
   pending: Range[];
+  /**
+   * Ranges open at an end that this call actually answered.
+   *
+   * What the caller bills against the peer's allowance. Reported rather than
+   * inferred from the input, because the reply-size and query budgets can end
+   * the loop before every wide range is reached — charging for work not done
+   * would throttle a partner for our own truncation.
+   */
+  wideUsed: number;
 }
 
 export interface RespondOptions {
@@ -188,6 +242,15 @@ export interface RespondOptions {
    * and it is what makes a range terminal.
    */
   echoIds: boolean;
+  /**
+   * Ranges open at an end this message may answer, below the per-message cap.
+   *
+   * The route lowers it as a peer spends its minute's allowance. At zero every
+   * wide range goes to `pending` and the reply is still a 200 — a throttled
+   * round is deferred, never failed, which is what lets the throttle exist
+   * without a 429 on the dashboard of a perfectly healthy peer.
+   */
+  maxWideRanges?: number;
 }
 
 /**
@@ -249,7 +312,47 @@ export async function respond(
   // sites — n ≤ 512 so the O(n²) is trivial and there is no drift to chase.
   let replyBytes = 2;
 
-  const list = Array.isArray(incoming) ? incoming : [];
+  // Deduplicate and cap the incoming ranges BEFORE any of them costs a query.
+  //
+  // Two ranges with the same bounds and the same claim are the same question,
+  // and a correct partner asks each interval once — our own `initial` and
+  // `respond` never emit a duplicate, nor more than `MAX_RANGES_PER_MESSAGE`.
+  // So both of these only ever discard something a compliant peer would not
+  // have sent, and together they turn "11 000 copies of the widest possible
+  // range" into one scan.
+  const list: unknown[] = [];
+  if (Array.isArray(incoming)) {
+    const seen = new Set<string>();
+    for (const raw of incoming) {
+      const r = raw as Range;
+      if (!r || typeof r !== 'object') continue;
+      // `ids` is discriminated by its length rather than its contents: hashing
+      // 2 000 strings to spot a duplicate would be the cost we are avoiding.
+      const claim =
+        r.mode === 'fp'
+          ? r.fp
+          : r.mode === 'ids' && Array.isArray(r.ids)
+            ? r.ids.length
+            : '';
+      const key = [r.mode, r.lo, r.hi ?? '\u0000', claim].join('\u0001');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      // Past the per-message count it WAITS rather than being dropped. The
+      // difference matters more than it looks: a `.slice` here would converge
+      // on a fraction of the id space and report success, which is the exact
+      // failure this module exists to avoid — and it is not hypothetical, an
+      // earlier version of the sync did it.
+      if (list.length >= MAX_RANGES_PER_MESSAGE) pending.push(r);
+      else list.push(raw);
+    }
+  }
+
+  let queries = 0;
+  let wide = 0;
+  const wideCap = Math.max(
+    0,
+    Math.min(opts.maxWideRanges ?? MAX_WIDE_RANGES_PER_MESSAGE, MAX_WIDE_RANGES_PER_MESSAGE),
+  );
   for (let idx = 0; idx < list.length; idx++) {
     replyBytes = 2 + reply.reduce((a, rr) => a + sizeOfRange(rr), 0);
     // Stop once the reply is close enough to the cap that the next range's
@@ -258,7 +361,11 @@ export async function respond(
     // round, so no interval is ever silently forgotten.
     if (
       reply.length >= MAX_RANGES_PER_MESSAGE ||
-      replyBytes + MAX_SINGLE_RANGE_BYTES > MAX_MESSAGE_BYTES
+      replyBytes + MAX_SINGLE_RANGE_BYTES > MAX_MESSAGE_BYTES ||
+      // Each remaining range costs at least one aggregate over the record set,
+      // so the budget is checked here — where `pending` already exists to carry
+      // the rest back — rather than at each call site.
+      queries >= MAX_SET_QUERIES_PER_MESSAGE
     ) {
       for (let j = idx; j < list.length; j++) {
         const rr = list[j] as Range;
@@ -274,19 +381,32 @@ export async function respond(
     if (r.hi !== null && r.hi <= r.lo) continue; // inverted or empty
     if (r.mode === 'skip') continue;
 
+    // Open at an end, so its aggregate reads most of the set. Past the budget
+    // it waits for the next message rather than being answered now.
+    if (r.hi === null || r.lo === MIN_BOUND) {
+      if (wide >= wideCap) {
+        pending.push(r);
+        continue;
+      }
+      wide++;
+    }
+
     if (r.mode === 'ids') {
       if (!Array.isArray(r.ids) || r.ids.length > MAX_IDS_PER_RANGE) continue;
       const theirs = r.ids.filter((x): x is string => typeof x === 'string');
+      queries++;
       const ours = await mine.summary(r.lo, r.hi);
       if (ours.n > MAX_IDS_PER_RANGE) {
         // They can name their side exactly and we cannot name ours. Narrow it
         // first rather than truncate: a short list here would read as "that is
         // all I have", and the missing records would never be asked for again.
+        queries++;
         for (const b of await mine.buckets(r.lo, r.hi, BUCKETS)) {
           reply.push({ lo: b.lo, hi: b.hi, mode: 'fp', fp: b.fp, n: b.n });
         }
         continue;
       }
+      queries++;
       const ourIds = await mine.ids(r.lo, r.hi, MAX_IDS_PER_RANGE);
       const ourSet = new Set(ourIds);
       const theirSet = new Set(theirs);
@@ -301,6 +421,7 @@ export async function respond(
     if (r.mode !== 'fp' || typeof r.fp !== 'string') continue;
     const theirCount = Number.isFinite(r.n) ? Math.max(0, Math.trunc(r.n)) : 0;
 
+    queries++;
     const ours = await mine.summary(r.lo, r.hi);
     if (ours.fp === r.fp) {
       reply.push({ lo: r.lo, hi: r.hi, mode: 'skip' });
@@ -309,6 +430,7 @@ export async function respond(
     // They disagree. Either side being small enough to name outright ends the
     // interval in one more message; otherwise cut it up.
     if (Math.min(ours.n, theirCount) <= IDS_THRESHOLD && ours.n <= MAX_IDS_PER_RANGE) {
+      queries++;
       reply.push({
         lo: r.lo,
         hi: r.hi,
@@ -317,12 +439,13 @@ export async function respond(
       });
       continue;
     }
+    queries++;
     for (const b of await mine.buckets(r.lo, r.hi, BUCKETS)) {
       reply.push({ lo: b.lo, hi: b.hi, mode: 'fp', fp: b.fp, n: b.n });
     }
   }
 
-  return { reply, missing, extra, pending };
+  return { reply, missing, extra, pending, wideUsed: wide };
 }
 
 /**
