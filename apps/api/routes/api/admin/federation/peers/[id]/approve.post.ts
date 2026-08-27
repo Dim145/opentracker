@@ -22,7 +22,7 @@ import {
   getPrivateKeyPem,
 } from '~~/utils/federation/config';
 import { signedPost } from '~~/utils/federation/signing';
-import { federationScopesSchema } from '~~/utils/federation/scopes';
+import { federationScopesSchema, PROTOCOL_VERSION } from '~~/utils/federation/scopes';
 
 const bodySchema = z.object({
   sharesWithThem: federationScopesSchema.optional(),
@@ -83,7 +83,7 @@ export default defineEventHandler(async (event) => {
     await signedPost({
       baseUrl: peer.baseUrl,
       pathname: '/api/federation/callback',
-      body: { acceptsFromYou: acceptsFromThem, sharesWithYou: sharesWithThem },
+      body: { acceptsFromYou: acceptsFromThem, sharesWithYou: sharesWithThem, protocolVersion: PROTOCOL_VERSION },
       instanceId: live.instanceId,
       privateKeyPem,
       audienceInstanceId: peer.instanceId ?? undefined,

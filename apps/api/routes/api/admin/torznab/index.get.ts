@@ -11,6 +11,7 @@ import {
   getTorznabRateLimitWindow,
   getTorznabEnableLogging,
   getTorznabAllowedCategories,
+  getTorznabIncludeFederated,
 } from '~~/utils/torznabSettings';
 import { getTorznabStats } from '~~/utils/torznabStats';
 
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
     rateLimitWindow,
     enableLogging,
     allowedCategories,
+    includeFederated,
     stats,
   ] = await Promise.all([
     getTorznabEnabled(),
@@ -32,6 +34,7 @@ export default defineEventHandler(async (event) => {
     getTorznabRateLimitWindow(),
     getTorznabEnableLogging(),
     getTorznabAllowedCategories(),
+    getTorznabIncludeFederated(),
     getTorznabStats(),
   ]);
 
@@ -43,6 +46,7 @@ export default defineEventHandler(async (event) => {
       rateLimitWindow,
       enableLogging,
       allowedCategories,
+      includeFederated,
     },
     stats,
   };

@@ -46,6 +46,7 @@ export default defineEventHandler(async (event) => {
         pathname: '/api/federation/forum',
         instanceId,
         privateKeyPem: pk,
+        audienceInstanceId: peer.instanceId ?? undefined,
         timeoutMs: 8000,
       });
       const topics: RemoteTopic[] =

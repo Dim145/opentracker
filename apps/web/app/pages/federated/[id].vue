@@ -21,9 +21,25 @@
             <span v-for="tag in (t.tags || []).slice(0, 5)" :key="tag" class="t-tag">{{ tag }}</span>
           </div>
         </div>
-        <a v-if="t.detailUrl" class="fb-open" :href="safeHttpUrl(t.detailUrl) || '#'" target="_blank" rel="noopener noreferrer">
-          <Icon name="ph:arrow-square-out-bold" /> {{ $t('federated.detail.openOnSource', { peer: peerName }) }}
-        </a>
+        <div class="fd-actions">
+          <a v-if="t.detailUrl" class="fb-open" :href="safeHttpUrl(t.detailUrl) || '#'" target="_blank" rel="noopener noreferrer">
+            <Icon name="ph:arrow-square-out-bold" /> {{ $t('federated.detail.openOnSource', { peer: peerName }) }}
+          </a>
+          <!-- The mirror is a dead end until a member can act on a line. This
+               raises a local request for the release — the M1 request/fill
+               bridge — so someone here who has it can upload it. -->
+          <button class="fd-request" :disabled="requesting" @click="requestHere">
+            <Icon name="ph:hand-heart-bold" /> {{ $t('federated.detail.requestHere') }}
+          </button>
+          <!-- A member's only recourse over a mirrored release used to be none.
+               This flags it to our moderators, who can mask it locally. -->
+          <button class="fd-report" @click="reportOpen = true">
+            <Icon name="ph:flag-bold" /> {{ $t('federated.detail.report') }}
+          </button>
+          <p v-if="requestError" class="fd-request-error">
+            <Icon name="ph:warning-circle-fill" /> {{ requestError }}
+          </p>
+        </div>
       </header>
 
       <section v-if="t.description" class="card fd-desc">
@@ -54,6 +70,16 @@
         </p>
       </section>
     </template>
+
+    <ReportModal
+      v-if="t"
+      :is-open="reportOpen"
+      target-type="remote"
+      :target-id="t.infoHash"
+      :target-label="t.name"
+      @close="reportOpen = false"
+      @submitted="reportOpen = false"
+    />
   </div>
 </template>
 
@@ -81,6 +107,9 @@ interface Detail {
 }
 
 const route = useRoute();
+const router = useRouter();
+const { t: translate } = useI18n();
+
 // Federation off is a real state a user can land in by typing the URL or
 // following an old link — the nav items that lead here are already hidden.
 // `branding` is fetched by the layout on every page, so this costs nothing.
@@ -97,6 +126,29 @@ const { data } = await useFetch<Detail>(
 const t = computed(() => data.value?.torrent ?? null);
 const comments = computed(() => data.value?.comments ?? []);
 const commentsError = computed(() => !!data.value?.commentsError);
+const reportOpen = ref(false);
+const requesting = ref(false);
+const requestError = ref('');
+
+// Raise a local request for this mirrored release (M1). On success we land on
+// the new request; a 400 means no local category could be resolved for it.
+async function requestHere(): Promise<void> {
+  if (!t.value || requesting.value) return;
+  requesting.value = true;
+  requestError.value = '';
+  try {
+    const res = await $fetch<{ id: string }>(
+      `/api/federation/remote/${route.params.id}/request`,
+      { method: 'POST', body: {} },
+    );
+    router.push(`/requests/${res.id}`);
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string }; message?: string };
+    requestError.value =
+      e?.data?.message || e?.message || translate('federated.detail.requestError');
+    requesting.value = false;
+  }
+}
 const peerName = computed(
   () => data.value?.peer?.name || host(data.value?.peer?.baseUrl || ''),
 );
@@ -159,6 +211,13 @@ function fmtDate(d: string | null) {
 .t-tag { font-size: 10.5px; color: rgb(var(--fg-subtle)); background: rgb(var(--bg-inset)); border: 1px solid rgb(var(--line-default)); border-radius: 99px; padding: 0.05rem 0.45rem; }
 .fb-open { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; font-weight: 600; padding: 0.4rem 0.7rem; border-radius: var(--radius-sm); border: 1px solid rgb(var(--line-default)); background: rgb(var(--bg-elevated)); color: rgb(var(--fg-default)); white-space: nowrap; transition: all 0.14s ease; }
 .fb-open:hover { background: rgb(var(--bg-hover)); border-color: rgb(var(--line-strong)); }
+.fd-actions { display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end; flex-shrink: 0; }
+.fd-report { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; padding: 0.35rem 0.65rem; border-radius: var(--radius-sm); border: 1px solid rgb(var(--line-default)); background: transparent; color: rgb(var(--fg-muted)); cursor: pointer; white-space: nowrap; transition: all 0.14s ease; }
+.fd-report:hover { color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
+.fd-request { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; font-weight: 600; padding: 0.4rem 0.7rem; border-radius: var(--radius-sm); border: 1px solid rgba(212, 167, 52, 0.5); background: rgba(212, 167, 52, 0.12); color: var(--gold, #d4a734); cursor: pointer; white-space: nowrap; transition: all 0.14s ease; }
+.fd-request:hover:not(:disabled) { background: rgba(212, 167, 52, 0.2); border-color: var(--gold, #d4a734); }
+.fd-request:disabled { opacity: 0.5; cursor: default; }
+.fd-request-error { display: flex; align-items: center; gap: 0.3rem; font-size: 11px; color: #fca5a5; max-width: 220px; text-align: right; }
 
 .card { background: rgb(var(--bg-surface)); border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); }
 .fd-desc { padding: 1.1rem; margin-bottom: 1.75rem; }

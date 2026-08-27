@@ -12,6 +12,7 @@ import {
   setTorznabRateLimitWindow,
   setTorznabEnableLogging,
   setTorznabAllowedCategories,
+  setTorznabIncludeFederated,
 } from '~~/utils/torznabSettings';
 
 const updateSchema = z.object({
@@ -21,6 +22,7 @@ const updateSchema = z.object({
   rateLimitWindow: z.number().min(10).max(3600).optional(),
   enableLogging: z.boolean().optional(),
   allowedCategories: z.array(z.string()).optional(),
+  includeFederated: z.boolean().optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -62,6 +64,10 @@ export default defineEventHandler(async (event) => {
 
   if (updates.allowedCategories !== undefined) {
     await setTorznabAllowedCategories(updates.allowedCategories);
+  }
+
+  if (updates.includeFederated !== undefined) {
+    await setTorznabIncludeFederated(updates.includeFederated);
   }
 
   return { success: true };

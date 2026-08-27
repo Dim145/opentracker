@@ -5,13 +5,12 @@
  * the local catalogue: one row per film, per series, per game, per book, with
  * the ways it has been cut advertised on the row.
  *
- * Side by side with the local catalogue, not merged into it. Merging is the
- * better product answer and it is blocked on record identity — today "the same
- * release here and on three partners" is a heuristic over content signatures,
- * and reconciling that inside an aggregate that already unions two halves buys
- * a query nobody can maintain. The local listing carries a
- * `partnerReleaseCount` badge instead, which answers the question a member
- * actually has: does a partner have the season I am missing?
+ * The partners' catalogue as a place of its own: browse it by peer, see what
+ * one partner holds, follow an uploader over there. The MERGED view — their
+ * releases folded into ours, one row per work with several places to get each
+ * release — is `/api/torrents/groups`, and it is what a member sees by
+ * default. This page is what remains useful once merging exists: a question
+ * about a partner rather than a question about a work.
  *
  * Like every federated view: a release links back to its origin instance. We
  * never serve a partner's `.torrent` with the local passkey.

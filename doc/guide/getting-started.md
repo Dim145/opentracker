@@ -175,7 +175,10 @@ docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 The entrypoint applies any pending migration on every start, so a schema
-change ships with its image. Volumes (`postgres_data`, `redis_data`,
+change ships with its image. On an existing database created by an older
+image that pushed `schema.ts` instead, run the one-time baseline first — see
+[Upgrading](./upgrading.md#coming-from-a-pushing-image-one-time-baseline).
+Volumes (`postgres_data`, `redis_data`,
 `uploads_data`, `caddy_data`) survive rebuilds.
 
 ::: warning Breaking schema changes

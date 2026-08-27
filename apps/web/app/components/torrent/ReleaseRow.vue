@@ -21,15 +21,19 @@
     HTML and would swallow its own click.
   -->
   <div class="rr" :class="`rr--${tier}`">
-    <!-- A federated release goes home: the `.torrent` is fetched from the
+    <!-- A release we do not hold goes home: the `.torrent` is fetched from the
          origin, with an account there. We never proxy a partner's bytes with
          the local passkey, so there is no download button on those rows — the
-         partner chips say where to go instead. -->
+         partner chips say where to go instead.
+
+         A release we DO hold and a partner also has is not one of those. It
+         keeps its download button and simply says who else carries it, which
+         is the whole point of merging the two catalogues into one row. -->
     <component
-      :is="release.remote ? 'a' : NuxtLink"
+      :is="remoteOnly ? 'a' : NuxtLink"
       v-bind="
-        release.remote
-          ? { href: release.remote.detailUrl ?? undefined, target: '_blank', rel: 'noopener noreferrer' }
+        remoteOnly
+          ? { href: release.remote?.detailUrl ?? undefined, target: '_blank', rel: 'noopener noreferrer' }
           : { to: `/torrents/${release.infoHash}` }
       "
       class="rr-main"
@@ -70,7 +74,7 @@
     <span class="rr-age">{{ age }}</span>
 
     <a
-      v-if="!release.remote"
+      v-if="!remoteOnly"
       :href="`/api/torrents/${release.infoHash}/download`"
       class="rr-dl"
       :title="$t('search.group.download')"
@@ -97,10 +101,12 @@ const props = defineProps<{
     createdAt?: string | Date | null;
     moderatedAt?: string | Date | null;
     /**
-     * Set when the release comes from the federated mirror rather than the
-     * local catalogue. Its presence is what switches the row from "download
-     * this" to "go and get it there", so it is one field rather than three
-     * booleans nobody would keep in step.
+     * Who else has this release, and where to go if we do not have it.
+     *
+     * `peers` names the partners carrying it — shown whether or not we have it
+     * too. `detailUrl` is set only when we DO NOT hold it, and its presence is
+     * what switches the row from "download this" to "go and get it there".
+     * One field rather than booleans nobody would keep in step.
      */
     remote?: { detailUrl: string | null; peers: string[] } | null;
   };
@@ -117,6 +123,16 @@ const props = defineProps<{
  */
 const NuxtLink = resolveComponent('NuxtLink');
 
+/**
+ * Nobody here has it — so the row points outward instead of downloading.
+ *
+ * The test is `detailUrl`, not the presence of `remote`: a release can be ours
+ * AND a partner's, and that row must behave like ours. Keying off `remote`
+ * alone is how the merge would have quietly removed the download button from
+ * every release a partner happens to mirror.
+ */
+const remoteOnly = computed(() => !!props.release.remote?.detailUrl);
+
 const chips = computed(() => releaseChips(props.release.name));
 const tier = computed(() => resolutionTier(chips.value.resolution));
 
@@ -130,7 +146,12 @@ const hasChips = computed(
         chips.value.codec ||
         chips.value.platform ||
         chips.value.format,
-    ) || chips.value.flags.length > 0,
+    ) ||
+    chips.value.flags.length > 0 ||
+    // A release nobody could parse still has something worth saying when a
+    // partner carries it. Without this the peer chips lived inside the parsed
+    // branch and vanished exactly on the rows with the least other detail.
+    (props.release.remote?.peers.length ?? 0) > 0,
 );
 
 const split = computed(() => splitReleaseName(props.release.name));

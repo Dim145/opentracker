@@ -70,7 +70,7 @@ Each set is four booleans:
 | `catalog`  | torrent metadata discovery (browse + search)                  |
 | `social`   | federated comments & forum, follow notifications              |
 | `accounts` | identity-link verification + read-only reputation             |
-| `swarm`    | peer cross-announce (highest risk — see [Swarm](#axis-4-swarm))|
+| `swarm`    | peer cross-announce (highest risk — see [Swarm](#axis-4--swarm))|
 
 You can cut one scope without touching the others (e.g. drop `social`,
 keep `catalog`) at any time from the peer's **Manage** dialog — it takes
@@ -83,12 +83,29 @@ effect on the next request.
 Discover and search partner content without touching swarms.
 
 - **Cache mode (default).** A background cron (`FEDERATION_SYNC_INTERVAL`,
-  15 min) pulls each `catalog`-sharing peer's catalogue into a local,
-  read-only mirror (`remote_torrents`) via a signed, paginated
-  `GET /api/federation/catalog`. Browse it at **`/federated`**.
+  15 min) reconciles with each `catalog`-sharing peer and pulls whatever is
+  missing into a local, read-only mirror (`remote_torrents`). Browse it at
+  **`/federated`**.
+- **Reconciliation, not a cursor.** The two sides compare fingerprints of
+  ranges of their catalogues and converge on exactly what differs, in a
+  handful of round trips whatever the size. When nothing has changed that is
+  one request and one "we agree" — and unlike a watermark it is *proven*
+  rather than assumed, so a release that went missing for any reason is
+  found and repaired on the next pass instead of never.
 - **Live mode.** Toggle **Live** on `/federated` to fan out a signed
   `GET /api/federation/search?q=` to every partner in real time
-  (time-bounded, best-effort).
+  (time-bounded, best-effort). It answers with the same signed records the
+  feed streams, so a live result is verified and cached exactly like a
+  synced one.
+- **Signed records.** Everything a partner asserts about a release travels
+  as an immutable record it signed with its own key, verified on arrival.
+  A partner can decline to answer or serve you nothing — it cannot forge a
+  release it did not publish, nor alter one in flight. New uploads, edits
+  and withdrawals all arrive in that one stream: an edit is a record that
+  supersedes another, a withdrawal is a tombstone.
+- **Swarm counts are the exception.** They change constantly, so they
+  cannot live inside an immutable record and travel unsigned on their own
+  feed. Treat a partner's seeder count as a hint, not a promise.
 - **Dedupe.** A remote item already present locally is flagged
   *"also here"* (same info-hash) or *"same content here"* (same
   content-signature, different info-hash). Hints only — the mirror is
@@ -181,6 +198,36 @@ terminal; a pending handshake must be approved or deleted, not patched). Any
 non-`active` status immediately makes every inbound S2S endpoint reject the
 peer.
 
+## Standards, and where this diverges
+
+Federation reuses established formats where they fit, and says so where it does
+not:
+
+- **Records** are [FEP-d8c8](https://codeberg.org/fediverse/fep/src/branch/main/fep/d8c8)
+  `Torrent` objects — the same `type`, `@context` and `bt:infohash_v1` a generic
+  fediverse consumer understands — extended with a `trackarr:` vocabulary served
+  at `/api/federation/context`.
+- **Proofs** are W3C [Data Integrity](https://www.w3.org/TR/vc-di-eddsa/) with the
+  `eddsa-jcs-2022` cryptosuite (a Recommendation as of May 2025): the signing
+  input is `SHA-256(proofConfig) ‖ SHA-256(document)`, each canonicalised with
+  [RFC 8785 (JCS)](https://www.rfc-editor.org/rfc/rfc8785). Content addresses are
+  `sha256:<hex>` over the canonical bytes, excluding `proof` and `id`.
+- **Identity keys** are `did:key` (Ed25519, multicodec `0xed01`). `did:key` has
+  no rotation by construction — the identifier *is* the key — so succession and
+  revocation are layered on top rather than assumed from the method.
+
+**Divergence from [FEP-c390](https://codeberg.org/fediverse/fep/src/branch/main/fep/c390)
+(Identity Proofs), deliberate.** A portable-identity assertion here is a signed
+`Person` record carrying `alsoKnownAs` + the evidence that proved each alias,
+reconciled and relayed like any other record. FEP-c390 instead attaches a
+`VerifiableIdentityStatement` to an actor's `attachment`, with `alsoKnownAs`
+naming the actor's own id. The two express the same fact — "these identifiers
+are one person" — but this design makes the assertion a first-class, relayable
+record (so it survives the origin instance disappearing, which is the case that
+matters) rather than an attachment resolved by fetching a live actor. Converging
+on the FEP-c390 shape for cross-fediverse interoperability is possible later; it
+is not done today, and this note is the honest statement of that.
+
 ## Security
 
 | Concern        | Measure                                                                                       |
@@ -203,14 +250,30 @@ first enable.
 
 | Variable                   | Read by | Default           | Purpose                                                              |
 | -------------------------- | ------- | ----------------- | -------------------------------------------------------------------- |
-| `FEDERATION_SYNC_INTERVAL` | api     | `900000` (15 min) | Catalogue-sync cron period (ms). No-op while federation is disabled. |
+| `FEDERATION_SYNC_INTERVAL` | api     | `900000` (15 min) | Catalogue-sync cron period (ms). No-op while federation is disabled. The health page's "behind" threshold is `3 ×` this, floored at 15 min — lowering it to sync faster will **not** paint healthy peers amber. |
+| `FEDERATION_REQUIRE_AUDIENCE` | api  | `false`           | Reject inbound S2S signatures that carry no audience binding. Turn on only once every partner runs a build that sends it. |
 | `TRACKER_FEDERATION_SWARM` | tracker | `false`           | Master switch for swarm cross-announce on the Go tracker.            |
 | `CHANNEL_ENCRYPTION_KEY`   | api     | —                 | Encrypts the instance private key at rest (falls back to `NUXT_SESSION_SECRET`). |
+
+::: warning Clocks must be in sync
+Every S2S request carries a signed timestamp and is rejected outside a ±5-minute
+window. A partner whose clock drifts past that becomes **unreachable in both
+directions**, surfaced only as `http 401` in its last error. Run NTP on every
+instance in a mesh.
+:::
+
+::: warning Relay and public catalogue are one-way doors, and relay costs disk
+Turning **relay** on retroactively pulls every partner's whole catalogue (their
+bytes, not just yours) and re-advertises it to your other partners — plan for
+the disk. Neither relay nor the **public catalogue** can un-publish what has
+already left: a partner that took a record in holds a signed copy, and a
+withdrawal is a request it may ignore.
+:::
 
 ::: tip Local two-instance testing
 `safeFetch` blocks loopback and private ranges by design, so two instances
 on the same host/LAN can't federate over `localhost`/RFC-1918 addresses.
-Use public hostnames (an explicit host allow-list is not implemented yet).
+Use public hostnames or set `SAFE_FETCH_ALLOW_HOSTS` to the peer hostnames.
 :::
 
 ## Data model
@@ -231,6 +294,14 @@ torrents.federate_swarm  per-torrent swarm opt-in flag
 
 Swarm cross-announce uses **no table** — it's a Redis cache
 (`remote_peers:{infoHash}`) read by the Go tracker behind its flag.
+
+## Sharing data, not just metadata
+
+Federation mirrors a partner's catalogue; on its own that only lets you *see* what
+exists elsewhere. Turning "I see it" into "I can act on it" — content addressing
+(BEP 52), **Request here**, cross-seed matching, mesh availability, and the credit
+settlement a future content relay needs — is its own guide:
+[federation-data-sharing.md](./federation-data-sharing.md).
 
 ## Pages at a glance
 

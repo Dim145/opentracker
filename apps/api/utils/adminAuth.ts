@@ -42,13 +42,16 @@ export async function readBanStatusCached(
   }
 
   const [dbUser] = await db
-    .select({ isBanned: users.isBanned })
+    .select({ isBanned: users.isBanned, deletedAt: users.deletedAt })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
 
   let value: 'ok' | 'banned' | 'gone';
-  if (!dbUser) value = 'gone';
+  // An erased account keeps its row (the catalogue hangs off it) but must be
+  // refused like a missing one: `gone`, so the session is cleared and no
+  // personal surface is reachable behind a stale cookie.
+  if (!dbUser || dbUser.deletedAt) value = 'gone';
   else if (dbUser.isBanned) value = 'banned';
   else value = 'ok';
 

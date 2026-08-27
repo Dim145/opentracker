@@ -15,12 +15,20 @@ import {
   ensureFederationIdentity,
 } from '~~/utils/federation/config';
 import { federationScopesSchema } from '~~/utils/federation/scopes';
+import { setSetting, SETTINGS_KEYS } from '~~/utils/settings';
 
 const bodySchema = z.object({
   enabled: z.boolean().optional(),
+  /** Carry and hand on other instances' records. Off by default. */
+  relayEnabled: z.boolean().optional(),
+  /** Serve a public, unauthenticated view of what we publish. Off by default. */
+  discoverable: z.boolean().optional(),
   instanceName: z.string().trim().max(120).optional().nullable(),
   publicUrl: z.string().trim().url().max(255).optional().nullable(),
   defaultScopes: federationScopesSchema.optional(),
+  /** Credit model (M4 prerequisite): honour partner contribution attestations. */
+  creditEnabled: z.boolean().optional(),
+  creditDailyCapBytes: z.coerce.number().int().min(0).max(1024 ** 5).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -32,6 +40,12 @@ export default defineEventHandler(async (event) => {
   // the inferred type clean (no Record<string, unknown> cast).
   const patch = {
     ...(body.enabled !== undefined ? { enabled: body.enabled } : {}),
+    ...(body.relayEnabled !== undefined
+      ? { relayEnabled: body.relayEnabled }
+      : {}),
+    ...(body.discoverable !== undefined
+      ? { discoverable: body.discoverable }
+      : {}),
     ...(body.instanceName !== undefined
       ? { instanceName: body.instanceName }
       : {}),
@@ -46,6 +60,20 @@ export default defineEventHandler(async (event) => {
     .insert(schema.federationConfig)
     .values({ id: 'singleton', ...patch })
     .onConflictDoUpdate({ target: schema.federationConfig.id, set: patch });
+
+  // Credit-model settings live in `settings`, not the config row.
+  if (body.creditEnabled !== undefined) {
+    await setSetting(
+      SETTINGS_KEYS.FEDERATION_CREDIT_ENABLED,
+      body.creditEnabled ? 'true' : 'false',
+    );
+  }
+  if (body.creditDailyCapBytes !== undefined) {
+    await setSetting(
+      SETTINGS_KEYS.FEDERATION_CREDIT_DAILY_CAP_BYTES,
+      String(body.creditDailyCapBytes),
+    );
+  }
 
   // Generate the keypair on first enable.
   if (body.enabled === true) {

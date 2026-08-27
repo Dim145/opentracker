@@ -13,17 +13,20 @@
  * added ("does live search carry it too?"). Two implementations of one concept
  * is how they drift.
  *
- * Ingesting through the same `upsertRemoteTorrent` the cron uses collapses that
- * to one path. The mirror then also warms on exactly what members search for,
- * which is a better cache-fill policy than any cron interval — the periodic
- * sync can afford to be lazier because the hot content arrives on demand.
+ * Ingesting through the same `ingestRecord` the cron uses collapses that to one
+ * path. The mirror then also warms on exactly what members search for, which is
+ * a better cache-fill policy than any cron interval — the periodic sync can
+ * afford to be lazier because the hot content arrives on demand.
  *
  * ## Why that is safe
  *
- * A partner could answer a search with fabricated rows. It could already do
- * that through the catalogue feed: the mirror is scoped per peer, read-only,
- * and never merged into the local catalogue, so the blast radius is unchanged.
- * The fan-out is capped per peer, which caps what one search can insert.
+ * A partner answers with signed records, and each one is verified here before
+ * it touches the mirror. A peer can decline to answer, answer partially, or
+ * replay records it was given by someone else — it cannot answer with a
+ * release it did not publish and cannot alter one it did. What survives
+ * verification is then scoped per peer, read-only, and never merged into the
+ * local catalogue. The fan-out is capped per peer, which caps what one search
+ * can insert.
  *
  * Like every federated view, a release links back to its origin instance — we
  * never serve remote `.torrent` bytes with the local passkey.
@@ -36,8 +39,15 @@ import {
   isFederationLive,
 } from '~~/utils/federation/config';
 import { signedGet } from '~~/utils/federation/signing';
-import { upsertRemoteTorrent } from '~~/utils/federation/catalogSync';
+import {
+  announceFresh,
+  ingestRecord,
+  peerAtGrowthCap,
+  unwrap,
+} from '~~/utils/federation/recordSync';
 import { browseMirror } from '~~/utils/federation/browseMirror';
+import { relayEnabled, trustedIssuers } from '~~/utils/federation/relay';
+import { didKeyFromPublicKey } from '~~/utils/federation/did';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireAuthSession } from '~~/utils/adminAuth';
 
@@ -46,7 +56,9 @@ const PER_PEER_LIMIT = 30;
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireAuthSession(event);
-  await rateLimit(event, RATE_LIMITS.public);
+  // A fan-out that also WRITES: bucket it like local search, not like a public
+  // read. At the public bucket a member could drive 100 fan-outs a minute.
+  await rateLimit(event, RATE_LIMITS.search);
   const me = await db.query.users.findFirst({
     where: eq(schema.users.id, user.id),
     columns: { showAdultContent: true },
@@ -86,6 +98,7 @@ export default defineEventHandler(async (event) => {
         instanceId,
         privateKeyPem: pk,
         timeoutMs: PER_PEER_TIMEOUT_MS,
+        audienceInstanceId: peer.instanceId ?? undefined,
       }).then((res) => ({ peer, res })),
     ),
   );
@@ -93,19 +106,49 @@ export default defineEventHandler(async (event) => {
   // Ingest. A peer that times out, errors or answers garbage is skipped — the
   // search still returns whatever the others said, and whatever the mirror
   // already held for them.
+  // Both read once for the whole fan-out. Asked per record they were two
+  // queries each, thirty records a partner, on every search anybody runs.
+  const trusted = await trustedIssuers();
+  const relaying = await relayEnabled();
+  // Our own records come back through any relay that carries for us; mirroring
+  // them would list our catalogue as somebody else's. See `ingestRecord`.
+  const ownDid = config!.publicKey ? didKeyFromPublicKey(config!.publicKey) : null;
+
   const reachedIds: string[] = [];
+  let rejected = 0;
   for (const s of settled) {
     if (s.status !== 'fulfilled') continue;
     const { peer, res } = s.value;
-    if (res.status !== 200 || !Array.isArray(res.data?.items)) continue;
+    if (res.status !== 200 || !Array.isArray(res.data?.records)) continue;
     reachedIds.push(peer.id);
-    for (const raw of res.data.items as Record<string, unknown>[]) {
+    // Same ceiling the sync sweep enforces: at the cap we stop GROWING. Without
+    // this, live search is an uncapped ingest path.
+    if (await peerAtGrowthCap(peer.id)) continue;
+    const fresh: NonNullable<Awaited<ReturnType<typeof ingestRecord>>['fresh']>[] = [];
+    for (const item of res.data.records as unknown[]) {
       try {
-        await upsertRemoteTorrent(peer.id, raw);
+        const { record, relay } = unwrap(item);
+        const r = await ingestRecord(peer, record, {
+          relayProof: relay,
+          trusted,
+          relaying,
+          ownDid,
+        });
+        rejected += r.rejected;
+        if (r.fresh) fresh.push(r.fresh);
       } catch {
-        // One malformed item must not lose the rest of the page.
+        // One bad record must not lose the rest of the page.
+        rejected++;
       }
     }
+    // A search can surface a release before the cron reaches it, so a follower
+    // should hear about it now rather than on the next tick.
+    await announceFresh(peer, fresh);
+  }
+  if (rejected) {
+    console.warn(
+      `[Federation Search] ${rejected} record(s) failed verification`,
+    );
   }
   if (!reachedIds.length) return empty;
 

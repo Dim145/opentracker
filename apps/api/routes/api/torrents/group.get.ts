@@ -25,6 +25,18 @@
  * query. Which bucket opens by default is the one holding the newest release —
  * the same rule the collapsed row uses to pick its scope, applied one level
  * down.
+ *
+ * ## Both catalogues
+ *
+ * The releases come from ours and from our partners', folded: a release we
+ * hold that a partner also holds is ONE entry with two sources, not two
+ * entries. The local source comes first when there is one, because it is the
+ * copy a member can download with their own passkey; the others are places to
+ * go, each carrying the URL its record declared rather than the address of
+ * whichever partner happened to relay it.
+ *
+ * Every count is over distinct releases. A season mirrored from four partners
+ * is a season, not four.
  */
 import { and, eq, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
@@ -35,13 +47,21 @@ import { adultCategoryIds } from '~~/utils/adultContent';
 import { getStats } from '~~/utils/server';
 import {
   GROUP_SCOPES,
-  LIVE_AT,
   groupMemberWhere,
   parseGroupKey,
-  scopeSql,
   scopeWhere,
   type GroupScope,
 } from '~~/utils/torrentGroups';
+import {
+  mixedBuckets,
+  mixedGroupHeader,
+  mixedReleases,
+} from '~~/utils/mixedGroups';
+import {
+  hasActiveCataloguePeer,
+  remoteGroupMemberWhere,
+} from '~~/utils/remoteGroups';
+import { getFederationConfig, isFederationLive } from '~~/utils/federation/config';
 
 const querySchema = z.object({
   key: z.string().trim().min(1).max(200),
@@ -50,7 +70,38 @@ const querySchema = z.object({
     .default('all'),
   season: z.coerce.number().int().min(0).max(9_999).optional(),
   episode: z.coerce.number().int().min(0).max(9_999).optional(),
+  /** `local` leaves the mirror out; the default merges it in. */
+  sources: z.enum(['all', 'local']).default('all'),
 });
+
+/**
+ * The mirror's equivalent of `scopeWhere`, written against the columns for the
+ * same reason: so the `(tmdb_id, season)` index still applies.
+ */
+function remoteScopeWhere(
+  base: SQL,
+  scope: GroupScope,
+  bucket?: { season?: number | null; episode?: number | null },
+): SQL {
+  const rt = schema.remoteTorrents;
+  let out: SQL;
+  switch (scope) {
+    case 'episode':
+      out = sql`${base} AND ${rt.season} IS NOT NULL AND ${rt.episode} IS NOT NULL`;
+      break;
+    case 'season':
+      out = sql`${base} AND ${rt.season} IS NOT NULL AND ${rt.episode} IS NULL`;
+      break;
+    case 'integral':
+      out = sql`${base} AND ${rt.season} IS NULL`;
+      break;
+    default:
+      out = base;
+  }
+  if (bucket?.season != null) out = sql`${out} AND ${rt.season} = ${bucket.season}`;
+  if (bucket?.episode != null) out = sql`${out} AND ${rt.episode} = ${bucket.episode}`;
+  return out;
+}
 
 /**
  * Hard caps. Both are generous enough that no real work hits them, and low
@@ -61,29 +112,6 @@ const querySchema = z.object({
 const MAX_EPISODES = 300;
 const MAX_RELEASES = 200;
 
-type BucketRow = {
-  season: number | null;
-  episode: number | null;
-  release_count: number;
-  latest: string;
-  seeders: number;
-  /**
-   * Distinct episodes under this season. Zero outside the episode scope, where
-   * a season pack has no episodes to count.
-   */
-  episode_count: number;
-  /**
-   * Read out of the names rather than from tags: tags need a join and are only
-   * as complete as the uploader made them, whereas the resolution is in the
-   * filename by scene convention. It is what lets a collapsed episode header
-   * still answer "is there a 4K in here".
-   */
-  resolutions: string[] | null;
-};
-
-/** The five tiers a release name is expected to declare. */
-const RES = sql`substring(${schema.torrents.name} from '(2160p|1440p|1080p|720p|480p)')`;
-
 export default defineEventHandler(async (event) => {
   const { user } = await requireAuthSession(event);
   await rateLimit(event, RATE_LIMITS.public);
@@ -92,6 +120,7 @@ export default defineEventHandler(async (event) => {
   const scope = query.scope as GroupScope;
 
   const conditions: SQL[] = [groupMemberWhere(parsed)];
+  const remote: SQL[] = [remoteGroupMemberWhere(parsed)];
 
   const me = await db.query.users.findFirst({
     where: eq(schema.users.id, user.id),
@@ -107,90 +136,30 @@ export default defineEventHandler(async (event) => {
         )!,
       );
     }
+    remote.push(sql`${schema.remoteTorrents.isAdult} = false`);
   }
 
+  const localOnly =
+    query.sources === 'local' ||
+    !isFederationLive(await getFederationConfig()) ||
+    !(await hasActiveCataloguePeer());
+
   const base = and(...conditions)!;
-  const inScope = scopeWhere(base, scope);
-  const stats = schema.torrentStats;
+  const remoteBase = and(...remote)!;
 
-  // The scopes this group offers. The listing row already has them from
-  // `listGroups`, but the dedicated page is reached by URL and has no listing
-  // behind it — and over a single group this is one indexed aggregate.
-  const [scopeRow] = (await db.execute<{
-    ep_units: number; ep_latest: string | null;
-    season_units: number; season_latest: string | null;
-    integral_units: number; integral_latest: string | null;
-    all_units: number; all_latest: string | null;
-    release_count: number;
-    min_size: string; max_size: string;
-    lead_name: string; category_ids: string[] | null;
-  }>(sql`
-    SELECT count(*)::int AS release_count,
-           min(${schema.torrents.size}) AS min_size,
-           max(${schema.torrents.size}) AS max_size,
-           (array_agg(${schema.torrents.name}
-                      ORDER BY ${schema.torrents.size} DESC))[1] AS lead_name,
-           array_remove(array_agg(DISTINCT ${schema.torrents.categoryId}), NULL) AS category_ids,
-           count(DISTINCT (${schema.torrents.season}, ${schema.torrents.episode}))
-             FILTER (WHERE (${scopeSql}) = 'episode')::int AS ep_units,
-           max(${LIVE_AT}) FILTER (WHERE (${scopeSql}) = 'episode') AS ep_latest,
-           count(DISTINCT ${schema.torrents.season})
-             FILTER (WHERE (${scopeSql}) = 'season')::int AS season_units,
-           max(${LIVE_AT}) FILTER (WHERE (${scopeSql}) = 'season') AS season_latest,
-           count(*) FILTER (WHERE (${scopeSql}) = 'integral')::int AS integral_units,
-           max(${LIVE_AT}) FILTER (WHERE (${scopeSql}) = 'integral') AS integral_latest,
-           count(*) FILTER (WHERE (${scopeSql}) = 'all')::int AS all_units,
-           max(${LIVE_AT}) FILTER (WHERE (${scopeSql}) = 'all') AS all_latest
-      FROM ${schema.torrents}
-     WHERE ${base}
-  `)) as unknown as Array<Record<string, unknown>>;
-
-  const scopes = (
-    [
-      ['episode', scopeRow?.ep_units, scopeRow?.ep_latest],
-      ['season', scopeRow?.season_units, scopeRow?.season_latest],
-      ['integral', scopeRow?.integral_units, scopeRow?.integral_latest],
-      ['all', scopeRow?.all_units, scopeRow?.all_latest],
-    ] as Array<[GroupScope, unknown, unknown]>
-  )
-    .filter(([, units, latest]) => Number(units) > 0 && latest)
-    .map(([s, units, latest]) => ({
-      scope: s,
-      units: Number(units),
-      latest: new Date(latest as string),
-    }));
+  const header = await mixedGroupHeader(base, remoteBase, localOnly);
 
   // ── Seasons ────────────────────────────────────────────────────────────
-  // Only the two scopes that have them. `seeders` comes from the snapshot,
-  // not from Redis: it labels a header the member has not opened yet, and
-  // one Redis read per release of every season would defeat the point of
-  // returning a skeleton.
-  const seasonRows =
+  // Only the two scopes that have them.
+  const seasons =
     scope === 'episode' || scope === 'season'
-      ? ((await db.execute<BucketRow>(sql`
-          SELECT ${schema.torrents.season} AS season,
-                 NULL::smallint AS episode,
-                 count(*)::int AS release_count,
-                 count(DISTINCT ${schema.torrents.episode})::int AS episode_count,
-                 max(${LIVE_AT}) AS latest,
-                 coalesce(sum(${stats.seeders}), 0)::int AS seeders,
-                 array_remove(array_agg(DISTINCT ${RES}), NULL) AS resolutions
-            FROM ${schema.torrents}
-            LEFT JOIN ${stats} ON ${stats.infoHash} = ${schema.torrents.infoHash}
-           WHERE ${inScope}
-           GROUP BY 1
-           ORDER BY 1
-        `)) as unknown as BucketRow[])
+      ? await mixedBuckets(
+          scopeWhere(base, scope),
+          remoteScopeWhere(remoteBase, scope),
+          localOnly,
+          'season',
+        )
       : [];
-
-  const seasons = seasonRows.map((r) => ({
-    season: r.season == null ? null : Number(r.season),
-    releaseCount: Number(r.release_count),
-    episodeCount: Number(r.episode_count),
-    latest: r.latest,
-    seeders: Number(r.seeders),
-    resolutions: r.resolutions ?? [],
-  }));
 
   /** Newest wins, at every level. */
   function newest<T extends { latest: string }>(rows: T[]): T | undefined {
@@ -202,52 +171,25 @@ export default defineEventHandler(async (event) => {
   const openSeason =
     seasons.length === 0
       ? null
-      : query.season != null &&
-          seasons.some((s) => s.season === query.season)
+      : query.season != null && seasons.some((s) => s.season === query.season)
         ? query.season
         : (newest(seasons)?.season ?? null);
 
   // ── Episodes of the open season ────────────────────────────────────────
-  let episodes: Array<{
-    episode: number | null;
-    releaseCount: number;
-    latest: string;
-    seeders: number;
-    resolutions: string[];
-  }> = [];
+  let episodes: typeof seasons = [];
   let episodesTruncated = false;
 
   if (scope === 'episode' && openSeason != null) {
-    const rows = (await db.execute<BucketRow>(sql`
-      SELECT NULL::smallint AS season,
-             ${schema.torrents.episode} AS episode,
-             count(*)::int AS release_count,
-             0 AS episode_count,
-             max(${LIVE_AT}) AS latest,
-             coalesce(sum(${stats.seeders}), 0)::int AS seeders,
-             array_remove(array_agg(DISTINCT ${RES}), NULL) AS resolutions
-        FROM ${schema.torrents}
-        LEFT JOIN ${stats} ON ${stats.infoHash} = ${schema.torrents.infoHash}
-       WHERE ${scopeWhere(base, scope, { season: openSeason })}
-       -- 2, not 1: the first select column is the NULL placeholder that keeps
-       -- this row shape identical to the season query's.
-       GROUP BY 2
-       -- Highest first so the cap, when it bites, keeps the episodes that
-       -- just aired rather than the first three hundred of a decade-long run.
-       ORDER BY 2 DESC
-       LIMIT ${MAX_EPISODES + 1}
-    `)) as unknown as BucketRow[];
-
+    const rows = await mixedBuckets(
+      scopeWhere(base, scope, { season: openSeason }),
+      remoteScopeWhere(remoteBase, scope, { season: openSeason }),
+      localOnly,
+      'episode',
+      MAX_EPISODES + 1,
+    );
     episodesTruncated = rows.length > MAX_EPISODES;
     episodes = rows
       .slice(0, MAX_EPISODES)
-      .map((r) => ({
-        episode: r.episode == null ? null : Number(r.episode),
-        releaseCount: Number(r.release_count),
-        latest: r.latest,
-        seeders: Number(r.seeders),
-        resolutions: r.resolutions ?? [],
-      }))
       .sort((a, b) => (a.episode ?? 0) - (b.episode ?? 0));
   }
 
@@ -267,63 +209,101 @@ export default defineEventHandler(async (event) => {
         ? { season: openSeason }
         : undefined;
 
-  const rows = await db.query.torrents.findMany({
-    where: scopeWhere(base, scope, bucket),
-    // Never the raw blob: it is a bytea Nitro would serialise as a byte array
-    // roughly four times its size, for every release on the page.
-    columns: { torrentData: false },
-    orderBy: [sql`${schema.torrents.size} DESC`],
-    limit: MAX_RELEASES + 1,
+  const { releases, truncated: releasesTruncated } = await mixedReleases(
+    scopeWhere(base, scope, bucket),
+    remoteScopeWhere(remoteBase, scope, bucket),
+    localOnly,
+    MAX_RELEASES,
+  );
+
+  // Live counts, and only here: a handful of releases, and the one place the
+  // numbers decide something — which of these do I grab. Only for the copies
+  // WE hold: a partner's swarm is theirs to measure, and it arrives on the
+  // stats pass rather than from a tracker we do not run.
+  const localHashes = releases
+    .filter((r) => r.torrentId)
+    .map((r) => r.infoHash);
+  const live = await Promise.allSettled(localHashes.map((h) => getStats(h)));
+  const liveBy = new Map<string, { seeders: number; leechers: number }>();
+  localHashes.forEach((h, i) => {
+    const s = live[i];
+    if (s?.status === 'fulfilled') {
+      liveBy.set(h, {
+        seeders: s.value.seeders ?? 0,
+        leechers: s.value.leechers ?? 0,
+      });
+    }
   });
-
-  const releasesTruncated = rows.length > MAX_RELEASES;
-  const page = rows.slice(0, MAX_RELEASES);
-
-  // Live counts, and only here: this is a handful of releases, and it is the
-  // one place the numbers drive a decision — which of these do I grab.
-  const live = await Promise.allSettled(page.map((t) => getStats(t.infoHash)));
 
   return {
     group: {
       key: query.key,
       source: parsed.source,
       externalId: parsed.externalId,
-      releaseCount: Number(scopeRow?.release_count ?? 0),
-      minSize: Number(scopeRow?.min_size ?? 0),
-      maxSize: Number(scopeRow?.max_size ?? 0),
-      leadName: (scopeRow?.lead_name as string) ?? query.key,
-      categoryIds: (scopeRow?.category_ids as string[] | null) ?? [],
-      scopes,
+      releaseCount: header.releaseCount,
+      localCount: header.localCount,
+      partnerCount: header.partnerCount,
+      minSize: header.minSize,
+      maxSize: header.maxSize,
+      leadName: header.leadName || query.key,
+      categoryIds: header.categoryIds,
+      categorySlugs: header.categorySlugs,
+      scopes: header.scopes,
       // Newest wins, the same rule the listing row uses to pick its chip.
       defaultScope:
-        scopes.reduce<(typeof scopes)[number] | undefined>(
+        header.scopes.reduce<(typeof header.scopes)[number] | undefined>(
           (best, s) => (!best || s.latest > best.latest ? s : best),
           undefined,
         )?.scope ?? 'all',
     },
     scope,
-    seasons,
+    merged: !localOnly,
+    seasons: seasons.map((s) => ({
+      season: s.season,
+      releaseCount: s.releaseCount,
+      episodeCount: s.episodeCount,
+      latest: s.latest,
+      seeders: s.seeders,
+      resolutions: s.resolutions,
+    })),
     openSeason,
-    episodes,
+    episodes: episodes.map((e) => ({
+      episode: e.episode,
+      releaseCount: e.releaseCount,
+      latest: e.latest,
+      seeders: e.seeders,
+      resolutions: e.resolutions,
+    })),
     episodesTruncated,
     openEpisode,
-    releases: page.map((t, i) => {
-      const s = live[i];
-      const swarm =
-        s?.status === 'fulfilled'
-          ? { seeders: s.value.seeders ?? 0, leechers: s.value.leechers ?? 0 }
-          : { seeders: 0, leechers: 0 };
+    releases: releases.map((r) => {
+      const swarm = r.torrentId ? liveBy.get(r.infoHash) : undefined;
+      const partners = r.sources.filter((s) => s.kind === 'partner');
       return {
-        id: t.id,
-        infoHash: t.infoHash,
-        name: t.name,
-        size: t.size,
-        season: t.season,
-        episode: t.episode,
-        categoryId: t.categoryId,
-        createdAt: t.createdAt,
-        moderatedAt: t.moderatedAt,
-        ...swarm,
+        id: r.torrentId,
+        infoHash: r.infoHash,
+        name: r.name,
+        size: r.size,
+        season: r.season,
+        episode: r.episode,
+        categoryId: r.categoryId,
+        createdAt: r.latest,
+        moderatedAt: null,
+        seeders: swarm?.seeders ?? r.seeders,
+        leechers: swarm?.leechers ?? r.leechers,
+        // One field, two questions. `peers` says who else has this release;
+        // `detailUrl` says where to go INSTEAD, and is null when we hold it
+        // ourselves — which is exactly the condition under which the row keeps
+        // its download button. A release can be both ours and theirs, and that
+        // is the case the merge exists to show.
+        remote: partners.length
+          ? {
+              detailUrl: r.torrentId ? null : (partners[0]?.url ?? null),
+              peers: partners
+                .map((p) => p.peerName)
+                .filter((n): n is string => !!n),
+            }
+          : null,
       };
     }),
     releasesTruncated,

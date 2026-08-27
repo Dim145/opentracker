@@ -29,6 +29,113 @@
     </div>
 
     <template v-if="cfg?.enabled">
+      <!-- Relaying.
+
+           Its own switch rather than a scope, because it is a decision about
+           what this instance CARRIES rather than about what it shares with any
+           one partner: storing other people's catalogues and putting our name
+           on the introductions. Off by default for that reason. -->
+      <div class="fed-master fed-relay" :class="{ 'is-on': cfg?.relayEnabled }">
+        <span class="fed-master-ring"><Icon name="ph:share-network-bold" /></span>
+        <div class="fed-master-txt">
+          <div class="fed-master-h">
+            {{ $t('admin.federation.relay.title') }}
+            <span class="fed-dot" :class="cfg?.relayEnabled ? 'on' : 'idle'" />
+          </div>
+          <p>
+            {{
+              cfg?.relayEnabled
+                ? $t('admin.federation.relay.on')
+                : $t('admin.federation.relay.off')
+            }}
+          </p>
+          <!-- Said before the switch is flipped, not after. Nothing built here
+               can un-publish: a partner that took a record in holds bytes that
+               prove themselves, and a withdrawal is a request they are free to
+               ignore. An operator deserves to know which switches are doors
+               that only open. -->
+          <p class="fed-oneway">
+            <Icon name="ph:arrow-elbow-down-right-bold" />
+            {{ $t('admin.federation.relay.oneWay') }}
+          </p>
+        </div>
+        <label class="switch">
+          <input
+            type="checkbox"
+            :checked="cfg?.relayEnabled"
+            :disabled="busy.master"
+            @change="toggleRelay"
+          />
+          <span class="track" /><span class="thumb" />
+        </label>
+      </div>
+
+      <!-- Discoverability.
+
+           The one switch here that changes who can SEE the catalogue rather
+           than who can talk to it. Everything else is a signed conversation
+           between instances that agreed to know each other; this is the door
+           for somebody who has not. -->
+      <div class="fed-master fed-relay" :class="{ 'is-on': cfg?.discoverable }">
+        <span class="fed-master-ring"><Icon name="ph:globe-hemisphere-west-bold" /></span>
+        <div class="fed-master-txt">
+          <div class="fed-master-h">
+            {{ $t('admin.federation.discover.title') }}
+            <span class="fed-dot" :class="cfg?.discoverable ? 'on' : 'idle'" />
+          </div>
+          <p>
+            {{
+              cfg?.discoverable
+                ? $t('admin.federation.discover.on')
+                : $t('admin.federation.discover.off')
+            }}
+          </p>
+          <p class="fed-oneway">
+            <Icon name="ph:arrow-elbow-down-right-bold" />
+            {{ $t('admin.federation.discover.oneWay') }}
+          </p>
+        </div>
+        <label class="switch">
+          <input
+            type="checkbox"
+            :checked="cfg?.discoverable"
+            :disabled="busy.master"
+            @change="toggleDiscoverable"
+          />
+          <span class="track" /><span class="thumb" />
+        </label>
+      </div>
+
+      <div class="fed-master fed-relay" :class="{ 'is-on': cfg?.creditEnabled }">
+        <span class="fed-master-ring"><Icon name="ph:scales-bold" /></span>
+        <div class="fed-master-txt">
+          <div class="fed-master-h">
+            {{ $t('admin.federation.credit.title') }}
+            <span class="fed-dot" :class="cfg?.creditEnabled ? 'on' : 'idle'" />
+          </div>
+          <p>
+            {{
+              cfg?.creditEnabled
+                ? $t('admin.federation.credit.on')
+                : $t('admin.federation.credit.off')
+            }}
+          </p>
+          <p class="fed-oneway">
+            <Icon name="ph:arrow-elbow-down-right-bold" />
+            {{ $t('admin.federation.credit.cap', { gb: Math.round((cfg?.creditDailyCapBytes ?? 0) / (1024 ** 3)) }) }}
+          </p>
+        </div>
+        <label class="switch">
+          <input
+            type="checkbox"
+            :checked="cfg?.creditEnabled"
+            :disabled="busy.master"
+            @change="toggleCredit"
+          />
+          <span class="track" /><span class="thumb" />
+        </label>
+      </div>
+
       <!-- Identity + default scopes -->
       <div class="fed-grid">
         <section class="card">
@@ -234,6 +341,8 @@ interface Scopes {
 }
 interface Cfg {
   enabled: boolean;
+  relayEnabled: boolean;
+  discoverable: boolean;
   instanceName: string | null;
   publicUrl: string | null;
   instanceId: string | null;
@@ -241,6 +350,8 @@ interface Cfg {
   fingerprint: string | null;
   defaultScopes: Scopes;
   provisioned: boolean;
+  creditEnabled: boolean;
+  creditDailyCapBytes: number;
 }
 interface Peer {
   id: string;
@@ -348,6 +459,47 @@ async function toggleMaster(e: Event) {
   const enabled = (e.target as HTMLInputElement).checked;
   busy.master = true;
   await run(() => $fetch('/api/admin/federation', { method: 'PUT', body: { enabled } }), t('admin.federation.toast.saved'));
+}
+
+/** Publish an unauthenticated view of the catalogue. Nobody's default. */
+async function toggleDiscoverable(e: Event) {
+  const discoverable = (e.target as HTMLInputElement).checked;
+  await run(
+    () =>
+      $fetch('/api/admin/federation', {
+        method: 'PUT',
+        body: { discoverable },
+      }),
+    t('admin.federation.toast.saved'),
+  );
+}
+
+/** Honour partners' signed contribution attestations (credit model / M4). */
+async function toggleCredit(e: Event) {
+  const creditEnabled = (e.target as HTMLInputElement).checked;
+  busy.master = true;
+  await run(
+    () =>
+      $fetch('/api/admin/federation', {
+        method: 'PUT',
+        body: { creditEnabled },
+      }),
+    t('admin.federation.toast.saved'),
+  );
+  busy.master = false;
+}
+
+/** Carry and hand on what partners publish. A cost, so it is a choice. */
+async function toggleRelay(e: Event) {
+  const relayEnabled = (e.target as HTMLInputElement).checked;
+  await run(
+    () =>
+      $fetch('/api/admin/federation', {
+        method: 'PUT',
+        body: { relayEnabled },
+      }),
+    t('admin.federation.toast.saved'),
+  );
   busy.master = false;
 }
 async function saveIdentity() {
@@ -443,6 +595,12 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 </script>
 
 <style scoped>
+/* Quieter than the master switch: relaying is a refinement of federating, not
+   a second thing of the same weight. */
+.fed-relay {
+  margin-top: 0.75rem;
+}
+
 .fed { display: flex; flex-direction: column; gap: 1.25rem; }
 .fed-intro { font-size: 13px; color: rgb(var(--fg-muted)); line-height: 1.55; max-width: 70ch; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .fed-owner { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 11px; font-weight: 600; color: var(--gold, #d4a734); border: 1px solid color-mix(in srgb, var(--gold, #d4a734) 30%, transparent); background: color-mix(in srgb, var(--gold, #d4a734) 10%, transparent); padding: 0.15rem 0.5rem; border-radius: 99px; }
@@ -459,6 +617,20 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 .fed-master.is-on .fed-master-ring { background: rgba(34, 197, 94, 0.12); color: rgb(var(--online)); }
 .fed-master-txt { flex: 1; min-width: 0; }
 .fed-master-h { display: flex; align-items: center; gap: 0.5rem; font-size: 16px; font-weight: 600; color: rgb(var(--fg-strong)); }
+.fed-oneway {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin-top: 0.4rem !important;
+  font-size: 0.72rem !important;
+  line-height: 1.45;
+  color: rgb(var(--fg-subtle)) !important;
+}
+.fed-oneway svg {
+  flex: none;
+  margin-top: 0.15em;
+  opacity: 0.7;
+}
 .fed-master-txt p { font-size: 12.5px; color: rgb(var(--fg-muted)); margin-top: 0.2rem; }
 
 .fed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }

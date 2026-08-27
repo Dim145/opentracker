@@ -394,7 +394,17 @@
       "security": "Sécurité",
       "notifications": "Notifications",
       "accountInfo": "Compte",
+      "danger": "Zone de danger",
       "templates": "Modèles de fiche"
+    },
+    "danger": {
+      "deleteTitle": "Supprimer ce compte",
+      "deleteBody": "Efface vos données personnelles — profil, passkey, second facteur, appareils, notifications, abonnements et favoris — et rétracte votre identité fédérée pour que les instances partenaires abandonnent vos liens. Vos uploads et messages du forum demeurent mais ne sont plus rattachés à un nom. Action irréversible.",
+      "confirmLabel": "Tapez votre nom d'utilisateur ({username}) pour confirmer",
+      "deleteButton": "Supprimer mon compte",
+      "deleting": "Suppression…",
+      "reauthRequired": "Par sécurité, une connexion récente est requise. Déconnectez-vous, reconnectez-vous, puis réessayez.",
+      "error": "Impossible de supprimer le compte. Veuillez réessayer."
     },
     "notifications": {
       "eyebrow": "Notifications externes",
@@ -477,7 +487,9 @@
       "hideDownloadHistory": "Masquer mon historique de téléchargements",
       "hideDownloadHistoryHint": "Cesse de servir la liste de vos téléchargements, afin qu'une session dérobée ne puisse pas énumérer ce que vous avez récupéré. Cela masque la liste, cela ne l'efface pas : le suivi des hit-and-run, l'accumulation de bonus et les rôles automatiques continuent de lire ces lignes, et l'équipe garde accès aux relevés de hit-and-run.",
       "restrictComments": "Restreindre qui peut commenter mes publications",
-      "restrictCommentsHint": "Seuls les comptes d'au moins 30 jours peuvent commenter vos torrents — la réponse au compte jetable créé pour harceler un uploadeur. Vous et l'équipe n'y êtes jamais soumis, afin qu'un fil reste répondable et modérable."
+      "restrictCommentsHint": "Seuls les comptes d'au moins 30 jours peuvent commenter vos torrents — la réponse au compte jetable créé pour harceler un uploadeur. Vous et l'équipe n'y êtes jamais soumis, afin qu'un fil reste répondable et modérable.",
+      "shareReputationFederated": "Partager la réputation avec les partenaires",
+      "shareReputationFederatedHint": "Autorise les trackers fédérés avec cette instance à lire votre ratio, vos volumes et votre date d’inscription. Désactivé par défaut ; rien de vous ne quitte l’instance tant que vous ne l’activez pas."
     },
     "security": {
       "title": "Sécurité",
@@ -528,6 +540,36 @@
         "moderator": "Modérateur",
         "member": "Membre"
       }
+    },
+    "identityExport": {
+      "title": "Emportez votre identité",
+      "what": "Votre compte ici est aussi une clé à part entière. L'exporter permet à une autre instance de vous reconnaître comme la même personne — et aux uploads qui vous sont attribués de garder votre nom où qu'ils aillent.",
+      "travels": "Part avec vous",
+      "travelsName": "Votre identifiant, et le nom qui va avec",
+      "travelsUploads": "La paternité de tout ce que vous avez uploadé",
+      "stays": "Reste ici",
+      "staysRatio": "Votre ratio et votre crédit d'upload",
+      "staysBonus": "Vos points bonus",
+      "staysInvites": "Vos invitations et votre ancienneté",
+      "keyWarning": "Le fichier contient une clé privée. Quiconque la détient peut agir en votre nom. Gardez-la comme un mot de passe, et considérez-la comme compromise si vous la partagez — elle ne peut pas être révoquée depuis ici.",
+      "action": "Exporter mon identité",
+      "confirm": "Ceci télécharge une clé privée.",
+      "confirmAction": "Télécharger",
+      "done": "Exportée.",
+      "failed": "Impossible d'exporter votre identité. Réessayez dans un instant.",
+      "leaked": "Si le fichier venait à fuiter, retirez la clé : votre identifiant est révoqué partout et un nouveau prend sa place.",
+      "rotate": "Retirer cette clé",
+      "rotateWarning": "Tous les comptes que vous avez prouvés ailleurs seront déliés.",
+      "rotateConfirm": "La retirer",
+      "rotated": "Retirée. Votre nouvel identifiant :",
+      "custodyOff": "Cette instance détient votre clé pour vous. Vous pouvez la reprendre : elle est générée dans votre navigateur et n'en sort jamais.",
+      "custodyOn": "Vous détenez votre clé. Cette instance ne peut pas signer à votre place.",
+      "takeCustody": "Détenir ma clé",
+      "custodyWarning": "Seul ce navigateur l'aura. La perdre, c'est perdre l'identifiant — téléchargez le fichier juste après.",
+      "custodyConfirm": "La générer ici",
+      "keyMissing": "Votre clé n'est pas dans ce navigateur. Importez-la, ou reprenez-en une.",
+      "importKey": "Importer un fichier de clé",
+      "importBad": "Ce fichier ne contient pas de clé utilisable pour ce compte."
     },
     "templates": {
       "blurb": "L’assistant d’upload construit une fiche BBCode à partir d’une mise en page. Conservez ici les vôtres et choisissez celle dont l’assistant part.",
@@ -687,9 +729,14 @@
         "note": "Note de l'uploadeur",
         "nfo": "NFO",
         "crossSeeds": "Cross-seeds",
+        "crossSeedsFederated": "Cross-seed chez les partenaires",
         "swarm": "Liste des peers"
       },
       "crossSeedNote": "Regroupés uniquement sur la correspondance des noms et tailles de fichiers — un indice de découverte, pas une garantie de contenu vérifié.",
+      "crossSeedFederatedNote": "Le même contenu sur une instance partenaire. Si vous y avez un compte, cross-seedez-le depuis les fichiers que vous détenez déjà — récupéré avec votre propre passkey partenaire.",
+      "crossSeedMeshSeeders": "{n} seeders sur le mesh",
+      "crossMatchVerified": "vérifié",
+      "crossMatchHint": "probable",
       "hero": {
         "case": "Dossier"
       },
@@ -811,9 +858,14 @@
       "download": "Télécharger le .torrent",
       "nEpisodes": "{n} épisode | {n} épisodes",
       "atOrigin": "Ouvrir sur l'instance d'origine",
-      "onPartners": "+{n} chez les partenaires",
-      "onPartnersHint": "Des partenaires ont des releases de cette œuvre que cette instance n'a pas",
-      "peerCount": "{n} partenaire | {n} partenaires"
+      "onPartners": "{n} aussi chez les partenaires",
+      "onPartnersHint": "Des partenaires ont aussi certaines de ces releases",
+      "peerCount": "{n} partenaire | {n} partenaires",
+      "partnersOnly": "{n} uniquement chez les partenaires",
+      "partnersOnlyHint": "Cette instance n'a aucune de ces releases — elles viennent des partenaires",
+      "sourcesAll": "Partout",
+      "sourcesLocal": "Ici seulement",
+      "sourcesHint": "Inclure les releases des instances partenaires"
     }
   },
   "users": {
@@ -882,6 +934,10 @@
       "title": "La scène est vide",
       "sub": "Personne dans ta distribution pour l'instant. Visite le profil d'un uploader, suis-le, et tu seras averti dès qu'il publie une nouvelle release.",
       "cta": "Parcourir le tracker"
+    },
+    "federated": {
+      "title": "À travers le maillage",
+      "unfollow": "Ne plus suivre"
     }
   },
   "requests": {
@@ -1280,7 +1336,8 @@
         "torrent": "Torrent",
         "user": "Utilisateur",
         "post": "Message",
-        "comment": "Commentaire"
+        "comment": "Commentaire",
+        "remote": "Release fédérée"
       },
       "reasons": {
         "spam": "Spam ou publicité",
@@ -1540,6 +1597,7 @@
       "notifications": "Notifications",
       "settings": "Paramètres",
       "federation": "Fédération",
+      "federationTaxonomy": "Taxonomie fédérée",
       "listingTemplates": "Modèles de fiche"
     },
     "descriptions": {
@@ -1560,7 +1618,24 @@
       "notifications": "Configurer les canaux de notifications externes (email, Discord, Telegram, …)",
       "settings": "Paramètres globaux d'inscription et de tracker",
       "federation": "Relier ce tracker à des instances Trackarr de confiance",
+      "federationTaxonomy": "Faire correspondre les slugs de catégorie des partenaires à vos propres catégories",
       "listingTemplates": "Choisir les mises en page de fiche proposées à tous les membres dans l'assistant d'upload."
+    },
+    "taxonomy": {
+      "title": "Taxonomie fédérée",
+      "sub": "Les partenaires classent leurs releases sous leurs propres slugs de catégorie. Reliez un slug étranger à l'une de vos catégories et le filtre du catalogue fera remonter les releases de ce partenaire dessous — sinon une catégorie nommée différemment reste invisible pour un membre qui filtre par catégorie.",
+      "mapped": "Correspondances déclarées",
+      "noMappings": "Aucune correspondance pour l'instant. Reliez un slug depuis la liste ci-dessous.",
+      "remove": "Retirer",
+      "addTitle": "Relier un slug à la main",
+      "slugPlaceholder": "slug partenaire (ex. films)",
+      "pickCategory": "Choisir une catégorie locale…",
+      "map": "Relier",
+      "unmapped": "Slugs non reliés sur le miroir",
+      "unmappedHint": "Slugs étrangers actuellement portés par des releases miroir qui ne correspondent à aucune catégorie locale, les plus fournis en premier.",
+      "allMapped": "Tous les slugs étrangers du miroir sont reliés.",
+      "releases": "{n} releases",
+      "adultTag": "adulte"
     },
     "federation": {
       "intro": "Reliez ce tracker à d'autres instances Trackarr de confiance. Vous décidez avec qui vous vous liez et exactement ce que vous partagez — les liens entrants requièrent votre approbation.",
@@ -1659,7 +1734,33 @@
         "tileError": "En erreur",
         "tileMirrored": "Torrents miroir",
         "noPeers": "Aucun partenaire actif.",
-        "neverSynced": "Jamais synchronisé."
+        "neverSynced": "Jamais synchronisé.",
+        "storeLocal": "publiés ici",
+        "storeIngested": "reçus de pairs",
+        "storeRelayable": "seraient relayés",
+        "storeSuperseded": "remplacés",
+        "sourcedHint": "Enregistrements détenus pour ce pair, puis lignes du miroir local. Les assertions d'identité et les retraits n'ont pas de ligne miroir : les deux diffèrent.",
+        "tileDegraded": "Dégradé",
+        "resync": "Resynchroniser",
+        "resyncHint": "Réconcilier avec ce partenaire maintenant, sans attendre le prochain tic planifié."
+      },
+      "relay": {
+        "title": "Relais",
+        "on": "Porte les enregistrements des partenaires et les transmet. Leurs partenaires atteignent votre catalogue par un seul lien au lieu de plusieurs.",
+        "off": "Ne porte que le vôtre. Les partenaires échangent toujours directement avec vous.",
+        "oneWay": "Désactiver arrête d'en transporter de nouveaux. Cela ne rappelle pas ceux déjà transmis : un pair qui les a pris détient des copies signées qui se suffisent à elles-mêmes."
+      },
+      "discover": {
+        "title": "Catalogue public",
+        "on": "N'importe qui peut lire ce que vous publiez — un document d'acteur et une collection des métadonnées de vos releases. Aucun fichier .torrent, aucune donnée de membre.",
+        "off": "Seuls les partenaires que vous avez acceptés voient quoi que ce soit. Rien n'est servi aux inconnus.",
+        "oneWay": "Un catalogue qui a été lu a été lu. Désactiver ferme la porte pour la suite ; cela n'atteint ni les caches, ni les robots, ni les copies déjà faites."
+      },
+      "credit": {
+        "title": "Honorer le crédit de contribution",
+        "on": "Les partenaires peuvent créditer le bonus upload de vos membres pour les octets qu'ils ont servis, via des attestations signées que vous vérifiez. La fondation qu'un relais webseed exige avant de déplacer des octets.",
+        "off": "Les attestations de contribution des partenaires sont ignorées — le ratio d'aucun membre n'est modifié sur la parole d'un partenaire.",
+        "cap": "Plafonné à {gb} Go de bonus upload par membre et par jour."
       }
     },
     "notifications": {
@@ -2872,7 +2973,8 @@
         "torrent": "Torrent",
         "user": "Utilisateur",
         "post": "Message",
-        "comment": "Commentaire"
+        "comment": "Commentaire",
+        "remote": "Release fédérée"
       },
       "toasts": {
         "resolved": "Signalement accepté",
@@ -3244,6 +3346,10 @@
         "loggingDescription": "Enregistre toutes les requêtes API pour le débogage et la surveillance. Conservées 7 jours.",
         "loggingEnabled": "Journalisation activée",
         "loggingDisabled": "Journalisation désactivée",
+        "federatedLabel": "Releases fédérées",
+        "federatedDescription": "Inclure les releases miroir des partenaires fédérés dans le flux. Elles portent un lien magnet (pas de .torrent local), donc seulement récupérables là où le swarm est joignable. Désactivé par défaut.",
+        "federatedEnabled": "Releases fédérées incluses",
+        "federatedDisabled": "Releases locales uniquement",
         "endpointLabel": "Point de terminaison de l'API",
         "endpointDescription": "L'URL de base de l'API Torznab. Les utilisateurs l'ajoutent dans Prowlarr/Sonarr/Radarr.",
         "copyUrlTitle": "Copier l'URL"
@@ -3502,7 +3608,9 @@
         "hnr": "H&R actifs",
         "hnrHint": "Appliquer la règle",
         "myActions": "Mes actions · 7 j",
-        "myActionsHint": "{n} signalements clos"
+        "myActionsHint": "{n} signalements clos",
+        "masks": "Masques fédérés",
+        "masksHint": "Masquer du contenu partenaire"
       },
       "queue": {
         "title": "Plus frais en attente",
@@ -3536,6 +3644,21 @@
         "title": "H&R récents",
         "body": "Surveillez les utilisateurs qui ne reseedent pas.",
         "cta": "Voir les H&R"
+      }
+    },
+    "masks": {
+      "title": "Contenu fédéré masqué",
+      "sub": "Releases cachées de toute vue locale du catalogue partenaire. Rien n’est supprimé et aucun partenaire n’est prévenu — retirez un masque et le contenu réapparaît.",
+      "hide": "Masquer",
+      "lift": "Afficher",
+      "empty": "Rien n’est masqué.",
+      "noSample": "(pas actuellement miroité)",
+      "valuePlaceholder": "id d’enregistrement / infohash / did auteur",
+      "reasonPlaceholder": "raison (optionnel)",
+      "scope": {
+        "record": "Cet enregistrement",
+        "infohash": "Cet infohash",
+        "author": "Cet uploadeur"
       }
     }
   },
@@ -4104,6 +4227,10 @@
       "federated_followed_upload": {
         "title": "Nouvelle release d'un uploadeur suivi",
         "desc": "{uploaderName} sur {peerName} a publié « {torrentName} »."
+      },
+      "federated_request_created": {
+        "title": "Une release que vous avez peut-être est demandée",
+        "desc": "« {title} » — vue sur {peerName} — a été demandée ici. Remplissez-la pour +{rewardPoints} pts."
       }
     }
   },
@@ -4135,7 +4262,8 @@
       "torrent": "Torrent",
       "user": "Utilisateur",
       "post": "Post du forum",
-      "comment": "Commentaire"
+      "comment": "Commentaire",
+      "remote": "Release fédérée"
     },
     "targetGone": "Cible indisponible",
     "resolvedBy": "par",
@@ -4197,7 +4325,10 @@
       "comments": "Commentaires",
       "noComments": "Aucun commentaire sur l'instance d'origine pour l'instant.",
       "commentsError": "Impossible de charger les commentaires depuis l'instance d'origine.",
-      "commentOnSource": "Commenter sur {peer}"
+      "commentOnSource": "Commenter sur {peer}",
+      "report": "Signaler",
+      "requestHere": "Demander ici",
+      "requestError": "Impossible de créer une demande pour cette release."
     }
   },
   "forumFederated": {
@@ -4245,6 +4376,20 @@
       "notVerified": "Code introuvable dans votre bio distante pour l'instant",
       "removed": "Lien supprimé",
       "error": "Une erreur est survenue"
+    },
+    "claim": {
+      "title": "Prouver un ancien compte",
+      "intro": "Si votre ancienne instance vous a remis un fichier d'identité, il prouve à lui seul qui vous étiez là-bas — sans que cette instance ait besoin de tourner encore, ni que vous y ayez toujours un compte.",
+      "placeholder": "Collez le fichier d'identité ici, ou choisissez-le ci-dessous.",
+      "pickFile": "Choisir un fichier",
+      "action": "Le prouver",
+      "notJson": "Cela ne ressemble pas à un fichier d'identité.",
+      "proven": "Prouvé : vous êtes {name} sur {peer}."
+    },
+    "elsewhere": {
+      "title": "Votre travail ailleurs",
+      "intro": "{n} release(s) sur d'autres instances vous sont attribuées. Elles restent les vôtres, que ces instances tournent encore ou non.",
+      "truncated": "Seules les plus récentes sont affichées."
     }
   },
   "federationOff": {

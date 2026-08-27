@@ -139,6 +139,19 @@ export const SETTINGS_KEYS = {
   // they've observed real usage.
   NOTIFICATIONS_RETENTION_READ_DAYS: 'notifications_retention_read_days',
   NOTIFICATIONS_RETENTION_UNREAD_DAYS: 'notifications_retention_unread_days',
+  // Days to keep a superseded federation record generation before pruning it.
+  // 0 (default) keeps them forever — the safe default, since a consumer walking
+  // a lineage needs the chain. The prune only ever removes a superseded record
+  // nothing live still supersedes.
+  FEDERATION_RECORD_RETENTION_DAYS: 'federation_record_retention_days',
+  // Whether we honour a partner's signed contribution attestations by crediting
+  // the named member's bonus upload. Off by default — trusting a partner's word
+  // about what its users pulled is the operator's call. (Credit model / M4.)
+  FEDERATION_CREDIT_ENABLED: 'federation_credit_enabled',
+  // Ceiling on bonus bytes one member can be credited from partner attestations
+  // per rolling day, so a compromised or over-generous partner cannot mint
+  // unbounded ratio. Bytes; default set in the reader.
+  FEDERATION_CREDIT_DAILY_CAP_BYTES: 'federation_credit_daily_cap_bytes',
   // ── Upload requests (bounty board) ─────────────────────────
   // Hours a request can sit in `filled` state before the cron
   // auto-validates and pays the filler. 168 h (7 days) is the

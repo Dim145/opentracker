@@ -41,6 +41,45 @@
       </div>
     </section>
 
+    <!-- Prove it with a file instead.
+
+         Above the bio flow rather than below it: this is the one that works
+         when the other instance is gone, and the other instance being gone is
+         the usual reason somebody is on this page. -->
+    <section class="card fid-claim">
+      <div class="card-header">
+        <Icon name="ph:seal-check-bold" />
+        <span class="h-card">{{ $t('federatedIdentity.claim.title') }}</span>
+      </div>
+      <div class="card-body">
+        <p class="note">{{ $t('federatedIdentity.claim.intro') }}</p>
+        <textarea
+          v-model="claimText"
+          class="input fid-claim-input"
+          rows="4"
+          :placeholder="$t('federatedIdentity.claim.placeholder')"
+        />
+        <div class="fid-claim-actions">
+          <label class="btn-ghost fid-file">
+            <Icon name="ph:paperclip-bold" />
+            {{ $t('federatedIdentity.claim.pickFile') }}
+            <input type="file" accept="application/json,.json" @change="loadFile" />
+          </label>
+          <button
+            class="btn btn-primary"
+            :disabled="busy.claim || !claimText.trim()"
+            @click="submitClaim"
+          >
+            <Icon
+              :name="busy.claim ? 'ph:circle-notch' : 'ph:seal-check-bold'"
+              :class="{ 'animate-spin': busy.claim }"
+            />
+            {{ $t('federatedIdentity.claim.action') }}
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- Linked accounts -->
     <section class="fid-list-section">
       <div class="section-head">
@@ -94,6 +133,52 @@
         </div>
       </div>
     </section>
+
+    <!-- Your work, wherever it is.
+
+         The reason the rest of this page exists. A proven link that changes
+         nothing visible is a checkbox; this is what it was for. It appears
+         only when there is something to show, because an empty section here
+         reads as a feature that does not work rather than as an account with
+         nothing elsewhere. -->
+    <section v-if="elsewhere.length" class="fid-list-section">
+      <div class="section-head">
+        <span class="section-tag">
+          <Icon name="ph:stack-bold" />
+          {{ $t('federatedIdentity.elsewhere.title') }}
+        </span>
+        <span class="section-rule" />
+      </div>
+
+      <p class="note fid-elsewhere-note">
+        {{ $t('federatedIdentity.elsewhere.intro', { n: elsewhere.length }) }}
+      </p>
+
+      <ul class="fid-works">
+        <li v-for="w in elsewhere" :key="w.recordId ?? w.infoHash" class="fid-work">
+          <component
+            :is="w.detailUrl ? 'a' : 'span'"
+            v-bind="
+              w.detailUrl
+                ? { href: w.detailUrl, target: '_blank', rel: 'noopener noreferrer' }
+                : {}
+            "
+            class="fid-work-name"
+            :title="w.name"
+            >{{ w.name }}</component
+          >
+          <span class="fid-work-peer">{{ w.peerName }}</span>
+          <span class="fid-work-size">{{ formatSize(w.size) }}</span>
+          <span class="fid-work-seed" :class="{ dead: !w.seeders }">
+            <Icon name="ph:arrow-up-bold" />{{ w.seeders }}
+          </span>
+        </li>
+      </ul>
+
+      <p v-if="elsewhereTruncated" class="note">
+        {{ $t('federatedIdentity.elsewhere.truncated') }}
+      </p>
+    </section>
   </div>
 </template>
 
@@ -145,15 +230,104 @@ const partners = computed(() =>
 );
 const identities = computed(() => idData.value?.identities ?? []);
 
+/**
+ * The member's work across every identifier they answer to.
+ *
+ * Fetched alongside the links rather than per link: one person's catalogue is
+ * one list, and splitting it per partner would put the emphasis back on where
+ * a release happens to live — which is the thing this whole feature exists to
+ * stop mattering.
+ */
+interface RemoteWork {
+  recordId: string | null;
+  name: string;
+  size: number;
+  infoHash: string;
+  seeders: number;
+  detailUrl: string | null;
+  peerName: string | null;
+}
+const { data: elsewhereData, refresh: refreshElsewhere } = await useFetch<{
+  uploads: RemoteWork[];
+  truncated?: boolean;
+}>('/api/me/federated-uploads', { default: () => ({ uploads: [] , immediate: federationEnabled.value}) });
+const elsewhere = computed(() => elsewhereData.value?.uploads ?? []);
+const elsewhereTruncated = computed(
+  () => elsewhereData.value?.truncated === true,
+);
+
 const selPeer = ref('');
 const remoteUser = ref('');
-const busy = reactive({ create: false, verify: '', remove: '' });
+const busy = reactive({ create: false, verify: '', remove: '', claim: false });
+const claimText = ref('');
 const flash = ref<{ msg: string; tone: 'ok' | 'error' } | null>(null);
 function showFlash(msg: string, tone: 'ok' | 'error' = 'ok') {
   flash.value = { msg, tone };
   setTimeout(() => {
     if (flash.value?.msg === msg) flash.value = null;
   }, 5000);
+}
+
+/**
+ * Prove a past account from the file its instance issued.
+ *
+ * Everything is checked on our side, from the bytes pasted here: the member's
+ * key proves they hold the identifier, the partner's endorsement proves it was
+ * their member. Nothing is asked of the other instance, which is the point —
+ * it may well be the reason this member is here.
+ */
+async function submitClaim() {
+  const raw = claimText.value.trim();
+  if (!raw) return;
+  busy.claim = true;
+  try {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      showFlash(t('federatedIdentity.claim.notJson'), 'error');
+      return;
+    }
+    // The export is a file with the document inside it. Accept either — a
+    // member pasting the whole file is doing the obvious thing.
+    const doc =
+      (parsed as { document?: unknown })?.document ??
+      (parsed as { identity?: { document?: unknown } })?.identity?.document ??
+      parsed;
+
+    const res = await $fetch<{ remoteUsername: string; peerName: string | null }>(
+      '/api/federation/identities/claim',
+      { method: 'POST', body: { document: doc } },
+    );
+    claimText.value = '';
+    await Promise.all([refresh(), refreshElsewhere()]);
+    showFlash(
+      t('federatedIdentity.claim.proven', {
+        name: res.remoteUsername,
+        peer: res.peerName ?? '',
+      }),
+      'ok',
+    );
+  } catch (e: unknown) {
+    showFlash(
+      (e as { data?: { message?: string } })?.data?.message ||
+        t('federatedIdentity.toast.error'),
+      'error',
+    );
+  } finally {
+    busy.claim = false;
+  }
+}
+
+/** Read the exported file straight into the box, so nobody has to open it. */
+function loadFile(event: Event): void {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    claimText.value = String(reader.result ?? '');
+  };
+  reader.readAsText(file);
 }
 
 async function createLink() {
@@ -213,6 +387,97 @@ function fmtDate(d: string | null) {
 </script>
 
 <style scoped>
+.fid-elsewhere-note {
+  margin-bottom: 0.6rem;
+}
+.fid-works {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+.fid-work {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.75rem;
+  border-bottom: 1px solid rgb(var(--line-default) / 0.5);
+}
+.fid-work:last-child {
+  border-bottom: 0;
+}
+.fid-work-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgb(var(--fg-default));
+  text-decoration: none;
+}
+a.fid-work-name:hover {
+  color: rgb(var(--accent));
+  text-decoration: underline;
+}
+/* Where it lives, said quietly: the point of the list is that it is one body
+   of work, not four lists that happen to be adjacent. */
+.fid-work-peer {
+  font-size: 0.625rem;
+  color: rgb(125 211 252);
+  white-space: nowrap;
+}
+.fid-work-size,
+.fid-work-seed {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  color: rgb(var(--fg-muted));
+  white-space: nowrap;
+}
+.fid-work-seed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: rgb(var(--success));
+}
+.fid-work-seed.dead {
+  color: rgb(var(--fg-faint));
+}
+@media (max-width: 640px) {
+  .fid-work {
+    grid-template-columns: 1fr auto;
+    row-gap: 0.2rem;
+  }
+}
+
+.fid-claim-input {
+  width: 100%;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  resize: vertical;
+}
+.fid-claim-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+.fid-file {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.fid-file input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .fid { max-width: 760px; margin: 0 auto; padding: 1.75rem var(--container-pad) 5rem; display: flex; flex-direction: column; gap: 1.5rem; }
 .fid-flash { display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.9rem; border-radius: var(--radius-md); font-size: 13px; border: 1px solid; }
 .fid-flash--ok { color: #4ade80; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }

@@ -394,7 +394,17 @@
       "security": "Security",
       "notifications": "Notifications",
       "accountInfo": "Account info",
+      "danger": "Danger zone",
       "templates": "Listing templates"
+    },
+    "danger": {
+      "deleteTitle": "Delete this account",
+      "deleteBody": "This erases your personal data — profile, passkey, second factor, devices, notifications, follows and favourites — and retracts your federated identity so partner instances drop your links. Your uploads and forum posts stay but are no longer attributed to a name. This cannot be undone.",
+      "confirmLabel": "Type your username ({username}) to confirm",
+      "deleteButton": "Delete my account",
+      "deleting": "Deleting…",
+      "reauthRequired": "For your safety this needs a fresh login. Sign out, sign back in, then try again.",
+      "error": "Could not delete the account. Please try again."
     },
     "notifications": {
       "eyebrow": "External notifications",
@@ -477,7 +487,9 @@
       "hideDownloadHistory": "Hide my download history",
       "hideDownloadHistoryHint": "Stops serving your snatch list, so a session someone else got hold of cannot enumerate what you have downloaded. This hides the list, it does not erase it: hit-and-run tracking, bonus accrual and automatic roles all keep reading those rows, and staff keep seeing hit-and-run records.",
       "restrictComments": "Restrict who can comment on my uploads",
-      "restrictCommentsHint": "Only accounts at least 30 days old may comment on your torrents — the answer to a throwaway account made to harass an uploader. You and the staff are never held to it, so a thread stays answerable and moderatable."
+      "restrictCommentsHint": "Only accounts at least 30 days old may comment on your torrents — the answer to a throwaway account made to harass an uploader. You and the staff are never held to it, so a thread stays answerable and moderatable.",
+      "shareReputationFederated": "Share reputation with partners",
+      "shareReputationFederatedHint": "Let trackers this instance federates with read your ratio, upload/download totals and join date. Off by default; nothing about you leaves this instance until you turn it on."
     },
     "security": {
       "title": "Security",
@@ -528,6 +540,36 @@
         "moderator": "Moderator",
         "member": "Member"
       }
+    },
+    "identityExport": {
+      "title": "Take your identity with you",
+      "what": "Your account here is also a key of its own. Exporting it lets another instance recognise you as the same person — and lets the uploads attributed to you keep your name wherever they travel.",
+      "travels": "Travels with you",
+      "travelsName": "Your identifier, and your name on it",
+      "travelsUploads": "Authorship of everything you have uploaded",
+      "stays": "Stays here",
+      "staysRatio": "Your ratio and upload credit",
+      "staysBonus": "Your bonus points",
+      "staysInvites": "Your invitations and standing",
+      "keyWarning": "The file contains a private key. Anyone who holds it can act as you. Keep it as you would keep a password, and treat it as compromised if you ever share it — it cannot be revoked from here.",
+      "action": "Export my identity",
+      "confirm": "This downloads a private key.",
+      "confirmAction": "Download it",
+      "done": "Exported.",
+      "failed": "Could not export your identity. Try again in a moment.",
+      "leaked": "If the file ever gets out, retire the key: your identifier is withdrawn everywhere and a new one takes its place.",
+      "rotate": "Retire this key",
+      "rotateWarning": "Every account you have proven elsewhere will be unlinked.",
+      "rotateConfirm": "Retire it",
+      "rotated": "Retired. Your new identifier:",
+      "custodyOff": "This instance holds your key for you. You can take it over: it is generated in your browser and never leaves it.",
+      "custodyOn": "You hold your own key. This instance cannot sign as you.",
+      "takeCustody": "Hold my own key",
+      "custodyWarning": "Only this browser will have it. Lose it and you lose the identifier — download the file straight after.",
+      "custodyConfirm": "Generate it here",
+      "keyMissing": "Your key is not in this browser. Import it, or take a new one.",
+      "importKey": "Import a key file",
+      "importBad": "That file does not hold a usable key for this account."
     },
     "templates": {
       "blurb": "The upload wizard builds a BBCode listing from a layout. Keep your own layouts here and pick which one the wizard starts from.",
@@ -687,9 +729,14 @@
         "note": "Uploader's note",
         "nfo": "NFO",
         "crossSeeds": "Cross-seeds",
+        "crossSeedsFederated": "Cross-seed on partners",
         "swarm": "Peer list"
       },
       "crossSeedNote": "Grouped by matching file names and sizes only — a discovery hint, not a verified-content guarantee.",
+      "crossSeedFederatedNote": "The same content on a partner instance. If you have an account there, cross-seed it from the files you already hold — fetched with your own partner passkey.",
+      "crossSeedMeshSeeders": "{n} seeders across the mesh",
+      "crossMatchVerified": "verified",
+      "crossMatchHint": "likely",
       "hero": {
         "case": "Release"
       },
@@ -811,9 +858,14 @@
       "download": "Download the .torrent",
       "nEpisodes": "{n} episode | {n} episodes",
       "atOrigin": "Open on the origin instance",
-      "onPartners": "+{n} on partners",
-      "onPartnersHint": "Partners hold releases of this work that this instance does not",
-      "peerCount": "{n} partner | {n} partners"
+      "onPartners": "{n} also on partners",
+      "onPartnersHint": "Partners carry some of these releases too",
+      "peerCount": "{n} partner | {n} partners",
+      "partnersOnly": "{n} on partners only",
+      "partnersOnlyHint": "This instance holds none of these releases — they come from partners",
+      "sourcesAll": "Everywhere",
+      "sourcesLocal": "Here only",
+      "sourcesHint": "Include releases held by partner instances"
     }
   },
   "users": {
@@ -882,6 +934,10 @@
       "title": "The stage is empty",
       "sub": "Nobody in your cast yet. Visit an uploader's profile, follow them, and you'll be pinged the moment they release.",
       "cta": "Browse the tracker"
+    },
+    "federated": {
+      "title": "Across the mesh",
+      "unfollow": "Unfollow"
     }
   },
   "requests": {
@@ -1280,7 +1336,8 @@
         "torrent": "Torrent",
         "user": "User",
         "post": "Post",
-        "comment": "Comment"
+        "comment": "Comment",
+        "remote": "Federated release"
       },
       "reasons": {
         "spam": "Spam or advertising",
@@ -1540,6 +1597,7 @@
       "notifications": "Notifications",
       "settings": "Settings",
       "federation": "Federation",
+      "federationTaxonomy": "Federated taxonomy",
       "listingTemplates": "Listing templates"
     },
     "descriptions": {
@@ -1560,7 +1618,24 @@
       "notifications": "Configure external notification channels (email, Discord, Telegram, …)",
       "settings": "System-wide registration and tracker settings",
       "federation": "Link this tracker with trusted Trackarr instances",
+      "federationTaxonomy": "Map partners' category slugs onto your own categories",
       "listingTemplates": "Curate the listing layouts every member can pick in the upload wizard."
+    },
+    "taxonomy": {
+      "title": "Federated taxonomy",
+      "sub": "Partners file releases under their own category slugs. Map a foreign slug onto one of your categories and the browse filter will surface that partner's releases under it — otherwise a differently-named category stays invisible to a member browsing by category.",
+      "mapped": "Declared mappings",
+      "noMappings": "No mappings yet. Map a slug from the worklist below.",
+      "remove": "Remove",
+      "addTitle": "Map a slug by hand",
+      "slugPlaceholder": "partner slug (e.g. films)",
+      "pickCategory": "Pick a local category…",
+      "map": "Map",
+      "unmapped": "Unmapped slugs on the mirror",
+      "unmappedHint": "Foreign slugs currently carried by mirrored releases that resolve to no local category, heaviest first.",
+      "allMapped": "Every foreign slug on the mirror is mapped.",
+      "releases": "{n} releases",
+      "adultTag": "adult"
     },
     "federation": {
       "intro": "Connect this tracker to other Trackarr instances you trust. You decide who you link with and exactly what you share — inbound links need your approval.",
@@ -1659,7 +1734,33 @@
         "tileError": "Failing",
         "tileMirrored": "Mirrored torrents",
         "noPeers": "No active partner.",
-        "neverSynced": "Never synced."
+        "neverSynced": "Never synced.",
+        "storeLocal": "published here",
+        "storeIngested": "taken from partners",
+        "storeRelayable": "would be passed on",
+        "storeSuperseded": "replaced",
+        "sourcedHint": "Records held from this partner, then rows in the local mirror. Identity assertions and withdrawals have no mirror row, so the two differ.",
+        "tileDegraded": "Degraded",
+        "resync": "Resync",
+        "resyncHint": "Reconcile with this partner now instead of waiting for the next scheduled tick."
+      },
+      "relay": {
+        "title": "Relay",
+        "on": "Carrying partners' records and handing them on. Their partners can reach your catalogue through one link instead of many.",
+        "off": "Not carrying anything but your own. Partners still exchange with you directly.",
+        "oneWay": "Turning this off stops new records being carried. It does not recall the ones already handed on — a partner that took them holds signed copies that stand on their own."
+      },
+      "discover": {
+        "title": "Public catalogue",
+        "on": "Anyone can read what you publish — an actor document and a collection of your releases' metadata. No .torrent files, no member data.",
+        "off": "Only partners you have accepted can see anything. Nothing is served to strangers.",
+        "oneWay": "A catalogue that has been read has been read. Turning this off closes the door for the future; it does not reach into caches, crawlers or copies already made."
+      },
+      "credit": {
+        "title": "Honour contribution credit",
+        "on": "Partners can credit your members' bonus upload for bytes they served, via signed attestations you verify. The foundation a webseed relay needs before it moves bytes.",
+        "off": "Partners' contribution attestations are ignored — no member's ratio is changed by a partner's word.",
+        "cap": "Capped at {gb} GB of bonus upload per member per day."
       }
     },
     "notifications": {
@@ -2872,7 +2973,8 @@
         "torrent": "Torrent",
         "user": "User",
         "post": "Post",
-        "comment": "Comment"
+        "comment": "Comment",
+        "remote": "Federated release"
       },
       "toasts": {
         "resolved": "Report accepted",
@@ -3244,6 +3346,10 @@
         "loggingDescription": "Log all API requests for debugging and monitoring. Logs are stored for 7 days.",
         "loggingEnabled": "Logging enabled",
         "loggingDisabled": "Logging disabled",
+        "federatedLabel": "Federated releases",
+        "federatedDescription": "Include mirrored releases from federated partners in the feed. They carry a magnet link (no local .torrent), so they are only grabbable where the swarm is reachable. Off by default.",
+        "federatedEnabled": "Federated releases included",
+        "federatedDisabled": "Local releases only",
         "endpointLabel": "API Endpoint",
         "endpointDescription": "The base URL for the Torznab API. Users add this in Prowlarr/Sonarr/Radarr.",
         "copyUrlTitle": "Copy URL"
@@ -3502,7 +3608,9 @@
         "hnr": "Active H&R",
         "hnrHint": "Enforce policy",
         "myActions": "My actions · 7 days",
-        "myActionsHint": "{n} reports closed"
+        "myActionsHint": "{n} reports closed",
+        "masks": "Federated masks",
+        "masksHint": "Hide partner content"
       },
       "queue": {
         "title": "Freshest pending",
@@ -3536,6 +3644,21 @@
         "title": "Recent H&R",
         "body": "Monitor users who are not seeding back.",
         "cta": "View H&R"
+      }
+    },
+    "masks": {
+      "title": "Masked federated content",
+      "sub": "Releases hidden from every local view of the partner catalogue. Nothing is deleted and no partner is told — lift a mask and the content reappears.",
+      "hide": "Hide",
+      "lift": "Show",
+      "empty": "Nothing is masked.",
+      "noSample": "(not currently mirrored)",
+      "valuePlaceholder": "record id / infohash / author did",
+      "reasonPlaceholder": "reason (optional)",
+      "scope": {
+        "record": "This record",
+        "infohash": "This infohash",
+        "author": "This uploader"
       }
     }
   },
@@ -4104,6 +4227,10 @@
       "federated_followed_upload": {
         "title": "New release from a followed uploader",
         "desc": "{uploaderName} on {peerName} published “{torrentName}”."
+      },
+      "federated_request_created": {
+        "title": "A release you may have is requested",
+        "desc": "“{title}” — seen on {peerName} — was requested here. Fill it for +{rewardPoints} pts."
       }
     }
   },
@@ -4135,7 +4262,8 @@
       "torrent": "Torrent",
       "user": "User",
       "post": "Forum post",
-      "comment": "Comment"
+      "comment": "Comment",
+      "remote": "Federated release"
     },
     "targetGone": "Target no longer available",
     "resolvedBy": "by",
@@ -4197,7 +4325,10 @@
       "comments": "Comments",
       "noComments": "No comments on the source instance yet.",
       "commentsError": "Couldn't load comments from the source instance.",
-      "commentOnSource": "Comment on {peer}"
+      "commentOnSource": "Comment on {peer}",
+      "report": "Report",
+      "requestHere": "Request here",
+      "requestError": "Couldn't raise a request for this release."
     }
   },
   "forumFederated": {
@@ -4245,6 +4376,20 @@
       "notVerified": "Code not found in your remote bio yet",
       "removed": "Link removed",
       "error": "Something went wrong"
+    },
+    "claim": {
+      "title": "Prove a past account",
+      "intro": "If your old instance gave you an identity file, it proves who you were there on its own — no need for that instance to still be running, or for you to still have an account on it.",
+      "placeholder": "Paste the identity file here, or pick it below.",
+      "pickFile": "Choose file",
+      "action": "Prove it",
+      "notJson": "That does not look like an identity file.",
+      "proven": "Proven: you are {name} on {peer}."
+    },
+    "elsewhere": {
+      "title": "Your work elsewhere",
+      "intro": "{n} release(s) on other instances are attributed to you. They stay yours whether or not those instances are still running.",
+      "truncated": "Only the most recent are shown."
     }
   },
   "federationOff": {

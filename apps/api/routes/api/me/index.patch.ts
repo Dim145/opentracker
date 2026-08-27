@@ -56,6 +56,9 @@ const bodySchema = z
     // Demand a minimum account age from anyone commenting on this
     // member's uploads.
     restrictComments: z.boolean().optional(),
+    // Let a federated partner read this member's reputation (ratio,
+    // volumes, member-since) over the `accounts` scope. Off by default.
+    shareReputationFederated: z.boolean().optional(),
     theme: z.enum(['light', 'dark']).optional(),
     // Language preference — must match one of the locale bundles
     // shipped under `apps/web/i18n/locales/`. Adding a locale means
@@ -81,6 +84,7 @@ export default defineEventHandler(async (event) => {
     anonymousUploads: boolean;
     hideDownloadHistory: boolean;
     restrictComments: boolean;
+    shareReputationFederated: boolean;
     theme: 'light' | 'dark';
     language: 'en' | 'fr';
   }> = {};
@@ -107,6 +111,9 @@ export default defineEventHandler(async (event) => {
   if (body.restrictComments !== undefined) {
     updates.restrictComments = body.restrictComments;
   }
+  if (body.shareReputationFederated !== undefined) {
+    updates.shareReputationFederated = body.shareReputationFederated;
+  }
   if (body.theme !== undefined) {
     updates.theme = body.theme;
   }
@@ -132,6 +139,7 @@ export default defineEventHandler(async (event) => {
       anonymousUploads: schema.users.anonymousUploads,
       hideDownloadHistory: schema.users.hideDownloadHistory,
       restrictComments: schema.users.restrictComments,
+      shareReputationFederated: schema.users.shareReputationFederated,
       theme: schema.users.theme,
       language: schema.users.language,
     });

@@ -21,9 +21,22 @@
  * uploader. The flat listing shows them so a member can find their pending
  * upload; a grouped view has no such job, and letting one leak in would show a
  * release count the rest of the site disagrees with.
+ *
+ * ## Both catalogues, one listing
+ *
+ * A group holds what we have AND what our partners have, folded so a release
+ * present in both places is one entry with two sources. `?sources=local`
+ * restricts it to our own catalogue; the default includes the mirror, which on
+ * an instance with no partners is the same query it always was.
+ *
+ * The filters have to be expressed twice, because the two catalogues answer
+ * them differently: full-text search locally where there is a tsvector, a
+ * trigram-less ILIKE on the mirror where there is not; category ids locally,
+ * the partner's own slugs on the mirror. Writing them once and hoping would
+ * mean one of the two silently filtering nothing.
  */
 import { TORRENT_SORT_KEYS } from '@trackarr/shared';
-import { and, eq, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema, ftsVector } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
@@ -35,9 +48,11 @@ import {
 } from '~~/utils/search';
 import { adultCategoryIds } from '~~/utils/adultContent';
 import { getSetting, SETTINGS_KEYS } from '~~/utils/server';
-import { GROUP_SCOPES, listGroups } from '~~/utils/torrentGroups';
+import { GROUP_SCOPES } from '~~/utils/torrentGroups';
+import { listMixedGroups } from '~~/utils/mixedGroups';
 import { getFederationConfig, isFederationLive } from '~~/utils/federation/config';
-import { partnerReleaseCounts } from '~~/utils/remoteGroups';
+import { hasActiveCataloguePeer } from '~~/utils/remoteGroups';
+import { remoteCategoryFilter } from '~~/utils/federation/categoryMap';
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).max(10_000).default(1),
@@ -47,6 +62,8 @@ const querySchema = z.object({
   // The filter the flat listing cannot express: "show me the season packs" is
   // a question about how a release is cut, not about what it contains.
   scope: z.enum(GROUP_SCOPES as unknown as [string, ...string[]]).optional(),
+  /** `local` leaves the mirror out; the default merges it in. */
+  sources: z.enum(['all', 'local']).default('all'),
   // Same vocabulary as the flat listing, so switching views keeps the sort.
   // What each key means across a group is `buildGroupOrderBy`'s business.
   sortBy: z.enum(TORRENT_SORT_KEYS).default('age'),
@@ -59,6 +76,9 @@ export default defineEventHandler(async (event) => {
   const query = await getValidatedQuery(event, querySchema.parse);
 
   const conditions: SQL[] = [];
+  /** The same questions, asked of the mirror. */
+  const remote: SQL[] = [];
+  const rt = schema.remoteTorrents;
 
   // Adult gate, re-read from the row so the toggle takes effect on the very
   // next page rather than at the next login.
@@ -76,6 +96,10 @@ export default defineEventHandler(async (event) => {
         )!,
       );
     }
+    // The mirror carries the flag itself rather than a category we could
+    // resolve — a partner's categories are its own namespace, so the origin's
+    // verdict on what is adult is the only one available.
+    remote.push(sql`${rt.isAdult} = false`);
   }
 
   // Same subtree expansion the flat listing does: picking the "TV" root must
@@ -85,12 +109,35 @@ export default defineEventHandler(async (event) => {
   if (query.categoryId) {
     const subcategories = await db.query.categories.findMany({
       where: eq(schema.categories.parentId, query.categoryId),
-      columns: { id: true },
+      columns: { id: true, slug: true },
     });
     conditions.push(
       or(
         eq(schema.torrents.categoryId, query.categoryId),
         ...subcategories.map((sub) => eq(schema.torrents.categoryId, sub.id)),
+      )!,
+    );
+    // Slugs are the first bridge between the two namespaces: a partner has
+    // never heard of our category ids, and both sides derive their slugs from
+    // the same conventional vocabulary. The second bridge is an operator-declared
+    // mapping (utils/federation/categoryMap) for a partner that names the same
+    // shelf differently. A release matches if EITHER holds — the mapping only
+    // ever widens what a category shows. An unmatched slug with no mapping filters
+    // the mirror out, which is the honest answer: we cannot claim a partner's
+    // release belongs to a category it never named nor was mapped to.
+    const [self] = await db
+      .select({ slug: schema.categories.slug })
+      .from(schema.categories)
+      .where(eq(schema.categories.id, query.categoryId))
+      .limit(1);
+    const slugs = [self?.slug, ...subcategories.map((s) => s.slug)].filter(
+      (s): s is string => !!s,
+    );
+    const localIds = [query.categoryId, ...subcategories.map((s) => s.id)];
+    remote.push(
+      or(
+        slugs.length ? inArray(rt.categorySlug, slugs) : sql`false`,
+        remoteCategoryFilter(localIds),
       )!,
     );
   }
@@ -119,40 +166,40 @@ export default defineEventHandler(async (event) => {
       // Nothing usable survived the scrub — return the unfiltered page rather
       // than an empty one, same as the flat listing.
     }
+    // The mirror has no tsvector, and building one would mean an index over
+    // data we did not author and may drop wholesale when a partner is removed.
+    // A partner catalogue is orders of magnitude smaller than the local one,
+    // so a trigram-less scan is the right trade — but it does mean the two
+    // halves answer a query slightly differently, and the mirror will miss a
+    // stemmed match the local half finds.
+    const like = `%${query.search.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
+    remote.push(
+      sql`(${rt.name} ILIKE ${like} OR ${rt.infoHash} = ${query.search.toLowerCase()})`,
+    );
   }
 
-  const where = conditions.length ? and(...conditions) : undefined;
-  const { groups, total } = await listGroups({
+  // Skipped at zero cost on an instance that does not federate, or has no
+  // partner sharing a catalogue: there is nothing to merge, and the query
+  // degenerates to the local one.
+  const localOnly =
+    query.sources === 'local' ||
+    !isFederationLive(await getFederationConfig()) ||
+    !(await hasActiveCataloguePeer());
+
+  const { groups, total } = await listMixedGroups({
     limit: query.limit,
     offset: (query.page - 1) * query.limit,
-    where,
+    localWhere: conditions.length ? and(...conditions) : undefined,
+    remoteWhere: remote.length ? and(...remote) : undefined,
+    localOnly,
     scope: query.scope as never,
     sortBy: query.sortBy,
     order: query.order,
   });
 
-  // The bridge to the federated catalogue: how many releases the partners hold
-  // for the works on this page. A badge, not a merge — see
-  // `partnerReleaseCounts` for why. Skipped entirely, at zero cost, on an
-  // instance that does not federate.
-  let partners = new Map<string, number>();
-  if (isFederationLive(await getFederationConfig())) {
-    try {
-      partners = await partnerReleaseCounts(
-        groups.map((g) => g.key),
-        !!me?.showAdultContent,
-      );
-    } catch {
-      // The local catalogue must render with or without the mirror. A badge
-      // that fails to load is a badge that is absent.
-    }
-  }
-
   return {
-    groups: groups.map((g) => ({
-      ...g,
-      partnerReleaseCount: partners.get(g.key) ?? 0,
-    })),
+    groups,
+    merged: !localOnly,
     pagination: {
       page: query.page,
       limit: query.limit,

@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./releaseParse": "./src/releaseParse.ts",
+    "./didProof": "./src/didProof.ts",
     "./templateEngine": "./src/templateEngine.ts"
   },
   "dependencies": {

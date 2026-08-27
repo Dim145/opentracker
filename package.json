@@ -12,6 +12,7 @@
     "test:load": "tsx tests/load/load-test.ts",
     "db:push": "pnpm --filter @trackarr/db run db:push",
     "db:generate": "pnpm --filter @trackarr/db run db:generate",
+    "db:baseline": "pnpm --filter @trackarr/db run db:baseline",
     "db:studio": "pnpm --filter @trackarr/db run db:studio",
     "postinstall": "find -L node_modules \\( -name .output -o -name .nuxt -o -name .git \\) -prune -o -type d -name simple-peer -exec sh -c 'echo \"export default null;\" > \"$1/lite.js\"' _ {} \\;",
     "check:schema-parity": "pnpm --filter @trackarr/db run check:schema-parity"

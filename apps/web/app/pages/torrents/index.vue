@@ -195,6 +195,31 @@
               : $t('search.torrentCount', pagination.total)
           }}
         </span>
+
+        <!-- Only on an instance that actually has partners. On a lone one the
+             two options would give identical results, and a control that never
+             changes anything is worse than no control. -->
+        <template v-if="view === 'grouped' && (federated || sources === 'local')">
+          <span class="results-stat-sep" />
+          <div class="src-toggle" :title="$t('search.group.sourcesHint')">
+            <button
+              type="button"
+              :class="{ 'src-on': sources === 'all' }"
+              @click="sources = 'all'"
+            >
+              <Icon name="ph:broadcast-bold" />
+              {{ $t('search.group.sourcesAll') }}
+            </button>
+            <button
+              type="button"
+              :class="{ 'src-on': sources === 'local' }"
+              @click="sources = 'local'"
+            >
+              <Icon name="ph:house-bold" />
+              {{ $t('search.group.sourcesLocal') }}
+            </button>
+          </div>
+        </template>
       </div>
       <Pager
         v-if="pagination.pages > 1"
@@ -542,9 +567,29 @@ interface ServedGroup {
   oldest: string;
   scopes: Array<{ scope: GroupScope; units: number; latest: string }>;
   defaultScope: GroupScope;
-  /** Releases the partners hold for the same work; 0 when not federating. */
-  partnerReleaseCount: number;
+  /**
+   * How the row's releases split between the two catalogues. They overlap on
+   * purpose — a release we hold that a partner also holds counts in both, and
+   * once in `releaseCount`.
+   */
+  localCount: number;
+  partnerCount: number;
+  /** Partners contributing at least one release. */
+  peerCount: number;
 }
+
+/**
+ * Whether partner releases are folded into the rows.
+ *
+ * Defaults to everywhere, and costs nothing on an instance with no partners —
+ * the server skips the mirror outright and answers the query it always did.
+ * The toggle exists for the member who wants to see only what they can
+ * download here and now, which is a real question and not the same one.
+ *
+ * Declared before the fetch on purpose: `useFetch` evaluates its query during
+ * setup, and a `const` read from there before this line is a dead-zone crash.
+ */
+const sources = ref<'all' | 'local'>('all');
 
 // Fetch groups — the grouped view's own endpoint. It folds the WHOLE catalogue,
 // not the page the flat listing happened to return, so its counts, episode sets
@@ -555,11 +600,14 @@ const {
   refresh: refreshGroups,
 } = await useFetch<{
   groups: ServedGroup[];
+  /** True when partner releases are in these rows. False on a lone instance. */
+  merged: boolean;
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }>('/api/torrents/groups', {
   query: computed(() => ({
     search: searchQuery.value || undefined,
     categoryId: selectedCategory.value || undefined,
+    sources: sources.value,
     page: page.value,
     limit: 25,
     // Same keys as the flat listing: switching views keeps the order, even
@@ -571,11 +619,22 @@ const {
   immediate: view.value === 'grouped',
 });
 
+
 // One watcher for both endpoints: whichever view is on screen is the one that
 // refetches. Switching views is itself a trigger, so the first switch loads the
 // side that was skipped at mount.
 watch(
-  [searchQuery, selectedCategory, selectedTags, mediaIdFilter, page, view, sortBy, sortOrder],
+  [
+    searchQuery,
+    selectedCategory,
+    selectedTags,
+    mediaIdFilter,
+    page,
+    view,
+    sources,
+    sortBy,
+    sortOrder,
+  ],
   () => {
     if (view.value === 'grouped') refreshGroups();
     else refreshTorrents();
@@ -1155,6 +1214,41 @@ useHead({
   height: 4px;
   border-radius: 9999px;
   background: rgb(var(--fg-faint));
+}
+
+/* Where the rows draw from. Segmented rather than a checkbox: both states are
+   a real answer, and neither is a deviation from the other. Cyan for the side
+   that reaches outside, the same hue every federated signal uses. */
+.src-toggle {
+  display: inline-flex;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: 4px;
+  overflow: hidden;
+}
+.src-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 2px 7px;
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: rgb(var(--fg-muted));
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.src-toggle button:hover {
+  color: rgb(var(--fg-default));
+  background: rgb(var(--bg-elevated) / 0.6);
+}
+.src-toggle button.src-on {
+  color: rgb(125 211 252);
+  background: rgb(56 189 248 / 0.14);
+}
+.src-toggle button:last-child.src-on {
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--bg-elevated));
 }
 
 /* ─── Loading / empty ───────────────────────────────────── */

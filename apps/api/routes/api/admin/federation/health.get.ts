@@ -16,19 +16,29 @@
 import { db, schema } from '@trackarr/db';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { requireAdminSession } from '~~/utils/adminAuth';
-import { getFederationConfig } from '~~/utils/federation/config';
+import { getFederationConfig, syncIntervalMs } from '~~/utils/federation/config';
+import { recordStore, sourcedByPeer } from '~~/utils/federation/storeCounts';
 
 /** A peer is "behind" past three intervals with no run. */
 const STALE_INTERVALS = 3;
+/**
+ * …but never sooner than this, however short the sync interval is set.
+ *
+ * Without a floor the "behind" threshold is just `3 × interval`, so an operator
+ * lowering the interval to sync faster would make the threshold shorter than a
+ * single real tick and paint every healthy partner amber. A tick that ran in
+ * the last quarter-hour is not behind, whatever the interval.
+ */
+const MIN_STALE_AFTER_MS = 15 * 60 * 1000;
 
-type Verdict = 'ok' | 'stale' | 'error' | 'never';
+type Verdict = 'ok' | 'stale' | 'degraded' | 'error' | 'never';
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
 
   const config = await getFederationConfig();
-  const intervalMs = Number(process.env.FEDERATION_SYNC_INTERVAL_MS || 900_000);
-  const staleAfterMs = intervalMs * STALE_INTERVALS;
+  const intervalMs = syncIntervalMs();
+  const staleAfterMs = Math.max(intervalMs * STALE_INTERVALS, MIN_STALE_AFTER_MS);
   const now = Date.now();
 
   // Only active peers count: a pending or blocked peer is not supposed to
@@ -51,7 +61,7 @@ export default defineEventHandler(async (event) => {
   // One round trip per table rather than one per peer: the peer count is
   // small but the page auto-refreshes, and an N+1 on an automatic refresh is
   // paid for every single day.
-  const [states, mirrorCounts] = await Promise.all([
+  const [states, mirrorCounts, sourced, records] = await Promise.all([
     peerIds.length
       ? db
           .select()
@@ -68,6 +78,12 @@ export default defineEventHandler(async (event) => {
           .where(inArray(schema.remoteTorrents.peerId, peerIds))
           .groupBy(schema.remoteTorrents.peerId)
       : [],
+    // Both counts live in `storeCounts.ts`, where a real database can be
+    // pointed at them: an aggregate behind an admin session on a page that
+    // refreshes itself either shows a wrong number for months or throws where
+    // nobody is looking, and neither failure announces itself.
+    sourcedByPeer(peerIds),
+    recordStore(),
   ]);
 
   // `as const` keeps each entry a 2-tuple. Without it `.map` widens to
@@ -89,6 +105,11 @@ export default defineEventHandler(async (event) => {
     lastStatus: string | null
   ): Verdict => {
     if (lastStatus === 'error') return 'error';
+    // `partial` means the run completed but something inside it did not — some
+    // records failed verification, or the mirror hit its row cap and stopped
+    // fetching. It used to fall through to `ok`, painting a peer that has
+    // partly stopped working green. It is a degraded peer, and says so.
+    if (lastStatus === 'partial') return 'degraded';
     if (!lastRunAt) return 'never';
     return now - lastRunAt.getTime() > staleAfterMs ? 'stale' : 'ok';
   };
@@ -106,7 +127,7 @@ export default defineEventHandler(async (event) => {
 
     // The peer's verdict: the worst of its resources. A catalogue succeeding
     // while removals fail is not a healthy peer.
-    const order: Verdict[] = ['ok', 'stale', 'never', 'error'];
+    const order: Verdict[] = ['ok', 'stale', 'degraded', 'never', 'error'];
     const worst = resources.reduce<Verdict>(
       (acc, r) => (order.indexOf(r.verdict) > order.indexOf(acc) ? r.verdict : acc),
       resources.length ? 'ok' : 'never'
@@ -116,6 +137,7 @@ export default defineEventHandler(async (event) => {
       ...peer,
       active: peer.status === 'active',
       mirrored: mirrorByPeer.get(peer.id) ?? 0,
+      sourced: sourced.get(peer.id) ?? 0,
       resources,
       verdict: peer.status === 'active' ? worst : null,
     };
@@ -127,9 +149,11 @@ export default defineEventHandler(async (event) => {
     peersActive: active.length,
     ok: active.filter((r) => r.verdict === 'ok').length,
     stale: active.filter((r) => r.verdict === 'stale').length,
+    degraded: active.filter((r) => r.verdict === 'degraded').length,
     error: active.filter((r) => r.verdict === 'error').length,
     never: active.filter((r) => r.verdict === 'never').length,
     mirroredTotal: rows.reduce((n, r) => n + r.mirrored, 0),
+    records,
     // Last run across all resources: federation's "heartbeat", and the first
     // thing anyone looks at.
     lastRunAt:

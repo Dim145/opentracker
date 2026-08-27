@@ -70,6 +70,7 @@ export default defineEventHandler(async (event) => {
       uploaderId: true,
       categoryId: true,
       moderationStatus: true,
+      contentRootV2: true,
     },
   });
   if (!torrent) {
@@ -87,6 +88,16 @@ export default defineEventHandler(async (event) => {
       message: 'Only the uploader of the torrent can use it as a fill',
     });
   }
+
+  // Federated-origin content proof is ADVISORY, not a gate. When the request's
+  // and the fill's v2 roots are EQUAL that proves the same content, and the
+  // request page shows a "content-verified" badge. But INEQUALITY does not prove
+  // difference: content_root_v2 spans every non-padding file, so the same movie
+  // with a different .nfo / subs / sample legitimately hashes differently. And
+  // the request's root is an unverified partner claim. So a mismatch must not
+  // block a real fill — the requester validates by hand exactly as for a local
+  // or v1-only request. (Kept as a note; the positive signal lives in the
+  // request detail's `contentVerified`.)
 
   // Category match. Exact-match is too strict — a request filed
   // against "TV" should accept a fill in any "TV/*" subcategory.

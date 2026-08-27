@@ -5,6 +5,7 @@ import { parseTorrentFile } from '~~/utils/parseTorrentFile';
 import bencode from 'bencode';
 import { parseReleaseName } from '@trackarr/shared/releaseParse';
 import { computeContentSignature } from '~~/utils/contentSignature';
+import { extractV2 } from '~~/utils/bittorrentV2';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { resolveTagsByName, slugifyTag, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
 import { inferReleaseTags } from '~~/utils/releaseTags';
@@ -357,6 +358,11 @@ export default defineEventHandler(async (event) => {
     files: parsed.files?.map((f) => ({ path: f.path, length: f.length })),
   });
 
+  // BitTorrent v2 content addressing, from the SAME normalised bytes we store
+  // and serve, so a client re-deriving it lands on the same infoHashV2. Null for
+  // a v1-only torrent — the row keeps only `content_signature` then.
+  const v2 = extractV2(normalizedData);
+
   await db.insert(schema.torrents).values({
     id,
     infoHash,
@@ -380,6 +386,8 @@ export default defineEventHandler(async (event) => {
     // torrent can gain its tmdb id later through an edit.
     ...seriesPosition(name),
     contentSignature,
+    infoHashV2: v2?.infoHashV2 ?? null,
+    contentRootV2: v2?.contentRootV2 ?? null,
     isActive: true,
     moderationStatus: canBypassModeration ? 'accepted' : 'pending',
     moderatedById: canBypassModeration ? user.id : null,

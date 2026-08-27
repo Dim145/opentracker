@@ -11,11 +11,19 @@ import { requireAdminSession } from '~~/utils/adminAuth';
 import { getFederationConfig } from '~~/utils/federation/config';
 import { shortFingerprint } from '~~/utils/federation/keys';
 import { EMPTY_SCOPES } from '~~/utils/federation/scopes';
+import {
+  getCreditEnabled,
+  getCreditDailyCapBytes,
+} from '~~/utils/federation/credit';
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
 
   const config = await getFederationConfig();
+  const [creditEnabled, creditDailyCapBytes] = await Promise.all([
+    getCreditEnabled(),
+    getCreditDailyCapBytes(),
+  ]);
   const peers = await db
     .select()
     .from(schema.federationPeers)
@@ -25,6 +33,8 @@ export default defineEventHandler(async (event) => {
     config: config
       ? {
           enabled: config.enabled,
+          relayEnabled: config.relayEnabled,
+          discoverable: config.discoverable,
           instanceName: config.instanceName,
           publicUrl: config.publicUrl,
           instanceId: config.instanceId,
@@ -34,9 +44,13 @@ export default defineEventHandler(async (event) => {
             : null,
           defaultScopes: config.defaultScopes,
           provisioned: !!(config.instanceId && config.publicKey),
+          creditEnabled,
+          creditDailyCapBytes,
         }
       : {
           enabled: false,
+          relayEnabled: false,
+          discoverable: false,
           instanceName: null,
           publicUrl: null,
           instanceId: null,
@@ -44,6 +58,8 @@ export default defineEventHandler(async (event) => {
           fingerprint: null,
           defaultScopes: EMPTY_SCOPES,
           provisioned: false,
+          creditEnabled,
+          creditDailyCapBytes,
         },
     peers: peers.map((p) => ({
       id: p.id,

@@ -131,3 +131,7 @@ docker compose -f docker-compose.prod.yml logs api | grep -E '\[Boot\]|\[Migrate
 A clean run reports `Migrations up to date` within a few seconds; anything
 longer means Postgres is unresponsive (check `docker compose logs postgres`) or
 another container is holding the advisory lock.
+
+Coming from an image that pushed the schema instead, run the one-time
+baseline first — see
+[Upgrading](./upgrading.md#coming-from-a-pushing-image-one-time-baseline).

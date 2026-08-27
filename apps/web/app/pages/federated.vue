@@ -205,9 +205,15 @@ interface FollowRow {
 }
 
 const { t } = useI18n();
+// Seed the search from the URL so the "search the federated catalogue" link
+// from a local group row (`/federated?q=<title>`) actually lands on a filtered
+// page instead of an empty one — the page used to ignore the query entirely.
+const route = useRoute();
+const initialQuery =
+  typeof route.query.q === 'string' ? route.query.q : '';
 const page = ref(1);
-const search = ref('');
-const q = ref('');
+const search = ref(initialQuery);
+const q = ref(initialQuery);
 const mode = ref<'cache' | 'live'>('cache');
 const view = ref<'simple' | 'grouped'>('simple');
 

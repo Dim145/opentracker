@@ -23,10 +23,14 @@ export default defineEventHandler(async (event) => {
       peerId: schema.federatedIdentities.peerId,
       remoteUsername: schema.federatedIdentities.remoteUsername,
       status: schema.federatedIdentities.status,
+      /** `key` — proven offline from a signed document; `bio` — asked the partner. */
+      method: schema.federatedIdentities.method,
+      subjectDid: schema.federatedIdentities.subjectDid,
       verifyCode: schema.federatedIdentities.verifyCode,
       verifiedAt: schema.federatedIdentities.verifiedAt,
       peerName: schema.federationPeers.displayName,
       peerBaseUrl: schema.federationPeers.baseUrl,
+      peerInstanceId: schema.federationPeers.instanceId,
       peerStatus: schema.federationPeers.status,
       acceptsFromThem: schema.federationPeers.acceptsFromThem,
     })
@@ -59,6 +63,7 @@ export default defineEventHandler(async (event) => {
             pathname: `/api/federation/user-reputation?username=${encodeURIComponent(r.remoteUsername)}`,
             instanceId: config!.instanceId,
             privateKeyPem: pk,
+            audienceInstanceId: r.peerInstanceId ?? undefined,
             timeoutMs: 8000,
           });
           if (res.status === 200 && res.data?.reputation) {

@@ -201,6 +201,28 @@
         <Icon name="ph:caret-right-bold" />
       </button>
     </nav>
+
+    <!-- Across the mesh: uploaders followed on partner instances. These live in
+         a different table (`federated_follows`) and were manageable nowhere —
+         you could follow from /federated but never see or undo it. -->
+    <section v-if="fedFollows.length" class="cast-fed">
+      <h2 class="cast-fed-title">{{ $t('following.federated.title') }}</h2>
+      <ul class="cast-fed-list">
+        <li v-for="f in fedFollows" :key="`${f.peerId}:${f.remoteUsername}`" class="cast-fed-row">
+          <Icon name="ph:globe-hemisphere-west-bold" class="cast-fed-ico" />
+          <span class="cast-fed-name">{{ f.remoteUsername }}</span>
+          <span class="cast-fed-peer">{{ f.peerName || f.peerId }}</span>
+          <button
+            type="button"
+            class="cast-fed-leave"
+            :disabled="fedLeaving.has(`${f.peerId}:${f.remoteUsername}`)"
+            @click="unfollowFederated(f)"
+          >
+            {{ $t('following.federated.unfollow') }}
+          </button>
+        </li>
+      </ul>
+    </section>
   </div>
 </template>
 
@@ -211,6 +233,12 @@ definePageMeta({ title: 'Following' });
 
 const { t, locale } = useI18n();
 const notifications = useNotificationStore();
+// `/following` is an ordinary member page, so it carries no federation-only nav
+// flag — the federated half below has to gate itself.
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
 useHead({ title: () => t('following.headTitle') });
 
 type Sort = 'recent' | 'alpha';
@@ -249,6 +277,38 @@ const { data, pending, refresh } = await useFetch<FollowingResponse>(
 );
 
 const rows = computed(() => data.value?.data ?? []);
+
+// Uploaders followed on partner instances — a separate table with, until now,
+// no read or unfollow path in the UI.
+interface FedFollow {
+  peerId: string;
+  remoteUsername: string;
+  peerName: string | null;
+}
+const { data: fedData, refresh: refreshFed } = await useFetch<{ data: FedFollow[] }>(
+  '/api/me/federated-follows',
+  // immediate: nothing to follow across a mesh this instance is not part of.
+  { default: () => ({ data: [] }), immediate: federationEnabled.value },
+);
+const fedFollows = computed(() => fedData.value?.data ?? []);
+const fedLeaving = ref(new Set<string>());
+async function unfollowFederated(f: FedFollow) {
+  const key = `${f.peerId}:${f.remoteUsername}`;
+  fedLeaving.value = new Set(fedLeaving.value).add(key);
+  try {
+    await $fetch('/api/federation/follows', {
+      method: 'DELETE',
+      body: { peerId: f.peerId, username: f.remoteUsername },
+    });
+    await refreshFed();
+  } catch {
+    /* leave the row; a refresh will reconcile */
+  } finally {
+    const next = new Set(fedLeaving.value);
+    next.delete(key);
+    fedLeaving.value = next;
+  }
+}
 
 const sortOptions = computed<{ value: Sort; label: string; icon: string }[]>(
   () => [
@@ -1104,4 +1164,16 @@ async function unfollow(row: PersonaRow) {
   .curtain { animation: none !important; }
   .persona:hover .persona-spotlight { animation: none !important; }
 }
+
+.cast-fed { margin: 2.5rem auto 0; max-width: 720px; }
+.cast-fed-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgb(var(--fg-muted)); margin-bottom: 0.8rem; }
+.cast-fed-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.cast-fed-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem; border: 1px solid rgb(var(--border) / 0.7); border-radius: 0.5rem; background: rgb(var(--bg-subtle) / 0.4); }
+.cast-fed-ico { color: rgb(var(--accent)); flex: none; }
+.cast-fed-name { font-weight: 600; }
+.cast-fed-peer { color: rgb(var(--fg-muted)); font-size: 0.8rem; }
+.cast-fed-leave { margin-left: auto; padding: 0.25rem 0.6rem; border: 1px solid rgb(var(--border)); border-radius: 0.4rem; background: transparent; color: rgb(var(--fg-muted)); cursor: pointer; font-size: 0.78rem; }
+.cast-fed-leave:hover:not(:disabled) { color: rgb(var(--danger)); border-color: rgb(var(--danger) / 0.5); }
+.cast-fed-leave:disabled { opacity: 0.5; cursor: default; }
+
 </style>

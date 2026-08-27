@@ -513,6 +513,57 @@
       </ul>
     </section>
 
+    <!-- § FEDERATED CROSS-SEED — same content on a partner (M2). If you also
+         have an account there, you can cross-seed it from the bytes you already
+         hold, fetched with your own partner passkey. -->
+    <section
+      v-if="federationEnabled && federatedCrossSeeds && federatedCrossSeeds.items.length > 0"
+      class="section section--cross"
+    >
+      <header class="section-head">
+        <span class="section-head-mark" aria-hidden="true">§</span>
+        <h2 class="section-head-title">
+          {{ $t('torrents.detail.sections.crossSeedsFederated') }}
+        </h2>
+        <span class="section-head-count">{{ federatedCrossSeeds.items.length }}</span>
+        <span class="section-head-line" aria-hidden="true" />
+      </header>
+      <p class="cross-note">
+        <Icon name="ph:info-bold" class="cross-note-icon" />
+        {{ $t('torrents.detail.crossSeedFederatedNote') }}
+        <span
+          v-if="federatedCrossSeeds.availability.seeders > 0"
+          class="cross-mesh"
+        >
+          <Icon name="ph:users-three-bold" />
+          {{ $t('torrents.detail.crossSeedMeshSeeders', { n: federatedCrossSeeds.availability.seeders }) }}
+        </span>
+      </p>
+      <ul class="cross-list">
+        <li v-for="m in federatedCrossSeeds.items" :key="m.id" class="cross-item">
+          <NuxtLink :to="`/federated/${m.id}`" class="cross-link">
+            <Icon name="ph:broadcast-bold" class="cross-icon" />
+            <span class="cross-name">{{ m.name }}</span>
+            <span class="cross-meta">
+              <span class="cross-meta-cat">{{ m.peerName }}</span>
+              <span class="cross-meta-sep">·</span>
+              <span class="cross-meta-seed">▲ {{ m.seeders }}</span>
+              <span class="cross-meta-sep">·</span>
+              <span class="cross-meta-size">{{ formatSize(m.size) }}</span>
+              <span class="cross-meta-sep">·</span>
+              <span
+                class="cross-badge"
+                :class="m.matchType === 'v2' ? 'cross-badge--verified' : 'cross-badge--hint'"
+              >
+                {{ m.matchType === 'v2' ? $t('torrents.detail.crossMatchVerified') : $t('torrents.detail.crossMatchHint') }}
+              </span>
+            </span>
+            <Icon name="ph:arrow-right-bold" class="cross-arrow" />
+          </NuxtLink>
+        </li>
+      </ul>
+    </section>
+
     <!-- § FEDERATION SWARM — per-torrent opt-in (uploader / staff).
          Hidden entirely when the instance is not federated: there is nothing
          to share the swarm WITH, so offering the switch only invites the
@@ -751,6 +802,41 @@ const { data: crossSeeds } = await useFetch<{
   default: () => ({ items: [], total: 0 }),
 });
 
+// Federated cross-seed matches (M2): the same content held by partners, for a
+// member who can seed it there too. Same non-blocking side-fetch pattern.
+interface FederatedCrossSeedItem {
+  id: string;
+  infoHash: string;
+  name: string;
+  size: number;
+  seeders: number;
+  leechers: number;
+  peerName: string;
+  detailUrl: string | null;
+  matchType: 'v2' | 'signature';
+}
+// `branding` is fetched by the layout on every page, so reading it here is
+// free — and it carries whether this instance is federated at all.
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
+
+const { data: federatedCrossSeeds } = await useFetch<{
+  items: FederatedCrossSeedItem[];
+  total: number;
+  availability: { releases: number; seeders: number; leechers: number };
+}>(`/api/torrents/${hash}/cross-seeds-federated`, {
+  // immediate: a non-federated instance has no partners to match against, and
+  // this fires on every torrent page view.
+  immediate: federationEnabled.value,
+  default: () => ({
+    items: [],
+    total: 0,
+    availability: { releases: 0, seeders: 0, leechers: 0 },
+  }),
+});
+
 // Cross-seed KPIs (peer counts + volume share). Same side-fetch
 // pattern as `crossSeeds` above — the qualifier chips on the stats
 // row stay hidden until this resolves, no skeleton needed.
@@ -969,12 +1055,6 @@ const metadata = computed(
 // Get current user session
 const { loggedIn, user } = useUserSession();
 
-// `branding` is fetched by the layout on every page, so reading it here is
-// free — and it carries whether this instance is federated at all.
-const branding = await useBranding();
-const federationEnabled = computed(() =>
-  Boolean(branding.value?.federationEnabled),
-);
 
 // Phase 4 — per-torrent swarm-federation opt-in (uploader / staff only).
 const fedSwarm = ref(false);
@@ -2231,6 +2311,37 @@ async function confirmDelete() {
 .cross-link:hover .cross-arrow {
   color: rgb(var(--accent));
   transform: translateX(2px);
+}
+.cross-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border-radius: 99px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.cross-badge--verified {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+.cross-badge--hint {
+  color: rgb(var(--fg-subtle));
+  background: rgb(var(--bg-inset));
+  border-color: rgb(var(--line-default));
+}
+.cross-meta-seed { color: #4ade80; font-family: var(--font-mono, monospace); font-size: 0.72rem; }
+.cross-mesh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 99px;
+  font-weight: 600;
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
 }
 @media (max-width: 720px) {
   .cross-link {

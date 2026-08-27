@@ -3,6 +3,9 @@ import { getStats } from '~~/utils/server';
 import { desc, eq, and } from 'drizzle-orm';
 import { z } from 'zod';
 import { requireSessionOrApikey } from '~~/utils/adminAuth';
+import { getTorznabIncludeFederated } from '~~/utils/torznabSettings';
+import { getFederationConfig, isFederationLive } from '~~/utils/federation/config';
+import { federatedFeedRows } from '~~/utils/federation/feedRows';
 
 const paramsSchema = z.object({
   slug: z.string().min(1),
@@ -68,19 +71,52 @@ export default defineEventHandler(async (event) => {
 
   // Build RSS XML
   const baseUrl = getRequestURL(event).origin;
+  const items: RSSItem[] = enriched.map((t) => ({
+    title: t.name,
+    link: `${baseUrl}/torrents/${t.infoHash}`,
+    description: buildItemDescription(t),
+    category: category.name,
+    pubDate: new Date(t.createdAt).toUTCString(),
+    guid: t.infoHash,
+  }));
+
+  // Federated (mirrored) releases mapped into this category, opt-in and only
+  // once the local half hasn't filled the feed. This is a reading feed — the
+  // link is the on-site detail page, not a download — so it is pure discovery.
+  if (items.length < query.limit && (await getTorznabIncludeFederated())) {
+    const config = await getFederationConfig();
+    if (isFederationLive(config)) {
+      const seen = new Set(items.map((i) => i.guid));
+      const remote = await federatedFeedRows({
+        localCategoryIds: [category.id],
+        showAdult: !!user.showAdultContent,
+        limit: query.limit - items.length,
+      });
+      for (const r of remote) {
+        if (seen.has(r.infoHash)) continue;
+        items.push({
+          title: r.name,
+          link: `${baseUrl}/federated/${r.id}`,
+          description: [
+            `Size: ${formatBytes(r.size)}`,
+            `Seeders: ${r.seeders}`,
+            `Leechers: ${r.leechers}`,
+            'Federated release — open on-site for the source.',
+          ].join('\n'),
+          category: category.name,
+          pubDate: (r.remoteCreatedAt ?? new Date()).toUTCString(),
+          guid: r.infoHash,
+        });
+      }
+    }
+  }
+
   const rss = buildRSSFeed({
     title: `Trackarr - ${category.name}`,
     link: baseUrl,
     description: `Latest ${category.name} torrents on Trackarr`,
     feedUrl: `${baseUrl}/api/rss/category/${params.slug}`,
-    items: enriched.map((t) => ({
-      title: t.name,
-      link: `${baseUrl}/torrents/${t.infoHash}`,
-      description: buildItemDescription(t),
-      category: category.name,
-      pubDate: new Date(t.createdAt).toUTCString(),
-      guid: t.infoHash,
-    })),
+    items,
   });
 
   setHeader(event, 'Content-Type', 'application/rss+xml; charset=utf-8');

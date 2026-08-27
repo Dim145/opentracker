@@ -19,7 +19,6 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq, inArray } from 'drizzle-orm';
 import { fanoutFollowedUserUpload } from './followerFanout';
-import { recordFederationRemoval } from './federation/removals';
 import { randomUUID } from 'node:crypto';
 import { redis } from '../redis/client';
 
@@ -214,20 +213,12 @@ export async function transitionStatus(opts: {
     });
   }
 
-  // Federation: if the row just LEFT the accepted state it's no longer
-  // federatable — tombstone it so partners purge their mirror. (Re-entering
-  // 'accepted' is the follower fan-out branch above; re-propagating a restored
-  // OLD row is a known append-forward-cursor limitation, not handled here.)
-  if (priorStatus === 'accepted' && nextStatus !== 'accepted') {
-    void recordFederationRemoval(
-      {
-        torrentId: updated.id,
-        infoHash: updated.infoHash,
-        contentSignature: updated.contentSignature,
-      },
-      'moderation',
-    );
-  }
+  // Federation needs nothing here. A row that leaves the accepted state stops
+  // matching the publishable predicate, and the record sweep mints a tombstone
+  // for it on its next pass — the same way it handles a deletion or a ban.
+  // Notifying federation from each moderation site was a second, hand-written
+  // definition of "no longer federatable"; there is now one, in SQL, and it
+  // cannot drift from the one minting uses because it IS that one.
 
   return updated;
 }

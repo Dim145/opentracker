@@ -47,9 +47,9 @@ export default defineEventHandler(async (event) => {
   // again on the very next attempt rather than waiting for the TTL.
   await invalidateBanCache(userId);
 
-  // Federation re-eligibility: the removals feed told partners to purge this
-  // user's torrents when they were banned. Bump updated_at now so they
-  // re-surface on the catalog-refresh feed and partners re-mirror them.
+  // Federation re-eligibility: a tombstone told partners to purge this user's
+  // torrents when they were banned. Bump updated_at now so the minter sees
+  // them as publishable again and re-mints them into the record stream.
   try {
     await db
       .update(torrents)

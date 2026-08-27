@@ -21,7 +21,7 @@ const bob = generateInstanceKeypair();
 function sign(over: Record<string, unknown> = {}) {
   return buildSignedHeaders({
     method: 'GET',
-    pathname: '/api/federation/catalog?limit=50',
+    pathname: '/api/federation/reconcile',
     body: '',
     instanceId: alice.instanceId,
     privateKeyPem: alice.privateKeyPem,
@@ -33,7 +33,7 @@ function sign(over: Record<string, unknown> = {}) {
 function verify(headers: Record<string, string | undefined>, audience?: string) {
   return verifySignedRequest({
     method: 'GET',
-    pathname: '/api/federation/catalog?limit=50',
+    pathname: '/api/federation/reconcile',
     rawBody: '',
     headers,
     publicKeyPem: alice.publicKeyPem,
@@ -79,7 +79,7 @@ describe('audience binding', () => {
     // v2 header at all.
     const h = buildSignedHeaders({
       method: 'GET',
-      pathname: '/api/federation/catalog?limit=50',
+      pathname: '/api/federation/reconcile',
       body: '',
       instanceId: alice.instanceId,
       privateKeyPem: alice.privateKeyPem,
@@ -93,7 +93,7 @@ describe('what v1 already covered, and must keep covering', () => {
   it('rejects a tampered path', () => {
     const verdict = verifySignedRequest({
       method: 'GET',
-      pathname: '/api/federation/catalog?limit=5000',
+      pathname: '/api/federation/reconcile?probe=1',
       rawBody: '',
       headers: sign(),
       publicKeyPem: alice.publicKeyPem,
@@ -105,7 +105,7 @@ describe('what v1 already covered, and must keep covering', () => {
   it('rejects another instance’s key', () => {
     const verdict = verifySignedRequest({
       method: 'GET',
-      pathname: '/api/federation/catalog?limit=50',
+      pathname: '/api/federation/reconcile',
       rawBody: '',
       headers: sign(),
       publicKeyPem: bob.publicKeyPem,

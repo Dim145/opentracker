@@ -107,6 +107,39 @@ Download a torrent file with your passkey embedded.
 curl -O "https://your-tracker.com/api/torznab/download?id=INFO_HASH&apikey=YOUR_PASSKEY"
 ```
 
+## Federated releases (opt-in)
+
+By default the feed carries only this instance's own catalogue. An admin can turn
+on **Federated releases** (Admin → Torznab) to also fold in releases mirrored
+from federated partners.
+
+Because the mirror is metadata only — there is no `.torrent` held here — a
+federated item's download link is a **magnet** built from its infohash, and its
+`<link>` points at the on-site `/federated/<id>` detail page rather than a
+download endpoint. The magnet carries only the infohash and a
+display name — no tracker (`tr=`), because an announce URL on this software
+carries a passkey. It is therefore resolvable through DHT/PEX alone, which a
+partner's **private** swarm does not answer: for an \*arr stack these results are
+genuinely grabbable only for content that is also publicly seeded (or once a
+data-sharing path makes a partner's release retrievable from here). That is why the toggle is **off by default** — turning it
+on trades a fuller search for the chance of un-grabbable results in automation.
+
+Federated items are appended after local ones, and within a page never duplicate
+an infohash the local catalogue already serves. (The dedupe is per response: with
+`offset` past the first page the same federated rows can reappear, since the
+mirror read is not paginated.)
+
+Their emitted Newznab id comes from the release's coarse type — movie → 2000,
+tv → 5000, game → 4000, book → 7000, anything else → 8000 (Other) — **not** from
+the taxonomy mapping; the `<category>` element carries the partner's raw slug.
+The mapping (Admin → Federated taxonomy) governs which mirrored rows a `cat=`
+query matches, not the id they are labelled with.
+
+The same toggle also folds mirrored rows into `/api/rss/category/<slug>`, there
+with no magnet and no enclosure — the RSS link is the on-site detail page, so
+that surface is discovery only. Both feeds respect the requesting account's
+adult-content setting.
+
 ## Category Mapping
 
 Trackarr categories are automatically mapped to Newznab standard IDs:

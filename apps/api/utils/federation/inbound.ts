@@ -13,13 +13,13 @@
  * have bespoke status/signature rules) — but they call `assertNotReplayed`.
  */
 import { createHash } from 'node:crypto';
-import { createError, getRequestHeaders, type H3Event } from 'h3';
+import { createError, getRequestHeaders, readRawBody, type H3Event } from 'h3';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import type { FederationConfig, FederationPeer } from '@trackarr/db/schema';
 import { redis } from '~~/utils/server';
 import { rateLimit, rateLimitIdentity, RATE_LIMITS } from '~~/utils/rateLimit';
-import { getFederationConfig, isFederationLive } from './config';
+import { getFederationConfig, isFederationLive, federationSuspended } from './config';
 import { verifySignedRequest } from './signing';
 import { SCOPE_KEYS } from './scopes';
 
@@ -82,15 +82,39 @@ export function assertBodyWithinLimit(
 export interface InboundContext {
   peer: FederationPeer;
   config: FederationConfig;
+  /** The verified request body, verbatim. Empty for a GET. */
+  rawBody: string;
 }
 
 /**
- * Run the full inbound gauntlet for a signed, scoped S2S GET and return the
- * verified peer + config (or throw the right H3 error).
+ * Run the full inbound gauntlet for a signed, scoped S2S request and return
+ * the verified peer + config (or throw the right H3 error).
+ *
+ * A POST is verified over the bytes actually received, not over a re-encoded
+ * parse of them: the digest covers the raw body, and re-serialising JSON
+ * before hashing would let key order or number formatting break a signature
+ * that was perfectly valid. The raw string is handed back so the handler can
+ * parse it once rather than reading the body a second time — Nitro caches it,
+ * but relying on that is relying on an implementation detail to keep a
+ * signature honest.
  */
 export async function verifyInboundS2S(
   event: H3Event,
   scope: Scope,
+  opts: {
+    post?: boolean;
+    maxBodyBytes?: number;
+    /**
+     * Which per-peer flag authorises this exchange. `'share'` (default) checks
+     * `sharesWithThem[scope]` — correct when the peer READS what we publish (a
+     * GET, or a pull-driven ingest that is part of a mutual relationship).
+     * `'accept'` checks `acceptsFromThem[scope]` — the right gate when the peer
+     * PUSHES data we then act on locally (e.g. contribution attestations that
+     * credit a member): accepting a partner's assertions is a distinct, and
+     * opposite-direction, trust decision from letting it read ours.
+     */
+    direction?: 'share' | 'accept';
+  } = {},
 ): Promise<InboundContext> {
   await rateLimit(event, RATE_LIMITS.public);
 
@@ -98,6 +122,17 @@ export async function verifyInboundS2S(
   if (!isFederationLive(config)) {
     throw createError({ statusCode: 404, message: 'Federation not enabled' });
   }
+
+  // Panic mode stops serving the catalogue, which is the point of it: an
+  // instance under an incident should not answer a partner's reconcile or
+  // records fetch with data it is in the middle of encrypting. 503 rather than
+  // 404 so a partner treats it as transient and retries after the operator
+  // restores, instead of concluding federation was switched off.
+  if (await federationSuspended()) {
+    throw createError({ statusCode: 503, message: 'Federation temporarily suspended' });
+  }
+
+  if (opts.post) assertBodyWithinLimit(event, opts.maxBodyBytes);
 
   const headers = getRequestHeaders(event);
   const senderId = headers['x-trackarr-instance'];
@@ -116,19 +151,35 @@ export async function verifyInboundS2S(
   if (peer.status !== 'active') {
     throw createError({ statusCode: 403, message: 'Peer not active' });
   }
-  if (!peer.sharesWithThem?.[scope]) {
+  const authorised =
+    opts.direction === 'accept'
+      ? peer.acceptsFromThem?.[scope]
+      : peer.sharesWithThem?.[scope];
+  if (!authorised) {
     throw createError({
       statusCode: 403,
-      message: `${scope} not shared with this peer`,
+      message:
+        opts.direction === 'accept'
+          ? `${scope} not accepted from this peer`
+          : `${scope} not shared with this peer`,
     });
+  }
+
+  const rawBody = opts.post ? ((await readRawBody(event, 'utf8')) ?? '') : '';
+  // `assertBodyWithinLimit` above trusts `Content-Length`, which a chunked
+  // request carries none of — so re-check the bytes actually read before they
+  // reach `JSON.parse`. The read itself is bounded by Nitro's own body limit;
+  // this stops the parse-amplification a chunked flood could otherwise reach.
+  if (opts.post && Buffer.byteLength(rawBody, 'utf8') > (opts.maxBodyBytes ?? MAX_S2S_BODY_BYTES)) {
+    throw createError({ statusCode: 413, message: 'Request body too large' });
   }
 
   // Verify the signature BEFORE the per-identity rate-limit, so a forged
   // x-trackarr-instance header can't exhaust a victim peer's bucket.
   const verdict = verifySignedRequest({
-    method: 'GET',
+    method: opts.post ? 'POST' : 'GET',
     pathname: event.path, // full path incl. query — matches what was signed
-    rawBody: '',
+    rawBody,
     headers,
     publicKeyPem: peer.publicKey,
     // Our own id, read from our config — never from the request. That is the
@@ -152,5 +203,5 @@ export async function verifyInboundS2S(
 
   await assertNotReplayed(headers['x-trackarr-signature']);
 
-  return { peer, config: config! };
+  return { peer, config: config!, rawBody };
 }

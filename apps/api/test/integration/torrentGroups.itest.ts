@@ -1,14 +1,36 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { and, sql } from 'drizzle-orm';
+import { and, sql, type SQL } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import {
   groupMemberWhere,
-  listGroups,
   parseGroupKey,
   scopeWhere,
   type GroupScope,
 } from '../../utils/torrentGroups';
+import { listMixedGroups } from '../../utils/mixedGroups';
+
+/**
+ * The listing, restricted to our own catalogue.
+ *
+ * There is one grouping query now, and it reads both catalogues. Asking it for
+ * the local half is how this file used to call `listGroups` — kept as a local
+ * alias so the tests read the same, and so nothing here quietly stops covering
+ * the code the site actually runs.
+ */
+const listGroups = (opts: {
+  limit: number;
+  offset: number;
+  where?: SQL;
+  scope?: GroupScope;
+}) =>
+  listMixedGroups({
+    limit: opts.limit,
+    offset: opts.offset,
+    localWhere: opts.where,
+    localOnly: true,
+    scope: opts.scope,
+  });
 import { makeCategory } from './helpers';
 
 // Server-side grouping, against a real Postgres.

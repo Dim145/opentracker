@@ -19,6 +19,7 @@ import {
   type MetricObjectWithValues,
 } from 'prom-client';
 import { db, schema } from '@trackarr/db';
+import { recordStore } from './federation/storeCounts';
 import { sql, eq, isNull, and, or, gt, ne, lte } from 'drizzle-orm';
 import { redis } from './server';
 import { isInviteEnabled, isRegistrationOpen, getRequire2FAScope } from './settings';
@@ -75,6 +76,38 @@ const peersTotal = new Gauge({
 const seedersTotal = new Gauge({
   name: 'trackarr_seeders_total',
   help: 'Unique active seeders across the swarm.',
+  ...labelMeta,
+});
+
+// ── Federation ───────────────────────────────────────────────────────────
+// Federation had no metrics at all — an operator's only window was one admin
+// page. These are the numbers that say whether the mesh is healthy and how
+// much it is carrying.
+const federationRecords = new Gauge({
+  name: 'trackarr_federation_records',
+  help: 'Live catalogue records by origin (local = ours, ingested = taken from partners).',
+  labelNames: ['origin'],
+  ...labelMeta,
+});
+const federationRecordsRelayable = new Gauge({
+  name: 'trackarr_federation_records_relayable',
+  help: 'Ingested records we would hand on (first-hand, within the two-hop bound).',
+  ...labelMeta,
+});
+const federationRecordsSuperseded = new Gauge({
+  name: 'trackarr_federation_records_superseded',
+  help: 'Replaced record generations still held (retention candidates).',
+  ...labelMeta,
+});
+const federationPeersByStatus = new Gauge({
+  name: 'trackarr_federation_peers',
+  help: 'Federation peers by lifecycle status.',
+  labelNames: ['status'],
+  ...labelMeta,
+});
+const federationMirrorTotal = new Gauge({
+  name: 'trackarr_federation_mirror_total',
+  help: 'Rows held in the partner catalogue mirror (remote_torrents).',
   ...labelMeta,
 });
 
@@ -503,6 +536,36 @@ async function refreshGauges(): Promise<void> {
 
   tasks.push(
     countQuery(schema.users).then((r) => usersTotal.set(r[0]?.count ?? 0))
+  );
+
+  // ── Federation ─────────────────────────────────────────────────────────
+  tasks.push(
+    recordStore().then((s) => {
+      federationRecords.set({ origin: 'local' }, s.local);
+      federationRecords.set({ origin: 'ingested' }, s.ingested);
+      federationRecordsRelayable.set(s.relayable);
+      federationRecordsSuperseded.set(s.superseded);
+    })
+  );
+  tasks.push(
+    db
+      .select({
+        status: schema.federationPeers.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(schema.federationPeers)
+      .groupBy(schema.federationPeers.status)
+      .then((rows) => {
+        for (const st of ['active', 'suspended', 'blocked', 'revoked', 'pending_in', 'pending_out']) {
+          federationPeersByStatus.set({ status: st }, 0);
+        }
+        for (const r of rows) federationPeersByStatus.set({ status: r.status }, r.count);
+      })
+  );
+  tasks.push(
+    countQuery(schema.remoteTorrents).then((r) =>
+      federationMirrorTotal.set(r[0]?.count ?? 0)
+    )
   );
 
   tasks.push(

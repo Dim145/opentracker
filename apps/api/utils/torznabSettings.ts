@@ -8,6 +8,7 @@ export const TORZNAB_SETTINGS = {
   RATE_LIMIT_WINDOW: 'torznab_rate_limit_window',
   ENABLE_LOGGING: 'torznab_enable_logging',
   ALLOWED_CATEGORIES: 'torznab_allowed_categories',
+  INCLUDE_FEDERATED: 'torznab_include_federated',
 } as const;
 
 const DEFAULTS = {
@@ -17,6 +18,7 @@ const DEFAULTS = {
   rateLimitWindow: 60, // seconds
   enableLogging: true,
   allowedCategories: [] as string[], // empty = all allowed
+  includeFederated: false, // off by default — see the getter for why
 };
 
 export async function getTorznabEnabled(): Promise<boolean> {
@@ -85,6 +87,27 @@ export async function setTorznabAllowedCategories(
     TORZNAB_SETTINGS.ALLOWED_CATEGORIES,
     JSON.stringify(categories)
   );
+}
+
+/**
+ * Whether the Torznab/RSS feeds fold in federated (mirrored) releases.
+ *
+ * Off by default, and deliberately. A mirrored release is metadata plus an
+ * infohash — no `.torrent` we hold. We can hand out a magnet, which resolves
+ * for anything with a reachable swarm, but a release on a partner's PRIVATE
+ * swarm is only fetchable by a member of that partner. So for an *arr stack this
+ * is honestly useful only for content that is publicly seedable, or once the
+ * data-sharing backbone (request/fill, cross-seed, webseed) makes a partner's
+ * release retrievable from here. An operator who understands that turns it on;
+ * nobody gets un-grabbable results in their automation by default.
+ */
+export async function getTorznabIncludeFederated(): Promise<boolean> {
+  const value = await getSetting(TORZNAB_SETTINGS.INCLUDE_FEDERATED);
+  return value === 'true';
+}
+
+export async function setTorznabIncludeFederated(enabled: boolean): Promise<void> {
+  await setSetting(TORZNAB_SETTINGS.INCLUDE_FEDERATED, enabled ? 'true' : 'false');
 }
 
 export async function getTorznabRateLimitOptions(type: 'search' | 'download') {

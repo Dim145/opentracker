@@ -184,6 +184,12 @@ const menuItems = computed(() => [
     description: t('admin.descriptions.federation'),
   },
   {
+    label: t('admin.nav.federationTaxonomy'),
+    path: '/admin/federation-taxonomy',
+    icon: 'ph:tree-structure',
+    description: t('admin.descriptions.federationTaxonomy'),
+  },
+  {
     label: t('admin.nav.branding'),
     path: '/admin/branding',
     icon: 'ph:paint-brush',

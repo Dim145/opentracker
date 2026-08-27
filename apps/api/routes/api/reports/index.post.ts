@@ -5,7 +5,7 @@ import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notifyMany, listStaffRecipients } from '~~/utils/notify';
 
 const reportSchema = z.object({
-  targetType: z.enum(['torrent', 'user', 'post', 'comment']),
+  targetType: z.enum(['torrent', 'user', 'post', 'comment', 'remote']),
   targetId: z.string().min(1),
   reason: z.string().min(10).max(500),
   details: z.string().max(2000).optional(),
@@ -54,6 +54,15 @@ export default defineEventHandler(async (event) => {
         where: (c, { eq }) => eq(c.id, data.targetId),
       });
       targetExists = !!comment;
+      break;
+    case 'remote':
+      // A mirrored release the member saw on /federated, identified by its
+      // infohash — durable across re-syncs and across peers, and exactly the
+      // key a moderator masks by. (The mirror row's own UUID is ephemeral.)
+      const remote = await db.query.remoteTorrents.findFirst({
+        where: (r, { eq }) => eq(r.infoHash, data.targetId),
+      });
+      targetExists = !!remote;
       break;
   }
 

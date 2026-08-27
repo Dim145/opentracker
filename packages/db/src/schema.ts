@@ -127,6 +127,16 @@ export const users = pgTable(
     // staff are never held to it, so a thread stays answerable and
     // moderatable. Threshold: utils/commentPolicy.ts.
     restrictComments: boolean('restrict_comments').default(false).notNull(),
+    // Opt-in: may a federated partner read this member's reputation
+    // (ratio, upload/download, member-since) over the `accounts` scope?
+    // Off by default and required by the member concerned, not just the
+    // owner — the federation proposal is explicit that the `accounts`
+    // scope needs the consent of the user whose data it exposes.
+    // `/api/federation/user-reputation` answers only for members who set
+    // this. See utils/federation and routes/api/federation/user-reputation.
+    shareReputationFederated: boolean('share_reputation_federated')
+      .default(false)
+      .notNull(),
     // 'light' | 'dark'. Persisted server-side so the chosen theme
     // follows the user across devices instead of being trapped in a
     // single browser's localStorage.
@@ -153,6 +163,16 @@ export const users = pgTable(
     trustDevicesEnabled: boolean('trust_devices_enabled').default(false).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     lastSeen: timestamp('last_seen').defaultNow().notNull(),
+    /**
+     * Set when the account is erased (GDPR right to erasure — see
+     * `utils/account/eraseAccount`). The row survives so the catalogue,
+     * moderation log and economy it touched stay intact, but every personal
+     * field on it is scrubbed and the account is refused at the door: the cached
+     * auth gate reads this alongside `is_banned` and treats a set value as
+     * `gone`, so a stale session cookie is dead on its next request. Not the
+     * same as a ban — a ban is reversible and keeps the person; this does not.
+     */
+    deletedAt: timestamp('deleted_at'),
   }
   // No index list at all. `passkey` already carries `.unique()` on the column
   // above, which drizzle renders as `users_passkey_unique`; the explicit
@@ -887,7 +907,14 @@ export const torrents = pgTable(
     description: text('description'), // Rich text/Markdown description
     nfo: text('nfo'), // Optional plain-text NFO release notes (preserve formatting)
     torrentData: bytea('torrent_data'), // Raw .torrent file for download
-    uploaderId: text('uploader_id').references(() => users.id),
+    // `set null` rather than the default `no action`: a torrent has to outlive
+    // its uploader (the whole catalogue would otherwise be undeletable while a
+    // single member holds one release), and an erased account keeps its row but
+    // may one day be hard-purged. A null uploader reads as "anonymous / former
+    // member", which every surface already tolerates.
+    uploaderId: text('uploader_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     categoryId: text('category_id').references(() => categories.id),
     // External media-database tags (issue #47). Stored as canonical
     // ids — `imdb_id` keeps the `tt` prefix; `tmdb_id`, `tvdb_id`
@@ -925,6 +952,14 @@ export const torrents = pgTable(
     // Nullable so older rows uploaded before this column existed can
     // be backfilled lazily by `plugins/backfill-content-signatures.ts`.
     contentSignature: text('content_signature'),
+    // BitTorrent v2 (BEP 52) content addressing — see utils/bittorrentV2.
+    // `infoHashV2` is the SHA-256 of the v2 `info` dict (hybrid announce, M3);
+    // `contentRootV2` is the cross-tracker content key over the per-file Merkle
+    // roots — the cryptographic upgrade of `content_signature`, preferred over it
+    // when present. Both null for a v1-only torrent; backfilled from the stored
+    // `.torrent` by `plugins/backfill-content-roots.ts`.
+    infoHashV2: text('info_hash_v2'),
+    contentRootV2: text('content_root_v2'),
     isActive: boolean('is_active').default(true).notNull(),
     // Per-torrent opt-in for swarm federation (Phase 4). When true AND the
     // owner has a swarm-scoped peer link, this torrent's peers may be shared
@@ -994,6 +1029,8 @@ export const torrents = pgTable(
     index('torrents_tvdb_idx').on(table.tvdbId),
     index('torrents_igdb_idx').on(table.igdbId),
     index('torrents_content_signature_idx').on(table.contentSignature),
+    // The cross-tracker content key drives cross-seed / fill matching joins.
+    index('torrents_content_root_v2_idx').on(table.contentRootV2),
     index('torrents_openlibrary_idx').on(table.openlibraryId),
     index('torrents_moderation_status_idx').on(table.moderationStatus),
     // GIN rather than GiST: it is the recommended opclass for LIKE/ILIKE and,
@@ -1015,6 +1052,16 @@ export const torrents = pgTable(
       ftsVector(table.description)
     ),
     index('torrents_fts_nfo_idx').using('gin', ftsVector(table.nfo)),
+    // The federation mint cursor walks and sorts on `coalesce(updated_at,
+    // created_at)` every tick. `torrents_updated_at_idx` is on `updated_at`
+    // alone and does not serve the coalesce, so the walk was a sequential scan
+    // of the whole table on every pass — 5-minutely in steady state, and once
+    // per 3-second tick during a backfill. This expression index is what the
+    // cursor actually orders by.
+    index('torrents_mint_cursor_idx').on(
+      sql`coalesce(${table.updatedAt}, ${table.createdAt})`,
+      table.id
+    ),
   ]
 );
 
@@ -1052,6 +1099,124 @@ export const torrentModerationMessages = pgTable(
     index('torrent_mod_messages_author_idx').on(table.authorId),
   ]
 );
+
+// ============================================================================
+// Catalogue Records (signed, content-addressed, immutable)
+// ============================================================================
+/**
+ * The federated catalogue as a set of signed artefacts rather than a query
+ * over `torrents`.
+ *
+ * Trust used to come from the CHANNEL — an Ed25519 signature over the HTTP
+ * request — which is enough to know who you are talking to and nothing more.
+ * It cannot answer "did C really say this?" about something B handed you, so
+ * every instance had to fetch from every other instance itself. Signing the
+ * RECORD moves trust into the data: it verifies in anybody's hands, having
+ * arrived by any route, which is what makes relaying, caching and gossip
+ * possible at all.
+ *
+ * **A record is immutable.** Editing a torrent mints a NEW record that
+ * supersedes the old one; hiding or deleting it mints a `tombstone`. That is
+ * why the body is stored rather than re-projected on read: re-projecting a
+ * record after its torrent changed would produce a different one, and the
+ * signature would no longer match the id anybody cached it under.
+ *
+ * Cost, stated plainly: the body duplicates the description, so a catalogue of
+ * long descriptions pays for them twice. That is the price of immutability and
+ * it is the right trade — a record nobody can re-derive is a record nobody can
+ * verify.
+ */
+export const catalogRecords = pgTable(
+  'catalog_records',
+  {
+    /** Content address — `sha256:<hex>` over the canonical body. */
+    id: text('id').primaryKey(),
+    /**
+     * The torrent this record describes. Deliberately NOT a foreign key.
+     *
+     * A record is a published artefact and has to outlive its subject: that is
+     * the whole point of a tombstone. An `ON DELETE SET NULL` would sever the
+     * link at exactly the moment it is needed, leaving nothing to say WHICH
+     * release was withdrawn, and no way for the sweep to notice the deletion
+     * at all. A dangling id here is not a broken reference — it is the record
+     * doing its job.
+     */
+    torrentId: text('torrent_id'),
+    /**
+     * The release this record is about. Null for a record that is not about a
+     * release at all — an identity assertion has a subject, not an infohash.
+     */
+    infoHash: text('info_hash'),
+    /** `did:key:…` of the instance that signed it. */
+    issuer: text('issuer').notNull(),
+    /** `torrent` | `tombstone` | `identity` | `revocation` */
+    kind: text('kind').notNull().default('torrent'),
+    /**
+     * Who made this record: `local` if we minted it, `ingested` if we took it
+     * in from somebody else.
+     *
+     * The table stopped being "what we published" the moment relaying arrived
+     * and became "records we hold" — which is the right model, and a sharp
+     * edge. Every sweep that decides what to WITHDRAW has to say `local`, or
+     * it will happily mint tombstones for other people's catalogues: an
+     * ingested record has no local torrent behind it, which is exactly what
+     * "this release is gone" looks like from the inside.
+     */
+    origin: text('origin').notNull().default('local'),
+    /**
+     * How far this record travelled to reach us. 0 = we minted it, 1 = we took
+     * it from the instance that did, 2 = a partner relayed it to us.
+     *
+     * It is what bounds the network at two hops: we relay what we got at one
+     * hop and never what was already relayed to us. Enforced here rather than
+     * by asking a partner how far it came, because a partner that lies about
+     * that is precisely the case the bound exists for.
+     */
+    hops: integer('hops').notNull().default(0),
+    /** The signed object, exactly as it goes on the wire. */
+    body: jsonb('body').$type<Record<string, unknown>>().notNull(),
+    /**
+     * Hash of the projection WITHOUT its lineage — what the torrent says,
+     * ignoring what it replaces.
+     *
+     * The id cannot serve as the idempotency key: it covers `replaces`, which
+     * differs for every generation, so an unchanged torrent would look changed
+     * on every sweep and re-mint forever. Splitting the two also keeps the
+     * rename-and-rename-back case honest — same content, different lineage,
+     * different address, no collision.
+     */
+    contentHash: text('content_hash').notNull(),
+    /** The record this one replaces, when it is an edit. */
+    supersedes: text('supersedes'),
+    /** Set when a newer record for the same torrent was minted. */
+    supersededAt: timestamp('superseded_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('catalog_records_info_hash_idx').on(table.infoHash),
+    /** Newest first, for the live-search answer. */
+    index('catalog_records_created_idx').on(table.createdAt),
+    /** What we are willing to hand on: ours, and what we got first-hand. */
+    index('catalog_records_relayable_idx').on(table.origin, table.hops),
+    /**
+     * The set reconciliation reads: ordered ranges of `id` over the records
+     * that still stand. The primary key alone would have to visit the heap for
+     * every row to check `superseded_at`, which on a reconciliation that
+     * fingerprints the whole catalogue is the difference between an index-only
+     * scan and reading the table.
+     */
+    index('catalog_records_live_idx')
+      .on(table.id)
+      .where(sql`superseded_at IS NULL`),
+    // The current record for a torrent — the only one the minting sweep needs
+    // to compare against, and the only one a fresh reader wants.
+    index('catalog_records_current_idx')
+      .on(table.torrentId)
+      .where(sql`superseded_at IS NULL`),
+  ]
+);
+
+export type CatalogRecord = typeof catalogRecords.$inferSelect;
 
 // ============================================================================
 // Torrent Stats (Aggregated, updated periodically from Redis)
@@ -1913,12 +2078,32 @@ export const uploadRequests = pgTable(
     filledAt: timestamp('filled_at'),
     validatedAt: timestamp('validated_at'),
     cancelledAt: timestamp('cancelled_at'),
+    // Federated origin (M1 request→fill bridge). Set when a request was raised
+    // from a mirrored release a member saw on a partner but could not pull: the
+    // request lives entirely on this tracker (a local member fills it by
+    // uploading here), and these only remember where it came from and how to
+    // prove a fill is the same content.
+    //   - `federatedPeerId`  — which partner the release was seen on (for
+    //     targeting the members who also have an account there).
+    //   - `federatedInfoHash` — the origin's v1 infohash, for dedup + display.
+    //   - `federatedContentRootV2` — the origin's cross-tracker content key
+    //     (§1). A fill whose own root EQUALS this is the same content (shown as
+    //     "content-verified"); an unequal root is NOT proof of difference —
+    //     content_root_v2 spans aux files (.nfo/subs), so it is advisory only,
+    //     never a gate on the fill.
+    federatedPeerId: text('federated_peer_id').references(() => federationPeers.id, {
+      onDelete: 'set null',
+    }),
+    federatedInfoHash: text('federated_info_hash'),
+    federatedContentRootV2: text('federated_content_root_v2'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => [
     // Listing index: open requests, newest first.
     index('upload_requests_status_idx').on(table.status, table.createdAt),
+    // Dedup: "is this federated release already requested here?"
+    index('upload_requests_federated_info_hash_idx').on(table.federatedInfoHash),
     // "Show me my own requests" + chronological order.
     index('upload_requests_requester_idx').on(
       table.requesterId,
@@ -2210,6 +2395,32 @@ export const federationConfig = pgTable('federation_config', {
   /** Owner master switch. When false the instance is unreachable for
    *  handshakes and the (future) catalogue sync does not run. */
   enabled: boolean('enabled').default(false).notNull(),
+  /**
+   * Carry other instances' records, and hand them on.
+   *
+   * Off by default: relaying means storing somebody else's catalogue and
+   * serving it, which costs disk and puts this instance's name on records it
+   * did not make. It is also what turns a mesh where everybody polls everybody
+   * into a star — so it is a real choice, and an operator's to make.
+   *
+   * A relay is not trusted by anyone: every record carries its own proof, so a
+   * relay can omit or delay, never forge or alter. That is why relaying can be
+   * offered at all without asking partners to extend it any trust.
+   */
+  relayEnabled: boolean('relay_enabled').default(false).notNull(),
+  /**
+   * Serve a public, unauthenticated ActivityStreams view of what this instance
+   * publishes: an actor document and an outbox anyone can read.
+   *
+   * Off by default, and the one switch here that changes who can see the
+   * catalogue rather than who can talk to it. Everything else in federation is
+   * a signed conversation between instances that agreed to know each other;
+   * this is the door for somebody who has not. It carries metadata only — no
+   * `.torrent` bytes, no passkey, no member behind a name — but a private
+   * tracker's catalogue is itself the thing some operators keep private, so
+   * the choice is theirs and it is made explicitly.
+   */
+  discoverable: boolean('discoverable').default(false).notNull(),
   /** Human-facing name advertised to partners during the handshake. */
   instanceName: text('instance_name'),
   /** This instance's public base URL (e.g. https://tracker.example.fr),
@@ -2267,6 +2478,11 @@ export const federationPeers = pgTable(
     lastHandshakeAt: timestamp('last_handshake_at'),
     lastSeenAt: timestamp('last_seen_at'),
     lastError: text('last_error'),
+    /** The partner's advertised federation protocol version, learned at
+     *  handshake/callback. Lets an operator tell "peer is on an old build" from
+     *  "peer is down", and know when it is safe to require audience-bound
+     *  signatures. Null for a link formed before versions were exchanged. */
+    protocolVersion: integer('protocol_version'),
     /** Owner who created / approved the link. */
     createdBy: text('created_by').references(() => users.id, {
       onDelete: 'set null',
@@ -2311,6 +2527,11 @@ export const remoteTorrents = pgTable(
     remoteId: text('remote_id').notNull(),
     infoHash: text('info_hash').notNull(),
     contentSignature: text('content_signature'),
+    // v2 content addressing carried over from the partner's record (BEP 52).
+    // `contentRootV2` is the cross-tracker key that lets a mirrored release match
+    // a local one by content; null when the origin record predates v2.
+    infoHashV2: text('info_hash_v2'),
+    contentRootV2: text('content_root_v2'),
     name: text('name').notNull(),
     size: bigint('size', { mode: 'number' }).notNull(),
     description: text('description'),
@@ -2341,6 +2562,40 @@ export const remoteTorrents = pgTable(
     seeders: integer('seeders').default(0).notNull(),
     leechers: integer('leechers').default(0).notNull(),
     completed: integer('completed').default(0).notNull(),
+    /**
+     * The signed record this row was ingested from — its content address.
+     *
+     * Present for anything that arrived through `/api/federation/records`.
+     * It is what makes an ingestion idempotent across relays: the same
+     * statement offered twice is the same id, whoever handed it over. Null on
+     * rows that predate signed records.
+     */
+    recordId: text('record_id'),
+    /** `did:key:…` of whoever SIGNED it, which need not be who relayed it. */
+    issuer: text('issuer'),
+    /**
+     * `did:key:…` of whoever UPLOADED it, which need not be who signed it.
+     *
+     * The two differ, and the difference is the point of having both: the
+     * issuer is the instance vouching for the record, the author is the person
+     * the instance says wrote it. Keeping the author as a DID rather than as a
+     * display name is what lets "everything this person published" mean
+     * something across partners — and keep meaning it once the instance that
+     * knows their account is out of the picture.
+     *
+     * As trustworthy as the issuer, and no more: the author's key is held by
+     * their own instance, so this is that instance's word. Null on a record
+     * minted before uploaders had DIDs.
+     */
+    authorDid: text('author_did'),
+    /**
+     * Whether the proof was checked and held.
+     *
+     * A column rather than an assumption: it is the difference between "a peer
+     * we trust told us this" and "this is signed by someone and we checked".
+     * Only the second survives being relayed.
+     */
+    verified: boolean('verified').default(false).notNull(),
     /** Remote display name only — never a local user id. */
     uploaderName: text('uploader_name'),
     remoteCreatedAt: timestamp('remote_created_at'),
@@ -2355,6 +2610,8 @@ export const remoteTorrents = pgTable(
       table.remoteId
     ),
     index('remote_torrents_info_hash_idx').on(table.infoHash),
+    // Match a mirrored release to a local one by cross-tracker content key.
+    index('remote_torrents_content_root_v2_idx').on(table.contentRootV2),
     index('remote_torrents_content_sig_idx').on(table.contentSignature),
     index('remote_torrents_imdb_idx').on(table.imdbId),
     index('remote_torrents_tmdb_idx').on(table.tmdbId),
@@ -2364,6 +2621,9 @@ export const remoteTorrents = pgTable(
     // scan of every partner's catalogue on every page.
     index('remote_torrents_igdb_idx').on(table.igdbId),
     index('remote_torrents_openlibrary_idx').on(table.openlibraryId),
+    index('remote_torrents_record_idx').on(table.recordId),
+    /** Everything one remote uploader published, across partners. */
+    index('remote_torrents_author_idx').on(table.authorDid),
     index('remote_torrents_name_idx').on(table.name),
   ]
 );
@@ -2393,41 +2653,6 @@ export type FederationSyncState = typeof federationSyncState.$inferSelect;
 
 // ============================================================================
 // Federation — catalogue removals (tombstones)
-// ============================================================================
-//
-// The catalogue sync is an append-forward cursor over `created_at`: it can
-// surface NEW torrents but never learns that an already-mirrored one stopped
-// being federatable (hard-deleted, moderation-pulled, or its uploader banned).
-// Without this, peers keep orphaned `remote_torrents` rows with dead links.
-//
-// Every removal appends a tombstone here; partners walk it via a signed
-// `since`-cursor feed (`/api/federation/catalog-removals`) and delete the
-// matching mirror row. `torrent_id` is the LOCAL torrent id, i.e. the partner's
-// `remote_torrents.remote_id`, so the delete is exact and per-peer.
-export const federationCatalogRemovals = pgTable(
-  'federation_catalog_removals',
-  {
-    id: text('id').primaryKey(),
-    /** Local torrent id = the partner's `remote_torrents.remote_id`. */
-    torrentId: text('torrent_id').notNull(),
-    infoHash: text('info_hash').notNull(),
-    contentSignature: text('content_signature'),
-    /** deleted | moderation | uploader_banned */
-    reason: text('reason').notNull(),
-    removedAt: timestamp('removed_at').defaultNow().notNull(),
-  },
-  (table) => [
-    // Walked by the feed in (removed_at, id) order — same composite-cursor
-    // shape as the catalogue.
-    index('federation_catalog_removals_cursor_idx').on(
-      table.removedAt,
-      table.id,
-    ),
-  ]
-);
-
-export type FederationCatalogRemoval =
-  typeof federationCatalogRemovals.$inferSelect;
 
 // ============================================================================
 // Federation — Phase 2a: federated follows (social)
@@ -2478,6 +2703,77 @@ export type FederatedFollow = typeof federatedFollows.$inferSelect;
 // signed S2S. Once `verified`, the partner's reputation (ratio, age, uploads)
 // can be shown read-only next to the link — never merged into local economy.
 
+/**
+ * An Ed25519 key per uploader, held by this instance.
+ *
+ * What it is for: attribution that survives the instance. A record says who
+ * uploaded it, and until now it said so with a display name — which means
+ * nothing once the record has been relayed twice and the instance that minted
+ * it is gone. A `did:key` is a name nobody else can mint and that stays the
+ * same wherever the record travels.
+ *
+ * What it is NOT, and this matters: proof. The private key is held here, so
+ * anything signed with it says exactly as much as this instance already
+ * asserts — a signature made with a key the server holds proves only what the
+ * server was already claiming. The DID is a stable NAME at this stage. It
+ * becomes a proof when the member holds the key themselves, which is a later
+ * step and a different threat model.
+ *
+ * That is also why the key is exportable but never re-imported: a key this
+ * server has seen cannot become a member's private property afterwards.
+ */
+export const userSigningKeys = pgTable(
+  'user_signing_keys',
+  {
+    /**
+     * The key IS the identifier, so it is the primary key. A member has one
+     * current key and as many retired ones as they have rotated — a retired
+     * key has to stay on file, because "this identifier is no longer that
+     * person" is a statement we have to keep making.
+     */
+    did: text('did').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    publicKey: text('public_key').notNull(),
+    /**
+     * Encrypted at rest with the instance credential key — or NULL, when the
+     * member holds the key themselves.
+     *
+     * That null is the whole of custody. A key this server never generated and
+     * cannot sign with is one the server cannot use to speak as the member,
+     * and the difference between "we would not" and "we could not" is the only
+     * one that survives the server being compromised.
+     */
+    privateKeyEnc: text('private_key_enc'),
+    /**
+     * Set when the member rotated away from it.
+     *
+     * A rotation is not housekeeping: it says the old key can no longer speak
+     * for them, which is the only recourse a member has if their exported file
+     * gets out. Every link anybody proved with it has to fall.
+     */
+    revokedAt: timestamp('revoked_at'),
+    /** The key that took over, so a member's history survives the rotation. */
+    succeededBy: text('succeeded_by'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    /**
+     * One current key per member. A partial unique index rather than a plain
+     * one: retired keys pile up and must not compete for the slot, while two
+     * live keys for one member would make "who is this?" ambiguous in a way
+     * nothing downstream could resolve.
+     */
+    uniqueIndex('user_signing_keys_current')
+      .on(table.userId)
+      .where(sql`revoked_at IS NULL`),
+    index('user_signing_keys_user_idx').on(table.userId),
+  ],
+);
+
+export type UserSigningKey = typeof userSigningKeys.$inferSelect;
+
 export const federatedIdentities = pgTable(
   'federated_identities',
   {
@@ -2490,8 +2786,33 @@ export const federatedIdentities = pgTable(
       .references(() => federationPeers.id, { onDelete: 'cascade' }),
     /** Claimed username on the partner instance. */
     remoteUsername: text('remote_username').notNull(),
-    /** pending — awaiting bio-code verification; verified — proven. */
+    /** pending — awaiting verification; verified — proven. */
     status: text('status').notNull().default('pending'),
+    /**
+     * How the link was proven.
+     *
+     * `key` — the member presented an identity document signed by their own
+     * key and endorsed by the partner. Proven here, offline, with no help
+     * from the partner and no assumption that it is still running.
+     *
+     * `bio` — the older path: we asked the partner whether a one-time code
+     * was in the member's remote profile. It works against a partner that
+     * does not issue member keys yet, and only for as long as that partner is
+     * reachable. Kept as a fallback rather than deleted, because "the origin
+     * is gone" is exactly the case the key path exists for and exactly the
+     * case the bio path cannot serve.
+     */
+    method: text('method').notNull().default('bio'),
+    /** `did:key:…` the claim was proven against. Null on a bio-proven link. */
+    subjectDid: text('subject_did'),
+    /**
+     * The document that proved it, verbatim.
+     *
+     * Kept rather than discarded once checked, because it is what makes the
+     * link re-checkable by somebody else: publishing "our member is also X"
+     * without the evidence asks every reader to take our word for it.
+     */
+    evidence: jsonb('evidence').$type<Record<string, unknown>>(),
     /** One-time code the user must place in their remote bio. Cleared
      *  once verified. */
     verifyCode: text('verify_code'),
@@ -2509,6 +2830,274 @@ export const federatedIdentities = pgTable(
 
 export type FederatedIdentity = typeof federatedIdentities.$inferSelect;
 
+/**
+ * "Our member is also this person elsewhere", as asserted by a partner.
+ *
+ * One row per (issuer, subject, alias). An instance publishes these for its
+ * own members once they have proven a past account, and every partner mirrors
+ * them — which is what lets one person's work be gathered across instances
+ * without any instance being the authority on who they are.
+ *
+ * The evidence travels with the assertion and is kept: a partner's word that
+ * two identifiers are one person is worth exactly as much as the document it
+ * saw, and keeping the document means anybody downstream can check rather than
+ * take our word for taking theirs.
+ */
+export const remoteIdentityLinks = pgTable(
+  'remote_identity_links',
+  {
+    id: text('id').primaryKey(),
+    peerId: text('peer_id')
+      .notNull()
+      .references(() => federationPeers.id, { onDelete: 'cascade' }),
+    /** `did:key:…` of the instance that asserted the link. */
+    issuer: text('issuer').notNull(),
+    /** The member on the asserting instance. */
+    subjectDid: text('subject_did').notNull(),
+    /** Who they also are, somewhere else. */
+    aliasDid: text('alias_did').notNull(),
+    /** The identity document that proved it, verbatim. */
+    evidence: jsonb('evidence').$type<Record<string, unknown>>(),
+    /** Content address of the record that carried this assertion. */
+    recordId: text('record_id'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('remote_identity_links_unique').on(
+      table.peerId,
+      table.subjectDid,
+      table.aliasDid,
+    ),
+    index('remote_identity_links_subject_idx').on(table.subjectDid),
+    index('remote_identity_links_alias_idx').on(table.aliasDid),
+  ],
+);
+
+export type RemoteIdentityLink = typeof remoteIdentityLinks.$inferSelect;
+
+/**
+ * Which partner serves which record.
+ *
+ * This is the set reconciliation actually compares, and getting that wrong is
+ * the most expensive mistake this subsystem has made. It used to compare the
+ * MIRROR — `remote_torrents` — against what a partner served. The mirror only
+ * holds torrents, so every tombstone, identity assertion and revocation was
+ * permanently "missing": fetched again on every tick, ingested to no effect,
+ * still missing. Silently, because nothing about it moved a counter.
+ *
+ * A record is content-addressed, so what a partner offers is a set of ids and
+ * nothing more. This table is the same kind of thing on our side, which is why
+ * the two can be compared at all.
+ *
+ * It also answers the question relaying needs — where can this record be got —
+ * and it is what says a record is still wanted: when the last partner stops
+ * serving one, nothing sources it any more.
+ */
+export const recordSources = pgTable(
+  'record_sources',
+  {
+    /** Content address. Deliberately not a foreign key: see `catalogRecords`. */
+    recordId: text('record_id').notNull(),
+    peerId: text('peer_id')
+      .notNull()
+      .references(() => federationPeers.id, { onDelete: 'cascade' }),
+    /**
+     * `torrent` | `tombstone` | `identity` | `revocation`.
+     *
+     * Kept here so a lost mirror row can be found again. The mirror is a view
+     * of torrents derived from records; if one goes missing — a bug, a manual
+     * delete, a half-applied write — nothing else would notice, because the
+     * set we reconcile is this table and it would still say we hold the
+     * record. Knowing which sources OUGHT to have a mirror row is what lets
+     * that be checked, and the repair is to forget the source so the next
+     * reconciliation fetches it again.
+     */
+    kind: text('kind').notNull().default('torrent'),
+    firstSeenAt: timestamp('first_seen_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.peerId, table.recordId] }),
+    /** Everyone who serves one record — the question a relay asks. */
+    index('record_sources_record_idx').on(table.recordId),
+  ],
+);
+
+export type RecordSource = typeof recordSources.$inferSelect;
+
+/**
+ * Locally-hidden federated content.
+ *
+ * The moderation gap the review found: the only lever over a partner's
+ * catalogue was suspend/block/delete the WHOLE peer, which throws away
+ * everything good it carries to hide one bad release. This is the surface
+ * below that — a mask hides a mirrored release from every local read path
+ * without touching the peer or the record itself.
+ *
+ * A mask matches by ONE of three keys, chosen by `scope`:
+ *   - `record`   — one specific record (its content address). The sharpest.
+ *   - `infohash` — a release by its v1 infohash, whoever serves it. Catches
+ *                  the same bad content mirrored from several partners.
+ *   - `author`   — every release attributed to one uploader DID (a mute).
+ *
+ * It is local and reversible: nothing is deleted, nothing is signalled to the
+ * partner (that is a separate, optional step), and lifting the mask makes the
+ * content reappear on the next read. It is the tracker's own editorial line
+ * over what it re-exposes, which the design has always said stays sovereign.
+ */
+export const remoteMasks = pgTable(
+  'remote_masks',
+  {
+    id: text('id').primaryKey(),
+    /** `record` | `infohash` | `author` — which column of the mirror to match. */
+    scope: text('scope').notNull(),
+    /** The value to match: a record id, an infohash, or an author DID. */
+    value: text('value').notNull(),
+    /** Free-text note for the mod log. */
+    reason: text('reason'),
+    createdBy: text('created_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // One mask per (scope, value) — re-masking the same thing is a no-op.
+    uniqueIndex('remote_masks_scope_value_idx').on(table.scope, table.value),
+    // The read-path predicate looks masks up by value, so index it.
+    index('remote_masks_value_idx').on(table.value),
+  ],
+);
+
+export type RemoteMask = typeof remoteMasks.$inferSelect;
+
+/**
+ * Taxonomy bridge: a partner's category slug → one of our local categories.
+ *
+ * A mirrored release carries the slug its origin filed it under (`category_slug`
+ * on {@link remoteTorrents}), drawn from that instance's own vocabulary. When
+ * both sides share the conventional slug the browse filter already matches by
+ * equality; when a partner names the same shelf differently ("films" vs
+ * "movies", "series-vf" vs "tv"), the release silently falls out of every local
+ * category. This table lets an operator declare the equivalence once, after
+ * which the grouped browse filter treats the foreign slug as if it were ours and
+ * the read paths can show a real category name instead of the raw foreign token.
+ *
+ * Global by design — a slug maps the same way whoever sent it. Two partners that
+ * genuinely mean different things by one slug are rare; the honest recourse there
+ * is a per-author mask, not a per-peer taxonomy fork. `remote_slug` is therefore
+ * the natural key.
+ */
+export const remoteCategoryMap = pgTable(
+  'remote_category_map',
+  {
+    id: text('id').primaryKey(),
+    /** The partner's category slug, exactly as it arrives on the mirror. */
+    remoteSlug: text('remote_slug').notNull(),
+    /** The local category it resolves to. */
+    localCategoryId: text('local_category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'cascade' }),
+    createdBy: text('created_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // One mapping per foreign slug — re-declaring it updates in place.
+    uniqueIndex('remote_category_map_slug_idx').on(table.remoteSlug),
+    // The reverse lookup ("which foreign slugs land in this category") drives
+    // both the filter expansion and the admin screen.
+    index('remote_category_map_category_idx').on(table.localCategoryId),
+  ],
+);
+
+export type RemoteCategoryMap = typeof remoteCategoryMap.$inferSelect;
+
+/**
+ * Inter-instance credit ledger — the record of contribution attestations we have
+ * honoured (the foundation the webseed relay, M4, is built on).
+ *
+ * A partner that a member served bytes to can sign an attestation — "your member
+ * DID X contributed N bytes" — and send it over the accounts channel. We verify
+ * it is signed by that partner, resolve the DID to a local member, and credit
+ * their bonus upload, capped per day and applied at most once. Every honoured
+ * attestation lands here so the credit is idempotent (the row id IS the
+ * attestation's content address) and auditable.
+ *
+ * Off by default: an operator chooses whether to trust a partner's word about
+ * what its users pulled — see `federation_credit_enabled`.
+ */
+export const federationCreditGrants = pgTable(
+  'federation_credit_grants',
+  {
+    /** The attestation's content-address id — dedup key, so each credits once. */
+    id: text('id').primaryKey(),
+    peerId: text('peer_id').references(() => federationPeers.id, {
+      onDelete: 'set null',
+    }),
+    /** The `did:key:…` the attestation credited. */
+    subjectDid: text('subject_did').notNull(),
+    /** The local member it resolved to, credited. */
+    localUserId: text('local_user_id').references(() => users.id, {
+      onDelete: 'cascade',
+    }),
+    /** Bytes actually credited (after the daily cap clamp). */
+    bytes: bigint('bytes', { mode: 'number' }).notNull(),
+    reason: text('reason'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // Sum a member's credits over a window for the daily cap.
+    index('federation_credit_grants_user_idx').on(
+      table.localUserId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export type FederationCreditGrant = typeof federationCreditGrants.$inferSelect;
+
+/**
+ * Identifiers a partner has withdrawn.
+ *
+ * The recourse a member has when their exported identity file gets out. Their
+ * instance retires the key and publishes it; every instance that hears drops
+ * whatever was proven with it and refuses to accept it again.
+ *
+ * Kept as its own table rather than as a flag on the link, because a
+ * revocation can arrive BEFORE anybody tries to use the key — and that is the
+ * case worth being ready for: a leaked file is used by whoever finds it,
+ * whenever they find it.
+ */
+export const revokedIdentities = pgTable(
+  'revoked_identities',
+  {
+    id: text('id').primaryKey(),
+    /**
+     * The retired identifier, and WHO retired it.
+     *
+     * Keyed on the pair, never on the identifier alone. A withdrawal is only
+     * worth anything from the instance that issued the identifier in the first
+     * place — otherwise any partner could unpick any link in the federation by
+     * announcing withdrawals for keys it never issued. Since a claim is only
+     * ever accepted on a known partner's endorsement, checking that THAT
+     * partner withdrew it is both sufficient and exact.
+     */
+    did: text('did').notNull(),
+    /** `did:key:…` of the instance that withdrew it. */
+    issuer: text('issuer').notNull(),
+    /** The key that took over, when the member rotated rather than left. */
+    succeededBy: text('succeeded_by'),
+    /** Content address of the record that carried it. */
+    recordId: text('record_id'),
+    revokedAt: timestamp('revoked_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('revoked_identities_unique').on(table.issuer, table.did),
+    index('revoked_identities_did_idx').on(table.did),
+  ],
+);
+
+export type RevokedIdentity = typeof revokedIdentities.$inferSelect;
 // ============================================================================
 // Presentation templates (the BBCode listing produced by /torrents/fiche)
 // ============================================================================

@@ -352,7 +352,7 @@ interface ReportTarget {
 interface Report {
   id: string;
   reporterId: string;
-  targetType: 'torrent' | 'user' | 'post' | 'comment';
+  targetType: 'torrent' | 'user' | 'post' | 'comment' | 'remote';
   targetId: string;
   reason: string;
   details?: string | null;

@@ -56,6 +56,31 @@ From `/requests`, click **Nouvelle demande / New request**. Fields:
 A "balance after stake" preview shows your projected balance so
 you don't over-commit.
 
+### From a federated release ("Request here")
+
+When you browse `/federated` and open a release mirrored from a
+partner instance, you cannot pull it from there — a private
+tracker's `.torrent` carries someone else's passkey. **Request
+here** raises a normal request on this tracker instead, pre-filled
+from the mirror (title, and category via the operator's [federated
+taxonomy mapping](#), falling back to the release's type). A local
+member who has the content — through their own partner account, a
+seedbox, anywhere — fills it by uploading here, earning their ratio
+and any reward on this tracker.
+
+Two things ride along automatically:
+
+- The members who have a **proven account on that partner** (via
+  federated identity links) are notified first — they are the most
+  likely to already hold it.
+- If both the requested release and the filling upload carry a
+  **BitTorrent v2 content root** and they are equal, the request page
+  exposes a **content-verified** flag on the request API — cryptographic proof it is the
+  same content. This is advisory, not a gate: an unequal root does not
+  prove a different release (the key spans `.nfo`/subs/sample files that
+  honestly differ), so you validate by hand exactly as for a v1-only
+  release.
+
 ## Filling a request
 
 Anyone except the requester can fill an open request:

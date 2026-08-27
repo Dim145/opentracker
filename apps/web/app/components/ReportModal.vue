@@ -160,7 +160,7 @@ const { t } = useI18n();
 
 const props = defineProps<{
   isOpen: boolean;
-  targetType: 'torrent' | 'user' | 'post' | 'comment';
+  targetType: 'torrent' | 'user' | 'post' | 'comment' | 'remote';
   targetId: string;
   /** Optional human label shown in the slip's target row. */
   targetLabel?: string;
