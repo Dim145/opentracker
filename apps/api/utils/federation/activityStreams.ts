@@ -76,6 +76,28 @@ const NOT_ADULT = sql`
        AND coalesce(prior.body->>'trackarr:isAdult', 'false') = 'true'
   )`;
 
+/**
+ * What the public collection is *about*: releases, and their withdrawals.
+ *
+ * The table holds four kinds and only two of them describe a release. The
+ * other two — `identity` and `revocation` — are the member-identity channel,
+ * and they were reaching this surface because the filter said `origin='local'`
+ * and nothing about kind, while the mint sweep writes all four with that same
+ * origin on the same pass.
+ *
+ * That was not a cosmetic leak. An identity record's `trackarr:subject` is the
+ * SAME DID as `attributedTo` on that member's torrent records, and its
+ * `trackarr:evidence` carries whole identity documents — `preferredUsername`
+ * and `trackarr:instance` included. So a crawler needed one join to turn a
+ * pseudonymous upload history into a name and a home instance, which is
+ * precisely what the `trackarr:uploaderName` strip below exists to prevent. A
+ * revocation additionally publishes key-rotation lineage.
+ *
+ * Member identity is a partner-to-partner matter, exchanged over the signed
+ * S2S surface where the other side is known. It has no business on the door.
+ */
+const PUBLIC_KINDS = sql`${schema.catalogRecords.kind} in ('torrent', 'tombstone')`;
+
 /** Records per outbox page. Large enough to be useful, small enough to serve. */
 export const PAGE_SIZE = 50;
 
@@ -141,6 +163,7 @@ export async function outboxSize(): Promise<number> {
         // others — a relayed record belongs in its author's outbox, and
         // claiming it here would be attributing somebody else's work to us.
         eq(schema.catalogRecords.origin, 'local'),
+        PUBLIC_KINDS,
         NOT_ADULT,
       ),
     );
@@ -158,6 +181,7 @@ export async function outboxPage(
       and(
         isNull(schema.catalogRecords.supersededAt),
         eq(schema.catalogRecords.origin, 'local'),
+        PUBLIC_KINDS,
         NOT_ADULT,
       ),
     )

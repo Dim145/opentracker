@@ -10,6 +10,10 @@ import {
 } from '../../utils/federation/activityStreams';
 import { didKeyFromPublicKey } from '../../utils/federation/did';
 import { CONTEXT, signRecord, verifyRecord } from '../../utils/federation/record';
+import {
+  projectIdentity,
+  projectRevocation,
+} from '../../utils/federation/identityRecord';
 import { keepForRelay } from '../../utils/federation/relay';
 import { ensureFederationIdentity } from '../../utils/federation/config';
 
@@ -80,6 +84,75 @@ async function publish(issuer: ReturnType<typeof keypair>, adult = false) {
     origin: 'local',
   });
   return r;
+}
+
+/**
+ * A member-identity record, exactly as `mintIdentityRecords` leaves it —
+ * `origin` defaulted to `local`, on the same sweep as the torrents.
+ */
+async function publishIdentity(
+  issuer: ReturnType<typeof keypair>,
+  member: ReturnType<typeof keypair>,
+  username = 'alice',
+) {
+  const draft = projectIdentity(
+    {
+      subjectDid: member.did,
+      alsoKnownAs: new Set([`${member.did}-elsewhere`]),
+      evidence: [
+        {
+          subject: `${member.did}-elsewhere`,
+          preferredUsername: username,
+          'trackarr:instance': 'https://other.example',
+        },
+      ],
+      provenAt: new Date('2026-05-01T00:00:00.000Z'),
+    } as never,
+    issuer.did,
+  );
+  const signed = signRecord(draft as never, {
+    privateKeyPem: issuer.privateKeyPem,
+    did: issuer.did,
+  });
+  await db.insert(schema.catalogRecords).values({
+    id: signed.id,
+    torrentId: randomUUID(),
+    infoHash: null,
+    issuer: issuer.did,
+    kind: 'identity',
+    body: signed as unknown as Record<string, unknown>,
+    contentHash: signed.id,
+    origin: 'local',
+  });
+  return signed;
+}
+
+/** A revocation, as `mintRevocations` leaves it. */
+async function publishRevocation(
+  issuer: ReturnType<typeof keypair>,
+  member: ReturnType<typeof keypair>,
+) {
+  const draft = projectRevocation(
+    member.did,
+    `${member.did}-next`,
+    new Date('2026-05-03T00:00:00.000Z'),
+    issuer.did,
+  );
+  const signed = signRecord(draft as never, {
+    privateKeyPem: issuer.privateKeyPem,
+    did: issuer.did,
+  });
+  await db.insert(schema.catalogRecords).values({
+    id: signed.id,
+    torrentId: member.did,
+    infoHash: null,
+    issuer: issuer.did,
+    kind: 'revocation',
+    body: signed as unknown as Record<string, unknown>,
+    contentHash: signed.id,
+    origin: 'local',
+  });
+  return signed;
 }
 
 let config: Awaited<ReturnType<typeof ensureFederationIdentity>>;
@@ -163,6 +236,30 @@ describe('the outbox', () => {
     const [served] = await outboxPage(1);
     expect(served!['trackarr:uploaderName']).toBeUndefined(); // …but not here.
     expect(served!.attributedTo).toBe(r.attributedTo); // the DID remains
+  });
+
+  it('publishes no member-identity record, so the strip above cannot be undone', async () => {
+    // The hole that made the strip above decorative. `origin='local'` with no
+    // kind predicate listed the member-identity channel too, and an identity
+    // record's `trackarr:subject` is the SAME DID as `attributedTo` on that
+    // member's torrents — with `preferredUsername` and the home instance in
+    // its evidence. One join turned a pseudonymous upload history into a name.
+    const me = keypair();
+    const member = keypair();
+    const mine = await publish(me);
+    await publishIdentity(me, member, 'alice');
+    await publishRevocation(me, member);
+
+    expect(await outboxSize()).toBe(1);
+    const page = await outboxPage(1);
+    expect(page.map((r) => r.id)).toEqual([mine.id]);
+    expect(page.every((r) => r.type === 'Torrent' || r.type === 'Tombstone')).toBe(true);
+
+    // And the specific thing a crawler was after, absent from the whole page.
+    const serialised = JSON.stringify(page);
+    expect(serialised).not.toContain('alice');
+    expect(serialised).not.toContain('trackarr:subject');
+    expect(serialised).not.toContain('trackarr:evidence');
   });
 
   it('carries the interoperable core a stranger can act on', async () => {
