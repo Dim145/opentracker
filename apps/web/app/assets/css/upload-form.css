@@ -99,7 +99,7 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   background-color: rgb(var(--bg-base) / 0.78);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+  box-shadow: 0 2px 8px rgb(var(--shadow-color) / calc(0.18 * var(--shadow-strength)));
 }
 .ready-state.idle {
   border-color: rgb(var(--line-default));

@@ -75,7 +75,13 @@ function print() {
     `<!doctype html><meta charset="utf-8"><title>${title}</title>` +
       `<style>body{font-family:ui-monospace,monospace;padding:2rem;color:#111}` +
       `h1{font-size:1.2rem}ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem 1.5rem}` +
-      `code{font-size:1.05rem;letter-spacing:calc(.06em * var(--tracking-scale))}` +
+      // A literal, and it has to be: this stylesheet goes into a document
+      // opened by `window.open`, where none of the application's custom
+      // properties exist. `calc(.06em * var(--tracking-scale))` there is
+      // invalid at computed-value time, so the tracking silently became
+      // `normal`. The scale substitution reached this string because it looks
+      // like CSS; the print window is the one place it must not.
+      `code{font-size:1.05rem;letter-spacing:.06em}` +
       `</style>` +
       `<h1>${title}</h1>` +
       `<p>${intro}</p>` +

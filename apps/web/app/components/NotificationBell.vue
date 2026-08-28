@@ -378,7 +378,7 @@ function humanise(s: string): string {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
   border-radius: var(--radius-md);
-  box-shadow: 0 18px 48px rgb(0 0 0 / 0.5);
+  box-shadow: 0 18px 48px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)));
   overflow: hidden;
   z-index: 40;
   display: flex;

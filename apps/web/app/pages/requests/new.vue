@@ -297,7 +297,8 @@ async function submit() {
   max-width: 760px;
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
-  --brass: 212 167 52;
+  /* Exactly `--accent-warm`, so it follows the theme now. */
+  --brass: var(--accent-warm);
   --brass-deep: 158 113 31;
   --danger: 244 63 94;
 }

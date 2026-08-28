@@ -79,6 +79,19 @@
      spell theirs out here. That indirection is the security boundary: a
      free-form `background-image` would accept `url()`, and with
      `img-src 'self' data: https:` in the CSP that is an exfiltration channel. */
+
+  /* Chart series. A categorical scale, deliberately NOT derived from the accent:
+     six series tinted from one hue are six shades of one colour, and the entire
+     job of a series colour is to be told apart from the other five.
+     Declared once and inherited by the light theme — these are mid-saturation
+     and legible on either ground — but a theme may override any of them. */
+  --chart-1:        59 130 246;
+  --chart-2:        16 185 129;
+  --chart-3:        245 158 11;
+  --chart-4:        139 92 246;
+  --chart-5:        239 68 68;
+  --chart-6:        6 182 212;
+
   --bg-pattern-kind: dots;
   --bg-pattern-step: 40px;
   --bg-pattern-image: radial-gradient(

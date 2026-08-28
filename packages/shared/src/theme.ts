@@ -82,6 +82,7 @@ export type TokenGroup =
   | 'line'
   | 'accent'
   | 'semantic'
+  | 'chart'
   | 'elevation'
   | 'shape'
   | 'density'
@@ -199,6 +200,22 @@ export const THEME_TOKENS: readonly TokenDef[] = [
   { key: 'warning', kind: 'rgb', group: 'semantic' },
   { key: 'danger', kind: 'rgb', group: 'semantic' },
   { key: 'info', kind: 'rgb', group: 'semantic' },
+
+  // Charts
+  //
+  // A CATEGORICAL scale, and the one family that must never be derived from the
+  // accent. Six series tinted from one hue are six shades of the same colour,
+  // and the whole job of a series colour is to be distinguishable from the other
+  // five — so a theme sets them independently or not at all.
+  //
+  // `components/admin/Charts.vue` had three tokens and six hardcoded hex
+  // literals, which meant the axes followed a theme and the data did not.
+  { key: 'chart-1', kind: 'rgb', group: 'chart' },
+  { key: 'chart-2', kind: 'rgb', group: 'chart' },
+  { key: 'chart-3', kind: 'rgb', group: 'chart' },
+  { key: 'chart-4', kind: 'rgb', group: 'chart' },
+  { key: 'chart-5', kind: 'rgb', group: 'chart' },
+  { key: 'chart-6', kind: 'rgb', group: 'chart' },
 
   // Chrome
   //
@@ -487,6 +504,12 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     danger: '239 68 68',
     info: '56 189 248',
     'focus-ring': '212 167 52',
+    'chart-1': '59 130 246',
+    'chart-2': '16 185 129',
+    'chart-3': '245 158 11',
+    'chart-4': '139 92 246',
+    'chart-5': '239 68 68',
+    'chart-6': '6 182 212',
     'bg-pattern-rgb': '255 255 255',
     'bg-pattern-alpha': '0.025',
     'bg-pattern-kind': 'dots',
@@ -530,6 +553,12 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     danger: '185 28 28',
     info: '3 105 161',
     'focus-ring': '176 133 24',
+    'chart-1': '59 130 246',
+    'chart-2': '16 185 129',
+    'chart-3': '245 158 11',
+    'chart-4': '139 92 246',
+    'chart-5': '239 68 68',
+    'chart-6': '6 182 212',
     'bg-pattern-rgb': '0 0 0',
     'bg-pattern-alpha': '0.04',
     'bg-pattern-kind': 'dots',

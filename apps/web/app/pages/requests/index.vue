@@ -318,7 +318,8 @@ function formatReward(n: number): string {
   max-width: 1180px;
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
-  --brass: 212 167 52;           /* main reward + accent tone */
+  /* Exactly `--accent-warm`, so it follows the theme now. */
+  --brass: var(--accent-warm);           /* main reward + accent tone */
   --brass-deep: 158 113 31;
   --phosphor: 110 231 183;       /* status: open */
   --status-filled: 251 191 36;

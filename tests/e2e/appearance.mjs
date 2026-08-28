@@ -200,6 +200,32 @@ console.log('\n1c. font families');
     wrongRole.status >= 400, `status ${wrongRole.status}`);
 }
 
+// ── 1d. Chart series ─────────────────────────────────────────────────
+console.log('\n1d. chart series colours');
+{
+  await sleep(150);
+  const r = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Charts',
+      base: 'dark',
+      duplicateOf: 'dark',
+      tokens: { 'chart-1': '255 0 0', 'chart-6': '0 255 0' },
+      enabled: true,
+      visibility: 'site',
+    },
+  });
+  check('created', r.status === 200 || r.status === 201, `status ${r.status}`);
+  const block = blockFor(await sheet(), 'e2e-charts');
+  check('an overridden series is in the block', /--chart-1:\s*255 0 0\s*;/.test(block));
+  check('the last one too', /--chart-6:\s*0 255 0\s*;/.test(block));
+  // The four untouched series must be inherited, or a theme that sets one
+  // colour would lose the other five.
+  check('the untouched series are inherited',
+    /--chart-3:\s*245 158 11\s*;/.test(block) && /--chart-4:\s*139 92 246\s*;/.test(block),
+    block.match(/--chart-[0-9]:[^;]*/g)?.join(' | ') ?? 'none');
+}
+
 // ── 2. What the validators refuse, refused over HTTP ─────────────────
 console.log('\n2. the route refuses what the schema refuses');
 {

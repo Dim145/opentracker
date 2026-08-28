@@ -609,7 +609,7 @@ async function resolveManual() {
   border-radius: var(--radius-lg);
   box-shadow:
     0 1px 2px rgb(0 0 0 / 0.06),
-    0 12px 32px -8px rgb(0 0 0 / 0.18);
+    0 12px 32px -8px rgb(var(--shadow-color) / calc(0.18 * var(--shadow-strength)));
 }
 .picker-error {
   padding: 0.85rem;

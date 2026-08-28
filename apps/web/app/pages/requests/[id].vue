@@ -878,7 +878,8 @@ async function fill() {
   max-width: 1180px;
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
-  --brass: 212 167 52;
+  /* Exactly `--accent-warm`, so it follows the theme now. */
+  --brass: var(--accent-warm);
   --brass-deep: 158 113 31;
   --phosphor: 110 231 183;
   --status-filled: 251 191 36;

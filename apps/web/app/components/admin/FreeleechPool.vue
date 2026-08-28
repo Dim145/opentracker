@@ -1119,10 +1119,12 @@ function describeWindow(w: Window): string {
   --success: #4ade80;
   --alert: #ef4444;
 
-  --font-display: 'Iowan Old Style', 'Palatino Linotype', 'Palatino',
-    Georgia, serif;
-  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace,
-    SFMono-Regular, Menlo, monospace;
+  /* No local `--font-display` / `--font-mono` here any more. They restated the
+     stacks — one of them as `'Iowan Old Style', 'Palatino Linotype', …`, three
+     faces this application has never shipped — and shadowed the theme's font
+     choice for this whole page. Deleting them lets the global tokens through;
+     redefining them as `var(--font-display)` would NOT, because a custom
+     property that references itself is a cycle and resolves to nothing. */
 
   position: relative;
   max-width: 1240px;

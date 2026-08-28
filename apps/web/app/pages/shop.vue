@@ -379,9 +379,10 @@ function onBalanceFromPool(value: number) {
   /* Editorial serif inherited by item names; everything else
      stays on the system sans stack. The fallback chain hits a
      pleasant serif on every OS without forcing a webfont. */
-  --font-serif: 'Iowan Old Style', 'Palatino Linotype', 'Palatino',
-    'Bitstream Vera Serif', 'Liberation Serif', 'P052', Georgia,
-    'Times New Roman', serif;
+  /* `--font-serif` is gone: it named 'Iowan Old Style' and 'Palatino
+     Linotype', neither of which this application ships, and shadowed the
+     theme's display face for the whole page. The usages below read
+     `--font-display` instead. */
 }
 
 /* Atmospheric backdrop — two warm gold haloes plus a faint grain
@@ -507,7 +508,7 @@ function onBalanceFromPool(value: number) {
 
 .hero-title {
   margin: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   line-height: 0.95;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
@@ -607,7 +608,7 @@ function onBalanceFromPool(value: number) {
   50%      { transform: rotate(-8deg) scale(1.05); filter: drop-shadow(0 0 10px rgb(var(--accent-warm) / 0.55)); }
 }
 .balance-num {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 2.2rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -654,7 +655,7 @@ function onBalanceFromPool(value: number) {
 }
 .empty-headline {
   margin: 0 0 0.6rem;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.4rem;
   font-style: italic;
   font-weight: 500;
@@ -844,7 +845,7 @@ function onBalanceFromPool(value: number) {
 .piece-name {
   margin: 0;
   text-align: center;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 500;
   font-style: italic;
@@ -909,7 +910,7 @@ function onBalanceFromPool(value: number) {
   line-height: 1;
 }
 .piece-cost-num {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));

@@ -228,18 +228,22 @@ onBeforeUnmount(() => {
   pointer-events: none;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 0.12);
-  /* Deep enough to read as lifted off a dark page — a poster is nearly all
-     mid-tone, so a subtle shadow would simply disappear into it. */
+  /* All three were hardcoded for a dark page: a white hairline, a black
+     shadow and a near-black fill. On a light theme that was a black card with a
+     white edge floating over white. */
+  border: 1px solid rgb(var(--line-strong) / 0.7);
+  /* Deep enough to read as lifted — a poster is nearly all mid-tone, so a
+     subtle shadow disappears into it. Still subject to `--shadow-strength`, so
+     a flat theme flattens this too. */
   box-shadow:
-    0 24px 60px rgb(0 0 0 / 0.6),
-    0 4px 12px rgb(0 0 0 / 0.4);
-  background: #0b0b0d;
+    0 24px 60px rgb(var(--shadow-color) / calc(0.6 * var(--shadow-strength))),
+    0 4px 12px rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
+  background: rgb(var(--bg-elevated));
   /* Resting state: mounted, invisible, out of the way. */
   opacity: 0;
   /* Grows out of the thumbnail rather than fading in place. */
   transform: scale(0.94);
-  transition: opacity calc(130ms * var(--motion-scale)) ease, transform calc(130ms * var(--motion-scale)) cubic-bezier(0.2, 0.8, 0.3, 1);
+  transition: opacity calc(130ms * var(--motion-scale)) ease, transform calc(130ms * var(--motion-scale)) var(--ease-standard);
 }
 .ph-pop--on {
   opacity: 1;

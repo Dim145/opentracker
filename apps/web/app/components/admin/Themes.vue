@@ -544,6 +544,7 @@ const GROUP_ORDER: TokenGroup[] = [
   'line',
   'accent',
   'semantic',
+  'chart',
   'elevation',
   'shape',
   'density',

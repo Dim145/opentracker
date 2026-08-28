@@ -58,7 +58,7 @@ colour of every form field on the site at 2.08:1.
 
 ### What a theme can change
 
-Forty-one values, grouped the way the editor groups them.
+Forty-seven values, grouped the way the editor groups them.
 
 | Group | Tokens |
 |---|---|
@@ -67,6 +67,7 @@ Forty-one values, grouped the way the editor groups them.
 | Lines | `line-default`, `line-strong` |
 | Accent | `accent`, `accent-hover`, `accent-fg`, `accent-warm`, `accent-warm-fg` |
 | Status | `online`, `warning`, `danger`, `info` |
+| Charts | `chart-1` … `chart-6` |
 | Elevation | `shadow-color`, `shadow-strength` |
 | Shape | `radius`, `radius-pill` |
 | Density | `ui-scale` |
@@ -115,6 +116,13 @@ It is applied as `calc(100% * var(--ui-scale))`, so a visitor who has set a
 larger default font size in their browser keeps it and your factor multiplies on
 top. The floor is `0.75` rather than `0`: this interface is full of 0.56 rem
 micro-labels, and a theme that can render itself invisible is a theme that will.
+
+**The six chart series are their own scale, and must stay that way.** They are
+the one family that should never be derived from the accent: six series tinted
+from one hue are six shades of the same colour, and the entire job of a series
+colour is to be told apart from the other five. Set them independently or leave
+them — the admin charts read all six, where they used to read three tokens for
+the axes and carry six hex literals for the data.
 
 **`tracking-scale` multiplies the letter-spacing, all 867 of them.** Same shape
 as the other scales, and for the same reason: the values are tuned against each
@@ -316,6 +324,27 @@ by writing the values onto the page directly, which bypasses the stylesheet. If
 they disagree, the theme was not saved.
 
 **Scrollbars or dropdowns are the wrong colour.** `color-scheme`. See above.
+
+## What a theme still cannot change
+
+Honest limits, so you do not go looking for a setting that is not there.
+
+**Each section's own palette.** Favourites is amber and parchment, Following is
+emerald and velvet, Invitations is a warm gild, Requests is brass and phosphor,
+the Shop is gold. Those are six hand-drawn palettes, deliberately distinct, and
+they are still literals — a theme does not reach them. Folding them into the
+three ambience tokens would make every section look the same, which is a design
+decision rather than a refactor, so it has not been taken. Raw CSS reaches them
+if you need to.
+
+**Breakpoints, container widths, z-index and grid columns.** All four generate
+at-rules or ordering that cannot be changed at runtime from a custom property,
+so exposing them would be a setting that quietly does nothing.
+
+**Anything behind `prefers-reduced-motion`.** A visitor who has asked their
+operating system for less motion gets `animation: none` regardless of
+`motion-scale`, and a theme cannot override that. Deliberate: the setting is
+theirs, not yours.
 
 ## See also
 
