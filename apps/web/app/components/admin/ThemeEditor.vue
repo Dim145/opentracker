@@ -484,16 +484,6 @@ async function removeFont(id: string) {
       t('admin.themes.saveFailed');
   }
 }
-const maxEnabled = computed(() => data.value.maxEnabled);
-const enabledCount = computed(() => themes.value.filter((x) => x.enabled).length);
-
-/** Every slug an admin may point a setting at: the built-ins plus enabled rows. */
-const pickable = computed(() => [
-  { slug: 'light', name: 'Light (built-in)' },
-  { slug: 'dark', name: 'Dark (built-in)' },
-  ...themes.value.filter((x) => x.enabled).map((x) => ({ slug: x.slug, name: x.name })),
-]);
-
 
 // ── Tokens, grouped for the editor ───────────────────────────────────
 const GROUP_ORDER: TokenGroup[] = [
@@ -849,7 +839,30 @@ function load() {
  */
 const pendingImport = useState<Partial<Draft> | null>('theme-import', () => null);
 
-watch(data, load, { immediate: true });
+/**
+ * Load the draft once the payload is there — and only once.
+ *
+ * `watch(data, …)` fires on every `refresh()`, and `refresh()` is what
+ * `uploadFont` and `removeFont` call. So opening the Fonts panel to upload the
+ * very face a dozen unsaved token changes were made FOR threw all of them away,
+ * along with any unsaved raw CSS, because `startEdit` also refetches that.
+ * Found in review.
+ *
+ * Keyed on the theme being edited rather than on the payload object: a refresh
+ * that brings the same row back must not touch the draft, while navigating from
+ * one theme to another must rebuild it.
+ */
+let loadedFor: string | null | undefined;
+watch(
+  [data, () => props.themeId],
+  () => {
+    if (!data.value.themes.length && props.themeId) return;
+    if (loadedFor === props.themeId && draft.value) return;
+    loadedFor = props.themeId;
+    load();
+  },
+  { immediate: true },
+);
 
 /**
  * Rejoin the list when the theme is gone.
