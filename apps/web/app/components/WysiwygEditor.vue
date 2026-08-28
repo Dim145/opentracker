@@ -773,7 +773,7 @@ onBeforeUnmount(() => {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.25rem 0.35rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
@@ -792,7 +792,7 @@ onBeforeUnmount(() => {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.02em * var(--tracking-scale));
   color: rgb(var(--fg-default));
@@ -811,7 +811,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -883,7 +883,7 @@ onBeforeUnmount(() => {
   background: rgb(var(--bg-inset));
   border-radius: var(--radius-sm);
   padding: 0.75rem;
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   margin: 0.5rem 0;
   overflow-x: auto;
@@ -892,7 +892,7 @@ onBeforeUnmount(() => {
   background: rgb(var(--bg-inset));
   padding: 0 0.25rem;
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
 }
 .wysiwyg-content .ProseMirror hr {

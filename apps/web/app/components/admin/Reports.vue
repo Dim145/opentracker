@@ -659,7 +659,7 @@ function confirmBanPanel(report: Report) {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -713,7 +713,7 @@ function confirmBanPanel(report: Report) {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -832,7 +832,7 @@ function confirmBanPanel(report: Report) {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
 }
 .dossier-case-label {
   font-size: 0.5938rem;
@@ -857,7 +857,7 @@ function confirmBanPanel(report: Report) {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -873,7 +873,7 @@ function confirmBanPanel(report: Report) {
   gap: 0.4rem;
   padding: 0.32rem 0.7rem;
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -936,7 +936,7 @@ function confirmBanPanel(report: Report) {
   }
 }
 .meta-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -977,7 +977,7 @@ function confirmBanPanel(report: Report) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-strong));
   letter-spacing: calc(0.03em * var(--tracking-scale));
@@ -1014,7 +1014,7 @@ function confirmBanPanel(report: Report) {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-inset));
   border: 1px solid rgb(var(--line-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -1073,7 +1073,7 @@ function confirmBanPanel(report: Report) {
   font-style: italic;
 }
 .target-missing-id {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-style: normal;
   background: transparent;
@@ -1160,7 +1160,7 @@ function confirmBanPanel(report: Report) {
   padding: 0.5rem 0.85rem;
   border: 1px dashed rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1199,7 +1199,7 @@ function confirmBanPanel(report: Report) {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1224,7 +1224,7 @@ function confirmBanPanel(report: Report) {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.12em * var(--tracking-scale));
@@ -1326,7 +1326,7 @@ function confirmBanPanel(report: Report) {
 }
 .empty-title {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -1358,7 +1358,7 @@ function confirmBanPanel(report: Report) {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
   color: rgb(var(--fg-strong));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.12em * var(--tracking-scale));
@@ -1375,7 +1375,7 @@ function confirmBanPanel(report: Report) {
   cursor: not-allowed;
 }
 .pager-state {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   color: rgb(var(--fg-strong));
   letter-spacing: calc(0.05em * var(--tracking-scale));

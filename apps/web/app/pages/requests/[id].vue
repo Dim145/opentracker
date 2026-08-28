@@ -929,7 +929,7 @@ async function fill() {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -995,7 +995,7 @@ async function fill() {
   align-items: center;
   gap: 0.55rem;
   flex-wrap: wrap;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1039,7 +1039,7 @@ async function fill() {
 
 .hero-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   line-height: 1.1;
@@ -1052,7 +1052,7 @@ async function fill() {
   align-items: center;
   gap: 0.4rem;
   margin-top: 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1098,7 +1098,7 @@ async function fill() {
   align-self: center;
 }
 .hero-reward-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 800;
   letter-spacing: calc(0.28em * var(--tracking-scale));
@@ -1109,7 +1109,7 @@ async function fill() {
   display: inline-flex;
   align-items: baseline;
   gap: 0.25rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 1.6rem;
   font-weight: 900;
   letter-spacing: calc(-0.01em * var(--tracking-scale));
@@ -1122,7 +1122,7 @@ async function fill() {
   opacity: 0.7;
 }
 .hero-reward-unit {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5313rem;
   font-weight: 800;
   letter-spacing: calc(0.28em * var(--tracking-scale));
@@ -1165,7 +1165,7 @@ async function fill() {
   margin-bottom: 0.7rem;
 }
 .grid-section-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.125rem;
   font-weight: 600;
@@ -1174,7 +1174,7 @@ async function fill() {
 }
 .grid-section-head h2 {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1182,7 +1182,7 @@ async function fill() {
   color: rgb(var(--brass));
 }
 .grid-section-count {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));
@@ -1222,7 +1222,7 @@ async function fill() {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.6rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -1241,7 +1241,7 @@ async function fill() {
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-strong));
   border-radius: var(--radius-md);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -1282,7 +1282,7 @@ async function fill() {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1349,7 +1349,7 @@ async function fill() {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7813rem;
   line-height: 1.5;
   resize: vertical;
@@ -1365,7 +1365,7 @@ async function fill() {
   gap: 0.35rem;
   padding: 0.35rem 0.7rem;
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1385,7 +1385,7 @@ async function fill() {
   margin: 0 0 1rem;
   padding: 1.3rem 0;
   text-align: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1409,7 +1409,7 @@ async function fill() {
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
   line-height: 1.5;
   resize: vertical;
@@ -1428,7 +1428,7 @@ async function fill() {
   gap: 0.5rem;
 }
 .thread-compose-counter {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   color: rgb(var(--fg-faint));
 }
@@ -1442,7 +1442,7 @@ async function fill() {
     rgb(var(--bg-base));
   border: 1px solid rgb(var(--brass) / 0.55);
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1469,7 +1469,7 @@ async function fill() {
   background: rgb(var(--bg-elevated));
   border: 1px dashed rgb(var(--line-strong));
   border-radius: var(--radius-md);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1499,7 +1499,7 @@ async function fill() {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1517,7 +1517,7 @@ async function fill() {
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1553,7 +1553,7 @@ async function fill() {
   gap: 0.5rem;
 }
 .side-fill-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1566,7 +1566,7 @@ async function fill() {
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
@@ -1578,7 +1578,7 @@ async function fill() {
 }
 .side-fill-quota {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.12em * var(--tracking-scale));
@@ -1588,7 +1588,7 @@ async function fill() {
   margin: 0;
   padding: 0.85rem 0.6rem;
   text-align: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1609,7 +1609,7 @@ async function fill() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.14em * var(--tracking-scale));
   color: rgb(var(--fg-muted));

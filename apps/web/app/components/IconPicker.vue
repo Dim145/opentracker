@@ -388,7 +388,7 @@ onBeforeUnmount(() => {
   border: 0;
   outline: 0;
   padding: 0.55rem 0.7rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
@@ -457,7 +457,7 @@ onBeforeUnmount(() => {
 .icon-picker-empty {
   text-align: center;
   padding: 2rem 1rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -537,7 +537,7 @@ onBeforeUnmount(() => {
   gap: 0.5rem;
   padding-top: 0.5rem;
   border-top: 1px dashed rgb(var(--line-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;

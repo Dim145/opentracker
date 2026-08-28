@@ -1232,7 +1232,7 @@ onMounted(() => {
   opacity: 0.45;
 }
 .fiche-step-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   letter-spacing: calc(0.08em * var(--tracking-scale));
 }
@@ -1350,7 +1350,7 @@ onMounted(() => {
 
 /* ── Divers ─────────────────────────────────────────────────────────────── */
 .fiche-mono {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   line-height: 1.5;
   resize: vertical;
@@ -1393,7 +1393,7 @@ onMounted(() => {
   min-width: 0;
 }
 .fiche-track-index {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-subtle));
@@ -1645,7 +1645,7 @@ onMounted(() => {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-inset));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1.5;
   white-space: pre-wrap;

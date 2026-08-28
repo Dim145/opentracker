@@ -709,7 +709,7 @@ function useCounter(target: Ref<number>) {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -825,7 +825,7 @@ function useCounter(target: Ref<number>) {
 }
 .mc-hero-corner {
   position: absolute;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(2rem, 5vw, 3rem);
   color: rgb(var(--accent));
   line-height: 1;
@@ -848,7 +848,7 @@ function useCounter(target: Ref<number>) {
   align-items: center;
   gap: 0.65rem;
   flex-wrap: wrap;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -866,7 +866,7 @@ function useCounter(target: Ref<number>) {
 
 .mc-hero-title {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 800;
   font-size: clamp(2.5rem, 11vw, 8.5rem);
   line-height: 0.92;
@@ -893,7 +893,7 @@ function useCounter(target: Ref<number>) {
 
 .mc-hero-tagline {
   margin: 1rem 0 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: clamp(0.9rem, 1.4vw, 1.05rem);
   line-height: 1.55;
   color: rgb(var(--fg-muted));
@@ -967,7 +967,7 @@ function useCounter(target: Ref<number>) {
   to   { transform: scaleX(1); }
 }
 .mc-kpi-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 800;
   font-size: clamp(1.8rem, 4.5vw, 2.85rem);
   line-height: 1;
@@ -988,7 +988,7 @@ function useCounter(target: Ref<number>) {
   text-transform: uppercase;
 }
 .mc-kpi-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1001,7 +1001,7 @@ function useCounter(target: Ref<number>) {
    than a second KPI. Hidden by `v-if` until the snapshot is ready. */
 .mc-kpi-sub {
   margin-top: 0.25rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: calc(0.06em * var(--tracking-scale));
@@ -1010,7 +1010,7 @@ function useCounter(target: Ref<number>) {
 
 .mc-hero-tip {
   margin: 1.25rem 0 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
@@ -1023,7 +1023,7 @@ function useCounter(target: Ref<number>) {
   min-width: 1.1rem;
   padding: 0 0.3rem;
   margin: 0 0.1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 700;
   font-size: 0.5938rem;
   color: rgb(var(--fg-muted));
@@ -1055,7 +1055,7 @@ function useCounter(target: Ref<number>) {
   align-items: center;
   gap: 1rem;
   padding: 0.8rem 1.1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
 }
 .mc-ledger-headrow {
@@ -1148,7 +1148,7 @@ function useCounter(target: Ref<number>) {
 }
 .mc-empty-art {
   margin: 0 0 0.85rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 1.125rem;
   letter-spacing: calc(0.4em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
@@ -1156,7 +1156,7 @@ function useCounter(target: Ref<number>) {
 }
 .mc-empty-headline {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   color: rgb(var(--fg-muted));
 }
@@ -1164,7 +1164,7 @@ function useCounter(target: Ref<number>) {
   display: inline-block;
   margin-top: 1.25rem;
   padding: 0.55rem 1.1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1218,7 +1218,7 @@ function useCounter(target: Ref<number>) {
   justify-content: center;
   width: 1.4rem;
   height: 1.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
   color: rgb(var(--accent));
   background: rgb(var(--accent) / 0.12);
@@ -1226,7 +1226,7 @@ function useCounter(target: Ref<number>) {
 }
 .mc-tile-head h3 {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1235,7 +1235,7 @@ function useCounter(target: Ref<number>) {
 }
 .mc-tile-empty {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-faint));
   font-style: italic;
@@ -1262,7 +1262,7 @@ function useCounter(target: Ref<number>) {
   transform: translateX(2px);
 }
 .mc-hot-rank {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 1.375rem;
   font-weight: 800;
   color: rgb(var(--fg-faint));
@@ -1279,7 +1279,7 @@ function useCounter(target: Ref<number>) {
   min-width: 0;
 }
 .mc-hot-name {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   color: rgb(var(--fg-strong));
   font-weight: 500;
@@ -1291,7 +1291,7 @@ function useCounter(target: Ref<number>) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
 }
@@ -1332,7 +1332,7 @@ function useCounter(target: Ref<number>) {
   grid-template-columns: 3.5rem 1fr auto;
   gap: 0.85rem;
   align-items: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .mc-proto-key {
   font-size: 0.8125rem;
@@ -1412,7 +1412,7 @@ function useCounter(target: Ref<number>) {
 
 /* ─── 04 · MANIFESTO ────────────────────────────────────── */
 .mc-manifesto-lead {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 1rem;
   font-style: italic;
   color: rgb(var(--fg-muted));
@@ -1449,7 +1449,7 @@ function useCounter(target: Ref<number>) {
 }
 .mc-manifesto-mark {
   display: inline-block;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -1465,7 +1465,7 @@ function useCounter(target: Ref<number>) {
 }
 .mc-manifesto-title {
   margin: 0 0 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1474,7 +1474,7 @@ function useCounter(target: Ref<number>) {
 }
 .mc-manifesto-title :deep(strong) { font-weight: 900; }
 .mc-manifesto-body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.7813rem;
   line-height: 1.6;
   color: rgb(var(--fg-muted));

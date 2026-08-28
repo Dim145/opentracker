@@ -964,7 +964,7 @@ async function discard() {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -1004,7 +1004,7 @@ async function discard() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1090,7 +1090,7 @@ async function discard() {
 .nav-name :deep(b),
 .nav-name :deep(strong) { font-weight: 800; }
 .nav-subtitle {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.05em * var(--tracking-scale));
@@ -1141,7 +1141,7 @@ async function discard() {
   color: rgb(var(--bg-base));
 }
 .tab-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   color: rgb(var(--fg-strong));
   white-space: nowrap;
@@ -1164,7 +1164,7 @@ async function discard() {
   border: 1px solid rgb(var(--line-default));
   border-top: 0;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   position: relative;
@@ -1203,7 +1203,7 @@ async function discard() {
   background: rgb(var(--accent-warm) / 0.08);
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   border-radius: var(--radius-pill);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -1286,7 +1286,7 @@ async function discard() {
   background: rgb(var(--accent-warm));
 }
 .block-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -1325,7 +1325,7 @@ async function discard() {
   min-width: 0;
 }
 .field-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1339,7 +1339,7 @@ async function discard() {
   margin-top: -0.15rem;
 }
 .field-hint--example {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   margin-top: 0.2rem;
 }
@@ -1361,7 +1361,7 @@ async function discard() {
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .field-input--mono {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
 }
 
 /* ── Auxiliary row under siteName ──────────────────────────── */
@@ -1447,7 +1447,7 @@ async function discard() {
   background: rgb(var(--bg-base));
 }
 .aux-toggle-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -1472,7 +1472,7 @@ async function discard() {
   background: transparent;
   border: 0;
   padding: 0.45rem 0.9rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.12em * var(--tracking-scale));
@@ -1513,7 +1513,7 @@ async function discard() {
   gap: 0.5rem;
 }
 .quick-icons-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1586,7 +1586,7 @@ async function discard() {
   min-width: 0;
 }
 .dropfile-path {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
@@ -1655,7 +1655,7 @@ async function discard() {
   gap: 0.4rem;
 }
 .features-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1686,7 +1686,7 @@ async function discard() {
   to { opacity: 1; transform: translateY(0); }
 }
 .feature-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -1706,7 +1706,7 @@ async function discard() {
   min-width: 0;
 }
 .feature-sublabel {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1736,7 +1736,7 @@ async function discard() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));

@@ -323,7 +323,7 @@ const searchableTitle = computed(() => {
 }
 
 .gtr-title--mono {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
 }
 

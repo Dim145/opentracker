@@ -539,7 +539,7 @@ const explainer = computed(() => {
   100% { transform: translate(-50%, -50%) scale(4.4); opacity: 0; }
 }
 .bb-onair-stamp {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.3em * var(--tracking-scale));
@@ -548,7 +548,7 @@ const explainer = computed(() => {
   flex: 1;
 }
 .bb-onair-now {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.08em * var(--tracking-scale));
@@ -633,7 +633,7 @@ const explainer = computed(() => {
   align-items: center;
   gap: 0.35rem;
   padding: 0.22rem 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -685,7 +685,7 @@ const explainer = computed(() => {
   gap: 0.4rem;
   align-self: flex-start;
   padding: 0.22rem 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -724,7 +724,7 @@ const explainer = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7813rem;
   font-weight: 700;
   letter-spacing: calc(0.05em * var(--tracking-scale));
@@ -773,14 +773,14 @@ const explainer = computed(() => {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-inset));
   border: 1px solid rgb(var(--line-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .meter-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -793,7 +793,7 @@ const explainer = computed(() => {
 }
 .meter-value {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 1.85rem;
   font-weight: 800;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -874,7 +874,7 @@ const explainer = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -899,7 +899,7 @@ const explainer = computed(() => {
   text-align: right;
 }
 .bb-window-leg-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -963,7 +963,7 @@ const explainer = computed(() => {
   gap: 0.85rem;
 }
 .bb-window-foot-leg {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.06em * var(--tracking-scale));
@@ -991,7 +991,7 @@ const explainer = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));

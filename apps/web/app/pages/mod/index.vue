@@ -424,7 +424,7 @@ function actionVerb(status: string | null): string {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.26em * var(--tracking-scale));
@@ -457,7 +457,7 @@ function actionVerb(status: string | null): string {
 }
 .wt-greeting-name {
   color: rgb(var(--accent-warm));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-weight: 700;
   font-size: 1.4rem;
   letter-spacing: 0;
@@ -479,7 +479,7 @@ function actionVerb(status: string | null): string {
   gap: 0.15rem;
 }
 .wt-clock-time {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 2rem;
   font-weight: 800;
   color: rgb(var(--fg-strong));
@@ -487,7 +487,7 @@ function actionVerb(status: string | null): string {
   line-height: 1;
 }
 .wt-clock-date {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -542,7 +542,7 @@ function actionVerb(status: string | null): string {
 .tile--me { cursor: default; }
 
 .tile-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -550,7 +550,7 @@ function actionVerb(status: string | null): string {
   color: rgb(var(--fg-muted));
 }
 .tile-value {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 2.85rem;
   font-weight: 800;
   color: rgb(var(--fg-strong));
@@ -564,7 +564,7 @@ function actionVerb(status: string | null): string {
   gap: 0.35rem;
   margin-top: auto;
   padding-top: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
@@ -633,7 +633,7 @@ function actionVerb(status: string | null): string {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -645,7 +645,7 @@ function actionVerb(status: string | null): string {
   color: rgb(var(--accent-warm));
 }
 .feed-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
@@ -659,7 +659,7 @@ function actionVerb(status: string | null): string {
   background: transparent;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -704,7 +704,7 @@ function actionVerb(status: string | null): string {
   background: rgb(var(--bg-base));
 }
 .queue-when {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -729,7 +729,7 @@ function actionVerb(status: string | null): string {
   flex-wrap: wrap;
   gap: 0.55rem 0.85rem;
   margin-top: 0.2rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -761,14 +761,14 @@ function actionVerb(status: string | null): string {
   background: rgb(var(--bg-base));
 }
 .log-when {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .log-actor {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -778,7 +778,7 @@ function actionVerb(status: string | null): string {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -832,7 +832,7 @@ function actionVerb(status: string | null): string {
   gap: 0.5rem;
   padding: 2.25rem 1rem;
   text-align: center;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));

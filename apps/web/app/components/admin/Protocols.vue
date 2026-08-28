@@ -84,7 +84,7 @@ function protocolIcon(name: string | number): string {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -93,7 +93,7 @@ function protocolIcon(name: string | number): string {
 }
 .proto-head-tag-icon { font-size: 0.95rem; color: rgb(var(--accent-warm)); }
 .proto-head-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -149,7 +149,7 @@ function protocolIcon(name: string | number): string {
 .proto-row--on .proto-icon { color: rgb(var(--fg-strong)); }
 
 .proto-name {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.92rem;
   font-weight: 800;
   letter-spacing: calc(0.06em * var(--tracking-scale));
@@ -160,7 +160,7 @@ function protocolIcon(name: string | number): string {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));

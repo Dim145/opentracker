@@ -594,7 +594,7 @@ function formatDate(iso: string): string {
 .mod-banner-collapsed-pip {
   display: inline-flex;
   align-items: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
@@ -623,7 +623,7 @@ function formatDate(iso: string): string {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
@@ -683,7 +683,7 @@ function formatDate(iso: string): string {
 }
 .mod-empty-glyph { font-size: 2rem; color: var(--c-text); opacity: 0.6; margin-bottom: 0.5rem; }
 .mod-empty-text {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
@@ -782,7 +782,7 @@ function formatDate(iso: string): string {
   font-size: 0.7813rem;
 }
 .mod-row-pip {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
@@ -802,7 +802,7 @@ function formatDate(iso: string): string {
   border-color: rgb(56 189 248 / 0.45);
 }
 .mod-row-time {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-subtle));
 }
@@ -844,7 +844,7 @@ function formatDate(iso: string): string {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -863,7 +863,7 @@ function formatDate(iso: string): string {
   padding: 0.7rem 0.85rem;
   color: rgb(var(--fg-default));
   font-size: 0.8438rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   resize: vertical;
   transition: border-color var(--dur-2) ease;
   line-height: 1.5;
@@ -908,7 +908,7 @@ function formatDate(iso: string): string {
   border: 1.5px solid var(--a-line);
   background: var(--a-bg);
   color: var(--a-text);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .mod-action:hover:not(:disabled) {
   background: var(--a-bg-hover);

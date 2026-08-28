@@ -1459,7 +1459,7 @@ async function onDetachRole(roleId: string) {
   flex-wrap: wrap;
 }
 .registry-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1555,7 +1555,7 @@ async function onDetachRole(roleId: string) {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1645,7 +1645,7 @@ async function onDetachRole(roleId: string) {
   color: rgb(var(--fg-strong));
   font-size: 0.9rem;
   letter-spacing: calc(0.01em * var(--tracking-scale));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
 }
 .filter-search-input:focus {
   outline: none;
@@ -1688,7 +1688,7 @@ async function onDetachRole(roleId: string) {
   min-width: 12rem;
 }
 .filter-select span {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1754,7 +1754,7 @@ async function onDetachRole(roleId: string) {
   text-align: left;
   vertical-align: bottom;
   padding: 0.85rem 1rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -1854,7 +1854,7 @@ async function onDetachRole(roleId: string) {
   text-align: center;
 }
 .cell--mono {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.78rem;
   color: rgb(var(--fg-default));
@@ -1880,7 +1880,7 @@ async function onDetachRole(roleId: string) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.06em * var(--tracking-scale));
@@ -1911,7 +1911,7 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.5rem;
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
 }
@@ -1928,7 +1928,7 @@ async function onDetachRole(roleId: string) {
   /* Stable IP fingerprint shown to moderators — different visual
    * affordance from a raw IP so the moderator knows it's a hash
    * (cursor:help to surface the tooltip). */
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   letter-spacing: calc(0.06em * var(--tracking-scale));
   cursor: help;
 }
@@ -1942,7 +1942,7 @@ async function onDetachRole(roleId: string) {
   border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -2051,7 +2051,7 @@ async function onDetachRole(roleId: string) {
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -2133,7 +2133,7 @@ async function onDetachRole(roleId: string) {
   background: rgb(var(--accent-warm) / 0.5);
 }
 .bonus-balance-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -2143,7 +2143,7 @@ async function onDetachRole(roleId: string) {
   display: inline-flex;
   align-items: baseline;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 1.5rem;
   font-weight: 800;
@@ -2154,7 +2154,7 @@ async function onDetachRole(roleId: string) {
   font-size: 1.1rem;
 }
 .bonus-balance-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -2168,7 +2168,7 @@ async function onDetachRole(roleId: string) {
   gap: 0.4rem;
 }
 .bonus-presets-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -2181,7 +2181,7 @@ async function onDetachRole(roleId: string) {
 }
 .bonus-preset-chip {
   padding: 0.3rem 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.78rem;
   font-weight: 700;
@@ -2214,7 +2214,7 @@ async function onDetachRole(roleId: string) {
   gap: 0.35rem;
 }
 .bonus-field-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -2237,11 +2237,11 @@ async function onDetachRole(roleId: string) {
 }
 .bonus-field-input {
   flex: 1;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 .bonus-field-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -2264,20 +2264,20 @@ async function onDetachRole(roleId: string) {
 }
 .bonus-preview-label,
 .bonus-preview-arrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .bonus-preview-value {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
 .bonus-preview-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -2421,7 +2421,7 @@ async function onDetachRole(roleId: string) {
   gap: 1rem;
 }
 .pager-summary {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7188rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -2445,7 +2445,7 @@ async function onDetachRole(roleId: string) {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -2458,7 +2458,7 @@ async function onDetachRole(roleId: string) {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
 }
@@ -2491,7 +2491,7 @@ async function onDetachRole(roleId: string) {
   cursor: not-allowed;
 }
 .pager-where {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   padding: 0 0.65rem;
@@ -2520,7 +2520,7 @@ async function onDetachRole(roleId: string) {
   border-radius: var(--radius-pill);
   background: rgb(var(--fg-strong));
   color: rgb(var(--bg-base));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5313rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -2539,7 +2539,7 @@ async function onDetachRole(roleId: string) {
   gap: 1rem;
 }
 .rm-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -2585,7 +2585,7 @@ async function onDetachRole(roleId: string) {
   flex-wrap: wrap;
   gap: 0.35rem;
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -2629,7 +2629,7 @@ async function onDetachRole(roleId: string) {
   border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -2770,7 +2770,7 @@ async function onDetachRole(roleId: string) {
   margin: 0.15rem 0 0;
   font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 
 /* Role stack inside a card lays roles out left-to-right with wrap so a
@@ -2803,7 +2803,7 @@ async function onDetachRole(roleId: string) {
 .user-card-stats dd {
   margin: 0;
   font-size: 0.7813rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   color: rgb(var(--fg-default));
   white-space: nowrap;
   overflow: hidden;

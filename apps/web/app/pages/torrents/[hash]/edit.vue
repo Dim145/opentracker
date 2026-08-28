@@ -779,13 +779,13 @@ useHead({ title: t('torrents.edit.headTitle') });
   font-weight: 600;
   color: rgb(var(--fg-strong));
   word-break: break-all;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
 }
 .readonly-name-meta {
   font-size: 0.7rem;
   font-weight: 500;
   color: rgb(var(--fg-muted));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   margin-left: 0.4rem;
 }
 
@@ -816,7 +816,7 @@ useHead({ title: t('torrents.edit.headTitle') });
   border-color: rgb(var(--danger) / 0.4);
 }
 .nfo-textarea {
-  font-family: 'IBM Plex Mono', 'Cascadia Code', Menlo, ui-monospace, monospace;
+  font-family: var(--font-mono);
   white-space: pre;
   overflow-x: auto;
   tab-size: 4;

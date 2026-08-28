@@ -471,7 +471,7 @@ async function unfavorite(row: FavoriteRow) {
   align-items: center;
   gap: 0.6rem;
   margin: 0 0 0.6rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -479,7 +479,7 @@ async function unfavorite(row: FavoriteRow) {
   color: rgb(var(--fg-muted));
 }
 .fav-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.125rem;
   font-weight: 600;
@@ -501,7 +501,7 @@ async function unfavorite(row: FavoriteRow) {
 
 .fav-title {
   margin: 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 900;
   font-size: clamp(1.8rem, 3.4vw, 2.4rem);
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -524,7 +524,7 @@ async function unfavorite(row: FavoriteRow) {
   flex-wrap: wrap;
 }
 .fav-sort-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -547,7 +547,7 @@ async function unfavorite(row: FavoriteRow) {
   background: transparent;
   border: 0;
   border-radius: var(--radius-pill);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -571,7 +571,7 @@ async function unfavorite(row: FavoriteRow) {
   justify-content: center;
   gap: 0.55rem;
   padding: 2.5rem 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -698,7 +698,7 @@ async function unfavorite(row: FavoriteRow) {
   display: inline-flex;
   align-items: baseline;
   gap: 0.2rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: calc(0.12em * var(--tracking-scale));
@@ -710,7 +710,7 @@ async function unfavorite(row: FavoriteRow) {
   opacity: 0.65;
 }
 .card-date {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -745,7 +745,7 @@ async function unfavorite(row: FavoriteRow) {
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-xs);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -763,7 +763,7 @@ async function unfavorite(row: FavoriteRow) {
 
 .card-title {
   margin: 0.1rem 0 0.2rem;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 800;
   font-size: 0.98rem;
   line-height: 1.25;
@@ -789,7 +789,7 @@ async function unfavorite(row: FavoriteRow) {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.06em * var(--tracking-scale));
@@ -816,7 +816,7 @@ async function unfavorite(row: FavoriteRow) {
   align-items: center;
   gap: 0.35rem;
   padding: 0.32rem 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -903,7 +903,7 @@ async function unfavorite(row: FavoriteRow) {
   position: absolute;
   right: 0.7rem;
   bottom: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5313rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -917,7 +917,7 @@ async function unfavorite(row: FavoriteRow) {
 
 .empty-title {
   margin: 0.4rem 0 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: calc(-0.01em * var(--tracking-scale));
@@ -940,7 +940,7 @@ async function unfavorite(row: FavoriteRow) {
   color: rgb(var(--gold));
   border: 1px solid rgb(var(--gold) / 0.55);
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -970,7 +970,7 @@ async function unfavorite(row: FavoriteRow) {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -986,7 +986,7 @@ async function unfavorite(row: FavoriteRow) {
 }
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.08em * var(--tracking-scale));

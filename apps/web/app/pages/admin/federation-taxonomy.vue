@@ -199,7 +199,7 @@ async function remove(id: string): Promise<void> {
 }
 .tax-h2 :deep(svg) { color: var(--gold, rgb(var(--accent-warm))); }
 .tax-count {
-  font-family: var(--font-mono, monospace); font-size: 0.72rem;
+  font-family: var(--font-mono); font-size: 0.72rem;
   color: rgb(var(--fg-subtle)); background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-pill); padding: 0.05rem 0.5rem;
 }
@@ -213,15 +213,15 @@ async function remove(id: string): Promise<void> {
   border-radius: var(--radius-sm); background: rgb(var(--bg-inset) / 0.4);
 }
 .tax-slug {
-  font-family: var(--font-mono, monospace); font-size: 0.8rem;
+  font-family: var(--font-mono); font-size: 0.8rem;
   color: #7dd3fc; background: rgba(56, 189, 248, 0.1);
   border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm);
   padding: 0.1rem 0.45rem; flex: none;
 }
 .tax-arrow { color: rgb(var(--fg-subtle)); flex: none; }
 .tax-local { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; color: rgb(var(--fg-default)); flex: 1; min-width: 0; }
-.tax-localslug { font-family: var(--font-mono, monospace); font-size: 0.7rem; color: rgb(var(--fg-subtle)); font-weight: 400; }
-.tax-n { font-family: var(--font-mono, monospace); font-size: 0.72rem; color: rgb(var(--fg-muted)); flex: none; }
+.tax-localslug { font-family: var(--font-mono); font-size: 0.7rem; color: rgb(var(--fg-subtle)); font-weight: 400; }
+.tax-n { font-family: var(--font-mono); font-size: 0.72rem; color: rgb(var(--fg-muted)); flex: none; }
 
 .tax-add { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .tax-input {

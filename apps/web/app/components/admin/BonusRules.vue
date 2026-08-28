@@ -769,7 +769,7 @@ async function deleteAgeTier(tier: AgeTier) {
   .snap:nth-last-child(-n + 2) { border-bottom: 0; }
 }
 .snap-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(1.5rem, 2.6vw, 1.9rem);
   font-weight: 800;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -782,7 +782,7 @@ async function deleteAgeTier(tier: AgeTier) {
 .snap--age .snap-num strong { color: #fb923c; }
 .snap--range .snap-num { color: rgb(var(--fg-strong)); font-size: 1.3rem; }
 .snap-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -822,7 +822,7 @@ async function deleteAgeTier(tier: AgeTier) {
   background: rgb(var(--accent-warm));
 }
 .block-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -847,7 +847,7 @@ async function deleteAgeTier(tier: AgeTier) {
   line-height: 1.5;
 }
 .block-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -943,7 +943,7 @@ async function deleteAgeTier(tier: AgeTier) {
   gap: 0.5rem;
 }
 .rule-state-text {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1026,7 +1026,7 @@ async function deleteAgeTier(tier: AgeTier) {
   gap: 0.4rem;
 }
 .field-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1047,7 +1047,7 @@ async function deleteAgeTier(tier: AgeTier) {
   padding: 0.5rem 0.7rem;
   color: rgb(var(--fg-strong));
   font-size: 0.95rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
@@ -1072,7 +1072,7 @@ async function deleteAgeTier(tier: AgeTier) {
   gap: 0.5rem;
 }
 .milestones-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1098,7 +1098,7 @@ async function deleteAgeTier(tier: AgeTier) {
   border-radius: var(--radius-sm);
 }
 .milestone-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
@@ -1109,7 +1109,7 @@ async function deleteAgeTier(tier: AgeTier) {
   gap: 0.45rem;
 }
 .milestone-field-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1216,7 +1216,7 @@ async function deleteAgeTier(tier: AgeTier) {
   margin-top: 0.3rem;
 }
 .tier-list-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1257,7 +1257,7 @@ async function deleteAgeTier(tier: AgeTier) {
 .tier:hover { border-color: rgb(var(--line-strong)); }
 .tier--off { opacity: 0.55; }
 .tier-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.12em * var(--tracking-scale));
@@ -1284,7 +1284,7 @@ async function deleteAgeTier(tier: AgeTier) {
   width: 100%;
 }
 .tier-field-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1292,7 +1292,7 @@ async function deleteAgeTier(tier: AgeTier) {
   flex-shrink: 0;
 }
 .tier-field-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   white-space: nowrap;

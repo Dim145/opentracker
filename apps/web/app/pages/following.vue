@@ -538,7 +538,7 @@ async function unfollow(row: PersonaRow) {
   position: absolute;
   top: 4rem;
   right: 14%;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 4.5rem;
   line-height: 1;
   color: rgb(var(--amber) / 0.15);
@@ -570,7 +570,7 @@ async function unfollow(row: PersonaRow) {
   align-items: center;
   gap: 0.6rem;
   margin: 0 0 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -578,7 +578,7 @@ async function unfollow(row: PersonaRow) {
   color: rgb(var(--fg-muted));
 }
 .cast-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.125rem;
   font-weight: 600;
@@ -602,7 +602,7 @@ async function unfollow(row: PersonaRow) {
    carries the amber wash so the eye lands on it first. */
 .cast-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-style: italic;
   font-size: clamp(2.2rem, 5vw, 3.4rem);
@@ -635,7 +635,7 @@ async function unfollow(row: PersonaRow) {
   flex-wrap: wrap;
 }
 .cast-sort-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -657,7 +657,7 @@ async function unfollow(row: PersonaRow) {
   background: transparent;
   border: 0;
   border-radius: var(--radius-pill);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -681,7 +681,7 @@ async function unfollow(row: PersonaRow) {
   justify-content: center;
   gap: 0.55rem;
   padding: 2.5rem 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -780,7 +780,7 @@ async function unfollow(row: PersonaRow) {
   position: absolute;
   top: 0.55rem;
   right: 0.8rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -853,7 +853,7 @@ async function unfollow(row: PersonaRow) {
   pointer-events: none;
 }
 .persona-initials {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 2.4rem;
   font-weight: 600;
@@ -878,7 +878,7 @@ async function unfollow(row: PersonaRow) {
 .persona-name {
   margin: 0;
   max-width: 100%;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.2rem;
   letter-spacing: calc(-0.005em * var(--tracking-scale));
@@ -891,7 +891,7 @@ async function unfollow(row: PersonaRow) {
 }
 .persona-id:hover .persona-name { color: rgb(var(--amber)); }
 .persona-handle {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.06em * var(--tracking-scale));
@@ -902,7 +902,7 @@ async function unfollow(row: PersonaRow) {
 .persona-bio {
   margin: 0.35rem 0 0;
   padding: 0 0.4rem;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.7813rem;
   line-height: 1.45;
@@ -924,7 +924,7 @@ async function unfollow(row: PersonaRow) {
 .persona-meta div { display: flex; flex-direction: column; gap: 0.1rem; }
 .persona-meta dt {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5313rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -933,7 +933,7 @@ async function unfollow(row: PersonaRow) {
 }
 .persona-meta dd {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -959,7 +959,7 @@ async function unfollow(row: PersonaRow) {
   display: inline-flex;
   align-items: center;
   gap: 0.32rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -976,7 +976,7 @@ async function unfollow(row: PersonaRow) {
   background: transparent;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1077,7 +1077,7 @@ async function unfollow(row: PersonaRow) {
 
 .empty-title {
   margin: 0.4rem 0 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.4rem;
@@ -1100,7 +1100,7 @@ async function unfollow(row: PersonaRow) {
   color: rgb(var(--emerald));
   border: 1px solid rgb(var(--emerald) / 0.55);
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1130,7 +1130,7 @@ async function unfollow(row: PersonaRow) {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1146,7 +1146,7 @@ async function unfollow(row: PersonaRow) {
 }
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.08em * var(--tracking-scale));

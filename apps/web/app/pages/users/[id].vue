@@ -628,7 +628,7 @@ useHead({
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.75rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -673,7 +673,7 @@ useHead({
 }
 .empty-text {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -762,7 +762,7 @@ useHead({
   pointer-events: none;
 }
 .hero-avatar-letter {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 3.4rem;
   font-weight: 900;
   letter-spacing: calc(-0.04em * var(--tracking-scale));
@@ -799,7 +799,7 @@ useHead({
   gap: 0.7rem;
   flex-wrap: wrap;
   margin-bottom: 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -808,7 +808,7 @@ useHead({
   animation: heroFadeIn calc(0.55s * var(--motion-scale)) calc(0.05s * var(--motion-scale)) ease-out both;
 }
 .hero-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.125rem;
   font-weight: 600;
@@ -844,7 +844,7 @@ useHead({
   gap: 0.4rem;
   padding: 0.22rem 0.55rem;
   border-radius: var(--radius-pill);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -879,7 +879,7 @@ useHead({
 
 .hero-title {
   margin: 0 0 0.35rem;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 800;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
@@ -899,7 +899,7 @@ useHead({
   animation: heroFadeIn 0.55s var(--dur-4) ease-out both;
 }
 .hero-handle {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
   color: rgb(var(--release-cyan));
@@ -928,7 +928,7 @@ useHead({
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--release-teal) / 0.5);
   border-radius: var(--radius-pill);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1016,7 +1016,7 @@ useHead({
   border: 1px solid rgb(var(--line-strong));
   border-left: 3px solid rgb(var(--release-rose));
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.9063rem;
   font-weight: 400;
@@ -1031,7 +1031,7 @@ useHead({
   position: absolute;
   top: 0.4rem;
   left: 0.7rem;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 2.4rem;
   line-height: 1;
   font-weight: 600;
@@ -1076,7 +1076,7 @@ useHead({
   border: 1px solid rgb(var(--line-strong));
   border-bottom: 0;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1218,7 +1218,7 @@ useHead({
   padding-bottom: 0.4rem;
 }
 .section-head-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.85rem;
@@ -1230,7 +1230,7 @@ useHead({
 }
 .section-head-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: clamp(1.15rem, 2.2vw, 1.6rem);
@@ -1238,7 +1238,7 @@ useHead({
   color: rgb(var(--fg-strong));
 }
 .section-head-count {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1304,7 +1304,7 @@ useHead({
   filter: drop-shadow(0 0 8px rgb(var(--rail, var(--fg-muted)) / 0.45));
 }
 .stat-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(1.35rem, 2.4vw, 1.7rem);
   font-weight: 800;
   line-height: 1;
@@ -1313,7 +1313,7 @@ useHead({
   word-break: break-word;
 }
 .stat-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1364,7 +1364,7 @@ useHead({
 }
 .upload-empty p {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1rem;
   color: rgb(var(--fg-muted));
@@ -1439,7 +1439,7 @@ useHead({
   gap: 0.3rem;
 }
 .upload-name {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 600;
   color: rgb(var(--fg-strong));
@@ -1454,7 +1454,7 @@ useHead({
   align-items: center;
   flex-wrap: wrap;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1517,7 +1517,7 @@ useHead({
   border: 1px solid rgb(var(--line-strong));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1532,7 +1532,7 @@ useHead({
 }
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));

@@ -1470,7 +1470,7 @@ function formatDuration(seconds: number) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 1.85rem;
   font-weight: 900;
   letter-spacing: calc(-0.04em * var(--tracking-scale));
@@ -1507,7 +1507,7 @@ function formatDuration(seconds: number) {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -1516,7 +1516,7 @@ function formatDuration(seconds: number) {
   margin: 0;
 }
 .hero-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.125rem;
   font-weight: 600;
@@ -1527,7 +1527,7 @@ function formatDuration(seconds: number) {
   filter: drop-shadow(0 0 8px rgb(var(--release-cyan) / 0.4));
 }
 .hero-title {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: clamp(1.75rem, 4vw, 2.75rem);
   font-weight: 800;
   letter-spacing: calc(-0.025em * var(--tracking-scale));
@@ -1538,7 +1538,7 @@ function formatDuration(seconds: number) {
   text-wrap: pretty;
 }
 .hero-handle {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1567,7 +1567,7 @@ function formatDuration(seconds: number) {
   border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));
@@ -1695,7 +1695,7 @@ function formatDuration(seconds: number) {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1728,7 +1728,7 @@ function formatDuration(seconds: number) {
      independent stats — the parent `.kpi` flex gap is wider than
      we want here. */
   margin-top: -0.25rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.02em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
@@ -1785,7 +1785,7 @@ function formatDuration(seconds: number) {
   color: rgb(var(--fg-muted));
   text-decoration: none;
   letter-spacing: calc(0.1em * var(--tracking-scale));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -1820,7 +1820,7 @@ function formatDuration(seconds: number) {
   padding-bottom: 0.4rem;
 }
 .section-number {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.85rem;
@@ -1834,7 +1834,7 @@ function formatDuration(seconds: number) {
   filter: drop-shadow(0 0 10px rgb(var(--section-tint, var(--accent)) / 0.35));
 }
 .section-title {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: clamp(1.15rem, 2.2vw, 1.55rem);
@@ -1918,7 +1918,7 @@ function formatDuration(seconds: number) {
 }
 .bv-trigger-label {
   flex-shrink: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -2029,7 +2029,7 @@ function formatDuration(seconds: number) {
   margin-bottom: 0.85rem;
 }
 .bv-head-num {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.25rem;
@@ -2049,7 +2049,7 @@ function formatDuration(seconds: number) {
 }
 .bv-head-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: 1rem;
@@ -2066,7 +2066,7 @@ function formatDuration(seconds: number) {
   justify-content: center;
   gap: 0.55rem;
   padding: 1.25rem 1rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
@@ -2121,7 +2121,7 @@ function formatDuration(seconds: number) {
   align-items: center;
   padding: 0.65rem 0.9rem;
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   /* Stagger entry — each row arrives ~30ms after the previous so the
      panel feels like it's being typed in. Caps via a class-bound max
@@ -2243,7 +2243,7 @@ function formatDuration(seconds: number) {
   font-style: italic;
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   letter-spacing: 0;
   /* Truncate to a reasonable upper bound — admins occasionally write
      paragraph-long reasons; we want the bar to stay within the ledger
@@ -2267,7 +2267,7 @@ function formatDuration(seconds: number) {
   background: transparent;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -2334,7 +2334,7 @@ function formatDuration(seconds: number) {
   gap: 0.5rem;
 }
 .cred-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -2372,7 +2372,7 @@ function formatDuration(seconds: number) {
   background: rgb(var(--danger) / 0.08);
 }
 .cred-value {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
   letter-spacing: calc(0.02em * var(--tracking-scale));
   color: #6cd161;
@@ -2540,7 +2540,7 @@ function formatDuration(seconds: number) {
   border-color: rgb(var(--fg-strong));
 }
 .subtab-count {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
 }
@@ -2624,7 +2624,7 @@ function formatDuration(seconds: number) {
   min-width: 0;
 }
 .row-name {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.82rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -2648,7 +2648,7 @@ function formatDuration(seconds: number) {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
@@ -2803,7 +2803,7 @@ function formatDuration(seconds: number) {
   border-top: 1px solid rgb(var(--line-default));
 }
 .panel-pager-summary {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));

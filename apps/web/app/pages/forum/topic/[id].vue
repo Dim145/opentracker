@@ -588,7 +588,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -636,7 +636,7 @@ onMounted(() => {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
@@ -661,7 +661,7 @@ onMounted(() => {
   align-items: center;
   gap: 0.3rem;
   padding: 0.18rem 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -724,7 +724,7 @@ onMounted(() => {
   position: relative;
 }
 .post-anchor-num {
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-size: 1.4rem;
   font-weight: 700;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -763,7 +763,7 @@ onMounted(() => {
   height: 3.25rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--rule);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 700;
   font-size: 1rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -775,7 +775,7 @@ onMounted(() => {
   min-width: 0;
 }
 .post-author-name {
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1rem;
   letter-spacing: calc(-0.005em * var(--tracking-scale));
@@ -798,7 +798,7 @@ onMounted(() => {
   align-items: center;
   gap: 0.2rem;
   padding: 0.1rem 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -829,7 +829,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   color: var(--ink-fade);
@@ -880,7 +880,7 @@ onMounted(() => {
 }
 .post-edit-input {
   width: 100%;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.95rem;
   line-height: 1.55;
   padding: 0.85rem 1rem;
@@ -918,7 +918,7 @@ onMounted(() => {
   gap: 0.85rem;
 }
 .composer-eyebrow {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -931,7 +931,7 @@ onMounted(() => {
   background: var(--rule);
 }
 .composer-hint {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.1em * var(--tracking-scale));
   color: var(--ink-fade);
@@ -950,7 +950,7 @@ onMounted(() => {
 }
 .composer-input {
   width: 100%;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.95rem;
   line-height: 1.55;
   padding: 0.85rem 1rem;
@@ -972,7 +972,7 @@ onMounted(() => {
 }
 .composer-counter {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.08em * var(--tracking-scale));
   color: var(--ink-faint);
@@ -987,7 +987,7 @@ onMounted(() => {
   border: 1px dashed var(--rule);
   border-radius: var(--radius-sm);
   color: var(--ink-fade);
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.95rem;
   font-variation-settings: 'opsz' 14;
@@ -1006,7 +1006,7 @@ onMounted(() => {
   align-items: center;
   gap: 0.45rem;
   padding: 0.5rem 0.85rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));

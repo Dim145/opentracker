@@ -437,7 +437,7 @@ async function download(): Promise<void> {
   color: rgb(var(--fg-muted));
 }
 .pid-held {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--success));
   word-break: break-all;
@@ -454,7 +454,7 @@ async function download(): Promise<void> {
   color: rgb(var(--success));
 }
 .pid-done code {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   word-break: break-all;

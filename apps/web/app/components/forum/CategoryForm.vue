@@ -158,7 +158,7 @@ const iconSuggestions = [
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -167,7 +167,7 @@ const iconSuggestions = [
 }
 .cat-input {
   width: 100%;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.92rem;
   letter-spacing: 0;
   text-transform: none;
@@ -185,15 +185,15 @@ const iconSuggestions = [
 .cat-input--textarea {
   resize: vertical;
   min-height: 4.5rem;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
 }
 .cat-input--mono {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
 }
 .cat-input--number {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 
 .color-row {
@@ -241,7 +241,7 @@ const iconSuggestions = [
 
 .cat-help {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.7188rem;
   letter-spacing: 0;
   text-transform: none;
@@ -249,7 +249,7 @@ const iconSuggestions = [
   font-weight: 400;
 }
 .cat-help code {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-xs);

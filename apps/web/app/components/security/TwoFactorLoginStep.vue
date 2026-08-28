@@ -224,7 +224,7 @@ async function submitPasskey() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -253,7 +253,7 @@ async function submitPasskey() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.85rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -282,7 +282,7 @@ async function submitPasskey() {
   gap: 0.4rem;
 }
 .step-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -297,7 +297,7 @@ async function submitPasskey() {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .step-code-input {
   font-size: 1.6rem;
@@ -356,7 +356,7 @@ async function submitPasskey() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.55rem 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));

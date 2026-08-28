@@ -235,7 +235,7 @@ defineProps<{
   border-radius: var(--radius-pill);
   background: rgba(217, 119, 6, 0.1);
   color: #f59e0b;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -311,7 +311,7 @@ defineProps<{
   word-break: break-word;
 }
 .bcard-year {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));
@@ -328,7 +328,7 @@ defineProps<{
   line-height: 1.45;
 }
 .bcard-authors-by {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -402,7 +402,7 @@ defineProps<{
   color: rgb(var(--fg-muted));
 }
 .bcard-isbn-key {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -410,7 +410,7 @@ defineProps<{
   color: rgb(var(--fg-faint));
 }
 .bcard-isbn-val {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   color: rgb(var(--fg-default));
 }
 .bcard-link {

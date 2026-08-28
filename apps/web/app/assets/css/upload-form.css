@@ -42,7 +42,7 @@
   flex-wrap: wrap;
 }
 .page-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
@@ -146,7 +146,7 @@
   margin-bottom: 1.25rem;
 }
 .section-number {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));
@@ -253,7 +253,7 @@
 .id-tag--tvdb { color: #6cd161; }
 
 .id-input {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
 }
 
@@ -374,7 +374,7 @@
   gap: 0.4rem;
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
 }
 .aside-dot {
   opacity: 0.4;
@@ -450,7 +450,7 @@
   color: rgb(var(--fg-muted));
 }
 .action-hint code {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-xs);

@@ -1073,7 +1073,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -1136,7 +1136,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   gap: 0.65rem;
   padding: 3rem 1rem;
   color: rgb(var(--fg-muted));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1185,7 +1185,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .tower-empty-title {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1287,7 +1287,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   100% { transform: translate(-50%, -50%) scale(4.4); opacity: 0; }
 }
 .onair-stamp {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.3em * var(--tracking-scale));
@@ -1296,7 +1296,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   flex: 1;
 }
 .onair-now {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.08em * var(--tracking-scale));
@@ -1373,7 +1373,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   }
 }
 .onair-countdown-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1381,7 +1381,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   color: rgb(var(--fg-muted));
 }
 .onair-countdown-time {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: calc(0.02em * var(--tracking-scale));
@@ -1453,7 +1453,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   color: rgb(var(--accent-warm));
 }
 .schedule-head-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1461,7 +1461,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   color: rgb(var(--fg-strong));
 }
 .schedule-head-count {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   margin-left: auto;
@@ -1558,7 +1558,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem 1.1rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.03em * var(--tracking-scale));
@@ -1592,7 +1592,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -1635,7 +1635,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   color: rgb(var(--fg-muted));
 }
 .mul-pair-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1643,7 +1643,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   color: rgb(var(--fg-muted));
 }
 .mul-pair-value {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 800;
   color: rgb(var(--fg-strong));
@@ -1651,7 +1651,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .mul-pair-divider {
   color: rgb(var(--fg-faint));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
 }
 .mul-pair--active {
   border-color: rgba(244, 63, 94, 0.45);
@@ -1749,7 +1749,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   gap: 0.7rem;
 }
 .ed-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1761,7 +1761,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .ed-block-id h4 {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1838,14 +1838,14 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-size: 0.95rem;
 }
 .ed-preset-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .ed-preset-sub {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
@@ -1886,7 +1886,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1895,7 +1895,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .ed-slider-label svg { font-size: 0.95rem; }
 .ed-slider-value {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.95rem;
   font-weight: 800;
   color: rgb(var(--accent-warm));
@@ -1942,7 +1942,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 .ed-slider-ticks {
   display: flex;
   justify-content: space-between;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   color: rgb(var(--fg-faint));
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -1967,7 +1967,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   gap: 0.3rem;
 }
 .ed-window-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -2037,7 +2037,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   min-width: 0;
 }
 .ed-toggle-title {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.16em * var(--tracking-scale));

@@ -258,7 +258,7 @@ onUnmounted(() => {
   color: #6cd161;
 }
 .detection-id {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   text-transform: none;
   letter-spacing: 0;
   color: rgb(var(--fg-default));

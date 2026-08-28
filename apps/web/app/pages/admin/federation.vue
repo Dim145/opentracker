@@ -638,7 +638,7 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 
 .fed-id { display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 1rem; margin-bottom: 0.9rem; font-size: 0.75rem; }
 .fed-id dt { color: rgb(var(--fg-subtle)); text-transform: uppercase; font-size: 0.6563rem; font-weight: 600; letter-spacing: calc(0.05em * var(--tracking-scale)); }
-.fed-id dd { font-family: var(--font-mono, monospace); color: rgb(var(--fg-default)); word-break: break-all; }
+.fed-id dd { font-family: var(--font-mono); color: rgb(var(--fg-default)); word-break: break-all; }
 .fed-field { margin-bottom: 0.7rem; }
 .fed-field label { display: block; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: calc(0.05em * var(--tracking-scale)); color: rgb(var(--fg-subtle)); margin-bottom: 0.3rem; }
 .fed-save { margin-top: 0.2rem; }
@@ -667,7 +667,7 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 .peer--pending { border-color: rgba(234, 179, 8, 0.35); background: rgba(234, 179, 8, 0.035); }
 .peer-id { min-width: 0; }
 .peer-name { font-weight: 600; color: rgb(var(--fg-strong)); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.peer-url { font-family: var(--font-mono, monospace); font-size: 0.6875rem; color: rgb(var(--fg-subtle)); margin-top: 0.15rem; word-break: break-all; }
+.peer-url { font-family: var(--font-mono); font-size: 0.6875rem; color: rgb(var(--fg-subtle)); margin-top: 0.15rem; word-break: break-all; }
 .peer-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.45rem; align-items: center; }
 .peer-scopes { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .peer-err { font-size: 0.6875rem; color: #f87171; display: inline-flex; align-items: center; gap: 0.25rem; }
@@ -675,7 +675,7 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 
 .chip { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.6875rem; padding: 0.15rem 0.45rem; border-radius: var(--radius-pill); border: 1px solid rgb(var(--line-strong)); color: rgb(var(--fg-muted)); background: rgb(var(--bg-elevated)); text-transform: capitalize; }
 
-.fed-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono, monospace); font-size: 0.625rem; font-weight: 500; letter-spacing: calc(0.02em * var(--tracking-scale)); padding: 0.12rem 0.4rem; border-radius: var(--radius-sm); border: 1px solid; text-transform: uppercase; }
+.fed-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono); font-size: 0.625rem; font-weight: 500; letter-spacing: calc(0.02em * var(--tracking-scale)); padding: 0.12rem 0.4rem; border-radius: var(--radius-sm); border: 1px solid; text-transform: uppercase; }
 .fed-badge.ok { color: #4ade80; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
 .fed-badge.warn { color: #facc15; background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.3); }
 .fed-badge.danger { color: #f87171; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }

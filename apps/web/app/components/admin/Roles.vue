@@ -836,7 +836,7 @@ async function recompute() {
   min-width: 0;
 }
 .rc-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
@@ -881,7 +881,7 @@ async function recompute() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 1.05rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1021,7 +1021,7 @@ async function recompute() {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.35rem 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1076,7 +1076,7 @@ async function recompute() {
   border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1106,14 +1106,14 @@ async function recompute() {
 .role-card__rules--manual {
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   font-style: italic;
 }
 .role-card__rules-prefix {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1140,7 +1140,7 @@ async function recompute() {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
@@ -1188,7 +1188,7 @@ async function recompute() {
   margin-bottom: 1rem;
 }
 .form-section__num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--fg-default));
@@ -1242,7 +1242,7 @@ async function recompute() {
   grid-column: 1 / -1;
 }
 .form-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1285,7 +1285,7 @@ async function recompute() {
   cursor: pointer;
 }
 .color-hex {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
@@ -1335,7 +1335,7 @@ async function recompute() {
   color: rgb(var(--fg-strong));
 }
 .mode-card__sub {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1432,7 +1432,7 @@ async function recompute() {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1477,7 +1477,7 @@ async function recompute() {
   }
 }
 .cond-row__num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.06em * var(--tracking-scale));
@@ -1498,7 +1498,7 @@ async function recompute() {
   font-variant-numeric: tabular-nums;
 }
 .cond-row__unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1535,7 +1535,7 @@ async function recompute() {
   border: 1px dashed rgb(var(--line-default));
   background: transparent;
   color: rgb(var(--fg-muted));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));

@@ -742,7 +742,7 @@ function discard() {
   .snap:nth-last-child(-n + 2) { border-bottom: 0; }
 }
 .snap-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(1.5rem, 2.6vw, 1.9rem);
   font-weight: 800;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -761,7 +761,7 @@ function discard() {
 }
 .snap--bypass-on .snap-num strong { color: rgb(var(--accent-warm)); }
 .snap-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -801,7 +801,7 @@ function discard() {
   background: rgb(var(--accent-warm));
 }
 .block-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -826,7 +826,7 @@ function discard() {
   line-height: 1.5;
 }
 .block-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -975,7 +975,7 @@ function discard() {
   font-size: 0.9rem;
 }
 .field-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1015,7 +1015,7 @@ function discard() {
   transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .field-input--mono {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.85rem;
 }
@@ -1150,7 +1150,7 @@ function discard() {
 .cat-line {
   display: inline-flex;
   align-items: center;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   color: rgb(var(--fg-faint));
   font-size: 0.85rem;
 }
@@ -1165,7 +1165,7 @@ function discard() {
   border-left: 0;
 }
 .cat-corner {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   color: rgb(var(--fg-faint));
   margin-right: 0.35rem;
 }
@@ -1187,7 +1187,7 @@ function discard() {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.12em * var(--tracking-scale));
@@ -1266,7 +1266,7 @@ function discard() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));

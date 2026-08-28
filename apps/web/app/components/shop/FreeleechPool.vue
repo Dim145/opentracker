@@ -459,7 +459,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.3em * var(--tracking-scale));
@@ -475,9 +475,7 @@ onBeforeUnmount(() => {
 }
 .pool-title {
   margin: 0;
-  font-family: 'Iowan Old Style', 'Palatino Linotype', 'Palatino',
-    'Bitstream Vera Serif', 'Liberation Serif', 'P052', Georgia,
-    'Times New Roman', serif;
+  font-family: var(--font-display);
   line-height: 1;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
@@ -556,7 +554,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: baseline;
   gap: 0.45rem;
-  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  font-family: var(--font-display);
 }
 .pool-meter-current {
   font-size: 1.7rem;
@@ -574,7 +572,7 @@ onBeforeUnmount(() => {
 }
 .pool-meter-unit {
   margin-left: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -588,7 +586,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0.45rem;
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -617,7 +615,7 @@ onBeforeUnmount(() => {
   border-top: 1px dashed rgb(var(--accent-warm) / 0.2);
 }
 .pool-patrons-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.28em * var(--tracking-scale));
@@ -641,14 +639,14 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-default));
 }
 .pool-patron-rank {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
 }
 .pool-patron-name {
-  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   color: rgb(var(--fg-strong));
@@ -657,7 +655,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 .pool-patron-amount {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));
@@ -685,7 +683,7 @@ onBeforeUnmount(() => {
   gap: 0.85rem;
 }
 .pool-form-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -702,7 +700,7 @@ onBeforeUnmount(() => {
   padding: 0.7rem 0.85rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--accent-warm) / 0.3);
-  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.4rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -722,7 +720,7 @@ onBeforeUnmount(() => {
   border: 1px solid rgb(var(--accent-warm) / 0.3);
   border-left: 0;
   background: rgb(var(--accent-warm) / 0.06);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -740,7 +738,7 @@ onBeforeUnmount(() => {
   border: 1px solid rgb(var(--accent-warm) / 0.3);
   background: transparent;
   color: rgb(var(--fg-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.06em * var(--tracking-scale));
@@ -786,7 +784,7 @@ onBeforeUnmount(() => {
   );
   color: rgb(var(--accent-warm-fg));
   border: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -842,7 +840,7 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-muted));
   max-width: 26ch;
   font-style: italic;
-  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  font-family: var(--font-display);
 }
 
 .spin {

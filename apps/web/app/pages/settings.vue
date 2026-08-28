@@ -1232,7 +1232,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   flex-wrap: wrap;
 }
 .page-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1338,7 +1338,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   color: rgb(var(--bg-base));
 }
 .settings-nav-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));
@@ -1375,7 +1375,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   margin-bottom: 1.25rem;
 }
 .section-number {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));
@@ -1433,7 +1433,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.5rem;
 }
 .field-hint {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: none;
@@ -1446,15 +1446,14 @@ onBeforeRouteLeave((_to, _from, next) => {
 .field-textarea {
   resize: vertical;
   min-height: 6rem;
-  font-family:
-    'IBM Plex Mono', 'Cascadia Code', Menlo, ui-monospace, monospace;
+  font-family: var(--font-mono);
   line-height: 1.55;
 }
 .char-counter {
   position: absolute;
   right: 0.4rem;
   bottom: -1.25rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1475,7 +1474,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 .readonly-value {
   flex: 1;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -1621,7 +1620,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   color: rgb(var(--fg-strong));
 }
 .theme-btn-sub {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -1644,7 +1643,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   margin: 0 0 0.55rem;
 }
 .appearance-block-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1763,7 +1762,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: calc(0.06em * var(--tracking-scale));
@@ -1807,7 +1806,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1978,7 +1977,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   border-radius: var(--radius-md);
 }
 .info-grid dt {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1993,7 +1992,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   word-break: break-all;
 }
 .info-grid code {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0;
@@ -2130,7 +2129,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   background: rgb(var(--bg-inset) / 0.6);
   color: rgb(var(--fg-default));
   font-size: 0.9rem;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
 }
 .danger-input:focus {
   outline: none;

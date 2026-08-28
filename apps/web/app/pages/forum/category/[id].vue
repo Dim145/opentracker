@@ -336,7 +336,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -388,7 +388,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -415,7 +415,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 }
 .cat-banner-tag {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1rem;
   line-height: 1.45;
@@ -452,7 +452,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
@@ -484,7 +484,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -552,7 +552,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   border-right: 1px dashed rgb(var(--line-default));
   padding-right: 0.85rem;
 }
@@ -565,7 +565,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   line-height: 1;
 }
 .topic-card-num-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem !important;
   letter-spacing: calc(0.2em * var(--tracking-scale));
   color: rgb(var(--fg-faint)) !important;
@@ -590,7 +590,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: center;
   gap: 0.3rem;
   padding: 0.18rem 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -631,7 +631,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 }
 .topic-card-excerpt {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.95rem;
   line-height: 1.55;
@@ -648,7 +648,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
@@ -680,7 +680,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   gap: 0.1rem;
 }
 .topic-card-stats dt {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -688,7 +688,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 }
 .topic-card-stats dd {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-size: 1.55rem;
   font-weight: 700;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -700,7 +700,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .topic-card-last-eyebrow {
   margin: 0;
@@ -720,7 +720,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 }
 .topic-card-last--empty {
   color: rgb(var(--fg-faint));
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.92rem;
 }
@@ -841,7 +841,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));

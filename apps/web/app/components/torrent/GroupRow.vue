@@ -358,13 +358,13 @@ const age = computed(() => formatAge(props.group.latest));
    filename in the title face reads as a broken title, so the fallback is
    typeset as what it is. */
 .grp-title--mono {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 500;
   color: rgb(var(--fg-default));
 }
 .grp-year {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 400;
   color: rgb(var(--fg-faint));
@@ -460,7 +460,7 @@ const age = computed(() => formatAge(props.group.latest));
   display: flex;
   align-items: center;
   gap: 1rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   white-space: nowrap;

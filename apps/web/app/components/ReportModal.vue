@@ -359,7 +359,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -397,7 +397,7 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid rgb(var(--line-default));
 }
 .slip-target-tag {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -423,7 +423,7 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 .slip-target-ref {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.05em * var(--tracking-scale));
@@ -443,7 +443,7 @@ onBeforeUnmount(() => {
   gap: 0.5rem;
 }
 .slip-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -457,7 +457,7 @@ onBeforeUnmount(() => {
   gap: 0.5rem;
 }
 .slip-counter {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   color: rgb(var(--fg-faint));
   letter-spacing: calc(0.05em * var(--tracking-scale));

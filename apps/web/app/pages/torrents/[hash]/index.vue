@@ -1366,7 +1366,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.75rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1441,7 +1441,7 @@ async function confirmDelete() {
   gap: 0.7rem;
   flex-wrap: wrap;
   margin-bottom: 1.1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -1450,7 +1450,7 @@ async function confirmDelete() {
   animation: heroFadeIn calc(0.55s * var(--motion-scale)) calc(0.05s * var(--motion-scale)) ease-out both;
 }
 .hero-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.125rem;
   font-weight: 600;
@@ -1479,7 +1479,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.32rem 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -1517,7 +1517,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.32rem 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -1560,7 +1560,7 @@ async function confirmDelete() {
 
 .hero-title {
   margin: 0 0 1rem;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 800;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
@@ -1597,7 +1597,7 @@ async function confirmDelete() {
   gap: 0.4rem;
   padding: 0.35rem 0.7rem;
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1655,7 +1655,7 @@ async function confirmDelete() {
   color: #0a1610;
   border-radius: var(--radius-lg);
   text-decoration: none;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 800;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   box-shadow:
@@ -1715,7 +1715,7 @@ async function confirmDelete() {
   background: rgb(var(--release-purple) / 0.12);
   border: 1px solid rgb(var(--release-purple) / 0.5);
   border-radius: var(--radius-md);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1814,7 +1814,7 @@ async function confirmDelete() {
   margin-left: auto;
 }
 .hero-meta-cell dt {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1828,7 +1828,7 @@ async function confirmDelete() {
 .hero-meta-cell dd { margin: 0; min-width: 0; }
 .hero-meta-hash {
   display: block;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
@@ -1839,7 +1839,7 @@ async function confirmDelete() {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
   color: rgb(var(--release-rose));
@@ -1889,7 +1889,7 @@ async function confirmDelete() {
   padding-bottom: 0.4rem;
 }
 .section-head-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.85rem;
@@ -1921,7 +1921,7 @@ async function confirmDelete() {
 }
 .section-head-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: clamp(1.15rem, 2.2vw, 1.6rem);
@@ -1929,7 +1929,7 @@ async function confirmDelete() {
   color: rgb(var(--fg-strong));
 }
 .section-head-count {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1941,7 +1941,7 @@ async function confirmDelete() {
   flex-shrink: 0;
 }
 .section-head-tag {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1955,7 +1955,7 @@ async function confirmDelete() {
   flex-shrink: 0;
 }
 .section-head-meta {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -2033,7 +2033,7 @@ async function confirmDelete() {
   background: transparent;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -2120,7 +2120,7 @@ async function confirmDelete() {
   filter: drop-shadow(0 0 8px rgb(var(--rail, var(--fg-muted)) / 0.45));
 }
 .stat-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(1.35rem, 2.4vw, 1.7rem);
   font-weight: 800;
   line-height: 1;
@@ -2129,7 +2129,7 @@ async function confirmDelete() {
   word-break: break-word;
 }
 .stat-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -2144,7 +2144,7 @@ async function confirmDelete() {
   min-width: 0;
 }
 .stat-sub {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5313rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -2212,7 +2212,7 @@ async function confirmDelete() {
   position: absolute;
   top: 0.2rem;
   left: 0.85rem;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 2.6rem;
   line-height: 1;
   font-weight: 600;
@@ -2284,7 +2284,7 @@ async function confirmDelete() {
 }
 .cross-name {
   flex: 1 1 auto;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 600;
   color: rgb(var(--fg-strong));
@@ -2299,7 +2299,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.35rem;
   flex-shrink: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
@@ -2336,7 +2336,7 @@ async function confirmDelete() {
   background: rgb(var(--bg-inset));
   border-color: rgb(var(--line-default));
 }
-.cross-meta-seed { color: #4ade80; font-family: var(--font-mono, monospace); font-size: 0.72rem; }
+.cross-meta-seed { color: #4ade80; font-family: var(--font-mono); font-size: 0.72rem; }
 .cross-mesh {
   display: inline-flex;
   align-items: center;
@@ -2371,7 +2371,7 @@ async function confirmDelete() {
 .swarm-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
 }
 .swarm-table thead th {
@@ -2507,7 +2507,7 @@ async function confirmDelete() {
 }
 
 .nfo-body {
-  font-family: 'IBM Plex Mono', 'Cascadia Code', Menlo, ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1.35;
   color: rgb(var(--fg-default));
@@ -2537,7 +2537,7 @@ async function confirmDelete() {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -2592,7 +2592,7 @@ async function confirmDelete() {
     rgba(229, 62, 62, 0.06) 14px,
     rgba(229, 62, 62, 0.06) 28px
   );
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -2629,7 +2629,7 @@ async function confirmDelete() {
 }
 .adult-gate__eyebrow {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -2855,7 +2855,7 @@ async function confirmDelete() {
   gap: 0.2rem;
 }
 .adult-gate__meta dt {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -2865,7 +2865,7 @@ async function confirmDelete() {
 }
 .adult-gate__meta dd {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7813rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -2893,7 +2893,7 @@ async function confirmDelete() {
   border: 1px solid rgb(var(--danger));
   background: rgb(var(--danger));
   color: #fff;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -2921,7 +2921,7 @@ async function confirmDelete() {
   gap: 0.75rem;
   padding: 0.65rem 1.1rem;
   border-top: 1px dashed rgb(var(--line-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;

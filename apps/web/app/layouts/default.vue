@@ -1136,7 +1136,7 @@ const ratioColor = computed(() => {
   border: 0;
   outline: 0;
   padding: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7813rem;
   font-weight: 500;
   letter-spacing: calc(0.01em * var(--tracking-scale));
@@ -1145,7 +1145,7 @@ const ratioColor = computed(() => {
 }
 .navsearch-input::placeholder {
   color: rgb(var(--fg-subtle));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 400;
   letter-spacing: calc(0.01em * var(--tracking-scale));
 }
@@ -1172,7 +1172,7 @@ const ratioColor = computed(() => {
   height: 1.2rem;
   min-width: 1.2rem;
   padding: 0 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));

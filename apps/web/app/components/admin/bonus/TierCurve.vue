@@ -385,7 +385,7 @@ function formatMul(v: number): string {
 /* Axis labels — mono, small, muted. */
 .tcurve-y-labels text,
 .tcurve-x-labels text {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   fill: rgb(var(--fg-muted));
   font-weight: 600;
@@ -406,7 +406,7 @@ function formatMul(v: number): string {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -422,7 +422,7 @@ function formatMul(v: number): string {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));

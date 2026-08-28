@@ -371,7 +371,7 @@ async function testChannel(ch: AdminChannel) {
   }
 }
 .stat-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(1.6rem, 3vw, 2.1rem);
   font-weight: 800;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -388,7 +388,7 @@ async function testChannel(ch: AdminChannel) {
   color: rgb(var(--fg-muted));
 }
 .stat-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -456,7 +456,7 @@ async function testChannel(ch: AdminChannel) {
   background: rgb(var(--accent-warm));
 }
 .bucket-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -480,7 +480,7 @@ async function testChannel(ch: AdminChannel) {
   color: rgb(var(--fg-muted));
 }
 .bucket-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));

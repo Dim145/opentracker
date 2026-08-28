@@ -232,7 +232,7 @@ function formatDate(iso: string): string {
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 
 /* ── Segmented filter ─────────────────────────────────── */
@@ -259,7 +259,7 @@ function formatDate(iso: string): string {
   letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   transition:
     background var(--dur-2) ease,
     color var(--dur-2) ease,
@@ -287,7 +287,7 @@ function formatDate(iso: string): string {
   box-shadow: 0 0 0 3px rgb(var(--s) / 0.2);
 }
 .queue-segment-count {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   background: rgb(var(--s) / 0.18);
   color: rgb(var(--s));
@@ -318,7 +318,7 @@ function formatDate(iso: string): string {
 .queue-intro-pip {
   display: inline-flex;
   align-items: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.06em * var(--tracking-scale));
@@ -356,7 +356,7 @@ function formatDate(iso: string): string {
 }
 .queue-empty-glyph { font-size: 2rem; color: rgb(34 197 94); }
 .queue-empty-text {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
@@ -404,7 +404,7 @@ function formatDate(iso: string): string {
 .queue-row-name {
   grid-row: 1;
   grid-column: 1;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8438rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -438,7 +438,7 @@ function formatDate(iso: string): string {
   gap: 0.4rem;
 }
 .queue-row-meta dt {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;

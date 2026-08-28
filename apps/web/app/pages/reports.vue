@@ -479,7 +479,7 @@ function kindIcon(kind: string): string {
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1.25rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.28em * var(--tracking-scale));
@@ -510,7 +510,7 @@ function kindIcon(kind: string): string {
   flex-direction: column;
   line-height: 0.95;
   letter-spacing: calc(-0.035em * var(--tracking-scale));
-  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
 }
 .hero-title-line {
   display: block;
@@ -526,7 +526,7 @@ function kindIcon(kind: string): string {
 .hero-title-line--strong {
   color: rgb(var(--fg-strong));
   text-transform: uppercase;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(2rem, 5.5vw, 3.25rem);
   font-weight: 800;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -605,7 +605,7 @@ function kindIcon(kind: string): string {
 .kpi--dismissed { --rail: var(--danger); }
 
 .kpi-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(1.6rem, 3.4vw, 2.1rem);
   font-weight: 800;
   letter-spacing: calc(-0.03em * var(--tracking-scale));
@@ -617,7 +617,7 @@ function kindIcon(kind: string): string {
   gap: 0.35rem;
 }
 .kpi-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -636,7 +636,7 @@ function kindIcon(kind: string): string {
   border-top: 1px dashed rgb(var(--line-default));
 }
 .filter-line-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.28em * var(--tracking-scale));
@@ -653,7 +653,7 @@ function kindIcon(kind: string): string {
   background: rgb(var(--bg-elevated) / 0.45);
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-pill);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -783,7 +783,7 @@ function kindIcon(kind: string): string {
   border: 1px solid rgba(var(--rail), 0.4);
   background: rgba(var(--rail), 0.08);
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.08em * var(--tracking-scale));
@@ -798,7 +798,7 @@ function kindIcon(kind: string): string {
   display: inline-flex;
   align-items: baseline;
   gap: 0.45rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: calc(0.1em * var(--tracking-scale));
@@ -831,7 +831,7 @@ function kindIcon(kind: string): string {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-surface) / 0.55);
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -893,7 +893,7 @@ function kindIcon(kind: string): string {
   position: relative;
   margin: 0;
   padding: 0.65rem 1rem 0.65rem 1rem;
-  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.0313rem;
   font-style: italic;
   font-weight: 400;
@@ -910,7 +910,7 @@ function kindIcon(kind: string): string {
 }
 .entry-reason-mark {
   display: inline-block;
-  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.6em;
   font-weight: 700;
   line-height: 0;
@@ -950,7 +950,7 @@ function kindIcon(kind: string): string {
   border: 1px solid rgb(var(--danger) / 0.4);
   border-radius: var(--radius-sm);
   color: rgb(var(--danger));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -1017,7 +1017,7 @@ function kindIcon(kind: string): string {
   color: rgb(var(--danger));
 }
 .entry-resolution-meta {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1053,7 +1053,7 @@ function kindIcon(kind: string): string {
   background: rgb(var(--bg-surface) / 0.6);
   border-left: 3px solid rgba(var(--rail), 0.45);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 0.8438rem;
   font-style: italic;
   color: rgb(var(--fg-default));
@@ -1103,7 +1103,7 @@ function kindIcon(kind: string): string {
   width: 1px;
 }
 .empty-title {
-  font-family: 'Source Serif 4', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-style: italic;
   font-weight: 600;
@@ -1139,7 +1139,7 @@ function kindIcon(kind: string): string {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -1154,7 +1154,7 @@ function kindIcon(kind: string): string {
 }
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));

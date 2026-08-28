@@ -266,7 +266,7 @@ function formatReleaseDate(iso: string | null): string {
   background: rgba(167, 139, 250, 0.12);
   border: 1px solid rgba(167, 139, 250, 0.55);
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -343,7 +343,7 @@ function formatReleaseDate(iso: string | null): string {
   word-break: break-word;
 }
 .gcard-year {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 1rem;
   color: rgb(var(--fg-muted));
   font-weight: 600;
@@ -355,7 +355,7 @@ function formatReleaseDate(iso: string | null): string {
   gap: 0.35rem;
 }
 .gcard-genre {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -387,7 +387,7 @@ function formatReleaseDate(iso: string | null): string {
 }
 .gcard-stat strong { font-weight: 700; }
 .gcard-stat-suffix {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
 }
@@ -405,7 +405,7 @@ function formatReleaseDate(iso: string | null): string {
   gap: 0.35rem;
 }
 .gcard-section-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -448,7 +448,7 @@ function formatReleaseDate(iso: string | null): string {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));

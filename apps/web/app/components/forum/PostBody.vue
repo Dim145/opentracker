@@ -223,7 +223,7 @@ const blocks = computed<Block[]>(() => {
 
 <style scoped>
 .post-body-prose {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1rem;
   line-height: 1.65;
   color: rgb(var(--fg-default));
@@ -251,7 +251,7 @@ const blocks = computed<Block[]>(() => {
 }
 
 .post-body-prose :deep(.pb-code) {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.86em;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
@@ -268,7 +268,7 @@ const blocks = computed<Block[]>(() => {
   border-left: 3px solid rgb(var(--fg-default) / 0.4);
   border-radius: var(--radius-sm);
   overflow-x: auto;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.84rem;
   line-height: 1.55;
   letter-spacing: 0;

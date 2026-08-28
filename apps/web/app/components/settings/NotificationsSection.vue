@@ -1100,7 +1100,7 @@ async function saveRouting(silent = false) {
   border-bottom: 1px solid rgb(var(--line-default));
 }
 .ns-block-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -1125,7 +1125,7 @@ async function saveRouting(silent = false) {
   letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .ns-block-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1257,7 +1257,7 @@ async function saveRouting(silent = false) {
   letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .dest-target {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7188rem;
   color: rgb(var(--fg-muted));
   background: transparent;
@@ -1272,7 +1272,7 @@ async function saveRouting(silent = false) {
 }
 
 .dest-status {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1395,7 +1395,7 @@ async function saveRouting(silent = false) {
   margin: 0;
 }
 .dest-pub code {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7188rem;
   background: rgb(var(--bg-base) / 0.6);
   padding: 0.12rem 0.4rem;
@@ -1430,7 +1430,7 @@ async function saveRouting(silent = false) {
   gap: 0.4rem;
 }
 .field-opt {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1670,7 +1670,7 @@ async function saveRouting(silent = false) {
   letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .cat-stat {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1774,7 +1774,7 @@ async function saveRouting(silent = false) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-strong));

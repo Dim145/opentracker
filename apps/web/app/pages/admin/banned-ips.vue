@@ -589,7 +589,7 @@ async function onUnban(item: BannedIp) {
   flex-wrap: wrap;
 }
 .bl-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
@@ -673,7 +673,7 @@ async function onUnban(item: BannedIp) {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -723,7 +723,7 @@ async function onUnban(item: BannedIp) {
   margin-bottom: 1rem;
 }
 .section-number {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--danger));
@@ -768,7 +768,7 @@ async function onUnban(item: BannedIp) {
   min-width: 0;
 }
 .field-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -789,7 +789,7 @@ async function onUnban(item: BannedIp) {
   border-color: rgb(var(--fg-default) / 0.3);
 }
 .add-input--mono {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .btn-primary {
@@ -851,7 +851,7 @@ async function onUnban(item: BannedIp) {
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-strong));
   font-size: 0.85rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
 }
 .filter-search-input:focus {
   outline: none;
@@ -894,7 +894,7 @@ async function onUnban(item: BannedIp) {
   text-align: left;
   vertical-align: bottom;
   padding: 0.85rem 1rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -949,7 +949,7 @@ async function onUnban(item: BannedIp) {
 .cell--right { text-align: right; }
 .cell--center { text-align: center; }
 .cell--mono {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.78rem;
 }
@@ -959,14 +959,14 @@ async function onUnban(item: BannedIp) {
   gap: 0.6rem;
 }
 .cell--ip code {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 .ip-version {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.12em * var(--tracking-scale));
@@ -1000,7 +1000,7 @@ async function onUnban(item: BannedIp) {
   border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -1097,7 +1097,7 @@ async function onUnban(item: BannedIp) {
   gap: 1rem;
 }
 .pager-summary {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7188rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -1116,7 +1116,7 @@ async function onUnban(item: BannedIp) {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1129,7 +1129,7 @@ async function onUnban(item: BannedIp) {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
 }
@@ -1162,7 +1162,7 @@ async function onUnban(item: BannedIp) {
   cursor: not-allowed;
 }
 .pager-where {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   padding: 0 0.65rem;

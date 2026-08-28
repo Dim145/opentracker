@@ -245,7 +245,7 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -281,7 +281,7 @@ async function handleSubmit() {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -309,7 +309,7 @@ async function handleSubmit() {
 }
 .compose-blurb {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-size: 0.98rem;
   line-height: 1.55;
   color: var(--ink-soft);
@@ -353,7 +353,7 @@ async function handleSubmit() {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -376,7 +376,7 @@ async function handleSubmit() {
   background: rgb(var(--bg-elevated));
   color: var(--ink-fade);
   cursor: pointer;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.12em * var(--tracking-scale));
@@ -398,7 +398,7 @@ async function handleSubmit() {
 
 .compose-title-input {
   width: 100%;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.4rem;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -416,7 +416,7 @@ async function handleSubmit() {
 
 .compose-input {
   width: 100%;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.95rem;
   line-height: 1.55;
   letter-spacing: 0;
@@ -435,7 +435,7 @@ async function handleSubmit() {
 }
 .compose-counter {
   align-self: flex-end;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.08em * var(--tracking-scale));
   color: var(--ink-faint);
@@ -460,7 +460,7 @@ async function handleSubmit() {
   align-self: start;
 }
 .preview-eyebrow {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -485,7 +485,7 @@ async function handleSubmit() {
   align-items: center;
   gap: 0.4rem;
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -512,7 +512,7 @@ async function handleSubmit() {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
@@ -531,7 +531,7 @@ async function handleSubmit() {
 }
 .preview-empty {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-style: italic;
   color: var(--ink-faint);
   font-size: 0.95rem;
@@ -544,7 +544,7 @@ async function handleSubmit() {
   align-items: center;
   gap: 0.45rem;
   padding: 0.5rem 0.9rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));

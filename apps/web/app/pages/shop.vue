@@ -431,7 +431,7 @@ function onBalanceFromPool(value: number) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -491,7 +491,7 @@ function onBalanceFromPool(value: number) {
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.32em * var(--tracking-scale));
@@ -583,7 +583,7 @@ function onBalanceFromPool(value: number) {
 
 .balance-eyebrow {
   display: block;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.28em * var(--tracking-scale));
@@ -617,7 +617,7 @@ function onBalanceFromPool(value: number) {
 .balance-unit {
   display: block;
   margin-top: 0.45rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.28em * var(--tracking-scale));
@@ -763,7 +763,7 @@ function onBalanceFromPool(value: number) {
   gap: 0.5rem;
 }
 .piece-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -781,7 +781,7 @@ function onBalanceFromPool(value: number) {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -872,7 +872,7 @@ function onBalanceFromPool(value: number) {
   align-items: center;
   gap: 0.45rem;
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: calc(0.08em * var(--tracking-scale));
@@ -917,7 +917,7 @@ function onBalanceFromPool(value: number) {
   letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .piece-cost-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5313rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -940,7 +940,7 @@ function onBalanceFromPool(value: number) {
     color-mix(in srgb, rgb(var(--accent-warm)) 86%, black) 100%
   );
   color: rgb(var(--accent-warm-fg));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));

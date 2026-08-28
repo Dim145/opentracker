@@ -572,7 +572,7 @@ async function confirmDelete() {
   display: inline-flex;
   align-items: center;
   gap: 0.625rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.32em * var(--tracking-scale));
   text-transform: uppercase;
@@ -588,7 +588,7 @@ async function confirmDelete() {
 .reg-numeral {
   margin: 1.5rem 0 0.25rem;
   line-height: 0.9;
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 400;
   font-size: clamp(7rem, 14vw, 11rem);
@@ -611,7 +611,7 @@ async function confirmDelete() {
 }
 
 .reg-numeral-cap {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-size: 1.05rem;
   color: var(--ink-muted);
   font-style: italic;
@@ -638,7 +638,7 @@ async function confirmDelete() {
 }
 
 .reg-prose {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-size: 0.95rem;
   font-style: italic;
   line-height: 1.6;
@@ -658,7 +658,7 @@ async function confirmDelete() {
   gap: 0.375rem;
   padding: 0.3rem 0.625rem;
   border-radius: var(--radius-pill);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
@@ -744,7 +744,7 @@ async function confirmDelete() {
   margin-bottom: 1.5rem;
 }
 .draft-roman {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.5rem;
   color: var(--gild);
@@ -755,7 +755,7 @@ async function confirmDelete() {
   width: 28px;
 }
 .draft-title {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: 1.6rem;
@@ -784,7 +784,7 @@ async function confirmDelete() {
   margin: 0;
 }
 .draft-legend {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -824,14 +824,14 @@ async function confirmDelete() {
 }
 .draft-segment input { position: absolute; opacity: 0; pointer-events: none; }
 .draft-segment-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--ink-soft);
   letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .draft-segment-help {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.6875rem;
   color: var(--ink-muted);
@@ -910,14 +910,14 @@ async function confirmDelete() {
   font-size: 0.875rem;
 }
 .draft-cta-label {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: 1.125rem;
   letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .draft-cta-arrow {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 1.125rem;
   color: var(--gild);
   transition: transform var(--dur-4) ease;
@@ -935,7 +935,7 @@ async function confirmDelete() {
   color: var(--ink-muted);
   font-size: 0.8rem;
   font-style: italic;
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
 }
 .draft-empty-note :deep(svg),
 .draft-empty-note .iconify { color: rgb(var(--warning)); flex-shrink: 0; }
@@ -955,7 +955,7 @@ async function confirmDelete() {
   border-bottom: 1px solid rgb(var(--line-default));
 }
 .ledger-roman {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.5rem;
   color: var(--gild);
@@ -966,7 +966,7 @@ async function confirmDelete() {
   width: 28px;
 }
 .ledger-title {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: 1.6rem;
@@ -1010,7 +1010,7 @@ async function confirmDelete() {
 }
 
 .ledger-num {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.6rem;
   font-weight: 400;
@@ -1044,7 +1044,7 @@ async function confirmDelete() {
   margin-bottom: 0.375rem;
 }
 .ledger-code {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: var(--ink);
@@ -1060,7 +1060,7 @@ async function confirmDelete() {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1098,7 +1098,7 @@ async function confirmDelete() {
   gap: 0.4rem;
 }
 .ledger-meta dt {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1106,7 +1106,7 @@ async function confirmDelete() {
   font-weight: 500;
 }
 .ledger-meta dd {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   color: var(--ink-soft);
   margin: 0;
@@ -1180,7 +1180,7 @@ async function confirmDelete() {
   margin-bottom: 0.75rem;
 }
 .ledger-empty-headline {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.25rem;
   color: var(--ink-soft);
@@ -1217,7 +1217,7 @@ async function confirmDelete() {
     0 8px 24px -10px color-mix(in srgb, var(--gild) 60%, transparent);
 }
 .seal-eyebrow {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1225,7 +1225,7 @@ async function confirmDelete() {
   margin: 0 0 0.125rem;
 }
 .seal-title {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: 1.25rem;
@@ -1241,7 +1241,7 @@ async function confirmDelete() {
   gap: 1rem;
 }
 .seal-instruction {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.95rem;
   color: var(--ink-muted);
@@ -1277,7 +1277,7 @@ async function confirmDelete() {
 .seal-card-footer {
   display: flex;
   justify-content: space-between;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -1286,7 +1286,7 @@ async function confirmDelete() {
 .seal-card-flourish { color: var(--gild); font-size: 0.875rem; }
 .seal-code {
   display: block;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(0.95rem, 2vw, 1.2rem);
   letter-spacing: calc(0.06em * var(--tracking-scale));
   color: var(--ink);
@@ -1310,7 +1310,7 @@ async function confirmDelete() {
   gap: 0.5rem;
   padding: 0.7rem 1.1rem;
   border-radius: var(--radius-lg);
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.95rem;
   font-weight: 500;
@@ -1362,7 +1362,7 @@ async function confirmDelete() {
   align-items: flex-start;
   font-size: 0.75rem;
   color: var(--ink-muted);
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   line-height: 1.55;
   margin: 0;
@@ -1384,7 +1384,7 @@ async function confirmDelete() {
 /* ── Confirm modal ─────────────────────────────────── */
 .confirm-body { padding: 1.25rem; }
 .confirm-text {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1rem;
   color: var(--ink-soft);
@@ -1400,7 +1400,7 @@ async function confirmDelete() {
   font-size: 0.875rem;
   color: var(--ink-muted);
   font-style: italic;
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   margin: 0.625rem 0 0;
 }
 .confirm-footer {

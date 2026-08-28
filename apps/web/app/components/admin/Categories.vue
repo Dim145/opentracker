@@ -956,7 +956,7 @@ async function seedCategories() {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -1030,14 +1030,14 @@ async function seedCategories() {
   color: rgb(var(--fg-muted));
 }
 .stat-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 1.15rem;
   font-weight: 800;
   color: rgb(var(--fg-strong));
   letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .stat-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1115,7 +1115,7 @@ async function seedCategories() {
   background: rgb(var(--bg-inset));
 }
 .search-hits {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -1148,7 +1148,7 @@ async function seedCategories() {
 }
 .atlas-empty-title {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -1333,7 +1333,7 @@ async function seedCategories() {
   );
 }
 .entry-code-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   /* Sized so the widest legitimate Newznab id (199999, six digits)
      still fits inside the 64px call-number panel. */
   font-size: 0.85rem;
@@ -1347,7 +1347,7 @@ async function seedCategories() {
   font-size: 0.75rem;
 }
 .entry-code-dash {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 1.1rem;
   color: rgb(var(--fg-faint));
   font-weight: 700;
@@ -1381,7 +1381,7 @@ async function seedCategories() {
   gap: 0.4rem 0.6rem;
 }
 .entry-slug {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -1396,7 +1396,7 @@ async function seedCategories() {
   border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -1578,7 +1578,7 @@ async function seedCategories() {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -1649,7 +1649,7 @@ async function seedCategories() {
   );
 }
 .ed-card-code-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   /* Same sizing rule as the list rows — must fit 6-digit ids. */
   font-size: 0.85rem;
   font-weight: 800;
@@ -1659,7 +1659,7 @@ async function seedCategories() {
   line-height: 1;
 }
 .ed-card-code-dash {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 1.1rem;
   color: rgb(var(--fg-faint));
   font-weight: 700;
@@ -1687,7 +1687,7 @@ async function seedCategories() {
   gap: 0.4rem 0.55rem;
 }
 .ed-card-slug {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -1702,7 +1702,7 @@ async function seedCategories() {
   border-radius: var(--radius-sm);
   border: 1px solid rgba(244, 63, 94, 0.4);
   background: rgba(244, 63, 94, 0.06);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -1754,7 +1754,7 @@ async function seedCategories() {
   gap: 0.7rem;
 }
 .ed-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1766,7 +1766,7 @@ async function seedCategories() {
 }
 .ed-block-id h4 {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -1791,7 +1791,7 @@ async function seedCategories() {
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .ed-input--mono {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
@@ -1828,7 +1828,7 @@ async function seedCategories() {
   line-height: 1.5;
 }
 .ed-slug {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
@@ -1882,7 +1882,7 @@ async function seedCategories() {
   transition: color var(--dur-3) ease;
 }
 .ed-type-head {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -1927,7 +1927,7 @@ async function seedCategories() {
   min-width: 0;
 }
 .ed-adult-title {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.16em * var(--tracking-scale));

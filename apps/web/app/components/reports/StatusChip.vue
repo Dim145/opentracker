@@ -18,7 +18,7 @@ defineProps<{
   gap: 0.4rem;
   padding: 0.25rem 0.6rem;
   border-radius: var(--radius-pill);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));

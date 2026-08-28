@@ -431,7 +431,7 @@ function hexToRgba(hex: string, alpha: number): string {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -480,7 +480,7 @@ function hexToRgba(hex: string, alpha: number): string {
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 .ribbon-count {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -520,7 +520,7 @@ function hexToRgba(hex: string, alpha: number): string {
   background: rgb(var(--accent-warm));
 }
 .block-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -545,7 +545,7 @@ function hexToRgba(hex: string, alpha: number): string {
   line-height: 1.5;
 }
 .block-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -592,7 +592,7 @@ function hexToRgba(hex: string, alpha: number): string {
   min-width: 0;
 }
 .forge-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -617,7 +617,7 @@ function hexToRgba(hex: string, alpha: number): string {
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .forge-input--mono {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.82rem;
 }
 .forge-input::placeholder {
@@ -665,7 +665,7 @@ function hexToRgba(hex: string, alpha: number): string {
   border: 1px solid rgb(var(--accent-warm));
   color: rgb(var(--accent-warm-fg));
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -765,7 +765,7 @@ function hexToRgba(hex: string, alpha: number): string {
   height: 32px;
   border-radius: var(--radius-pill);
   overflow: hidden;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   cursor: default;
   transition: transform var(--dur-3) var(--ease-standard),
     box-shadow var(--dur-4) ease;
@@ -899,7 +899,7 @@ function hexToRgba(hex: string, alpha: number): string {
   color: rgb(var(--fg-muted));
   padding: 0.3rem 0.7rem;
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));

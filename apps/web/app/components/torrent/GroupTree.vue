@@ -451,7 +451,7 @@ function bestResolution(list: string[]): string | null {
   white-space: nowrap;
 }
 .lvl-label--ep {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 500;
   min-width: 2.5rem;
@@ -462,7 +462,7 @@ function bestResolution(list: string[]): string | null {
 
 .lvl-count,
 .lvl-res {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
@@ -480,7 +480,7 @@ function bestResolution(list: string[]): string | null {
 }
 
 .lvl-seed {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--online));
   min-width: 2.4rem;

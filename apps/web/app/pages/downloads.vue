@@ -384,7 +384,7 @@ watch(
 }
 .dl-eyebrow {
   margin: 0 0 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -410,7 +410,7 @@ watch(
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
@@ -504,7 +504,7 @@ watch(
   align-items: center;
   gap: 0.3rem;
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -532,13 +532,13 @@ watch(
   color: rgb(var(--fg-faint));
 }
 .dl-row-year {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 700;
   color: rgb(var(--fg-muted));
 }
 .dl-row-name {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7813rem;
   font-weight: 600;
   color: rgb(var(--fg-default));
@@ -557,7 +557,7 @@ watch(
   align-items: center;
   gap: 0.4rem;
   flex-wrap: wrap;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
 }
@@ -608,7 +608,7 @@ watch(
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -616,7 +616,7 @@ watch(
   color: rgb(var(--fg-subtle));
 }
 .dl-byte-val {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -661,7 +661,7 @@ watch(
   align-items: center;
   gap: 0.45rem;
   padding: 0.5rem 0.9rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -689,7 +689,7 @@ watch(
 }
 .dl-foot-summary {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;

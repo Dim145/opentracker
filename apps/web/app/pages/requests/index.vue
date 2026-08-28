@@ -412,7 +412,7 @@ function formatReward(n: number): string {
   align-items: center;
   gap: 0.6rem;
   margin: 0 0 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -420,7 +420,7 @@ function formatReward(n: number): string {
   color: rgb(var(--fg-muted));
 }
 .board-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.125rem;
   font-weight: 600;
@@ -441,7 +441,7 @@ function formatReward(n: number): string {
 
 .board-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: clamp(1.9rem, 4vw, 2.8rem);
@@ -467,7 +467,7 @@ function formatReward(n: number): string {
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--brass) / 0.55);
   border-radius: var(--radius-md);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -513,7 +513,7 @@ function formatReward(n: number): string {
   background: transparent;
   border: 0;
   border-radius: var(--radius-pill);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -578,7 +578,7 @@ function formatReward(n: number): string {
   background: rgb(var(--brass));
 }
 .board-mine-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -606,7 +606,7 @@ function formatReward(n: number): string {
   border: 1px solid rgb(var(--line-strong));
   border-radius: var(--radius-md);
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   transition: border-color var(--dur-3), box-shadow var(--dur-3);
@@ -625,7 +625,7 @@ function formatReward(n: number): string {
   justify-content: center;
   gap: 0.55rem;
   padding: 2.5rem 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -703,7 +703,7 @@ function formatReward(n: number): string {
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--phosphor) / 0.35);
   border-radius: var(--radius-pill);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -742,7 +742,7 @@ function formatReward(n: number): string {
   align-items: center;
   gap: 0.4rem;
   flex-wrap: wrap;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -760,7 +760,7 @@ function formatReward(n: number): string {
 
 .ticker-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.05rem;
   line-height: 1.25;
@@ -787,7 +787,7 @@ function formatReward(n: number): string {
     rgb(var(--bg-base));
   border: 1px solid rgb(var(--brass) / 0.55);
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   color: rgb(var(--brass));
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.1),
@@ -811,7 +811,7 @@ function formatReward(n: number): string {
   opacity: 0.75;
 }
 .ticker-reward-empty {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
@@ -878,7 +878,7 @@ function formatReward(n: number): string {
 }
 .empty-title {
   margin: 0.4rem 0 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.3rem;
@@ -901,7 +901,7 @@ function formatReward(n: number): string {
   color: rgb(var(--brass));
   border: 1px solid rgb(var(--brass) / 0.55);
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -931,7 +931,7 @@ function formatReward(n: number): string {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -946,7 +946,7 @@ function formatReward(n: number): string {
 }
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.08em * var(--tracking-scale));

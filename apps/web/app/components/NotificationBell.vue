@@ -361,7 +361,7 @@ function humanise(s: string): string {
   background: #f43f5e;
   color: #fff;
   border-radius: var(--radius-pill);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 800;
   letter-spacing: calc(0.02em * var(--tracking-scale));
@@ -413,7 +413,7 @@ function humanise(s: string): string {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
@@ -444,7 +444,7 @@ function humanise(s: string): string {
   min-width: 1.4rem;
   height: 1.1rem;
   padding: 0 0.35rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 800;
   background: rgba(244, 63, 94, 0.12);
@@ -498,7 +498,7 @@ function humanise(s: string): string {
   background: transparent;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
@@ -558,7 +558,7 @@ function humanise(s: string): string {
   align-items: center;
   gap: 0.65rem;
   padding: 2rem 1.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -715,7 +715,7 @@ function humanise(s: string): string {
 }
 .nbell-row-time {
   margin: 0.2rem 0 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
@@ -765,7 +765,7 @@ function humanise(s: string): string {
   justify-content: center;
   gap: 0.45rem;
   padding: 0.7rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));

@@ -1298,7 +1298,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 .drop-headline code {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-xs);
@@ -1314,7 +1314,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   gap: 0.4rem;
 }
 .drop-clear {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   text-transform: uppercase;
   letter-spacing: calc(0.12em * var(--tracking-scale));
@@ -1342,14 +1342,14 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   font-weight: 600;
 }
 .drop-mini-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
 }
 
 /* ─── Field hint + required marker ──────────────────────────── */
 .field-hint {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: none;
@@ -1506,7 +1506,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   font-weight: 600;
 }
 .result-meta code {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
 }
 .result-actions {

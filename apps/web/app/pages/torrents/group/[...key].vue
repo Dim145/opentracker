@@ -304,7 +304,7 @@ useHead(() => ({ title: title.value }));
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
@@ -322,7 +322,7 @@ useHead(() => ({ title: title.value }));
   color: rgb(var(--fg-strong));
 }
 .group-title--mono {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: clamp(0.8rem, 1.6vw, 1.1rem);
   line-height: 1.5;
   letter-spacing: 0;
@@ -331,7 +331,7 @@ useHead(() => ({ title: title.value }));
 }
 
 .group-year {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   font-weight: 400;
   color: rgb(var(--fg-faint));
@@ -356,7 +356,7 @@ useHead(() => ({ title: title.value }));
   font-weight: 600;
 }
 .metric.mono {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
 }
 .metric-sep {

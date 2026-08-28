@@ -757,7 +757,7 @@ async function resolveManual() {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-xs);
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
 }
 
@@ -880,7 +880,7 @@ async function resolveManual() {
 .picker-manual .id-tag--igdb { color: #a78bfa; }
 .picker-manual .id-tag--openlibrary { color: #d97706; }
 .picker-manual .id-input {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
 }
 .btn-ghost--small {

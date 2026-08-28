@@ -398,7 +398,7 @@ function hostOf(url: string): string {
   color: rgb(var(--fg-muted));
 }
 .fh-pulse-value {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.95rem;
   color: rgb(var(--tone));
 }
@@ -453,7 +453,7 @@ function hostOf(url: string): string {
 .fh-tile--error { --tone: var(--danger); }
 .fh-tile--warn { --tone: var(--warning); }
 .fh-tile-n {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 1.35rem;
   line-height: 1;
   color: rgb(var(--tone));
@@ -496,7 +496,7 @@ function hostOf(url: string): string {
   color: rgb(var(--fg-strong));
 }
 .fh-peer-url {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   color: rgb(var(--fg-subtle));
 }
@@ -550,7 +550,7 @@ function hostOf(url: string): string {
   transform: translateY(-1px);
 }
 .fh-store-n {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   font-weight: 600;
   color: rgb(var(--fg));
@@ -576,7 +576,7 @@ function hostOf(url: string): string {
   padding: 0.1rem 0.4rem;
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-subtle) / 0.8);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.68rem;
 }
 .fh-kind-k { color: rgb(var(--fg-muted)); }
@@ -602,7 +602,7 @@ function hostOf(url: string): string {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   color: rgb(var(--fg-muted));
 }
@@ -622,7 +622,7 @@ function hostOf(url: string): string {
   gap: 0.6rem;
   padding: 0.3rem 0;
   border-top: 1px solid rgb(var(--line-default) / 0.5);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.74rem;
   color: rgb(var(--fg-muted));
 }
@@ -659,7 +659,7 @@ function hostOf(url: string): string {
   border-radius: var(--radius-sm);
   background: rgb(var(--danger) / 0.1);
   color: rgb(var(--danger));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

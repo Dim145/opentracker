@@ -137,7 +137,7 @@ function formatNumber(n: number): string {
 .metric--leechers { --rail: #fb923c; --rail-glow: rgba(251, 146, 60, 0.4); }
 
 .metric-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
@@ -145,7 +145,7 @@ function formatNumber(n: number): string {
   color: rgb(var(--fg-muted));
 }
 .metric-value {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 2.45rem;
   font-weight: 800;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -162,7 +162,7 @@ function formatNumber(n: number): string {
   gap: 0.4rem;
   margin-top: auto;
   padding-top: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: calc(0.12em * var(--tracking-scale));

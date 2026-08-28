@@ -116,7 +116,7 @@ function print() {
   text-align: center;
 }
 .rcv-item code {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: calc(0.08em * var(--tracking-scale));
@@ -132,7 +132,7 @@ function print() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;

@@ -86,7 +86,7 @@ function fmtDate(d: string | null) {
 .ff-peers { display: flex; flex-direction: column; gap: 1.5rem; }
 .ff-peer-head { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; color: rgb(var(--fg-strong)); padding-bottom: 0.6rem; border-bottom: 1px solid rgb(var(--line-default)); margin-bottom: 0.7rem; }
 .ff-peer-head :deep(svg) { color: #7dd3fc; }
-.ff-c { font-family: var(--font-mono, monospace); font-size: 0.6875rem; color: rgb(var(--fg-subtle)); background: rgb(var(--bg-elevated)); border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-pill); padding: 0.05rem 0.45rem; margin-left: 0.2rem; }
+.ff-c { font-family: var(--font-mono); font-size: 0.6875rem; color: rgb(var(--fg-subtle)); background: rgb(var(--bg-elevated)); border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-pill); padding: 0.05rem 0.45rem; margin-left: 0.2rem; }
 .ff-topics { display: flex; flex-direction: column; gap: 0.5rem; list-style: none; }
 .ff-topic { padding: 0.7rem 0.9rem; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); background: rgb(var(--bg-surface)); transition: border-color var(--dur-2) ease; }
 .ff-topic:hover { border-color: rgb(var(--line-strong)); }

@@ -432,7 +432,7 @@ a.fid-work-name:hover {
 }
 .fid-work-size,
 .fid-work-seed {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
@@ -455,7 +455,7 @@ a.fid-work-name:hover {
 
 .fid-claim-input {
   width: 100%;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   resize: vertical;
 }
@@ -500,7 +500,7 @@ a.fid-work-name:hover {
 .fid-field select.input { min-width: 180px; }
 
 .section-head { display: flex; align-items: center; gap: 0.6rem; padding-bottom: 0.7rem; border-bottom: 1px solid rgb(var(--line-default)); margin-bottom: 1rem; }
-.section-tag { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--font-mono, monospace); font-size: 0.6563rem; font-weight: 700; text-transform: uppercase; letter-spacing: calc(0.05em * var(--tracking-scale)); color: rgb(var(--fg-muted)); }
+.section-tag { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--font-mono); font-size: 0.6563rem; font-weight: 700; text-transform: uppercase; letter-spacing: calc(0.05em * var(--tracking-scale)); color: rgb(var(--fg-muted)); }
 .section-tag :deep(svg) { color: var(--gold, rgb(var(--accent-warm))); font-size: 1rem; }
 .section-rule { flex: 1; height: 1px; background: rgb(var(--line-default)); }
 
@@ -511,7 +511,7 @@ a.fid-work-name:hover {
 .fid-item-head { display: flex; align-items: center; gap: 0.6rem; }
 .fid-handle { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.875rem; color: rgb(var(--fg-default)); }
 .fid-handle strong { color: rgb(var(--fg-strong)); }
-.fid-at { font-family: var(--font-mono, monospace); font-size: 0.7188rem; color: rgb(var(--fg-subtle)); }
+.fid-at { font-family: var(--font-mono); font-size: 0.7188rem; color: rgb(var(--fg-subtle)); }
 .fid-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.6563rem; font-weight: 600; padding: 0.12rem 0.45rem; border-radius: var(--radius-pill); border: 1px solid; text-transform: uppercase; letter-spacing: calc(0.03em * var(--tracking-scale)); }
 .fid-badge.ok { color: #4ade80; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
 .fid-badge.pending { color: #facc15; background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.3); }
@@ -522,13 +522,13 @@ a.fid-work-name:hover {
 .fid-pending { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid rgb(var(--line-default)); }
 .fid-instr { font-size: 0.7813rem; color: rgb(var(--fg-muted)); margin-bottom: 0.5rem; }
 .fid-code-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.fid-code { font-family: var(--font-mono, monospace); font-size: 0.7813rem; background: rgb(var(--bg-inset)); border: 1px dashed rgb(var(--line-strong)); border-radius: var(--radius-sm); padding: 0.35rem 0.6rem; color: var(--gold, rgb(var(--accent-warm))); user-select: all; }
+.fid-code { font-family: var(--font-mono); font-size: 0.7813rem; background: rgb(var(--bg-inset)); border: 1px dashed rgb(var(--line-strong)); border-radius: var(--radius-sm); padding: 0.35rem 0.6rem; color: var(--gold, rgb(var(--accent-warm))); user-select: all; }
 
 .fid-rep { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid rgb(var(--line-default)); }
 .fid-rep-title { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: calc(0.05em * var(--tracking-scale)); color: rgb(var(--fg-subtle)); }
 .fid-rep-stats { display: flex; gap: 1.25rem; margin-top: 0.5rem; flex-wrap: wrap; }
 .fid-stat { display: flex; flex-direction: column; gap: 0.1rem; }
 .fid-stat .k { font-size: 0.625rem; text-transform: uppercase; letter-spacing: calc(0.05em * var(--tracking-scale)); color: rgb(var(--fg-faint)); }
-.fid-stat .v { font-family: var(--font-mono, monospace); font-size: 0.9375rem; font-weight: 700; color: rgb(var(--fg-strong)); }
+.fid-stat .v { font-family: var(--font-mono); font-size: 0.9375rem; font-weight: 700; color: rgb(var(--fg-strong)); }
 .fid-rep-na { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: rgb(var(--fg-subtle)); }
 </style>

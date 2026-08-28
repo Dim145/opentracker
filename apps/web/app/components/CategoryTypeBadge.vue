@@ -45,7 +45,7 @@ defineProps<{
   border-radius: var(--radius-xs);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));

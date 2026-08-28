@@ -97,7 +97,7 @@ const window = computed<number[]>(() => {
   min-width: 2rem;
   height: 2rem;
   padding: 0 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 600;
   color: rgb(var(--fg-muted));

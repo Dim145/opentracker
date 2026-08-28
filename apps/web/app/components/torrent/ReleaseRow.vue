@@ -219,7 +219,7 @@ const age = computed(() =>
   align-items: center;
   flex-wrap: wrap;
   gap: 0.35rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   line-height: 1;
 }
@@ -278,7 +278,7 @@ const age = computed(() =>
 }
 
 .rr-team {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-faint));
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -291,7 +291,7 @@ const age = computed(() =>
 
 .rr-name {
   display: block;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -305,7 +305,7 @@ const age = computed(() =>
 }
 
 .rr-size {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-default));
   white-space: nowrap;
@@ -318,7 +318,7 @@ const age = computed(() =>
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   min-width: 2.4rem;
   justify-content: flex-end;
@@ -336,7 +336,7 @@ const age = computed(() =>
 }
 
 .rr-age {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-faint));
   white-space: nowrap;

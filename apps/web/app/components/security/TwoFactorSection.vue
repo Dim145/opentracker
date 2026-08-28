@@ -534,7 +534,7 @@ async function revokeDevice(id: string) {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
@@ -550,7 +550,7 @@ async function revokeDevice(id: string) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
@@ -601,7 +601,7 @@ async function revokeDevice(id: string) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
@@ -632,7 +632,7 @@ async function revokeDevice(id: string) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 0.85rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -686,7 +686,7 @@ async function revokeDevice(id: string) {
   gap: 1rem;
   padding: 0.65rem 1.1rem;
   border-bottom: 1px solid rgb(var(--line-default) / 0.6);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
 }
 .tfa-passkey-row:last-child {
@@ -744,7 +744,7 @@ async function revokeDevice(id: string) {
   background: rgb(var(--accent-fg));
 }
 .tfa-switch-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -768,7 +768,7 @@ async function revokeDevice(id: string) {
 .tfa-modal-or {
   margin: 0.4rem 0;
   text-align: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
@@ -783,7 +783,7 @@ async function revokeDevice(id: string) {
   color: rgb(var(--danger));
 }
 .field-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -797,7 +797,7 @@ async function revokeDevice(id: string) {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.92rem;
 }
 .input:focus {

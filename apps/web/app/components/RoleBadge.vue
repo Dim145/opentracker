@@ -60,7 +60,7 @@ const badgeStyle = computed(() => {
   padding: 0.18rem 0.6rem;
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: calc(0.12em * var(--tracking-scale));

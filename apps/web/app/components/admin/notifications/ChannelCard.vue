@@ -491,7 +491,7 @@ const relativeTime = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
@@ -572,7 +572,7 @@ const relativeTime = computed(() => {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.85rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
@@ -661,7 +661,7 @@ const relativeTime = computed(() => {
   gap: 0.4rem;
 }
 .field-opt {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.5938rem;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
@@ -761,7 +761,7 @@ const relativeTime = computed(() => {
 }
 .cc-error p {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   color: rgb(var(--fg-strong));
   word-break: break-word;
