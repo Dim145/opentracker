@@ -494,6 +494,50 @@ console.log('\n9b. the static build');
     'nothing would apply the cookie');
 }
 
+// ── 7d. A role a theme needs cannot be deleted out from under it ─────
+console.log('\n7d. deleting a role a theme requires');
+await resetRateLimits();
+{
+  // `themes.required_roles` is jsonb, so no foreign key can hold it, and the
+  // CHECK counts the array's length rather than resolving its ids. A theme left
+  // gated on a role nobody can hold is choosable by nobody and invisible to
+  // everyone — so the delete is refused, the way a font in use is.
+  const made = await req('founder', '/api/admin/roles', {
+    method: 'POST',
+    body: { name: 'E2E Doomed', color: '#123456', priority: 10, permissions: [] },
+  });
+  const roleId = made.body?.id ?? made.body?.role?.id;
+  check('role created', !!roleId, `status ${made.status}`);
+
+  await sleep(200);
+  const theme = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Gated', base: 'dark', duplicateOf: 'dark', enabled: true,
+      visibility: 'roles', requiredRoles: [roleId],
+    },
+  });
+  const themeId = theme.body?.id ?? theme.body?.theme?.id;
+  check('gated theme created', !!themeId, `status ${theme.status}`);
+
+  await resetRateLimits();
+  const refused = await req('founder', `/api/admin/roles/${roleId}`, { method: 'DELETE' });
+  check('deleting the role is refused', refused.status === 409, `status ${refused.status}`);
+  check('and the message names the theme',
+    String(refused.body?.message ?? '').includes('E2E Gated'),
+    JSON.stringify(refused.body).slice(0, 120));
+
+  // Ungate the theme and the role becomes deletable again.
+  await resetRateLimits();
+  await req('founder', `/api/admin/themes/${themeId}`, {
+    method: 'PUT', body: { visibility: 'site' },
+  });
+  const ok = await req('founder', `/api/admin/roles/${roleId}`, { method: 'DELETE' });
+  check('once nothing needs it, it deletes', ok.status === 200, `status ${ok.status}`);
+
+  await req('founder', `/api/admin/themes/${themeId}`, { method: 'DELETE' });
+}
+
 // ── 8. The enabled cap ───────────────────────────────────────────────
 console.log('\n8. the ten-theme cap');
 {

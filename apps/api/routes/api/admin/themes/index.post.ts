@@ -11,7 +11,7 @@
  * how somebody produces a theme that is not unreadable.
  */
 import { randomUUID } from 'node:crypto';
-import { count, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
@@ -21,10 +21,10 @@ import { BUILT_IN_THEMES } from '@trackarr/shared';
 import { BUILT_IN_TOKENS } from '@trackarr/shared/theme';
 import { createThemeSchema } from '~~/utils/themeSchemas';
 import {
-  MAX_ENABLED_THEMES,
   bumpThemeVersion,
   slugAvailable,
   slugify,
+  withThemeCap,
 } from '~~/utils/themes';
 
 export default defineEventHandler(async (event) => {
@@ -42,19 +42,11 @@ export default defineEventHandler(async (event) => {
   // The cap is on ENABLED themes, not on rows: every enabled one is emitted into
   // the stylesheet every visitor downloads, and that is the cost being bounded.
   // Keeping disabled drafts is free.
+  //
+  // Counted inside the transaction that writes, under an advisory lock — see
+  // `withThemeCap`. As a read-then-write it was a race: two requests at nine
+  // both counted nine and both wrote.
   const wantsEnabled = body.enabled ?? true;
-  if (wantsEnabled) {
-    const [{ n } = { n: 0 }] = await db
-      .select({ n: count() })
-      .from(schema.themes)
-      .where(eq(schema.themes.enabled, true));
-    if (Number(n) >= MAX_ENABLED_THEMES) {
-      throw createError({
-        statusCode: 400,
-        message: `At most ${MAX_ENABLED_THEMES} themes can be enabled at once. Disable one first, or create this as a draft.`,
-      });
-    }
-  }
 
   const slug = body.slug ?? slugify(body.name);
   if (!(await slugAvailable(slug))) {
@@ -96,19 +88,21 @@ export default defineEventHandler(async (event) => {
   if (body.tokens) tokens = { ...tokens, ...(body.tokens as Record<string, string>) };
 
   const id = randomUUID();
-  await db.insert(schema.themes).values({
-    id,
-    slug,
-    name: body.name,
-    description: body.description ?? null,
-    base,
-    tokens,
-    enabled: wantsEnabled,
-    position: body.position ?? 0,
-    visibility: body.visibility,
-    requiredRoles: body.visibility === 'roles' ? (body.requiredRoles ?? null) : null,
-    createdBy: user.id,
-  });
+  await withThemeCap(wantsEnabled, null, (tx) =>
+    tx.insert(schema.themes).values({
+      id,
+      slug,
+      name: body.name,
+      description: body.description ?? null,
+      base,
+      tokens,
+      enabled: wantsEnabled,
+      position: body.position ?? 0,
+      visibility: body.visibility,
+      requiredRoles: body.visibility === 'roles' ? (body.requiredRoles ?? null) : null,
+      createdBy: user.id,
+    }),
+  );
 
   await bumpThemeVersion();
   return { ok: true, id, slug };

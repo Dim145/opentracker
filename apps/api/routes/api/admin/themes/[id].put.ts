@@ -7,7 +7,7 @@
  * admin — and re-authenticates. Keeping it out of THIS body is what stops an
  * administrator reaching it through the route they are allowed to call.
  */
-import { and, count, eq, ne } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
@@ -16,9 +16,9 @@ import { validateBody } from '~~/utils/schemas';
 import { uploadTokenProblems } from '~~/utils/fonts';
 import { updateThemeSchema } from '~~/utils/themeSchemas';
 import {
-  MAX_ENABLED_THEMES,
   bumpThemeVersion,
   releaseThemeReferences,
+  withThemeCap,
 } from '~~/utils/themes';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
@@ -46,44 +46,36 @@ export default defineEventHandler(async (event) => {
   }
 
   // Only when it is being turned ON, and only counting the others: re-saving an
-  // already-enabled theme must not fail because it counts itself.
-  if (body.enabled === true && !existing.enabled) {
-    const [{ n } = { n: 0 }] = await db
-      .select({ n: count() })
-      .from(schema.themes)
-      .where(and(eq(schema.themes.enabled, true), ne(schema.themes.id, id)));
-    if (Number(n) >= MAX_ENABLED_THEMES) {
-      throw createError({
-        statusCode: 400,
-        message: `At most ${MAX_ENABLED_THEMES} themes can be enabled at once.`,
-      });
-    }
-  }
+  // already-enabled theme must not fail because it counts itself. Counted inside
+  // the transaction that writes, under an advisory lock — see `withThemeCap`.
+  const turningOn = body.enabled === true && !existing.enabled;
 
-  await db
-    .update(schema.themes)
-    .set({
-      ...(body.name !== undefined ? { name: body.name } : {}),
-      ...(body.description !== undefined
-        ? { description: body.description ?? null }
-        : {}),
-      ...(body.base !== undefined ? { base: body.base } : {}),
-      // A whole map, not a merge. `tokens` holds divergences, so "remove this
-      // override" has to be expressible — and a merge cannot express a deletion.
-      // The editor sends the complete set of overrides it wants to keep, which
-      // makes "reset to inherited" a delete rather than a write of a copied
-      // default. That is exactly what stops a theme forking from its base.
-      ...(body.tokens !== undefined
-        ? { tokens: body.tokens as Record<string, string> }
-        : {}),
-      ...(body.enabled !== undefined ? { enabled: body.enabled } : {}),
-      ...(body.position !== undefined ? { position: body.position } : {}),
-      visibility: body.visibility,
-      requiredRoles:
-        body.visibility === 'roles' ? (body.requiredRoles ?? null) : null,
-      updatedAt: new Date(),
-    })
-    .where(eq(schema.themes.id, id));
+  await withThemeCap(turningOn, id, (tx) =>
+    tx
+      .update(schema.themes)
+      .set({
+        ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.description !== undefined
+          ? { description: body.description ?? null }
+          : {}),
+        ...(body.base !== undefined ? { base: body.base } : {}),
+        // A whole map, not a merge. `tokens` holds divergences, so "remove this
+        // override" has to be expressible — and a merge cannot express a deletion.
+        // The editor sends the complete set of overrides it wants to keep, which
+        // makes "reset to inherited" a delete rather than a write of a copied
+        // default. That is exactly what stops a theme forking from its base.
+        ...(body.tokens !== undefined
+          ? { tokens: body.tokens as Record<string, string> }
+          : {}),
+        ...(body.enabled !== undefined ? { enabled: body.enabled } : {}),
+        ...(body.position !== undefined ? { position: body.position } : {}),
+        visibility: body.visibility,
+        requiredRoles:
+          body.visibility === 'roles' ? (body.requiredRoles ?? null) : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.themes.id, id)),
+  );
 
   // Turning a theme OFF removes it from the stylesheet, so anything still
   // pointing at it now points at a block that will not be emitted. The settings

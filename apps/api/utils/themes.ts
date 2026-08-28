@@ -33,7 +33,7 @@
  * in both. `/api/*` is same-origin through Caddy in either case, so `style-src
  * 'self'` covers it with no nonce and no `'unsafe-inline'` involvement.
  */
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, count, eq, ne, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import {
   BUILT_IN_THEMES,
@@ -431,6 +431,77 @@ export async function roleIdsFor(userId: string): Promise<string[]> {
     .from(schema.userRoles)
     .where(eq(schema.userRoles.userId, userId));
   return rows.map((r) => r.roleId);
+}
+
+/**
+ * Count the enabled themes and act on the answer, without a window in between.
+ *
+ * The cap used to be a read then a write, in autocommit: two requests arriving
+ * at nine enabled themes both counted nine, both wrote, and the instance ended
+ * up with eleven. That is not only one theme over — `enabledThemes()` has a
+ * `.limit(MAX_ENABLED_THEMES)` while `PUT /themes/settings` validates against an
+ * unlimited query, so the site default could point at the theme that falls off
+ * the end and no block for it would be emitted at all.
+ *
+ * `pg_advisory_xact_lock` rather than a constraint, because the rule is "at most
+ * ten rows with `enabled`" and Postgres has no way to express that declaratively.
+ * The same lock the ownership transfer takes, on its own key: these two never
+ * contend, and sharing a number would make them wait on each other for nothing.
+ */
+export const THEME_CAP_LOCK = 7415;
+
+export async function withThemeCap<T>(
+  wantsEnabled: boolean,
+  /** Rows already enabled that this write is not adding — the row being edited. */
+  exceptId: string | null,
+  run: (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => Promise<T>,
+): Promise<T> {
+  return db.transaction(async (tx) => {
+    if (wantsEnabled) {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${THEME_CAP_LOCK})`);
+      const [{ n } = { n: 0 }] = await tx
+        .select({ n: count() })
+        .from(schema.themes)
+        .where(
+          exceptId
+            ? and(eq(schema.themes.enabled, true), ne(schema.themes.id, exceptId))
+            : eq(schema.themes.enabled, true),
+        );
+      if (Number(n) >= MAX_ENABLED_THEMES) {
+        throw createError({
+          statusCode: 400,
+          message: `At most ${MAX_ENABLED_THEMES} themes can be enabled at once. Disable one first, or create this as a draft.`,
+        });
+      }
+    }
+    return run(tx);
+  });
+}
+
+/**
+ * Themes that would be left gated on nobody if this role went away.
+ *
+ * `themes.required_roles` is a `jsonb` array, so no foreign key can hold it —
+ * and a theme reserved to a role that no longer exists is worse than a dangling
+ * reference. It is choosable by nobody, invisible to everyone including the
+ * admin who made it, and the CHECK constraint cannot see it: the constraint
+ * counts array length, not whether the ids resolve.
+ *
+ * So role deletion is refused while a theme names the role, the same way font
+ * deletion is refused while a theme names the face. The admin then decides —
+ * widen the theme, point it at another role, or delete it — and nothing changes
+ * access implicitly. Silently opening a perk theme to everyone, or silently
+ * turning it off for the members holding it, are both worse than a sentence
+ * naming what is in the way.
+ */
+export async function themesRequiringRole(roleId: string): Promise<string[]> {
+  const rows = await db
+    .select({ name: schema.themes.name, requiredRoles: schema.themes.requiredRoles })
+    .from(schema.themes)
+    .where(eq(schema.themes.visibility, 'roles'));
+  return rows
+    .filter((r) => ((r.requiredRoles as string[] | null) ?? []).includes(roleId))
+    .map((r) => r.name);
 }
 
 /** Guard used by the write paths: is this slug free and allowed? */
