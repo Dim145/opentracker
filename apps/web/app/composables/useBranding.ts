@@ -55,8 +55,34 @@ export interface BrandingPayload {
 
 export async function useBranding() {
   const cached = useState<BrandingPayload | null>('branding', () => null);
+
+  /**
+   * Which session the cache was built for.
+   *
+   * This payload is MOSTLY session-independent, and its own note above says so —
+   * but `themes` is not: `/api/branding` filters it to what the caller may
+   * choose whenever any theme is role-gated. Cached forever, that made the
+   * picker list the PREVIOUS member's entitled themes after a logout and a login
+   * in the same tab, because `handleLogout` navigates client-side and never
+   * reloads the page.
+   *
+   * Comparing the id rather than clearing on logout catches both directions —
+   * signing in, and switching accounts — and costs one comparison.
+   */
+  const cachedFor = useState<string | null>('branding-session', () => null);
+  const { user } = useUserSession();
+  const uid = (user.value as { id?: string } | null)?.id ?? null;
+  if (cached.value && cachedFor.value !== uid) {
+    cached.value = null;
+    // The import draft is the other thing that outlives a session in this tab:
+    // an abandoned import would otherwise pre-fill the next member's "Create
+    // theme".
+    useState<unknown>('theme-import', () => null).value = null;
+  }
+
   // Already populated on a prior call this request — return it.
   if (cached.value) return cached;
+  cachedFor.value = uid;
 
   // `useFetch` with a stable `key` lets Nuxt dedupe parallel
   // callers (e.g. SSR rendering of /auth/login that mounts both
