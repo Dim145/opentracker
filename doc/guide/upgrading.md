@@ -197,6 +197,47 @@ data is a major upgrade the operator performs *offline* — it stops the cluster
 runs `pg_upgrade` and restarts. None of the above applies; read CloudNativePG's
 own documentation for it, and take a backup first regardless.
 
+## Upgrading to 0.33 or later — federation is owner-only
+
+Trackarr now distinguishes one account from the other administrators: the
+**owner**. There is nothing to run and no variable to set — the migration marks
+the oldest administrator account that is neither banned nor deleted, ordered by
+signup date. On almost every instance that is the founding account.
+
+**What changed hands.** Five federation routes moved from "any administrator" to
+"the owner": turning federation on or off, adding a peer, approving one, editing
+one, and removing one. Everything else about federation — the dashboard, the peer
+list, the logs, reconciliation status — is still open to administrators. The
+reason for the split is that a peer is a standing trust relationship with another
+operator's database, which is a different kind of decision from moderating a
+torrent.
+
+If federation is off, nothing on your instance changes.
+
+**If the wrong account was marked.** The owner can hand it over from the API:
+
+```
+POST /api/admin/owner/transfer   { "userId": "<another admin's id>" }
+```
+
+The recipient has to be an administrator, and the caller has to have entered
+their password or passkey recently — the same freshness check the account-erasure
+and 2FA routes use. Ownership is a single row: handing it over removes it from
+the sender in the same transaction, and a partial unique index makes two owners
+impossible to represent rather than merely unlikely.
+
+**If the owner account goes away.** Erasing it or banning it moves ownership to
+the oldest remaining eligible administrator, in the same transaction, so the
+instance is never ownerless while an administrator exists. If none is eligible,
+the flag stays where it is: an unreachable owner is recoverable — a nonexistent
+one is not.
+
+**Demoting the owner is refused**, and that is deliberate rather than an
+oversight. If a demotion silently moved ownership to the oldest remaining
+administrator, any administrator could take the instance by demoting the owner,
+and the audit log would read as a routine role change. Transfer it first, then
+demote.
+
 ## Upgrading to 0.27 or later — account secrets are encrypted at rest
 
 **Nothing is required. One thing is strongly recommended.**

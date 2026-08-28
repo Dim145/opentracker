@@ -13,7 +13,7 @@ import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
-import { requireAdminSession } from '~~/utils/adminAuth';
+import { requireOwnerSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 import {
@@ -36,7 +36,8 @@ const bodySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const session = await requireAdminSession(event);
+  // Owner, not admin: this opens a trust relationship with another instance.
+  const session = await requireOwnerSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
   const body = await validateBody(event, bodySchema);
 
