@@ -350,7 +350,7 @@ async function submit() {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  transition: color 0.15s, transform 0.2s;
+  transition: color var(--dur-2), transform var(--dur-4);
 }
 .filing-back:hover {
   color: rgb(var(--brass));
@@ -410,7 +410,7 @@ async function submit() {
     linear-gradient(180deg, rgba(255,255,255,0.025), transparent 50%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .filing-section-head {
   display: flex;
@@ -425,7 +425,7 @@ async function submit() {
   color: rgb(var(--brass));
   padding: 0.18rem 0.45rem;
   border: 1px solid rgb(var(--brass) / 0.4);
-  border-radius: 0.22rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--brass) / 0.08);
 }
 .filing-section-title {
@@ -465,7 +465,7 @@ async function submit() {
   padding: 0.55rem 0.7rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   color: rgb(var(--fg-muted));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10.5px;
@@ -473,7 +473,7 @@ async function submit() {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.15s, background 0.18s, border-color 0.18s, transform 0.18s;
+  transition: color var(--dur-2), background var(--dur-3), border-color var(--dur-3), transform var(--dur-3);
 }
 .filing-cat-chip:hover {
   color: rgb(var(--fg-strong));
@@ -497,7 +497,7 @@ async function submit() {
   justify-content: center;
   padding: 1.5rem 0;
 }
-.loader-spin { font-size: 1.2rem; animation: spin 0.9s linear infinite; }
+.loader-spin { font-size: 1.2rem; animation: spin calc(0.9s * var(--motion-scale)) linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .filing-input,
@@ -506,12 +506,12 @@ async function submit() {
   padding: 0.65rem 0.85rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   color: rgb(var(--fg-default));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 13px;
   line-height: 1.5;
-  transition: border-color 0.18s, box-shadow 0.18s;
+  transition: border-color var(--dur-3), box-shadow var(--dur-3);
 }
 .filing-textarea { resize: vertical; min-height: 120px; }
 .filing-input:focus,
@@ -582,7 +582,7 @@ async function submit() {
   padding: 0.7rem 0.85rem;
   background: rgb(var(--bg-base));
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
 }
 .filing-balance-row {
   display: flex;
@@ -636,7 +636,7 @@ async function submit() {
   padding: 0.65rem 1.2rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   font-weight: 800;
@@ -645,7 +645,7 @@ async function submit() {
   color: rgb(var(--fg-default));
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.2s;
+  transition: background var(--dur-3), border-color var(--dur-3), color var(--dur-3), transform var(--dur-4);
 }
 .filing-btn--ghost:hover {
   border-color: rgb(var(--fg-default) / 0.4);

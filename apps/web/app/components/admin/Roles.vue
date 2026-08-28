@@ -886,11 +886,11 @@ async function recompute() {
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color var(--dur-2), color var(--dur-2);
 }
 .rc-tool:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.35);
@@ -926,7 +926,7 @@ async function recompute() {
   gap: 0.5rem;
   padding: 4rem 1rem;
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-surface));
   color: rgb(var(--fg-muted));
   text-align: center;
@@ -965,7 +965,7 @@ async function recompute() {
   gap: 0.85rem;
   padding: 1.1rem 1.2rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.55rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-surface));
   position: relative;
   overflow: hidden;
@@ -993,7 +993,7 @@ async function recompute() {
 .role-card__dot {
   width: 0.65rem;
   height: 0.65rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   margin-top: 0.5rem;
   flex-shrink: 0;
   box-shadow: 0 0 0 2px rgb(var(--bg-surface)),
@@ -1034,7 +1034,7 @@ async function recompute() {
   align-items: center;
   gap: 0.3rem;
   padding: 0.05rem 0.45rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   text-transform: uppercase;
@@ -1073,7 +1073,7 @@ async function recompute() {
   align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.65rem;
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -1082,7 +1082,7 @@ async function recompute() {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgb(var(--fg-default));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .role-card__edit:hover {
   color: rgb(var(--fg-strong));
@@ -1138,7 +1138,7 @@ async function recompute() {
   gap: 0.45rem;
   padding: 0.18rem 0.55rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 10.5px;
@@ -1194,7 +1194,7 @@ async function recompute() {
   color: rgb(var(--fg-default));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   padding: 0.05rem 0.5rem;
   line-height: 1;
 }
@@ -1279,7 +1279,7 @@ async function recompute() {
 .color-pick {
   width: 2.4rem;
   height: 2.4rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   border: 1px solid rgb(var(--line-default));
   background: transparent;
   cursor: pointer;
@@ -1307,10 +1307,10 @@ async function recompute() {
   gap: 0.35rem;
   padding: 0.85rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-elevated));
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--dur-2), background var(--dur-2);
 }
 .mode-card:hover {
   border-color: rgb(var(--fg-default) / 0.25);
@@ -1355,7 +1355,7 @@ async function recompute() {
   gap: 1rem;
   padding: 0.85rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   cursor: pointer;
 }
@@ -1388,7 +1388,7 @@ async function recompute() {
   flex-shrink: 0;
   width: 2.6rem;
   height: 1.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   cursor: pointer;
@@ -1407,10 +1407,10 @@ async function recompute() {
   left: 2px;
   width: 1.15rem;
   height: 1.15rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-muted));
-  transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: transform var(--dur-3) var(--ease-standard);
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
 }
 .toggle--on .toggle-knob {
   transform: translateX(1.05rem);
@@ -1430,7 +1430,7 @@ async function recompute() {
   gap: 0.4rem;
   padding: 0.45rem 0.85rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 10.5px;
@@ -1467,7 +1467,7 @@ async function recompute() {
   gap: 0.4rem;
   padding: 0.45rem 0.65rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-surface));
 }
 @media (max-width: 720px) {
@@ -1510,7 +1510,7 @@ async function recompute() {
   justify-content: center;
   width: 1.85rem;
   height: 1.85rem;
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
@@ -1531,7 +1531,7 @@ async function recompute() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 0.85rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px dashed rgb(var(--line-default));
   background: transparent;
   color: rgb(var(--fg-muted));

@@ -343,9 +343,9 @@ onBeforeUnmount(() => {
   align-items: stretch;
   gap: 0;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-inset, var(--bg-elevated)));
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--dur-2) ease, box-shadow var(--dur-2) ease;
 }
 .icon-picker.is-open .icon-picker-control,
 .icon-picker-control:focus-within {
@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-default));
   font-size: 1.25rem;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--dur-2) ease, color var(--dur-2) ease;
 }
 .icon-picker-preview:hover:not(:disabled) {
   background: rgb(var(--bg-hover, var(--bg-elevated)));
@@ -417,18 +417,18 @@ onBeforeUnmount(() => {
   padding: 0.7rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   box-shadow:
-    0 24px 60px -20px rgba(0, 0, 0, 0.7),
-    0 6px 16px -8px rgba(0, 0, 0, 0.5),
+    0 24px 60px -20px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
+    0 6px 16px -8px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength))),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
   max-height: 24rem;
 }
 .icon-picker-panel-enter-active,
 .icon-picker-panel-leave-active {
   transition:
-    opacity 0.16s ease,
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity var(--dur-2) ease,
+    transform var(--dur-4) var(--ease-emphasis);
 }
 .icon-picker-panel-enter-from,
 .icon-picker-panel-leave-to {
@@ -440,12 +440,12 @@ onBeforeUnmount(() => {
   width: 100%;
   background: rgb(var(--bg-inset, var(--bg-elevated)));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   padding: 0.45rem 0.7rem;
   font-size: 0.85rem;
   color: rgb(var(--fg-default));
   outline: 0;
-  transition: border-color 0.15s ease;
+  transition: border-color var(--dur-2) ease;
 }
 .icon-picker-search:focus {
   border-color: rgb(var(--fg-default) / 0.4);
@@ -481,7 +481,7 @@ onBeforeUnmount(() => {
 }
 .icon-picker-grid::-webkit-scrollbar-thumb {
   background: rgb(var(--line-strong));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .icon-picker-cell {
@@ -493,15 +493,15 @@ onBeforeUnmount(() => {
   padding: 0.55rem 0.4rem 0.4rem;
   width: 100%;
   border: 1px solid transparent;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   background: transparent;
   color: rgb(var(--fg-default));
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease,
-    transform 0.18s ease;
+    background var(--dur-2) ease,
+    border-color var(--dur-2) ease,
+    color var(--dur-2) ease,
+    transform var(--dur-3) ease;
   text-align: center;
 }
 .icon-picker-cell:hover {
@@ -555,7 +555,7 @@ onBeforeUnmount(() => {
   gap: 0.3rem;
   background: transparent;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   padding: 0.25rem 0.55rem;
   font-family: inherit;
@@ -564,9 +564,9 @@ onBeforeUnmount(() => {
   text-transform: uppercase;
   cursor: pointer;
   transition:
-    color 0.15s ease,
-    border-color 0.15s ease,
-    background 0.15s ease;
+    color var(--dur-2) ease,
+    border-color var(--dur-2) ease,
+    background var(--dur-2) ease;
 }
 .icon-picker-clear:hover {
   color: rgb(var(--danger));

@@ -442,7 +442,7 @@ function timeAgo(d: string | null) {
 .fb-toolbar { margin-bottom: 1.25rem; display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .fb-search { position: relative; max-width: 480px; flex: 1; min-width: 220px; }
 .fb-modes { display: inline-flex; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0; }
-.fb-modes button { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; font-weight: 600; padding: 0.45rem 0.8rem; color: rgb(var(--fg-muted)); background: rgb(var(--bg-elevated)); border: none; cursor: pointer; transition: all 0.14s ease; }
+.fb-modes button { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; font-weight: 600; padding: 0.45rem 0.8rem; color: rgb(var(--fg-muted)); background: rgb(var(--bg-elevated)); border: none; cursor: pointer; transition: all var(--dur-2) ease; }
 .fb-modes button + button { border-left: 1px solid rgb(var(--line-default)); }
 .fb-modes button.active { color: #0a0a0a; background: rgb(var(--info, 56 189 248)); }
 .fb-modes button:not(.active):hover { background: rgb(var(--bg-hover)); color: rgb(var(--fg-default)); }
@@ -452,7 +452,7 @@ function timeAgo(d: string | null) {
 
 .fb-groups { display: flex; flex-direction: column; gap: 0.5rem; }
 .fb-list { border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); overflow: hidden; background: rgb(var(--bg-surface)); }
-.t-row { position: relative; display: grid; grid-template-columns: 38px 1fr auto auto auto auto; gap: 1rem; align-items: center; padding: 0.8rem 1rem; border-bottom: 1px solid rgb(var(--line-default)); transition: background 0.12s ease; }
+.t-row { position: relative; display: grid; grid-template-columns: 38px 1fr auto auto auto auto; gap: 1rem; align-items: center; padding: 0.8rem 1rem; border-bottom: 1px solid rgb(var(--line-default)); transition: background var(--dur-1) ease; }
 .t-row.menu-open { z-index: 30; }
 .t-row:last-child { border-bottom: none; }
 .t-row:hover { background: rgba(255, 255, 255, 0.025); }
@@ -466,32 +466,32 @@ function timeAgo(d: string | null) {
 .origin { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 10.5px; font-family: var(--font-mono, monospace); color: #7dd3fc; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.05rem 0.4rem; border-radius: var(--radius-sm); }
 .sources { position: relative; display: inline-flex; }
 .origin-multi { cursor: pointer; }
-.origin-multi .caret { font-size: 0.8em; opacity: 0.7; transition: transform 0.14s ease; }
+.origin-multi .caret { font-size: 0.8em; opacity: 0.7; transition: transform var(--dur-2) ease; }
 .sources.open .origin-multi .caret { transform: rotate(180deg); }
 /* --bg-* tokens are raw "r g b" triples meant for rgb(); a popover that
    overlays other rows needs an OPAQUE fill, so wrap them in rgb(). */
-.src-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; min-width: 232px; background: rgb(var(--bg-elevated)); border: 1px solid rgb(var(--line-strong)); border-radius: var(--radius-sm); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); padding: 4px; display: flex; flex-direction: column; gap: 2px; }
-.src-opt { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.4rem 0.55rem; border-radius: var(--radius-sm); font-size: 11.5px; color: rgb(var(--fg-muted)); transition: background 0.12s ease; }
+.src-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; min-width: 232px; background: rgb(var(--bg-elevated)); border: 1px solid rgb(var(--line-strong)); border-radius: var(--radius-sm); box-shadow: 0 10px 30px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength))); padding: 4px; display: flex; flex-direction: column; gap: 2px; }
+.src-opt { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.4rem 0.55rem; border-radius: var(--radius-sm); font-size: 11.5px; color: rgb(var(--fg-muted)); transition: background var(--dur-1) ease; }
 .src-opt:hover { background: rgb(var(--bg-hover)); color: rgb(var(--fg-default)); }
 .src-peer { display: inline-flex; align-items: center; gap: 0.3rem; color: #7dd3fc; font-family: var(--font-mono, monospace); white-space: nowrap; }
 .src-meta { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--font-mono, monospace); font-size: 10.5px; color: rgb(var(--fg-faint)); }
-.src-cat { color: rgb(var(--fg-subtle)); background: rgb(var(--bg-inset)); border: 1px solid rgb(var(--line-default)); border-radius: 99px; padding: 0.05rem 0.4rem; }
+.src-cat { color: rgb(var(--fg-subtle)); background: rgb(var(--bg-inset)); border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-pill); padding: 0.05rem 0.4rem; }
 .src-menu .s { color: #4ade80; }
 .src-menu .l { color: #fca5a5; }
 .uploader { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 11px; color: rgb(var(--fg-subtle)); }
 .uploader :deep(svg) { font-size: 0.95em; }
-.follow-btn { display: inline-flex; align-items: center; gap: 0.25rem; margin-left: 0.2rem; font-size: 10px; font-weight: 600; padding: 0.1rem 0.45rem; border-radius: 99px; border: 1px solid rgb(var(--line-strong)); background: rgb(var(--bg-elevated)); color: rgb(var(--fg-muted)); cursor: pointer; transition: all 0.14s ease; }
+.follow-btn { display: inline-flex; align-items: center; gap: 0.25rem; margin-left: 0.2rem; font-size: 10px; font-weight: 600; padding: 0.1rem 0.45rem; border-radius: var(--radius-pill); border: 1px solid rgb(var(--line-strong)); background: rgb(var(--bg-elevated)); color: rgb(var(--fg-muted)); cursor: pointer; transition: all var(--dur-2) ease; }
 .follow-btn:hover:not(:disabled) { color: rgb(var(--fg-default)); border-color: rgb(var(--fg-subtle)); }
 .follow-btn.is-following { color: #4ade80; border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.1); }
 .follow-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .dedupe { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 10.5px; color: rgb(var(--fg-subtle)); }
-.t-tag { font-size: 10.5px; color: rgb(var(--fg-subtle)); background: rgb(var(--bg-inset)); border: 1px solid rgb(var(--line-default)); border-radius: 99px; padding: 0.05rem 0.45rem; }
+.t-tag { font-size: 10.5px; color: rgb(var(--fg-subtle)); background: rgb(var(--bg-inset)); border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-pill); padding: 0.05rem 0.45rem; }
 .num { font-family: var(--font-mono, monospace); font-size: 12.5px; text-align: right; color: rgb(var(--fg-muted)); }
 .sl { display: flex; gap: 0.35rem; }
 .sl span { font-family: var(--font-mono, monospace); font-size: 11px; padding: 0.1rem 0.4rem; border-radius: var(--radius-sm); border: 1px solid; }
 .sl .s { color: #4ade80; background: rgba(34, 197, 94, 0.08); border-color: rgba(34, 197, 94, 0.25); }
 .sl .l { color: #fca5a5; background: rgba(239, 68, 68, 0.06); border-color: rgba(239, 68, 68, 0.2); }
-.fb-open { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; font-weight: 600; padding: 0.35rem 0.65rem; border-radius: var(--radius-sm); border: 1px solid rgb(var(--line-default)); background: rgb(var(--bg-elevated)); color: rgb(var(--fg-default)); transition: all 0.14s ease; white-space: nowrap; }
+.fb-open { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; font-weight: 600; padding: 0.35rem 0.65rem; border-radius: var(--radius-sm); border: 1px solid rgb(var(--line-default)); background: rgb(var(--bg-elevated)); color: rgb(var(--fg-default)); transition: all var(--dur-2) ease; white-space: nowrap; }
 .fb-open:hover { background: rgb(var(--bg-hover)); border-color: rgb(var(--line-strong)); }
 
 .fb-empty { text-align: center; padding: 3rem 1rem; color: rgb(var(--fg-subtle)); border: 1px dashed rgb(var(--line-default)); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; gap: 0.6rem; font-size: 13px; line-height: 1.5; }

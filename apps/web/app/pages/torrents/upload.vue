@@ -1251,10 +1251,10 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   gap: 0.5rem;
   padding: 2.5rem 1.5rem;
   border: 1.5px dashed rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-surface) / 0.4);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .drop-zone:hover,
 .drop-zone--dragging {
@@ -1276,7 +1276,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
 .drop-icon {
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   display: inline-flex;
@@ -1301,7 +1301,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   font-family: ui-monospace, SFMono-Regular, monospace;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   padding: 0 0.3rem;
   font-size: 0.75em;
 }
@@ -1320,10 +1320,10 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   letter-spacing: 0.12em;
   color: rgb(var(--fg-muted));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   padding: 0.1rem 0.5rem;
   margin-left: 0.5rem;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .drop-clear:hover {
   color: rgb(var(--fg-strong));
@@ -1449,7 +1449,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   padding: 2rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -1481,7 +1481,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   padding: 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.375rem;
+  border-radius: var(--radius-md);
   margin: 0;
 }
 .result-meta div {
@@ -1528,10 +1528,10 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px dashed rgb(var(--line-default));
   background: transparent;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .result-link:hover {
   color: rgb(var(--fg-strong));

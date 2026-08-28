@@ -128,13 +128,51 @@
   --container-pad:  1rem;
   --container-max:  1400px;
 
-  /* Radii — keep two: a small chrome radius (4px) and a card radius (6px) */
-  --radius-sm:      4px;
-  --radius-md:      6px;
+  /* Radii — one scalar, the rest derived.
+     `--radius` is the only value a theme sets; the five steps keep their
+     proportions as it moves, which is what makes a single number take the
+     corners from square to very round without any step overtaking another.
+     The multipliers are chosen so the defaults land exactly on the values this
+     codebase already used: 2 / 4 / 6 / 8 / 12 px.
+     `--radius-pill` is deliberately NOT derived — a pill is a pill at any
+     scale, and a theme that wants square pills has to be able to say so
+     without flattening every card with it. */
+  --radius:         6px;
+  --radius-xs:      calc(var(--radius) * 0.3333);
+  --radius-sm:      calc(var(--radius) * 0.6667);
+  --radius-md:      var(--radius);
+  --radius-lg:      calc(var(--radius) * 1.3333);
+  --radius-xl:      calc(var(--radius) * 2);
+  --radius-pill:    9999px;
 
-  /* Shadows */
-  --shadow-overlay: 0 24px 48px -12px rgba(0, 0, 0, 0.65);
-  --shadow-popover: 0 12px 32px -8px rgba(0, 0, 0, 0.55);
+  /* Motion — a multiplier, and two named curves.
+     The measured spread was seven durations between 120 ms and 220 ms across
+     528 declarations: one band, hand-tuned within itself. So the durations are
+     fixed here and `--motion-scale` moves all of them together, which is the
+     distinction a theme actually makes ("snappier", "slower") rather than six
+     independently editable numbers nobody would set.
+     `--motion-scale: 0` collapses every duration to zero and removes every
+     transition on the site. Not a special case — the same `calc()`. */
+  --motion-scale:   1;
+  --dur-1:          calc(120ms * var(--motion-scale));
+  --dur-2:          calc(150ms * var(--motion-scale));
+  --dur-3:          calc(180ms * var(--motion-scale));
+  --dur-4:          calc(200ms * var(--motion-scale));
+  --dur-slow:       calc(300ms * var(--motion-scale));
+  --ease-standard:  cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-emphasis:  cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Shadows.
+     `--shadow-strength` multiplies into the alpha of every shadow in the
+     codebase, so each of the 238 declarations keeps its own hand-tuned weight
+     while a theme moves the lot. `0` is the flat mode, and it needs no second
+     code path: every shadow simply resolves to a transparent colour.
+     `--shadow-color` is a triplet rather than a finished colour for the same
+     reason every other colour here is — so an alpha can be composed onto it. */
+  --shadow-color:   0 0 0;
+  --shadow-strength: 1;
+  --shadow-overlay: 0 24px 48px -12px rgb(var(--shadow-color) / calc(0.65 * var(--shadow-strength)));
+  --shadow-popover: 0 12px 32px -8px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
 }
 
 :root[data-theme='light'] {
@@ -184,8 +222,12 @@
   --accent-cool:    14 145 148;
   --accent-paper:   252 250 245;
 
-  --shadow-overlay: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
-  --shadow-popover: 0 12px 32px -8px rgba(0, 0, 0, 0.12);
+  /* The light theme restates only the two composed shadows, because its
+     alphas are genuinely different — a 0.65 black over white is a bruise. The
+     scalar and the colour are inherited from the block above, so a theme that
+     sets `--shadow-strength` still moves both. */
+  --shadow-overlay: 0 24px 48px -12px rgb(var(--shadow-color) / calc(0.18 * var(--shadow-strength)));
+  --shadow-popover: 0 12px 32px -8px rgb(var(--shadow-color) / calc(0.12 * var(--shadow-strength)));
 }
 
 /* =============================================================================
@@ -229,7 +271,7 @@
   ::-webkit-scrollbar-track { background: rgb(var(--bg-surface)); }
   ::-webkit-scrollbar-thumb {
     background: rgb(var(--line-default));
-    border-radius: 9999px;
+    border-radius: var(--radius-pill);
   }
   ::-webkit-scrollbar-thumb:hover { background: rgb(var(--line-strong)); }
 
@@ -255,7 +297,7 @@
   :focus-visible {
     outline: 2px solid rgb(var(--focus-ring));
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
   }
 
   /* Tabular numbers everywhere we present quantities */
@@ -291,7 +333,7 @@
     background-color: rgb(var(--bg-surface));
     border: 1px solid rgb(var(--line-default));
     border-radius: var(--radius-md);
-    transition: border-color 180ms ease, background-color 180ms ease;
+    transition: border-color var(--dur-3) ease, background-color var(--dur-3) ease;
   }
   .card:hover { border-color: rgb(var(--line-strong)); }
 
@@ -318,7 +360,10 @@
     border: 1px solid transparent;
     cursor: pointer;
     user-select: none;
-    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+    transition:
+      background-color var(--dur-2) ease,
+      color var(--dur-2) ease,
+      border-color var(--dur-2) ease;
   }
   .btn:disabled,
   .btn[disabled] {
@@ -383,7 +428,7 @@
     padding: 0.45rem 0.75rem;
     font-size: 0.875rem;
     line-height: 1.4;
-    transition: border-color 140ms ease, background-color 140ms ease;
+    transition: border-color var(--dur-2) ease, background-color var(--dur-2) ease;
   }
   .input::placeholder { color: rgb(var(--fg-faint)); }
   .input:focus {
@@ -487,7 +532,7 @@
     align-items: center;
     gap: 0.25rem;
     padding: 0.1rem 0.35rem;
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 0.625rem;
     font-weight: 700;

@@ -3206,6 +3206,9 @@
         "line": "Filets",
         "accent": "Accent — accent-warm est l'or que la majorité du site utilise",
         "semantic": "Couleurs d'état",
+        "elevation": "Élévation",
+        "shape": "Formes",
+        "motion": "Mouvement",
         "chrome": "Chrome",
         "ambience": "Ambiance (réservé — pas encore utilisé par l'interface)"
       }

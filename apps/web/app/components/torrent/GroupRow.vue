@@ -315,10 +315,10 @@ const age = computed(() => formatAge(props.group.latest));
 <style scoped>
 .grp {
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated) / 0.35);
   overflow: hidden;
-  transition: border-color 140ms ease;
+  transition: border-color var(--dur-2) ease;
 }
 .grp--open {
   border-color: rgb(167 139 250 / 0.4);
@@ -331,7 +331,7 @@ const age = computed(() => formatAge(props.group.latest));
   gap: 0.9rem;
   padding: 0.6rem 0.85rem;
   cursor: pointer;
-  transition: background-color 120ms ease;
+  transition: background-color var(--dur-1) ease;
 }
 .grp-head:hover {
   background: rgb(var(--bg-hover));
@@ -381,7 +381,7 @@ const age = computed(() => formatAge(props.group.latest));
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 2px 6px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: rgb(167 139 250 / 0.15);
   color: rgb(196 181 253);
   white-space: nowrap;
@@ -398,13 +398,13 @@ const age = computed(() => formatAge(props.group.latest));
   font-size: 0.625rem;
   font-weight: 500;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   border: 1px solid rgb(var(--line-strong));
   background: transparent;
   color: rgb(var(--fg-muted));
   cursor: pointer;
   white-space: nowrap;
-  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+  transition: border-color var(--dur-1) ease, color var(--dur-1) ease, background-color var(--dur-1) ease;
 }
 .grp-scope:hover {
   color: rgb(var(--fg-default));
@@ -441,7 +441,7 @@ const age = computed(() => formatAge(props.group.latest));
   font-size: 0.625rem;
   font-weight: 500;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   border: 1px solid rgb(56 189 248 / 0.35);
   background: rgb(56 189 248 / 0.1);
   color: rgb(125 211 252);
@@ -515,7 +515,7 @@ const age = computed(() => formatAge(props.group.latest));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   border-top: 1px dashed rgb(var(--line-default));
-  transition: color 120ms ease, background-color 120ms ease;
+  transition: color var(--dur-1) ease, background-color var(--dur-1) ease;
 }
 .grp-more:hover {
   color: #e5bf58;

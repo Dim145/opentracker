@@ -42,7 +42,7 @@ defineProps<{
   align-items: center;
   gap: 0.25rem;
   padding: 0.05rem 0.4rem;
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;

@@ -256,7 +256,7 @@ async function handleSubmit() {
 .compose-crumb-link {
   color: var(--ink-fade);
   text-decoration: none;
-  transition: color 0.12s;
+  transition: color var(--dur-1);
 }
 .compose-crumb-link:hover {
   color: var(--ink);
@@ -343,7 +343,7 @@ async function handleSubmit() {
   background: rgb(var(--bg-surface));
   border: 1px solid var(--rule);
   border-top: 3px solid var(--ink);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .compose-row {
   display: flex;
@@ -372,7 +372,7 @@ async function handleSubmit() {
   gap: 0.5rem;
   padding: 0.55rem 0.85rem;
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: var(--ink-fade);
   cursor: pointer;
@@ -381,7 +381,7 @@ async function handleSubmit() {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .cat-tile:hover {
   border-color: var(--rule-strong);
@@ -405,7 +405,7 @@ async function handleSubmit() {
   color: var(--ink);
   background: rgb(var(--bg-base));
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0.75rem 0.95rem;
   font-variation-settings: 'opsz' 48;
 }
@@ -424,7 +424,7 @@ async function handleSubmit() {
   font-weight: 400;
   background: rgb(var(--bg-base));
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0.85rem 1rem;
   color: var(--ink);
   resize: vertical;
@@ -477,7 +477,7 @@ async function handleSubmit() {
     radial-gradient(800px 200px at 0 0, rgb(var(--fg-default) / 0.04), transparent 60%),
     rgb(var(--bg-surface));
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border-top: 4px solid var(--ink);
 }
 .preview-section {
@@ -553,8 +553,8 @@ async function handleSubmit() {
   background: rgb(var(--bg-elevated));
   color: var(--ink-soft);
   cursor: pointer;
-  border-radius: 2px;
-  transition: all 0.15s;
+  border-radius: var(--radius-xs);
+  transition: all var(--dur-2);
 }
 .ed-btn:hover:not(:disabled) {
   background: var(--ink);

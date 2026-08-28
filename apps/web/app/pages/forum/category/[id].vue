@@ -319,7 +319,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   gap: 1rem;
   padding: 1.85rem 1.5rem 2rem 2.25rem;
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background:
     radial-gradient(800px 200px at 0% 0%, color-mix(in srgb, rgb(var(--accent)) 12%, transparent), transparent 60%),
     rgb(var(--bg-surface));
@@ -346,7 +346,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 .cat-crumb-link {
   color: var(--ink-fade);
   text-decoration: none;
-  transition: color 0.12s;
+  transition: color var(--dur-1);
 }
 .cat-crumb-link:hover {
   color: var(--ink);
@@ -371,7 +371,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   justify-content: center;
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, rgb(var(--accent)) 14%, transparent);
   border: 1px solid color-mix(in srgb, rgb(var(--accent)) 35%, transparent);
   color: rgb(var(--accent));
@@ -400,7 +400,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   display: inline-block;
   width: 4px;
   height: 4px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: var(--ink-faint);
 }
 .cat-banner-title {
@@ -465,7 +465,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 .cat-toolbar-sep {
   width: 4px;
   height: 4px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-faint));
 }
 .cat-toolbar-controls {
@@ -475,7 +475,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 .seg {
   display: inline-flex;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: rgb(var(--bg-surface));
 }
@@ -494,7 +494,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   border: 0;
   border-right: 1px solid rgb(var(--line-default));
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .seg-btn:last-child {
   border-right: 0;
@@ -524,8 +524,8 @@ async function handleDeleteTopic(topic: ForumTopic) {
   position: relative;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
-  transition: border-color 0.16s, transform 0.16s;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-2), transform var(--dur-2);
 }
 .topic-card:hover {
   border-color: rgb(var(--line-strong));
@@ -596,7 +596,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   color: rgb(var(--fg-muted));
 }
 .flag--pin {
@@ -734,13 +734,13 @@ async function handleDeleteTopic(topic: ForumTopic) {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
   cursor: pointer;
   opacity: 0;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .topic-card:hover .topic-card-delete,
 .topic-card:focus-within .topic-card-delete {
@@ -766,7 +766,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   gap: 0.85rem;
   padding: 3rem 1.5rem;
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .empty-icon {
   font-size: 2.5rem;
@@ -806,8 +806,8 @@ async function handleDeleteTopic(topic: ForumTopic) {
   height: 9rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
-  animation: shimmer 1.6s infinite;
+  border-radius: var(--radius-sm);
+  animation: shimmer calc(1.6s * var(--motion-scale)) infinite;
   background: linear-gradient(
     90deg,
     rgb(var(--bg-surface)) 0%,
@@ -820,7 +820,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   height: 5.5rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(
     90deg,
     rgb(var(--bg-surface)) 0%,
@@ -828,7 +828,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
     rgb(var(--bg-surface)) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
+  animation: shimmer calc(1.6s * var(--motion-scale)) infinite;
 }
 @keyframes shimmer {
   0%   { background-position: 100% 0; }
@@ -850,9 +850,9 @@ async function handleDeleteTopic(topic: ForumTopic) {
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   text-decoration: none;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .ed-btn:hover {
   background: rgb(var(--fg-strong));

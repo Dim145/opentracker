@@ -1219,7 +1219,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-bottom: 1.25rem;
-  transition: color 0.15s;
+  transition: color var(--dur-2);
 }
 .back-link:hover {
   color: rgb(var(--fg-strong));
@@ -1259,7 +1259,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.85rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid;
   font-size: 10px;
   font-weight: 700;
@@ -1310,7 +1310,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 0.75rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 @media (max-width: 960px) {
   .settings-nav {
@@ -1324,10 +1324,10 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: center;
   gap: 0.6rem;
   padding: 0.55rem 0.7rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   text-decoration: none;
   color: rgb(var(--fg-muted));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .settings-nav-link:hover {
   background: rgb(var(--bg-elevated));
@@ -1343,7 +1343,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   font-weight: 700;
   letter-spacing: 0.1em;
   padding: 0.1rem 0.3rem;
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   border: 1px solid currentColor;
   opacity: 0.7;
 }
@@ -1382,7 +1382,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   padding: 0.2rem 0.5rem;
 }
 .section-title {
@@ -1471,7 +1471,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 0.65rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
 }
 .readonly-value {
   flex: 1;
@@ -1499,9 +1499,9 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 0.95rem 1.1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-2);
 }
 .toggle-row:hover {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -1521,11 +1521,11 @@ onBeforeRouteLeave((_to, _from, next) => {
   flex-shrink: 0;
   width: 2.6rem;
   height: 1.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .toggle--on {
   background: #6cd161;
@@ -1537,9 +1537,9 @@ onBeforeRouteLeave((_to, _from, next) => {
   left: 1px;
   width: 1.25rem;
   height: 1.25rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-strong));
-  transition: transform 0.18s cubic-bezier(0.5, 0, 0.2, 1);
+  transition: transform var(--dur-3) cubic-bezier(0.5, 0, 0.2, 1);
 }
 .toggle--on .toggle-knob {
   background: rgb(var(--bg-base));
@@ -1582,13 +1582,13 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: center;
   gap: 0.85rem;
   padding: 0.85rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-surface));
   color: rgb(var(--fg-default));
   text-align: left;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .theme-btn:hover {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -1602,7 +1602,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   flex-shrink: 0;
   width: 0.85rem;
   height: 0.85rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
 }
 .theme-btn-body {
@@ -1651,7 +1651,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   color: rgb(var(--fg-muted));
   padding: 0.15rem 0.45rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
 }
 .appearance-block-title {
   margin: 0;
@@ -1681,17 +1681,17 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: stretch;
   gap: 0.85rem;
   padding: 0.85rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-surface));
   color: rgb(var(--fg-default));
   text-align: left;
   cursor: pointer;
   transition:
-    background 0.18s,
-    border-color 0.18s,
-    box-shadow 0.18s,
-    transform 0.12s;
+    background var(--dur-3),
+    border-color var(--dur-3),
+    box-shadow var(--dur-3),
+    transform var(--dur-1);
   position: relative;
   overflow: hidden;
 }
@@ -1706,7 +1706,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   left: calc(0.85rem + 2.6rem);
   width: 1px;
   background: rgb(var(--line-default));
-  transition: background 0.18s;
+  transition: background var(--dur-3);
 }
 .lang-btn:hover {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -1745,7 +1745,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   background-size: 200% 2px;
   background-repeat: no-repeat;
   background-position: -100% 0;
-  animation: lang-shimmer 1s linear infinite;
+  animation: lang-shimmer calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes lang-shimmer {
   to {
@@ -1768,7 +1768,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   font-weight: 700;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-default));
-  transition: color 0.18s;
+  transition: color var(--dur-3);
 }
 .lang-btn--active .lang-btn-code {
   color: rgb(var(--fg-strong));
@@ -1777,7 +1777,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   font-weight: 400;
   color: rgb(var(--fg-muted));
   margin: 0 0.08rem;
-  transition: color 0.18s;
+  transition: color var(--dur-3);
 }
 .lang-btn--active .lang-btn-bracket {
   color: rgb(var(--fg-strong));
@@ -1821,7 +1821,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.2rem;
   padding: 0.05rem 0.35rem;
   border: 1px solid rgb(var(--fg-strong) / 0.4);
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-strong));
   font-size: 9px;
   letter-spacing: 0.12em;
@@ -1845,7 +1845,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 1rem 1.1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   flex-wrap: wrap;
 }
 .action-card-body {
@@ -1882,7 +1882,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 1.1rem 1.2rem 1.5rem;
   background: rgb(var(--bg-surface));
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .password-actions {
   display: flex;
@@ -1915,13 +1915,13 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 0.95rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   border: 1px solid;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .btn-ghost {
   background: rgb(var(--bg-elevated));
@@ -1975,7 +1975,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 0.75rem 0.9rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
 }
 .info-grid dt {
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -2029,7 +2029,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   backdrop-filter: blur(10px);
   border-top: 1px solid rgb(var(--line-default));
   transform: translateY(0);
-  transition: transform 0.25s ease, opacity 0.25s ease;
+  transition: transform var(--dur-slow) ease, opacity var(--dur-slow) ease;
 }
 .action-bar--idle {
   transform: translateY(0);
@@ -2080,7 +2080,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 /* Password panel transition */
 .pwd-fade-enter-active,
 .pwd-fade-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity var(--dur-3) ease, transform var(--dur-3) ease;
 }
 .pwd-fade-enter-from,
 .pwd-fade-leave-to {
@@ -2096,7 +2096,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 .danger-card {
   border: 1px solid rgb(var(--danger) / 0.35);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-xl);
   background: rgb(var(--danger) / 0.04);
   padding: 1.25rem;
   display: flex;
@@ -2126,7 +2126,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .danger-input {
   padding: 0.55rem 0.7rem;
   border: 1px solid rgb(var(--danger) / 0.4);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-inset) / 0.6);
   color: rgb(var(--fg-default));
   font-size: 0.9rem;
@@ -2150,13 +2150,13 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.4rem;
   padding: 0.55rem 1rem;
   border: 1px solid rgb(var(--danger) / 0.6);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--danger) / 0.12);
   color: rgb(var(--danger));
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.14s ease;
+  transition: all var(--dur-2) ease;
 }
 .danger-btn:hover:not(:disabled) {
   background: rgb(var(--danger) / 0.2);

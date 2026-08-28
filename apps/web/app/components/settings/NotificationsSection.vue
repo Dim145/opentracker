@@ -1164,10 +1164,10 @@ async function saveRouting(silent = false) {
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   overflow: hidden;
-  transition: border-color 0.18s ease, background 0.18s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease;
   /* Staggered fade-in on mount — `--stagger` set inline as the row
      index × 40ms. Cheap orchestration, plays once. */
-  animation: dest-in 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: dest-in calc(0.36s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes dest-in {
@@ -1197,7 +1197,7 @@ async function saveRouting(silent = false) {
 }
 .dest--add .dest-head {
   cursor: pointer;
-  transition: background 0.18s ease;
+  transition: background var(--dur-3) ease;
 }
 .dest--add .dest-head:hover {
   background: rgb(var(--bg-hover) / 0.4);
@@ -1229,7 +1229,7 @@ async function saveRouting(silent = false) {
   border-radius: 50%;
   border: 2px solid rgb(var(--bg-elevated));
   background: rgb(var(--fg-faint));
-  transition: background 0.18s ease, box-shadow 0.18s ease;
+  transition: background var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .dest-glyph[data-status='ok'] .dest-glyph-dot {
   background: rgb(var(--online));
@@ -1310,7 +1310,7 @@ async function saveRouting(silent = false) {
   align-items: center;
   justify-content: center;
   font-size: 0.95rem;
-  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+  transition: background var(--dur-2) ease, color var(--dur-2) ease, border-color var(--dur-2) ease;
 }
 .dest-btn:hover:not(:disabled) {
   background: rgb(var(--bg-hover) / 0.5);
@@ -1335,7 +1335,7 @@ async function saveRouting(silent = false) {
 .dest-add-chevron {
   font-size: 0.95rem;
   color: rgb(var(--fg-muted));
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--dur-4) cubic-bezier(0.4, 0, 0.2, 1);
 }
 .rotate-180 {
   transform: rotate(180deg);
@@ -1450,7 +1450,7 @@ async function saveRouting(silent = false) {
   color: rgb(var(--fg-strong));
   font-size: 0.85rem;
   font-family: inherit;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .field-input:focus {
   outline: none;
@@ -1545,8 +1545,8 @@ async function saveRouting(silent = false) {
   padding: 0.85rem;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease,
-    transform 0.18s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease,
+    transform var(--dur-3) ease;
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
@@ -1595,7 +1595,7 @@ async function saveRouting(silent = false) {
   font-weight: 600;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
 }
 .route-quick-btn:hover {
@@ -1623,7 +1623,7 @@ async function saveRouting(silent = false) {
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   overflow: hidden;
-  animation: dest-in 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: dest-in calc(0.36s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .cat[open] {
@@ -1637,7 +1637,7 @@ async function saveRouting(silent = false) {
   padding: 0.7rem 0.95rem;
   cursor: pointer;
   list-style: none;
-  transition: background 0.16s ease;
+  transition: background var(--dur-2) ease;
 }
 .cat-head::-webkit-details-marker {
   display: none;
@@ -1697,7 +1697,7 @@ async function saveRouting(silent = false) {
   font-family: inherit;
   min-width: 140px;
   cursor: pointer;
-  transition: border-color 0.18s ease;
+  transition: border-color var(--dur-3) ease;
 }
 .cat-bulk:hover {
   border-color: rgb(var(--accent-warm) / 0.45);
@@ -1705,7 +1705,7 @@ async function saveRouting(silent = false) {
 .cat-chevron {
   font-size: 0.9rem;
   color: rgb(var(--fg-muted));
-  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform calc(0.24s * var(--motion-scale)) cubic-bezier(0.4, 0, 0.2, 1);
 }
 .cat[open] .cat-chevron {
   transform: rotate(180deg);
@@ -1737,7 +1737,7 @@ async function saveRouting(silent = false) {
   gap: 1rem;
   padding: 0.6rem 0.5rem;
   border-bottom: 1px solid rgb(var(--line-default) / 0.5);
-  transition: background 0.16s ease;
+  transition: background var(--dur-2) ease;
 }
 .event:last-child {
   border-bottom: 0;
@@ -1780,7 +1780,7 @@ async function saveRouting(silent = false) {
   color: rgb(var(--fg-strong));
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.22rem 0.55rem 0.22rem 0.5rem;
   pointer-events: none;
 }
@@ -1856,7 +1856,7 @@ async function saveRouting(silent = false) {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
 }
 .btn:hover:not(:disabled) {
@@ -1883,8 +1883,8 @@ async function saveRouting(silent = false) {
 /* ── Transitions ──────────────────────────────────────────── */
 .drawer-enter-active,
 .drawer-leave-active {
-  transition: max-height 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease;
+  transition: max-height var(--dur-slow) var(--ease-standard),
+    opacity var(--dur-4) ease;
   overflow: hidden;
 }
 .drawer-enter-from,
@@ -1900,8 +1900,8 @@ async function saveRouting(silent = false) {
 
 .save-bar-enter-active,
 .save-bar-leave-active {
-  transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease;
+  transition: transform 0.28s var(--ease-standard),
+    opacity var(--dur-4) ease;
 }
 .save-bar-enter-from,
 .save-bar-leave-to {
@@ -1910,7 +1910,7 @@ async function saveRouting(silent = false) {
 }
 
 .spin {
-  animation: ns-spin 1s linear infinite;
+  animation: ns-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes ns-spin {
   to {

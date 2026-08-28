@@ -256,7 +256,7 @@ useHead(() => ({ title: title.value }));
 .group-poster {
   margin: 0;
   aspect-ratio: 2 / 3;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
@@ -278,7 +278,7 @@ useHead(() => ({ title: title.value }));
     rgb(var(--bg-elevated)) 70%
   );
   background-size: 300% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
+  animation: shimmer calc(1.4s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes shimmer {
   to {
@@ -388,12 +388,12 @@ useHead(() => ({ title: title.value }));
   font-size: 0.6875rem;
   font-weight: 500;
   padding: 3px 9px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   border: 1px solid rgb(var(--line-strong));
   background: transparent;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+  transition: border-color var(--dur-1) ease, color var(--dur-1) ease, background-color var(--dur-1) ease;
 }
 .group-scope:hover {
   color: rgb(var(--fg-default));
@@ -407,7 +407,7 @@ useHead(() => ({ title: title.value }));
 
 .group-tree {
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 

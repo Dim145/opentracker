@@ -47,7 +47,7 @@ const isAdmin = computed(() => Boolean(user.value?.isAdmin));
   margin: 0 auto 1.75rem;
   display: grid;
   place-items: center;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px dashed var(--color-border, rgb(255 255 255 / 0.12));
   color: var(--color-text-secondary, rgb(255 255 255 / 0.45));
   font-size: 2rem;
@@ -84,11 +84,11 @@ const isAdmin = computed(() => Boolean(user.value?.isAdmin));
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 1.1rem;
-  border-radius: 0.6rem;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--color-border, rgb(255 255 255 / 0.12));
   color: var(--color-text-secondary, rgb(255 255 255 / 0.7));
   font-size: 0.9rem;
-  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  transition: background-color var(--dur-2), color var(--dur-2), border-color var(--dur-2);
 }
 
 .fed-off-btn:hover {

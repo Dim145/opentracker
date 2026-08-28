@@ -568,7 +568,7 @@ async function revokeDevice(id: string) {
 .tfa-card {
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .tfa-card-head {
@@ -588,7 +588,7 @@ async function revokeDevice(id: string) {
   justify-content: center;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .tfa-card-title {
   margin: 0;
@@ -610,7 +610,7 @@ async function revokeDevice(id: string) {
 .tfa-dot {
   width: 6px;
   height: 6px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
 }
 .tfa-dot--on {
   background: rgb(var(--online));
@@ -637,9 +637,9 @@ async function revokeDevice(id: string) {
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.14s;
+  transition: all var(--dur-2);
   border: 1px solid rgb(var(--line-default));
 }
 .btn-primary {
@@ -720,9 +720,9 @@ async function revokeDevice(id: string) {
   height: 1.2rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   position: relative;
-  transition: all 0.14s;
+  transition: all var(--dur-2);
 }
 .tfa-switch-track::after {
   content: '';
@@ -732,8 +732,8 @@ async function revokeDevice(id: string) {
   width: 0.85rem;
   height: 0.85rem;
   background: rgb(var(--fg-muted));
-  border-radius: 9999px;
-  transition: all 0.14s;
+  border-radius: var(--radius-pill);
+  transition: all var(--dur-2);
 }
 .tfa-switch input:checked + .tfa-switch-track {
   background: rgb(var(--fg-strong));
@@ -794,7 +794,7 @@ async function revokeDevice(id: string) {
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-family: 'JetBrains Mono', ui-monospace, monospace;

@@ -59,7 +59,7 @@ const badgeStyle = computed(() => {
   gap: 0.4rem;
   padding: 0.18rem 0.6rem;
   border: 1px solid transparent;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 10.5px;
   font-weight: 800;
@@ -75,7 +75,7 @@ const badgeStyle = computed(() => {
 .role-badge__dot {
   width: 6px;
   height: 6px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: var(--role-c, #6b7280);
   flex-shrink: 0;
   /* A faint glow lets the dot read as "live" without depending on the

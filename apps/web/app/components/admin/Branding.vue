@@ -949,7 +949,7 @@ async function discard() {
   .adm-preview::-webkit-scrollbar { width: 4px; }
   .adm-preview::-webkit-scrollbar-thumb {
     background: rgb(var(--accent-warm) / 0.25);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
   }
 }
 
@@ -980,7 +980,7 @@ async function discard() {
 .preview-tick {
   font-size: 9px;
   color: rgba(108, 209, 97, 0.85);
-  animation: pulse 2.4s ease-in-out infinite;
+  animation: pulse calc(2.4s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes pulse {
   0%, 100% { opacity: 0.4; }
@@ -1021,7 +1021,7 @@ async function discard() {
   border-radius: var(--radius-md);
   overflow: hidden;
   background: rgb(var(--bg-elevated));
-  box-shadow: 0 8px 24px -22px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 8px 24px -22px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
 }
 .sample-surface::before {
   /* Gold hairline along the top of every surface — visual
@@ -1128,7 +1128,7 @@ async function discard() {
   height: 16px;
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 }
 .tab-fav-img {
@@ -1202,7 +1202,7 @@ async function discard() {
   padding: 0.22rem 0.55rem;
   background: rgb(var(--accent-warm) / 0.08);
   border: 1px solid rgb(var(--accent-warm) / 0.35);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 9px;
   font-weight: 700;
@@ -1257,7 +1257,7 @@ async function discard() {
   height: 6px;
   border-radius: 50%;
   background: rgb(var(--accent-warm) / 0.4);
-  transition: background 0.2s ease;
+  transition: background var(--dur-4) ease;
 }
 .hero-feature-dot:hover { background: rgb(var(--accent-warm) / 0.8); }
 
@@ -1353,7 +1353,7 @@ async function discard() {
   font-family: inherit;
   width: 100%;
   min-width: 0;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .field-input:focus {
   outline: none;
@@ -1402,7 +1402,7 @@ async function discard() {
   font-size: 0.78rem;
   cursor: pointer;
   padding: 0;
-  transition: color 0.16s ease;
+  transition: color var(--dur-2) ease;
 }
 .aux-reset:hover { color: rgb(var(--accent-warm)); }
 
@@ -1424,8 +1424,8 @@ async function discard() {
   width: 38px;
   height: 22px;
   background: rgb(var(--line-default));
-  border-radius: 999px;
-  transition: background 0.2s ease;
+  border-radius: var(--radius-pill);
+  transition: background var(--dur-4) ease;
 }
 .aux-toggle-track::after {
   content: '';
@@ -1436,8 +1436,8 @@ async function discard() {
   height: 18px;
   background: rgb(var(--bg-elevated));
   border-radius: 50%;
-  transition: transform 0.2s ease, background 0.18s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform var(--dur-4) ease, background var(--dur-3) ease;
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(0.35 * var(--shadow-strength)));
 }
 .aux-toggle-input:checked + .aux-toggle-track {
   background: rgb(var(--accent-warm));
@@ -1480,7 +1480,7 @@ async function discard() {
   color: rgb(var(--fg-muted));
   cursor: pointer;
   border-radius: calc(var(--radius-sm) - 1px);
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .segment:hover { color: rgb(var(--fg-strong)); }
 .segment--active {
@@ -1535,7 +1535,7 @@ async function discard() {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-size: 1.1rem;
 }
 .quick-icon:hover {
@@ -1604,7 +1604,7 @@ async function discard() {
   font-size: 0.78rem;
   cursor: pointer;
   align-self: flex-start;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--dur-2) ease;
 }
 .dropfile-remove:hover { opacity: 0.85; }
 
@@ -1621,8 +1621,8 @@ async function discard() {
   text-align: center;
   color: rgb(var(--fg-muted));
   font-size: 0.82rem;
-  transition: border-color 0.16s ease, background 0.16s ease,
-    color 0.16s ease;
+  transition: border-color var(--dur-2) ease, background var(--dur-2) ease,
+    color var(--dur-2) ease;
 }
 .dropzone:hover {
   border-color: rgb(var(--accent-warm) / 0.45);
@@ -1678,7 +1678,7 @@ async function discard() {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
-  animation: feature-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: feature-in calc(0.4s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes feature-in {
@@ -1745,8 +1745,8 @@ async function discard() {
 }
 .savebar-enter-active,
 .savebar-leave-active {
-  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease;
+  transition: transform var(--dur-slow) var(--ease-standard),
+    opacity var(--dur-4) ease;
 }
 .savebar-enter-from,
 .savebar-leave-to {
@@ -1767,7 +1767,7 @@ async function discard() {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
   white-space: nowrap;
 }
@@ -1788,7 +1788,7 @@ async function discard() {
 }
 
 .spin {
-  animation: br-spin 1s linear infinite;
+  animation: br-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes br-spin {
   to { transform: rotate(360deg); }

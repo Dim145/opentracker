@@ -105,7 +105,7 @@ function print() {
 .rcv-item {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   padding: 0.4rem 0.65rem;
   text-align: center;
 }
@@ -132,7 +132,7 @@ function print() {
   text-transform: uppercase;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   color: rgb(var(--fg-muted));
   cursor: pointer;
 }

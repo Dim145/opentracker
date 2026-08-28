@@ -1496,11 +1496,11 @@ async function onDetachRole(roleId: string) {
   justify-content: center;
   width: 2.25rem;
   height: 2.25rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .tool-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));
@@ -1537,8 +1537,8 @@ async function onDetachRole(roleId: string) {
   padding: 1rem 1.1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
-  transition: all 0.15s;
+  border-radius: var(--radius-lg);
+  transition: all var(--dur-2);
 }
 .kpi[role='button'] {
   cursor: pointer;
@@ -1579,13 +1579,13 @@ async function onDetachRole(roleId: string) {
   display: inline-block;
   width: 6px;
   height: 6px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-muted));
 }
 .kpi-dot--green {
   background: #6cd161;
   box-shadow: 0 0 0 0 rgba(108, 209, 97, 0.6);
-  animation: kpi-pulse 2s infinite;
+  animation: kpi-pulse calc(2s * var(--motion-scale)) infinite;
 }
 @keyframes kpi-pulse {
   0% {
@@ -1622,7 +1622,7 @@ async function onDetachRole(roleId: string) {
   padding: 1rem 1.1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .filter-search {
   position: relative;
@@ -1640,7 +1640,7 @@ async function onDetachRole(roleId: string) {
   width: 100%;
   padding: 0.7rem 0.95rem 0.7rem 2.6rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-strong));
   font-size: 0.9rem;
@@ -1666,7 +1666,7 @@ async function onDetachRole(roleId: string) {
   justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   color: rgb(var(--fg-muted));
 }
 .filter-search-clear:hover {
@@ -1698,7 +1698,7 @@ async function onDetachRole(roleId: string) {
 .filter-select-input {
   padding: 0.55rem 0.75rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-size: 0.78rem;
@@ -1721,10 +1721,10 @@ async function onDetachRole(roleId: string) {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   align-self: flex-end;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .filter-reset:hover {
   color: rgb(var(--fg-strong));
@@ -1738,7 +1738,7 @@ async function onDetachRole(roleId: string) {
   overflow-x: auto;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 
 .reg-table {
@@ -1777,13 +1777,13 @@ async function onDetachRole(roleId: string) {
 }
 .th--sortable span {
   display: inline-block;
-  transition: color 0.15s;
+  transition: color var(--dur-2);
 }
 .th--sortable .th-sort-icon {
   margin-left: 0.35rem;
   font-size: 0.85em;
   opacity: 0.4;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-2);
   vertical-align: -2px;
 }
 .th--sortable:hover span {
@@ -1802,7 +1802,7 @@ async function onDetachRole(roleId: string) {
 
 .row {
   border-bottom: 1px solid rgb(var(--line-default) / 0.6);
-  transition: background 0.12s;
+  transition: background var(--dur-1);
 }
 .row:last-child {
   border-bottom: 0;
@@ -1828,8 +1828,8 @@ async function onDetachRole(roleId: string) {
     rgb(var(--bg-elevated))
   );
   background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
-  border-radius: 9999px;
+  animation: shimmer calc(1.6s * var(--motion-scale)) infinite;
+  border-radius: var(--radius-pill);
   margin: 0.25rem 0;
 }
 @keyframes shimmer {
@@ -1875,7 +1875,7 @@ async function onDetachRole(roleId: string) {
   flex-shrink: 0;
   width: 2.4rem;
   height: 2.4rem;
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   border: 1px solid;
   display: inline-flex;
   align-items: center;
@@ -1939,7 +1939,7 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.35rem;
   padding: 0.2rem 0.55rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -1992,16 +1992,16 @@ async function onDetachRole(roleId: string) {
   display: inline-block;
   width: 6px;
   height: 6px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: #6cd161;
-  animation: kpi-pulse 2s infinite;
+  animation: kpi-pulse calc(2s * var(--motion-scale)) infinite;
 }
 
 /* Ratio + bytes */
 .ratio {
   display: inline-block;
   padding: 0.18rem 0.55rem;
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-weight: 700;
@@ -2048,7 +2048,7 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.3rem;
   padding: 0.15rem 0.55rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -2070,11 +2070,11 @@ async function onDetachRole(roleId: string) {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .row-action:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -2119,7 +2119,7 @@ async function onDetachRole(roleId: string) {
   gap: 0.25rem;
   padding: 0.85rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-elevated));
   position: relative;
   overflow: hidden;
@@ -2185,15 +2185,15 @@ async function onDetachRole(roleId: string) {
   font-variant-numeric: tabular-nums;
   font-size: 0.78rem;
   font-weight: 700;
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   cursor: pointer;
   transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s,
+    background var(--dur-2),
+    border-color var(--dur-2),
+    color var(--dur-2),
     transform 0.1s;
 }
 .bonus-preset-chip:hover {
@@ -2254,7 +2254,7 @@ async function onDetachRole(roleId: string) {
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-inset));
   flex-wrap: wrap;
 }
@@ -2300,7 +2300,7 @@ async function onDetachRole(roleId: string) {
   gap: 0.4rem;
   padding: 0.5rem 0.7rem;
   border: 1px solid rgba(239, 68, 68, 0.4);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgba(239, 68, 68, 0.06);
   color: rgb(239, 68, 68);
   font-size: 0.8rem;
@@ -2316,7 +2316,7 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 0.95rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   font-family: inherit;
   font-size: 0.78rem;
@@ -2324,7 +2324,7 @@ async function onDetachRole(roleId: string) {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: transform 0.12s;
+  transition: transform var(--dur-1);
 }
 .bonus-btn:disabled {
   cursor: progress;
@@ -2362,7 +2362,7 @@ async function onDetachRole(roleId: string) {
   margin-left: 0.4rem;
   padding: 0.35rem 0.5rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-size: 11px;
@@ -2455,7 +2455,7 @@ async function onDetachRole(roleId: string) {
 .pager-size-input {
   padding: 0.35rem 0.5rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -2473,14 +2473,14 @@ async function onDetachRole(roleId: string) {
   gap: 0.25rem;
   padding: 0.4rem 0.7rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .pager-btn:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -2517,7 +2517,7 @@ async function onDetachRole(roleId: string) {
   min-width: 14px;
   height: 14px;
   padding: 0 3px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-strong));
   color: rgb(var(--bg-base));
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -2562,9 +2562,9 @@ async function onDetachRole(roleId: string) {
   gap: 0.85rem;
   padding: 0.7rem 0.95rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-elevated));
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--dur-2), background var(--dur-2);
 }
 .rm-row--on {
   border-left: 3px solid #34d4d8;
@@ -2598,7 +2598,7 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.3rem;
   padding: 0.05rem 0.4rem;
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   text-transform: uppercase;
@@ -2626,7 +2626,7 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 0.85rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -2635,7 +2635,7 @@ async function onDetachRole(roleId: string) {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgb(var(--fg-default));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .rm-action:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -2686,7 +2686,7 @@ async function onDetachRole(roleId: string) {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  transition: border-color 160ms ease;
+  transition: border-color var(--dur-2) ease;
 }
 .user-card:focus-within,
 .user-card:hover {

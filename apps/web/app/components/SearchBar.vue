@@ -224,7 +224,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.3rem 0.65rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid;
   font-size: 10px;
   font-weight: 700;
@@ -277,7 +277,7 @@ onUnmounted(() => {
 
 .detect-enter-active,
 .detect-leave-active {
-  transition: opacity 0.15s ease, transform 0.18s ease;
+  transition: opacity var(--dur-2) ease, transform var(--dur-3) ease;
 }
 .detect-enter-from,
 .detect-leave-to {

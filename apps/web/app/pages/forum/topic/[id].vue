@@ -599,7 +599,7 @@ onMounted(() => {
 .article-crumb-link {
   color: var(--ink-fade);
   text-decoration: none;
-  transition: color 0.12s;
+  transition: color var(--dur-1);
 }
 .article-crumb-link:hover {
   color: var(--ink);
@@ -667,7 +667,7 @@ onMounted(() => {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   border: 1px solid var(--rule);
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   color: var(--ink-fade);
 }
 .flag--pin {
@@ -739,7 +739,7 @@ onMounted(() => {
 .post-anchor-icon {
   font-size: 0.85rem;
   opacity: 0;
-  transition: opacity 0.12s;
+  transition: opacity var(--dur-1);
 }
 .post:hover .post-anchor-icon,
 .post:focus-within .post-anchor-icon {
@@ -761,7 +761,7 @@ onMounted(() => {
   justify-content: center;
   width: 3.25rem;
   height: 3.25rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--rule);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-weight: 700;
@@ -804,7 +804,7 @@ onMounted(() => {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   border: 1px solid var(--rule);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   color: var(--ink-fade);
 }
 .role-pill--admin {
@@ -855,12 +855,12 @@ onMounted(() => {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
   color: var(--ink-fade);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .post-tool:hover {
   border-color: var(--rule);
@@ -885,7 +885,7 @@ onMounted(() => {
   line-height: 1.55;
   padding: 0.85rem 1rem;
   border: 1px solid var(--rule-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: var(--ink);
   resize: vertical;
@@ -910,7 +910,7 @@ onMounted(() => {
   background: rgb(var(--bg-surface));
   border: 1px solid var(--rule);
   border-top: 4px solid var(--ink);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .composer-head {
   display: flex;
@@ -942,7 +942,7 @@ onMounted(() => {
   padding: 0 0.3rem;
   border: 1px solid var(--rule);
   border-bottom-width: 2px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   background: rgb(var(--bg-elevated));
   color: var(--ink);
   font-size: 10px;
@@ -955,7 +955,7 @@ onMounted(() => {
   line-height: 1.55;
   padding: 0.85rem 1rem;
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-base));
   color: var(--ink);
   resize: vertical;
@@ -985,7 +985,7 @@ onMounted(() => {
   padding: 1rem 1.25rem;
   margin-top: 1rem;
   border: 1px dashed var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--ink-fade);
   font-family: 'Fraunces', serif;
   font-style: italic;
@@ -1015,8 +1015,8 @@ onMounted(() => {
   background: rgb(var(--bg-elevated));
   color: var(--ink-soft);
   cursor: pointer;
-  border-radius: 2px;
-  transition: all 0.15s;
+  border-radius: var(--radius-xs);
+  transition: all var(--dur-2);
   text-decoration: none;
 }
 .ed-btn:hover:not(:disabled) {
@@ -1061,7 +1061,7 @@ onMounted(() => {
 .sk-head {
   height: 8rem;
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(
     90deg,
     rgb(var(--bg-surface)) 0%,
@@ -1069,12 +1069,12 @@ onMounted(() => {
     rgb(var(--bg-surface)) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
+  animation: shimmer calc(1.6s * var(--motion-scale)) infinite;
 }
 .sk-post {
   height: 7rem;
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(
     90deg,
     rgb(var(--bg-surface)) 0%,
@@ -1082,7 +1082,7 @@ onMounted(() => {
     rgb(var(--bg-surface)) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
+  animation: shimmer calc(1.6s * var(--motion-scale)) infinite;
 }
 @keyframes shimmer {
   0%   { background-position: 100% 0; }

@@ -232,7 +232,7 @@ defineProps<{
   gap: 0.35rem;
   padding: 0.22rem 0.55rem;
   border: 1px solid rgba(217, 119, 6, 0.45);
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgba(217, 119, 6, 0.1);
   color: #f59e0b;
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -264,16 +264,16 @@ defineProps<{
   display: block;
   width: 100%;
   aspect-ratio: 2 / 3;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: rgb(var(--bg-base));
   border: 1px solid rgba(217, 119, 6, 0.35);
-  box-shadow: 0 10px 24px -16px rgba(0, 0, 0, 0.5);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 10px 24px -16px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)));
+  transition: transform var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .bcard-cover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 30px -16px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 14px 30px -16px rgb(var(--shadow-color) / calc(0.6 * var(--shadow-strength)));
 }
 .bcard-cover img {
   display: block;
@@ -344,7 +344,7 @@ defineProps<{
 }
 .bcard-genre {
   padding: 0.15rem 0.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgba(217, 119, 6, 0.3);
   background: rgba(217, 119, 6, 0.06);
   color: #f59e0b;
@@ -421,7 +421,7 @@ defineProps<{
   font-size: 0.78rem;
   font-weight: 600;
   color: #f59e0b;
-  transition: color 0.15s ease;
+  transition: color var(--dur-2) ease;
 }
 .bcard-link:hover {
   color: #fbbf24;

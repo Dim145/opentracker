@@ -1073,9 +1073,9 @@ const ratioColor = computed(() => {
   padding: 0 0.5rem 0 0.7rem;
   background: rgb(var(--bg-elevated) / 0.55);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 6px;
-  transition: border-color 0.18s ease, background 0.18s ease,
-    box-shadow 0.18s ease;
+  border-radius: var(--radius-md);
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease,
+    box-shadow var(--dur-3) ease;
   position: relative;
 }
 .navsearch::before {
@@ -1113,7 +1113,7 @@ const ratioColor = computed(() => {
 .navsearch--block {
   /* Mobile drawer: full-width, slightly taller for thumb comfort. */
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding-left: 0.85rem;
 }
 
@@ -1121,7 +1121,7 @@ const ratioColor = computed(() => {
   color: rgb(var(--fg-muted));
   font-size: 14px;
   flex-shrink: 0;
-  transition: color 0.18s ease, transform 0.18s ease;
+  transition: color var(--dur-3) ease, transform var(--dur-3) ease;
 }
 .navsearch:focus-within .navsearch-icon,
 .navsearch--filled .navsearch-icon {
@@ -1178,9 +1178,9 @@ const ratioColor = computed(() => {
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-base) / 0.7);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   flex-shrink: 0;
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity var(--dur-3) ease, transform var(--dur-3) ease;
 }
 
 /* Active affordance — clear button, swaps in once the user starts
@@ -1195,11 +1195,11 @@ const ratioColor = computed(() => {
   padding: 0;
   background: transparent;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   color: rgb(var(--fg-muted));
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 0.14s ease, background 0.14s ease;
+  transition: color var(--dur-2) ease, background var(--dur-2) ease;
 }
 .navsearch-clear:hover {
   color: rgb(var(--fg-strong));

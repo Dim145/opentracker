@@ -626,11 +626,11 @@ async function onUnban(item: BannedIp) {
   justify-content: center;
   width: 2.25rem;
   height: 2.25rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .tool-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));
@@ -667,7 +667,7 @@ async function onUnban(item: BannedIp) {
   padding: 1rem 1.1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .kpi-label {
   display: inline-flex;
@@ -705,7 +705,7 @@ async function onUnban(item: BannedIp) {
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-left: 3px solid rgb(var(--danger));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   /* Diagonal-stripe danger atmospheric tint behind the form to
      reinforce that this section adds an item to a blocklist. */
   background-image: repeating-linear-gradient(
@@ -729,7 +729,7 @@ async function onUnban(item: BannedIp) {
   color: rgb(var(--danger));
   background: rgba(229, 62, 62, 0.1);
   border: 1px solid rgba(229, 62, 62, 0.4);
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   padding: 0.05rem 0.5rem;
   line-height: 1;
 }
@@ -779,7 +779,7 @@ async function onUnban(item: BannedIp) {
   width: 100%;
   padding: 0.65rem 0.85rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-strong));
   font-size: 0.85rem;
@@ -797,7 +797,7 @@ async function onUnban(item: BannedIp) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.7rem 1.1rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.16em;
@@ -805,7 +805,7 @@ async function onUnban(item: BannedIp) {
   background: rgb(var(--danger));
   color: #fff;
   border: 1px solid rgb(var(--danger));
-  transition: filter 0.15s;
+  transition: filter var(--dur-2);
   white-space: nowrap;
 }
 .btn-primary:hover:not(:disabled) {
@@ -829,7 +829,7 @@ async function onUnban(item: BannedIp) {
   padding: 0.85rem 1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .filter-search {
   position: relative;
@@ -847,7 +847,7 @@ async function onUnban(item: BannedIp) {
   width: 100%;
   padding: 0.65rem 0.95rem 0.65rem 2.6rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-strong));
   font-size: 0.85rem;
@@ -867,7 +867,7 @@ async function onUnban(item: BannedIp) {
   justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   color: rgb(var(--fg-muted));
 }
 .filter-search-clear:hover {
@@ -881,7 +881,7 @@ async function onUnban(item: BannedIp) {
   overflow-x: auto;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .bl-table {
   width: 100%;
@@ -914,7 +914,7 @@ async function onUnban(item: BannedIp) {
   margin-left: 0.35rem;
   font-size: 0.85em;
   opacity: 0.4;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-2);
   vertical-align: -2px;
 }
 .th--sortable:hover {
@@ -932,7 +932,7 @@ async function onUnban(item: BannedIp) {
 
 .row {
   border-bottom: 1px solid rgb(var(--line-default) / 0.6);
-  transition: background 0.12s;
+  transition: background var(--dur-1);
 }
 .row:last-child { border-bottom: 0; }
 .row:hover { background: rgb(var(--bg-elevated) / 0.5); }
@@ -974,7 +974,7 @@ async function onUnban(item: BannedIp) {
   padding: 0.1rem 0.4rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
 }
 .cell--reason {
   max-width: 28rem;
@@ -997,7 +997,7 @@ async function onUnban(item: BannedIp) {
   align-items: center;
   gap: 0.35rem;
   padding: 0.18rem 0.55rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -1022,7 +1022,7 @@ async function onUnban(item: BannedIp) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.85rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
@@ -1030,7 +1030,7 @@ async function onUnban(item: BannedIp) {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .row-action:hover:not(:disabled) {
   border-color: rgba(108, 209, 97, 0.45);
@@ -1052,8 +1052,8 @@ async function onUnban(item: BannedIp) {
     rgb(var(--bg-elevated))
   );
   background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
-  border-radius: 9999px;
+  animation: shimmer calc(1.6s * var(--motion-scale)) infinite;
+  border-radius: var(--radius-pill);
   margin: 0.25rem 0;
 }
 @keyframes shimmer {
@@ -1126,7 +1126,7 @@ async function onUnban(item: BannedIp) {
 .pager-size-input {
   padding: 0.35rem 0.5rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -1144,14 +1144,14 @@ async function onUnban(item: BannedIp) {
   gap: 0.25rem;
   padding: 0.4rem 0.7rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .pager-btn:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.3);

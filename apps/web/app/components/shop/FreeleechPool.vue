@@ -538,7 +538,7 @@ onBeforeUnmount(() => {
     color-mix(in srgb, rgb(var(--accent-warm)) 82%, white) 100%
   );
   box-shadow: 0 0 12px rgb(var(--accent-warm) / 0.5);
-  transition: width 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: width calc(0.6s * var(--motion-scale)) var(--ease-standard);
 }
 .pool-meter-grain {
   position: absolute;
@@ -601,7 +601,7 @@ onBeforeUnmount(() => {
 }
 .pool--active .pool-status-icon,
 .pool--full_queued .pool-status-icon {
-  animation: pool-status-pulse 2.2s ease-in-out infinite;
+  animation: pool-status-pulse calc(2.2s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes pool-status-pulse {
   0%, 100% { filter: drop-shadow(0 0 0 rgb(var(--accent-warm) / 0)); transform: scale(1); }
@@ -708,7 +708,7 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-strong));
   letter-spacing: -0.01em;
   outline: 0;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .pool-form-input:focus {
   border-color: rgb(var(--accent-warm));
@@ -745,8 +745,8 @@ onBeforeUnmount(() => {
   font-weight: 700;
   letter-spacing: 0.06em;
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease,
-    color 0.18s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease,
+    color var(--dur-3) ease;
 }
 .pool-form-preset:hover:not(:disabled) {
   border-color: rgb(var(--accent-warm));
@@ -794,8 +794,8 @@ onBeforeUnmount(() => {
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.22s ease,
-    opacity 0.18s ease;
+  transition: transform var(--dur-3) ease, box-shadow var(--dur-4) ease,
+    opacity var(--dur-3) ease;
   box-shadow: 0 4px 12px -4px rgb(var(--accent-warm) / 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
@@ -829,7 +829,7 @@ onBeforeUnmount(() => {
 .pool--active .pool-form-locked-icon,
 .pool--full_queued .pool-form-locked-icon {
   color: rgb(var(--accent-warm));
-  animation: pool-locked-pulse 3s ease-in-out infinite;
+  animation: pool-locked-pulse calc(3s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes pool-locked-pulse {
   0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgb(var(--accent-warm) / 0.25)); }
@@ -846,7 +846,7 @@ onBeforeUnmount(() => {
 }
 
 .spin {
-  animation: pool-spin 1s linear infinite;
+  animation: pool-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes pool-spin {
   to { transform: rotate(360deg); }

@@ -441,7 +441,7 @@ function actionVerb(status: string | null): string {
 .wt-eyebrow-dot--alert {
   background: #f43f5e;
   box-shadow: 0 0 10px rgba(244, 63, 94, 0.55);
-  animation: wt-pulse 1.6s ease-in-out infinite;
+  animation: wt-pulse calc(1.6s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes wt-pulse {
   0%, 100% { opacity: 0.55; }
@@ -514,9 +514,9 @@ function actionVerb(status: string | null): string {
   text-decoration: none;
   color: inherit;
   cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease,
-    box-shadow 0.2s ease;
-  animation: tile-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: transform var(--dur-4) ease, border-color var(--dur-4) ease,
+    box-shadow var(--dur-4) ease;
+  animation: tile-in calc(0.45s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .tile::before {
@@ -533,7 +533,7 @@ function actionVerb(status: string | null): string {
 .tile:hover:not(.tile--me) {
   transform: translateY(-2px);
   border-color: var(--tile-accent, rgb(var(--line-strong)));
-  box-shadow: 0 14px 32px -22px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 14px 32px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength)));
 }
 .tile--pending { --tile-accent: #f43f5e; }
 .tile--reports { --tile-accent: rgb(var(--accent-warm)); }
@@ -574,7 +574,7 @@ function actionVerb(status: string | null): string {
 .tile-arrow {
   font-size: 0.75rem;
   margin-left: auto;
-  transition: transform 0.18s ease;
+  transition: transform var(--dur-3) ease;
 }
 .tile:hover .tile-arrow {
   transform: translate(2px, -2px);
@@ -585,7 +585,7 @@ function actionVerb(status: string | null): string {
   border-radius: 50%;
   background: var(--tile-accent, currentColor);
   box-shadow: 0 0 6px var(--tile-accent, currentColor);
-  animation: wt-pulse 1.6s ease-in-out infinite;
+  animation: wt-pulse calc(1.6s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes tile-in {
   from { opacity: 0; transform: translateY(8px); }
@@ -666,7 +666,7 @@ function actionVerb(status: string | null): string {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .feed-cta:hover {
   color: rgb(var(--accent-warm));
@@ -681,7 +681,7 @@ function actionVerb(status: string | null): string {
   flex-direction: column;
 }
 .feed-list > li {
-  animation: feed-in 0.4s ease backwards;
+  animation: feed-in calc(0.4s * var(--motion-scale)) ease backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes feed-in {
@@ -697,7 +697,7 @@ function actionVerb(status: string | null): string {
   gap: 0.7rem 0.85rem;
   padding: 0.7rem 1.05rem;
   border-bottom: 1px solid rgb(var(--line-default));
-  transition: background 0.15s ease;
+  transition: background var(--dur-2) ease;
 }
 .queue-row:last-child { border-bottom: 0; }
 .queue-row:hover {
@@ -720,7 +720,7 @@ function actionVerb(status: string | null): string {
   overflow: hidden;
   text-overflow: ellipsis;
   display: block;
-  transition: color 0.16s ease;
+  transition: color var(--dur-2) ease;
 }
 .queue-name:hover { color: rgb(var(--accent-warm)); }
 .queue-meta {
@@ -754,7 +754,7 @@ function actionVerb(status: string | null): string {
   gap: 0.55rem 0.7rem;
   padding: 0.55rem 1.05rem;
   border-bottom: 1px solid rgb(var(--line-default));
-  transition: background 0.15s ease;
+  transition: background var(--dur-2) ease;
 }
 .log-row:last-child { border-bottom: 0; }
 .log-row:hover {
@@ -816,7 +816,7 @@ function actionVerb(status: string | null): string {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
-  transition: color 0.16s ease;
+  transition: color var(--dur-2) ease;
 }
 .log-target:hover { color: rgb(var(--accent-warm)); }
 .log-target--missing {

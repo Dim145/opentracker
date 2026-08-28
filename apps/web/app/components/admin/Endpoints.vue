@@ -142,7 +142,7 @@ onBeforeUnmount(() => {
   gap: 0.35rem;
   padding: 0.7rem 0.95rem;
   border-bottom: 1px solid rgb(var(--line-default));
-  animation: endp-in 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: endp-in calc(0.36s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .endp-row:last-child { border-bottom: 0; }
@@ -200,7 +200,7 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .endp-row-copy:hover {
   color: rgb(var(--accent-warm));

@@ -201,7 +201,7 @@ async function remove(id: string): Promise<void> {
 .tax-count {
   font-family: var(--font-mono, monospace); font-size: 0.72rem;
   color: rgb(var(--fg-subtle)); background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default)); border-radius: 99px; padding: 0.05rem 0.5rem;
+  border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-pill); padding: 0.05rem 0.5rem;
 }
 .tax-hint { color: rgb(var(--fg-muted)); font-size: 0.82rem; margin: -0.4rem 0 0.9rem; }
 .tax-empty { color: rgb(var(--fg-subtle)); font-size: 0.85rem; padding: 0.6rem 0; }

@@ -242,7 +242,7 @@ const refreshedAgo = computed(() => {
   height: 9px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  animation: cr-pulse 1.6s ease-in-out infinite;
+  animation: cr-pulse calc(1.6s * var(--motion-scale)) ease-in-out infinite;
 }
 .cr-status--on .cr-status-dot {
   background: #6cd161;
@@ -266,7 +266,7 @@ const refreshedAgo = computed(() => {
   height: 9px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  animation: cr-ring 2.2s ease-out infinite;
+  animation: cr-ring calc(2.2s * var(--motion-scale)) ease-out infinite;
   pointer-events: none;
 }
 .cr-status--on .cr-status-rings::before,
@@ -277,7 +277,7 @@ const refreshedAgo = computed(() => {
 .cr-status--off .cr-status-rings::after {
   border: 1px solid rgba(244, 63, 94, 0.55);
 }
-.cr-status-rings::after { animation-delay: 1.1s; }
+.cr-status-rings::after { animation-delay: calc(1.1s * var(--motion-scale)); }
 @keyframes cr-ring {
   0% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
   20% { opacity: 0.7; }

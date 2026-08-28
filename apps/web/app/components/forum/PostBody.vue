@@ -244,7 +244,7 @@ const blocks = computed<Block[]>(() => {
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
   word-break: break-word;
-  transition: text-decoration-color 0.12s, color 0.12s;
+  transition: text-decoration-color var(--dur-1), color var(--dur-1);
 }
 .post-body-prose :deep(.pb-link:hover) {
   text-decoration-color: rgb(var(--fg-strong));
@@ -255,7 +255,7 @@ const blocks = computed<Block[]>(() => {
   font-size: 0.86em;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   padding: 0.05rem 0.35rem;
   letter-spacing: 0;
 }
@@ -266,7 +266,7 @@ const blocks = computed<Block[]>(() => {
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
   border-left: 3px solid rgb(var(--fg-default) / 0.4);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow-x: auto;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.84rem;
@@ -285,7 +285,7 @@ const blocks = computed<Block[]>(() => {
   padding: 0.5rem 0.75rem 0.5rem 1rem;
   border-left: 3px solid rgb(var(--fg-default) / 0.35);
   background: rgb(var(--bg-elevated) / 0.5);
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   color: rgb(var(--fg-muted));
   font-style: italic;
 }

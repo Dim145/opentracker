@@ -562,7 +562,7 @@ async function confirmDelete() {
   top: calc(var(--header-h) + 2rem);
   align-self: start;
   padding-top: 0.5rem;
-  animation: reveal-up 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: reveal-up calc(600ms * var(--motion-scale)) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 @media (max-width: 960px) {
   .reg-aside { position: static; }
@@ -657,7 +657,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.375rem;
   padding: 0.3rem 0.625rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10px;
   letter-spacing: 0.16em;
@@ -669,7 +669,7 @@ async function confirmDelete() {
 .reg-pill-dot {
   width: 5px;
   height: 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--gild);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--gild) 18%, transparent);
 }
@@ -696,10 +696,10 @@ async function confirmDelete() {
   position: relative;
   background: var(--paper);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   padding: 1.75rem;
   overflow: hidden;
-  animation: reveal-up 600ms 60ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: reveal-up calc(600ms * var(--motion-scale)) calc(60ms * var(--motion-scale)) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .draft::before {
   /* Hairline gilt edge along the top, like an embossed page. */
@@ -798,7 +798,7 @@ async function confirmDelete() {
   gap: 6px;
   border: 1.5px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   padding: 6px;
 }
 @media (max-width: 540px) {
@@ -813,13 +813,13 @@ async function confirmDelete() {
   justify-content: center;
   gap: 2px;
   padding: 0.625rem 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   position: relative;
   transition:
-    background 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
+    background var(--dur-3) ease,
+    color var(--dur-3) ease,
+    transform var(--dur-3) ease;
   isolation: isolate;
 }
 .draft-segment input { position: absolute; opacity: 0; pointer-events: none; }
@@ -862,7 +862,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.875rem;
   padding: 0.95rem 1.25rem;
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   border: 1.5px solid var(--gild);
   background: linear-gradient(
     180deg,
@@ -872,9 +872,9 @@ async function confirmDelete() {
   color: var(--ink);
   cursor: pointer;
   transition:
-    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 200ms ease,
-    background 200ms ease;
+    transform var(--dur-4) cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow var(--dur-4) ease,
+    background var(--dur-4) ease;
   text-align: left;
 }
 .draft-cta:hover:not(:disabled) {
@@ -920,7 +920,7 @@ async function confirmDelete() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 18px;
   color: var(--gild);
-  transition: transform 200ms ease;
+  transition: transform var(--dur-4) ease;
 }
 .draft-cta:hover:not(:disabled) .draft-cta-arrow { transform: translateX(4px); }
 
@@ -929,7 +929,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: color-mix(in srgb, rgb(var(--warning)) 8%, transparent);
   border: 1px solid color-mix(in srgb, rgb(var(--warning)) 25%, transparent);
   color: var(--ink-muted);
@@ -943,7 +943,7 @@ async function confirmDelete() {
 /* ── Ledger ──────────────────────────────────────────── */
 
 .ledger {
-  animation: reveal-up 600ms 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: reveal-up 600ms var(--dur-1) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .ledger-head {
@@ -997,7 +997,7 @@ async function confirmDelete() {
   border-bottom: 1px solid rgb(var(--line-default));
   align-items: center;
   position: relative;
-  animation: reveal-up 480ms var(--reveal-delay, 0ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: reveal-up calc(480ms * var(--motion-scale)) var(--reveal-delay, 0ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .ledger-row:last-child { border-bottom: 0; }
 .ledger-row:hover {
@@ -1030,7 +1030,7 @@ async function confirmDelete() {
   align-self: stretch;
   background: var(--ink-muted);
   opacity: 0.3;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 .ledger-row--active .ledger-stripe { background: var(--gild); opacity: 0.6; }
 .ledger-row--used .ledger-stripe { background: var(--success); opacity: 0.5; }
@@ -1051,7 +1051,7 @@ async function confirmDelete() {
   padding: 0.3rem 0.625rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   word-break: break-all;
 }
 .ledger-row--expired .ledger-code { color: var(--ink-muted); }
@@ -1066,7 +1066,7 @@ async function confirmDelete() {
   text-transform: uppercase;
   font-weight: 500;
   padding: 0.25rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
 }
 .ledger-row--active .ledger-status {
@@ -1120,7 +1120,7 @@ async function confirmDelete() {
   font-weight: 500;
   text-decoration: none;
   border-bottom: 1px solid color-mix(in srgb, var(--gild) 35%, transparent);
-  transition: border-color 160ms ease, color 160ms ease;
+  transition: border-color var(--dur-2) ease, color var(--dur-2) ease;
 }
 .ledger-user:hover {
   border-color: var(--gild);
@@ -1138,12 +1138,12 @@ async function confirmDelete() {
   justify-content: center;
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid transparent;
   background: transparent;
   color: var(--ink-muted);
   cursor: pointer;
-  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+  transition: color var(--dur-2) ease, background var(--dur-2) ease, border-color var(--dur-2) ease;
 }
 .ledger-action:hover:not(:disabled) {
   color: var(--ink);
@@ -1162,7 +1162,7 @@ async function confirmDelete() {
   text-align: center;
   padding: 4rem 2rem;
   border: 1px dashed color-mix(in srgb, var(--gild) 30%, rgb(var(--line-default)));
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   background:
     repeating-linear-gradient(
       45deg,
@@ -1213,7 +1213,7 @@ async function confirmDelete() {
   justify-content: center;
   font-size: 22px;
   box-shadow:
-    inset 0 -2px 4px rgba(0, 0, 0, 0.25),
+    inset 0 -2px 4px rgb(var(--shadow-color) / calc(0.25 * var(--shadow-strength))),
     0 8px 24px -10px color-mix(in srgb, var(--gild) 60%, transparent);
 }
 .seal-eyebrow {
@@ -1268,7 +1268,7 @@ async function confirmDelete() {
     ),
     rgb(var(--bg-base));
   border: 1px solid var(--gild-line);
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   padding: 1.25rem;
   text-align: center;
   position: relative;
@@ -1309,7 +1309,7 @@ async function confirmDelete() {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.7rem 1.1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   font-family: 'Fraunces', 'Times New Roman', serif;
   font-style: italic;
   font-size: 0.95rem;
@@ -1319,10 +1319,10 @@ async function confirmDelete() {
   color: var(--ink-soft);
   cursor: pointer;
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    transform 160ms ease,
-    color 160ms ease;
+    background var(--dur-2) ease,
+    border-color var(--dur-2) ease,
+    transform var(--dur-2) ease,
+    color var(--dur-2) ease;
   flex: 1;
   min-width: 160px;
 }
@@ -1367,7 +1367,7 @@ async function confirmDelete() {
   line-height: 1.55;
   margin: 0;
   padding: 0.75rem 0.875rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: color-mix(in srgb, rgb(var(--warning)) 6%, transparent);
   border: 1px solid color-mix(in srgb, rgb(var(--warning)) 22%, transparent);
 }

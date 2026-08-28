@@ -131,14 +131,14 @@ async function lift(id: string): Promise<void> {
 .masks-sub { color: rgb(var(--fg-muted)); font-size: 0.9rem; margin-top: 0.3rem; max-width: 60ch; }
 .masks-back { display: inline-flex; align-items: center; gap: 0.3rem; color: rgb(var(--fg-muted)); font-size: 0.85rem; }
 .masks-add { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
-.masks-input { padding: 0.5rem 0.7rem; border: 1px solid rgb(var(--border)); border-radius: 0.5rem; background: rgb(var(--bg-subtle) / 0.5); color: rgb(var(--fg)); font-size: 0.85rem; }
+.masks-input { padding: 0.5rem 0.7rem; border: 1px solid rgb(var(--border)); border-radius: var(--radius-lg); background: rgb(var(--bg-subtle) / 0.5); color: rgb(var(--fg)); font-size: 0.85rem; }
 .masks-input--grow { flex: 1; min-width: 12ch; }
-.masks-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 0.9rem; border: 1px solid rgb(var(--accent) / 0.6); border-radius: 0.5rem; background: rgb(var(--accent) / 0.12); color: rgb(var(--accent)); cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+.masks-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 0.9rem; border: 1px solid rgb(var(--accent) / 0.6); border-radius: var(--radius-lg); background: rgb(var(--accent) / 0.12); color: rgb(var(--accent)); cursor: pointer; font-weight: 600; font-size: 0.85rem; }
 .masks-btn:disabled { opacity: 0.5; cursor: default; }
 .masks-empty { color: rgb(var(--fg-muted)); text-align: center; padding: 2rem 0; }
 .masks-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-.masks-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.8rem; border: 1px solid rgb(var(--border) / 0.7); border-radius: 0.5rem; background: rgb(var(--bg-subtle) / 0.4); }
-.masks-scope { text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.05em; padding: 0.15rem 0.45rem; border-radius: 0.3rem; background: rgb(var(--border) / 0.6); color: rgb(var(--fg-muted)); flex: none; }
+.masks-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.8rem; border: 1px solid rgb(var(--border) / 0.7); border-radius: var(--radius-lg); background: rgb(var(--bg-subtle) / 0.4); }
+.masks-scope { text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.05em; padding: 0.15rem 0.45rem; border-radius: var(--radius-sm); background: rgb(var(--border) / 0.6); color: rgb(var(--fg-muted)); flex: none; }
 .masks-scope--author { background: rgb(var(--warning) / 0.2); color: rgb(var(--warning)); }
 /* An issuer mask hides everything one instance signed, whoever serves it —
    the widest of the four, so it reads as the strongest. */
@@ -148,7 +148,7 @@ async function lift(id: string): Promise<void> {
 .masks-code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.7rem; color: rgb(var(--fg-subtle)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .masks-reason { color: rgb(var(--fg-muted)); font-size: 0.8rem; font-style: italic; }
 .masks-by { color: rgb(var(--fg-subtle)); font-size: 0.8rem; flex: none; }
-.masks-lift { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; border: 1px solid rgb(var(--border)); border-radius: 0.4rem; background: transparent; color: rgb(var(--fg-muted)); cursor: pointer; font-size: 0.78rem; flex: none; }
+.masks-lift { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; border: 1px solid rgb(var(--border)); border-radius: var(--radius-md); background: transparent; color: rgb(var(--fg-muted)); cursor: pointer; font-size: 0.78rem; flex: none; }
 .masks-lift:hover:not(:disabled) { color: rgb(var(--fg)); border-color: rgb(var(--accent) / 0.5); }
 .masks-lift:disabled { opacity: 0.5; cursor: default; }
 </style>

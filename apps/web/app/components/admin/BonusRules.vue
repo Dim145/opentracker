@@ -892,8 +892,8 @@ async function deleteAgeTier(tier: AgeTier) {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
-  transition: border-color 0.18s ease, opacity 0.18s ease, background 0.18s ease;
-  animation: rule-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: border-color var(--dur-3) ease, opacity var(--dur-3) ease, background var(--dur-3) ease;
+  animation: rule-in calc(0.4s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes rule-in {
@@ -949,7 +949,7 @@ async function deleteAgeTier(tier: AgeTier) {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: color 0.18s ease;
+  transition: color var(--dur-3) ease;
 }
 .rule-state-text--on { color: rgb(var(--online)); }
 
@@ -975,8 +975,8 @@ async function deleteAgeTier(tier: AgeTier) {
   position: absolute;
   inset: 0;
   background: rgb(var(--line-default));
-  border-radius: 999px;
-  transition: background 0.18s ease;
+  border-radius: var(--radius-pill);
+  transition: background var(--dur-3) ease;
 }
 .rule-toggle-track::after {
   content: '';
@@ -987,8 +987,8 @@ async function deleteAgeTier(tier: AgeTier) {
   height: 18px;
   background: rgb(var(--bg-elevated));
   border-radius: 50%;
-  transition: transform 0.18s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: transform var(--dur-3) ease;
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
 }
 .rule-toggle--sm .rule-toggle-track::after {
   width: 14px;
@@ -1050,7 +1050,7 @@ async function deleteAgeTier(tier: AgeTier) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .field-input:focus {
   outline: none;
@@ -1250,8 +1250,8 @@ async function deleteAgeTier(tier: AgeTier) {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  transition: border-color 0.18s ease, opacity 0.18s ease;
-  animation: rule-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: border-color var(--dur-3) ease, opacity var(--dur-3) ease;
+  animation: rule-in calc(0.4s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .tier:hover { border-color: rgb(var(--line-strong)); }
@@ -1397,7 +1397,7 @@ async function deleteAgeTier(tier: AgeTier) {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
 }
 .btn:hover:not(:disabled) {
@@ -1430,7 +1430,7 @@ async function deleteAgeTier(tier: AgeTier) {
   background: transparent;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .icon-btn:hover { color: rgb(var(--fg-strong)); background: rgb(var(--bg-hover) / 0.4); }
 .icon-btn--danger:hover {

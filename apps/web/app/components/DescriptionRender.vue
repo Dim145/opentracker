@@ -75,7 +75,7 @@ const rendered = computed(() => toEditorHtml(props.source));
 }
 .description-render pre {
   background: rgb(var(--bg-inset, var(--bg-elevated)));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   padding: 0.75rem;
   font-family: ui-monospace, monospace;
   font-size: 0.75rem;
@@ -85,7 +85,7 @@ const rendered = computed(() => toEditorHtml(props.source));
 .description-render code {
   background: rgb(var(--bg-inset, var(--bg-elevated)));
   padding: 0 0.25rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   font-family: ui-monospace, monospace;
   font-size: 0.85em;
 }

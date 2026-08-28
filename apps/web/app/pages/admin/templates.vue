@@ -239,7 +239,7 @@ function formatDate(iso: string): string {
   gap: 0.5rem;
   padding: 0.9rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   background: rgb(var(--bg-surface));
 }
 .tplad-card-top {
@@ -256,7 +256,7 @@ function formatDate(iso: string): string {
 .tplad-badge {
   padding: 0.05rem 0.35rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   font-family: var(--font-mono);
   font-size: 0.6rem;
   font-weight: 700;

@@ -512,7 +512,7 @@ const explainer = computed(() => {
   border-radius: 50%;
   box-shadow: 0 0 12px rgba(244, 63, 94, 0.8);
   transform: translate(-50%, -50%);
-  animation: bb-pulse 1.4s ease-in-out infinite;
+  animation: bb-pulse calc(1.4s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes bb-pulse {
   0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.85); }
@@ -529,10 +529,10 @@ const explainer = computed(() => {
   border: 1px solid rgba(244, 63, 94, 0.6);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  animation: bb-ring 2s ease-out infinite;
+  animation: bb-ring calc(2s * var(--motion-scale)) ease-out infinite;
   pointer-events: none;
 }
-.bb-onair-rings::after { animation-delay: 1s; }
+.bb-onair-rings::after { animation-delay: calc(1s * var(--motion-scale)); }
 @keyframes bb-ring {
   0% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
   20% { opacity: 0.8; }
@@ -757,7 +757,7 @@ const explainer = computed(() => {
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
-  transition: border-color 0.2s ease;
+  transition: border-color var(--dur-4) ease;
 }
 .meter-head {
   display: grid;
@@ -843,7 +843,7 @@ const explainer = computed(() => {
   height: 4px;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
 }
 .meter-bar-fill {
@@ -851,7 +851,7 @@ const explainer = computed(() => {
   top: 0;
   bottom: 0;
   background: rgb(var(--line-strong));
-  transition: left 0.4s ease, width 0.4s ease;
+  transition: left calc(0.4s * var(--motion-scale)) ease, width calc(0.4s * var(--motion-scale)) ease;
 }
 .meter-bar-pivot {
   position: absolute;
@@ -917,7 +917,7 @@ const explainer = computed(() => {
   height: 6px;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
   margin: 0.2rem 0 0.2rem;
 }
@@ -929,7 +929,7 @@ const explainer = computed(() => {
     rgb(var(--accent-warm) / 0.45) 0%,
     rgb(var(--accent-warm)) 100%
   );
-  transition: width 0.6s ease;
+  transition: width calc(0.6s * var(--motion-scale)) ease;
 }
 .bb-window-track-grid {
   position: absolute;
@@ -953,7 +953,7 @@ const explainer = computed(() => {
   background: rgb(var(--accent-warm));
   border: 2px solid rgb(var(--bg-elevated));
   box-shadow: 0 0 8px rgb(var(--accent-warm) / 0.55);
-  transition: left 0.6s ease;
+  transition: left calc(0.6s * var(--motion-scale)) ease;
   z-index: 1;
 }
 
@@ -1029,7 +1029,7 @@ const explainer = computed(() => {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .bb-cta:hover {
   background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);

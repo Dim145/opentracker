@@ -149,7 +149,7 @@ async function copySecret() {
   width: 200px;
   height: 200px;
   background: white;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   padding: 8px;
   display: flex;
@@ -163,7 +163,7 @@ async function copySecret() {
 }
 .totp-secret {
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
 }
 .totp-secret summary {
@@ -186,7 +186,7 @@ async function copySecret() {
   word-break: break-all;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0.4rem 0.55rem;
   color: rgb(var(--fg-strong));
 }
@@ -203,7 +203,7 @@ async function copySecret() {
   background: transparent;
   color: rgb(var(--fg-muted));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
 }
 .totp-copy:hover {
@@ -236,7 +236,7 @@ async function copySecret() {
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
 }
@@ -280,10 +280,10 @@ async function copySecret() {
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   border: 1px solid rgb(var(--line-default));
-  transition: all 0.14s;
+  transition: all var(--dur-2);
 }
 .btn-primary {
   background: rgb(var(--fg-strong));

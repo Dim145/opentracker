@@ -105,9 +105,9 @@ function formatNumber(n: number): string {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   overflow: hidden;
-  transition: border-color 0.2s ease, transform 0.2s ease,
-    box-shadow 0.2s ease;
-  animation: metric-in 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: border-color var(--dur-4) ease, transform var(--dur-4) ease,
+    box-shadow var(--dur-4) ease;
+  animation: metric-in calc(0.42s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .metric::before {
@@ -124,7 +124,7 @@ function formatNumber(n: number): string {
 .metric:hover {
   transform: translateY(-1px);
   border-color: var(--rail, rgb(var(--line-strong)));
-  box-shadow: 0 12px 28px -22px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 12px 28px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength)));
 }
 @keyframes metric-in {
   from { opacity: 0; transform: translateY(8px); }

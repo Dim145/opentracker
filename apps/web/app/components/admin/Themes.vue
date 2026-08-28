@@ -286,6 +286,45 @@
                 <option v-for="o in def.options" :key="o" :value="o">{{ o }}</option>
               </select>
 
+              <!-- A scalar is the most expressive control in the editor —
+                   `shadow-strength` and `motion-scale` each move hundreds of
+                   declarations at once — so it gets a slider, with the text
+                   field kept alongside for typing an exact value and for
+                   clearing back to inherited. -->
+              <template v-else-if="def.kind === 'scalar'">
+                <input
+                  type="range"
+                  class="token-range"
+                  min="0"
+                  :max="def.max ?? 1"
+                  step="0.05"
+                  :value="draft.tokens[def.key] ?? baseValue(def.key)"
+                  @input="setToken(def.key, ($event.target as HTMLInputElement).value)"
+                />
+                <input
+                  class="input input-xs token-scalar"
+                  :value="draft.tokens[def.key] ?? ''"
+                  :placeholder="baseValue(def.key)"
+                  @change="setToken(def.key, ($event.target as HTMLInputElement).value)"
+                />
+              </template>
+
+              <template v-else-if="def.kind === 'bezier'">
+                <input
+                  class="input input-xs"
+                  :list="`ease-${def.key}`"
+                  :value="draft.tokens[def.key] ?? ''"
+                  :placeholder="baseValue(def.key)"
+                  @change="setToken(def.key, ($event.target as HTMLInputElement).value)"
+                />
+                <!-- Suggestions, not a closed list: any four-number bezier is
+                     valid, and the overshoot curve is the whole point of
+                     offering one at all. -->
+                <datalist :id="`ease-${def.key}`">
+                  <option v-for="e in EASING_SUGGESTIONS" :key="e" :value="e" />
+                </datalist>
+              </template>
+
               <template v-else-if="def.kind === 'rgb'">
                 <input
                   type="color"
@@ -460,8 +499,27 @@ const GROUP_ORDER: TokenGroup[] = [
   'line',
   'accent',
   'semantic',
+  'elevation',
+  'shape',
+  'motion',
   'chrome',
   'ambience',
+];
+
+/**
+ * Offered in the easing fields' datalist.
+ *
+ * The first two are the site's own curves, so a theme can start from what it
+ * already looks like. The overshoot is there because it is the one a theme
+ * author cannot guess and the one that most changes how the interface feels.
+ */
+const EASING_SUGGESTIONS = [
+  'cubic-bezier(0.2, 0.7, 0.2, 1)',
+  'cubic-bezier(0.22, 1, 0.36, 1)',
+  'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  'ease',
+  'ease-out',
+  'linear',
 ];
 const tokenGroups = computed(() =>
   GROUP_ORDER.map((key) => {
@@ -857,7 +915,7 @@ function roleNames(ids: string[] | null): string {
   padding: 0.3rem;
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
-  transition: background-color 0.15s, color 0.15s;
+  transition: background-color var(--dur-2), color var(--dur-2);
 }
 .theme-act:hover { background: rgb(var(--fg-default) / 0.08); color: rgb(var(--fg-default)); }
 .theme-act--danger:hover { color: rgb(var(--danger)); background: rgb(var(--danger) / 0.1); }
@@ -875,6 +933,12 @@ function roleNames(ids: string[] | null): string {
   color: rgb(var(--fg-muted));
   padding: 0.35rem 0;
 }
+.token-range {
+  flex: 1;
+  min-width: 0;
+  accent-color: rgb(var(--accent-warm));
+}
+.token-scalar { width: 4.5rem; flex: none; text-align: right; }
 .token-group-count { margin-left: auto; font-family: var(--font-mono); color: rgb(var(--fg-faint)); }
 
 .token-grid {

@@ -586,8 +586,8 @@ async function resolveManual() {
 .picker-search-clear {
   width: 1.4rem;
   height: 1.4rem;
-  border-radius: 9999px;
-  transition: all 0.15s;
+  border-radius: var(--radius-pill);
+  transition: all var(--dur-2);
 }
 .picker-search-clear:hover {
   color: rgb(var(--fg-strong));
@@ -606,7 +606,7 @@ async function resolveManual() {
   padding: 0.5rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   box-shadow:
     0 1px 2px rgb(0 0 0 / 0.06),
     0 12px 32px -8px rgb(0 0 0 / 0.18);
@@ -640,9 +640,9 @@ async function resolveManual() {
   display: flex;
   gap: 0.85rem;
   padding: 0.6rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background var(--dur-1);
 }
 .picker-item--focused,
 .picker-item:hover {
@@ -654,7 +654,7 @@ async function resolveManual() {
   aspect-ratio: 2 / 3;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -703,7 +703,7 @@ async function resolveManual() {
   align-items: center;
   gap: 0.25rem;
   padding: 0.1rem 0.45rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-weight: 700;
@@ -755,7 +755,7 @@ async function resolveManual() {
   padding: 0.05rem 0.35rem;
   margin-right: 0.15rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 10px;
@@ -770,7 +770,7 @@ async function resolveManual() {
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
   border-left: 3px solid #6cd161;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
 }
 .picker-poster--lg {
   width: 3.5rem;
@@ -797,7 +797,7 @@ async function resolveManual() {
   font-size: 9px;
   letter-spacing: 0.12em;
   padding: 0.15rem 0.55rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   font-weight: 700;
@@ -819,9 +819,9 @@ async function resolveManual() {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .picker-clear:hover {
   color: rgb(var(--danger));
@@ -893,10 +893,10 @@ async function resolveManual() {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   color: rgb(var(--fg-default));
   background: rgb(var(--bg-elevated));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .btn-ghost--small:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -910,7 +910,7 @@ async function resolveManual() {
 /* Transition for dropdown */
 .picker-fade-enter-active,
 .picker-fade-leave-active {
-  transition: opacity 0.12s, transform 0.12s;
+  transition: opacity var(--dur-1), transform var(--dur-1);
 }
 .picker-fade-enter-from,
 .picker-fade-leave-to {

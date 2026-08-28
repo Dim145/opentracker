@@ -294,12 +294,12 @@ function formatReleaseDate(iso: string | null): string {
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
   flex-shrink: 0;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform var(--dur-4) ease, border-color var(--dur-4) ease;
 }
 .gcard-cover:hover {
   transform: translateY(-2px);
   border-color: rgba(167, 139, 250, 0.4);
-  box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 14px 28px -16px rgb(var(--shadow-color) / calc(0.6 * var(--shadow-strength)));
 }
 .gcard-cover img {
   width: 100%;
@@ -455,12 +455,12 @@ function formatReleaseDate(iso: string | null): string {
   text-transform: uppercase;
   color: #a78bfa;
   text-decoration: none;
-  transition: color 0.18s ease;
+  transition: color var(--dur-3) ease;
 }
 .gcard-link:hover { color: #c4b5fd; }
 .gcard-link-arrow {
   font-size: 0.7rem;
-  transition: transform 0.18s ease;
+  transition: transform var(--dur-3) ease;
 }
 .gcard-link:hover .gcard-link-arrow {
   transform: translate(1px, -1px);
@@ -488,8 +488,8 @@ function formatReleaseDate(iso: string | null): string {
   border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
-  transition: transform 0.2s ease, border-color 0.2s ease;
-  animation: shot-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: transform var(--dur-4) ease, border-color var(--dur-4) ease;
+  animation: shot-in calc(0.4s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .gcard-shot:hover {
@@ -501,7 +501,7 @@ function formatReleaseDate(iso: string | null): string {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.25s ease;
+  transition: transform var(--dur-slow) ease;
 }
 .gcard-shot:hover img {
   transform: scale(1.03);

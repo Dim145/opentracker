@@ -603,12 +603,12 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 
 .fed { display: flex; flex-direction: column; gap: 1.25rem; }
 .fed-intro { font-size: 13px; color: rgb(var(--fg-muted)); line-height: 1.55; max-width: 70ch; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.fed-owner { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 11px; font-weight: 600; color: var(--gold, rgb(var(--accent-warm))); border: 1px solid color-mix(in srgb, var(--gold, rgb(var(--accent-warm))) 30%, transparent); background: color-mix(in srgb, var(--gold, rgb(var(--accent-warm))) 10%, transparent); padding: 0.15rem 0.5rem; border-radius: 99px; }
+.fed-owner { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 11px; font-weight: 600; color: var(--gold, rgb(var(--accent-warm))); border: 1px solid color-mix(in srgb, var(--gold, rgb(var(--accent-warm))) 30%, transparent); background: color-mix(in srgb, var(--gold, rgb(var(--accent-warm))) 10%, transparent); padding: 0.15rem 0.5rem; border-radius: var(--radius-pill); }
 
 .fed-flash { display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.9rem; border-radius: var(--radius-md); font-size: 13px; border: 1px solid; }
 .fed-flash--ok { color: #4ade80; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
 .fed-flash--error { color: #f87171; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
-.fed-flash-enter-active, .fed-flash-leave-active { transition: all 0.2s ease; }
+.fed-flash-enter-active, .fed-flash-leave-active { transition: all var(--dur-4) ease; }
 .fed-flash-enter-from, .fed-flash-leave-to { opacity: 0; transform: translateY(-4px); }
 
 .fed-master { display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.2rem; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); background: rgb(var(--bg-surface)); }
@@ -662,7 +662,7 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 .fed-peers { display: flex; flex-direction: column; gap: 0.6rem; }
 .fed-empty { text-align: center; padding: 2rem; color: rgb(var(--fg-subtle)); border: 1px dashed rgb(var(--line-default)); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; font-size: 13px; }
 .fed-empty :deep(svg) { font-size: 1.6rem; opacity: 0.5; }
-.peer { display: grid; grid-template-columns: 10px 1fr auto; gap: 0.9rem; align-items: center; padding: 0.85rem 1rem; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); background: rgb(var(--bg-surface)); transition: border-color 0.16s ease; }
+.peer { display: grid; grid-template-columns: 10px 1fr auto; gap: 0.9rem; align-items: center; padding: 0.85rem 1rem; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); background: rgb(var(--bg-surface)); transition: border-color var(--dur-2) ease; }
 .peer:hover { border-color: rgb(var(--line-strong)); }
 .peer--pending { border-color: rgba(234, 179, 8, 0.35); background: rgba(234, 179, 8, 0.035); }
 .peer-id { min-width: 0; }
@@ -673,7 +673,7 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 .peer-err { font-size: 11px; color: #f87171; display: inline-flex; align-items: center; gap: 0.25rem; }
 .peer-actions { display: flex; gap: 0.4rem; align-items: center; }
 
-.chip { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 11px; padding: 0.15rem 0.45rem; border-radius: 99px; border: 1px solid rgb(var(--line-strong)); color: rgb(var(--fg-muted)); background: rgb(var(--bg-elevated)); text-transform: capitalize; }
+.chip { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 11px; padding: 0.15rem 0.45rem; border-radius: var(--radius-pill); border: 1px solid rgb(var(--line-strong)); color: rgb(var(--fg-muted)); background: rgb(var(--bg-elevated)); text-transform: capitalize; }
 
 .fed-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono, monospace); font-size: 10px; font-weight: 500; letter-spacing: 0.02em; padding: 0.12rem 0.4rem; border-radius: var(--radius-sm); border: 1px solid; text-transform: uppercase; }
 .fed-badge.ok { color: #4ade80; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
@@ -689,8 +689,8 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
    to the `rgb(var(--accent-warm))` literal of `--gold`, a token that does not exist. */
 .switch { position: relative; display: inline-flex; flex-shrink: 0; width: 42px; height: 24px; }
 .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.switch .track { position: absolute; inset: 0; border-radius: 99px; background: rgb(var(--bg-hover)); border: 1px solid rgb(var(--line-strong)); transition: all 0.2s ease; }
-.switch .thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: rgb(var(--fg-subtle)); transition: all 0.2s cubic-bezier(0.3, 1.4, 0.5, 1); }
+.switch .track { position: absolute; inset: 0; border-radius: var(--radius-pill); background: rgb(var(--bg-hover)); border: 1px solid rgb(var(--line-strong)); transition: all var(--dur-4) ease; }
+.switch .thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: rgb(var(--fg-subtle)); transition: all var(--dur-4) cubic-bezier(0.3, 1.4, 0.5, 1); }
 .switch input:checked ~ .track { background: rgb(var(--online)); border-color: rgb(var(--online)); }
 .switch input:checked ~ .thumb { left: 21px; background: rgb(var(--bg-surface)); }
 .switch.is-gold input:checked ~ .track { background: rgb(var(--accent-warm)); border-color: rgb(var(--accent-warm)); }
@@ -710,7 +710,7 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 .fed-dot.idle { background: rgb(var(--fg-subtle)); }
 
 /* small action buttons */
-.fbtn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.65rem; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; border: 1px solid rgb(var(--line-default)); background: rgb(var(--bg-elevated)); color: rgb(var(--fg-default)); transition: all 0.14s ease; }
+.fbtn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.65rem; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; border: 1px solid rgb(var(--line-default)); background: rgb(var(--bg-elevated)); color: rgb(var(--fg-default)); transition: all var(--dur-2) ease; }
 .fbtn:hover { background: rgb(var(--bg-hover)); border-color: rgb(var(--line-strong)); }
 .fbtn:disabled { opacity: 0.5; cursor: not-allowed; }
 .fbtn-ok { color: #4ade80; background: rgba(34, 197, 94, 0.12); border-color: rgba(34, 197, 94, 0.3); }

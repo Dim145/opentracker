@@ -751,7 +751,7 @@ function useCounter(target: Ref<number>) {
   gap: 0.35rem;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  transition: color 0.16s ease, transform 0.16s ease;
+  transition: color var(--dur-2) ease, transform var(--dur-2) ease;
 }
 .mc-eyebrow-link:hover {
   color: rgb(var(--fg-strong));
@@ -769,7 +769,7 @@ function useCounter(target: Ref<number>) {
   gap: 0.55rem;
   padding: 0.3rem 0.7rem 0.3rem 0.55rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-surface));
 }
 .mc-live--down {
@@ -790,7 +790,7 @@ function useCounter(target: Ref<number>) {
   background: rgb(var(--online));
 }
 .mc-live-dot-pulse {
-  animation: mc-pulse 1.6s ease-out infinite;
+  animation: mc-pulse calc(1.6s * var(--motion-scale)) ease-out infinite;
   opacity: 0.6;
 }
 .mc-live--down .mc-live-dot-core,
@@ -832,12 +832,12 @@ function useCounter(target: Ref<number>) {
   pointer-events: none;
   user-select: none;
   /* Subtle entry — corners "snap" in when the page loads */
-  animation: mc-corner-in 0.6s ease both;
+  animation: mc-corner-in calc(0.6s * var(--motion-scale)) ease both;
 }
-.mc-hero-corner--tl { top: 0; left: 0; animation-delay: 0.05s; }
-.mc-hero-corner--tr { top: 0; right: 0; animation-delay: 0.12s; }
-.mc-hero-corner--bl { bottom: 0; left: 0; animation-delay: 0.19s; }
-.mc-hero-corner--br { bottom: 0; right: 0; animation-delay: 0.26s; }
+.mc-hero-corner--tl { top: 0; left: 0; animation-delay: calc(0.05s * var(--motion-scale)); }
+.mc-hero-corner--tr { top: 0; right: 0; animation-delay: var(--dur-1); }
+.mc-hero-corner--bl { bottom: 0; left: 0; animation-delay: calc(0.19s * var(--motion-scale)); }
+.mc-hero-corner--br { bottom: 0; right: 0; animation-delay: calc(0.26s * var(--motion-scale)); }
 @keyframes mc-corner-in {
   from { opacity: 0; transform: scale(0.6); }
   to   { opacity: 1; transform: scale(1); }
@@ -875,7 +875,7 @@ function useCounter(target: Ref<number>) {
   word-break: break-word;
   text-transform: uppercase;
   text-shadow: 0 0 60px rgb(var(--accent) / 0.15);
-  animation: mc-title-in 0.8s 0.2s ease both;
+  animation: mc-title-in 0.8s var(--dur-4) ease both;
 }
 .mc-hero-title :deep(strong) {
   font-weight: 900;
@@ -898,7 +898,7 @@ function useCounter(target: Ref<number>) {
   line-height: 1.55;
   color: rgb(var(--fg-muted));
   max-width: 56ch;
-  animation: mc-fade-up 0.8s 0.4s ease both;
+  animation: mc-fade-up calc(0.8s * var(--motion-scale)) calc(0.4s * var(--motion-scale)) ease both;
 }
 .mc-hero-tagline :deep(p) {
   margin: 0;
@@ -932,7 +932,7 @@ function useCounter(target: Ref<number>) {
   background: rgb(var(--bg-surface) / 0.6);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .mc-kpi {
@@ -943,13 +943,13 @@ function useCounter(target: Ref<number>) {
   gap: 0.45rem;
   padding: 1.4rem 1.4rem 1.2rem;
   border-right: 1px solid rgb(var(--line-default));
-  animation: mc-fade-up 0.6s ease both;
+  animation: mc-fade-up calc(0.6s * var(--motion-scale)) ease both;
 }
 .mc-kpi:last-child { border-right: 0; }
-.mc-kpi:nth-child(1) { animation-delay: 0.5s; }
-.mc-kpi:nth-child(2) { animation-delay: 0.58s; }
-.mc-kpi:nth-child(3) { animation-delay: 0.66s; }
-.mc-kpi:nth-child(4) { animation-delay: 0.74s; }
+.mc-kpi:nth-child(1) { animation-delay: calc(0.5s * var(--motion-scale)); }
+.mc-kpi:nth-child(2) { animation-delay: calc(0.58s * var(--motion-scale)); }
+.mc-kpi:nth-child(3) { animation-delay: calc(0.66s * var(--motion-scale)); }
+.mc-kpi:nth-child(4) { animation-delay: calc(0.74s * var(--motion-scale)); }
 /* Horizontal accent stripe under the active KPI — only the leftmost
    one gets it so the eye anchors there first. */
 .mc-kpi--accent::after {
@@ -958,9 +958,9 @@ function useCounter(target: Ref<number>) {
   inset: auto 1.4rem 0.5rem 1.4rem;
   height: 2px;
   background: rgb(var(--accent));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   transform-origin: left;
-  animation: mc-rule-in 0.6s 0.7s ease both;
+  animation: mc-rule-in calc(0.6s * var(--motion-scale)) calc(0.7s * var(--motion-scale)) ease both;
 }
 @keyframes mc-rule-in {
   from { transform: scaleX(0); }
@@ -1029,7 +1029,7 @@ function useCounter(target: Ref<number>) {
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 /* ─── 02 · LEDGER (latest releases) ─────────────────────── */
@@ -1038,7 +1038,7 @@ function useCounter(target: Ref<number>) {
   margin: 0;
   padding: 0;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: rgb(var(--bg-surface) / 0.5);
 }
@@ -1071,11 +1071,11 @@ function useCounter(target: Ref<number>) {
 .mc-ledger-row {
   cursor: pointer;
   border-bottom: 1px solid rgb(var(--line-default) / 0.5);
-  transition: background 0.14s ease, transform 0.14s ease;
+  transition: background var(--dur-2) ease, transform var(--dur-2) ease;
   position: relative;
   /* Stagger entry so the list "deals" itself after the hero lands. */
-  animation: mc-fade-up 0.4s ease both;
-  animation-delay: calc(0.1s + var(--row-i, 0) * 30ms);
+  animation: mc-fade-up calc(0.4s * var(--motion-scale)) ease both;
+  animation-delay: calc(calc(0.1s * var(--motion-scale)) + var(--row-i, 0) * calc(30ms * var(--motion-scale)));
 }
 .mc-ledger-row:last-child { border-bottom: 0; }
 .mc-ledger-row::before {
@@ -1086,7 +1086,7 @@ function useCounter(target: Ref<number>) {
   background: rgb(var(--accent));
   transform: scaleY(0);
   transform-origin: center;
-  transition: transform 0.18s ease;
+  transition: transform var(--dur-3) ease;
 }
 .mc-ledger-row:hover {
   background: rgb(var(--bg-elevated) / 0.7);
@@ -1102,7 +1102,7 @@ function useCounter(target: Ref<number>) {
   color: rgb(var(--fg-faint));
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
-  transition: color 0.14s ease;
+  transition: color var(--dur-2) ease;
 }
 .mc-ledger-name {
   color: rgb(var(--fg-strong));
@@ -1141,7 +1141,7 @@ function useCounter(target: Ref<number>) {
 
 .mc-empty {
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 3rem 1.5rem;
   text-align: center;
   background: rgb(var(--bg-surface) / 0.4);
@@ -1171,9 +1171,9 @@ function useCounter(target: Ref<number>) {
   text-transform: uppercase;
   color: rgb(var(--accent-fg));
   background: rgb(var(--accent));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
-  transition: background 0.16s ease;
+  transition: background var(--dur-2) ease;
 }
 .mc-empty-cta:hover {
   background: rgb(var(--accent-hover));
@@ -1187,7 +1187,7 @@ function useCounter(target: Ref<number>) {
 }
 .mc-tile {
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-surface) / 0.5);
   padding: 1.25rem 1.25rem 1.5rem;
   display: flex;
@@ -1222,7 +1222,7 @@ function useCounter(target: Ref<number>) {
   font-size: 13px;
   color: rgb(var(--accent));
   background: rgb(var(--accent) / 0.12);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 .mc-tile-head h3 {
   margin: 0;
@@ -1256,7 +1256,7 @@ function useCounter(target: Ref<number>) {
   gap: 0.8rem;
   align-items: center;
   cursor: pointer;
-  transition: transform 0.14s ease;
+  transition: transform var(--dur-2) ease;
 }
 .mc-hot-row:hover {
   transform: translateX(2px);
@@ -1304,7 +1304,7 @@ function useCounter(target: Ref<number>) {
   display: block;
   height: 2px;
   background: rgb(var(--fg-default) / 0.08);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 }
 .mc-hot-bar-fill {
@@ -1315,7 +1315,7 @@ function useCounter(target: Ref<number>) {
     rgb(var(--accent) / 0.5),
     rgb(var(--accent))
   );
-  transition: width 0.6s ease;
+  transition: width calc(0.6s * var(--motion-scale)) ease;
 }
 
 /* Protocols tile */
@@ -1358,7 +1358,7 @@ function useCounter(target: Ref<number>) {
     rgb(var(--online))
   );
   width: 100%;
-  animation: mc-blip-line 1.4s ease both;
+  animation: mc-blip-line calc(1.4s * var(--motion-scale)) ease both;
 }
 .mc-proto-row--down .mc-proto-bar-line {
   background: rgb(var(--danger) / 0.6);
@@ -1372,7 +1372,7 @@ function useCounter(target: Ref<number>) {
   background: rgb(var(--online));
   transform: translateY(-50%);
   box-shadow: 0 0 6px rgb(var(--online) / 0.7);
-  animation: mc-blip-travel 2.4s linear infinite;
+  animation: mc-blip-travel calc(2.4s * var(--motion-scale)) linear infinite;
 }
 .mc-proto-bar-blip--off {
   display: none;
@@ -1430,8 +1430,8 @@ function useCounter(target: Ref<number>) {
   position: relative;
   padding: 1.75rem 1.5rem 1.75rem 2.25rem;
   border-right: 1px solid rgb(var(--line-default));
-  animation: mc-fade-up 0.5s ease both;
-  animation-delay: calc(0.1s + var(--m-i, 0) * 80ms);
+  animation: mc-fade-up calc(0.5s * var(--motion-scale)) ease both;
+  animation-delay: calc(calc(0.1s * var(--motion-scale)) + var(--m-i, 0) * calc(80ms * var(--motion-scale)));
 }
 .mc-manifesto:last-child { border-right: 0; }
 .mc-manifesto::before {
@@ -1442,7 +1442,7 @@ function useCounter(target: Ref<number>) {
   inset: 1.75rem auto 1.75rem 1rem;
   width: 2px;
   background: rgb(var(--fg-default) / 0.2);
-  transition: background 0.18s ease;
+  transition: background var(--dur-3) ease;
 }
 .mc-manifesto:hover::before {
   background: rgb(var(--accent));

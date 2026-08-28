@@ -149,8 +149,8 @@ const tierLabel = computed(() =>
   /* Staggered reveal, ~14 ms apart. Fast enough that a 24-episode season
      still resolves in a third of a second, slow enough to read as a fill
      rather than a flicker. */
-  animation: rung-in 220ms cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
-  animation-delay: calc(var(--i) * 14ms);
+  animation: rung-in var(--dur-4) cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+  animation-delay: calc(var(--i) * calc(14ms * var(--motion-scale)));
 }
 
 .rung--lit {
@@ -181,11 +181,11 @@ const tierLabel = computed(() =>
   line-height: 1;
   letter-spacing: 0.08em;
   padding: 2px 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   color: rgb(var(--fg-faint));
   border: 1px solid rgb(var(--line-default));
-  animation: tier-in 220ms ease backwards;
-  animation-delay: calc(var(--i) * 40ms);
+  animation: tier-in var(--dur-4) ease backwards;
+  animation-delay: calc(var(--i) * calc(40ms * var(--motion-scale)));
 }
 
 .tier--lit {

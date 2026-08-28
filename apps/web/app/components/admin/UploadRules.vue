@@ -865,8 +865,8 @@ function discard() {
   border-left: 3px solid var(--gate-color);
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
-  transition: border-color 0.18s ease, opacity 0.18s ease, background 0.18s ease;
-  animation: gate-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: border-color var(--dur-3) ease, opacity var(--dur-3) ease, background var(--dur-3) ease;
+  animation: gate-in calc(0.4s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
   overflow: hidden;
 }
@@ -938,8 +938,8 @@ function discard() {
 }
 .gate-cfg-enter-active,
 .gate-cfg-leave-active {
-  transition: max-height 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease, padding-top 0.22s ease;
+  transition: max-height var(--dur-slow) var(--ease-standard),
+    opacity var(--dur-4) ease, padding-top var(--dur-4) ease;
   overflow: hidden;
 }
 .gate-cfg-enter-from,
@@ -1012,7 +1012,7 @@ function discard() {
   font-family: inherit;
   min-width: 0;
   width: 100%;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .field-input--mono {
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -1050,7 +1050,7 @@ function discard() {
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .size-clear:hover {
   color: rgb(var(--danger));
@@ -1129,9 +1129,9 @@ function discard() {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  animation: gate-in 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: gate-in calc(0.35s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
-  transition: border-color 0.18s ease, background 0.18s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease;
 }
 .cat-row:hover { border-color: rgb(var(--line-strong)); }
 .cat-row--has {
@@ -1277,8 +1277,8 @@ function discard() {
 
 .savebar-enter-active,
 .savebar-leave-active {
-  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease;
+  transition: transform var(--dur-slow) var(--ease-standard),
+    opacity var(--dur-4) ease;
 }
 .savebar-enter-from,
 .savebar-leave-to {
@@ -1299,7 +1299,7 @@ function discard() {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
   white-space: nowrap;
 }
@@ -1320,7 +1320,7 @@ function discard() {
 }
 
 .spin {
-  animation: ur-spin 1s linear infinite;
+  animation: ur-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes ur-spin {
   to { transform: rotate(360deg); }

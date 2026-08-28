@@ -115,9 +115,9 @@ function protocolIcon(name: string | number): string {
   gap: 0.7rem;
   padding: 0.7rem 0.95rem 0.7rem 1.1rem;
   border-bottom: 1px solid rgb(var(--line-default));
-  animation: proto-in 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: proto-in calc(0.36s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
-  transition: background 0.16s ease;
+  transition: background var(--dur-2) ease;
 }
 .proto-row:last-child { border-bottom: 0; }
 .proto-row:hover {
@@ -187,7 +187,7 @@ function protocolIcon(name: string | number): string {
   background: #6cd161;
   opacity: 1;
   box-shadow: 0 0 8px rgba(108, 209, 97, 0.7);
-  animation: proto-pulse 1.8s ease-in-out infinite;
+  animation: proto-pulse calc(1.8s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes proto-pulse {
   0%, 100% { opacity: 0.6; transform: scale(0.85); }

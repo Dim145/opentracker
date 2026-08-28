@@ -314,7 +314,7 @@ onBeforeUnmount(() => {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md) var(--radius-md) 0 0;
-  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7),
+  box-shadow: 0 30px 60px -20px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
     0 0 0 1px rgba(244, 63, 94, 0.08);
   /* Faint red rule along the top hints at the alert-grade nature
      of the document without screaming. */
@@ -381,7 +381,7 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .slip-close:hover {
   color: rgb(var(--fg-strong));
@@ -461,7 +461,7 @@ onBeforeUnmount(() => {
   font-size: 9.5px;
   color: rgb(var(--fg-faint));
   letter-spacing: 0.05em;
-  transition: color 0.18s ease;
+  transition: color var(--dur-3) ease;
 }
 .slip-counter--warn {
   color: #f59e0b;
@@ -485,7 +485,7 @@ onBeforeUnmount(() => {
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
   white-space: nowrap;
 }
@@ -520,7 +520,7 @@ onBeforeUnmount(() => {
   resize: vertical;
   min-height: 80px;
   line-height: 1.5;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .slip-textarea:focus {
   outline: none;
@@ -572,7 +572,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
   white-space: nowrap;
 }
@@ -602,7 +602,7 @@ onBeforeUnmount(() => {
 }
 
 .spin {
-  animation: slip-spin 1s linear infinite;
+  animation: slip-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes slip-spin {
   to { transform: rotate(360deg); }
@@ -611,12 +611,12 @@ onBeforeUnmount(() => {
 /* ── Enter / leave transition ────────────────────────────── */
 .slip-enter-active,
 .slip-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity var(--dur-4) ease;
 }
 .slip-enter-active .slip,
 .slip-leave-active .slip {
   transition: transform 0.32s cubic-bezier(0.2, 0.85, 0.2, 1),
-    opacity 0.22s ease;
+    opacity var(--dur-4) ease;
 }
 .slip-enter-from,
 .slip-leave-to {

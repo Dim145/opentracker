@@ -4,10 +4,11 @@ Members pick an appearance in **Settings → Appearance**. Out of the box the li
 holds three entries: `Dark`, `Light` and `System`. This page is about the fourth
 onwards — the ones you create.
 
-Administrators author themes in **Admin → Themes**. A theme is a set of colour
-values that replaces part of the appearance; the two built-ins are the floor it
-stands on and are not editable, so there is always something correct to fall
-back to.
+Administrators author themes in **Admin → Themes**. A theme is a set of values
+that replaces part of the appearance — colours, but also how heavy the shadows
+are, how round the corners are and how fast the interface moves. The two
+built-ins are the floor it stands on and are not editable, so there is always
+something correct to fall back to.
 
 ## The three kinds of choice
 
@@ -57,7 +58,7 @@ colour of every form field on the site at 2.08:1.
 
 ### What a theme can change
 
-Twenty-seven values, grouped the way the editor groups them.
+Thirty-four values, grouped the way the editor groups them.
 
 | Group | Tokens |
 |---|---|
@@ -66,10 +67,13 @@ Twenty-seven values, grouped the way the editor groups them.
 | Lines | `line-default`, `line-strong` |
 | Accent | `accent`, `accent-hover`, `accent-fg`, `accent-warm`, `accent-warm-fg` |
 | Status | `online`, `warning`, `danger`, `info` |
+| Elevation | `shadow-color`, `shadow-strength` |
+| Shape | `radius`, `radius-pill` |
+| Motion | `motion-scale`, `ease-standard`, `ease-emphasis` |
 | Chrome | `focus-ring`, `bg-pattern-rgb`, `bg-pattern-alpha`, `color-scheme` |
 | Ambience | `accent-cool`, `accent-paper` |
 
-Two notes on that table.
+Four notes on that table.
 
 **There are two accents and it is not a mistake.** `accent` is the monochrome one
 — white on a dark base, near-black on a light one. `accent-warm` is the gold this
@@ -77,16 +81,43 @@ site is recognised by, and it is the one that moves most of what you can see:
 primary buttons, badges, hover glows, highlight borders. If you are wondering why
 changing `accent` did so little, change `accent-warm`.
 
+**Three of these move hundreds of declarations each, and they are the levers
+worth reaching for first.**
+
+`shadow-strength` multiplies into the alpha of every shadow on the site, so each
+of the 238 hand-tuned `box-shadow` declarations keeps its own relative weight
+while you move the lot. `0` is a flat theme — every shadow resolves to a
+transparent colour, with no second code path to go wrong. `3` is theatrical.
+
+`motion-scale` does the same for time. Every duration in the interface is
+`calc(<its own value> * var(--motion-scale))`, from a 120 ms hover to a 2.4 s
+decorative pulse. `0` is a theme with no animation at all, which is worth knowing
+about as an accessibility option and not only as an aesthetic one. `2` is
+languid.
+
+`radius` is a single scalar and the five steps derive from it — `0.33x`, `0.67x`,
+`1x`, `1.33x`, `2x` — so the corners go from square to very round while the steps
+keep their proportions. That is deliberately not five editable numbers: five
+independent values drift until a small element is rounder than a large one.
+`radius-pill` is separate, because a pill is a pill at any scale, and a
+brutalist theme wanting square pills should not have to flatten every card to
+get them.
+
+**The easings take a keyword or a `cubic-bezier()`.** `steps()` and `linear()`
+are refused: both accept argument lists of unbounded length, and neither
+expresses anything a bezier cannot. The one worth trying is an overshoot —
+`cubic-bezier(0.34, 1.56, 0.64, 1)` makes the whole interface feel springy, and
+it is the change an author is least likely to guess at.
+
 **The ambience pair does nothing yet.** `accent-cool` and `accent-paper` are
 reserved names, emitted and stored but not yet read by the interface. They are
 declared now so a theme you author today stays valid when the per-page palettes
 start using them, rather than becoming invalid later.
 
-Colours only, for now. Radii, shadows, animation, typography and density are
-planned and are not in this release; a theme file written now will still load
-when they arrive.
+Typography and density are planned and are not in this release; a theme file
+written now will still load when they arrive.
 
-### Colour format
+### Value formats
 
 Every colour is three integers, `0`–`255`, space-separated: `212 167 52`. Not
 hex, not `rgb(...)`. The reason is worth knowing if you are hand-editing an
@@ -96,6 +127,9 @@ channels rather than a finished colour. It also means a value that validates
 cannot possibly contain CSS syntax, which is what lets the stylesheet be
 assembled without escaping.
 
+`shadow-strength` and `motion-scale` are plain numbers with a ceiling (3 and 4).
+`radius` and `radius-pill` are a number with `px` or `rem` — no `calc()`, no
+other unit, and a ceiling, because a 400 px radius on a card is not a theme.
 `bg-pattern-alpha` is a decimal between `0` and `1`. `color-scheme` is `light` or
 `dark`, and it is what tells the browser which way to draw scrollbars, `<select>`
 menus and date pickers — set it to what your theme *looks* like, not to the
@@ -105,8 +139,9 @@ built-in it is based on. A dark theme built on `light` needs `dark` here.
 
 `Export` downloads a theme as JSON. `Import` loads one **into the editor** rather
 than saving it, so you can see what arrived and what it does before committing.
-An import that carries an unknown token name, or a value that is not a colour, is
-refused with every problem listed at once rather than one per attempt.
+An import that carries an unknown token name, or a value the token's format does
+not allow, is refused with every problem listed at once rather than one per
+attempt.
 
 This is how you move a theme between instances, and how you keep a copy before
 experimenting.

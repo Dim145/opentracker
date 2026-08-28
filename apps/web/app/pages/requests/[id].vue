@@ -935,7 +935,7 @@ async function fill() {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  transition: color 0.15s, transform 0.2s;
+  transition: color var(--dur-2), transform var(--dur-4);
 }
 .dossier-back:hover {
   color: rgb(var(--brass));
@@ -947,7 +947,7 @@ async function fill() {
   justify-content: center;
   padding: 5rem 0;
 }
-.loader-spin { font-size: 1.5rem; animation: spin 0.9s linear infinite; }
+.loader-spin { font-size: 1.5rem; animation: spin calc(0.9s * var(--motion-scale)) linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .dossier-empty {
@@ -974,12 +974,12 @@ async function fill() {
     radial-gradient(ellipse 70% 80% at 100% 100%, rgb(var(--brass-deep) / 0.18), transparent 60%),
     rgb(var(--bg-surface));
   border: 1px solid rgb(var(--brass) / 0.45);
-  border-radius: 0.65rem;
+  border-radius: var(--radius-xl);
   margin-bottom: 2rem;
   box-shadow:
-    0 22px 60px -22px rgba(0,0,0,0.7),
+    0 22px 60px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
     inset 0 1px 0 rgba(255,255,255,0.05);
-  animation: hero-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: hero-rise calc(0.55s * var(--motion-scale)) var(--ease-emphasis) both;
 }
 @keyframes hero-rise {
   from { opacity: 0; transform: translateY(6px); }
@@ -1007,19 +1007,19 @@ async function fill() {
   gap: 0.4rem;
   padding: 0.3rem 0.6rem;
   border: 1px solid rgb(var(--phosphor) / 0.4);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-weight: 800;
   color: rgb(var(--phosphor));
 }
 .hero-status-dot {
   width: 7px;
   height: 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: currentColor;
 }
 .hero--requested .hero-status-dot {
   box-shadow: 0 0 8px currentColor;
-  animation: status-pulse 2s ease-in-out infinite;
+  animation: status-pulse calc(2s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes status-pulse {
   0%, 100% { opacity: 0.65; transform: scale(1); }
@@ -1089,7 +1089,7 @@ async function fill() {
     linear-gradient(180deg, rgb(var(--brass) / 0.18), rgb(var(--brass-deep) / 0.08)),
     rgb(var(--bg-base));
   border: 1px solid rgb(var(--brass) / 0.55);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   color: rgb(var(--brass));
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.08),
@@ -1187,7 +1187,7 @@ async function fill() {
   letter-spacing: 0.1em;
   padding: 0.1rem 0.45rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: rgb(var(--fg-muted));
 }
 .grid-section-line {
@@ -1202,7 +1202,7 @@ async function fill() {
     linear-gradient(180deg, rgba(255,255,255,0.02), transparent 50%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   font-size: 14px;
   line-height: 1.65;
   color: rgb(var(--fg-default));
@@ -1214,7 +1214,7 @@ async function fill() {
   padding: 1rem 1.1rem;
   background: rgb(var(--status-filled) / 0.08);
   border: 1px dashed rgb(var(--status-filled) / 0.45);
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
 }
 .filled-card-head {
   display: inline-flex;
@@ -1239,7 +1239,7 @@ async function fill() {
   padding: 0.55rem 0.85rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 12px;
   font-weight: 700;
@@ -1249,7 +1249,7 @@ async function fill() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: border-color 0.18s, color 0.18s;
+  transition: border-color var(--dur-3), color var(--dur-3);
 }
 .filled-card-link:hover {
   color: rgb(var(--brass));
@@ -1273,7 +1273,7 @@ async function fill() {
     linear-gradient(180deg, rgba(255,255,255,0.02), transparent 50%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
 }
 .thread-item.is-deleted { opacity: 0.5; }
 .thread-head {
@@ -1313,10 +1313,10 @@ async function fill() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--dur-2), color var(--dur-2);
 }
 .thread-action:hover {
   background: rgb(var(--bg-base));
@@ -1346,7 +1346,7 @@ async function fill() {
   padding: 0.55rem 0.75rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 12.5px;
@@ -1363,7 +1363,7 @@ async function fill() {
   align-items: center;
   gap: 0.35rem;
   padding: 0.35rem 0.7rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10px;
   font-weight: 800;
@@ -1390,7 +1390,7 @@ async function fill() {
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
 }
 
 .thread-compose {
@@ -1400,14 +1400,14 @@ async function fill() {
   padding: 0.85rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--brass) / 0.3);
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
 }
 .thread-compose-input {
   width: 100%;
   padding: 0.5rem 0.7rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 13px;
   line-height: 1.5;
@@ -1440,7 +1440,7 @@ async function fill() {
     linear-gradient(180deg, rgb(var(--brass) / 0.25), rgb(var(--brass) / 0.08)),
     rgb(var(--bg-base));
   border: 1px solid rgb(var(--brass) / 0.55);
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10.5px;
   font-weight: 800;
@@ -1448,7 +1448,7 @@ async function fill() {
   text-transform: uppercase;
   color: rgb(var(--brass));
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.22s;
+  transition: transform var(--dur-4), box-shadow var(--dur-4);
 }
 .thread-compose-btn:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -1467,7 +1467,7 @@ async function fill() {
   padding: 0.75rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px dashed rgb(var(--line-strong));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10.5px;
   font-weight: 700;
@@ -1492,7 +1492,7 @@ async function fill() {
     linear-gradient(180deg, rgba(255,255,255,0.025), transparent 50%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .side-card-head {
   display: inline-flex;
@@ -1515,7 +1515,7 @@ async function fill() {
   padding: 0.6rem 0.85rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10.5px;
   font-weight: 800;
@@ -1524,7 +1524,7 @@ async function fill() {
   color: rgb(var(--fg-default));
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.2s;
+  transition: background var(--dur-3), border-color var(--dur-3), color var(--dur-3), transform var(--dur-4);
 }
 .side-btn:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -1564,7 +1564,7 @@ async function fill() {
   padding: 0.55rem 0.75rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   letter-spacing: 0.04em;
@@ -1616,7 +1616,7 @@ async function fill() {
 .timeline-dot {
   width: 8px;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--brass));
   box-shadow: 0 0 8px rgb(var(--brass) / 0.4);
 }

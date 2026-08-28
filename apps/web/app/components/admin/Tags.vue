@@ -461,15 +461,15 @@ function hexToRgba(hex: string, alpha: number): string {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   cursor: default;
   /* Staggered fade-in — the row "paints" left to right on first
      load. Cap the stagger index so the 200th tag doesn't take
      6 s to fade in. */
-  animation: ribbon-paint 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: ribbon-paint calc(0.28s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  transition: transform var(--dur-3) ease, box-shadow var(--dur-3) ease;
+  box-shadow: inset 0 0 0 1px rgb(var(--shadow-color) / calc(0.25 * var(--shadow-strength)));
 }
 .ribbon-swatch:hover {
   transform: scale(1.4);
@@ -609,7 +609,7 @@ function hexToRgba(hex: string, alpha: number): string {
   font-family: inherit;
   width: 100%;
   min-width: 0;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .forge-input:focus {
   outline: none;
@@ -642,11 +642,11 @@ function hexToRgba(hex: string, alpha: number): string {
   flex-shrink: 0;
   /* Soft outer glow that picks up the swatch colour. */
   box-shadow: 0 0 0 0 currentColor;
-  transition: transform 0.18s ease, box-shadow 0.22s ease;
+  transition: transform var(--dur-3) ease, box-shadow var(--dur-4) ease;
 }
 .forge-colour-swatch:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 14px -4px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)));
 }
 .forge-colour-input {
   position: absolute;
@@ -671,7 +671,7 @@ function hexToRgba(hex: string, alpha: number): string {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   height: 38px;
 }
 .forge-submit:hover:not(:disabled) {
@@ -698,7 +698,7 @@ function hexToRgba(hex: string, alpha: number): string {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .palette-search:focus-within {
   border-color: rgb(var(--accent-warm) / 0.55);
@@ -734,7 +734,7 @@ function hexToRgba(hex: string, alpha: number): string {
   width: 22px;
   height: 22px;
   border-radius: var(--radius-sm);
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .palette-search-clear:hover {
   color: rgb(var(--fg-strong));
@@ -763,18 +763,18 @@ function hexToRgba(hex: string, alpha: number): string {
   display: inline-flex;
   align-items: stretch;
   height: 32px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
   font-family: ui-monospace, SFMono-Regular, monospace;
   cursor: default;
-  transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1),
-    box-shadow 0.22s ease;
-  animation: chip-in 0.34s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: transform var(--dur-3) var(--ease-standard),
+    box-shadow var(--dur-4) ease;
+  animation: chip-in calc(0.34s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
   /* The chip carries its own coloured shadow on hover, picking
      up the tag's hex — gives the palette some life without
      hammering CPU on hundreds of swatches. */
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 0 0 1px rgb(var(--shadow-color) / calc(0.18 * var(--shadow-strength)));
 }
 @keyframes chip-in {
   from { opacity: 0; transform: translateY(4px) scale(0.92); }
@@ -782,8 +782,8 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 .chip:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px -4px var(--chip-shadow, rgba(0, 0, 0, 0.5)),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px -4px var(--chip-shadow, rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)))),
+    inset 0 0 0 1px rgb(var(--shadow-color) / calc(0.2 * var(--shadow-strength)));
 }
 
 .chip-body {
@@ -801,7 +801,7 @@ function hexToRgba(hex: string, alpha: number): string {
   text-transform: uppercase;
   line-height: 32px;
   white-space: nowrap;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+  text-shadow: 0 1px 1px rgb(var(--shadow-color) / calc(0.12 * var(--shadow-strength)));
 }
 .chip-slug {
   font-size: 10px;
@@ -821,7 +821,7 @@ function hexToRgba(hex: string, alpha: number): string {
   border: 0;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.16s ease, background 0.16s ease, width 0.18s ease;
+  transition: opacity var(--dur-2) ease, background var(--dur-2) ease, width var(--dur-3) ease;
   font-size: 0.75rem;
   flex-shrink: 0;
 }
@@ -905,7 +905,7 @@ function hexToRgba(hex: string, alpha: number): string {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .palette-empty-clear:hover {
   border-color: rgb(var(--accent-warm) / 0.5);
@@ -913,7 +913,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 
 .spin {
-  animation: tag-spin 1s linear infinite;
+  animation: tag-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes tag-spin {
   to { transform: rotate(360deg); }

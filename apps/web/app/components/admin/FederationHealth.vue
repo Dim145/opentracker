@@ -405,16 +405,16 @@ function hostOf(url: string): string {
 .fh-pulse-track {
   position: relative;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-default) / 0.1);
   overflow: hidden;
 }
 .fh-pulse-fill {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--tone));
-  transition: width 0.6s ease;
+  transition: width calc(0.6s * var(--motion-scale)) ease;
 }
 /* Threshold marker: the gauge has an end, and it needs to be visible. */
 .fh-pulse-mark {
@@ -506,7 +506,7 @@ function hostOf(url: string): string {
    figure to divide in your head. */
 .fh-store {
   border: 1px solid rgb(var(--border) / 0.7);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   padding: 0.7rem 0.8rem;
   background: rgb(var(--bg-subtle) / 0.35);
 }
@@ -514,7 +514,7 @@ function hostOf(url: string): string {
   display: flex;
   height: 6px;
   gap: 2px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
   background: rgb(var(--border) / 0.4);
 }
@@ -545,7 +545,7 @@ function hostOf(url: string): string {
 .fh-swatch {
   width: 8px;
   height: 8px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--seg);
   transform: translateY(-1px);
 }
@@ -574,7 +574,7 @@ function hostOf(url: string): string {
   align-items: center;
   gap: 0.3rem;
   padding: 0.1rem 0.4rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-subtle) / 0.8);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.68rem;
@@ -589,7 +589,7 @@ function hostOf(url: string): string {
   gap: 0.3rem;
   padding: 0.2rem 0.5rem;
   border: 1px solid rgb(var(--border) / 0.8);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-subtle) / 0.5);
   color: rgb(var(--fg-muted));
   font-size: 0.72rem;
@@ -630,7 +630,7 @@ function hostOf(url: string): string {
 .fh-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--online));
 }
 .fh-dot--stale { background: rgb(var(--warning)); }

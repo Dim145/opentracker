@@ -1259,10 +1259,10 @@ onMounted(() => {
   gap: 0.5rem;
   padding: 2.5rem 1.5rem;
   border: 1.5px dashed rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-inset) / 0.4);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .drop-zone--tall {
   padding: 4rem 1.5rem;
@@ -1330,7 +1330,7 @@ onMounted(() => {
   width: 2.4rem;
   height: 3.4rem;
   object-fit: cover;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   flex: 0 0 auto;
 }
 .fiche-result-body {
@@ -1459,7 +1459,7 @@ onMounted(() => {
   border-radius: calc(var(--radius-sm) - 1px);
   font-size: 0.78rem;
   color: rgb(var(--fg-muted));
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--dur-2) ease, color var(--dur-2) ease;
 }
 .fiche-radio input:checked + span {
   background: rgb(var(--fg-default) / 0.1);
@@ -1496,7 +1496,7 @@ onMounted(() => {
   flex: none;
   padding: 0.05rem 0.35rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.12em;

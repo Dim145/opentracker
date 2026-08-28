@@ -54,8 +54,26 @@
  *
  * `alpha` — a number in 0..1, for the layers composed out of a triplet.
  * `enum` — one of a closed list.
+ *
+ * Wave 2 adds three, and none of them needed `css-tree` after all — the note
+ * above expected it to. The reason is the same one that made the triplet safe:
+ * each of these is a closed grammar small enough to write out, and writing it
+ * out is stricter than parsing. A parser accepts every valid CSS length; the
+ * check below accepts a bounded number followed by `px` or `rem`, which cannot
+ * express `calc(1px + var(--x))`, a negative, or anything with a paren in it.
+ *
+ * `scalar` — a bare non-negative number with a per-token ceiling. This is the
+ *   shape that gives a theme a global lever: `shadow-strength: 0` flattens every
+ *   elevation on the site, `motion-scale: 0` stops every transition, because
+ *   both are multiplied into the value with `calc()` at the point of use.
+ * `length` — a bounded number with `px` or `rem`. Bounded because a radius of
+ *   400px on a card is not a theme, it is a broken page.
+ * `bezier` — one of the five CSS easing keywords, or `cubic-bezier()` with
+ *   exactly four numbers. `steps()` and `linear()` are refused: both can carry
+ *   arbitrarily long argument lists, and neither buys a theme anything a
+ *   bezier cannot express.
  */
-export type TokenKind = 'rgb' | 'alpha' | 'enum';
+export type TokenKind = 'rgb' | 'alpha' | 'enum' | 'scalar' | 'length' | 'bezier';
 
 /** Groups exist only to lay the admin editor out. They carry no behaviour. */
 export type TokenGroup =
@@ -64,6 +82,9 @@ export type TokenGroup =
   | 'line'
   | 'accent'
   | 'semantic'
+  | 'elevation'
+  | 'shape'
+  | 'motion'
   | 'ambience'
   | 'chrome';
 
@@ -74,6 +95,10 @@ export interface TokenDef {
   readonly group: TokenGroup;
   /** Allowed values, for `enum`. */
   readonly options?: readonly string[];
+  /** Inclusive ceiling for `scalar` and `length`. Floor is always 0. */
+  readonly max?: number;
+  /** Allowed units for `length`. */
+  readonly units?: readonly string[];
   /**
    * A token the interface does not consume yet, flagged as such.
    *
@@ -169,6 +194,52 @@ export const THEME_TOKENS: readonly TokenDef[] = [
     options: ['light', 'dark'] as const,
   },
 
+  // Elevation
+  //
+  // Two levers rather than a list of shadow strings, and that is the whole
+  // design. The 238 `box-shadow` declarations in this codebase are hand-tuned
+  // and mostly unique; replacing them with three canonical elevations would
+  // flatten deliberate differences, and exposing them as free-form strings
+  // would put a CSS grammar nobody can validate into a database column.
+  //
+  // Instead every black shadow in the codebase is rewritten as
+  // `rgb(var(--shadow-color) / calc(<its own alpha> * var(--shadow-strength)))`.
+  // Each site keeps its own weight; a theme moves all of them together. The
+  // "flat mode" the plan asked for is `shadow-strength: 0` — no special case,
+  // no second code path, every shadow simply becomes transparent.
+  { key: 'shadow-color', kind: 'rgb', group: 'elevation' },
+  // Up to 3: a shadow can be pushed well past its designed weight for a heavy,
+  // theatrical theme. Past that the page is soot.
+  { key: 'shadow-strength', kind: 'scalar', group: 'elevation', max: 3 },
+
+  // Shape
+  //
+  // One scalar with the rest derived by `calc()` in the stylesheet, which is
+  // shadcn's proportional scale rather than a list of independent radii. A
+  // single number takes the whole personality of the corners from square to
+  // very round, and the five steps keep their relative proportions while it
+  // moves — which a list of five editable values would not.
+  { key: 'radius', kind: 'length', group: 'shape', max: 32, units: ['px', 'rem'] },
+  // NOT derived from `--radius`. A pill is a pill at any radius scale, so it
+  // needs its own value — and a brutalist theme wanting square pills has to be
+  // able to say so without flattening every card as collateral.
+  { key: 'radius-pill', kind: 'length', group: 'shape', max: 9999, units: ['px', 'rem'] },
+
+  // Motion
+  //
+  // A multiplier, not a table of durations. The measured spread was seven
+  // values between 120 ms and 220 ms across 528 sites — one band, hand-tuned
+  // within itself. A theme wants "snappier" or "slower", which is one number;
+  // per-step durations would be six more tokens for a distinction nobody makes.
+  //
+  // `motion-scale: 0` is a valid value and it removes every transition on the
+  // site. That is deliberate: it makes "no animation" a theme rather than a
+  // browser setting, and it is the same mechanism, so there is no second path
+  // to keep correct.
+  { key: 'motion-scale', kind: 'scalar', group: 'motion', max: 4 },
+  { key: 'ease-standard', kind: 'bezier', group: 'motion' },
+  { key: 'ease-emphasis', kind: 'bezier', group: 'motion' },
+
   // Ambience — reserved (see `TokenDef.reserved`)
   //
   // `accent-warm` started here and moved up to `accent`: wave 1 converted the
@@ -221,6 +292,13 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'color-scheme': 'dark',
     'accent-warm': '212 167 52',
     'accent-warm-fg': '26 26 26',
+    'shadow-color': '0 0 0',
+    'shadow-strength': '1',
+    radius: '6px',
+    'radius-pill': '9999px',
+    'motion-scale': '1',
+    'ease-standard': 'cubic-bezier(0.2, 0.7, 0.2, 1)',
+    'ease-emphasis': 'cubic-bezier(0.22, 1, 0.36, 1)',
     'accent-cool': '52 212 216',
     'accent-paper': '20 20 20',
   },
@@ -250,6 +328,13 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'color-scheme': 'light',
     'accent-warm': '176 133 24',
     'accent-warm-fg': '26 26 26',
+    'shadow-color': '0 0 0',
+    'shadow-strength': '1',
+    radius: '6px',
+    'radius-pill': '9999px',
+    'motion-scale': '1',
+    'ease-standard': 'cubic-bezier(0.2, 0.7, 0.2, 1)',
+    'ease-emphasis': 'cubic-bezier(0.22, 1, 0.36, 1)',
     'accent-cool': '14 145 148',
     'accent-paper': '252 250 245',
   },
@@ -281,6 +366,21 @@ export function parseRgb(value: string): [number, number, number] | null {
  * arbitrary CSS. Home Assistant's `card-mod` does exactly that — it smuggles
  * whole rulesets through keys the schema never enumerated.
  */
+/**
+ * The keyword easings, and only these.
+ *
+ * `steps()` and `linear()` are left out on purpose — both accept argument lists
+ * of unbounded length, and a theme gains nothing from either that a bezier
+ * cannot express.
+ */
+const EASING_KEYWORDS: readonly string[] = [
+  'linear',
+  'ease',
+  'ease-in',
+  'ease-out',
+  'ease-in-out',
+];
+
 export function isValidTokenValue(key: string, value: unknown): boolean {
   const def = BY_KEY.get(key);
   if (!def) return false;
@@ -299,6 +399,33 @@ export function isValidTokenValue(key: string, value: unknown): boolean {
     }
     case 'enum':
       return !!def.options?.includes(value);
+    case 'scalar': {
+      // Up to two decimals, no sign, no exponent, no unit. Every form allowed
+      // is a form the `calc()` at the point of use has to stay correct for.
+      if (!/^(?:0|[1-9]\d{0,2})(?:\.\d{1,2})?$/.test(value)) return false;
+      return Number(value) <= (def.max ?? 1);
+    }
+    case 'length': {
+      const m = /^(0|[1-9]\d{0,3})(?:\.\d{1,2})?(px|rem)$/.exec(value);
+      if (!m) return false;
+      if (!(def.units ?? ['px']).includes(m[2]!)) return false;
+      return parseFloat(value) <= (def.max ?? 0);
+    }
+    case 'bezier': {
+      if (EASING_KEYWORDS.includes(value)) return true;
+      const m = /^cubic-bezier\(([^()]*)\)$/.exec(value);
+      if (!m) return false;
+      const parts = m[1]!.split(',').map((p) => p.trim());
+      if (parts.length !== 4) return false;
+      // The x coordinates of a cubic-bezier timing function must be in 0..1 or
+      // the browser discards the whole declaration; y may overshoot, which is
+      // what makes a spring curve possible.
+      return parts.every((p, i) => {
+        if (!/^-?(?:0|[1-9]\d?)(?:\.\d{1,4})?$/.test(p)) return false;
+        const n = Number(p);
+        return i % 2 === 0 ? n >= 0 && n <= 1 : n >= -5 && n <= 5;
+      });
+    }
   }
 }
 

@@ -720,7 +720,7 @@ function confirmBanPanel(report: Report) {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .filter:hover {
   color: rgb(var(--fg-strong));
@@ -732,7 +732,7 @@ function confirmBanPanel(report: Report) {
   min-width: 22px;
   height: 18px;
   padding: 0 0.35rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
   font-size: 9.5px;
@@ -784,14 +784,14 @@ function confirmBanPanel(report: Report) {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   overflow: hidden;
-  animation: dossier-in 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: dossier-in calc(0.42s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
-  transition: border-color 0.2s ease, transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color var(--dur-4) ease, transform var(--dur-4) ease,
+    box-shadow var(--dur-4) ease;
 }
 .dossier:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 28px -22px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 10px 28px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength)));
 }
 .dossier--pending:hover { border-color: rgba(244, 63, 94, 0.4); }
 .dossier--resolved:hover { border-color: rgba(108, 209, 97, 0.35); }
@@ -872,7 +872,7 @@ function confirmBanPanel(report: Report) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.32rem 0.7rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 10px;
   font-weight: 800;
@@ -988,7 +988,7 @@ function confirmBanPanel(report: Report) {
   gap: 0.2rem;
   margin-left: 0.4rem;
   padding: 0.05rem 0.35rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--warning) / 0.15);
   color: rgb(var(--warning));
   font-size: 0.68rem;
@@ -1038,7 +1038,7 @@ function confirmBanPanel(report: Report) {
   font-weight: 600;
   color: rgb(var(--accent-warm));
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   max-width: 100%;
   min-width: 0;
 }
@@ -1055,7 +1055,7 @@ function confirmBanPanel(report: Report) {
 .target-link-arrow {
   font-size: 0.8rem;
   flex-shrink: 0;
-  transition: transform 0.18s ease;
+  transition: transform var(--dur-3) ease;
 }
 .target-link:hover .target-link-arrow {
   transform: translate(1px, -1px);
@@ -1109,7 +1109,7 @@ function confirmBanPanel(report: Report) {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   white-space: nowrap;
   width: 100%;
 }
@@ -1188,7 +1188,7 @@ function confirmBanPanel(report: Report) {
   box-shadow:
     0 14px 32px -18px rgba(244, 63, 94, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  animation: ban-panel-rise 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ban-panel-rise calc(0.28s * var(--motion-scale)) var(--ease-emphasis) both;
 }
 @keyframes ban-panel-rise {
   from { opacity: 0; transform: translateY(-4px); }
@@ -1230,8 +1230,8 @@ function confirmBanPanel(report: Report) {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s, border-color 0.15s,
-    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: color var(--dur-2), background var(--dur-2), border-color var(--dur-2),
+    transform var(--dur-3) var(--ease-emphasis);
 }
 .ban-chip:hover {
   color: rgb(var(--fg-strong));
@@ -1268,7 +1268,7 @@ function confirmBanPanel(report: Report) {
   line-height: 1.4;
   resize: vertical;
   min-height: 64px;
-  transition: border-color 0.18s, box-shadow 0.18s;
+  transition: border-color var(--dur-3), box-shadow var(--dur-3);
 }
 .ban-panel-reason:focus {
   outline: 0;
@@ -1364,7 +1364,7 @@ function confirmBanPanel(report: Report) {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .pager-btn:hover:not(:disabled) {
   border-color: rgb(var(--accent-warm) / 0.5);

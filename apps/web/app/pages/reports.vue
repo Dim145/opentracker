@@ -555,7 +555,7 @@ function kindIcon(kind: string): string {
 
 .kpi {
   position: relative;
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   isolation: isolate;
 }
@@ -567,15 +567,15 @@ function kindIcon(kind: string): string {
   padding: 1rem 1.1rem 1.05rem;
   background: rgb(var(--bg-elevated) / 0.55);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   color: inherit;
   cursor: pointer;
   text-align: left;
   font-family: inherit;
   transition:
-    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 0.2s ease,
-    border-color 0.2s ease;
+    transform var(--dur-slow) var(--ease-emphasis),
+    background-color var(--dur-4) ease,
+    border-color var(--dur-4) ease;
 }
 .kpi-btn:hover {
   background: rgb(var(--bg-elevated) / 0.85);
@@ -594,7 +594,7 @@ function kindIcon(kind: string): string {
   width: 3px;
   background: rgb(var(--rail, var(--fg-muted)));
   opacity: 0.85;
-  transition: width 0.2s ease, opacity 0.2s ease;
+  transition: width var(--dur-4) ease, opacity var(--dur-4) ease;
 }
 .kpi-btn:hover .kpi-rail,
 .kpi.is-active .kpi-rail { width: 4px; opacity: 1; }
@@ -652,7 +652,7 @@ function kindIcon(kind: string): string {
   padding: 0.45rem 0.85rem;
   background: rgb(var(--bg-elevated) / 0.45);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10.5px;
   font-weight: 700;
@@ -660,8 +660,8 @@ function kindIcon(kind: string): string {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: color 0.15s, background-color 0.2s, border-color 0.2s, transform 0.2s,
-              box-shadow 0.2s;
+  transition: color var(--dur-2), background-color var(--dur-4), border-color var(--dur-4), transform var(--dur-4),
+              box-shadow var(--dur-4);
 }
 .filter-pill:hover {
   color: rgb(var(--fg-strong));
@@ -688,10 +688,10 @@ function kindIcon(kind: string): string {
 .filter-pill-dot {
   width: 5px;
   height: 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: currentColor;
   opacity: 0.4;
-  transition: opacity 0.15s, transform 0.2s;
+  transition: opacity var(--dur-2), transform var(--dur-4);
 }
 .filter-pill.is-active .filter-pill-dot {
   opacity: 1;
@@ -704,7 +704,7 @@ function kindIcon(kind: string): string {
   justify-content: center;
   min-width: 1.25rem;
   padding: 0.05rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 9.5px;
   font-weight: 700;
   background: rgb(var(--fg-default) / 0.08);
@@ -724,7 +724,7 @@ function kindIcon(kind: string): string {
 }
 
 .report-entry {
-  animation: entryRise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: entryRise calc(0.65s * var(--motion-scale)) var(--ease-emphasis) both;
   animation-delay: var(--entry-delay, 0ms);
 }
 @keyframes entryRise {
@@ -738,13 +738,13 @@ function kindIcon(kind: string): string {
   position: relative;
   background: rgb(var(--bg-elevated) / 0.42);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.55rem;
+  border-radius: var(--radius-lg);
   padding: 1.15rem 1.4rem 1.25rem 1.65rem;
   overflow: hidden;
   transition:
-    background-color 0.25s ease,
-    border-color 0.25s ease,
-    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    background-color var(--dur-slow) ease,
+    border-color var(--dur-slow) ease,
+    transform var(--dur-slow) var(--ease-emphasis);
 }
 .entry-card:hover {
   background: rgb(var(--bg-elevated) / 0.62);
@@ -758,7 +758,7 @@ function kindIcon(kind: string): string {
   inset: 0 auto 0 0;
   width: 4px;
   background: rgb(var(--rail, var(--fg-muted)));
-  transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width var(--dur-slow) var(--ease-emphasis);
 }
 .report-entry[data-status='pending']  { --rail: var(--warning); }
 .report-entry[data-status='resolved'] { --rail: var(--online); }
@@ -782,7 +782,7 @@ function kindIcon(kind: string): string {
   padding: 0.2rem 0.45rem;
   border: 1px solid rgba(var(--rail), 0.4);
   background: rgba(var(--rail), 0.08);
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   font-weight: 800;
@@ -830,7 +830,7 @@ function kindIcon(kind: string): string {
   padding: 0.22rem 0.55rem;
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-surface) / 0.55);
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 9.5px;
   font-weight: 700;
@@ -847,7 +847,7 @@ function kindIcon(kind: string): string {
   font-weight: 600;
   color: rgb(var(--fg-strong));
   text-decoration: none;
-  transition: color 0.15s ease;
+  transition: color var(--dur-2) ease;
   max-width: 100%;
   overflow: hidden;
   position: relative;
@@ -862,7 +862,7 @@ function kindIcon(kind: string): string {
   background-size: 0% 1px;
   background-position: 0 100%;
   background-repeat: no-repeat;
-  transition: background-size 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: background-size var(--dur-slow) var(--ease-emphasis);
 }
 .entry-target:hover .entry-target-name {
   color: rgb(var(--accent));
@@ -871,7 +871,7 @@ function kindIcon(kind: string): string {
 .entry-target-icon {
   font-size: 0.85em;
   opacity: 0.5;
-  transition: opacity 0.15s, transform 0.2s;
+  transition: opacity var(--dur-2), transform var(--dur-4);
   flex-shrink: 0;
 }
 .entry-target:hover .entry-target-icon {
@@ -906,7 +906,7 @@ function kindIcon(kind: string): string {
       transparent 70%
     );
   border-left: 2px solid rgb(var(--rail, var(--fg-muted)));
-  border-radius: 0 0.25rem 0.25rem 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 .entry-reason-mark {
   display: inline-block;
@@ -948,7 +948,7 @@ function kindIcon(kind: string): string {
   padding: 0.4rem 0.85rem;
   background: transparent;
   border: 1px solid rgb(var(--danger) / 0.4);
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--danger));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10.5px;
@@ -957,10 +957,10 @@ function kindIcon(kind: string): string {
   text-transform: uppercase;
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    background-color var(--dur-4) ease,
+    border-color var(--dur-4) ease,
+    color var(--dur-4) ease,
+    transform var(--dur-4) var(--ease-emphasis);
 }
 .entry-cancel:hover:not(:disabled) {
   background: rgb(var(--danger) / 0.12);
@@ -972,7 +972,7 @@ function kindIcon(kind: string): string {
   cursor: progress;
 }
 .entry-cancel-icon { font-size: 0.95em; }
-.entry-cancel-icon--spin { animation: cancelSpin 0.9s linear infinite; }
+.entry-cancel-icon--spin { animation: cancelSpin calc(0.9s * var(--motion-scale)) linear infinite; }
 @keyframes cancelSpin {
   to { transform: rotate(360deg); }
 }
@@ -999,7 +999,7 @@ function kindIcon(kind: string): string {
 .entry-resolution-mark {
   width: 1.5rem;
   height: 1.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1039,7 +1039,7 @@ function kindIcon(kind: string): string {
   color: rgb(var(--fg-default));
   text-decoration: none;
   font-weight: 700;
-  transition: color 0.15s ease;
+  transition: color var(--dur-2) ease;
   border-bottom: 1px dashed rgb(var(--fg-default) / 0.25);
 }
 .entry-resolver-link:hover {
@@ -1052,7 +1052,7 @@ function kindIcon(kind: string): string {
   padding: 0.75rem 1rem;
   background: rgb(var(--bg-surface) / 0.6);
   border-left: 3px solid rgba(var(--rail), 0.45);
-  border-radius: 0 0.25rem 0.25rem 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-family: 'Source Serif 4', 'Charter', Georgia, serif;
   font-size: 13.5px;
   font-style: italic;
@@ -1074,7 +1074,7 @@ function kindIcon(kind: string): string {
   width: 5rem;
   height: 5rem;
   margin: 0 auto 1.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated) / 0.5);
   border: 1px dashed rgb(var(--line-default));
 }
@@ -1137,7 +1137,7 @@ function kindIcon(kind: string): string {
   padding: 0.55rem 1.05rem;
   background: rgb(var(--bg-elevated) / 0.45);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
@@ -1145,7 +1145,7 @@ function kindIcon(kind: string): string {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
+  transition: background-color var(--dur-4), border-color var(--dur-4), transform var(--dur-2);
 }
 .pager-btn:hover:not(:disabled) {
   background: rgb(var(--bg-elevated) / 0.75);
@@ -1169,7 +1169,7 @@ function kindIcon(kind: string): string {
 /* ── Transitions ───────────────────────────────────────────────── */
 .reports-fade-enter-active,
 .reports-fade-leave-active {
-  transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity var(--dur-4) ease, transform var(--dur-slow) var(--ease-emphasis);
 }
 .reports-fade-enter-from,
 .reports-fade-leave-to {

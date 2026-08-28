@@ -563,7 +563,7 @@ function formatDate(iso: string): string {
   gap: 0.5rem;
   padding: 0.35rem 0.7rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-size: 10px;
   color: rgb(var(--fg-muted));
 }
@@ -628,7 +628,7 @@ function formatDate(iso: string): string {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   background-color: rgb(var(--bg-surface));
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-2);
 }
 .tpl-card:hover {
   border-color: rgb(var(--line-strong));

@@ -17,7 +17,7 @@ defineProps<{
   align-items: center;
   gap: 0.4rem;
   padding: 0.25rem 0.6rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10px;
   font-weight: 700;
@@ -34,7 +34,7 @@ defineProps<{
 .status-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background-color: currentColor;
   box-shadow: 0 0 0 2px rgb(var(--bg-base) / 0.7);
   position: relative;
@@ -49,10 +49,10 @@ defineProps<{
   content: '';
   position: absolute;
   inset: -3px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid currentColor;
   opacity: 0;
-  animation: chipPulse 2.4s ease-out infinite;
+  animation: chipPulse calc(2.4s * var(--motion-scale)) ease-out infinite;
 }
 @keyframes chipPulse {
   0% {

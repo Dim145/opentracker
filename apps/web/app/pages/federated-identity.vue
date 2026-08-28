@@ -397,7 +397,7 @@ function fmtDate(d: string | null) {
   display: flex;
   flex-direction: column;
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 .fid-work {
@@ -482,7 +482,7 @@ a.fid-work-name:hover {
 .fid-flash { display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.9rem; border-radius: var(--radius-md); font-size: 13px; border: 1px solid; }
 .fid-flash--ok { color: #4ade80; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
 .fid-flash--error { color: #f87171; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
-.fid-flash-enter-active, .fid-flash-leave-active { transition: all 0.2s ease; }
+.fid-flash-enter-active, .fid-flash-leave-active { transition: all var(--dur-4) ease; }
 .fid-flash-enter-from, .fid-flash-leave-to { opacity: 0; transform: translateY(-4px); }
 
 .fid-title { font-size: 28px; font-weight: 700; color: rgb(var(--fg-strong)); letter-spacing: -0.02em; margin-top: 0.45rem; }
@@ -512,7 +512,7 @@ a.fid-work-name:hover {
 .fid-handle { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 14px; color: rgb(var(--fg-default)); }
 .fid-handle strong { color: rgb(var(--fg-strong)); }
 .fid-at { font-family: var(--font-mono, monospace); font-size: 11.5px; color: rgb(var(--fg-subtle)); }
-.fid-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 10.5px; font-weight: 600; padding: 0.12rem 0.45rem; border-radius: 99px; border: 1px solid; text-transform: uppercase; letter-spacing: 0.03em; }
+.fid-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 10.5px; font-weight: 600; padding: 0.12rem 0.45rem; border-radius: var(--radius-pill); border: 1px solid; text-transform: uppercase; letter-spacing: 0.03em; }
 .fid-badge.ok { color: #4ade80; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
 .fid-badge.pending { color: #facc15; background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.3); }
 .fid-x { margin-left: auto; color: rgb(var(--fg-subtle)); width: 28px; height: 28px; border-radius: var(--radius-sm); display: grid; place-items: center; border: 1px solid transparent; }

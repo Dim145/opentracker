@@ -342,7 +342,7 @@ async function download(): Promise<void> {
   gap: 0.85rem;
   padding: 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated) / 0.35);
 }
 .pid-head {
@@ -363,7 +363,7 @@ async function download(): Promise<void> {
 }
 .pid-col {
   padding: 0.6rem 0.75rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base) / 0.5);
 }

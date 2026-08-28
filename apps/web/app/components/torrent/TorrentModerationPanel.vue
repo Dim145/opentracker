@@ -511,7 +511,7 @@ function formatDate(iso: string): string {
   --c-text: rgb(var(--c));
 
   border: 1px solid rgb(var(--line-default));
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   background: rgb(var(--bg-surface));
   overflow: hidden;
   position: relative;
@@ -550,7 +550,7 @@ function formatDate(iso: string): string {
   text-align: left;
   font: inherit;
   color: inherit;
-  transition: background 160ms ease;
+  transition: background var(--dur-2) ease;
 }
 .mod-banner:hover {
   background:
@@ -586,7 +586,7 @@ function formatDate(iso: string): string {
 .mod-banner-caret {
   font-size: 14px;
   color: rgb(var(--fg-subtle));
-  transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1), color 160ms ease;
+  transition: transform var(--dur-4) cubic-bezier(0.4, 0, 0.2, 1), color var(--dur-2) ease;
 }
 .mod-banner:hover .mod-banner-caret { color: var(--c-text); }
 .mod-banner-caret--up { transform: rotate(-180deg); }
@@ -610,7 +610,7 @@ function formatDate(iso: string): string {
 .mod-banner-glyph {
   width: 44px;
   height: 44px;
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -638,7 +638,7 @@ function formatDate(iso: string): string {
   background: rgb(var(--c) / 0.14);
   border: 1px solid var(--c-line);
   padding: 0.05rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-weight: 700;
 }
 .mod-banner-title {
@@ -678,7 +678,7 @@ function formatDate(iso: string): string {
   text-align: center;
   padding: 1.75rem 1rem 0.5rem;
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   background: rgb(var(--bg-inset) / 0.6);
 }
 .mod-empty-glyph { font-size: 2rem; color: var(--c-text); opacity: 0.6; margin-bottom: 0.5rem; }
@@ -722,7 +722,7 @@ function formatDate(iso: string): string {
   grid-row: 1 / -1;
   width: 2px;
   background: rgb(var(--r) / 0.3);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   margin-left: 15px;
   align-self: stretch;
 }
@@ -731,7 +731,7 @@ function formatDate(iso: string): string {
   grid-row: 1;
   width: 32px;
   height: 32px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -758,7 +758,7 @@ function formatDate(iso: string): string {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-left: 3px solid rgb(var(--r));
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 0.625rem 0.875rem;
 }
 .mod-row--system .mod-row-card {
@@ -788,7 +788,7 @@ function formatDate(iso: string): string {
   text-transform: uppercase;
   font-weight: 700;
   padding: 0.1rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
 }
 .mod-row-pip--admin {
@@ -820,7 +820,7 @@ function formatDate(iso: string): string {
   font-size: 10px;
   padding: 0.05rem 0.35rem;
   background: rgb(var(--r) / 0.14);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--r) / 0.4);
   margin-left: 0.2rem;
 }
@@ -836,7 +836,7 @@ function formatDate(iso: string): string {
 .mod-composer {
   background: rgb(var(--bg-inset));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   padding: 1rem 1rem 0.875rem;
   position: relative;
 }
@@ -859,13 +859,13 @@ function formatDate(iso: string): string {
   width: 100%;
   background: rgb(var(--bg-base));
   border: 1.5px solid rgb(var(--line-default));
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 0.7rem 0.85rem;
   color: rgb(var(--fg-default));
   font-size: 13.5px;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   resize: vertical;
-  transition: border-color 140ms ease;
+  transition: border-color var(--dur-2) ease;
   line-height: 1.5;
 }
 .mod-composer-input:focus {
@@ -893,18 +893,18 @@ function formatDate(iso: string): string {
   align-items: center;
   gap: 0.45rem;
   padding: 0.55rem 0.95rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   cursor: pointer;
   transition:
-    background 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease,
-    transform 140ms ease,
-    box-shadow 140ms ease;
+    background var(--dur-2) ease,
+    border-color var(--dur-2) ease,
+    color var(--dur-2) ease,
+    transform var(--dur-2) ease,
+    box-shadow var(--dur-2) ease;
   border: 1.5px solid var(--a-line);
   background: var(--a-bg);
   color: var(--a-text);
@@ -929,7 +929,7 @@ function formatDate(iso: string): string {
   gap: 0.4rem;
   margin: 0.625rem 0 0;
   padding: 0.5rem 0.7rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: rgb(239 68 68 / 0.1);
   border: 1px solid rgb(239 68 68 / 0.35);
   color: rgb(239 68 68);

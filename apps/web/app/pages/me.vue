@@ -1408,7 +1408,7 @@ function formatDuration(seconds: number) {
 /* ─── Hero ──────────────────────────────────────────────────── */
 .hero {
   position: relative;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-xl);
   overflow: hidden;
   background:
     radial-gradient(
@@ -1466,7 +1466,7 @@ function formatDuration(seconds: number) {
   position: relative;
   width: 5rem;
   height: 5rem;
-  border-radius: 0.7rem;
+  border-radius: var(--radius-xl);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1478,10 +1478,10 @@ function formatDuration(seconds: number) {
   flex-shrink: 0;
   isolation: isolate;
   box-shadow:
-    0 14px 38px -16px rgba(0, 0, 0, 0.7),
+    0 14px 38px -16px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
     inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    inset 0 -20px 30px -16px rgba(0, 0, 0, 0.35);
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    inset 0 -20px 30px -16px rgb(var(--shadow-color) / calc(0.35 * var(--shadow-strength)));
+  text-shadow: 0 2px 6px rgb(var(--shadow-color) / calc(0.35 * var(--shadow-strength)));
 }
 .hero-avatar::after {
   /* Diagonal sheen — gives the gradient block a soft-lit glass card
@@ -1564,7 +1564,7 @@ function formatDuration(seconds: number) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.3rem 0.7rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -1618,13 +1618,13 @@ function formatDuration(seconds: number) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.65rem 1rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   border: 1px solid;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .hero-btn--primary {
   background: rgb(var(--fg-strong));
@@ -1657,7 +1657,7 @@ function formatDuration(seconds: number) {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
   border-top: 1px solid rgb(var(--line-default));
-  border-radius: 0 0 0.6rem 0.6rem;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
   margin-left: -2rem;
   margin-right: -2rem;
   margin-bottom: -1.75rem;
@@ -1789,7 +1789,7 @@ function formatDuration(seconds: number) {
   font-size: 9.5px;
   font-weight: 700;
   text-transform: uppercase;
-  transition: color 0.16s ease, gap 0.2s ease;
+  transition: color var(--dur-2) ease, gap var(--dur-4) ease;
 }
 .kpi-sub--link:hover {
   color: rgb(var(--accent-warm));
@@ -1798,7 +1798,7 @@ function formatDuration(seconds: number) {
 .kpi-sub--link :deep(svg),
 .kpi-sub--link svg {
   font-size: 0.85em;
-  transition: transform 0.2s;
+  transition: transform var(--dur-4);
 }
 .kpi-sub--link:hover :deep(svg),
 .kpi-sub--link:hover svg {
@@ -1891,13 +1891,13 @@ function formatDuration(seconds: number) {
   width: 100%;
   padding: 0.7rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-elevated));
   font: inherit;
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.16s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-2) ease;
 }
 .bonus-history-toggle:hover {
   border-color: rgb(var(--accent-warm) / 0.45);
@@ -1951,7 +1951,7 @@ function formatDuration(seconds: number) {
   flex-shrink: 0;
   font-size: 0.95rem;
   color: rgb(var(--fg-muted));
-  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), color 0.16s ease;
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), color var(--dur-2) ease;
 }
 .bonus-history-toggle:hover .bonus-chevron {
   color: rgb(var(--fg-strong));
@@ -1976,7 +1976,7 @@ function formatDuration(seconds: number) {
   margin-top: 0.65rem;
   padding: 1rem 1rem 1.1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-elevated) / 0.4);
   position: relative;
   overflow: hidden;
@@ -2002,8 +2002,8 @@ function formatDuration(seconds: number) {
    the actual panel height is content-driven. */
 .bv-panel-enter-active,
 .bv-panel-leave-active {
-  transition: max-height 0.32s ease, opacity 0.22s ease,
-    margin-top 0.22s ease;
+  transition: max-height 0.32s ease, opacity var(--dur-4) ease,
+    margin-top var(--dur-4) ease;
   overflow: hidden;
 }
 .bv-panel-enter-from,
@@ -2073,7 +2073,7 @@ function formatDuration(seconds: number) {
   color: rgb(var(--fg-muted));
 }
 .bv-loading-spin {
-  animation: bv-spin 0.9s linear infinite;
+  animation: bv-spin calc(0.9s * var(--motion-scale)) linear infinite;
   color: rgb(var(--fg-muted));
 }
 @keyframes bv-spin {
@@ -2102,7 +2102,7 @@ function formatDuration(seconds: number) {
   gap: 1px;
   background: rgb(var(--line-default));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -2126,9 +2126,9 @@ function formatDuration(seconds: number) {
   /* Stagger entry — each row arrives ~30ms after the previous so the
      panel feels like it's being typed in. Caps via a class-bound max
      so a 100-row ledger doesn't take 3s to settle. */
-  animation: bv-row-in 0.28s ease both;
-  animation-delay: calc(var(--row-i, 0) * 24ms);
-  transition: background 0.14s ease, transform 0.14s ease;
+  animation: bv-row-in calc(0.28s * var(--motion-scale)) ease both;
+  animation-delay: calc(var(--row-i, 0) * calc(24ms * var(--motion-scale)));
+  transition: background var(--dur-2) ease, transform var(--dur-2) ease;
   position: relative;
 }
 .bv-row:hover {
@@ -2170,7 +2170,7 @@ function formatDuration(seconds: number) {
   align-items: center;
   gap: 0.3rem;
   padding: 0.18rem 0.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -2266,7 +2266,7 @@ function formatDuration(seconds: number) {
   padding: 0.5rem 0.95rem;
   background: transparent;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 10px;
   font-weight: 700;
@@ -2274,7 +2274,7 @@ function formatDuration(seconds: number) {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .bv-more:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.5);
@@ -2325,7 +2325,7 @@ function formatDuration(seconds: number) {
   padding: 1rem 1.1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .cred-head {
   display: flex;
@@ -2352,11 +2352,11 @@ function formatDuration(seconds: number) {
   justify-content: center;
   width: 1.85rem;
   height: 1.85rem;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .cred-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));
@@ -2381,7 +2381,7 @@ function formatDuration(seconds: number) {
   padding: 0.6rem 0.75rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
 }
 .cred-note {
   margin: 0;
@@ -2412,7 +2412,7 @@ function formatDuration(seconds: number) {
   padding: 0.4rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   align-self: flex-start;
 }
 .tab {
@@ -2420,13 +2420,13 @@ function formatDuration(seconds: number) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.95rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
   border: 1px solid transparent;
 }
 .tab:hover:not(.tab--active) {
@@ -2444,7 +2444,7 @@ function formatDuration(seconds: number) {
   min-width: 1.4rem;
   height: 1.4rem;
   padding: 0 0.4rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-size: 9.5px;
@@ -2461,7 +2461,7 @@ function formatDuration(seconds: number) {
   gap: 1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.6rem;
+  border-radius: var(--radius-xl);
   padding: 1rem 1rem 1.25rem;
   min-height: 12rem;
 }
@@ -2496,14 +2496,14 @@ function formatDuration(seconds: number) {
   gap: 0.4rem;
   margin-top: 0.5rem;
   padding: 0.55rem 0.95rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   background: rgb(var(--fg-strong));
   color: rgb(var(--bg-base));
-  transition: filter 0.15s;
+  transition: filter var(--dur-2);
 }
 .panel-empty-link:hover {
   filter: brightness(0.92);
@@ -2520,7 +2520,7 @@ function formatDuration(seconds: number) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.7rem;
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
@@ -2528,7 +2528,7 @@ function formatDuration(seconds: number) {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .subtab:hover {
   color: rgb(var(--fg-strong));
@@ -2562,8 +2562,8 @@ function formatDuration(seconds: number) {
   padding: 0.85rem 1rem;
   background: rgb(var(--bg-base) / 0.5);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
-  transition: all 0.12s;
+  border-radius: var(--radius-lg);
+  transition: all var(--dur-1);
 }
 /* Below sm, the row reflows to two stacked sections so the progress bar
    doesn't fight the torrent name + meta + chevron for ~120 px of usable
@@ -2595,7 +2595,7 @@ function formatDuration(seconds: number) {
   justify-content: center;
   width: 2.4rem;
   height: 2.4rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   color: rgb(var(--fg-muted));
@@ -2654,7 +2654,7 @@ function formatDuration(seconds: number) {
 }
 .row-tag {
   padding: 0.1rem 0.4rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   color: rgb(var(--fg-default));
@@ -2704,7 +2704,7 @@ function formatDuration(seconds: number) {
   position: relative;
   flex: 1;
   height: 0.4rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   overflow: hidden;
@@ -2712,8 +2712,8 @@ function formatDuration(seconds: number) {
 .row-progress-fill {
   display: block;
   height: 100%;
-  border-radius: 9999px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-pill);
+  transition: width var(--dur-slow) ease;
 }
 .row-progress-fill.tone-great {
   background: #6cd161;
@@ -2742,7 +2742,7 @@ function formatDuration(seconds: number) {
   display: inline-flex;
   align-items: center;
   padding: 0.15rem 0.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -2780,11 +2780,11 @@ function formatDuration(seconds: number) {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .row-action:hover {
   color: rgb(var(--fg-strong));
@@ -2822,14 +2822,14 @@ function formatDuration(seconds: number) {
   gap: 0.25rem;
   padding: 0.4rem 0.8rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .panel-pager-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));

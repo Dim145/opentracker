@@ -671,10 +671,10 @@ async function handleDelete() {
 .pulse-dot {
   width: 0.55rem;
   height: 0.55rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--online));
   box-shadow: 0 0 0 0 rgb(var(--online) / 0.6);
-  animation: pulse 2.4s infinite ease-out;
+  animation: pulse calc(2.4s * var(--motion-scale)) infinite ease-out;
 }
 @keyframes pulse {
   0%   { box-shadow: 0 0 0 0 rgb(var(--online) / 0.55); }
@@ -708,8 +708,8 @@ async function handleDelete() {
   background: rgb(var(--bg-elevated));
   color: var(--ink-soft);
   cursor: pointer;
-  border-radius: 2px;
-  transition: all 0.15s;
+  border-radius: var(--radius-xs);
+  transition: all var(--dur-2);
 }
 .ed-btn:hover:not(:disabled) {
   background: var(--ink);
@@ -778,8 +778,8 @@ async function handleDelete() {
   background: rgb(var(--bg-surface));
   border: 1px solid var(--rule);
   border-left: 3px solid color-mix(in srgb, rgb(var(--accent)) 80%, transparent);
-  border-radius: 4px;
-  transition: border-color 0.18s, transform 0.18s;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-3), transform var(--dur-3);
 }
 .section-tile:hover {
   border-color: var(--rule-strong);
@@ -796,7 +796,7 @@ async function handleDelete() {
     rgb(var(--bg-surface)) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
+  animation: shimmer calc(1.6s * var(--motion-scale)) infinite;
 }
 @keyframes shimmer {
   0%   { background-position: 100% 0; }
@@ -821,7 +821,7 @@ async function handleDelete() {
 .section-tile-icon {
   width: 2.6rem;
   height: 2.6rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -940,7 +940,7 @@ async function handleDelete() {
   display: flex;
   gap: 0.3rem;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-2);
 }
 .section-tile:hover .section-tile-admin,
 .section-tile:focus-within .section-tile-admin {
@@ -952,12 +952,12 @@ async function handleDelete() {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--rule);
   background: rgb(var(--bg-elevated));
   color: var(--ink-fade);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .row-action:hover {
   border-color: var(--rule-strong);
@@ -983,7 +983,7 @@ async function handleDelete() {
   text-align: center;
   padding: 3rem 1.5rem;
   border: 1px dashed var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .empty-icon {
   font-size: 2.5rem;
@@ -1022,7 +1022,7 @@ async function handleDelete() {
   padding: 0.85rem 0.5rem;
   text-decoration: none;
   color: inherit;
-  transition: background 0.12s;
+  transition: background var(--dur-1);
 }
 .latest-link:hover {
   background: rgb(var(--fg-default) / 0.03);
@@ -1090,7 +1090,7 @@ async function handleDelete() {
 .latest-arrow {
   font-size: 1rem;
   color: var(--ink-faint);
-  transition: transform 0.18s, color 0.18s;
+  transition: transform var(--dur-3), color var(--dur-3);
 }
 .latest-link:hover .latest-arrow {
   color: var(--ink);

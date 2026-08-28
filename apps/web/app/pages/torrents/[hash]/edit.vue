@@ -771,7 +771,7 @@ useHead({ title: t('torrents.edit.headTitle') });
   padding: 0.75rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.375rem;
+  border-radius: var(--radius-md);
 }
 .readonly-name p {
   margin: 0;
@@ -828,7 +828,7 @@ useHead({ title: t('torrents.edit.headTitle') });
   align-items: center;
   gap: 0.5rem;
   padding: 0.45rem 0.75rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
   color: #f5c518;

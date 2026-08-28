@@ -25,10 +25,21 @@ import {
 // stylesheet and asserts the copy still matches it, which keeps `main.css` the
 // single source of truth rather than merely calling it that in a comment.
 
-const CSS = readFileSync(
+const CSS_RAW = readFileSync(
   fileURLToPath(new URL('../app/assets/css/main.css', import.meta.url)),
   'utf8',
 );
+
+/**
+ * Comments stripped before anything is scanned.
+ *
+ * Not tidiness. `main.css` documents its own tokens, and a comment explaining
+ * what `--motion-scale: 0` does is indistinguishable from a declaration to a
+ * regex — the naive version of this parser read the comment first and reported
+ * the schema as drifted. Any prose mentioning a token in `name: value` form
+ * would have done it.
+ */
+const CSS = CSS_RAW.replace(/\/\*[\s\S]*?\*\//g, '');
 
 /** Every `--token: value;` inside one `:root…{ }` block. */
 function tokensIn(selector: string): Record<string, string> {
@@ -96,8 +107,20 @@ describe('the schema and the stylesheet agree', () => {
       'header-total',
       'container-pad',
       'container-max',
+      // The derived radius steps and durations. Structural on purpose: they are
+      // `calc()` expressions over `--radius` / `--motion-scale`, which ARE
+      // tokens — exposing the derived values too would let a theme break the
+      // proportions the scale exists to keep.
+      'radius-xs',
       'radius-sm',
       'radius-md',
+      'radius-lg',
+      'radius-xl',
+      'dur-1',
+      'dur-2',
+      'dur-3',
+      'dur-4',
+      'dur-slow',
       'shadow-overlay',
       'shadow-popover',
       // The three font roles. Structural in wave 1 — a face swap changes line
@@ -111,6 +134,91 @@ describe('the schema and the stylesheet agree', () => {
       (k) => !known.has(k) && !structural.has(k),
     );
     expect(unknown, 'add these to THEME_TOKENS or to `structural`').toEqual([]);
+  });
+});
+
+describe('the kinds wave 2 added', () => {
+  // Each of these is a closed grammar written out by hand rather than parsed,
+  // and the reason is the same as for the RGB triplet: what is written out is
+  // stricter than what a CSS parser accepts, and a value that cannot express a
+  // paren cannot carry an injection.
+
+  it('accepts a bounded scalar and refuses everything shaped like one', () => {
+    expect(isValidTokenValue('shadow-strength', '0')).toBe(true);
+    expect(isValidTokenValue('shadow-strength', '1')).toBe(true);
+    expect(isValidTokenValue('shadow-strength', '2.75')).toBe(true);
+    expect(isValidTokenValue('shadow-strength', '3')).toBe(true);
+    // Past the ceiling.
+    expect(isValidTokenValue('shadow-strength', '3.01')).toBe(false);
+    expect(isValidTokenValue('shadow-strength', '99')).toBe(false);
+    // Shapes that are numbers to a parser and not to us.
+    for (const bad of ['-1', '+1', '1e2', '1.234', '1px', '.5', 'calc(1)', '', ' 1']) {
+      expect(isValidTokenValue('shadow-strength', bad), bad).toBe(false);
+    }
+  });
+
+  it('gives motion-scale a wider ceiling than shadow-strength', () => {
+    // Not symmetry for its own sake: a 4x slower interface is a legible theme,
+    // a 4x heavier shadow is soot.
+    expect(isValidTokenValue('motion-scale', '4')).toBe(true);
+    expect(isValidTokenValue('shadow-strength', '4')).toBe(false);
+  });
+
+  it('accepts a bounded length in the units the token allows', () => {
+    expect(isValidTokenValue('radius', '0px')).toBe(true);
+    expect(isValidTokenValue('radius', '6px')).toBe(true);
+    expect(isValidTokenValue('radius', '1.5rem')).toBe(true);
+    expect(isValidTokenValue('radius', '32px')).toBe(true);
+    expect(isValidTokenValue('radius', '33px')).toBe(false);
+    for (const bad of ['6', '6em', '6%', '6pt', '-6px', 'calc(6px * 2)', '6 px']) {
+      expect(isValidTokenValue('radius', bad), bad).toBe(false);
+    }
+  });
+
+  it('lets the pill go far higher than the radius scale', () => {
+    // `9999px` is the idiom for a pill and has to remain expressible, while a
+    // 9999px card radius is a broken page.
+    expect(isValidTokenValue('radius-pill', '9999px')).toBe(true);
+    expect(isValidTokenValue('radius', '9999px')).toBe(false);
+    // And a square pill is a legitimate brutalist choice.
+    expect(isValidTokenValue('radius-pill', '0px')).toBe(true);
+  });
+
+  it('accepts the easing keywords and a four-number bezier', () => {
+    for (const ok of ['linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out']) {
+      expect(isValidTokenValue('ease-standard', ok), ok).toBe(true);
+    }
+    expect(isValidTokenValue('ease-standard', 'cubic-bezier(0.2, 0.7, 0.2, 1)')).toBe(true);
+    // The overshoot a spring needs: y outside 0..1 is legal, x is not.
+    expect(isValidTokenValue('ease-standard', 'cubic-bezier(0.34, 1.56, 0.64, 1)')).toBe(true);
+    expect(isValidTokenValue('ease-standard', 'cubic-bezier(0.34, -0.6, 0.64, 1)')).toBe(true);
+    expect(isValidTokenValue('ease-standard', 'cubic-bezier(1.2, 0, 0.5, 1)')).toBe(false);
+  });
+
+  it('refuses the easing functions with unbounded arguments', () => {
+    // `steps()` and `linear()` are valid CSS and deliberately unsupported: both
+    // take argument lists of any length, and neither expresses anything a
+    // bezier cannot.
+    for (const bad of [
+      'steps(4, end)',
+      'linear(0, 0.25, 1)',
+      'cubic-bezier(0.2, 0.7, 0.2)',
+      'cubic-bezier(0.2, 0.7, 0.2, 1, 1)',
+      'cubic-bezier(0.2, 0.7, 0.2, 1) , url(x)',
+      'cubic-bezier(a, b, c, d)',
+      'var(--x)',
+    ]) {
+      expect(isValidTokenValue('ease-standard', bad), bad).toBe(false);
+    }
+  });
+
+  it('refuses a value for the wrong kind of token', () => {
+    // The kinds are not interchangeable, which is what stops a paste from one
+    // field landing in another.
+    expect(isValidTokenValue('radius', '1')).toBe(false);
+    expect(isValidTokenValue('shadow-strength', '6px')).toBe(false);
+    expect(isValidTokenValue('shadow-color', '6px')).toBe(false);
+    expect(isValidTokenValue('ease-standard', '1')).toBe(false);
   });
 });
 

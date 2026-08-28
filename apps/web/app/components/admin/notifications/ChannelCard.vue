@@ -352,10 +352,10 @@ const relativeTime = computed(() => {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
-  transition: border-color 0.18s ease, background 0.18s ease,
-    box-shadow 0.18s ease, transform 0.18s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease,
+    box-shadow var(--dur-3) ease, transform var(--dur-3) ease;
   /* Stagger fade-in driven by the inline --stagger custom prop. */
-  animation: cc-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: cc-in calc(0.4s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes cc-in {
@@ -441,7 +441,7 @@ const relativeTime = computed(() => {
   border-radius: 50%;
   background: rgb(var(--fg-faint));
   border: 2px solid rgb(var(--bg-elevated));
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition: background var(--dur-4) ease, box-shadow var(--dur-4) ease;
 }
 .cc--live .cc-glyph-dot {
   background: rgb(var(--online));
@@ -450,7 +450,7 @@ const relativeTime = computed(() => {
 .cc--action .cc-glyph-dot {
   background: rgb(var(--warning));
   box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.2);
-  animation: cc-glow 1.8s ease-in-out infinite;
+  animation: cc-glow calc(1.8s * var(--motion-scale)) ease-in-out infinite;
 }
 .cc--action.cc-status-error-row .cc-glyph-dot {
   background: rgb(var(--danger));
@@ -543,8 +543,8 @@ const relativeTime = computed(() => {
   position: absolute;
   inset: 0;
   background: rgb(var(--line-default));
-  border-radius: 999px;
-  transition: background 0.18s ease;
+  border-radius: var(--radius-pill);
+  transition: background var(--dur-3) ease;
 }
 .cc-toggle-track::after {
   content: '';
@@ -555,8 +555,8 @@ const relativeTime = computed(() => {
   height: 18px;
   background: rgb(var(--bg-elevated));
   border-radius: 50%;
-  transition: transform 0.18s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform var(--dur-3) ease;
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(0.35 * var(--shadow-strength)));
 }
 .cc-toggle input:checked + .cc-toggle-track {
   background: rgb(var(--online));
@@ -681,7 +681,7 @@ const relativeTime = computed(() => {
   color: rgb(var(--fg-strong));
   font-size: 0.85rem;
   font-family: inherit;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .field-input:focus {
   outline: none;
@@ -712,8 +712,8 @@ const relativeTime = computed(() => {
   position: absolute;
   inset: 0;
   background: rgb(var(--line-default));
-  border-radius: 999px;
-  transition: background 0.18s ease;
+  border-radius: var(--radius-pill);
+  transition: background var(--dur-3) ease;
 }
 .field-bool-track::after {
   content: '';
@@ -724,8 +724,8 @@ const relativeTime = computed(() => {
   height: 18px;
   background: rgb(var(--bg-elevated));
   border-radius: 50%;
-  transition: transform 0.18s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: transform var(--dur-3) ease;
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
 }
 .field-bool input:checked + .field-bool-track {
   background: rgb(var(--accent-warm));
@@ -788,7 +788,7 @@ const relativeTime = computed(() => {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
 }
 .btn:hover:not(:disabled) {
@@ -815,8 +815,8 @@ const relativeTime = computed(() => {
 /* ── Transitions ──────────────────────────────────────────── */
 .cc-drawer-enter-active,
 .cc-drawer-leave-active {
-  transition: max-height 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease, padding-top 0.22s ease;
+  transition: max-height var(--dur-slow) var(--ease-standard),
+    opacity var(--dur-4) ease, padding-top var(--dur-4) ease;
   overflow: hidden;
 }
 .cc-drawer-enter-from,
@@ -832,7 +832,7 @@ const relativeTime = computed(() => {
 }
 
 .spin {
-  animation: cc-spin 1s linear infinite;
+  animation: cc-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes cc-spin {
   to {

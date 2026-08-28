@@ -965,10 +965,10 @@ useHead({
   color: rgb(var(--accent-fg));
   background: rgb(var(--accent));
   border: 1px solid rgb(var(--accent));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.14s, border-color 0.14s, transform 0.14s;
+  transition: background var(--dur-2), border-color var(--dur-2), transform var(--dur-2);
 }
 .upload-cta:hover {
   background: rgb(var(--accent-hover));
@@ -984,7 +984,7 @@ useHead({
 .search-mode {
   display: inline-flex;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   padding: 3px;
   background: rgb(var(--bg-surface));
 }
@@ -1001,9 +1001,9 @@ useHead({
   color: rgb(var(--fg-muted));
   background: transparent;
   border: 0;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
-  transition: all 0.14s;
+  transition: all var(--dur-2);
 }
 .search-mode-btn:hover {
   color: rgb(var(--fg-strong));
@@ -1037,9 +1037,9 @@ useHead({
   color: rgb(var(--fg-muted));
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.14s;
+  transition: all var(--dur-2);
 }
 .filters-toggle:hover,
 .filters-toggle--on {
@@ -1057,7 +1057,7 @@ useHead({
   letter-spacing: 0;
   color: rgb(var(--accent-fg));
   background: rgb(var(--fg-strong));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
 }
 
 /* ─── Categories ─────────────────────────────────────────── */
@@ -1090,14 +1090,14 @@ useHead({
   gap: 0.4rem;
   padding: 0.4rem 0.85rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-surface));
   color: rgb(var(--fg-muted));
   font-family: 'Inter', sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.14s;
+  transition: all var(--dur-2);
   white-space: nowrap;
 }
 .cat-pill:hover {
@@ -1124,7 +1124,7 @@ useHead({
   padding: 0.85rem 1rem 1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .filter-panel-head {
   display: flex;
@@ -1164,13 +1164,13 @@ useHead({
   gap: 0.4rem;
   padding: 0.3rem 0.7rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .tag-toggle:hover {
   color: rgb(var(--fg-strong));
@@ -1212,7 +1212,7 @@ useHead({
 .results-stat-sep {
   width: 4px;
   height: 4px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-faint));
 }
 
@@ -1222,7 +1222,7 @@ useHead({
 .src-toggle {
   display: inline-flex;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .src-toggle button {
@@ -1236,7 +1236,7 @@ useHead({
   background: transparent;
   border: 0;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background var(--dur-1) ease, color var(--dur-1) ease;
 }
 .src-toggle button:hover {
   color: rgb(var(--fg-default));
@@ -1262,7 +1262,7 @@ useHead({
   gap: 0.8rem;
   padding: 4rem 1.5rem;
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-surface));
 }
 .results-loading svg {
@@ -1332,7 +1332,7 @@ useHead({
   align-items: center;
   gap: 0.5rem;
   padding: 0.3rem 0.5rem 0.3rem 0.65rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid;
   font-size: 10px;
   font-weight: 700;
@@ -1377,12 +1377,12 @@ useHead({
   justify-content: center;
   width: 1.1rem;
   height: 1.1rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   color: rgb(var(--fg-muted));
   background: transparent;
   border: 0;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .media-id-chip-close:hover {
   color: rgb(var(--fg-strong));
@@ -1394,8 +1394,8 @@ useHead({
 .subs-leave-active,
 .panel-enter-active,
 .panel-leave-active {
-  transition: max-height 0.22s ease, opacity 0.18s ease, padding 0.18s ease,
-    margin 0.18s ease;
+  transition: max-height var(--dur-4) ease, opacity var(--dur-3) ease, padding var(--dur-3) ease,
+    margin var(--dur-3) ease;
   overflow: hidden;
 }
 .subs-enter-from,
@@ -1422,7 +1422,7 @@ useHead({
 }
 .hint-enter-active,
 .hint-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity var(--dur-3) ease, transform var(--dur-3) ease;
 }
 .hint-enter-from,
 .hint-leave-to {

@@ -242,7 +242,7 @@ function formatDate(iso: string): string {
   padding: 4px;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 .queue-segment {
   --s: 161 161 161;
@@ -252,7 +252,7 @@ function formatDate(iso: string): string {
   background: transparent;
   border: 1px solid transparent;
   padding: 0.4rem 0.7rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
@@ -261,9 +261,9 @@ function formatDate(iso: string): string {
   color: rgb(var(--fg-muted));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   transition:
-    background 140ms ease,
-    color 140ms ease,
-    border-color 140ms ease;
+    background var(--dur-2) ease,
+    color var(--dur-2) ease,
+    border-color var(--dur-2) ease;
 }
 .queue-segment--pending           { --s: 234 179 8; }
 .queue-segment--changes_requested { --s: 56 189 248; }
@@ -282,7 +282,7 @@ function formatDate(iso: string): string {
 .queue-segment-dot {
   width: 7px;
   height: 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--s));
   box-shadow: 0 0 0 3px rgb(var(--s) / 0.2);
 }
@@ -292,7 +292,7 @@ function formatDate(iso: string): string {
   background: rgb(var(--s) / 0.18);
   color: rgb(var(--s));
   padding: 0.05rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--s) / 0.35);
   font-weight: 700;
   min-width: 20px;
@@ -323,7 +323,7 @@ function formatDate(iso: string): string {
   font-weight: 700;
   letter-spacing: 0.06em;
   padding: 0.05rem 0.45rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid;
 }
 .queue-intro-pip--pending {
@@ -386,9 +386,9 @@ function formatDate(iso: string): string {
     linear-gradient(90deg, rgb(var(--r) / 0.06) 0%, transparent 30%),
     rgb(var(--bg-elevated));
   border-left: 4px solid rgb(var(--r));
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   position: relative;
-  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+  transition: background var(--dur-2) ease, border-color var(--dur-2) ease, transform var(--dur-2) ease;
 }
 .queue-row:hover {
   border-color: rgb(var(--r) / 0.5);
@@ -483,16 +483,16 @@ function formatDate(iso: string): string {
     width: 32px;
     height: 32px;
     align-self: center;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     background: rgb(var(--bg-base));
     color: rgb(var(--r));
     border: 1px solid rgb(var(--r) / 0.3);
     text-decoration: none;
     transition:
-      background 140ms ease,
-      transform 140ms ease,
-      color 140ms ease,
-      border-color 140ms ease;
+      background var(--dur-2) ease,
+      transform var(--dur-2) ease,
+      color var(--dur-2) ease,
+      border-color var(--dur-2) ease;
   }
   .queue-row-cta:hover {
     background: rgb(var(--r) / 0.16);

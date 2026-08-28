@@ -71,12 +71,15 @@ redis() { $COMPOSE exec -T redis redis-cli -a e2e-redis-password --no-auth-warni
 # See README: the harness clears its own stack's rate-limit counters rather than
 # turning the protection off, so the scenarios exercise the same middleware a
 # real request goes through.
+# One EVAL rather than a SCAN piped into xargs. The pipeline version looked
+# right and did nothing: `redis` is a shell function, and xargs can only exec a
+# real command — the failure went into /dev/null and every scenario after the
+# first ran against a spent budget.
 reset_limits() {
+  redis EVAL "local n=0 for _,p in ipairs(ARGV) do local k=redis.call('keys',p) \
+for i=1,#k do redis.call('del',k[i]) n=n+1 end end return n" \
+    0 'ot:ratelimit:*' 'ot:sec:ipban:*' >/dev/null 2>&1 || true
   redis DEL ot:ddos:blacklist >/dev/null 2>&1 || true
-  for pat in 'ot:ratelimit:*' 'ot:sec:ipban:*'; do
-    keys=$(redis --scan --pattern "$pat" 2>/dev/null || true)
-    [ -n "$keys" ] && echo "$keys" | tr '\n' ' ' | xargs -r redis DEL >/dev/null 2>&1 || true
-  done
 }
 
 say "bundling the browser's crypto module for Node"

@@ -1119,7 +1119,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   text-transform: uppercase;
   color: rgb(var(--accent-warm-fg));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   white-space: nowrap;
 }
 .tower-cta:hover {
@@ -1174,10 +1174,10 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   inset: -8px;
   border-radius: 50%;
   border: 1px solid rgb(var(--accent-warm) / 0.18);
-  animation: ring 3.2s ease-out infinite;
+  animation: ring calc(3.2s * var(--motion-scale)) ease-out infinite;
   pointer-events: none;
 }
-.tower-empty-stamp::after { animation-delay: 1.6s; }
+.tower-empty-stamp::after { animation-delay: calc(1.6s * var(--motion-scale)); }
 @keyframes ring {
   0% { transform: scale(0.7); opacity: 0; }
   30% { opacity: 0.6; }
@@ -1260,7 +1260,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   border-radius: 50%;
   box-shadow: 0 0 12px rgba(244, 63, 94, 0.8);
   transform: translate(-50%, -50%);
-  animation: light-pulse 1.4s ease-in-out infinite;
+  animation: light-pulse calc(1.4s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes light-pulse {
   0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.85); }
@@ -1277,10 +1277,10 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   border: 1px solid rgba(244, 63, 94, 0.6);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  animation: light-ring 2s ease-out infinite;
+  animation: light-ring calc(2s * var(--motion-scale)) ease-out infinite;
   pointer-events: none;
 }
-.onair-light-rings::after { animation-delay: 1s; }
+.onair-light-rings::after { animation-delay: calc(1s * var(--motion-scale)); }
 @keyframes light-ring {
   0% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
   20% { opacity: 0.8; }
@@ -1396,7 +1396,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   height: 6px;
   background: rgb(var(--bg-base));
   border: 1px solid rgba(244, 63, 94, 0.25);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
 }
 .onair-bar-fill {
@@ -1409,7 +1409,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
     #fb7185 100%
   );
   box-shadow: 0 0 14px rgba(244, 63, 94, 0.55);
-  transition: width 1s linear;
+  transition: width calc(1s * var(--motion-scale)) linear;
 }
 .onair-bar-grid {
   position: absolute;
@@ -1485,14 +1485,14 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
-  transition: border-color 0.2s ease, transform 0.2s ease,
-    box-shadow 0.2s ease;
-  animation: slot-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: border-color var(--dur-4) ease, transform var(--dur-4) ease,
+    box-shadow var(--dur-4) ease;
+  animation: slot-in calc(0.4s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .slot:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px -16px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 8px 22px -16px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
 }
 .slot--scheduled:hover { border-color: rgba(96, 165, 250, 0.45); }
 .slot--disabled:hover { border-color: rgba(251, 146, 60, 0.45); }
@@ -1680,7 +1680,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
   font-size: 0.9rem;
 }
 .act:hover {
@@ -1779,7 +1779,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   color: rgb(var(--fg-strong));
   font-size: 0.85rem;
   font-family: inherit;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .ed-input:focus,
 .ed-textarea:focus {
@@ -1825,7 +1825,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
   min-width: 130px;
   flex: 1;
@@ -1911,12 +1911,12 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 .ed-range::-webkit-slider-runnable-track {
   height: 4px;
   background: linear-gradient(to right, rgb(var(--accent-warm) / 0.5) 0%, rgb(var(--line-default)) 0%);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 .ed-range::-moz-range-track {
   height: 4px;
   background: rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 .ed-range::-webkit-slider-thumb {
   appearance: none;
@@ -1991,7 +1991,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-base));
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .ed-toggle-row--on {
   border-color: rgba(108, 209, 97, 0.4);
@@ -2002,11 +2002,11 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   flex-shrink: 0;
   width: 2.5rem;
   height: 1.4rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease;
+  transition: background var(--dur-3) ease, border-color var(--dur-3) ease;
 }
 .ed-toggle--on {
   background: #6cd161;
@@ -2020,11 +2020,11 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   left: 2px;
   width: 1.05rem;
   height: 1.05rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-base));
-  transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1),
-    background 0.18s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: transform var(--dur-4) var(--ease-standard),
+    background var(--dur-3) ease;
+  box-shadow: 0 1px 3px rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
 }
 .ed-toggle--on .ed-toggle-knob {
   transform: translateX(1rem);
@@ -2067,7 +2067,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   white-space: nowrap;
 }
 .ed-btn:hover:not(:disabled) {
@@ -2107,7 +2107,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 
 /* ── Shared spinner ──────────────────────────────────── */
 .spin {
-  animation: be-spin 1s linear infinite;
+  animation: be-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes be-spin {
   to { transform: rotate(360deg); }

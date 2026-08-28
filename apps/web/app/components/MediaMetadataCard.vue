@@ -168,7 +168,7 @@ function formatRuntime(minutes: number): string {
 .media-card {
   position: relative;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   background: rgb(var(--bg-surface));
   isolation: isolate;
@@ -214,12 +214,12 @@ function formatRuntime(minutes: number): string {
   width: 130px;
   aspect-ratio: 2 / 3;
   flex-shrink: 0;
-  border-radius: 0.375rem;
+  border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-inset));
   display: block;
-  transition: transform 0.2s ease;
+  transition: transform var(--dur-4) ease;
 }
 .media-card--compact .media-card-poster {
   width: 84px;
@@ -268,7 +268,7 @@ function formatRuntime(minutes: number): string {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 0.125rem 0.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
 }
 .media-card-type--movie {
@@ -308,7 +308,7 @@ function formatRuntime(minutes: number): string {
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: 0.125rem 0.625rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   color: rgb(var(--fg-default));
@@ -356,7 +356,7 @@ function formatRuntime(minutes: number): string {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-muted));
-  transition: color 0.15s ease;
+  transition: color var(--dur-2) ease;
 }
 .media-card-link:hover {
   color: rgb(var(--fg-strong));

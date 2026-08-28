@@ -998,7 +998,7 @@ async function seedCategories() {
   text-transform: uppercase;
   color: rgb(var(--accent-warm-fg));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   white-space: nowrap;
 }
 .atlas-cta:hover {
@@ -1072,7 +1072,7 @@ async function seedCategories() {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .search:focus-within {
   border-color: rgb(var(--accent-warm) / 0.55);
@@ -1108,7 +1108,7 @@ async function seedCategories() {
   color: rgb(var(--fg-muted));
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .search-clear:hover {
   color: rgb(var(--fg-strong));
@@ -1178,7 +1178,7 @@ async function seedCategories() {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .atlas-empty-cta:hover:not(:disabled) {
   background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
@@ -1218,7 +1218,7 @@ async function seedCategories() {
   gap: 0.55rem;
 }
 .entry {
-  animation: entry-in 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: entry-in calc(0.38s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes entry-in {
@@ -1236,8 +1236,8 @@ async function seedCategories() {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
-  transition: border-color 0.2s ease, transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color var(--dur-4) ease, transform var(--dur-4) ease,
+    box-shadow var(--dur-4) ease;
 }
 /* On narrow viewports the 3-col grid + the 64px call-number panel
    + the 4-button action cluster overflowed sideways. Stack the
@@ -1264,7 +1264,7 @@ async function seedCategories() {
 .entry-row:hover {
   border-color: rgb(var(--accent-warm) / 0.4);
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px -16px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 8px 22px -16px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
 }
 .entry-row--root {
   position: relative;
@@ -1431,11 +1431,11 @@ async function seedCategories() {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
   font-size: 0.85rem;
 }
 .entry-toggle svg {
-  transition: transform 0.22s ease;
+  transition: transform var(--dur-4) ease;
 }
 .entry-toggle--open svg {
   transform: rotate(180deg);
@@ -1454,7 +1454,7 @@ async function seedCategories() {
   color: rgb(var(--fg-muted));
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .entry-act:hover {
   background: rgb(var(--bg-base));
@@ -1528,8 +1528,8 @@ async function seedCategories() {
 .expand-enter-active,
 .expand-leave-active {
   overflow: hidden;
-  transition: max-height 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease;
+  transition: max-height var(--dur-slow) var(--ease-standard),
+    opacity var(--dur-4) ease;
   max-height: 900px;
 }
 .expand-enter-from,
@@ -1601,7 +1601,7 @@ async function seedCategories() {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
-  transition: border-color 0.2s ease;
+  transition: border-color var(--dur-4) ease;
 }
 .ed-card--adult {
   border-color: rgba(244, 63, 94, 0.4);
@@ -1783,7 +1783,7 @@ async function seedCategories() {
   color: rgb(var(--fg-strong));
   font-size: 0.85rem;
   font-family: inherit;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .ed-input:focus {
   outline: none;
@@ -1831,7 +1831,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   padding: 0.05rem 0.35rem;
   color: rgb(var(--accent-warm));
   letter-spacing: 0.02em;
@@ -1862,7 +1862,7 @@ async function seedCategories() {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
 }
 .ed-type:hover:not(.ed-type--on) {
@@ -1879,7 +1879,7 @@ async function seedCategories() {
 .ed-type-icon {
   font-size: 0.95rem;
   color: rgb(var(--fg-muted));
-  transition: color 0.18s ease;
+  transition: color var(--dur-3) ease;
 }
 .ed-type-head {
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -1888,7 +1888,7 @@ async function seedCategories() {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: color 0.18s ease;
+  transition: color var(--dur-3) ease;
 }
 .ed-type--on {
   border-color: rgb(var(--accent-warm) / 0.6);
@@ -1908,7 +1908,7 @@ async function seedCategories() {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease;
 }
 .ed-adult--on {
   border-color: rgba(244, 63, 94, 0.45);
@@ -1933,7 +1933,7 @@ async function seedCategories() {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
-  transition: color 0.18s ease;
+  transition: color var(--dur-3) ease;
 }
 .ed-adult--on .ed-adult-title { color: #f43f5e; }
 .ed-adult-sub {
@@ -1947,11 +1947,11 @@ async function seedCategories() {
   flex-shrink: 0;
   width: 2.6rem;
   height: 1.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease;
+  transition: background var(--dur-3) ease, border-color var(--dur-3) ease;
 }
 .ed-toggle--on {
   background: #f43f5e;
@@ -1968,11 +1968,11 @@ async function seedCategories() {
   left: 2px;
   width: 1.15rem;
   height: 1.15rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
-  transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1),
-    background 0.18s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  transition: transform var(--dur-4) var(--ease-standard),
+    background var(--dur-3) ease;
+  box-shadow: 0 1px 3px rgb(var(--shadow-color) / calc(0.45 * var(--shadow-strength)));
 }
 .ed-toggle--on .ed-toggle-knob {
   transform: translateX(1.05rem);
@@ -1995,7 +1995,7 @@ async function seedCategories() {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   white-space: nowrap;
 }
 .ed-btn:hover:not(:disabled) {
@@ -2021,7 +2021,7 @@ async function seedCategories() {
 }
 
 .spin {
-  animation: cat-spin 1s linear infinite;
+  animation: cat-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes cat-spin {
   to { transform: rotate(360deg); }

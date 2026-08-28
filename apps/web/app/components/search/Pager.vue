@@ -103,9 +103,9 @@ const window = computed<number[]>(() => {
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .pager-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));

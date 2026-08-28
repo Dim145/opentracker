@@ -243,7 +243,7 @@ async function submitPasskey() {
 .step-tabs {
   display: inline-flex;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-surface));
   padding: 3px;
   align-self: flex-start;
@@ -260,10 +260,10 @@ async function submitPasskey() {
   text-transform: uppercase;
   background: transparent;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.14s;
+  transition: all var(--dur-2);
 }
 .step-tab:hover {
   color: rgb(var(--fg-strong));
@@ -294,7 +294,7 @@ async function submitPasskey() {
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -362,9 +362,9 @@ async function submitPasskey() {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.14s;
+  transition: all var(--dur-2);
 }
 .btn-primary {
   background: rgb(var(--accent));

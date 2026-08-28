@@ -350,7 +350,7 @@ function formatMul(v: number): string {
 .tcurve-line {
   stroke-dasharray: 1800;
   stroke-dashoffset: 1800;
-  animation: tcurve-draw 0.85s cubic-bezier(0.2, 0.7, 0.2, 1) 80ms forwards;
+  animation: tcurve-draw calc(0.85s * var(--motion-scale)) var(--ease-standard) calc(80ms * var(--motion-scale)) forwards;
   filter: drop-shadow(0 1px 8px color-mix(in srgb, currentColor 30%, transparent));
 }
 @keyframes tcurve-draw {
@@ -361,7 +361,7 @@ function formatMul(v: number): string {
    gives the curve more presence on first paint. */
 .tcurve-area {
   opacity: 0;
-  animation: tcurve-fill 0.6s ease 0.5s forwards;
+  animation: tcurve-fill calc(0.6s * var(--motion-scale)) ease calc(0.5s * var(--motion-scale)) forwards;
   fill-opacity: 0.1;
 }
 @keyframes tcurve-fill {
@@ -371,8 +371,8 @@ function formatMul(v: number): string {
 /* Markers pop in one by one — each with its own --m-stagger. */
 .tcurve-marker {
   opacity: 0;
-  animation: tcurve-mark 0.4s ease forwards;
-  animation-delay: calc(0.6s + var(--m-stagger, 0ms));
+  animation: tcurve-mark calc(0.4s * var(--motion-scale)) ease forwards;
+  animation-delay: calc(calc(0.6s * var(--motion-scale)) + var(--m-stagger, 0ms));
 }
 .tcurve-marker-dot {
   filter: drop-shadow(0 0 6px color-mix(in srgb, currentColor 50%, transparent));

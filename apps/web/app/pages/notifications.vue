@@ -287,7 +287,7 @@ function descFor(row: NotificationRow): string {
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 0.8rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-surface));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -297,7 +297,7 @@ function descFor(row: NotificationRow): string {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.14s ease;
+  transition: all var(--dur-2) ease;
 }
 .np-filter:hover,
 .np-mark-all:hover {
@@ -321,7 +321,7 @@ function descFor(row: NotificationRow): string {
   padding: 0 0.3rem;
   height: 1rem;
   background: rgb(var(--bg-base) / 0.4);
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-size: 9px;
   letter-spacing: 0;
 }
@@ -331,10 +331,10 @@ function descFor(row: NotificationRow): string {
   text-align: center;
   padding: 4rem 1.5rem;
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .np-spin {
-  animation: np-spin-anim 0.9s linear infinite;
+  animation: np-spin-anim calc(0.9s * var(--motion-scale)) linear infinite;
   display: inline-block;
 }
 @keyframes np-spin-anim {
@@ -378,7 +378,7 @@ function descFor(row: NotificationRow): string {
   margin: 0;
   padding: 0;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 .np-row {
@@ -390,7 +390,7 @@ function descFor(row: NotificationRow): string {
   background: rgb(var(--bg-surface));
   border-bottom: 1px solid rgb(var(--line-default));
   cursor: pointer;
-  transition: background 0.12s ease;
+  transition: background var(--dur-1) ease;
 }
 .np-row:last-child {
   border-bottom: 0;
@@ -409,7 +409,7 @@ function descFor(row: NotificationRow): string {
   font-size: 1.4rem;
   flex-shrink: 0;
   padding: 0.5rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
 }
 .np-row-icon--gain {
   color: rgb(var(--online));
@@ -488,7 +488,7 @@ function descFor(row: NotificationRow): string {
   padding: 0.6rem 1.1rem;
   background: transparent;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   font-weight: 700;
@@ -496,7 +496,7 @@ function descFor(row: NotificationRow): string {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .np-load-more:hover:not(:disabled) {
   color: rgb(var(--fg-strong));

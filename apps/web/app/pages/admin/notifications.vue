@@ -416,7 +416,7 @@ async function testChannel(ch: AdminChannel) {
   box-shadow: 0 0 0 4px rgba(234, 179, 8, 0.15);
 }
 .stat-dot--pulse {
-  animation: ops-pulse 1.6s ease-in-out infinite;
+  animation: ops-pulse calc(1.6s * var(--motion-scale)) ease-in-out infinite;
 }
 .stat-dot--available {
   background: rgb(var(--fg-faint));

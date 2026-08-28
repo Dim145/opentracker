@@ -1012,7 +1012,7 @@ async function save() {
   padding: 0.25rem 0.3rem;
   border: 1px solid rgb(var(--line-default));
   border-bottom: none;
-  border-radius: 3px 3px 0 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   background: rgb(var(--bg-inset, var(--bg-elevated)));
 }
 .tpl-tool {
@@ -1023,10 +1023,10 @@ async function save() {
      `btn-xs` the other controls in this modal inherit. */
   width: 26px;
   height: 26px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   font-size: 0.85rem;
   color: rgb(var(--fg-muted));
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background var(--dur-1) ease, color var(--dur-1) ease;
 }
 .tpl-tool:hover {
   background: rgb(var(--fg-default) / 0.08);
@@ -1095,7 +1095,7 @@ async function save() {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: background-color 0.15s, color 0.15s;
+  transition: background-color var(--dur-2), color var(--dur-2);
 }
 .tpl-tab:hover {
   color: rgb(var(--fg-default));
@@ -1175,7 +1175,7 @@ async function save() {
   font-family: var(--font-mono);
   font-size: 11px;
   color: rgb(var(--fg-default));
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color var(--dur-2), color var(--dur-2);
 }
 .tpl-chip:hover:not(:disabled) {
   border-color: rgb(var(--accent));

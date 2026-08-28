@@ -437,7 +437,7 @@ function onBalanceFromPool(value: number) {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  transition: color 0.16s ease, transform 0.18s ease;
+  transition: color var(--dur-2) ease, transform var(--dur-3) ease;
 }
 .back-link:hover {
   color: rgb(var(--accent-warm));
@@ -600,7 +600,7 @@ function onBalanceFromPool(value: number) {
   font-size: 1.9rem;
   color: rgb(var(--accent-warm));
   /* Soft pulse so the coin feels alive without being annoying. */
-  animation: shop-coin-pulse 5s ease-in-out infinite;
+  animation: shop-coin-pulse calc(5s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes shop-coin-pulse {
   0%, 100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 4px rgb(var(--accent-warm) / 0.3)); }
@@ -702,9 +702,9 @@ function onBalanceFromPool(value: number) {
     rgb(var(--bg-surface) / 0.6) 100%
   );
   border: 1px solid rgb(var(--line-default));
-  transition: transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
-    border-color 0.22s ease, box-shadow 0.32s ease;
-  animation: piece-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: transform 0.32s var(--ease-standard),
+    border-color var(--dur-4) ease, box-shadow 0.32s ease;
+  animation: piece-in calc(0.5s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes piece-in {
@@ -720,7 +720,7 @@ function onBalanceFromPool(value: number) {
 .piece:hover {
   transform: translateY(-3px);
   border-color: rgb(var(--accent-warm) / 0.45);
-  box-shadow: 0 18px 32px -16px rgba(0, 0, 0, 0.7),
+  box-shadow: 0 18px 32px -16px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
     0 0 32px rgb(var(--accent-warm) / 0.08);
 }
 
@@ -731,8 +731,8 @@ function onBalanceFromPool(value: number) {
   height: 16px;
   border: 1px solid rgb(var(--accent-warm) / 0.45);
   pointer-events: none;
-  transition: width 0.28s cubic-bezier(0.2, 0.7, 0.2, 1),
-    height 0.28s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.22s ease;
+  transition: width 0.28s var(--ease-standard),
+    height 0.28s var(--ease-standard), border-color var(--dur-4) ease;
 }
 .piece-corner--tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
 .piece-corner--tr { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
@@ -787,7 +787,7 @@ function onBalanceFromPool(value: number) {
   text-transform: uppercase;
   padding: 0.25rem 0.55rem;
   border: 1px solid rgb(var(--accent-warm) / 0.35);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: rgb(var(--accent-warm));
   background: rgb(var(--accent-warm) / 0.05);
 }
@@ -796,7 +796,7 @@ function onBalanceFromPool(value: number) {
   border-color: rgba(255, 107, 107, 0.5);
   background: rgba(255, 107, 107, 0.08);
   /* Subtle attention pulse on low-stock pieces. */
-  animation: piece-rare-pulse 2.4s ease-in-out infinite;
+  animation: piece-rare-pulse calc(2.4s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes piece-rare-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
@@ -828,7 +828,7 @@ function onBalanceFromPool(value: number) {
   border-radius: 50%;
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   opacity: 0;
-  transition: opacity 0.22s ease, transform 0.32s ease;
+  transition: opacity var(--dur-4) ease, transform 0.32s ease;
 }
 .piece:hover .piece-glyph-halo {
   opacity: 1;
@@ -948,8 +948,8 @@ function onBalanceFromPool(value: number) {
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.22s ease,
-    opacity 0.18s ease;
+  transition: transform var(--dur-3) ease, box-shadow var(--dur-4) ease,
+    opacity var(--dur-3) ease;
   box-shadow: 0 4px 12px -4px rgb(var(--accent-warm) / 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
@@ -965,7 +965,7 @@ function onBalanceFromPool(value: number) {
     transparent 70%
   );
   transform: translateX(-100%);
-  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: transform calc(0.6s * var(--motion-scale)) var(--ease-standard);
   pointer-events: none;
 }
 .acquire:hover:not(:disabled)::before {
@@ -980,7 +980,7 @@ function onBalanceFromPool(value: number) {
   /* "Stamping" feedback — squashes 2px on press. */
   transform: translateY(1px);
   box-shadow: 0 2px 6px -2px rgb(var(--accent-warm) / 0.5),
-    inset 0 1px 2px rgba(0, 0, 0, 0.15);
+    inset 0 1px 2px rgb(var(--shadow-color) / calc(0.15 * var(--shadow-strength)));
 }
 .acquire:disabled {
   cursor: not-allowed;
@@ -1002,7 +1002,7 @@ function onBalanceFromPool(value: number) {
 }
 
 .spin {
-  animation: shop-spin 1s linear infinite;
+  animation: shop-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes shop-spin {
   to {

@@ -429,7 +429,7 @@ watch(
 .dl-stat-sep {
   width: 4px;
   height: 4px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-faint));
 }
 /* Lower-cased qualifier so the page-scope totals can't be mistaken
@@ -454,8 +454,8 @@ watch(
 .dl-row {
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
-  transition: border-color 0.14s, transform 0.14s;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-2), transform var(--dur-2);
 }
 .dl-row:hover {
   border-color: rgb(var(--line-strong));
@@ -470,7 +470,7 @@ watch(
     rgb(var(--bg-surface)) 70%
   );
   background-size: 220% 100%;
-  animation: dl-shimmer 1.4s ease-in-out infinite;
+  animation: dl-shimmer calc(1.4s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes dl-shimmer {
   0%   { background-position: 100% 0; }
@@ -564,7 +564,7 @@ watch(
 .dl-row-meta-sep {
   width: 3px;
   height: 3px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-faint));
 }
 .dl-row-meta-completed {
@@ -635,7 +635,7 @@ watch(
   gap: 0.85rem;
   padding: 4rem 1.5rem;
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .dl-empty-icon {
   font-size: 2.5rem;
@@ -669,9 +669,9 @@ watch(
   color: rgb(var(--accent-fg));
   background: rgb(var(--fg-strong));
   border: 1px solid rgb(var(--fg-strong));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
-  transition: background 0.14s;
+  transition: background var(--dur-2);
 }
 .dl-btn:hover {
   background: rgb(var(--fg-default));

@@ -1191,7 +1191,7 @@ function describeWindow(w: Window): string {
    ───────────────────────────────────────────────────────────── */
 .hero {
   margin-bottom: 2.6rem;
-  animation: fade-down 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: fade-down calc(0.6s * var(--motion-scale)) var(--ease-standard) backwards;
 }
 @keyframes fade-down {
   from { opacity: 0; transform: translateY(-6px); }
@@ -1271,9 +1271,9 @@ function describeWindow(w: Window): string {
   margin-bottom: 1.4rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  animation: fade-up 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: fade-up calc(0.6s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes fade-up {
@@ -1393,7 +1393,7 @@ function describeWindow(w: Window): string {
   padding: 1.4rem 1.4rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .gauge {
@@ -1443,7 +1443,7 @@ function describeWindow(w: Window): string {
   padding: 1px;
   background: rgb(var(--line-default));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .readout {
@@ -1496,17 +1496,17 @@ function describeWindow(w: Window): string {
 .status-dot--filling {
   background: var(--gold);
   box-shadow: 0 0 8px rgb(var(--accent-warm) / 0.6);
-  animation: dot-pulse 2.4s ease-in-out infinite;
+  animation: dot-pulse calc(2.4s * var(--motion-scale)) ease-in-out infinite;
 }
 .status-dot--full_queued {
   background: var(--cool);
   box-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
-  animation: dot-pulse 1.6s ease-in-out infinite;
+  animation: dot-pulse calc(1.6s * var(--motion-scale)) ease-in-out infinite;
 }
 .status-dot--active {
   background: var(--success);
   box-shadow: 0 0 10px rgba(74, 222, 128, 0.65);
-  animation: dot-pulse 1.1s ease-in-out infinite;
+  animation: dot-pulse calc(1.1s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes dot-pulse {
   0%, 100% { opacity: 0.6; }
@@ -1520,7 +1520,7 @@ function describeWindow(w: Window): string {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-left: 2px solid var(--gold);
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
 }
 .patrons-head {
   display: flex;
@@ -1552,8 +1552,8 @@ function describeWindow(w: Window): string {
   align-items: baseline;
   gap: 0.8rem;
   padding: 0.55rem 0.7rem;
-  border-radius: var(--radius-sm, 4px);
-  transition: background 0.18s ease;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur-3) ease;
 }
 .patron:hover { background: rgba(255, 255, 255, 0.025); }
 .patron-rank {
@@ -1603,9 +1603,9 @@ function describeWindow(w: Window): string {
   padding: 1.1rem 1.3rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color 0.18s ease;
+  transition: border-color var(--dur-3) ease;
 }
 .switch:hover { border-color: rgb(var(--line-strong)); }
 .switch-input {
@@ -1619,9 +1619,9 @@ function describeWindow(w: Window): string {
   height: 28px;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   margin-top: 2px;
-  transition: background 0.25s ease, border-color 0.25s ease;
+  transition: background var(--dur-slow) ease, border-color var(--dur-slow) ease;
 }
 .switch-thumb {
   position: absolute;
@@ -1631,7 +1631,7 @@ function describeWindow(w: Window): string {
   height: 22px;
   border-radius: 50%;
   background: rgb(var(--fg-faint));
-  transition: all 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: all var(--dur-slow) var(--ease-standard);
 }
 .switch-input:checked ~ .switch-track {
   background: var(--gold-soft);
@@ -1654,7 +1654,7 @@ function describeWindow(w: Window): string {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: color 0.2s ease;
+  transition: color var(--dur-4) ease;
 }
 .switch-state--on { color: var(--gold); }
 .switch-hint {
@@ -1728,14 +1728,14 @@ function describeWindow(w: Window): string {
   padding: 0.65rem 0.85rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-family: var(--font-mono);
   font-size: 0.92rem;
   font-weight: 500;
   outline: 0;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease,
-    background-color 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease,
+    background-color var(--dur-3) ease;
 }
 .input::placeholder {
   color: rgb(var(--fg-faint));
@@ -1778,8 +1778,8 @@ function describeWindow(w: Window): string {
   padding: 0 0.95rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-top-right-radius: var(--radius-sm, 4px);
-  border-bottom-right-radius: var(--radius-sm, 4px);
+  border-top-right-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 10.5px;
   font-weight: 600;
@@ -1829,13 +1829,13 @@ select.input option {
   padding: 0.7rem 1.2rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-size: 0.88rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .btn:hover:not(:disabled) {
   border-color: rgb(var(--fg-faint));
@@ -1898,7 +1898,7 @@ select.input option {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.18s ease, border-color 0.22s ease;
+  transition: color var(--dur-3) ease, border-color var(--dur-4) ease;
 }
 .tab:hover {
   color: rgb(var(--fg-strong));
@@ -1910,7 +1910,7 @@ select.input option {
 .tab-icon { font-size: 1rem; }
 
 .tab-body {
-  animation: tab-slide 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: tab-slide calc(0.32s * var(--motion-scale)) var(--ease-standard);
 }
 @keyframes tab-slide {
   from { opacity: 0; transform: translateX(-6px); }
@@ -1941,13 +1941,13 @@ select.input option {
   padding: 0.55rem 0;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   font-family: var(--font-mono);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .day-chip:hover:not(.day-chip--on) {
   border-color: rgb(var(--fg-faint));
@@ -1984,7 +1984,7 @@ select.input option {
   padding: 0.15rem 0.55rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
@@ -2006,8 +2006,8 @@ select.input option {
   padding: 0.6rem 0.95rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
-  transition: border-color 0.2s ease;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-4) ease;
 }
 .window:hover {
   border-color: rgb(var(--line-strong));
@@ -2026,7 +2026,7 @@ select.input option {
 .window-kind {
   padding: 0.2rem 0.55rem;
   border: 1px solid currentColor;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
@@ -2073,11 +2073,11 @@ select.input option {
   padding: 0.35rem;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .icon-btn:hover {
   color: rgb(var(--fg-strong));
@@ -2118,7 +2118,7 @@ select.input option {
   color: rgb(var(--fg-default));
 }
 .ledger tbody tr {
-  transition: background 0.16s ease;
+  transition: background var(--dur-2) ease;
 }
 .ledger tbody tr:hover td {
   background: rgb(var(--bg-elevated));
@@ -2136,7 +2136,7 @@ select.input option {
   display: inline-flex;
   padding: 0.2rem 0.6rem;
   border: 1px solid currentColor;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
@@ -2156,7 +2156,7 @@ select.input option {
   font-variant-numeric: tabular-nums;
 }
 .spin {
-  animation: pool-spin 1s linear infinite;
+  animation: pool-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes pool-spin {
   to {

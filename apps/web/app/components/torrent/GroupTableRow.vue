@@ -283,7 +283,7 @@ const searchableTitle = computed(() => {
 <style scoped>
 .gtr {
   cursor: pointer;
-  transition: background-color 0.12s ease;
+  transition: background-color var(--dur-1) ease;
 }
 
 .gtr:hover {
@@ -345,7 +345,7 @@ const searchableTitle = computed(() => {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 2px 6px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: rgb(167 139 250 / 0.15);
   color: rgb(196 181 253);
   white-space: nowrap;
@@ -359,16 +359,16 @@ const searchableTitle = computed(() => {
   font-size: 0.625rem;
   font-weight: 500;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   border: 1px solid rgb(var(--line-strong));
   background: transparent;
   color: rgb(var(--fg-muted));
   cursor: pointer;
   white-space: nowrap;
   transition:
-    border-color 120ms ease,
-    color 120ms ease,
-    background-color 120ms ease;
+    border-color var(--dur-1) ease,
+    color var(--dur-1) ease,
+    background-color var(--dur-1) ease;
 }
 
 .gtr-scope:hover {

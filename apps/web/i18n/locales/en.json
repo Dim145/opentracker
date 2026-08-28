@@ -3206,6 +3206,9 @@
         "line": "Lines",
         "accent": "Accent — accent-warm is the gold most of the site paints with",
         "semantic": "Status colours",
+        "elevation": "Elevation",
+        "shape": "Shape",
+        "motion": "Motion",
         "chrome": "Chrome",
         "ambience": "Ambience (reserved — not yet used by the interface)"
       }

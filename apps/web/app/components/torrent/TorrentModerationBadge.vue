@@ -92,7 +92,7 @@ const title = computed(() => {
   color: var(--c-text);
   background: linear-gradient(180deg, var(--c-bg) 0%, var(--c-bg-soft) 100%);
   border: 1.5px solid var(--c-line);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   white-space: nowrap;
   vertical-align: middle;
   position: relative;

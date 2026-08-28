@@ -335,9 +335,9 @@ function humanise(s: string): string {
   background: transparent;
   border: 0;
   color: rgb(var(--fg-muted));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: color 0.14s ease, background 0.14s ease;
+  transition: color var(--dur-2) ease, background var(--dur-2) ease;
 }
 .nbell-btn:hover {
   color: rgb(var(--fg-strong));
@@ -360,7 +360,7 @@ function humanise(s: string): string {
   justify-content: center;
   background: #f43f5e;
   color: #fff;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 9px;
   font-weight: 800;
@@ -450,7 +450,7 @@ function humanise(s: string): string {
   background: rgba(244, 63, 94, 0.12);
   border: 1px solid rgba(244, 63, 94, 0.45);
   color: #f43f5e;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   letter-spacing: 0.02em;
 }
 .nbell-pop-mark {
@@ -469,7 +469,7 @@ function humanise(s: string): string {
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   white-space: nowrap;
 }
 .nbell-pop-mark:hover:not(:disabled) {
@@ -505,7 +505,7 @@ function humanise(s: string): string {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .nbell-filter:hover {
   color: rgb(var(--fg-strong));
@@ -522,12 +522,12 @@ function humanise(s: string): string {
   height: 6px;
   border-radius: 50%;
   background: rgb(var(--line-strong));
-  transition: background 0.16s ease;
+  transition: background var(--dur-2) ease;
 }
 .nbell-filter-dot--on {
   background: #f43f5e;
   box-shadow: 0 0 6px rgba(244, 63, 94, 0.7);
-  animation: nbell-blip 1.6s ease-in-out infinite;
+  animation: nbell-blip calc(1.6s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes nbell-blip {
   0%, 100% { opacity: 0.6; }
@@ -539,7 +539,7 @@ function humanise(s: string): string {
   min-width: 18px;
   height: 16px;
   padding: 0 0.3rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   font-size: 9px;
@@ -584,7 +584,7 @@ function humanise(s: string): string {
   transform: rotate(-6deg);
 }
 .nbell-loading-spin {
-  animation: nbell-spin 0.9s linear infinite;
+  animation: nbell-spin calc(0.9s * var(--motion-scale)) linear infinite;
 }
 @keyframes nbell-spin {
   to { transform: rotate(360deg); }
@@ -601,7 +601,7 @@ function humanise(s: string): string {
 .nbell-list::-webkit-scrollbar { width: 6px; }
 .nbell-list::-webkit-scrollbar-thumb {
   background: rgb(var(--accent-warm) / 0.25);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .nbell-row {
@@ -613,8 +613,8 @@ function humanise(s: string): string {
   padding: 0.65rem 0.85rem 0.65rem 0.9rem;
   cursor: pointer;
   border-bottom: 1px solid rgb(var(--line-default) / 0.45);
-  transition: background 0.14s ease;
-  animation: nbell-in 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: background var(--dur-2) ease;
+  animation: nbell-in calc(0.32s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes nbell-in {
@@ -740,8 +740,8 @@ function humanise(s: string): string {
   color: rgb(var(--accent-warm));
   cursor: pointer;
   opacity: 0.45;
-  transition: opacity 0.18s ease, background 0.15s ease,
-    border-color 0.15s ease;
+  transition: opacity var(--dur-3) ease, background var(--dur-2) ease,
+    border-color var(--dur-2) ease;
 }
 .nbell-row-clear svg { font-size: 0.85rem; }
 .nbell-row:hover .nbell-row-clear,
@@ -772,14 +772,14 @@ function humanise(s: string): string {
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .nbell-pop-all:hover {
   color: rgb(var(--accent-warm));
   background: rgb(var(--accent-warm) / 0.06);
 }
 .nbell-pop-all svg {
-  transition: transform 0.16s ease;
+  transition: transform var(--dur-2) ease;
 }
 .nbell-pop-all:hover svg {
   transform: translateX(2px);
@@ -788,7 +788,7 @@ function humanise(s: string): string {
 /* ── Pop transition ────────────────────────────────────── */
 .nbell-pop-enter-active,
 .nbell-pop-leave-active {
-  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: opacity var(--dur-3) ease, transform var(--dur-4) var(--ease-standard);
 }
 .nbell-pop-enter-from,
 .nbell-pop-leave-to {

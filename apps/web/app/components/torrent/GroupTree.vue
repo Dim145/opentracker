@@ -429,7 +429,7 @@ function bestResolution(list: string[]): string | null {
   color: inherit;
   font: inherit;
   cursor: pointer;
-  transition: background-color 120ms ease;
+  transition: background-color var(--dur-1) ease;
 }
 .lvl:hover {
   background: rgb(var(--bg-hover));
@@ -467,7 +467,7 @@ function bestResolution(list: string[]): string | null {
   letter-spacing: 0.06em;
   color: rgb(var(--fg-faint));
   padding: 2px 5px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: rgb(var(--fg-default) / 0.05);
   white-space: nowrap;
 }
