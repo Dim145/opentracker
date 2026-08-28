@@ -2,10 +2,10 @@
  * PUT /api/admin/themes/:id
  *
  * `slug` is not editable — see the note on `createThemeSchema`. Neither is
- * `customCss`: the column exists from the first migration so wave 3 needs no
- * second one, but no route in wave 1 writes it. That is the gate, and it is a
- * stronger one than a permission check would be, because there is no codepath at
- * all rather than a codepath with a guard on it.
+ * `customCss`, and not because nothing writes it: `[id]/css.put.ts` does. It is
+ * a separate route because it carries a different permission — owner rather than
+ * admin — and re-authenticates. Keeping it out of THIS body is what stops an
+ * administrator reaching it through the route they are allowed to call.
  */
 import { and, count, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
@@ -80,7 +80,7 @@ export default defineEventHandler(async (event) => {
       ...(body.position !== undefined ? { position: body.position } : {}),
       visibility: body.visibility,
       requiredRoles:
-        body.visibility === 'roles' ? (body.requiredRoles ?? []) : null,
+        body.visibility === 'roles' ? (body.requiredRoles ?? null) : null,
       updatedAt: new Date(),
     })
     .where(eq(schema.themes.id, id));

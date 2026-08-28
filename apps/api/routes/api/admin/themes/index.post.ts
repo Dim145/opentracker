@@ -106,7 +106,7 @@ export default defineEventHandler(async (event) => {
     enabled: wantsEnabled,
     position: body.position ?? 0,
     visibility: body.visibility,
-    requiredRoles: body.visibility === 'roles' ? (body.requiredRoles ?? []) : null,
+    requiredRoles: body.visibility === 'roles' ? (body.requiredRoles ?? null) : null,
     createdBy: user.id,
   });
 

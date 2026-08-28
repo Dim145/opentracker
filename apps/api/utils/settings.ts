@@ -177,7 +177,7 @@ export const SETTINGS_KEYS = {
   REQUEST_MAX_FILLS_PER_USER: 'request_max_fills_per_user',
   // ── Themes ─────────────────────────────────────────────────
   // Which theme an anonymous visitor and a brand-new member get. Defaults to
-  // `dark`, which is what `users.theme` already defaults to — so an upgrade
+  // `dark`, which is what an instance looked like before this setting existed — so an upgrade
   // changes nothing until an operator decides otherwise. Set it to `system` to
   // follow each visitor's operating system.
   THEME_DEFAULT: 'theme_default',

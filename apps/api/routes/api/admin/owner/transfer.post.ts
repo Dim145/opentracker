@@ -38,9 +38,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: result.reason });
   }
 
-  // The new owner has to find out, and not by discovering a button works. This
-  // is the one notification in the application that tells somebody they are now
-  // responsible for the instance.
+  // The new owner has to find out, and not by discovering a button works.
+  //
+  // `actorUsername`, because that is the placeholder `staff_status_changed`
+  // interpolates. It used to send `byUsername`, and `interpolate` leaves an
+  // unknown placeholder literal — so the one message telling somebody they now
+  // run the instance arrived, in app and by e-mail, reading
+  // "{actorUsername} updated your staff privileges." Found in review.
+  //
+  // The wording is still weaker than the act deserves: `staff_status_changed`
+  // says "staff privileges" for a transfer of the whole instance, and
+  // `before`/`after` are recorded on the row but no template reads them. A
+  // dedicated type would need the union, both dictionaries, the bell's icon map
+  // and the member preference lists — worth doing, too wide for a review.
   const [heir] = await db
     .select({ username: schema.users.username })
     .from(schema.users)
@@ -49,7 +59,7 @@ export default defineEventHandler(async (event) => {
   void notify(body.userId, 'staff_status_changed', {
     before: { isOwner: false },
     after: { isOwner: true },
-    byUsername: actor.username,
+    actorUsername: actor.username,
   });
 
   return { ok: true, newOwner: heir?.username ?? null };

@@ -65,12 +65,30 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const role = z.enum(FONT_ROLES).parse(
-    form.find((f) => f.name === 'role')?.data.toString() ?? '',
-  ) as FontRole;
-  const family = familySchema.parse(
+  // `safeParse`, because a bare `.parse` throws a ZodError that nothing converts
+  // — the owner gets a 500 with no indication of which field is wrong, for a
+  // family name containing a character the schema refuses. A multipart body
+  // cannot go through `validateBody`, so the refusal is spelled out here.
+  const parsedRole = z
+    .enum(FONT_ROLES)
+    .safeParse(form.find((f) => f.name === 'role')?.data.toString() ?? '');
+  if (!parsedRole.success) {
+    throw createError({
+      statusCode: 400,
+      message: `role must be one of: ${FONT_ROLES.join(', ')}.`,
+    });
+  }
+  const parsedFamily = familySchema.safeParse(
     form.find((f) => f.name === 'family')?.data.toString() ?? '',
   );
+  if (!parsedFamily.success) {
+    throw createError({
+      statusCode: 400,
+      message: `family: ${parsedFamily.error.issues[0]?.message ?? 'not a usable name'}`,
+    });
+  }
+  const role = parsedRole.data as FontRole;
+  const family = parsedFamily.data;
 
   const { font, created } = await storeFont(file.data, family, role, user.id);
   // 200 rather than 201 when the bytes were already here: the same file uploaded
