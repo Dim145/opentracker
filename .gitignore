@@ -84,3 +84,9 @@ apps/api/openapi.json
 
 # Claude Code session memory — local notes, never part of the project.
 .remember/
+
+# Runtime uploads. `UPLOADS_DIR` defaults here when unset, which is what the
+# filesystem storage driver uses outside Docker — so a test that exercises a
+# real upload writes into the working tree. Seven test woff2 files reached a
+# commit that way before this line existed.
+apps/api/public/uploads/

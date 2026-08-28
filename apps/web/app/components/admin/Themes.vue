@@ -284,6 +284,22 @@
                   {{ $t('admin.themes.inherited', { value: baseValue(def.key) }) }}
                 </option>
                 <option v-for="o in def.options" :key="o" :value="o">{{ o }}</option>
+                <!-- The owner's uploaded faces, for the three font roles only:
+                     a face is uploaded FOR a role, and offering a display serif
+                     for the mono role is how a column of hashes stops lining
+                     up. -->
+                <optgroup
+                  v-if="uploadsFor(def.key).length"
+                  :label="$t('admin.themes.uploadedFonts')"
+                >
+                  <option
+                    v-for="f in uploadsFor(def.key)"
+                    :key="f.id"
+                    :value="`upload:${f.id}`"
+                  >
+                    {{ f.family }}
+                  </option>
+                </optgroup>
               </select>
 
               <!-- A scalar is the most expressive control in the editor —
@@ -375,6 +391,64 @@
               </li>
             </ul>
           </span>
+        </div>
+
+        <!-- Uploaded fonts. Owner only to ADD one; every administrator may then
+             select it above. The panel lives in the editor because that is where
+             an author discovers they want a face the build does not ship. -->
+        <div v-if="isOwner" class="token-group">
+          <button class="token-group-head" @click="toggleGroup('fonts')">
+            <Icon
+              :name="openGroups.has('fonts') ? 'ph:caret-down-bold' : 'ph:caret-right-bold'"
+            />
+            {{ $t('admin.themes.fontUpload') }}
+            <span class="token-group-count">{{ fonts.length }}</span>
+          </button>
+          <div v-if="openGroups.has('fonts')" class="space-y-2 pt-2">
+            <p class="text-2xs text-muted">{{ $t('admin.themes.fontUploadHelp') }}</p>
+            <ul v-if="fonts.length" class="space-y-1">
+              <li
+                v-for="f in fonts"
+                :key="f.id"
+                class="flex items-center gap-2 text-2xs"
+              >
+                <span class="font-mono">{{ f.role }}</span>
+                <span class="flex-1 truncate">{{ f.family }}</span>
+                <span class="text-muted">{{ Math.round(f.bytes / 1024) }} kB</span>
+                <button class="token-reset" :title="$t('common.delete')" @click="removeFont(f.id)">
+                  <Icon name="ph:trash-bold" />
+                </button>
+              </li>
+            </ul>
+            <div class="flex flex-wrap items-center gap-2">
+              <select v-model="fontRole" class="input input-xs" style="width: 7rem">
+                <option value="sans">sans</option>
+                <option value="mono">mono</option>
+                <option value="display">display</option>
+              </select>
+              <input
+                v-model="fontFamily"
+                class="input input-xs"
+                style="width: 11rem"
+                :placeholder="$t('admin.themes.fontFamilyName')"
+              />
+              <input
+                ref="fontInput"
+                type="file"
+                accept=".woff2,font/woff2"
+                class="text-2xs"
+                @change="onFontPicked"
+              />
+              <button
+                class="btn btn-sm"
+                :disabled="fontUploading || !fontFamily.trim() || !fontFile"
+                @click="uploadFont"
+              >
+                <Icon name="ph:upload-bold" /> {{ $t('admin.themes.fontUploadAction') }}
+              </button>
+            </div>
+            <p v-if="fontError" class="text-xs text-error">{{ fontError }}</p>
+          </div>
         </div>
 
         <!-- Raw CSS. Owner only, and saved by its own route: the tokens above
@@ -483,6 +557,14 @@ interface Payload {
   maxEnabled: number;
   enabledCount: number;
   roles: Array<{ id: string; name: string }>;
+  fonts: UploadedFont[];
+}
+
+interface UploadedFont {
+  id: string;
+  family: string;
+  role: string;
+  bytes: number;
 }
 
 const { t } = useI18n();
@@ -493,11 +575,83 @@ const { data, refresh } = await useFetch<Payload>('/api/admin/themes', {
     maxEnabled: 10,
     enabledCount: 0,
     roles: [],
+    fonts: [],
   }),
 });
 
 const themes = computed(() => data.value.themes);
 const roles = computed(() => data.value.roles);
+const fonts = computed(() => data.value.fonts ?? []);
+
+// ── Uploaded fonts ───────────────────────────────────────────────────
+//
+// Any administrator may SELECT one; only the owner may add or remove one. The
+// role travels with the file rather than being chosen at selection time, which
+// is why `uploadsFor` filters: a display serif offered for the mono role is how
+// a column of hashes stops lining up.
+const ROLE_FOR_TOKEN: Record<string, string> = {
+  'font-sans': 'sans',
+  'font-mono': 'mono',
+  'font-display': 'display',
+};
+
+function uploadsFor(tokenKey: string): UploadedFont[] {
+  const role = ROLE_FOR_TOKEN[tokenKey];
+  return role ? fonts.value.filter((f) => f.role === role) : [];
+}
+
+const fontRole = ref<'sans' | 'mono' | 'display'>('sans');
+const fontFamily = ref('');
+const fontFile = ref<File | null>(null);
+const fontInput = ref<HTMLInputElement | null>(null);
+const fontUploading = ref(false);
+const fontError = ref('');
+
+function onFontPicked(e: Event) {
+  fontFile.value = (e.target as HTMLInputElement).files?.[0] ?? null;
+  fontError.value = '';
+}
+
+async function uploadFont() {
+  if (!fontFile.value) return;
+  fontUploading.value = true;
+  fontError.value = '';
+  try {
+    const body = new FormData();
+    body.append('font', fontFile.value);
+    body.append('role', fontRole.value);
+    body.append('family', fontFamily.value.trim());
+    // No `content-type` header: the browser has to set the multipart boundary,
+    // and setting it by hand is the classic way to get an unparseable body.
+    await $fetch('/api/admin/fonts', { method: 'POST', body });
+    fontFamily.value = '';
+    fontFile.value = null;
+    if (fontInput.value) fontInput.value.value = '';
+    await refresh();
+    reloadThemeStylesheet();
+  } catch (err: unknown) {
+    fontError.value =
+      (err as { data?: { message?: string } }).data?.message ??
+      t('admin.themes.saveFailed');
+  } finally {
+    fontUploading.value = false;
+  }
+}
+
+async function removeFont(id: string) {
+  fontError.value = '';
+  try {
+    await $fetch(`/api/admin/fonts/${id}`, { method: 'DELETE' });
+    await refresh();
+    reloadThemeStylesheet();
+  } catch (err: unknown) {
+    // The refusal that matters: a theme still names this face, and the message
+    // says which ones.
+    fontError.value =
+      (err as { data?: { message?: string } }).data?.message ??
+      t('admin.themes.saveFailed');
+  }
+}
 const maxEnabled = computed(() => data.value.maxEnabled);
 const enabledCount = computed(() => themes.value.filter((x) => x.enabled).length);
 

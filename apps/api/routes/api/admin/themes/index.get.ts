@@ -15,6 +15,7 @@
 import { asc } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { listFonts } from '~~/utils/fonts';
 import { BUILT_IN_TOKENS, THEME_TOKENS } from '@trackarr/shared/theme';
 import {
   MAX_ENABLED_THEMES,
@@ -52,9 +53,9 @@ export default defineEventHandler(async (event) => {
       position: t.position,
       visibility: t.visibility,
       requiredRoles: t.requiredRoles,
-      // Never the raw CSS: nothing in wave 1 writes it and no admin route reads
-      // it, so it cannot leak through the console before the owner-only editor
-      // that will own it exists.
+      // Never the raw CSS. `GET /api/admin/themes/:id/css` is owner-gated and is
+      // the only way to read it, so it cannot arrive here as a side effect of
+      // listing themes for an administrator who may not see it.
       updatedAt: t.updatedAt,
     })),
     settings: {
@@ -68,5 +69,10 @@ export default defineEventHandler(async (event) => {
     schema: THEME_TOKENS,
     builtIns: BUILT_IN_TOKENS,
     roles,
+    // The owner's uploaded faces, so the font pickers can offer them alongside
+    // the curated list. Listed for every administrator: only the owner may
+    // upload one, but any administrator authoring a theme has to be able to
+    // select one, and a picker that cannot list its options is not a picker.
+    fonts: await listFonts(),
   };
 });

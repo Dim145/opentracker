@@ -16,6 +16,7 @@ import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
+import { uploadTokenProblems } from '~~/utils/fonts';
 import { BUILT_IN_THEMES } from '@trackarr/shared';
 import { BUILT_IN_TOKENS } from '@trackarr/shared/theme';
 import { createThemeSchema } from '~~/utils/themeSchemas';
@@ -30,6 +31,13 @@ export default defineEventHandler(async (event) => {
   const { user } = await requireAdminSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
   const body = await validateBody(event, createThemeSchema);
+  // A font role may name an uploaded face. The shared validator accepts the
+  // SHAPE `upload:<uuid>`; only the database can say whether that face exists
+  // and whether it was uploaded for this role.
+  const fontProblems = await uploadTokenProblems(body.tokens);
+  if (fontProblems.length) {
+    throw createError({ statusCode: 400, message: fontProblems.join(' ') });
+  }
 
   // The cap is on ENABLED themes, not on rows: every enabled one is emitted into
   // the stylesheet every visitor downloads, and that is the cost being bounded.

@@ -3205,6 +3205,11 @@
       "rawCssPlaceholder": ".torrent-row:hover { background: rgb(var(--accent-warm) / 0.06); }",
       "rawCssSave": "Save CSS",
       "rawCssRefused": "Not accepted:",
+      "uploadedFonts": "Uploaded",
+      "fontUpload": "Uploaded fonts (owner only)",
+      "fontUploadHelp": "For a face the build does not ship. woff2 only, 2 MB maximum — every visitor using the theme downloads it. Pick the role the face is FOR: a display serif offered for the mono role is how a column of hashes stops lining up. Uploading asks for your password again; selecting an uploaded face does not.",
+      "fontFamilyName": "Name for the picker",
+      "fontUploadAction": "Upload",
       "groups": {
         "surface": "Surfaces",
         "foreground": "Text",

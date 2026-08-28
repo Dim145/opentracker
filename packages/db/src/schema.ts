@@ -3377,3 +3377,55 @@ export const themes = pgTable(
 
 export type Theme = typeof themes.$inferSelect;
 export type NewTheme = typeof themes.$inferInsert;
+
+// =============================================================================
+// Uploaded fonts (owner-supplied faces a theme may select)
+// =============================================================================
+
+/**
+ * A woff2 the owner uploaded, so a theme can use a face the build never shipped.
+ *
+ * The curated list in `packages/shared/src/theme.ts` exists because a font has
+ * to BE there — the faces are downloaded when the image is built. This is the
+ * escape hatch from that constraint, and it is owner-only for the same reason
+ * raw CSS is: it adds bytes every visitor downloads and a face nobody has
+ * reviewed.
+ *
+ * Addressed by content. `sha256` is unique, so uploading the same file twice
+ * returns the existing row rather than storing it again, and the served URL can
+ * be cached immutably — the bytes behind an id can never change.
+ *
+ * `role` matters as much as the file: a theme picks a family per role, and a
+ * proportional face offered for the mono role is a broken table rather than a
+ * restyled one. The role is chosen at upload and the token validation checks it.
+ *
+ * Deliberately NOT referenced by `themes.tokens`. A token holds `upload:<id>` as
+ * a string, and there is no foreign key — the same reason `users.theme` has
+ * none: a theme's preference has to survive the thing it points at going away,
+ * and the delete route is what notices rather than the database.
+ */
+export const uploadedFonts = pgTable(
+  'uploaded_fonts',
+  {
+    id: text('id').primaryKey(),
+    /** What an admin sees in the picker. Not what CSS uses — see `fonts.ts`. */
+    family: text('family').notNull(),
+    role: text('role').notNull(),
+    storageKey: text('storage_key').notNull(),
+    bytes: integer('bytes').notNull(),
+    /** Hex. Unique, so the same file uploaded twice is one object. */
+    sha256: text('sha256').notNull().unique(),
+    uploadedBy: text('uploaded_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // The picker's read: everything for one role.
+    index('uploaded_fonts_role_idx').on(table.role),
+    check('uploaded_fonts_role_ck', sql`${table.role} IN ('sans', 'mono', 'display')`),
+  ],
+);
+
+export type UploadedFont = typeof uploadedFonts.$inferSelect;
+export type NewUploadedFont = typeof uploadedFonts.$inferInsert;

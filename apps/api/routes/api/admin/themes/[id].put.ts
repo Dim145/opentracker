@@ -13,6 +13,7 @@ import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
+import { uploadTokenProblems } from '~~/utils/fonts';
 import { updateThemeSchema } from '~~/utils/themeSchemas';
 import { MAX_ENABLED_THEMES, bumpThemeVersion } from '~~/utils/themes';
 
@@ -23,6 +24,13 @@ export default defineEventHandler(async (event) => {
   await rateLimit(event, RATE_LIMITS.mutation);
   const { id } = paramsSchema.parse(getRouterParams(event));
   const body = await validateBody(event, updateThemeSchema);
+  // A font role may name an uploaded face. The shared validator accepts the
+  // SHAPE `upload:<uuid>`; only the database can say whether that face exists
+  // and whether it was uploaded for this role.
+  const fontProblems = await uploadTokenProblems(body.tokens);
+  if (fontProblems.length) {
+    throw createError({ statusCode: 400, message: fontProblems.join(' ') });
+  }
 
   const [existing] = await db
     .select({ enabled: schema.themes.enabled })

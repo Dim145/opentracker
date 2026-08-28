@@ -197,6 +197,31 @@ data is a major upgrade the operator performs *offline* — it stops the cluster
 runs `pg_upgrade` and restarts. None of the above applies; read CloudNativePG's
 own documentation for it, and take a backup first regardless.
 
+## Upgrading to 0.33 or later — themes
+
+Nothing to run. Two tables arrive with the migrations (`themes`,
+`uploaded_fonts`), both empty, and the appearance is unchanged until somebody
+creates a theme.
+
+Three things an operator should know, none of them urgent:
+
+**The interface is now in `rem` throughout.** 938 `font-size` declarations that
+were in `px` are not any more, so a visitor who has set a larger default font
+size in their browser will see the small labels scale with it where they
+previously did not. That is the intended behaviour and there is no setting to
+put it back; a theme's `ui-scale` moves everything together on top of it.
+
+**Fonts are self-hosted.** `fonts.googleapis.com` and `fonts.gstatic.com` are
+gone from the Content-Security-Policy — no visitor's IP reaches Google any more.
+The cost moves to the build: `@nuxt/fonts` fetches the faces when the image is
+built, so a release now needs network access, and one build in about ten has been
+observed failing with a timeout that an immediate retry fixed. If your pipeline
+cannot tolerate a retry, see the note in `apps/web/nuxt.config.ts` on switching
+to `provider: 'local'`.
+
+**If you serve uploads from S3**, uploaded fonts go there too, under a `fonts/`
+prefix. Nothing to configure.
+
 ## Upgrading to 0.33 or later — federation is owner-only
 
 Trackarr now distinguishes one account from the other administrators: the

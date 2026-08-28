@@ -418,8 +418,42 @@ export const FONT_STACKS: Record<string, string> = {
   'system-serif': "Georgia, 'Times New Roman', serif",
 };
 
+/**
+ * `upload:<uuid>` — a face the owner uploaded, rather than one the build shipped.
+ *
+ * Syntax only. Whether the row exists is a question for the route, in the same
+ * way `choosableFor` decides whether a member may keep a theme: this module
+ * stays pure and the database stays behind the API.
+ */
+export const UPLOADED_FONT_RE =
+  /^upload:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** The generic fallbacks each role ends in, for an uploaded face. */
+const ROLE_FALLBACKS: Record<string, string> = {
+  'font-sans': 'system-ui, -apple-system, sans-serif',
+  'font-mono': 'ui-monospace, SFMono-Regular, Menlo, monospace',
+  'font-display': 'Georgia, serif',
+};
+
+/**
+ * The CSS family name for an uploaded font.
+ *
+ * Derived from the id rather than from the file's own family name, and that is
+ * the point: the name reaching CSS is `ot-font-<uuid>`, a string this
+ * application generated, so nothing an owner types or a font file declares can
+ * become part of a stylesheet. It also means the emitter needs no query — the
+ * `@font-face` and the stack are both derivable from the token's value alone.
+ */
+export function uploadedFontFamily(token: string): string {
+  return `ot-font-${token.slice('upload:'.length)}`;
+}
+
 /** The stack for a key, falling back to the built-in default for the role. */
 export function fontStack(key: string | undefined, role: string): string {
+  if (key && UPLOADED_FONT_RE.test(key)) {
+    const fallback = ROLE_FALLBACKS[role] ?? 'sans-serif';
+    return `'${uploadedFontFamily(key)}', ${fallback}`;
+  }
   return (
     FONT_STACKS[key ?? ''] ??
     FONT_STACKS[BUILT_IN_TOKENS.dark[role] ?? ''] ??
@@ -641,6 +675,10 @@ export function isValidTokenValue(key: string, value: unknown): boolean {
       return n >= 0 && n <= 1;
     }
     case 'enum':
+      // A font role also accepts an uploaded face, by id. The shape is checked
+      // here; whether the row exists is checked by the route, which is the only
+      // place that can ask.
+      if (def.derive === 'font-stack' && UPLOADED_FONT_RE.test(value)) return true;
       return !!def.options?.includes(value);
     case 'scalar': {
       // Up to two decimals, no sign, no exponent, no unit. Every form allowed

@@ -160,6 +160,9 @@ The `system-*` entries download nothing and render in whatever the visitor's
 machine already has. They are the fastest option and the one that looks most
 like the rest of their computer.
 
+If none of these is the face you want, the owner can
+[upload one](#uploading-a-font-owner-only).
+
 **The easings take a keyword or a `cubic-bezier()`.** `steps()` and `linear()`
 are refused: both accept argument lists of unbounded length, and neither
 expresses anything a bezier cannot. The one worth trying is an overshoot —
@@ -204,6 +207,42 @@ other unit, and a ceiling, because a 400 px radius on a card is not a theme.
 `dark`, and it is what tells the browser which way to draw scrollbars, `<select>`
 menus and date pickers — set it to what your theme *looks* like, not to the
 built-in it is based on. A dark theme built on `light` needs `dark` here.
+
+## Uploading a font — owner only
+
+The curated list exists because a face has to be in the image. If you want one
+that is not, the **owner** can upload it: *Admin → Themes*, inside the editor,
+under *Uploaded fonts*. Any administrator can then select it from the font
+pickers; only the owner can add or remove one.
+
+- **woff2 only**, and the check is the first four bytes rather than the
+  extension — a `.ttf` renamed `.woff2` is refused. Convert first; every browser
+  this application supports reads woff2.
+- **2 MB maximum.** Every visitor using the theme downloads it.
+- **Pick the role the face is FOR.** A face uploaded for `display` cannot be
+  selected for `mono`, and that is not pedantry: two families at the same size
+  differ by 10–20 % in advance width, and a proportional face in a column of
+  hashes is a broken table rather than a restyled one.
+- **Uploading asks for your password again.** Selecting an uploaded face does
+  not.
+
+Two behaviours worth knowing:
+
+**The same file twice is one font.** Storage is addressed by the SHA-256 of the
+bytes, so re-uploading a file you already have returns the existing entry — with
+its original name and role. It also means the served URL is cached for a year:
+the bytes behind an id can never change.
+
+**Deleting is refused while a theme still uses it**, and the error names the
+themes. Nothing cascades — clearing the reference for you would silently change
+how those themes look.
+
+What is *not* checked is the font's internal structure. Parsing a font properly
+means shipping a font parser, which is a larger attack surface than the one it
+would defend; an uploaded face is handed to the browser's own font engine, which
+is where every font on the web ends up. The gate is that only the owner can put
+one there. The name you type is a label for the picker and never reaches the
+stylesheet — CSS sees `ot-font-<id>`, a name this application generates.
 
 ## Raw CSS — owner only
 

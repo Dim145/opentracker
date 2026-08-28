@@ -3205,6 +3205,11 @@
       "rawCssPlaceholder": ".torrent-row:hover { background: rgb(var(--accent-warm) / 0.06); }",
       "rawCssSave": "Enregistrer le CSS",
       "rawCssRefused": "Refusé :",
+      "uploadedFonts": "Téléversées",
+      "fontUpload": "Polices téléversées (propriétaire uniquement)",
+      "fontUploadHelp": "Pour une fonte que le build ne fournit pas. woff2 uniquement, 2 Mo maximum — chaque visiteur du thème la télécharge. Choisissez le rôle auquel la fonte est destinée : un serif de titrage proposé pour le rôle mono, c'est une colonne de hachages qui ne s'aligne plus. Le téléversement redemande votre mot de passe ; sélectionner une fonte téléversée, non.",
+      "fontFamilyName": "Nom dans le sélecteur",
+      "fontUploadAction": "Téléverser",
       "groups": {
         "surface": "Surfaces",
         "foreground": "Texte",

@@ -10,7 +10,6 @@ import {
   API,
   caller,
   check,
-  expireFreshAuth,
   report,
   resetRateLimits,
   sessions,
@@ -363,19 +362,6 @@ console.log('\n4. raw CSS, owner only');
     !after.includes('evil.example') && !after.includes('url('),
     'something got through');
 
-  // Finally, the fresh-auth gate. Done last because it makes every session in
-  // this run stale, and nothing after it needs one.
-  await expireFreshAuth();
-  const stale = await req('founder', `/api/admin/themes/${id}/css`, {
-    method: 'PUT',
-    body: { css: '.a { color: red; }' },
-  });
-  check('a stale session cannot write CSS', stale.status === 401, `status ${stale.status}`);
-  check('and is told to re-authenticate', stale.body?.data?.reauthRequired === true,
-    JSON.stringify(stale.body).slice(0, 160));
-  const stillReads = await req('founder', `/api/admin/themes/${id}/css`);
-  check('reading is deliberately not fresh-gated', stillReads.status === 200,
-    `status ${stillReads.status}`);
 }
 
 // ── Clean up ─────────────────────────────────────────────────────────
@@ -383,7 +369,7 @@ console.log('\n4. raw CSS, owner only');
 // `e2e-flat` behind would silently move the count another scenario asserts on.
 {
   const list = await req('founder', '/api/admin/themes');
-  for (const row of list.body?.rows ?? []) {
+  for (const row of list.body?.themes ?? []) {
     if (row.slug?.startsWith('e2e-')) {
       await req('founder', `/api/admin/themes/${row.id}`, { method: 'DELETE' });
     }

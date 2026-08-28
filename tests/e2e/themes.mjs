@@ -264,4 +264,17 @@ console.log('\n9. through the web container');
     'attribute injection');
 }
 
+// ── Clean up ─────────────────────────────────────────────────────────
+// The cap phase deliberately fills the ten enabled slots. Leaving them filled
+// makes the next scenario's first `POST /api/admin/themes` fail on a cap it has
+// nothing to do with — which is exactly what it did.
+{
+  const list = await req('founder', '/api/admin/themes');
+  for (const row of list.body?.themes ?? []) {
+    if (row.slug?.startsWith('e2e-') || row.slug?.startsWith('t-')) {
+      await req('founder', `/api/admin/themes/${row.id}`, { method: 'DELETE' });
+    }
+  }
+}
+
 report();

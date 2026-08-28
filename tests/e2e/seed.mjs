@@ -78,9 +78,21 @@ async function call(path, { method = 'GET', body, jar, expect } = {}) {
  */
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * The proof-of-work gate, with the browser's own solver and a longer deadline.
+ *
+ * `solvePoW` defaults to 60 s so a misconfigured difficulty cannot hang a
+ * browser tab. That default is wrong for a harness: difficulty 5 expects ~1.05 M
+ * hashes and this solver manages ~80 k/s through WebCrypto, so the MEAN is about
+ * 13 s — but the distribution has a long tail, and roughly one attempt in a
+ * hundred needs more than 4.8 M. Three accounts per run turned that into a 3 %
+ * flake, which is exactly what it did.
+ *
+ * Four minutes instead. Nothing here is racing a user's patience.
+ */
 async function pow() {
   const { body } = await call('/api/auth/pow', { expect: 200 });
-  return solvePoW(body.challenge, body.difficulty);
+  return solvePoW(body.challenge, body.difficulty, undefined, 240_000);
 }
 
 async function register(acc) {

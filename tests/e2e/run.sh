@@ -105,14 +105,28 @@ node "$HERE/seed.mjs" > "$HERE/session.json"
 # cascade of unrelated failures.
 [ -s "$HERE/session.json" ] || { echo "seeding produced no sessions" >&2; exit 1; }
 
+# An explicit order rather than a glob, because the order matters: `freshauth`
+# clears the fresh-auth stamps to reach the refusal path, which makes every
+# session in the run stale, so it has to be last. A glob sorted alphabetically
+# would have put it in the middle and broken everything after it.
+SCENARIOS=(appearance fonts themes freshauth)
+
 status=0
-for scenario in "$HERE"/*.mjs; do
-  name="$(basename "$scenario" .mjs)"
-  case "$name" in seed|crypto|lib) continue ;; esac
+for name in "${SCENARIOS[@]}"; do
+  scenario="$HERE/$name.mjs"
+  [ -f "$scenario" ] || { echo "missing scenario: $name" >&2; status=1; continue; }
   [ -n "$ONLY" ] && [ "$name" != "$ONLY" ] && continue
   reset_limits
   say "scenario: $name"
   node "$scenario" || status=1
+done
+
+# A scenario file nobody listed is a scenario nobody runs.
+for scenario in "$HERE"/*.mjs; do
+  name="$(basename "$scenario" .mjs)"
+  case "$name" in seed|crypto|lib) continue ;; esac
+  case " ${SCENARIOS[*]} " in *" $name "*) continue ;; esac
+  echo "WARNING: $name.mjs is not in SCENARIOS and was not run" >&2
 done
 
 exit "$status"

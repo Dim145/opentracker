@@ -47,6 +47,7 @@ import {
   type TokenMap,
 } from '@trackarr/shared/theme';
 import { scopeCustomCss } from './themeCss';
+import { fontFaceCss } from './fonts';
 import { getSetting, setSetting, SETTINGS_KEYS } from './settings';
 
 /** See the module header for why this is ten and not "as many as you like". */
@@ -236,6 +237,18 @@ export function buildThemeCss(
   const parts: string[] = [
     '/* Generated. Admin-defined themes; see apps/api/utils/themes.ts. */',
   ];
+
+  // `@font-face` for every uploaded face any enabled theme names, before the
+  // theme blocks so the declaration exists by the time a `font-family` refers to
+  // it. Derived from the token values alone — no query — because the family name
+  // is `ot-font-<id>` and the source is `/api/fonts/<id>`, both computed from the
+  // id the token carries.
+  const faces = fontFaceCss([
+    ...themes.map((t) => resolveTokens(t.base, t.tokens)),
+    tokensFor(mapping.light),
+    tokensFor(mapping.dark),
+  ]);
+  if (faces) parts.push(faces);
 
   for (const t of themes) {
     parts.push(
