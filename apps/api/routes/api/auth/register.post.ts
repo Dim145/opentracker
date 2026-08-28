@@ -13,6 +13,7 @@ import { validateBody, registerSchema } from '~~/utils/schemas';
 import { notify } from '~~/utils/notify';
 import { verifyPoWSolution } from '~~/utils/pow';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { markFreshAuth } from '~~/utils/twoFactor';
 import { encryptSecretRequired } from '~~/utils/credentialSecrets';
 
 /**
@@ -289,6 +290,31 @@ export default defineEventHandler(async (event) => {
     },
     loggedInAt: Date.now(),
   });
+
+  // Open the fresh-auth window, exactly as `login.post.ts` does and at the same
+  // point — after the session exists, keyed on the real h3 session id rather
+  // than the session data object, which has no `id` (finding H1).
+  //
+  // Why registration counts. The window's job, at all eight `requireFreshAuth`
+  // call sites, is to refuse a STOLEN session cookie: it asks for something a
+  // thief does not have, namely the credential, supplied recently. A session
+  // minted by the registration request itself is the one session that cannot
+  // have been stolen yet — it is the same age as a session minted by a login,
+  // and login stamps it.
+  //
+  // It is worth being precise about what registration does and does not prove,
+  // because the tempting phrasing is wrong. Registration does NOT prove
+  // knowledge of an existing credential — there is nothing to check against; it
+  // ESTABLISHES the credential. That is a different thing, and for this window
+  // it is a stronger one: the holder did not merely demonstrate the password,
+  // they chose it, seconds ago, in this request.
+  //
+  // Without this, the founding account — which is the owner, and the account
+  // most likely to want an owner-gated route immediately — is told to
+  // "re-authenticate" by a session created moments earlier from the very
+  // credential it is being asked to re-supply. The only way out is to log out
+  // and back in, which proves nothing the registration did not.
+  await markFreshAuth(await getSessionId(event));
 
   return {
     success: true,

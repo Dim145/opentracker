@@ -162,10 +162,12 @@ for (const acc of ACCOUNTS) {
   }
   await sleep(6000);
   let r = await register(acc);
+  let via = 'register';
   if (r.status !== 200 && r.status !== 201) {
     console.error(`  register(${acc.username}) -> ${r.status} ${JSON.stringify(r.body).slice(0, 200)}`);
     // Already there from a previous run — log in instead.
     r = await login(acc);
+    via = 'login';
   }
   if (r.status !== 200 && r.status !== 201) {
     console.error(`${acc.username}: ${r.status}`, JSON.stringify(r.body).slice(0, 300));
@@ -174,38 +176,20 @@ for (const acc of ACCOUNTS) {
   const who = await call('/api/auth/status', { jar: r.jar });
   out[acc.username] = {
     cookie: cookieHeader(r.jar),
+    // How this session was obtained. `freshauth.mjs` asserts that a session
+    // from a REGISTRATION is fresh, which is only a claim about registration if
+    // the session actually came from one — the runner starts from an empty
+    // database so it normally does, but a `--no-build` re-run against a kept
+    // stack would fall through to `login()`.
+    via,
     isAdmin: who.body?.user?.isAdmin ?? null,
     isOwner: who.body?.user?.isOwner ?? null,
     theme: who.body?.user?.theme ?? null,
     id: who.body?.user?.id ?? null,
   };
   console.error(
-    `${acc.username.padEnd(10)} admin=${out[acc.username].isAdmin} owner=${out[acc.username].isOwner} theme=${out[acc.username].theme}`,
+    `${acc.username.padEnd(10)} via=${via} admin=${out[acc.username].isAdmin} owner=${out[acc.username].isOwner} theme=${out[acc.username].theme}`,
   );
-}
-
-/**
- * Log the founder in again, so their session is FRESH.
- *
- * Registration proves knowledge of the credential at least as strongly as a
- * login does, but `markFreshAuth` is only called by `login.post.ts` — so a
- * just-registered account cannot use anything behind `requireFreshAuth`
- * (ownership transfer, raw CSS, role changes) until it logs in once. That is the
- * application's behaviour, not a harness quirk, and a scenario that wants to
- * exercise the success path has to do what a real owner would do.
- *
- * Only the founder, and only at the end: the auth limiter allows five calls per
- * five minutes and a challenge plus a login is two of them.
- */
-if (out.founder) {
-  await sleep(2000);
-  const again = await login(ACCOUNTS[0]);
-  if (again.status === 200 || again.status === 201) {
-    out.founder.cookie = cookieHeader(again.jar);
-    console.error('  founder re-logged in (session is now fresh)');
-  } else {
-    console.error(`  founder re-login FAILED -> ${again.status}`);
-  }
 }
 
 console.log(JSON.stringify(out, null, 2));

@@ -32,13 +32,31 @@ const id = made.body?.id ?? made.body?.theme?.id;
 check('a theme to write to', !!id,
   `status ${made.status} ${JSON.stringify(made.body).slice(0, 200)}`);
 
-console.log('\n1. while the session is fresh');
+console.log('\n1. a session that came from REGISTERING is fresh');
 {
+  // The assertion this scenario exists for. `register.post.ts` stamps the
+  // fresh-auth window exactly as `login.post.ts` does — before it did, the
+  // founding account was told to "re-authenticate" by a session created seconds
+  // earlier from the very credential it was being asked to re-supply, and the
+  // only way out was to log out and back in.
+  //
+  // Only a claim about registration if the session came from one, so check.
+  check('the founder registered rather than logged in', S.founder.via === 'register',
+    `via=${S.founder.via} — the stack was not started from an empty database`);
+
   const ok = await req('founder', `/api/admin/themes/${id}/css`, {
     method: 'PUT',
     body: { css: '.a { color: red; }' },
   });
-  check('raw CSS is accepted', ok.status === 200, `status ${ok.status}`);
+  check('a fresh-auth-gated write is accepted', ok.status === 200, `status ${ok.status}`);
+
+  // The same window, on a different owner-gated route, so the check is about
+  // the window rather than about one handler.
+  const font = await req('founder', '/api/admin/fonts/00000000-0000-4000-8000-000000000000', {
+    method: 'DELETE',
+  });
+  check('and so is another one — 404, not 401', font.status === 404,
+    `status ${font.status}`);
 }
 
 console.log('\n2. once the stamp is gone');
