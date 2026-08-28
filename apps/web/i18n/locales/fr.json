@@ -3276,7 +3276,10 @@
         "warning": "Demande attention, mais rien n'est cassé."
       },
       "cssFormat": "Remettre en forme",
-      "cssWillRefuse": "Le serveur refusera ceci :"
+      "cssWillRefuse": "Le serveur refusera ceci :",
+      "editorBack": "Retour à la liste",
+      "editorTitleNew": "Nouveau thème",
+      "fontFamilySuggest": "Les suggestions viennent du fichier choisi et des fontes déjà téléversées."
     },
     "homepage": {
       "title": "Contenu de la page d'accueil",

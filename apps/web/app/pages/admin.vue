@@ -34,7 +34,7 @@
             md:gap-3
           "
           :class="[
-            $route.path === item.path
+            currentItem?.path === item.path
               ? 'bg-bg-secondary text-text-primary border border-border'
               : 'text-text-muted hover:text-text-primary hover:bg-bg-secondary/50 border border-transparent',
           ]"
@@ -215,9 +215,28 @@ const menuItems = computed(() => [
   },
 ]);
 
-const currentItem = computed(
-  () => menuItems.value.find((item) => item.path === route.path) || menuItems.value[0]
-);
+/**
+ * Which section the current route belongs to.
+ *
+ * An exact match first, then the longest entry the path starts with — because a
+ * section may have sub-routes now. `/admin/themes/<id>` matched nothing and fell
+ * through to `menuItems[0]`, so editing a theme was headed "Dashboard" and the
+ * sidebar highlighted the wrong row.
+ *
+ * The `/admin` root is excluded from the prefix pass: it is the prefix of
+ * everything, and its own exact match above already covers it.
+ */
+function sectionFor(path: string) {
+  const exact = menuItems.value.find((item) => item.path === path);
+  if (exact) return exact;
+  return (
+    menuItems.value
+      .filter((item) => item.path !== '/admin' && path.startsWith(`${item.path}/`))
+      .sort((a, b) => b.path.length - a.path.length)[0] ?? menuItems.value[0]
+  );
+}
+
+const currentItem = computed(() => sectionFor(route.path));
 
 const currentTitle = computed(() => currentItem?.value?.label);
 const currentDescription = computed(() => currentItem?.value?.description);

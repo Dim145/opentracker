@@ -3276,7 +3276,10 @@
         "warning": "Needs attention, but nothing is broken yet."
       },
       "cssFormat": "Tidy up",
-      "cssWillRefuse": "The server will refuse this:"
+      "cssWillRefuse": "The server will refuse this:",
+      "editorBack": "Back to the list",
+      "editorTitleNew": "New theme",
+      "fontFamilySuggest": "Suggestions come from the file you picked and from faces already uploaded."
     },
     "homepage": {
       "title": "Homepage Content",
