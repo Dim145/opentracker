@@ -41,8 +41,12 @@ function printStylesheet(): string {
   const call = SOURCE.slice(SOURCE.indexOf('w.document.write('))
     .replace(/^\s*\/\/.*$/gm, '');
   expect(call, 'the print window call moved or was renamed').not.toHaveLength(0);
-  const open = call.indexOf('<style>');
-  const close = call.indexOf('</style>');
+  // `<style` and not `<style>`: the tag carries the CSP nonce now, because the
+  // window `window.open` returns inherits this page's policy and the tightened
+  // `style-src-elem` blocks an unnonced stylesheet outright. So the opening tag
+  // reads `<style${nonceAttr}>` in source and a literal match finds nothing.
+  const open = call.indexOf('<style');
+  const close = call.indexOf('</style>', open);
   expect(open, 'no <style> in the print document').toBeGreaterThan(-1);
   expect(close, 'unterminated <style> in the print document').toBeGreaterThan(open);
   return call.slice(open, close);
@@ -69,5 +73,14 @@ describe('the recovery-code print stylesheet', () => {
     const css = printStylesheet();
     expect(css).toMatch(/font-family:/);
     expect(css).toMatch(/letter-spacing:/);
+  });
+
+  // The nonce, which the tag needs and the sheet's own rules must not.
+  it('carries the CSP nonce', () => {
+    // `about:blank` from `window.open` inherits the opener's policy, so the
+    // stylesheet is blocked without this and the printed page loses its layout —
+    // silently, the same way a `var()` here would.
+    expect(SOURCE).toMatch(/script\[nonce\]/);
+    expect(SOURCE).toMatch(/<style\$\{nonceAttr\}>/);
   });
 });

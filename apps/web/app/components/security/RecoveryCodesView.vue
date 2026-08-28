@@ -71,9 +71,25 @@ function print() {
   const list = props.codes.map((c) => `<li><code>${c}</code></li>`).join('');
   const title = t('security.recoveryCodes.printTitle');
   const intro = t('security.recoveryCodes.printIntro');
+
+  // The nonce, because this document inherits the OPENER's CSP.
+  //
+  // `window.open('')` yields an `about:blank` that carries the policy of the
+  // page that opened it, and that policy now says `style-src-elem 'self'
+  // 'nonce-…'`. Without the nonce the browser blocks this stylesheet outright
+  // and a member printing their recovery codes gets an unstyled dump — found in
+  // review, and a regression from tightening the policy rather than anything
+  // wrong with this component.
+  //
+  // Read off a script tag rather than a style tag: nonce-hiding blanks the
+  // content ATTRIBUTE, so `getAttribute('nonce')` returns nothing while the
+  // `.nonce` property still holds the value.
+  const nonce = document.querySelector<HTMLScriptElement>('script[nonce]')?.nonce ?? '';
+  const nonceAttr = nonce ? ` nonce="${nonce}"` : '';
+
   w.document.write(
     `<!doctype html><meta charset="utf-8"><title>${title}</title>` +
-      `<style>body{font-family:ui-monospace,monospace;padding:2rem;color:#111}` +
+      `<style${nonceAttr}>body{font-family:ui-monospace,monospace;padding:2rem;color:#111}` +
       `h1{font-size:1.2rem}ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem 1.5rem}` +
       // A literal, and it has to be: this stylesheet goes into a document
       // opened by `window.open`, where none of the application's custom
