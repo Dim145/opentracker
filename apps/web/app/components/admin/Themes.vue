@@ -472,7 +472,7 @@
               class="input font-mono text-2xs"
               rows="10"
               spellcheck="false"
-              :placeholder="$t('admin.themes.rawCssPlaceholder')"
+              :placeholder="RAW_CSS_EXAMPLE"
             />
             <div v-if="cssIssues.length" class="notice notice--warn">
               <Icon name="ph:warning-bold" />
@@ -715,6 +715,18 @@ const GROUP_ORDER: TokenGroup[] = [
  * already looks like. The overshoot is there because it is the one a theme
  * author cannot guess and the one that most changes how the interface feels.
  */
+/**
+ * The placeholder for the raw-CSS field.
+ *
+ * A constant and not an i18n message, for two reasons. It is CSS, so it needs no
+ * translation — and it CANNOT be a message: `{ background: … }` is vue-i18n's
+ * interpolation syntax, so the compiler refuses the string outright. The static
+ * build caught that; the SSR build did not, because it compiles messages at
+ * render time and would have thrown on the admin page instead.
+ */
+const RAW_CSS_EXAMPLE =
+  '.torrent-row:hover { background: rgb(var(--accent-warm) / 0.06); }';
+
 const EASING_SUGGESTIONS = [
   'cubic-bezier(0.2, 0.7, 0.2, 1)',
   'cubic-bezier(0.22, 1, 0.36, 1)',
