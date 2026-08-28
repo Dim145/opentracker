@@ -236,7 +236,7 @@ describe('scoping', () => {
     // element named `from` and therefore silently breaks the animation.
     const out = emitted('@keyframes k { from { opacity: 0; } 50% { opacity: 0.5; } to { opacity: 1; } }');
     // Renamed, per the block below — what this test is about is the SELECTORS.
-    expect(out).toContain('@keyframes nocturne-k');
+    expect(out).toContain('@keyframes nocturne--k');
     expect(out).not.toContain('nocturne"] from');
     expect(out).not.toContain('nocturne"] 50%');
     expect(out).toContain('from{opacity:0}');
@@ -303,7 +303,7 @@ describe('keyframes are global, so they get renamed', () => {
     // theme's `@keyframes spin` silently redefines the animation the rest of the
     // site — and every other theme — uses.
     const out = ok('@keyframes spin { to { rotate: 360deg; } }');
-    expect(out).toContain('@keyframes nocturne-spin');
+    expect(out).toContain('@keyframes nocturne--spin');
     expect(out).not.toContain('@keyframes spin');
   });
 
@@ -311,13 +311,13 @@ describe('keyframes are global, so they get renamed', () => {
     const out = ok(
       '@keyframes pulse { to { opacity: 0.5; } } .a { animation: pulse 1s infinite; }',
     );
-    expect(out).toContain('@keyframes nocturne-pulse');
-    expect(out).toContain('animation:nocturne-pulse 1s infinite');
+    expect(out).toContain('@keyframes nocturne--pulse');
+    expect(out).toContain('animation:nocturne--pulse 1s infinite');
   });
 
   it('rewrites animation-name too', () => {
     const out = ok('@keyframes k { to { opacity: 0; } } .a { animation-name: k; }');
-    expect(out).toContain('animation-name:nocturne-k');
+    expect(out).toContain('animation-name:nocturne--k');
   });
 
   it('leaves an animation that refers to something it did not declare', () => {
@@ -389,5 +389,114 @@ describe('functions', () => {
     expect(
       ok('.a:not(.b):is(.c,.d):nth-child(2n+1):has(> .e)::before { color: red }'),
     ).toContain(':not(.b)');
+  });
+});
+
+// ── Escaped property names ───────────────────────────────────────────────
+//
+// The hole a review found in the one blocklist this module has. Everything else
+// is an allow-list and closed by default; `REFUSED_PROPERTIES` is not, and it
+// can only refuse a name it recognises.
+//
+// css-tree decodes CSS escapes in at-rule names and function names — `@imp\6frt`
+// and `u\72l(` are both caught — but NOT in `Declaration.property`. `p\6fsition`
+// arrived spelled that way, missed the lookup, and was re-emitted byte for byte,
+// where the browser decodes it and applies `position: fixed`. Verified in both
+// halves at the time: css-tree accepted it and a rendering engine drew the
+// overlay.
+//
+// The fix is a shape check rather than an unescaper, so these tests are really
+// about one property: a property name that is not a plain identifier does not
+// reach the lookup at all.
+describe('property names', () => {
+  it.each([
+    ['position', String.raw`.a { p\6fsition: fixed }`],
+    ['position, six digits', String.raw`.a { p\00006fsition: fixed }`],
+    ['position, uppercase escape', String.raw`.a { P\4Fsition: fixed }`],
+    ['-moz-binding', String.raw`.a { -moz-b\69nding: none }`],
+    ['behavior', String.raw`.a { behavi\6fr: none }`],
+  ])('refuses %s spelled with an escape', (_name, css) => {
+    expect(refused(css)[0]!.reason).toMatch(/not a property name/);
+  });
+
+  it('refuses an escaped CUSTOM property too', () => {
+    // The one that matters most: this application reads `--bg-pattern-image`
+    // back into `background-image`, so a second way to spell it is a second way
+    // to set it.
+    refused(String.raw`:root { --bg-pattern-imag\65: none }`);
+  });
+
+  it.each([
+    ['an ordinary property', '.a { color: red }'],
+    ['a vendor prefix', '.a { -webkit-font-smoothing: antialiased }'],
+    ['a custom property', ':root { --my-thing: 3px }'],
+    ['a custom property with digits', ':root { --chart-1: 1 2 3 }'],
+    ['a hyphenated property', '.a { border-top-left-radius: 4px }'],
+  ])('still accepts %s', (_name, css) => {
+    expect(ok(css)).toBeTruthy();
+  });
+});
+
+// ── What a walk does not see ─────────────────────────────────────────────
+//
+// The most serious hole an adversarial review found, and the one that reopened
+// the whole exfiltration channel. css-tree parses a `var()` FALLBACK as a single
+// childless `Raw`, so a walk sees the allowed `var` Function and never sees what
+// is inside its second argument. Both value rules were skipped, every refused
+// function could ride through, and the reviewer confirmed the requests firing in
+// Chrome — including the `input[value^="…"]` character-by-character read this
+// module exists to stop.
+//
+// `env()` was never affected, because css-tree parses ITS fallback into real
+// nodes. That asymmetry is why the gap in `var()` went unnoticed.
+describe('var() fallbacks', () => {
+  it.each([
+    ['a url', '.a { background-image: var(--n, url(https://evil/x)) }'],
+    ['a refused function', '.a { background-image: var(--n, image-set("https://evil/x" 1x)) }'],
+    ['nested inside an allowed function', '.a { background: linear-gradient(red, var(--n, url(https://evil/x))) }'],
+    ['nested inside another fallback', '.a { background-image: var(--n, var(--m, url(https://evil/x))) }'],
+    ['inside a custom property', ':root { --q: var(--n, url(https://evil/x)) }'],
+    ['behind a comment', '.a { background-image: var(--n,/**/url(https://evil/x)) }'],
+    ['in an env() fallback', '.a { background-image: env(--n, url(https://evil/x)) }'],
+  ])('refuses %s hidden in one', (_name, css) => {
+    refused(css);
+  });
+
+  it.each([
+    ['a length fallback', '.a { width: var(--x, 3px) }'],
+    ['no fallback at all', '.a { color: var(--accent) }'],
+    ['a nested legitimate fallback', '.a { width: var(--x, var(--y, 2rem)) }'],
+    ['the token convention', '.a { color: rgb(var(--accent) / var(--a, .5)) }'],
+  ])('still accepts %s', (_name, css) => {
+    expect(ok(css)).toBeTruthy();
+  });
+
+  it('says each problem once', () => {
+    // The top-level walk and the value check deliberately overlap — the first
+    // also covers at-rule preludes, the second also covers what a `Raw` hides.
+    // Overlapping cover is the point; saying it twice to the owner is not.
+    const issues = refused('.a { background-image: url(https://evil/x) }');
+    expect(issues).toHaveLength(1);
+  });
+});
+
+// ── The separator, and why it is two hyphens ─────────────────────────────
+describe('keyframe namespacing is injective', () => {
+  it('cannot collide across two themes', () => {
+    // With a single hyphen it could, and keyframes are GLOBAL: slug `a` naming
+    // `b-x` and slug `a-b` naming `x` both produced `a-b-x`, so one theme
+    // silently redefined the other's animation for every visitor using it.
+    // `SLUG_PATTERN` forbids a double hyphen inside a slug, which is what makes
+    // this separator unambiguous. Found in an adversarial review.
+    const one = ok('@keyframes b-x { to { opacity: 0 } }', 'a');
+    const two = ok('@keyframes x { to { opacity: 0 } }', 'a-b');
+    const nameOf = (css: string) => /@keyframes ([\w-]+)/.exec(css)?.[1];
+    expect(nameOf(one)).not.toBe(nameOf(two));
+  });
+
+  it('still rewrites the reference to match', () => {
+    const out = ok('@keyframes x { to { opacity: 0 } } .a { animation: x 1s }', 'a-b');
+    expect(out).toContain('@keyframes a-b--x');
+    expect(out).toContain('animation:a-b--x 1s');
   });
 });

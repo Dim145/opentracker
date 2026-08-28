@@ -98,6 +98,32 @@ import {
 
 export { MAX_CUSTOM_CSS_BYTES };
 
+/**
+ * The shape a property name must have.
+ *
+ * This exists because `REFUSED_PROPERTIES` is the module's ONLY blocklist — the
+ * at-rules and the functions are allow-lists, closed by default — and a
+ * blocklist is only as good as its ability to recognise what it is looking at.
+ *
+ * css-tree decodes CSS escapes in at-rule names and in function names, so
+ * `@imp\6frt` and `u\72l(` are both caught. It does NOT decode them in
+ * `Declaration.property`: `p\6fsition` arrives spelled exactly that way, misses
+ * the lookup, and `csstree.generate` re-emits it byte for byte — where the
+ * browser decodes it and applies `position: fixed`. Found in review, verified in
+ * both halves: css-tree accepts it, and a rendering engine draws the overlay.
+ *
+ * Rather than decode escapes here — which means implementing CSS Syntax §4.3.7
+ * and being right about it — the name has to LOOK like a property. No real one
+ * needs an escape, a non-ASCII letter, or anything but letters, digits and
+ * hyphens, so refusing the rest costs nothing and closes the class instead of
+ * the three spellings that happen to be on the list today.
+ *
+ * The same applies to custom properties: `--bg-pattern-imag\65` is a way of
+ * writing `--bg-pattern-image`, which this application feeds straight into
+ * `background-image`.
+ */
+const PROPERTY_NAME = /^-{0,2}[A-Za-z][A-Za-z0-9-]*$/;
+
 /** Properties that reference an animation by name. */
 const ANIMATION_PROPS = /^(animation|animation-name|-webkit-animation|-webkit-animation-name)$/i;
 
@@ -129,7 +155,11 @@ function lineOf(node: csstree.CssNode): number {
 function scopeSelector(selector: string, slug: string): string {
   const root = `:root[data-theme='${slug}']`;
   const trimmed = selector.trim();
-  const head = /^(html|:root)\b/i.exec(trimmed);
+  // `\b` treats `|` and `-` as boundaries, so `html|div` and `:root--x` had
+  // their type name eaten and came out as invalid selectors the browser drops.
+  // Failing closed, but silently — this fails to match instead, and the whole
+  // selector is prefixed as a descendant like anything else.
+  const head = /^(html|:root)(?![-\w|])/i.exec(trimmed);
   return head ? root + trimmed.slice(head[0].length) : `${root} ${trimmed}`;
 }
 
@@ -198,15 +228,39 @@ export function sanitiseCustomCss(source: string, slug: string): CssResult {
     `out of date by the next CSS release.`;
 
   /**
-   * The two rules that apply to any value, wherever it appears.
+   * The rules that apply to any value, wherever it appears.
    *
    * Shared so a custom property gets exactly the same treatment as a normal
-   * declaration: the earlier version checked custom properties for `Url` only,
+   * declaration: an earlier version checked custom properties for `Url` only,
    * which let `--x: image-set("https://evil" 1x)` through — and the application
    * itself feeds custom properties into `background-image` via
    * `var(--bg-pattern-image)`, so that value would have been fetched.
+   *
+   * ## Why it reparses `Raw`
+   *
+   * Because a walk only sees nodes, and css-tree does not always build them.
+   * A `var()` FALLBACK is parsed as one childless `Raw`: for
+   * `var(--nope, url(https://evil/x))` the walk sees a `var` Function — which is
+   * allowed, correctly — and never sees the `Url` sitting inside its second
+   * argument. Both rules below were therefore skipped, and every function this
+   * module refuses could be smuggled through a fallback whose custom property
+   * nothing defines, so the fallback always wins. An adversarial review found it
+   * and confirmed the requests firing in Chrome, including the
+   * `input[value^="h"]` character-by-character read this module exists to stop.
+   *
+   * `env()` was never affected — css-tree parses its fallback into real nodes —
+   * which is exactly why the gap in `var()` went unnoticed.
+   *
+   * So any `Raw` reachable from a value is parsed again in value context and
+   * walked. The depth cap is a fail-CLOSED backstop: a value that is still
+   * producing opaque text after that many rounds is refused rather than
+   * accepted, because "this cannot be inspected" and "this is fine" are not the
+   * same answer.
    */
-  function checkValue(value: csstree.CssNode, line: number) {
+  const MAX_RAW_DEPTH = 8;
+
+  function checkValue(value: csstree.CssNode, line: number, depth = 0) {
+    const raws: string[] = [];
     csstree.walk(value, {
       enter(node) {
         if (node.type === 'Url') {
@@ -215,26 +269,34 @@ export function sanitiseCustomCss(source: string, slug: string): CssResult {
           if (!ALLOWED_FUNCTIONS.has(node.name.toLowerCase())) {
             issues.push({ line, reason: functionRefusal(node.name) });
           }
+        } else if (node.type === 'Raw') {
+          raws.push(node.value);
         }
       },
     });
-  }
 
-  /** Custom property values, reparsed. See the note on custom properties above. */
-  function checkCustomProperty(node: csstree.Declaration) {
-    const raw = node.value;
-    if (raw.type !== 'Raw') return;
-    let value: csstree.CssNode;
-    try {
-      value = csstree.parse(raw.value, { context: 'value', positions: false });
-    } catch {
-      issues.push({
-        line: lineOf(node),
-        reason: `${node.property}: not a value this can check, so not accepted.`,
-      });
-      return;
+    for (const raw of raws) {
+      if (!raw.trim()) continue;
+      if (depth >= MAX_RAW_DEPTH) {
+        issues.push({
+          line,
+          reason:
+            'This value nests too deeply to be checked, so it is not accepted.',
+        });
+        continue;
+      }
+      let inner: csstree.CssNode;
+      try {
+        inner = csstree.parse(raw, { context: 'value', positions: false });
+      } catch {
+        issues.push({
+          line,
+          reason: 'Not a value this can check, so not accepted.',
+        });
+        continue;
+      }
+      checkValue(inner, line, depth + 1);
     }
-    checkValue(value, lineOf(node));
   }
 
   csstree.walk(ast, {
@@ -262,21 +324,50 @@ export function sanitiseCustomCss(source: string, slug: string): CssResult {
           }
           break;
         case 'Declaration': {
-          if (node.property.startsWith('--')) {
-            checkCustomProperty(node);
+          // The shape first, for custom and ordinary properties alike. A name
+          // this does not recognise is a name the refusal list below cannot
+          // recognise either — see `PROPERTY_NAME`.
+          if (!PROPERTY_NAME.test(node.property)) {
+            issues.push({
+              line: lineOf(node),
+              reason:
+                `${node.property}: not a property name. Letters, digits and ` +
+                `hyphens only — an escape sequence in a property name is a way ` +
+                `of spelling one this stylesheet refuses.`,
+            });
             break;
           }
-          const refusal = REFUSED_PROPERTIES[node.property.toLowerCase()];
+          const refusal = node.property.startsWith('--')
+            ? undefined
+            : REFUSED_PROPERTIES[node.property.toLowerCase()];
           if (refusal) {
             issues.push({ line: lineOf(node), reason: refusal });
           }
+          // EVERY declaration value goes through `checkValue`, custom property
+          // or not. The top-level cases above catch a `Url` or a `Function` that
+          // css-tree built a node for; only `checkValue` reparses the `Raw` that
+          // a `var()` fallback becomes, and that was the way past both of them.
+          checkValue(node.value, lineOf(node));
           break;
         }
       }
     },
   });
 
-  if (issues.length) return { ok: false, issues };
+  if (issues.length) {
+    // The top-level walk and `checkValue` both see an ordinary declaration's
+    // `Url` and `Function` nodes, deliberately — the first also covers at-rule
+    // preludes, the second also covers what a `Raw` hides. Overlapping cover is
+    // the point; saying the same thing twice to the owner is not.
+    const seen = new Set<string>();
+    const unique = issues.filter((i) => {
+      const key = `${i.line}\u0000${i.reason}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return { ok: false, issues: unique };
+  }
 
   // ── Rename the keyframes, then their references ──────────────────────
   const renamed = new Map<string, string>();
@@ -289,7 +380,12 @@ export function sanitiseCustomCss(source: string, slug: string): CssResult {
       for (const child of prelude.children) {
         if (child.type === 'Identifier' || child.type === 'String') {
           const from = child.type === 'String' ? child.value : child.name;
-          const to = `${slug}-${from}`;
+          // `--`, not `-`. A single hyphen is not injective across themes:
+        // slug `a` naming `b-x` and slug `a-b` naming `x` both produce `a-b-x`,
+        // and keyframes are global, so one theme would silently redefine the
+        // other's animation for every visitor using it. `SLUG_PATTERN` forbids a
+        // double hyphen in a slug, which is what makes this separator unambiguous.
+        const to = `${slug}--${from}`;
           renamed.set(from, to);
           Object.assign(child, { type: 'Identifier', name: to });
         }

@@ -325,10 +325,15 @@ console.log('\n4. raw CSS, owner only');
   check('it reaches the stylesheet scoped to the theme',
     css.includes('[data-theme="e2e-raw"] .torrent-row:hover'),
     css.slice(css.indexOf('e2e-raw'), css.indexOf('e2e-raw') + 200));
+  // `--`, not `-`. A single hyphen was not injective across themes: slug `a`
+  // naming `b-x` and slug `a-b` naming `x` both produced `a-b-x`, and keyframes
+  // are global, so one theme silently redefined the other's animation for every
+  // visitor using it. `SLUG_PATTERN` forbids a double hyphen in a slug, which is
+  // what makes the separator unambiguous.
   check('the keyframes were namespaced',
-    css.includes('@keyframes e2e-raw-glow') && !/@keyframes glow\b/.test(css));
+    css.includes('@keyframes e2e-raw--glow') && !/@keyframes glow\b/.test(css));
   check('and the reference was rewritten with them',
-    css.includes('animation:e2e-raw-glow'));
+    css.includes('animation:e2e-raw--glow'));
   check('the theme tokens are still there', /:root\[data-theme='e2e-raw'\]/.test(css));
 
   // Read-back is what makes the editor able to edit rather than only overwrite.

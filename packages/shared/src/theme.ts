@@ -454,11 +454,15 @@ export function fontStack(key: string | undefined, role: string): string {
     const fallback = ROLE_FALLBACKS[role] ?? 'sans-serif';
     return `'${uploadedFontFamily(key)}', ${fallback}`;
   }
-  return (
-    FONT_STACKS[key ?? ''] ??
-    FONT_STACKS[BUILT_IN_TOKENS.dark[role] ?? ''] ??
-    'sans-serif'
-  );
+  // `Object.hasOwn` rather than a bare index, in both lookups. A plain object
+  // literal answers for `constructor`, `toString` and `__proto__` with a
+  // FUNCTION, whose string form carries braces that would break out of the
+  // declaration this value lands in. `isValidTokenValue` gates the enum long
+  // before either call, so this is unreachable — and this is what keeps it
+  // unreachable rather than one refactor away.
+  const own = (k: string | undefined) =>
+    k && Object.hasOwn(FONT_STACKS, k) ? FONT_STACKS[k] : undefined;
+  return own(key) ?? own(BUILT_IN_TOKENS.dark[role]) ?? 'sans-serif';
 }
 
 /**
@@ -496,7 +500,10 @@ export const PATTERN_IMAGES: Record<string, string> = {
 
 /** The literal for a kind, falling back to the dot grid. */
 export function patternImage(kind: string | undefined): string {
-  return PATTERN_IMAGES[kind ?? ''] ?? PATTERN_IMAGES.dots!;
+  // See `fontStack` for why this is not a bare index.
+  return (kind && Object.hasOwn(PATTERN_IMAGES, kind)
+    ? PATTERN_IMAGES[kind]
+    : undefined) ?? PATTERN_IMAGES.dots!;
 }
 
 export const THEME_TOKEN_KEYS: readonly string[] = THEME_TOKENS.map(
