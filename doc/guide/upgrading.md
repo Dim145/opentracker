@@ -203,7 +203,26 @@ Nothing to run. Two tables arrive with the migrations (`themes`,
 `uploaded_fonts`), both empty, and the appearance is unchanged until somebody
 creates a theme.
 
-Three things an operator should know, none of them urgent:
+Four things an operator should know, none of them urgent:
+
+**Do not run two versions against the same database at once.** A migration makes
+`users.theme` nullable, and NULL means "follow the site default" — a meaning the
+older code does not have. It reads NULL, treats it as `dark`, finds that this
+differs from the session, and rewrites the session; on the next poll it differs
+again. The result is a session write and a `Set-Cookie` on every
+`/api/auth/status` for those members, forever, and they see `dark` rather than
+your default.
+
+This only bites where two versions overlap: a rolling deploy with mixed
+replicas, or a rollback to the previous version AFTER the migration has run. A
+single instance that stops and starts cannot hit it. If you do roll back, the
+accounts created in between hold NULL and will loop until they pick a theme by
+hand — the older `PATCH /api/me` will not let them clear it.
+
+Members who were on `Dark` before the upgrade keep `Dark`, deliberately: a
+stored `'dark'` cannot be told apart from "never chose", and moving the people
+who did choose would be the worse of the two mistakes. Anyone who wants to
+follow your default can pick `Site default` in their settings.
 
 **The interface is now in `rem` throughout.** 938 `font-size` declarations that
 were in `px` are not any more, so a visitor who has set a larger default font
