@@ -37,6 +37,30 @@ export const users = pgTable(
     passkey: text('passkey').notNull().unique(), // For private tracker auth
     isAdmin: boolean('is_admin').default(false).notNull(),
     isModerator: boolean('is_moderator').default(false).notNull(),
+    /**
+     * The one account that owns this instance. At most one row may carry it.
+     *
+     * Not a third rank above admin, and not a permission bundle: it names the
+     * person whose instance this is, for the handful of decisions that are
+     * theirs alone rather than the staff's. It exists because several parts of
+     * this codebase already assumed it did — the federation console is
+     * described as "owner-controlled" in the schema comments, the guide and the
+     * governance docstrings, while the code behind it only ever checked
+     * `is_admin`. So an admin appointed to moderate uploads could also
+     * handshake with another instance on the operator's behalf.
+     *
+     * Set on the first registration (the account that already receives
+     * `is_admin` and ten invitations), backfilled to the oldest admin on
+     * migration, and transferable — an owner can hand it to another admin,
+     * because an instance whose owner lost their password must not be
+     * permanently undecidable.
+     *
+     * It also moves on its own. `relinquishOwnership` hands it to the oldest
+     * eligible admin when the holder is erased, banned, or loses `is_admin`,
+     * because each of those leaves an owner who cannot act — and an instance
+     * with a paralysed owner is worse than one with a different owner.
+     */
+    isOwner: boolean('is_owner').default(false).notNull(),
     isBanned: boolean('is_banned').default(false).notNull(),
     // userId of the staffer who issued the most recent ban. Null when
     // the user has never been banned, or after an unban.
@@ -173,13 +197,26 @@ export const users = pgTable(
      * same as a ban — a ban is reversible and keeps the person; this does not.
      */
     deletedAt: timestamp('deleted_at'),
-  }
-  // No index list at all. `passkey` already carries `.unique()` on the column
-  // above, which drizzle renders as `users_passkey_unique`; the explicit
-  // `uniqueIndex('users_passkey_idx')` that used to sit here produced a
-  // SECOND, identical unique index on the same column. Two identical indexes
-  // double the maintenance on any write touching the column and answer no
-  // query the other could not.
+  },
+  // Exactly one index, and it is a constraint rather than a lookup.
+  //
+  // `passkey` deliberately has none: it already carries `.unique()` on the
+  // column above, which drizzle renders as `users_passkey_unique`, and the
+  // explicit `uniqueIndex('users_passkey_idx')` that used to sit here produced
+  // a SECOND, identical unique index on the same column — double the
+  // maintenance on every write touching it, answering no query the other could
+  // not.
+  //
+  // The partial unique index below is the opposite case: nothing else can say
+  // "at most one owner". A boolean column cannot, a check constraint cannot see
+  // other rows, and application code that reads-then-writes races with itself.
+  // `WHERE is_owner` is what makes two owners unrepresentable rather than
+  // merely unlikely.
+  (table) => [
+    uniqueIndex('users_owner_unique')
+      .on(table.isOwner)
+      .where(sql`${table.isOwner}`),
+  ],
 );
 
 // ============================================================================

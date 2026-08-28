@@ -47,6 +47,8 @@ export interface User {
   passkey: string;
   isAdmin: boolean;
   isModerator: boolean;
+  /** The one account that owns this instance. See `apps/api/utils/owner.ts`. */
+  isOwner: boolean;
   uploaded: number;
   downloaded: number;
   invitesRemaining: number;
@@ -64,6 +66,7 @@ export interface PublicUser {
   displayName: string | null;
   isAdmin: boolean;
   isModerator: boolean;
+  isOwner: boolean;
   uploaded: number;
   downloaded: number;
   bonusPoints: number;

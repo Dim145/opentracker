@@ -198,6 +198,10 @@ export default defineEventHandler(async (event) => {
       passkey,
       isAdmin: settledFirstUser,
       isModerator: false,
+      // Same decision, taken under the same lock: the account that sets the
+      // instance up owns it. Reading it off `is_admin` later would be wrong —
+      // every admin appointed afterwards carries that flag too.
+      isOwner: settledFirstUser,
       lastIp: clientIp !== 'unknown' ? clientIp : null,
       uploaded: starterUpload,
       // The starter is ratio relief, not real seeding — counted in
@@ -276,6 +280,7 @@ export default defineEventHandler(async (event) => {
       passkey,
       isAdmin: finalIsFirstUser,
       isModerator: false,
+      isOwner: finalIsFirstUser,
       uploaded: starterUpload,
       downloaded: 0,
       bonusPoints: 0,

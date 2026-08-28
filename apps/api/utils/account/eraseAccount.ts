@@ -74,6 +74,7 @@ import {
   mintIdentityRecords,
   mintRevocations,
 } from '~~/utils/federation/identityRecord';
+import { relinquishOwnership } from '~~/utils/owner';
 
 export interface EraseResult {
   /** Signing keys that were live and are now revoked. */
@@ -147,6 +148,12 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
           eq(schema.userFollows.followingId, userId),
         ),
       );
+
+    // 2a-bis. If this account owns the instance, it stops. In THIS
+    // transaction, because the alternative is a committed erasure that left the
+    // instance owned by an account which can no longer sign in — and the only
+    // way out of that is a hand-written UPDATE against production.
+    await relinquishOwnership(userId, 'erased', tx);
 
     // 2b. Anything that ties a raw client identifier to the person. An
     // anti-cheat flag carries the IP and the User-Agent of the announce that

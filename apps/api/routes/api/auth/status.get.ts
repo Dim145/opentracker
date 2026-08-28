@@ -41,6 +41,7 @@ export default defineEventHandler(async (event) => {
         isBanned: users.isBanned,
         isAdmin: users.isAdmin,
         isModerator: users.isModerator,
+        isOwner: users.isOwner,
       })
       .from(users)
       .where(eq(users.id, session.user.id))
@@ -88,6 +89,7 @@ export default defineEventHandler(async (event) => {
           dbUser.downloaded !== session.user.downloaded ||
           dbUser.isAdmin !== session.user.isAdmin ||
           dbUser.isModerator !== session.user.isModerator ||
+          dbUser.isOwner !== session.user.isOwner ||
           dbUser.displayName !== sessionDisplayName ||
           dbUser.theme !== sessionTheme ||
           dbUser.language !== sessionLanguage ||
@@ -105,6 +107,7 @@ export default defineEventHandler(async (event) => {
               bonusPoints: dbUser.bonusPoints,
               isAdmin: dbUser.isAdmin,
               isModerator: dbUser.isModerator,
+              isOwner: dbUser.isOwner,
             },
           });
         }
@@ -115,6 +118,7 @@ export default defineEventHandler(async (event) => {
           displayName: dbUser.displayName,
           isAdmin: dbUser.isAdmin,
           isModerator: dbUser.isModerator,
+          isOwner: dbUser.isOwner,
           uploaded: dbUser.uploaded,
           downloaded: dbUser.downloaded,
           bonusPoints: dbUser.bonusPoints,

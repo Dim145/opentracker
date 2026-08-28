@@ -210,6 +210,7 @@ export default defineEventHandler(async (event) => {
       passkey: user.passkey,
       isAdmin: user.isAdmin,
       isModerator: user.isModerator,
+      isOwner: user.isOwner,
       uploaded: user.uploaded,
       downloaded: user.downloaded,
       bonusPoints: user.bonusPoints,

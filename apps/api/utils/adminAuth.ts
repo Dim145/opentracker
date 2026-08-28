@@ -100,18 +100,28 @@ const roleCacheKey = (userId: string) => `auth:role:${userId}`;
 
 export async function readLiveRoles(
   userId: string
-): Promise<{ isAdmin: boolean; isModerator: boolean } | null> {
+): Promise<{ isAdmin: boolean; isModerator: boolean; isOwner: boolean } | null> {
   try {
     const cached = await redis.get(roleCacheKey(userId));
     if (cached) {
-      const p = JSON.parse(cached) as { a: boolean; m: boolean };
-      return { isAdmin: !!p.a, isModerator: !!p.m };
+      const p = JSON.parse(cached) as { a: boolean; m: boolean; o?: boolean };
+      // A payload written before `o` existed is treated as a MISS rather than
+      // as `isOwner: false`. Otherwise the deploy that adds ownership answers
+      // 403 to the owner for up to the cache TTL — and the one thing that
+      // would fix it is the console they cannot reach.
+      if (p.o !== undefined) {
+        return { isAdmin: !!p.a, isModerator: !!p.m, isOwner: !!p.o };
+      }
     }
   } catch {
     /* fall through to DB */
   }
   const [row] = await db
-    .select({ isAdmin: users.isAdmin, isModerator: users.isModerator })
+    .select({
+      isAdmin: users.isAdmin,
+      isModerator: users.isModerator,
+      isOwner: users.isOwner,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
@@ -120,12 +130,16 @@ export async function readLiveRoles(
     await redis.setex(
       roleCacheKey(userId),
       ROLE_CACHE_TTL_S,
-      JSON.stringify({ a: row.isAdmin, m: row.isModerator })
+      JSON.stringify({ a: row.isAdmin, m: row.isModerator, o: row.isOwner })
     );
   } catch {
     /* no-op */
   }
-  return { isAdmin: row.isAdmin, isModerator: row.isModerator };
+  return {
+    isAdmin: row.isAdmin,
+    isModerator: row.isModerator,
+    isOwner: row.isOwner,
+  };
 }
 
 /** Drop the cached role state. Call from any path that changes a
@@ -201,6 +215,7 @@ async function refreshSessionRoles(
   }
   session.user.isAdmin = live.isAdmin;
   session.user.isModerator = live.isModerator;
+  session.user.isOwner = live.isOwner;
 }
 
 /**
@@ -265,6 +280,31 @@ export async function requireAdminSession(event: H3Event) {
     throw createError({
       statusCode: 403,
       message: 'Admin access required',
+    });
+  }
+
+  return session;
+}
+
+/**
+ * The owner, and only the owner.
+ *
+ * Layered on `requireAdminSession` rather than replacing it, so the failure a
+ * caller sees is the most specific one that applies: a member gets "admin
+ * access required", an admin gets the message below. Two different problems
+ * should not answer with the same sentence.
+ *
+ * `refreshSessionRoles` has already reconciled the flag against the live
+ * (cached) value inside that call, so a sealed cookie from before a transfer
+ * cannot carry ownership past it.
+ */
+export async function requireOwnerSession(event: H3Event) {
+  const session = await requireAdminSession(event);
+
+  if (!session.user?.isOwner) {
+    throw createError({
+      statusCode: 403,
+      message: 'Only the instance owner can do this',
     });
   }
 

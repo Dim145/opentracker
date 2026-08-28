@@ -14,6 +14,12 @@ export interface SessionUser {
   passkey: string;
   isAdmin: boolean;
   isModerator: boolean;
+  /**
+   * Declared even though the index signature below would admit it anyway:
+   * `requireOwnerSession` reads it, and a field a gate depends on should be
+   * visible in the type rather than arriving through the catch-all.
+   */
+  isOwner: boolean;
   uploaded: number;
   downloaded: number;
   [key: string]: unknown;

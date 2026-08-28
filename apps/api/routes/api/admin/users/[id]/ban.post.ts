@@ -14,7 +14,12 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users, bannedIps, torrents } from '@trackarr/db/schema';
-import { invalidateBanCache, requireModeratorSession } from '~~/utils/adminAuth';
+import {
+  invalidateBanCache,
+  invalidateRoleCache,
+  requireModeratorSession,
+} from '~~/utils/adminAuth';
+import { relinquishOwnership } from '~~/utils/owner';
 import {
   validateBody,
   validateParam,
@@ -59,6 +64,13 @@ export default defineEventHandler(async (event) => {
   // Drop the cached `isBanned` so the lockout takes effect on the
   // very next request rather than waiting up to 60 s for the TTL.
   await invalidateBanCache(userId);
+
+  // A banned owner is an owner who cannot act, and the decisions reserved to
+  // them are the ones an instance cannot get on without. Ownership moves to the
+  // oldest eligible admin; if none remains it stays put, which is recoverable
+  // where "nobody owns this" is not. See `utils/owner.ts`.
+  const heir = await relinquishOwnership(userId, 'banned');
+  if (heir) await invalidateRoleCache(heir);
 
   // Federation: a ban takes this user's uploads out of the publishable
   // predicate, so the record sweep mints a signed tombstone for each of them
