@@ -11,6 +11,7 @@ import {
   getThemeVersion,
   bumpThemeVersion,
   resolvePreference,
+  roleIdsFor,
   slugAvailable,
   slugify,
   MAX_ENABLED_THEMES,
@@ -227,6 +228,52 @@ describe('themes reserved to a role', () => {
     await expect(
       makeTheme({ slug: 'broken2', visibility: 'site', requiredRoles: ['x'] }),
     ).rejects.toThrow();
+  });
+});
+
+describe('what /api/branding offers a visitor', () => {
+  // The route composes `choosableFor(enabledThemes(), roleIdsFor(user))`. Pinned
+  // here because an end-to-end pass caught the route NOT doing it: the filtering
+  // had been left to the client on the strength of a comment saying the session
+  // payload carries the member's roles, and it does not. Neither `choosableFor`
+  // nor `roleIdsFor` was at fault — both were already tested — so only a test
+  // that walks the same path as the route could have found it.
+  it('drops a role-gated theme for a member without the role', async () => {
+    const roleId = await makeRole();
+    const holder = await makeUser({});
+    const outsider = await makeUser({});
+    await db
+      .insert(schema.userRoles)
+      .values({ userId: holder, roleId });
+
+    await makeTheme({ slug: 'open' });
+    await makeTheme({
+      slug: 'perk',
+      visibility: 'roles',
+      requiredRoles: [roleId],
+    });
+
+    const all = await enabledThemes();
+    const offered = async (userId: string | undefined) =>
+      choosableFor(all, userId ? await roleIdsFor(userId) : [])
+        .map((t) => t.slug)
+        .sort();
+
+    expect(await offered(holder)).toEqual(['open', 'perk']);
+    expect(await offered(outsider)).toEqual(['open']);
+    // An anonymous visitor holds no roles, so the perk is not offered either.
+    expect(await offered(undefined)).toEqual(['open']);
+  });
+
+  it('skips the role lookup entirely when no theme is gated', async () => {
+    // Not a performance assertion — a behaviour one. The route only pays for
+    // `roleIdsFor` when a gated theme exists, so the unfiltered list has to be
+    // the same list.
+    await makeTheme({ slug: 'a' });
+    await makeTheme({ slug: 'b' });
+    const all = await enabledThemes();
+    expect(all.some((t) => t.visibility === 'roles')).toBe(false);
+    expect(choosableFor(all, []).map((t) => t.slug).sort()).toEqual(['a', 'b']);
   });
 });
 

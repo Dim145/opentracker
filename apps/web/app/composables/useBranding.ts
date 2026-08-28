@@ -23,6 +23,27 @@ export interface BrandingPayload {
   pageTitleSuffix: string | null;
   /** Gates the federation nav items. False when federation was never set up. */
   federationEnabled: boolean;
+  /**
+   * The theme every anonymous visitor and every new member starts on.
+   *
+   * `'system'`, a built-in, or a slug. Carried here rather than fetched
+   * separately for the same reason `federationEnabled` is: the layout already
+   * awaits this payload on every page.
+   */
+  themeDefault: string;
+  /**
+   * Every enabled theme, including role-gated ones.
+   *
+   * The picker filters those out per member. They are listed here because this
+   * payload must NOT vary by session — it is the one response every page waits
+   * for, and making it session-dependent would turn a shared answer into a
+   * per-viewer one. The tokens are not here either: they come from
+   * `/api/theme.css`, which is cacheable where this is not.
+   */
+  // Already filtered to what this visitor may choose: a role-gated theme is
+  // dropped server-side, because the session payload carries no roles for the
+  // client to check against.
+  themes: Array<{ slug: string; name: string; base: 'light' | 'dark' }>;
 }
 
 export async function useBranding() {

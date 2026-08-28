@@ -1,0 +1,85 @@
+# Throwaway end-to-end stack for the themes work.
+#
+# Deliberately lean: postgres, redis, api, web. No pgbouncer (the API talks to
+# Postgres directly, which is also how MIGRATIONS_DATABASE_URL works in prod),
+# no Caddy (the web container emits its own security headers, so the CSP under
+# test is the real one), no tracker (nothing here announces).
+#
+# The API applies its committed migrations at boot, so this database is built by
+# the real chain from empty — which is exactly what an operator gets.
+
+name: trackarr-e2e
+
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    environment:
+      POSTGRES_USER: tracker
+      POSTGRES_PASSWORD: tracker
+      POSTGRES_DB: trackarr
+      PGDATA: /var/lib/postgresql/data
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracker -d trackarr"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:8.10.1-alpine
+    command: ["redis-server", "--requirepass", "e2e-redis-password"]
+    # Published so a scenario can clear the rate-limit counters between phases —
+    # see the note in lib.mjs. Sessions live in here too, which is why the
+    # harness deletes specific keys rather than flushing.
+    ports:
+      - "56379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "e2e-redis-password", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    image: trackarr-e2e-api:local
+    environment:
+      NODE_ENV: production
+      NITRO_PORT: 4000
+      NITRO_HOST: 0.0.0.0
+      DATABASE_URL: postgres://tracker:tracker@postgres:5432/trackarr?sslmode=disable
+      MIGRATIONS_DATABASE_URL: postgres://tracker:tracker@postgres:5432/trackarr?sslmode=disable
+      DB_SSL: "false"
+      REDIS_URL: redis://redis:6379
+      REDIS_PASSWORD: e2e-redis-password
+      NUXT_SESSION_SECRET: e2e-session-secret-0123456789abcdef
+      ADMIN_API_KEY: e2e-admin-api-key-0123456789abcdef
+      IP_HASH_SECRET: e2e-ip-hash-secret-0123456789abcdef
+      TRUST_PROXY: "false"
+      STORAGE_DRIVER: fs
+      UPLOADS_DIR: /app/data/uploads
+    ports:
+      - "54000:4000"
+    volumes:
+      - uploads:/app/data/uploads
+    tmpfs:
+      - /tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    image: trackarr-e2e-web:local
+    environment:
+      NODE_ENV: production
+      NUXT_HOST: 0.0.0.0
+      NUXT_PORT: 3000
+      API_INTERNAL_URL: http://api:4000
+    ports:
+      - "53000:3000"
+    depends_on:
+      - api
+
+volumes:
+  uploads:
