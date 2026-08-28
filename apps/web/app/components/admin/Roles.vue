@@ -837,7 +837,7 @@ async function recompute() {
 }
 .rc-eyebrow {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -865,7 +865,7 @@ async function recompute() {
 }
 .rc-sub {
   margin: 0.5rem 0 0;
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   color: rgb(var(--fg-muted));
   max-width: 64ch;
   line-height: 1.5;
@@ -882,7 +882,7 @@ async function recompute() {
   gap: 0.5rem;
   padding: 0.55rem 1.05rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -943,7 +943,7 @@ async function recompute() {
 }
 .rc-empty__sub {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   max-width: 36rem;
 }
 
@@ -1022,7 +1022,7 @@ async function recompute() {
   flex-wrap: wrap;
   gap: 0.35rem 0.5rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-muted));
 }
@@ -1077,7 +1077,7 @@ async function recompute() {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1107,14 +1107,14 @@ async function recompute() {
   align-items: center;
   gap: 0.5rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-muted));
   font-style: italic;
 }
 .role-card__rules-prefix {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.04em;
   color: rgb(var(--fg-muted));
 }
@@ -1141,7 +1141,7 @@ async function recompute() {
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.04em;
   color: rgb(var(--fg-default));
 }
@@ -1149,7 +1149,7 @@ async function recompute() {
   font-weight: 700;
 }
 .cond-pill__op {
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   font-weight: 900;
   color: #f5c518;
 }
@@ -1189,7 +1189,7 @@ async function recompute() {
 }
 .form-section__num {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--fg-default));
   background: rgb(var(--bg-elevated));
@@ -1217,7 +1217,7 @@ async function recompute() {
 }
 .form-help {
   margin: 0 0 0.85rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--fg-muted));
 }
 .form-grid {
@@ -1243,7 +1243,7 @@ async function recompute() {
 }
 .form-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1255,7 +1255,7 @@ async function recompute() {
   font-size: 0.85rem;
 }
 .form-hint {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   margin-top: 0.15rem;
 }
@@ -1265,7 +1265,7 @@ async function recompute() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--danger));
   background: rgba(229, 62, 62, 0.06);
   border-top: 1px solid rgba(229, 62, 62, 0.2);
@@ -1286,7 +1286,7 @@ async function recompute() {
 }
 .color-hex {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
 
@@ -1330,13 +1330,13 @@ async function recompute() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
 .mode-card__sub {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.04em;
   color: rgb(var(--fg-muted));
   line-height: 1.4;
@@ -1372,13 +1372,13 @@ async function recompute() {
   gap: 0.2rem;
 }
 .toggle-title {
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   margin: 0;
 }
 .toggle-sub {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   margin: 0;
   line-height: 1.4;
@@ -1433,7 +1433,7 @@ async function recompute() {
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1478,14 +1478,14 @@ async function recompute() {
 }
 .cond-row__num {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-muted));
 }
 .cond-input {
   padding: 0.45rem 0.65rem !important;
-  font-size: 12px !important;
+  font-size: 0.75rem !important;
 }
 .cond-input--field {
   text-transform: capitalize;
@@ -1499,7 +1499,7 @@ async function recompute() {
 }
 .cond-row__unit {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
@@ -1522,7 +1522,7 @@ async function recompute() {
 }
 .cond-empty {
   margin: 0 0 0.75rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--fg-muted));
   font-style: italic;
 }
@@ -1536,7 +1536,7 @@ async function recompute() {
   background: transparent;
   color: rgb(var(--fg-muted));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;

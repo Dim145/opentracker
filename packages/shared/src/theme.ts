@@ -84,6 +84,7 @@ export type TokenGroup =
   | 'semantic'
   | 'elevation'
   | 'shape'
+  | 'density'
   | 'motion'
   | 'ambience'
   | 'chrome';
@@ -95,8 +96,17 @@ export interface TokenDef {
   readonly group: TokenGroup;
   /** Allowed values, for `enum`. */
   readonly options?: readonly string[];
-  /** Inclusive ceiling for `scalar` and `length`. Floor is always 0. */
+  /** Inclusive ceiling for `scalar` and `length`. */
   readonly max?: number;
+  /**
+   * Inclusive floor for `scalar` and `length`. Defaults to 0.
+   *
+   * Set it where zero is not a legitimate value. `shadow-strength: 0` and
+   * `motion-scale: 0` are features — a flat theme and a still one. `ui-scale: 0`
+   * is a blank page, and a theme that can render itself invisible is a theme
+   * that will.
+   */
+  readonly min?: number;
   /** Allowed units for `length`. */
   readonly units?: readonly string[];
   /**
@@ -244,6 +254,22 @@ export const THEME_TOKENS: readonly TokenDef[] = [
   // able to say so without flattening every card as collateral.
   { key: 'radius-pill', kind: 'length', group: 'shape', max: 9999, units: ['px', 'rem'] },
 
+  // Density
+  //
+  // One scale rather than the two the plan asked for (a type scale and a
+  // density), and the measurement is why: after converting the last 938 `px`
+  // font sizes, this codebase expresses type AND spacing in `rem`, so a single
+  // `font-size` on `html` moves both — one declaration, no substitution, and it
+  // multiplies on top of whatever default the visitor's browser is set to.
+  //
+  // Splitting them would mean rewriting 3 837 padding declarations to carry a
+  // second factor, and the result a theme could then express — large type in
+  // tight boxes — is mostly a way to overflow a table. Radix caps its density at
+  // 90-110 %; this goes a little wider because it is also the type scale.
+  // Floored at 0.75: below that the 0.5625rem micro-labels this interface is
+  // full of drop under 7 px, which is not a dense theme, it is an unreadable one.
+  { key: 'ui-scale', kind: 'scalar', group: 'density', min: 0.75, max: 1.4 },
+
   // Motion
   //
   // A multiplier, not a table of durations. The measured spread was seven
@@ -339,6 +365,7 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'shadow-strength': '1',
     radius: '6px',
     'radius-pill': '9999px',
+    'ui-scale': '1',
     'motion-scale': '1',
     'ease-standard': 'cubic-bezier(0.2, 0.7, 0.2, 1)',
     'ease-emphasis': 'cubic-bezier(0.22, 1, 0.36, 1)',
@@ -377,6 +404,7 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'shadow-strength': '1',
     radius: '6px',
     'radius-pill': '9999px',
+    'ui-scale': '1',
     'motion-scale': '1',
     'ease-standard': 'cubic-bezier(0.2, 0.7, 0.2, 1)',
     'ease-emphasis': 'cubic-bezier(0.22, 1, 0.36, 1)',
@@ -448,13 +476,15 @@ export function isValidTokenValue(key: string, value: unknown): boolean {
       // Up to two decimals, no sign, no exponent, no unit. Every form allowed
       // is a form the `calc()` at the point of use has to stay correct for.
       if (!/^(?:0|[1-9]\d{0,2})(?:\.\d{1,2})?$/.test(value)) return false;
-      return Number(value) <= (def.max ?? 1);
+      const n = Number(value);
+      return n >= (def.min ?? 0) && n <= (def.max ?? 1);
     }
     case 'length': {
       const m = /^(0|[1-9]\d{0,3})(?:\.\d{1,2})?(px|rem)$/.exec(value);
       if (!m) return false;
       if (!(def.units ?? ['px']).includes(m[2]!)) return false;
-      return parseFloat(value) <= (def.max ?? 0);
+      const n = parseFloat(value);
+      return n >= (def.min ?? 0) && n <= (def.max ?? 0);
     }
     case 'bezier': {
       if (EASING_KEYWORDS.includes(value)) return true;

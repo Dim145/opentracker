@@ -1119,7 +1119,7 @@ const ratioColor = computed(() => {
 
 .navsearch-icon {
   color: rgb(var(--fg-muted));
-  font-size: 14px;
+  font-size: 0.875rem;
   flex-shrink: 0;
   transition: color var(--dur-3) ease, transform var(--dur-3) ease;
 }
@@ -1137,7 +1137,7 @@ const ratioColor = computed(() => {
   outline: 0;
   padding: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   font-weight: 500;
   letter-spacing: 0.01em;
   color: rgb(var(--fg-strong));
@@ -1173,7 +1173,7 @@ const ratioColor = computed(() => {
   min-width: 1.2rem;
   padding: 0 0.35rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-base) / 0.7);

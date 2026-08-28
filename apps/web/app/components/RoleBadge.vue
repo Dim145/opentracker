@@ -61,7 +61,7 @@ const badgeStyle = computed(() => {
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   line-height: 1.4;
@@ -69,7 +69,7 @@ const badgeStyle = computed(() => {
   white-space: nowrap;
 }
 .role-badge__icon {
-  font-size: 12px;
+  font-size: 0.75rem;
   flex-shrink: 0;
 }
 .role-badge__dot {

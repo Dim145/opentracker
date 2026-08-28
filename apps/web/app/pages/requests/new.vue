@@ -344,7 +344,7 @@ async function submit() {
   gap: 0.5rem;
   margin-bottom: 1.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -364,7 +364,7 @@ async function submit() {
   gap: 0.55rem;
   margin: 0 0 0.55rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -373,7 +373,7 @@ async function submit() {
 .filing-eyebrow-mark {
   font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 0;
   transform: translateY(2px);
   filter: drop-shadow(0 0 8px rgb(var(--brass) / 0.4));
@@ -390,7 +390,7 @@ async function submit() {
 .filing-intro {
   margin: 0.6rem 0 0;
   max-width: 58ch;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -419,7 +419,7 @@ async function submit() {
 }
 .filing-section-num {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   color: rgb(var(--brass));
@@ -431,7 +431,7 @@ async function submit() {
 .filing-section-title {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -440,7 +440,7 @@ async function submit() {
 .filing-section-optional {
   margin-left: 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -468,7 +468,7 @@ async function submit() {
   border-radius: var(--radius-md);
   color: rgb(var(--fg-muted));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -487,7 +487,7 @@ async function submit() {
   box-shadow: inset 0 0 0 1px rgb(var(--brass) / 0.3);
 }
 .filing-cat-chip--sub {
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   padding: 0.42rem 0.6rem;
 }
 .filing-cat-chip > svg { font-size: 0.95rem; }
@@ -509,7 +509,7 @@ async function submit() {
   border-radius: var(--radius-md);
   color: rgb(var(--fg-default));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.5;
   transition: border-color var(--dur-3), box-shadow var(--dur-3);
 }
@@ -523,7 +523,7 @@ async function submit() {
 .filing-counter {
   align-self: flex-end;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   letter-spacing: 0.05em;
   color: rgb(var(--fg-faint));
 }
@@ -555,7 +555,7 @@ async function submit() {
 .filing-reward-input .filing-input {
   padding-left: 2.1rem;
   padding-right: 3rem;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   color: rgb(var(--brass));
@@ -568,7 +568,7 @@ async function submit() {
   position: absolute;
   right: 0.85rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -592,7 +592,7 @@ async function submit() {
 }
 .filing-balance-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -600,7 +600,7 @@ async function submit() {
 }
 .filing-balance-value {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 800;
   color: rgb(var(--fg-default));
 }
@@ -615,7 +615,7 @@ async function submit() {
   display: inline-flex;
   align-items: flex-start;
   gap: 0.4rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.45;
   color: rgb(var(--fg-muted));
 }
@@ -638,7 +638,7 @@ async function submit() {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;

@@ -535,7 +535,7 @@ async function revokeDevice(id: string) {
   align-items: center;
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -551,7 +551,7 @@ async function revokeDevice(id: string) {
   align-items: center;
   gap: 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -560,7 +560,7 @@ async function revokeDevice(id: string) {
 }
 .tfa-blurb {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
   max-width: 60ch;
@@ -602,7 +602,7 @@ async function revokeDevice(id: string) {
   align-items: center;
   gap: 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
@@ -633,7 +633,7 @@ async function revokeDevice(id: string) {
   gap: 0.4rem;
   padding: 0.45rem 0.85rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -665,7 +665,7 @@ async function revokeDevice(id: string) {
 }
 .btn-ghost--sm {
   padding: 0.3rem 0.6rem;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
 }
 .btn-ghost--danger:hover {
   color: rgb(var(--danger));
@@ -687,7 +687,7 @@ async function revokeDevice(id: string) {
   padding: 0.65rem 1.1rem;
   border-bottom: 1px solid rgb(var(--line-default) / 0.6);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .tfa-passkey-row:last-child {
   border-bottom: 0;
@@ -745,7 +745,7 @@ async function revokeDevice(id: string) {
 }
 .tfa-switch-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -755,7 +755,7 @@ async function revokeDevice(id: string) {
 /* Modal helpers */
 .tfa-modal-blurb {
   margin: 0 0 0.85rem;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -769,7 +769,7 @@ async function revokeDevice(id: string) {
   margin: 0.4rem 0;
   text-align: center;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
@@ -779,12 +779,12 @@ async function revokeDevice(id: string) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--danger));
 }
 .field-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;

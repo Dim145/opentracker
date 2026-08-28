@@ -584,7 +584,7 @@ function formatDate(iso: string): string {
   gap: 0.625rem;
 }
 .mod-banner-caret {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: rgb(var(--fg-subtle));
   transition: transform var(--dur-4) cubic-bezier(0.4, 0, 0.2, 1), color var(--dur-2) ease;
 }
@@ -595,7 +595,7 @@ function formatDate(iso: string): string {
   display: inline-flex;
   align-items: center;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
@@ -624,7 +624,7 @@ function formatDate(iso: string): string {
   align-items: center;
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
@@ -632,7 +632,7 @@ function formatDate(iso: string): string {
   font-weight: 600;
 }
 .mod-banner-count {
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.18em;
   color: var(--c-text);
   background: rgb(var(--c) / 0.14);
@@ -650,7 +650,7 @@ function formatDate(iso: string): string {
   letter-spacing: -0.005em;
 }
 .mod-banner-sub {
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   color: rgb(var(--fg-muted));
   line-height: 1.5;
   margin: 0;
@@ -662,7 +662,7 @@ function formatDate(iso: string): string {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--fg-muted));
   padding: 1.5rem 1.5rem;
 }
@@ -684,7 +684,7 @@ function formatDate(iso: string): string {
 .mod-empty-glyph { font-size: 2rem; color: var(--c-text); opacity: 0.6; margin-bottom: 0.5rem; }
 .mod-empty-text {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   font-weight: 700;
@@ -692,7 +692,7 @@ function formatDate(iso: string): string {
   margin: 0;
 }
 .mod-empty-help {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--fg-muted));
   margin: 0.25rem 0 0;
 }
@@ -738,7 +738,7 @@ function formatDate(iso: string): string {
   background: rgb(var(--bg-surface));
   border: 1.5px solid rgb(var(--r));
   color: rgb(var(--r));
-  font-size: 14px;
+  font-size: 0.875rem;
   margin-top: 2px;
   z-index: 1;
 }
@@ -779,11 +779,11 @@ function formatDate(iso: string): string {
   gap: 0.35rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  font-size: 12.5px;
+  font-size: 0.7813rem;
 }
 .mod-row-pip {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 700;
@@ -803,11 +803,11 @@ function formatDate(iso: string): string {
 }
 .mod-row-time {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-subtle));
 }
 .mod-row-statuschange {
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   font-style: italic;
 }
@@ -817,7 +817,7 @@ function formatDate(iso: string): string {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-size: 10px;
+  font-size: 0.625rem;
   padding: 0.05rem 0.35rem;
   background: rgb(var(--r) / 0.14);
   border-radius: var(--radius-pill);
@@ -825,7 +825,7 @@ function formatDate(iso: string): string {
   margin-left: 0.2rem;
 }
 .mod-row-body {
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   line-height: 1.55;
   color: rgb(var(--fg-default));
   white-space: pre-wrap;
@@ -845,7 +845,7 @@ function formatDate(iso: string): string {
   align-items: center;
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -862,7 +862,7 @@ function formatDate(iso: string): string {
   border-radius: var(--radius-lg);
   padding: 0.7rem 0.85rem;
   color: rgb(var(--fg-default));
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   resize: vertical;
   transition: border-color var(--dur-2) ease;
@@ -894,7 +894,7 @@ function formatDate(iso: string): string {
   gap: 0.45rem;
   padding: 0.55rem 0.95rem;
   border-radius: var(--radius-lg);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -933,14 +933,14 @@ function formatDate(iso: string): string {
   background: rgb(239 68 68 / 0.1);
   border: 1px solid rgb(239 68 68 / 0.35);
   color: rgb(239 68 68);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .mod-readonly {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   color: rgb(var(--fg-subtle));
   font-style: italic;
   margin: 0;

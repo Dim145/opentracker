@@ -472,7 +472,7 @@ async function unfavorite(row: FavoriteRow) {
   gap: 0.6rem;
   margin: 0 0 0.6rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -481,7 +481,7 @@ async function unfavorite(row: FavoriteRow) {
 .fav-eyebrow-mark {
   font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0;
   color: rgb(var(--gold));
@@ -511,7 +511,7 @@ async function unfavorite(row: FavoriteRow) {
 .fav-intro {
   margin: 0.55rem 0 0;
   max-width: 60ch;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -525,7 +525,7 @@ async function unfavorite(row: FavoriteRow) {
 }
 .fav-sort-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -548,7 +548,7 @@ async function unfavorite(row: FavoriteRow) {
   border: 0;
   border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -572,7 +572,7 @@ async function unfavorite(row: FavoriteRow) {
   gap: 0.55rem;
   padding: 2.5rem 1rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -699,19 +699,19 @@ async function unfavorite(row: FavoriteRow) {
   align-items: baseline;
   gap: 0.2rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   color: rgb(var(--gold));
   text-shadow: 0 0 6px rgb(var(--gold) / 0.35);
 }
 .card-num-prefix {
-  font-size: 10px;
+  font-size: 0.625rem;
   opacity: 0.65;
 }
 .card-date {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -746,7 +746,7 @@ async function unfavorite(row: FavoriteRow) {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-xs);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -790,7 +790,7 @@ async function unfavorite(row: FavoriteRow) {
   padding: 0;
   list-style: none;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.06em;
 }
@@ -817,7 +817,7 @@ async function unfavorite(row: FavoriteRow) {
   gap: 0.35rem;
   padding: 0.32rem 0.55rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -904,7 +904,7 @@ async function unfavorite(row: FavoriteRow) {
   right: 0.7rem;
   bottom: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 8.5px;
+  font-size: 0.5313rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -926,7 +926,7 @@ async function unfavorite(row: FavoriteRow) {
 .empty-sub {
   margin: 0;
   max-width: 50ch;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -941,7 +941,7 @@ async function unfavorite(row: FavoriteRow) {
   border: 1px solid rgb(var(--gold) / 0.55);
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -971,7 +971,7 @@ async function unfavorite(row: FavoriteRow) {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -987,7 +987,7 @@ async function unfavorite(row: FavoriteRow) {
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted));
@@ -995,7 +995,7 @@ async function unfavorite(row: FavoriteRow) {
   align-items: baseline;
   gap: 0.3rem;
 }
-.pager-cur { color: rgb(var(--gold)); font-size: 14px; }
+.pager-cur { color: rgb(var(--gold)); font-size: 0.875rem; }
 .pager-sep { opacity: 0.4; }
 
 @media (prefers-reduced-motion: reduce) {

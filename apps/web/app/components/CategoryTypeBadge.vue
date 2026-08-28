@@ -46,7 +46,7 @@ defineProps<{
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -54,7 +54,7 @@ defineProps<{
   line-height: 1.45;
 }
 .type-badge__icon {
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 /* Two distinct accents — gold for /movie, cyan for /tv — match the
    palette used in the admin KPI cards elsewhere in the app. */

@@ -1203,7 +1203,7 @@ function describeWindow(w: Window): string {
   gap: 0.55rem;
   margin-bottom: 1.1rem;
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1308,7 +1308,7 @@ function describeWindow(w: Window): string {
 }
 .card-id {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
   letter-spacing: 0.18em;
   color: rgb(var(--fg-faint));
@@ -1426,7 +1426,7 @@ function describeWindow(w: Window): string {
   display: block;
   margin-top: 0.45rem;
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 500;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1456,7 +1456,7 @@ function describeWindow(w: Window): string {
 }
 .readout dt {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1528,7 +1528,7 @@ function describeWindow(w: Window): string {
   gap: 0.5rem;
   margin-bottom: 0.95rem;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1558,7 +1558,7 @@ function describeWindow(w: Window): string {
 .patron:hover { background: rgba(255, 255, 255, 0.025); }
 .patron-rank {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: rgb(var(--fg-faint));
 }
@@ -1649,7 +1649,7 @@ function describeWindow(w: Window): string {
 }
 .switch-state {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1707,7 +1707,7 @@ function describeWindow(w: Window): string {
 }
 .field-label {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1781,7 +1781,7 @@ function describeWindow(w: Window): string {
   border-top-right-radius: var(--radius-sm);
   border-bottom-right-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1974,7 +1974,7 @@ select.input option {
 }
 .deployed-title {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1986,7 +1986,7 @@ select.input option {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: rgb(var(--fg-strong));
 }
@@ -2028,7 +2028,7 @@ select.input option {
   border: 1px solid currentColor;
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2055,7 +2055,7 @@ select.input option {
   align-items: center;
   gap: 0.35rem;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2104,7 +2104,7 @@ select.input option {
   text-align: left;
   padding: 0.85rem 1.2rem;
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -2127,7 +2127,7 @@ select.input option {
 .ledger .muted { color: rgb(var(--fg-muted)); }
 .folio {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: rgb(var(--fg-faint));
 }
@@ -2138,7 +2138,7 @@ select.input option {
   border: 1px solid currentColor;
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;

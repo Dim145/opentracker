@@ -957,7 +957,7 @@ async function seedCategories() {
   align-items: center;
   gap: 0.6rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -1038,7 +1038,7 @@ async function seedCategories() {
 }
 .stat-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1116,7 +1116,7 @@ async function seedCategories() {
 }
 .search-hits {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1149,7 +1149,7 @@ async function seedCategories() {
 .atlas-empty-title {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1382,7 +1382,7 @@ async function seedCategories() {
 }
 .entry-slug {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.04em;
   background: transparent;
@@ -1397,7 +1397,7 @@ async function seedCategories() {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1579,7 +1579,7 @@ async function seedCategories() {
   align-items: center;
   gap: 0.55rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -1688,7 +1688,7 @@ async function seedCategories() {
 }
 .ed-card-slug {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.04em;
   background: transparent;
@@ -1703,7 +1703,7 @@ async function seedCategories() {
   border: 1px solid rgba(244, 63, 94, 0.4);
   background: rgba(244, 63, 94, 0.06);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1755,7 +1755,7 @@ async function seedCategories() {
 }
 .ed-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   color: rgb(var(--accent-warm));
@@ -1767,7 +1767,7 @@ async function seedCategories() {
 .ed-block-id h4 {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1823,7 +1823,7 @@ async function seedCategories() {
 
 .ed-hint {
   margin: 0;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   line-height: 1.5;
 }
@@ -1842,7 +1842,7 @@ async function seedCategories() {
   align-items: center;
   gap: 0.4rem;
   margin: 0;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   color: rgb(var(--danger));
 }
 
@@ -1883,7 +1883,7 @@ async function seedCategories() {
 }
 .ed-type-head {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1928,7 +1928,7 @@ async function seedCategories() {
 }
 .ed-adult-title {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1937,7 +1937,7 @@ async function seedCategories() {
 }
 .ed-adult--on .ed-adult-title { color: #f43f5e; }
 .ed-adult-sub {
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   line-height: 1.4;
 }

@@ -246,7 +246,7 @@ async function handleSubmit() {
   align-items: center;
   gap: 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -282,7 +282,7 @@ async function handleSubmit() {
   flex-wrap: wrap;
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -354,7 +354,7 @@ async function handleSubmit() {
   flex-direction: column;
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -377,7 +377,7 @@ async function handleSubmit() {
   color: var(--ink-fade);
   cursor: pointer;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -436,7 +436,7 @@ async function handleSubmit() {
 .compose-counter {
   align-self: flex-end;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.08em;
   color: var(--ink-faint);
   text-transform: uppercase;
@@ -461,7 +461,7 @@ async function handleSubmit() {
 }
 .preview-eyebrow {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -486,7 +486,7 @@ async function handleSubmit() {
   gap: 0.4rem;
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -513,7 +513,7 @@ async function handleSubmit() {
   flex-wrap: wrap;
   gap: 0.35rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-fade);
@@ -545,7 +545,7 @@ async function handleSubmit() {
   gap: 0.45rem;
   padding: 0.5rem 0.9rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;

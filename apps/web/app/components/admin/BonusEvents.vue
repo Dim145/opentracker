@@ -1074,7 +1074,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   align-items: center;
   gap: 0.6rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -1137,7 +1137,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   padding: 3rem 1rem;
   color: rgb(var(--fg-muted));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1186,7 +1186,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 .tower-empty-title {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1288,7 +1288,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .onair-stamp {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.3em;
   text-transform: uppercase;
@@ -1297,7 +1297,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .onair-now {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted));
@@ -1374,7 +1374,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .onair-countdown-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1454,7 +1454,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .schedule-head-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1462,7 +1462,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .schedule-head-count {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   margin-left: auto;
 }
@@ -1559,7 +1559,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   align-items: center;
   gap: 0.4rem 1.1rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.03em;
 }
@@ -1593,7 +1593,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1636,7 +1636,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .mul-pair-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1644,7 +1644,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .mul-pair-value {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
   color: rgb(var(--fg-strong));
   letter-spacing: -0.02em;
@@ -1750,7 +1750,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .ed-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   color: rgb(var(--accent-warm));
@@ -1762,7 +1762,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 .ed-block-id h4 {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1795,7 +1795,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 
 .ed-hint {
   margin: 0;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   line-height: 1.45;
 }
@@ -1804,7 +1804,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   align-items: center;
   gap: 0.4rem;
   margin: 0;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   color: rgb(var(--danger));
 }
 
@@ -1839,14 +1839,14 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .ed-preset-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 .ed-preset-sub {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-faint));
 }
@@ -1887,7 +1887,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   align-items: center;
   gap: 0.3rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1943,7 +1943,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   display: flex;
   justify-content: space-between;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   color: rgb(var(--fg-faint));
   letter-spacing: 0.04em;
 }
@@ -1968,7 +1968,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .ed-window-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -2038,7 +2038,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .ed-toggle-title {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -2046,7 +2046,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .ed-toggle-row--on .ed-toggle-title { color: #6cd161; }
 .ed-toggle-sub {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   line-height: 1.4;
 }

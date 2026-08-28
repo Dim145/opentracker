@@ -492,7 +492,7 @@ const relativeTime = computed(() => {
   align-items: center;
   gap: 0.35rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -573,7 +573,7 @@ const relativeTime = computed(() => {
   align-items: center;
   gap: 0.85rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
 .cc-status-when {
@@ -662,7 +662,7 @@ const relativeTime = computed(() => {
 }
 .field-opt {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));

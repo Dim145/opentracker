@@ -629,7 +629,7 @@ useHead({
   gap: 0.5rem;
   margin-bottom: 1.75rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -674,7 +674,7 @@ useHead({
 .empty-text {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -800,7 +800,7 @@ useHead({
   flex-wrap: wrap;
   margin-bottom: 0.7rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -810,7 +810,7 @@ useHead({
 .hero-eyebrow-mark {
   font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0;
   color: rgb(var(--release-cyan));
@@ -845,7 +845,7 @@ useHead({
   padding: 0.22rem 0.55rem;
   border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -900,7 +900,7 @@ useHead({
 }
 .hero-handle {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: rgb(var(--release-cyan));
   letter-spacing: 0.04em;
@@ -929,7 +929,7 @@ useHead({
   border: 1px solid rgb(var(--release-teal) / 0.5);
   border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -984,7 +984,7 @@ useHead({
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--release-teal) / 0.4);
   border-radius: var(--radius-pill);
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   color: rgb(var(--release-teal));
@@ -1018,7 +1018,7 @@ useHead({
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
   font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-style: italic;
-  font-size: 14.5px;
+  font-size: 0.9063rem;
   font-weight: 400;
   line-height: 1.55;
   color: rgb(var(--fg-default));
@@ -1077,7 +1077,7 @@ useHead({
   border-bottom: 0;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1239,7 +1239,7 @@ useHead({
 }
 .section-head-count {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   color: rgb(var(--fg-muted));
@@ -1314,7 +1314,7 @@ useHead({
 }
 .stat-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1440,7 +1440,7 @@ useHead({
 }
 .upload-name {
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   color: rgb(var(--fg-strong));
   overflow: hidden;
@@ -1455,7 +1455,7 @@ useHead({
   flex-wrap: wrap;
   gap: 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -1486,7 +1486,7 @@ useHead({
   font-weight: 700;
 }
 .upload-s :deep(svg),
-.upload-l :deep(svg) { font-size: 9px; }
+.upload-l :deep(svg) { font-size: 0.5625rem; }
 .upload-arrow {
   flex-shrink: 0;
   color: rgb(var(--fg-faint));
@@ -1518,7 +1518,7 @@ useHead({
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1533,7 +1533,7 @@ useHead({
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: rgb(var(--fg-muted));
@@ -1541,7 +1541,7 @@ useHead({
   align-items: baseline;
   gap: 0.3rem;
 }
-.pager-cur { color: rgb(var(--fg-strong)); font-size: 15px; }
+.pager-cur { color: rgb(var(--fg-strong)); font-size: 0.9375rem; }
 .pager-sep { opacity: 0.4; }
 
 /* ╔═══════════════════════════════════════════════════════════════╗
@@ -1579,7 +1579,7 @@ useHead({
   .hero-eyebrow {
     justify-content: center;
     gap: 0.45rem;
-    font-size: 9.5px;
+    font-size: 0.5938rem;
     letter-spacing: 0.2em;
   }
   /* Push the presence chip onto its own line on mobile — the
@@ -1596,7 +1596,7 @@ useHead({
     text-align: left;
     width: 100%;
     padding: 1.9rem 1rem 1rem 1.7rem;
-    font-size: 13.5px;
+    font-size: 0.8438rem;
   }
   .hero-bio-mark { font-size: 2rem; left: 0.55rem; }
 
@@ -1620,15 +1620,15 @@ useHead({
   .stat { padding: 0.7rem 0.75rem; gap: 0.55rem; }
   .stat-icon { font-size: 0.95rem; }
   .stat-num { font-size: clamp(1.05rem, 4.5vw, 1.4rem); }
-  .stat-label { font-size: 8.5px; letter-spacing: 0.18em; }
+  .stat-label { font-size: 0.5313rem; letter-spacing: 0.18em; }
 
   /* Upload rows wrap the meta onto a second line so the name stays
      legible and the meta doesn't get cropped. */
   .upload-link { padding: 0.7rem 0.85rem; gap: 0.55rem; }
   .upload-info { gap: 0.25rem; }
-  .upload-name { font-size: 13px; white-space: normal; }
+  .upload-name { font-size: 0.8125rem; white-space: normal; }
   .upload-meta {
-    font-size: 9.5px;
+    font-size: 0.5938rem;
     letter-spacing: 0.08em;
     gap: 0.3rem;
   }

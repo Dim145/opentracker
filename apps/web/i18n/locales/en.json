@@ -3208,6 +3208,7 @@
         "semantic": "Status colours",
         "elevation": "Elevation",
         "shape": "Shape",
+        "density": "Density",
         "motion": "Motion",
         "chrome": "Chrome",
         "ambience": "Ambience (reserved — not yet used by the interface)"

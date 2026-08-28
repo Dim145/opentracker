@@ -571,7 +571,7 @@ async function unfollow(row: PersonaRow) {
   gap: 0.6rem;
   margin: 0 0 0.55rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -580,7 +580,7 @@ async function unfollow(row: PersonaRow) {
 .cast-eyebrow-mark {
   font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0;
   color: rgb(var(--emerald));
@@ -622,7 +622,7 @@ async function unfollow(row: PersonaRow) {
 .cast-intro {
   margin: 0.8rem 0 0;
   max-width: 58ch;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -636,7 +636,7 @@ async function unfollow(row: PersonaRow) {
 }
 .cast-sort-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -658,7 +658,7 @@ async function unfollow(row: PersonaRow) {
   border: 0;
   border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -682,7 +682,7 @@ async function unfollow(row: PersonaRow) {
   gap: 0.55rem;
   padding: 2.5rem 1rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -781,7 +781,7 @@ async function unfollow(row: PersonaRow) {
   top: 0.55rem;
   right: 0.8rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   color: rgb(var(--amber));
@@ -892,7 +892,7 @@ async function unfollow(row: PersonaRow) {
 .persona-id:hover .persona-name { color: rgb(var(--amber)); }
 .persona-handle {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: rgb(var(--emerald));
@@ -904,7 +904,7 @@ async function unfollow(row: PersonaRow) {
   padding: 0 0.4rem;
   font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-style: italic;
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   line-height: 1.45;
   color: rgb(var(--fg-muted));
   max-width: 28ch;
@@ -925,7 +925,7 @@ async function unfollow(row: PersonaRow) {
 .persona-meta dt {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 8.5px;
+  font-size: 0.5313rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -934,14 +934,14 @@ async function unfollow(row: PersonaRow) {
 .persona-meta dd {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
 .persona-faint {
   font-style: italic;
   color: rgb(var(--fg-faint));
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 /* Footer — entered date + exit button */
@@ -960,7 +960,7 @@ async function unfollow(row: PersonaRow) {
   align-items: center;
   gap: 0.32rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -977,7 +977,7 @@ async function unfollow(row: PersonaRow) {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1086,7 +1086,7 @@ async function unfollow(row: PersonaRow) {
 .empty-sub {
   margin: 0;
   max-width: 50ch;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -1101,7 +1101,7 @@ async function unfollow(row: PersonaRow) {
   border: 1px solid rgb(var(--emerald) / 0.55);
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1131,7 +1131,7 @@ async function unfollow(row: PersonaRow) {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1147,7 +1147,7 @@ async function unfollow(row: PersonaRow) {
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted));
@@ -1155,7 +1155,7 @@ async function unfollow(row: PersonaRow) {
   align-items: baseline;
   gap: 0.3rem;
 }
-.pager-cur { color: rgb(var(--emerald)); font-size: 14px; }
+.pager-cur { color: rgb(var(--emerald)); font-size: 0.875rem; }
 .pager-sep { opacity: 0.4; }
 
 @media (prefers-reduced-motion: reduce) {

@@ -120,11 +120,6 @@ export default defineNuxtConfig({
   // — for a site with two locales, and a `400 700` variable range for faces
   // this site uses at fixed weights.
   //
-  // One thing NOT done here on purpose: the site writes `font-weight: 800`
-  // 191 times and `900` 22 times while Inter is loaded at 400-700, so those
-  // render as synthetic bold. Loading a real 800 would fix the fidelity and
-  // change line breaks on a hundred pages, which is a typography decision for
-  // wave 3, not a side effect of moving the hosting.
   //
   // ## The cost, stated plainly
   //
@@ -149,7 +144,22 @@ export default defineNuxtConfig({
       styles: ['normal', 'italic'],
     },
     families: [
-      { name: 'Inter', provider: 'google', weights: [400, 500, 600, 700], styles: ['normal'] },
+      // 800 and 900 are real now. The site writes `font-weight: 800` 191 times
+      // and `900` 22 times against a face loaded at 400-700, so the browser has
+      // been synthesising both — smearing the glyphs wider than the design.
+      //
+      // It costs nothing: Inter is a variable font, so one file per subset
+      // already carried the whole 100-900 axis and the request only widened
+      // which part of it the `@font-face` claims. Same eight files, same 336 kB.
+      // The real weights are NARROWER than the synthetic ones, so lines get
+      // slightly shorter — the safe direction, since nothing that fitted before
+      // stops fitting.
+      {
+        name: 'Inter',
+        provider: 'google',
+        weights: [400, 500, 600, 700, 800, 900],
+        styles: ['normal'],
+      },
       { name: 'JetBrains Mono', provider: 'google', weights: [400, 500], styles: ['normal'] },
       // Variable, and used italic at every size from a 14px byline to a 60px
       // masthead — hence the full axis rather than a weight list.

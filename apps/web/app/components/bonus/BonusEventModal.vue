@@ -540,7 +540,7 @@ const explainer = computed(() => {
 }
 .bb-onair-stamp {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.3em;
   text-transform: uppercase;
@@ -549,7 +549,7 @@ const explainer = computed(() => {
 }
 .bb-onair-now {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted));
@@ -634,7 +634,7 @@ const explainer = computed(() => {
   gap: 0.35rem;
   padding: 0.22rem 0.55rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -686,7 +686,7 @@ const explainer = computed(() => {
   align-self: flex-start;
   padding: 0.22rem 0.55rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -725,7 +725,7 @@ const explainer = computed(() => {
   align-items: center;
   gap: 0.4rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   color: #f43f5e;
@@ -774,14 +774,14 @@ const explainer = computed(() => {
   background: rgb(var(--bg-inset));
   border: 1px solid rgb(var(--line-default));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted));
 }
 .meter-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -875,7 +875,7 @@ const explainer = computed(() => {
   align-items: center;
   gap: 0.45rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -900,7 +900,7 @@ const explainer = computed(() => {
 }
 .bb-window-leg-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -964,7 +964,7 @@ const explainer = computed(() => {
 }
 .bb-window-foot-leg {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-muted));
@@ -992,7 +992,7 @@ const explainer = computed(() => {
   align-items: center;
   gap: 0.4rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;

@@ -573,7 +573,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.625rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.32em;
   text-transform: uppercase;
   color: var(--gild);
@@ -659,7 +659,7 @@ async function confirmDelete() {
   padding: 0.3rem 0.625rem;
   border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-muted);
@@ -785,7 +785,7 @@ async function confirmDelete() {
 }
 .draft-legend {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-muted);
@@ -825,7 +825,7 @@ async function confirmDelete() {
 .draft-segment input { position: absolute; opacity: 0; pointer-events: none; }
 .draft-segment-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--ink-soft);
   letter-spacing: 0.04em;
@@ -833,7 +833,7 @@ async function confirmDelete() {
 .draft-segment-help {
   font-family: 'Fraunces', 'Times New Roman', serif;
   font-style: italic;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--ink-muted);
 }
 .draft-segment:hover:not(.draft-segment--active) {
@@ -907,7 +907,7 @@ async function confirmDelete() {
   border-radius: 50%;
   background: color-mix(in srgb, var(--gild) 25%, transparent);
   color: var(--gild);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .draft-cta-label {
   font-family: 'Fraunces', 'Times New Roman', serif;
@@ -918,7 +918,7 @@ async function confirmDelete() {
 }
 .draft-cta-arrow {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 18px;
+  font-size: 1.125rem;
   color: var(--gild);
   transition: transform var(--dur-4) ease;
 }
@@ -1045,7 +1045,7 @@ async function confirmDelete() {
 }
 .ledger-code {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-size: 0.8125rem;
   letter-spacing: 0.04em;
   color: var(--ink);
   padding: 0.3rem 0.625rem;
@@ -1061,7 +1061,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.3rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 500;
@@ -1090,7 +1090,7 @@ async function confirmDelete() {
   flex-wrap: wrap;
   gap: 0.25rem 1.5rem;
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .ledger-meta > div {
   display: inline-flex;
@@ -1099,7 +1099,7 @@ async function confirmDelete() {
 }
 .ledger-meta dt {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-muted);
@@ -1211,14 +1211,14 @@ async function confirmDelete() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 1.375rem;
   box-shadow:
     inset 0 -2px 4px rgb(var(--shadow-color) / calc(0.25 * var(--shadow-strength))),
     0 8px 24px -10px color-mix(in srgb, var(--gild) 60%, transparent);
 }
 .seal-eyebrow {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--ink-muted);
@@ -1278,12 +1278,12 @@ async function confirmDelete() {
   display: flex;
   justify-content: space-between;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink-muted);
 }
-.seal-card-flourish { color: var(--gild); font-size: 14px; }
+.seal-card-flourish { color: var(--gild); font-size: 0.875rem; }
 .seal-code {
   display: block;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -1360,7 +1360,7 @@ async function confirmDelete() {
   display: flex;
   gap: 0.5rem;
   align-items: flex-start;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--ink-muted);
   font-family: 'Fraunces', 'Times New Roman', serif;
   font-style: italic;

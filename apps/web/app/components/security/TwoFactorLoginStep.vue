@@ -225,7 +225,7 @@ async function submitPasskey() {
   align-items: center;
   gap: 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -236,7 +236,7 @@ async function submitPasskey() {
 }
 .step-blurb {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: rgb(var(--fg-muted));
 }
 
@@ -254,7 +254,7 @@ async function submitPasskey() {
   gap: 0.4rem;
   padding: 0.4rem 0.85rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -283,7 +283,7 @@ async function submitPasskey() {
 }
 .step-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -313,7 +313,7 @@ async function submitPasskey() {
 }
 .step-hint {
   margin: 0;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: center;
@@ -338,7 +338,7 @@ async function submitPasskey() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--danger));
   margin: 0;
 }
@@ -357,7 +357,7 @@ async function submitPasskey() {
   gap: 0.4rem;
   padding: 0.55rem 1rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;

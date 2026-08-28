@@ -958,7 +958,7 @@ useHead({
   gap: 0.45rem;
   padding: 0.5rem 0.95rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -994,7 +994,7 @@ useHead({
   gap: 0.4rem;
   padding: 0.4rem 0.85rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1030,7 +1030,7 @@ useHead({
   gap: 0.4rem;
   padding: 0.35rem 0.65rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1053,7 +1053,7 @@ useHead({
   justify-content: center;
   min-width: 1.1rem;
   padding: 0 0.3rem;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   letter-spacing: 0;
   color: rgb(var(--accent-fg));
   background: rgb(var(--fg-strong));
@@ -1069,7 +1069,7 @@ useHead({
 .cats-eyebrow {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1134,7 +1134,7 @@ useHead({
 }
 .filter-panel-clear {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1147,7 +1147,7 @@ useHead({
   color: rgb(var(--danger));
 }
 .filter-panel-empty {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--fg-muted));
   font-style: italic;
 }
@@ -1167,7 +1167,7 @@ useHead({
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--dur-1);
@@ -1195,7 +1195,7 @@ useHead({
   align-items: center;
   gap: 0.65rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
@@ -1271,7 +1271,7 @@ useHead({
 .results-loading p {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -1282,7 +1282,7 @@ useHead({
 }
 .results-empty h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1290,7 +1290,7 @@ useHead({
 }
 .results-empty p {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   color: rgb(var(--fg-muted));
   max-width: 36ch;
@@ -1310,7 +1310,7 @@ useHead({
 .results-foot-summary {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1334,7 +1334,7 @@ useHead({
   padding: 0.3rem 0.5rem 0.3rem 0.65rem;
   border-radius: var(--radius-pill);
   border: 1px solid;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1369,7 +1369,7 @@ useHead({
   letter-spacing: 0;
   color: rgb(var(--fg-default));
   font-weight: 600;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .media-id-chip-close {
   display: inline-flex;

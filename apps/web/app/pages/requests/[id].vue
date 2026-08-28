@@ -929,7 +929,7 @@ async function fill() {
   gap: 0.5rem;
   margin-bottom: 1.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -995,7 +995,7 @@ async function fill() {
   gap: 0.55rem;
   flex-wrap: wrap;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1052,7 +1052,7 @@ async function fill() {
   gap: 0.4rem;
   margin-top: 0.55rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.12em;
   color: rgb(var(--fg-muted));
 }
@@ -1098,7 +1098,7 @@ async function fill() {
 }
 .hero-reward-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 800;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -1122,7 +1122,7 @@ async function fill() {
 }
 .hero-reward-unit {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 8.5px;
+  font-size: 0.5313rem;
   font-weight: 800;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -1166,7 +1166,7 @@ async function fill() {
 .grid-section-mark {
   font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   color: rgb(var(--brass));
   filter: drop-shadow(0 0 8px rgb(var(--brass) / 0.4));
@@ -1174,7 +1174,7 @@ async function fill() {
 .grid-section-head h2 {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1182,7 +1182,7 @@ async function fill() {
 }
 .grid-section-count {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   padding: 0.1rem 0.45rem;
@@ -1203,7 +1203,7 @@ async function fill() {
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
   border-radius: var(--radius-lg);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.65;
   color: rgb(var(--fg-default));
   white-space: pre-wrap;
@@ -1222,7 +1222,7 @@ async function fill() {
   gap: 0.5rem;
   margin-bottom: 0.6rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1241,7 +1241,7 @@ async function fill() {
   border: 1px solid rgb(var(--line-strong));
   border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   text-decoration: none;
@@ -1282,7 +1282,7 @@ async function fill() {
   gap: 0.5rem;
   margin-bottom: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.12em;
   color: rgb(var(--fg-muted));
 }
@@ -1300,7 +1300,7 @@ async function fill() {
 .thread-time { margin-left: auto; }
 .thread-edited {
   font-style: italic;
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.18em;
   color: rgb(var(--fg-faint));
 }
@@ -1325,7 +1325,7 @@ async function fill() {
 .thread-action--danger:hover { color: rgb(var(--danger)); }
 .thread-body {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   line-height: 1.55;
   color: rgb(var(--fg-default));
   white-space: pre-wrap;
@@ -1349,7 +1349,7 @@ async function fill() {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   line-height: 1.5;
   resize: vertical;
 }
@@ -1365,7 +1365,7 @@ async function fill() {
   padding: 0.35rem 0.7rem;
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1385,7 +1385,7 @@ async function fill() {
   padding: 1.3rem 0;
   text-align: center;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
@@ -1409,7 +1409,7 @@ async function fill() {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.5;
   resize: vertical;
   min-height: 64px;
@@ -1428,7 +1428,7 @@ async function fill() {
 }
 .thread-compose-counter {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   color: rgb(var(--fg-faint));
 }
 .thread-compose-btn {
@@ -1442,7 +1442,7 @@ async function fill() {
   border: 1px solid rgb(var(--brass) / 0.55);
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1469,7 +1469,7 @@ async function fill() {
   border: 1px dashed rgb(var(--line-strong));
   border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1499,7 +1499,7 @@ async function fill() {
   align-items: center;
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1517,7 +1517,7 @@ async function fill() {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1553,7 +1553,7 @@ async function fill() {
 }
 .side-fill-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1566,7 +1566,7 @@ async function fill() {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
   color: rgb(var(--fg-default));
 }
@@ -1578,7 +1578,7 @@ async function fill() {
 .side-fill-quota {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   color: rgb(var(--fg-muted));
@@ -1588,7 +1588,7 @@ async function fill() {
   padding: 0.85rem 0.6rem;
   text-align: center;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
@@ -1609,7 +1609,7 @@ async function fill() {
   gap: 0.5rem;
   padding: 0.4rem 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.14em;
   color: rgb(var(--fg-muted));
 }
@@ -1651,7 +1651,7 @@ async function fill() {
   flex-wrap: wrap;
 }
 .timeline-user {
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   color: rgb(var(--brass));
   text-decoration: none;
   font-weight: 700;
@@ -1661,7 +1661,7 @@ async function fill() {
 .timeline-user:hover { text-decoration: underline; }
 .timeline-time {
   color: rgb(var(--fg-faint));
-  font-size: 9.5px;
+  font-size: 0.5938rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

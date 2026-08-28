@@ -942,7 +942,7 @@ const emptySub = computed(() => {
 }
 .ac-radar-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -950,14 +950,14 @@ const emptySub = computed(() => {
 }
 .ac-radar-state {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgb(var(--tone, var(--online)));
 }
 .ac-radar-meta {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
 
@@ -1008,7 +1008,7 @@ const emptySub = computed(() => {
 }
 .ac-tile-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1060,7 +1060,7 @@ const emptySub = computed(() => {
 }
 .ac-feed-count {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   color: rgb(var(--fg-muted));
@@ -1081,7 +1081,7 @@ const emptySub = computed(() => {
   border: 0;
   border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1106,7 +1106,7 @@ const emptySub = computed(() => {
   border: 1px dashed rgb(var(--line-default));
   border-radius: var(--radius-lg);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -1224,12 +1224,12 @@ const emptySub = computed(() => {
   border: 1px solid rgb(var(--kind-tone, var(--danger)) / 0.4);
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: rgb(var(--kind-tone, var(--danger)));
 }
-.ac-case-num-prefix { font-size: 9.5px; opacity: 0.7; }
+.ac-case-num-prefix { font-size: 0.5938rem; opacity: 0.7; }
 
 .ac-case-id {
   display: flex;
@@ -1242,7 +1242,7 @@ const emptySub = computed(() => {
   align-items: center;
   gap: 0.35rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1251,7 +1251,7 @@ const emptySub = computed(() => {
 .ac-case-kind-icon { font-size: 0.95rem; }
 .ac-case-evidence {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   color: rgb(var(--fg-default));
   font-variant-numeric: tabular-nums;
 }
@@ -1278,7 +1278,7 @@ const emptySub = computed(() => {
   height: 1.5rem;
   border-radius: var(--radius-sm);
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 900;
   letter-spacing: -0.02em;
   color: rgba(255, 255, 255, 0.95);
@@ -1296,7 +1296,7 @@ const emptySub = computed(() => {
 }
 .ac-case-user-name {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   font-weight: 700;
   transition: color var(--dur-2);
 }
@@ -1309,13 +1309,13 @@ const emptySub = computed(() => {
   align-items: center;
   gap: 0.3rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   text-decoration: none;
   max-width: 100%;
   overflow: hidden;
 }
-.ac-case-target > svg { font-size: 11px; flex-shrink: 0; }
+.ac-case-target > svg { font-size: 0.6875rem; flex-shrink: 0; }
 .ac-case-target > span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1324,7 +1324,7 @@ const emptySub = computed(() => {
 .ac-case-target:hover { color: rgb(var(--fg-strong)); }
 .ac-case-target--orphan code {
   color: rgb(var(--fg-faint));
-  font-size: 10.5px;
+  font-size: 0.6563rem;
 }
 
 .ac-case-meta {
@@ -1334,7 +1334,7 @@ const emptySub = computed(() => {
 }
 .ac-case-time {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted));
 }
@@ -1346,7 +1346,7 @@ const emptySub = computed(() => {
   border: 1px solid;
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1422,7 +1422,7 @@ const emptySub = computed(() => {
 .ac-evidence dt {
   margin: 0 0 0.18rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1431,13 +1431,13 @@ const emptySub = computed(() => {
 .ac-evidence dd { margin: 0; }
 .ac-evidence code {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-default));
   word-break: break-all;
   user-select: all;
 }
 .ac-evidence-ua {
-  font-size: 10.5px !important;
+  font-size: 0.6563rem !important;
   line-height: 1.4;
   display: inline-block;
 }
@@ -1455,7 +1455,7 @@ const emptySub = computed(() => {
   cursor: pointer;
   padding: 0.5rem 0.75rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1467,7 +1467,7 @@ const emptySub = computed(() => {
   margin: 0;
   padding: 0 0.85rem 0.85rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   line-height: 1.5;
   color: rgb(var(--fg-default));
   overflow-x: auto;
@@ -1493,7 +1493,7 @@ const emptySub = computed(() => {
 .ac-already-line {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-default));
 }
@@ -1504,7 +1504,7 @@ const emptySub = computed(() => {
 }
 .ac-already-note {
   margin: 0.3rem 0 0;
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   font-style: italic;
   color: rgb(var(--fg-muted));
 }
@@ -1515,7 +1515,7 @@ const emptySub = computed(() => {
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.7rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1563,7 +1563,7 @@ const emptySub = computed(() => {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1588,7 +1588,7 @@ const emptySub = computed(() => {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--fg-default));
   resize: vertical;
   outline: 0;
@@ -1609,7 +1609,7 @@ const emptySub = computed(() => {
   padding: 0.55rem 1rem;
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1695,7 +1695,7 @@ const emptySub = computed(() => {
 }
 .ac-empty-sub {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: rgb(var(--fg-muted));
   max-width: 42ch;
   line-height: 1.55;
@@ -1721,7 +1721,7 @@ const emptySub = computed(() => {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1735,7 +1735,7 @@ const emptySub = computed(() => {
 .ac-pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .ac-pager-pos {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted));
@@ -1743,7 +1743,7 @@ const emptySub = computed(() => {
   align-items: baseline;
   gap: 0.3rem;
 }
-.ac-pager-cur { color: rgb(var(--fg-strong)); font-size: 14px; }
+.ac-pager-cur { color: rgb(var(--fg-strong)); font-size: 0.875rem; }
 .ac-pager-sep { opacity: 0.4; }
 
 /* ╔═══════════════════════════════════════════════════════════════╗
@@ -1811,7 +1811,7 @@ const emptySub = computed(() => {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;

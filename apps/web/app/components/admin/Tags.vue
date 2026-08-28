@@ -432,7 +432,7 @@ function hexToRgba(hex: string, alpha: number): string {
   align-items: center;
   gap: 0.55rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -481,7 +481,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 .ribbon-count {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -521,7 +521,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 .block-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   color: rgb(var(--accent-warm));
@@ -546,7 +546,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 .block-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.1em;
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
@@ -593,7 +593,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 .forge-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -666,7 +666,7 @@ function hexToRgba(hex: string, alpha: number): string {
   color: rgb(var(--accent-warm-fg));
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -795,7 +795,7 @@ function hexToRgba(hex: string, alpha: number): string {
   min-width: 0;
 }
 .chip-name {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -804,7 +804,7 @@ function hexToRgba(hex: string, alpha: number): string {
   text-shadow: 0 1px 1px rgb(var(--shadow-color) / calc(0.12 * var(--shadow-strength)));
 }
 .chip-slug {
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.02em;
   opacity: 0.7;
   line-height: 32px;
@@ -900,7 +900,7 @@ function hexToRgba(hex: string, alpha: number): string {
   padding: 0.3rem 0.7rem;
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;

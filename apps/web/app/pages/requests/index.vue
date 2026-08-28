@@ -412,7 +412,7 @@ function formatReward(n: number): string {
   gap: 0.6rem;
   margin: 0 0 0.55rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -421,7 +421,7 @@ function formatReward(n: number): string {
 .board-eyebrow-mark {
   font-family: 'Fraunces', 'Charter', Georgia, serif;
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   color: rgb(var(--brass));
   line-height: 0;
@@ -451,7 +451,7 @@ function formatReward(n: number): string {
 .board-intro {
   margin: 0.7rem 0 0;
   max-width: 60ch;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -467,7 +467,7 @@ function formatReward(n: number): string {
   border: 1px solid rgb(var(--brass) / 0.55);
   border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -513,7 +513,7 @@ function formatReward(n: number): string {
   border: 0;
   border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -578,7 +578,7 @@ function formatReward(n: number): string {
 }
 .board-mine-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -606,7 +606,7 @@ function formatReward(n: number): string {
   border-radius: var(--radius-md);
   color: rgb(var(--fg-default));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   letter-spacing: 0.04em;
   transition: border-color var(--dur-3), box-shadow var(--dur-3);
 }
@@ -625,7 +625,7 @@ function formatReward(n: number): string {
   gap: 0.55rem;
   padding: 2.5rem 1rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -703,7 +703,7 @@ function formatReward(n: number): string {
   border: 1px solid rgb(var(--phosphor) / 0.35);
   border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -742,7 +742,7 @@ function formatReward(n: number): string {
   gap: 0.4rem;
   flex-wrap: wrap;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -798,12 +798,12 @@ function formatReward(n: number): string {
   opacity: 0.65;
 }
 .ticker-reward-value {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 800;
   letter-spacing: 0.04em;
 }
 .ticker-reward-unit {
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -811,7 +811,7 @@ function formatReward(n: number): string {
 }
 .ticker-reward-empty {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -886,7 +886,7 @@ function formatReward(n: number): string {
 .empty-sub {
   margin: 0;
   max-width: 48ch;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -901,7 +901,7 @@ function formatReward(n: number): string {
   border: 1px solid rgb(var(--brass) / 0.55);
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -931,7 +931,7 @@ function formatReward(n: number): string {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -946,7 +946,7 @@ function formatReward(n: number): string {
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted));
@@ -954,7 +954,7 @@ function formatReward(n: number): string {
   align-items: baseline;
   gap: 0.3rem;
 }
-.pager-cur { color: rgb(var(--brass)); font-size: 14px; }
+.pager-cur { color: rgb(var(--brass)); font-size: 0.875rem; }
 .pager-sep { opacity: 0.4; }
 
 @media (prefers-reduced-motion: reduce) {

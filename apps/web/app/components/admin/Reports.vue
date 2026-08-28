@@ -660,7 +660,7 @@ function confirmBanPanel(report: Report) {
   align-items: center;
   gap: 0.6rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -714,7 +714,7 @@ function confirmBanPanel(report: Report) {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -735,7 +735,7 @@ function confirmBanPanel(report: Report) {
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   color: rgb(var(--fg-strong));
 }
 /* Active states — chip takes on the colour of its bucket. */
@@ -835,14 +835,14 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 .dossier-case-label {
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .dossier-case-num {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--accent-warm));
   letter-spacing: 0.05em;
@@ -858,7 +858,7 @@ function confirmBanPanel(report: Report) {
   align-items: center;
   gap: 0.35rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.04em;
 }
@@ -874,7 +874,7 @@ function confirmBanPanel(report: Report) {
   padding: 0.32rem 0.7rem;
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -937,7 +937,7 @@ function confirmBanPanel(report: Report) {
 }
 .meta-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -978,7 +978,7 @@ function confirmBanPanel(report: Report) {
   align-items: center;
   gap: 0.4rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-strong));
   letter-spacing: 0.03em;
 }
@@ -1001,7 +1001,7 @@ function confirmBanPanel(report: Report) {
 }
 .meta-resolved-when {
   color: rgb(var(--fg-faint));
-  font-size: 10px;
+  font-size: 0.625rem;
   margin-left: 0.1rem;
 }
 
@@ -1015,7 +1015,7 @@ function confirmBanPanel(report: Report) {
   background: rgb(var(--bg-inset));
   border: 1px solid rgb(var(--line-default));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1074,7 +1074,7 @@ function confirmBanPanel(report: Report) {
 }
 .target-missing-id {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-style: normal;
   background: transparent;
 }
@@ -1161,7 +1161,7 @@ function confirmBanPanel(report: Report) {
   border: 1px dashed rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1200,7 +1200,7 @@ function confirmBanPanel(report: Report) {
   align-items: center;
   gap: 0.5rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -1225,7 +1225,7 @@ function confirmBanPanel(report: Report) {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1327,7 +1327,7 @@ function confirmBanPanel(report: Report) {
 .empty-title {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1359,7 +1359,7 @@ function confirmBanPanel(report: Report) {
   background: rgb(var(--bg-base));
   color: rgb(var(--fg-strong));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1376,7 +1376,7 @@ function confirmBanPanel(report: Report) {
 }
 .pager-state {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--fg-strong));
   letter-spacing: 0.05em;
 }

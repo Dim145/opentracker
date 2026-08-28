@@ -125,11 +125,11 @@ const title = computed(() => {
 .mod-badge-label { line-height: 1; }
 
 .mod-badge--md {
-  font-size: 10px;
+  font-size: 0.625rem;
   padding: 0.32rem 0.55rem;
 }
 .mod-badge--sm {
-  font-size: 9px;
+  font-size: 0.5625rem;
   padding: 0.2rem 0.45rem;
   letter-spacing: 0.14em;
   gap: 0.3rem;

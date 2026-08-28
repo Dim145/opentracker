@@ -762,7 +762,7 @@ function discard() {
 .snap--bypass-on .snap-num strong { color: rgb(var(--accent-warm)); }
 .snap-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -802,7 +802,7 @@ function discard() {
 }
 .block-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   color: rgb(var(--accent-warm));
@@ -827,7 +827,7 @@ function discard() {
 }
 .block-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.1em;
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
@@ -976,7 +976,7 @@ function discard() {
 }
 .field-unit {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
@@ -1188,7 +1188,7 @@ function discard() {
   align-items: center;
   gap: 0.3rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1267,7 +1267,7 @@ function discard() {
   align-items: center;
   gap: 0.4rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;

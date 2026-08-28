@@ -127,7 +127,7 @@ function print() {
   gap: 0.4rem;
   padding: 0.4rem 0.7rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   background: rgb(var(--bg-elevated));
@@ -145,7 +145,7 @@ function print() {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   line-height: 1.55;
   color: rgb(var(--warning));
 }

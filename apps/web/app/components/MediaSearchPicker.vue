@@ -695,7 +695,7 @@ async function resolveManual() {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
 .picker-kind {
@@ -745,7 +745,7 @@ async function resolveManual() {
 .picker-hint {
   margin: 0.5rem 0 0;
   padding: 0.5rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   text-align: right;
   border-top: 1px solid rgb(var(--line-default));
@@ -758,7 +758,7 @@ async function resolveManual() {
   border-radius: var(--radius-xs);
   background: rgb(var(--bg-elevated));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 
 /* ─── Selected chip ────────────────────────────────────────── */
@@ -794,7 +794,7 @@ async function resolveManual() {
   gap: 0.4rem;
 }
 .picker-selected-ids .id-tag {
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.12em;
   padding: 0.15rem 0.55rem;
   border-radius: var(--radius-pill);
@@ -813,7 +813,7 @@ async function resolveManual() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.75rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -833,7 +833,7 @@ async function resolveManual() {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -869,7 +869,7 @@ async function resolveManual() {
   gap: 0.35rem;
 }
 .picker-manual .id-tag {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -885,7 +885,7 @@ async function resolveManual() {
 }
 .btn-ghost--small {
   padding: 0.4rem 0.7rem;
-  font-size: 10px;
+  font-size: 0.625rem;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;

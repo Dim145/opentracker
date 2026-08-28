@@ -1213,7 +1213,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1233,7 +1233,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 .page-eyebrow {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -1261,7 +1261,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 0.4rem 0.85rem;
   border-radius: var(--radius-pill);
   border: 1px solid;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1339,7 +1339,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 .settings-nav-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   padding: 0.1rem 0.3rem;
@@ -1376,7 +1376,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 .section-number {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: rgb(var(--fg-muted));
@@ -1423,7 +1423,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   position: relative;
 }
 .field-label {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1434,7 +1434,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 .field-hint {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.06em;
   text-transform: none;
   color: rgb(var(--fg-muted));
@@ -1455,7 +1455,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   right: 0.4rem;
   bottom: -1.25rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-muted));
 }
@@ -1484,7 +1484,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1622,7 +1622,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 .theme-btn-sub {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.04em;
 }
@@ -1645,7 +1645,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 .appearance-block-eyebrow {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -1808,7 +1808,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: center;
   gap: 0.55rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.04em;
   color: rgb(var(--fg-muted));
 }
@@ -1823,7 +1823,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   border: 1px solid rgb(var(--fg-strong) / 0.4);
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-strong));
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -1916,7 +1916,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.5rem;
   padding: 0.55rem 0.95rem;
   border-radius: var(--radius-pill);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1979,7 +1979,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 .info-grid dt {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -2008,7 +2008,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .templates-blurb {
   margin: 0 0 1rem;
   max-width: 60ch;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.6;
   color: rgb(var(--fg-muted));
 }
@@ -2047,7 +2047,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   flex: 1;
   display: flex;
   justify-content: center;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .action-hint {
   color: rgb(var(--fg-muted));

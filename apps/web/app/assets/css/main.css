@@ -167,6 +167,19 @@
      independently editable numbers nobody would set.
      `--motion-scale: 0` collapses every duration to zero and removes every
      transition on the site. Not a special case — the same `calc()`. */
+  /* Interface scale.
+     Applied once, on `html`, as `calc(100% * var(--ui-scale))` — `100%` and not
+     `16px`, so a visitor who has set a larger default font size in their
+     browser keeps it and the theme's factor multiplies on top rather than
+     replacing it.
+     One declaration reaches everything because this codebase is now in `rem`:
+     938 `font-size` declarations were in `px` and are not any more, and 3 837
+     of the 3 904 padding/gap/margin values already were. So the lever moves
+     type and spacing together, which is what it says on the label — it is an
+     interface scale, not two independent knobs. Two knobs would let a theme put
+     large text in tight boxes, which is mostly a way to overflow a table. */
+  --ui-scale:       1;
+
   --motion-scale:   1;
   --dur-1:          calc(120ms * var(--motion-scale));
   --dur-2:          calc(150ms * var(--motion-scale));
@@ -253,6 +266,8 @@
 @layer base {
   html {
     @apply antialiased;
+    /* The one place `--ui-scale` is applied. See the token's note above. */
+    font-size: calc(100% * var(--ui-scale));
     background-color: rgb(var(--bg-base));
     color: rgb(var(--fg-default));
     /* What makes the NATIVE widgets follow the theme: scrollbars, `<select>`

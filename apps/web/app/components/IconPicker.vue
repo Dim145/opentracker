@@ -458,7 +458,7 @@ onBeforeUnmount(() => {
   text-align: center;
   padding: 2rem 1rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -522,7 +522,7 @@ onBeforeUnmount(() => {
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-size: 8.5px;
+  font-size: 0.5313rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -538,7 +538,7 @@ onBeforeUnmount(() => {
   padding-top: 0.5rem;
   border-top: 1px dashed rgb(var(--line-default));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -559,7 +559,7 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-muted));
   padding: 0.25rem 0.55rem;
   font-family: inherit;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   cursor: pointer;

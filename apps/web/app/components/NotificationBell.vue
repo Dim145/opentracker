@@ -362,7 +362,7 @@ function humanise(s: string): string {
   color: #fff;
   border-radius: var(--radius-pill);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   border: 2px solid rgb(var(--bg-base));
@@ -414,7 +414,7 @@ function humanise(s: string): string {
   align-items: center;
   gap: 0.55rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -445,7 +445,7 @@ function humanise(s: string): string {
   height: 1.1rem;
   padding: 0 0.35rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   background: rgba(244, 63, 94, 0.12);
   border: 1px solid rgba(244, 63, 94, 0.45);
@@ -463,7 +463,7 @@ function humanise(s: string): string {
   border: 1px solid rgb(var(--accent-warm) / 0.45);
   border-radius: var(--radius-sm);
   font-family: inherit;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -499,7 +499,7 @@ function humanise(s: string): string {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -542,7 +542,7 @@ function humanise(s: string): string {
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 800;
   color: inherit;
 }
@@ -559,7 +559,7 @@ function humanise(s: string): string {
   gap: 0.65rem;
   padding: 2rem 1.5rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -716,7 +716,7 @@ function humanise(s: string): string {
 .nbell-row-time {
   margin: 0.2rem 0 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   letter-spacing: 0.06em;
   color: rgb(var(--fg-faint));
 }
@@ -766,7 +766,7 @@ function humanise(s: string): string {
   gap: 0.45rem;
   padding: 0.7rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;

@@ -460,7 +460,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0.6rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.3em;
   text-transform: uppercase;
@@ -575,7 +575,7 @@ onBeforeUnmount(() => {
 .pool-meter-unit {
   margin-left: 0.5rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -589,7 +589,7 @@ onBeforeUnmount(() => {
   gap: 0.45rem;
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -618,7 +618,7 @@ onBeforeUnmount(() => {
 }
 .pool-patrons-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -642,7 +642,7 @@ onBeforeUnmount(() => {
 }
 .pool-patron-rank {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   color: rgb(var(--accent-warm));
@@ -658,7 +658,7 @@ onBeforeUnmount(() => {
 }
 .pool-patron-amount {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));
 }
@@ -686,7 +686,7 @@ onBeforeUnmount(() => {
 }
 .pool-form-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -723,7 +723,7 @@ onBeforeUnmount(() => {
   border-left: 0;
   background: rgb(var(--accent-warm) / 0.06);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -741,7 +741,7 @@ onBeforeUnmount(() => {
   background: transparent;
   color: rgb(var(--fg-default));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   cursor: pointer;
@@ -787,7 +787,7 @@ onBeforeUnmount(() => {
   color: rgb(var(--accent-warm-fg));
   border: 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;

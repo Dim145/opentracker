@@ -159,7 +159,7 @@ const iconSuggestions = [
   flex-direction: column;
   gap: 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -242,7 +242,7 @@ const iconSuggestions = [
 .cat-help {
   margin: 0;
   font-family: 'Inter', sans-serif;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   letter-spacing: 0;
   text-transform: none;
   color: rgb(var(--fg-muted));
@@ -254,7 +254,7 @@ const iconSuggestions = [
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-xs);
   padding: 0 0.3rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .cat-help-link {
   color: rgb(var(--fg-strong));

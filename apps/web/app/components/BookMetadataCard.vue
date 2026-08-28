@@ -236,13 +236,13 @@ defineProps<{
   background: rgba(217, 119, 6, 0.1);
   color: #f59e0b;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 .bcard-tag-icon {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: #d97706;
   filter: drop-shadow(0 0 4px rgba(217, 119, 6, 0.5));
 }

@@ -725,7 +725,7 @@ async function confirmDelete() {
 
 .snap-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -733,7 +733,7 @@ async function confirmDelete() {
 }
 .snap-sub {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
@@ -788,7 +788,7 @@ async function confirmDelete() {
 }
 .block-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   color: rgb(var(--accent-warm));
@@ -813,7 +813,7 @@ async function confirmDelete() {
 }
 .block-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.1em;
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
@@ -842,7 +842,7 @@ async function confirmDelete() {
 .grant-label {
   display: block;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -890,7 +890,7 @@ async function confirmDelete() {
   border: 1px solid rgb(var(--accent-warm) / 0.4);
   color: rgb(var(--accent-warm));
   border-radius: var(--radius-pill);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -942,7 +942,7 @@ async function confirmDelete() {
 }
 .grant-suggestion-quota {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
@@ -988,7 +988,7 @@ async function confirmDelete() {
   color: rgb(var(--accent-warm-fg));
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1073,7 +1073,7 @@ async function confirmDelete() {
   border: 0;
   padding: 0.4rem 0.75rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1089,7 +1089,7 @@ async function confirmDelete() {
   box-shadow: inset 0 0 0 1px rgb(var(--accent-warm) / 0.4);
 }
 .ledger-segment-count {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   color: rgb(var(--fg-faint));
   padding: 0.1rem 0.35rem;
@@ -1132,7 +1132,7 @@ async function confirmDelete() {
 
 .entry-serial {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-faint));
@@ -1145,7 +1145,7 @@ async function confirmDelete() {
 }
 .entry-code {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   padding: 0.3rem 0.55rem;
   background: rgb(var(--bg-inset));
   border: 1px solid rgb(var(--line-default));
@@ -1168,7 +1168,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.3rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1204,7 +1204,7 @@ async function confirmDelete() {
 }
 .entry-flow-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 8.5px;
+  font-size: 0.5313rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
@@ -1245,14 +1245,14 @@ async function confirmDelete() {
 }
 .entry-date-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 8.5px;
+  font-size: 0.5313rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
 .entry-date-val {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-strong));
 }
 
@@ -1355,7 +1355,7 @@ async function confirmDelete() {
   border: 1px solid rgb(var(--line-default));
   color: rgb(var(--fg-strong));
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1370,7 +1370,7 @@ async function confirmDelete() {
 .pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .pager-pos {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.08em;
 }
@@ -1386,7 +1386,7 @@ async function confirmDelete() {
 .confirm-text strong { color: rgb(var(--fg-strong)); font-weight: 700; }
 .confirm-code {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   background: rgb(var(--bg-inset));
   border: 1px solid rgb(var(--line-default));
   padding: 0.18rem 0.45rem;

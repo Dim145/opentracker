@@ -809,7 +809,7 @@ useHead({ title: t('torrents.edit.headTitle') });
 }
 .btn-ghost--small {
   padding: 0.35rem 0.7rem;
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 .btn-ghost--danger:hover {
   color: rgb(var(--danger));
@@ -832,7 +832,7 @@ useHead({ title: t('torrents.edit.headTitle') });
   border: 1px solid rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
   color: #f5c518;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;

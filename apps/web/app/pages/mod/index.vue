@@ -425,7 +425,7 @@ function actionVerb(status: string | null): string {
   align-items: center;
   gap: 0.6rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.26em;
   text-transform: uppercase;
@@ -488,7 +488,7 @@ function actionVerb(status: string | null): string {
 }
 .wt-clock-date {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -543,7 +543,7 @@ function actionVerb(status: string | null): string {
 
 .tile-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -565,7 +565,7 @@ function actionVerb(status: string | null): string {
   margin-top: auto;
   padding-top: 0.55rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--tile-accent, rgb(var(--fg-muted)));
@@ -634,7 +634,7 @@ function actionVerb(status: string | null): string {
   align-items: center;
   gap: 0.45rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -646,7 +646,7 @@ function actionVerb(status: string | null): string {
 }
 .feed-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -660,7 +660,7 @@ function actionVerb(status: string | null): string {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -705,7 +705,7 @@ function actionVerb(status: string | null): string {
 }
 .queue-when {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: rgb(var(--accent-warm));
@@ -730,7 +730,7 @@ function actionVerb(status: string | null): string {
   gap: 0.55rem 0.85rem;
   margin-top: 0.2rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.04em;
 }
@@ -743,7 +743,7 @@ function actionVerb(status: string | null): string {
 .queue-cat {
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
 }
 
 /* ── Log row (activity feed) ─────────────────────────────── */
@@ -762,14 +762,14 @@ function actionVerb(status: string | null): string {
 }
 .log-when {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: rgb(var(--fg-muted));
 }
 .log-actor {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   white-space: nowrap;
@@ -779,7 +779,7 @@ function actionVerb(status: string | null): string {
   align-items: center;
   gap: 0.3rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -833,7 +833,7 @@ function actionVerb(status: string | null): string {
   padding: 2.25rem 1rem;
   text-align: center;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;

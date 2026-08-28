@@ -160,6 +160,21 @@ describe('the kinds wave 2 added', () => {
     }
   });
 
+  it('floors ui-scale, because zero is a blank page', () => {
+    // The other two scalars treat 0 as a feature: a flat theme, a still one.
+    // This one cannot — the interface is full of 0.5625rem labels, and at 0.5
+    // they are 4.5 px. So `scalar` grew a floor rather than every consumer
+    // learning to distrust it.
+    expect(isValidTokenValue('ui-scale', '0')).toBe(false);
+    expect(isValidTokenValue('ui-scale', '0.74')).toBe(false);
+    expect(isValidTokenValue('ui-scale', '0.75')).toBe(true);
+    expect(isValidTokenValue('ui-scale', '1.4')).toBe(true);
+    expect(isValidTokenValue('ui-scale', '1.41')).toBe(false);
+    // And zero stays valid where it means something.
+    expect(isValidTokenValue('shadow-strength', '0')).toBe(true);
+    expect(isValidTokenValue('motion-scale', '0')).toBe(true);
+  });
+
   it('gives motion-scale a wider ceiling than shadow-strength', () => {
     // Not symmetry for its own sake: a 4x slower interface is a legible theme,
     // a 4x heavier shadow is soot.

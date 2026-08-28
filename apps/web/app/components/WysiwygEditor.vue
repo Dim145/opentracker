@@ -774,11 +774,11 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 0.25rem 0.35rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
 .we-tags-label {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -793,7 +793,7 @@ onBeforeUnmount(() => {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.02em;
   color: rgb(var(--fg-default));
   cursor: pointer;
@@ -812,7 +812,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0.4rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;

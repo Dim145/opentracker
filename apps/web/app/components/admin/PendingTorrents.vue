@@ -226,7 +226,7 @@ function formatDate(iso: string): string {
   color: rgb(var(--fg-strong));
 }
 .queue-head-title {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -254,7 +254,7 @@ function formatDate(iso: string): string {
   padding: 0.4rem 0.7rem;
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -288,7 +288,7 @@ function formatDate(iso: string): string {
 }
 .queue-segment-count {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   background: rgb(var(--s) / 0.18);
   color: rgb(var(--s));
   padding: 0.05rem 0.4rem;
@@ -306,7 +306,7 @@ function formatDate(iso: string): string {
 
 /* ── Intro paragraph ──────────────────────────────────── */
 .queue-intro {
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   color: rgb(var(--fg-muted));
   line-height: 1.65;
   margin: 0 0 1.25rem;
@@ -319,7 +319,7 @@ function formatDate(iso: string): string {
   display: inline-flex;
   align-items: center;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   padding: 0.05rem 0.45rem;
@@ -352,19 +352,19 @@ function formatDate(iso: string): string {
   gap: 0.5rem;
   padding: 3rem 1rem;
   color: rgb(var(--fg-muted));
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .queue-empty-glyph { font-size: 2rem; color: rgb(34 197 94); }
 .queue-empty-text {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   margin: 0;
 }
-.queue-empty-help { font-size: 12px; color: rgb(var(--fg-muted)); margin: 0; }
+.queue-empty-help { font-size: 0.75rem; color: rgb(var(--fg-muted)); margin: 0; }
 
 /* ── Rows ─────────────────────────────────────────────── */
 .queue-list {
@@ -405,7 +405,7 @@ function formatDate(iso: string): string {
   grid-row: 1;
   grid-column: 1;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   text-decoration: none;
@@ -430,7 +430,7 @@ function formatDate(iso: string): string {
   flex-wrap: wrap;
   gap: 0.25rem 1.25rem;
   margin: 0;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .queue-row-meta > div {
   display: inline-flex;
@@ -439,7 +439,7 @@ function formatDate(iso: string): string {
 }
 .queue-row-meta dt {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
@@ -448,7 +448,7 @@ function formatDate(iso: string): string {
 .queue-row-meta dd {
   margin: 0;
   color: rgb(var(--fg-default));
-  font-size: 11.5px;
+  font-size: 0.7188rem;
 }
 .queue-meta-soft { color: rgb(var(--fg-subtle)); }
 .queue-link {

@@ -543,7 +543,7 @@ function formatDate(iso: string): string {
 .tpl-subtitle {
   margin: 0.75rem 0 0;
   max-width: 46ch;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.6;
   color: rgb(var(--fg-muted));
 }
@@ -564,7 +564,7 @@ function formatDate(iso: string): string {
   padding: 0.35rem 0.7rem;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-pill);
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
 }
 .tpl-quota-label {
@@ -574,7 +574,7 @@ function formatDate(iso: string): string {
 }
 .tpl-quota-value {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-variant-numeric: tabular-nums;
   color: rgb(var(--fg-strong));
 }
@@ -590,7 +590,7 @@ function formatDate(iso: string): string {
   align-items: center;
   gap: 0.4rem;
   margin: 1rem 0 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--warning));
 }
 
@@ -603,7 +603,7 @@ function formatDate(iso: string): string {
   border: 1px solid rgb(var(--danger) / 0.3);
   border-radius: var(--radius-sm);
   background-color: rgb(var(--danger) / 0.08);
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--danger));
 }
 
@@ -650,14 +650,14 @@ function formatDate(iso: string): string {
 }
 .tpl-card-name {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   overflow-wrap: anywhere;
 }
 .tpl-card-desc {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.5;
   color: rgb(var(--fg-muted));
 }
@@ -672,7 +672,7 @@ function formatDate(iso: string): string {
   flex-wrap: wrap;
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   /* --fg-muted, not --fg-faint: faint measures ~2.1:1 on the light theme's
      surfaces, well under 4.5:1. */
   font-variant-numeric: tabular-nums;
@@ -695,7 +695,7 @@ function formatDate(iso: string): string {
   padding: 0.1rem 0.4rem;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -735,14 +735,14 @@ function formatDate(iso: string): string {
 }
 .tpl-empty-title {
   margin: 0.25rem 0 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
 .tpl-empty-body {
   margin: 0;
   max-width: 52ch;
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.6;
   color: rgb(var(--fg-muted));
 }

@@ -58,7 +58,7 @@ colour of every form field on the site at 2.08:1.
 
 ### What a theme can change
 
-Thirty-six values, grouped the way the editor groups them.
+Thirty-seven values, grouped the way the editor groups them.
 
 | Group | Tokens |
 |---|---|
@@ -69,6 +69,7 @@ Thirty-six values, grouped the way the editor groups them.
 | Status | `online`, `warning`, `danger`, `info` |
 | Elevation | `shadow-color`, `shadow-strength` |
 | Shape | `radius`, `radius-pill` |
+| Density | `ui-scale` |
 | Motion | `motion-scale`, `ease-standard`, `ease-emphasis` |
 | Chrome | `focus-ring`, `bg-pattern-rgb`, `bg-pattern-alpha`, `bg-pattern-kind`, `bg-pattern-step`, `color-scheme` |
 | Ambience | `accent-cool`, `accent-paper` |
@@ -102,6 +103,17 @@ independent values drift until a small element is rounder than a large one.
 `radius-pill` is separate, because a pill is a pill at any scale, and a
 brutalist theme wanting square pills should not have to flatten every card to
 get them.
+
+**`ui-scale` is one lever and not two, and the reason is measurement.** This
+interface expresses its type and its spacing in `rem`, so a single `font-size`
+on `html` moves both — the plan called for a type scale and a density and got
+one scale that is honestly labelled. Splitting them would let a theme put large
+type in tight boxes, which is mostly a way to overflow a table.
+
+It is applied as `calc(100% * var(--ui-scale))`, so a visitor who has set a
+larger default font size in their browser keeps it and your factor multiplies on
+top. The floor is `0.75` rather than `0`: this interface is full of 0.56 rem
+micro-labels, and a theme that can render itself invisible is a theme that will.
 
 **The easings take a keyword or a `cubic-bezier()`.** `steps()` and `linear()`
 are refused: both accept argument lists of unbounded length, and neither

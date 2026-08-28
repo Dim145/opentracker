@@ -189,7 +189,7 @@ const refreshedAgo = computed(() => {
   align-items: center;
   gap: 0.6rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -291,7 +291,7 @@ const refreshedAgo = computed(() => {
 }
 .cr-status-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -300,7 +300,7 @@ const refreshedAgo = computed(() => {
 .cr-status--off .cr-status-label { color: #f43f5e; }
 .cr-status-time {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.04em;
@@ -325,7 +325,7 @@ const refreshedAgo = computed(() => {
   align-items: center;
   gap: 0.45rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -337,7 +337,7 @@ const refreshedAgo = computed(() => {
 }
 .cr-section-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -382,7 +382,7 @@ const refreshedAgo = computed(() => {
 .cr-empty-title {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;

@@ -85,7 +85,7 @@ function protocolIcon(name: string | number): string {
   align-items: center;
   gap: 0.4rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -94,7 +94,7 @@ function protocolIcon(name: string | number): string {
 .proto-head-tag-icon { font-size: 0.95rem; color: rgb(var(--accent-warm)); }
 .proto-head-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -161,7 +161,7 @@ function protocolIcon(name: string | number): string {
   align-items: center;
   gap: 0.45rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;

@@ -589,7 +589,7 @@ onMounted(() => {
   align-items: center;
   gap: 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -637,7 +637,7 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-fade);
@@ -662,7 +662,7 @@ onMounted(() => {
   gap: 0.3rem;
   padding: 0.18rem 0.55rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -799,7 +799,7 @@ onMounted(() => {
   gap: 0.2rem;
   padding: 0.1rem 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -830,7 +830,7 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.12em;
   color: var(--ink-fade);
   text-transform: uppercase;
@@ -919,7 +919,7 @@ onMounted(() => {
 }
 .composer-eyebrow {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -932,7 +932,7 @@ onMounted(() => {
 }
 .composer-hint {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.1em;
   color: var(--ink-fade);
   text-transform: uppercase;
@@ -945,7 +945,7 @@ onMounted(() => {
   border-radius: var(--radius-xs);
   background: rgb(var(--bg-elevated));
   color: var(--ink);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-family: inherit;
 }
 .composer-input {
@@ -973,7 +973,7 @@ onMounted(() => {
 .composer-counter {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.08em;
   color: var(--ink-faint);
 }
@@ -1007,7 +1007,7 @@ onMounted(() => {
   gap: 0.45rem;
   padding: 0.5rem 0.85rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;

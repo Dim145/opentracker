@@ -226,7 +226,7 @@ onUnmounted(() => {
   padding: 0.3rem 0.65rem;
   border-radius: var(--radius-pill);
   border: 1px solid;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -263,7 +263,7 @@ onUnmounted(() => {
   letter-spacing: 0;
   color: rgb(var(--fg-default));
   font-weight: 600;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .detection-arrow {
   display: inline-flex;

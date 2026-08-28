@@ -337,7 +337,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: center;
   gap: 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -389,7 +389,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: center;
   gap: 0.55rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -453,7 +453,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: center;
   gap: 0.6rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -485,7 +485,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   gap: 0.4rem;
   padding: 0.45rem 0.7rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -566,7 +566,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 }
 .topic-card-num-label {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px !important;
+  font-size: 0.5938rem !important;
   letter-spacing: 0.2em;
   color: rgb(var(--fg-faint)) !important;
   text-transform: uppercase;
@@ -591,7 +591,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   gap: 0.3rem;
   padding: 0.18rem 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -649,7 +649,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   flex-wrap: wrap;
   gap: 0.35rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -681,7 +681,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 }
 .topic-card-stats dt {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
@@ -704,14 +704,14 @@ async function handleDeleteTopic(topic: ForumTopic) {
 }
 .topic-card-last-eyebrow {
   margin: 0;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
 .topic-card-last-line {
   margin: 0;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
   color: rgb(var(--fg-default));
 }
@@ -842,7 +842,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   gap: 0.5rem;
   padding: 0.55rem 1rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;

@@ -295,7 +295,7 @@
                 <input
                   type="range"
                   class="token-range"
-                  min="0"
+                  :min="def.min ?? 0"
                   :max="def.max ?? 1"
                   step="0.05"
                   :value="draft.tokens[def.key] ?? baseValue(def.key)"
@@ -501,6 +501,7 @@ const GROUP_ORDER: TokenGroup[] = [
   'semantic',
   'elevation',
   'shape',
+  'density',
   'motion',
   'chrome',
   'ambience',
@@ -850,7 +851,7 @@ function roleNames(ids: string[] | null): string {
 <style scoped>
 .field-label {
   display: block;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -860,7 +861,7 @@ function roleNames(ids: string[] | null): string {
 .field-help {
   display: block;
   margin-top: 0.25rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-subtle));
 }
 
@@ -889,14 +890,14 @@ function roleNames(ids: string[] | null): string {
 .theme-name { font-weight: 600; font-size: 0.875rem; }
 .theme-slug {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-faint));
 }
 
 .theme-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; flex: none; }
 .theme-badge {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 0.15rem 0.4rem;
@@ -926,7 +927,7 @@ function roleNames(ids: string[] | null): string {
   align-items: center;
   gap: 0.4rem;
   width: 100%;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -960,7 +961,7 @@ function roleNames(ids: string[] | null): string {
 .token-field--overridden { border-left-color: rgb(var(--accent) / 0.7); }
 .token-key {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-subtle));
   flex: 1;
   min-width: 0;
@@ -979,7 +980,7 @@ function roleNames(ids: string[] | null): string {
   cursor: pointer;
 }
 .token-triplet { width: 7rem; flex: none; }
-.input-xs { padding: 0.2rem 0.4rem; font-size: 11px; }
+.input-xs { padding: 0.2rem 0.4rem; font-size: 0.6875rem; }
 .token-reset { padding: 0.2rem; color: rgb(var(--fg-faint)); flex: none; }
 .token-reset:hover { color: rgb(var(--fg-default)); }
 
@@ -988,7 +989,7 @@ function roleNames(ids: string[] | null): string {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
   padding: 0.25rem 0.5rem;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
@@ -998,7 +999,7 @@ function roleNames(ids: string[] | null): string {
 .notice {
   display: flex;
   gap: 0.5rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
   line-height: 1.5;
   color: rgb(var(--fg-muted));
   background: rgb(var(--info) / 0.08);

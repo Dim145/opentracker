@@ -260,7 +260,7 @@ function descFor(row: NotificationRow): string {
 }
 .np-eyebrow {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -291,7 +291,7 @@ function descFor(row: NotificationRow): string {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-surface));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -322,7 +322,7 @@ function descFor(row: NotificationRow): string {
   height: 1rem;
   background: rgb(var(--bg-base) / 0.4);
   border-radius: var(--radius-pill);
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0;
 }
 
@@ -346,7 +346,7 @@ function descFor(row: NotificationRow): string {
   align-items: center;
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -460,7 +460,7 @@ function descFor(row: NotificationRow): string {
   display: flex;
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-faint));
 }
 .np-row-meta-sep {
@@ -490,7 +490,7 @@ function descFor(row: NotificationRow): string {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;

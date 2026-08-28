@@ -965,7 +965,7 @@ async function discard() {
   align-items: center;
   gap: 0.6rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -978,7 +978,7 @@ async function discard() {
   background: rgb(var(--accent-warm));
 }
 .preview-tick {
-  font-size: 9px;
+  font-size: 0.5625rem;
   color: rgba(108, 209, 97, 0.85);
   animation: pulse calc(2.4s * var(--motion-scale)) ease-in-out infinite;
 }
@@ -1005,7 +1005,7 @@ async function discard() {
   align-items: center;
   gap: 0.4rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1091,7 +1091,7 @@ async function discard() {
 .nav-name :deep(strong) { font-weight: 800; }
 .nav-subtitle {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   letter-spacing: 0.05em;
   line-height: 1.3;
@@ -1142,7 +1142,7 @@ async function discard() {
 }
 .tab-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-strong));
   white-space: nowrap;
   overflow: hidden;
@@ -1150,7 +1150,7 @@ async function discard() {
   min-width: 0;
 }
 .tab-close {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   opacity: 0.6;
 }
@@ -1165,7 +1165,7 @@ async function discard() {
   border-top: 0;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   position: relative;
   z-index: 0;
@@ -1204,7 +1204,7 @@ async function discard() {
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   border-radius: var(--radius-pill);
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1287,7 +1287,7 @@ async function discard() {
 }
 .block-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   color: rgb(var(--accent-warm));
@@ -1326,7 +1326,7 @@ async function discard() {
 }
 .field-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1448,7 +1448,7 @@ async function discard() {
 }
 .aux-toggle-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1473,7 +1473,7 @@ async function discard() {
   border: 0;
   padding: 0.45rem 0.9rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1514,7 +1514,7 @@ async function discard() {
 }
 .quick-icons-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1587,7 +1587,7 @@ async function discard() {
 }
 .dropfile-path {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
   overflow: hidden;
@@ -1656,7 +1656,7 @@ async function discard() {
 }
 .features-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1687,7 +1687,7 @@ async function discard() {
 }
 .feature-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   color: rgb(var(--accent-warm));
@@ -1707,7 +1707,7 @@ async function discard() {
 }
 .feature-sublabel {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1737,7 +1737,7 @@ async function discard() {
   align-items: center;
   gap: 0.4rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;

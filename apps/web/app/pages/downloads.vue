@@ -385,7 +385,7 @@ watch(
 .dl-eyebrow {
   margin: 0 0 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -402,7 +402,7 @@ watch(
 .dl-blurb {
   margin: 0.4rem 0 0;
   max-width: 56ch;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -411,7 +411,7 @@ watch(
   align-items: center;
   gap: 0.65rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -505,7 +505,7 @@ watch(
   gap: 0.3rem;
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -513,14 +513,14 @@ watch(
   width: max-content;
 }
 .dl-row-cat-icon {
-  font-size: 10.5px;
+  font-size: 0.6563rem;
 }
 /* Resolved TMDb title — same look as the eyebrow row above with the
    category, but elevated to the row's primary text. The filename
    below shrinks to a mono caption when it lives next to a real title. */
 .dl-row-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: rgb(var(--fg-strong));
@@ -539,7 +539,7 @@ watch(
 .dl-row-name {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   font-weight: 600;
   color: rgb(var(--fg-default));
   overflow: hidden;
@@ -547,7 +547,7 @@ watch(
   white-space: nowrap;
 }
 .dl-row-name--secondary {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   color: rgb(var(--fg-muted));
 }
@@ -558,7 +558,7 @@ watch(
   gap: 0.4rem;
   flex-wrap: wrap;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
 }
 .dl-row-meta-sep {
@@ -609,7 +609,7 @@ watch(
   align-items: center;
   gap: 0.3rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -617,7 +617,7 @@ watch(
 }
 .dl-byte-val {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
@@ -643,7 +643,7 @@ watch(
 }
 .dl-empty h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -651,7 +651,7 @@ watch(
 }
 .dl-empty p {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: rgb(var(--fg-muted));
   max-width: 44ch;
   line-height: 1.55;
@@ -662,7 +662,7 @@ watch(
   gap: 0.45rem;
   padding: 0.5rem 0.9rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -690,7 +690,7 @@ watch(
 .dl-foot-summary {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));

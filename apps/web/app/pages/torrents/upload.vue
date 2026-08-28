@@ -1315,7 +1315,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
 }
 .drop-clear {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: rgb(var(--fg-muted));
@@ -1343,14 +1343,14 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
 }
 .drop-mini-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
 }
 
 /* ─── Field hint + required marker ──────────────────────────── */
 .field-hint {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-size: 0.5625rem;
   letter-spacing: 0.12em;
   text-transform: none;
   color: rgb(var(--fg-muted));
@@ -1491,7 +1491,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   gap: 1rem;
 }
 .result-meta dt {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1507,7 +1507,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
 }
 .result-meta code {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .result-actions {
   display: flex;
@@ -1523,7 +1523,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.85rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;

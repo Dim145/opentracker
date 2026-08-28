@@ -1101,7 +1101,7 @@ async function saveRouting(silent = false) {
 }
 .ns-block-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   color: rgb(var(--accent-warm));
@@ -1126,7 +1126,7 @@ async function saveRouting(silent = false) {
 }
 .ns-block-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
@@ -1258,7 +1258,7 @@ async function saveRouting(silent = false) {
 }
 .dest-target {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   color: rgb(var(--fg-muted));
   background: transparent;
   padding: 0;
@@ -1273,7 +1273,7 @@ async function saveRouting(silent = false) {
 
 .dest-status {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 700;
@@ -1396,7 +1396,7 @@ async function saveRouting(silent = false) {
 }
 .dest-pub code {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   background: rgb(var(--bg-base) / 0.6);
   padding: 0.12rem 0.4rem;
   border-radius: var(--radius-sm);
@@ -1431,7 +1431,7 @@ async function saveRouting(silent = false) {
 }
 .field-opt {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
@@ -1671,7 +1671,7 @@ async function saveRouting(silent = false) {
 }
 .cat-stat {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
@@ -1775,7 +1775,7 @@ async function saveRouting(silent = false) {
   align-items: center;
   gap: 0.4rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
   color: rgb(var(--fg-strong));
   background: rgb(var(--bg-base));
