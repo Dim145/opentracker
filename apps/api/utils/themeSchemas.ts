@@ -52,9 +52,12 @@ export const slugSchema = z
  * the constraint makes the bad state unrepresentable, and this makes the refusal
  * a sentence an admin can read instead of a 500 from Postgres.
  */
-const visibilitySchema = z
+function visibilityShape(required: boolean) {
+  return z
   .object({
-    visibility: z.enum(['site', 'roles']).default('site'),
+    visibility: required
+      ? z.enum(['site', 'roles'])
+      : z.enum(['site', 'roles']).default('site'),
     requiredRoles: z.array(z.string().uuid()).max(20).optional().nullable(),
   })
   .refine(
@@ -68,6 +71,23 @@ const visibilitySchema = z
     message: 'A theme available to everyone cannot also require a role',
     path: ['requiredRoles'],
   });
+}
+
+/**
+ * Create may omit it and get `site`; UPDATE may not.
+ *
+ * The difference is not symmetry, it is a data-loss bug found in review. The
+ * update route writes `visibility` unconditionally — deliberately, because the
+ * pair only makes sense together — so a default of `site` turned "the caller
+ * did not mention visibility" into "make this theme public", silently
+ * un-gating a role-reserved theme on any partial update. Requiring it makes
+ * that a 400 instead.
+ *
+ * A new theme is different: nothing is being downgraded, and `site` is the
+ * right answer to a question nobody asked.
+ */
+const createVisibility = visibilityShape(false);
+const updateVisibility = visibilityShape(true);
 
 const themeFields = {
   name: z.string().trim().min(1).max(60),
@@ -93,7 +113,7 @@ export const createThemeSchema = z
     /** Start from this theme's tokens. `light`/`dark` included. */
     duplicateOf: z.string().max(64).optional(),
   })
-  .and(visibilitySchema);
+  .and(createVisibility);
 
 export const updateThemeSchema = z
   .object({
@@ -104,7 +124,7 @@ export const updateThemeSchema = z
   // Visibility is always sent as a pair, even on a partial update, because the
   // two fields only make sense together — accepting `visibility: 'roles'` on its
   // own would mean guessing which roles the admin meant.
-  .and(visibilitySchema);
+  .and(updateVisibility);
 
 /**
  * The site default and the two halves of `system` mode.
