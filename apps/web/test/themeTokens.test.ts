@@ -472,3 +472,43 @@ describe('no token value can carry CSS syntax', () => {
     expect(THEME_TOKENS.length).toBeGreaterThanOrEqual(47);
   });
 });
+
+// ── Every token is explained, in every language ──────────────────────────
+//
+// The names are the editor's weak point: `--bg-inset` and `--fg-subtle` are
+// clear once you know the system and opaque before that, and an admin guesses by
+// changing one and watching. The hover hint is what replaces the guessing, so a
+// token without one is a token that stays a mystery — and the way that happens
+// is somebody adding the 48th token and not the 48th sentence.
+describe('token hints', () => {
+  const locales = ['en', 'fr'] as const;
+  const messages = Object.fromEntries(
+    locales.map((l) => [
+      l,
+      JSON.parse(
+        readFileSync(
+          fileURLToPath(new URL(`../i18n/locales/${l}.json`, import.meta.url)),
+          'utf8',
+        ),
+      ).admin.themes.tokenHints as Record<string, string>,
+    ]),
+  );
+
+  it.each(locales)('%s explains all of them', (locale) => {
+    const hints = messages[locale]!;
+    const missing = THEME_TOKENS.map((d) => d.key).filter((k) => !hints[k]?.trim());
+    expect(missing, `no ${locale} hint`).toEqual([]);
+  });
+
+  it.each(locales)('%s has no hint for a token that no longer exists', (locale) => {
+    const keys = new Set(THEME_TOKENS.map((d) => d.key));
+    expect(Object.keys(messages[locale]!).filter((k) => !keys.has(k))).toEqual([]);
+  });
+
+  it('says something different about each one', () => {
+    // Copy-paste is the failure mode here: forty-seven rows of the same
+    // sentence would pass every check above and help nobody.
+    const values = Object.values(messages.en!);
+    expect(new Set(values).size).toBe(values.length);
+  });
+});
