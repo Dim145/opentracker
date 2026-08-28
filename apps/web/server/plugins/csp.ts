@@ -35,11 +35,15 @@ function buildPolicy(nonce: string): string {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval'`,
-    // See the note above: styles stay permissive on purpose.
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    // See the note above: styles stay permissive on purpose. The
+    // `fonts.googleapis.com` origin that used to be here is gone — `@nuxt/fonts`
+    // downloads the faces at build time and serves them from `/_fonts/`, so
+    // `'self'` covers both the stylesheet and the files.
+    "style-src 'self' 'unsafe-inline'",
     // Remote posters and banners come from arbitrary image hosts.
     "img-src 'self' data: https:",
-    "font-src 'self' data: https://fonts.gstatic.com",
+    // `fonts.gstatic.com` likewise. `data:` stays for the icon sets.
+    "font-src 'self' data:",
     // Narrowed from `'self' https:`. Every XHR the client makes goes to our
     // own API — metadata lookups are proxied server-side so the TMDb key
     // never reaches the browser. Leaving `https:` here meant that after an

@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "@iconify-json/ph": "^1.2.2",
+    "@nuxt/fonts": "^0.14.0",
     "@nuxt/icon": "^2.5.0",
     "@types/turndown": "^5.0.6",
     "vitest": "^4.1.10"

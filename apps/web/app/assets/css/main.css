@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -32,7 +30,12 @@
   --fg-default:     250 250 250;
   --fg-strong:      255 255 255;
   --fg-muted:       161 161 161;
-  --fg-subtle:      112 112 112;
+  /* 121, not 112: 112 gave 4.00:1 on `--bg-base` and this token is a TEXT
+     colour (`.eyebrow`, the data-table head). Nine points of grey buys 4.55:1
+     and is not perceptible next to the old value. Same class of defect as the
+     `--fg-faint` note below, found by the contrast gate the theme system needs
+     anyway. */
+  --fg-subtle:      121 121 121;
   /* Bumped from 74/74/74 (~1.84:1 on bg-base — WCAG fail) up to
      130/130/130 (~5.2:1 on bg-base) so the dozen-or-so mono micro
      labels using --fg-faint as a text colour stay legible. */
@@ -53,10 +56,43 @@
   --danger:         239 68 68;
   --info:           56 189 248;
 
-  /* Static colour values that need to be invariant per theme go here. The
-     dot-grid pattern uses theme-tinted whites/blacks, so it lives outside
-     the rgb() pattern. */
-  --bg-pattern:     rgba(255, 255, 255, 0.025);
+  /* Chrome. `--focus-ring` is new and its default IS the gold that used to be
+     hardcoded in an unlayered rule at the bottom of this file — so nothing
+     changes visually, the ring simply becomes something a theme can reach.
+     `color-scheme` is what makes scrollbars, `<select>` and the native form
+     widgets follow the theme; without it a dark custom theme keeps pale
+     scrollbars. */
+  --focus-ring:     212 167 52;
+  --color-scheme:   dark;
+
+  /* The body dot-grid, as a triplet plus an alpha rather than one `rgba()`.
+     Two values can be validated exactly — three integers and a decimal — where
+     one could only be validated as "some colour", and the pattern becomes
+     tintable instead of being a hardcoded near-transparent white. */
+  --bg-pattern-rgb:   255 255 255;
+  --bg-pattern-alpha: 0.025;
+  --bg-pattern:     rgb(var(--bg-pattern-rgb) / var(--bg-pattern-alpha));
+
+  /* Ambience.
+
+     `--accent-warm` is the gold this site is recognised by, and it is no longer
+     a reserved name: wave 1 converted the 590 component sites that painted
+     `#d4a734` or `rgba(212, 167, 52, …)` directly, so this is now what moves
+     every primary button, badge, hover glow and highlight border outside the
+     shared layer. Its value is unchanged, so nothing looks different — the
+     literals simply became reachable. `--accent-warm-fg` is the mark drawn on
+     that fill; one near-black serves both built-ins (7.8:1 on the dark theme's
+     gold, 5.2:1 on the light theme's darker gold).
+
+     `--accent-cool` and `--accent-paper` are still held for later: they name
+     the per-page palettes that 22 components define for themselves (`--gold`,
+     `--ink`, `--brass`, `--gild`, `--parchment`…). Declaring them here means a
+     theme authored today stays valid when those 111 definitions are replaced,
+     and a theme file can already set them by hand. */
+  --accent-warm:    212 167 52;
+  --accent-warm-fg: 26 26 26;
+  --accent-cool:    52 212 216;
+  --accent-paper:   20 20 20;
 
   /* Typography. `--font-mono` has to exist here because 52 declarations
      across 11 components already ask for it, and it had never been defined:
@@ -67,11 +103,28 @@
      Kept identical to tailwind.config.ts `fontFamily.mono` so the token and
      the `font-mono` utility can never drift apart. */
   --font-mono:      'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  /* The other two roles, named for the same reason. `--font-sans` had never
+     existed even though `tailwind.config.ts` declared the stack, so a theme had
+     nothing to reach for; `--font-display` existed only inside
+     FreeleechPool.vue, pointing at 'Iowan Old Style' — a face this site never
+     loads — while the `.font-display` utility below and some eighty
+     declarations across a dozen pages spell Fraunces out by hand with four
+     different fallback stacks. All three are now one name each, kept identical
+     to what `tailwind.config.ts` resolves so a token and its utility cannot
+     drift. Wave 3 is what lets an admin change them. */
+  --font-sans:      'Inter', system-ui, sans-serif;
+  --font-display:   'Fraunces', 'Times New Roman', serif;
 
   /* Spacing tokens */
   --header-h:       56px;
-  --announcement-h: 0px;
-  --header-total:   calc(var(--header-h) + var(--announcement-h));
+  /* `--header-total` is what sticky offsets should use. It equals `--header-h`,
+     and that is not a placeholder: it used to add an `--announcement-h` that
+     nothing ever wrote, and nothing should — the announcement banner sits in
+     normal flow BELOW the sticky header, so it pushes the page down on its own
+     and scrolls away, leaving the header the only fixed chrome. The name is
+     kept because the offset is a real concept and three declarations in
+     upload-form.css depend on it; the term that was always zero is gone. */
+  --header-total:   var(--header-h);
   --container-pad:  1rem;
   --container-max:  1400px;
 
@@ -94,8 +147,19 @@
   --fg-default:     10 10 10;
   --fg-strong:      0 0 0;
   --fg-muted:       85 85 85;
-  --fg-subtle:      118 118 118;
-  --fg-faint:       176 176 176;
+  --fg-subtle:      115 115 115;
+  /* 115, down from 176 — the biggest visible change in this file, and a bug
+     fix rather than a preference. 176 on `--bg-base` is **2.08:1**, which is
+     unreadable, and it is the same defect the dark theme already had: the note
+     above records `--fg-faint` being raised from 1.84:1 to 5.2:1 there for
+     exactly these mono micro labels. Light was never measured. It is also the
+     placeholder colour (`.input::placeholder`), so the failure was on every
+     form on the site.
+
+     Light-mode micro labels and placeholders are therefore noticeably darker
+     than before. That is the point: at 2.08:1 they were decorative, not
+     legible. */
+  --fg-faint:       115 115 115;
 
   --line-default:   229 229 229;
   --line-strong:    208 208 208;
@@ -109,7 +173,16 @@
   --danger:         185 28 28;
   --info:           3 105 161;
 
-  --bg-pattern:     rgba(0, 0, 0, 0.04);
+  --focus-ring:     176 133 24;
+  --color-scheme:   light;
+
+  --bg-pattern-rgb:   0 0 0;
+  --bg-pattern-alpha: 0.04;
+
+  --accent-warm:    176 133 24;
+  --accent-warm-fg: 26 26 26;
+  --accent-cool:    14 145 148;
+  --accent-paper:   252 250 245;
 
   --shadow-overlay: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
   --shadow-popover: 0 12px 32px -8px rgba(0, 0, 0, 0.12);
@@ -124,6 +197,12 @@
     @apply antialiased;
     background-color: rgb(var(--bg-base));
     color: rgb(var(--fg-default));
+    /* What makes the NATIVE widgets follow the theme: scrollbars, `<select>`
+     * popups, date pickers, the caret. It was never set, so a dark page has
+     * been rendering light scrollbars all along — and a custom theme built on
+     * `dark` that reads light would get it exactly backwards without a token to
+     * say which it is. */
+    color-scheme: var(--color-scheme);
   }
 
   body {
@@ -155,14 +234,29 @@
   ::-webkit-scrollbar-thumb:hover { background: rgb(var(--line-strong)); }
 
   /* Focus ring — thin, keyboard only */
+  /* One focus ring, from one token, for everything.
+   *
+   * There used to be two rules that disagreed. This one painted
+   * `rgb(var(--accent))` and then removed the outline again for inputs; a
+   * second, UNLAYERED rule at the bottom of the file painted
+   * `outline: 2px solid #d4a734` on button/a/[role=button]/input/select/
+   * textarea. Being outside `@layer`, the second one won — so the token-driven
+   * rule was dead for every selector anybody actually focuses, and the ring was
+   * a literal no theme could reach.
+   *
+   * Now: `--focus-ring`, defaulting to that same gold, applied to everything.
+   * The six selectors the old rule listed look identical to before. Anything
+   * else focusable (a `tabindex` div, a summary) changes from the monochrome
+   * accent to the gold — which is the consistency the two rules were failing to
+   * express, not a regression.
+   *
+   * `outline` cannot be turned off here: 2.4.11 needs a visible focus
+   * indicator, and "inputs are obvious enough" is how sites end up with none. */
   :focus-visible {
-    outline: 2px solid rgb(var(--accent));
+    outline: 2px solid rgb(var(--focus-ring));
     outline-offset: 2px;
     border-radius: 2px;
   }
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible { outline: none; }
 
   /* Tabular numbers everywhere we present quantities */
   table,
@@ -179,7 +273,7 @@
      same family does the masthead at 60 px and the topic byline at 14 px
      without crunching. The `.font-display` utility opts elements in. */
   .font-display {
-    font-family: 'Fraunces', 'Times New Roman', serif;
+    font-family: var(--font-display);
     font-feature-settings: 'liga' 1, 'dlig' 1, 'ss01' 1;
     font-optical-sizing: auto;
   }
@@ -512,12 +606,3 @@
   }
 }
 
-button:focus-visible,
-a:focus-visible,
-[role='button']:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid #d4a734;
-  outline-offset: 2px;
-}

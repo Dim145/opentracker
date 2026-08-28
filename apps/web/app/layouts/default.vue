@@ -29,7 +29,7 @@
       class="sticky top-0 z-30 border-b border-border backdrop-blur-md app-header"
     >
       <div
-        class="max-w-[1400px] mx-auto px-3 sm:px-4 flex items-center justify-between gap-3"
+        class="max-w-[var(--container-max)] mx-auto px-3 sm:px-4 flex items-center justify-between gap-3"
         style="height: var(--header-h);"
       >
         <NuxtLink to="/" class="flex items-center gap-2.5 group min-w-0">
@@ -655,7 +655,7 @@
           ]"
         >
           <div
-            class="max-w-[1400px] mx-auto px-4 py-2.5 flex items-center gap-3"
+            class="max-w-[var(--container-max)] mx-auto px-4 py-2.5 flex items-center gap-3"
           >
             <Icon
               :name="announcementStyles[announcement.type || 'info'].icon"
@@ -691,7 +691,7 @@
     </ClientOnly>
 
     <!-- Main Content -->
-    <main class="flex-grow max-w-[1400px] w-full mx-auto px-4 py-6">
+    <main class="flex-grow max-w-[var(--container-max)] w-full mx-auto px-4 py-6">
       <slot />
     </main>
 
@@ -706,7 +706,7 @@
     <!-- Footer -->
     <footer class="border-t border-border mt-auto py-6 bg-bg-secondary/30">
       <div
-        class="max-w-[1400px] mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4"
+        class="max-w-[var(--container-max)] mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4"
       >
         <div
           class="flex items-center gap-4 text-[10px] text-text-muted font-mono uppercase tracking-widest"

@@ -3,7 +3,30 @@
  * Keep this module pure (no DB, no h3, no Nuxt) — it's bundled both server- and client-side.
  */
 
-export type ThemePreference = 'light' | 'dark';
+/**
+ * The two themes that ship with the application, as code constants.
+ *
+ * They are not rows: nothing in the admin console can edit or delete them, so
+ * an instance always has at least one working appearance to fall back to. The
+ * admin-defined themes live in the `themes` table and are named by slug.
+ */
+export const BUILT_IN_THEMES = ['light', 'dark'] as const;
+export type BuiltInTheme = (typeof BUILT_IN_THEMES)[number];
+
+/** Follow the operating system's light/dark preference. */
+export const SYSTEM_THEME = 'system';
+
+/**
+ * What `users.theme` may hold: `'system'`, a built-in, or the slug of an
+ * admin-defined theme.
+ *
+ * Deliberately `string` rather than a union. The set of valid values lives in
+ * the database and changes while the application is running, so a type cannot
+ * express it — the check has to be a runtime one against the enabled themes,
+ * and pretending otherwise would put a reassuring union in front of an
+ * unvalidated write. `PATCH /api/me` is where that check lives.
+ */
+export type ThemePreference = string;
 
 /**
  * Columns the catalogue listing can be ordered by. Every entry corresponds to a

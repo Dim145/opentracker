@@ -74,7 +74,97 @@ export default defineNuxtConfig({
       : {}),
   },
 
-  modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@nuxt/icon', '@nuxtjs/i18n'],
+  modules: [
+    '@pinia/nuxt',
+    '@nuxtjs/tailwindcss',
+    '@nuxt/icon',
+    '@nuxtjs/i18n',
+    '@nuxt/fonts',
+  ],
+
+  // Fonts — self-hosted, and deliberately NOT plug-and-play.
+  //
+  // ## Why self-host at all
+  //
+  // `main.css` used to open with an `@import` to `fonts.googleapis.com`, which
+  // meant the IP of every visitor reached Google on every page load. On a
+  // private tracker that is a privacy leak rather than a performance question,
+  // and it is what forced two third-party origins into the CSP
+  // (`fonts.googleapis.com` in `style-src`, `fonts.gstatic.com` in `font-src`).
+  // Both are gone now — see `server/plugins/csp.ts` and
+  // `docker/static/nginx.conf`. The module downloads the faces at build time
+  // and serves them from `/_fonts/`, so the running site talks to nobody.
+  //
+  // ## Why every family is listed by hand
+  //
+  // The module detects `font-family` in CSS — including inside `--font-*`
+  // custom properties, which is where this codebase's three stacks now live —
+  // and resolves what it finds against its providers. Left to itself that is
+  // wrong here in both directions:
+  //
+  //   - This codebase NAMES four families it has never loaded, and Google
+  //     serves all four: `Source Serif 4`, `IBM Plex Mono`, `Fira Code` and
+  //     `Cascadia Code`. Auto-detection would start downloading them, so
+  //     self-hosting would have made the site heavier. They are pinned to
+  //     `provider: 'none'` — the fallback chain behind them is what has always
+  //     rendered, and that is left exactly as it was.
+  //   - The system faces further down those chains (`Charter`, `Iowan Old
+  //     Style`, `Palatino`…) resolve to nothing anywhere, and `throwOnError`
+  //     is true at build time. Naming them costs one line each and removes the
+  //     question.
+  //
+  // ## Weights and subsets
+  //
+  // Both are what the `@import` actually asked for, not the module's defaults.
+  // The defaults would have pulled seven subsets — Cyrillic, Greek, Vietnamese
+  // — for a site with two locales, and a `400 700` variable range for faces
+  // this site uses at fixed weights.
+  //
+  // One thing NOT done here on purpose: the site writes `font-weight: 800`
+  // 191 times and `900` 22 times while Inter is loaded at 400-700, so those
+  // render as synthetic bold. Loading a real 800 would fix the fidelity and
+  // change line breaks on a hundred pages, which is a typography decision for
+  // wave 3, not a side effect of moving the hosting.
+  //
+  // ## The cost, stated plainly
+  //
+  // The privacy win moves the Google dependency from every page view to every
+  // BUILD. `throwOnError` defaults to true when building, so a Google outage,
+  // a rate-limit or an offline machine FAILS the build rather than quietly
+  // shipping an image with no faces — which is the right way round, but it does
+  // mean a release now needs network. 336 kB across eight `.woff2`, cached in
+  // `node_modules/.cache/nuxt/fonts` between builds on the same machine and
+  // therefore cold on a CI runner. The alternative was committing the files, and
+  // it is still the escape hatch if that ever bites: `provider: 'local'` with
+  // the faces under `public/fonts/`.
+  //
+  // It also means the faces are not pinned. Google can reship a family and two
+  // builds of the same tag will not be byte-identical — out of character for a
+  // repository that pins `postgres:18.6-alpine` and hand-edits migration SQL for
+  // determinism. Accepted for the privacy win and because wave 3 needs a
+  // provider that can resolve families this repository has never seen.
+  fonts: {
+    defaults: {
+      subsets: ['latin', 'latin-ext'],
+      styles: ['normal', 'italic'],
+    },
+    families: [
+      { name: 'Inter', provider: 'google', weights: [400, 500, 600, 700], styles: ['normal'] },
+      { name: 'JetBrains Mono', provider: 'google', weights: [400, 500], styles: ['normal'] },
+      // Variable, and used italic at every size from a 14px byline to a 60px
+      // masthead — hence the full axis rather than a weight list.
+      { name: 'Fraunces', provider: 'google', weights: ['400 900'] },
+      // Named in the fallback chains, never loaded. Keep it that way.
+      { name: 'Source Serif 4', provider: 'none' },
+      { name: 'IBM Plex Mono', provider: 'none' },
+      { name: 'Fira Code', provider: 'none' },
+      { name: 'Cascadia Code', provider: 'none' },
+      { name: 'Charter', provider: 'none' },
+      { name: 'Iowan Old Style', provider: 'none' },
+      { name: 'Palatino Linotype', provider: 'none' },
+      { name: 'Palatino', provider: 'none' },
+    ],
+  },
 
   // i18n — see doc/guide/i18n.md for the pattern.
   //

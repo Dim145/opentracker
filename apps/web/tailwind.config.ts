@@ -73,9 +73,16 @@ export default {
         danger:  'rgb(var(--danger) / <alpha-value>)',
         info:    'rgb(var(--info) / <alpha-value>)',
       },
+      // The stacks live in `main.css` as `--font-sans` / `--font-mono` /
+      // `--font-display`, and these utilities read them rather than restating
+      // them. Two copies of a font stack is how you end up with `font-mono`
+      // and `var(--font-mono)` rendering two different faces, which is exactly
+      // what this codebase had.
+      // No `display` entry: `main.css` already defines `.font-display` by hand,
+      // with the feature settings and optical sizing a utility would not carry.
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'ui-monospace', 'monospace'],
+        sans: 'var(--font-sans)',
+        mono: 'var(--font-mono)',
       },
       fontSize: {
         '2xs': ['0.65rem', { lineHeight: '0.85rem' }],
