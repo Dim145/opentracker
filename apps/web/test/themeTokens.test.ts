@@ -129,6 +129,9 @@ describe('the schema and the stylesheet agree', () => {
       'font-mono',
       'font-display',
       'bg-pattern',
+      // Derived from the `bg-pattern-kind` enum by the emitter, because CSS
+      // cannot select a `background-image` by the value of a custom property.
+      'bg-pattern-image',
     ]);
     const unknown = Object.keys(dark).filter(
       (k) => !known.has(k) && !structural.has(k),

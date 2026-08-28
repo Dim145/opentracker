@@ -58,7 +58,7 @@ colour of every form field on the site at 2.08:1.
 
 ### What a theme can change
 
-Thirty-four values, grouped the way the editor groups them.
+Thirty-six values, grouped the way the editor groups them.
 
 | Group | Tokens |
 |---|---|
@@ -70,7 +70,7 @@ Thirty-four values, grouped the way the editor groups them.
 | Elevation | `shadow-color`, `shadow-strength` |
 | Shape | `radius`, `radius-pill` |
 | Motion | `motion-scale`, `ease-standard`, `ease-emphasis` |
-| Chrome | `focus-ring`, `bg-pattern-rgb`, `bg-pattern-alpha`, `color-scheme` |
+| Chrome | `focus-ring`, `bg-pattern-rgb`, `bg-pattern-alpha`, `bg-pattern-kind`, `bg-pattern-step`, `color-scheme` |
 | Ambience | `accent-cool`, `accent-paper` |
 
 Four notes on that table.
@@ -108,6 +108,19 @@ are refused: both accept argument lists of unbounded length, and neither
 expresses anything a bezier cannot. The one worth trying is an overshoot —
 `cubic-bezier(0.34, 1.56, 0.64, 1)` makes the whole interface feel springy, and
 it is the change an author is least likely to guess at.
+
+**The page background has three shapes, and `none` is one of them.**
+`bg-pattern-kind` is `dots`, `grid` or `none`; `bg-pattern-step` is its pitch,
+and `bg-pattern-rgb` / `bg-pattern-alpha` its tint. Before this the dot grid was
+unavoidable at any opacity above zero, and a theme that wanted a plain page had
+no way to say so.
+
+It is a closed list rather than a free-form image on purpose. CSS cannot select a
+`background-image` from the value of a custom property, so the name is mapped to
+a literal in code — which also means the only strings that ever reach the
+stylesheet are the three this application wrote. A free-form image would have
+accepted `url()`, and with remote images allowed for posters that is a channel
+for telling someone else's server who visited your tracker.
 
 **The ambience pair does nothing yet.** `accent-cool` and `accent-paper` are
 reserved names, emitted and stored but not yet read by the interface. They are

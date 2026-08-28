@@ -40,7 +40,11 @@ import {
   SYSTEM_THEME,
   type BuiltInTheme,
 } from '@trackarr/shared';
-import { resolveTokens, type TokenMap } from '@trackarr/shared/theme';
+import {
+  patternImage,
+  resolveTokens,
+  type TokenMap,
+} from '@trackarr/shared/theme';
 import { getSetting, setSetting, SETTINGS_KEYS } from './settings';
 
 /** See the module header for why this is ten and not "as many as you like". */
@@ -183,9 +187,17 @@ export function resolvePreference(
  * just a Tailwind convenience.
  */
 function declarations(tokens: TokenMap, indent = '  '): string {
-  return Object.entries(tokens)
-    .map(([key, value]) => `${indent}--${key}: ${value};`)
-    .join('\n');
+  const lines = Object.entries(tokens).map(
+    ([key, value]) => `${indent}--${key}: ${value};`,
+  );
+  // `bg-pattern-kind` is the only token whose effect CSS cannot express by
+  // itself: `background-image` cannot be selected by the value of a custom
+  // property. So the enum is mapped to a literal here, from a table in code,
+  // and the theme's block carries both. Every other token is its own value.
+  lines.push(
+    `${indent}--bg-pattern-image: ${patternImage(tokens['bg-pattern-kind'])};`,
+  );
+  return lines.join('\n');
 }
 
 function block(selector: string, tokens: TokenMap): string {

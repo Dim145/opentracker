@@ -183,6 +183,25 @@ export const THEME_TOKENS: readonly TokenDef[] = [
   // instead of being two hardcoded near-transparent whites.
   { key: 'bg-pattern-rgb', kind: 'rgb', group: 'chrome' },
   { key: 'bg-pattern-alpha', kind: 'alpha', group: 'chrome' },
+  // The geometry, not just the tint. `none` matters as much as the other two:
+  // plenty of themes want a plain page, and before this the dot grid was
+  // unavoidable at any opacity above zero.
+  //
+  // An enum rather than a free-form image, and that is what makes it safe. CSS
+  // cannot branch on the value of a custom property, so the emitter maps the
+  // name to a literal from `PATTERN_IMAGES` below and writes
+  // `--bg-pattern-image` alongside it. The database therefore holds one of
+  // three words, and the CSS comes from code — where a free-form
+  // `background-image` would have handed a theme `url()`, and with
+  // `img-src 'self' data: https:` in the CSP that is an exfiltration channel
+  // no validator could close.
+  {
+    key: 'bg-pattern-kind',
+    kind: 'enum',
+    group: 'chrome',
+    options: ['dots', 'grid', 'none'] as const,
+  },
+  { key: 'bg-pattern-step', kind: 'length', group: 'chrome', max: 400, units: ['px', 'rem'] },
   // Native controls — scrollbars, `<select>`, date pickers, form widgets. Set
   // as a token rather than derived from the base, because a custom theme built
   // on `dark` may well read as light and vice versa, and getting this wrong
@@ -248,6 +267,28 @@ export const THEME_TOKENS: readonly TokenDef[] = [
   { key: 'accent-paper', kind: 'rgb', group: 'ambience', reserved: true },
 ] as const;
 
+/**
+ * What each `bg-pattern-kind` actually paints.
+ *
+ * Kept here rather than in the emitter so the admin editor, the emitter and
+ * `main.css`'s built-ins all agree, and so the only thing that ever reaches CSS
+ * is one of these three strings. Each composes `--bg-pattern` (the tint) and
+ * `--bg-pattern-step` (the pitch), so a theme still controls colour and scale
+ * independently of geometry.
+ */
+export const PATTERN_IMAGES: Record<string, string> = {
+  dots: 'radial-gradient(circle at 2px 2px, var(--bg-pattern) 1px, transparent 0)',
+  grid:
+    'linear-gradient(to right, var(--bg-pattern) 1px, transparent 1px), ' +
+    'linear-gradient(to bottom, var(--bg-pattern) 1px, transparent 1px)',
+  none: 'none',
+};
+
+/** The literal for a kind, falling back to the dot grid. */
+export function patternImage(kind: string | undefined): string {
+  return PATTERN_IMAGES[kind ?? ''] ?? PATTERN_IMAGES.dots!;
+}
+
 export const THEME_TOKEN_KEYS: readonly string[] = THEME_TOKENS.map(
   (t) => t.key,
 );
@@ -289,6 +330,8 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'focus-ring': '212 167 52',
     'bg-pattern-rgb': '255 255 255',
     'bg-pattern-alpha': '0.025',
+    'bg-pattern-kind': 'dots',
+    'bg-pattern-step': '40px',
     'color-scheme': 'dark',
     'accent-warm': '212 167 52',
     'accent-warm-fg': '26 26 26',
@@ -325,6 +368,8 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'focus-ring': '176 133 24',
     'bg-pattern-rgb': '0 0 0',
     'bg-pattern-alpha': '0.04',
+    'bg-pattern-kind': 'dots',
+    'bg-pattern-step': '40px',
     'color-scheme': 'light',
     'accent-warm': '176 133 24',
     'accent-warm-fg': '26 26 26',

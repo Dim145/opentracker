@@ -72,6 +72,20 @@
   --bg-pattern-rgb:   255 255 255;
   --bg-pattern-alpha: 0.025;
   --bg-pattern:     rgb(var(--bg-pattern-rgb) / var(--bg-pattern-alpha));
+  /* Geometry and pitch. `--bg-pattern-image` is written from the
+     `bg-pattern-kind` token by the emitter — CSS cannot branch on the value of
+     a custom property, so the enum is mapped to a literal in code
+     (`PATTERN_IMAGES` in packages/shared/src/theme.ts) and the two built-ins
+     spell theirs out here. That indirection is the security boundary: a
+     free-form `background-image` would accept `url()`, and with
+     `img-src 'self' data: https:` in the CSP that is an exfiltration channel. */
+  --bg-pattern-kind: dots;
+  --bg-pattern-step: 40px;
+  --bg-pattern-image: radial-gradient(
+    circle at 2px 2px,
+    var(--bg-pattern) 1px,
+    transparent 0
+  );
 
   /* Ambience.
 
@@ -216,6 +230,8 @@
 
   --bg-pattern-rgb:   0 0 0;
   --bg-pattern-alpha: 0.04;
+  --bg-pattern-kind: dots;
+  --bg-pattern-step: 40px;
 
   --accent-warm:    176 133 24;
   --accent-warm-fg: 26 26 26;
@@ -250,14 +266,11 @@
   body {
     background-color: rgb(var(--bg-base));
     color: rgb(var(--fg-default));
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    /* Subtle dot grid */
-    background-image: radial-gradient(
-      circle at 2px 2px,
-      var(--bg-pattern) 1px,
-      transparent 0
-    );
-    background-size: 40px 40px;
+    /* Was `'Inter', system-ui, …` spelled out — a miss when the font roles were
+       named, and the one place it mattered most, since everything inherits it. */
+    font-family: var(--font-sans);
+    background-image: var(--bg-pattern-image);
+    background-size: var(--bg-pattern-step) var(--bg-pattern-step);
     -webkit-text-size-adjust: 100%;
   }
 

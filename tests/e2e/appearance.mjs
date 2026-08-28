@@ -62,6 +62,67 @@ console.log('\n1. a theme that moves every lever at once');
     /--bg-base:\s*10 10 10\s*;/.test(block));
 }
 
+// ── 1b. The pattern geometry, which CSS cannot select on its own ─────
+console.log('\n1b. background pattern geometry');
+{
+  await sleep(150);
+  const r = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Plain',
+      base: 'light',
+      duplicateOf: 'light',
+      tokens: { 'bg-pattern-kind': 'none', 'bg-pattern-step': '80px' },
+      enabled: true,
+      visibility: 'site',
+    },
+  });
+  check('created', r.status === 200 || r.status === 201, `status ${r.status}`);
+
+  const css = await sheet();
+  const plain = blockFor(css, 'e2e-plain');
+  check('the kind is stored as the enum', /--bg-pattern-kind:\s*none\s*;/.test(plain));
+  check('the emitter derived the image', /--bg-pattern-image:\s*none\s*;/.test(plain),
+    plain.slice(0, 160));
+  check('the step came through', /--bg-pattern-step:\s*80px\s*;/.test(plain));
+
+  // The default has to keep painting the dot grid, or every existing theme
+  // silently loses its background.
+  await sleep(150);
+  const g = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Graph',
+      base: 'dark',
+      duplicateOf: 'dark',
+      tokens: { 'bg-pattern-kind': 'grid' },
+      enabled: true,
+      visibility: 'site',
+    },
+  });
+  check('a grid theme is accepted', g.status === 200 || g.status === 201, `status ${g.status}`);
+  const grid = blockFor(await sheet(), 'e2e-graph');
+  check('the grid image is two linear-gradients',
+    (grid.match(/linear-gradient/g) ?? []).length === 2, grid.slice(0, 200));
+  check('the image still composes the tint and the step',
+    grid.includes('var(--bg-pattern)'), 'the tint is not referenced');
+
+  await sleep(150);
+  const bad = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Bad Pattern',
+      base: 'dark',
+      duplicateOf: 'dark',
+      // The whole reason the kind is an enum: this is what a free-form
+      // `background-image` would have accepted.
+      tokens: { 'bg-pattern-kind': 'url(https://evil.example/beacon.png)' },
+      visibility: 'site',
+    },
+  });
+  check('an image is not a kind', bad.status >= 400, `status ${bad.status}`);
+}
+
 // ── 2. What the validators refuse, refused over HTTP ─────────────────
 console.log('\n2. the route refuses what the schema refuses');
 {
