@@ -43,7 +43,14 @@ export interface BrandingPayload {
   // Already filtered to what this visitor may choose: a role-gated theme is
   // dropped server-side, because the session payload carries no roles for the
   // client to check against.
-  themes: Array<{ slug: string; name: string; base: 'light' | 'dark' }>;
+  themes: Array<{
+    slug: string;
+    name: string;
+    base: 'light' | 'dark';
+    /** RGB triplets, resolved server-side. See the note in `branding.get.ts`. */
+    accent: string;
+    bg: string;
+  }>;
 }
 
 export async function useBranding() {

@@ -298,7 +298,12 @@
                   :class="{ 'theme-btn--active': themeChoice === t.value }"
                   @click="setTheme(t.value)"
                 >
-                  <span class="theme-btn-dot" :style="{ background: t.dot }" />
+                  <span
+                    class="theme-btn-dot"
+                    :style="{
+                      background: `linear-gradient(135deg, ${t.dot.bg} 0 50%, ${t.dot.accent} 50% 100%)`,
+                    }"
+                  />
                   <span class="theme-btn-body">
                     <span class="theme-btn-label">
                       <Icon :name="t.icon" />
@@ -745,6 +750,8 @@ useHead({ title: () => t('settings.pageTitle') });
 // selected, and `mode` is the resolved value. A member on `Site default` when
 // the default is Nocturne has `mode === 'nocturne'` and `choice === null` — the
 // highlight belongs on `Site default`, not on Nocturne.
+import { BUILT_IN_TOKENS } from '@trackarr/shared/theme';
+
 const { choice: themeChoice, apply: applyTheme } = useColorMode();
 
 // ── Profile fetch ───────────────────────────────────────────────
@@ -933,25 +940,42 @@ interface ThemeOption {
   label: string;
   sub: string;
   icon: string;
-  dot: string;
+  /** The page colour and the accent, so one dot shows both halves. */
+  dot: { accent: string; bg: string };
 }
 
 const branding = await useBranding();
 
 /** `--accent` as the given theme would resolve it, or a neutral fallback. */
-function swatchFor(slug: string): string {
-  if (!import.meta.client) return 'transparent';
-  const probe = document.createElement('div');
-  probe.setAttribute('data-theme', slug);
-  // `display:none` would work for custom properties but not for anything that
-  // needs layout, and `visibility:hidden` keeps the element resolvable while
-  // costing nothing visible.
-  probe.style.cssText =
-    'position:absolute;left:-9999px;visibility:hidden;pointer-events:none';
-  document.documentElement.appendChild(probe);
-  const accent = getComputedStyle(probe).getPropertyValue('--accent').trim();
-  probe.remove();
-  return accent ? `rgb(${accent})` : 'transparent';
+/**
+ * The dot beside a theme's name, from the payload rather than from the DOM.
+ *
+ * It used to append a `<div data-theme="slug">` and read its computed
+ * `--accent`. That could never work: every rule is written
+ * `:root[data-theme='…']` and `:root` matches only `<html>`, so the probe
+ * matched nothing and inherited whatever theme was already on. Six options, six
+ * identical dots — and under SSR the probe cannot run at all, so the function
+ * returned `transparent` and Vue does not patch a `style` mismatch on
+ * hydration, leaving them permanently invisible.
+ *
+ * `/api/branding` now resolves `accent` and `bg` per theme. Same answer in both
+ * build shapes, no write to `document.documentElement`, and no forced style
+ * recalc from inside a `computed` getter once per option.
+ */
+function swatchFor(slug: string): { accent: string; bg: string } {
+  if (slug === 'system') {
+    // System is the two halves at once, so it gets the pair rather than a
+    // colour it does not have.
+    return { accent: 'transparent', bg: 'transparent' };
+  }
+  const built = BUILT_IN_TOKENS[slug as 'light' | 'dark'];
+  if (built) {
+    return { accent: `rgb(${built.accent})`, bg: `rgb(${built['bg-base']})` };
+  }
+  const t = branding.value?.themes.find((x) => x.slug === slug);
+  return t?.accent
+    ? { accent: `rgb(${t.accent})`, bg: `rgb(${t.bg})` }
+    : { accent: 'transparent', bg: 'transparent' };
 }
 
 const themes = computed<ThemeOption[]>(() => {
@@ -979,7 +1003,7 @@ const themes = computed<ThemeOption[]>(() => {
       label: 'System',
       sub: 'Follows your operating system',
       icon: 'ph:circle-half-bold',
-      dot: 'transparent',
+      dot: { accent: 'transparent', bg: 'transparent' },
     },
     {
       value: 'light',

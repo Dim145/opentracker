@@ -16,8 +16,11 @@ import {
   choosableFor,
   enabledThemes,
   getDefaultTheme,
+  getThemeVersion,
   roleIdsFor,
+  type ServableTheme,
 } from '~~/utils/themes';
+import { resolveTokens } from '@trackarr/shared/theme';
 
 /**
  * GET /api/branding
@@ -33,6 +36,37 @@ import {
  * exception is the member's role lookup, and it only happens on an instance that
  * has a role-gated theme; see the note on `themes` below.
  */
+/**
+ * The enabled themes, memoised on the theme version.
+ *
+ * `enabledThemes()` is a plain `SELECT`, and this route is awaited by the layout
+ * on EVERY page — so it was a query per page load, on the one endpoint whose
+ * docstring promises none. Review caught the contradiction.
+ *
+ * Cached HERE and not inside `enabledThemes()`, deliberately. That function is a
+ * data accessor with several callers, including the stylesheet builder and the
+ * test suites, and an accessor that quietly returns yesterday's rows is a trap
+ * for whoever writes the next path that forgets to bump the version. A route
+ * caching its own answer owns the staleness, and can say what it is.
+ *
+ * The key is the version counter every theme write bumps and `setSetting`
+ * propagates across replicas over Redis, so an edit reaches this within the
+ * settings cache's own TTL — the same envelope `/api/theme.css` already
+ * advertises with `max-age=60`. Reading the version is itself a cached read, so
+ * a hit costs nothing.
+ */
+let themeCache: { version: string; themes: readonly ServableTheme[] } | null = null;
+
+async function cachedEnabledThemes(): Promise<ServableTheme[]> {
+  const version = await getThemeVersion();
+  if (themeCache?.version !== version) {
+    themeCache = { version, themes: await enabledThemes() };
+  }
+  // A copy per caller: `choosableFor` does not mutate, and never handing out the
+  // cached array is the cheapest way to keep it that way.
+  return [...themeCache.themes];
+}
+
 export default defineEventHandler(async (event) => {
   const siteName = await getSiteName();
   const siteLogo = await getSiteLogo();
@@ -65,7 +99,7 @@ export default defineEventHandler(async (event) => {
   // regardless — see `themes.visibility` — and the enforcement that matters is
   // on the write path in `PATCH /api/me`. This is about not offering a member a
   // theme the server will then refuse to store.
-  const allThemes = await enabledThemes();
+  const allThemes = await cachedEnabledThemes();
   const userId = (await getUserSession(event)).user?.id;
   const themeList = allThemes.some((t) => t.visibility === 'roles')
     ? choosableFor(allThemes, userId ? await roleIdsFor(userId) : [])
@@ -91,10 +125,30 @@ export default defineEventHandler(async (event) => {
     // No `visibility` / `requiredRoles`: the list is already filtered, and
     // publishing which role unlocks which theme is information the picker has
     // no use for.
-    themes: themeList.map((t) => ({
-      slug: t.slug,
-      name: t.name,
-      base: t.base,
-    })),
+    //
+    // `accent` and `bg` ARE here, resolved server-side, and they replace a piece
+    // of client-side cleverness that never worked. The picker used to append a
+    // `<div data-theme="slug">` and read its computed `--accent` — but every
+    // rule is written `:root[data-theme='…']` and `:root` matches only `<html>`,
+    // so the probe matched nothing and inherited the CURRENT theme. Six options,
+    // six identical dots. Under SSR it was worse: the probe cannot run, the
+    // function returned `transparent`, and Vue does not patch a `style`
+    // mismatch on hydration, so the dots stayed invisible for good.
+    //
+    // Resolving here also removes a write to `document.documentElement` and a
+    // forced synchronous style recalc from inside a `computed` getter, once per
+    // option, on every render.
+    themes: themeList.map((t) => {
+      const tokens = resolveTokens(t.base, t.tokens);
+      return {
+        slug: t.slug,
+        name: t.name,
+        base: t.base,
+        // RGB triplets, the same convention the stylesheet uses, so the client
+        // wraps them in `rgb()` and nothing has to parse anything.
+        accent: tokens.accent ?? '',
+        bg: tokens['bg-base'] ?? '',
+      };
+    }),
   };
 });
