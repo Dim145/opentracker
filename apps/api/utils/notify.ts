@@ -18,7 +18,7 @@
  * cascade into the calling business-logic path. The row still lands
  * in Postgres because the DB write happens before the broadcast.
  */
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db, schema } from '@trackarr/db';
 import { redis } from '../redis/client';
@@ -352,29 +352,46 @@ export async function sweepNotificationsRetention(): Promise<{
   const readCutoff = new Date(Date.now() - readDays * 86_400_000);
   const unreadCutoff = new Date(Date.now() - unreadDays * 86_400_000);
 
-  const deletedRead = await db.execute(
-    sql`DELETE FROM ${schema.notifications}
-        WHERE read_at IS NOT NULL AND created_at < ${readCutoff}
-        RETURNING id`,
-  );
-  const deletedUnread = await db.execute(
-    sql`DELETE FROM ${schema.notifications}
-        WHERE read_at IS NULL AND created_at < ${unreadCutoff}
-        RETURNING id`,
-  );
+  // The query BUILDER, not a raw `sql` template, and that is the whole fix.
+  //
+  // This function threw on every run for as long as it has existed, including
+  // against an empty table — so the notifications table has never been pruned on
+  // any instance, whatever the operator set for the two retention settings. It
+  // was invisible because the caller wraps it in try/catch and a `console.warn`.
+  //
+  // What actually failed, measured rather than assumed: a JS `Date`
+  // interpolated into a raw `sql` template is rejected by the driver with
+  // `ERR_INVALID_ARG_TYPE` — a Node error, thrown client-side, before anything
+  // reaches Postgres. Adding `::timestamptz` does not help, which is the proof
+  // that the SQL was never the problem. `${cutoff.toISOString()}` works, and so
+  // does this: given the column, drizzle applies its `timestamp` mapper and
+  // binds a value the driver accepts.
+  //
+  // `.returning()` also removes the `rowCount`/`rows` sniffing the old version
+  // needed, because it gives back a plain array.
+  const deletedRead = await db
+    .delete(schema.notifications)
+    .where(
+      and(
+        isNotNull(schema.notifications.readAt),
+        lt(schema.notifications.createdAt, readCutoff),
+      ),
+    )
+    .returning({ id: schema.notifications.id });
 
-  // drizzle's `db.execute` returns a result shape that depends on
-  // the underlying driver; we read `rowCount` defensively.
-  const rc = (r: any): number =>
-    typeof r?.rowCount === 'number'
-      ? r.rowCount
-      : Array.isArray(r?.rows)
-        ? r.rows.length
-        : 0;
+  const deletedUnread = await db
+    .delete(schema.notifications)
+    .where(
+      and(
+        isNull(schema.notifications.readAt),
+        lt(schema.notifications.createdAt, unreadCutoff),
+      ),
+    )
+    .returning({ id: schema.notifications.id });
 
   return {
-    deletedRead: rc(deletedRead),
-    deletedUnread: rc(deletedUnread),
+    deletedRead: deletedRead.length,
+    deletedUnread: deletedUnread.length,
   };
 }
 

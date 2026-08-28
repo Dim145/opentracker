@@ -29,7 +29,20 @@ export default defineNitroPlugin(() => {
         );
       }
     } catch (err: any) {
-      console.warn('[NotifyRetention] sweep failed:', err.message);
+      // `console.error`, and the cause chain with it.
+      //
+      // This handler is why a sweep that failed on every run since the feature
+      // shipped went unnoticed: a `warn` carrying only `err.message` in a log
+      // nobody greps. And `err.message` was actively misleading — drizzle builds
+      // it by stringifying the ORIGINAL parameters, so it showed
+      // `Fri May 29 2026 …`, the Date's `toString()`, and pointed at a Postgres
+      // parse failure. The real error was `ERR_INVALID_ARG_TYPE`, thrown by the
+      // driver client-side, and it was only in `err.cause`.
+      console.error(
+        '[NotifyRetention] sweep failed:',
+        err?.message,
+        err?.cause ? `| cause: ${err.cause.code ?? ''} ${err.cause.message ?? err.cause}` : '',
+      );
     }
   };
 
