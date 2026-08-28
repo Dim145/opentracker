@@ -1,0 +1,183 @@
+# Themes
+
+Members pick an appearance in **Settings → Appearance**. Out of the box the list
+holds three entries: `Dark`, `Light` and `System`. This page is about the fourth
+onwards — the ones you create.
+
+Administrators author themes in **Admin → Themes**. A theme is a set of colour
+values that replaces part of the appearance; the two built-ins are the floor it
+stands on and are not editable, so there is always something correct to fall
+back to.
+
+## The three kinds of choice
+
+| The member picks | What they get |
+|---|---|
+| a theme by name | that theme, always, whatever their operating system says |
+| `System` | one of two themes you nominate, depending on the OS setting |
+| nothing yet | the site default you set |
+
+`System` is resolved by the browser, not by the server — a single
+`prefers-color-scheme` media query in the stylesheet. There is no request, no
+flash and no JavaScript involved, so it also follows the OS live: a member who
+switches their desktop to dark mode sees the site change under them without
+reloading.
+
+The two halves of `System` must be **different themes**. The form refuses to save
+them equal, because a system mode that resolves to one appearance whichever way
+the OS is set is not a system mode — it is a confusing way to pick a theme.
+
+## Creating one
+
+**Duplicate rather than start empty.** `Duplicate` on `Dark` or `Light` gives you
+a theme that already works, and you change what you want to change. Starting from
+nothing is supported and is rarely what you want.
+
+Three things about the editor are worth knowing before you use it.
+
+**An empty field is an inheritance, not a blank.** A theme stores only the values
+that differ from the built-in it is based on. The greyed value in an untouched
+field is what it will actually render — the base's value — and `Reset` puts a
+field back to inheriting rather than writing a copy of the default into it. This
+is deliberate: it means a correction to a built-in reaches every theme that never
+overrode that token, instead of leaving thirty themes carrying a stale copy.
+
+**The preview is the page.** Editing a colour repaints the interface around you
+immediately, including the editor itself. Nothing is saved until you press
+`Save`; navigating away or pressing `Cancel` restores what was there. The editor
+is a panel rather than a dialog for this reason — a window on top of the preview
+would cover the thing you are judging.
+
+**Contrast is checked, not enforced.** The editor lists any declared pair that
+falls below WCAG AA — body text on the page, secondary text on cards, the label
+colours, the button text on its fill, the focus ring. It warns; it does not
+refuse. The warnings are worth taking seriously: they caught three real defects
+in the shipped themes when this feature was built, one of them the placeholder
+colour of every form field on the site at 2.08:1.
+
+### What a theme can change
+
+Twenty-seven values, grouped the way the editor groups them.
+
+| Group | Tokens |
+|---|---|
+| Surfaces | `bg-base`, `bg-surface`, `bg-elevated`, `bg-hover`, `bg-inset` |
+| Text | `fg-default`, `fg-strong`, `fg-muted`, `fg-subtle`, `fg-faint` |
+| Lines | `line-default`, `line-strong` |
+| Accent | `accent`, `accent-hover`, `accent-fg`, `accent-warm`, `accent-warm-fg` |
+| Status | `online`, `warning`, `danger`, `info` |
+| Chrome | `focus-ring`, `bg-pattern-rgb`, `bg-pattern-alpha`, `color-scheme` |
+| Ambience | `accent-cool`, `accent-paper` |
+
+Two notes on that table.
+
+**There are two accents and it is not a mistake.** `accent` is the monochrome one
+— white on a dark base, near-black on a light one. `accent-warm` is the gold this
+site is recognised by, and it is the one that moves most of what you can see:
+primary buttons, badges, hover glows, highlight borders. If you are wondering why
+changing `accent` did so little, change `accent-warm`.
+
+**The ambience pair does nothing yet.** `accent-cool` and `accent-paper` are
+reserved names, emitted and stored but not yet read by the interface. They are
+declared now so a theme you author today stays valid when the per-page palettes
+start using them, rather than becoming invalid later.
+
+Colours only, for now. Radii, shadows, animation, typography and density are
+planned and are not in this release; a theme file written now will still load
+when they arrive.
+
+### Colour format
+
+Every colour is three integers, `0`–`255`, space-separated: `212 167 52`. Not
+hex, not `rgb(...)`. The reason is worth knowing if you are hand-editing an
+export: the interface needs to be able to write `rgb(var(--accent) / 0.4)` to get
+a translucent variant of a token, and that only works if the token holds the
+channels rather than a finished colour. It also means a value that validates
+cannot possibly contain CSS syntax, which is what lets the stylesheet be
+assembled without escaping.
+
+`bg-pattern-alpha` is a decimal between `0` and `1`. `color-scheme` is `light` or
+`dark`, and it is what tells the browser which way to draw scrollbars, `<select>`
+menus and date pickers — set it to what your theme *looks* like, not to the
+built-in it is based on. A dark theme built on `light` needs `dark` here.
+
+## Import and export
+
+`Export` downloads a theme as JSON. `Import` loads one **into the editor** rather
+than saving it, so you can see what arrived and what it does before committing.
+An import that carries an unknown token name, or a value that is not a colour, is
+refused with every problem listed at once rather than one per attempt.
+
+This is how you move a theme between instances, and how you keep a copy before
+experimenting.
+
+## Reserving a theme for a role
+
+A theme can be limited to members holding one of a set of roles — a supporter
+perk, a staff skin. Set `Available to` → `Only these roles`.
+
+**Read this before you use it for anything but a perk.** Every enabled theme is
+in the one stylesheet every visitor downloads, which is what makes switching
+instantaneous. Somebody who opens their browser's developer tools can therefore
+apply a role-reserved theme to their own session. What is enforced is that they
+cannot *keep* it: saving a theme you are not entitled to is refused by the API,
+so it survives one page load and nobody else ever sees it.
+
+That is the trade, and it is the right way round for a cosmetic feature. Do not
+use theme visibility to hide anything that matters.
+
+## Limits and housekeeping
+
+**Ten enabled themes.** Disabled ones do not count and are not served, so keep
+drafts disabled. The cap exists because all enabled themes travel in one
+stylesheet to every visitor; ten of them is a few kilobytes, and a hundred would
+be a page-weight decision rather than a cosmetic one.
+
+**Deleting a theme moves its members to the site default** and resets either half
+of `System` that pointed at it. Nothing is left holding a name that no longer
+exists.
+
+**Renaming is free; the internal slug is not renamed.** The display name is what
+members see and you can change it whenever you like. The slug is what member
+records store, so it is fixed at creation — renaming it would orphan everyone
+using the theme.
+
+**Three names are refused:** `light`, `dark` and `system` already mean something.
+
+## For operators
+
+Themes are served as one stylesheet at `GET /api/theme.css`, cached for a minute
+and revalidated by an ETag that changes on every theme write. A member's own
+choice rides in a cookie (`trackarr-theme`) as well as on their account, which is
+what lets the server render the right theme into the HTML instead of painting it
+in after the fact — no flash of the wrong appearance on first load.
+
+If you put a CDN or a caching proxy in front of Trackarr, `/api/theme.css` is
+safe to cache and HTML is not: the theme is part of the HTML, so cached HTML
+would serve one member's appearance to another. Trackarr sends no
+`Cache-Control` on HTML, and the bundled Caddy has no cache, so this only comes
+up if you add one.
+
+The static build (`front`, the nginx image with no server) has no server to
+render the attribute, so there the theme is applied by a small script in `<head>`
+that reads the same cookie before the first paint.
+
+### Troubleshooting
+
+**A member reports the site is back to dark.** Their theme was deleted or
+disabled. Both fall back to the site default rather than to nothing.
+
+**A theme looks right in the editor and wrong on the site.** The editor previews
+by writing the values onto the page directly, which bypasses the stylesheet. If
+they disagree, the theme was not saved.
+
+**Scrollbars or dropdowns are the wrong colour.** `color-scheme`. See above.
+
+## See also
+
+- [Branding & Site Settings](./branding.md) — logo, site name, the single accent
+  colour used in emails and metadata
+- [Roles & Permissions](./roles-and-permissions.md) — the roles a theme can be
+  reserved to
+- [Upgrading](./upgrading.md) — the owner role, if you are coming from an earlier
+  version
