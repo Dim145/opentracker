@@ -433,3 +433,42 @@ describe('the schema itself', () => {
     expect(parseRgb('bad')).toBeNull();
   });
 });
+
+// ── Every token, every payload ───────────────────────────────────────────
+//
+// The claim the whole design rests on: a token value cannot carry CSS syntax
+// into the emitted stylesheet, so the emitter never has to escape anything. That
+// is easy to believe for `rgb` — a validated triplet is three integers — and
+// much less obvious for `length`, `bezier`, `enum` and the font stacks, which
+// accept richer strings.
+//
+// So it is swept rather than argued: every declared token against every payload,
+// and the assertion is that the product of the two is empty. Adding a token adds
+// its row to the sweep for free, which is the point — the next token is the one
+// that would have been checked by hand and was not.
+describe('no token value can carry CSS syntax', () => {
+  const PAYLOADS = [
+    '1px; color: red',
+    '1px} .evil{color:red',
+    'url(https://evil/x)',
+    'red; background-image: url(https://evil/x)',
+    '"</style><script>alert(1)</script>"',
+    'calc(1px * var(--x)); }',
+    'image-set("https://evil/x" 1x)',
+    '\\75 rl(https://evil/x)',
+    '250 250 250; --other: url(https://evil)',
+    'expression(alert(1))',
+    '*/ color: red; /*',
+  ];
+
+  it.each(PAYLOADS)('is refused by all %#', (payload) => {
+    const accepted = THEME_TOKENS.filter(
+      (def) => validateTokens({ [def.key]: payload }).length === 0,
+    ).map((def) => `${def.key} (${def.kind})`);
+    expect(accepted, `accepted ${JSON.stringify(payload)}`).toEqual([]);
+  });
+
+  it('covers every token, so the sweep cannot pass by being empty', () => {
+    expect(THEME_TOKENS.length).toBeGreaterThanOrEqual(47);
+  });
+});
