@@ -3225,7 +3225,9 @@
         "motion": "Mouvement",
         "chrome": "Chrome",
         "ambience": "Ambiance (réservé — pas encore utilisé par l'interface)"
-      }
+      },
+      "cssFormat": "Remettre en forme",
+      "cssWillRefuse": "Le serveur refusera ceci :"
     },
     "homepage": {
       "title": "Contenu de la page d'accueil",
