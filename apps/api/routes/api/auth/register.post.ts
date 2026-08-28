@@ -271,9 +271,14 @@ export default defineEventHandler(async (event) => {
     await setRegistrationOpen(false);
   }
 
-  // Set user session using nuxt-auth-utils. The new user inherits the
-  // schema defaults for theme/language ('dark' / 'en'); the FE picker
-  // can change them after registration.
+  // Set user session using nuxt-auth-utils.
+  //
+  // `theme: null` is not a missing value, it is the value: a member who has
+  // never chosen follows the site default, and keeps following it when the
+  // owner changes it. Writing `'dark'` here is what used to make the
+  // site-default setting inert — it recorded a choice nobody made, and nothing
+  // downstream could tell it apart from one. Language keeps its schema default
+  // ('en'), which has no equivalent site-wide setting to defer to.
   await setUserSession(event, {
     user: {
       id: userId,
@@ -285,7 +290,7 @@ export default defineEventHandler(async (event) => {
       uploaded: starterUpload,
       downloaded: 0,
       bonusPoints: 0,
-      theme: 'dark',
+      theme: null,
       language: 'en',
     },
     loggedInAt: Date.now(),

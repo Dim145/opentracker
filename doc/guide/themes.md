@@ -16,7 +16,23 @@ something correct to fall back to.
 |---|---|
 | a theme by name | that theme, always, whatever their operating system says |
 | `System` | one of two themes you nominate, depending on the OS setting |
-| nothing yet | the site default you set |
+| `Site default`, or nothing yet | whatever you have set as the site default, **including when you change it** |
+
+That last row is the one worth reading twice. `Site default` is not a value
+copied onto the account at signup — it is a standing instruction, so moving the
+site default moves every member on it, on their next page load, without them
+doing anything. A member who picks a theme *by name* has made a choice, and
+changing the default leaves them exactly where they are.
+
+The same applies to people who are not signed in: an anonymous visitor is served
+the site default, rendered into the page by the server, so there is no flash and
+no correcting script.
+
+One consequence worth knowing about an existing install: members who were on
+`Dark` before this behaviour existed keep `Dark`. Their stored value cannot tell
+"I chose dark" apart from "I never looked", and moving people who did choose
+would be the worse mistake — so nobody is moved, and anyone who wants to follow
+you can pick `Site default` themselves.
 
 `System` is resolved by the browser, not by the server — a single
 `prefers-color-scheme` media query in the stylesheet. There is no request, no
@@ -341,9 +357,11 @@ drafts disabled. The cap exists because all enabled themes travel in one
 stylesheet to every visitor; ten of them is a few kilobytes, and a hundred would
 be a page-weight decision rather than a cosmetic one.
 
-**Deleting a theme moves its members to the site default** and resets either half
-of `System` that pointed at it. Nothing is left holding a name that no longer
-exists.
+**Deleting a theme puts its members back to following the site default** and
+resets either half of `System` that pointed at it. Nothing is left holding a name
+that no longer exists — and they are set to *follow* the default rather than
+pinned to whatever it happens to be that day, because losing a theme was not a
+choice they made.
 
 **Renaming is free; the internal slug is not renamed.** The display name is what
 members see and you can change it whenever you like. The slug is what member

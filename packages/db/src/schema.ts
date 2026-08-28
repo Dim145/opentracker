@@ -161,10 +161,23 @@ export const users = pgTable(
     shareReputationFederated: boolean('share_reputation_federated')
       .default(false)
       .notNull(),
-    // 'light' | 'dark'. Persisted server-side so the chosen theme
-    // follows the user across devices instead of being trapped in a
-    // single browser's localStorage.
-    theme: text('theme').default('dark').notNull(),
+    // `'system'`, a built-in, an admin theme's slug — or NULL.
+    //
+    // NULL is the interesting value: it means the member has never chosen, so
+    // they follow whatever the owner sets as the site default, and they keep
+    // following it when the owner changes it. A stored `'dark'` is a CHOICE and
+    // is left alone by a change of default. That distinction is the whole reason
+    // the column is nullable rather than defaulted: a default of `'dark'` cannot
+    // tell "I picked dark" apart from "I never looked", so the site-default
+    // setting had nobody to apply to and did nothing at all.
+    //
+    // Deliberately free-form text with no foreign key: a member's preference
+    // should survive a theme they never asked to lose, so the routes are what
+    // notice a dangling slug rather than the database.
+    //
+    // Persisted server-side so the choice follows the member across devices
+    // instead of being trapped in one browser's localStorage.
+    theme: text('theme'),
     // BCP-47-ish language code matching one of the `@nuxtjs/i18n`
     // bundle codes (`en`, `fr`, …). Server-persisted so the choice
     // follows the user across devices and survives the cookie flush

@@ -29,6 +29,18 @@ export const SYSTEM_THEME = 'system';
 export type ThemePreference = string;
 
 /**
+ * What a member's stored theme is when they have never chosen one.
+ *
+ * `null` means "follow the site default", and it keeps meaning that: the owner
+ * changing the default moves everyone who has never picked, which is the point.
+ * A stored string is a CHOICE and a change of default leaves it alone.
+ *
+ * The column used to default to `'dark'`, which could not tell the two apart —
+ * so the site-default setting had nobody left to apply to and did nothing.
+ */
+export type StoredTheme = ThemePreference | null;
+
+/**
  * Columns the catalogue listing can be ordered by. Every entry corresponds to a
  * column the table renders, so each header the user sees can be clicked.
  *
@@ -78,7 +90,7 @@ export interface User {
   /** Seed-bonus running balance. Earned through hourly accrual on
    * active seeds, spent in the shop. Whole points only. */
   bonusPoints: number;
-  theme: ThemePreference;
+  theme: StoredTheme;
   language: LanguagePreference;
 }
 
@@ -93,7 +105,7 @@ export interface PublicUser {
   uploaded: number;
   downloaded: number;
   bonusPoints: number;
-  theme: ThemePreference;
+  theme: StoredTheme;
   language: LanguagePreference;
 }
 

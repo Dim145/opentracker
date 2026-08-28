@@ -62,19 +62,25 @@ const bodySchema = z
     // volumes, member-since) over the `accounts` scope. Off by default.
     shareReputationFederated: z.boolean().optional(),
     /**
-     * `system`, a built-in, or an admin-defined slug.
+     * `system`, a built-in, an admin-defined slug — or `null`.
      *
-     * A string here rather than an enum, because the valid set lives in the
-     * database and changes while the process runs — a union would be a
-     * reassuring type in front of an unvalidated write. The real check is
-     * below, against the themes this member may actually choose, and it is the
-     * ONLY place role-gated themes are enforced: the served stylesheet carries
-     * every enabled theme, so what is protected is persistence, not visibility.
+     * `null` is how a member goes back to following the site default, and it is
+     * a real choice rather than a cleared field: they then move whenever the
+     * owner changes the default. Distinct from OMITTING the key, which leaves
+     * the stored preference untouched like every other field here.
+     *
+     * A string rather than an enum, because the valid set lives in the database
+     * and changes while the process runs — a union would be a reassuring type
+     * in front of an unvalidated write. The real check is below, against the
+     * themes this member may actually choose, and it is the ONLY place
+     * role-gated themes are enforced: the served stylesheet carries every
+     * enabled theme, so what is protected is persistence, not visibility.
      */
     theme: z
       .string()
       .max(64)
       .regex(/^[a-z0-9-]+$/, 'Not a theme name')
+      .nullable()
       .optional(),
     // Language preference — must match one of the locale bundles
     // shipped under `apps/web/i18n/locales/`. Adding a locale means
@@ -101,7 +107,7 @@ export default defineEventHandler(async (event) => {
     hideDownloadHistory: boolean;
     restrictComments: boolean;
     shareReputationFederated: boolean;
-    theme: string;
+    theme: string | null;
     language: 'en' | 'fr';
   }> = {};
 
@@ -130,7 +136,13 @@ export default defineEventHandler(async (event) => {
   if (body.shareReputationFederated !== undefined) {
     updates.shareReputationFederated = body.shareReputationFederated;
   }
-  if (body.theme !== undefined) {
+  if (body.theme === null) {
+    // Back to following the site default. No entitlement check: "whatever the
+    // owner picked" is available to everyone by definition, and the owner is
+    // already prevented from defaulting the site to something that does not
+    // exist or is not enabled.
+    updates.theme = null;
+  } else if (body.theme !== undefined) {
     const themes = await enabledThemes();
     const choosable = choosableFor(themes, await roleIdsFor(user.id));
     const allowed = new Set<string>([

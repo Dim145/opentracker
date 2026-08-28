@@ -292,10 +292,10 @@
               <div class="theme-row">
                 <button
                   v-for="t in themes"
-                  :key="t.value"
+                  :key="t.value ?? '__default'"
                   type="button"
                   class="theme-btn"
-                  :class="{ 'theme-btn--active': themeMode === t.value }"
+                  :class="{ 'theme-btn--active': themeChoice === t.value }"
                   @click="setTheme(t.value)"
                 >
                   <span class="theme-btn-dot" :style="{ background: t.dot }" />
@@ -741,7 +741,11 @@ useHead({ title: () => t('settings.pageTitle') });
 // or an admin theme's slug, persisted on the account and cached in a cookie so
 // SSR can render `data-theme` without a correcting script. `apply()` sets it and
 // `mode` (a readonly ref) is the active value.
-const { mode: themeMode, apply: applyTheme } = useColorMode();
+// `choice` rather than `mode`: the picker has to show WHICH ENTRY the member
+// selected, and `mode` is the resolved value. A member on `Site default` when
+// the default is Nocturne has `mode === 'nocturne'` and `choice === null` — the
+// highlight belongs on `Site default`, not on Nocturne.
+const { choice: themeChoice, apply: applyTheme } = useColorMode();
 
 // ── Profile fetch ───────────────────────────────────────────────
 const { data: profile, refresh: refreshProfile } = await useFetch<MeProfile>(
@@ -924,7 +928,8 @@ onMounted(() => {
 // a scope other than the current one, so an off-screen element carries the
 // theme's attribute and `getComputedStyle` answers for it.
 interface ThemeOption {
-  value: string;
+  /** `null` is the `Site default` entry — "follow whatever the owner picked". */
+  value: string | null;
   label: string;
   sub: string;
   icon: string;
@@ -953,7 +958,22 @@ const themes = computed<ThemeOption[]>(() => {
   const custom = (branding.value?.themes ?? []).filter(
     (t) => !['light', 'dark'].includes(t.slug),
   );
+  const defaultName =
+    [...(branding.value?.themes ?? []), { slug: 'light', name: 'Light' }, { slug: 'dark', name: 'Dark' }]
+      .find((t) => t.slug === branding.value?.themeDefault)?.name ??
+    (branding.value?.themeDefault === 'system' ? 'System' : branding.value?.themeDefault);
+
   return [
+    {
+      // The only entry whose value is `null`, and the only one that keeps
+      // moving: a member on it follows the owner's default whenever it changes.
+      // Everything below is a choice, and a change of default leaves it alone.
+      value: null,
+      label: 'Site default',
+      sub: defaultName ? `Currently ${defaultName}` : 'Whatever the owner picks',
+      icon: 'ph:buildings-bold',
+      dot: swatchFor(branding.value?.themeDefault ?? 'dark'),
+    },
     {
       value: 'system',
       label: 'System',
@@ -985,7 +1005,7 @@ const themes = computed<ThemeOption[]>(() => {
   ];
 });
 
-function setTheme(value: string) {
+function setTheme(value: string | null) {
   applyTheme(value);
 }
 

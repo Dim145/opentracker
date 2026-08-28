@@ -337,6 +337,13 @@
       "when": 1787881228526,
       "tag": "0047_green_sunfire",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1787918890632,
+      "tag": "0048_aromatic_rhodey",
+      "breakpoints": true
     }
   ]
 }

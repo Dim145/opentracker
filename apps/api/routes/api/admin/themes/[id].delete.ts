@@ -7,8 +7,8 @@
  * which means nothing in the database would notice the dangling value. A member
  * left holding a deleted slug gets a page with no theme block at all.
  *
- * So the delete moves them to the site default first, and resets either half of
- * `system` mode that pointed here, all in one transaction. Leaving one of those
+ * So the delete puts them back to following the site default first, and resets
+ * either half of `system` mode that pointed here, all in one transaction. Leaving one of those
  * two out is the difference between removing a theme and breaking the site for
  * whoever was using it.
  */
@@ -17,11 +17,7 @@ import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
-import {
-  bumpThemeVersion,
-  getDefaultTheme,
-  releaseThemeReferences,
-} from '~~/utils/themes';
+import { bumpThemeVersion, releaseThemeReferences } from '~~/utils/themes';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
@@ -39,18 +35,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'No such theme' });
   }
 
-  // Read before the delete, because the fallback for members holding this slug
-  // depends on whether the slug being deleted IS the default.
-  const siteDefault = await getDefaultTheme();
-  // If the theme being deleted IS the site default, members fall back to `dark`
-  // rather than to a slug that is about to stop existing.
-  const fallback = siteDefault === theme.slug ? 'dark' : siteDefault;
-
+  // Members holding this slug go back to following the site default — NULL —
+  // rather than being pinned to whatever the default happens to be today. The
+  // difference shows up later: pinned, they never move again; following, the
+  // owner's next change reaches them. Neither is a choice they made, so the
+  // weaker claim is the right one.
   let moved = 0;
   await db.transaction(async (tx) => {
     const res = await tx
       .update(schema.users)
-      .set({ theme: fallback })
+      .set({ theme: null })
       .where(eq(schema.users.theme, theme.slug))
       .returning({ id: schema.users.id });
     moved = res.length;

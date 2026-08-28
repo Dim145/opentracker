@@ -47,12 +47,21 @@ useHead({
             // slug that no longer does resolves to the site default on the next
             // /api/auth/status — a wrong theme for one paint is better than an
             // unthemed one, and better than a script that has to know the list.
-            document.documentElement.setAttribute(
-              'data-theme',
-              /^[a-z0-9-]{1,64}$/.test(v) ? v : 'dark'
-            );
+            //
+            // No cookie means "follows the site default", and this script has no
+            // way to know what that is. Under SSR the server already wrote the
+            // resolved value onto <html> before this ran, so the ONLY correct
+            // move is to leave it alone — overwriting it with 'dark' is how the
+            // site-default setting would keep looking broken after being fixed.
+            // In the static build nothing wrote it, and 'dark' holds for one
+            // paint until the branding payload lands.
+            var el = document.documentElement;
+            if (/^[a-z0-9-]{1,64}$/.test(v)) el.setAttribute('data-theme', v);
+            else if (!el.getAttribute('data-theme'))
+              el.setAttribute('data-theme', 'dark');
           } catch (e) {
-            document.documentElement.setAttribute('data-theme', 'dark');
+            if (!document.documentElement.getAttribute('data-theme'))
+              document.documentElement.setAttribute('data-theme', 'dark');
           }
         })();
       `,

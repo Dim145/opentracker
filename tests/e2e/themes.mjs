@@ -189,6 +189,75 @@ console.log('\n5b. visibility cannot be dropped by omission');
   await req('founder', `/api/admin/themes/${id}`, { method: 'DELETE' });
 }
 
+// ── 5c. The site default applies to whoever never chose ──────────────
+console.log('\n5c. the site default');
+await resetRateLimits();
+{
+  // `founder`, because the phases above hand `plainuser` and `donator` a theme
+  // and a member who HAS chosen is a different case. Nothing in this file sets
+  // the founder's, so what is being read here is what registration wrote — and
+  // registration writing `'dark'` is exactly what used to leave the site-default
+  // setting with nobody to apply to.
+  const me = await req('founder', '/api/me');
+  check('registration leaves the theme unchosen',
+    me.body?.theme === null,
+    `theme=${JSON.stringify(me.body?.theme)}`);
+
+  const withDefault = async (slug) => {
+    await resetRateLimits();
+    const r = await req('founder', '/api/admin/themes/settings', {
+      method: 'PUT',
+      body: { themeDefault: slug },
+    });
+    if (r.status !== 200) return null;
+    await sleep(300);
+    const page = await fetch(`${WEB}/`, { redirect: 'follow' });
+    const html = await page.text();
+    return (html.match(/<html[^>]*data-theme="([a-z0-9-]+)"/) || [])[1];
+  };
+
+  // The assertion the whole change exists for: the setting reaches an anonymous
+  // visitor's very first paint, from the server, with no correcting script.
+  check('an anonymous visitor is served the site default',
+    (await withDefault('e2e-crimson')) === 'e2e-crimson',
+    'SSR did not carry the default');
+
+  // And it keeps reaching them — a default is a live setting, not a value
+  // stamped onto people once.
+  check('changing the default moves them',
+    (await withDefault('light')) === 'light',
+    'SSR kept the old default');
+
+  // A CHOICE is not a default, and must survive the owner changing theirs.
+  await resetRateLimits();
+  await req('plainuser', '/api/me', { method: 'PATCH', body: { theme: 'dark' } });
+  const chosen = await withDefault('e2e-crimson');
+  check('an explicit choice is untouched by a change of default',
+    (await req('plainuser', '/api/me')).body?.theme === 'dark',
+    'the choice was overwritten');
+  check('while the anonymous visitor still follows it',
+    chosen === 'e2e-crimson', `got ${chosen}`);
+
+  // Going back to following is a choice too, and needs no entitlement: the
+  // owner's default is available to everyone by definition.
+  await resetRateLimits();
+  const back = await req('plainuser', '/api/me', {
+    method: 'PATCH',
+    body: { theme: null },
+  });
+  check('a member can go back to following the default', back.status === 200,
+    `status ${back.status}`);
+  check('and stores no theme again',
+    (await req('plainuser', '/api/me')).body?.theme === null,
+    'null was not stored');
+
+  await resetRateLimits();
+  await req('founder', '/api/admin/themes/settings', {
+    method: 'PUT',
+    body: { themeDefault: 'dark' },
+  });
+}
+
 // ── 6. System mode ───────────────────────────────────────────────────
 console.log('\n6. system mode mapping');
 await resetRateLimits();
@@ -224,7 +293,8 @@ await resetRateLimits();
   check('deleted', del.status === 200 || del.status === 204, `status ${del.status}`);
 
   const who = await req('donator', '/api/auth/status');
-  check('the member who held it moved to the default', who.body?.user?.theme === 'dark',
+  check('the member who held it goes back to following the default',
+    who.body?.user?.theme === null,
     `theme is ${who.body?.user?.theme}`);
 
   const sheet = await css();

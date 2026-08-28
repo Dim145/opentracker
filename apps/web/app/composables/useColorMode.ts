@@ -41,7 +41,18 @@ import { SYSTEM_THEME } from '@trackarr/shared';
 type Theme = string;
 
 const COOKIE_NAME = 'trackarr-theme';
-const DEFAULT_THEME = 'dark';
+
+/**
+ * The last-resort theme, for the one moment nothing better is known: no cookie,
+ * no session, and the branding payload not back yet.
+ *
+ * It is NOT the site default. The site default is a setting the owner controls,
+ * and this composable used to use this constant in its place — which is exactly
+ * why that setting did nothing for anonymous visitors or for members who had
+ * never chosen. `siteDefault()` below is the real answer; this is what stands in
+ * for one paint while it arrives.
+ */
+const FALLBACK_THEME = 'dark';
 
 /**
  * A year. The cookie is a cache of a value the account already owns, so its
@@ -65,23 +76,65 @@ export function useColorMode() {
     httpOnly: false,
   });
 
-  const mode = useState<Theme>('color-mode', () => cookie.value || DEFAULT_THEME);
+  /**
+   * What the member chose, or `null` for "follows the site default".
+   *
+   * Null is a value here, not an absence: the picker offers it, the account
+   * stores it, and a member on it moves when the owner changes the default.
+   */
+  const choice = useState<Theme | null>('color-mode', () => cookie.value || null);
 
-  // Server-side, this is what puts `data-theme` in the HTML. Client-side it is
-  // inert — Vue does not re-render `<html>` attributes on hydration — which is
-  // why `paint()` below writes the DOM directly.
+  /**
+   * The site default, read from the branding payload WITHOUT fetching it.
+   *
+   * `useBranding()` is async and writes into this same `useState` key, and the
+   * layout already awaits it on every page. Reading the state rather than
+   * calling the composable is what keeps this synchronous: making `app.vue`'s
+   * setup await branding would put a Suspense boundary at the root of the
+   * application to answer a question that is only needed at head-render time.
+   */
+  const branding = useState<{ themeDefault?: string } | null>('branding', () => null);
+  const siteDefault = () => branding.value?.themeDefault || FALLBACK_THEME;
+
+  /** What actually goes on `<html>`. */
+  const mode = computed<Theme>(() => choice.value ?? siteDefault());
+
+  // Server-side, this is what puts `data-theme` in the HTML. The getter is
+  // evaluated at head-render time, which is AFTER the layout has awaited
+  // branding — so an anonymous visitor is served the owner's default in the
+  // markup, with nothing to correct on arrival.
+  //
+  // Client-side it is inert (Vue does not re-render `<html>` attributes on
+  // hydration), which is why `paint()` below writes the DOM directly.
   useHead({ htmlAttrs: { 'data-theme': () => mode.value } });
 
-  function paint(value: Theme) {
-    mode.value = value;
+  // And when branding lands after the first paint — the static SPA build, where
+  // no server ran — the attribute has to follow it.
+  if (import.meta.client) {
+    watch(
+      () => (choice.value === null ? siteDefault() : null),
+      (resolved) => {
+        if (resolved) document.documentElement.setAttribute('data-theme', resolved);
+      },
+    );
+  }
+
+  function paint(value: Theme | null) {
+    choice.value = value;
+    // The cookie caches the CHOICE, so an empty cookie and "follows the site
+    // default" are the same state — which is what a first-time visitor already
+    // has, and what a member gets back by picking `Site default`.
     cookie.value = value;
     if (import.meta.client) {
-      document.documentElement.setAttribute('data-theme', value);
+      document.documentElement.setAttribute(
+        'data-theme',
+        value ?? siteDefault(),
+      );
     }
   }
 
-  /** Persist a choice: paint at once, then tell the server. */
-  async function apply(value: Theme) {
+  /** Persist a choice: paint at once, then tell the server. `null` = follow. */
+  async function apply(value: Theme | null) {
     paint(value);
     if (import.meta.client) {
       try {
@@ -106,24 +159,44 @@ export function useColorMode() {
     void apply(mode.value === 'dark' ? 'light' : 'dark');
   }
 
+
   if (import.meta.client && !sessionWatcherStarted) {
     sessionWatcherStarted = true;
     onMounted(() => {
       // Reconcile the attribute the boot script painted with the state ref.
+      // Reconcile the attribute the boot script painted with the state ref. Only
+      // when it disagrees with a real choice: an attribute matching the site
+      // default must NOT be written back as a choice, or a member who follows
+      // the default would silently be pinned to today's value by their first
+      // page load.
       const attr = document.documentElement.getAttribute('data-theme');
-      if (attr && attr !== mode.value) mode.value = attr;
+      if (attr && choice.value !== null && attr !== choice.value) {
+        choice.value = attr;
+      }
 
       const { user } = useUserSession();
       watch(
         user,
         (u) => {
-          const stored = (u as { theme?: string } | null)?.theme;
-          if (stored && stored !== mode.value) paint(stored);
+          if (!u) return;
+          // `undefined` means this session predates the nullable column and has
+          // no opinion; `null` is an opinion — follow the site default.
+          const stored = (u as { theme?: string | null }).theme;
+          if (stored === undefined) return;
+          if (stored !== choice.value) paint(stored);
         },
         { immediate: true },
       );
     });
   }
 
-  return { mode: readonly(mode), apply, toggle, SYSTEM_THEME };
+  return {
+    /** What is on `<html>` — a choice, or the site default resolved. */
+    mode: readonly(mode),
+    /** What the member picked, `null` when they follow the site default. */
+    choice: readonly(choice),
+    apply,
+    toggle,
+    SYSTEM_THEME,
+  };
 }
