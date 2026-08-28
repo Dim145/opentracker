@@ -377,6 +377,51 @@
           </span>
         </div>
 
+        <!-- Raw CSS. Owner only, and saved by its own route: the tokens above
+             are bounded and every administrator may set them, this is not. The
+             button is separate for the same reason — saving it re-authenticates,
+             and that must not be the price of changing a colour. -->
+        <div v-if="isOwner && draft.id" class="token-group">
+          <button class="token-group-head" @click="toggleGroup('css')">
+            <Icon
+              :name="openGroups.has('css') ? 'ph:caret-down-bold' : 'ph:caret-right-bold'"
+            />
+            {{ $t('admin.themes.rawCss') }}
+            <span class="token-group-count">
+              {{ cssBytes }}/{{ cssMaxBytes }} B
+            </span>
+          </button>
+          <div v-if="openGroups.has('css')" class="space-y-2 pt-2">
+            <p class="text-2xs text-muted">{{ $t('admin.themes.rawCssHelp') }}</p>
+            <textarea
+              v-model="customCss"
+              class="input font-mono text-2xs"
+              rows="10"
+              spellcheck="false"
+              :placeholder="$t('admin.themes.rawCssPlaceholder')"
+            />
+            <div v-if="cssIssues.length" class="notice notice--warn">
+              <Icon name="ph:warning-bold" />
+              <span>
+                {{ $t('admin.themes.rawCssRefused') }}
+                <ul class="mt-1 space-y-0.5">
+                  <li v-for="(i, n) in cssIssues" :key="n" class="font-mono text-2xs">
+                    {{ i.line ? `L${i.line}: ` : '' }}{{ i.reason }}
+                  </li>
+                </ul>
+              </span>
+            </div>
+            <div class="flex items-center gap-3">
+              <button class="btn btn-sm" :disabled="cssSaving" @click="saveCss">
+                <Icon name="ph:code-bold" /> {{ $t('admin.themes.rawCssSave') }}
+              </button>
+              <span v-if="cssSaved" class="text-xs text-online">
+                {{ $t('common.saved') }}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div class="flex items-center gap-3 pt-2">
           <button class="btn btn-primary btn-sm" :disabled="saving" @click="save">
             <Icon name="ph:check-bold" /> {{ $t('common.save') }}
@@ -553,6 +598,61 @@ const draft = ref<Draft | null>(null);
 const saving = ref(false);
 const editorError = ref('');
 
+// ── Raw CSS, owner only ──────────────────────────────────────────────
+//
+// Separate state and a separate route from the token draft, because the two have
+// different permissions and different consequences. `GET /api/admin/themes` does
+// not carry `customCss` for anybody, so the only way to see it is the fetch
+// below — which is what makes the editor able to EDIT rather than only overwrite.
+const { user } = useUserSession();
+const isOwner = computed(() => !!(user.value as { isOwner?: boolean } | null)?.isOwner);
+const customCss = ref('');
+const cssSaving = ref(false);
+const cssSaved = ref(false);
+const cssMaxBytes = ref(16384);
+const cssIssues = ref<Array<{ line: number; reason: string }>>([]);
+const cssBytes = computed(() => new TextEncoder().encode(customCss.value).length);
+
+async function loadCss(id: string) {
+  customCss.value = '';
+  cssIssues.value = [];
+  cssSaved.value = false;
+  if (!isOwner.value) return;
+  try {
+    const r = await $fetch<{ css: string; maxBytes: number }>(
+      `/api/admin/themes/${id}/css`,
+    );
+    customCss.value = r.css;
+    cssMaxBytes.value = r.maxBytes;
+  } catch {
+    // Not fatal: a non-owner never gets here, and an owner with a transient
+    // failure should still be able to edit the tokens.
+  }
+}
+
+async function saveCss() {
+  if (!draft.value?.id) return;
+  cssSaving.value = true;
+  cssIssues.value = [];
+  cssSaved.value = false;
+  try {
+    await $fetch(`/api/admin/themes/${draft.value.id}/css`, {
+      method: 'PUT',
+      body: { css: customCss.value },
+    });
+    cssSaved.value = true;
+    reloadThemeStylesheet();
+  } catch (err: unknown) {
+    const data = (err as { data?: { data?: { issues?: unknown } ; message?: string } }).data;
+    const issues = data?.data?.issues;
+    cssIssues.value = Array.isArray(issues)
+      ? (issues as Array<{ line: number; reason: string }>)
+      : [{ line: 0, reason: data?.message ?? 'Could not save.' }];
+  } finally {
+    cssSaving.value = false;
+  }
+}
+
 function blankDraft(over: Partial<Draft> = {}): Draft {
   return {
     id: null,
@@ -574,6 +674,7 @@ function startCreate(over: Partial<Draft> = {}) {
 }
 
 function startEdit(row: ThemeRow) {
+  void loadCss(row.id);
   draft.value = {
     id: row.id,
     slug: row.slug,
@@ -590,6 +691,8 @@ function startEdit(row: ThemeRow) {
 
 function cancel() {
   draft.value = null;
+  customCss.value = '';
+  cssIssues.value = [];
   clearPreview();
 }
 
@@ -855,7 +958,7 @@ function roleNames(ids: string[] | null): string {
   font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   margin-bottom: 0.25rem;
 }
@@ -900,7 +1003,7 @@ function roleNames(ids: string[] | null): string {
   font-family: var(--font-mono);
   font-size: 0.5938rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   padding: 0.15rem 0.4rem;
   border-radius: var(--radius-sm);
   background: rgb(var(--fg-default) / 0.07);
@@ -931,7 +1034,7 @@ function roleNames(ids: string[] | null): string {
   font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   padding: 0.35rem 0;
 }

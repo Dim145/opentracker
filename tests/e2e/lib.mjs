@@ -48,9 +48,26 @@ function resp(...args) {
   );
 }
 
+/**
+ * Delete the fresh-auth stamps, making every session stale.
+ *
+ * `requireFreshAuth` gives a session ten minutes after login, so a scenario
+ * cannot reach the refusal path by waiting. Clearing the stamp is the precise
+ * equivalent and keeps the middleware itself in play — the route still asks, the
+ * answer is just no.
+ */
+export function expireFreshAuth() {
+  return sweepKeys(['ot:auth:fresh:*']);
+}
+
 /** Delete the rate-limit and ban keys. Resolves even if Redis is unreachable. */
 export function resetRateLimits() {
   // `keys` inside EVAL is fine on a test database and saves a SCAN loop.
+  return sweepKeys(['ot:ratelimit:*', 'ot:sec:ipban:*'], ['ot:ddos:blacklist']);
+}
+
+/** One EVAL to delete by pattern, plus optional exact keys. */
+function sweepKeys(patterns, exact = []) {
   const sweep =
     "local n=0 for _,p in ipairs(ARGV) do local k=redis.call('keys',p) " +
     "for i=1,#k do redis.call('del',k[i]) n=n+1 end end return n";
@@ -66,8 +83,8 @@ export function resetRateLimits() {
     sock.on('error', () => done(null));
     sock.on('connect', () => {
       sock.write(resp('AUTH', REDIS_PASSWORD));
-      sock.write(resp('EVAL', sweep, 0, 'ot:ratelimit:*', 'ot:sec:ipban:*'));
-      sock.write(resp('DEL', 'ot:ddos:blacklist'));
+      sock.write(resp('EVAL', sweep, 0, ...patterns));
+      sock.write(resp('DEL', ...(exact.length ? exact : ['ot:__noop__'])));
     });
     sock.on('data', (b) => {
       out += b.toString();

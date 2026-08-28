@@ -68,6 +68,9 @@ importers:
       create-torrent:
         specifier: ^6.1.3
         version: 6.1.3
+      css-tree:
+        specifier: ^3.2.1
+        version: 3.2.1
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@opentelemetry/api@1.9.1)(postgres@3.4.9)
@@ -117,6 +120,9 @@ importers:
       '@types/create-torrent':
         specifier: ^6.1.1
         version: 6.1.1
+      '@types/css-tree':
+        specifier: ^3.2.0
+        version: 3.2.0
       '@types/nodemailer':
         specifier: ^8.0.1
         version: 8.0.1
@@ -2055,6 +2061,9 @@ packages:
 
   '@types/create-torrent@6.1.1':
     resolution: {integrity: sha512-KCHRpqwMp+BsTebyR/5OCG4RmZ5s9w7iSpaarfKof3HEdd4eZxAt73dj20uZ2zgduoBQmYrzn+LLR34DgFxOfw==}
+
+  '@types/css-tree@3.2.0':
+    resolution: {integrity: sha512-J5KXmk6BFIepOT7280FdFyNs4c5fh0Uee0otjKEvzchrRs38Ii9qminqc4ds0L19X8Zd/rT+brR9jkBthygjWw==}
 
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
@@ -8124,6 +8133,8 @@ snapshots:
   '@types/create-torrent@6.1.1':
     dependencies:
       '@types/node': 24.13.3
+
+  '@types/css-tree@3.2.0': {}
 
   '@types/deep-eql@4.0.2': {}
 

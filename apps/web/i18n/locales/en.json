@@ -3200,6 +3200,11 @@
       "contrastHeader": "Below WCAG AA:",
       "contrastDetail": "{what}: {ratio}:1, needs {required}:1",
       "saveFailed": "Could not save.",
+      "rawCss": "Raw CSS (owner only)",
+      "rawCssHelp": "For the components the tokens do not reach. Every selector is scoped to this theme automatically, so it cannot affect any other. url() is refused — it lets a stylesheet tell another server who visited the page, with no JavaScript involved — and so are @import, @font-face, @property and @layer. Saving asks for your password again.",
+      "rawCssPlaceholder": ".torrent-row:hover { background: rgb(var(--accent-warm) / 0.06); }",
+      "rawCssSave": "Save CSS",
+      "rawCssRefused": "Not accepted:",
       "groups": {
         "surface": "Surfaces",
         "foreground": "Text",

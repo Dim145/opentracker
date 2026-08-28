@@ -6,7 +6,16 @@
  * declarations it never mentions, through `calc()` and a derived scale, and the
  * only place that is observably true is the emitted CSS.
  */
-import { API, caller, check, report, resetRateLimits, sessions, sleep } from './lib.mjs';
+import {
+  API,
+  caller,
+  check,
+  expireFreshAuth,
+  report,
+  resetRateLimits,
+  sessions,
+  sleep,
+} from './lib.mjs';
 
 const S = sessions(['founder']);
 const req = caller(S);
@@ -243,6 +252,104 @@ console.log('\n3. unknown tokens');
     },
   });
   check('a derived name is not a token', r.status >= 400, `status ${r.status}`);
+}
+
+// ── 4. The owner's raw CSS ───────────────────────────────────────────
+console.log('\n4. raw CSS, owner only');
+{
+  await resetRateLimits();
+  const made = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Raw',
+      base: 'dark',
+      duplicateOf: 'dark',
+      enabled: true,
+      visibility: 'site',
+    },
+  });
+  const id = made.body?.id ?? made.body?.theme?.id;
+  check('theme created', !!id, `status ${made.status}`);
+
+  // A plain member is refused on both verbs.
+  const write = await req('donator', `/api/admin/themes/${id}/css`, {
+    method: 'PUT',
+    body: { css: '.a { color: red; }' },
+  });
+  check('a plain member cannot write CSS', write.status === 401 || write.status === 403,
+    `status ${write.status}`);
+  const read = await req('donator', `/api/admin/themes/${id}/css`);
+  check('a plain member cannot read it either', read.status === 401 || read.status === 403,
+    `status ${read.status}`);
+
+  // The owner's session is fresh — `login` stamps it for ten minutes — so this
+  // is the success path.
+  const saved = await req('founder', `/api/admin/themes/${id}/css`, {
+    method: 'PUT',
+    body: {
+      css:
+        '.torrent-row:hover { background: rgb(var(--accent-warm) / 0.06); }\n' +
+        '@keyframes glow { to { opacity: 0.4; } }\n' +
+        '.pill { animation: glow 2s infinite; }',
+    },
+  });
+  check('the owner can save', saved.status === 200,
+    `status ${saved.status} ${JSON.stringify(saved.body).slice(0, 200)}`);
+
+  const css = await sheet();
+  check('it reaches the stylesheet scoped to the theme',
+    css.includes('[data-theme="e2e-raw"] .torrent-row:hover'),
+    css.slice(css.indexOf('e2e-raw'), css.indexOf('e2e-raw') + 200));
+  check('the keyframes were namespaced',
+    css.includes('@keyframes e2e-raw-glow') && !/@keyframes glow\b/.test(css));
+  check('and the reference was rewritten with them',
+    css.includes('animation:e2e-raw-glow'));
+  check('the theme tokens are still there', /:root\[data-theme='e2e-raw'\]/.test(css));
+
+  // Read-back is what makes the editor able to edit rather than only overwrite.
+  const back = await req('founder', `/api/admin/themes/${id}/css`);
+  check('the owner reads back what was stored', back.status === 200 &&
+    typeof back.body?.css === 'string' && back.body.css.includes('torrent-row'),
+    `status ${back.status}`);
+  check('what is stored is unscoped', !back.body?.css?.includes('data-theme'),
+    'the stored value carries a scope it should not');
+
+  // The refusals that matter.
+  for (const [what, css_] of [
+    ['url()', '.a { background: url(https://evil.example/x); }'],
+    ['@import', "@import 'https://evil.example/x.css';"],
+    ['@font-face', "@font-face { font-family: 'Inter'; src: local(x); }"],
+    ['a url() hidden in a custom property',
+     ':root { --bg-pattern-image: url(https://evil.example/x); }'],
+  ]) {
+    const r = await req('founder', `/api/admin/themes/${id}/css`, {
+      method: 'PUT',
+      body: { css: css_ },
+    });
+    check(`refuses ${what}`, r.status === 400, `status ${r.status}`);
+    check(`and says why for ${what}`,
+      Array.isArray(r.body?.data?.issues) && r.body.data.issues.length > 0,
+      JSON.stringify(r.body).slice(0, 160));
+  }
+
+  const after = await sheet();
+  check('none of it reached the stylesheet',
+    !after.includes('evil.example') && !after.includes('url('),
+    'something got through');
+
+  // Finally, the fresh-auth gate. Done last because it makes every session in
+  // this run stale, and nothing after it needs one.
+  await expireFreshAuth();
+  const stale = await req('founder', `/api/admin/themes/${id}/css`, {
+    method: 'PUT',
+    body: { css: '.a { color: red; }' },
+  });
+  check('a stale session cannot write CSS', stale.status === 401, `status ${stale.status}`);
+  check('and is told to re-authenticate', stale.body?.data?.reauthRequired === true,
+    JSON.stringify(stale.body).slice(0, 160));
+  const stillReads = await req('founder', `/api/admin/themes/${id}/css`);
+  check('reading is deliberately not fresh-gated', stillReads.status === 200,
+    `status ${stillReads.status}`);
 }
 
 // ── Clean up ─────────────────────────────────────────────────────────

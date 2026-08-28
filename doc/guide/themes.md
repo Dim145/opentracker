@@ -197,6 +197,53 @@ other unit, and a ceiling, because a 400 px radius on a card is not a theme.
 menus and date pickers — set it to what your theme *looks* like, not to the
 built-in it is based on. A dark theme built on `light` needs `dark` here.
 
+## Raw CSS — owner only
+
+The token list is bounded and the interface is not. For the components the tokens
+do not reach, the **owner** — not every administrator — can attach free-form CSS
+to a theme, in the editor under *Raw CSS*.
+
+Saving it asks for your password again. That is not friction for its own sake: a
+stylesheet is a data-exfiltration channel that needs no JavaScript, it would
+apply to every member on every page, and it would survive a password change. So
+it is treated like erasing an account — a re-authenticate-to-change setting.
+
+**Every selector is scoped to the theme automatically.** Write `.torrent-row`,
+get `:root[data-theme='yours'] .torrent-row`. `html` and `:root` are handled
+specially (replaced rather than nested, which would match nothing). You cannot
+reach outside the theme, so a rule you write cannot affect the built-ins or
+anybody else's theme.
+
+**`@keyframes` are renamed** with the theme's slug, and the `animation` /
+`animation-name` references in the same stylesheet are rewritten to match.
+Keyframes are global in CSS — selector scoping cannot touch them — so without
+this a theme's `@keyframes spin` would silently redefine the animation the rest
+of the site uses. An `animation` that refers to one of the application's own
+animations is left alone.
+
+**What is refused, and why:**
+
+| Refused | Reason |
+|---|---|
+| `url()`, anywhere | It tells another server who visited the page. With remote posters allowed by the CSP, `background-image: url(https://…)` loads — and `input[value^="a"] { background: url(…/a) }` reads a field one character per request. `data:` URIs are refused too, because allowing one form means auditing every form. |
+| `@import` | A request this feature has no reason to make. |
+| `@font-face` | It would redefine a curated family out from under the font role that selected it. |
+| `@property` | It registers a custom property globally, with a syntax and an inherit flag, changing how the application's own tokens cascade and animate. |
+| `@layer` | A global ordering directive; a stylesheet of scoped selectors gains nothing from it and could move the application's own rules in the cascade. |
+| `-moz-binding`, `behavior` | Both load and run code. |
+| More than 16 kB | Every enabled theme's CSS is in the one stylesheet each visitor downloads. |
+
+`@media`, `@supports`, `@container` and `@keyframes` are allowed.
+
+The check is a real CSS parser, not a search for `url(`. It has to be: CSS lets
+you write `u\72 l(`, `URL(`, `ur/**/l(` and `\0075 rl(`, and all four are the
+same function. The stylesheet you get back is **regenerated** from what the
+parser understood, so your formatting and comments are not preserved — and the
+browser can only ever see what the parser accepted, which is the property that
+makes the whole approach sound.
+
+If a theme with raw CSS is one half of `System`, its CSS applies there too.
+
 ## Import and export
 
 `Export` downloads a theme as JSON. `Import` loads one **into the editor** rather

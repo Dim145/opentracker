@@ -46,6 +46,7 @@ import {
   resolveTokens,
   type TokenMap,
 } from '@trackarr/shared/theme';
+import { scopeCustomCss } from './themeCss';
 import { getSetting, setSetting, SETTINGS_KEYS } from './settings';
 
 /** See the module header for why this is ten and not "as many as you like". */
@@ -240,20 +241,44 @@ export function buildThemeCss(
     parts.push(
       block(`:root[data-theme='${t.slug}']`, resolveTokens(t.base, t.tokens)),
     );
+    // The owner's free-form CSS, scoped to this theme. Stored unscoped so it can
+    // also be emitted under `[data-theme='system']` below when this theme is one
+    // of the halves — see `sanitiseCustomCss`.
+    if (t.customCss) {
+      parts.push(scopeCustomCss(t.customCss, t.slug));
+    }
   }
+
+  /** A mapped theme's custom CSS, so system mode is not a second-class theme. */
+  const customFor = (slug: string): string | null =>
+    bySlug.get(slug)?.customCss ?? null;
 
   // System mode. The light branch is unconditional so a browser that reports no
   // preference — or one whose user is in light mode — still gets something.
   parts.push(block(":root[data-theme='system']", tokensFor(mapping.light)));
-  parts.push(
-    [
-      '@media (prefers-color-scheme: dark) {',
-      "  :root[data-theme='system'] {",
-      declarations(tokensFor(mapping.dark), '    '),
-      '  }',
-      '}',
-    ].join('\n'),
-  );
+  const lightCustom = customFor(mapping.light);
+  if (lightCustom) parts.push(scopeCustomCss(lightCustom, 'system'));
+
+  const darkParts = [
+    '@media (prefers-color-scheme: dark) {',
+    "  :root[data-theme='system'] {",
+    declarations(tokensFor(mapping.dark), '    '),
+    '  }',
+  ];
+  // The dark half's custom CSS has to live INSIDE the media query, or it would
+  // apply in light mode too — the one place where scoping by selector is not
+  // enough on its own.
+  const darkCustom = customFor(mapping.dark);
+  if (darkCustom) {
+    darkParts.push(
+      scopeCustomCss(darkCustom, 'system')
+        .split('\n')
+        .map((l) => '  ' + l)
+        .join('\n'),
+    );
+  }
+  darkParts.push('}');
+  parts.push(darkParts.join('\n'));
 
   return parts.join('\n\n') + '\n';
 }

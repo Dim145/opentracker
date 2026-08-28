@@ -172,4 +172,28 @@ for (const acc of ACCOUNTS) {
   );
 }
 
+/**
+ * Log the founder in again, so their session is FRESH.
+ *
+ * Registration proves knowledge of the credential at least as strongly as a
+ * login does, but `markFreshAuth` is only called by `login.post.ts` — so a
+ * just-registered account cannot use anything behind `requireFreshAuth`
+ * (ownership transfer, raw CSS, role changes) until it logs in once. That is the
+ * application's behaviour, not a harness quirk, and a scenario that wants to
+ * exercise the success path has to do what a real owner would do.
+ *
+ * Only the founder, and only at the end: the auth limiter allows five calls per
+ * five minutes and a challenge plus a login is two of them.
+ */
+if (out.founder) {
+  await sleep(2000);
+  const again = await login(ACCOUNTS[0]);
+  if (again.status === 200 || again.status === 201) {
+    out.founder.cookie = cookieHeader(again.jar);
+    console.error('  founder re-logged in (session is now fresh)');
+  } else {
+    console.error(`  founder re-login FAILED -> ${again.status}`);
+  }
+}
+
 console.log(JSON.stringify(out, null, 2));
