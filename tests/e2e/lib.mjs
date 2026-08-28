@@ -8,6 +8,8 @@ import { readFileSync } from 'node:fs';
 
 export const API = process.env.E2E_API ?? 'http://localhost:54000';
 export const WEB = process.env.E2E_WEB ?? 'http://localhost:53000';
+/** The static SPA shape of the same application. See the `spa` service. */
+export const SPA = process.env.E2E_SPA ?? 'http://localhost:53001';
 const REDIS_PORT = Number(process.env.E2E_REDIS_PORT ?? 56379);
 const REDIS_PASSWORD = process.env.E2E_REDIS_PASSWORD ?? 'e2e-redis-password';
 

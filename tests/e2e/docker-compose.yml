@@ -81,5 +81,35 @@ services:
     depends_on:
       - api
 
+  # The OTHER shape the application ships in.
+  #
+  # `apps/web` builds twice — `ssr: !STATIC_BUILD` — and for a long time only the
+  # SSR image was ever booted here. That is how a theming bug lived in the static
+  # build undetected: with no server there, `useHead` in `app.vue` does not run,
+  # so the theme stylesheet was not in the served HTML at all and the first paint
+  # had no theme to use. Nothing in the suite could have noticed, because nothing
+  # in the suite ever loaded this image.
+  #
+  # It serves the SPA and nothing else — the real deployment puts Caddy in front
+  # for `/api` — so the scenario checks the SERVED DOCUMENT rather than driving
+  # it, which is where the regression was anyway.
+  spa:
+    image: trackarr-e2e-spa:local
+
+  # One origin for the static shape, the way a real deployment has one.
+  #
+  # Without this the SPA cannot reach the API at all — it serves files and
+  # nothing else — so every theme question about this shape would be
+  # unanswerable: no /api/theme.css, no /api/branding, no session.
+  spa-proxy:
+    image: nginx:alpine
+    volumes:
+      - ./spa-proxy.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "53001:3000"
+    depends_on:
+      - spa
+      - api
+
 volumes:
   uploads:

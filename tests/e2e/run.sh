@@ -41,6 +41,9 @@ if [ "$BUILD" = "1" ]; then
   say "building images from the working tree"
   docker build -q -f "$ROOT/apps/api/Dockerfile" -t trackarr-e2e-api:local "$ROOT"
   docker build -q -f "$ROOT/apps/web/Dockerfile" -t trackarr-e2e-web:local "$ROOT"
+  # The static shape too. It costs a build, and the alternative is what happened
+  # before: a whole deployment shape nobody ever booted.
+  docker build -q -f "$ROOT/apps/web/Dockerfile.static" -t trackarr-e2e-spa:local "$ROOT"
 fi
 
 say "booting"

@@ -16,6 +16,7 @@ import {
   resetRateLimits,
   sessions,
   sleep,
+  SPA,
 } from './lib.mjs';
 
 const S = sessions(['founder', 'donator', 'plainuser']);
@@ -419,6 +420,78 @@ await resetRateLimits();
     method: 'PUT',
     body: { themeDefault: 'dark', systemLight: 'light', systemDark: 'dark' },
   });
+}
+
+// ── 9b. The static shape ─────────────────────────────────────────────
+//
+// The same application with `ssr: false`, which is what an operator gets if they
+// deploy the `front` image instead of `front-ssr`. Its first paint has no server
+// behind it, so everything the SSR shape does with markup has to be done by the
+// stylesheet here — and this scenario exists because that was broken and nothing
+// noticed for a whole feature.
+console.log('\n9b. the static build');
+{
+  const res = await fetch(`${SPA}/`, { redirect: 'follow' });
+  const html = await res.text();
+  check('the SPA is served', res.status === 200, `status ${res.status}`);
+
+  // The regression, exactly. `useHead` in `app.vue` does not run without a
+  // server, so declaring the link there put it in the SSR markup and nowhere
+  // else: the static build painted the bundle's built-in colours, booted, and
+  // only then fetched the themes. It is declared in `nuxt.config`'s `app.head`
+  // now, which both shapes bake into their HTML.
+  check('the theme stylesheet is in the document, not injected later',
+    /<link[^>]+rel="stylesheet"[^>]+href="\/api\/theme\.css"/.test(html) ||
+      /<link[^>]+href="\/api\/theme\.css"[^>]+rel="stylesheet"/.test(html),
+    'no theme.css link in the served HTML — the static build cannot theme its first paint');
+
+  // And it has to come after the bundle's own stylesheet, or `main.css`'s
+  // `:root, :root[data-theme="dark"]` wins the tie on source order and the site
+  // default never paints.
+  //
+  // Matched on the LINK TAGS, not on the paths: the inline script mentions
+  // `/api/theme.css` too, and a bare `indexOf` found that instead and failed a
+  // correct build. Which is the assertion doing its job, just not the one it
+  // was written for.
+  const at = (re) => html.search(re);
+  const entryAt = at(/<link[^>]*href="\/_nuxt\/entry\./);
+  const themeAt = at(/<link[^>]*href="\/api\/theme\.css"/);
+  check('and after the bundle stylesheet', entryAt > -1 && themeAt > entryAt,
+    `entry link at ${entryAt}, theme link at ${themeAt}`);
+
+  // No server means no `data-theme` in the markup, which is the whole reason the
+  // site default has to be reachable without one.
+  check('no data-theme in the markup, as expected with no server',
+    !/<html[^>]*data-theme=/.test(html),
+    'something rendered an attribute the static build cannot know');
+
+  // The cookie script has to be in the document for the same reason the link
+  // does, and it was found missing for the same reason. Without it a member
+  // whose theme is NOT the site default is painted the default first and their
+  // own theme only once the bundle has booted.
+  check('the theme cookie is applied before the first paint',
+    html.includes('trackarr-theme') && /<script[^>]*>[^<]*data-theme/.test(html),
+    'no inline cookie script — a non-default theme would flash');
+
+  // And the API is reachable through the same origin, which is what makes any
+  // of this testable: the SPA image serves files and proxies nothing.
+  const sheet = await fetch(`${SPA}/api/theme.css`);
+  check('the API answers on the same origin',
+    sheet.status === 200 && (sheet.headers.get('content-type') ?? '').includes('text/css'),
+    `status ${sheet.status}, type ${sheet.headers.get('content-type')}`);
+
+  // The case an operator actually hits: a member on a theme that is not the
+  // default. The static build has no server to resolve it, so the whole answer
+  // is the inline script reading the cookie against a stylesheet that already
+  // holds every theme.
+  const themed = await fetch(`${SPA}/`, { headers: { cookie: 'trackarr-theme=e2e-crimson' } });
+  const themedHtml = await themed.text();
+  check('the document is identical whatever the cookie says',
+    themedHtml.length === html.length,
+    'the static shape must not vary by cookie — it is one file on a CDN');
+  check('so the cookie is the browser\'s job, and the script that does it is present',
+    themedHtml.includes('trackarr-theme'),
+    'nothing would apply the cookie');
 }
 
 // ── 8. The enabled cap ───────────────────────────────────────────────
