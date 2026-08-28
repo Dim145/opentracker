@@ -273,6 +273,7 @@ animations is left alone.
 | Refused | Reason |
 |---|---|
 | `url()`, anywhere | It tells another server who visited the page. With remote posters allowed by the CSP, `background-image: url(https://…)` loads — and `input[value^="a"] { background: url(…/a) }` reads a field one character per request. `data:` URIs are refused too, because allowing one form means auditing every form. |
+| Any function not on the list below | Several CSS functions take a URL as a plain **string** rather than as `url()` — `image-set("https://…" 1x)` is the one that works in every browser today, with `-webkit-image-set()`, `cross-fade()` and `src()` behind it. Refusing those four by name would only hold until the next one, so the rule runs the other way round. |
 | `@import` | A request this feature has no reason to make. |
 | `@font-face` | It would redefine a curated family out from under the font role that selected it. |
 | `@property` | It registers a custom property globally, with a syntax and an inherit flag, changing how the application's own tokens cascade and animate. |
@@ -281,6 +282,22 @@ animations is left alone.
 | More than 16 kB | Every enabled theme's CSS is in the one stylesheet each visitor downloads. |
 
 `@media`, `@supports`, `@container` and `@keyframes` are allowed.
+
+**Functions you can call.** Arithmetic (`calc`, `min`, `max`, `clamp`, `round`
+and the trigonometric ones), substitution (`var`, `env`), colour (`rgb`, `hsl`,
+`hwb`, `lab`, `lch`, `oklab`, `oklch`, `color`, `color-mix`, `light-dark`), the
+six gradients, the ten filter functions, the transform functions, easing
+(`cubic-bezier`, `steps`, `linear`), track sizing (`minmax`, `repeat`,
+`fit-content`), `counter`/`counters`, and the basic shapes (`circle`, `ellipse`,
+`inset`, `polygon`, `path`). Nothing else — including vendor-prefixed spellings,
+which none of these need in any browser this application supports.
+
+Selectors are not affected: `:is()`, `:not()`, `:has()` and `:nth-child()` are
+pseudo-classes, not functions, and work as normal.
+
+If you need something legitimate that is refused, the error names the function —
+that is the evidence for adding it, and the list is meant to grow that way rather
+than by guessing in advance.
 
 The check is a real CSS parser, not a search for `url(`. It has to be: CSS lets
 you write `u\72 l(`, `URL(`, `ur/**/l(` and `\0075 rl(`, and all four are the

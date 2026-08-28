@@ -31,8 +31,36 @@
  * predicted it would earn its keep — the token grammars turned out small enough
  * to hand-write, and this one is not.
  *
- * The rule is structural: the AST may contain no `Url` node anywhere, and no
- * at-rule outside a short list.
+ * The rule is structural: the AST may contain no `Url` node anywhere, no
+ * function outside an allow-list, no at-rule outside a short list, and none of a
+ * very short list of refused properties — `position` above all, which is the one
+ * attack that needs no exfiltration channel. See `REFUSED_PROPERTIES`.
+ *
+ * ## Why functions are allow-listed and not just `Url`
+ *
+ * Because "no `Url` node" is not the same as "no URL", and review found the gap
+ * by trying it: css-tree produces a `Url` node for `url(…)` and nothing of the
+ * sort for `image-set("https://evil/x" 1x)`, where the URL is a plain `String`
+ * argument. That is not a css-tree quirk — CSS Images 4 genuinely lets these
+ * functions take a bare string, and `image-set()` works in every browser this
+ * application supports. `-webkit-image-set()`, `cross-fade()` and the newer
+ * `src()` are the same shape. All four were accepted before this list existed,
+ * which reopened precisely the exfiltration channel the module is here to close.
+ *
+ * Enumerating the url-bearing functions would repeat the mistake: `src()` is
+ * recent, and the next one is not written yet. So the list runs the other way —
+ * the functions theming legitimately needs, and nothing else. A new CSS function
+ * that fetches is refused on the day it ships, without anybody noticing it
+ * shipped.
+ *
+ * The cost is real and accepted: an owner using something unusual and harmless
+ * gets refused, with the function named so the list can grow on evidence. That
+ * is the same trade `ALLOWED_AT_RULES` already makes.
+ *
+ * Selectors are untouched by this. `:is()`, `:not()`, `:has()` and `:nth-child()`
+ * parse as `PseudoClassSelector`, never as `Function` — verified rather than
+ * assumed, because an allow-list that silently ate `:not()` would be worse than
+ * the hole it closes.
  *
  * ## The property that makes this work at all
  *
@@ -76,6 +104,82 @@ export const MAX_CUSTOM_CSS_BYTES = 16 * 1024;
  * prefixed selectors gains nothing from.
  */
 const ALLOWED_AT_RULES = new Set(['media', 'supports', 'container', 'keyframes']);
+
+/**
+ * Functions a theme may call.
+ *
+ * Grouped by what they are for, and deliberately closed — see the note above on
+ * why this runs as an allow-list. Everything here is either arithmetic, a
+ * colour, a gradient, a filter, a transform, an easing curve, a track size or a
+ * shape: none of them can reference anything outside the document.
+ *
+ * Vendor-prefixed spellings are absent on purpose. Every function here is
+ * unprefixed in every browser this application targets, and `-webkit-image-set`
+ * is the reason the prefix is not simply stripped before the lookup.
+ */
+const ALLOWED_FUNCTIONS = new Set([
+  // Substitution and arithmetic.
+  'var', 'env', 'calc', 'min', 'max', 'clamp',
+  'round', 'mod', 'rem', 'abs', 'sign',
+  'pow', 'sqrt', 'hypot', 'log', 'exp',
+  'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2',
+  // Colour.
+  'rgb', 'rgba', 'hsl', 'hsla', 'hwb',
+  'lab', 'lch', 'oklab', 'oklch',
+  'color', 'color-mix', 'light-dark',
+  // Gradients — the only image values a theme gets.
+  'linear-gradient', 'radial-gradient', 'conic-gradient',
+  'repeating-linear-gradient', 'repeating-radial-gradient',
+  'repeating-conic-gradient',
+  // Filters.
+  'blur', 'brightness', 'contrast', 'drop-shadow', 'grayscale',
+  'hue-rotate', 'invert', 'opacity', 'saturate', 'sepia',
+  // Transforms.
+  'matrix', 'matrix3d', 'perspective',
+  'rotate', 'rotate3d', 'rotateX', 'rotateY', 'rotateZ',
+  'scale', 'scale3d', 'scaleX', 'scaleY', 'scaleZ',
+  'skew', 'skewX', 'skewY',
+  'translate', 'translate3d', 'translateX', 'translateY', 'translateZ',
+  // Easing.
+  'cubic-bezier', 'steps', 'linear',
+  // Track sizing.
+  'minmax', 'repeat', 'fit-content',
+  // Generated content.
+  'counter', 'counters',
+  // Basic shapes, for clip-path and shape-outside. Geometry only.
+  'circle', 'ellipse', 'inset', 'polygon', 'path',
+].map((f) => f.toLowerCase()));
+
+/**
+ * Properties refused outright.
+ *
+ * `position` is the interesting one, and it is here because the plan called UI
+ * redressing "the most underestimated risk" — correctly, since unlike every
+ * other CSS attack it needs no exfiltration channel at all. A `::before` at
+ * `position: fixed; inset: 0` intercepts every click on the page, hides a
+ * warning, or lays a convincing fake form over a real one. `frame-ancestors`
+ * does not help: the CSS is *in* the page.
+ *
+ * The whole property rather than just `fixed`, because `absolute` on a
+ * body-level selector covers the page just as well and a rule that catches one
+ * spelling is a rule that teaches you to trust it. Repositioning elements is not
+ * theming — this feature exists for the components the tokens do not reach, and
+ * reaching them means colour, spacing, type and border, not layout surgery.
+ *
+ * This is the same line the repository already draws for member content:
+ * `apps/web/app/utils/markdown.ts` allows nine style properties and notes
+ * "Positioning / z-index / url-bearing props are deliberately absent". Owner CSS
+ * gets more than nine properties, but not that one.
+ *
+ * `-moz-binding` and `behavior` are dead ways to load and run code, kept out
+ * because they cost nothing to keep out.
+ */
+const REFUSED_PROPERTIES: Record<string, string> = {
+  position:
+    'position is not allowed: a fixed or absolutely positioned overlay can intercept every click on the page, and unlike anything else in CSS that needs no way of sending data anywhere. Use the tokens for appearance; layout changes belong in the interface.',
+  '-moz-binding': '-moz-binding is not allowed: it loads and runs code.',
+  behavior: 'behavior is not allowed: it loads and runs code.',
+};
 
 /** Properties that reference an animation by name. */
 const ANIMATION_PROPS = /^(animation|animation-name|-webkit-animation|-webkit-animation-name)$/i;
@@ -169,6 +273,36 @@ export function sanitiseCustomCss(source: string, slug: string): CssResult {
   const urlRefusal =
     'url() is not allowed: it turns a stylesheet into a way of telling another server who visited this page, with no JavaScript needed.';
 
+  const functionRefusal = (name: string) =>
+    `${name}() is not allowed. A theme may call arithmetic, colour, gradient, ` +
+    `filter, transform, easing, track-size and shape functions; anything else ` +
+    `is refused, because some CSS functions take a URL as a plain string — ` +
+    `image-set() and src() among them — and a list of the ones that do would be ` +
+    `out of date by the next CSS release.`;
+
+  /**
+   * The two rules that apply to any value, wherever it appears.
+   *
+   * Shared so a custom property gets exactly the same treatment as a normal
+   * declaration: the earlier version checked custom properties for `Url` only,
+   * which let `--x: image-set("https://evil" 1x)` through — and the application
+   * itself feeds custom properties into `background-image` via
+   * `var(--bg-pattern-image)`, so that value would have been fetched.
+   */
+  function checkValue(value: csstree.CssNode, line: number) {
+    csstree.walk(value, {
+      enter(node) {
+        if (node.type === 'Url') {
+          issues.push({ line, reason: urlRefusal });
+        } else if (node.type === 'Function') {
+          if (!ALLOWED_FUNCTIONS.has(node.name.toLowerCase())) {
+            issues.push({ line, reason: functionRefusal(node.name) });
+          }
+        }
+      },
+    });
+  }
+
   /** Custom property values, reparsed. See the note on custom properties above. */
   function checkCustomProperty(node: csstree.Declaration) {
     const raw = node.value;
@@ -183,12 +317,7 @@ export function sanitiseCustomCss(source: string, slug: string): CssResult {
       });
       return;
     }
-    csstree.walk(value, {
-      visit: 'Url',
-      enter() {
-        issues.push({ line: lineOf(node), reason: urlRefusal });
-      },
-    });
+    checkValue(value, lineOf(node));
   }
 
   csstree.walk(ast, {
@@ -196,6 +325,14 @@ export function sanitiseCustomCss(source: string, slug: string): CssResult {
       switch (node.type) {
         case 'Url':
           issues.push({ line: lineOf(node), reason: urlRefusal });
+          break;
+        case 'Function':
+          // Reached for functions in declaration values AND in at-rule preludes
+          // (`@media (min-width: calc(…))`). Selector pseudo-classes are a
+          // different node type and never land here.
+          if (!ALLOWED_FUNCTIONS.has(node.name.toLowerCase())) {
+            issues.push({ line: lineOf(node), reason: functionRefusal(node.name) });
+          }
           break;
         case 'Atrule':
           if (!ALLOWED_AT_RULES.has(node.name.toLowerCase())) {
@@ -207,18 +344,17 @@ export function sanitiseCustomCss(source: string, slug: string): CssResult {
             });
           }
           break;
-        case 'Declaration':
+        case 'Declaration': {
           if (node.property.startsWith('--')) {
             checkCustomProperty(node);
-          } else if (/^(-moz-binding|behavior)$/i.test(node.property)) {
-            // Two properties that are script execution rather than style, both
-            // long dead and both cheap to keep out.
-            issues.push({
-              line: lineOf(node),
-              reason: `${node.property} is not allowed: it loads and runs code.`,
-            });
+            break;
+          }
+          const refusal = REFUSED_PROPERTIES[node.property.toLowerCase()];
+          if (refusal) {
+            issues.push({ line: lineOf(node), reason: refusal });
           }
           break;
+        }
       }
     },
   });

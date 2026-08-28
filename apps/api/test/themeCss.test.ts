@@ -164,6 +164,41 @@ describe('what the parser did not understand is not passed through', () => {
   });
 });
 
+describe('the overlay, which needs no exfiltration channel at all', () => {
+  // The plan called UI redressing the most underestimated risk here, and it is
+  // right: every other CSS attack needs somewhere to send the data, and this one
+  // just needs to be on top of the page.
+  it('refuses the classic click-intercepting overlay', () => {
+    const issues = refused(
+      'body::before { position: fixed; inset: 0; z-index: 9999; content: ""; }',
+    );
+    expect(issues[0]!.reason).toMatch(/position is not allowed/);
+  });
+
+  it('refuses absolute too, not just fixed', () => {
+    // A rule that catches one spelling is a rule that teaches you to trust it.
+    // `position: absolute` on a body-level selector covers the page just as well.
+    refused('body::after { position: absolute; inset: 0; content: ""; }');
+    refused('.a { position: sticky; }');
+    refused('.a { POSITION: FIXED; }');
+  });
+
+  it('still allows everything a theme is actually for', () => {
+    // The refusal has to be narrow enough that the feature keeps its point:
+    // this is the sort of override raw CSS exists for.
+    const out = ok(`
+      .card { background: rgb(var(--bg-elevated)); border-radius: var(--radius-lg); }
+      .badge { color: rgb(var(--accent-warm-fg)); letter-spacing: .04em; }
+      .row:hover { box-shadow: 0 2px 8px rgb(var(--shadow-color) / 0.2); }
+      .grid { display: grid; gap: 1rem; z-index: 2; }
+    `);
+    expect(out).toContain('border-radius');
+    // `z-index` on its own is harmless — without positioning it cannot lift
+    // anything over the page — so it is not worth the false refusals.
+    expect(out).toContain('z-index');
+  });
+});
+
 describe('scoping', () => {
   it('puts every selector under the theme root', () => {
     const out = emitted('.card { color: red; } .pill { color: blue; }');
@@ -290,5 +325,69 @@ describe('keyframes are global, so they get renamed', () => {
     // and renaming a name it never declared would break exactly that.
     const out = ok('.a { animation: some-app-animation 1s; }');
     expect(out).toContain('animation:some-app-animation 1s');
+  });
+});
+
+// ── URLs that are not `url()` ─────────────────────────────────────────────
+//
+// The gap review found. `Url` is a css-tree node type, not a concept: CSS
+// Images 4 lets several functions take a bare string where a URL goes, and every
+// one of those parses as `Function` + `String`, so a rule written as "no `Url`
+// node" waves them through. `image-set()` is supported everywhere, which made
+// this a working exfiltration channel and not a theoretical one.
+//
+// The fix is an allow-list of functions, so the test that matters is not "are
+// these four refused" — it is "is anything outside the list refused", which is
+// what keeps the next one from needing a fix at all.
+describe('functions', () => {
+  const bare = (fn: string) => `.a { background-image: ${fn} }`;
+
+  it.each([
+    ['image-set', bare('image-set("https://evil/x" 1x)')],
+    ['-webkit-image-set', bare('-webkit-image-set("https://evil/x" 1x)')],
+    ['src', bare('src("https://evil/x")')],
+    ['cross-fade', bare('cross-fade("https://evil/x" 50%)')],
+    ['image', bare('image("https://evil/x")')],
+    ['-moz-element', bare('-moz-element(#x)')],
+    ['paint', bare('paint(worklet)')],
+  ])('refuses %s, which takes its URL as a string', (_name, css) => {
+    expect(refused(css)[0]!.reason).toMatch(/is not allowed/);
+  });
+
+  it('refuses one inside a custom property too', () => {
+    // The path that used to be checked for `Url` alone — and the one that
+    // matters most, because the application feeds `--bg-pattern-image` straight
+    // into `background-image`.
+    refused(':root { --bg-pattern-image: image-set("https://evil/x" 1x); }');
+  });
+
+  it('refuses a function nobody has heard of, which is the point', () => {
+    refused('.a { color: some-future-fetching-function("https://evil/x") }');
+  });
+
+  it.each([
+    ['arithmetic', '.a { width: clamp(1rem, calc(2vw + 1px), 3rem) }'],
+    ['colour', '.a { color: color-mix(in oklab, rgb(1 2 3), oklch(50% .1 20)) }'],
+    ['the token convention', '.a { color: rgb(var(--accent) / calc(.5 * var(--shadow-strength))) }'],
+    ['gradients', '.a { background: linear-gradient(to right, red, blue) }'],
+    ['filters', '.a { filter: drop-shadow(0 0 2px rgb(0 0 0/.3)) blur(2px) }'],
+    ['transforms', '.a { transform: translateX(1px) rotate(3deg) scale(1.1) }'],
+    ['easing', '.a { transition: all .2s cubic-bezier(.4,0,.2,1) }'],
+    ['track sizing', '.a { grid-template-columns: repeat(auto-fill, minmax(10px,1fr)) }'],
+    ['counters', '.a::after { content: "hi" counter(x) }'],
+    ['shapes', '.a { clip-path: polygon(0 0, 100% 0, 100% 100%) }'],
+    ['a function in an at-rule prelude', '@media (min-width: calc(10px + 1em)) { .a { color: red } }'],
+  ])('still accepts %s', (_name, css) => {
+    expect(ok(css)).toBeTruthy();
+  });
+
+  it('leaves selectors alone', () => {
+    // `:is()`, `:not()`, `:has()` and `:nth-child()` parse as
+    // `PseudoClassSelector`, never as `Function`. Asserted rather than assumed:
+    // an allow-list that quietly ate `:not()` would be a worse bug than the one
+    // it closes.
+    expect(
+      ok('.a:not(.b):is(.c,.d):nth-child(2n+1):has(> .e)::before { color: red }'),
+    ).toContain(':not(.b)');
   });
 });
