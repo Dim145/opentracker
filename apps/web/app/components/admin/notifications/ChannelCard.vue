@@ -404,8 +404,8 @@ const relativeTime = computed(() => {
 }
 
 .cc--open {
-  border-color: rgba(212, 167, 52, 0.55) !important;
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.1);
+  border-color: rgb(var(--accent-warm) / 0.55) !important;
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.1);
 }
 
 /* ── Header row ─────────────────────────────────────────────── */
@@ -632,7 +632,7 @@ const relativeTime = computed(() => {
   border-radius: var(--radius-sm);
 }
 .cc-note > svg {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   flex-shrink: 0;
   margin-top: 0.1rem;
 }
@@ -685,8 +685,8 @@ const relativeTime = computed(() => {
 }
 .field-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.6);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .field-input::placeholder {
   color: rgb(var(--fg-faint));
@@ -728,7 +728,7 @@ const relativeTime = computed(() => {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 .field-bool input:checked + .field-bool-track {
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .field-bool input:checked + .field-bool-track::after {
   transform: translateX(16px);
@@ -792,8 +792,8 @@ const relativeTime = computed(() => {
   font-family: inherit;
 }
 .btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.5);
-  background: rgba(212, 167, 52, 0.05);
+  border-color: rgb(var(--accent-warm) / 0.5);
+  background: rgb(var(--accent-warm) / 0.05);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -803,13 +803,13 @@ const relativeTime = computed(() => {
   background: transparent;
 }
 .btn--primary {
-  background: #d4a734;
-  border-color: #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
 }
 .btn--primary:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 
 /* ── Transitions ──────────────────────────────────────────── */

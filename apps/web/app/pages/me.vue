@@ -1731,7 +1731,7 @@ function formatDuration(seconds: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 10px;
   letter-spacing: 0.02em;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .kpi-sub-icon {
   font-size: 0.85em;
@@ -1767,7 +1767,7 @@ function formatDuration(seconds: number) {
   align-items: baseline;
   gap: 0.32rem;
   font-size: clamp(1.05rem, 2vw, 1.35rem);
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   font-weight: 800;
   letter-spacing: -0.01em;
 }
@@ -1792,7 +1792,7 @@ function formatDuration(seconds: number) {
   transition: color 0.16s ease, gap 0.2s ease;
 }
 .kpi-sub--link:hover {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   gap: 0.4rem;
 }
 .kpi-sub--link :deep(svg),
@@ -1900,21 +1900,21 @@ function formatDuration(seconds: number) {
   transition: border-color 0.18s ease, background 0.16s ease;
 }
 .bonus-history-toggle:hover {
-  border-color: rgb(212, 167, 52, 0.45);
+  border-color: rgb(var(--accent-warm) / 0.45);
   background: rgb(var(--fg-default) / 0.03);
 }
 .bonus-history-toggle:focus-visible {
-  outline: 2px solid rgb(212, 167, 52, 0.55);
+  outline: 2px solid rgb(var(--accent-warm) / 0.55);
   outline-offset: -2px;
 }
 .bonus-history-toggle--open {
-  border-color: rgb(212, 167, 52, 0.6);
+  border-color: rgb(var(--accent-warm) / 0.6);
 }
 
 .bv-trigger-icon {
   flex-shrink: 0;
   font-size: 1.05rem;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .bv-trigger-label {
   flex-shrink: 0;
@@ -1958,7 +1958,7 @@ function formatDuration(seconds: number) {
 }
 .bonus-chevron--open {
   transform: rotate(-180deg);
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 /* ─── Bonus transaction ledger (expandable) ────────────────────
@@ -1991,9 +1991,9 @@ function formatDuration(seconds: number) {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.4) 0%,
-    rgba(212, 167, 52, 0.1) 60%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.4) 0%,
+    rgb(var(--accent-warm) / 0.1) 60%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 
@@ -2148,7 +2148,7 @@ function formatDuration(seconds: number) {
   background: rgb(var(--online));
 }
 .bv-row--spend::before {
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 @keyframes bv-row-in {
   from { opacity: 0; transform: translateY(4px); }
@@ -2184,9 +2184,9 @@ function formatDuration(seconds: number) {
   background: rgb(var(--online) / 0.08);
 }
 .bv-tag--spend {
-  color: #d4a734;
-  border-color: rgba(212, 167, 52, 0.4);
-  background: rgba(212, 167, 52, 0.08);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.4);
+  background: rgb(var(--accent-warm) / 0.08);
 }
 .bv-tag svg {
   font-size: 9px;
@@ -2229,7 +2229,7 @@ function formatDuration(seconds: number) {
   color: rgb(var(--online));
 }
 .bv-amount--spend {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 /* Free-text note — when present it slips onto a second line of the

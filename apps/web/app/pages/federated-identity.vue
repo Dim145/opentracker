@@ -501,7 +501,7 @@ a.fid-work-name:hover {
 
 .section-head { display: flex; align-items: center; gap: 0.6rem; padding-bottom: 0.7rem; border-bottom: 1px solid rgb(var(--line-default)); margin-bottom: 1rem; }
 .section-tag { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--font-mono, monospace); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: rgb(var(--fg-muted)); }
-.section-tag :deep(svg) { color: var(--gold, #d4a734); font-size: 1rem; }
+.section-tag :deep(svg) { color: var(--gold, rgb(var(--accent-warm))); font-size: 1rem; }
 .section-rule { flex: 1; height: 1px; background: rgb(var(--line-default)); }
 
 .fid-empty { text-align: center; padding: 2.5rem 1rem; color: rgb(var(--fg-subtle)); border: 1px dashed rgb(var(--line-default)); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; font-size: 13px; }
@@ -522,7 +522,7 @@ a.fid-work-name:hover {
 .fid-pending { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid rgb(var(--line-default)); }
 .fid-instr { font-size: 12.5px; color: rgb(var(--fg-muted)); margin-bottom: 0.5rem; }
 .fid-code-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.fid-code { font-family: var(--font-mono, monospace); font-size: 12.5px; background: rgb(var(--bg-inset)); border: 1px dashed rgb(var(--line-strong)); border-radius: var(--radius-sm); padding: 0.35rem 0.6rem; color: var(--gold, #d4a734); user-select: all; }
+.fid-code { font-family: var(--font-mono, monospace); font-size: 12.5px; background: rgb(var(--bg-inset)); border: 1px dashed rgb(var(--line-strong)); border-radius: var(--radius-sm); padding: 0.35rem 0.6rem; color: var(--gold, rgb(var(--accent-warm))); user-select: all; }
 
 .fid-rep { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid rgb(var(--line-default)); }
 .fid-rep-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgb(var(--fg-subtle)); }

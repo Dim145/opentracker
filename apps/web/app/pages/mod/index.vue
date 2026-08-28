@@ -381,7 +381,7 @@ function actionVerb(status: string | null): string {
   inset: -2rem -1rem 0;
   background-image: radial-gradient(
     circle at 1px 1px,
-    rgba(212, 167, 52, 0.045) 1px,
+    rgb(var(--accent-warm) / 0.045) 1px,
     transparent 0
   );
   background-size: 24px 24px;
@@ -413,7 +413,7 @@ function actionVerb(status: string | null): string {
   bottom: -1px;
   width: 88px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .wt-head-id {
   display: flex;
@@ -429,7 +429,7 @@ function actionVerb(status: string | null): string {
   font-weight: 700;
   letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .wt-eyebrow-dot {
   width: 7px;
@@ -456,7 +456,7 @@ function actionVerb(status: string | null): string {
   line-height: 1.1;
 }
 .wt-greeting-name {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-weight: 700;
   font-size: 1.4rem;
@@ -536,7 +536,7 @@ function actionVerb(status: string | null): string {
   box-shadow: 0 14px 32px -22px rgba(0, 0, 0, 0.7);
 }
 .tile--pending { --tile-accent: #f43f5e; }
-.tile--reports { --tile-accent: #d4a734; }
+.tile--reports { --tile-accent: rgb(var(--accent-warm)); }
 .tile--hnr { --tile-accent: #fb923c; }
 .tile--me { --tile-accent: #6cd161; }
 .tile--me { cursor: default; }
@@ -642,7 +642,7 @@ function actionVerb(status: string | null): string {
 }
 .feed-tag-icon {
   font-size: 1rem;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .feed-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -669,8 +669,8 @@ function actionVerb(status: string | null): string {
   transition: all 0.16s ease;
 }
 .feed-cta:hover {
-  color: #d4a734;
-  border-color: rgba(212, 167, 52, 0.5);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.5);
 }
 
 .feed-list {
@@ -708,7 +708,7 @@ function actionVerb(status: string | null): string {
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   padding-top: 0.15rem;
 }
 .queue-name {
@@ -722,7 +722,7 @@ function actionVerb(status: string | null): string {
   display: block;
   transition: color 0.16s ease;
 }
-.queue-name:hover { color: #d4a734; }
+.queue-name:hover { color: rgb(var(--accent-warm)); }
 .queue-meta {
   grid-column: 2;
   display: flex;
@@ -818,7 +818,7 @@ function actionVerb(status: string | null): string {
   min-width: 0;
   transition: color 0.16s ease;
 }
-.log-target:hover { color: #d4a734; }
+.log-target:hover { color: rgb(var(--accent-warm)); }
 .log-target--missing {
   font-style: italic;
   color: rgb(var(--fg-faint));

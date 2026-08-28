@@ -603,7 +603,7 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 
 .fed { display: flex; flex-direction: column; gap: 1.25rem; }
 .fed-intro { font-size: 13px; color: rgb(var(--fg-muted)); line-height: 1.55; max-width: 70ch; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.fed-owner { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 11px; font-weight: 600; color: var(--gold, #d4a734); border: 1px solid color-mix(in srgb, var(--gold, #d4a734) 30%, transparent); background: color-mix(in srgb, var(--gold, #d4a734) 10%, transparent); padding: 0.15rem 0.5rem; border-radius: 99px; }
+.fed-owner { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 11px; font-weight: 600; color: var(--gold, rgb(var(--accent-warm))); border: 1px solid color-mix(in srgb, var(--gold, rgb(var(--accent-warm))) 30%, transparent); background: color-mix(in srgb, var(--gold, rgb(var(--accent-warm))) 10%, transparent); padding: 0.15rem 0.5rem; border-radius: 99px; }
 
 .fed-flash { display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.9rem; border-radius: var(--radius-md); font-size: 13px; border: 1px solid; }
 .fed-flash--ok { color: #4ade80; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
@@ -645,7 +645,7 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 .fed-hint { font-size: 12px; color: rgb(var(--fg-subtle)); line-height: 1.5; margin-top: 0.6rem; display: flex; gap: 0.4rem; }
 
 .scope-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.7rem; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); background: rgb(var(--bg-inset)); margin-bottom: 0.5rem; }
-.scope-ico { width: 30px; height: 30px; border-radius: var(--radius-sm); display: grid; place-items: center; background: rgb(var(--bg-elevated)); color: var(--gold, #d4a734); font-size: 1rem; flex-shrink: 0; }
+.scope-ico { width: 30px; height: 30px; border-radius: var(--radius-sm); display: grid; place-items: center; background: rgb(var(--bg-elevated)); color: var(--gold, rgb(var(--accent-warm))); font-size: 1rem; flex-shrink: 0; }
 .scope-row.is-warn .scope-ico { color: rgb(var(--warning)); }
 .scope-txt { flex: 1; min-width: 0; }
 .scope-t { font-weight: 600; font-size: 13px; color: rgb(var(--fg-default)); display: flex; align-items: center; gap: 0.4rem; }
@@ -686,14 +686,14 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
    wrapped in `rgb(…)`. Without the wrapper, `background: 35 35 35` is invalid,
    the browser drops the declaration in silence, and the switch became plainly
    invisible in its off state — only the on state showed, because it fell back
-   to the `#d4a734` literal of `--gold`, a token that does not exist. */
+   to the `rgb(var(--accent-warm))` literal of `--gold`, a token that does not exist. */
 .switch { position: relative; display: inline-flex; flex-shrink: 0; width: 42px; height: 24px; }
 .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .switch .track { position: absolute; inset: 0; border-radius: 99px; background: rgb(var(--bg-hover)); border: 1px solid rgb(var(--line-strong)); transition: all 0.2s ease; }
 .switch .thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: rgb(var(--fg-subtle)); transition: all 0.2s cubic-bezier(0.3, 1.4, 0.5, 1); }
 .switch input:checked ~ .track { background: rgb(var(--online)); border-color: rgb(var(--online)); }
-.switch input:checked ~ .thumb { left: 21px; background: #0a0a0a; }
-.switch.is-gold input:checked ~ .track { background: #d4a734; border-color: #d4a734; }
+.switch input:checked ~ .thumb { left: 21px; background: rgb(var(--bg-surface)); }
+.switch.is-gold input:checked ~ .track { background: rgb(var(--accent-warm)); border-color: rgb(var(--accent-warm)); }
 .switch.is-warning input:checked ~ .track { background: rgb(var(--warning)); border-color: rgb(var(--warning)); }
 /* The real input is transparent: without an explicit ring, keyboard
    navigation has no visible cue on this control. */

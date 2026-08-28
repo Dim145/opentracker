@@ -430,6 +430,6 @@ function formatMul(v: number): string {
   text-transform: uppercase;
 }
 .tcurve-readout > svg {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 </style>

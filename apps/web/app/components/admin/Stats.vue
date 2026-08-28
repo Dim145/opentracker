@@ -131,7 +131,7 @@ function formatNumber(n: number): string {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.metric--torrents { --rail: #d4a734; --rail-glow: rgba(212, 167, 52, 0.4); }
+.metric--torrents { --rail: rgb(var(--accent-warm)); --rail-glow: rgb(var(--accent-warm) / 0.4); }
 .metric--peers    { --rail: rgb(var(--fg-strong)); }
 .metric--seeders  { --rail: #6cd161; --rail-glow: rgba(108, 209, 97, 0.4); }
 .metric--leechers { --rail: #fb923c; --rail-glow: rgba(251, 146, 60, 0.4); }
@@ -152,7 +152,7 @@ function formatNumber(n: number): string {
   line-height: 1;
   color: rgb(var(--fg-strong));
 }
-.metric--torrents .metric-value { color: #d4a734; }
+.metric--torrents .metric-value { color: rgb(var(--accent-warm)); }
 .metric--seeders .metric-value { color: #6cd161; }
 .metric--leechers .metric-value { color: #fb923c; }
 

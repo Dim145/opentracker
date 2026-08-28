@@ -154,11 +154,11 @@ const tierLabel = computed(() =>
 }
 
 .rung--lit {
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
   /* A held episode sits a touch taller as well as brighter: the shape reads
      at a glance even for a member who cannot separate the two tones. */
   height: 13px;
-  box-shadow: 0 0 6px rgb(212 167 52 / 0.35);
+  box-shadow: 0 0 6px rgb(var(--accent-warm) / 0.35);
 }
 
 @keyframes rung-in {
@@ -189,9 +189,9 @@ const tierLabel = computed(() =>
 }
 
 .tier--lit {
-  color: #d4a734;
-  border-color: rgb(212 167 52 / 0.45);
-  background: rgb(212 167 52 / 0.08);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.45);
+  background: rgb(var(--accent-warm) / 0.08);
 }
 
 @keyframes tier-in {

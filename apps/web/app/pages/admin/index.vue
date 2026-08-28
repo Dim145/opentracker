@@ -176,7 +176,7 @@ const refreshedAgo = computed(() => {
   bottom: -1px;
   width: 64px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .cr-head-id {
   display: flex;
@@ -193,13 +193,13 @@ const refreshedAgo = computed(() => {
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .cr-eyebrow-rule {
   display: inline-block;
   width: 26px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .cr-title {
   margin: 0;
@@ -333,7 +333,7 @@ const refreshedAgo = computed(() => {
 }
 .cr-section-tag-icon {
   font-size: 1rem;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .cr-section-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -374,9 +374,9 @@ const refreshedAgo = computed(() => {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: rgba(212, 167, 52, 0.08);
-  border: 1px solid rgba(212, 167, 52, 0.4);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.08);
+  border: 1px solid rgb(var(--accent-warm) / 0.4);
+  color: rgb(var(--accent-warm));
   font-size: 1.7rem;
 }
 .cr-empty-title {

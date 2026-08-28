@@ -2102,9 +2102,9 @@ async function onDetachRole(roleId: string) {
    Wider than the other row actions because the count badge can hold
    four digits (10k+ pts is plausible after a long seeding stretch). */
 .row-action--bonus-active {
-  background: rgba(212, 167, 52, 0.1);
-  border-color: rgba(212, 167, 52, 0.35);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.1);
+  border-color: rgb(var(--accent-warm) / 0.35);
+  color: rgb(var(--accent-warm));
 }
 
 /* ─── Bonus-points adjustment modal ─────────────────────────────── */
@@ -2130,7 +2130,7 @@ async function onDetachRole(roleId: string) {
   inset-inline: 0.85rem;
   top: 0;
   height: 1px;
-  background: rgb(212, 167, 52, 0.5);
+  background: rgb(var(--accent-warm) / 0.5);
 }
 .bonus-balance-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -2150,7 +2150,7 @@ async function onDetachRole(roleId: string) {
   color: rgb(var(--fg-strong));
 }
 .bonus-balance-value > svg {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   font-size: 1.1rem;
 }
 .bonus-balance-unit {

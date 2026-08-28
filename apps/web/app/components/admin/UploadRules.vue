@@ -249,7 +249,7 @@
         <li
           class="gate gate--bypass"
           :class="{ 'gate--off': !form.staffBypass }"
-          :style="{ '--gate-color': '#d4a734', '--stagger': '300ms' }"
+          :style="{ '--gate-color': 'rgb(var(--accent-warm))', '--stagger': '300ms' }"
         >
           <header class="gate-head">
             <span class="gate-glyph">
@@ -692,10 +692,10 @@ function discard() {
   width: 1px;
   background: linear-gradient(
     to bottom,
-    rgba(212, 167, 52, 0) 0%,
-    rgba(212, 167, 52, 0.35) 12%,
-    rgba(212, 167, 52, 0.35) 88%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm) / 0.35) 12%,
+    rgb(var(--accent-warm) / 0.35) 88%,
+    rgb(var(--accent-warm) / 0) 100%
   );
   pointer-events: none;
 }
@@ -719,9 +719,9 @@ function discard() {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.55) 0%,
-    rgba(212, 167, 52, 0.2) 60%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.55) 0%,
+    rgb(var(--accent-warm) / 0.2) 60%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 @media (max-width: 720px) {
@@ -759,7 +759,7 @@ function discard() {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.snap--bypass-on .snap-num strong { color: #d4a734; }
+.snap--bypass-on .snap-num strong { color: rgb(var(--accent-warm)); }
 .snap-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 10px;
@@ -798,16 +798,16 @@ function discard() {
   bottom: -1px;
   width: 40px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .block-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
   border-radius: var(--radius-sm);
 }
@@ -1021,8 +1021,8 @@ function discard() {
 }
 .field-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.6);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .field-input--invalid {
   border-color: rgba(239, 68, 68, 0.55);
@@ -1071,15 +1071,15 @@ function discard() {
   align-items: flex-start;
   gap: 0.55rem;
   padding: 0.7rem 0.85rem;
-  background: rgba(212, 167, 52, 0.06);
-  border: 1px dashed rgba(212, 167, 52, 0.3);
+  background: rgb(var(--accent-warm) / 0.06);
+  border: 1px dashed rgb(var(--accent-warm) / 0.3);
   border-radius: var(--radius-sm);
   font-size: 0.78rem;
   color: rgb(var(--fg-strong));
   line-height: 1.5;
 }
 .pattern-explainer-icon {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   font-size: 1rem;
   flex-shrink: 0;
   margin-top: 0.1rem;
@@ -1135,11 +1135,11 @@ function discard() {
 }
 .cat-row:hover { border-color: rgb(var(--line-strong)); }
 .cat-row--has {
-  border-left: 2px solid #d4a734;
+  border-left: 2px solid rgb(var(--accent-warm));
   padding-left: calc(0.85rem - 1px);
 }
 .cat-row--inherits {
-  border-left: 2px solid rgba(212, 167, 52, 0.35);
+  border-left: 2px solid rgb(var(--accent-warm) / 0.35);
   border-left-style: dashed;
   padding-left: calc(0.85rem - 1px);
 }
@@ -1197,21 +1197,21 @@ function discard() {
 }
 .cat-inherit {
   color: rgb(var(--fg-muted));
-  border: 1px dashed rgba(212, 167, 52, 0.4);
-  background: rgba(212, 167, 52, 0.04);
+  border: 1px dashed rgb(var(--accent-warm) / 0.4);
+  background: rgb(var(--accent-warm) / 0.04);
 }
-.cat-inherit > svg { color: #d4a734; }
+.cat-inherit > svg { color: rgb(var(--accent-warm)); }
 .cat-own-tag {
-  color: #d4a734;
-  border: 1px solid rgba(212, 167, 52, 0.5);
-  background: rgba(212, 167, 52, 0.08);
+  color: rgb(var(--accent-warm));
+  border: 1px solid rgb(var(--accent-warm) / 0.5);
+  background: rgb(var(--accent-warm) / 0.08);
 }
 .cat-own-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #d4a734;
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.18);
+  background: rgb(var(--accent-warm));
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.18);
 }
 
 .cat-input-wrap {
@@ -1255,7 +1255,7 @@ function discard() {
   gap: 0.6rem;
   padding: 0.7rem 1rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.55);
+  border: 1px solid rgb(var(--accent-warm) / 0.55);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-overlay);
   backdrop-filter: blur(10px);
@@ -1272,7 +1272,7 @@ function discard() {
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.savebar-status--dirty { color: #d4a734; }
+.savebar-status--dirty { color: rgb(var(--accent-warm)); }
 .savebar-status--error { color: rgb(var(--danger)); }
 
 .savebar-enter-active,
@@ -1304,19 +1304,19 @@ function discard() {
   white-space: nowrap;
 }
 .btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.5);
-  background: rgba(212, 167, 52, 0.05);
+  border-color: rgb(var(--accent-warm) / 0.5);
+  background: rgb(var(--accent-warm) / 0.05);
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn--ghost { background: transparent; }
 .btn--primary {
-  background: #d4a734;
-  border-color: #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
 }
 .btn--primary:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 
 .spin {

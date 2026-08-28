@@ -311,7 +311,7 @@ useHead(() => ({ title: title.value }));
   color: rgb(var(--fg-muted));
 }
 .group-src--tmdb {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 .group-title {

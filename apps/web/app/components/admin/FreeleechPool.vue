@@ -1110,10 +1110,10 @@ function describeWindow(w: Window): string {
    neutral token system (--bg-elevated, --fg-strong, etc.).
    ───────────────────────────────────────────────────────────── */
 .pool {
-  --gold: #d4a734;
+  --gold: rgb(var(--accent-warm));
   --gold-bright: #f0c75b;
-  --gold-soft: rgba(212, 167, 52, 0.12);
-  --gold-faint: rgba(212, 167, 52, 0.06);
+  --gold-soft: rgb(var(--accent-warm) / 0.12);
+  --gold-faint: rgb(var(--accent-warm) / 0.06);
   --cool: #7dd3fc;
   --cool-soft: rgba(125, 211, 252, 0.18);
   --success: #4ade80;
@@ -1154,7 +1154,7 @@ function describeWindow(w: Window): string {
   right: -12vw;
   background: radial-gradient(
     circle,
-    rgba(212, 167, 52, 0.22) 0%,
+    rgb(var(--accent-warm) / 0.22) 0%,
     transparent 70%
   );
 }
@@ -1495,7 +1495,7 @@ function describeWindow(w: Window): string {
 }
 .status-dot--filling {
   background: var(--gold);
-  box-shadow: 0 0 8px rgba(212, 167, 52, 0.6);
+  box-shadow: 0 0 8px rgb(var(--accent-warm) / 0.6);
   animation: dot-pulse 2.4s ease-in-out infinite;
 }
 .status-dot--full_queued {
@@ -1640,7 +1640,7 @@ function describeWindow(w: Window): string {
 .switch-input:checked ~ .switch-track .switch-thumb {
   left: 25px;
   background: var(--gold);
-  box-shadow: 0 0 12px rgba(212, 167, 52, 0.55);
+  box-shadow: 0 0 12px rgb(var(--accent-warm) / 0.55);
 }
 .switch-copy {
   display: flex;
@@ -1745,7 +1745,7 @@ function describeWindow(w: Window): string {
 }
 .input:focus {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.18);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.18);
 }
 .input--xl {
   padding: 0.85rem 1rem;
@@ -1770,7 +1770,7 @@ function describeWindow(w: Window): string {
   border-right: 0;
 }
 .field-input--unit:focus-within .input {
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.18);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.18);
 }
 .unit {
   display: inline-flex;
@@ -1854,7 +1854,7 @@ select.input option {
 .btn--primary:hover:not(:disabled) {
   background: var(--gold-bright);
   border-color: var(--gold-bright);
-  box-shadow: 0 6px 22px -8px rgba(212, 167, 52, 0.55);
+  box-shadow: 0 6px 22px -8px rgb(var(--accent-warm) / 0.55);
   transform: translateY(-1px);
 }
 .btn--primary:active:not(:disabled) {
@@ -1957,7 +1957,7 @@ select.input option {
   background: var(--gold);
   border-color: var(--gold);
   color: rgb(var(--bg-base));
-  box-shadow: 0 0 14px rgba(212, 167, 52, 0.35);
+  box-shadow: 0 0 14px rgb(var(--accent-warm) / 0.35);
 }
 
 /* Deployed list. */

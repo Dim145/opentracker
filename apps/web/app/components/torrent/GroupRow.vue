@@ -519,7 +519,7 @@ const age = computed(() => formatAge(props.group.latest));
 }
 .grp-more:hover {
   color: #e5bf58;
-  background: rgb(212 167 52 / 0.06);
+  background: rgb(var(--accent-warm) / 0.06);
 }
 
 /* ── Phone ───────────────────────────────────────────────────────────── */

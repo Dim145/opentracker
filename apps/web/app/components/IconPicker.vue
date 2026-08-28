@@ -350,7 +350,7 @@ onBeforeUnmount(() => {
 .icon-picker.is-open .icon-picker-control,
 .icon-picker-control:focus-within {
   border-color: rgb(var(--fg-default) / 0.4);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 /* Preview is the picker's primary trigger now — styled as an
    interactive button rather than a passive box so the cursor and
@@ -374,8 +374,8 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-strong));
 }
 .icon-picker.is-open .icon-picker-preview {
-  background: rgba(212, 167, 52, 0.12);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.12);
+  color: rgb(var(--accent-warm));
 }
 .icon-picker-preview:disabled {
   cursor: not-allowed;
@@ -510,9 +510,9 @@ onBeforeUnmount(() => {
   transform: translateY(-1px);
 }
 .icon-picker-cell.is-active {
-  background: rgba(212, 167, 52, 0.12);
-  border-color: rgba(212, 167, 52, 0.45);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.12);
+  border-color: rgb(var(--accent-warm) / 0.45);
+  color: rgb(var(--accent-warm));
 }
 .icon-picker-cell-glyph {
   font-size: 1.4rem;

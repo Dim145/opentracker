@@ -95,7 +95,7 @@ function fmtDate(d: string | null) {
 .ff-topic-title:hover { color: rgb(var(--fg-strong)); }
 .ff-topic-meta { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.35rem; font-size: 11.5px; }
 .ff-topic-meta .muted { display: inline-flex; align-items: center; gap: 0.25rem; color: rgb(var(--fg-subtle)); }
-.ff-cat { font-size: 10.5px; color: var(--gold, #d4a734); background: rgba(212, 167, 52, 0.1); border: 1px solid rgba(212, 167, 52, 0.3); border-radius: 99px; padding: 0.05rem 0.45rem; }
+.ff-cat { font-size: 10.5px; color: var(--gold, rgb(var(--accent-warm))); background: rgb(var(--accent-warm) / 0.1); border: 1px solid rgb(var(--accent-warm) / 0.3); border-radius: 99px; padding: 0.05rem 0.45rem; }
 .ff-empty { text-align: center; padding: 3rem 1rem; color: rgb(var(--fg-subtle)); border: 1px dashed rgb(var(--line-default)); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; gap: 0.6rem; font-size: 13px; }
 .ff-empty :deep(svg) { font-size: 1.8rem; opacity: 0.5; }
 </style>

@@ -639,10 +639,10 @@ async function confirmDelete() {
   width: 1px;
   background: linear-gradient(
     to bottom,
-    rgba(212, 167, 52, 0) 0%,
-    rgba(212, 167, 52, 0.35) 12%,
-    rgba(212, 167, 52, 0.35) 88%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm) / 0.35) 12%,
+    rgb(var(--accent-warm) / 0.35) 88%,
+    rgb(var(--accent-warm) / 0) 100%
   );
   pointer-events: none;
 }
@@ -655,14 +655,14 @@ async function confirmDelete() {
   max-width: 64ch;
 }
 .adm-intro-link {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   text-decoration: underline;
-  text-decoration-color: rgba(212, 167, 52, 0.5);
+  text-decoration-color: rgb(var(--accent-warm) / 0.5);
   text-underline-offset: 3px;
   transition: text-decoration-color 0.18s ease;
 }
 .adm-intro-link:hover {
-  text-decoration-color: #d4a734;
+  text-decoration-color: rgb(var(--accent-warm));
 }
 .adm-intro strong {
   color: rgb(var(--fg-strong));
@@ -688,9 +688,9 @@ async function confirmDelete() {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.55) 0%,
-    rgba(212, 167, 52, 0.2) 60%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.55) 0%,
+    rgb(var(--accent-warm) / 0.2) 60%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 @media (max-width: 720px) {
@@ -718,8 +718,8 @@ async function confirmDelete() {
   line-height: 1;
   color: rgb(var(--fg-strong));
 }
-.snap--total .snap-num { color: #d4a734; }
-.snap--active .snap-num { color: #d4a734; }
+.snap--total .snap-num { color: rgb(var(--accent-warm)); }
+.snap--active .snap-num { color: rgb(var(--accent-warm)); }
 .snap--used .snap-num { color: rgb(var(--online)); }
 .snap--expired .snap-num { color: rgb(var(--fg-muted)); }
 
@@ -754,8 +754,8 @@ async function confirmDelete() {
   border-radius: 50%;
 }
 .snap-dot--active {
-  background: #d4a734;
-  box-shadow: 0 0 0 4px rgba(212, 167, 52, 0.18);
+  background: rgb(var(--accent-warm));
+  box-shadow: 0 0 0 4px rgb(var(--accent-warm) / 0.18);
 }
 .snap-dot--used {
   background: rgb(var(--online));
@@ -784,16 +784,16 @@ async function confirmDelete() {
   bottom: -1px;
   width: 40px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .block-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
   border-radius: var(--radius-sm);
 }
@@ -862,8 +862,8 @@ async function confirmDelete() {
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .grant-input-wrap:focus-within {
-  border-color: rgba(212, 167, 52, 0.6);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .grant-input-icon { color: rgb(var(--fg-muted)); flex-shrink: 0; }
 .grant-input {
@@ -886,9 +886,9 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.3rem;
   padding: 0.2rem 0.5rem;
-  background: rgba(212, 167, 52, 0.12);
-  border: 1px solid rgba(212, 167, 52, 0.4);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.12);
+  border: 1px solid rgb(var(--accent-warm) / 0.4);
+  color: rgb(var(--accent-warm));
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
@@ -900,7 +900,7 @@ async function confirmDelete() {
   border: 0;
   padding: 0;
   background: transparent;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   cursor: pointer;
   opacity: 0.75;
   transition: opacity 0.16s ease;
@@ -917,7 +917,7 @@ async function confirmDelete() {
   margin: 0;
   padding: 0.25rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-overlay);
   max-height: 240px;
@@ -973,8 +973,8 @@ async function confirmDelete() {
 }
 .grant-count-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.6);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 
 .grant-btn {
@@ -983,9 +983,9 @@ async function confirmDelete() {
   justify-content: center;
   gap: 0.4rem;
   padding: 0.6rem 1.05rem;
-  background: #d4a734;
-  border: 1px solid #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border: 1px solid rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 11px;
@@ -996,8 +996,8 @@ async function confirmDelete() {
   transition: all 0.15s ease;
 }
 .grant-btn:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 .grant-btn:disabled {
   opacity: 0.45;
@@ -1024,7 +1024,7 @@ async function confirmDelete() {
   transition: border-color 0.18s ease;
 }
 .ledger-search:focus-within {
-  border-color: rgba(212, 167, 52, 0.5);
+  border-color: rgb(var(--accent-warm) / 0.5);
 }
 .ledger-search > svg { color: rgb(var(--fg-muted)); flex-shrink: 0; }
 .ledger-search input {
@@ -1085,8 +1085,8 @@ async function confirmDelete() {
 .ledger-segment:hover { color: rgb(var(--fg-strong)); }
 .ledger-segment--active {
   background: rgb(var(--bg-base));
-  color: #d4a734;
-  box-shadow: inset 0 0 0 1px rgba(212, 167, 52, 0.4);
+  color: rgb(var(--accent-warm));
+  box-shadow: inset 0 0 0 1px rgb(var(--accent-warm) / 0.4);
 }
 .ledger-segment-count {
   font-size: 10px;
@@ -1098,8 +1098,8 @@ async function confirmDelete() {
   letter-spacing: 0.04em;
 }
 .ledger-segment--active .ledger-segment-count {
-  color: #d4a734;
-  background: rgba(212, 167, 52, 0.1);
+  color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.1);
 }
 
 /* ── Ledger entries ────────────────────────────────────────── */
@@ -1155,8 +1155,8 @@ async function confirmDelete() {
   white-space: nowrap;
 }
 .entry--active .entry-code {
-  border-color: rgba(212, 167, 52, 0.4);
-  background: rgba(212, 167, 52, 0.05);
+  border-color: rgb(var(--accent-warm) / 0.4);
+  background: rgb(var(--accent-warm) / 0.05);
 }
 .entry--used .entry-code {
   border-color: rgba(34, 197, 94, 0.35);
@@ -1178,8 +1178,8 @@ async function confirmDelete() {
   white-space: nowrap;
 }
 .entry-status--active {
-  color: #d4a734;
-  background: rgba(212, 167, 52, 0.08);
+  color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.08);
 }
 .entry-status--used {
   color: rgb(var(--online));
@@ -1212,15 +1212,15 @@ async function confirmDelete() {
 .entry-flow-user {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   text-decoration: none;
-  border-bottom: 1px dashed rgba(212, 167, 52, 0.4);
+  border-bottom: 1px dashed rgb(var(--accent-warm) / 0.4);
   transition: border-color 0.16s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.entry-flow-user:hover { border-color: #d4a734; }
+.entry-flow-user:hover { border-color: rgb(var(--accent-warm)); }
 .entry-flow-soft {
   font-size: 0.82rem;
   color: rgb(var(--fg-faint));
@@ -1364,8 +1364,8 @@ async function confirmDelete() {
   transition: all 0.15s ease;
 }
 .pager-btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.5);
-  color: #d4a734;
+  border-color: rgb(var(--accent-warm) / 0.5);
+  color: rgb(var(--accent-warm));
 }
 .pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .pager-pos {
@@ -1428,8 +1428,8 @@ async function confirmDelete() {
   font-family: inherit;
 }
 .btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.5);
-  background: rgba(212, 167, 52, 0.05);
+  border-color: rgb(var(--accent-warm) / 0.5);
+  background: rgb(var(--accent-warm) / 0.05);
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn--ghost { background: transparent; }

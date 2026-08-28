@@ -91,7 +91,7 @@ function protocolIcon(name: string | number): string {
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
-.proto-head-tag-icon { font-size: 0.95rem; color: #d4a734; }
+.proto-head-tag-icon { font-size: 0.95rem; color: rgb(var(--accent-warm)); }
 .proto-head-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 9.5px;

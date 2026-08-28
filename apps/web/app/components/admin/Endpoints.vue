@@ -118,7 +118,7 @@ onBeforeUnmount(() => {
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
-.endp-head-tag-icon { font-size: 0.95rem; color: #d4a734; }
+.endp-head-tag-icon { font-size: 0.95rem; color: rgb(var(--accent-warm)); }
 .endp-head-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 9.5px;
@@ -203,9 +203,9 @@ onBeforeUnmount(() => {
   transition: all 0.15s ease;
 }
 .endp-row-copy:hover {
-  color: #d4a734;
-  border-color: rgba(212, 167, 52, 0.4);
-  background: rgba(212, 167, 52, 0.06);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.4);
+  background: rgb(var(--accent-warm) / 0.06);
 }
 .endp-row-copy--copied {
   color: #6cd161;

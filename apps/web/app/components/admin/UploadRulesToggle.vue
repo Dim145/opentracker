@@ -116,10 +116,10 @@ defineEmits<{
   background: rgb(var(--line-strong));
 }
 .urt-switch--on {
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .urt-switch--on:hover {
-  background: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 .urt-switch-thumb {
   position: absolute;
@@ -138,7 +138,7 @@ defineEmits<{
   background: rgb(var(--bg-base));
 }
 .urt-switch:focus-visible {
-  outline: 2px solid rgba(212, 167, 52, 0.6);
+  outline: 2px solid rgb(var(--accent-warm) / 0.6);
   outline-offset: 2px;
 }
 </style>

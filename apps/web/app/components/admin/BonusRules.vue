@@ -713,10 +713,10 @@ async function deleteAgeTier(tier: AgeTier) {
   width: 1px;
   background: linear-gradient(
     to bottom,
-    rgba(212, 167, 52, 0) 0%,
-    rgba(212, 167, 52, 0.35) 12%,
-    rgba(212, 167, 52, 0.35) 88%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm) / 0.35) 12%,
+    rgb(var(--accent-warm) / 0.35) 88%,
+    rgb(var(--accent-warm) / 0) 100%
   );
   pointer-events: none;
 }
@@ -740,9 +740,9 @@ async function deleteAgeTier(tier: AgeTier) {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.55) 0%,
-    rgba(212, 167, 52, 0.2) 60%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.55) 0%,
+    rgb(var(--accent-warm) / 0.2) 60%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 @media (max-width: 720px) {
@@ -777,7 +777,7 @@ async function deleteAgeTier(tier: AgeTier) {
 }
 .snap-num strong { color: rgb(var(--fg-strong)); font-weight: 800; }
 .snap-frac { color: rgb(var(--fg-faint)); font-size: 0.6em; font-weight: 600; margin-left: 0.2em; }
-.snap--rules .snap-num strong { color: #d4a734; }
+.snap--rules .snap-num strong { color: rgb(var(--accent-warm)); }
 .snap--seed .snap-num strong { color: #34d4d8; }
 .snap--age .snap-num strong { color: #fb923c; }
 .snap--range .snap-num { color: rgb(var(--fg-strong)); font-size: 1.3rem; }
@@ -819,16 +819,16 @@ async function deleteAgeTier(tier: AgeTier) {
   bottom: -1px;
   width: 40px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .block-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
   border-radius: var(--radius-sm);
 }
@@ -995,7 +995,7 @@ async function deleteAgeTier(tier: AgeTier) {
   height: 14px;
 }
 .rule-toggle input:checked + .rule-toggle-track {
-  background: var(--rule-color, #d4a734);
+  background: var(--rule-color, rgb(var(--accent-warm)));
 }
 .rule-toggle input:checked + .rule-toggle-track::after {
   transform: translateX(16px);
@@ -1054,8 +1054,8 @@ async function deleteAgeTier(tier: AgeTier) {
 }
 .field-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.6);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .field-input--sm {
   font-size: 0.85rem;
@@ -1185,9 +1185,9 @@ async function deleteAgeTier(tier: AgeTier) {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.5) 0%,
-    rgba(212, 167, 52, 0.1) 80%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.5) 0%,
+    rgb(var(--accent-warm) / 0.1) 80%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 .curve-footnote {
@@ -1401,19 +1401,19 @@ async function deleteAgeTier(tier: AgeTier) {
   font-family: inherit;
 }
 .btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.5);
-  background: rgba(212, 167, 52, 0.05);
+  border-color: rgb(var(--accent-warm) / 0.5);
+  background: rgb(var(--accent-warm) / 0.05);
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn--ghost { background: transparent; }
 .btn--primary {
-  background: #d4a734;
-  border-color: #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
 }
 .btn--primary:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 .btn--sm {
   padding: 0.32rem 0.6rem;

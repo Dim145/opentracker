@@ -15,7 +15,7 @@
       hit when a fetch is genuinely slow.
     -->
     <NuxtLoadingIndicator
-      color="#d4a734"
+      color="rgb(var(--accent-warm))"
       :height="2"
       :duration="2500"
       :throttle="180"

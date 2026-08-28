@@ -647,7 +647,7 @@ function confirmBanPanel(report: Report) {
   bottom: -1px;
   width: 64px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .archive-head-id {
   display: flex;
@@ -664,13 +664,13 @@ function confirmBanPanel(report: Report) {
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .archive-eyebrow-rule {
   display: inline-block;
   width: 26px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .archive-title {
   margin: 0;
@@ -692,9 +692,9 @@ function confirmBanPanel(report: Report) {
   width: 56px;
   height: 56px;
   font-size: 1.75rem;
-  color: #d4a734;
-  background: rgba(212, 167, 52, 0.08);
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.08);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   border-radius: var(--radius-md);
   flex-shrink: 0;
 }
@@ -740,9 +740,9 @@ function confirmBanPanel(report: Report) {
 }
 /* Active states — chip takes on the colour of its bucket. */
 .filter--active.filter--all {
-  background: rgba(212, 167, 52, 0.1);
-  border-color: rgba(212, 167, 52, 0.55);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.1);
+  border-color: rgb(var(--accent-warm) / 0.55);
+  color: rgb(var(--accent-warm));
 }
 .filter--active.filter--pending {
   background: rgba(244, 63, 94, 0.1);
@@ -844,7 +844,7 @@ function confirmBanPanel(report: Report) {
 .dossier-case-num {
   font-size: 11px;
   font-weight: 700;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   letter-spacing: 0.05em;
   background: transparent;
 }
@@ -969,7 +969,7 @@ function confirmBanPanel(report: Report) {
 .meta-details--note {
   padding: 0.55rem 0.7rem;
   background: rgb(var(--bg-base));
-  border-left: 2px solid rgba(212, 167, 52, 0.45);
+  border-left: 2px solid rgb(var(--accent-warm) / 0.45);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-style: italic;
 }
@@ -1024,27 +1024,27 @@ function confirmBanPanel(report: Report) {
 }
 .target-tag-icon {
   font-size: 0.85rem;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .target-link {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   padding: 0.22rem 0.55rem;
-  background: rgba(212, 167, 52, 0.06);
-  border: 1px solid rgba(212, 167, 52, 0.3);
+  background: rgb(var(--accent-warm) / 0.06);
+  border: 1px solid rgb(var(--accent-warm) / 0.3);
   border-radius: var(--radius-sm);
   font-size: 0.84rem;
   font-weight: 600;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   text-decoration: none;
   transition: all 0.15s ease;
   max-width: 100%;
   min-width: 0;
 }
 .target-link:hover {
-  background: rgba(212, 167, 52, 0.12);
-  border-color: rgba(212, 167, 52, 0.55);
+  background: rgb(var(--accent-warm) / 0.12);
+  border-color: rgb(var(--accent-warm) / 0.55);
 }
 .target-link-name {
   white-space: nowrap;
@@ -1367,8 +1367,8 @@ function confirmBanPanel(report: Report) {
   transition: all 0.15s ease;
 }
 .pager-btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.5);
-  color: #d4a734;
+  border-color: rgb(var(--accent-warm) / 0.5);
+  color: rgb(var(--accent-warm));
 }
 .pager-btn:disabled {
   opacity: 0.4;

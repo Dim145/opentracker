@@ -386,10 +386,10 @@ function hexToRgba(hex: string, alpha: number): string {
   width: 1px;
   background: linear-gradient(
     to bottom,
-    rgba(212, 167, 52, 0) 0%,
-    rgba(212, 167, 52, 0.35) 12%,
-    rgba(212, 167, 52, 0.35) 88%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm) / 0.35) 12%,
+    rgb(var(--accent-warm) / 0.35) 88%,
+    rgb(var(--accent-warm) / 0) 100%
   );
   pointer-events: none;
 }
@@ -422,9 +422,9 @@ function hexToRgba(hex: string, alpha: number): string {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.55) 0%,
-    rgba(212, 167, 52, 0.15) 70%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.55) 0%,
+    rgb(var(--accent-warm) / 0.15) 70%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 .ribbon-eyebrow {
@@ -443,7 +443,7 @@ function hexToRgba(hex: string, alpha: number): string {
   display: inline-block;
   width: 14px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .ribbon-swatches {
   display: flex;
@@ -517,16 +517,16 @@ function hexToRgba(hex: string, alpha: number): string {
   bottom: -1px;
   width: 40px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .block-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
   border-radius: var(--radius-sm);
 }
@@ -613,8 +613,8 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 .forge-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.6);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .forge-input--mono {
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -661,9 +661,9 @@ function hexToRgba(hex: string, alpha: number): string {
   justify-content: center;
   gap: 0.45rem;
   padding: 0.6rem 1rem;
-  background: #d4a734;
-  border: 1px solid #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border: 1px solid rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 11px;
@@ -675,8 +675,8 @@ function hexToRgba(hex: string, alpha: number): string {
   height: 38px;
 }
 .forge-submit:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 .forge-submit:disabled {
   opacity: 0.45;
@@ -701,8 +701,8 @@ function hexToRgba(hex: string, alpha: number): string {
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .palette-search:focus-within {
-  border-color: rgba(212, 167, 52, 0.55);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.1);
+  border-color: rgb(var(--accent-warm) / 0.55);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.1);
 }
 .palette-search > svg {
   color: rgb(var(--fg-muted));
@@ -908,8 +908,8 @@ function hexToRgba(hex: string, alpha: number): string {
   transition: all 0.15s ease;
 }
 .palette-empty-clear:hover {
-  border-color: rgba(212, 167, 52, 0.5);
-  color: #d4a734;
+  border-color: rgb(var(--accent-warm) / 0.5);
+  color: rgb(var(--accent-warm));
 }
 
 .spin {

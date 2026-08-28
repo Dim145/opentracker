@@ -416,8 +416,8 @@ function descFor(row: NotificationRow): string {
   background: rgb(var(--online) / 0.1);
 }
 .np-row-icon--spend {
-  color: #d4a734;
-  background: rgba(212, 167, 52, 0.1);
+  color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.1);
 }
 .np-row-icon--info {
   color: rgb(var(--fg-strong));

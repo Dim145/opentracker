@@ -188,7 +188,7 @@ const age = computed(() =>
 }
 
 .rr--uhd {
-  --tier: #d4a734;
+  --tier: rgb(var(--accent-warm));
 }
 .rr--hd {
   --tier: rgb(var(--info, 96 165 250));
@@ -237,7 +237,7 @@ const age = computed(() =>
   color: rgb(110 231 183);
 }
 .chip--res {
-  background: rgb(212 167 52 / 0.16);
+  background: rgb(var(--accent-warm) / 0.16);
   color: #e5bf58;
   font-weight: 600;
 }
@@ -358,7 +358,7 @@ const age = computed(() =>
   transition: background-color 120ms ease, color 120ms ease;
 }
 .rr-dl:hover {
-  background: rgb(212 167 52 / 0.14);
+  background: rgb(var(--accent-warm) / 0.14);
   color: #e5bf58;
 }
 /* Not a button — a signpost. Dimmer, and it does not light up on hover,

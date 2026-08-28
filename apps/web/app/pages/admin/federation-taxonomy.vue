@@ -197,7 +197,7 @@ async function remove(id: string): Promise<void> {
   font-size: 0.95rem; font-weight: 600; color: rgb(var(--fg-strong));
   margin-bottom: 0.9rem;
 }
-.tax-h2 :deep(svg) { color: var(--gold, #d4a734); }
+.tax-h2 :deep(svg) { color: var(--gold, rgb(var(--accent-warm))); }
 .tax-count {
   font-family: var(--font-mono, monospace); font-size: 0.72rem;
   color: rgb(var(--fg-subtle)); background: rgb(var(--bg-elevated));
@@ -232,9 +232,9 @@ async function remove(id: string): Promise<void> {
 .tax-input--grow { flex: 1; min-width: 14ch; }
 .tax-btn {
   display: inline-flex; align-items: center; gap: 0.35rem;
-  padding: 0.45rem 0.8rem; border: 1px solid rgba(212, 167, 52, 0.5);
-  border-radius: var(--radius-sm); background: rgba(212, 167, 52, 0.12);
-  color: var(--gold, #d4a734); cursor: pointer; font-weight: 600; font-size: 0.82rem; flex: none;
+  padding: 0.45rem 0.8rem; border: 1px solid rgb(var(--accent-warm) / 0.5);
+  border-radius: var(--radius-sm); background: rgb(var(--accent-warm) / 0.12);
+  color: var(--gold, rgb(var(--accent-warm))); cursor: pointer; font-weight: 600; font-size: 0.82rem; flex: none;
 }
 .tax-btn:disabled { opacity: 0.45; cursor: default; }
 .tax-remove {

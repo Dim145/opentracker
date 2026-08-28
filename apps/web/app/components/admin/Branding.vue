@@ -911,10 +911,10 @@ async function discard() {
     width: 1px;
     background: linear-gradient(
       to bottom,
-      rgba(212, 167, 52, 0) 0%,
-      rgba(212, 167, 52, 0.32) 14%,
-      rgba(212, 167, 52, 0.32) 86%,
-      rgba(212, 167, 52, 0) 100%
+      rgb(var(--accent-warm) / 0) 0%,
+      rgb(var(--accent-warm) / 0.32) 14%,
+      rgb(var(--accent-warm) / 0.32) 86%,
+      rgb(var(--accent-warm) / 0) 100%
     );
     pointer-events: none;
   }
@@ -948,7 +948,7 @@ async function discard() {
   }
   .adm-preview::-webkit-scrollbar { width: 4px; }
   .adm-preview::-webkit-scrollbar-thumb {
-    background: rgba(212, 167, 52, 0.25);
+    background: rgb(var(--accent-warm) / 0.25);
     border-radius: 4px;
   }
 }
@@ -969,13 +969,13 @@ async function discard() {
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .preview-eyebrow-rule {
   display: inline-block;
   width: 22px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .preview-tick {
   font-size: 9px;
@@ -1012,7 +1012,7 @@ async function discard() {
   color: rgb(var(--fg-muted));
 }
 .sample-tag-arrow {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   font-weight: 700;
 }
 .sample-surface {
@@ -1033,9 +1033,9 @@ async function discard() {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.5) 0%,
-    rgba(212, 167, 52, 0.05) 80%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.5) 0%,
+    rgb(var(--accent-warm) / 0.05) 80%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 
@@ -1186,8 +1186,8 @@ async function discard() {
   padding: 1.1rem 1.05rem 1.2rem;
   background: radial-gradient(
     140% 90% at 50% 0%,
-    rgba(212, 167, 52, 0.06) 0%,
-    rgba(212, 167, 52, 0) 60%
+    rgb(var(--accent-warm) / 0.06) 0%,
+    rgb(var(--accent-warm) / 0) 60%
   ), rgb(var(--bg-elevated));
   display: flex;
   flex-direction: column;
@@ -1200,15 +1200,15 @@ async function discard() {
   gap: 0.4rem;
   align-self: flex-start;
   padding: 0.22rem 0.55rem;
-  background: rgba(212, 167, 52, 0.08);
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  background: rgb(var(--accent-warm) / 0.08);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   border-radius: 999px;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1256,10 +1256,10 @@ async function discard() {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(212, 167, 52, 0.4);
+  background: rgb(var(--accent-warm) / 0.4);
   transition: background 0.2s ease;
 }
-.hero-feature-dot:hover { background: rgba(212, 167, 52, 0.8); }
+.hero-feature-dot:hover { background: rgb(var(--accent-warm) / 0.8); }
 
 /* ── Block scaffold ────────────────────────────────────────── */
 .block {
@@ -1283,16 +1283,16 @@ async function discard() {
   bottom: -1px;
   width: 40px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .block-num {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
   border-radius: var(--radius-sm);
 }
@@ -1357,8 +1357,8 @@ async function discard() {
 }
 .field-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.55);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.55);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .field-input--mono {
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -1404,7 +1404,7 @@ async function discard() {
   padding: 0;
   transition: color 0.16s ease;
 }
-.aux-reset:hover { color: #d4a734; }
+.aux-reset:hover { color: rgb(var(--accent-warm)); }
 
 .aux-toggle {
   display: inline-flex;
@@ -1440,7 +1440,7 @@ async function discard() {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 .aux-toggle-input:checked + .aux-toggle-track {
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .aux-toggle-input:checked + .aux-toggle-track::after {
   transform: translateX(16px);
@@ -1485,8 +1485,8 @@ async function discard() {
 .segment:hover { color: rgb(var(--fg-strong)); }
 .segment--active {
   background: rgb(var(--bg-base));
-  color: #d4a734;
-  box-shadow: inset 0 0 0 1px rgba(212, 167, 52, 0.4);
+  color: rgb(var(--accent-warm));
+  box-shadow: inset 0 0 0 1px rgb(var(--accent-warm) / 0.4);
 }
 
 .icon-row {
@@ -1502,7 +1502,7 @@ async function discard() {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-inset));
   font-size: 1.2rem;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   flex-shrink: 0;
 }
 
@@ -1540,12 +1540,12 @@ async function discard() {
 }
 .quick-icon:hover {
   color: rgb(var(--fg-strong));
-  border-color: rgba(212, 167, 52, 0.4);
+  border-color: rgb(var(--accent-warm) / 0.4);
 }
 .quick-icon--active {
-  color: #d4a734;
-  border-color: #d4a734;
-  background: rgba(212, 167, 52, 0.08);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.08);
 }
 
 /* ── Dropzones ─────────────────────────────────────────────── */
@@ -1625,13 +1625,13 @@ async function discard() {
     color 0.16s ease;
 }
 .dropzone:hover {
-  border-color: rgba(212, 167, 52, 0.45);
+  border-color: rgb(var(--accent-warm) / 0.45);
   color: rgb(var(--fg-strong));
 }
 .dropzone--over {
-  border-color: #d4a734;
-  background: rgba(212, 167, 52, 0.06);
-  color: #d4a734;
+  border-color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.06);
+  color: rgb(var(--accent-warm));
 }
 .dropzone--compact {
   padding: 1.2rem 1rem;
@@ -1690,9 +1690,9 @@ async function discard() {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   background: rgb(var(--bg-base));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.35rem 0.6rem;
   border-radius: var(--radius-sm);
   align-self: flex-start;
@@ -1725,7 +1725,7 @@ async function discard() {
   gap: 0.6rem;
   padding: 0.7rem 1rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.55);
+  border: 1px solid rgb(var(--accent-warm) / 0.55);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-overlay);
   backdrop-filter: blur(10px);
@@ -1741,7 +1741,7 @@ async function discard() {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .savebar-enter-active,
 .savebar-leave-active {
@@ -1772,19 +1772,19 @@ async function discard() {
   white-space: nowrap;
 }
 .btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.5);
-  background: rgba(212, 167, 52, 0.05);
+  border-color: rgb(var(--accent-warm) / 0.5);
+  background: rgb(var(--accent-warm) / 0.05);
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn--ghost { background: transparent; }
 .btn--primary {
-  background: #d4a734;
-  border-color: #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
 }
 .btn--primary:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 
 .spin {

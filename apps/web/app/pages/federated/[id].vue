@@ -214,8 +214,8 @@ function fmtDate(d: string | null) {
 .fd-actions { display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end; flex-shrink: 0; }
 .fd-report { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; padding: 0.35rem 0.65rem; border-radius: var(--radius-sm); border: 1px solid rgb(var(--line-default)); background: transparent; color: rgb(var(--fg-muted)); cursor: pointer; white-space: nowrap; transition: all 0.14s ease; }
 .fd-report:hover { color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
-.fd-request { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; font-weight: 600; padding: 0.4rem 0.7rem; border-radius: var(--radius-sm); border: 1px solid rgba(212, 167, 52, 0.5); background: rgba(212, 167, 52, 0.12); color: var(--gold, #d4a734); cursor: pointer; white-space: nowrap; transition: all 0.14s ease; }
-.fd-request:hover:not(:disabled) { background: rgba(212, 167, 52, 0.2); border-color: var(--gold, #d4a734); }
+.fd-request { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12px; font-weight: 600; padding: 0.4rem 0.7rem; border-radius: var(--radius-sm); border: 1px solid rgb(var(--accent-warm) / 0.5); background: rgb(var(--accent-warm) / 0.12); color: var(--gold, rgb(var(--accent-warm))); cursor: pointer; white-space: nowrap; transition: all 0.14s ease; }
+.fd-request:hover:not(:disabled) { background: rgb(var(--accent-warm) / 0.2); border-color: var(--gold, rgb(var(--accent-warm))); }
 .fd-request:disabled { opacity: 0.5; cursor: default; }
 .fd-request-error { display: flex; align-items: center; gap: 0.3rem; font-size: 11px; color: #fca5a5; max-width: 220px; text-align: right; }
 
@@ -224,7 +224,7 @@ function fmtDate(d: string | null) {
 
 .fd-comments { margin-top: 1rem; }
 .fd-h2 { display: flex; align-items: center; gap: 0.5rem; font-size: 16px; font-weight: 600; color: rgb(var(--fg-strong)); padding-bottom: 0.7rem; border-bottom: 1px solid rgb(var(--line-default)); margin-bottom: 1rem; }
-.fd-h2 :deep(svg) { color: var(--gold, #d4a734); }
+.fd-h2 :deep(svg) { color: var(--gold, rgb(var(--accent-warm))); }
 .fd-count { font-family: var(--font-mono, monospace); font-size: 12px; color: rgb(var(--fg-subtle)); background: rgb(var(--bg-elevated)); border: 1px solid rgb(var(--line-default)); border-radius: 99px; padding: 0.05rem 0.45rem; }
 .fd-comment-list { display: flex; flex-direction: column; gap: 0.7rem; }
 .fd-comment { background: rgb(var(--bg-surface)); border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); padding: 0.85rem 1rem; }

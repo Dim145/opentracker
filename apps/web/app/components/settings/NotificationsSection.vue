@@ -1050,10 +1050,10 @@ async function saveRouting(silent = false) {
   width: 1px;
   background: linear-gradient(
     to bottom,
-    rgba(212, 167, 52, 0) 0%,
-    rgba(212, 167, 52, 0.4) 15%,
-    rgba(212, 167, 52, 0.4) 85%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm) / 0.4) 15%,
+    rgb(var(--accent-warm) / 0.4) 85%,
+    rgb(var(--accent-warm) / 0) 100%
   );
   pointer-events: none;
 }
@@ -1104,9 +1104,9 @@ async function saveRouting(silent = false) {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.2em;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
   border-radius: var(--radius-sm);
 }
@@ -1184,7 +1184,7 @@ async function saveRouting(silent = false) {
   border-color: rgb(var(--line-strong));
 }
 .dest--open {
-  border-color: rgba(212, 167, 52, 0.45);
+  border-color: rgb(var(--accent-warm) / 0.45);
   background: rgb(var(--bg-elevated));
 }
 .dest-head {
@@ -1318,9 +1318,9 @@ async function saveRouting(silent = false) {
   border-color: rgb(var(--line-default));
 }
 .dest-btn--active {
-  background: rgba(212, 167, 52, 0.12);
-  color: #d4a734;
-  border-color: rgba(212, 167, 52, 0.4);
+  background: rgb(var(--accent-warm) / 0.12);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.4);
 }
 .dest-btn--danger:hover:not(:disabled) {
   color: rgb(var(--danger));
@@ -1361,15 +1361,15 @@ async function saveRouting(silent = false) {
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
-  background: rgba(212, 167, 52, 0.07);
-  border: 1px solid rgba(212, 167, 52, 0.25);
+  background: rgb(var(--accent-warm) / 0.07);
+  border: 1px solid rgb(var(--accent-warm) / 0.25);
   border-radius: var(--radius-sm);
   padding: 0.7rem 0.85rem;
   font-size: 0.78rem;
   color: rgb(var(--fg-strong));
 }
 .dest-pub > svg {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   font-size: 1rem;
   flex-shrink: 0;
   margin-top: 0.1rem;
@@ -1454,8 +1454,8 @@ async function saveRouting(silent = false) {
 }
 .field-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.6);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .field-input::placeholder {
   color: rgb(var(--fg-faint));
@@ -1556,7 +1556,7 @@ async function saveRouting(silent = false) {
   color: inherit;
 }
 .dest-add-tile:hover {
-  border-color: rgba(212, 167, 52, 0.45);
+  border-color: rgb(var(--accent-warm) / 0.45);
   background: rgb(var(--bg-hover) / 0.45);
   transform: translateY(-1px);
 }
@@ -1600,8 +1600,8 @@ async function saveRouting(silent = false) {
 }
 .route-quick-btn:hover {
   color: rgb(var(--fg-strong));
-  border-color: rgba(212, 167, 52, 0.4);
-  background: rgba(212, 167, 52, 0.06);
+  border-color: rgb(var(--accent-warm) / 0.4);
+  background: rgb(var(--accent-warm) / 0.06);
 }
 .route-quick-btn--mute {
   margin-left: auto;
@@ -1700,7 +1700,7 @@ async function saveRouting(silent = false) {
   transition: border-color 0.18s ease;
 }
 .cat-bulk:hover {
-  border-color: rgba(212, 167, 52, 0.45);
+  border-color: rgb(var(--accent-warm) / 0.45);
 }
 .cat-chevron {
   font-size: 0.9rem;
@@ -1709,7 +1709,7 @@ async function saveRouting(silent = false) {
 }
 .cat[open] .cat-chevron {
   transform: rotate(180deg);
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 @media (max-width: 640px) {
   .cat-head {
@@ -1792,7 +1792,7 @@ async function saveRouting(silent = false) {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .event-target--muted .event-target-dot {
   background: rgb(var(--fg-faint));
@@ -1824,7 +1824,7 @@ async function saveRouting(silent = false) {
   gap: 0.5rem;
   padding: 0.6rem 0.85rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.55);
+  border: 1px solid rgb(var(--accent-warm) / 0.55);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-overlay);
   backdrop-filter: blur(8px);
@@ -1840,7 +1840,7 @@ async function saveRouting(silent = false) {
   font-weight: 600;
 }
 .route-save-info > svg {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 /* ── Generic buttons ──────────────────────────────────────── */
@@ -1860,8 +1860,8 @@ async function saveRouting(silent = false) {
   font-family: inherit;
 }
 .btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.55);
-  background: rgba(212, 167, 52, 0.06);
+  border-color: rgb(var(--accent-warm) / 0.55);
+  background: rgb(var(--accent-warm) / 0.06);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -1871,13 +1871,13 @@ async function saveRouting(silent = false) {
   background: transparent;
 }
 .btn--primary {
-  background: #d4a734;
-  border-color: #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
 }
 .btn--primary:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 
 /* ── Transitions ──────────────────────────────────────────── */

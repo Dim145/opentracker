@@ -362,9 +362,9 @@ function formatReleaseDate(iso: string | null): string {
   text-transform: uppercase;
   padding: 0.2rem 0.5rem;
   border-radius: var(--radius-sm);
-  background: rgba(212, 167, 52, 0.08);
-  border: 1px solid rgba(212, 167, 52, 0.35);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.08);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
+  color: rgb(var(--accent-warm));
 }
 
 .gcard-stats {

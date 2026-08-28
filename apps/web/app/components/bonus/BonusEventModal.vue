@@ -605,19 +605,19 @@ const explainer = computed(() => {
 .bb-title-strip--pool {
   background: linear-gradient(
     180deg,
-    rgba(212, 167, 52, 0.08) 0%,
-    rgba(212, 167, 52, 0.02) 60%,
+    rgb(var(--accent-warm) / 0.08) 0%,
+    rgb(var(--accent-warm) / 0.02) 60%,
     rgb(var(--bg-elevated)) 100%
   );
 }
 .bb-title-strip--pool::before {
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0) 0%,
-    #d4a734 50%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm)) 50%,
+    rgb(var(--accent-warm) / 0) 100%
   );
-  box-shadow: 0 0 12px rgba(212, 167, 52, 0.5);
+  box-shadow: 0 0 12px rgb(var(--accent-warm) / 0.5);
 }
 
 .bb-tag-row {
@@ -639,14 +639,14 @@ const explainer = computed(() => {
   letter-spacing: 0.22em;
   text-transform: uppercase;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(212, 167, 52, 0.45);
-  background: rgba(212, 167, 52, 0.08);
-  color: #d4a734;
+  border: 1px solid rgb(var(--accent-warm) / 0.45);
+  background: rgb(var(--accent-warm) / 0.08);
+  color: rgb(var(--accent-warm));
 }
 .bb-title-strip--pool .bb-preset-tag {
-  color: #d4a734;
-  border-color: rgba(212, 167, 52, 0.45);
-  background: rgba(212, 167, 52, 0.08);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.45);
+  background: rgb(var(--accent-warm) / 0.08);
 }
 
 .bb-overlay-hint {
@@ -655,8 +655,8 @@ const explainer = computed(() => {
   gap: 0.4rem;
   margin: 0.3rem 0 0;
   padding: 0.4rem 0.55rem;
-  border-left: 2px solid rgba(212, 167, 52, 0.55);
-  background: rgba(212, 167, 52, 0.05);
+  border-left: 2px solid rgb(var(--accent-warm) / 0.55);
+  background: rgb(var(--accent-warm) / 0.05);
   font-size: 0.78rem;
   line-height: 1.5;
   color: rgb(var(--fg-muted));
@@ -664,7 +664,7 @@ const explainer = computed(() => {
 .bb-overlay-icon {
   flex-shrink: 0;
   margin-top: 0.1rem;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 /* Strike-through value in the DL meter — surfaces the original
@@ -704,9 +704,9 @@ const explainer = computed(() => {
   background: rgba(148, 163, 184, 0.08);
 }
 .bb-title-strip--bonus .bb-preset-tag {
-  color: #d4a734;
-  border-color: rgba(212, 167, 52, 0.45);
-  background: rgba(212, 167, 52, 0.08);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.45);
+  background: rgb(var(--accent-warm) / 0.08);
 }
 .bb-preset-tag-icon { font-size: 0.85rem; }
 
@@ -881,7 +881,7 @@ const explainer = computed(() => {
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
-.bb-window-icon { font-size: 0.95rem; color: #d4a734; }
+.bb-window-icon { font-size: 0.95rem; color: rgb(var(--accent-warm)); }
 
 .bb-window-row {
   display: grid;
@@ -926,8 +926,8 @@ const explainer = computed(() => {
   inset: 0 auto 0 0;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.45) 0%,
-    #d4a734 100%
+    rgb(var(--accent-warm) / 0.45) 0%,
+    rgb(var(--accent-warm)) 100%
   );
   transition: width 0.6s ease;
 }
@@ -950,9 +950,9 @@ const explainer = computed(() => {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
   border: 2px solid rgb(var(--bg-elevated));
-  box-shadow: 0 0 8px rgba(212, 167, 52, 0.55);
+  box-shadow: 0 0 8px rgb(var(--accent-warm) / 0.55);
   transition: left 0.6s ease;
   z-index: 1;
 }
@@ -971,7 +971,7 @@ const explainer = computed(() => {
 }
 .bb-window-foot-leg--right {
   text-align: right;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 /* ── Explainer ──────────────────────────────────────────── */
@@ -983,7 +983,7 @@ const explainer = computed(() => {
   border-top: 1px solid rgb(var(--line-default));
   background: linear-gradient(
     180deg,
-    rgba(212, 167, 52, 0.03) 0%,
+    rgb(var(--accent-warm) / 0.03) 0%,
     transparent 100%
   );
 }
@@ -996,7 +996,7 @@ const explainer = computed(() => {
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .bb-explainer-icon { font-size: 0.95rem; }
 .bb-explainer-body {
@@ -1019,10 +1019,10 @@ const explainer = computed(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 1.15rem;
-  background: #d4a734;
-  border: 1px solid #d4a734;
+  background: rgb(var(--accent-warm));
+  border: 1px solid rgb(var(--accent-warm));
   border-radius: var(--radius-sm);
-  color: #1a1a1a;
+  color: rgb(var(--accent-warm-fg));
   font-family: inherit;
   font-size: 0.8rem;
   font-weight: 800;
@@ -1032,9 +1032,9 @@ const explainer = computed(() => {
   transition: all 0.15s ease;
 }
 .bb-cta:hover {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px -8px rgba(212, 167, 52, 0.5);
+  box-shadow: 0 6px 18px -8px rgb(var(--accent-warm) / 0.5);
 }
 </style>
