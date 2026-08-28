@@ -41,6 +41,7 @@ import {
   type BuiltInTheme,
 } from '@trackarr/shared';
 import {
+  emittedValue,
   patternImage,
   resolveTokens,
   type TokenMap,
@@ -187,13 +188,15 @@ export function resolvePreference(
  * just a Tailwind convenience.
  */
 function declarations(tokens: TokenMap, indent = '  '): string {
+  // `emittedValue` is where a stored name becomes a CSS literal — a font key
+  // becomes a stack, a pattern kind becomes a gradient. Applied for every token
+  // so there is one place that knows the mapping, shared with the guard test.
   const lines = Object.entries(tokens).map(
-    ([key, value]) => `${indent}--${key}: ${value};`,
+    ([key, value]) => `${indent}--${key}: ${emittedValue(key, value)};`,
   );
-  // `bg-pattern-kind` is the only token whose effect CSS cannot express by
-  // itself: `background-image` cannot be selected by the value of a custom
-  // property. So the enum is mapped to a literal here, from a table in code,
-  // and the theme's block carries both. Every other token is its own value.
+  // The pattern is the one case that needs a SECOND property rather than a
+  // different value: `background-image` cannot be selected from a custom
+  // property, so the kind stays readable and the image rides alongside it.
   lines.push(
     `${indent}--bg-pattern-image: ${patternImage(tokens['bg-pattern-kind'])};`,
   );

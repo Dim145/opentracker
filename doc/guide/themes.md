@@ -58,7 +58,7 @@ colour of every form field on the site at 2.08:1.
 
 ### What a theme can change
 
-Thirty-seven values, grouped the way the editor groups them.
+Forty values, grouped the way the editor groups them.
 
 | Group | Tokens |
 |---|---|
@@ -70,6 +70,7 @@ Thirty-seven values, grouped the way the editor groups them.
 | Elevation | `shadow-color`, `shadow-strength` |
 | Shape | `radius`, `radius-pill` |
 | Density | `ui-scale` |
+| Typography | `font-sans`, `font-mono`, `font-display` |
 | Motion | `motion-scale`, `ease-standard`, `ease-emphasis` |
 | Chrome | `focus-ring`, `bg-pattern-rgb`, `bg-pattern-alpha`, `bg-pattern-kind`, `bg-pattern-step`, `color-scheme` |
 | Ambience | `accent-cool`, `accent-paper` |
@@ -114,6 +115,35 @@ It is applied as `calc(100% * var(--ui-scale))`, so a visitor who has set a
 larger default font size in their browser keeps it and your factor multiplies on
 top. The floor is `0.75` rather than `0`: this interface is full of 0.56 rem
 micro-labels, and a theme that can render itself invisible is a theme that will.
+
+**The font roles pick from a list, not a text field, and the list is the point.**
+A font has to *be there*: the faces are downloaded when the image is built and
+served from your instance, so a theme can only choose what the build shipped. A
+free text field would let you name a font nobody has and the page would fall
+back without saying so.
+
+| Role | Choices |
+|---|---|
+| `font-sans` | `inter`, `manrope`, `figtree`, `ibm-plex-sans`, `atkinson-hyperlegible`, `system-sans` |
+| `font-mono` | `jetbrains-mono`, `ibm-plex-mono`, `fira-code`, `space-mono`, `system-mono` |
+| `font-display` | `fraunces`, `playfair-display`, `bitter`, `instrument-serif`, `source-serif`, `inter`, `system-serif` |
+
+Three things about that table:
+
+`atkinson-hyperlegible` is on the sans list for a reason that is not aesthetic —
+it was designed for low vision, with letterforms chosen to be hard to confuse
+with each other. It is a reasonable default for a theme meant to be legible
+first.
+
+The roles are separate lists, so a display face cannot be selected for the mono
+role. That is not tidiness: two families at the same size differ by 10–20 % in
+advance width, and a proportional face in a column of hashes is a broken table
+rather than a restyled one. Changing a family is the most destructive thing a
+theme can do — expect line breaks to move.
+
+The `system-*` entries download nothing and render in whatever the visitor's
+machine already has. They are the fastest option and the one that looks most
+like the rest of their computer.
 
 **The easings take a keyword or a `cubic-bezier()`.** `steps()` and `linear()`
 are refused: both accept argument lists of unbounded length, and neither

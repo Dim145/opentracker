@@ -85,6 +85,7 @@ export type TokenGroup =
   | 'elevation'
   | 'shape'
   | 'density'
+  | 'typography'
   | 'motion'
   | 'ambience'
   | 'chrome';
@@ -98,6 +99,25 @@ export interface TokenDef {
   readonly options?: readonly string[];
   /** Inclusive ceiling for `scalar` and `length`. */
   readonly max?: number;
+  /**
+   * A named transform from the STORED value to the EMITTED one.
+   *
+   * The font roles need it: what an admin picks is a short name (`manrope`) and
+   * what `font-family` needs is a whole fallback stack.
+   *
+   * `bg-pattern-kind` looks like the same problem and is not. Its literal goes
+   * into a DIFFERENT property — `background-image`, which cannot be selected
+   * from a custom property at all — so the kind keeps its readable value and the
+   * gradient rides alongside it as a second declaration. One mechanism changes a
+   * value; the other adds a property. Conflating them made this test fail, which
+   * is the correct outcome.
+   *
+   * Storing the name rather than the literal is what keeps this safe — the
+   * database holds one of a dozen words and the literal comes from code — and
+   * it also means a stack can gain a fallback later without rewriting the
+   * themes that chose it.
+   */
+  readonly derive?: 'font-stack';
   /**
    * Inclusive floor for `scalar` and `length`. Defaults to 0.
    *
@@ -212,6 +232,49 @@ export const THEME_TOKENS: readonly TokenDef[] = [
     options: ['dots', 'grid', 'none'] as const,
   },
   { key: 'bg-pattern-step', kind: 'length', group: 'chrome', max: 400, units: ['px', 'rem'] },
+
+  // Typography
+  //
+  // Three roles, and a curated list per role rather than a free-form family
+  // name. The list is curated because a font has to BE THERE: the faces are
+  // downloaded at build time and served from this instance, so a theme can only
+  // choose from what the build shipped. A free text field would let an admin
+  // name a font nobody has, and the page would silently fall back.
+  //
+  // It is also the most destructive lever in the whole schema, which is why it
+  // arrives with the roles already separated. Two families at the same size
+  // differ by 10-20 % in advance width, so a swap changes where every line
+  // breaks. Keeping the mono role apart from the sans role means a theme cannot
+  // accidentally put a proportional face in a column of hashes.
+  {
+    key: 'font-sans',
+    kind: 'enum',
+    group: 'typography',
+    derive: 'font-stack',
+    options: ['inter', 'manrope', 'figtree', 'ibm-plex-sans', 'atkinson-hyperlegible', 'system-sans'] as const,
+  },
+  {
+    key: 'font-mono',
+    kind: 'enum',
+    group: 'typography',
+    derive: 'font-stack',
+    options: ['jetbrains-mono', 'ibm-plex-mono', 'fira-code', 'space-mono', 'system-mono'] as const,
+  },
+  {
+    key: 'font-display',
+    kind: 'enum',
+    group: 'typography',
+    derive: 'font-stack',
+    options: [
+      'fraunces',
+      'playfair-display',
+      'bitter',
+      'instrument-serif',
+      'source-serif',
+      'inter',
+      'system-serif',
+    ] as const,
+  },
   // Native controls — scrollbars, `<select>`, date pickers, form widgets. Set
   // as a token rather than derived from the base, because a custom theme built
   // on `dark` may well read as light and vice versa, and getting this wrong
@@ -294,6 +357,71 @@ export const THEME_TOKENS: readonly TokenDef[] = [
 ] as const;
 
 /**
+ * The curated font stacks, keyed by what a theme stores.
+ *
+ * Every one of these is downloaded at build time and served from the instance —
+ * see `apps/web/nuxt.config.ts`, where each also carries `global: true`, because
+ * these names appear in no `font-family` declaration in the source and the
+ * bundler would otherwise never emit their `@font-face`. The stacks named
+ * `system-*` download nothing.
+ *
+ * The fallbacks are not decoration. A face served from `/_fonts/` still has to
+ * arrive, and until it does the browser renders the next entry, so every stack
+ * ends in something that is already on the machine.
+ */
+export const FONT_STACKS: Record<string, string> = {
+  // Sans
+  inter: "'Inter', system-ui, -apple-system, sans-serif",
+  manrope: "'Manrope', 'Inter', system-ui, sans-serif",
+  figtree: "'Figtree', 'Inter', system-ui, sans-serif",
+  'ibm-plex-sans': "'IBM Plex Sans', 'Inter', system-ui, sans-serif",
+  // Designed for low vision, with letterforms picked to be hard to confuse.
+  // Worth having on the list for reasons that are not aesthetic.
+  'atkinson-hyperlegible': "'Atkinson Hyperlegible', 'Inter', system-ui, sans-serif",
+  'system-sans': "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+
+  // Mono
+  'jetbrains-mono': "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+  'ibm-plex-mono': "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+  'fira-code': "'Fira Code', ui-monospace, SFMono-Regular, Menlo, monospace",
+  'space-mono': "'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+  'system-mono': "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+
+  // Display
+  fraunces: "'Fraunces', 'Times New Roman', serif",
+  'playfair-display': "'Playfair Display', Georgia, serif",
+  bitter: "'Bitter', Georgia, serif",
+  'instrument-serif': "'Instrument Serif', Georgia, serif",
+  'source-serif': "'Source Serif 4', Georgia, serif",
+  'system-serif': "Georgia, 'Times New Roman', serif",
+};
+
+/** The stack for a key, falling back to the built-in default for the role. */
+export function fontStack(key: string | undefined, role: string): string {
+  return (
+    FONT_STACKS[key ?? ''] ??
+    FONT_STACKS[BUILT_IN_TOKENS.dark[role] ?? ''] ??
+    'sans-serif'
+  );
+}
+
+/**
+ * The emitted value for a token, which is not always the stored one.
+ *
+ * Applied by the CSS emitter and by the guard test, so the stylesheet and the
+ * schema cannot disagree about what a stored name means.
+ */
+export function emittedValue(key: string, stored: string): string {
+  const def = BY_KEY.get(key);
+  switch (def?.derive) {
+    case 'font-stack':
+      return fontStack(stored, key);
+    default:
+      return stored;
+  }
+}
+
+/**
  * What each `bg-pattern-kind` actually paints.
  *
  * Kept here rather than in the emitter so the admin editor, the emitter and
@@ -357,6 +485,9 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'bg-pattern-rgb': '255 255 255',
     'bg-pattern-alpha': '0.025',
     'bg-pattern-kind': 'dots',
+    'font-sans': 'inter',
+    'font-mono': 'jetbrains-mono',
+    'font-display': 'fraunces',
     'bg-pattern-step': '40px',
     'color-scheme': 'dark',
     'accent-warm': '212 167 52',
@@ -396,6 +527,9 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'bg-pattern-rgb': '0 0 0',
     'bg-pattern-alpha': '0.04',
     'bg-pattern-kind': 'dots',
+    'font-sans': 'inter',
+    'font-mono': 'jetbrains-mono',
+    'font-display': 'fraunces',
     'bg-pattern-step': '40px',
     'color-scheme': 'light',
     'accent-warm': '176 133 24',

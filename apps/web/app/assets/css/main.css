@@ -116,7 +116,7 @@
      declaration invalid — those elements were not monospace, they were Inter.
      Kept identical to tailwind.config.ts `fontFamily.mono` so the token and
      the `font-mono` utility can never drift apart. */
-  --font-mono:      'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --font-mono:      'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   /* The other two roles, named for the same reason. `--font-sans` had never
      existed even though `tailwind.config.ts` declared the stack, so a theme had
      nothing to reach for; `--font-display` existed only inside
@@ -125,8 +125,13 @@
      declarations across a dozen pages spell Fraunces out by hand with four
      different fallback stacks. All three are now one name each, kept identical
      to what `tailwind.config.ts` resolves so a token and its utility cannot
-     drift. Wave 3 is what lets an admin change them. */
-  --font-sans:      'Inter', system-ui, sans-serif;
+     drift.
+     These hold the STACK. What a theme stores is a short name — `manrope`,
+     `fira-code` — and the emitter looks the stack up in `FONT_STACKS`
+     (packages/shared/src/theme.ts), for the same reason the background pattern
+     works that way: an admin picks from what the build actually shipped, and the
+     literal comes from code rather than from a text field. */
+  --font-sans:      'Inter', system-ui, -apple-system, sans-serif;
   --font-display:   'Fraunces', 'Times New Roman', serif;
 
   /* Spacing tokens */

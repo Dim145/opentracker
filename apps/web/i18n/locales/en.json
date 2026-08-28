@@ -3209,6 +3209,7 @@
         "elevation": "Elevation",
         "shape": "Shape",
         "density": "Density",
+        "typography": "Typography",
         "motion": "Motion",
         "chrome": "Chrome",
         "ambience": "Ambience (reserved — not yet used by the interface)"

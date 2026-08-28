@@ -123,6 +123,74 @@ console.log('\n1b. background pattern geometry');
   check('an image is not a kind', bad.status >= 400, `status ${bad.status}`);
 }
 
+// ── 1c. Font roles: a short name in, a whole stack out ───────────────
+console.log('\n1c. font families');
+{
+  await sleep(150);
+  const r = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Editorial',
+      base: 'light',
+      duplicateOf: 'light',
+      tokens: {
+        'font-sans': 'manrope',
+        'font-mono': 'space-mono',
+        'font-display': 'playfair-display',
+      },
+      enabled: true,
+      visibility: 'site',
+    },
+  });
+  check('created', r.status === 200 || r.status === 201, `status ${r.status}`);
+
+  const block = blockFor(await sheet(), 'e2e-editorial');
+  // The stored value is a name; what CSS receives is the stack. This is the
+  // only place that difference is observable.
+  check('the sans stack was looked up', block.includes("--font-sans: 'Manrope'"),
+    block.match(/--font-sans:[^;]*/)?.[0] ?? 'missing');
+  check('the mono stack was looked up', block.includes("--font-mono: 'Space Mono'"));
+  check('the display stack was looked up',
+    block.includes("--font-display: 'Playfair Display'"));
+  check('every stack still ends in something already on the machine',
+    /--font-sans:[^;]*sans-serif;/.test(block) &&
+      /--font-mono:[^;]*monospace;/.test(block) &&
+      /--font-display:[^;]*serif;/.test(block),
+    'a stack has no system fallback');
+  check('the name is not what reaches CSS', !/--font-sans:\s*manrope\s*;/.test(block));
+
+  await sleep(150);
+  const bad = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Ghost Font',
+      base: 'dark',
+      duplicateOf: 'dark',
+      // A font the build never shipped. A free text field would have accepted
+      // this and the page would silently fall back.
+      tokens: { 'font-sans': 'Comic Sans MS' },
+      visibility: 'site',
+    },
+  });
+  check('a family the build did not ship is refused', bad.status >= 400, `status ${bad.status}`);
+
+  await sleep(150);
+  const wrongRole = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Wrong Role',
+      base: 'dark',
+      duplicateOf: 'dark',
+      // The roles are separate lists on purpose: a proportional face in a
+      // column of hashes is not a theme, it is a broken table.
+      tokens: { 'font-mono': 'playfair-display' },
+      visibility: 'site',
+    },
+  });
+  check('a display face is not offered for the mono role',
+    wrongRole.status >= 400, `status ${wrongRole.status}`);
+}
+
 // ── 2. What the validators refuse, refused over HTTP ─────────────────
 console.log('\n2. the route refuses what the schema refuses');
 {

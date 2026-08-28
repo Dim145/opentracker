@@ -8,6 +8,7 @@ import {
   THEME_TOKEN_KEYS,
   contrastRatio,
   contrastWarnings,
+  emittedValue,
   isValidTokenValue,
   parseRgb,
   resolveTokens,
@@ -68,14 +69,19 @@ describe('the schema and the stylesheet agree', () => {
   });
 
   it('every value in the schema matches the stylesheet', () => {
+    // Two tokens store a short name and emit a literal — a font key emits a
+    // stack, a pattern kind emits a gradient — so the comparison has to go
+    // through the same derivation the emitter uses. Otherwise the stylesheet
+    // and the schema could disagree about what `manrope` means and nothing
+    // would notice.
     for (const [key, value] of Object.entries(BUILT_IN_TOKENS.dark)) {
-      expect(dark[key], `--${key} (dark)`).toBe(value);
+      expect(dark[key], `--${key} (dark)`).toBe(emittedValue(key, value));
     }
     for (const [key, value] of Object.entries(BUILT_IN_TOKENS.light)) {
       // Light inherits from the `:root` block for anything it does not restate,
       // so only compare what it actually declares.
       if (light[key] !== undefined) {
-        expect(light[key], `--${key} (light)`).toBe(value);
+        expect(light[key], `--${key} (light)`).toBe(emittedValue(key, value));
       }
     }
   });

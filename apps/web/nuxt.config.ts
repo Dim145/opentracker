@@ -104,10 +104,11 @@ export default defineNuxtConfig({
   //
   //   - This codebase NAMES four families it has never loaded, and Google
   //     serves all four: `Source Serif 4`, `IBM Plex Mono`, `Fira Code` and
-  //     `Cascadia Code`. Auto-detection would start downloading them, so
-  //     self-hosting would have made the site heavier. They are pinned to
-  //     `provider: 'none'` — the fallback chain behind them is what has always
-  //     rendered, and that is left exactly as it was.
+  //     `Cascadia Code`. Auto-detection would have started downloading them as a
+  //     side effect of a hosting change, which is the wrong reason. Three of
+  //     them are now loaded deliberately, as entries on the curated list a theme
+  //     can choose from; `Cascadia Code` stays pinned to `provider: 'none'`,
+  //     since nothing offers it and the fallback behind it is what renders.
   //   - The system faces further down those chains (`Charter`, `Iowan Old
   //     Style`, `Palatino`…) resolve to nothing anywhere, and `throwOnError`
   //     is true at build time. Naming them costs one line each and removes the
@@ -164,10 +165,30 @@ export default defineNuxtConfig({
       // Variable, and used italic at every size from a 14px byline to a 60px
       // masthead — hence the full axis rather than a weight list.
       { name: 'Fraunces', provider: 'google', weights: ['400 900'] },
-      // Named in the fallback chains, never loaded. Keep it that way.
-      { name: 'Source Serif 4', provider: 'none' },
-      { name: 'IBM Plex Mono', provider: 'none' },
-      { name: 'Fira Code', provider: 'none' },
+      // The curated list a theme can choose from (`FONT_STACKS` in
+      // packages/shared/src/theme.ts). Every one carries `global: true`, and
+      // that is load-bearing rather than tidy: these names appear in no
+      // `font-family` declaration anywhere in the source — they only ever reach
+      // CSS through a theme's block, generated at runtime — so the module's
+      // usage scan cannot see them and would emit no `@font-face` at all. A
+      // theme would then select a font the browser has never heard of.
+      //
+      // The image grows; the page does not. `@font-face` is a declaration, and
+      // a browser fetches a face only when something actually uses it, so a
+      // visitor downloads the active theme's faces and nothing else.
+      { name: 'Manrope', provider: 'google', global: true, weights: ['400 700'] },
+      { name: 'Figtree', provider: 'google', global: true, weights: ['400 700'] },
+      { name: 'IBM Plex Sans', provider: 'google', global: true, weights: [400, 500, 600, 700] },
+      { name: 'Atkinson Hyperlegible', provider: 'google', global: true, weights: [400, 700] },
+      { name: 'IBM Plex Mono', provider: 'google', global: true, weights: [400, 500] },
+      { name: 'Fira Code', provider: 'google', global: true, weights: ['400 500'] },
+      { name: 'Space Mono', provider: 'google', global: true, weights: [400, 700] },
+      { name: 'Playfair Display', provider: 'google', global: true, weights: ['400 900'] },
+      { name: 'Bitter', provider: 'google', global: true, weights: ['400 700'] },
+      { name: 'Instrument Serif', provider: 'google', global: true, weights: [400] },
+      { name: 'Source Serif 4', provider: 'google', global: true, weights: ['400 700'] },
+
+      // Named in a fallback chain, never loaded. Keep it that way.
       { name: 'Cascadia Code', provider: 'none' },
       { name: 'Charter', provider: 'none' },
       { name: 'Iowan Old Style', provider: 'none' },

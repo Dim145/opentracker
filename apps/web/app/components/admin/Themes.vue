@@ -502,6 +502,7 @@ const GROUP_ORDER: TokenGroup[] = [
   'elevation',
   'shape',
   'density',
+  'typography',
   'motion',
   'chrome',
   'ambience',
