@@ -1,71 +1,107 @@
 /**
- * useColorMode — light / dark theme toggle.
+ * useColorMode — the active theme.
  *
- * Source of truth is the user's `users.theme` column in PostgreSQL,
- * surfaced via `/api/auth/status` on the session and updated via
- * `PATCH /api/me`. localStorage is kept as a *cache only* so the FOUC
- * mitigation in app.vue can pick a sensible theme synchronously before
- * the session is fetched on first paint.
+ * Named for what it was and kept for what imports it. It no longer holds two
+ * values: a theme is `'system'`, one of the two built-ins, or the slug of a
+ * theme an admin created.
  *
- * The theme is written to `data-theme` on <html>, matching:
- *   - the Tailwind config (`darkMode: ['selector', '[data-theme="dark"]']`)
- *   - the CSS variable scopes in `assets/css/main.css`
+ * ## Source of truth, and the cookie
  *
- * On boot:
- *   1. app.vue's inline script seeds <html data-theme=…> from
- *      localStorage (or 'dark' if absent — the defined default).
- *   2. The auth/status fetch in the global middleware fills the user
- *      session, including `theme`. The watcher below picks that up and
- *      reconciles the DOM if the cache differed.
+ * `users.theme` in Postgres, surfaced on the session by `/api/auth/status` and
+ * written by `PATCH /api/me`. Alongside it, a **cookie** — not localStorage.
  *
- * On user toggle:
- *   - `apply(value)` updates the DOM + localStorage cache immediately
- *     (no perceptible flicker), then PATCHes /api/me so the choice
- *     follows the user across devices and browsers.
+ * That swap is the whole reason SSR can now render the right theme. localStorage
+ * is invisible to the server, so the old design had no choice but to paint the
+ * attribute from a blocking inline script after the HTML had already been
+ * generated with none. A cookie travels with the request, so
+ * `useHead({ htmlAttrs })` can put `data-theme` in the markup itself.
+ *
+ * The usual objection to a theme cookie is CDN cache fragmentation — `Vary:
+ * Cookie` on HTML. It does not apply here: nothing caches this application's
+ * HTML. There is no `Cache-Control` on it in `nuxt.config.ts`, none in
+ * `server/`, and Caddy is a reverse proxy with no cache. So the cookie is free,
+ * and it lets a script come out of `<head>`.
+ *
+ * ## Why the inline script still exists
+ *
+ * `apps/web` ships twice. `ssr: !STATIC_BUILD` — the `front` image is a static
+ * SPA served by nginx, with no server to render an attribute. There, the boot
+ * script is still the only mechanism, and it now reads the cookie rather than
+ * localStorage so both builds agree on where the answer lives.
+ *
+ * ## Where the token values come from
+ *
+ * Not from here. `<link rel="stylesheet" href="/api/theme.css">` carries every
+ * enabled theme, so switching is one attribute write with no request and no
+ * flash — exactly as it has always been for the two built-ins.
  */
-type Mode = 'light' | 'dark';
+import { SYSTEM_THEME } from '@trackarr/shared';
 
-const STORAGE_KEY = 'trackarr.theme';
-const DEFAULT_MODE: Mode = 'dark';
+/** `'system'` | `'light'` | `'dark'` | an admin theme's slug. */
+type Theme = string;
 
-// Process-scoped flag so the user-session watcher is registered exactly
-// once, no matter how many components call this composable. Without it
-// every component (layout + page + Charts + settings + …) would attach
-// its own watcher, all firing in lockstep on each session refresh.
+const COOKIE_NAME = 'trackarr-theme';
+const DEFAULT_THEME = 'dark';
+
+/**
+ * A year. The cookie is a cache of a value the account already owns, so its
+ * expiry only decides how long an anonymous visit remembers a choice — and
+ * `httpOnly` is deliberately off, because the toggle reads it.
+ */
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+// Process-scoped so the session watcher is registered exactly once however many
+// components call this. Without it every component — layout, page, charts,
+// settings — attaches its own and they all fire in lockstep on each refresh.
 let sessionWatcherStarted = false;
 
 export function useColorMode() {
-  const mode = useState<Mode>('color-mode', () => DEFAULT_MODE);
+  const cookie = useCookie<string | null>(COOKIE_NAME, {
+    maxAge: COOKIE_MAX_AGE,
+    sameSite: 'lax',
+    path: '/',
+    // Readable by the client on purpose: the toggle writes it, and it holds no
+    // secret — the value is visible in the DOM the moment the page renders.
+    httpOnly: false,
+  });
 
-  function paint(value: Mode) {
+  const mode = useState<Theme>('color-mode', () => cookie.value || DEFAULT_THEME);
+
+  // Server-side, this is what puts `data-theme` in the HTML. Client-side it is
+  // inert — Vue does not re-render `<html>` attributes on hydration — which is
+  // why `paint()` below writes the DOM directly.
+  useHead({ htmlAttrs: { 'data-theme': () => mode.value } });
+
+  function paint(value: Theme) {
     mode.value = value;
+    cookie.value = value;
     if (import.meta.client) {
       document.documentElement.setAttribute('data-theme', value);
-      try {
-        localStorage.setItem(STORAGE_KEY, value);
-      } catch {
-        /* private mode / disabled storage — silently ignore */
-      }
     }
   }
 
-  /** Persist a new theme: paint immediately, then push to the API. */
-  async function apply(value: Mode) {
+  /** Persist a choice: paint at once, then tell the server. */
+  async function apply(value: Theme) {
     paint(value);
     if (import.meta.client) {
       try {
-        await $fetch('/api/me', {
-          method: 'PATCH',
-          body: { theme: value },
-        });
+        await $fetch('/api/me', { method: 'PATCH', body: { theme: value } });
       } catch {
-        // Non-fatal: the local cache + session refresh will reconcile
-        // on the next /api/auth/status poll. Avoiding throw here keeps
-        // the toggle snappy when the network blips.
+        // Non-fatal by design: the cookie and the next `/api/auth/status` poll
+        // reconcile, so a network blip does not make the toggle feel broken.
+        // A REFUSAL is different — a theme reserved to a role the member does
+        // not hold — and the reconciliation below is what corrects it, by
+        // painting whatever the server actually stored.
       }
     }
   }
 
+  /**
+   * Kept for the callers that still just want the other one of the two.
+   *
+   * Only meaningful between the built-ins; on a custom theme it falls back to
+   * `dark`, because "the opposite of Nocturne" is not a question with an answer.
+   */
   function toggle() {
     void apply(mode.value === 'dark' ? 'light' : 'dark');
   }
@@ -73,28 +109,21 @@ export function useColorMode() {
   if (import.meta.client && !sessionWatcherStarted) {
     sessionWatcherStarted = true;
     onMounted(() => {
-      // Catch any drift between the cache-painted attr and the state ref.
+      // Reconcile the attribute the boot script painted with the state ref.
       const attr = document.documentElement.getAttribute('data-theme');
-      const observed: Mode =
-        attr === 'light' || attr === 'dark' ? attr : DEFAULT_MODE;
-      if (observed !== mode.value) mode.value = observed;
+      if (attr && attr !== mode.value) mode.value = attr;
 
-      // Reconcile against the server-stored theme as soon as the
-      // session lands. Watcher is module-singleton (see top of file)
-      // so we don't re-create it for every component using the theme.
       const { user } = useUserSession();
       watch(
         user,
         (u) => {
-          const serverTheme = (u as { theme?: Mode } | null)?.theme;
-          if (serverTheme && serverTheme !== mode.value) {
-            paint(serverTheme);
-          }
+          const stored = (u as { theme?: string } | null)?.theme;
+          if (stored && stored !== mode.value) paint(stored);
         },
-        { immediate: true }
+        { immediate: true },
       );
     });
   }
 
-  return { mode: readonly(mode), apply, toggle };
+  return { mode: readonly(mode), apply, toggle, SYSTEM_THEME };
 }

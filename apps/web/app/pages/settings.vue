@@ -736,9 +736,11 @@ const notifications = useNotificationStore();
 const { clear: clearSession, fetch: refreshSession } = useUserSession();
 const { t, locale: i18nLocale, setLocale: setI18nLocale } = useI18n();
 useHead({ title: () => t('settings.pageTitle') });
-// The project ships its own minimal useColorMode (apps/web/app/composables/
-// useColorMode.ts) — light/dark only, persisted in localStorage. We use
-// `apply()` to set and `mode` (a readonly ref) for the active state.
+// The project ships its own useColorMode (apps/web/app/composables/
+// useColorMode.ts). It is no longer light/dark: a theme is `system`, a built-in,
+// or an admin theme's slug, persisted on the account and cached in a cookie so
+// SSR can render `data-theme` without a correcting script. `apply()` sets it and
+// `mode` (a readonly ref) is the active value.
 const { mode: themeMode, apply: applyTheme } = useColorMode();
 
 // ── Profile fetch ───────────────────────────────────────────────
@@ -911,30 +913,79 @@ onMounted(() => {
 });
 
 // ── Theme picker ────────────────────────────────────────────────
+//
+// The list is no longer two literals: it is System, the two built-ins, and every
+// theme an admin has enabled and this member is entitled to.
+//
+// The swatch used to be a hardcoded hex per option. It is now the theme's own
+// `--accent` read from the served stylesheet — which is both accurate and the
+// only version that can work, since an admin theme's colours are not known to
+// this file. Reading it means asking the browser to resolve a custom property in
+// a scope other than the current one, so an off-screen element carries the
+// theme's attribute and `getComputedStyle` answers for it.
 interface ThemeOption {
-  value: 'light' | 'dark';
+  value: string;
   label: string;
   sub: string;
   icon: string;
   dot: string;
 }
-const themes: ThemeOption[] = [
-  {
-    value: 'light',
-    label: 'Light',
-    sub: 'Day-friendly tones',
-    icon: 'ph:sun-bold',
-    dot: '#f5c518',
-  },
-  {
-    value: 'dark',
-    label: 'Dark',
-    sub: 'Editorial midnight',
-    icon: 'ph:moon-stars-bold',
-    dot: '#34d4d8',
-  },
-];
-function setTheme(value: 'light' | 'dark') {
+
+const branding = await useBranding();
+
+/** `--accent` as the given theme would resolve it, or a neutral fallback. */
+function swatchFor(slug: string): string {
+  if (!import.meta.client) return 'transparent';
+  const probe = document.createElement('div');
+  probe.setAttribute('data-theme', slug);
+  // `display:none` would work for custom properties but not for anything that
+  // needs layout, and `visibility:hidden` keeps the element resolvable while
+  // costing nothing visible.
+  probe.style.cssText =
+    'position:absolute;left:-9999px;visibility:hidden;pointer-events:none';
+  document.documentElement.appendChild(probe);
+  const accent = getComputedStyle(probe).getPropertyValue('--accent').trim();
+  probe.remove();
+  return accent ? `rgb(${accent})` : 'transparent';
+}
+
+const themes = computed<ThemeOption[]>(() => {
+  const custom = (branding.value?.themes ?? []).filter(
+    (t) => !['light', 'dark'].includes(t.slug),
+  );
+  return [
+    {
+      value: 'system',
+      label: 'System',
+      sub: 'Follows your operating system',
+      icon: 'ph:circle-half-bold',
+      dot: 'transparent',
+    },
+    {
+      value: 'light',
+      label: 'Light',
+      sub: 'Day-friendly tones',
+      icon: 'ph:sun-bold',
+      dot: swatchFor('light'),
+    },
+    {
+      value: 'dark',
+      label: 'Dark',
+      sub: 'Editorial midnight',
+      icon: 'ph:moon-stars-bold',
+      dot: swatchFor('dark'),
+    },
+    ...custom.map((t) => ({
+      value: t.slug,
+      label: t.name,
+      sub: t.base === 'light' ? 'Light-based' : 'Dark-based',
+      icon: 'ph:palette-bold',
+      dot: swatchFor(t.slug),
+    })),
+  ];
+});
+
+function setTheme(value: string) {
   applyTheme(value);
 }
 
