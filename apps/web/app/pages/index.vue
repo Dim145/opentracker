@@ -709,10 +709,10 @@ function useCounter(target: Ref<number>) {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-bottom: 1.5rem;
@@ -720,14 +720,14 @@ function useCounter(target: Ref<number>) {
 }
 .mc-eyebrow-num {
   color: rgb(var(--accent));
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
 }
 .mc-eyebrow-of {
   color: rgb(var(--fg-faint));
   font-weight: 500;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
 }
 .mc-eyebrow-rule {
   flex: 0 0 2.5rem;
@@ -751,7 +751,7 @@ function useCounter(target: Ref<number>) {
   gap: 0.35rem;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  transition: color 0.16s ease, transform 0.16s ease;
+  transition: color var(--dur-2) ease, transform var(--dur-2) ease;
 }
 .mc-eyebrow-link:hover {
   color: rgb(var(--fg-strong));
@@ -769,7 +769,7 @@ function useCounter(target: Ref<number>) {
   gap: 0.55rem;
   padding: 0.3rem 0.7rem 0.3rem 0.55rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-surface));
 }
 .mc-live--down {
@@ -790,7 +790,7 @@ function useCounter(target: Ref<number>) {
   background: rgb(var(--online));
 }
 .mc-live-dot-pulse {
-  animation: mc-pulse 1.6s ease-out infinite;
+  animation: mc-pulse calc(1.6s * var(--motion-scale)) ease-out infinite;
   opacity: 0.6;
 }
 .mc-live--down .mc-live-dot-core,
@@ -804,12 +804,12 @@ function useCounter(target: Ref<number>) {
 .mc-live-label {
   color: rgb(var(--fg-strong));
   font-weight: 700;
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
 }
 .mc-clock {
   color: rgb(var(--fg-muted));
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
@@ -825,19 +825,19 @@ function useCounter(target: Ref<number>) {
 }
 .mc-hero-corner {
   position: absolute;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(2rem, 5vw, 3rem);
   color: rgb(var(--accent));
   line-height: 1;
   pointer-events: none;
   user-select: none;
   /* Subtle entry — corners "snap" in when the page loads */
-  animation: mc-corner-in 0.6s ease both;
+  animation: mc-corner-in calc(0.6s * var(--motion-scale)) ease both;
 }
-.mc-hero-corner--tl { top: 0; left: 0; animation-delay: 0.05s; }
-.mc-hero-corner--tr { top: 0; right: 0; animation-delay: 0.12s; }
-.mc-hero-corner--bl { bottom: 0; left: 0; animation-delay: 0.19s; }
-.mc-hero-corner--br { bottom: 0; right: 0; animation-delay: 0.26s; }
+.mc-hero-corner--tl { top: 0; left: 0; animation-delay: calc(0.05s * var(--motion-scale)); }
+.mc-hero-corner--tr { top: 0; right: 0; animation-delay: var(--dur-1); }
+.mc-hero-corner--bl { bottom: 0; left: 0; animation-delay: calc(0.19s * var(--motion-scale)); }
+.mc-hero-corner--br { bottom: 0; right: 0; animation-delay: calc(0.26s * var(--motion-scale)); }
 @keyframes mc-corner-in {
   from { opacity: 0; transform: scale(0.6); }
   to   { opacity: 1; transform: scale(1); }
@@ -848,10 +848,10 @@ function useCounter(target: Ref<number>) {
   align-items: center;
   gap: 0.65rem;
   flex-wrap: wrap;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   margin: 0 0 1.25rem;
@@ -866,16 +866,16 @@ function useCounter(target: Ref<number>) {
 
 .mc-hero-title {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 800;
   font-size: clamp(2.5rem, 11vw, 8.5rem);
   line-height: 0.92;
-  letter-spacing: -0.04em;
+  letter-spacing: calc(-0.04em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   word-break: break-word;
   text-transform: uppercase;
   text-shadow: 0 0 60px rgb(var(--accent) / 0.15);
-  animation: mc-title-in 0.8s 0.2s ease both;
+  animation: mc-title-in 0.8s var(--dur-4) ease both;
 }
 .mc-hero-title :deep(strong) {
   font-weight: 900;
@@ -884,21 +884,21 @@ function useCounter(target: Ref<number>) {
 .mc-hero-title :deep(em) {
   font-style: italic;
   color: rgb(var(--fg-muted));
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
 @keyframes mc-title-in {
   from { opacity: 0; transform: translateY(8px); letter-spacing: 0; }
-  to   { opacity: 1; transform: translateY(0); letter-spacing: -0.04em; }
+  to   { opacity: 1; transform: translateY(0); letter-spacing: calc(-0.04em * var(--tracking-scale)); }
 }
 
 .mc-hero-tagline {
   margin: 1rem 0 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: clamp(0.9rem, 1.4vw, 1.05rem);
   line-height: 1.55;
   color: rgb(var(--fg-muted));
   max-width: 56ch;
-  animation: mc-fade-up 0.8s 0.4s ease both;
+  animation: mc-fade-up calc(0.8s * var(--motion-scale)) calc(0.4s * var(--motion-scale)) ease both;
 }
 .mc-hero-tagline :deep(p) {
   margin: 0;
@@ -932,7 +932,7 @@ function useCounter(target: Ref<number>) {
   background: rgb(var(--bg-surface) / 0.6);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .mc-kpi {
@@ -943,13 +943,13 @@ function useCounter(target: Ref<number>) {
   gap: 0.45rem;
   padding: 1.4rem 1.4rem 1.2rem;
   border-right: 1px solid rgb(var(--line-default));
-  animation: mc-fade-up 0.6s ease both;
+  animation: mc-fade-up calc(0.6s * var(--motion-scale)) ease both;
 }
 .mc-kpi:last-child { border-right: 0; }
-.mc-kpi:nth-child(1) { animation-delay: 0.5s; }
-.mc-kpi:nth-child(2) { animation-delay: 0.58s; }
-.mc-kpi:nth-child(3) { animation-delay: 0.66s; }
-.mc-kpi:nth-child(4) { animation-delay: 0.74s; }
+.mc-kpi:nth-child(1) { animation-delay: calc(0.5s * var(--motion-scale)); }
+.mc-kpi:nth-child(2) { animation-delay: calc(0.58s * var(--motion-scale)); }
+.mc-kpi:nth-child(3) { animation-delay: calc(0.66s * var(--motion-scale)); }
+.mc-kpi:nth-child(4) { animation-delay: calc(0.74s * var(--motion-scale)); }
 /* Horizontal accent stripe under the active KPI — only the leftmost
    one gets it so the eye anchors there first. */
 .mc-kpi--accent::after {
@@ -958,20 +958,20 @@ function useCounter(target: Ref<number>) {
   inset: auto 1.4rem 0.5rem 1.4rem;
   height: 2px;
   background: rgb(var(--accent));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   transform-origin: left;
-  animation: mc-rule-in 0.6s 0.7s ease both;
+  animation: mc-rule-in calc(0.6s * var(--motion-scale)) calc(0.7s * var(--motion-scale)) ease both;
 }
 @keyframes mc-rule-in {
   from { transform: scaleX(0); }
   to   { transform: scaleX(1); }
 }
 .mc-kpi-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 800;
   font-size: clamp(1.8rem, 4.5vw, 2.85rem);
   line-height: 1;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   font-variant-numeric: tabular-nums;
 }
@@ -983,15 +983,15 @@ function useCounter(target: Ref<number>) {
   color: rgb(var(--fg-faint));
   font-weight: 500;
   font-size: 0.55em;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   margin-left: 0.3rem;
   text-transform: uppercase;
 }
 .mc-kpi-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1001,18 +1001,18 @@ function useCounter(target: Ref<number>) {
    than a second KPI. Hidden by `v-if` until the snapshot is ready. */
 .mc-kpi-sub {
   margin-top: 0.25rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--accent));
 }
 
 .mc-hero-tip {
   margin: 1.25rem 0 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 .mc-hero-tip kbd {
@@ -1023,13 +1023,13 @@ function useCounter(target: Ref<number>) {
   min-width: 1.1rem;
   padding: 0 0.3rem;
   margin: 0 0.1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 /* ─── 02 · LEDGER (latest releases) ─────────────────────── */
@@ -1038,7 +1038,7 @@ function useCounter(target: Ref<number>) {
   margin: 0;
   padding: 0;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: rgb(var(--bg-surface) / 0.5);
 }
@@ -1055,15 +1055,15 @@ function useCounter(target: Ref<number>) {
   align-items: center;
   gap: 1rem;
   padding: 0.8rem 1.1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
 }
 .mc-ledger-headrow {
   background: rgb(var(--bg-elevated) / 0.5);
   border-bottom: 1px solid rgb(var(--line-default));
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   padding: 0.55rem 1.1rem;
@@ -1071,11 +1071,11 @@ function useCounter(target: Ref<number>) {
 .mc-ledger-row {
   cursor: pointer;
   border-bottom: 1px solid rgb(var(--line-default) / 0.5);
-  transition: background 0.14s ease, transform 0.14s ease;
+  transition: background var(--dur-2) ease, transform var(--dur-2) ease;
   position: relative;
   /* Stagger entry so the list "deals" itself after the hero lands. */
-  animation: mc-fade-up 0.4s ease both;
-  animation-delay: calc(0.1s + var(--row-i, 0) * 30ms);
+  animation: mc-fade-up calc(0.4s * var(--motion-scale)) ease both;
+  animation-delay: calc(calc(0.1s * var(--motion-scale)) + var(--row-i, 0) * calc(30ms * var(--motion-scale)));
 }
 .mc-ledger-row:last-child { border-bottom: 0; }
 .mc-ledger-row::before {
@@ -1086,7 +1086,7 @@ function useCounter(target: Ref<number>) {
   background: rgb(var(--accent));
   transform: scaleY(0);
   transform-origin: center;
-  transition: transform 0.18s ease;
+  transition: transform var(--dur-3) ease;
 }
 .mc-ledger-row:hover {
   background: rgb(var(--bg-elevated) / 0.7);
@@ -1101,13 +1101,13 @@ function useCounter(target: Ref<number>) {
   font-weight: 700;
   color: rgb(var(--fg-faint));
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-  transition: color 0.14s ease;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
+  transition: color var(--dur-2) ease;
 }
 .mc-ledger-name {
   color: rgb(var(--fg-strong));
   font-weight: 500;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1136,44 +1136,44 @@ function useCounter(target: Ref<number>) {
 .mc-ledger-age {
   color: rgb(var(--fg-faint));
   text-align: right;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 .mc-empty {
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 3rem 1.5rem;
   text-align: center;
   background: rgb(var(--bg-surface) / 0.4);
 }
 .mc-empty-art {
   margin: 0 0 0.85rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 18px;
-  letter-spacing: 0.4em;
+  font-family: var(--font-mono);
+  font-size: 1.125rem;
+  letter-spacing: calc(0.4em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
   white-space: pre;
 }
 .mc-empty-headline {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   color: rgb(var(--fg-muted));
 }
 .mc-empty-cta {
   display: inline-block;
   margin-top: 1.25rem;
   padding: 0.55rem 1.1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-fg));
   background: rgb(var(--accent));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
-  transition: background 0.16s ease;
+  transition: background var(--dur-2) ease;
 }
 .mc-empty-cta:hover {
   background: rgb(var(--accent-hover));
@@ -1187,7 +1187,7 @@ function useCounter(target: Ref<number>) {
 }
 .mc-tile {
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-surface) / 0.5);
   padding: 1.25rem 1.25rem 1.5rem;
   display: flex;
@@ -1218,25 +1218,25 @@ function useCounter(target: Ref<number>) {
   justify-content: center;
   width: 1.4rem;
   height: 1.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
   color: rgb(var(--accent));
   background: rgb(var(--accent) / 0.12);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 .mc-tile-head h3 {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
 .mc-tile-empty {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   color: rgb(var(--fg-faint));
   font-style: italic;
 }
@@ -1256,17 +1256,17 @@ function useCounter(target: Ref<number>) {
   gap: 0.8rem;
   align-items: center;
   cursor: pointer;
-  transition: transform 0.14s ease;
+  transition: transform var(--dur-2) ease;
 }
 .mc-hot-row:hover {
   transform: translateX(2px);
 }
 .mc-hot-rank {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 22px;
+  font-family: var(--font-mono);
+  font-size: 1.375rem;
   font-weight: 800;
   color: rgb(var(--fg-faint));
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1;
 }
 .mc-hot-row:hover .mc-hot-rank {
@@ -1279,8 +1279,8 @@ function useCounter(target: Ref<number>) {
   min-width: 0;
 }
 .mc-hot-name {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   color: rgb(var(--fg-strong));
   font-weight: 500;
   overflow: hidden;
@@ -1291,8 +1291,8 @@ function useCounter(target: Ref<number>) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
 }
 .mc-hot-detail strong {
@@ -1304,7 +1304,7 @@ function useCounter(target: Ref<number>) {
   display: block;
   height: 2px;
   background: rgb(var(--fg-default) / 0.08);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 }
 .mc-hot-bar-fill {
@@ -1315,7 +1315,7 @@ function useCounter(target: Ref<number>) {
     rgb(var(--accent) / 0.5),
     rgb(var(--accent))
   );
-  transition: width 0.6s ease;
+  transition: width calc(0.6s * var(--motion-scale)) ease;
 }
 
 /* Protocols tile */
@@ -1332,12 +1332,12 @@ function useCounter(target: Ref<number>) {
   grid-template-columns: 3.5rem 1fr auto;
   gap: 0.85rem;
   align-items: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .mc-proto-key {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .mc-proto-row--down .mc-proto-key {
@@ -1358,7 +1358,7 @@ function useCounter(target: Ref<number>) {
     rgb(var(--online))
   );
   width: 100%;
-  animation: mc-blip-line 1.4s ease both;
+  animation: mc-blip-line calc(1.4s * var(--motion-scale)) ease both;
 }
 .mc-proto-row--down .mc-proto-bar-line {
   background: rgb(var(--danger) / 0.6);
@@ -1372,7 +1372,7 @@ function useCounter(target: Ref<number>) {
   background: rgb(var(--online));
   transform: translateY(-50%);
   box-shadow: 0 0 6px rgb(var(--online) / 0.7);
-  animation: mc-blip-travel 2.4s linear infinite;
+  animation: mc-blip-travel calc(2.4s * var(--motion-scale)) linear infinite;
 }
 .mc-proto-bar-blip--off {
   display: none;
@@ -1391,9 +1391,9 @@ function useCounter(target: Ref<number>) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--online));
 }
@@ -1412,7 +1412,7 @@ function useCounter(target: Ref<number>) {
 
 /* ─── 04 · MANIFESTO ────────────────────────────────────── */
 .mc-manifesto-lead {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 1rem;
   font-style: italic;
   color: rgb(var(--fg-muted));
@@ -1430,8 +1430,8 @@ function useCounter(target: Ref<number>) {
   position: relative;
   padding: 1.75rem 1.5rem 1.75rem 2.25rem;
   border-right: 1px solid rgb(var(--line-default));
-  animation: mc-fade-up 0.5s ease both;
-  animation-delay: calc(0.1s + var(--m-i, 0) * 80ms);
+  animation: mc-fade-up calc(0.5s * var(--motion-scale)) ease both;
+  animation-delay: calc(calc(0.1s * var(--motion-scale)) + var(--m-i, 0) * calc(80ms * var(--motion-scale)));
 }
 .mc-manifesto:last-child { border-right: 0; }
 .mc-manifesto::before {
@@ -1442,17 +1442,17 @@ function useCounter(target: Ref<number>) {
   inset: 1.75rem auto 1.75rem 1rem;
   width: 2px;
   background: rgb(var(--fg-default) / 0.2);
-  transition: background 0.18s ease;
+  transition: background var(--dur-3) ease;
 }
 .mc-manifesto:hover::before {
   background: rgb(var(--accent));
 }
 .mc-manifesto-mark {
   display: inline-block;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   color: rgb(var(--accent));
   margin-bottom: 0.5rem;
 }
@@ -1465,17 +1465,17 @@ function useCounter(target: Ref<number>) {
 }
 .mc-manifesto-title {
   margin: 0 0 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
 .mc-manifesto-title :deep(strong) { font-weight: 900; }
 .mc-manifesto-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 12.5px;
+  font-family: var(--font-sans);
+  font-size: 0.7813rem;
   line-height: 1.6;
   color: rgb(var(--fg-muted));
 }

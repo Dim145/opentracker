@@ -315,10 +315,10 @@ const age = computed(() => formatAge(props.group.latest));
 <style scoped>
 .grp {
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated) / 0.35);
   overflow: hidden;
-  transition: border-color 140ms ease;
+  transition: border-color var(--dur-2) ease;
 }
 .grp--open {
   border-color: rgb(167 139 250 / 0.4);
@@ -331,7 +331,7 @@ const age = computed(() => formatAge(props.group.latest));
   gap: 0.9rem;
   padding: 0.6rem 0.85rem;
   cursor: pointer;
-  transition: background-color 120ms ease;
+  transition: background-color var(--dur-1) ease;
 }
 .grp-head:hover {
   background: rgb(var(--bg-hover));
@@ -358,13 +358,13 @@ const age = computed(() => formatAge(props.group.latest));
    filename in the title face reads as a broken title, so the fallback is
    typeset as what it is. */
 .grp-title--mono {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 500;
   color: rgb(var(--fg-default));
 }
 .grp-year {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 400;
   color: rgb(var(--fg-faint));
@@ -378,10 +378,10 @@ const age = computed(() => formatAge(props.group.latest));
 }
 .grp-cat {
   font-size: 0.5625rem;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 2px 6px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: rgb(167 139 250 / 0.15);
   color: rgb(196 181 253);
   white-space: nowrap;
@@ -398,13 +398,13 @@ const age = computed(() => formatAge(props.group.latest));
   font-size: 0.625rem;
   font-weight: 500;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   border: 1px solid rgb(var(--line-strong));
   background: transparent;
   color: rgb(var(--fg-muted));
   cursor: pointer;
   white-space: nowrap;
-  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+  transition: border-color var(--dur-1) ease, color var(--dur-1) ease, background-color var(--dur-1) ease;
 }
 .grp-scope:hover {
   color: rgb(var(--fg-default));
@@ -441,7 +441,7 @@ const age = computed(() => formatAge(props.group.latest));
   font-size: 0.625rem;
   font-weight: 500;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   border: 1px solid rgb(56 189 248 / 0.35);
   background: rgb(56 189 248 / 0.1);
   color: rgb(125 211 252);
@@ -460,7 +460,7 @@ const age = computed(() => formatAge(props.group.latest));
   display: flex;
   align-items: center;
   gap: 1rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
@@ -511,15 +511,15 @@ const age = computed(() => formatAge(props.group.latest));
   gap: 0.4rem;
   padding: 0.5rem;
   font-size: 0.625rem;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   border-top: 1px dashed rgb(var(--line-default));
-  transition: color 120ms ease, background-color 120ms ease;
+  transition: color var(--dur-1) ease, background-color var(--dur-1) ease;
 }
 .grp-more:hover {
   color: #e5bf58;
-  background: rgb(212 167 52 / 0.06);
+  background: rgb(var(--accent-warm) / 0.06);
 }
 
 /* ── Phone ───────────────────────────────────────────────────────────── */

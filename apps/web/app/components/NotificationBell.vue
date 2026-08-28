@@ -335,17 +335,17 @@ function humanise(s: string): string {
   background: transparent;
   border: 0;
   color: rgb(var(--fg-muted));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: color 0.14s ease, background 0.14s ease;
+  transition: color var(--dur-2) ease, background var(--dur-2) ease;
 }
 .nbell-btn:hover {
   color: rgb(var(--fg-strong));
   background: rgb(var(--fg-default) / 0.05);
 }
 .nbell-btn--open {
-  color: #d4a734;
-  background: rgba(212, 167, 52, 0.08);
+  color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.08);
 }
 .nbell-icon { font-size: 1.05rem; }
 .nbell-badge {
@@ -360,11 +360,11 @@ function humanise(s: string): string {
   justify-content: center;
   background: #f43f5e;
   color: #fff;
-  border-radius: 9999px;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   border: 2px solid rgb(var(--bg-base));
   box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.45);
 }
@@ -378,7 +378,7 @@ function humanise(s: string): string {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
   border-radius: var(--radius-md);
-  box-shadow: 0 18px 48px rgb(0 0 0 / 0.5);
+  box-shadow: 0 18px 48px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)));
   overflow: hidden;
   z-index: 40;
   display: flex;
@@ -394,9 +394,9 @@ function humanise(s: string): string {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0) 0%,
-    rgba(212, 167, 52, 0.7) 50%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm) / 0.7) 50%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 
@@ -413,18 +413,18 @@ function humanise(s: string): string {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .nbell-eyebrow-rule {
   display: inline-block;
   width: 18px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .nbell-pop-row {
   display: flex;
@@ -435,7 +435,7 @@ function humanise(s: string): string {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .nbell-pop-count {
@@ -444,14 +444,14 @@ function humanise(s: string): string {
   min-width: 1.4rem;
   height: 1.1rem;
   padding: 0 0.35rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
   background: rgba(244, 63, 94, 0.12);
   border: 1px solid rgba(244, 63, 94, 0.45);
   color: #f43f5e;
-  border-radius: 999px;
-  letter-spacing: 0.02em;
+  border-radius: var(--radius-pill);
+  letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 .nbell-pop-mark {
   display: inline-flex;
@@ -459,22 +459,22 @@ function humanise(s: string): string {
   gap: 0.35rem;
   margin-left: auto;
   padding: 0.35rem 0.65rem;
-  background: rgba(212, 167, 52, 0.1);
-  border: 1px solid rgba(212, 167, 52, 0.45);
+  background: rgb(var(--accent-warm) / 0.1);
+  border: 1px solid rgb(var(--accent-warm) / 0.45);
   border-radius: var(--radius-sm);
   font-family: inherit;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   white-space: nowrap;
 }
 .nbell-pop-mark:hover:not(:disabled) {
-  background: rgba(212, 167, 52, 0.18);
-  border-color: rgba(212, 167, 52, 0.7);
+  background: rgb(var(--accent-warm) / 0.18);
+  border-color: rgb(var(--accent-warm) / 0.7);
 }
 .nbell-pop-mark:disabled {
   opacity: 0.5;
@@ -498,23 +498,23 @@ function humanise(s: string): string {
   background: transparent;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .nbell-filter:hover {
   color: rgb(var(--fg-strong));
   border-color: rgb(var(--line-strong));
 }
 .nbell-filter--on {
-  color: #d4a734;
-  background: rgba(212, 167, 52, 0.08);
-  border-color: rgba(212, 167, 52, 0.5);
+  color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.08);
+  border-color: rgb(var(--accent-warm) / 0.5);
 }
 .nbell-filter-dot {
   display: inline-block;
@@ -522,12 +522,12 @@ function humanise(s: string): string {
   height: 6px;
   border-radius: 50%;
   background: rgb(var(--line-strong));
-  transition: background 0.16s ease;
+  transition: background var(--dur-2) ease;
 }
 .nbell-filter-dot--on {
   background: #f43f5e;
   box-shadow: 0 0 6px rgba(244, 63, 94, 0.7);
-  animation: nbell-blip 1.6s ease-in-out infinite;
+  animation: nbell-blip calc(1.6s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes nbell-blip {
   0%, 100% { opacity: 0.6; }
@@ -539,16 +539,16 @@ function humanise(s: string): string {
   min-width: 18px;
   height: 16px;
   padding: 0 0.3rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 800;
   color: inherit;
 }
 .nbell-filter--on .nbell-filter-count {
   background: rgb(var(--bg-base));
-  border-color: rgba(212, 167, 52, 0.45);
+  border-color: rgb(var(--accent-warm) / 0.45);
 }
 
 /* ── Empty / loading ───────────────────────────────────── */
@@ -558,10 +558,10 @@ function humanise(s: string): string {
   align-items: center;
   gap: 0.65rem;
   padding: 2rem 1.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-align: center;
@@ -572,9 +572,9 @@ function humanise(s: string): string {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(212, 167, 52, 0.08);
-  border: 1px solid rgba(212, 167, 52, 0.4);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.08);
+  border: 1px solid rgb(var(--accent-warm) / 0.4);
+  color: rgb(var(--accent-warm));
   font-size: 1.2rem;
 }
 .nbell-empty-stamp--clear {
@@ -584,7 +584,7 @@ function humanise(s: string): string {
   transform: rotate(-6deg);
 }
 .nbell-loading-spin {
-  animation: nbell-spin 0.9s linear infinite;
+  animation: nbell-spin calc(0.9s * var(--motion-scale)) linear infinite;
 }
 @keyframes nbell-spin {
   to { transform: rotate(360deg); }
@@ -600,8 +600,8 @@ function humanise(s: string): string {
 }
 .nbell-list::-webkit-scrollbar { width: 6px; }
 .nbell-list::-webkit-scrollbar-thumb {
-  background: rgba(212, 167, 52, 0.25);
-  border-radius: 6px;
+  background: rgb(var(--accent-warm) / 0.25);
+  border-radius: var(--radius-md);
 }
 
 .nbell-row {
@@ -613,8 +613,8 @@ function humanise(s: string): string {
   padding: 0.65rem 0.85rem 0.65rem 0.9rem;
   cursor: pointer;
   border-bottom: 1px solid rgb(var(--line-default) / 0.45);
-  transition: background 0.14s ease;
-  animation: nbell-in 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: background var(--dur-2) ease;
+  animation: nbell-in calc(0.32s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes nbell-in {
@@ -626,10 +626,10 @@ function humanise(s: string): string {
   background: rgb(var(--bg-base));
 }
 .nbell-row--unread {
-  background: rgba(212, 167, 52, 0.04);
+  background: rgb(var(--accent-warm) / 0.04);
 }
 .nbell-row--unread:hover {
-  background: rgba(212, 167, 52, 0.08);
+  background: rgb(var(--accent-warm) / 0.08);
 }
 
 /* Tiny status rail at the leftmost edge — coloured by the
@@ -643,7 +643,7 @@ function humanise(s: string): string {
   border-radius: 1px;
 }
 .nbell-row--unread .nbell-row-rail--gain { background: #6cd161; box-shadow: 0 0 5px rgba(108, 209, 97, 0.5); }
-.nbell-row--unread .nbell-row-rail--spend { background: #d4a734; box-shadow: 0 0 5px rgba(212, 167, 52, 0.5); }
+.nbell-row--unread .nbell-row-rail--spend { background: rgb(var(--accent-warm)); box-shadow: 0 0 5px rgb(var(--accent-warm) / 0.5); }
 .nbell-row--unread .nbell-row-rail--warn { background: #fb923c; box-shadow: 0 0 5px rgba(251, 146, 60, 0.5); }
 .nbell-row--unread .nbell-row-rail--danger { background: #f43f5e; box-shadow: 0 0 5px rgba(244, 63, 94, 0.5); }
 .nbell-row--unread .nbell-row-rail--social { background: #60a5fa; box-shadow: 0 0 5px rgba(96, 165, 250, 0.5); }
@@ -661,8 +661,8 @@ function humanise(s: string): string {
   background: rgba(108, 209, 97, 0.1);
 }
 .nbell-row-icon--spend {
-  color: #d4a734;
-  background: rgba(212, 167, 52, 0.1);
+  color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.1);
 }
 .nbell-row-icon--info {
   color: rgb(var(--fg-strong));
@@ -715,9 +715,9 @@ function humanise(s: string): string {
 }
 .nbell-row-time {
   margin: 0.2rem 0 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 
@@ -734,14 +734,14 @@ function humanise(s: string): string {
   width: 36px;
   height: 36px;
   padding: 0;
-  background: rgba(212, 167, 52, 0.08);
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  background: rgb(var(--accent-warm) / 0.08);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   border-radius: var(--radius-sm);
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   cursor: pointer;
   opacity: 0.45;
-  transition: opacity 0.18s ease, background 0.15s ease,
-    border-color 0.15s ease;
+  transition: opacity var(--dur-3) ease, background var(--dur-2) ease,
+    border-color var(--dur-2) ease;
 }
 .nbell-row-clear svg { font-size: 0.85rem; }
 .nbell-row:hover .nbell-row-clear,
@@ -749,8 +749,8 @@ function humanise(s: string): string {
   opacity: 1;
 }
 .nbell-row-clear:hover {
-  background: rgba(212, 167, 52, 0.18);
-  border-color: rgba(212, 167, 52, 0.6);
+  background: rgb(var(--accent-warm) / 0.18);
+  border-color: rgb(var(--accent-warm) / 0.6);
   opacity: 1;
 }
 
@@ -765,21 +765,21 @@ function humanise(s: string): string {
   justify-content: center;
   gap: 0.45rem;
   padding: 0.7rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .nbell-pop-all:hover {
-  color: #d4a734;
-  background: rgba(212, 167, 52, 0.06);
+  color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.06);
 }
 .nbell-pop-all svg {
-  transition: transform 0.16s ease;
+  transition: transform var(--dur-2) ease;
 }
 .nbell-pop-all:hover svg {
   transform: translateX(2px);
@@ -788,7 +788,7 @@ function humanise(s: string): string {
 /* ── Pop transition ────────────────────────────────────── */
 .nbell-pop-enter-active,
 .nbell-pop-leave-active {
-  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: opacity var(--dur-3) ease, transform var(--dur-4) var(--ease-standard);
 }
 .nbell-pop-enter-from,
 .nbell-pop-leave-to {

@@ -318,7 +318,8 @@ function formatReward(n: number): string {
   max-width: 1180px;
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
-  --brass: 212 167 52;           /* main reward + accent tone */
+  /* Exactly `--accent-warm`, so it follows the theme now. */
+  --brass: var(--accent-warm);           /* main reward + accent tone */
   --brass-deep: 158 113 31;
   --phosphor: 110 231 183;       /* status: open */
   --status-filled: 251 191 36;
@@ -396,7 +397,7 @@ function formatReward(n: number): string {
   align-items: end;
   gap: 1.4rem 2rem;
   margin-bottom: 2rem;
-  animation: board-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: board-rise calc(0.55s * var(--motion-scale)) var(--ease-emphasis) both;
 }
 @keyframes board-rise {
   from { opacity: 0; transform: translateY(8px); }
@@ -411,17 +412,17 @@ function formatReward(n: number): string {
   align-items: center;
   gap: 0.6rem;
   margin: 0 0 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .board-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   color: rgb(var(--brass));
   line-height: 0;
@@ -440,18 +441,18 @@ function formatReward(n: number): string {
 
 .board-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: clamp(1.9rem, 4vw, 2.8rem);
   line-height: 1.05;
-  letter-spacing: -0.015em;
+  letter-spacing: calc(-0.015em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .board-intro {
   margin: 0.7rem 0 0;
   max-width: 60ch;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -465,19 +466,19 @@ function formatReward(n: number): string {
     linear-gradient(180deg, rgb(var(--brass) / 0.22), rgb(var(--brass) / 0.05)),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--brass) / 0.55);
-  border-radius: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass));
   text-decoration: none;
   white-space: nowrap;
   transition:
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-    background 0.18s,
-    box-shadow 0.22s;
+    transform var(--dur-4) var(--ease-emphasis),
+    background var(--dur-3),
+    box-shadow var(--dur-4);
   align-self: end;
 }
 .board-new:hover {
@@ -501,7 +502,7 @@ function formatReward(n: number): string {
   padding: 0.18rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   flex-wrap: wrap;
 }
 .board-status-opt {
@@ -511,21 +512,21 @@ function formatReward(n: number): string {
   padding: 0.4rem 0.9rem;
   background: transparent;
   border: 0;
-  border-radius: 999px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: color 0.15s, background 0.18s;
+  transition: color var(--dur-2), background var(--dur-3);
 }
 .board-status-opt:hover { color: rgb(var(--fg-strong)); }
 .board-status-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: currentColor;
   flex-shrink: 0;
   opacity: 0.55;
@@ -555,8 +556,8 @@ function formatReward(n: number): string {
   height: 18px;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 999px;
-  transition: background 0.18s, border-color 0.18s;
+  border-radius: var(--radius-pill);
+  transition: background var(--dur-3), border-color var(--dur-3);
 }
 .board-mine-thumb {
   position: absolute;
@@ -565,8 +566,8 @@ function formatReward(n: number): string {
   width: 12px;
   height: 12px;
   background: rgb(var(--fg-muted));
-  border-radius: 999px;
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background 0.18s;
+  border-radius: var(--radius-pill);
+  transition: transform var(--dur-4) var(--ease-emphasis), background var(--dur-3);
 }
 .board-mine input:checked + .board-mine-track {
   background: rgb(var(--brass) / 0.32);
@@ -577,10 +578,10 @@ function formatReward(n: number): string {
   background: rgb(var(--brass));
 }
 .board-mine-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -603,12 +604,12 @@ function formatReward(n: number): string {
   padding: 0.55rem 0.85rem 0.55rem 2.1rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  transition: border-color 0.18s, box-shadow 0.18s;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
+  transition: border-color var(--dur-3), box-shadow var(--dur-3);
 }
 .board-search-input:focus {
   outline: 0;
@@ -624,13 +625,13 @@ function formatReward(n: number): string {
   justify-content: center;
   gap: 0.55rem;
   padding: 2.5rem 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
-.loader-spin { font-size: 1.25rem; animation: spin 0.9s linear infinite; }
+.loader-spin { font-size: 1.25rem; animation: spin calc(0.9s * var(--motion-scale)) linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── List rows ─────────────────────────────────────────────── */
@@ -649,10 +650,10 @@ function formatReward(n: number): string {
     linear-gradient(180deg, rgba(255,255,255,0.025), transparent 50%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.5rem;
-  animation: ticker-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  border-radius: var(--radius-lg);
+  animation: ticker-enter calc(0.5s * var(--motion-scale)) var(--ease-emphasis) both;
   animation-delay: var(--stagger, 0ms);
-  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s, box-shadow 0.22s;
+  transition: transform var(--dur-slow) var(--ease-emphasis), border-color var(--dur-4), box-shadow var(--dur-4);
 }
 @keyframes ticker-enter {
   from { opacity: 0; transform: translateY(6px); }
@@ -661,7 +662,7 @@ function formatReward(n: number): string {
 .ticker:hover {
   transform: translateY(-2px);
   border-color: rgb(var(--brass) / 0.45);
-  box-shadow: 0 16px 36px -22px rgba(0,0,0,0.7), 0 0 0 1px rgb(var(--brass) / 0.2);
+  box-shadow: 0 16px 36px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))), 0 0 0 1px rgb(var(--brass) / 0.2);
 }
 /* Status accent: left rail in the matching tone */
 .ticker::before {
@@ -701,11 +702,11 @@ function formatReward(n: number): string {
   padding: 0.28rem 0.55rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--phosphor) / 0.35);
-  border-radius: 999px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--phosphor));
   white-space: nowrap;
@@ -717,13 +718,13 @@ function formatReward(n: number): string {
 .ticker-status-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: currentColor;
   flex-shrink: 0;
 }
 .ticker--requested .ticker-status-dot {
   box-shadow: 0 0 8px currentColor;
-  animation: status-pulse 2s ease-in-out infinite;
+  animation: status-pulse calc(2s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes status-pulse {
   0%, 100% { opacity: 0.65; transform: scale(1); }
@@ -741,10 +742,10 @@ function formatReward(n: number): string {
   align-items: center;
   gap: 0.4rem;
   flex-wrap: wrap;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -759,11 +760,11 @@ function formatReward(n: number): string {
 
 .ticker-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.05rem;
   line-height: 1.25;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   overflow-wrap: anywhere;
   text-wrap: pretty;
@@ -785,8 +786,8 @@ function formatReward(n: number): string {
     linear-gradient(180deg, rgb(var(--brass) / 0.25), rgb(var(--brass-deep) / 0.15)),
     rgb(var(--bg-base));
   border: 1px solid rgb(var(--brass) / 0.55);
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
   color: rgb(var(--brass));
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.1),
@@ -798,33 +799,33 @@ function formatReward(n: number): string {
   opacity: 0.65;
 }
 .ticker-reward-value {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .ticker-reward-unit {
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   opacity: 0.75;
 }
 .ticker-reward-empty {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   padding: 0.4rem 0.55rem;
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
 }
 
 .ticker-caret {
   color: rgb(var(--fg-muted));
   font-size: 1.05rem;
-  transition: transform 0.2s, color 0.18s;
+  transition: transform var(--dur-4), color var(--dur-3);
 }
 .ticker:hover .ticker-caret {
   color: rgb(var(--brass));
@@ -849,14 +850,14 @@ function formatReward(n: number): string {
     linear-gradient(180deg, rgb(var(--brass) / 0.12), transparent 80%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--brass) / 0.4);
-  border-radius: 0.45rem;
-  box-shadow: 0 16px 36px -18px rgba(0,0,0,0.65);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 36px -18px rgb(var(--shadow-color) / calc(0.65 * var(--shadow-strength)));
 }
 .empty-plate-line {
   display: block;
   height: 8px;
   background: rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   margin-top: 0.6rem;
 }
 .empty-plate-line--short { width: 60%; }
@@ -870,14 +871,14 @@ function formatReward(n: number): string {
   width: 38px;
   height: 38px;
   border: 1.5px solid rgb(var(--brass) / 0.55);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: rgb(var(--brass));
   font-size: 1.05rem;
   transform: rotate(-10deg);
 }
 .empty-title {
   margin: 0.4rem 0 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.3rem;
@@ -886,7 +887,7 @@ function formatReward(n: number): string {
 .empty-sub {
   margin: 0;
   max-width: 48ch;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -899,14 +900,14 @@ function formatReward(n: number): string {
   background: rgb(var(--brass) / 0.18);
   color: rgb(var(--brass));
   border: 1px solid rgb(var(--brass) / 0.55);
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   text-decoration: none;
-  transition: background 0.18s, color 0.15s, transform 0.18s;
+  transition: background var(--dur-3), color var(--dur-2), transform var(--dur-3);
 }
 .empty-cta:hover {
   background: rgb(var(--brass));
@@ -929,15 +930,15 @@ function formatReward(n: number): string {
   padding: 0.5rem 0.85rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background var(--dur-2), border-color var(--dur-2), color var(--dur-2);
 }
 .pager-btn:hover:not(:disabled) {
   border-color: rgb(var(--brass) / 0.5);
@@ -945,16 +946,16 @@ function formatReward(n: number): string {
 }
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: baseline;
   gap: 0.3rem;
 }
-.pager-cur { color: rgb(var(--brass)); font-size: 14px; }
+.pager-cur { color: rgb(var(--brass)); font-size: 0.875rem; }
 .pager-sep { opacity: 0.4; }
 
 @media (prefers-reduced-motion: reduce) {

@@ -386,10 +386,10 @@ function hexToRgba(hex: string, alpha: number): string {
   width: 1px;
   background: linear-gradient(
     to bottom,
-    rgba(212, 167, 52, 0) 0%,
-    rgba(212, 167, 52, 0.35) 12%,
-    rgba(212, 167, 52, 0.35) 88%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm) / 0.35) 12%,
+    rgb(var(--accent-warm) / 0.35) 88%,
+    rgb(var(--accent-warm) / 0) 100%
   );
   pointer-events: none;
 }
@@ -422,19 +422,19 @@ function hexToRgba(hex: string, alpha: number): string {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.55) 0%,
-    rgba(212, 167, 52, 0.15) 70%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.55) 0%,
+    rgb(var(--accent-warm) / 0.15) 70%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 .ribbon-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
@@ -443,7 +443,7 @@ function hexToRgba(hex: string, alpha: number): string {
   display: inline-block;
   width: 14px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .ribbon-swatches {
   display: flex;
@@ -461,15 +461,15 @@ function hexToRgba(hex: string, alpha: number): string {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   cursor: default;
   /* Staggered fade-in — the row "paints" left to right on first
      load. Cap the stagger index so the 200th tag doesn't take
      6 s to fade in. */
-  animation: ribbon-paint 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: ribbon-paint calc(0.28s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  transition: transform var(--dur-3) ease, box-shadow var(--dur-3) ease;
+  box-shadow: inset 0 0 0 1px rgb(var(--shadow-color) / calc(0.25 * var(--shadow-strength)));
 }
 .ribbon-swatch:hover {
   transform: scale(1.4);
@@ -480,10 +480,10 @@ function hexToRgba(hex: string, alpha: number): string {
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 .ribbon-count {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
@@ -491,7 +491,7 @@ function hexToRgba(hex: string, alpha: number): string {
 .ribbon-count strong {
   color: rgb(var(--fg-strong));
   font-size: 1.05rem;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   margin-right: 0.35rem;
 }
 
@@ -517,16 +517,16 @@ function hexToRgba(hex: string, alpha: number): string {
   bottom: -1px;
   width: 40px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .block-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
-  color: #d4a734;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
+  color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
   border-radius: var(--radius-sm);
 }
@@ -534,7 +534,7 @@ function hexToRgba(hex: string, alpha: number): string {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -545,9 +545,9 @@ function hexToRgba(hex: string, alpha: number): string {
   line-height: 1.5;
 }
 .block-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
@@ -592,10 +592,10 @@ function hexToRgba(hex: string, alpha: number): string {
   min-width: 0;
 }
 .forge-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -609,15 +609,15 @@ function hexToRgba(hex: string, alpha: number): string {
   font-family: inherit;
   width: 100%;
   min-width: 0;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .forge-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.6);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .forge-input--mono {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.82rem;
 }
 .forge-input::placeholder {
@@ -642,11 +642,11 @@ function hexToRgba(hex: string, alpha: number): string {
   flex-shrink: 0;
   /* Soft outer glow that picks up the swatch colour. */
   box-shadow: 0 0 0 0 currentColor;
-  transition: transform 0.18s ease, box-shadow 0.22s ease;
+  transition: transform var(--dur-3) ease, box-shadow var(--dur-4) ease;
 }
 .forge-colour-swatch:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 14px -4px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)));
 }
 .forge-colour-input {
   position: absolute;
@@ -661,22 +661,22 @@ function hexToRgba(hex: string, alpha: number): string {
   justify-content: center;
   gap: 0.45rem;
   padding: 0.6rem 1rem;
-  background: #d4a734;
-  border: 1px solid #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border: 1px solid rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   height: 38px;
 }
 .forge-submit:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 .forge-submit:disabled {
   opacity: 0.45;
@@ -698,11 +698,11 @@ function hexToRgba(hex: string, alpha: number): string {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .palette-search:focus-within {
-  border-color: rgba(212, 167, 52, 0.55);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.1);
+  border-color: rgb(var(--accent-warm) / 0.55);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.1);
 }
 .palette-search > svg {
   color: rgb(var(--fg-muted));
@@ -734,7 +734,7 @@ function hexToRgba(hex: string, alpha: number): string {
   width: 22px;
   height: 22px;
   border-radius: var(--radius-sm);
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .palette-search-clear:hover {
   color: rgb(var(--fg-strong));
@@ -763,18 +763,18 @@ function hexToRgba(hex: string, alpha: number): string {
   display: inline-flex;
   align-items: stretch;
   height: 32px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   cursor: default;
-  transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1),
-    box-shadow 0.22s ease;
-  animation: chip-in 0.34s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: transform var(--dur-3) var(--ease-standard),
+    box-shadow var(--dur-4) ease;
+  animation: chip-in calc(0.34s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
   /* The chip carries its own coloured shadow on hover, picking
      up the tag's hex — gives the palette some life without
      hammering CPU on hundreds of swatches. */
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 0 0 1px rgb(var(--shadow-color) / calc(0.18 * var(--shadow-strength)));
 }
 @keyframes chip-in {
   from { opacity: 0; transform: translateY(4px) scale(0.92); }
@@ -782,8 +782,8 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 .chip:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px -4px var(--chip-shadow, rgba(0, 0, 0, 0.5)),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px -4px var(--chip-shadow, rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)))),
+    inset 0 0 0 1px rgb(var(--shadow-color) / calc(0.2 * var(--shadow-strength)));
 }
 
 .chip-body {
@@ -795,17 +795,17 @@ function hexToRgba(hex: string, alpha: number): string {
   min-width: 0;
 }
 .chip-name {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   line-height: 32px;
   white-space: nowrap;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+  text-shadow: 0 1px 1px rgb(var(--shadow-color) / calc(0.12 * var(--shadow-strength)));
 }
 .chip-slug {
-  font-size: 10px;
-  letter-spacing: 0.02em;
+  font-size: 0.625rem;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   opacity: 0.7;
   line-height: 32px;
   white-space: nowrap;
@@ -821,7 +821,7 @@ function hexToRgba(hex: string, alpha: number): string {
   border: 0;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.16s ease, background 0.16s ease, width 0.18s ease;
+  transition: opacity var(--dur-2) ease, background var(--dur-2) ease, width var(--dur-3) ease;
   font-size: 0.75rem;
   flex-shrink: 0;
 }
@@ -899,21 +899,21 @@ function hexToRgba(hex: string, alpha: number): string {
   color: rgb(var(--fg-muted));
   padding: 0.3rem 0.7rem;
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .palette-empty-clear:hover {
-  border-color: rgba(212, 167, 52, 0.5);
-  color: #d4a734;
+  border-color: rgb(var(--accent-warm) / 0.5);
+  color: rgb(var(--accent-warm));
 }
 
 .spin {
-  animation: tag-spin 1s linear infinite;
+  animation: tag-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes tag-spin {
   to { transform: rotate(360deg); }

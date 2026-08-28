@@ -1110,19 +1110,21 @@ function describeWindow(w: Window): string {
    neutral token system (--bg-elevated, --fg-strong, etc.).
    ───────────────────────────────────────────────────────────── */
 .pool {
-  --gold: #d4a734;
+  --gold: rgb(var(--accent-warm));
   --gold-bright: #f0c75b;
-  --gold-soft: rgba(212, 167, 52, 0.12);
-  --gold-faint: rgba(212, 167, 52, 0.06);
+  --gold-soft: rgb(var(--accent-warm) / 0.12);
+  --gold-faint: rgb(var(--accent-warm) / 0.06);
   --cool: #7dd3fc;
   --cool-soft: rgba(125, 211, 252, 0.18);
   --success: #4ade80;
   --alert: #ef4444;
 
-  --font-display: 'Iowan Old Style', 'Palatino Linotype', 'Palatino',
-    Georgia, serif;
-  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace,
-    SFMono-Regular, Menlo, monospace;
+  /* No local `--font-display` / `--font-mono` here any more. They restated the
+     stacks — one of them as `'Iowan Old Style', 'Palatino Linotype', …`, three
+     faces this application has never shipped — and shadowed the theme's font
+     choice for this whole page. Deleting them lets the global tokens through;
+     redefining them as `var(--font-display)` would NOT, because a custom
+     property that references itself is a cycle and resolves to nothing. */
 
   position: relative;
   max-width: 1240px;
@@ -1154,7 +1156,7 @@ function describeWindow(w: Window): string {
   right: -12vw;
   background: radial-gradient(
     circle,
-    rgba(212, 167, 52, 0.22) 0%,
+    rgb(var(--accent-warm) / 0.22) 0%,
     transparent 70%
   );
 }
@@ -1191,7 +1193,7 @@ function describeWindow(w: Window): string {
    ───────────────────────────────────────────────────────────── */
 .hero {
   margin-bottom: 2.6rem;
-  animation: fade-down 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: fade-down calc(0.6s * var(--motion-scale)) var(--ease-standard) backwards;
 }
 @keyframes fade-down {
   from { opacity: 0; transform: translateY(-6px); }
@@ -1203,9 +1205,9 @@ function describeWindow(w: Window): string {
   gap: 0.55rem;
   margin-bottom: 1.1rem;
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--gold);
 }
@@ -1222,7 +1224,7 @@ function describeWindow(w: Window): string {
   margin: 0 0 1.1rem;
   font-size: clamp(2.4rem, 6vw, 4rem);
   line-height: 0.95;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
 }
 .hero-title-le {
   font-family: var(--font-display);
@@ -1255,7 +1257,7 @@ function describeWindow(w: Window): string {
   color: rgb(var(--fg-muted));
   font-family: var(--font-mono);
   font-size: 0.8rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .boot-icon {
@@ -1271,9 +1273,9 @@ function describeWindow(w: Window): string {
   margin-bottom: 1.4rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  animation: fade-up 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: fade-up calc(0.6s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes fade-up {
@@ -1308,16 +1310,16 @@ function describeWindow(w: Window): string {
 }
 .card-id {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 .card-title {
   margin: 0;
   font-size: 1.4rem;
   font-weight: 600;
-  letter-spacing: -0.012em;
+  letter-spacing: calc(-0.012em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .card-help {
@@ -1393,7 +1395,7 @@ function describeWindow(w: Window): string {
   padding: 1.4rem 1.4rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .gauge {
@@ -1412,7 +1414,7 @@ function describeWindow(w: Window): string {
   display: block;
   font-size: 2.2rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1;
 }
@@ -1426,9 +1428,9 @@ function describeWindow(w: Window): string {
   display: block;
   margin-top: 0.45rem;
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 500;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -1443,7 +1445,7 @@ function describeWindow(w: Window): string {
   padding: 1px;
   background: rgb(var(--line-default));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .readout {
@@ -1456,9 +1458,9 @@ function describeWindow(w: Window): string {
 }
 .readout dt {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 500;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -1476,7 +1478,7 @@ function describeWindow(w: Window): string {
   font-size: 1.35rem;
   font-weight: 700;
   color: var(--gold);
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .readout-of {
   font-size: 0.82rem;
@@ -1495,18 +1497,18 @@ function describeWindow(w: Window): string {
 }
 .status-dot--filling {
   background: var(--gold);
-  box-shadow: 0 0 8px rgba(212, 167, 52, 0.6);
-  animation: dot-pulse 2.4s ease-in-out infinite;
+  box-shadow: 0 0 8px rgb(var(--accent-warm) / 0.6);
+  animation: dot-pulse calc(2.4s * var(--motion-scale)) ease-in-out infinite;
 }
 .status-dot--full_queued {
   background: var(--cool);
   box-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
-  animation: dot-pulse 1.6s ease-in-out infinite;
+  animation: dot-pulse calc(1.6s * var(--motion-scale)) ease-in-out infinite;
 }
 .status-dot--active {
   background: var(--success);
   box-shadow: 0 0 10px rgba(74, 222, 128, 0.65);
-  animation: dot-pulse 1.1s ease-in-out infinite;
+  animation: dot-pulse calc(1.1s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes dot-pulse {
   0%, 100% { opacity: 0.6; }
@@ -1520,7 +1522,7 @@ function describeWindow(w: Window): string {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-left: 2px solid var(--gold);
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
 }
 .patrons-head {
   display: flex;
@@ -1528,9 +1530,9 @@ function describeWindow(w: Window): string {
   gap: 0.5rem;
   margin-bottom: 0.95rem;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--gold);
 }
@@ -1552,13 +1554,13 @@ function describeWindow(w: Window): string {
   align-items: baseline;
   gap: 0.8rem;
   padding: 0.55rem 0.7rem;
-  border-radius: var(--radius-sm, 4px);
-  transition: background 0.18s ease;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur-3) ease;
 }
 .patron:hover { background: rgba(255, 255, 255, 0.025); }
 .patron-rank {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: rgb(var(--fg-faint));
 }
@@ -1603,9 +1605,9 @@ function describeWindow(w: Window): string {
   padding: 1.1rem 1.3rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color 0.18s ease;
+  transition: border-color var(--dur-3) ease;
 }
 .switch:hover { border-color: rgb(var(--line-strong)); }
 .switch-input {
@@ -1619,9 +1621,9 @@ function describeWindow(w: Window): string {
   height: 28px;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   margin-top: 2px;
-  transition: background 0.25s ease, border-color 0.25s ease;
+  transition: background var(--dur-slow) ease, border-color var(--dur-slow) ease;
 }
 .switch-thumb {
   position: absolute;
@@ -1631,7 +1633,7 @@ function describeWindow(w: Window): string {
   height: 22px;
   border-radius: 50%;
   background: rgb(var(--fg-faint));
-  transition: all 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: all var(--dur-slow) var(--ease-standard);
 }
 .switch-input:checked ~ .switch-track {
   background: var(--gold-soft);
@@ -1640,7 +1642,7 @@ function describeWindow(w: Window): string {
 .switch-input:checked ~ .switch-track .switch-thumb {
   left: 25px;
   background: var(--gold);
-  box-shadow: 0 0 12px rgba(212, 167, 52, 0.55);
+  box-shadow: 0 0 12px rgb(var(--accent-warm) / 0.55);
 }
 .switch-copy {
   display: flex;
@@ -1649,12 +1651,12 @@ function describeWindow(w: Window): string {
 }
 .switch-state {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: color 0.2s ease;
+  transition: color var(--dur-4) ease;
 }
 .switch-state--on { color: var(--gold); }
 .switch-hint {
@@ -1707,9 +1709,9 @@ function describeWindow(w: Window): string {
 }
 .field-label {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1728,14 +1730,14 @@ function describeWindow(w: Window): string {
   padding: 0.65rem 0.85rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-family: var(--font-mono);
   font-size: 0.92rem;
   font-weight: 500;
   outline: 0;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease,
-    background-color 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease,
+    background-color var(--dur-3) ease;
 }
 .input::placeholder {
   color: rgb(var(--fg-faint));
@@ -1745,13 +1747,13 @@ function describeWindow(w: Window): string {
 }
 .input:focus {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.18);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.18);
 }
 .input--xl {
   padding: 0.85rem 1rem;
   font-size: 1.7rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
 .textarea {
   resize: vertical;
@@ -1770,7 +1772,7 @@ function describeWindow(w: Window): string {
   border-right: 0;
 }
 .field-input--unit:focus-within .input {
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.18);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.18);
 }
 .unit {
   display: inline-flex;
@@ -1778,12 +1780,12 @@ function describeWindow(w: Window): string {
   padding: 0 0.95rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-top-right-radius: var(--radius-sm, 4px);
-  border-bottom-right-radius: var(--radius-sm, 4px);
+  border-top-right-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1829,13 +1831,13 @@ select.input option {
   padding: 0.7rem 1.2rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-size: 0.88rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .btn:hover:not(:disabled) {
   border-color: rgb(var(--fg-faint));
@@ -1854,7 +1856,7 @@ select.input option {
 .btn--primary:hover:not(:disabled) {
   background: var(--gold-bright);
   border-color: var(--gold-bright);
-  box-shadow: 0 6px 22px -8px rgba(212, 167, 52, 0.55);
+  box-shadow: 0 6px 22px -8px rgb(var(--accent-warm) / 0.55);
   transform: translateY(-1px);
 }
 .btn--primary:active:not(:disabled) {
@@ -1898,7 +1900,7 @@ select.input option {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.18s ease, border-color 0.22s ease;
+  transition: color var(--dur-3) ease, border-color var(--dur-4) ease;
 }
 .tab:hover {
   color: rgb(var(--fg-strong));
@@ -1910,7 +1912,7 @@ select.input option {
 .tab-icon { font-size: 1rem; }
 
 .tab-body {
-  animation: tab-slide 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: tab-slide calc(0.32s * var(--motion-scale)) var(--ease-standard);
 }
 @keyframes tab-slide {
   from { opacity: 0; transform: translateX(-6px); }
@@ -1941,13 +1943,13 @@ select.input option {
   padding: 0.55rem 0;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   font-family: var(--font-mono);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .day-chip:hover:not(.day-chip--on) {
   border-color: rgb(var(--fg-faint));
@@ -1957,7 +1959,7 @@ select.input option {
   background: var(--gold);
   border-color: var(--gold);
   color: rgb(var(--bg-base));
-  box-shadow: 0 0 14px rgba(212, 167, 52, 0.35);
+  box-shadow: 0 0 14px rgb(var(--accent-warm) / 0.35);
 }
 
 /* Deployed list. */
@@ -1974,9 +1976,9 @@ select.input option {
 }
 .deployed-title {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1984,9 +1986,9 @@ select.input option {
   padding: 0.15rem 0.55rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: rgb(var(--fg-strong));
 }
@@ -2006,8 +2008,8 @@ select.input option {
   padding: 0.6rem 0.95rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm, 4px);
-  transition: border-color 0.2s ease;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-4) ease;
 }
 .window:hover {
   border-color: rgb(var(--line-strong));
@@ -2026,11 +2028,11 @@ select.input option {
 .window-kind {
   padding: 0.2rem 0.55rem;
   border: 1px solid currentColor;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .window-kind--oneoff { color: var(--cool); }
@@ -2055,9 +2057,9 @@ select.input option {
   align-items: center;
   gap: 0.35rem;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -2073,11 +2075,11 @@ select.input option {
   padding: 0.35rem;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .icon-btn:hover {
   color: rgb(var(--fg-strong));
@@ -2104,9 +2106,9 @@ select.input option {
   text-align: left;
   padding: 0.85rem 1.2rem;
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.15em;
+  letter-spacing: calc(0.15em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   border-bottom: 1px solid rgb(var(--line-default));
@@ -2118,7 +2120,7 @@ select.input option {
   color: rgb(var(--fg-default));
 }
 .ledger tbody tr {
-  transition: background 0.16s ease;
+  transition: background var(--dur-2) ease;
 }
 .ledger tbody tr:hover td {
   background: rgb(var(--bg-elevated));
@@ -2127,7 +2129,7 @@ select.input option {
 .ledger .muted { color: rgb(var(--fg-muted)); }
 .folio {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: rgb(var(--fg-faint));
 }
@@ -2136,11 +2138,11 @@ select.input option {
   display: inline-flex;
   padding: 0.2rem 0.6rem;
   border: 1px solid currentColor;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .pill--filling { color: var(--gold); }
@@ -2156,7 +2158,7 @@ select.input option {
   font-variant-numeric: tabular-nums;
 }
 .spin {
-  animation: pool-spin 1s linear infinite;
+  animation: pool-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes pool-spin {
   to {

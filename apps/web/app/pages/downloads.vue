@@ -384,10 +384,10 @@ watch(
 }
 .dl-eyebrow {
   margin: 0 0 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -396,13 +396,13 @@ watch(
   font-size: clamp(1.6rem, 3.5vw, 2.1rem);
   line-height: 1.05;
   font-weight: 700;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .dl-blurb {
   margin: 0.4rem 0 0;
   max-width: 56ch;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -410,9 +410,9 @@ watch(
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   flex-wrap: wrap;
@@ -429,7 +429,7 @@ watch(
 .dl-stat-sep {
   width: 4px;
   height: 4px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-faint));
 }
 /* Lower-cased qualifier so the page-scope totals can't be mistaken
@@ -454,8 +454,8 @@ watch(
 .dl-row {
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
-  transition: border-color 0.14s, transform 0.14s;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-2), transform var(--dur-2);
 }
 .dl-row:hover {
   border-color: rgb(var(--line-strong));
@@ -470,7 +470,7 @@ watch(
     rgb(var(--bg-surface)) 70%
   );
   background-size: 220% 100%;
-  animation: dl-shimmer 1.4s ease-in-out infinite;
+  animation: dl-shimmer calc(1.4s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes dl-shimmer {
   0%   { background-position: 100% 0; }
@@ -504,25 +504,25 @@ watch(
   align-items: center;
   gap: 0.3rem;
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   width: max-content;
 }
 .dl-row-cat-icon {
-  font-size: 10.5px;
+  font-size: 0.6563rem;
 }
 /* Resolved TMDb title — same look as the eyebrow row above with the
    category, but elevated to the row's primary text. The filename
    below shrinks to a mono caption when it lives next to a real title. */
 .dl-row-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   overflow: hidden;
   text-overflow: ellipsis;
@@ -532,14 +532,14 @@ watch(
   color: rgb(var(--fg-faint));
 }
 .dl-row-year {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 700;
   color: rgb(var(--fg-muted));
 }
 .dl-row-name {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12.5px;
+  font-family: var(--font-mono);
+  font-size: 0.7813rem;
   font-weight: 600;
   color: rgb(var(--fg-default));
   overflow: hidden;
@@ -547,7 +547,7 @@ watch(
   white-space: nowrap;
 }
 .dl-row-name--secondary {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   color: rgb(var(--fg-muted));
 }
@@ -557,14 +557,14 @@ watch(
   align-items: center;
   gap: 0.4rem;
   flex-wrap: wrap;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
 }
 .dl-row-meta-sep {
   width: 3px;
   height: 3px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-faint));
 }
 .dl-row-meta-completed {
@@ -608,16 +608,16 @@ watch(
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
 .dl-byte-val {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
@@ -635,7 +635,7 @@ watch(
   gap: 0.85rem;
   padding: 4rem 1.5rem;
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .dl-empty-icon {
   font-size: 2.5rem;
@@ -643,15 +643,15 @@ watch(
 }
 .dl-empty h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
 .dl-empty p {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: rgb(var(--fg-muted));
   max-width: 44ch;
   line-height: 1.55;
@@ -661,17 +661,17 @@ watch(
   align-items: center;
   gap: 0.45rem;
   padding: 0.5rem 0.9rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-fg));
   background: rgb(var(--fg-strong));
   border: 1px solid rgb(var(--fg-strong));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
-  transition: background 0.14s;
+  transition: background var(--dur-2);
 }
 .dl-btn:hover {
   background: rgb(var(--fg-default));
@@ -689,9 +689,9 @@ watch(
 }
 .dl-foot-summary {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }

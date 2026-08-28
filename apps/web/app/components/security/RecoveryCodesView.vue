@@ -71,10 +71,32 @@ function print() {
   const list = props.codes.map((c) => `<li><code>${c}</code></li>`).join('');
   const title = t('security.recoveryCodes.printTitle');
   const intro = t('security.recoveryCodes.printIntro');
+
+  // The nonce, because this document inherits the OPENER's CSP.
+  //
+  // `window.open('')` yields an `about:blank` that carries the policy of the
+  // page that opened it, and that policy now says `style-src-elem 'self'
+  // 'nonce-…'`. Without the nonce the browser blocks this stylesheet outright
+  // and a member printing their recovery codes gets an unstyled dump — found in
+  // review, and a regression from tightening the policy rather than anything
+  // wrong with this component.
+  //
+  // Read off a script tag rather than a style tag: nonce-hiding blanks the
+  // content ATTRIBUTE, so `getAttribute('nonce')` returns nothing while the
+  // `.nonce` property still holds the value.
+  const nonce = document.querySelector<HTMLScriptElement>('script[nonce]')?.nonce ?? '';
+  const nonceAttr = nonce ? ` nonce="${nonce}"` : '';
+
   w.document.write(
     `<!doctype html><meta charset="utf-8"><title>${title}</title>` +
-      `<style>body{font-family:ui-monospace,monospace;padding:2rem;color:#111}` +
+      `<style${nonceAttr}>body{font-family:ui-monospace,monospace;padding:2rem;color:#111}` +
       `h1{font-size:1.2rem}ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem 1.5rem}` +
+      // A literal, and it has to be: this stylesheet goes into a document
+      // opened by `window.open`, where none of the application's custom
+      // properties exist. `calc(.06em * var(--tracking-scale))` there is
+      // invalid at computed-value time, so the tracking silently became
+      // `normal`. The scale substitution reached this string because it looks
+      // like CSS; the print window is the one place it must not.
       `code{font-size:1.05rem;letter-spacing:.06em}` +
       `</style>` +
       `<h1>${title}</h1>` +
@@ -105,15 +127,15 @@ function print() {
 .rcv-item {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   padding: 0.4rem 0.65rem;
   text-align: center;
 }
 .rcv-item code {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .rcv-actions {
@@ -126,13 +148,13 @@ function print() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   color: rgb(var(--fg-muted));
   cursor: pointer;
 }
@@ -145,7 +167,7 @@ function print() {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   line-height: 1.55;
   color: rgb(var(--warning));
 }

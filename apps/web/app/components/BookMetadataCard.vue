@@ -232,17 +232,17 @@ defineProps<{
   gap: 0.35rem;
   padding: 0.22rem 0.55rem;
   border: 1px solid rgba(217, 119, 6, 0.45);
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgba(217, 119, 6, 0.1);
   color: #f59e0b;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .bcard-tag-icon {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: #d97706;
   filter: drop-shadow(0 0 4px rgba(217, 119, 6, 0.5));
 }
@@ -264,16 +264,16 @@ defineProps<{
   display: block;
   width: 100%;
   aspect-ratio: 2 / 3;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: rgb(var(--bg-base));
   border: 1px solid rgba(217, 119, 6, 0.35);
-  box-shadow: 0 10px 24px -16px rgba(0, 0, 0, 0.5);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 10px 24px -16px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)));
+  transition: transform var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .bcard-cover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 30px -16px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 14px 30px -16px rgb(var(--shadow-color) / calc(0.6 * var(--shadow-strength)));
 }
 .bcard-cover img {
   display: block;
@@ -305,17 +305,17 @@ defineProps<{
   margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   line-height: 1.2;
   color: rgb(var(--fg-strong));
   word-break: break-word;
 }
 .bcard-year {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 /* Authors are the byline; we keep them on a single italic-looking
@@ -328,10 +328,10 @@ defineProps<{
   line-height: 1.45;
 }
 .bcard-authors-by {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   margin-right: 0.4rem;
@@ -344,13 +344,13 @@ defineProps<{
 }
 .bcard-genre {
   padding: 0.15rem 0.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgba(217, 119, 6, 0.3);
   background: rgba(217, 119, 6, 0.06);
   color: #f59e0b;
   font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 
 .bcard-stats {
@@ -402,15 +402,15 @@ defineProps<{
   color: rgb(var(--fg-muted));
 }
 .bcard-isbn-key {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.65rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
 .bcard-isbn-val {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   color: rgb(var(--fg-default));
 }
 .bcard-link {
@@ -421,7 +421,7 @@ defineProps<{
   font-size: 0.78rem;
   font-weight: 600;
   color: #f59e0b;
-  transition: color 0.15s ease;
+  transition: color var(--dur-2) ease;
 }
 .bcard-link:hover {
   color: #fbbf24;

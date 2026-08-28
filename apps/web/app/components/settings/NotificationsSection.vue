@@ -1050,10 +1050,10 @@ async function saveRouting(silent = false) {
   width: 1px;
   background: linear-gradient(
     to bottom,
-    rgba(212, 167, 52, 0) 0%,
-    rgba(212, 167, 52, 0.4) 15%,
-    rgba(212, 167, 52, 0.4) 85%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm) / 0.4) 15%,
+    rgb(var(--accent-warm) / 0.4) 85%,
+    rgb(var(--accent-warm) / 0) 100%
   );
   pointer-events: none;
 }
@@ -1100,13 +1100,13 @@ async function saveRouting(silent = false) {
   border-bottom: 1px solid rgb(var(--line-default));
 }
 .ns-block-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
-  color: #d4a734;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
+  color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
   border-radius: var(--radius-sm);
 }
@@ -1114,7 +1114,7 @@ async function saveRouting(silent = false) {
   margin: 0;
   font-size: 0.92rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1122,12 +1122,12 @@ async function saveRouting(silent = false) {
   margin: 0.18rem 0 0;
   font-size: 0.75rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .ns-block-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
@@ -1164,10 +1164,10 @@ async function saveRouting(silent = false) {
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   overflow: hidden;
-  transition: border-color 0.18s ease, background 0.18s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease;
   /* Staggered fade-in on mount — `--stagger` set inline as the row
      index × 40ms. Cheap orchestration, plays once. */
-  animation: dest-in 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: dest-in calc(0.36s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes dest-in {
@@ -1184,7 +1184,7 @@ async function saveRouting(silent = false) {
   border-color: rgb(var(--line-strong));
 }
 .dest--open {
-  border-color: rgba(212, 167, 52, 0.45);
+  border-color: rgb(var(--accent-warm) / 0.45);
   background: rgb(var(--bg-elevated));
 }
 .dest-head {
@@ -1197,7 +1197,7 @@ async function saveRouting(silent = false) {
 }
 .dest--add .dest-head {
   cursor: pointer;
-  transition: background 0.18s ease;
+  transition: background var(--dur-3) ease;
 }
 .dest--add .dest-head:hover {
   background: rgb(var(--bg-hover) / 0.4);
@@ -1229,7 +1229,7 @@ async function saveRouting(silent = false) {
   border-radius: 50%;
   border: 2px solid rgb(var(--bg-elevated));
   background: rgb(var(--fg-faint));
-  transition: background 0.18s ease, box-shadow 0.18s ease;
+  transition: background var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .dest-glyph[data-status='ok'] .dest-glyph-dot {
   background: rgb(var(--online));
@@ -1254,11 +1254,11 @@ async function saveRouting(silent = false) {
   font-size: 0.92rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .dest-target {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11.5px;
+  font-family: var(--font-mono);
+  font-size: 0.7188rem;
   color: rgb(var(--fg-muted));
   background: transparent;
   padding: 0;
@@ -1272,9 +1272,9 @@ async function saveRouting(silent = false) {
 }
 
 .dest-status {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   font-weight: 700;
   padding: 0.22rem 0.55rem;
@@ -1310,7 +1310,7 @@ async function saveRouting(silent = false) {
   align-items: center;
   justify-content: center;
   font-size: 0.95rem;
-  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+  transition: background var(--dur-2) ease, color var(--dur-2) ease, border-color var(--dur-2) ease;
 }
 .dest-btn:hover:not(:disabled) {
   background: rgb(var(--bg-hover) / 0.5);
@@ -1318,9 +1318,9 @@ async function saveRouting(silent = false) {
   border-color: rgb(var(--line-default));
 }
 .dest-btn--active {
-  background: rgba(212, 167, 52, 0.12);
-  color: #d4a734;
-  border-color: rgba(212, 167, 52, 0.4);
+  background: rgb(var(--accent-warm) / 0.12);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.4);
 }
 .dest-btn--danger:hover:not(:disabled) {
   color: rgb(var(--danger));
@@ -1335,7 +1335,7 @@ async function saveRouting(silent = false) {
 .dest-add-chevron {
   font-size: 0.95rem;
   color: rgb(var(--fg-muted));
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--dur-4) cubic-bezier(0.4, 0, 0.2, 1);
 }
 .rotate-180 {
   transform: rotate(180deg);
@@ -1361,15 +1361,15 @@ async function saveRouting(silent = false) {
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
-  background: rgba(212, 167, 52, 0.07);
-  border: 1px solid rgba(212, 167, 52, 0.25);
+  background: rgb(var(--accent-warm) / 0.07);
+  border: 1px solid rgb(var(--accent-warm) / 0.25);
   border-radius: var(--radius-sm);
   padding: 0.7rem 0.85rem;
   font-size: 0.78rem;
   color: rgb(var(--fg-strong));
 }
 .dest-pub > svg {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   font-size: 1rem;
   flex-shrink: 0;
   margin-top: 0.1rem;
@@ -1395,8 +1395,8 @@ async function saveRouting(silent = false) {
   margin: 0;
 }
 .dest-pub code {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11.5px;
+  font-family: var(--font-mono);
+  font-size: 0.7188rem;
   background: rgb(var(--bg-base) / 0.6);
   padding: 0.12rem 0.4rem;
   border-radius: var(--radius-sm);
@@ -1430,9 +1430,9 @@ async function saveRouting(silent = false) {
   gap: 0.4rem;
 }
 .field-opt {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   font-weight: 500;
@@ -1450,12 +1450,12 @@ async function saveRouting(silent = false) {
   color: rgb(var(--fg-strong));
   font-size: 0.85rem;
   font-family: inherit;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .field-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.6);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .field-input::placeholder {
   color: rgb(var(--fg-faint));
@@ -1545,8 +1545,8 @@ async function saveRouting(silent = false) {
   padding: 0.85rem;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease,
-    transform 0.18s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease,
+    transform var(--dur-3) ease;
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
@@ -1556,7 +1556,7 @@ async function saveRouting(silent = false) {
   color: inherit;
 }
 .dest-add-tile:hover {
-  border-color: rgba(212, 167, 52, 0.45);
+  border-color: rgb(var(--accent-warm) / 0.45);
   background: rgb(var(--bg-hover) / 0.45);
   transform: translateY(-1px);
 }
@@ -1595,13 +1595,13 @@ async function saveRouting(silent = false) {
   font-weight: 600;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
 }
 .route-quick-btn:hover {
   color: rgb(var(--fg-strong));
-  border-color: rgba(212, 167, 52, 0.4);
-  background: rgba(212, 167, 52, 0.06);
+  border-color: rgb(var(--accent-warm) / 0.4);
+  background: rgb(var(--accent-warm) / 0.06);
 }
 .route-quick-btn--mute {
   margin-left: auto;
@@ -1623,7 +1623,7 @@ async function saveRouting(silent = false) {
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   overflow: hidden;
-  animation: dest-in 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: dest-in calc(0.36s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .cat[open] {
@@ -1637,7 +1637,7 @@ async function saveRouting(silent = false) {
   padding: 0.7rem 0.95rem;
   cursor: pointer;
   list-style: none;
-  transition: background 0.16s ease;
+  transition: background var(--dur-2) ease;
 }
 .cat-head::-webkit-details-marker {
   display: none;
@@ -1667,12 +1667,12 @@ async function saveRouting(silent = false) {
   font-size: 0.82rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .cat-stat {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
@@ -1697,19 +1697,19 @@ async function saveRouting(silent = false) {
   font-family: inherit;
   min-width: 140px;
   cursor: pointer;
-  transition: border-color 0.18s ease;
+  transition: border-color var(--dur-3) ease;
 }
 .cat-bulk:hover {
-  border-color: rgba(212, 167, 52, 0.45);
+  border-color: rgb(var(--accent-warm) / 0.45);
 }
 .cat-chevron {
   font-size: 0.9rem;
   color: rgb(var(--fg-muted));
-  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform calc(0.24s * var(--motion-scale)) cubic-bezier(0.4, 0, 0.2, 1);
 }
 .cat[open] .cat-chevron {
   transform: rotate(180deg);
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 @media (max-width: 640px) {
   .cat-head {
@@ -1737,7 +1737,7 @@ async function saveRouting(silent = false) {
   gap: 1rem;
   padding: 0.6rem 0.5rem;
   border-bottom: 1px solid rgb(var(--line-default) / 0.5);
-  transition: background 0.16s ease;
+  transition: background var(--dur-2) ease;
 }
 .event:last-child {
   border-bottom: 0;
@@ -1774,13 +1774,13 @@ async function saveRouting(silent = false) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.22rem 0.55rem 0.22rem 0.5rem;
   pointer-events: none;
 }
@@ -1792,7 +1792,7 @@ async function saveRouting(silent = false) {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .event-target--muted .event-target-dot {
   background: rgb(var(--fg-faint));
@@ -1824,7 +1824,7 @@ async function saveRouting(silent = false) {
   gap: 0.5rem;
   padding: 0.6rem 0.85rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.55);
+  border: 1px solid rgb(var(--accent-warm) / 0.55);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-overlay);
   backdrop-filter: blur(8px);
@@ -1840,7 +1840,7 @@ async function saveRouting(silent = false) {
   font-weight: 600;
 }
 .route-save-info > svg {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 /* ── Generic buttons ──────────────────────────────────────── */
@@ -1856,12 +1856,12 @@ async function saveRouting(silent = false) {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
 }
 .btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.55);
-  background: rgba(212, 167, 52, 0.06);
+  border-color: rgb(var(--accent-warm) / 0.55);
+  background: rgb(var(--accent-warm) / 0.06);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -1871,20 +1871,20 @@ async function saveRouting(silent = false) {
   background: transparent;
 }
 .btn--primary {
-  background: #d4a734;
-  border-color: #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
 }
 .btn--primary:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 
 /* ── Transitions ──────────────────────────────────────────── */
 .drawer-enter-active,
 .drawer-leave-active {
-  transition: max-height 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease;
+  transition: max-height var(--dur-slow) var(--ease-standard),
+    opacity var(--dur-4) ease;
   overflow: hidden;
 }
 .drawer-enter-from,
@@ -1900,8 +1900,8 @@ async function saveRouting(silent = false) {
 
 .save-bar-enter-active,
 .save-bar-leave-active {
-  transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease;
+  transition: transform 0.28s var(--ease-standard),
+    opacity var(--dur-4) ease;
 }
 .save-bar-enter-from,
 .save-bar-leave-to {
@@ -1910,7 +1910,7 @@ async function saveRouting(silent = false) {
 }
 
 .spin {
-  animation: ns-spin 1s linear infinite;
+  animation: ns-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes ns-spin {
   to {

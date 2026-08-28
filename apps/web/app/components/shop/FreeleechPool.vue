@@ -431,11 +431,11 @@ onBeforeUnmount(() => {
   padding: 1.75rem 1.75rem 1.75rem;
   background: linear-gradient(
     160deg,
-    rgba(212, 167, 52, 0.07) 0%,
+    rgb(var(--accent-warm) / 0.07) 0%,
     rgb(var(--bg-elevated)) 50%,
     rgb(var(--bg-surface) / 0.4) 100%
   );
-  border: 1px solid rgba(212, 167, 52, 0.32);
+  border: 1px solid rgb(var(--accent-warm) / 0.32);
 }
 
 /* Corner brackets — match the rest of the shop's iconography. */
@@ -443,7 +443,7 @@ onBeforeUnmount(() => {
   position: absolute;
   width: 18px;
   height: 18px;
-  border: 1px solid #d4a734;
+  border: 1px solid rgb(var(--accent-warm));
   pointer-events: none;
 }
 .pool-corner--tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
@@ -459,27 +459,25 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.3em;
+  letter-spacing: calc(0.3em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   margin-bottom: 0.7rem;
 }
 .pool-eyebrow-rule {
   display: inline-block;
   width: 22px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .pool-title {
   margin: 0;
-  font-family: 'Iowan Old Style', 'Palatino Linotype', 'Palatino',
-    'Bitstream Vera Serif', 'Liberation Serif', 'P052', Georgia,
-    'Times New Roman', serif;
+  font-family: var(--font-display);
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
 .pool-title-main {
   display: inline;
@@ -492,7 +490,7 @@ onBeforeUnmount(() => {
   font-size: clamp(1.6rem, 3vw, 2.1rem);
   font-style: italic;
   font-weight: 400;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   margin-left: 0.3rem;
 }
 .pool-blurb {
@@ -525,7 +523,7 @@ onBeforeUnmount(() => {
   position: relative;
   height: 18px;
   background: rgb(var(--bg-base));
-  border: 1px solid rgba(212, 167, 52, 0.25);
+  border: 1px solid rgb(var(--accent-warm) / 0.25);
   overflow: hidden;
 }
 .pool-meter-fill {
@@ -533,12 +531,12 @@ onBeforeUnmount(() => {
   inset: 0;
   background: linear-gradient(
     90deg,
-    #b88a22 0%,
-    #d4a734 50%,
-    #e8b94e 100%
+    color-mix(in srgb, rgb(var(--accent-warm)) 86%, black) 0%,
+    rgb(var(--accent-warm)) 50%,
+    color-mix(in srgb, rgb(var(--accent-warm)) 82%, white) 100%
   );
-  box-shadow: 0 0 12px rgba(212, 167, 52, 0.5);
-  transition: width 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  box-shadow: 0 0 12px rgb(var(--accent-warm) / 0.5);
+  transition: width calc(0.6s * var(--motion-scale)) var(--ease-standard);
 }
 .pool-meter-grain {
   position: absolute;
@@ -556,17 +554,17 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: baseline;
   gap: 0.45rem;
-  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  font-family: var(--font-display);
 }
 .pool-meter-current {
   font-size: 1.7rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .pool-meter-sep {
   font-size: 1.4rem;
-  color: rgba(212, 167, 52, 0.5);
+  color: rgb(var(--accent-warm) / 0.5);
 }
 .pool-meter-target {
   font-size: 1.4rem;
@@ -574,10 +572,10 @@ onBeforeUnmount(() => {
 }
 .pool-meter-unit {
   margin-left: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -588,24 +586,24 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 0.45rem;
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
 .pool-status-icon {
   font-size: 1rem;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .pool--active .pool-status-icon,
 .pool--full_queued .pool-status-icon {
-  animation: pool-status-pulse 2.2s ease-in-out infinite;
+  animation: pool-status-pulse calc(2.2s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes pool-status-pulse {
-  0%, 100% { filter: drop-shadow(0 0 0 rgba(212, 167, 52, 0)); transform: scale(1); }
-  50% { filter: drop-shadow(0 0 6px rgba(212, 167, 52, 0.55)); transform: scale(1.08); }
+  0%, 100% { filter: drop-shadow(0 0 0 rgb(var(--accent-warm) / 0)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 6px rgb(var(--accent-warm) / 0.55)); transform: scale(1.08); }
 }
 
 /* Patrons leaderboard — small horizontal list of contributors. */
@@ -614,13 +612,13 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 0.45rem;
   padding-top: 0.6rem;
-  border-top: 1px dashed rgba(212, 167, 52, 0.2);
+  border-top: 1px dashed rgb(var(--accent-warm) / 0.2);
 }
 .pool-patrons-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -641,14 +639,14 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-default));
 }
 .pool-patron-rank {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
-  color: #d4a734;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
+  color: rgb(var(--accent-warm));
 }
 .pool-patron-name {
-  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   color: rgb(var(--fg-strong));
@@ -657,8 +655,8 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 .pool-patron-amount {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));
 }
@@ -668,14 +666,14 @@ onBeforeUnmount(() => {
 .pool-form {
   position: relative;
   padding-left: 1.5rem;
-  border-left: 1px solid rgba(212, 167, 52, 0.18);
+  border-left: 1px solid rgb(var(--accent-warm) / 0.18);
 }
 @media (max-width: 720px) {
   .pool-form {
     padding-left: 0;
     padding-top: 1.5rem;
     border-left: 0;
-    border-top: 1px solid rgba(212, 167, 52, 0.18);
+    border-top: 1px solid rgb(var(--accent-warm) / 0.18);
   }
 }
 
@@ -685,10 +683,10 @@ onBeforeUnmount(() => {
   gap: 0.85rem;
 }
 .pool-form-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -701,33 +699,33 @@ onBeforeUnmount(() => {
   min-width: 0;
   padding: 0.7rem 0.85rem;
   background: rgb(var(--bg-base));
-  border: 1px solid rgba(212, 167, 52, 0.3);
-  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  border: 1px solid rgb(var(--accent-warm) / 0.3);
+  font-family: var(--font-display);
   font-size: 1.4rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   outline: 0;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .pool-form-input:focus {
-  border-color: #d4a734;
-  box-shadow: 0 0 0 1px rgba(212, 167, 52, 0.35),
-    0 0 12px rgba(212, 167, 52, 0.18) inset;
+  border-color: rgb(var(--accent-warm));
+  box-shadow: 0 0 0 1px rgb(var(--accent-warm) / 0.35),
+    0 0 12px rgb(var(--accent-warm) / 0.18) inset;
 }
 .pool-form-input-unit {
   display: inline-flex;
   align-items: center;
   padding: 0 0.8rem;
-  border: 1px solid rgba(212, 167, 52, 0.3);
+  border: 1px solid rgb(var(--accent-warm) / 0.3);
   border-left: 0;
-  background: rgba(212, 167, 52, 0.06);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  background: rgb(var(--accent-warm) / 0.06);
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 .pool-form-presets {
@@ -737,21 +735,21 @@ onBeforeUnmount(() => {
 }
 .pool-form-preset {
   padding: 0.35rem 0.7rem;
-  border: 1px solid rgba(212, 167, 52, 0.3);
+  border: 1px solid rgb(var(--accent-warm) / 0.3);
   background: transparent;
   color: rgb(var(--fg-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease,
-    color 0.18s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease,
+    color var(--dur-3) ease;
 }
 .pool-form-preset:hover:not(:disabled) {
-  border-color: #d4a734;
-  background: rgba(212, 167, 52, 0.08);
-  color: #d4a734;
+  border-color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.08);
+  color: rgb(var(--accent-warm));
 }
 .pool-form-preset:disabled {
   opacity: 0.35;
@@ -780,28 +778,28 @@ onBeforeUnmount(() => {
   padding: 0.7rem 1rem;
   background: linear-gradient(
     180deg,
-    #e8b94e 0%,
-    #d4a734 50%,
-    #b88a22 100%
+    color-mix(in srgb, rgb(var(--accent-warm)) 82%, white) 0%,
+    rgb(var(--accent-warm)) 50%,
+    color-mix(in srgb, rgb(var(--accent-warm)) 86%, black) 100%
   );
-  color: #1a1a1a;
+  color: rgb(var(--accent-warm-fg));
   border: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.22s ease,
-    opacity 0.18s ease;
-  box-shadow: 0 4px 12px -4px rgba(212, 167, 52, 0.45),
+  transition: transform var(--dur-3) ease, box-shadow var(--dur-4) ease,
+    opacity var(--dur-3) ease;
+  box-shadow: 0 4px 12px -4px rgb(var(--accent-warm) / 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 .pool-form-cta:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px -4px rgba(212, 167, 52, 0.55),
+  box-shadow: 0 6px 18px -4px rgb(var(--accent-warm) / 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .pool-form-cta:active:not(:disabled) {
@@ -824,16 +822,16 @@ onBeforeUnmount(() => {
 }
 .pool-form-locked-icon {
   font-size: 2.4rem;
-  color: rgba(212, 167, 52, 0.55);
+  color: rgb(var(--accent-warm) / 0.55);
 }
 .pool--active .pool-form-locked-icon,
 .pool--full_queued .pool-form-locked-icon {
-  color: #d4a734;
-  animation: pool-locked-pulse 3s ease-in-out infinite;
+  color: rgb(var(--accent-warm));
+  animation: pool-locked-pulse calc(3s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes pool-locked-pulse {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(212, 167, 52, 0.25)); }
-  50% { transform: scale(1.05); filter: drop-shadow(0 0 12px rgba(212, 167, 52, 0.5)); }
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgb(var(--accent-warm) / 0.25)); }
+  50% { transform: scale(1.05); filter: drop-shadow(0 0 12px rgb(var(--accent-warm) / 0.5)); }
 }
 .pool-form-locked-copy {
   margin: 0;
@@ -842,11 +840,11 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-muted));
   max-width: 26ch;
   font-style: italic;
-  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  font-family: var(--font-display);
 }
 
 .spin {
-  animation: pool-spin 1s linear infinite;
+  animation: pool-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes pool-spin {
   to { transform: rotate(360deg); }

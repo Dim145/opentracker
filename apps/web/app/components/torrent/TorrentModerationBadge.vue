@@ -85,14 +85,14 @@ const title = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   color: var(--c-text);
   background: linear-gradient(180deg, var(--c-bg) 0%, var(--c-bg-soft) 100%);
   border: 1.5px solid var(--c-line);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   white-space: nowrap;
   vertical-align: middle;
   position: relative;
@@ -125,13 +125,13 @@ const title = computed(() => {
 .mod-badge-label { line-height: 1; }
 
 .mod-badge--md {
-  font-size: 10px;
+  font-size: 0.625rem;
   padding: 0.32rem 0.55rem;
 }
 .mod-badge--sm {
-  font-size: 9px;
+  font-size: 0.5625rem;
   padding: 0.2rem 0.45rem;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   gap: 0.3rem;
 }
 

@@ -175,6 +175,21 @@ export const SETTINGS_KEYS = {
   // ("I'll just keep throwing torrents until something sticks")
   // without forcing perfect first tries.
   REQUEST_MAX_FILLS_PER_USER: 'request_max_fills_per_user',
+  // ── Themes ─────────────────────────────────────────────────
+  // Which theme an anonymous visitor and a brand-new member get. Defaults to
+  // `dark`, which is what an instance looked like before this setting existed — so an upgrade
+  // changes nothing until an operator decides otherwise. Set it to `system` to
+  // follow each visitor's operating system.
+  THEME_DEFAULT: 'theme_default',
+  // The two halves of `system` mode. Both default to the built-ins, and the
+  // route refuses to set them to the same theme — a "system" mode that resolves
+  // to one appearance is not a system mode.
+  THEME_SYSTEM_LIGHT: 'theme_system_light',
+  THEME_SYSTEM_DARK: 'theme_system_dark',
+  // Monotonic counter, bumped on every theme write. It is the ETag for
+  // `/api/theme.css`: `max(updated_at)` would miss a DELETE, and hashing the
+  // emitted CSS would mean building it to find out whether to build it.
+  THEME_VERSION: 'theme_version',
   // ── Presentation templates ─────────────────────────────────
   // How many templates one user may own. Templates are cheap rows
   // but they are also a stored-text surface, so the cap exists to

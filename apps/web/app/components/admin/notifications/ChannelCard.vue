@@ -352,10 +352,10 @@ const relativeTime = computed(() => {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
-  transition: border-color 0.18s ease, background 0.18s ease,
-    box-shadow 0.18s ease, transform 0.18s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease,
+    box-shadow var(--dur-3) ease, transform var(--dur-3) ease;
   /* Stagger fade-in driven by the inline --stagger custom prop. */
-  animation: cc-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: cc-in calc(0.4s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes cc-in {
@@ -404,8 +404,8 @@ const relativeTime = computed(() => {
 }
 
 .cc--open {
-  border-color: rgba(212, 167, 52, 0.55) !important;
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.1);
+  border-color: rgb(var(--accent-warm) / 0.55) !important;
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.1);
 }
 
 /* ── Header row ─────────────────────────────────────────────── */
@@ -441,7 +441,7 @@ const relativeTime = computed(() => {
   border-radius: 50%;
   background: rgb(var(--fg-faint));
   border: 2px solid rgb(var(--bg-elevated));
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition: background var(--dur-4) ease, box-shadow var(--dur-4) ease;
 }
 .cc--live .cc-glyph-dot {
   background: rgb(var(--online));
@@ -450,7 +450,7 @@ const relativeTime = computed(() => {
 .cc--action .cc-glyph-dot {
   background: rgb(var(--warning));
   box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.2);
-  animation: cc-glow 1.8s ease-in-out infinite;
+  animation: cc-glow calc(1.8s * var(--motion-scale)) ease-in-out infinite;
 }
 .cc--action.cc-status-error-row .cc-glyph-dot {
   background: rgb(var(--danger));
@@ -477,7 +477,7 @@ const relativeTime = computed(() => {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .cc-tagline {
@@ -491,10 +491,10 @@ const relativeTime = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 0.18rem 0.5rem 0.18rem 0.4rem;
   border-radius: var(--radius-sm);
@@ -543,8 +543,8 @@ const relativeTime = computed(() => {
   position: absolute;
   inset: 0;
   background: rgb(var(--line-default));
-  border-radius: 999px;
-  transition: background 0.18s ease;
+  border-radius: var(--radius-pill);
+  transition: background var(--dur-3) ease;
 }
 .cc-toggle-track::after {
   content: '';
@@ -555,8 +555,8 @@ const relativeTime = computed(() => {
   height: 18px;
   background: rgb(var(--bg-elevated));
   border-radius: 50%;
-  transition: transform 0.18s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform var(--dur-3) ease;
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(0.35 * var(--shadow-strength)));
 }
 .cc-toggle input:checked + .cc-toggle-track {
   background: rgb(var(--online));
@@ -572,8 +572,8 @@ const relativeTime = computed(() => {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.85rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
 .cc-status-when {
@@ -632,7 +632,7 @@ const relativeTime = computed(() => {
   border-radius: var(--radius-sm);
 }
 .cc-note > svg {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   flex-shrink: 0;
   margin-top: 0.1rem;
 }
@@ -661,9 +661,9 @@ const relativeTime = computed(() => {
   gap: 0.4rem;
 }
 .field-opt {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   font-weight: 500;
@@ -681,12 +681,12 @@ const relativeTime = computed(() => {
   color: rgb(var(--fg-strong));
   font-size: 0.85rem;
   font-family: inherit;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .field-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.6);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .field-input::placeholder {
   color: rgb(var(--fg-faint));
@@ -712,8 +712,8 @@ const relativeTime = computed(() => {
   position: absolute;
   inset: 0;
   background: rgb(var(--line-default));
-  border-radius: 999px;
-  transition: background 0.18s ease;
+  border-radius: var(--radius-pill);
+  transition: background var(--dur-3) ease;
 }
 .field-bool-track::after {
   content: '';
@@ -724,11 +724,11 @@ const relativeTime = computed(() => {
   height: 18px;
   background: rgb(var(--bg-elevated));
   border-radius: 50%;
-  transition: transform 0.18s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: transform var(--dur-3) ease;
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
 }
 .field-bool input:checked + .field-bool-track {
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .field-bool input:checked + .field-bool-track::after {
   transform: translateX(16px);
@@ -755,13 +755,13 @@ const relativeTime = computed(() => {
   display: block;
   font-size: 0.76rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   color: rgb(var(--danger));
   margin-bottom: 0.15rem;
 }
 .cc-error p {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   color: rgb(var(--fg-strong));
   word-break: break-word;
@@ -788,12 +788,12 @@ const relativeTime = computed(() => {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
 }
 .btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.5);
-  background: rgba(212, 167, 52, 0.05);
+  border-color: rgb(var(--accent-warm) / 0.5);
+  background: rgb(var(--accent-warm) / 0.05);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -803,20 +803,20 @@ const relativeTime = computed(() => {
   background: transparent;
 }
 .btn--primary {
-  background: #d4a734;
-  border-color: #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
 }
 .btn--primary:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 
 /* ── Transitions ──────────────────────────────────────────── */
 .cc-drawer-enter-active,
 .cc-drawer-leave-active {
-  transition: max-height 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease, padding-top 0.22s ease;
+  transition: max-height var(--dur-slow) var(--ease-standard),
+    opacity var(--dur-4) ease, padding-top var(--dur-4) ease;
   overflow: hidden;
 }
 .cc-drawer-enter-from,
@@ -832,7 +832,7 @@ const relativeTime = computed(() => {
 }
 
 .spin {
-  animation: cc-spin 1s linear infinite;
+  animation: cc-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes cc-spin {
   to {

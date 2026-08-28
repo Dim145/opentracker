@@ -96,7 +96,7 @@ const ariaLabel = computed(() => {
   background: none;
   border: 0;
   padding: 0;
-  transition: color 0.12s ease;
+  transition: color var(--dur-1) ease;
 }
 
 .sort-head--btn:hover,

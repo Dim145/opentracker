@@ -713,10 +713,10 @@ async function deleteAgeTier(tier: AgeTier) {
   width: 1px;
   background: linear-gradient(
     to bottom,
-    rgba(212, 167, 52, 0) 0%,
-    rgba(212, 167, 52, 0.35) 12%,
-    rgba(212, 167, 52, 0.35) 88%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm) / 0.35) 12%,
+    rgb(var(--accent-warm) / 0.35) 88%,
+    rgb(var(--accent-warm) / 0) 100%
   );
   pointer-events: none;
 }
@@ -740,9 +740,9 @@ async function deleteAgeTier(tier: AgeTier) {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.55) 0%,
-    rgba(212, 167, 52, 0.2) 60%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.55) 0%,
+    rgb(var(--accent-warm) / 0.2) 60%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 @media (max-width: 720px) {
@@ -769,23 +769,23 @@ async function deleteAgeTier(tier: AgeTier) {
   .snap:nth-last-child(-n + 2) { border-bottom: 0; }
 }
 .snap-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(1.5rem, 2.6vw, 1.9rem);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1;
 }
 .snap-num strong { color: rgb(var(--fg-strong)); font-weight: 800; }
 .snap-frac { color: rgb(var(--fg-faint)); font-size: 0.6em; font-weight: 600; margin-left: 0.2em; }
-.snap--rules .snap-num strong { color: #d4a734; }
+.snap--rules .snap-num strong { color: rgb(var(--accent-warm)); }
 .snap--seed .snap-num strong { color: #34d4d8; }
 .snap--age .snap-num strong { color: #fb923c; }
 .snap--range .snap-num { color: rgb(var(--fg-strong)); font-size: 1.3rem; }
 .snap-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -819,16 +819,16 @@ async function deleteAgeTier(tier: AgeTier) {
   bottom: -1px;
   width: 40px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .block-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
-  color: #d4a734;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
+  color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
   border-radius: var(--radius-sm);
 }
@@ -836,7 +836,7 @@ async function deleteAgeTier(tier: AgeTier) {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -847,9 +847,9 @@ async function deleteAgeTier(tier: AgeTier) {
   line-height: 1.5;
 }
 .block-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
@@ -892,8 +892,8 @@ async function deleteAgeTier(tier: AgeTier) {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
-  transition: border-color 0.18s ease, opacity 0.18s ease, background 0.18s ease;
-  animation: rule-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: border-color var(--dur-3) ease, opacity var(--dur-3) ease, background var(--dur-3) ease;
+  animation: rule-in calc(0.4s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes rule-in {
@@ -928,7 +928,7 @@ async function deleteAgeTier(tier: AgeTier) {
   margin: 0 0 0.15rem;
   font-size: 0.92rem;
   font-weight: 800;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .rule-desc {
@@ -943,13 +943,13 @@ async function deleteAgeTier(tier: AgeTier) {
   gap: 0.5rem;
 }
 .rule-state-text {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: color 0.18s ease;
+  transition: color var(--dur-3) ease;
 }
 .rule-state-text--on { color: rgb(var(--online)); }
 
@@ -975,8 +975,8 @@ async function deleteAgeTier(tier: AgeTier) {
   position: absolute;
   inset: 0;
   background: rgb(var(--line-default));
-  border-radius: 999px;
-  transition: background 0.18s ease;
+  border-radius: var(--radius-pill);
+  transition: background var(--dur-3) ease;
 }
 .rule-toggle-track::after {
   content: '';
@@ -987,15 +987,15 @@ async function deleteAgeTier(tier: AgeTier) {
   height: 18px;
   background: rgb(var(--bg-elevated));
   border-radius: 50%;
-  transition: transform 0.18s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: transform var(--dur-3) ease;
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
 }
 .rule-toggle--sm .rule-toggle-track::after {
   width: 14px;
   height: 14px;
 }
 .rule-toggle input:checked + .rule-toggle-track {
-  background: var(--rule-color, #d4a734);
+  background: var(--rule-color, rgb(var(--accent-warm)));
 }
 .rule-toggle input:checked + .rule-toggle-track::after {
   transform: translateX(16px);
@@ -1026,9 +1026,9 @@ async function deleteAgeTier(tier: AgeTier) {
   gap: 0.4rem;
 }
 .field-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   padding: 0.05rem 0.4rem;
@@ -1047,15 +1047,15 @@ async function deleteAgeTier(tier: AgeTier) {
   padding: 0.5rem 0.7rem;
   color: rgb(var(--fg-strong));
   font-size: 0.95rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .field-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.6);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .field-input--sm {
   font-size: 0.85rem;
@@ -1072,10 +1072,10 @@ async function deleteAgeTier(tier: AgeTier) {
   gap: 0.5rem;
 }
 .milestones-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1098,9 +1098,9 @@ async function deleteAgeTier(tier: AgeTier) {
   border-radius: var(--radius-sm);
 }
 .milestone-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 .milestone-field {
@@ -1109,9 +1109,9 @@ async function deleteAgeTier(tier: AgeTier) {
   gap: 0.45rem;
 }
 .milestone-field-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1147,7 +1147,7 @@ async function deleteAgeTier(tier: AgeTier) {
     gap: 0.2rem;
   }
   .milestone-field-label {
-    letter-spacing: 0.08em;
+    letter-spacing: calc(0.08em * var(--tracking-scale));
   }
   .milestone-field .field-input--sm {
     /* The desktop cap (120px) is too narrow on phones — let it
@@ -1185,9 +1185,9 @@ async function deleteAgeTier(tier: AgeTier) {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.5) 0%,
-    rgba(212, 167, 52, 0.1) 80%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.5) 0%,
+    rgb(var(--accent-warm) / 0.1) 80%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 .curve-footnote {
@@ -1216,10 +1216,10 @@ async function deleteAgeTier(tier: AgeTier) {
   margin-top: 0.3rem;
 }
 .tier-list-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1250,17 +1250,17 @@ async function deleteAgeTier(tier: AgeTier) {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  transition: border-color 0.18s ease, opacity 0.18s ease;
-  animation: rule-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: border-color var(--dur-3) ease, opacity var(--dur-3) ease;
+  animation: rule-in calc(0.4s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .tier:hover { border-color: rgb(var(--line-strong)); }
 .tier--off { opacity: 0.55; }
 .tier-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
   width: 24px;
   text-align: right;
@@ -1284,16 +1284,16 @@ async function deleteAgeTier(tier: AgeTier) {
   width: 100%;
 }
 .tier-field-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   flex-shrink: 0;
 }
 .tier-field-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
 }
@@ -1362,7 +1362,7 @@ async function deleteAgeTier(tier: AgeTier) {
     grid-row: 1;
     /* Slightly tighter letterspacing for readability at the
        narrower column width. */
-    letter-spacing: 0.08em;
+    letter-spacing: calc(0.08em * var(--tracking-scale));
   }
   .tier-field > .field-input {
     grid-column: 1;
@@ -1397,23 +1397,23 @@ async function deleteAgeTier(tier: AgeTier) {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
 }
 .btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.5);
-  background: rgba(212, 167, 52, 0.05);
+  border-color: rgb(var(--accent-warm) / 0.5);
+  background: rgb(var(--accent-warm) / 0.05);
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn--ghost { background: transparent; }
 .btn--primary {
-  background: #d4a734;
-  border-color: #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
 }
 .btn--primary:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 .btn--sm {
   padding: 0.32rem 0.6rem;
@@ -1430,7 +1430,7 @@ async function deleteAgeTier(tier: AgeTier) {
   background: transparent;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .icon-btn:hover { color: rgb(var(--fg-strong)); background: rgb(var(--bg-hover) / 0.4); }
 .icon-btn--danger:hover {

@@ -140,7 +140,7 @@ async function copySecret() {
 }
 .totp-blurb {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -149,7 +149,7 @@ async function copySecret() {
   width: 200px;
   height: 200px;
   background: white;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   padding: 8px;
   display: flex;
@@ -163,14 +163,14 @@ async function copySecret() {
 }
 .totp-secret {
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
 }
 .totp-secret summary {
   cursor: pointer;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -180,13 +180,13 @@ async function copySecret() {
 .totp-secret-value {
   display: block;
   margin-top: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   word-break: break-all;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0.4rem 0.55rem;
   color: rgb(var(--fg-strong));
 }
@@ -196,14 +196,14 @@ async function copySecret() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.3rem 0.6rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   background: transparent;
   color: rgb(var(--fg-muted));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
 }
 .totp-copy:hover {
@@ -219,16 +219,16 @@ async function copySecret() {
 .totp-code-input {
   font-size: 1.6rem;
   font-weight: 700;
-  letter-spacing: 0.4em;
+  letter-spacing: calc(0.4em * var(--tracking-scale));
   text-align: center;
   padding: 0.6rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .field-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -236,7 +236,7 @@ async function copySecret() {
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
 }
@@ -249,7 +249,7 @@ async function copySecret() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--danger));
   margin: 0;
 }
@@ -257,7 +257,7 @@ async function copySecret() {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: rgb(var(--online));
   margin: 0 0 0.5rem;
 }
@@ -275,15 +275,15 @@ async function copySecret() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 0.95rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   border: 1px solid rgb(var(--line-default));
-  transition: all 0.14s;
+  transition: all var(--dur-2);
 }
 .btn-primary {
   background: rgb(var(--fg-strong));

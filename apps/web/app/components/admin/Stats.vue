@@ -105,9 +105,9 @@ function formatNumber(n: number): string {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   overflow: hidden;
-  transition: border-color 0.2s ease, transform 0.2s ease,
-    box-shadow 0.2s ease;
-  animation: metric-in 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: border-color var(--dur-4) ease, transform var(--dur-4) ease,
+    box-shadow var(--dur-4) ease;
+  animation: metric-in calc(0.42s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .metric::before {
@@ -124,35 +124,35 @@ function formatNumber(n: number): string {
 .metric:hover {
   transform: translateY(-1px);
   border-color: var(--rail, rgb(var(--line-strong)));
-  box-shadow: 0 12px 28px -22px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 12px 28px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength)));
 }
 @keyframes metric-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.metric--torrents { --rail: #d4a734; --rail-glow: rgba(212, 167, 52, 0.4); }
+.metric--torrents { --rail: rgb(var(--accent-warm)); --rail-glow: rgb(var(--accent-warm) / 0.4); }
 .metric--peers    { --rail: rgb(var(--fg-strong)); }
 .metric--seeders  { --rail: #6cd161; --rail-glow: rgba(108, 209, 97, 0.4); }
 .metric--leechers { --rail: #fb923c; --rail-glow: rgba(251, 146, 60, 0.4); }
 
 .metric-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .metric-value {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 2.45rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1;
   color: rgb(var(--fg-strong));
 }
-.metric--torrents .metric-value { color: #d4a734; }
+.metric--torrents .metric-value { color: rgb(var(--accent-warm)); }
 .metric--seeders .metric-value { color: #6cd161; }
 .metric--leechers .metric-value { color: #fb923c; }
 
@@ -162,10 +162,10 @@ function formatNumber(n: number): string {
   gap: 0.4rem;
   margin-top: auto;
   padding-top: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }

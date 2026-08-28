@@ -585,10 +585,10 @@ async function handleDelete() {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-fade);
 }
@@ -597,7 +597,7 @@ async function handleDelete() {
 }
 .masthead-title {
   font-weight: 800;
-  letter-spacing: -0.045em;
+  letter-spacing: calc(-0.045em * var(--tracking-scale));
   line-height: 0.92;
   color: var(--ink);
   font-size: clamp(3rem, 9vw, 6.5rem);
@@ -611,7 +611,7 @@ async function handleDelete() {
   line-height: 1.55;
 }
 .masthead-tag em {
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-style: italic;
   color: var(--ink-fade);
 }
@@ -641,23 +641,23 @@ async function handleDelete() {
   opacity: 0.4;
 }
 .stat-key {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 .stat-val {
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.65rem;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   color: var(--ink);
   font-variation-settings: 'opsz' 96;
 }
 .stat-val-mono {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--ink);
@@ -671,10 +671,10 @@ async function handleDelete() {
 .pulse-dot {
   width: 0.55rem;
   height: 0.55rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--online));
   box-shadow: 0 0 0 0 rgb(var(--online) / 0.6);
-  animation: pulse 2.4s infinite ease-out;
+  animation: pulse calc(2.4s * var(--motion-scale)) infinite ease-out;
 }
 @keyframes pulse {
   0%   { box-shadow: 0 0 0 0 rgb(var(--online) / 0.55); }
@@ -699,17 +699,17 @@ async function handleDelete() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid var(--rule-strong);
   background: rgb(var(--bg-elevated));
   color: var(--ink-soft);
   cursor: pointer;
-  border-radius: 2px;
-  transition: all 0.15s;
+  border-radius: var(--radius-xs);
+  transition: all var(--dur-2);
 }
 .ed-btn:hover:not(:disabled) {
   background: var(--ink);
@@ -747,10 +747,10 @@ async function handleDelete() {
   margin-bottom: 1.25rem;
 }
 .rule-eyebrow {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -760,9 +760,9 @@ async function handleDelete() {
   background: var(--rule);
 }
 .rule-counter {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   color: var(--ink-faint);
   text-transform: uppercase;
 }
@@ -778,8 +778,8 @@ async function handleDelete() {
   background: rgb(var(--bg-surface));
   border: 1px solid var(--rule);
   border-left: 3px solid color-mix(in srgb, rgb(var(--accent)) 80%, transparent);
-  border-radius: 4px;
-  transition: border-color 0.18s, transform 0.18s;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-3), transform var(--dur-3);
 }
 .section-tile:hover {
   border-color: var(--rule-strong);
@@ -796,7 +796,7 @@ async function handleDelete() {
     rgb(var(--bg-surface)) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
+  animation: shimmer calc(1.6s * var(--motion-scale)) infinite;
 }
 @keyframes shimmer {
   0%   { background-position: 100% 0; }
@@ -811,17 +811,17 @@ async function handleDelete() {
   color: inherit;
 }
 .section-tile-id {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   color: rgb(var(--accent));
   text-transform: uppercase;
 }
 .section-tile-icon {
   width: 2.6rem;
   height: 2.6rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -834,7 +834,7 @@ async function handleDelete() {
   margin: 0;
   font-size: 1.65rem;
   line-height: 1.05;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   color: var(--ink);
   font-weight: 700;
   font-variation-settings: 'opsz' 96, 'SOFT' 50;
@@ -864,16 +864,16 @@ async function handleDelete() {
   border-right: 0;
 }
 .section-tile-stats dt {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-faint);
 }
 .section-tile-stats dd {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.05rem;
   color: var(--ink);
@@ -888,7 +888,7 @@ async function handleDelete() {
   position: relative;
   margin: 0;
   padding-left: 1.4rem;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.92rem;
   line-height: 1.5;
@@ -908,9 +908,9 @@ async function handleDelete() {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: var(--ink-fade);
   text-transform: uppercase;
 }
@@ -929,7 +929,7 @@ async function handleDelete() {
 }
 .section-tile-empty {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   color: var(--ink-faint);
   font-size: 0.95rem;
 }
@@ -940,7 +940,7 @@ async function handleDelete() {
   display: flex;
   gap: 0.3rem;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-2);
 }
 .section-tile:hover .section-tile-admin,
 .section-tile:focus-within .section-tile-admin {
@@ -952,12 +952,12 @@ async function handleDelete() {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--rule);
   background: rgb(var(--bg-elevated));
   color: var(--ink-fade);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .row-action:hover {
   border-color: var(--rule-strong);
@@ -983,7 +983,7 @@ async function handleDelete() {
   text-align: center;
   padding: 3rem 1.5rem;
   border: 1px dashed var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .empty-icon {
   font-size: 2.5rem;
@@ -993,7 +993,7 @@ async function handleDelete() {
   margin: 0;
   font-size: 1.6rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: var(--ink);
   font-variation-settings: 'opsz' 96;
 }
@@ -1022,15 +1022,15 @@ async function handleDelete() {
   padding: 0.85rem 0.5rem;
   text-decoration: none;
   color: inherit;
-  transition: background 0.12s;
+  transition: background var(--dur-1);
 }
 .latest-link:hover {
   background: rgb(var(--fg-default) / 0.03);
 }
 .latest-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   color: var(--ink-faint);
 }
 .latest-body {
@@ -1043,10 +1043,10 @@ async function handleDelete() {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--cat-color);
   width: max-content;
@@ -1056,7 +1056,7 @@ async function handleDelete() {
   font-size: 1.12rem;
   line-height: 1.25;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: var(--ink);
   font-variation-settings: 'opsz' 48;
   display: flex;
@@ -1070,9 +1070,9 @@ async function handleDelete() {
 .latest-status--lock { color: var(--ink-fade); }
 .latest-meta {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: var(--ink-fade);
   text-transform: uppercase;
   display: flex;
@@ -1090,7 +1090,7 @@ async function handleDelete() {
 .latest-arrow {
   font-size: 1rem;
   color: var(--ink-faint);
-  transition: transform 0.18s, color 0.18s;
+  transition: transform var(--dur-3), color var(--dur-3);
 }
 .latest-link:hover .latest-arrow {
   color: var(--ink);
@@ -1100,7 +1100,7 @@ async function handleDelete() {
 /* ─── Modal helpers ─────────────────────────────────────────── */
 .delete-blurb {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-size: 1rem;
   line-height: 1.55;
   color: var(--ink-soft);

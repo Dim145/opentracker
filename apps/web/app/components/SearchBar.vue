@@ -224,11 +224,11 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.3rem 0.65rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
 }
@@ -258,12 +258,12 @@ onUnmounted(() => {
   color: #6cd161;
 }
 .detection-id {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   text-transform: none;
   letter-spacing: 0;
   color: rgb(var(--fg-default));
   font-weight: 600;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .detection-arrow {
   display: inline-flex;
@@ -272,12 +272,12 @@ onUnmounted(() => {
 .detection-action {
   color: rgb(var(--fg-muted));
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 .detect-enter-active,
 .detect-leave-active {
-  transition: opacity 0.15s ease, transform 0.18s ease;
+  transition: opacity var(--dur-2) ease, transform var(--dur-3) ease;
 }
 .detect-enter-from,
 .detect-leave-to {

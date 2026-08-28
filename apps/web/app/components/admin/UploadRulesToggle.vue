@@ -88,7 +88,7 @@ defineEmits<{
   font-size: 0.85rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .urt-desc {
   margin: 0;
@@ -108,18 +108,18 @@ defineEmits<{
   padding: 0;
   background: rgb(var(--line-default));
   border: 0;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background var(--dur-4) ease;
 }
 .urt-switch:hover {
   background: rgb(var(--line-strong));
 }
 .urt-switch--on {
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .urt-switch--on:hover {
-  background: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 .urt-switch-thumb {
   position: absolute;
@@ -129,16 +129,16 @@ defineEmits<{
   height: 1.05rem;
   background: rgb(var(--bg-elevated));
   border-radius: 50%;
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    background 0.18s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: transform var(--dur-4) cubic-bezier(0.4, 0, 0.2, 1),
+    background var(--dur-3) ease;
+  box-shadow: 0 1px 3px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)));
 }
 .urt-switch--on .urt-switch-thumb {
   transform: translateX(calc(2.45rem - 1.35rem));
   background: rgb(var(--bg-base));
 }
 .urt-switch:focus-visible {
-  outline: 2px solid rgba(212, 167, 52, 0.6);
+  outline: 2px solid rgb(var(--accent-warm) / 0.6);
   outline-offset: 2px;
 }
 </style>

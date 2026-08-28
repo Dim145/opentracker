@@ -314,7 +314,7 @@ onBeforeUnmount(() => {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md) var(--radius-md) 0 0;
-  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7),
+  box-shadow: 0 30px 60px -20px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
     0 0 0 1px rgba(244, 63, 94, 0.08);
   /* Faint red rule along the top hints at the alert-grade nature
      of the document without screaming. */
@@ -359,10 +359,10 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: #f43f5e;
 }
@@ -381,7 +381,7 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .slip-close:hover {
   color: rgb(var(--fg-strong));
@@ -397,10 +397,10 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid rgb(var(--line-default));
 }
 .slip-target-tag {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-inset));
@@ -423,10 +423,10 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 .slip-target-ref {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   flex-shrink: 0;
 }
 
@@ -443,10 +443,10 @@ onBeforeUnmount(() => {
   gap: 0.5rem;
 }
 .slip-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -457,11 +457,11 @@ onBeforeUnmount(() => {
   gap: 0.5rem;
 }
 .slip-counter {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   color: rgb(var(--fg-faint));
-  letter-spacing: 0.05em;
-  transition: color 0.18s ease;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
+  transition: color var(--dur-3) ease;
 }
 .slip-counter--warn {
   color: #f59e0b;
@@ -485,7 +485,7 @@ onBeforeUnmount(() => {
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
   white-space: nowrap;
 }
@@ -504,7 +504,7 @@ onBeforeUnmount(() => {
   font-size: 0.9rem;
 }
 .chip-label {
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 
 /* ── Textarea ───────────────────────────────────────────── */
@@ -520,7 +520,7 @@ onBeforeUnmount(() => {
   resize: vertical;
   min-height: 80px;
   line-height: 1.5;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .slip-textarea:focus {
   outline: none;
@@ -570,9 +570,9 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-strong));
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
   white-space: nowrap;
 }
@@ -593,7 +593,7 @@ onBeforeUnmount(() => {
   color: white;
   text-transform: uppercase;
   font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
 }
 .slip-btn--file:hover:not(:disabled) {
   background: #e11d48;
@@ -602,7 +602,7 @@ onBeforeUnmount(() => {
 }
 
 .spin {
-  animation: slip-spin 1s linear infinite;
+  animation: slip-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes slip-spin {
   to { transform: rotate(360deg); }
@@ -611,12 +611,12 @@ onBeforeUnmount(() => {
 /* ── Enter / leave transition ────────────────────────────── */
 .slip-enter-active,
 .slip-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity var(--dur-4) ease;
 }
 .slip-enter-active .slip,
 .slip-leave-active .slip {
   transition: transform 0.32s cubic-bezier(0.2, 0.85, 0.2, 1),
-    opacity 0.22s ease;
+    opacity var(--dur-4) ease;
 }
 .slip-enter-from,
 .slip-leave-to {

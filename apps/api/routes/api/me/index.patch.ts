@@ -26,6 +26,8 @@
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { BUILT_IN_THEMES, SYSTEM_THEME } from '@trackarr/shared';
+import { choosableFor, enabledThemes, roleIdsFor } from '~~/utils/themes';
 import { z } from 'zod';
 
 const bodySchema = z
@@ -59,7 +61,27 @@ const bodySchema = z
     // Let a federated partner read this member's reputation (ratio,
     // volumes, member-since) over the `accounts` scope. Off by default.
     shareReputationFederated: z.boolean().optional(),
-    theme: z.enum(['light', 'dark']).optional(),
+    /**
+     * `system`, a built-in, an admin-defined slug — or `null`.
+     *
+     * `null` is how a member goes back to following the site default, and it is
+     * a real choice rather than a cleared field: they then move whenever the
+     * owner changes the default. Distinct from OMITTING the key, which leaves
+     * the stored preference untouched like every other field here.
+     *
+     * A string rather than an enum, because the valid set lives in the database
+     * and changes while the process runs — a union would be a reassuring type
+     * in front of an unvalidated write. The real check is below, against the
+     * themes this member may actually choose, and it is the ONLY place
+     * role-gated themes are enforced: the served stylesheet carries every
+     * enabled theme, so what is protected is persistence, not visibility.
+     */
+    theme: z
+      .string()
+      .max(64)
+      .regex(/^[a-z0-9-]+$/, 'Not a theme name')
+      .nullable()
+      .optional(),
     // Language preference — must match one of the locale bundles
     // shipped under `apps/web/i18n/locales/`. Adding a locale means
     // adding it to this enum AND dropping a JSON file; the DB column
@@ -85,7 +107,7 @@ export default defineEventHandler(async (event) => {
     hideDownloadHistory: boolean;
     restrictComments: boolean;
     shareReputationFederated: boolean;
-    theme: 'light' | 'dark';
+    theme: string | null;
     language: 'en' | 'fr';
   }> = {};
 
@@ -114,7 +136,29 @@ export default defineEventHandler(async (event) => {
   if (body.shareReputationFederated !== undefined) {
     updates.shareReputationFederated = body.shareReputationFederated;
   }
-  if (body.theme !== undefined) {
+  if (body.theme === null) {
+    // Back to following the site default. No entitlement check: "whatever the
+    // owner picked" is available to everyone by definition, and the owner is
+    // already prevented from defaulting the site to something that does not
+    // exist or is not enabled.
+    updates.theme = null;
+  } else if (body.theme !== undefined) {
+    const themes = await enabledThemes();
+    const choosable = choosableFor(themes, await roleIdsFor(user.id));
+    const allowed = new Set<string>([
+      SYSTEM_THEME,
+      ...BUILT_IN_THEMES,
+      ...choosable.map((t) => t.slug),
+    ]);
+    if (!allowed.has(body.theme)) {
+      throw createError({
+        statusCode: 400,
+        // Deliberately one message for "no such theme" and "not yours": a
+        // reserved theme is a perk, and confirming its existence to somebody
+        // who cannot have it is a small unkindness with no upside.
+        message: 'That theme is not available to you',
+      });
+    }
     updates.theme = body.theme;
   }
   if (body.language !== undefined) {

@@ -158,25 +158,25 @@ const iconSuggestions = [
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
 .cat-input {
   width: 100%;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.92rem;
   letter-spacing: 0;
   text-transform: none;
   color: rgb(var(--fg-default));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0.55rem 0.75rem;
-  transition: border-color 0.12s;
+  transition: border-color var(--dur-1);
 }
 .cat-input:focus {
   outline: none;
@@ -185,15 +185,15 @@ const iconSuggestions = [
 .cat-input--textarea {
   resize: vertical;
   min-height: 4.5rem;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
 }
 .cat-input--mono {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
 }
 .cat-input--number {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 
 .color-row {
@@ -206,18 +206,18 @@ const iconSuggestions = [
   height: 2.5rem;
   padding: 0;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   cursor: pointer;
   flex-shrink: 0;
 }
 .color-swatch::-webkit-color-swatch {
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 .color-swatch::-moz-color-swatch {
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .icon-row {
@@ -232,7 +232,7 @@ const iconSuggestions = [
   width: 2.5rem;
   height: 2.5rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   font-size: 1.2rem;
   color: rgb(var(--fg-strong));
@@ -241,20 +241,20 @@ const iconSuggestions = [
 
 .cat-help {
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  font-size: 11.5px;
+  font-family: var(--font-sans);
+  font-size: 0.7188rem;
   letter-spacing: 0;
   text-transform: none;
   color: rgb(var(--fg-muted));
   font-weight: 400;
 }
 .cat-help code {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   padding: 0 0.3rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .cat-help-link {
   color: rgb(var(--fg-strong));
@@ -275,12 +275,12 @@ const iconSuggestions = [
   width: 2.4rem;
   height: 2.4rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
   font-size: 1.1rem;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .icon-chip:hover {
   border-color: rgb(var(--line-strong));

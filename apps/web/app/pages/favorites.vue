@@ -456,7 +456,7 @@ async function unfavorite(row: FavoriteRow) {
   align-items: end;
   gap: 1.5rem 2rem;
   margin-bottom: 2.5rem;
-  animation: fav-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fav-rise calc(0.55s * var(--motion-scale)) var(--ease-emphasis) both;
 }
 @keyframes fav-rise {
   from { opacity: 0; transform: translateY(8px); }
@@ -471,17 +471,17 @@ async function unfavorite(row: FavoriteRow) {
   align-items: center;
   gap: 0.6rem;
   margin: 0 0 0.6rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .fav-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0;
   color: rgb(var(--gold));
@@ -501,17 +501,17 @@ async function unfavorite(row: FavoriteRow) {
 
 .fav-title {
   margin: 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 900;
   font-size: clamp(1.8rem, 3.4vw, 2.4rem);
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1.05;
   color: rgb(var(--fg-strong));
 }
 .fav-intro {
   margin: 0.55rem 0 0;
   max-width: 60ch;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -524,10 +524,10 @@ async function unfavorite(row: FavoriteRow) {
   flex-wrap: wrap;
 }
 .fav-sort-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -536,7 +536,7 @@ async function unfavorite(row: FavoriteRow) {
   padding: 0.18rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .fav-sort-opt {
@@ -546,15 +546,15 @@ async function unfavorite(row: FavoriteRow) {
   padding: 0.4rem 0.85rem;
   background: transparent;
   border: 0;
-  border-radius: 999px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: color 0.15s, background 0.18s;
+  transition: color var(--dur-2), background var(--dur-3);
 }
 .fav-sort-opt > svg { font-size: 0.85rem; flex-shrink: 0; }
 .fav-sort-opt:hover { color: rgb(var(--fg-strong)); }
@@ -571,14 +571,14 @@ async function unfavorite(row: FavoriteRow) {
   justify-content: center;
   gap: 0.55rem;
   padding: 2.5rem 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .loader-spin {
-  animation: loader-spin 0.9s linear infinite;
+  animation: loader-spin calc(0.9s * var(--motion-scale)) linear infinite;
   font-size: 1.25rem;
 }
 @keyframes loader-spin { to { transform: rotate(360deg); } }
@@ -619,21 +619,21 @@ async function unfavorite(row: FavoriteRow) {
     ),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   padding: 0.95rem 1rem 0.95rem;
   transform: rotate(var(--card-skew, 0deg));
   transform-origin: center 65%;
-  animation: card-deal 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: card-deal calc(0.55s * var(--motion-scale)) var(--ease-emphasis) both;
   animation-delay: var(--stagger, 0ms);
   transition:
-    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.32s var(--ease-emphasis),
     box-shadow 0.32s ease,
-    border-color 0.18s,
+    border-color var(--dur-3),
     opacity 0.28s ease;
   box-shadow:
-    0 16px 40px -22px rgba(0, 0, 0, 0.65),
+    0 16px 40px -22px rgb(var(--shadow-color) / calc(0.65 * var(--shadow-strength))),
     0 1px 0 rgba(255, 255, 255, 0.04) inset,
-    0 -16px 24px -20px rgba(0, 0, 0, 0.45) inset;
+    0 -16px 24px -20px rgb(var(--shadow-color) / calc(0.45 * var(--shadow-strength))) inset;
 }
 @keyframes card-deal {
   from {
@@ -650,7 +650,7 @@ async function unfavorite(row: FavoriteRow) {
   transform: rotate(0deg) translateY(-3px);
   border-color: rgb(var(--gold) / 0.45);
   box-shadow:
-    0 22px 50px -22px rgba(0, 0, 0, 0.7),
+    0 22px 50px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
     0 0 0 1px rgb(var(--gold) / 0.25),
     0 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
@@ -675,7 +675,7 @@ async function unfavorite(row: FavoriteRow) {
 .punch {
   width: 5px;
   height: 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background:
     radial-gradient(circle at 30% 30%, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.85));
   box-shadow:
@@ -698,29 +698,29 @@ async function unfavorite(row: FavoriteRow) {
   display: inline-flex;
   align-items: baseline;
   gap: 0.2rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--gold));
   text-shadow: 0 0 6px rgb(var(--gold) / 0.35);
 }
 .card-num-prefix {
-  font-size: 10px;
+  font-size: 0.625rem;
   opacity: 0.65;
 }
 .card-date {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   /* Tiny "ink-stamp" treatment — the date sits in a thin border
      box, very faintly tinted, as if pressed onto the card. */
   padding: 0.22rem 0.45rem;
   border: 1px solid rgb(var(--sepia) / 0.3);
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   background: rgb(var(--sepia) / 0.06);
 }
 
@@ -744,11 +744,11 @@ async function unfavorite(row: FavoriteRow) {
   padding: 0.18rem 0.5rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.2rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   overflow: hidden;
@@ -763,11 +763,11 @@ async function unfavorite(row: FavoriteRow) {
 
 .card-title {
   margin: 0.1rem 0 0.2rem;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 800;
   font-size: 0.98rem;
   line-height: 1.25;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   overflow-wrap: anywhere;
   text-wrap: pretty;
@@ -775,7 +775,7 @@ async function unfavorite(row: FavoriteRow) {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  transition: color 0.18s;
+  transition: color var(--dur-3);
 }
 .card-body:hover .card-title {
   color: rgb(var(--gold));
@@ -789,10 +789,10 @@ async function unfavorite(row: FavoriteRow) {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 }
 .card-stat {
   display: inline-flex;
@@ -801,7 +801,7 @@ async function unfavorite(row: FavoriteRow) {
   padding: 0.18rem 0.42rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.22rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
 }
 .card-stat > svg { font-size: 0.78rem; }
@@ -816,19 +816,19 @@ async function unfavorite(row: FavoriteRow) {
   align-items: center;
   gap: 0.35rem;
   padding: 0.32rem 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brick));
   background: rgb(var(--brick) / 0.06);
   border: 1.5px solid rgb(var(--brick) / 0.45);
-  border-radius: 0.22rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transform: rotate(-3deg);
-  transition: background 0.15s, color 0.15s, border-color 0.18s,
-    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: background var(--dur-2), color var(--dur-2), border-color var(--dur-3),
+    transform var(--dur-4) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .card-unfav-icon { font-size: 0.85rem; }
 .card-unfav:hover {
@@ -867,11 +867,11 @@ async function unfavorite(row: FavoriteRow) {
     ),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.45rem;
-  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.65);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 18px 40px -18px rgb(var(--shadow-color) / calc(0.65 * var(--shadow-strength)));
   animation:
-    empty-drop 0.9s cubic-bezier(0.22, 1, 0.36, 1) both,
-    empty-sway 4.5s ease-in-out 0.9s infinite;
+    empty-drop calc(0.9s * var(--motion-scale)) var(--ease-emphasis) both,
+    empty-sway calc(4.5s * var(--motion-scale)) ease-in-out calc(0.9s * var(--motion-scale)) infinite;
   transform-origin: top center;
 }
 @keyframes empty-drop {
@@ -893,7 +893,7 @@ async function unfavorite(row: FavoriteRow) {
   display: block;
   height: 6px;
   background: rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   margin-top: 0.6rem;
 }
 .empty-line--1 { width: 60%; margin-top: 1.1rem; }
@@ -903,30 +903,30 @@ async function unfavorite(row: FavoriteRow) {
   position: absolute;
   right: 0.7rem;
   bottom: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5313rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brick) / 0.6);
   border: 1.5px solid rgb(var(--brick) / 0.45);
   padding: 0.1rem 0.35rem;
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   transform: rotate(-7deg);
 }
 
 .empty-title {
   margin: 0.4rem 0 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 1.15rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .empty-sub {
   margin: 0;
   max-width: 50ch;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -939,14 +939,14 @@ async function unfavorite(row: FavoriteRow) {
   background: rgb(var(--gold) / 0.16);
   color: rgb(var(--gold));
   border: 1px solid rgb(var(--gold) / 0.55);
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   text-decoration: none;
-  transition: background 0.18s, color 0.15s, transform 0.18s;
+  transition: background var(--dur-3), color var(--dur-2), transform var(--dur-3);
 }
 .empty-cta:hover {
   background: rgb(var(--gold));
@@ -969,15 +969,15 @@ async function unfavorite(row: FavoriteRow) {
   padding: 0.5rem 0.85rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background var(--dur-2), border-color var(--dur-2);
 }
 .pager-btn:hover:not(:disabled) {
   background: rgb(var(--bg-hover, var(--bg-elevated)));
@@ -986,16 +986,16 @@ async function unfavorite(row: FavoriteRow) {
 }
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: baseline;
   gap: 0.3rem;
 }
-.pager-cur { color: rgb(var(--gold)); font-size: 14px; }
+.pager-cur { color: rgb(var(--gold)); font-size: 0.875rem; }
 .pager-sep { opacity: 0.4; }
 
 @media (prefers-reduced-motion: reduce) {

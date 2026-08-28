@@ -9,12 +9,13 @@
  */
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
-import { requireAdminSession } from '~~/utils/adminAuth';
+import { requireOwnerSession } from '~~/utils/adminAuth';
 import { purgeOrphanedIngested } from '~~/utils/federation/relay';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 export default defineEventHandler(async (event) => {
-  await requireAdminSession(event);
+  // Owner, not admin: cutting a link is the other half of making one.
+  await requireOwnerSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
   const peerId = getRouterParam(event, 'id');
   if (!peerId) throw createError({ statusCode: 400, message: 'Missing peer id' });

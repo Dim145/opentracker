@@ -226,13 +226,13 @@ function formatDate(iso: string): string {
   color: rgb(var(--fg-strong));
 }
 .queue-head-title {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 
 /* ── Segmented filter ─────────────────────────────────── */
@@ -242,7 +242,7 @@ function formatDate(iso: string): string {
   padding: 4px;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 .queue-segment {
   --s: 161 161 161;
@@ -252,18 +252,18 @@ function formatDate(iso: string): string {
   background: transparent;
   border: 1px solid transparent;
   padding: 0.4rem 0.7rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   transition:
-    background 140ms ease,
-    color 140ms ease,
-    border-color 140ms ease;
+    background var(--dur-2) ease,
+    color var(--dur-2) ease,
+    border-color var(--dur-2) ease;
 }
 .queue-segment--pending           { --s: 234 179 8; }
 .queue-segment--changes_requested { --s: 56 189 248; }
@@ -282,17 +282,17 @@ function formatDate(iso: string): string {
 .queue-segment-dot {
   width: 7px;
   height: 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--s));
   box-shadow: 0 0 0 3px rgb(var(--s) / 0.2);
 }
 .queue-segment-count {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   background: rgb(var(--s) / 0.18);
   color: rgb(var(--s));
   padding: 0.05rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--s) / 0.35);
   font-weight: 700;
   min-width: 20px;
@@ -306,7 +306,7 @@ function formatDate(iso: string): string {
 
 /* ── Intro paragraph ──────────────────────────────────── */
 .queue-intro {
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   color: rgb(var(--fg-muted));
   line-height: 1.65;
   margin: 0 0 1.25rem;
@@ -318,12 +318,12 @@ function formatDate(iso: string): string {
 .queue-intro-pip {
   display: inline-flex;
   align-items: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   padding: 0.05rem 0.45rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid;
 }
 .queue-intro-pip--pending {
@@ -352,19 +352,19 @@ function formatDate(iso: string): string {
   gap: 0.5rem;
   padding: 3rem 1rem;
   color: rgb(var(--fg-muted));
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .queue-empty-glyph { font-size: 2rem; color: rgb(34 197 94); }
 .queue-empty-text {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.22em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   margin: 0;
 }
-.queue-empty-help { font-size: 12px; color: rgb(var(--fg-muted)); margin: 0; }
+.queue-empty-help { font-size: 0.75rem; color: rgb(var(--fg-muted)); margin: 0; }
 
 /* ── Rows ─────────────────────────────────────────────── */
 .queue-list {
@@ -386,9 +386,9 @@ function formatDate(iso: string): string {
     linear-gradient(90deg, rgb(var(--r) / 0.06) 0%, transparent 30%),
     rgb(var(--bg-elevated));
   border-left: 4px solid rgb(var(--r));
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   position: relative;
-  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+  transition: background var(--dur-2) ease, border-color var(--dur-2) ease, transform var(--dur-2) ease;
 }
 .queue-row:hover {
   border-color: rgb(var(--r) / 0.5);
@@ -404,8 +404,8 @@ function formatDate(iso: string): string {
 .queue-row-name {
   grid-row: 1;
   grid-column: 1;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13.5px;
+  font-family: var(--font-mono);
+  font-size: 0.8438rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   text-decoration: none;
@@ -430,7 +430,7 @@ function formatDate(iso: string): string {
   flex-wrap: wrap;
   gap: 0.25rem 1.25rem;
   margin: 0;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .queue-row-meta > div {
   display: inline-flex;
@@ -438,9 +438,9 @@ function formatDate(iso: string): string {
   gap: 0.4rem;
 }
 .queue-row-meta dt {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   font-weight: 700;
@@ -448,7 +448,7 @@ function formatDate(iso: string): string {
 .queue-row-meta dd {
   margin: 0;
   color: rgb(var(--fg-default));
-  font-size: 11.5px;
+  font-size: 0.7188rem;
 }
 .queue-meta-soft { color: rgb(var(--fg-subtle)); }
 .queue-link {
@@ -483,16 +483,16 @@ function formatDate(iso: string): string {
     width: 32px;
     height: 32px;
     align-self: center;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     background: rgb(var(--bg-base));
     color: rgb(var(--r));
     border: 1px solid rgb(var(--r) / 0.3);
     text-decoration: none;
     transition:
-      background 140ms ease,
-      transform 140ms ease,
-      color 140ms ease,
-      border-color 140ms ease;
+      background var(--dur-2) ease,
+      transform var(--dur-2) ease,
+      color var(--dur-2) ease,
+      border-color var(--dur-2) ease;
   }
   .queue-row-cta:hover {
     background: rgb(var(--r) / 0.16);

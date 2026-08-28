@@ -297,7 +297,8 @@ async function submit() {
   max-width: 760px;
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
-  --brass: 212 167 52;
+  /* Exactly `--accent-warm`, so it follows the theme now. */
+  --brass: var(--accent-warm);
   --brass-deep: 158 113 31;
   --danger: 244 63 94;
 }
@@ -343,14 +344,14 @@ async function submit() {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  transition: color 0.15s, transform 0.2s;
+  transition: color var(--dur-2), transform var(--dur-4);
 }
 .filing-back:hover {
   color: rgb(var(--brass));
@@ -363,24 +364,24 @@ async function submit() {
   align-items: center;
   gap: 0.55rem;
   margin: 0 0 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass));
 }
 .filing-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 0;
   transform: translateY(2px);
   filter: drop-shadow(0 0 8px rgb(var(--brass) / 0.4));
 }
 .filing-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: clamp(1.8rem, 4vw, 2.5rem);
@@ -390,7 +391,7 @@ async function submit() {
 .filing-intro {
   margin: 0.6rem 0 0;
   max-width: 58ch;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -410,7 +411,7 @@ async function submit() {
     linear-gradient(180deg, rgba(255,255,255,0.025), transparent 50%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .filing-section-head {
   display: flex;
@@ -418,31 +419,31 @@ async function submit() {
   gap: 0.6rem;
 }
 .filing-section-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   color: rgb(var(--brass));
   padding: 0.18rem 0.45rem;
   border: 1px solid rgb(var(--brass) / 0.4);
-  border-radius: 0.22rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--brass) / 0.08);
 }
 .filing-section-title {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
 .filing-section-optional {
   margin-left: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -465,15 +466,15 @@ async function submit() {
   padding: 0.55rem 0.7rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   color: rgb(var(--fg-muted));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.15s, background 0.18s, border-color 0.18s, transform 0.18s;
+  transition: color var(--dur-2), background var(--dur-3), border-color var(--dur-3), transform var(--dur-3);
 }
 .filing-cat-chip:hover {
   color: rgb(var(--fg-strong));
@@ -487,7 +488,7 @@ async function submit() {
   box-shadow: inset 0 0 0 1px rgb(var(--brass) / 0.3);
 }
 .filing-cat-chip--sub {
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   padding: 0.42rem 0.6rem;
 }
 .filing-cat-chip > svg { font-size: 0.95rem; }
@@ -497,7 +498,7 @@ async function submit() {
   justify-content: center;
   padding: 1.5rem 0;
 }
-.loader-spin { font-size: 1.2rem; animation: spin 0.9s linear infinite; }
+.loader-spin { font-size: 1.2rem; animation: spin calc(0.9s * var(--motion-scale)) linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .filing-input,
@@ -506,12 +507,12 @@ async function submit() {
   padding: 0.65rem 0.85rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
   line-height: 1.5;
-  transition: border-color 0.18s, box-shadow 0.18s;
+  transition: border-color var(--dur-3), box-shadow var(--dur-3);
 }
 .filing-textarea { resize: vertical; min-height: 120px; }
 .filing-input:focus,
@@ -522,9 +523,9 @@ async function submit() {
 }
 .filing-counter {
   align-self: flex-end;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.05em;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 
@@ -546,7 +547,7 @@ async function submit() {
 .filing-reward-mark {
   position: absolute;
   left: 0.85rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 1.05rem;
   font-weight: 900;
   color: rgb(var(--brass));
@@ -555,9 +556,9 @@ async function submit() {
 .filing-reward-input .filing-input {
   padding-left: 2.1rem;
   padding-right: 3rem;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--brass));
   background:
     linear-gradient(180deg, rgb(var(--brass) / 0.08), transparent 70%),
@@ -567,10 +568,10 @@ async function submit() {
 .filing-reward-unit {
   position: absolute;
   right: 0.85rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass) / 0.7);
   pointer-events: none;
@@ -582,7 +583,7 @@ async function submit() {
   padding: 0.7rem 0.85rem;
   background: rgb(var(--bg-base));
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
 }
 .filing-balance-row {
   display: flex;
@@ -591,16 +592,16 @@ async function submit() {
   gap: 0.5rem;
 }
 .filing-balance-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
 .filing-balance-value {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
   font-weight: 800;
   color: rgb(var(--fg-default));
 }
@@ -615,7 +616,7 @@ async function submit() {
   display: inline-flex;
   align-items: flex-start;
   gap: 0.4rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.45;
   color: rgb(var(--fg-muted));
 }
@@ -636,16 +637,16 @@ async function submit() {
   padding: 0.65rem 1.2rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.2s;
+  transition: background var(--dur-3), border-color var(--dur-3), color var(--dur-3), transform var(--dur-4);
 }
 .filing-btn--ghost:hover {
   border-color: rgb(var(--fg-default) / 0.4);

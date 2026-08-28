@@ -1408,7 +1408,7 @@ function formatDuration(seconds: number) {
 /* ─── Hero ──────────────────────────────────────────────────── */
 .hero {
   position: relative;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-xl);
   overflow: hidden;
   background:
     radial-gradient(
@@ -1466,22 +1466,22 @@ function formatDuration(seconds: number) {
   position: relative;
   width: 5rem;
   height: 5rem;
-  border-radius: 0.7rem;
+  border-radius: var(--radius-xl);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 1.85rem;
   font-weight: 900;
-  letter-spacing: -0.04em;
+  letter-spacing: calc(-0.04em * var(--tracking-scale));
   color: rgba(255, 255, 255, 0.95);
   flex-shrink: 0;
   isolation: isolate;
   box-shadow:
-    0 14px 38px -16px rgba(0, 0, 0, 0.7),
+    0 14px 38px -16px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
     inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    inset 0 -20px 30px -16px rgba(0, 0, 0, 0.35);
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    inset 0 -20px 30px -16px rgb(var(--shadow-color) / calc(0.35 * var(--shadow-strength)));
+  text-shadow: 0 2px 6px rgb(var(--shadow-color) / calc(0.35 * var(--shadow-strength)));
 }
 .hero-avatar::after {
   /* Diagonal sheen — gives the gradient block a soft-lit glass card
@@ -1507,18 +1507,18 @@ function formatDuration(seconds: number) {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--release-cyan));
   margin: 0;
 }
 .hero-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0;
   color: rgb(var(--release-cyan));
@@ -1527,10 +1527,10 @@ function formatDuration(seconds: number) {
   filter: drop-shadow(0 0 8px rgb(var(--release-cyan) / 0.4));
 }
 .hero-title {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: clamp(1.75rem, 4vw, 2.75rem);
   font-weight: 800;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   margin: 0;
   line-height: 1.05;
   color: rgb(var(--fg-strong));
@@ -1538,9 +1538,9 @@ function formatDuration(seconds: number) {
   text-wrap: pretty;
 }
 .hero-handle {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   margin: 0;
 }
@@ -1564,19 +1564,19 @@ function formatDuration(seconds: number) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.3rem 0.7rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
 }
 .hero-pill--mono {
   text-transform: none;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .hero-pill--soft {
   color: rgb(var(--fg-muted));
@@ -1618,13 +1618,13 @@ function formatDuration(seconds: number) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.65rem 1rem;
-  border-radius: 9999px;
-  font-size: 11px;
+  border-radius: var(--radius-pill);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .hero-btn--primary {
   background: rgb(var(--fg-strong));
@@ -1657,7 +1657,7 @@ function formatDuration(seconds: number) {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
   border-top: 1px solid rgb(var(--line-default));
-  border-radius: 0 0 0.6rem 0.6rem;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
   margin-left: -2rem;
   margin-right: -2rem;
   margin-bottom: -1.75rem;
@@ -1695,25 +1695,25 @@ function formatDuration(seconds: number) {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .kpi-value {
   font-size: clamp(1.4rem, 2.8vw, 1.85rem);
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1;
   color: rgb(var(--fg-strong));
   font-variant-numeric: tabular-nums;
 }
 .kpi-sub {
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 /* Second sub-line — coin tone, used for the "(of which X bonus)"
    breakdown on the Uploaded KPI. Reads as derived data, not as a
@@ -1728,10 +1728,10 @@ function formatDuration(seconds: number) {
      independent stats — the parent `.kpi` flex gap is wider than
      we want here. */
   margin-top: -0.25rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  letter-spacing: 0.02em;
-  color: #d4a734;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
+  color: rgb(var(--accent-warm));
 }
 .kpi-sub-icon {
   font-size: 0.85em;
@@ -1767,14 +1767,14 @@ function formatDuration(seconds: number) {
   align-items: baseline;
   gap: 0.32rem;
   font-size: clamp(1.05rem, 2vw, 1.35rem);
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .kpi-value-unit {
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 500;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1784,21 +1784,21 @@ function formatDuration(seconds: number) {
   gap: 0.25rem;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  letter-spacing: 0.1em;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
   text-transform: uppercase;
-  transition: color 0.16s ease, gap 0.2s ease;
+  transition: color var(--dur-2) ease, gap var(--dur-4) ease;
 }
 .kpi-sub--link:hover {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   gap: 0.4rem;
 }
 .kpi-sub--link :deep(svg),
 .kpi-sub--link svg {
   font-size: 0.85em;
-  transition: transform 0.2s;
+  transition: transform var(--dur-4);
 }
 .kpi-sub--link:hover :deep(svg),
 .kpi-sub--link:hover svg {
@@ -1820,7 +1820,7 @@ function formatDuration(seconds: number) {
   padding-bottom: 0.4rem;
 }
 .section-number {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.85rem;
@@ -1834,11 +1834,11 @@ function formatDuration(seconds: number) {
   filter: drop-shadow(0 0 10px rgb(var(--section-tint, var(--accent)) / 0.35));
 }
 .section-title {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: clamp(1.15rem, 2.2vw, 1.55rem);
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   text-transform: none;
   color: rgb(var(--fg-strong));
   margin: 0;
@@ -1891,37 +1891,37 @@ function formatDuration(seconds: number) {
   width: 100%;
   padding: 0.7rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-elevated));
   font: inherit;
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.16s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-2) ease;
 }
 .bonus-history-toggle:hover {
-  border-color: rgb(212, 167, 52, 0.45);
+  border-color: rgb(var(--accent-warm) / 0.45);
   background: rgb(var(--fg-default) / 0.03);
 }
 .bonus-history-toggle:focus-visible {
-  outline: 2px solid rgb(212, 167, 52, 0.55);
+  outline: 2px solid rgb(var(--accent-warm) / 0.55);
   outline-offset: -2px;
 }
 .bonus-history-toggle--open {
-  border-color: rgb(212, 167, 52, 0.6);
+  border-color: rgb(var(--accent-warm) / 0.6);
 }
 
 .bv-trigger-icon {
   flex-shrink: 0;
   font-size: 1.05rem;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .bv-trigger-label {
   flex-shrink: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1951,14 +1951,14 @@ function formatDuration(seconds: number) {
   flex-shrink: 0;
   font-size: 0.95rem;
   color: rgb(var(--fg-muted));
-  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), color 0.16s ease;
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), color var(--dur-2) ease;
 }
 .bonus-history-toggle:hover .bonus-chevron {
   color: rgb(var(--fg-strong));
 }
 .bonus-chevron--open {
   transform: rotate(-180deg);
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 /* ─── Bonus transaction ledger (expandable) ────────────────────
@@ -1976,7 +1976,7 @@ function formatDuration(seconds: number) {
   margin-top: 0.65rem;
   padding: 1rem 1rem 1.1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-elevated) / 0.4);
   position: relative;
   overflow: hidden;
@@ -1991,9 +1991,9 @@ function formatDuration(seconds: number) {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.4) 0%,
-    rgba(212, 167, 52, 0.1) 60%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.4) 0%,
+    rgb(var(--accent-warm) / 0.1) 60%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 
@@ -2002,8 +2002,8 @@ function formatDuration(seconds: number) {
    the actual panel height is content-driven. */
 .bv-panel-enter-active,
 .bv-panel-leave-active {
-  transition: max-height 0.32s ease, opacity 0.22s ease,
-    margin-top 0.22s ease;
+  transition: max-height 0.32s ease, opacity var(--dur-4) ease,
+    margin-top var(--dur-4) ease;
   overflow: hidden;
 }
 .bv-panel-enter-from,
@@ -2029,7 +2029,7 @@ function formatDuration(seconds: number) {
   margin-bottom: 0.85rem;
 }
 .bv-head-num {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.25rem;
@@ -2049,11 +2049,11 @@ function formatDuration(seconds: number) {
 }
 .bv-head-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: 1rem;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   text-transform: none;
   color: rgb(var(--fg-strong));
 }
@@ -2066,14 +2066,14 @@ function formatDuration(seconds: number) {
   justify-content: center;
   gap: 0.55rem;
   padding: 1.25rem 1rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .bv-loading-spin {
-  animation: bv-spin 0.9s linear infinite;
+  animation: bv-spin calc(0.9s * var(--motion-scale)) linear infinite;
   color: rgb(var(--fg-muted));
 }
 @keyframes bv-spin {
@@ -2085,8 +2085,8 @@ function formatDuration(seconds: number) {
 .bv-empty {
   font-style: italic;
   text-transform: none;
-  letter-spacing: 0.02em;
-  font-size: 12px;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
+  font-size: 0.75rem;
   color: rgb(var(--fg-faint));
 }
 .bv-empty svg {
@@ -2102,7 +2102,7 @@ function formatDuration(seconds: number) {
   gap: 1px;
   background: rgb(var(--line-default));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -2121,14 +2121,14 @@ function formatDuration(seconds: number) {
   align-items: center;
   padding: 0.65rem 0.9rem;
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   /* Stagger entry — each row arrives ~30ms after the previous so the
      panel feels like it's being typed in. Caps via a class-bound max
      so a 100-row ledger doesn't take 3s to settle. */
-  animation: bv-row-in 0.28s ease both;
-  animation-delay: calc(var(--row-i, 0) * 24ms);
-  transition: background 0.14s ease, transform 0.14s ease;
+  animation: bv-row-in calc(0.28s * var(--motion-scale)) ease both;
+  animation-delay: calc(var(--row-i, 0) * calc(24ms * var(--motion-scale)));
+  transition: background var(--dur-2) ease, transform var(--dur-2) ease;
   position: relative;
 }
 .bv-row:hover {
@@ -2148,7 +2148,7 @@ function formatDuration(seconds: number) {
   background: rgb(var(--online));
 }
 .bv-row--spend::before {
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 @keyframes bv-row-in {
   from { opacity: 0; transform: translateY(4px); }
@@ -2158,8 +2158,8 @@ function formatDuration(seconds: number) {
 .bv-time {
   color: rgb(var(--fg-faint));
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
-  letter-spacing: 0.02em;
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   white-space: nowrap;
 }
 
@@ -2170,10 +2170,10 @@ function formatDuration(seconds: number) {
   align-items: center;
   gap: 0.3rem;
   padding: 0.18rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 9px;
+  border-radius: var(--radius-pill);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid;
   white-space: nowrap;
@@ -2184,18 +2184,18 @@ function formatDuration(seconds: number) {
   background: rgb(var(--online) / 0.08);
 }
 .bv-tag--spend {
-  color: #d4a734;
-  border-color: rgba(212, 167, 52, 0.4);
-  background: rgba(212, 167, 52, 0.08);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.4);
+  background: rgb(var(--accent-warm) / 0.08);
 }
 .bv-tag svg {
-  font-size: 9px;
+  font-size: 0.5625rem;
 }
 
 .bv-source {
   color: rgb(var(--fg-default));
   font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2217,11 +2217,11 @@ function formatDuration(seconds: number) {
 .bv-amount-num {
   font-size: 1rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .bv-amount-unit {
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2229,7 +2229,7 @@ function formatDuration(seconds: number) {
   color: rgb(var(--online));
 }
 .bv-amount--spend {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 /* Free-text note — when present it slips onto a second line of the
@@ -2241,9 +2241,9 @@ function formatDuration(seconds: number) {
   padding-top: 0.4rem;
   border-top: 1px dashed rgb(var(--line-default));
   font-style: italic;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   letter-spacing: 0;
   /* Truncate to a reasonable upper bound — admins occasionally write
      paragraph-long reasons; we want the bar to stay within the ledger
@@ -2266,15 +2266,15 @@ function formatDuration(seconds: number) {
   padding: 0.5rem 0.95rem;
   background: transparent;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .bv-more:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.5);
@@ -2299,7 +2299,7 @@ function formatDuration(seconds: number) {
   .bv-amount { grid-area: amount; }
   .bv-source {
     grid-area: src;
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: rgb(var(--fg-muted));
   }
   .bv-msg {
@@ -2325,7 +2325,7 @@ function formatDuration(seconds: number) {
   padding: 1rem 1.1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .cred-head {
   display: flex;
@@ -2334,10 +2334,10 @@ function formatDuration(seconds: number) {
   gap: 0.5rem;
 }
 .cred-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2352,11 +2352,11 @@ function formatDuration(seconds: number) {
   justify-content: center;
   width: 1.85rem;
   height: 1.85rem;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .cred-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));
@@ -2372,20 +2372,20 @@ function formatDuration(seconds: number) {
   background: rgb(var(--danger) / 0.08);
 }
 .cred-value {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   color: #6cd161;
   word-break: break-all;
   user-select: all;
   padding: 0.6rem 0.75rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
 }
 .cred-note {
   margin: 0;
-  font-size: 11px;
+  font-size: 0.6875rem;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -2412,7 +2412,7 @@ function formatDuration(seconds: number) {
   padding: 0.4rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   align-self: flex-start;
 }
 .tab {
@@ -2420,13 +2420,13 @@ function formatDuration(seconds: number) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.95rem;
-  border-radius: 9999px;
-  font-size: 11px;
+  border-radius: var(--radius-pill);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
   border: 1px solid transparent;
 }
 .tab:hover:not(.tab--active) {
@@ -2444,10 +2444,10 @@ function formatDuration(seconds: number) {
   min-width: 1.4rem;
   height: 1.4rem;
   padding: 0 0.4rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  font-size: 9.5px;
+  font-size: 0.5938rem;
 }
 .tab--active .tab-count {
   background: rgb(var(--bg-base));
@@ -2461,7 +2461,7 @@ function formatDuration(seconds: number) {
   gap: 1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.6rem;
+  border-radius: var(--radius-xl);
   padding: 1rem 1rem 1.25rem;
   min-height: 12rem;
 }
@@ -2496,14 +2496,14 @@ function formatDuration(seconds: number) {
   gap: 0.4rem;
   margin-top: 0.5rem;
   padding: 0.55rem 0.95rem;
-  border-radius: 9999px;
-  font-size: 11px;
+  border-radius: var(--radius-pill);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   background: rgb(var(--fg-strong));
   color: rgb(var(--bg-base));
-  transition: filter 0.15s;
+  transition: filter var(--dur-2);
 }
 .panel-empty-link:hover {
   filter: brightness(0.92);
@@ -2520,15 +2520,15 @@ function formatDuration(seconds: number) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.7rem;
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .subtab:hover {
   color: rgb(var(--fg-strong));
@@ -2540,8 +2540,8 @@ function formatDuration(seconds: number) {
   border-color: rgb(var(--fg-strong));
 }
 .subtab-count {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
 }
 
@@ -2562,8 +2562,8 @@ function formatDuration(seconds: number) {
   padding: 0.85rem 1rem;
   background: rgb(var(--bg-base) / 0.5);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
-  transition: all 0.12s;
+  border-radius: var(--radius-lg);
+  transition: all var(--dur-1);
 }
 /* Below sm, the row reflows to two stacked sections so the progress bar
    doesn't fight the torrent name + meta + chevron for ~120 px of usable
@@ -2595,7 +2595,7 @@ function formatDuration(seconds: number) {
   justify-content: center;
   width: 2.4rem;
   height: 2.4rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   color: rgb(var(--fg-muted));
@@ -2624,7 +2624,7 @@ function formatDuration(seconds: number) {
   min-width: 0;
 }
 .row-name {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.82rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -2648,18 +2648,18 @@ function formatDuration(seconds: number) {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
 .row-tag {
   padding: 0.1rem 0.4rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   color: rgb(var(--fg-default));
-  letter-spacing: 0.04em;
-  font-size: 10px;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
+  font-size: 0.625rem;
   text-transform: uppercase;
   font-weight: 700;
 }
@@ -2680,7 +2680,7 @@ function formatDuration(seconds: number) {
 }
 .row-age {
   margin-left: auto;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
 }
 .row-progress {
   display: inline-flex;
@@ -2704,7 +2704,7 @@ function formatDuration(seconds: number) {
   position: relative;
   flex: 1;
   height: 0.4rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   overflow: hidden;
@@ -2712,8 +2712,8 @@ function formatDuration(seconds: number) {
 .row-progress-fill {
   display: block;
   height: 100%;
-  border-radius: 9999px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-pill);
+  transition: width var(--dur-slow) ease;
 }
 .row-progress-fill.tone-great {
   background: #6cd161;
@@ -2728,9 +2728,9 @@ function formatDuration(seconds: number) {
   background: rgb(var(--danger));
 }
 .row-progress-text {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   white-space: nowrap;
 }
@@ -2742,10 +2742,10 @@ function formatDuration(seconds: number) {
   display: inline-flex;
   align-items: center;
   padding: 0.15rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
@@ -2780,11 +2780,11 @@ function formatDuration(seconds: number) {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .row-action:hover {
   color: rgb(var(--fg-strong));
@@ -2803,9 +2803,9 @@ function formatDuration(seconds: number) {
   border-top: 1px solid rgb(var(--line-default));
 }
 .panel-pager-summary {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .panel-pager-summary strong {
@@ -2822,14 +2822,14 @@ function formatDuration(seconds: number) {
   gap: 0.25rem;
   padding: 0.4rem 0.8rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .panel-pager-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));

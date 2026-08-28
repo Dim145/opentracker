@@ -35,7 +35,18 @@ COPY packages/shared ./packages/shared
 # sources through the bundler; now the web build transforms them and
 # resolves the tsconfig chain, which dies without the base.
 COPY tsconfig.base.json ./
-RUN pnpm --filter @trackarr/web build
+# `--mount=type=cache` on the font cache, and it is not a speed optimisation.
+# `@nuxt/fonts` fetches each family's metadata from Google at build time, and a
+# machine that rebuilds this image repeatedly gets tarpitted: measured here as
+# `ETIMEDOUT` on every request while an ordinary container reached the same URL
+# in 0.2 s. The cache means a rebuild refetches nothing, which turns the failure
+# mode from "the build breaks" into "the first build of the day is the only one
+# that needs Google".
+#
+# It does not help a cold CI runner. If a release pipeline cannot tolerate a
+# retry, switch the families to `provider: 'local'` — see apps/web/nuxt.config.ts.
+RUN --mount=type=cache,target=/app/node_modules/.cache/nuxt,sharing=locked \
+    pnpm --filter @trackarr/web build
 
 # -----------------------------------------------------------------------------
 # Final runtime — distroless nonroot

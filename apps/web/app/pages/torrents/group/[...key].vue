@@ -223,7 +223,7 @@ useHead(() => ({ title: title.value }));
   align-items: center;
   gap: 0.4rem;
   font-size: 0.6875rem;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-bottom: 1.5rem;
@@ -256,7 +256,7 @@ useHead(() => ({ title: title.value }));
 .group-poster {
   margin: 0;
   aspect-ratio: 2 / 3;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
@@ -278,7 +278,7 @@ useHead(() => ({ title: title.value }));
     rgb(var(--bg-elevated)) 70%
   );
   background-size: 300% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
+  animation: shimmer calc(1.4s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes shimmer {
   to {
@@ -304,25 +304,25 @@ useHead(() => ({ title: title.value }));
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .group-src--tmdb {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 .group-title {
   margin: 0;
   font-size: clamp(1.4rem, 3vw, 2rem);
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .group-title--mono {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: clamp(0.8rem, 1.6vw, 1.1rem);
   line-height: 1.5;
   letter-spacing: 0;
@@ -331,7 +331,7 @@ useHead(() => ({ title: title.value }));
 }
 
 .group-year {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   font-weight: 400;
   color: rgb(var(--fg-faint));
@@ -356,7 +356,7 @@ useHead(() => ({ title: title.value }));
   font-weight: 600;
 }
 .metric.mono {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
 }
 .metric-sep {
@@ -388,12 +388,12 @@ useHead(() => ({ title: title.value }));
   font-size: 0.6875rem;
   font-weight: 500;
   padding: 3px 9px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   border: 1px solid rgb(var(--line-strong));
   background: transparent;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+  transition: border-color var(--dur-1) ease, color var(--dur-1) ease, background-color var(--dur-1) ease;
 }
 .group-scope:hover {
   color: rgb(var(--fg-default));
@@ -407,7 +407,7 @@ useHead(() => ({ title: title.value }));
 
 .group-tree {
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 

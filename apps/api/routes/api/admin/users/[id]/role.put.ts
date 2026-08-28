@@ -39,10 +39,31 @@ export default defineEventHandler(async (event) => {
 
   const target = await db.query.users.findFirst({
     where: eq(schema.users.id, id),
-    columns: { id: true, isAdmin: true, isModerator: true },
+    columns: { id: true, isAdmin: true, isModerator: true, isOwner: true },
   });
   if (!target) {
     throw createError({ statusCode: 404, message: 'User not found' });
+  }
+
+  // The owner cannot be demoted by somebody else, and this is a security guard
+  // rather than a courtesy.
+  //
+  // Ownership falls to the oldest eligible admin when the holder can no longer
+  // act (see `utils/owner.ts`). If an admin could quietly clear the owner's
+  // `is_admin`, that fallback becomes an escalation path: demote the owner,
+  // ownership lands on the oldest remaining admin, and on a small staff that is
+  // very often the person who just did it. No log entry says "seized", because
+  // from the outside it is two ordinary role changes.
+  //
+  // The staff are not left without recourse over a rogue owner: banning still
+  // moves ownership, and a ban is heavier, notified and attributed. What is
+  // removed is only the quiet version.
+  if (target.isOwner && !body.isAdmin) {
+    throw createError({
+      statusCode: 400,
+      message:
+        'The instance owner cannot be demoted. They must transfer ownership first.',
+    });
   }
 
   // Self-demote guard — an admin can't lose their own admin bit via

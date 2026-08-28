@@ -75,9 +75,9 @@ const rendered = computed(() => toEditorHtml(props.source));
 }
 .description-render pre {
   background: rgb(var(--bg-inset, var(--bg-elevated)));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   padding: 0.75rem;
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   overflow-x: auto;
   margin: 0.75rem 0;
@@ -85,8 +85,8 @@ const rendered = computed(() => toEditorHtml(props.source));
 .description-render code {
   background: rgb(var(--bg-inset, var(--bg-elevated)));
   padding: 0 0.25rem;
-  border-radius: 0.25rem;
-  font-family: ui-monospace, monospace;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
   font-size: 0.85em;
 }
 .description-render hr {

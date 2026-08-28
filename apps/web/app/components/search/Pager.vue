@@ -97,15 +97,15 @@ const window = computed<number[]>(() => {
   min-width: 2rem;
   height: 2rem;
   padding: 0 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 600;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .pager-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));

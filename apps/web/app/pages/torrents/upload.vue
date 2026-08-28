@@ -1251,10 +1251,10 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   gap: 0.5rem;
   padding: 2.5rem 1.5rem;
   border: 1.5px dashed rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-surface) / 0.4);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .drop-zone:hover,
 .drop-zone--dragging {
@@ -1276,7 +1276,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
 .drop-icon {
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   display: inline-flex;
@@ -1295,13 +1295,13 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   font-weight: 700;
   color: rgb(var(--fg-strong));
   margin: 0;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 .drop-headline code {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   padding: 0 0.3rem;
   font-size: 0.75em;
 }
@@ -1314,16 +1314,16 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   gap: 0.4rem;
 }
 .drop-clear {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   padding: 0.1rem 0.5rem;
   margin-left: 0.5rem;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .drop-clear:hover {
   color: rgb(var(--fg-strong));
@@ -1342,16 +1342,16 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   font-weight: 600;
 }
 .drop-mini-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
 }
 
 /* ─── Field hint + required marker ──────────────────────────── */
 .field-hint {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: none;
   color: rgb(var(--fg-muted));
   margin-left: 0.5rem;
@@ -1431,7 +1431,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   gap: 0.6rem;
   font-size: 0.75rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .aside-progress li.done {
   color: #6cd161;
@@ -1449,7 +1449,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   padding: 2rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -1481,7 +1481,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   padding: 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.375rem;
+  border-radius: var(--radius-md);
   margin: 0;
 }
 .result-meta div {
@@ -1491,9 +1491,9 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   gap: 1rem;
 }
 .result-meta dt {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin: 0;
@@ -1506,8 +1506,8 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   font-weight: 600;
 }
 .result-meta code {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
 }
 .result-actions {
   display: flex;
@@ -1523,15 +1523,15 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.85rem;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px dashed rgb(var(--line-default));
   background: transparent;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .result-link:hover {
   color: rgb(var(--fg-strong));

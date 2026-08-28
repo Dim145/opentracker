@@ -379,9 +379,10 @@ function onBalanceFromPool(value: number) {
   /* Editorial serif inherited by item names; everything else
      stays on the system sans stack. The fallback chain hits a
      pleasant serif on every OS without forcing a webfont. */
-  --font-serif: 'Iowan Old Style', 'Palatino Linotype', 'Palatino',
-    'Bitstream Vera Serif', 'Liberation Serif', 'P052', Georgia,
-    'Times New Roman', serif;
+  /* `--font-serif` is gone: it named 'Iowan Old Style' and 'Palatino
+     Linotype', neither of which this application ships, and shadowed the
+     theme's display face for the whole page. The usages below read
+     `--font-display` instead. */
 }
 
 /* Atmospheric backdrop — two warm gold haloes plus a faint grain
@@ -402,8 +403,8 @@ function onBalanceFromPool(value: number) {
   opacity: 0.12;
   background: radial-gradient(
     circle at center,
-    rgba(212, 167, 52, 0.7) 0%,
-    rgba(212, 167, 52, 0) 70%
+    rgb(var(--accent-warm) / 0.7) 0%,
+    rgb(var(--accent-warm) / 0) 70%
   );
 }
 .shop-bg-glow--top {
@@ -430,17 +431,17 @@ function onBalanceFromPool(value: number) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  transition: color 0.16s ease, transform 0.18s ease;
+  transition: color var(--dur-2) ease, transform var(--dur-3) ease;
 }
 .back-link:hover {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   transform: translateX(-2px);
 }
 
@@ -460,7 +461,7 @@ function onBalanceFromPool(value: number) {
   align-items: end;
   margin: 1.75rem 0 3.5rem;
   padding-bottom: 2rem;
-  border-bottom: 1px solid rgba(212, 167, 52, 0.18);
+  border-bottom: 1px solid rgb(var(--accent-warm) / 0.18);
   position: relative;
 }
 .hero::after {
@@ -474,8 +475,8 @@ function onBalanceFromPool(value: number) {
   height: 1px;
   background: linear-gradient(
     to right,
-    #d4a734 0%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm)) 0%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 @media (max-width: 720px) {
@@ -490,26 +491,26 @@ function onBalanceFromPool(value: number) {
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.32em;
+  letter-spacing: calc(0.32em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   margin-bottom: 1.1rem;
 }
 .hero-eyebrow-rule {
   display: inline-block;
   width: 28px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 
 .hero-title {
   margin: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   line-height: 0.95;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .hero-title-main {
@@ -523,7 +524,7 @@ function onBalanceFromPool(value: number) {
   font-size: clamp(2.4rem, 6vw, 4rem);
   font-weight: 400;
   font-style: italic;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   margin-top: 0.05em;
 }
 
@@ -543,16 +544,16 @@ function onBalanceFromPool(value: number) {
   padding: 1.4rem 1.6rem 1.5rem;
   background: linear-gradient(
     180deg,
-    rgba(212, 167, 52, 0.04) 0%,
+    rgb(var(--accent-warm) / 0.04) 0%,
     rgb(var(--bg-elevated)) 80%
   );
-  border: 1px solid rgba(212, 167, 52, 0.25);
+  border: 1px solid rgb(var(--accent-warm) / 0.25);
 }
 .balance-corner {
   position: absolute;
   width: 14px;
   height: 14px;
-  border: 1px solid #d4a734;
+  border: 1px solid rgb(var(--accent-warm));
   pointer-events: none;
 }
 .balance-corner--tl {
@@ -582,10 +583,10 @@ function onBalanceFromPool(value: number) {
 
 .balance-eyebrow {
   display: block;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-bottom: 0.55rem;
@@ -598,28 +599,28 @@ function onBalanceFromPool(value: number) {
 }
 .balance-coin {
   font-size: 1.9rem;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   /* Soft pulse so the coin feels alive without being annoying. */
-  animation: shop-coin-pulse 5s ease-in-out infinite;
+  animation: shop-coin-pulse calc(5s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes shop-coin-pulse {
-  0%, 100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 4px rgba(212, 167, 52, 0.3)); }
-  50%      { transform: rotate(-8deg) scale(1.05); filter: drop-shadow(0 0 10px rgba(212, 167, 52, 0.55)); }
+  0%, 100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 4px rgb(var(--accent-warm) / 0.3)); }
+  50%      { transform: rotate(-8deg) scale(1.05); filter: drop-shadow(0 0 10px rgb(var(--accent-warm) / 0.55)); }
 }
 .balance-num {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 2.2rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
 .balance-unit {
   display: block;
   margin-top: 0.45rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -629,10 +630,10 @@ function onBalanceFromPool(value: number) {
   position: relative;
   padding: 4rem 2rem;
   text-align: center;
-  border: 1px dashed rgba(212, 167, 52, 0.2);
+  border: 1px dashed rgb(var(--accent-warm) / 0.2);
   background: linear-gradient(
     180deg,
-    rgba(212, 167, 52, 0.02) 0%,
+    rgb(var(--accent-warm) / 0.02) 0%,
     rgb(var(--bg-elevated) / 0.4) 100%
   );
 }
@@ -640,7 +641,7 @@ function onBalanceFromPool(value: number) {
   position: absolute;
   width: 18px;
   height: 18px;
-  border: 1px solid rgba(212, 167, 52, 0.4);
+  border: 1px solid rgb(var(--accent-warm) / 0.4);
 }
 .empty-corner--tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
 .empty-corner--tr { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
@@ -649,12 +650,12 @@ function onBalanceFromPool(value: number) {
 
 .empty-icon {
   font-size: 3rem;
-  color: rgba(212, 167, 52, 0.5);
+  color: rgb(var(--accent-warm) / 0.5);
   margin-bottom: 1rem;
 }
 .empty-headline {
   margin: 0 0 0.6rem;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.4rem;
   font-style: italic;
   font-weight: 500;
@@ -702,9 +703,9 @@ function onBalanceFromPool(value: number) {
     rgb(var(--bg-surface) / 0.6) 100%
   );
   border: 1px solid rgb(var(--line-default));
-  transition: transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
-    border-color 0.22s ease, box-shadow 0.32s ease;
-  animation: piece-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: transform 0.32s var(--ease-standard),
+    border-color var(--dur-4) ease, box-shadow 0.32s ease;
+  animation: piece-in calc(0.5s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes piece-in {
@@ -719,9 +720,9 @@ function onBalanceFromPool(value: number) {
 }
 .piece:hover {
   transform: translateY(-3px);
-  border-color: rgba(212, 167, 52, 0.45);
-  box-shadow: 0 18px 32px -16px rgba(0, 0, 0, 0.7),
-    0 0 32px rgba(212, 167, 52, 0.08);
+  border-color: rgb(var(--accent-warm) / 0.45);
+  box-shadow: 0 18px 32px -16px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
+    0 0 32px rgb(var(--accent-warm) / 0.08);
 }
 
 /* Corner brackets — expand outward on hover. */
@@ -729,10 +730,10 @@ function onBalanceFromPool(value: number) {
   position: absolute;
   width: 16px;
   height: 16px;
-  border: 1px solid rgba(212, 167, 52, 0.45);
+  border: 1px solid rgb(var(--accent-warm) / 0.45);
   pointer-events: none;
-  transition: width 0.28s cubic-bezier(0.2, 0.7, 0.2, 1),
-    height 0.28s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.22s ease;
+  transition: width 0.28s var(--ease-standard),
+    height 0.28s var(--ease-standard), border-color var(--dur-4) ease;
 }
 .piece-corner--tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
 .piece-corner--tr { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
@@ -741,7 +742,7 @@ function onBalanceFromPool(value: number) {
 .piece:hover .piece-corner {
   width: 28px;
   height: 28px;
-  border-color: #d4a734;
+  border-color: rgb(var(--accent-warm));
 }
 
 .piece--locked { opacity: 0.55; }
@@ -751,7 +752,7 @@ function onBalanceFromPool(value: number) {
 }
 .piece--sold-out .piece-name {
   text-decoration: line-through;
-  text-decoration-color: rgba(212, 167, 52, 0.4);
+  text-decoration-color: rgb(var(--accent-warm) / 0.4);
 }
 
 /* Specimen header — catalogue number + edition badge */
@@ -762,10 +763,10 @@ function onBalanceFromPool(value: number) {
   gap: 0.5rem;
 }
 .piece-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   display: inline-flex;
@@ -780,23 +781,23 @@ function onBalanceFromPool(value: number) {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 0.25rem 0.55rem;
-  border: 1px solid rgba(212, 167, 52, 0.35);
-  border-radius: 999px;
-  color: #d4a734;
-  background: rgba(212, 167, 52, 0.05);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
+  border-radius: var(--radius-pill);
+  color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.05);
 }
 .piece-edition--rare {
   color: #ff6b6b;
   border-color: rgba(255, 107, 107, 0.5);
   background: rgba(255, 107, 107, 0.08);
   /* Subtle attention pulse on low-stock pieces. */
-  animation: piece-rare-pulse 2.4s ease-in-out infinite;
+  animation: piece-rare-pulse calc(2.4s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes piece-rare-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
@@ -817,8 +818,8 @@ function onBalanceFromPool(value: number) {
   border-radius: 50%;
   background: radial-gradient(
     circle at center,
-    rgba(212, 167, 52, 0.18) 0%,
-    rgba(212, 167, 52, 0.04) 60%,
+    rgb(var(--accent-warm) / 0.18) 0%,
+    rgb(var(--accent-warm) / 0.04) 60%,
     transparent 100%
   );
 }
@@ -826,9 +827,9 @@ function onBalanceFromPool(value: number) {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   opacity: 0;
-  transition: opacity 0.22s ease, transform 0.32s ease;
+  transition: opacity var(--dur-4) ease, transform 0.32s ease;
 }
 .piece:hover .piece-glyph-halo {
   opacity: 1;
@@ -836,20 +837,20 @@ function onBalanceFromPool(value: number) {
 }
 .piece-glyph-icon {
   font-size: 2.1rem;
-  color: #d4a734;
-  filter: drop-shadow(0 0 6px rgba(212, 167, 52, 0.35));
+  color: rgb(var(--accent-warm));
+  filter: drop-shadow(0 0 6px rgb(var(--accent-warm) / 0.35));
 }
 
 /* Name + description */
 .piece-name {
   margin: 0;
   text-align: center;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 500;
   font-style: italic;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   line-height: 1.2;
 }
 .piece-desc {
@@ -871,10 +872,10 @@ function onBalanceFromPool(value: number) {
   align-items: center;
   gap: 0.45rem;
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   text-transform: uppercase;
 }
@@ -882,13 +883,13 @@ function onBalanceFromPool(value: number) {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0) 0%,
-    rgba(212, 167, 52, 0.45) 50%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm) / 0.45) 50%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 .piece-effect-icon {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   font-size: 0.85rem;
 }
 
@@ -900,7 +901,7 @@ function onBalanceFromPool(value: number) {
   gap: 0.85rem;
   margin-top: auto;
   padding-top: 0.85rem;
-  border-top: 1px dashed rgba(212, 167, 52, 0.2);
+  border-top: 1px dashed rgb(var(--accent-warm) / 0.2);
 }
 .piece-cost {
   display: flex;
@@ -909,17 +910,17 @@ function onBalanceFromPool(value: number) {
   line-height: 1;
 }
 .piece-cost-num {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .piece-cost-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5313rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   margin-top: 0.2rem;
@@ -934,23 +935,23 @@ function onBalanceFromPool(value: number) {
   padding: 0.65rem 1.05rem;
   background: linear-gradient(
     180deg,
-    #e8b94e 0%,
-    #d4a734 50%,
-    #b88a22 100%
+    color-mix(in srgb, rgb(var(--accent-warm)) 82%, white) 0%,
+    rgb(var(--accent-warm)) 50%,
+    color-mix(in srgb, rgb(var(--accent-warm)) 86%, black) 100%
   );
-  color: #1a1a1a;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  color: rgb(var(--accent-warm-fg));
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   border: 0;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.22s ease,
-    opacity 0.18s ease;
-  box-shadow: 0 4px 12px -4px rgba(212, 167, 52, 0.45),
+  transition: transform var(--dur-3) ease, box-shadow var(--dur-4) ease,
+    opacity var(--dur-3) ease;
+  box-shadow: 0 4px 12px -4px rgb(var(--accent-warm) / 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 .acquire::before {
@@ -965,7 +966,7 @@ function onBalanceFromPool(value: number) {
     transparent 70%
   );
   transform: translateX(-100%);
-  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: transform calc(0.6s * var(--motion-scale)) var(--ease-standard);
   pointer-events: none;
 }
 .acquire:hover:not(:disabled)::before {
@@ -973,14 +974,14 @@ function onBalanceFromPool(value: number) {
 }
 .acquire:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px -4px rgba(212, 167, 52, 0.55),
+  box-shadow: 0 6px 18px -4px rgb(var(--accent-warm) / 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .acquire:active:not(:disabled) {
   /* "Stamping" feedback — squashes 2px on press. */
   transform: translateY(1px);
-  box-shadow: 0 2px 6px -2px rgba(212, 167, 52, 0.5),
-    inset 0 1px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px -2px rgb(var(--accent-warm) / 0.5),
+    inset 0 1px 2px rgb(var(--shadow-color) / calc(0.15 * var(--shadow-strength)));
 }
 .acquire:disabled {
   cursor: not-allowed;
@@ -1002,7 +1003,7 @@ function onBalanceFromPool(value: number) {
 }
 
 .spin {
-  animation: shop-spin 1s linear infinite;
+  animation: shop-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes shop-spin {
   to {

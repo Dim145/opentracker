@@ -176,7 +176,7 @@ const refreshedAgo = computed(() => {
   bottom: -1px;
   width: 64px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .cr-head-id {
   display: flex;
@@ -188,24 +188,24 @@ const refreshedAgo = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .cr-eyebrow-rule {
   display: inline-block;
   width: 26px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .cr-title {
   margin: 0;
   font-size: 1.65rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .cr-intro {
@@ -242,7 +242,7 @@ const refreshedAgo = computed(() => {
   height: 9px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  animation: cr-pulse 1.6s ease-in-out infinite;
+  animation: cr-pulse calc(1.6s * var(--motion-scale)) ease-in-out infinite;
 }
 .cr-status--on .cr-status-dot {
   background: #6cd161;
@@ -266,7 +266,7 @@ const refreshedAgo = computed(() => {
   height: 9px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  animation: cr-ring 2.2s ease-out infinite;
+  animation: cr-ring calc(2.2s * var(--motion-scale)) ease-out infinite;
   pointer-events: none;
 }
 .cr-status--on .cr-status-rings::before,
@@ -277,7 +277,7 @@ const refreshedAgo = computed(() => {
 .cr-status--off .cr-status-rings::after {
   border: 1px solid rgba(244, 63, 94, 0.55);
 }
-.cr-status-rings::after { animation-delay: 1.1s; }
+.cr-status-rings::after { animation-delay: calc(1.1s * var(--motion-scale)); }
 @keyframes cr-ring {
   0% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
   20% { opacity: 0.7; }
@@ -290,20 +290,20 @@ const refreshedAgo = computed(() => {
   line-height: 1.1;
 }
 .cr-status-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .cr-status--on .cr-status-label { color: #6cd161; }
 .cr-status--off .cr-status-label { color: #f43f5e; }
 .cr-status-time {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 /* ── Section scaffold ────────────────────────────────────────── */
@@ -324,22 +324,22 @@ const refreshedAgo = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
 .cr-section-tag-icon {
   font-size: 1rem;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .cr-section-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -374,17 +374,17 @@ const refreshedAgo = computed(() => {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: rgba(212, 167, 52, 0.08);
-  border: 1px solid rgba(212, 167, 52, 0.4);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.08);
+  border: 1px solid rgb(var(--accent-warm) / 0.4);
+  color: rgb(var(--accent-warm));
   font-size: 1.7rem;
 }
 .cr-empty-title {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }

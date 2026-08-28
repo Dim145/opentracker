@@ -562,7 +562,7 @@ async function confirmDelete() {
   top: calc(var(--header-h) + 2rem);
   align-self: start;
   padding-top: 0.5rem;
-  animation: reveal-up 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: reveal-up calc(600ms * var(--motion-scale)) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 @media (max-width: 960px) {
   .reg-aside { position: static; }
@@ -572,9 +572,9 @@ async function confirmDelete() {
   display: inline-flex;
   align-items: center;
   gap: 0.625rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.32em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.32em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--gild);
   font-weight: 500;
@@ -588,12 +588,12 @@ async function confirmDelete() {
 .reg-numeral {
   margin: 1.5rem 0 0.25rem;
   line-height: 0.9;
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 400;
   font-size: clamp(7rem, 14vw, 11rem);
   font-variation-settings: 'opsz' 144;
-  letter-spacing: -0.06em;
+  letter-spacing: calc(-0.06em * var(--tracking-scale));
   color: var(--ink);
   display: block;
 }
@@ -611,7 +611,7 @@ async function confirmDelete() {
 }
 
 .reg-numeral-cap {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-size: 1.05rem;
   color: var(--ink-muted);
   font-style: italic;
@@ -638,7 +638,7 @@ async function confirmDelete() {
 }
 
 .reg-prose {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-size: 0.95rem;
   font-style: italic;
   line-height: 1.6;
@@ -657,10 +657,10 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.375rem;
   padding: 0.3rem 0.625rem;
-  border-radius: 999px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-muted);
   border: 1px solid rgb(var(--line-default));
@@ -669,7 +669,7 @@ async function confirmDelete() {
 .reg-pill-dot {
   width: 5px;
   height: 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--gild);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--gild) 18%, transparent);
 }
@@ -696,10 +696,10 @@ async function confirmDelete() {
   position: relative;
   background: var(--paper);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   padding: 1.75rem;
   overflow: hidden;
-  animation: reveal-up 600ms 60ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: reveal-up calc(600ms * var(--motion-scale)) calc(60ms * var(--motion-scale)) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .draft::before {
   /* Hairline gilt edge along the top, like an embossed page. */
@@ -744,7 +744,7 @@ async function confirmDelete() {
   margin-bottom: 1.5rem;
 }
 .draft-roman {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.5rem;
   color: var(--gild);
@@ -755,14 +755,14 @@ async function confirmDelete() {
   width: 28px;
 }
 .draft-title {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: 1.6rem;
   color: var(--ink);
   margin: 0;
   line-height: 1.15;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .draft-sub {
   font-size: 0.875rem;
@@ -784,9 +784,9 @@ async function confirmDelete() {
   margin: 0;
 }
 .draft-legend {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-muted);
   margin-bottom: 0.625rem;
@@ -798,7 +798,7 @@ async function confirmDelete() {
   gap: 6px;
   border: 1.5px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   padding: 6px;
 }
 @media (max-width: 540px) {
@@ -813,27 +813,27 @@ async function confirmDelete() {
   justify-content: center;
   gap: 2px;
   padding: 0.625rem 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   position: relative;
   transition:
-    background 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
+    background var(--dur-3) ease,
+    color var(--dur-3) ease,
+    transform var(--dur-3) ease;
   isolation: isolate;
 }
 .draft-segment input { position: absolute; opacity: 0; pointer-events: none; }
 .draft-segment-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--ink-soft);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .draft-segment-help {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--ink-muted);
 }
 .draft-segment:hover:not(.draft-segment--active) {
@@ -862,7 +862,7 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.875rem;
   padding: 0.95rem 1.25rem;
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   border: 1.5px solid var(--gild);
   background: linear-gradient(
     180deg,
@@ -872,9 +872,9 @@ async function confirmDelete() {
   color: var(--ink);
   cursor: pointer;
   transition:
-    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 200ms ease,
-    background 200ms ease;
+    transform var(--dur-4) cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow var(--dur-4) ease,
+    background var(--dur-4) ease;
   text-align: left;
 }
 .draft-cta:hover:not(:disabled) {
@@ -907,20 +907,20 @@ async function confirmDelete() {
   border-radius: 50%;
   background: color-mix(in srgb, var(--gild) 25%, transparent);
   color: var(--gild);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .draft-cta-label {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: 1.125rem;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .draft-cta-arrow {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 18px;
+  font-family: var(--font-mono);
+  font-size: 1.125rem;
   color: var(--gild);
-  transition: transform 200ms ease;
+  transition: transform var(--dur-4) ease;
 }
 .draft-cta:hover:not(:disabled) .draft-cta-arrow { transform: translateX(4px); }
 
@@ -929,13 +929,13 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: color-mix(in srgb, rgb(var(--warning)) 8%, transparent);
   border: 1px solid color-mix(in srgb, rgb(var(--warning)) 25%, transparent);
   color: var(--ink-muted);
   font-size: 0.8rem;
   font-style: italic;
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
 }
 .draft-empty-note :deep(svg),
 .draft-empty-note .iconify { color: rgb(var(--warning)); flex-shrink: 0; }
@@ -943,7 +943,7 @@ async function confirmDelete() {
 /* ── Ledger ──────────────────────────────────────────── */
 
 .ledger {
-  animation: reveal-up 600ms 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: reveal-up 600ms var(--dur-1) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .ledger-head {
@@ -955,7 +955,7 @@ async function confirmDelete() {
   border-bottom: 1px solid rgb(var(--line-default));
 }
 .ledger-roman {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.5rem;
   color: var(--gild);
@@ -966,14 +966,14 @@ async function confirmDelete() {
   width: 28px;
 }
 .ledger-title {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: 1.6rem;
   color: var(--ink);
   margin: 0;
   line-height: 1.15;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .ledger-sub {
   font-size: 0.875rem;
@@ -997,7 +997,7 @@ async function confirmDelete() {
   border-bottom: 1px solid rgb(var(--line-default));
   align-items: center;
   position: relative;
-  animation: reveal-up 480ms var(--reveal-delay, 0ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: reveal-up calc(480ms * var(--motion-scale)) var(--reveal-delay, 0ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .ledger-row:last-child { border-bottom: 0; }
 .ledger-row:hover {
@@ -1010,13 +1010,13 @@ async function confirmDelete() {
 }
 
 .ledger-num {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.6rem;
   font-weight: 400;
   color: var(--ink-muted);
   font-variation-settings: 'opsz' 144;
-  letter-spacing: -0.04em;
+  letter-spacing: calc(-0.04em * var(--tracking-scale));
   line-height: 1;
   text-align: right;
   padding-right: 0.5rem;
@@ -1030,7 +1030,7 @@ async function confirmDelete() {
   align-self: stretch;
   background: var(--ink-muted);
   opacity: 0.3;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 .ledger-row--active .ledger-stripe { background: var(--gild); opacity: 0.6; }
 .ledger-row--used .ledger-stripe { background: var(--success); opacity: 0.5; }
@@ -1044,14 +1044,14 @@ async function confirmDelete() {
   margin-bottom: 0.375rem;
 }
 .ledger-code {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: var(--ink);
   padding: 0.3rem 0.625rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   word-break: break-all;
 }
 .ledger-row--expired .ledger-code { color: var(--ink-muted); }
@@ -1060,13 +1060,13 @@ async function confirmDelete() {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   font-weight: 500;
   padding: 0.25rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
 }
 .ledger-row--active .ledger-status {
@@ -1090,7 +1090,7 @@ async function confirmDelete() {
   flex-wrap: wrap;
   gap: 0.25rem 1.5rem;
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .ledger-meta > div {
   display: inline-flex;
@@ -1098,15 +1098,15 @@ async function confirmDelete() {
   gap: 0.4rem;
 }
 .ledger-meta dt {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-muted);
   font-weight: 500;
 }
 .ledger-meta dd {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   color: var(--ink-soft);
   margin: 0;
@@ -1120,7 +1120,7 @@ async function confirmDelete() {
   font-weight: 500;
   text-decoration: none;
   border-bottom: 1px solid color-mix(in srgb, var(--gild) 35%, transparent);
-  transition: border-color 160ms ease, color 160ms ease;
+  transition: border-color var(--dur-2) ease, color var(--dur-2) ease;
 }
 .ledger-user:hover {
   border-color: var(--gild);
@@ -1138,12 +1138,12 @@ async function confirmDelete() {
   justify-content: center;
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid transparent;
   background: transparent;
   color: var(--ink-muted);
   cursor: pointer;
-  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+  transition: color var(--dur-2) ease, background var(--dur-2) ease, border-color var(--dur-2) ease;
 }
 .ledger-action:hover:not(:disabled) {
   color: var(--ink);
@@ -1162,7 +1162,7 @@ async function confirmDelete() {
   text-align: center;
   padding: 4rem 2rem;
   border: 1px dashed color-mix(in srgb, var(--gild) 30%, rgb(var(--line-default)));
-  border-radius: 14px;
+  border-radius: var(--radius-xl);
   background:
     repeating-linear-gradient(
       45deg,
@@ -1180,7 +1180,7 @@ async function confirmDelete() {
   margin-bottom: 0.75rem;
 }
 .ledger-empty-headline {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1.25rem;
   color: var(--ink-soft);
@@ -1211,27 +1211,27 @@ async function confirmDelete() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 1.375rem;
   box-shadow:
-    inset 0 -2px 4px rgba(0, 0, 0, 0.25),
+    inset 0 -2px 4px rgb(var(--shadow-color) / calc(0.25 * var(--shadow-strength))),
     0 8px 24px -10px color-mix(in srgb, var(--gild) 60%, transparent);
 }
 .seal-eyebrow {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.22em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-muted);
   margin: 0 0 0.125rem;
 }
 .seal-title {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: 1.25rem;
   color: var(--ink);
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 
 .seal-body {
@@ -1241,7 +1241,7 @@ async function confirmDelete() {
   gap: 1rem;
 }
 .seal-instruction {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.95rem;
   color: var(--ink-muted);
@@ -1268,7 +1268,7 @@ async function confirmDelete() {
     ),
     rgb(var(--bg-base));
   border: 1px solid var(--gild-line);
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   padding: 1.25rem;
   text-align: center;
   position: relative;
@@ -1277,18 +1277,18 @@ async function confirmDelete() {
 .seal-card-footer {
   display: flex;
   justify-content: space-between;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-muted);
 }
-.seal-card-flourish { color: var(--gild); font-size: 14px; }
+.seal-card-flourish { color: var(--gild); font-size: 0.875rem; }
 .seal-code {
   display: block;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(0.95rem, 2vw, 1.2rem);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: var(--ink);
   font-weight: 700;
   user-select: all;
@@ -1309,8 +1309,8 @@ async function confirmDelete() {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.7rem 1.1rem;
-  border-radius: 8px;
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.95rem;
   font-weight: 500;
@@ -1319,10 +1319,10 @@ async function confirmDelete() {
   color: var(--ink-soft);
   cursor: pointer;
   transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    transform 160ms ease,
-    color 160ms ease;
+    background var(--dur-2) ease,
+    border-color var(--dur-2) ease,
+    transform var(--dur-2) ease,
+    color var(--dur-2) ease;
   flex: 1;
   min-width: 160px;
 }
@@ -1360,14 +1360,14 @@ async function confirmDelete() {
   display: flex;
   gap: 0.5rem;
   align-items: flex-start;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--ink-muted);
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   line-height: 1.55;
   margin: 0;
   padding: 0.75rem 0.875rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: color-mix(in srgb, rgb(var(--warning)) 6%, transparent);
   border: 1px solid color-mix(in srgb, rgb(var(--warning)) 22%, transparent);
 }
@@ -1384,7 +1384,7 @@ async function confirmDelete() {
 /* ── Confirm modal ─────────────────────────────────── */
 .confirm-body { padding: 1.25rem; }
 .confirm-text {
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1rem;
   color: var(--ink-soft);
@@ -1400,7 +1400,7 @@ async function confirmDelete() {
   font-size: 0.875rem;
   color: var(--ink-muted);
   font-style: italic;
-  font-family: 'Fraunces', 'Times New Roman', serif;
+  font-family: var(--font-display);
   margin: 0.625rem 0 0;
 }
 .confirm-footer {

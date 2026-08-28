@@ -69,7 +69,7 @@ const statusColor = computed(() => {
   margin: 0;
   width: 3rem;
   height: 4.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
@@ -84,7 +84,7 @@ const statusColor = computed(() => {
   height: 100%;
   object-fit: cover;
   display: block;
-  animation: dl-poster-fade 0.3s ease both;
+  animation: dl-poster-fade var(--dur-slow) ease both;
 }
 @keyframes dl-poster-fade {
   from { opacity: 0; transform: scale(1.02); }
@@ -104,7 +104,7 @@ const statusColor = computed(() => {
     rgb(var(--bg-base)) 70%
   );
   background-size: 220% 100%;
-  animation: dl-shimmer 1.4s ease-in-out infinite;
+  animation: dl-shimmer calc(1.4s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes dl-shimmer {
   0%   { background-position: 100% 0; }
@@ -117,7 +117,7 @@ const statusColor = computed(() => {
   justify-content: center;
   width: 2.4rem;
   height: 2.4rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-size: 1.1rem;

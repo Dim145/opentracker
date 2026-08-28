@@ -13,6 +13,7 @@ import { validateBody, registerSchema } from '~~/utils/schemas';
 import { notify } from '~~/utils/notify';
 import { verifyPoWSolution } from '~~/utils/pow';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { markFreshAuth } from '~~/utils/twoFactor';
 import { encryptSecretRequired } from '~~/utils/credentialSecrets';
 
 /**
@@ -198,6 +199,10 @@ export default defineEventHandler(async (event) => {
       passkey,
       isAdmin: settledFirstUser,
       isModerator: false,
+      // Same decision, taken under the same lock: the account that sets the
+      // instance up owns it. Reading it off `is_admin` later would be wrong —
+      // every admin appointed afterwards carries that flag too.
+      isOwner: settledFirstUser,
       lastIp: clientIp !== 'unknown' ? clientIp : null,
       uploaded: starterUpload,
       // The starter is ratio relief, not real seeding — counted in
@@ -266,9 +271,14 @@ export default defineEventHandler(async (event) => {
     await setRegistrationOpen(false);
   }
 
-  // Set user session using nuxt-auth-utils. The new user inherits the
-  // schema defaults for theme/language ('dark' / 'en'); the FE picker
-  // can change them after registration.
+  // Set user session using nuxt-auth-utils.
+  //
+  // `theme: null` is not a missing value, it is the value: a member who has
+  // never chosen follows the site default, and keeps following it when the
+  // owner changes it. Writing `'dark'` here is what used to make the
+  // site-default setting inert — it recorded a choice nobody made, and nothing
+  // downstream could tell it apart from one. Language keeps its schema default
+  // ('en'), which has no equivalent site-wide setting to defer to.
   await setUserSession(event, {
     user: {
       id: userId,
@@ -276,14 +286,40 @@ export default defineEventHandler(async (event) => {
       passkey,
       isAdmin: finalIsFirstUser,
       isModerator: false,
+      isOwner: finalIsFirstUser,
       uploaded: starterUpload,
       downloaded: 0,
       bonusPoints: 0,
-      theme: 'dark',
+      theme: null,
       language: 'en',
     },
     loggedInAt: Date.now(),
   });
+
+  // Open the fresh-auth window, exactly as `login.post.ts` does and at the same
+  // point — after the session exists, keyed on the real h3 session id rather
+  // than the session data object, which has no `id` (finding H1).
+  //
+  // Why registration counts. The window's job, at all eight `requireFreshAuth`
+  // call sites, is to refuse a STOLEN session cookie: it asks for something a
+  // thief does not have, namely the credential, supplied recently. A session
+  // minted by the registration request itself is the one session that cannot
+  // have been stolen yet — it is the same age as a session minted by a login,
+  // and login stamps it.
+  //
+  // It is worth being precise about what registration does and does not prove,
+  // because the tempting phrasing is wrong. Registration does NOT prove
+  // knowledge of an existing credential — there is nothing to check against; it
+  // ESTABLISHES the credential. That is a different thing, and for this window
+  // it is a stronger one: the holder did not merely demonstrate the password,
+  // they chose it, seconds ago, in this request.
+  //
+  // Without this, the founding account — which is the owner, and the account
+  // most likely to want an owner-gated route immediately — is told to
+  // "re-authenticate" by a session created moments earlier from the very
+  // credential it is being asked to re-supply. The only way out is to log out
+  // and back in, which proves nothing the registration did not.
+  await markFreshAuth(await getSessionId(event));
 
   return {
     success: true,

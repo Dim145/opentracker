@@ -720,9 +720,9 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .toolbar-btn:hover {
   color: rgb(var(--fg-strong));
@@ -757,11 +757,11 @@ onBeforeUnmount(() => {
   gap: 0.125rem;
   padding: 0.125rem;
   background: rgb(var(--bg-inset, var(--bg-elevated)));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
 }
 .we-modes .toolbar-btn {
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
 }
 
 /* Tag chips for code mode. Mono, faint at rest, light up on hover
@@ -773,14 +773,14 @@ onBeforeUnmount(() => {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.25rem 0.35rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
 .we-tags-label {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-right: 0.25rem;
@@ -791,14 +791,14 @@ onBeforeUnmount(() => {
   padding: 0.18rem 0.5rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
-  letter-spacing: 0.02em;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   color: rgb(var(--fg-default));
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease,
-    color 0.15s ease, transform 0.18s ease;
+  transition: background var(--dur-2) ease, border-color var(--dur-2) ease,
+    color var(--dur-2) ease, transform var(--dur-3) ease;
 }
 .we-tag-chip:hover {
   background: rgba(56, 189, 248, 0.12);
@@ -811,15 +811,15 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   padding: 0.18rem 0.5rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
 }
 
@@ -881,9 +881,9 @@ onBeforeUnmount(() => {
 }
 .wysiwyg-content .ProseMirror pre {
   background: rgb(var(--bg-inset));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   padding: 0.75rem;
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   margin: 0.5rem 0;
   overflow-x: auto;
@@ -891,8 +891,8 @@ onBeforeUnmount(() => {
 .wysiwyg-content .ProseMirror code {
   background: rgb(var(--bg-inset));
   padding: 0 0.25rem;
-  border-radius: 0.25rem;
-  font-family: ui-monospace, monospace;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
 }
 .wysiwyg-content .ProseMirror hr {
@@ -923,7 +923,7 @@ onBeforeUnmount(() => {
 .wysiwyg-content .ProseMirror img {
   max-width: 100%;
   height: auto;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
 }
 </style>

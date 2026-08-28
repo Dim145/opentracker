@@ -534,10 +534,10 @@ async function revokeDevice(id: string) {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -550,8 +550,8 @@ async function revokeDevice(id: string) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -560,7 +560,7 @@ async function revokeDevice(id: string) {
 }
 .tfa-blurb {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
   max-width: 60ch;
@@ -568,7 +568,7 @@ async function revokeDevice(id: string) {
 .tfa-card {
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .tfa-card-head {
@@ -588,7 +588,7 @@ async function revokeDevice(id: string) {
   justify-content: center;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .tfa-card-title {
   margin: 0;
@@ -601,16 +601,16 @@ async function revokeDevice(id: string) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
 .tfa-dot {
   width: 6px;
   height: 6px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
 }
 .tfa-dot--on {
   background: rgb(var(--online));
@@ -632,14 +632,14 @@ async function revokeDevice(id: string) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 0.85rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.14s;
+  transition: all var(--dur-2);
   border: 1px solid rgb(var(--line-default));
 }
 .btn-primary {
@@ -665,7 +665,7 @@ async function revokeDevice(id: string) {
 }
 .btn-ghost--sm {
   padding: 0.3rem 0.6rem;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
 }
 .btn-ghost--danger:hover {
   color: rgb(var(--danger));
@@ -686,8 +686,8 @@ async function revokeDevice(id: string) {
   gap: 1rem;
   padding: 0.65rem 1.1rem;
   border-bottom: 1px solid rgb(var(--line-default) / 0.6);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
 }
 .tfa-passkey-row:last-child {
   border-bottom: 0;
@@ -699,7 +699,7 @@ async function revokeDevice(id: string) {
   font-weight: 700;
   color: rgb(var(--fg-strong));
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 }
 .tfa-passkey-meta {
   color: rgb(var(--fg-muted));
@@ -720,9 +720,9 @@ async function revokeDevice(id: string) {
   height: 1.2rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   position: relative;
-  transition: all 0.14s;
+  transition: all var(--dur-2);
 }
 .tfa-switch-track::after {
   content: '';
@@ -732,8 +732,8 @@ async function revokeDevice(id: string) {
   width: 0.85rem;
   height: 0.85rem;
   background: rgb(var(--fg-muted));
-  border-radius: 9999px;
-  transition: all 0.14s;
+  border-radius: var(--radius-pill);
+  transition: all var(--dur-2);
 }
 .tfa-switch input:checked + .tfa-switch-track {
   background: rgb(var(--fg-strong));
@@ -744,10 +744,10 @@ async function revokeDevice(id: string) {
   background: rgb(var(--accent-fg));
 }
 .tfa-switch-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -755,7 +755,7 @@ async function revokeDevice(id: string) {
 /* Modal helpers */
 .tfa-modal-blurb {
   margin: 0 0 0.85rem;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -768,9 +768,9 @@ async function revokeDevice(id: string) {
 .tfa-modal-or {
   margin: 0.4rem 0;
   text-align: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -779,14 +779,14 @@ async function revokeDevice(id: string) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--danger));
 }
 .field-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -794,10 +794,10 @@ async function revokeDevice(id: string) {
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.92rem;
 }
 .input:focus {

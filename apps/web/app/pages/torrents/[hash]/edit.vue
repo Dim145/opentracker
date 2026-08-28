@@ -771,7 +771,7 @@ useHead({ title: t('torrents.edit.headTitle') });
   padding: 0.75rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.375rem;
+  border-radius: var(--radius-md);
 }
 .readonly-name p {
   margin: 0;
@@ -779,13 +779,13 @@ useHead({ title: t('torrents.edit.headTitle') });
   font-weight: 600;
   color: rgb(var(--fg-strong));
   word-break: break-all;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
 }
 .readonly-name-meta {
   font-size: 0.7rem;
   font-weight: 500;
   color: rgb(var(--fg-muted));
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   margin-left: 0.4rem;
 }
 
@@ -809,14 +809,14 @@ useHead({ title: t('torrents.edit.headTitle') });
 }
 .btn-ghost--small {
   padding: 0.35rem 0.7rem;
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 .btn-ghost--danger:hover {
   color: rgb(var(--danger));
   border-color: rgb(var(--danger) / 0.4);
 }
 .nfo-textarea {
-  font-family: 'IBM Plex Mono', 'Cascadia Code', Menlo, ui-monospace, monospace;
+  font-family: var(--font-mono);
   white-space: pre;
   overflow-x: auto;
   tab-size: 4;
@@ -828,13 +828,13 @@ useHead({ title: t('torrents.edit.headTitle') });
   align-items: center;
   gap: 0.5rem;
   padding: 0.45rem 0.75rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
   color: #f5c518;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
 }
 </style>

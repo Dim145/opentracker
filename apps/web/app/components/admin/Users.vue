@@ -1459,9 +1459,9 @@ async function onDetachRole(roleId: string) {
   flex-wrap: wrap;
 }
 .registry-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  letter-spacing: 0.22em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin: 0 0 0.4rem;
@@ -1469,7 +1469,7 @@ async function onDetachRole(roleId: string) {
 .registry-title {
   font-size: clamp(1.65rem, 3.4vw, 2.5rem);
   font-weight: 900;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   margin: 0;
@@ -1496,11 +1496,11 @@ async function onDetachRole(roleId: string) {
   justify-content: center;
   width: 2.25rem;
   height: 2.25rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .tool-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));
@@ -1537,8 +1537,8 @@ async function onDetachRole(roleId: string) {
   padding: 1rem 1.1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
-  transition: all 0.15s;
+  border-radius: var(--radius-lg);
+  transition: all var(--dur-2);
 }
 .kpi[role='button'] {
   cursor: pointer;
@@ -1555,37 +1555,37 @@ async function onDetachRole(roleId: string) {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .kpi-value {
   font-size: 1.85rem;
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 .kpi-sub {
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .kpi-dot {
   display: inline-block;
   width: 6px;
   height: 6px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-muted));
 }
 .kpi-dot--green {
   background: #6cd161;
   box-shadow: 0 0 0 0 rgba(108, 209, 97, 0.6);
-  animation: kpi-pulse 2s infinite;
+  animation: kpi-pulse calc(2s * var(--motion-scale)) infinite;
 }
 @keyframes kpi-pulse {
   0% {
@@ -1622,7 +1622,7 @@ async function onDetachRole(roleId: string) {
   padding: 1rem 1.1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .filter-search {
   position: relative;
@@ -1640,12 +1640,12 @@ async function onDetachRole(roleId: string) {
   width: 100%;
   padding: 0.7rem 0.95rem 0.7rem 2.6rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-strong));
   font-size: 0.9rem;
-  letter-spacing: 0.01em;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
+  font-family: var(--font-mono);
 }
 .filter-search-input:focus {
   outline: none;
@@ -1654,7 +1654,7 @@ async function onDetachRole(roleId: string) {
 }
 .filter-search-input::placeholder {
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .filter-search-clear {
   position: absolute;
@@ -1666,7 +1666,7 @@ async function onDetachRole(roleId: string) {
   justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   color: rgb(var(--fg-muted));
 }
 .filter-search-clear:hover {
@@ -1688,22 +1688,22 @@ async function onDetachRole(roleId: string) {
   min-width: 12rem;
 }
 .filter-select span {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .filter-select-input {
   padding: 0.55rem 0.75rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .filter-select-input:focus {
@@ -1715,16 +1715,16 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.55rem 0.85rem;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   align-self: flex-end;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .filter-reset:hover {
   color: rgb(var(--fg-strong));
@@ -1738,7 +1738,7 @@ async function onDetachRole(roleId: string) {
   overflow-x: auto;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 
 .reg-table {
@@ -1754,10 +1754,10 @@ async function onDetachRole(roleId: string) {
   text-align: left;
   vertical-align: bottom;
   padding: 0.85rem 1rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-surface));
@@ -1777,13 +1777,13 @@ async function onDetachRole(roleId: string) {
 }
 .th--sortable span {
   display: inline-block;
-  transition: color 0.15s;
+  transition: color var(--dur-2);
 }
 .th--sortable .th-sort-icon {
   margin-left: 0.35rem;
   font-size: 0.85em;
   opacity: 0.4;
-  transition: opacity 0.15s;
+  transition: opacity var(--dur-2);
   vertical-align: -2px;
 }
 .th--sortable:hover span {
@@ -1802,7 +1802,7 @@ async function onDetachRole(roleId: string) {
 
 .row {
   border-bottom: 1px solid rgb(var(--line-default) / 0.6);
-  transition: background 0.12s;
+  transition: background var(--dur-1);
 }
 .row:last-child {
   border-bottom: 0;
@@ -1828,8 +1828,8 @@ async function onDetachRole(roleId: string) {
     rgb(var(--bg-elevated))
   );
   background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
-  border-radius: 9999px;
+  animation: shimmer calc(1.6s * var(--motion-scale)) infinite;
+  border-radius: var(--radius-pill);
   margin: 0.25rem 0;
 }
 @keyframes shimmer {
@@ -1854,7 +1854,7 @@ async function onDetachRole(roleId: string) {
   text-align: center;
 }
 .cell--mono {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.78rem;
   color: rgb(var(--fg-default));
@@ -1875,15 +1875,15 @@ async function onDetachRole(roleId: string) {
   flex-shrink: 0;
   width: 2.4rem;
   height: 2.4rem;
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   border: 1px solid;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .user-cell-body {
@@ -1896,7 +1896,7 @@ async function onDetachRole(roleId: string) {
   font-size: 0.85rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   text-decoration: none;
 }
 .user-cell-name:hover {
@@ -1911,12 +1911,12 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.5rem;
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
 }
 .user-uid {
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .user-ip {
   display: inline-flex;
@@ -1928,8 +1928,8 @@ async function onDetachRole(roleId: string) {
   /* Stable IP fingerprint shown to moderators — different visual
    * affordance from a raw IP so the moderator knows it's a hash
    * (cursor:help to surface the tooltip). */
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   cursor: help;
 }
 
@@ -1939,13 +1939,13 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.35rem;
   padding: 0.2rem 0.55rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
@@ -1992,20 +1992,20 @@ async function onDetachRole(roleId: string) {
   display: inline-block;
   width: 6px;
   height: 6px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: #6cd161;
-  animation: kpi-pulse 2s infinite;
+  animation: kpi-pulse calc(2s * var(--motion-scale)) infinite;
 }
 
 /* Ratio + bytes */
 .ratio {
   display: inline-block;
   padding: 0.18rem 0.55rem;
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   min-width: 3.2rem;
   text-align: center;
 }
@@ -2048,11 +2048,11 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.3rem;
   padding: 0.15rem 0.55rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
@@ -2070,11 +2070,11 @@ async function onDetachRole(roleId: string) {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .row-action:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -2102,9 +2102,9 @@ async function onDetachRole(roleId: string) {
    Wider than the other row actions because the count badge can hold
    four digits (10k+ pts is plausible after a long seeding stretch). */
 .row-action--bonus-active {
-  background: rgba(212, 167, 52, 0.1);
-  border-color: rgba(212, 167, 52, 0.35);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.1);
+  border-color: rgb(var(--accent-warm) / 0.35);
+  color: rgb(var(--accent-warm));
 }
 
 /* ─── Bonus-points adjustment modal ─────────────────────────────── */
@@ -2119,7 +2119,7 @@ async function onDetachRole(roleId: string) {
   gap: 0.25rem;
   padding: 0.85rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-elevated));
   position: relative;
   overflow: hidden;
@@ -2130,12 +2130,12 @@ async function onDetachRole(roleId: string) {
   inset-inline: 0.85rem;
   top: 0;
   height: 1px;
-  background: rgb(212, 167, 52, 0.5);
+  background: rgb(var(--accent-warm) / 0.5);
 }
 .bonus-balance-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2143,20 +2143,20 @@ async function onDetachRole(roleId: string) {
   display: inline-flex;
   align-items: baseline;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 1.5rem;
   font-weight: 800;
   color: rgb(var(--fg-strong));
 }
 .bonus-balance-value > svg {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   font-size: 1.1rem;
 }
 .bonus-balance-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   font-weight: 400;
@@ -2168,9 +2168,9 @@ async function onDetachRole(roleId: string) {
   gap: 0.4rem;
 }
 .bonus-presets-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2181,19 +2181,19 @@ async function onDetachRole(roleId: string) {
 }
 .bonus-preset-chip {
   padding: 0.3rem 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.78rem;
   font-weight: 700;
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   cursor: pointer;
   transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s,
+    background var(--dur-2),
+    border-color var(--dur-2),
+    color var(--dur-2),
     transform 0.1s;
 }
 .bonus-preset-chip:hover {
@@ -2214,9 +2214,9 @@ async function onDetachRole(roleId: string) {
   gap: 0.35rem;
 }
 .bonus-field-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   display: flex;
@@ -2224,8 +2224,8 @@ async function onDetachRole(roleId: string) {
   gap: 0.5rem;
 }
 .bonus-field-hint {
-  font-size: 9px;
-  letter-spacing: 0.04em;
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
   text-transform: none;
   font-weight: 400;
@@ -2237,13 +2237,13 @@ async function onDetachRole(roleId: string) {
 }
 .bonus-field-input {
   flex: 1;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 .bonus-field-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2254,7 +2254,7 @@ async function onDetachRole(roleId: string) {
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-inset));
   flex-wrap: wrap;
 }
@@ -2264,22 +2264,22 @@ async function onDetachRole(roleId: string) {
 }
 .bonus-preview-label,
 .bonus-preview-arrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .bonus-preview-value {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
 .bonus-preview-unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   font-weight: 400;
@@ -2300,7 +2300,7 @@ async function onDetachRole(roleId: string) {
   gap: 0.4rem;
   padding: 0.5rem 0.7rem;
   border: 1px solid rgba(239, 68, 68, 0.4);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgba(239, 68, 68, 0.06);
   color: rgb(239, 68, 68);
   font-size: 0.8rem;
@@ -2316,15 +2316,15 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 0.95rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: transform 0.12s;
+  transition: transform var(--dur-1);
 }
 .bonus-btn:disabled {
   cursor: progress;
@@ -2362,12 +2362,12 @@ async function onDetachRole(roleId: string) {
   margin-left: 0.4rem;
   padding: 0.35rem 0.5rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   max-width: 9rem;
 }
@@ -2397,7 +2397,7 @@ async function onDetachRole(roleId: string) {
   font-size: 0.9rem;
   font-weight: 700;
   color: rgb(var(--fg-default));
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 .empty-sub {
   margin: 0;
@@ -2421,9 +2421,9 @@ async function onDetachRole(roleId: string) {
   gap: 1rem;
 }
 .pager-summary {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11.5px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.7188rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .pager-summary-strong {
@@ -2445,21 +2445,21 @@ async function onDetachRole(roleId: string) {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .pager-size-input {
   padding: 0.35rem 0.5rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 .pager-buttons {
@@ -2473,14 +2473,14 @@ async function onDetachRole(roleId: string) {
   gap: 0.25rem;
   padding: 0.4rem 0.7rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .pager-btn:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -2491,11 +2491,11 @@ async function onDetachRole(roleId: string) {
   cursor: not-allowed;
 }
 .pager-where {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   padding: 0 0.65rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 }
 .pager-where strong {
   color: rgb(var(--fg-strong));
@@ -2517,11 +2517,11 @@ async function onDetachRole(roleId: string) {
   min-width: 14px;
   height: 14px;
   padding: 0 3px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-strong));
   color: rgb(var(--bg-base));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5313rem;
   font-weight: 800;
   letter-spacing: 0;
   display: inline-flex;
@@ -2539,10 +2539,10 @@ async function onDetachRole(roleId: string) {
   gap: 1rem;
 }
 .rm-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin: 0;
@@ -2562,9 +2562,9 @@ async function onDetachRole(roleId: string) {
   gap: 0.85rem;
   padding: 0.7rem 0.95rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-elevated));
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--dur-2), background var(--dur-2);
 }
 .rm-row--on {
   border-left: 3px solid #34d4d8;
@@ -2585,9 +2585,9 @@ async function onDetachRole(roleId: string) {
   flex-wrap: wrap;
   gap: 0.35rem;
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .rm-row__sep {
@@ -2598,12 +2598,12 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.3rem;
   padding: 0.05rem 0.4rem;
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   text-transform: uppercase;
   font-weight: 700;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
 }
 .rm-row__mode--auto {
   color: #34d4d8;
@@ -2626,16 +2626,16 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 0.85rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .rm-action:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -2659,7 +2659,7 @@ async function onDetachRole(roleId: string) {
   text-align: center;
   padding: 2rem 1rem;
   color: rgb(var(--fg-muted));
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .rm-empty__link {
   color: rgb(var(--fg-strong));
@@ -2686,7 +2686,7 @@ async function onDetachRole(roleId: string) {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  transition: border-color 160ms ease;
+  transition: border-color var(--dur-2) ease;
 }
 .user-card:focus-within,
 .user-card:hover {
@@ -2705,7 +2705,7 @@ async function onDetachRole(roleId: string) {
   text-align: center;
   padding: 2.5rem 1.25rem;
   color: rgb(var(--fg-muted));
-  font-size: 12px;
+  font-size: 0.75rem;
   background-color: rgb(var(--bg-surface));
   border: 1px dashed rgb(var(--line-default));
   border-radius: var(--radius-md);
@@ -2720,7 +2720,7 @@ async function onDetachRole(roleId: string) {
   font-weight: 700;
   color: rgb(var(--fg-default));
   margin-bottom: 0.4rem;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
 }
 .user-card-empty .empty-link {
   color: rgb(var(--fg-strong));
@@ -2753,7 +2753,7 @@ async function onDetachRole(roleId: string) {
   font-weight: 700;
   color: rgb(var(--fg-strong));
   text-decoration: none;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2768,9 +2768,9 @@ async function onDetachRole(roleId: string) {
   gap: 0.6rem;
   flex-wrap: wrap;
   margin: 0.15rem 0 0;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 
 /* Role stack inside a card lays roles out left-to-right with wrap so a
@@ -2793,17 +2793,17 @@ async function onDetachRole(roleId: string) {
   min-width: 0;
 }
 .user-card-stats dt {
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   margin-bottom: 0.2rem;
 }
 .user-card-stats dd {
   margin: 0;
-  font-size: 12.5px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.7813rem;
+  font-family: var(--font-mono);
   color: rgb(var(--fg-default));
   white-space: nowrap;
   overflow: hidden;

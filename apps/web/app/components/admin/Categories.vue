@@ -944,7 +944,7 @@ async function seedCategories() {
   bottom: -1px;
   width: 64px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .atlas-head-id {
   display: flex;
@@ -956,24 +956,24 @@ async function seedCategories() {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .atlas-eyebrow-rule {
   display: inline-block;
   width: 26px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .atlas-title {
   margin: 0;
   font-size: 1.65rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .atlas-intro {
@@ -988,24 +988,24 @@ async function seedCategories() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 1.05rem;
-  background: #d4a734;
-  border: 1px solid #d4a734;
+  background: rgb(var(--accent-warm));
+  border: 1px solid rgb(var(--accent-warm));
   border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #1a1a1a;
+  color: rgb(var(--accent-warm-fg));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   white-space: nowrap;
 }
 .atlas-cta:hover {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px -8px rgba(212, 167, 52, 0.4);
+  box-shadow: 0 6px 18px -8px rgb(var(--accent-warm) / 0.4);
 }
 
 /* ── Stats strip ────────────────────────────────────────── */
@@ -1030,17 +1030,17 @@ async function seedCategories() {
   color: rgb(var(--fg-muted));
 }
 .stat-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 1.15rem;
   font-weight: 800;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .stat-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1072,11 +1072,11 @@ async function seedCategories() {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .search:focus-within {
-  border-color: rgba(212, 167, 52, 0.55);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.1);
+  border-color: rgb(var(--accent-warm) / 0.55);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.1);
 }
 .search-icon {
   margin-left: 0.65rem;
@@ -1108,19 +1108,19 @@ async function seedCategories() {
   color: rgb(var(--fg-muted));
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .search-clear:hover {
   color: rgb(var(--fg-strong));
   background: rgb(var(--bg-inset));
 }
 .search-hits {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 
 /* ── Empty + no-results states ──────────────────────────── */
@@ -1141,17 +1141,17 @@ async function seedCategories() {
   width: 68px;
   height: 68px;
   border-radius: 50%;
-  background: rgba(212, 167, 52, 0.08);
-  border: 1px solid rgba(212, 167, 52, 0.4);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.08);
+  border: 1px solid rgb(var(--accent-warm) / 0.4);
+  color: rgb(var(--accent-warm));
   font-size: 1.8rem;
 }
 .atlas-empty-title {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1168,21 +1168,21 @@ async function seedCategories() {
   gap: 0.5rem;
   margin-top: 0.5rem;
   padding: 0.6rem 1.05rem;
-  background: #d4a734;
-  border: 1px solid #d4a734;
+  background: rgb(var(--accent-warm));
+  border: 1px solid rgb(var(--accent-warm));
   border-radius: var(--radius-sm);
-  color: #1a1a1a;
+  color: rgb(var(--accent-warm-fg));
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .atlas-empty-cta:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
 .atlas-empty-cta:disabled {
   opacity: 0.55;
@@ -1218,7 +1218,7 @@ async function seedCategories() {
   gap: 0.55rem;
 }
 .entry {
-  animation: entry-in 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: entry-in calc(0.38s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 @keyframes entry-in {
@@ -1236,8 +1236,8 @@ async function seedCategories() {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
-  transition: border-color 0.2s ease, transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color var(--dur-4) ease, transform var(--dur-4) ease,
+    box-shadow var(--dur-4) ease;
 }
 /* On narrow viewports the 3-col grid + the 64px call-number panel
    + the 4-button action cluster overflowed sideways. Stack the
@@ -1262,9 +1262,9 @@ async function seedCategories() {
   }
 }
 .entry-row:hover {
-  border-color: rgba(212, 167, 52, 0.4);
+  border-color: rgb(var(--accent-warm) / 0.4);
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px -16px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 8px 22px -16px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
 }
 .entry-row--root {
   position: relative;
@@ -1272,7 +1272,7 @@ async function seedCategories() {
 .entry--expanded .entry-row--root {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
-  border-bottom-color: rgba(212, 167, 52, 0.25);
+  border-bottom-color: rgb(var(--accent-warm) / 0.25);
 }
 
 /* Adult rows carry the diagonal warning hatch from the gate
@@ -1315,8 +1315,8 @@ async function seedCategories() {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.55) 0%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.55) 0%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 .entry-code--sub {
@@ -1333,21 +1333,21 @@ async function seedCategories() {
   );
 }
 .entry-code-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   /* Sized so the widest legitimate Newznab id (199999, six digits)
      still fits inside the 64px call-number panel. */
   font-size: 0.85rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   font-variant-numeric: tabular-nums;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   line-height: 1;
 }
 .entry-code--sub .entry-code-num {
   font-size: 0.75rem;
 }
 .entry-code-dash {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 1.1rem;
   color: rgb(var(--fg-faint));
   font-weight: 700;
@@ -1364,7 +1364,7 @@ async function seedCategories() {
   margin: 0;
   font-size: 1rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   line-height: 1.2;
@@ -1372,7 +1372,7 @@ async function seedCategories() {
 }
 .entry-name--sub {
   font-size: 0.88rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .entry-attrs {
   display: flex;
@@ -1381,10 +1381,10 @@ async function seedCategories() {
   gap: 0.4rem 0.6rem;
 }
 .entry-slug {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   background: transparent;
   padding: 0;
 }
@@ -1396,10 +1396,10 @@ async function seedCategories() {
   border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1410,9 +1410,9 @@ async function seedCategories() {
   background: rgba(244, 63, 94, 0.06);
 }
 .entry-flag--children {
-  color: #d4a734;
-  border-color: rgba(212, 167, 52, 0.4);
-  background: rgba(212, 167, 52, 0.06);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.4);
+  background: rgb(var(--accent-warm) / 0.06);
 }
 
 /* ── Actions ─────────────────────────────────────────────── */
@@ -1431,18 +1431,18 @@ async function seedCategories() {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
   font-size: 0.85rem;
 }
 .entry-toggle svg {
-  transition: transform 0.22s ease;
+  transition: transform var(--dur-4) ease;
 }
 .entry-toggle--open svg {
   transform: rotate(180deg);
 }
 .entry-toggle:hover {
-  color: #d4a734;
-  border-color: rgba(212, 167, 52, 0.4);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.4);
 }
 .entry-act {
   display: grid;
@@ -1454,7 +1454,7 @@ async function seedCategories() {
   color: rgb(var(--fg-muted));
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .entry-act:hover {
   background: rgb(var(--bg-base));
@@ -1492,9 +1492,9 @@ async function seedCategories() {
   width: 1px;
   background: linear-gradient(
     to bottom,
-    rgba(212, 167, 52, 0.5) 0%,
-    rgba(212, 167, 52, 0.18) 50%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.5) 0%,
+    rgb(var(--accent-warm) / 0.18) 50%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 .entry-children .entry-row--sub {
@@ -1519,7 +1519,7 @@ async function seedCategories() {
   top: 50%;
   width: 0.9rem;
   height: 1px;
-  background: rgba(212, 167, 52, 0.45);
+  background: rgb(var(--accent-warm) / 0.45);
   pointer-events: none;
 }
 
@@ -1528,8 +1528,8 @@ async function seedCategories() {
 .expand-enter-active,
 .expand-leave-active {
   overflow: hidden;
-  transition: max-height 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease;
+  transition: max-height var(--dur-slow) var(--ease-standard),
+    opacity var(--dur-4) ease;
   max-height: 900px;
 }
 .expand-enter-from,
@@ -1564,7 +1564,7 @@ async function seedCategories() {
   inset: 0;
   background-image: radial-gradient(
     circle at 1px 1px,
-    rgba(212, 167, 52, 0.05) 1px,
+    rgb(var(--accent-warm) / 0.05) 1px,
     transparent 0
   );
   background-size: 20px 20px;
@@ -1578,18 +1578,18 @@ async function seedCategories() {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .ed-eyebrow-rule {
   display: inline-block;
   width: 22px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 
 .ed-card {
@@ -1601,7 +1601,7 @@ async function seedCategories() {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
-  transition: border-color 0.2s ease;
+  transition: border-color var(--dur-4) ease;
 }
 .ed-card--adult {
   border-color: rgba(244, 63, 94, 0.4);
@@ -1635,8 +1635,8 @@ async function seedCategories() {
   height: 1px;
   background: linear-gradient(
     to right,
-    rgba(212, 167, 52, 0.55) 0%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0.55) 0%,
+    rgb(var(--accent-warm) / 0) 100%
   );
 }
 .ed-card-code--missing {
@@ -1649,17 +1649,17 @@ async function seedCategories() {
   );
 }
 .ed-card-code-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   /* Same sizing rule as the list rows — must fit 6-digit ids. */
   font-size: 0.85rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   font-variant-numeric: tabular-nums;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   line-height: 1;
 }
 .ed-card-code-dash {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 1.1rem;
   color: rgb(var(--fg-faint));
   font-weight: 700;
@@ -1674,7 +1674,7 @@ async function seedCategories() {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   line-height: 1.15;
@@ -1687,10 +1687,10 @@ async function seedCategories() {
   gap: 0.4rem 0.55rem;
 }
 .ed-card-slug {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   background: transparent;
   padding: 0;
 }
@@ -1702,10 +1702,10 @@ async function seedCategories() {
   border-radius: var(--radius-sm);
   border: 1px solid rgba(244, 63, 94, 0.4);
   background: rgba(244, 63, 94, 0.06);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: #f43f5e;
 }
@@ -1730,10 +1730,10 @@ async function seedCategories() {
   width: 1px;
   background: linear-gradient(
     to bottom,
-    rgba(212, 167, 52, 0) 0%,
-    rgba(212, 167, 52, 0.3) 12%,
-    rgba(212, 167, 52, 0.3) 88%,
-    rgba(212, 167, 52, 0) 100%
+    rgb(var(--accent-warm) / 0) 0%,
+    rgb(var(--accent-warm) / 0.3) 12%,
+    rgb(var(--accent-warm) / 0.3) 88%,
+    rgb(var(--accent-warm) / 0) 100%
   );
   pointer-events: none;
 }
@@ -1754,22 +1754,22 @@ async function seedCategories() {
   gap: 0.7rem;
 }
 .ed-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
-  color: #d4a734;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
+  color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.22rem 0.45rem;
   border-radius: var(--radius-sm);
 }
 .ed-block-id h4 {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1783,16 +1783,16 @@ async function seedCategories() {
   color: rgb(var(--fg-strong));
   font-size: 0.85rem;
   font-family: inherit;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .ed-input:focus {
   outline: none;
-  border-color: rgba(212, 167, 52, 0.55);
-  box-shadow: 0 0 0 3px rgba(212, 167, 52, 0.12);
+  border-color: rgb(var(--accent-warm) / 0.55);
+  box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
 .ed-input--mono {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 
@@ -1823,18 +1823,18 @@ async function seedCategories() {
 
 .ed-hint {
   margin: 0;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   line-height: 1.5;
 }
 .ed-slug {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   padding: 0.05rem 0.35rem;
-  color: #d4a734;
-  letter-spacing: 0.02em;
+  color: rgb(var(--accent-warm));
+  letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 
 .ed-error {
@@ -1842,7 +1842,7 @@ async function seedCategories() {
   align-items: center;
   gap: 0.4rem;
   margin: 0;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   color: rgb(var(--danger));
 }
 
@@ -1862,7 +1862,7 @@ async function seedCategories() {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   font-family: inherit;
 }
 .ed-type:hover:not(.ed-type--on) {
@@ -1879,24 +1879,24 @@ async function seedCategories() {
 .ed-type-icon {
   font-size: 0.95rem;
   color: rgb(var(--fg-muted));
-  transition: color 0.18s ease;
+  transition: color var(--dur-3) ease;
 }
 .ed-type-head {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: color 0.18s ease;
+  transition: color var(--dur-3) ease;
 }
 .ed-type--on {
-  border-color: rgba(212, 167, 52, 0.6);
-  background: rgba(212, 167, 52, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(212, 167, 52, 0.3);
+  border-color: rgb(var(--accent-warm) / 0.6);
+  background: rgb(var(--accent-warm) / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(var(--accent-warm) / 0.3);
 }
 .ed-type--on .ed-type-icon,
-.ed-type--on .ed-type-head { color: #d4a734; }
+.ed-type--on .ed-type-head { color: rgb(var(--accent-warm)); }
 
 /* ── Adult toggle ───────────────────────────────────── */
 .ed-adult {
@@ -1908,7 +1908,7 @@ async function seedCategories() {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease;
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease;
 }
 .ed-adult--on {
   border-color: rgba(244, 63, 94, 0.45);
@@ -1927,17 +1927,17 @@ async function seedCategories() {
   min-width: 0;
 }
 .ed-adult-title {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
-  transition: color 0.18s ease;
+  transition: color var(--dur-3) ease;
 }
 .ed-adult--on .ed-adult-title { color: #f43f5e; }
 .ed-adult-sub {
-  font-size: 10.5px;
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   line-height: 1.4;
 }
@@ -1947,11 +1947,11 @@ async function seedCategories() {
   flex-shrink: 0;
   width: 2.6rem;
   height: 1.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease;
+  transition: background var(--dur-3) ease, border-color var(--dur-3) ease;
 }
 .ed-toggle--on {
   background: #f43f5e;
@@ -1968,11 +1968,11 @@ async function seedCategories() {
   left: 2px;
   width: 1.15rem;
   height: 1.15rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
-  transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1),
-    background 0.18s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  transition: transform var(--dur-4) var(--ease-standard),
+    background var(--dur-3) ease;
+  box-shadow: 0 1px 3px rgb(var(--shadow-color) / calc(0.45 * var(--shadow-strength)));
 }
 .ed-toggle--on .ed-toggle-knob {
   transform: translateX(1.05rem);
@@ -1992,10 +1992,10 @@ async function seedCategories() {
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   white-space: nowrap;
 }
 .ed-btn:hover:not(:disabled) {
@@ -2010,18 +2010,18 @@ async function seedCategories() {
   color: rgb(var(--fg-muted));
 }
 .ed-btn--primary {
-  background: #d4a734;
-  border-color: #d4a734;
-  color: #1a1a1a;
+  background: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
 }
 .ed-btn--primary:hover:not(:disabled) {
-  background: #e8b94e;
-  border-color: #e8b94e;
-  box-shadow: 0 6px 18px -8px rgba(212, 167, 52, 0.45);
+  background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
+  box-shadow: 0 6px 18px -8px rgb(var(--accent-warm) / 0.45);
 }
 
 .spin {
-  animation: cat-spin 1s linear infinite;
+  animation: cat-spin calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes cat-spin {
   to { transform: rotate(360deg); }

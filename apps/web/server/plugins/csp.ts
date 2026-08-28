@@ -18,10 +18,14 @@ import { randomBytes } from 'node:crypto';
  * would mean a policy that breaks on each release. A nonce is regenerated per
  * response and covers both scripts without knowing their content.
  *
- * `style-src` deliberately keeps `'unsafe-inline'`: Vue scoped styles and
- * Tailwind's runtime blocks need it, and injected CSS is a far smaller
- * problem than injected script — the rich sanitiser already restricts the
- * `style` attribute to a whitelist of presentational properties.
+ * Styles are split three ways rather than kept permissive, and the reasoning
+ * changed with the feature set. The old note said injected CSS was "a far
+ * smaller problem than injected script"; that is no longer the position anyone
+ * holds — CSS alone exfiltrates data through `url()` and intercepts clicks
+ * through a fixed overlay, neither of which needs a line of JavaScript. So
+ * `style-src-elem` now requires the nonce and only the ATTRIBUTE form keeps
+ * `'unsafe-inline'`, because Vue's runtime `:style` bindings cannot carry a
+ * nonce and their values are not known ahead of time. See `buildPolicy`.
  *
  * The edge must not overwrite this header. `docker/caddy/Caddyfile` no longer
  * sets a CSP on the routes proxied to this container, precisely so the nonce
@@ -31,15 +35,44 @@ import { randomBytes } from 'node:crypto';
 /** Inline `<script>` only — never one with `src`, which `'self'` covers. */
 const INLINE_SCRIPT = /<script(?![^>]*\ssrc=)(?![^>]*\snonce=)/gi;
 
+/**
+ * Inline `<style>` elements, stamped the same way.
+ *
+ * Nuxt emits the SSR'd component styles as inline `<style>` blocks, so
+ * `style-src-elem` can only be tightened to a nonce if every one of them
+ * carries it. Same pattern as the scripts above, same `stamp()`.
+ */
+const INLINE_STYLE = /<style(?![^>]*\snonce=)/gi;
+
 function buildPolicy(nonce: string): string {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval'`,
-    // See the note above: styles stay permissive on purpose.
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    // Three declarations, not one, and the split is the point.
+    //
+    // `style-src` alone had to carry `'unsafe-inline'`, which permits ANY
+    // injected `<style>` — the exact vector of the CSS-exfiltration attacks that
+    // the owner-CSS feature makes worth caring about. Splitting lets the element
+    // form require a nonce while the attribute form keeps `'unsafe-inline'`,
+    // which it must: the site has ~134 Vue `:style` bindings whose values are
+    // computed at runtime, so neither a nonce (attributes cannot carry one — the
+    // MDN page is misleading here) nor `'unsafe-hashes'` (values unknown ahead of
+    // time) is available for them.
+    //
+    // `style-src` stays as the fallback and that is not decoration:
+    // `style-src-elem` only became Baseline in December 2025, and a browser that
+    // does not know it falls back to this line rather than to nothing.
+    //
+    // The `fonts.googleapis.com` origin that used to be here is gone —
+    // `@nuxt/fonts` downloads the faces at build time and serves them from
+    // `/_fonts/`, so `'self'` covers both the stylesheet and the files.
+    "style-src 'self' 'unsafe-inline'",
+    `style-src-elem 'self' 'nonce-${nonce}'`,
+    "style-src-attr 'unsafe-inline'",
     // Remote posters and banners come from arbitrary image hosts.
     "img-src 'self' data: https:",
-    "font-src 'self' data: https://fonts.gstatic.com",
+    // `fonts.gstatic.com` likewise. `data:` stays for the icon sets.
+    "font-src 'self' data:",
     // Narrowed from `'self' https:`. Every XHR the client makes goes to our
     // own API — metadata lookups are proxied server-side so the TMDb key
     // never reaches the browser. Leaving `https:` here meant that after an
@@ -58,7 +91,9 @@ export default defineNitroPlugin((nitro) => {
     event.context.cspNonce = nonce;
 
     const stamp = (chunk: string) =>
-      chunk.replace(INLINE_SCRIPT, `<script nonce="${nonce}"`);
+      chunk
+        .replace(INLINE_SCRIPT, `<script nonce="${nonce}"`)
+        .replace(INLINE_STYLE, `<style nonce="${nonce}"`);
 
     html.head = html.head.map(stamp);
     html.bodyPrepend = html.bodyPrepend.map(stamp);

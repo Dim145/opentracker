@@ -350,7 +350,7 @@ function formatMul(v: number): string {
 .tcurve-line {
   stroke-dasharray: 1800;
   stroke-dashoffset: 1800;
-  animation: tcurve-draw 0.85s cubic-bezier(0.2, 0.7, 0.2, 1) 80ms forwards;
+  animation: tcurve-draw calc(0.85s * var(--motion-scale)) var(--ease-standard) calc(80ms * var(--motion-scale)) forwards;
   filter: drop-shadow(0 1px 8px color-mix(in srgb, currentColor 30%, transparent));
 }
 @keyframes tcurve-draw {
@@ -361,7 +361,7 @@ function formatMul(v: number): string {
    gives the curve more presence on first paint. */
 .tcurve-area {
   opacity: 0;
-  animation: tcurve-fill 0.6s ease 0.5s forwards;
+  animation: tcurve-fill calc(0.6s * var(--motion-scale)) ease calc(0.5s * var(--motion-scale)) forwards;
   fill-opacity: 0.1;
 }
 @keyframes tcurve-fill {
@@ -371,8 +371,8 @@ function formatMul(v: number): string {
 /* Markers pop in one by one — each with its own --m-stagger. */
 .tcurve-marker {
   opacity: 0;
-  animation: tcurve-mark 0.4s ease forwards;
-  animation-delay: calc(0.6s + var(--m-stagger, 0ms));
+  animation: tcurve-mark calc(0.4s * var(--motion-scale)) ease forwards;
+  animation-delay: calc(calc(0.6s * var(--motion-scale)) + var(--m-stagger, 0ms));
 }
 .tcurve-marker-dot {
   filter: drop-shadow(0 0 6px color-mix(in srgb, currentColor 50%, transparent));
@@ -385,11 +385,11 @@ function formatMul(v: number): string {
 /* Axis labels — mono, small, muted. */
 .tcurve-y-labels text,
 .tcurve-x-labels text {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   fill: rgb(var(--fg-muted));
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 /* ── Foot — axis legend + range readout ────────────────────── */
@@ -406,30 +406,30 @@ function formatMul(v: number): string {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .tcurve-axis-unit {
   color: rgb(var(--fg-faint));
   font-weight: 500;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
 }
 .tcurve-readout {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   text-transform: uppercase;
 }
 .tcurve-readout > svg {
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 </style>

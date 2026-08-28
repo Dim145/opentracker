@@ -89,7 +89,7 @@ function borderClass(type: string) {
 <style scoped>
 .notification-enter-active,
 .notification-leave-active {
-  transition: all 0.2s ease;
+  transition: all var(--dur-4) ease;
 }
 .notification-enter-from {
   opacity: 0;

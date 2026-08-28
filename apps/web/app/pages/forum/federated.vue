@@ -77,25 +77,25 @@ function fmtDate(d: string | null) {
 
 <style scoped>
 .ff { max-width: 920px; margin: 0 auto; padding: 1.5rem var(--container-pad) 5rem; }
-.ff-back { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 12.5px; color: rgb(var(--fg-muted)); margin-bottom: 1.25rem; }
+.ff-back { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7813rem; color: rgb(var(--fg-muted)); margin-bottom: 1.25rem; }
 .ff-back:hover { color: rgb(var(--fg-default)); }
 .ff-head { margin-bottom: 1.5rem; }
-.ff-title { font-size: 28px; font-weight: 700; color: rgb(var(--fg-strong)); letter-spacing: -0.02em; margin-top: 0.45rem; }
-.ff-head .note { font-size: 13px; color: rgb(var(--fg-muted)); margin-top: 0.4rem; max-width: 64ch; line-height: 1.55; }
+.ff-title { font-size: 1.75rem; font-weight: 700; color: rgb(var(--fg-strong)); letter-spacing: calc(-0.02em * var(--tracking-scale)); margin-top: 0.45rem; }
+.ff-head .note { font-size: 0.8125rem; color: rgb(var(--fg-muted)); margin-top: 0.4rem; max-width: 64ch; line-height: 1.55; }
 
 .ff-peers { display: flex; flex-direction: column; gap: 1.5rem; }
-.ff-peer-head { display: flex; align-items: center; gap: 0.5rem; font-size: 14px; font-weight: 600; color: rgb(var(--fg-strong)); padding-bottom: 0.6rem; border-bottom: 1px solid rgb(var(--line-default)); margin-bottom: 0.7rem; }
+.ff-peer-head { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; color: rgb(var(--fg-strong)); padding-bottom: 0.6rem; border-bottom: 1px solid rgb(var(--line-default)); margin-bottom: 0.7rem; }
 .ff-peer-head :deep(svg) { color: #7dd3fc; }
-.ff-c { font-family: var(--font-mono, monospace); font-size: 11px; color: rgb(var(--fg-subtle)); background: rgb(var(--bg-elevated)); border: 1px solid rgb(var(--line-default)); border-radius: 99px; padding: 0.05rem 0.45rem; margin-left: 0.2rem; }
+.ff-c { font-family: var(--font-mono); font-size: 0.6875rem; color: rgb(var(--fg-subtle)); background: rgb(var(--bg-elevated)); border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-pill); padding: 0.05rem 0.45rem; margin-left: 0.2rem; }
 .ff-topics { display: flex; flex-direction: column; gap: 0.5rem; list-style: none; }
-.ff-topic { padding: 0.7rem 0.9rem; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); background: rgb(var(--bg-surface)); transition: border-color 0.14s ease; }
+.ff-topic { padding: 0.7rem 0.9rem; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); background: rgb(var(--bg-surface)); transition: border-color var(--dur-2) ease; }
 .ff-topic:hover { border-color: rgb(var(--line-strong)); }
 .ff-topic-title { font-weight: 600; color: rgb(var(--fg-default)); display: inline-flex; align-items: center; gap: 0.35rem; }
 .ff-topic-title :deep(svg) { font-size: 0.85em; color: rgb(var(--fg-subtle)); }
 .ff-topic-title:hover { color: rgb(var(--fg-strong)); }
-.ff-topic-meta { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.35rem; font-size: 11.5px; }
+.ff-topic-meta { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.35rem; font-size: 0.7188rem; }
 .ff-topic-meta .muted { display: inline-flex; align-items: center; gap: 0.25rem; color: rgb(var(--fg-subtle)); }
-.ff-cat { font-size: 10.5px; color: var(--gold, #d4a734); background: rgba(212, 167, 52, 0.1); border: 1px solid rgba(212, 167, 52, 0.3); border-radius: 99px; padding: 0.05rem 0.45rem; }
-.ff-empty { text-align: center; padding: 3rem 1rem; color: rgb(var(--fg-subtle)); border: 1px dashed rgb(var(--line-default)); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; gap: 0.6rem; font-size: 13px; }
+.ff-cat { font-size: 0.6563rem; color: var(--gold, rgb(var(--accent-warm))); background: rgb(var(--accent-warm) / 0.1); border: 1px solid rgb(var(--accent-warm) / 0.3); border-radius: var(--radius-pill); padding: 0.05rem 0.45rem; }
+.ff-empty { text-align: center; padding: 3rem 1rem; color: rgb(var(--fg-subtle)); border: 1px dashed rgb(var(--line-default)); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; gap: 0.6rem; font-size: 0.8125rem; }
 .ff-empty :deep(svg) { font-size: 1.8rem; opacity: 0.5; }
 </style>

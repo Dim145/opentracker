@@ -149,16 +149,16 @@ const tierLabel = computed(() =>
   /* Staggered reveal, ~14 ms apart. Fast enough that a 24-episode season
      still resolves in a third of a second, slow enough to read as a fill
      rather than a flicker. */
-  animation: rung-in 220ms cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
-  animation-delay: calc(var(--i) * 14ms);
+  animation: rung-in var(--dur-4) cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+  animation-delay: calc(var(--i) * calc(14ms * var(--motion-scale)));
 }
 
 .rung--lit {
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
   /* A held episode sits a touch taller as well as brighter: the shape reads
      at a glance even for a member who cannot separate the two tones. */
   height: 13px;
-  box-shadow: 0 0 6px rgb(212 167 52 / 0.35);
+  box-shadow: 0 0 6px rgb(var(--accent-warm) / 0.35);
 }
 
 @keyframes rung-in {
@@ -176,22 +176,22 @@ const tierLabel = computed(() =>
 }
 
 .tier {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
   line-height: 1;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   padding: 2px 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   color: rgb(var(--fg-faint));
   border: 1px solid rgb(var(--line-default));
-  animation: tier-in 220ms ease backwards;
-  animation-delay: calc(var(--i) * 40ms);
+  animation: tier-in var(--dur-4) ease backwards;
+  animation-delay: calc(var(--i) * calc(40ms * var(--motion-scale)));
 }
 
 .tier--lit {
-  color: #d4a734;
-  border-color: rgb(212 167 52 / 0.45);
-  background: rgb(212 167 52 / 0.08);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.45);
+  background: rgb(var(--accent-warm) / 0.08);
 }
 
 @keyframes tier-in {
@@ -203,9 +203,9 @@ const tierLabel = computed(() =>
 
 .ladder-caption {
   margin-left: 6px;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
   align-self: center;
 }

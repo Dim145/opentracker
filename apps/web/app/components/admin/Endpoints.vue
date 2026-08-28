@@ -111,19 +111,19 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
-.endp-head-tag-icon { font-size: 0.95rem; color: #d4a734; }
+.endp-head-tag-icon { font-size: 0.95rem; color: rgb(var(--accent-warm)); }
 .endp-head-meta {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -142,7 +142,7 @@ onBeforeUnmount(() => {
   gap: 0.35rem;
   padding: 0.7rem 0.95rem;
   border-bottom: 1px solid rgb(var(--line-default));
-  animation: endp-in 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: endp-in calc(0.36s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .endp-row:last-child { border-bottom: 0; }
@@ -161,10 +161,10 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-muted));
 }
 .endp-row-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   flex: 1;
@@ -178,9 +178,9 @@ onBeforeUnmount(() => {
   align-items: stretch;
 }
 .endp-row-url {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11.5px;
-  letter-spacing: 0.01em;
+  font-family: var(--font-mono);
+  font-size: 0.7188rem;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
@@ -200,12 +200,12 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .endp-row-copy:hover {
-  color: #d4a734;
-  border-color: rgba(212, 167, 52, 0.4);
-  background: rgba(212, 167, 52, 0.06);
+  color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm) / 0.4);
+  background: rgb(var(--accent-warm) / 0.06);
 }
 .endp-row-copy--copied {
   color: #6cd161;

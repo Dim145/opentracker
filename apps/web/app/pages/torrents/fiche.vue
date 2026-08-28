@@ -1232,14 +1232,14 @@ onMounted(() => {
   opacity: 0.45;
 }
 .fiche-step-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 }
 .fiche-step-label {
   font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: calc(0.09em * var(--tracking-scale));
 }
 .fiche-step.is-current button {
   color: rgb(var(--fg-strong));
@@ -1259,10 +1259,10 @@ onMounted(() => {
   gap: 0.5rem;
   padding: 2.5rem 1.5rem;
   border: 1.5px dashed rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-inset) / 0.4);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .drop-zone--tall {
   padding: 4rem 1.5rem;
@@ -1330,7 +1330,7 @@ onMounted(() => {
   width: 2.4rem;
   height: 3.4rem;
   object-fit: cover;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   flex: 0 0 auto;
 }
 .fiche-result-body {
@@ -1350,7 +1350,7 @@ onMounted(() => {
 
 /* ── Divers ─────────────────────────────────────────────────────────────── */
 .fiche-mono {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   line-height: 1.5;
   resize: vertical;
@@ -1374,7 +1374,7 @@ onMounted(() => {
   margin: 0;
   font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: calc(0.09em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .fiche-track-card {
@@ -1393,9 +1393,9 @@ onMounted(() => {
   min-width: 0;
 }
 .fiche-track-index {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-subtle));
   flex: 0 0 auto;
 }
@@ -1459,7 +1459,7 @@ onMounted(() => {
   border-radius: calc(var(--radius-sm) - 1px);
   font-size: 0.78rem;
   color: rgb(var(--fg-muted));
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background var(--dur-2) ease, color var(--dur-2) ease;
 }
 .fiche-radio input:checked + span {
   background: rgb(var(--fg-default) / 0.1);
@@ -1496,10 +1496,10 @@ onMounted(() => {
   flex: none;
   padding: 0.05rem 0.35rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -1635,7 +1635,7 @@ onMounted(() => {
   margin: 0;
   font-size: 0.95rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 }
 .fiche-nfo {
   flex: 1 1 auto;
@@ -1645,7 +1645,7 @@ onMounted(() => {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-inset));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1.5;
   white-space: pre-wrap;

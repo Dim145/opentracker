@@ -538,7 +538,7 @@ async function unfollow(row: PersonaRow) {
   position: absolute;
   top: 4rem;
   right: 14%;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 4.5rem;
   line-height: 1;
   color: rgb(var(--amber) / 0.15);
@@ -555,7 +555,7 @@ async function unfollow(row: PersonaRow) {
   align-items: end;
   gap: 1.5rem 2rem;
   margin-bottom: 2.5rem;
-  animation: cast-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: cast-rise calc(0.55s * var(--motion-scale)) var(--ease-emphasis) both;
 }
 @keyframes cast-rise {
   from { opacity: 0; transform: translateY(8px); }
@@ -570,17 +570,17 @@ async function unfollow(row: PersonaRow) {
   align-items: center;
   gap: 0.6rem;
   margin: 0 0 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .cast-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0;
   color: rgb(var(--emerald));
@@ -602,12 +602,12 @@ async function unfollow(row: PersonaRow) {
    carries the amber wash so the eye lands on it first. */
 .cast-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-style: italic;
   font-size: clamp(2.2rem, 5vw, 3.4rem);
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   display: flex;
   align-items: baseline;
@@ -622,7 +622,7 @@ async function unfollow(row: PersonaRow) {
 .cast-intro {
   margin: 0.8rem 0 0;
   max-width: 58ch;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -635,10 +635,10 @@ async function unfollow(row: PersonaRow) {
   flex-wrap: wrap;
 }
 .cast-sort-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -647,7 +647,7 @@ async function unfollow(row: PersonaRow) {
   padding: 0.18rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 .cast-sort-opt {
   display: inline-flex;
@@ -656,15 +656,15 @@ async function unfollow(row: PersonaRow) {
   padding: 0.4rem 0.95rem;
   background: transparent;
   border: 0;
-  border-radius: 999px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: color 0.15s, background 0.18s;
+  transition: color var(--dur-2), background var(--dur-3);
 }
 .cast-sort-opt > svg { font-size: 0.85rem; flex-shrink: 0; }
 .cast-sort-opt:hover { color: rgb(var(--fg-strong)); }
@@ -681,13 +681,13 @@ async function unfollow(row: PersonaRow) {
   justify-content: center;
   gap: 0.55rem;
   padding: 2.5rem 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
-.loader-spin { font-size: 1.25rem; animation: spin 0.9s linear infinite; }
+.loader-spin { font-size: 1.25rem; animation: spin calc(0.9s * var(--motion-scale)) linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ╔════════════════════════════════════════════════════════════════╗
@@ -724,17 +724,17 @@ async function unfollow(row: PersonaRow) {
     ),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.6rem;
+  border-radius: var(--radius-xl);
   text-align: center;
   overflow: hidden;
-  animation: persona-enter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: persona-enter calc(0.6s * var(--motion-scale)) var(--ease-emphasis) both;
   animation-delay: var(--stagger, 0ms);
   transition:
-    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.22s,
+    transform 0.32s var(--ease-emphasis),
+    border-color var(--dur-4),
     box-shadow 0.32s ease;
   box-shadow:
-    0 16px 36px -20px rgba(0, 0, 0, 0.65),
+    0 16px 36px -20px rgb(var(--shadow-color) / calc(0.65 * var(--shadow-strength))),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 @keyframes persona-enter {
@@ -770,7 +770,7 @@ async function unfollow(row: PersonaRow) {
   transform: translateY(-4px);
   border-color: rgb(var(--emerald) / 0.5);
   box-shadow:
-    0 28px 60px -24px rgba(0, 0, 0, 0.7),
+    0 28px 60px -24px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
     0 0 0 1px rgb(var(--emerald) / 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
@@ -780,10 +780,10 @@ async function unfollow(row: PersonaRow) {
   position: absolute;
   top: 0.55rem;
   right: 0.8rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   color: rgb(var(--amber));
   opacity: 0.85;
   text-shadow: 0 0 6px rgb(var(--amber) / 0.4);
@@ -810,14 +810,14 @@ async function unfollow(row: PersonaRow) {
   filter: blur(6px);
   pointer-events: none;
   z-index: 0;
-  animation: spotlight-warmup 1.2s ease-out both;
+  animation: spotlight-warmup calc(1.2s * var(--motion-scale)) ease-out both;
 }
 @keyframes spotlight-warmup {
   from { opacity: 0; transform: scale(0.85); }
   to   { opacity: 1; transform: scale(1); }
 }
 .persona:hover .persona-spotlight {
-  animation: spotlight-pulse 2.4s ease-in-out infinite;
+  animation: spotlight-pulse calc(2.4s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes spotlight-pulse {
   0%, 100% { opacity: 0.85; }
@@ -836,7 +836,7 @@ async function unfollow(row: PersonaRow) {
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   box-shadow:
     inset 0 0 0 2px rgba(255, 255, 255, 0.18),
-    inset 0 -18px 24px -16px rgba(0, 0, 0, 0.4);
+    inset 0 -18px 24px -16px rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
   z-index: 1;
 }
 .persona-portrait::after {
@@ -853,13 +853,13 @@ async function unfollow(row: PersonaRow) {
   pointer-events: none;
 }
 .persona-initials {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 2.4rem;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgba(255, 255, 255, 0.96);
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 2px 8px rgb(var(--shadow-color) / calc(0.35 * var(--shadow-strength)));
   z-index: 2;
 }
 
@@ -878,23 +878,23 @@ async function unfollow(row: PersonaRow) {
 .persona-name {
   margin: 0;
   max-width: 100%;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 1.2rem;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   line-height: 1.15;
   color: rgb(var(--fg-strong));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: color 0.18s;
+  transition: color var(--dur-3);
 }
 .persona-id:hover .persona-name { color: rgb(var(--amber)); }
 .persona-handle {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--emerald));
 }
 
@@ -902,9 +902,9 @@ async function unfollow(row: PersonaRow) {
 .persona-bio {
   margin: 0.35rem 0 0;
   padding: 0 0.4rem;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   line-height: 1.45;
   color: rgb(var(--fg-muted));
   max-width: 28ch;
@@ -924,24 +924,24 @@ async function unfollow(row: PersonaRow) {
 .persona-meta div { display: flex; flex-direction: column; gap: 0.1rem; }
 .persona-meta dt {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5313rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
 .persona-meta dd {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
 .persona-faint {
   font-style: italic;
   color: rgb(var(--fg-faint));
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 /* Footer — entered date + exit button */
@@ -959,10 +959,10 @@ async function unfollow(row: PersonaRow) {
   display: inline-flex;
   align-items: center;
   gap: 0.32rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--emerald));
   opacity: 0.75;
@@ -975,19 +975,19 @@ async function unfollow(row: PersonaRow) {
   padding: 0.28rem 0.55rem;
   background: transparent;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
   transition:
-    color 0.15s,
-    background 0.18s,
-    border-color 0.18s,
-    transform 0.18s;
+    color var(--dur-2),
+    background var(--dur-3),
+    border-color var(--dur-3),
+    transform var(--dur-3);
 }
 .persona-exit:hover:not(:disabled) {
   color: rgb(var(--bg-base));
@@ -1021,7 +1021,7 @@ async function unfollow(row: PersonaRow) {
   justify-content: center;
   margin-bottom: 0.4rem;
   overflow: hidden;
-  border-radius: 0.5rem 0.5rem 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background:
     radial-gradient(
       ellipse 60% 40% at 50% 100%,
@@ -1043,8 +1043,8 @@ async function unfollow(row: PersonaRow) {
       rgba(76, 5, 25, 0.95) 8px,
       rgba(76, 5, 25, 0.95) 16px
     );
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.55);
-  animation: curtain-sway 5s ease-in-out infinite;
+  box-shadow: inset 0 0 30px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
+  animation: curtain-sway calc(5s * var(--motion-scale)) ease-in-out infinite;
 }
 .curtain--left { left: 0; transform-origin: top left; }
 .curtain--right { right: 0; transform-origin: top right; }
@@ -1077,7 +1077,7 @@ async function unfollow(row: PersonaRow) {
 
 .empty-title {
   margin: 0.4rem 0 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.4rem;
@@ -1086,7 +1086,7 @@ async function unfollow(row: PersonaRow) {
 .empty-sub {
   margin: 0;
   max-width: 50ch;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));
 }
@@ -1099,14 +1099,14 @@ async function unfollow(row: PersonaRow) {
   background: rgb(var(--emerald) / 0.18);
   color: rgb(var(--emerald));
   border: 1px solid rgb(var(--emerald) / 0.55);
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   text-decoration: none;
-  transition: background 0.18s, color 0.15s, transform 0.18s;
+  transition: background var(--dur-3), color var(--dur-2), transform var(--dur-3);
 }
 .empty-cta:hover {
   background: rgb(var(--emerald));
@@ -1129,15 +1129,15 @@ async function unfollow(row: PersonaRow) {
   padding: 0.5rem 0.85rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background var(--dur-2), border-color var(--dur-2), color var(--dur-2);
 }
 .pager-btn:hover:not(:disabled) {
   background: rgb(var(--bg-hover, var(--bg-elevated)));
@@ -1146,16 +1146,16 @@ async function unfollow(row: PersonaRow) {
 }
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: baseline;
   gap: 0.3rem;
 }
-.pager-cur { color: rgb(var(--emerald)); font-size: 14px; }
+.pager-cur { color: rgb(var(--emerald)); font-size: 0.875rem; }
 .pager-sep { opacity: 0.4; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1166,13 +1166,13 @@ async function unfollow(row: PersonaRow) {
 }
 
 .cast-fed { margin: 2.5rem auto 0; max-width: 720px; }
-.cast-fed-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgb(var(--fg-muted)); margin-bottom: 0.8rem; }
+.cast-fed-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: calc(0.08em * var(--tracking-scale)); color: rgb(var(--fg-muted)); margin-bottom: 0.8rem; }
 .cast-fed-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-.cast-fed-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem; border: 1px solid rgb(var(--border) / 0.7); border-radius: 0.5rem; background: rgb(var(--bg-subtle) / 0.4); }
+.cast-fed-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem; border: 1px solid rgb(var(--border) / 0.7); border-radius: var(--radius-lg); background: rgb(var(--bg-subtle) / 0.4); }
 .cast-fed-ico { color: rgb(var(--accent)); flex: none; }
 .cast-fed-name { font-weight: 600; }
 .cast-fed-peer { color: rgb(var(--fg-muted)); font-size: 0.8rem; }
-.cast-fed-leave { margin-left: auto; padding: 0.25rem 0.6rem; border: 1px solid rgb(var(--border)); border-radius: 0.4rem; background: transparent; color: rgb(var(--fg-muted)); cursor: pointer; font-size: 0.78rem; }
+.cast-fed-leave { margin-left: auto; padding: 0.25rem 0.6rem; border: 1px solid rgb(var(--border)); border-radius: var(--radius-md); background: transparent; color: rgb(var(--fg-muted)); cursor: pointer; font-size: 0.78rem; }
 .cast-fed-leave:hover:not(:disabled) { color: rgb(var(--danger)); border-color: rgb(var(--danger) / 0.5); }
 .cast-fed-leave:disabled { opacity: 0.5; cursor: default; }
 

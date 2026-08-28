@@ -31,7 +31,12 @@
  *                    thread shows the action chained to the report.
  */
 import { db, schema } from '@trackarr/db';
-import { requireModeratorSession, invalidateBanCache } from '~~/utils/adminAuth';
+import {
+  requireModeratorSession,
+  invalidateBanCache,
+  invalidateRoleCache,
+} from '~~/utils/adminAuth';
+import { relinquishOwnership } from '~~/utils/owner';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { notify } from '~~/utils/notify';
@@ -195,6 +200,13 @@ export default defineEventHandler(async (event) => {
     // Drop the cached `isBanned` so the next request from the
     // offender (any surface) sees the lockout immediately.
     await invalidateBanCache(banTarget.id);
+
+    // Same reasoning as the direct ban route: a banned owner cannot act, so
+    // ownership moves on. Worth doing here too rather than only there — a
+    // report resolution is the more likely way an owner gets banned by
+    // somebody else's hand.
+    const heir = await relinquishOwnership(banTarget.id, 'banned');
+    if (heir) await invalidateRoleCache(heir);
 
     // Notify the banned user. They won't see it until their next
     // login (auth middleware blocks the session) — but it'll sit

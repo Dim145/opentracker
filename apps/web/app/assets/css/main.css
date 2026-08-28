@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -32,7 +30,12 @@
   --fg-default:     250 250 250;
   --fg-strong:      255 255 255;
   --fg-muted:       161 161 161;
-  --fg-subtle:      112 112 112;
+  /* 121, not 112: 112 gave 4.00:1 on `--bg-base` and this token is a TEXT
+     colour (`.eyebrow`, the data-table head). Nine points of grey buys 4.55:1
+     and is not perceptible next to the old value. Same class of defect as the
+     `--fg-faint` note below, found by the contrast gate the theme system needs
+     anyway. */
+  --fg-subtle:      121 121 121;
   /* Bumped from 74/74/74 (~1.84:1 on bg-base — WCAG fail) up to
      130/130/130 (~5.2:1 on bg-base) so the dozen-or-so mono micro
      labels using --fg-faint as a text colour stay legible. */
@@ -53,10 +56,70 @@
   --danger:         239 68 68;
   --info:           56 189 248;
 
-  /* Static colour values that need to be invariant per theme go here. The
-     dot-grid pattern uses theme-tinted whites/blacks, so it lives outside
-     the rgb() pattern. */
-  --bg-pattern:     rgba(255, 255, 255, 0.025);
+  /* Chrome. `--focus-ring` is new and its default IS the gold that used to be
+     hardcoded in an unlayered rule at the bottom of this file — so nothing
+     changes visually, the ring simply becomes something a theme can reach.
+     `color-scheme` is what makes scrollbars, `<select>` and the native form
+     widgets follow the theme; without it a dark custom theme keeps pale
+     scrollbars. */
+  --focus-ring:     212 167 52;
+  --color-scheme:   dark;
+
+  /* The body dot-grid, as a triplet plus an alpha rather than one `rgba()`.
+     Two values can be validated exactly — three integers and a decimal — where
+     one could only be validated as "some colour", and the pattern becomes
+     tintable instead of being a hardcoded near-transparent white. */
+  --bg-pattern-rgb:   255 255 255;
+  --bg-pattern-alpha: 0.025;
+  --bg-pattern:     rgb(var(--bg-pattern-rgb) / var(--bg-pattern-alpha));
+  /* Geometry and pitch. `--bg-pattern-image` is written from the
+     `bg-pattern-kind` token by the emitter — CSS cannot branch on the value of
+     a custom property, so the enum is mapped to a literal in code
+     (`PATTERN_IMAGES` in packages/shared/src/theme.ts) and the two built-ins
+     spell theirs out here. That indirection is the security boundary: a
+     free-form `background-image` would accept `url()`, and with
+     `img-src 'self' data: https:` in the CSP that is an exfiltration channel. */
+
+  /* Chart series. A categorical scale, deliberately NOT derived from the accent:
+     six series tinted from one hue are six shades of one colour, and the entire
+     job of a series colour is to be told apart from the other five.
+     Declared once and inherited by the light theme — these are mid-saturation
+     and legible on either ground — but a theme may override any of them. */
+  --chart-1:        59 130 246;
+  --chart-2:        16 185 129;
+  --chart-3:        245 158 11;
+  --chart-4:        139 92 246;
+  --chart-5:        239 68 68;
+  --chart-6:        6 182 212;
+
+  --bg-pattern-kind: dots;
+  --bg-pattern-step: 40px;
+  --bg-pattern-image: radial-gradient(
+    circle at 2px 2px,
+    var(--bg-pattern) 1px,
+    transparent 0
+  );
+
+  /* Ambience.
+
+     `--accent-warm` is the gold this site is recognised by, and it is no longer
+     a reserved name: wave 1 converted the 590 component sites that painted
+     `#d4a734` or `rgba(212, 167, 52, …)` directly, so this is now what moves
+     every primary button, badge, hover glow and highlight border outside the
+     shared layer. Its value is unchanged, so nothing looks different — the
+     literals simply became reachable. `--accent-warm-fg` is the mark drawn on
+     that fill; one near-black serves both built-ins (7.8:1 on the dark theme's
+     gold, 5.2:1 on the light theme's darker gold).
+
+     `--accent-cool` and `--accent-paper` are still held for later: they name
+     the per-page palettes that 22 components define for themselves (`--gold`,
+     `--ink`, `--brass`, `--gild`, `--parchment`…). Declaring them here means a
+     theme authored today stays valid when those 111 definitions are replaced,
+     and a theme file can already set them by hand. */
+  --accent-warm:    212 167 52;
+  --accent-warm-fg: 26 26 26;
+  --accent-cool:    52 212 216;
+  --accent-paper:   20 20 20;
 
   /* Typography. `--font-mono` has to exist here because 52 declarations
      across 11 components already ask for it, and it had never been defined:
@@ -66,22 +129,107 @@
      declaration invalid — those elements were not monospace, they were Inter.
      Kept identical to tailwind.config.ts `fontFamily.mono` so the token and
      the `font-mono` utility can never drift apart. */
-  --font-mono:      'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --font-mono:      'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* The other two roles, named for the same reason. `--font-sans` had never
+     existed even though `tailwind.config.ts` declared the stack, so a theme had
+     nothing to reach for; `--font-display` existed only inside
+     FreeleechPool.vue, pointing at 'Iowan Old Style' — a face this site never
+     loads — while the `.font-display` utility below and some eighty
+     declarations across a dozen pages spell Fraunces out by hand with four
+     different fallback stacks. All three are now one name each, kept identical
+     to what `tailwind.config.ts` resolves so a token and its utility cannot
+     drift.
+     These hold the STACK. What a theme stores is a short name — `manrope`,
+     `fira-code` — and the emitter looks the stack up in `FONT_STACKS`
+     (packages/shared/src/theme.ts), for the same reason the background pattern
+     works that way: an admin picks from what the build actually shipped, and the
+     literal comes from code rather than from a text field. */
+  --font-sans:      'Inter', system-ui, -apple-system, sans-serif;
+  --font-display:   'Fraunces', 'Times New Roman', serif;
 
   /* Spacing tokens */
   --header-h:       56px;
-  --announcement-h: 0px;
-  --header-total:   calc(var(--header-h) + var(--announcement-h));
+  /* `--header-total` is what sticky offsets should use. It equals `--header-h`,
+     and that is not a placeholder: it used to add an `--announcement-h` that
+     nothing ever wrote, and nothing should — the announcement banner sits in
+     normal flow BELOW the sticky header, so it pushes the page down on its own
+     and scrolls away, leaving the header the only fixed chrome. The name is
+     kept because the offset is a real concept and three declarations in
+     upload-form.css depend on it; the term that was always zero is gone. */
+  --header-total:   var(--header-h);
   --container-pad:  1rem;
   --container-max:  1400px;
 
-  /* Radii — keep two: a small chrome radius (4px) and a card radius (6px) */
-  --radius-sm:      4px;
-  --radius-md:      6px;
+  /* Radii — one scalar, the rest derived.
+     `--radius` is the only value a theme sets; the five steps keep their
+     proportions as it moves, which is what makes a single number take the
+     corners from square to very round without any step overtaking another.
+     The multipliers are chosen so the defaults land exactly on the values this
+     codebase already used: 2 / 4 / 6 / 8 / 12 px.
+     `--radius-pill` is deliberately NOT derived — a pill is a pill at any
+     scale, and a theme that wants square pills has to be able to say so
+     without flattening every card with it. */
+  --radius:         6px;
+  --radius-xs:      calc(var(--radius) * 0.3333);
+  --radius-sm:      calc(var(--radius) * 0.6667);
+  --radius-md:      var(--radius);
+  --radius-lg:      calc(var(--radius) * 1.3333);
+  --radius-xl:      calc(var(--radius) * 2);
+  --radius-pill:    9999px;
 
-  /* Shadows */
-  --shadow-overlay: 0 24px 48px -12px rgba(0, 0, 0, 0.65);
-  --shadow-popover: 0 12px 32px -8px rgba(0, 0, 0, 0.55);
+  /* Motion — a multiplier, and two named curves.
+     The measured spread was seven durations between 120 ms and 220 ms across
+     528 declarations: one band, hand-tuned within itself. So the durations are
+     fixed here and `--motion-scale` moves all of them together, which is the
+     distinction a theme actually makes ("snappier", "slower") rather than six
+     independently editable numbers nobody would set.
+     `--motion-scale: 0` collapses every duration to zero and removes every
+     transition on the site. Not a special case — the same `calc()`. */
+  /* Interface scale.
+     Applied once, on `html`, as `calc(100% * var(--ui-scale))` — `100%` and not
+     `16px`, so a visitor who has set a larger default font size in their
+     browser keeps it and the theme's factor multiplies on top rather than
+     replacing it.
+     One declaration reaches everything because this codebase is now in `rem`:
+     938 `font-size` declarations were in `px` and are not any more, and 3 837
+     of the 3 904 padding/gap/margin values already were. So the lever moves
+     type and spacing together, which is what it says on the label — it is an
+     interface scale, not two independent knobs. Two knobs would let a theme put
+     large text in tight boxes, which is mostly a way to overflow a table. */
+  /* Letter-spacing scale.
+     The site's signature is a mono uppercase over-title, and it appears with
+     six slightly different tracking values across 330 rules — copy-paste drift
+     around one design element. Unifying them would be a real cleanup and a
+     visible change to 150 of them, so it is not done here on my own judgement.
+     What IS done is the same thing as `--motion-scale`: every one of the 867
+     `letter-spacing` values keeps itself and multiplies by this, so the lever
+     exists with no change at 1. `0` removes all tracking; `2` is very airy, and
+     amplifies the negative tracking on large headings too, which is the design's
+     own intent rather than a bug. */
+  --tracking-scale: 1;
+
+  --ui-scale:       1;
+
+  --motion-scale:   1;
+  --dur-1:          calc(120ms * var(--motion-scale));
+  --dur-2:          calc(150ms * var(--motion-scale));
+  --dur-3:          calc(180ms * var(--motion-scale));
+  --dur-4:          calc(200ms * var(--motion-scale));
+  --dur-slow:       calc(300ms * var(--motion-scale));
+  --ease-standard:  cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-emphasis:  cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Shadows.
+     `--shadow-strength` multiplies into the alpha of every shadow in the
+     codebase, so each of the 238 declarations keeps its own hand-tuned weight
+     while a theme moves the lot. `0` is the flat mode, and it needs no second
+     code path: every shadow simply resolves to a transparent colour.
+     `--shadow-color` is a triplet rather than a finished colour for the same
+     reason every other colour here is — so an alpha can be composed onto it. */
+  --shadow-color:   0 0 0;
+  --shadow-strength: 1;
+  --shadow-overlay: 0 24px 48px -12px rgb(var(--shadow-color) / calc(0.65 * var(--shadow-strength)));
+  --shadow-popover: 0 12px 32px -8px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
 }
 
 :root[data-theme='light'] {
@@ -94,8 +242,19 @@
   --fg-default:     10 10 10;
   --fg-strong:      0 0 0;
   --fg-muted:       85 85 85;
-  --fg-subtle:      118 118 118;
-  --fg-faint:       176 176 176;
+  --fg-subtle:      115 115 115;
+  /* 115, down from 176 — the biggest visible change in this file, and a bug
+     fix rather than a preference. 176 on `--bg-base` is **2.08:1**, which is
+     unreadable, and it is the same defect the dark theme already had: the note
+     above records `--fg-faint` being raised from 1.84:1 to 5.2:1 there for
+     exactly these mono micro labels. Light was never measured. It is also the
+     placeholder colour (`.input::placeholder`), so the failure was on every
+     form on the site.
+
+     Light-mode micro labels and placeholders are therefore noticeably darker
+     than before. That is the point: at 2.08:1 they were decorative, not
+     legible. */
+  --fg-faint:       115 115 115;
 
   --line-default:   229 229 229;
   --line-strong:    208 208 208;
@@ -109,10 +268,25 @@
   --danger:         185 28 28;
   --info:           3 105 161;
 
-  --bg-pattern:     rgba(0, 0, 0, 0.04);
+  --focus-ring:     176 133 24;
+  --color-scheme:   light;
 
-  --shadow-overlay: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
-  --shadow-popover: 0 12px 32px -8px rgba(0, 0, 0, 0.12);
+  --bg-pattern-rgb:   0 0 0;
+  --bg-pattern-alpha: 0.04;
+  --bg-pattern-kind: dots;
+  --bg-pattern-step: 40px;
+
+  --accent-warm:    176 133 24;
+  --accent-warm-fg: 26 26 26;
+  --accent-cool:    14 145 148;
+  --accent-paper:   252 250 245;
+
+  /* The light theme restates only the two composed shadows, because its
+     alphas are genuinely different — a 0.65 black over white is a bruise. The
+     scalar and the colour are inherited from the block above, so a theme that
+     sets `--shadow-strength` still moves both. */
+  --shadow-overlay: 0 24px 48px -12px rgb(var(--shadow-color) / calc(0.18 * var(--shadow-strength)));
+  --shadow-popover: 0 12px 32px -8px rgb(var(--shadow-color) / calc(0.12 * var(--shadow-strength)));
 }
 
 /* =============================================================================
@@ -122,21 +296,26 @@
 @layer base {
   html {
     @apply antialiased;
+    /* The one place `--ui-scale` is applied. See the token's note above. */
+    font-size: calc(100% * var(--ui-scale));
     background-color: rgb(var(--bg-base));
     color: rgb(var(--fg-default));
+    /* What makes the NATIVE widgets follow the theme: scrollbars, `<select>`
+     * popups, date pickers, the caret. It was never set, so a dark page has
+     * been rendering light scrollbars all along — and a custom theme built on
+     * `dark` that reads light would get it exactly backwards without a token to
+     * say which it is. */
+    color-scheme: var(--color-scheme);
   }
 
   body {
     background-color: rgb(var(--bg-base));
     color: rgb(var(--fg-default));
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    /* Subtle dot grid */
-    background-image: radial-gradient(
-      circle at 2px 2px,
-      var(--bg-pattern) 1px,
-      transparent 0
-    );
-    background-size: 40px 40px;
+    /* Was `'Inter', system-ui, …` spelled out — a miss when the font roles were
+       named, and the one place it mattered most, since everything inherits it. */
+    font-family: var(--font-sans);
+    background-image: var(--bg-pattern-image);
+    background-size: var(--bg-pattern-step) var(--bg-pattern-step);
     -webkit-text-size-adjust: 100%;
   }
 
@@ -150,19 +329,34 @@
   ::-webkit-scrollbar-track { background: rgb(var(--bg-surface)); }
   ::-webkit-scrollbar-thumb {
     background: rgb(var(--line-default));
-    border-radius: 9999px;
+    border-radius: var(--radius-pill);
   }
   ::-webkit-scrollbar-thumb:hover { background: rgb(var(--line-strong)); }
 
   /* Focus ring — thin, keyboard only */
+  /* One focus ring, from one token, for everything.
+   *
+   * There used to be two rules that disagreed. This one painted
+   * `rgb(var(--accent))` and then removed the outline again for inputs; a
+   * second, UNLAYERED rule at the bottom of the file painted
+   * `outline: 2px solid #d4a734` on button/a/[role=button]/input/select/
+   * textarea. Being outside `@layer`, the second one won — so the token-driven
+   * rule was dead for every selector anybody actually focuses, and the ring was
+   * a literal no theme could reach.
+   *
+   * Now: `--focus-ring`, defaulting to that same gold, applied to everything.
+   * The six selectors the old rule listed look identical to before. Anything
+   * else focusable (a `tabindex` div, a summary) changes from the monochrome
+   * accent to the gold — which is the consistency the two rules were failing to
+   * express, not a regression.
+   *
+   * `outline` cannot be turned off here: 2.4.11 needs a visible focus
+   * indicator, and "inputs are obvious enough" is how sites end up with none. */
   :focus-visible {
-    outline: 2px solid rgb(var(--accent));
+    outline: 2px solid rgb(var(--focus-ring));
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
   }
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible { outline: none; }
 
   /* Tabular numbers everywhere we present quantities */
   table,
@@ -179,7 +373,7 @@
      same family does the masthead at 60 px and the topic byline at 14 px
      without crunching. The `.font-display` utility opts elements in. */
   .font-display {
-    font-family: 'Fraunces', 'Times New Roman', serif;
+    font-family: var(--font-display);
     font-feature-settings: 'liga' 1, 'dlig' 1, 'ss01' 1;
     font-optical-sizing: auto;
   }
@@ -197,7 +391,7 @@
     background-color: rgb(var(--bg-surface));
     border: 1px solid rgb(var(--line-default));
     border-radius: var(--radius-md);
-    transition: border-color 180ms ease, background-color 180ms ease;
+    transition: border-color var(--dur-3) ease, background-color var(--dur-3) ease;
   }
   .card:hover { border-color: rgb(var(--line-strong)); }
 
@@ -219,12 +413,15 @@
     font-size: 0.875rem;
     font-weight: 500;
     line-height: 1;
-    letter-spacing: -0.005em;
+    letter-spacing: calc(-0.005em * var(--tracking-scale));
     border-radius: var(--radius-sm);
     border: 1px solid transparent;
     cursor: pointer;
     user-select: none;
-    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+    transition:
+      background-color var(--dur-2) ease,
+      color var(--dur-2) ease,
+      border-color var(--dur-2) ease;
   }
   .btn:disabled,
   .btn[disabled] {
@@ -289,7 +486,7 @@
     padding: 0.45rem 0.75rem;
     font-size: 0.875rem;
     line-height: 1.4;
-    transition: border-color 140ms ease, background-color 140ms ease;
+    transition: border-color var(--dur-2) ease, background-color var(--dur-2) ease;
   }
   .input::placeholder { color: rgb(var(--fg-faint)); }
   .input:focus {
@@ -309,12 +506,12 @@
     font-weight: 600;
     color: rgb(var(--fg-subtle));
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: calc(0.08em * var(--tracking-scale));
     line-height: 1.4;
   }
   .eyebrow-mono {
     @apply eyebrow;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: var(--font-mono);
     font-weight: 500;
   }
 
@@ -324,7 +521,7 @@
     line-height: 1.15;
     font-weight: 700;
     color: rgb(var(--fg-strong));
-    letter-spacing: -0.02em;
+    letter-spacing: calc(-0.02em * var(--tracking-scale));
     margin: 0;
   }
   @media (min-width: 768px) {
@@ -337,7 +534,7 @@
     line-height: 1.3;
     font-weight: 600;
     color: rgb(var(--fg-strong));
-    letter-spacing: -0.01em;
+    letter-spacing: calc(-0.01em * var(--tracking-scale));
     margin: 0;
   }
 
@@ -374,7 +571,7 @@
     border-bottom: 1px solid rgb(var(--line-default));
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: calc(0.06em * var(--tracking-scale));
     font-size: 0.6875rem;
   }
   .data-table td {
@@ -393,8 +590,8 @@
     align-items: center;
     gap: 0.25rem;
     padding: 0.1rem 0.35rem;
-    border-radius: 2px;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    border-radius: var(--radius-xs);
+    font-family: var(--font-mono);
     font-size: 0.625rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -512,12 +709,3 @@
   }
 }
 
-button:focus-visible,
-a:focus-visible,
-[role='button']:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid #d4a734;
-  outline-offset: 2px;
-}

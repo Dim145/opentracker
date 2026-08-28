@@ -292,13 +292,18 @@
               <div class="theme-row">
                 <button
                   v-for="t in themes"
-                  :key="t.value"
+                  :key="t.value ?? '__default'"
                   type="button"
                   class="theme-btn"
-                  :class="{ 'theme-btn--active': themeMode === t.value }"
+                  :class="{ 'theme-btn--active': themeChoice === t.value }"
                   @click="setTheme(t.value)"
                 >
-                  <span class="theme-btn-dot" :style="{ background: t.dot }" />
+                  <span
+                    class="theme-btn-dot"
+                    :style="{
+                      background: `linear-gradient(135deg, ${t.dot.bg} 0 50%, ${t.dot.accent} 50% 100%)`,
+                    }"
+                  />
                   <span class="theme-btn-body">
                     <span class="theme-btn-label">
                       <Icon :name="t.icon" />
@@ -736,10 +741,18 @@ const notifications = useNotificationStore();
 const { clear: clearSession, fetch: refreshSession } = useUserSession();
 const { t, locale: i18nLocale, setLocale: setI18nLocale } = useI18n();
 useHead({ title: () => t('settings.pageTitle') });
-// The project ships its own minimal useColorMode (apps/web/app/composables/
-// useColorMode.ts) — light/dark only, persisted in localStorage. We use
-// `apply()` to set and `mode` (a readonly ref) for the active state.
-const { mode: themeMode, apply: applyTheme } = useColorMode();
+// The project ships its own useColorMode (apps/web/app/composables/
+// useColorMode.ts). It is no longer light/dark: a theme is `system`, a built-in,
+// or an admin theme's slug, persisted on the account and cached in a cookie so
+// SSR can render `data-theme` without a correcting script. `apply()` sets it and
+// `mode` (a readonly ref) is the active value.
+// `choice` rather than `mode`: the picker has to show WHICH ENTRY the member
+// selected, and `mode` is the resolved value. A member on `Site default` when
+// the default is Nocturne has `mode === 'nocturne'` and `choice === null` — the
+// highlight belongs on `Site default`, not on Nocturne.
+import { BUILT_IN_TOKENS } from '@trackarr/shared/theme';
+
+const { choice: themeChoice, apply: applyTheme } = useColorMode();
 
 // ── Profile fetch ───────────────────────────────────────────────
 const { data: profile, refresh: refreshProfile } = await useFetch<MeProfile>(
@@ -911,30 +924,112 @@ onMounted(() => {
 });
 
 // ── Theme picker ────────────────────────────────────────────────
+//
+// The list is no longer two literals: it is System, the two built-ins, and every
+// theme an admin has enabled and this member is entitled to.
+//
+// The swatch used to be a hardcoded hex per option. It is now the theme's own
+// `--accent` read from the served stylesheet — which is both accurate and the
+// only version that can work, since an admin theme's colours are not known to
+// this file. Reading it means asking the browser to resolve a custom property in
+// a scope other than the current one, so an off-screen element carries the
+// theme's attribute and `getComputedStyle` answers for it.
 interface ThemeOption {
-  value: 'light' | 'dark';
+  /** `null` is the `Site default` entry — "follow whatever the owner picked". */
+  value: string | null;
   label: string;
   sub: string;
   icon: string;
-  dot: string;
+  /** The page colour and the accent, so one dot shows both halves. */
+  dot: { accent: string; bg: string };
 }
-const themes: ThemeOption[] = [
-  {
-    value: 'light',
-    label: 'Light',
-    sub: 'Day-friendly tones',
-    icon: 'ph:sun-bold',
-    dot: '#f5c518',
-  },
-  {
-    value: 'dark',
-    label: 'Dark',
-    sub: 'Editorial midnight',
-    icon: 'ph:moon-stars-bold',
-    dot: '#34d4d8',
-  },
-];
-function setTheme(value: 'light' | 'dark') {
+
+const branding = await useBranding();
+
+/** `--accent` as the given theme would resolve it, or a neutral fallback. */
+/**
+ * The dot beside a theme's name, from the payload rather than from the DOM.
+ *
+ * It used to append a `<div data-theme="slug">` and read its computed
+ * `--accent`. That could never work: every rule is written
+ * `:root[data-theme='…']` and `:root` matches only `<html>`, so the probe
+ * matched nothing and inherited whatever theme was already on. Six options, six
+ * identical dots — and under SSR the probe cannot run at all, so the function
+ * returned `transparent` and Vue does not patch a `style` mismatch on
+ * hydration, leaving them permanently invisible.
+ *
+ * `/api/branding` now resolves `accent` and `bg` per theme. Same answer in both
+ * build shapes, no write to `document.documentElement`, and no forced style
+ * recalc from inside a `computed` getter once per option.
+ */
+function swatchFor(slug: string): { accent: string; bg: string } {
+  if (slug === 'system') {
+    // System is the two halves at once, so it gets the pair rather than a
+    // colour it does not have.
+    return { accent: 'transparent', bg: 'transparent' };
+  }
+  const built = BUILT_IN_TOKENS[slug as 'light' | 'dark'];
+  if (built) {
+    return { accent: `rgb(${built.accent})`, bg: `rgb(${built['bg-base']})` };
+  }
+  const t = branding.value?.themes.find((x) => x.slug === slug);
+  return t?.accent
+    ? { accent: `rgb(${t.accent})`, bg: `rgb(${t.bg})` }
+    : { accent: 'transparent', bg: 'transparent' };
+}
+
+const themes = computed<ThemeOption[]>(() => {
+  const custom = (branding.value?.themes ?? []).filter(
+    (t) => !['light', 'dark'].includes(t.slug),
+  );
+  const defaultName =
+    [...(branding.value?.themes ?? []), { slug: 'light', name: 'Light' }, { slug: 'dark', name: 'Dark' }]
+      .find((t) => t.slug === branding.value?.themeDefault)?.name ??
+    (branding.value?.themeDefault === 'system' ? 'System' : branding.value?.themeDefault);
+
+  return [
+    {
+      // The only entry whose value is `null`, and the only one that keeps
+      // moving: a member on it follows the owner's default whenever it changes.
+      // Everything below is a choice, and a change of default leaves it alone.
+      value: null,
+      label: 'Site default',
+      sub: defaultName ? `Currently ${defaultName}` : 'Whatever the owner picks',
+      icon: 'ph:buildings-bold',
+      dot: swatchFor(branding.value?.themeDefault ?? 'dark'),
+    },
+    {
+      value: 'system',
+      label: 'System',
+      sub: 'Follows your operating system',
+      icon: 'ph:circle-half-bold',
+      dot: { accent: 'transparent', bg: 'transparent' },
+    },
+    {
+      value: 'light',
+      label: 'Light',
+      sub: 'Day-friendly tones',
+      icon: 'ph:sun-bold',
+      dot: swatchFor('light'),
+    },
+    {
+      value: 'dark',
+      label: 'Dark',
+      sub: 'Editorial midnight',
+      icon: 'ph:moon-stars-bold',
+      dot: swatchFor('dark'),
+    },
+    ...custom.map((t) => ({
+      value: t.slug,
+      label: t.name,
+      sub: t.base === 'light' ? 'Light-based' : 'Dark-based',
+      icon: 'ph:palette-bold',
+      dot: swatchFor(t.slug),
+    })),
+  ];
+});
+
+function setTheme(value: string | null) {
   applyTheme(value);
 }
 
@@ -1162,13 +1257,13 @@ onBeforeRouteLeave((_to, _from, next) => {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-bottom: 1.25rem;
-  transition: color 0.15s;
+  transition: color var(--dur-2);
 }
 .back-link:hover {
   color: rgb(var(--fg-strong));
@@ -1181,9 +1276,9 @@ onBeforeRouteLeave((_to, _from, next) => {
   flex-wrap: wrap;
 }
 .page-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  letter-spacing: 0.22em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin: 0 0 0.4rem;
@@ -1191,7 +1286,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .page-title {
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 900;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   text-transform: uppercase;
   margin: 0;
   line-height: 1;
@@ -1200,7 +1295,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   color: rgb(var(--fg-muted));
   font-weight: 400;
   font-style: italic;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 
 .ready-state {
@@ -1208,11 +1303,11 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.85rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .ready-state.idle {
@@ -1259,7 +1354,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 0.75rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 @media (max-width: 960px) {
   .settings-nav {
@@ -1273,10 +1368,10 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: center;
   gap: 0.6rem;
   padding: 0.55rem 0.7rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   text-decoration: none;
   color: rgb(var(--fg-muted));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .settings-nav-link:hover {
   background: rgb(var(--bg-elevated));
@@ -1287,12 +1382,12 @@ onBeforeRouteLeave((_to, _from, next) => {
   color: rgb(var(--bg-base));
 }
 .settings-nav-num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   padding: 0.1rem 0.3rem;
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   border: 1px solid currentColor;
   opacity: 0.7;
 }
@@ -1302,7 +1397,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.45rem;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
 }
 
@@ -1324,20 +1419,20 @@ onBeforeRouteLeave((_to, _from, next) => {
   margin-bottom: 1.25rem;
 }
 .section-number {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   padding: 0.2rem 0.5rem;
 }
 .section-title {
   font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   margin: 0;
@@ -1372,9 +1467,9 @@ onBeforeRouteLeave((_to, _from, next) => {
   position: relative;
 }
 .field-label {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   display: inline-flex;
@@ -1382,9 +1477,9 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.5rem;
 }
 .field-hint {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: none;
   color: rgb(var(--fg-muted));
   opacity: 0.7;
@@ -1395,17 +1490,16 @@ onBeforeRouteLeave((_to, _from, next) => {
 .field-textarea {
   resize: vertical;
   min-height: 6rem;
-  font-family:
-    'IBM Plex Mono', 'Cascadia Code', Menlo, ui-monospace, monospace;
+  font-family: var(--font-mono);
   line-height: 1.55;
 }
 .char-counter {
   position: absolute;
   right: 0.4rem;
   bottom: -1.25rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .char-counter--over {
@@ -1420,11 +1514,11 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 0.65rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
 }
 .readonly-value {
   flex: 1;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -1433,9 +1527,9 @@ onBeforeRouteLeave((_to, _from, next) => {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1448,9 +1542,9 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 0.95rem 1.1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-2);
 }
 .toggle-row:hover {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -1470,11 +1564,11 @@ onBeforeRouteLeave((_to, _from, next) => {
   flex-shrink: 0;
   width: 2.6rem;
   height: 1.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .toggle--on {
   background: #6cd161;
@@ -1486,9 +1580,9 @@ onBeforeRouteLeave((_to, _from, next) => {
   left: 1px;
   width: 1.25rem;
   height: 1.25rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-strong));
-  transition: transform 0.18s cubic-bezier(0.5, 0, 0.2, 1);
+  transition: transform var(--dur-3) cubic-bezier(0.5, 0, 0.2, 1);
 }
 .toggle--on .toggle-knob {
   background: rgb(var(--bg-base));
@@ -1505,7 +1599,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   font-size: 0.88rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .toggle-sub {
   margin: 0;
@@ -1531,13 +1625,13 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: center;
   gap: 0.85rem;
   padding: 0.85rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-surface));
   color: rgb(var(--fg-default));
   text-align: left;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .theme-btn:hover {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -1551,7 +1645,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   flex-shrink: 0;
   width: 0.85rem;
   height: 0.85rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
 }
 .theme-btn-body {
@@ -1566,14 +1660,14 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.4rem;
   font-size: 0.85rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .theme-btn-sub {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 /* ─── Appearance blocks (theme + language as siblings) ──────── */
@@ -1593,20 +1687,20 @@ onBeforeRouteLeave((_to, _from, next) => {
   margin: 0 0 0.55rem;
 }
 .appearance-block-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   padding: 0.15rem 0.45rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
 }
 .appearance-block-title {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 
@@ -1630,17 +1724,17 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: stretch;
   gap: 0.85rem;
   padding: 0.85rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-surface));
   color: rgb(var(--fg-default));
   text-align: left;
   cursor: pointer;
   transition:
-    background 0.18s,
-    border-color 0.18s,
-    box-shadow 0.18s,
-    transform 0.12s;
+    background var(--dur-3),
+    border-color var(--dur-3),
+    box-shadow var(--dur-3),
+    transform var(--dur-1);
   position: relative;
   overflow: hidden;
 }
@@ -1655,7 +1749,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   left: calc(0.85rem + 2.6rem);
   width: 1px;
   background: rgb(var(--line-default));
-  transition: background 0.18s;
+  transition: background var(--dur-3);
 }
 .lang-btn:hover {
   border-color: rgb(var(--fg-default) / 0.3);
@@ -1694,7 +1788,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   background-size: 200% 2px;
   background-repeat: no-repeat;
   background-position: -100% 0;
-  animation: lang-shimmer 1s linear infinite;
+  animation: lang-shimmer calc(1s * var(--motion-scale)) linear infinite;
 }
 @keyframes lang-shimmer {
   to {
@@ -1712,12 +1806,12 @@ onBeforeRouteLeave((_to, _from, next) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-default));
-  transition: color 0.18s;
+  transition: color var(--dur-3);
 }
 .lang-btn--active .lang-btn-code {
   color: rgb(var(--fg-strong));
@@ -1726,7 +1820,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   font-weight: 400;
   color: rgb(var(--fg-muted));
   margin: 0 0.08rem;
-  transition: color 0.18s;
+  transition: color var(--dur-3);
 }
 .lang-btn--active .lang-btn-bracket {
   color: rgb(var(--fg-strong));
@@ -1749,16 +1843,16 @@ onBeforeRouteLeave((_to, _from, next) => {
 .lang-btn-label {
   font-size: 0.92rem;
   font-weight: 700;
-  letter-spacing: 0.005em;
+  letter-spacing: calc(0.005em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .lang-btn-sub {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .lang-btn-region {
@@ -1770,10 +1864,10 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.2rem;
   padding: 0.05rem 0.35rem;
   border: 1px solid rgb(var(--fg-strong) / 0.4);
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-strong));
-  font-size: 9px;
-  letter-spacing: 0.12em;
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .lang-error {
@@ -1794,7 +1888,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 1rem 1.1rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   flex-wrap: wrap;
 }
 .action-card-body {
@@ -1831,7 +1925,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 1.1rem 1.2rem 1.5rem;
   background: rgb(var(--bg-surface));
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .password-actions {
   display: flex;
@@ -1864,13 +1958,13 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 0.95rem;
-  border-radius: 9999px;
-  font-size: 11px;
+  border-radius: var(--radius-pill);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .btn-ghost {
   background: rgb(var(--bg-elevated));
@@ -1924,13 +2018,13 @@ onBeforeRouteLeave((_to, _from, next) => {
   padding: 0.75rem 0.9rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
 }
 .info-grid dt {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1942,7 +2036,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   word-break: break-all;
 }
 .info-grid code {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0;
@@ -1957,7 +2051,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .templates-blurb {
   margin: 0 0 1rem;
   max-width: 60ch;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.6;
   color: rgb(var(--fg-muted));
 }
@@ -1978,7 +2072,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   backdrop-filter: blur(10px);
   border-top: 1px solid rgb(var(--line-default));
   transform: translateY(0);
-  transition: transform 0.25s ease, opacity 0.25s ease;
+  transition: transform var(--dur-slow) ease, opacity var(--dur-slow) ease;
 }
 .action-bar--idle {
   transform: translateY(0);
@@ -1996,7 +2090,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   flex: 1;
   display: flex;
   justify-content: center;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .action-hint {
   color: rgb(var(--fg-muted));
@@ -2029,7 +2123,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 /* Password panel transition */
 .pwd-fade-enter-active,
 .pwd-fade-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity var(--dur-3) ease, transform var(--dur-3) ease;
 }
 .pwd-fade-enter-from,
 .pwd-fade-leave-to {
@@ -2045,7 +2139,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 .danger-card {
   border: 1px solid rgb(var(--danger) / 0.35);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-xl);
   background: rgb(var(--danger) / 0.04);
   padding: 1.25rem;
   display: flex;
@@ -2075,11 +2169,11 @@ onBeforeRouteLeave((_to, _from, next) => {
 .danger-input {
   padding: 0.55rem 0.7rem;
   border: 1px solid rgb(var(--danger) / 0.4);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-inset) / 0.6);
   color: rgb(var(--fg-default));
   font-size: 0.9rem;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
 }
 .danger-input:focus {
   outline: none;
@@ -2099,13 +2193,13 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.4rem;
   padding: 0.55rem 1rem;
   border: 1px solid rgb(var(--danger) / 0.6);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--danger) / 0.12);
   color: rgb(var(--danger));
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.14s ease;
+  transition: all var(--dur-2) ease;
 }
 .danger-btn:hover:not(:disabled) {
   background: rgb(var(--danger) / 0.2);

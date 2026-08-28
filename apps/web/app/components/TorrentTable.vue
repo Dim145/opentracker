@@ -429,11 +429,11 @@ async function deleteTorrent(torrent: TorrentWithStats) {
   align-items: center;
   justify-content: center;
   padding: 0.35rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   background: transparent;
   border: 0;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: color var(--dur-2), background var(--dur-2), transform var(--dur-3) var(--ease-emphasis);
 }
 .favorite-star:hover {
   background: rgba(245, 158, 11, 0.08);
@@ -444,7 +444,7 @@ async function deleteTorrent(torrent: TorrentWithStats) {
   margin: -0.5rem 0;
 }
 .star-pop {
-  animation: star-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: star-pop calc(0.5s * var(--motion-scale)) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 @keyframes star-pop {
   0%   { transform: scale(1) rotate(0); }

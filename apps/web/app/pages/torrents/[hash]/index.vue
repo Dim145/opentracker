@@ -581,7 +581,7 @@
         <span class="section-head-line" aria-hidden="true" />
       </header>
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-        <p style="font-size: 13px; color: rgb(var(--fg-muted)); max-width: 62ch; line-height: 1.55; margin: 0;">
+        <p style="font-size: 0.8125rem; color: rgb(var(--fg-muted)); max-width: 62ch; line-height: 1.55; margin: 0;">
           {{ $t('torrents.detail.fedSwarm.desc') }}
         </p>
         <button type="button" class="btn btn-secondary" :disabled="fedSwarmBusy" @click="toggleFedSwarm">
@@ -1366,13 +1366,13 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.75rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: color 0.15s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: color var(--dur-2) ease, transform var(--dur-4) var(--ease-emphasis);
 }
 .release-back:hover {
   color: rgb(var(--fg-strong));
@@ -1406,13 +1406,13 @@ async function confirmDelete() {
     ),
     rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.6rem;
+  border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow:
-    0 22px 60px -22px rgba(0, 0, 0, 0.7),
-    0 4px 14px -8px rgba(0, 0, 0, 0.5),
+    0 22px 60px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
+    0 4px 14px -8px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength))),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  animation: heroRise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: heroRise calc(0.65s * var(--motion-scale)) var(--ease-emphasis) both;
 }
 @keyframes heroRise {
   from { opacity: 0; transform: translateY(8px); }
@@ -1441,18 +1441,18 @@ async function confirmDelete() {
   gap: 0.7rem;
   flex-wrap: wrap;
   margin-bottom: 1.1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  animation: heroFadeIn 0.55s 0.05s ease-out both;
+  animation: heroFadeIn calc(0.55s * var(--motion-scale)) calc(0.05s * var(--motion-scale)) ease-out both;
 }
 .hero-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0;
   color: rgb(var(--release-cyan));
@@ -1479,21 +1479,21 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.32rem 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--warning));
   background: rgb(var(--warning) / 0.1);
   border: 1px solid rgb(var(--warning) / 0.5);
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition:
-    color 0.15s,
-    background 0.15s,
-    border-color 0.15s,
-    transform 0.18s ease;
+    color var(--dur-2),
+    background var(--dur-2),
+    border-color var(--dur-2),
+    transform var(--dur-3) ease;
 }
 .hero-eyebrow-report:hover {
   color: rgb(var(--bg-base));
@@ -1517,21 +1517,21 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.32rem 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition:
-    color 0.18s,
-    background 0.18s,
-    border-color 0.18s,
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    color var(--dur-3),
+    background var(--dur-3),
+    border-color var(--dur-3),
+    transform var(--dur-4) var(--ease-emphasis);
 }
 .hero-eyebrow-star:hover {
   color: #f59e0b;
@@ -1549,7 +1549,7 @@ async function confirmDelete() {
 }
 .hero-eyebrow-star.is-on svg {
   filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.55));
-  animation: hero-star-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: hero-star-pop calc(0.55s * var(--motion-scale)) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 @keyframes hero-star-pop {
   0%   { transform: scale(1) rotate(0); }
@@ -1560,14 +1560,14 @@ async function confirmDelete() {
 
 .hero-title {
   margin: 0 0 1rem;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1.12;
   overflow-wrap: anywhere;
   text-wrap: pretty;
-  animation: heroFadeIn 0.55s 0.15s ease-out both;
+  animation: heroFadeIn 0.55s var(--dur-2) ease-out both;
   /* Length-based size buckets — scaled down from the previous
      "magazine hero" range so the title sits proportionate to the
      hero, not overpowering it. Short titles still get presence; long
@@ -1589,30 +1589,30 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.4rem;
-  animation: heroFadeIn 0.55s 0.22s ease-out both;
+  animation: heroFadeIn 0.55s var(--dur-4) ease-out both;
 }
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.7rem;
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
   color: rgb(var(--fg-default));
   background: rgb(var(--bg-elevated) / 0.45);
-  transition: background 0.15s, border-color 0.15s, transform 0.2s;
+  transition: background var(--dur-2), border-color var(--dur-2), transform var(--dur-4);
 }
 .chip:hover {
   background: rgb(var(--bg-elevated) / 0.75);
   border-color: rgb(var(--fg-default) / 0.25);
 }
 .chip-icon {
-  font-size: 11px;
+  font-size: 0.6875rem;
   opacity: 0.75;
 }
 .chip--tag {
@@ -1624,7 +1624,7 @@ async function confirmDelete() {
 .chip-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   display: inline-block;
   flex-shrink: 0;
 }
@@ -1635,7 +1635,7 @@ async function confirmDelete() {
   align-items: stretch;
   gap: 0.6rem 0.85rem;
   margin-bottom: 1.5rem;
-  animation: heroFadeIn 0.55s 0.3s ease-out both;
+  animation: heroFadeIn 0.55s var(--dur-slow) ease-out both;
 }
 .cta-primary {
   display: inline-flex;
@@ -1653,18 +1653,18 @@ async function confirmDelete() {
     rgb(var(--online) / 0.78)
   );
   color: #0a1610;
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   text-decoration: none;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   box-shadow:
     0 16px 42px -22px rgb(var(--online) / 0.85),
     inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   transition:
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.22s ease,
-    filter 0.18s ease;
+    transform var(--dur-4) var(--ease-emphasis),
+    box-shadow var(--dur-4) ease,
+    filter var(--dur-3) ease;
 }
 .cta-primary:hover {
   transform: translateY(-2px);
@@ -1682,16 +1682,16 @@ async function confirmDelete() {
   line-height: 1.05;
 }
 .cta-primary-label {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .cta-primary-sub {
   margin-top: 0.2rem;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   opacity: 0.78;
   font-variant-numeric: tabular-nums;
@@ -1714,20 +1714,20 @@ async function confirmDelete() {
   padding: 0.6rem 0.95rem;
   background: rgb(var(--release-purple) / 0.12);
   border: 1px solid rgb(var(--release-purple) / 0.5);
-  border-radius: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--release-purple));
   text-decoration: none;
   cursor: pointer;
   transition:
-    color 0.15s,
-    border-color 0.15s,
-    background-color 0.15s,
-    transform 0.2s;
+    color var(--dur-2),
+    border-color var(--dur-2),
+    background-color var(--dur-2),
+    transform var(--dur-4);
 }
 .cta-ghost:hover {
   color: #fff;
@@ -1769,7 +1769,7 @@ async function confirmDelete() {
   gap: 0.55rem;
   margin: 0;
   padding: 0;
-  animation: heroFadeIn 0.55s 0.4s ease-out both;
+  animation: heroFadeIn calc(0.55s * var(--motion-scale)) calc(0.4s * var(--motion-scale)) ease-out both;
 }
 .hero-meta-cell {
   display: flex;
@@ -1783,9 +1783,9 @@ async function confirmDelete() {
     ),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--rail, var(--fg-muted)) / 0.5);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   min-width: 0;
-  transition: border-color 0.18s ease;
+  transition: border-color var(--dur-3) ease;
 }
 .hero-meta-cell:hover {
   border-color: rgb(var(--rail, var(--fg-muted)) / 0.75);
@@ -1814,10 +1814,10 @@ async function confirmDelete() {
   margin-left: auto;
 }
 .hero-meta-cell dt {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--rail, var(--fg-muted)));
   margin: 0;
@@ -1828,9 +1828,9 @@ async function confirmDelete() {
 .hero-meta-cell dd { margin: 0; min-width: 0; }
 .hero-meta-hash {
   display: block;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
   word-break: break-all;
   user-select: all;
@@ -1839,19 +1839,19 @@ async function confirmDelete() {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   font-weight: 700;
   color: rgb(var(--release-rose));
   text-decoration: none;
-  transition: filter 0.15s ease, transform 0.18s ease;
+  transition: filter var(--dur-2) ease, transform var(--dur-3) ease;
 }
 .hero-meta-user:hover {
   filter: brightness(1.15);
   transform: translateY(-1px);
 }
 .hero-meta-user-icon {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--release-rose));
   opacity: 0.85;
 }
@@ -1870,12 +1870,12 @@ async function confirmDelete() {
    ╚═══════════════════════════════════════════════════════════════╝ */
 .section {
   margin-bottom: 2.25rem;
-  animation: sectionRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: sectionRise calc(0.6s * var(--motion-scale)) var(--ease-emphasis) both;
 }
-.section:nth-of-type(2) { animation-delay: 0.05s; }
-.section:nth-of-type(3) { animation-delay: 0.1s; }
-.section:nth-of-type(4) { animation-delay: 0.15s; }
-.section:nth-of-type(5) { animation-delay: 0.2s; }
+.section:nth-of-type(2) { animation-delay: calc(0.05s * var(--motion-scale)); }
+.section:nth-of-type(3) { animation-delay: calc(0.1s * var(--motion-scale)); }
+.section:nth-of-type(4) { animation-delay: var(--dur-2); }
+.section:nth-of-type(5) { animation-delay: var(--dur-4); }
 @keyframes sectionRise {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -1889,7 +1889,7 @@ async function confirmDelete() {
   padding-bottom: 0.4rem;
 }
 .section-head-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.85rem;
@@ -1921,44 +1921,44 @@ async function confirmDelete() {
 }
 .section-head-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: clamp(1.15rem, 2.2vw, 1.6rem);
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .section-head-count {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   padding: 0.18rem 0.5rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
 .section-head-tag {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   padding: 0.18rem 0.45rem;
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated) / 0.55);
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   cursor: help;
   flex-shrink: 0;
 }
 .section-head-meta {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   font-variant-numeric: tabular-nums;
@@ -1993,10 +1993,10 @@ async function confirmDelete() {
   font-weight: 500;
 }
 .section-head--compact .section-head-meta {
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
 }
-.section-head--compact .section-head-caret { font-size: 9px; }
+.section-head--compact .section-head-caret { font-size: 0.5625rem; }
 .section-head--compact .section-head-button {
   padding: 0.15rem 0.05rem;
 }
@@ -2012,16 +2012,16 @@ async function confirmDelete() {
   text-align: left;
   color: inherit;
   font: inherit;
-  transition: color 0.15s ease;
+  transition: color var(--dur-2) ease;
 }
 .section-head-button:hover .section-head-title {
   color: rgb(var(--accent));
 }
 .section-head-caret {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  transition: transform 0.2s ease;
+  transition: transform var(--dur-4) ease;
   flex-shrink: 0;
 }
 .section-head-caret.is-expanded { transform: rotate(90deg); }
@@ -2032,15 +2032,15 @@ async function confirmDelete() {
   padding: 0.4rem 0.7rem;
   background: transparent;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color var(--dur-2), border-color var(--dur-2), background var(--dur-2);
 }
 .section-head-action:hover {
   color: rgb(var(--fg-strong));
@@ -2077,14 +2077,14 @@ async function confirmDelete() {
     ),
     rgb(var(--bg-surface));
   border: 1px solid rgb(var(--rail, var(--fg-muted)) / 0.55);
-  border-radius: 0.55rem;
+  border-radius: var(--radius-lg);
   box-shadow:
-    0 6px 16px -10px rgba(0, 0, 0, 0.55),
+    0 6px 16px -10px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength))),
     inset 0 0 0 1px rgba(255, 255, 255, 0.025);
   transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    background var(--dur-4) ease,
+    border-color var(--dur-4) ease,
+    transform var(--dur-slow) var(--ease-emphasis);
   isolation: isolate;
   overflow: hidden;
 }
@@ -2120,19 +2120,19 @@ async function confirmDelete() {
   filter: drop-shadow(0 0 8px rgb(var(--rail, var(--fg-muted)) / 0.45));
 }
 .stat-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(1.35rem, 2.4vw, 1.7rem);
   font-weight: 800;
   line-height: 1;
   color: rgb(var(--rail, var(--fg-strong)));
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   word-break: break-word;
 }
 .stat-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-top: 0.2rem;
@@ -2144,16 +2144,16 @@ async function confirmDelete() {
   min-width: 0;
 }
 .stat-sub {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5313rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--release-purple));
   padding: 0.08rem 0.35rem;
   border: 1px solid rgb(var(--release-purple) / 0.45);
   background: rgb(var(--release-purple) / 0.12);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   margin-top: 0.3rem;
   font-variant-numeric: tabular-nums;
   align-self: flex-start;
@@ -2201,18 +2201,18 @@ async function confirmDelete() {
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
   border-left: 3px solid rgb(var(--accent));
-  border-radius: 0 0.35rem 0.35rem 0;
-  font-size: 14px;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-size: 0.875rem;
   line-height: 1.65;
   color: rgb(var(--fg-default));
-  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 6px 16px -10px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
 }
 .note-block::before {
   content: '“';
   position: absolute;
   top: 0.2rem;
   left: 0.85rem;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 2.6rem;
   line-height: 1;
   font-weight: 600;
@@ -2258,14 +2258,14 @@ async function confirmDelete() {
     ),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   text-decoration: none;
   color: rgb(var(--fg-default));
-  box-shadow: 0 4px 12px -8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 12px -8px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)));
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    background var(--dur-3) ease,
+    border-color var(--dur-3) ease,
+    transform var(--dur-4) var(--ease-emphasis);
 }
 .cross-link:hover {
   background:
@@ -2284,8 +2284,8 @@ async function confirmDelete() {
 }
 .cross-name {
   flex: 1 1 auto;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   font-weight: 600;
   color: rgb(var(--fg-strong));
   overflow: hidden;
@@ -2299,9 +2299,9 @@ async function confirmDelete() {
   align-items: center;
   gap: 0.35rem;
   flex-shrink: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   font-variant-numeric: tabular-nums;
@@ -2312,7 +2312,7 @@ async function confirmDelete() {
   flex-shrink: 0;
   color: rgb(var(--fg-faint));
   font-size: 0.85rem;
-  transition: transform 0.18s, color 0.18s;
+  transition: transform var(--dur-3), color var(--dur-3);
 }
 .cross-link:hover .cross-arrow {
   color: rgb(var(--accent));
@@ -2322,7 +2322,7 @@ async function confirmDelete() {
   font-size: 0.68rem;
   font-weight: 600;
   padding: 0.05rem 0.4rem;
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   border: 1px solid;
   white-space: nowrap;
 }
@@ -2336,14 +2336,14 @@ async function confirmDelete() {
   background: rgb(var(--bg-inset));
   border-color: rgb(var(--line-default));
 }
-.cross-meta-seed { color: #4ade80; font-family: var(--font-mono, monospace); font-size: 0.72rem; }
+.cross-meta-seed { color: #4ade80; font-family: var(--font-mono); font-size: 0.72rem; }
 .cross-mesh {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   margin-left: 0.5rem;
   padding: 0.05rem 0.5rem;
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   font-weight: 600;
   color: #4ade80;
   background: rgba(34, 197, 94, 0.08);
@@ -2363,23 +2363,23 @@ async function confirmDelete() {
    ╚═══════════════════════════════════════════════════════════════╝ */
 .swarm-frame {
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   overflow-x: auto;
   background: rgb(var(--bg-elevated));
-  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 6px 18px -10px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
 }
 .swarm-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
 }
 .swarm-table thead th {
   text-align: left;
   padding: 0.65rem 1rem;
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-base) / 0.4);
@@ -2398,7 +2398,7 @@ async function confirmDelete() {
 .swarm-num {
   color: rgb(var(--fg-default));
   font-variant-numeric: tabular-nums;
-  font-size: 10.5px;
+  font-size: 0.6563rem;
 }
 .swarm-type {
   display: inline-flex;
@@ -2406,10 +2406,10 @@ async function confirmDelete() {
   gap: 0.3rem;
   padding: 0.18rem 0.5rem;
   border: 1px solid;
-  border-radius: 0.2rem;
-  font-size: 9px;
+  border-radius: var(--radius-xs);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .swarm-type--seeder {
@@ -2425,9 +2425,9 @@ async function confirmDelete() {
 .swarm-empty {
   text-align: center;
   padding: 2.5rem 1rem;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2485,11 +2485,11 @@ async function confirmDelete() {
   position: relative;
   background: rgb(var(--bg-inset, var(--bg-base)));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   padding: 1.05rem 1.1rem;
   overflow: auto;
   max-height: 70vh;
-  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 6px 18px -10px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
   /* Faint scanline pattern — vintage terminal flavour without going
      overboard. Almost imperceptible on dark themes, vanishes on light. */
   background-image: repeating-linear-gradient(
@@ -2499,7 +2499,7 @@ async function confirmDelete() {
     rgba(255, 255, 255, 0.014) 2px,
     rgba(255, 255, 255, 0.014) 3px
   );
-  animation: nfoOpen 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: nfoOpen calc(0.35s * var(--motion-scale)) var(--ease-emphasis) both;
 }
 @keyframes nfoOpen {
   from { opacity: 0; transform: translateY(-4px); }
@@ -2507,8 +2507,8 @@ async function confirmDelete() {
 }
 
 .nfo-body {
-  font-family: 'IBM Plex Mono', 'Cascadia Code', Menlo, ui-monospace, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   line-height: 1.35;
   color: rgb(var(--fg-default));
   white-space: pre;
@@ -2537,13 +2537,13 @@ async function confirmDelete() {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: color 0.15s;
+  transition: color var(--dur-2);
   width: max-content;
 }
 .adult-gate__back:hover {
@@ -2563,9 +2563,9 @@ async function confirmDelete() {
     rgba(229, 62, 62, 0.03) 16px,
     rgba(229, 62, 62, 0.03) 18px
   );
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  animation: gate-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: gate-rise calc(0.45s * var(--motion-scale)) var(--ease-standard) both;
 }
 @keyframes gate-rise {
   from {
@@ -2592,10 +2592,10 @@ async function confirmDelete() {
     rgba(229, 62, 62, 0.06) 14px,
     rgba(229, 62, 62, 0.06) 28px
   );
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -2607,7 +2607,7 @@ async function confirmDelete() {
 }
 .adult-gate__hatch-route {
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: lowercase;
   color: rgb(var(--fg-muted));
 }
@@ -2629,10 +2629,10 @@ async function confirmDelete() {
 }
 .adult-gate__eyebrow {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2644,7 +2644,7 @@ async function confirmDelete() {
   gap: 0.6rem;
   font-size: clamp(2rem, 6vw, 3.4rem);
   font-weight: 900;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   line-height: 1;
@@ -2658,12 +2658,12 @@ async function confirmDelete() {
   padding: 0.2em 0.6em 0.25em;
   background: rgb(var(--danger));
   color: #fff;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   /* A faint, off-axis tilt to feel like an actual rubber-stamp impression. */
   transform: rotate(-1.5deg);
   box-shadow:
     inset 0 0 0 2px rgba(255, 255, 255, 0.08),
-    0 1px 0 rgba(0, 0, 0, 0.4);
+    0 1px 0 rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
 }
 .adult-gate__title-stamp::after {
   content: '';
@@ -2690,11 +2690,11 @@ async function confirmDelete() {
   border-radius: 1px;
   /* Three censorship bars approximating the title block — the eye
      reads "there's a title here, you just don't see it". */
-  animation: gate-bar 1.2s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  animation: gate-bar calc(1.2s * var(--motion-scale)) cubic-bezier(0.2, 0.6, 0.2, 1) both;
 }
-.adult-gate__redacted span:nth-child(1) { width: 78%; animation-delay: 0.05s; }
-.adult-gate__redacted span:nth-child(2) { width: 64%; animation-delay: 0.12s; }
-.adult-gate__redacted span:nth-child(3) { width: 42%; animation-delay: 0.19s; }
+.adult-gate__redacted span:nth-child(1) { width: 78%; animation-delay: calc(0.05s * var(--motion-scale)); }
+.adult-gate__redacted span:nth-child(2) { width: 64%; animation-delay: var(--dur-1); }
+.adult-gate__redacted span:nth-child(3) { width: 42%; animation-delay: calc(0.19s * var(--motion-scale)); }
 @keyframes gate-bar {
   0% { transform: scaleX(0.05); transform-origin: left; opacity: 0.2; }
   60% { transform: scaleX(1.04); opacity: 1; }
@@ -2708,7 +2708,7 @@ async function confirmDelete() {
   margin: 0.4rem 0 0.5rem;
   padding: 0.85rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated) / 0.6);
 }
 @media (max-width: 540px) {
@@ -2732,11 +2732,11 @@ async function confirmDelete() {
   /* ── Hero ────────────────────────────────────────────────── */
   .hero {
     padding: 1.25rem 1.1rem 1.2rem;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
   }
   .hero-eyebrow {
-    font-size: 9.5px;
-    letter-spacing: 0.18em;
+    font-size: 0.5938rem;
+    letter-spacing: calc(0.18em * var(--tracking-scale));
     gap: 0.4rem;
   }
   /* Report parks on its own line on mobile so the eyebrow doesn't
@@ -2783,7 +2783,7 @@ async function confirmDelete() {
   }
   .hero-meta-cell--hash dd { flex: 1 1 100%; }
   .hero-meta-hash {
-    font-size: 10.5px;
+    font-size: 0.6563rem;
     line-height: 1.45;
   }
   .hero-meta-cell--uploader {
@@ -2814,14 +2814,14 @@ async function confirmDelete() {
   .stat-icon { font-size: 0.95rem; }
   .stat-num { font-size: clamp(1.05rem, 4.5vw, 1.4rem); }
   .stat-label {
-    font-size: 8.5px;
-    letter-spacing: 0.18em;
+    font-size: 0.5313rem;
+    letter-spacing: calc(0.18em * var(--tracking-scale));
   }
 
   /* ── Note block ──────────────────────────────────────────── */
   .note-block {
     padding: 2.4rem 1.1rem 1rem 1.6rem;
-    font-size: 13.5px;
+    font-size: 0.8438rem;
     line-height: 1.6;
   }
   .note-block::before {
@@ -2832,10 +2832,10 @@ async function confirmDelete() {
 
   /* ── Cross-seed rows ─────────────────────────────────────── */
   .cross-link { padding: 0.7rem 0.85rem; }
-  .cross-name { font-size: 11.5px; }
+  .cross-name { font-size: 0.7188rem; }
   .cross-meta {
-    font-size: 9.5px;
-    letter-spacing: 0.08em;
+    font-size: 0.5938rem;
+    letter-spacing: calc(0.08em * var(--tracking-scale));
     width: 100%;
     margin-top: 0.25rem;
   }
@@ -2845,9 +2845,9 @@ async function confirmDelete() {
   .swarm-table thead th,
   .swarm-table tbody td {
     padding: 0.5rem 0.65rem;
-    font-size: 10px;
+    font-size: 0.625rem;
   }
-  .swarm-table thead th { font-size: 9px; letter-spacing: 0.16em; }
+  .swarm-table thead th { font-size: 0.5625rem; letter-spacing: calc(0.16em * var(--tracking-scale)); }
 }
 .adult-gate__meta div {
   display: flex;
@@ -2855,25 +2855,25 @@ async function confirmDelete() {
   gap: 0.2rem;
 }
 .adult-gate__meta dt {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin: 0;
 }
 .adult-gate__meta dd {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 12.5px;
+  font-family: var(--font-mono);
+  font-size: 0.7813rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
 
 .adult-gate__copy {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
   color: rgb(var(--fg-default));
   max-width: 56ch;
@@ -2893,13 +2893,13 @@ async function confirmDelete() {
   border: 1px solid rgb(var(--danger));
   background: rgb(var(--danger));
   color: #fff;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
-  border-radius: 9999px;
-  transition: filter 0.15s;
+  border-radius: var(--radius-pill);
+  transition: filter var(--dur-2);
 }
 .adult-gate__cta:hover {
   filter: brightness(1.1);
@@ -2921,16 +2921,16 @@ async function confirmDelete() {
   gap: 0.75rem;
   padding: 0.65rem 1.1rem;
   border-top: 1px dashed rgb(var(--line-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.2em;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-surface));
 }
 .adult-gate__foot-mono {
   text-transform: lowercase;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
 }
 </style>

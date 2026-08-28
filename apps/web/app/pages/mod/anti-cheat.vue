@@ -878,9 +878,9 @@ const emptySub = computed(() => {
     linear-gradient(135deg, rgba(255, 255, 255, 0.025), transparent 60%),
     rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.55rem;
+  border-radius: var(--radius-lg);
   box-shadow:
-    0 6px 24px -16px rgba(0, 0, 0, 0.55),
+    0 6px 24px -16px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength))),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 @media (max-width: 880px) {
@@ -904,7 +904,7 @@ const emptySub = computed(() => {
   position: relative;
   width: 0.85rem;
   height: 0.85rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--tone, var(--online)));
   box-shadow: 0 0 12px rgb(var(--tone, var(--online)) / 0.7);
 }
@@ -912,7 +912,7 @@ const emptySub = computed(() => {
   position: absolute;
   inset: 0;
   border: 1px solid rgb(var(--tone, var(--online)) / 0.55);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   opacity: 0;
 }
 .ac-radar--calm { --tone: var(--online); }
@@ -920,13 +920,13 @@ const emptySub = computed(() => {
 .ac-radar--critical { --tone: var(--danger); }
 .ac-radar--elevated .ac-radar-ring,
 .ac-radar--critical .ac-radar-ring {
-  animation: radar-pulse 2.4s ease-out infinite;
+  animation: radar-pulse calc(2.4s * var(--motion-scale)) ease-out infinite;
 }
 .ac-radar--calm .ac-radar-ring--1 {
-  animation: radar-pulse 4s ease-out infinite;
+  animation: radar-pulse calc(4s * var(--motion-scale)) ease-out infinite;
 }
-.ac-radar-ring--2 { animation-delay: 0.8s !important; }
-.ac-radar-ring--3 { animation-delay: 1.6s !important; }
+.ac-radar-ring--2 { animation-delay: calc(0.8s * var(--motion-scale)) !important; }
+.ac-radar-ring--3 { animation-delay: calc(1.6s * var(--motion-scale)) !important; }
 @keyframes radar-pulse {
   0%   { opacity: 0.7; transform: scale(0.4); }
   80%  { opacity: 0;   transform: scale(2.2); }
@@ -941,23 +941,23 @@ const emptySub = computed(() => {
   min-width: 0;
 }
 .ac-radar-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .ac-radar-state {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--tone, var(--online)));
 }
 .ac-radar-meta {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
 
@@ -983,7 +983,7 @@ const emptySub = computed(() => {
   align-items: flex-start;
   gap: 0.18rem;
   padding: 0.6rem 0.75rem 0.55rem;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 60%),
     rgb(var(--bg-elevated));
@@ -991,8 +991,8 @@ const emptySub = computed(() => {
   color: rgb(var(--fg-muted));
   cursor: pointer;
   transition:
-    background 0.18s, border-color 0.18s, color 0.18s,
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    background var(--dur-3), border-color var(--dur-3), color var(--dur-3),
+    transform var(--dur-4) var(--ease-emphasis);
 }
 .ac-tile:hover {
   transform: translateY(-1px);
@@ -1007,17 +1007,17 @@ const emptySub = computed(() => {
   box-shadow: 0 8px 20px -12px rgb(var(--tile-tone, var(--accent)) / 0.6);
 }
 .ac-tile-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .ac-tile-value {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 1.55rem;
   font-weight: 900;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1;
 }
@@ -1050,44 +1050,44 @@ const emptySub = computed(() => {
 }
 .ac-feed-title h2 {
   margin: 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 800;
   font-size: 1.05rem;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 }
 .ac-feed-count {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   padding: 0.15rem 0.55rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 .ac-status-seg {
   display: inline-flex;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.15rem;
 }
 .ac-status-pill {
   padding: 0.35rem 0.85rem;
   background: transparent;
   border: 0;
-  border-radius: 999px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--dur-2), color var(--dur-2);
 }
 .ac-status-pill:hover { color: rgb(var(--fg-strong)); }
 .ac-status-pill.is-active {
@@ -1104,14 +1104,14 @@ const emptySub = computed(() => {
   padding: 2rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  border-radius: var(--radius-lg);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
-.ac-spin { animation: spin 0.9s linear infinite; }
+.ac-spin { animation: spin calc(0.9s * var(--motion-scale)) linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ╔═══════════════════════════════════════════════════════════════╗
@@ -1132,10 +1132,10 @@ const emptySub = computed(() => {
     linear-gradient(135deg, rgba(255, 255, 255, 0.025), transparent 60%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.5rem;
-  animation: case-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  border-radius: var(--radius-lg);
+  animation: case-rise calc(0.5s * var(--motion-scale)) var(--ease-emphasis) both;
   animation-delay: var(--stagger, 0ms);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color var(--dur-4), box-shadow var(--dur-4);
 }
 @keyframes case-rise {
   from { opacity: 0; transform: translateY(6px); }
@@ -1156,7 +1156,7 @@ const emptySub = computed(() => {
   border: 1px solid rgb(var(--kind-tone, var(--danger)) / 0.45);
   border-radius: inherit;
   pointer-events: none;
-  animation: fresh-pulse 2s ease-in-out infinite;
+  animation: fresh-pulse calc(2s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes fresh-pulse {
   0%, 100% { opacity: 0.3; }
@@ -1198,7 +1198,7 @@ const emptySub = computed(() => {
   cursor: pointer;
   color: rgb(var(--fg-default));
   font: inherit;
-  transition: background 0.15s ease;
+  transition: background var(--dur-2) ease;
 }
 .ac-case-head:hover {
   background: rgb(var(--fg-default) / 0.03);
@@ -1222,14 +1222,14 @@ const emptySub = computed(() => {
   padding: 0.18rem 0.45rem;
   background: rgb(var(--kind-tone, var(--danger)) / 0.1);
   border: 1px solid rgb(var(--kind-tone, var(--danger)) / 0.4);
-  border-radius: 0.25rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--kind-tone, var(--danger)));
 }
-.ac-case-num-prefix { font-size: 9.5px; opacity: 0.7; }
+.ac-case-num-prefix { font-size: 0.5938rem; opacity: 0.7; }
 
 .ac-case-id {
   display: flex;
@@ -1241,17 +1241,17 @@ const emptySub = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--kind-tone, var(--danger)));
 }
 .ac-case-kind-icon { font-size: 0.95rem; }
 .ac-case-evidence {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11.5px;
+  font-family: var(--font-mono);
+  font-size: 0.7188rem;
   color: rgb(var(--fg-default));
   font-variant-numeric: tabular-nums;
 }
@@ -1276,17 +1276,17 @@ const emptySub = computed(() => {
   justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
-  border-radius: 0.3rem;
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 9.5px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.5938rem;
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(0.25 * var(--shadow-strength)));
   flex-shrink: 0;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.15),
-    inset 0 -6px 8px -6px rgba(0, 0, 0, 0.3);
+    inset 0 -6px 8px -6px rgb(var(--shadow-color) / calc(0.3 * var(--shadow-strength)));
 }
 .ac-case-avatar--gone {
   background: rgb(var(--bg-base)) !important;
@@ -1295,10 +1295,10 @@ const emptySub = computed(() => {
   box-shadow: none;
 }
 .ac-case-user-name {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11.5px;
+  font-family: var(--font-mono);
+  font-size: 0.7188rem;
   font-weight: 700;
-  transition: color 0.15s;
+  transition: color var(--dur-2);
 }
 .ac-case-user--gone {
   color: rgb(var(--fg-faint));
@@ -1308,14 +1308,14 @@ const emptySub = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   text-decoration: none;
   max-width: 100%;
   overflow: hidden;
 }
-.ac-case-target > svg { font-size: 11px; flex-shrink: 0; }
+.ac-case-target > svg { font-size: 0.6875rem; flex-shrink: 0; }
 .ac-case-target > span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1324,7 +1324,7 @@ const emptySub = computed(() => {
 .ac-case-target:hover { color: rgb(var(--fg-strong)); }
 .ac-case-target--orphan code {
   color: rgb(var(--fg-faint));
-  font-size: 10.5px;
+  font-size: 0.6563rem;
 }
 
 .ac-case-meta {
@@ -1333,9 +1333,9 @@ const emptySub = computed(() => {
   gap: 0.55rem;
 }
 .ac-case-time {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .ac-case-verdict {
@@ -1344,11 +1344,11 @@ const emptySub = computed(() => {
   gap: 0.3rem;
   padding: 0.18rem 0.5rem;
   border: 1px solid;
-  border-radius: 0.25rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .ac-case-verdict--open {
@@ -1359,9 +1359,9 @@ const emptySub = computed(() => {
 .ac-case-verdict-dot {
   width: 5px;
   height: 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: currentColor;
-  animation: fresh-pulse 2s ease-in-out infinite;
+  animation: fresh-pulse calc(2s * var(--motion-scale)) ease-in-out infinite;
 }
 .ac-case-verdict--clean      { color: rgb(var(--online));  background: rgb(var(--online) / 0.1);  border-color: rgb(var(--online) / 0.45); }
 .ac-case-verdict--warned     { color: rgb(var(--warning)); background: rgb(var(--warning) / 0.1); border-color: rgb(var(--warning) / 0.45); }
@@ -1370,7 +1370,7 @@ const emptySub = computed(() => {
 
 .ac-case-caret {
   color: rgb(var(--fg-muted));
-  transition: transform 0.2s;
+  transition: transform var(--dur-4);
 }
 .ac-case-caret.is-flipped { transform: rotate(180deg); }
 
@@ -1379,14 +1379,14 @@ const emptySub = computed(() => {
   position: absolute;
   top: 0.6rem;
   right: 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 1.05rem;
   font-weight: 900;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 0.18rem 0.55rem;
   border: 2px solid currentColor;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   transform: rotate(-7deg);
   opacity: 0.16;
   pointer-events: none;
@@ -1405,7 +1405,7 @@ const emptySub = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
-  animation: case-open 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: case-open var(--dur-4) var(--ease-emphasis);
 }
 @keyframes case-open {
   from { opacity: 0; transform: translateY(-2px); }
@@ -1421,43 +1421,43 @@ const emptySub = computed(() => {
 .ac-evidence div { min-width: 0; }
 .ac-evidence dt {
   margin: 0 0 0.18rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .ac-evidence dd { margin: 0; }
 .ac-evidence code {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   color: rgb(var(--fg-default));
   word-break: break-all;
   user-select: all;
 }
 .ac-evidence-ua {
-  font-size: 10.5px !important;
+  font-size: 0.6563rem !important;
   line-height: 1.4;
   display: inline-block;
 }
 .ac-faint {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   color: rgb(var(--fg-faint));
 }
 
 .ac-raw {
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-inset, var(--bg-base)));
 }
 .ac-raw summary {
   cursor: pointer;
   padding: 0.5rem 0.75rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   user-select: none;
@@ -1466,8 +1466,8 @@ const emptySub = computed(() => {
 .ac-raw pre {
   margin: 0;
   padding: 0 0.85rem 0.85rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   line-height: 1.5;
   color: rgb(var(--fg-default));
   overflow-x: auto;
@@ -1482,7 +1482,7 @@ const emptySub = computed(() => {
   padding: 0.7rem 0.85rem;
   background: rgb(var(--online) / 0.08);
   border: 1px solid rgb(var(--online) / 0.42);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
 }
 .ac-already-icon {
   font-size: 1.3rem;
@@ -1492,19 +1492,19 @@ const emptySub = computed(() => {
 .ac-already-body { flex: 1; min-width: 0; }
 .ac-already-line {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-default));
 }
 .ac-already-line strong {
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--online));
 }
 .ac-already-note {
   margin: 0.3rem 0 0;
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   font-style: italic;
   color: rgb(var(--fg-muted));
 }
@@ -1512,15 +1512,15 @@ const emptySub = computed(() => {
   background: transparent;
   border: 1px solid rgb(var(--line-default));
   color: rgb(var(--fg-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   padding: 0.35rem 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background var(--dur-2), color var(--dur-2), border-color var(--dur-2);
 }
 .ac-already-reopen:hover {
   color: rgb(var(--info));
@@ -1561,15 +1561,15 @@ const emptySub = computed(() => {
   padding: 0.55rem 0.85rem;
   background: rgb(var(--bg-inset, var(--bg-base)));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.18s;
+  transition: color var(--dur-2), border-color var(--dur-2), background var(--dur-2), transform var(--dur-3);
 }
 .ac-stamp-btn:hover {
   color: rgb(var(--fg-strong));
@@ -1586,13 +1586,13 @@ const emptySub = computed(() => {
   padding: 0.55rem 0.75rem;
   background: rgb(var(--bg-inset, var(--bg-base)));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   color: rgb(var(--fg-default));
   resize: vertical;
   outline: 0;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-2);
 }
 .ac-note:focus { border-color: rgb(var(--fg-default) / 0.4); }
 .ac-note::placeholder { color: rgb(var(--fg-faint)); }
@@ -1607,15 +1607,15 @@ const emptySub = computed(() => {
   align-items: center;
   gap: 0.4rem;
   padding: 0.55rem 1rem;
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid;
   cursor: pointer;
-  transition: background 0.15s, transform 0.18s, opacity 0.15s;
+  transition: background var(--dur-2), transform var(--dur-3), opacity var(--dur-2);
 }
 .ac-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .ac-btn--ghost {
@@ -1651,7 +1651,7 @@ const emptySub = computed(() => {
     radial-gradient(circle at center top, rgb(var(--online) / 0.12), transparent 60%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.55rem;
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 .ac-empty-radar {
@@ -1674,11 +1674,11 @@ const emptySub = computed(() => {
   position: absolute;
   inset: 0;
   border: 1px solid rgb(var(--online) / 0.45);
-  border-radius: 999px;
-  animation: empty-pulse 3.6s ease-out infinite;
+  border-radius: var(--radius-pill);
+  animation: empty-pulse calc(3.6s * var(--motion-scale)) ease-out infinite;
 }
-.ac-empty-ring--2 { animation-delay: 1.2s; }
-.ac-empty-ring--3 { animation-delay: 2.4s; }
+.ac-empty-ring--2 { animation-delay: calc(1.2s * var(--motion-scale)); }
+.ac-empty-ring--3 { animation-delay: calc(2.4s * var(--motion-scale)); }
 @keyframes empty-pulse {
   0%   { opacity: 0.6; transform: scale(0.5); }
   90%  { opacity: 0;   transform: scale(2);   }
@@ -1686,16 +1686,16 @@ const emptySub = computed(() => {
 }
 .ac-empty-title {
   margin: 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 800;
   font-size: 1.05rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .ac-empty-sub {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: rgb(var(--fg-muted));
   max-width: 42ch;
   line-height: 1.55;
@@ -1718,15 +1718,15 @@ const emptySub = computed(() => {
   padding: 0.5rem 0.85rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background var(--dur-2), border-color var(--dur-2);
 }
 .ac-pager-btn:hover:not(:disabled) {
   background: rgb(var(--bg-hover, var(--bg-elevated)));
@@ -1734,16 +1734,16 @@ const emptySub = computed(() => {
 }
 .ac-pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .ac-pager-pos {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: baseline;
   gap: 0.3rem;
 }
-.ac-pager-cur { color: rgb(var(--fg-strong)); font-size: 14px; }
+.ac-pager-cur { color: rgb(var(--fg-strong)); font-size: 0.875rem; }
 .ac-pager-sep { opacity: 0.4; }
 
 /* ╔═══════════════════════════════════════════════════════════════╗
@@ -1781,12 +1781,12 @@ const emptySub = computed(() => {
   height: 20px;
   background: rgb(var(--bg-base));
   border: 1.5px solid rgb(var(--line-strong));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: transparent;
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease;
+    background var(--dur-3) ease,
+    border-color var(--dur-3) ease,
+    color var(--dur-3) ease;
 }
 .ac-case-select-mark > svg,
 .ac-case-select-mark > .iconify {
@@ -1809,13 +1809,13 @@ const emptySub = computed(() => {
   padding: 0.4rem 0.7rem;
   background: transparent;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .ac-select-all:hover:not(:disabled) {
   color: rgb(var(--fg-strong));
@@ -1848,10 +1848,10 @@ const emptySub = computed(() => {
   max-width: calc(100vw - 2rem);
   background: rgb(var(--bg-elevated) / 0.96);
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.6rem;
+  border-radius: var(--radius-xl);
   box-shadow:
-    0 18px 48px -16px rgba(0, 0, 0, 0.7),
-    0 4px 18px -6px rgba(0, 0, 0, 0.4);
+    0 18px 48px -16px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
+    0 4px 18px -6px rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   transform: translateX(-50%);
@@ -1865,7 +1865,7 @@ const emptySub = computed(() => {
   color: rgb(var(--fg-default));
 }
 .ac-bulkbar-count {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 1.15rem;
   font-weight: 800;
   color: rgb(var(--fg-strong));
@@ -1886,12 +1886,12 @@ const emptySub = computed(() => {
   padding: 0.45rem 0.7rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   color: rgb(var(--fg-muted));
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .ac-bulkbar-verdict:hover {
   color: rgb(var(--fg-strong));
@@ -1914,11 +1914,11 @@ const emptySub = computed(() => {
   padding: 0.45rem 0.75rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   color: rgb(var(--fg-default));
   font-size: 0.85rem;
   outline: 0;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
 .ac-bulkbar-note::placeholder {
   color: rgb(var(--fg-faint));
@@ -1938,11 +1938,11 @@ const emptySub = computed(() => {
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 0.95rem;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-md);
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all var(--dur-3) ease;
 }
 .ac-bulkbar-cancel {
   background: transparent;
@@ -1971,8 +1971,8 @@ const emptySub = computed(() => {
 .ac-bulkbar-slide-enter-active,
 .ac-bulkbar-slide-leave-active {
   transition:
-    transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 0.22s ease;
+    transform 0.32s var(--ease-standard),
+    opacity var(--dur-4) ease;
 }
 .ac-bulkbar-slide-enter-from,
 .ac-bulkbar-slide-leave-to {

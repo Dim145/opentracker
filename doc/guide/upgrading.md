@@ -197,6 +197,91 @@ data is a major upgrade the operator performs *offline* — it stops the cluster
 runs `pg_upgrade` and restarts. None of the above applies; read CloudNativePG's
 own documentation for it, and take a backup first regardless.
 
+## Upgrading to 0.33 or later — themes
+
+Nothing to run. Two tables arrive with the migrations (`themes`,
+`uploaded_fonts`), both empty, and the appearance is unchanged until somebody
+creates a theme.
+
+Four things an operator should know, none of them urgent:
+
+**Do not run two versions against the same database at once.** A migration makes
+`users.theme` nullable, and NULL means "follow the site default" — a meaning the
+older code does not have. It reads NULL, treats it as `dark`, finds that this
+differs from the session, and rewrites the session; on the next poll it differs
+again. The result is a session write and a `Set-Cookie` on every
+`/api/auth/status` for those members, forever, and they see `dark` rather than
+your default.
+
+This only bites where two versions overlap: a rolling deploy with mixed
+replicas, or a rollback to the previous version AFTER the migration has run. A
+single instance that stops and starts cannot hit it. If you do roll back, the
+accounts created in between hold NULL and will loop until they pick a theme by
+hand — the older `PATCH /api/me` will not let them clear it.
+
+Members who were on `Dark` before the upgrade keep `Dark`, deliberately: a
+stored `'dark'` cannot be told apart from "never chose", and moving the people
+who did choose would be the worse of the two mistakes. Anyone who wants to
+follow your default can pick `Site default` in their settings.
+
+**The interface is now in `rem` throughout.** 938 `font-size` declarations that
+were in `px` are not any more, so a visitor who has set a larger default font
+size in their browser will see the small labels scale with it where they
+previously did not. That is the intended behaviour and there is no setting to
+put it back; a theme's `ui-scale` moves everything together on top of it.
+
+**Fonts are self-hosted.** `fonts.googleapis.com` and `fonts.gstatic.com` are
+gone from the Content-Security-Policy — no visitor's IP reaches Google any more.
+The cost moves to the build: `@nuxt/fonts` fetches the faces when the image is
+built, so a release now needs network access, and one build in about ten has been
+observed failing with a timeout that an immediate retry fixed. If your pipeline
+cannot tolerate a retry, see the note in `apps/web/nuxt.config.ts` on switching
+to `provider: 'local'`.
+
+**If you serve uploads from S3**, uploaded fonts go there too, under a `fonts/`
+prefix. Nothing to configure.
+
+## Upgrading to 0.33 or later — federation is owner-only
+
+Trackarr now distinguishes one account from the other administrators: the
+**owner**. There is nothing to run and no variable to set — the migration marks
+the oldest administrator account that is neither banned nor deleted, ordered by
+signup date. On almost every instance that is the founding account.
+
+**What changed hands.** Five federation routes moved from "any administrator" to
+"the owner": turning federation on or off, adding a peer, approving one, editing
+one, and removing one. Everything else about federation — the dashboard, the peer
+list, the logs, reconciliation status — is still open to administrators. The
+reason for the split is that a peer is a standing trust relationship with another
+operator's database, which is a different kind of decision from moderating a
+torrent.
+
+If federation is off, nothing on your instance changes.
+
+**If the wrong account was marked.** The owner can hand it over from the API:
+
+```
+POST /api/admin/owner/transfer   { "userId": "<another admin's id>" }
+```
+
+The recipient has to be an administrator, and the caller has to have entered
+their password or passkey recently — the same freshness check the account-erasure
+and 2FA routes use. Ownership is a single row: handing it over removes it from
+the sender in the same transaction, and a partial unique index makes two owners
+impossible to represent rather than merely unlikely.
+
+**If the owner account goes away.** Erasing it or banning it moves ownership to
+the oldest remaining eligible administrator, in the same transaction, so the
+instance is never ownerless while an administrator exists. If none is eligible,
+the flag stays where it is: an unreachable owner is recoverable — a nonexistent
+one is not.
+
+**Demoting the owner is refused**, and that is deliberate rather than an
+oversight. If a demotion silently moved ownership to the oldest remaining
+administrator, any administrator could take the instance by demoting the owner,
+and the audit log would read as a routine role change. Transfer it first, then
+demote.
+
 ## Upgrading to 0.27 or later — account secrets are encrypted at rest
 
 **Nothing is required. One thing is strongly recommended.**

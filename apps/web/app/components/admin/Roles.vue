@@ -836,9 +836,9 @@ async function recompute() {
   min-width: 0;
 }
 .rc-eyebrow {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  letter-spacing: 0.22em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin: 0 0 0.4rem;
@@ -846,7 +846,7 @@ async function recompute() {
 .rc-title {
   font-size: clamp(1.65rem, 3.4vw, 2.5rem);
   font-weight: 900;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   margin: 0;
@@ -865,7 +865,7 @@ async function recompute() {
 }
 .rc-sub {
   margin: 0.5rem 0 0;
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   color: rgb(var(--fg-muted));
   max-width: 64ch;
   line-height: 1.5;
@@ -881,16 +881,16 @@ async function recompute() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 1.05rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color var(--dur-2), color var(--dur-2);
 }
 .rc-tool:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.35);
@@ -926,7 +926,7 @@ async function recompute() {
   gap: 0.5rem;
   padding: 4rem 1rem;
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-surface));
   color: rgb(var(--fg-muted));
   text-align: center;
@@ -943,7 +943,7 @@ async function recompute() {
 }
 .rc-empty__sub {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   max-width: 36rem;
 }
 
@@ -965,7 +965,7 @@ async function recompute() {
   gap: 0.85rem;
   padding: 1.1rem 1.2rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.55rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-surface));
   position: relative;
   overflow: hidden;
@@ -993,7 +993,7 @@ async function recompute() {
 .role-card__dot {
   width: 0.65rem;
   height: 0.65rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   margin-top: 0.5rem;
   flex-shrink: 0;
   box-shadow: 0 0 0 2px rgb(var(--bg-surface)),
@@ -1021,9 +1021,9 @@ async function recompute() {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.35rem 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .role-card__sep {
@@ -1034,7 +1034,7 @@ async function recompute() {
   align-items: center;
   gap: 0.3rem;
   padding: 0.05rem 0.45rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   text-transform: uppercase;
@@ -1073,16 +1073,16 @@ async function recompute() {
   align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.65rem;
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .role-card__edit:hover {
   color: rgb(var(--fg-strong));
@@ -1106,22 +1106,22 @@ async function recompute() {
 .role-card__rules--manual {
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   font-style: italic;
 }
 .role-card__rules-prefix {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .role-card__rules-prefix strong {
   color: rgb(var(--fg-strong));
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   font-weight: 800;
 }
 .cond-strip {
@@ -1138,18 +1138,18 @@ async function recompute() {
   gap: 0.45rem;
   padding: 0.18rem 0.55rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
 }
 .cond-pill__field {
   font-weight: 700;
 }
 .cond-pill__op {
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   font-weight: 900;
   color: #f5c518;
 }
@@ -1188,20 +1188,20 @@ async function recompute() {
   margin-bottom: 1rem;
 }
 .form-section__num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--fg-default));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   padding: 0.05rem 0.5rem;
   line-height: 1;
 }
 .form-section__title {
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   margin: 0;
@@ -1217,7 +1217,7 @@ async function recompute() {
 }
 .form-help {
   margin: 0 0 0.85rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--fg-muted));
 }
 .form-grid {
@@ -1242,10 +1242,10 @@ async function recompute() {
   grid-column: 1 / -1;
 }
 .form-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1255,7 +1255,7 @@ async function recompute() {
   font-size: 0.85rem;
 }
 .form-hint {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   margin-top: 0.15rem;
 }
@@ -1265,7 +1265,7 @@ async function recompute() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--danger));
   background: rgba(229, 62, 62, 0.06);
   border-top: 1px solid rgba(229, 62, 62, 0.2);
@@ -1279,14 +1279,14 @@ async function recompute() {
 .color-pick {
   width: 2.4rem;
   height: 2.4rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   border: 1px solid rgb(var(--line-default));
   background: transparent;
   cursor: pointer;
 }
 .color-hex {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
 }
 
@@ -1307,10 +1307,10 @@ async function recompute() {
   gap: 0.35rem;
   padding: 0.85rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
   background: rgb(var(--bg-elevated));
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--dur-2), background var(--dur-2);
 }
 .mode-card:hover {
   border-color: rgb(var(--fg-default) / 0.25);
@@ -1330,14 +1330,14 @@ async function recompute() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
 .mode-card__sub {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   line-height: 1.4;
 }
@@ -1355,7 +1355,7 @@ async function recompute() {
   gap: 1rem;
   padding: 0.85rem 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   cursor: pointer;
 }
@@ -1372,13 +1372,13 @@ async function recompute() {
   gap: 0.2rem;
 }
 .toggle-title {
-  font-size: 12.5px;
+  font-size: 0.7813rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   margin: 0;
 }
 .toggle-sub {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   margin: 0;
   line-height: 1.4;
@@ -1388,7 +1388,7 @@ async function recompute() {
   flex-shrink: 0;
   width: 2.6rem;
   height: 1.5rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   cursor: pointer;
@@ -1407,10 +1407,10 @@ async function recompute() {
   left: 2px;
   width: 1.15rem;
   height: 1.15rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-muted));
-  transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: transform var(--dur-3) var(--ease-standard);
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
 }
 .toggle--on .toggle-knob {
   transform: translateX(1.05rem);
@@ -1430,12 +1430,12 @@ async function recompute() {
   gap: 0.4rem;
   padding: 0.45rem 0.85rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   cursor: pointer;
@@ -1467,7 +1467,7 @@ async function recompute() {
   gap: 0.4rem;
   padding: 0.45rem 0.65rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-surface));
 }
 @media (max-width: 720px) {
@@ -1477,15 +1477,15 @@ async function recompute() {
   }
 }
 .cond-row__num {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .cond-input {
   padding: 0.45rem 0.65rem !important;
-  font-size: 12px !important;
+  font-size: 0.75rem !important;
 }
 .cond-input--field {
   text-transform: capitalize;
@@ -1498,9 +1498,9 @@ async function recompute() {
   font-variant-numeric: tabular-nums;
 }
 .cond-row__unit {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   white-space: nowrap;
 }
@@ -1510,7 +1510,7 @@ async function recompute() {
   justify-content: center;
   width: 1.85rem;
   height: 1.85rem;
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
@@ -1522,7 +1522,7 @@ async function recompute() {
 }
 .cond-empty {
   margin: 0 0 0.75rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--fg-muted));
   font-style: italic;
 }
@@ -1531,14 +1531,14 @@ async function recompute() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 0.85rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   border: 1px dashed rgb(var(--line-default));
   background: transparent;
   color: rgb(var(--fg-muted));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
 }

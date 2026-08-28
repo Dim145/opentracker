@@ -74,7 +74,138 @@ export default defineNuxtConfig({
       : {}),
   },
 
-  modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@nuxt/icon', '@nuxtjs/i18n'],
+  modules: [
+    '@pinia/nuxt',
+    '@nuxtjs/tailwindcss',
+    '@nuxt/icon',
+    '@nuxtjs/i18n',
+    '@nuxt/fonts',
+  ],
+
+  // Fonts — self-hosted, and deliberately NOT plug-and-play.
+  //
+  // ## Why self-host at all
+  //
+  // `main.css` used to open with an `@import` to `fonts.googleapis.com`, which
+  // meant the IP of every visitor reached Google on every page load. On a
+  // private tracker that is a privacy leak rather than a performance question,
+  // and it is what forced two third-party origins into the CSP
+  // (`fonts.googleapis.com` in `style-src`, `fonts.gstatic.com` in `font-src`).
+  // Both are gone now — see `server/plugins/csp.ts` and
+  // `docker/static/nginx.conf`. The module downloads the faces at build time
+  // and serves them from `/_fonts/`, so the running site talks to nobody.
+  //
+  // ## Why every family is listed by hand
+  //
+  // The module detects `font-family` in CSS — including inside `--font-*`
+  // custom properties, which is where this codebase's three stacks now live —
+  // and resolves what it finds against its providers. Left to itself that is
+  // wrong here in both directions:
+  //
+  //   - This codebase NAMES four families it has never loaded, and Google
+  //     serves all four: `Source Serif 4`, `IBM Plex Mono`, `Fira Code` and
+  //     `Cascadia Code`. Auto-detection would have started downloading them as a
+  //     side effect of a hosting change, which is the wrong reason. Three of
+  //     them are now loaded deliberately, as entries on the curated list a theme
+  //     can choose from; `Cascadia Code` stays pinned to `provider: 'none'`,
+  //     since nothing offers it and the fallback behind it is what renders.
+  //   - The system faces further down those chains (`Charter`, `Iowan Old
+  //     Style`, `Palatino`…) resolve to nothing anywhere, and `throwOnError`
+  //     is true at build time. Naming them costs one line each and removes the
+  //     question.
+  //
+  // ## Weights and subsets
+  //
+  // Both are what the `@import` actually asked for, not the module's defaults.
+  // The defaults would have pulled seven subsets — Cyrillic, Greek, Vietnamese
+  // — for a site with two locales, and a `400 700` variable range for faces
+  // this site uses at fixed weights.
+  //
+  //
+  // ## The cost, stated plainly
+  //
+  // The privacy win moves the Google dependency from every page view to every
+  // BUILD. `throwOnError` defaults to true when building, so a Google outage,
+  // a rate-limit or an offline machine FAILS the build rather than quietly
+  // shipping an image with no faces — which is the right way round, but it does
+  // mean a release now needs network. 336 kB across eight `.woff2`, cached in
+  // `node_modules/.cache/nuxt/fonts` between builds on the same machine and
+  // therefore cold on a CI runner. The alternative was committing the files, and
+  // it is still the escape hatch if that ever bites: `provider: 'local'` with
+  // the faces under `public/fonts/`.
+  //
+  // It also means the faces are not pinned. Google can reship a family and two
+  // builds of the same tag will not be byte-identical — out of character for a
+  // repository that pins `postgres:18.6-alpine` and hand-edits migration SQL for
+  // determinism. Accepted for the privacy win and because the curated font list
+  // needs a provider that can resolve families this repository has never seen.
+  //
+  // MEASURED, not hypothetical: one build in about ten failed with `ETIMEDOUT`
+  // reaching `fonts.googleapis.com` from inside the BuildKit container, while
+  // the same request succeeded from the host and from an ordinary container at
+  // the same moment. An immediate retry then worked. So the practical failure
+  // mode is a flaky release rather than a broken one, and the practical
+  // mitigation is to retry the build — but a release job that cannot tolerate a
+  // retry should switch these entries to `provider: 'local'` with the woff2
+  // files committed under `public/fonts/`, which removes the network from the
+  // build entirely at the cost of about 1.4 MB in git.
+  fonts: {
+    defaults: {
+      subsets: ['latin', 'latin-ext'],
+      styles: ['normal', 'italic'],
+    },
+    families: [
+      // 800 and 900 are real now. The site writes `font-weight: 800` 191 times
+      // and `900` 22 times against a face loaded at 400-700, so the browser has
+      // been synthesising both — smearing the glyphs wider than the design.
+      //
+      // It costs nothing: Inter is a variable font, so one file per subset
+      // already carried the whole 100-900 axis and the request only widened
+      // which part of it the `@font-face` claims. Same eight files, same 336 kB.
+      // The real weights are NARROWER than the synthetic ones, so lines get
+      // slightly shorter — the safe direction, since nothing that fitted before
+      // stops fitting.
+      {
+        name: 'Inter',
+        provider: 'google',
+        weights: [400, 500, 600, 700, 800, 900],
+        styles: ['normal'],
+      },
+      { name: 'JetBrains Mono', provider: 'google', weights: [400, 500], styles: ['normal'] },
+      // Variable, and used italic at every size from a 14px byline to a 60px
+      // masthead — hence the full axis rather than a weight list.
+      { name: 'Fraunces', provider: 'google', weights: ['400 900'] },
+      // The curated list a theme can choose from (`FONT_STACKS` in
+      // packages/shared/src/theme.ts). Every one carries `global: true`, and
+      // that is load-bearing rather than tidy: these names appear in no
+      // `font-family` declaration anywhere in the source — they only ever reach
+      // CSS through a theme's block, generated at runtime — so the module's
+      // usage scan cannot see them and would emit no `@font-face` at all. A
+      // theme would then select a font the browser has never heard of.
+      //
+      // The image grows; the page does not. `@font-face` is a declaration, and
+      // a browser fetches a face only when something actually uses it, so a
+      // visitor downloads the active theme's faces and nothing else.
+      { name: 'Manrope', provider: 'google', global: true, weights: ['400 700'] },
+      { name: 'Figtree', provider: 'google', global: true, weights: ['400 700'] },
+      { name: 'IBM Plex Sans', provider: 'google', global: true, weights: [400, 500, 600, 700] },
+      { name: 'Atkinson Hyperlegible', provider: 'google', global: true, weights: [400, 700] },
+      { name: 'IBM Plex Mono', provider: 'google', global: true, weights: [400, 500] },
+      { name: 'Fira Code', provider: 'google', global: true, weights: ['400 500'] },
+      { name: 'Space Mono', provider: 'google', global: true, weights: [400, 700] },
+      { name: 'Playfair Display', provider: 'google', global: true, weights: ['400 900'] },
+      { name: 'Bitter', provider: 'google', global: true, weights: ['400 700'] },
+      { name: 'Instrument Serif', provider: 'google', global: true, weights: [400] },
+      { name: 'Source Serif 4', provider: 'google', global: true, weights: ['400 700'] },
+
+      // Named in a fallback chain, never loaded. Keep it that way.
+      { name: 'Cascadia Code', provider: 'none' },
+      { name: 'Charter', provider: 'none' },
+      { name: 'Iowan Old Style', provider: 'none' },
+      { name: 'Palatino Linotype', provider: 'none' },
+      { name: 'Palatino', provider: 'none' },
+    ],
+  },
 
   // i18n — see doc/guide/i18n.md for the pattern.
   //
@@ -300,6 +431,85 @@ export default defineNuxtConfig({
       title: 'Trackarr',
       meta: [
         { name: 'description', content: 'High-performance BitTorrent tracker' },
+      ],
+      script: [
+        {
+          /**
+           * The cookie, applied before the first paint.
+           *
+           * Here for the same reason the stylesheet link is, and it is the same
+           * bug found twice: `useHead` in `app.vue` does not run in the static
+           * build, so this script reached the SSR markup and nowhere else. A
+           * member whose theme is NOT the site default therefore saw the default
+           * painted first and their own theme only once the bundle had booted —
+           * the exact case an operator running the `front` image would notice.
+           *
+           * `app.head` puts it in the HTML both shapes generate, where it is a
+           * blocking inline script in `<head>` and runs before anything paints.
+           *
+           * Under SSR the server has already written the attribute from the same
+           * cookie, so this agrees with it rather than fighting it.
+           *
+           * What it does, and what it deliberately does not:
+           *
+           * It checks the SHAPE of the cookie and nothing else. Which themes
+           * exist is the server's business, and a slug that no longer does
+           * resolves to the site default on the next `/api/auth/status` — a
+           * wrong theme for one paint beats an unthemed one, and beats a script
+           * that has to know the list.
+           *
+           * No cookie means "follows the site default", and it writes NOTHING
+           * for that case: `/api/theme.css` emits the default under a bare
+           * `:root`, so a document with no attribute is already painted right.
+           * Guessing `dark` here is what made the static build flash before.
+           */
+          // The shipped script carries no comments: it is inline in every
+          // document this application serves, so its prose is bytes on every
+          // page load. The reasoning lives above, in source, where it costs
+          // nobody anything.
+          //
+          // No backticks inside the literal — one in a comment closed it once
+          // already, which is how that rule got written down.
+          innerHTML: `
+            (function () {
+              try {
+                var m = document.cookie.match(/(?:^|;\\s*)trackarr-theme=([^;]*)/);
+                var v = m ? decodeURIComponent(m[1]) : '';
+                if (/^[a-z0-9-]{1,64}$/.test(v)) {
+                  document.documentElement.setAttribute('data-theme', v);
+                }
+              } catch (e) {}
+            })();
+          `,
+          tagPosition: 'head',
+        },
+      ],
+      link: [
+        {
+          /**
+           * The theme stylesheet, in the document from the start.
+           *
+           * Here rather than in `app.vue`'s `useHead` for one reason, and it is
+           * the whole reason the static build could not theme its first paint:
+           * with `ssr: false` there is no server to render `useHead`, so that
+           * link was injected by JavaScript after the bundle booted. The page
+           * therefore painted the bundle's built-in dark, downloaded the theme
+           * stylesheet, and only then became the site's theme — measured at
+           * several hundred milliseconds of the wrong colours.
+           *
+           * `app.head` is baked into the HTML Nuxt generates for BOTH shapes, so
+           * the link is render-blocking in both and the first paint is already
+           * the right one. Paired with the site default being emitted under a
+           * bare `:root`, no JavaScript is involved in getting the colours right
+           * at all.
+           */
+          rel: 'stylesheet',
+          href: '/api/theme.css',
+          // After `entry.css`, so a theme block wins over the built-in `:root`
+          // declarations it is meant to override. Capo gives stylesheets 60 by
+          // default; the built-ins live in the bundle, so this has to sort later.
+          tagPriority: 65,
+        },
       ],
     },
   },

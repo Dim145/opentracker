@@ -266,10 +266,10 @@ function formatReleaseDate(iso: string | null): string {
   background: rgba(167, 139, 250, 0.12);
   border: 1px solid rgba(167, 139, 250, 0.55);
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: #a78bfa;
   z-index: 2;
@@ -294,12 +294,12 @@ function formatReleaseDate(iso: string | null): string {
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
   flex-shrink: 0;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform var(--dur-4) ease, border-color var(--dur-4) ease;
 }
 .gcard-cover:hover {
   transform: translateY(-2px);
   border-color: rgba(167, 139, 250, 0.4);
-  box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 14px 28px -16px rgb(var(--shadow-color) / calc(0.6 * var(--shadow-strength)));
 }
 .gcard-cover img {
   width: 100%;
@@ -337,13 +337,13 @@ function formatReleaseDate(iso: string | null): string {
   margin: 0;
   font-size: 1.35rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1.15;
   word-break: break-word;
 }
 .gcard-year {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
   font-size: 1rem;
   color: rgb(var(--fg-muted));
   font-weight: 600;
@@ -355,16 +355,16 @@ function formatReleaseDate(iso: string | null): string {
   gap: 0.35rem;
 }
 .gcard-genre {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 0.2rem 0.5rem;
   border-radius: var(--radius-sm);
-  background: rgba(212, 167, 52, 0.08);
-  border: 1px solid rgba(212, 167, 52, 0.35);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.08);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
+  color: rgb(var(--accent-warm));
 }
 
 .gcard-stats {
@@ -379,7 +379,7 @@ function formatReleaseDate(iso: string | null): string {
   gap: 0.35rem;
   font-size: 0.85rem;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .gcard-stat-icon {
   font-size: 0.95rem;
@@ -387,8 +387,8 @@ function formatReleaseDate(iso: string | null): string {
 }
 .gcard-stat strong { font-weight: 700; }
 .gcard-stat-suffix {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
 }
 
@@ -405,10 +405,10 @@ function formatReleaseDate(iso: string | null): string {
   gap: 0.35rem;
 }
 .gcard-section-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -425,7 +425,7 @@ function formatReleaseDate(iso: string | null): string {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .gcard-pill--platform {
   border-color: rgba(96, 165, 250, 0.35);
@@ -448,19 +448,19 @@ function formatReleaseDate(iso: string | null): string {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: #a78bfa;
   text-decoration: none;
-  transition: color 0.18s ease;
+  transition: color var(--dur-3) ease;
 }
 .gcard-link:hover { color: #c4b5fd; }
 .gcard-link-arrow {
   font-size: 0.7rem;
-  transition: transform 0.18s ease;
+  transition: transform var(--dur-3) ease;
 }
 .gcard-link:hover .gcard-link-arrow {
   transform: translate(1px, -1px);
@@ -488,8 +488,8 @@ function formatReleaseDate(iso: string | null): string {
   border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
-  transition: transform 0.2s ease, border-color 0.2s ease;
-  animation: shot-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  transition: transform var(--dur-4) ease, border-color var(--dur-4) ease;
+  animation: shot-in calc(0.4s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
 }
 .gcard-shot:hover {
@@ -501,7 +501,7 @@ function formatReleaseDate(iso: string | null): string {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.25s ease;
+  transition: transform var(--dur-slow) ease;
 }
 .gcard-shot:hover img {
   transform: scale(1.03);

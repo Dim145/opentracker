@@ -429,7 +429,7 @@ function bestResolution(list: string[]): string | null {
   color: inherit;
   font: inherit;
   cursor: pointer;
-  transition: background-color 120ms ease;
+  transition: background-color var(--dur-1) ease;
 }
 .lvl:hover {
   background: rgb(var(--bg-hover));
@@ -451,7 +451,7 @@ function bestResolution(list: string[]): string | null {
   white-space: nowrap;
 }
 .lvl-label--ep {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 500;
   min-width: 2.5rem;
@@ -462,12 +462,12 @@ function bestResolution(list: string[]): string | null {
 
 .lvl-count,
 .lvl-res {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.5625rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
   padding: 2px 5px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: rgb(var(--fg-default) / 0.05);
   white-space: nowrap;
 }
@@ -480,7 +480,7 @@ function bestResolution(list: string[]): string | null {
 }
 
 .lvl-seed {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--online));
   min-width: 2.4rem;

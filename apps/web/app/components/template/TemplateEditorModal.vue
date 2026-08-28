@@ -955,9 +955,9 @@ async function save() {
 
 .tpl-label {
   display: block;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -967,7 +967,7 @@ async function save() {
 .tpl-optional {
   margin-left: 0.35rem;
   font-weight: 400;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: none;
   color: rgb(var(--fg-muted));
 }
@@ -976,17 +976,17 @@ async function save() {
    the dark theme and faint at ~2.1:1 in the light one. Only --fg-muted clears
    4.5:1 in both. */
 .tpl-hint {
-  font-size: 11px;
+  font-size: 0.6875rem;
   line-height: 1.45;
   color: rgb(var(--fg-muted));
 }
 .tpl-inline-error {
-  font-size: 11px;
+  font-size: 0.6875rem;
   line-height: 1.45;
   color: rgb(var(--danger));
 }
 .tpl-warn {
-  font-size: 11px;
+  font-size: 0.6875rem;
   line-height: 1.45;
   color: rgb(var(--warning));
 }
@@ -998,7 +998,7 @@ async function save() {
   border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--danger) / 0.3);
   background-color: rgb(var(--danger) / 0.1);
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--danger));
 }
 
@@ -1012,7 +1012,7 @@ async function save() {
   padding: 0.25rem 0.3rem;
   border: 1px solid rgb(var(--line-default));
   border-bottom: none;
-  border-radius: 3px 3px 0 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   background: rgb(var(--bg-inset, var(--bg-elevated)));
 }
 .tpl-tool {
@@ -1023,10 +1023,10 @@ async function save() {
      `btn-xs` the other controls in this modal inherit. */
   width: 26px;
   height: 26px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   font-size: 0.85rem;
   color: rgb(var(--fg-muted));
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background var(--dur-1) ease, color var(--dur-1) ease;
 }
 .tpl-tool:hover {
   background: rgb(var(--fg-default) / 0.08);
@@ -1041,7 +1041,7 @@ async function save() {
 .tpl-toolbar-hint {
   font-family: var(--font-mono);
   font-size: 0.6rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 
@@ -1051,7 +1051,7 @@ async function save() {
   border-top-right-radius: 0;
   width: 100%;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.55;
   /* The scaffolding is full of long single-line BBCode tags; wrapping them
      is far kinder than a horizontal scrollbar inside a modal. */
@@ -1062,7 +1062,7 @@ async function save() {
 .tpl-counter {
   flex-shrink: 0;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   /* Tabular figures so the number does not shuffle its neighbours on every
      keystroke. */
   font-variant-numeric: tabular-nums;
@@ -1090,12 +1090,12 @@ async function save() {
   gap: 0.35rem;
   padding: 0.35rem 0.5rem;
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: background-color 0.15s, color 0.15s;
+  transition: background-color var(--dur-2), color var(--dur-2);
 }
 .tpl-tab:hover {
   color: rgb(var(--fg-default));
@@ -1122,13 +1122,13 @@ async function save() {
   padding: 2.5rem 1rem;
   border: 1px dashed rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: 0.6875rem;
   text-align: center;
   color: rgb(var(--fg-muted));
 }
 
 .tpl-preview {
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.6;
   color: rgb(var(--fg-default));
   overflow-wrap: anywhere;
@@ -1147,9 +1147,9 @@ async function save() {
   align-items: center;
   gap: 0.4rem;
   margin-bottom: 0.4rem;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1173,9 +1173,9 @@ async function save() {
   border-radius: var(--radius-sm);
   background-color: rgb(var(--bg-surface));
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-default));
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color var(--dur-2), color var(--dur-2);
 }
 .tpl-chip:hover:not(:disabled) {
   border-color: rgb(var(--accent));
@@ -1186,7 +1186,7 @@ async function save() {
   cursor: default;
 }
 .tpl-var-desc {
-  font-size: 11px;
+  font-size: 0.6875rem;
   line-height: 1.4;
   color: rgb(var(--fg-muted));
 }

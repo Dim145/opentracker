@@ -42,19 +42,19 @@ defineProps<{
   align-items: center;
   gap: 0.25rem;
   padding: 0.05rem 0.4rem;
-  border-radius: 0.2rem;
+  border-radius: var(--radius-xs);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   line-height: 1.45;
 }
 .type-badge__icon {
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 /* Two distinct accents — gold for /movie, cyan for /tv — match the
    palette used in the admin KPI cards elsewhere in the app. */

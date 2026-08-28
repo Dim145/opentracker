@@ -5,29 +5,20 @@
 </template>
 
 <script setup lang="ts">
-// Paint the chosen theme synchronously, before Vue hydration runs, so
-// the page never flashes the wrong palette. Source of truth is the
-// user's `users.theme` column (synced into the session and watched by
-// useColorMode); this script just primes <html data-theme=…> from the
-// localStorage cache so the *first* paint of an authenticated user
-// matches what the session is about to confirm. Default is dark — both
-// the schema default and the historical look of the site.
-useHead({
-  script: [
-    {
-      innerHTML: `
-        (function () {
-          try {
-            var stored = localStorage.getItem('trackarr.theme');
-            var pref = (stored === 'light' || stored === 'dark') ? stored : 'dark';
-            document.documentElement.setAttribute('data-theme', pref);
-          } catch (e) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-          }
-        })();
-      `,
-      tagPosition: 'head',
-    },
-  ],
-});
+/**
+ * The application root, and what is deliberately NOT here.
+ *
+ * Both of the things that decide the first paint — the theme stylesheet link and
+ * the inline script that applies the theme cookie — are declared in
+ * `nuxt.config.ts` under `app.head`. That is not tidiness: `useHead` in this file
+ * does not run at all in the static build, where there is no server, so anything
+ * declared here reaches the SSR markup and nowhere else. Both were, and both
+ * made the static build paint the wrong colours until the bundle had booted.
+ * `app.head` is baked into the HTML that both shapes generate.
+ */
+
+// Registers the session watcher and the `htmlAttrs` binding that renders
+// `data-theme` server-side. Called here rather than in the layout because the
+// login and registration pages set `layout: false`.
+useColorMode();
 </script>

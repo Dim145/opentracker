@@ -647,7 +647,7 @@ function confirmBanPanel(report: Report) {
   bottom: -1px;
   width: 64px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .archive-head-id {
   display: flex;
@@ -659,24 +659,24 @@ function confirmBanPanel(report: Report) {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .archive-eyebrow-rule {
   display: inline-block;
   width: 26px;
   height: 1px;
-  background: #d4a734;
+  background: rgb(var(--accent-warm));
 }
 .archive-title {
   margin: 0;
   font-size: 1.65rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .archive-intro {
@@ -692,9 +692,9 @@ function confirmBanPanel(report: Report) {
   width: 56px;
   height: 56px;
   font-size: 1.75rem;
-  color: #d4a734;
-  background: rgba(212, 167, 52, 0.08);
-  border: 1px solid rgba(212, 167, 52, 0.35);
+  color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.08);
+  border: 1px solid rgb(var(--accent-warm) / 0.35);
   border-radius: var(--radius-md);
   flex-shrink: 0;
 }
@@ -713,14 +713,14 @@ function confirmBanPanel(report: Report) {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all var(--dur-2) ease;
 }
 .filter:hover {
   color: rgb(var(--fg-strong));
@@ -732,17 +732,17 @@ function confirmBanPanel(report: Report) {
   min-width: 22px;
   height: 18px;
   padding: 0 0.35rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   color: rgb(var(--fg-strong));
 }
 /* Active states — chip takes on the colour of its bucket. */
 .filter--active.filter--all {
-  background: rgba(212, 167, 52, 0.1);
-  border-color: rgba(212, 167, 52, 0.55);
-  color: #d4a734;
+  background: rgb(var(--accent-warm) / 0.1);
+  border-color: rgb(var(--accent-warm) / 0.55);
+  color: rgb(var(--accent-warm));
 }
 .filter--active.filter--pending {
   background: rgba(244, 63, 94, 0.1);
@@ -784,14 +784,14 @@ function confirmBanPanel(report: Report) {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   overflow: hidden;
-  animation: dossier-in 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: dossier-in calc(0.42s * var(--motion-scale)) var(--ease-standard) backwards;
   animation-delay: var(--stagger, 0ms);
-  transition: border-color 0.2s ease, transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color var(--dur-4) ease, transform var(--dur-4) ease,
+    box-shadow var(--dur-4) ease;
 }
 .dossier:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 28px -22px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 10px 28px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength)));
 }
 .dossier--pending:hover { border-color: rgba(244, 63, 94, 0.4); }
 .dossier--resolved:hover { border-color: rgba(108, 209, 97, 0.35); }
@@ -832,20 +832,20 @@ function confirmBanPanel(report: Report) {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-mono);
 }
 .dossier-case-label {
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .dossier-case-num {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
-  color: #d4a734;
-  letter-spacing: 0.05em;
+  color: rgb(var(--accent-warm));
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   background: transparent;
 }
 .dossier-head-right {
@@ -857,10 +857,10 @@ function confirmBanPanel(report: Report) {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .dossier-when-icon {
   font-size: 0.85rem;
@@ -872,11 +872,11 @@ function confirmBanPanel(report: Report) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.32rem 0.7rem;
-  border-radius: 4px;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .dossier-stamp--pending {
@@ -936,10 +936,10 @@ function confirmBanPanel(report: Report) {
   }
 }
 .meta-label {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -969,7 +969,7 @@ function confirmBanPanel(report: Report) {
 .meta-details--note {
   padding: 0.55rem 0.7rem;
   background: rgb(var(--bg-base));
-  border-left: 2px solid rgba(212, 167, 52, 0.45);
+  border-left: 2px solid rgb(var(--accent-warm) / 0.45);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-style: italic;
 }
@@ -977,10 +977,10 @@ function confirmBanPanel(report: Report) {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.03em;
+  letter-spacing: calc(0.03em * var(--tracking-scale));
 }
 .meta-withdrawn {
   display: inline-flex;
@@ -988,7 +988,7 @@ function confirmBanPanel(report: Report) {
   gap: 0.2rem;
   margin-left: 0.4rem;
   padding: 0.05rem 0.35rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--warning) / 0.15);
   color: rgb(var(--warning));
   font-size: 0.68rem;
@@ -1001,7 +1001,7 @@ function confirmBanPanel(report: Report) {
 }
 .meta-resolved-when {
   color: rgb(var(--fg-faint));
-  font-size: 10px;
+  font-size: 0.625rem;
   margin-left: 0.1rem;
 }
 
@@ -1014,37 +1014,37 @@ function confirmBanPanel(report: Report) {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-inset));
   border: 1px solid rgb(var(--line-default));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   flex-shrink: 0;
 }
 .target-tag-icon {
   font-size: 0.85rem;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
 }
 .target-link {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   padding: 0.22rem 0.55rem;
-  background: rgba(212, 167, 52, 0.06);
-  border: 1px solid rgba(212, 167, 52, 0.3);
+  background: rgb(var(--accent-warm) / 0.06);
+  border: 1px solid rgb(var(--accent-warm) / 0.3);
   border-radius: var(--radius-sm);
   font-size: 0.84rem;
   font-weight: 600;
-  color: #d4a734;
+  color: rgb(var(--accent-warm));
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   max-width: 100%;
   min-width: 0;
 }
 .target-link:hover {
-  background: rgba(212, 167, 52, 0.12);
-  border-color: rgba(212, 167, 52, 0.55);
+  background: rgb(var(--accent-warm) / 0.12);
+  border-color: rgb(var(--accent-warm) / 0.55);
 }
 .target-link-name {
   white-space: nowrap;
@@ -1055,7 +1055,7 @@ function confirmBanPanel(report: Report) {
 .target-link-arrow {
   font-size: 0.8rem;
   flex-shrink: 0;
-  transition: transform 0.18s ease;
+  transition: transform var(--dur-3) ease;
 }
 .target-link:hover .target-link-arrow {
   transform: translate(1px, -1px);
@@ -1073,8 +1073,8 @@ function confirmBanPanel(report: Report) {
   font-style: italic;
 }
 .target-missing-id {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-style: normal;
   background: transparent;
 }
@@ -1106,10 +1106,10 @@ function confirmBanPanel(report: Report) {
   font-family: inherit;
   font-size: 0.74rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
   white-space: nowrap;
   width: 100%;
 }
@@ -1160,10 +1160,10 @@ function confirmBanPanel(report: Report) {
   padding: 0.5rem 0.85rem;
   border: 1px dashed rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   align-self: center;
@@ -1188,7 +1188,7 @@ function confirmBanPanel(report: Report) {
   box-shadow:
     0 14px 32px -18px rgba(244, 63, 94, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  animation: ban-panel-rise 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ban-panel-rise calc(0.28s * var(--motion-scale)) var(--ease-emphasis) both;
 }
 @keyframes ban-panel-rise {
   from { opacity: 0; transform: translateY(-4px); }
@@ -1199,10 +1199,10 @@ function confirmBanPanel(report: Report) {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: #f43f5e;
 }
@@ -1224,14 +1224,14 @@ function confirmBanPanel(report: Report) {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s, border-color 0.15s,
-    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: color var(--dur-2), background var(--dur-2), border-color var(--dur-2),
+    transform var(--dur-3) var(--ease-emphasis);
 }
 .ban-chip:hover {
   color: rgb(var(--fg-strong));
@@ -1268,7 +1268,7 @@ function confirmBanPanel(report: Report) {
   line-height: 1.4;
   resize: vertical;
   min-height: 64px;
-  transition: border-color 0.18s, box-shadow 0.18s;
+  transition: border-color var(--dur-3), box-shadow var(--dur-3);
 }
 .ban-panel-reason:focus {
   outline: 0;
@@ -1326,10 +1326,10 @@ function confirmBanPanel(report: Report) {
 }
 .empty-title {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1358,27 +1358,27 @@ function confirmBanPanel(report: Report) {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
   color: rgb(var(--fg-strong));
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--dur-2) ease;
 }
 .pager-btn:hover:not(:disabled) {
-  border-color: rgba(212, 167, 52, 0.5);
-  color: #d4a734;
+  border-color: rgb(var(--accent-warm) / 0.5);
+  color: rgb(var(--accent-warm));
 }
 .pager-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 .pager-state {
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
 }
 .pager-state-sep {
   color: rgb(var(--fg-faint));

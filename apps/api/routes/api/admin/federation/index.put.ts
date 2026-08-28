@@ -6,7 +6,7 @@
  * a fresh install carries no key material until opt-in).
  */
 import { db, schema } from '@trackarr/db';
-import { requireAdminSession } from '~~/utils/adminAuth';
+import { requireOwnerSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 import { z } from 'zod';
@@ -41,7 +41,11 @@ const bodySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  await requireAdminSession(event);
+  // Owner, not admin. This is the master switch, the instance identity and the
+  // credit settings — the schema calls it "the owner's master switch" and the
+  // guide agrees, while the code only ever checked `is_admin`. An admin
+  // appointed to moderate uploads should not be able to turn on federation.
+  await requireOwnerSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
   const body = await validateBody(event, bodySchema);
 

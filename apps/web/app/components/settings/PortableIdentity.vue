@@ -342,7 +342,7 @@ async function download(): Promise<void> {
   gap: 0.85rem;
   padding: 1rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated) / 0.35);
 }
 .pid-head {
@@ -363,7 +363,7 @@ async function download(): Promise<void> {
 }
 .pid-col {
   padding: 0.6rem 0.75rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base) / 0.5);
 }
@@ -374,7 +374,7 @@ async function download(): Promise<void> {
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
 }
 /* Two colours because they are two different answers, and the one people get
    wrong is the right-hand one. */
@@ -437,7 +437,7 @@ async function download(): Promise<void> {
   color: rgb(var(--fg-muted));
 }
 .pid-held {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--success));
   word-break: break-all;
@@ -454,7 +454,7 @@ async function download(): Promise<void> {
   color: rgb(var(--success));
 }
 .pid-done code {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   word-break: break-all;

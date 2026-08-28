@@ -878,7 +878,8 @@ async function fill() {
   max-width: 1180px;
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
-  --brass: 212 167 52;
+  /* Exactly `--accent-warm`, so it follows the theme now. */
+  --brass: var(--accent-warm);
   --brass-deep: 158 113 31;
   --phosphor: 110 231 183;
   --status-filled: 251 191 36;
@@ -928,14 +929,14 @@ async function fill() {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  transition: color 0.15s, transform 0.2s;
+  transition: color var(--dur-2), transform var(--dur-4);
 }
 .dossier-back:hover {
   color: rgb(var(--brass));
@@ -947,7 +948,7 @@ async function fill() {
   justify-content: center;
   padding: 5rem 0;
 }
-.loader-spin { font-size: 1.5rem; animation: spin 0.9s linear infinite; }
+.loader-spin { font-size: 1.5rem; animation: spin calc(0.9s * var(--motion-scale)) linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .dossier-empty {
@@ -974,12 +975,12 @@ async function fill() {
     radial-gradient(ellipse 70% 80% at 100% 100%, rgb(var(--brass-deep) / 0.18), transparent 60%),
     rgb(var(--bg-surface));
   border: 1px solid rgb(var(--brass) / 0.45);
-  border-radius: 0.65rem;
+  border-radius: var(--radius-xl);
   margin-bottom: 2rem;
   box-shadow:
-    0 22px 60px -22px rgba(0,0,0,0.7),
+    0 22px 60px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
     inset 0 1px 0 rgba(255,255,255,0.05);
-  animation: hero-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: hero-rise calc(0.55s * var(--motion-scale)) var(--ease-emphasis) both;
 }
 @keyframes hero-rise {
   from { opacity: 0; transform: translateY(6px); }
@@ -994,10 +995,10 @@ async function fill() {
   align-items: center;
   gap: 0.55rem;
   flex-wrap: wrap;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1007,19 +1008,19 @@ async function fill() {
   gap: 0.4rem;
   padding: 0.3rem 0.6rem;
   border: 1px solid rgb(var(--phosphor) / 0.4);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-weight: 800;
   color: rgb(var(--phosphor));
 }
 .hero-status-dot {
   width: 7px;
   height: 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: currentColor;
 }
 .hero--requested .hero-status-dot {
   box-shadow: 0 0 8px currentColor;
-  animation: status-pulse 2s ease-in-out infinite;
+  animation: status-pulse calc(2s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes status-pulse {
   0%, 100% { opacity: 0.65; transform: scale(1); }
@@ -1038,11 +1039,11 @@ async function fill() {
 
 .hero-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   line-height: 1.1;
-  letter-spacing: -0.015em;
+  letter-spacing: calc(-0.015em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   overflow-wrap: anywhere;
 }
@@ -1051,9 +1052,9 @@ async function fill() {
   align-items: center;
   gap: 0.4rem;
   margin-top: 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .hero-byline-link {
@@ -1089,7 +1090,7 @@ async function fill() {
     linear-gradient(180deg, rgb(var(--brass) / 0.18), rgb(var(--brass-deep) / 0.08)),
     rgb(var(--bg-base));
   border: 1px solid rgb(var(--brass) / 0.55);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   color: rgb(var(--brass));
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.08),
@@ -1097,10 +1098,10 @@ async function fill() {
   align-self: center;
 }
 .hero-reward-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 800;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
   opacity: 0.75;
 }
@@ -1108,10 +1109,10 @@ async function fill() {
   display: inline-flex;
   align-items: baseline;
   gap: 0.25rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 1.6rem;
   font-weight: 900;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   line-height: 1.1;
   text-shadow: 0 0 10px rgb(var(--brass) / 0.4);
 }
@@ -1121,10 +1122,10 @@ async function fill() {
   opacity: 0.7;
 }
 .hero-reward-unit {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5313rem;
   font-weight: 800;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
   opacity: 0.65;
 }
@@ -1164,30 +1165,30 @@ async function fill() {
   margin-bottom: 0.7rem;
 }
 .grid-section-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   color: rgb(var(--brass));
   filter: drop-shadow(0 0 8px rgb(var(--brass) / 0.4));
 }
 .grid-section-head h2 {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass));
 }
 .grid-section-count {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   padding: 0.1rem 0.45rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: rgb(var(--fg-muted));
 }
 .grid-section-line {
@@ -1202,8 +1203,8 @@ async function fill() {
     linear-gradient(180deg, rgba(255,255,255,0.02), transparent 50%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.45rem;
-  font-size: 14px;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
   line-height: 1.65;
   color: rgb(var(--fg-default));
   white-space: pre-wrap;
@@ -1214,17 +1215,17 @@ async function fill() {
   padding: 1rem 1.1rem;
   background: rgb(var(--status-filled) / 0.08);
   border: 1px dashed rgb(var(--status-filled) / 0.45);
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
 }
 .filled-card-head {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.6rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--status-filled));
 }
@@ -1239,9 +1240,9 @@ async function fill() {
   padding: 0.55rem 0.85rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   text-decoration: none;
@@ -1249,7 +1250,7 @@ async function fill() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: border-color 0.18s, color 0.18s;
+  transition: border-color var(--dur-3), color var(--dur-3);
 }
 .filled-card-link:hover {
   color: rgb(var(--brass));
@@ -1273,7 +1274,7 @@ async function fill() {
     linear-gradient(180deg, rgba(255,255,255,0.02), transparent 50%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
 }
 .thread-item.is-deleted { opacity: 0.5; }
 .thread-head {
@@ -1281,9 +1282,9 @@ async function fill() {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .thread-num {
@@ -1300,8 +1301,8 @@ async function fill() {
 .thread-time { margin-left: auto; }
 .thread-edited {
   font-style: italic;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-size: 0.5625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 .thread-actions { display: inline-flex; gap: 0.2rem; }
@@ -1313,10 +1314,10 @@ async function fill() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--dur-2), color var(--dur-2);
 }
 .thread-action:hover {
   background: rgb(var(--bg-base));
@@ -1325,7 +1326,7 @@ async function fill() {
 .thread-action--danger:hover { color: rgb(var(--danger)); }
 .thread-body {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   line-height: 1.55;
   color: rgb(var(--fg-default));
   white-space: pre-wrap;
@@ -1346,10 +1347,10 @@ async function fill() {
   padding: 0.55rem 0.75rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12.5px;
+  font-family: var(--font-mono);
+  font-size: 0.7813rem;
   line-height: 1.5;
   resize: vertical;
 }
@@ -1363,11 +1364,11 @@ async function fill() {
   align-items: center;
   gap: 0.35rem;
   padding: 0.35rem 0.7rem;
-  border-radius: 0.25rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
   background: transparent;
@@ -1384,13 +1385,13 @@ async function fill() {
   margin: 0 0 1rem;
   padding: 1.3rem 0;
   text-align: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
 }
 
 .thread-compose {
@@ -1400,16 +1401,16 @@ async function fill() {
   padding: 0.85rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--brass) / 0.3);
-  border-radius: 0.45rem;
+  border-radius: var(--radius-lg);
 }
 .thread-compose-input {
   width: 100%;
   padding: 0.5rem 0.7rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
   line-height: 1.5;
   resize: vertical;
   min-height: 64px;
@@ -1427,8 +1428,8 @@ async function fill() {
   gap: 0.5rem;
 }
 .thread-compose-counter {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   color: rgb(var(--fg-faint));
 }
 .thread-compose-btn {
@@ -1440,15 +1441,15 @@ async function fill() {
     linear-gradient(180deg, rgb(var(--brass) / 0.25), rgb(var(--brass) / 0.08)),
     rgb(var(--bg-base));
   border: 1px solid rgb(var(--brass) / 0.55);
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass));
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.22s;
+  transition: transform var(--dur-4), box-shadow var(--dur-4);
 }
 .thread-compose-btn:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -1467,11 +1468,11 @@ async function fill() {
   padding: 0.75rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px dashed rgb(var(--line-strong));
-  border-radius: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -1492,16 +1493,16 @@ async function fill() {
     linear-gradient(180deg, rgba(255,255,255,0.025), transparent 50%),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
 }
 .side-card-head {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass));
   padding-bottom: 0.6rem;
@@ -1515,16 +1516,16 @@ async function fill() {
   padding: 0.6rem 0.85rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.2s;
+  transition: background var(--dur-3), border-color var(--dur-3), color var(--dur-3), transform var(--dur-4);
 }
 .side-btn:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -1552,10 +1553,10 @@ async function fill() {
   gap: 0.5rem;
 }
 .side-fill-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1564,10 +1565,10 @@ async function fill() {
   padding: 0.55rem 0.75rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
 }
 .side-fill-input:focus {
@@ -1577,19 +1578,19 @@ async function fill() {
 }
 .side-fill-quota {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .side-empty {
   margin: 0;
   padding: 0.85rem 0.6rem;
   text-align: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -1608,15 +1609,15 @@ async function fill() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .timeline-dot {
   width: 8px;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--brass));
   box-shadow: 0 0 8px rgb(var(--brass) / 0.4);
 }
@@ -1643,7 +1644,7 @@ async function fill() {
 .timeline-label {
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--fg-default));
   display: inline-flex;
   align-items: baseline;
@@ -1651,17 +1652,17 @@ async function fill() {
   flex-wrap: wrap;
 }
 .timeline-user {
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   color: rgb(var(--brass));
   text-decoration: none;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: none;
 }
 .timeline-user:hover { text-decoration: underline; }
 .timeline-time {
   color: rgb(var(--fg-faint));
-  font-size: 9.5px;
+  font-size: 0.5938rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1684,7 +1685,7 @@ async function fill() {
 .req-edit-label {
   font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: calc(0.09em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .req-edit-row {

@@ -37,6 +37,30 @@ export const users = pgTable(
     passkey: text('passkey').notNull().unique(), // For private tracker auth
     isAdmin: boolean('is_admin').default(false).notNull(),
     isModerator: boolean('is_moderator').default(false).notNull(),
+    /**
+     * The one account that owns this instance. At most one row may carry it.
+     *
+     * Not a third rank above admin, and not a permission bundle: it names the
+     * person whose instance this is, for the handful of decisions that are
+     * theirs alone rather than the staff's. It exists because several parts of
+     * this codebase already assumed it did — the federation console is
+     * described as "owner-controlled" in the schema comments, the guide and the
+     * governance docstrings, while the code behind it only ever checked
+     * `is_admin`. So an admin appointed to moderate uploads could also
+     * handshake with another instance on the operator's behalf.
+     *
+     * Set on the first registration (the account that already receives
+     * `is_admin` and ten invitations), backfilled to the oldest admin on
+     * migration, and transferable — an owner can hand it to another admin,
+     * because an instance whose owner lost their password must not be
+     * permanently undecidable.
+     *
+     * It also moves on its own. `relinquishOwnership` hands it to the oldest
+     * eligible admin when the holder is erased, banned, or loses `is_admin`,
+     * because each of those leaves an owner who cannot act — and an instance
+     * with a paralysed owner is worse than one with a different owner.
+     */
+    isOwner: boolean('is_owner').default(false).notNull(),
     isBanned: boolean('is_banned').default(false).notNull(),
     // userId of the staffer who issued the most recent ban. Null when
     // the user has never been banned, or after an unban.
@@ -137,10 +161,23 @@ export const users = pgTable(
     shareReputationFederated: boolean('share_reputation_federated')
       .default(false)
       .notNull(),
-    // 'light' | 'dark'. Persisted server-side so the chosen theme
-    // follows the user across devices instead of being trapped in a
-    // single browser's localStorage.
-    theme: text('theme').default('dark').notNull(),
+    // `'system'`, a built-in, an admin theme's slug — or NULL.
+    //
+    // NULL is the interesting value: it means the member has never chosen, so
+    // they follow whatever the owner sets as the site default, and they keep
+    // following it when the owner changes it. A stored `'dark'` is a CHOICE and
+    // is left alone by a change of default. That distinction is the whole reason
+    // the column is nullable rather than defaulted: a default of `'dark'` cannot
+    // tell "I picked dark" apart from "I never looked", so the site-default
+    // setting had nobody to apply to and did nothing at all.
+    //
+    // Deliberately free-form text with no foreign key: a member's preference
+    // should survive a theme they never asked to lose, so the routes are what
+    // notice a dangling slug rather than the database.
+    //
+    // Persisted server-side so the choice follows the member across devices
+    // instead of being trapped in one browser's localStorage.
+    theme: text('theme'),
     // BCP-47-ish language code matching one of the `@nuxtjs/i18n`
     // bundle codes (`en`, `fr`, …). Server-persisted so the choice
     // follows the user across devices and survives the cookie flush
@@ -173,13 +210,26 @@ export const users = pgTable(
      * same as a ban — a ban is reversible and keeps the person; this does not.
      */
     deletedAt: timestamp('deleted_at'),
-  }
-  // No index list at all. `passkey` already carries `.unique()` on the column
-  // above, which drizzle renders as `users_passkey_unique`; the explicit
-  // `uniqueIndex('users_passkey_idx')` that used to sit here produced a
-  // SECOND, identical unique index on the same column. Two identical indexes
-  // double the maintenance on any write touching the column and answer no
-  // query the other could not.
+  },
+  // Exactly one index, and it is a constraint rather than a lookup.
+  //
+  // `passkey` deliberately has none: it already carries `.unique()` on the
+  // column above, which drizzle renders as `users_passkey_unique`, and the
+  // explicit `uniqueIndex('users_passkey_idx')` that used to sit here produced
+  // a SECOND, identical unique index on the same column — double the
+  // maintenance on every write touching it, answering no query the other could
+  // not.
+  //
+  // The partial unique index below is the opposite case: nothing else can say
+  // "at most one owner". A boolean column cannot, a check constraint cannot see
+  // other rows, and application code that reads-then-writes races with itself.
+  // `WHERE is_owner` is what makes two owners unrepresentable rather than
+  // merely unlikely.
+  (table) => [
+    uniqueIndex('users_owner_unique')
+      .on(table.isOwner)
+      .where(sql`${table.isOwner}`),
+  ],
 );
 
 // ============================================================================
@@ -3238,3 +3288,157 @@ export const presentationTemplates = pgTable(
 export type PresentationTemplate = typeof presentationTemplates.$inferSelect;
 export type NewPresentationTemplate =
   typeof presentationTemplates.$inferInsert;
+
+// ============================================================================
+// Themes (admin-defined appearance)
+// ============================================================================
+//
+// `light` and `dark` are NOT rows. They are code constants in
+// `apps/web/app/assets/css/main.css`, mirrored in `packages/shared/src/theme.ts`
+// with a test that keeps the two in step — the same shape as
+// `presentationTemplates`, whose site default is "the code constant and cannot
+// be overridden". So nothing here can edit or delete them, and an instance
+// always has a working appearance to fall back to. This table holds only what
+// an admin created.
+//
+// What a row carries is VALUES, never names. The token schema is versioned with
+// the code because Tailwind freezes utility names at build time and compiles
+// them to `var(--token)`; a row cannot invent a utility. The practical upside is
+// that adding a token category later needs no migration.
+export const themes = pgTable(
+  'themes',
+  {
+    id: text('id').primaryKey(), // UUID
+    /**
+     * What `data-theme` is set to, and what `users.theme` stores.
+     *
+     * `[a-z0-9-]+`, derived from the name and validated at the route. It reaches
+     * a CSS selector, so it is the one field here whose shape is load-bearing:
+     * anything else would let a theme name close the attribute selector.
+     * `light`, `dark` and `system` are refused as slugs — they already mean
+     * something.
+     */
+    slug: text('slug').notNull().unique(),
+    name: text('name').notNull(),
+    description: text('description'),
+    /** `light` | `dark` — the built-in whose tokens this one starts from. */
+    base: text('base').notNull().default('dark'),
+    /**
+     * Only what DIVERGES from the base.
+     *
+     * Storing the resolved set instead would fork the theme from the base
+     * permanently: a later correction to a built-in token would never reach it.
+     * That is the WordPress style-variation failure — the variation is copied
+     * into the row and "the user will not receive those changes if they have
+     * already saved". A key absent here is an inheritance, not a value.
+     */
+    tokens: jsonb('tokens').$type<Record<string, string>>().notNull().default({}),
+    /**
+     * Raw CSS, owner-only, null by default.
+     *
+     * Reserved for wave 3 and deliberately present from the first migration:
+     * the column costs nothing empty, and adding it later would mean a second
+     * migration for a feature already decided. The gate is not the column, it is
+     * `requireOwnerSession` plus a value-level deny-list — see THEMES-PLAN §6.
+     */
+    customCss: text('custom_css'),
+    /**
+     * Whether members may choose it. Also whether it is emitted at all.
+     *
+     * A disabled theme is not served, so its tokens do not sit in every
+     * visitor's stylesheet — which is the only reason the "all themes in one
+     * cacheable sheet" decision stays affordable.
+     */
+    enabled: boolean('enabled').default(true).notNull(),
+    position: integer('position').default(0).notNull(),
+    /**
+     * `site` — anyone may pick it. `roles` — only holders of `requiredRoles`.
+     *
+     * **Not an access control**, and the admin console says so in as many
+     * words. Every enabled theme is in the one stylesheet every visitor gets,
+     * so somebody can set `data-theme` by hand in devtools and see it for the
+     * duration of their session. What IS enforced is persistence: `PATCH
+     * /api/me` refuses to store a theme the member is not entitled to, so
+     * nobody keeps it and nobody else ever sees it.
+     *
+     * Filtering the stylesheet per role would make it vary by viewer, and cache
+     * a variant per combination of roles. For decoration that is the wrong
+     * trade.
+     */
+    visibility: text('visibility').notNull().default('site'),
+    requiredRoles: jsonb('required_roles').$type<string[]>(),
+    createdBy: text('created_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // The emitter's read: enabled themes, in display order.
+    index('themes_enabled_idx').on(table.enabled, table.position),
+    // The two shapes a row may have, so no codepath can invent a third — a
+    // role-gated theme with no roles would be invisible to everyone including
+    // its author, which reads as a bug rather than as a setting.
+    check(
+      'themes_visibility_ck',
+      sql`(${table.visibility} = 'site' AND ${table.requiredRoles} IS NULL)
+          OR (${table.visibility} = 'roles' AND jsonb_array_length(${table.requiredRoles}) > 0)`,
+    ),
+    check('themes_base_ck', sql`${table.base} IN ('light', 'dark')`),
+  ],
+);
+
+export type Theme = typeof themes.$inferSelect;
+export type NewTheme = typeof themes.$inferInsert;
+
+// =============================================================================
+// Uploaded fonts (owner-supplied faces a theme may select)
+// =============================================================================
+
+/**
+ * A woff2 the owner uploaded, so a theme can use a face the build never shipped.
+ *
+ * The curated list in `packages/shared/src/theme.ts` exists because a font has
+ * to BE there — the faces are downloaded when the image is built. This is the
+ * escape hatch from that constraint, and it is owner-only for the same reason
+ * raw CSS is: it adds bytes every visitor downloads and a face nobody has
+ * reviewed.
+ *
+ * Addressed by content. `sha256` is unique, so uploading the same file twice
+ * returns the existing row rather than storing it again, and the served URL can
+ * be cached immutably — the bytes behind an id can never change.
+ *
+ * `role` matters as much as the file: a theme picks a family per role, and a
+ * proportional face offered for the mono role is a broken table rather than a
+ * restyled one. The role is chosen at upload and the token validation checks it.
+ *
+ * Deliberately NOT referenced by `themes.tokens`. A token holds `upload:<id>` as
+ * a string, and there is no foreign key — the same reason `users.theme` has
+ * none: a theme's preference has to survive the thing it points at going away,
+ * and the delete route is what notices rather than the database.
+ */
+export const uploadedFonts = pgTable(
+  'uploaded_fonts',
+  {
+    id: text('id').primaryKey(),
+    /** What an admin sees in the picker. Not what CSS uses — see `fonts.ts`. */
+    family: text('family').notNull(),
+    role: text('role').notNull(),
+    storageKey: text('storage_key').notNull(),
+    bytes: integer('bytes').notNull(),
+    /** Hex. Unique, so the same file uploaded twice is one object. */
+    sha256: text('sha256').notNull().unique(),
+    uploadedBy: text('uploaded_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // The picker's read: everything for one role.
+    index('uploaded_fonts_role_idx').on(table.role),
+    check('uploaded_fonts_role_ck', sql`${table.role} IN ('sans', 'mono', 'display')`),
+  ],
+);
+
+export type UploadedFont = typeof uploadedFonts.$inferSelect;
+export type NewUploadedFont = typeof uploadedFonts.$inferInsert;

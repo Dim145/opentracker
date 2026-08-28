@@ -7,7 +7,7 @@ import { creditDailyLoginIfDue } from '~~/utils/bonusEarning';
 import type {
   LanguagePreference,
   PublicUser,
-  ThemePreference,
+  StoredTheme,
 } from '@trackarr/shared';
 
 /**
@@ -41,6 +41,7 @@ export default defineEventHandler(async (event) => {
         isBanned: users.isBanned,
         isAdmin: users.isAdmin,
         isModerator: users.isModerator,
+        isOwner: users.isOwner,
       })
       .from(users)
       .where(eq(users.id, session.user.id))
@@ -77,8 +78,12 @@ export default defineEventHandler(async (event) => {
         // the user to re-login to see edits.
         const sessionDisplayName =
           (session.user as { displayName?: string | null }).displayName ?? null;
+        // `?? null`, not `?? 'dark'`. A session predating the nullable column
+        // has no `theme` key at all, and reading that as `'dark'` made the
+        // comparison below think a NULL row differed from the session on every
+        // single poll — a session write per request, forever.
         const sessionTheme =
-          (session.user as { theme?: ThemePreference }).theme ?? 'dark';
+          (session.user as { theme?: StoredTheme }).theme ?? null;
         const sessionLanguage =
           (session.user as { language?: LanguagePreference }).language ?? 'en';
         const sessionBonusPoints =
@@ -88,6 +93,7 @@ export default defineEventHandler(async (event) => {
           dbUser.downloaded !== session.user.downloaded ||
           dbUser.isAdmin !== session.user.isAdmin ||
           dbUser.isModerator !== session.user.isModerator ||
+          dbUser.isOwner !== session.user.isOwner ||
           dbUser.displayName !== sessionDisplayName ||
           dbUser.theme !== sessionTheme ||
           dbUser.language !== sessionLanguage ||
@@ -98,13 +104,14 @@ export default defineEventHandler(async (event) => {
             user: {
               ...session.user,
               displayName: dbUser.displayName,
-              theme: dbUser.theme as ThemePreference,
+              theme: dbUser.theme as StoredTheme,
               language: dbUser.language as LanguagePreference,
               uploaded: dbUser.uploaded,
               downloaded: dbUser.downloaded,
               bonusPoints: dbUser.bonusPoints,
               isAdmin: dbUser.isAdmin,
               isModerator: dbUser.isModerator,
+              isOwner: dbUser.isOwner,
             },
           });
         }
@@ -115,10 +122,14 @@ export default defineEventHandler(async (event) => {
           displayName: dbUser.displayName,
           isAdmin: dbUser.isAdmin,
           isModerator: dbUser.isModerator,
+          isOwner: dbUser.isOwner,
           uploaded: dbUser.uploaded,
           downloaded: dbUser.downloaded,
           bonusPoints: dbUser.bonusPoints,
-          theme: (dbUser.theme as ThemePreference) ?? 'dark',
+          // NULL travels to the client as NULL: it is the client that resolves
+          // "no choice" against the site default, because that is where the
+          // branding payload already is.
+          theme: dbUser.theme as StoredTheme,
           language: (dbUser.language as LanguagePreference) ?? 'en',
         };
         // Decide if the FE should hard-redirect this user to

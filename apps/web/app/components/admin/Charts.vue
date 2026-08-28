@@ -151,6 +151,45 @@ function readToken(name: string, fallback: string): string {
   return v || fallback;
 }
 
+/**
+ * The six series colours, from `--chart-1..6`.
+ *
+ * These used to be hex literals next to axis colours that DID read tokens,
+ * which meant a theme could restyle a chart's frame and not its data. Read
+ * through the same path as everything else, with the shipped values as the
+ * fallback so a server render — where `getComputedStyle` does not exist — draws
+ * the same chart the client will.
+ *
+ * A categorical scale, deliberately not derived from the accent: six series
+ * tinted from one hue are six shades of one colour, and the job of a series
+ * colour is to be distinguishable from the other five.
+ */
+const CHART_FALLBACKS = [
+  '59 130 246',
+  '16 185 129',
+  '245 158 11',
+  '139 92 246',
+  '239 68 68',
+  '6 182 212',
+] as const;
+
+/**
+ * `n` is 1-based, matching the token names.
+ *
+ * Touches `mode.value` so the four dataset computeds re-evaluate on a theme
+ * change. `chartOptions` already did this for the axes with an explicit `void
+ * mode.value`; without it here, switching themes would recolour a chart's frame
+ * and leave its lines the previous theme's colours until the next data refresh.
+ */
+function series(n: number) {
+  void mode.value;
+  const triplet = readToken(`--chart-${n}`, CHART_FALLBACKS[n - 1]!);
+  return {
+    borderColor: `rgb(${triplet})`,
+    backgroundColor: `rgb(${triplet} / 0.1)`,
+  };
+}
+
 const chartOptions = computed(() => {
   // Reactivity: re-evaluate when theme toggles.
   void mode.value;
@@ -200,16 +239,14 @@ const growthData = computed(() => ({
     {
       label: t('admin.charts.users'),
       data: filteredHistory.value.map((h) => h.usersCount),
-      borderColor: '#3b82f6',
-      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      ...series(1),
       fill: true,
       tension: 0.4,
     },
     {
       label: t('admin.charts.torrents'),
       data: filteredHistory.value.map((h) => h.torrentsCount),
-      borderColor: '#10b981',
-      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+      ...series(2),
       fill: true,
       tension: 0.4,
     },
@@ -222,16 +259,14 @@ const peersData = computed(() => ({
     {
       label: t('admin.charts.peers'),
       data: filteredHistory.value.map((h) => h.peersCount),
-      borderColor: '#f59e0b',
-      backgroundColor: 'rgba(245, 158, 11, 0.1)',
+      ...series(3),
       fill: true,
       tension: 0.4,
     },
     {
       label: t('admin.charts.seeders'),
       data: filteredHistory.value.map((h) => h.seedersCount),
-      borderColor: '#8b5cf6',
-      backgroundColor: 'rgba(139, 92, 246, 0.1)',
+      ...series(4),
       fill: true,
       tension: 0.4,
     },
@@ -246,8 +281,7 @@ const redisData = computed(() => ({
       data: filteredHistory.value.map((h) =>
         Number((h.redisMemoryUsage / 1024 / 1024).toFixed(2))
       ),
-      borderColor: '#ef4444',
-      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      ...series(5),
       fill: true,
       tension: 0.4,
     },
@@ -262,8 +296,7 @@ const dbData = computed(() => ({
       data: filteredHistory.value.map((h) =>
         Number((h.dbSize / 1024 / 1024).toFixed(2))
       ),
-      borderColor: '#06b6d4',
-      backgroundColor: 'rgba(6, 182, 212, 0.1)',
+      ...series(6),
       fill: true,
       tension: 0.4,
     },

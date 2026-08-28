@@ -181,14 +181,14 @@ const age = computed(() =>
      season for "is there a 4K in here" is scanning a column of colour, not
      reading twenty filenames. */
   border-left: 2px solid var(--tier);
-  transition: background-color 120ms ease;
+  transition: background-color var(--dur-1) ease;
 }
 .rr:hover {
   background: rgb(var(--bg-hover));
 }
 
 .rr--uhd {
-  --tier: #d4a734;
+  --tier: rgb(var(--accent-warm));
 }
 .rr--hd {
   --tier: rgb(var(--info, 96 165 250));
@@ -219,15 +219,15 @@ const age = computed(() =>
   align-items: center;
   flex-wrap: wrap;
   gap: 0.35rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   line-height: 1;
 }
 
 .chip {
   padding: 3px 5px;
-  border-radius: 2px;
-  letter-spacing: 0.02em;
+  border-radius: var(--radius-xs);
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   white-space: nowrap;
 }
 /* One hue per slot, held across every row. The colours are not decoration:
@@ -237,7 +237,7 @@ const age = computed(() =>
   color: rgb(110 231 183);
 }
 .chip--res {
-  background: rgb(212 167 52 / 0.16);
+  background: rgb(var(--accent-warm) / 0.16);
   color: #e5bf58;
   font-weight: 600;
 }
@@ -278,10 +278,10 @@ const age = computed(() =>
 }
 
 .rr-team {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-faint));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .rr-team::before {
   content: '·';
@@ -291,7 +291,7 @@ const age = computed(() =>
 
 .rr-name {
   display: block;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -305,7 +305,7 @@ const age = computed(() =>
 }
 
 .rr-size {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-default));
   white-space: nowrap;
@@ -318,7 +318,7 @@ const age = computed(() =>
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   min-width: 2.4rem;
   justify-content: flex-end;
@@ -336,7 +336,7 @@ const age = computed(() =>
 }
 
 .rr-age {
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   color: rgb(var(--fg-faint));
   white-space: nowrap;
@@ -353,12 +353,12 @@ const age = computed(() =>
   justify-content: center;
   width: 1.6rem;
   height: 1.6rem;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
-  transition: background-color 120ms ease, color 120ms ease;
+  transition: background-color var(--dur-1) ease, color var(--dur-1) ease;
 }
 .rr-dl:hover {
-  background: rgb(212 167 52 / 0.14);
+  background: rgb(var(--accent-warm) / 0.14);
   color: #e5bf58;
 }
 /* Not a button — a signpost. Dimmer, and it does not light up on hover,

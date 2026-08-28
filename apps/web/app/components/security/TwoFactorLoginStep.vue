@@ -224,10 +224,10 @@ async function submitPasskey() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -236,14 +236,14 @@ async function submitPasskey() {
 }
 .step-blurb {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: rgb(var(--fg-muted));
 }
 
 .step-tabs {
   display: inline-flex;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-surface));
   padding: 3px;
   align-self: flex-start;
@@ -253,17 +253,17 @@ async function submitPasskey() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.85rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   background: transparent;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   color: rgb(var(--fg-muted));
   cursor: pointer;
-  transition: all 0.14s;
+  transition: all var(--dur-2);
 }
 .step-tab:hover {
   color: rgb(var(--fg-strong));
@@ -282,10 +282,10 @@ async function submitPasskey() {
   gap: 0.4rem;
 }
 .step-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -294,15 +294,15 @@ async function submitPasskey() {
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .step-code-input {
   font-size: 1.6rem;
   font-weight: 700;
-  letter-spacing: 0.4em;
+  letter-spacing: calc(0.4em * var(--tracking-scale));
   text-align: center;
   padding: 0.6rem;
 }
@@ -313,7 +313,7 @@ async function submitPasskey() {
 }
 .step-hint {
   margin: 0;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: center;
@@ -338,7 +338,7 @@ async function submitPasskey() {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgb(var(--danger));
   margin: 0;
 }
@@ -356,15 +356,15 @@ async function submitPasskey() {
   align-items: center;
   gap: 0.4rem;
   padding: 0.55rem 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.14s;
+  transition: all var(--dur-2);
 }
 .btn-primary {
   background: rgb(var(--accent));

@@ -82,6 +82,7 @@ export default defineConfig({
           text: 'Operations',
           items: [
             { text: 'Branding & Site Settings', link: '/guide/branding' },
+            { text: 'Themes', link: '/guide/themes' },
             { text: 'Roles & Permissions', link: '/guide/roles-and-permissions' },
             { text: 'Invitations', link: '/guide/invitations' },
             { text: 'Moderation', link: '/guide/moderation' },

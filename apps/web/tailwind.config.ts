@@ -73,12 +73,74 @@ export default {
         danger:  'rgb(var(--danger) / <alpha-value>)',
         info:    'rgb(var(--info) / <alpha-value>)',
       },
+      // The stacks live in `main.css` as `--font-sans` / `--font-mono` /
+      // `--font-display`, and these utilities read them rather than restating
+      // them. Two copies of a font stack is how you end up with `font-mono`
+      // and `var(--font-mono)` rendering two different faces, which is exactly
+      // what this codebase had.
+      // No `display` entry: `main.css` already defines `.font-display` by hand,
+      // with the feature settings and optical sizing a utility would not carry.
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'ui-monospace', 'monospace'],
+        sans: 'var(--font-sans)',
+        mono: 'var(--font-mono)',
       },
       fontSize: {
         '2xs': ['0.65rem', { lineHeight: '0.85rem' }],
+      },
+
+      // The utilities read the tokens, for the same reason `fontFamily` does:
+      // 213 `rounded-*` classes in the templates were on Tailwind's own scale
+      // and followed no theme at all, so a theme could round every hand-written
+      // `border-radius` and leave every utility square.
+      //
+      // The mapping is exact rather than approximate, which is a happy accident
+      // worth stating: Tailwind's default steps are 2 / 4 / 6 / 8 / 12 px, and
+      // so is `--radius`'s derived scale. Nothing shifts by a pixel.
+      borderRadius: {
+        none: '0',
+        sm: 'var(--radius-xs)',
+        DEFAULT: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        xl: 'var(--radius-xl)',
+        '2xl': 'calc(var(--radius) * 2.6667)',
+        '3xl': 'calc(var(--radius) * 4)',
+        full: 'var(--radius-pill)',
+      },
+
+      // Durations already carry `--motion-scale` inside them, so
+      // `motion-scale: 0` stops the utility-driven transitions too rather than
+      // only the hand-written ones.
+      transitionDuration: {
+        DEFAULT: 'var(--dur-2)',
+        75: 'calc(75ms * var(--motion-scale))',
+        100: 'calc(100ms * var(--motion-scale))',
+        150: 'var(--dur-2)',
+        200: 'var(--dur-4)',
+        300: 'var(--dur-slow)',
+        500: 'calc(500ms * var(--motion-scale))',
+        700: 'calc(700ms * var(--motion-scale))',
+        1000: 'calc(1000ms * var(--motion-scale))',
+      },
+      transitionTimingFunction: {
+        DEFAULT: 'var(--ease-standard)',
+        standard: 'var(--ease-standard)',
+        emphasis: 'var(--ease-emphasis)',
+      },
+
+      // Tailwind's own shadows are `rgb(0 0 0 / 0.1)` and up, which no theme
+      // could tint or flatten. Same two levers as everything else.
+      boxShadow: {
+        sm: '0 1px 2px 0 rgb(var(--shadow-color) / calc(0.05 * var(--shadow-strength)))',
+        DEFAULT:
+          '0 1px 3px 0 rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength))), 0 1px 2px -1px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength)))',
+        md: '0 4px 6px -1px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength))), 0 2px 4px -2px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength)))',
+        lg: '0 10px 15px -3px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength))), 0 4px 6px -4px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength)))',
+        xl: '0 20px 25px -5px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength))), 0 8px 10px -6px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength)))',
+        '2xl': '0 25px 50px -12px rgb(var(--shadow-color) / calc(0.25 * var(--shadow-strength)))',
+        inner:
+          'inset 0 2px 4px 0 rgb(var(--shadow-color) / calc(0.05 * var(--shadow-strength)))',
+        none: 'none',
       },
     },
   },

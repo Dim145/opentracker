@@ -26,6 +26,13 @@ beforeEach(async () => {
   // the torrent it describes. That is also what puts it out of reach of a
   // CASCADE, so records would leak between tests and every assertion about
   // "the whole stream" would count somebody else's.
+  //
+  // `themes` and `uploaded_fonts` are named for the same reason from the other
+  // direction: their only foreign key is a nullable `SET NULL` to `users`, so a
+  // CASCADE from `users` empties that column and leaves the row behind. A theme
+  // surviving into the next test breaks every assertion about which themes are
+  // served — and it would do so by ORDER, which is the kind of failure that
+  // looks like flakiness.
   await db.execute(
     sql`TRUNCATE TABLE
           upload_request_fill_attempts, upload_requests, invitations,
@@ -34,6 +41,7 @@ beforeEach(async () => {
           bonus_grants, bonus_rules,
           federation_config, federation_peers,
           catalog_records,
+          themes, uploaded_fonts,
           users
         RESTART IDENTITY CASCADE`,
   );

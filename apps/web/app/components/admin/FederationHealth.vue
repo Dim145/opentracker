@@ -394,27 +394,27 @@ function hostOf(url: string): string {
 .fh-pulse-label {
   font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .fh-pulse-value {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.95rem;
   color: rgb(var(--tone));
 }
 .fh-pulse-track {
   position: relative;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-default) / 0.1);
   overflow: hidden;
 }
 .fh-pulse-fill {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--tone));
-  transition: width 0.6s ease;
+  transition: width calc(0.6s * var(--motion-scale)) ease;
 }
 /* Threshold marker: the gauge has an end, and it needs to be visible. */
 .fh-pulse-mark {
@@ -453,7 +453,7 @@ function hostOf(url: string): string {
 .fh-tile--error { --tone: var(--danger); }
 .fh-tile--warn { --tone: var(--warning); }
 .fh-tile-n {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 1.35rem;
   line-height: 1;
   color: rgb(var(--tone));
@@ -463,7 +463,7 @@ function hostOf(url: string): string {
 .fh-tile-l {
   font-size: 0.66rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 
@@ -496,7 +496,7 @@ function hostOf(url: string): string {
   color: rgb(var(--fg-strong));
 }
 .fh-peer-url {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   color: rgb(var(--fg-subtle));
 }
@@ -506,7 +506,7 @@ function hostOf(url: string): string {
    figure to divide in your head. */
 .fh-store {
   border: 1px solid rgb(var(--border) / 0.7);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   padding: 0.7rem 0.8rem;
   background: rgb(var(--bg-subtle) / 0.35);
 }
@@ -514,7 +514,7 @@ function hostOf(url: string): string {
   display: flex;
   height: 6px;
   gap: 2px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
   background: rgb(var(--border) / 0.4);
 }
@@ -545,12 +545,12 @@ function hostOf(url: string): string {
 .fh-swatch {
   width: 8px;
   height: 8px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--seg);
   transform: translateY(-1px);
 }
 .fh-store-n {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   font-weight: 600;
   color: rgb(var(--fg));
@@ -558,7 +558,7 @@ function hostOf(url: string): string {
 .fh-store-l {
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .fh-kinds {
@@ -574,9 +574,9 @@ function hostOf(url: string): string {
   align-items: center;
   gap: 0.3rem;
   padding: 0.1rem 0.4rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-subtle) / 0.8);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.68rem;
 }
 .fh-kind-k { color: rgb(var(--fg-muted)); }
@@ -589,7 +589,7 @@ function hostOf(url: string): string {
   gap: 0.3rem;
   padding: 0.2rem 0.5rem;
   border: 1px solid rgb(var(--border) / 0.8);
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-subtle) / 0.5);
   color: rgb(var(--fg-muted));
   font-size: 0.72rem;
@@ -602,7 +602,7 @@ function hostOf(url: string): string {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   color: rgb(var(--fg-muted));
 }
@@ -622,7 +622,7 @@ function hostOf(url: string): string {
   gap: 0.6rem;
   padding: 0.3rem 0;
   border-top: 1px solid rgb(var(--line-default) / 0.5);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.74rem;
   color: rgb(var(--fg-muted));
 }
@@ -630,7 +630,7 @@ function hostOf(url: string): string {
 .fh-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--online));
 }
 .fh-dot--stale { background: rgb(var(--warning)); }
@@ -659,7 +659,7 @@ function hostOf(url: string): string {
   border-radius: var(--radius-sm);
   background: rgb(var(--danger) / 0.1);
   color: rgb(var(--danger));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

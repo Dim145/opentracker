@@ -628,13 +628,13 @@ useHead({
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.75rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  transition: color 0.15s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: color var(--dur-2) ease, transform var(--dur-4) var(--ease-emphasis);
 }
 .profile-back:hover {
   color: rgb(var(--fg-strong));
@@ -651,7 +651,7 @@ useHead({
   width: 2rem;
   height: 2rem;
   color: rgb(var(--fg-muted));
-  animation: spin 0.9s linear infinite;
+  animation: spin calc(0.9s * var(--motion-scale)) linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -663,7 +663,7 @@ useHead({
   padding: 5rem 1.5rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.6rem;
+  border-radius: var(--radius-xl);
   text-align: center;
 }
 .empty-icon {
@@ -673,9 +673,9 @@ useHead({
 }
 .empty-text {
   margin: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -703,16 +703,16 @@ useHead({
       ),
       rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.6rem;
+  border-radius: var(--radius-xl);
   /* No `overflow: hidden` here — the flag tab needs to peek above
      the top border. The radial-gradient background is clipped by
      `border-radius` (background-clip defaults to border-box), so
      nothing else relies on overflow being clipped. */
   box-shadow:
-      0 22px 60px -22px rgba(0, 0, 0, 0.7),
-      0 4px 14px -8px rgba(0, 0, 0, 0.5),
+      0 22px 60px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
+      0 4px 14px -8px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength))),
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  animation: heroRise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: heroRise calc(0.65s * var(--motion-scale)) var(--ease-emphasis) both;
 }
 @keyframes heroRise {
   from { opacity: 0; transform: translateY(8px); }
@@ -731,17 +731,17 @@ useHead({
   position: relative;
   width: 132px;
   height: 132px;
-  border-radius: 0.7rem;
+  border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   box-shadow:
-      0 16px 40px -18px rgba(0, 0, 0, 0.7),
+      0 16px 40px -18px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
       inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-      inset 0 -24px 32px -16px rgba(0, 0, 0, 0.35);
+      inset 0 -24px 32px -16px rgb(var(--shadow-color) / calc(0.35 * var(--shadow-strength)));
   isolation: isolate;
-  animation: avatarRise 0.7s 0.05s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: avatarRise calc(0.7s * var(--motion-scale)) calc(0.05s * var(--motion-scale)) var(--ease-emphasis) both;
 }
 @keyframes avatarRise {
   from { opacity: 0; transform: scale(0.94); }
@@ -762,18 +762,18 @@ useHead({
   pointer-events: none;
 }
 .hero-avatar-letter {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 3.4rem;
   font-weight: 900;
-  letter-spacing: -0.04em;
+  letter-spacing: calc(-0.04em * var(--tracking-scale));
   color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 2px 8px rgb(var(--shadow-color) / calc(0.35 * var(--shadow-strength)));
   z-index: 1;
 }
 .hero-avatar-ring {
   position: absolute;
   inset: -4px;
-  border-radius: calc(0.7rem + 4px);
+  border-radius: calc(var(--radius-xl) + var(--radius-sm));
   border: 1px dashed rgb(var(--line-strong));
   pointer-events: none;
   opacity: 0.6;
@@ -799,18 +799,18 @@ useHead({
   gap: 0.7rem;
   flex-wrap: wrap;
   margin-bottom: 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
-  animation: heroFadeIn 0.55s 0.05s ease-out both;
+  animation: heroFadeIn calc(0.55s * var(--motion-scale)) calc(0.05s * var(--motion-scale)) ease-out both;
 }
 .hero-eyebrow-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: 0;
   color: rgb(var(--release-cyan));
@@ -843,21 +843,21 @@ useHead({
   align-items: center;
   gap: 0.4rem;
   padding: 0.22rem 0.55rem;
-  border-radius: 999px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  transition: color 0.18s, border-color 0.18s, background 0.18s;
+  transition: color var(--dur-3), border-color var(--dur-3), background var(--dur-3);
 }
 .hero-presence .presence-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-muted));
   flex-shrink: 0;
 }
@@ -869,7 +869,7 @@ useHead({
 .hero-presence.is-online .presence-dot {
   background: rgb(var(--online));
   box-shadow: 0 0 0 4px rgb(var(--online) / 0.18);
-  animation: presencePulse 2.2s ease-out infinite;
+  animation: presencePulse calc(2.2s * var(--motion-scale)) ease-out infinite;
 }
 @keyframes presencePulse {
   0%   { box-shadow: 0 0 0 0 rgb(var(--online) / 0.45); }
@@ -879,15 +879,15 @@ useHead({
 
 .hero-title {
   margin: 0 0 0.35rem;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   line-height: 1.1;
   overflow-wrap: anywhere;
   text-wrap: pretty;
-  animation: heroFadeIn 0.55s 0.15s ease-out both;
+  animation: heroFadeIn 0.55s var(--dur-2) ease-out both;
 }
 
 .hero-handle-row {
@@ -896,14 +896,14 @@ useHead({
   align-items: center;
   gap: 0.55rem;
   margin-bottom: 0.95rem;
-  animation: heroFadeIn 0.55s 0.22s ease-out both;
+  animation: heroFadeIn 0.55s var(--dur-4) ease-out both;
 }
 .hero-handle {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   font-weight: 700;
   color: rgb(var(--release-cyan));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 /* ── Follow toggle ──────────────────────────────────────────────
@@ -927,22 +927,22 @@ useHead({
     linear-gradient(180deg, rgb(var(--release-teal) / 0.18), rgb(var(--release-teal) / 0.06)),
     rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--release-teal) / 0.5);
-  border-radius: 999px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--release-teal));
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
   transition:
-    background 0.18s,
-    border-color 0.18s,
-    color 0.18s,
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.22s ease;
+    background var(--dur-3),
+    border-color var(--dur-3),
+    color var(--dur-3),
+    transform var(--dur-4) var(--ease-emphasis),
+    box-shadow var(--dur-4) ease;
 }
 .hero-follow:hover:not(:disabled) {
   background: rgb(var(--release-teal) / 0.18);
@@ -962,7 +962,7 @@ useHead({
     0 0 16px -4px rgb(var(--release-teal) / 0.4);
 }
 .hero-follow.is-on .hero-follow-icon {
-  animation: hero-follow-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: hero-follow-pop calc(0.5s * var(--motion-scale)) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 @keyframes hero-follow-pop {
   0%   { transform: scale(1) rotate(0); }
@@ -983,10 +983,10 @@ useHead({
   height: 1rem;
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--release-teal) / 0.4);
-  border-radius: 999px;
-  font-size: 9px;
+  border-radius: var(--radius-pill);
+  font-size: 0.5625rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--release-teal));
 }
 .hero-follow--readonly {
@@ -1015,23 +1015,23 @@ useHead({
       rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
   border-left: 3px solid rgb(var(--release-rose));
-  border-radius: 0 0.35rem 0.35rem 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-family: var(--font-display);
   font-style: italic;
-  font-size: 14.5px;
+  font-size: 0.9063rem;
   font-weight: 400;
   line-height: 1.55;
   color: rgb(var(--fg-default));
   max-width: 64ch;
   white-space: pre-line;
   word-break: break-word;
-  animation: heroFadeIn 0.55s 0.3s ease-out both;
+  animation: heroFadeIn 0.55s var(--dur-slow) ease-out both;
 }
 .hero-bio-mark {
   position: absolute;
   top: 0.4rem;
   left: 0.7rem;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-size: 2.4rem;
   line-height: 1;
   font-weight: 600;
@@ -1075,23 +1075,23 @@ useHead({
       rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
   border-bottom: 0;
-  border-radius: 0.45rem 0.45rem 0 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
   z-index: 3;
   transform-origin: bottom center;
-  animation: heroFlagDrop 0.7s 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: heroFlagDrop calc(0.7s * var(--motion-scale)) calc(0.4s * var(--motion-scale)) var(--ease-emphasis) both;
   transition:
-      color 0.2s ease,
-      background 0.22s ease,
-      border-color 0.22s ease,
-      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.25s ease;
+      color var(--dur-4) ease,
+      background var(--dur-4) ease,
+      border-color var(--dur-4) ease,
+      transform 0.28s var(--ease-emphasis),
+      box-shadow var(--dur-slow) ease;
 }
 @keyframes heroFlagDrop {
   from { opacity: 0; transform: translateY(-10px); }
@@ -1107,26 +1107,26 @@ useHead({
   left: 50%;
   width: 3px;
   height: 3px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-faint) / 0.55);
   box-shadow:
       -8px 0 0 0 rgb(var(--fg-faint) / 0.55),
       8px 0 0 0 rgb(var(--fg-faint) / 0.55);
   transform: translateX(-50%);
   pointer-events: none;
-  transition: background 0.22s, box-shadow 0.22s;
+  transition: background var(--dur-4), box-shadow var(--dur-4);
 }
 
 .hero-flag-icon {
   font-size: 0.8rem;
   color: rgb(var(--release-rose) / 0.85);
   transform-origin: bottom left;
-  transition: color 0.2s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: color var(--dur-4) ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .hero-flag-label {
   white-space: nowrap;
-  transition: color 0.2s;
+  transition: color var(--dur-4);
 }
 
 .hero-flag:hover {
@@ -1142,7 +1142,7 @@ useHead({
 }
 .hero-flag:hover .hero-flag-icon {
   color: rgb(var(--danger));
-  animation: heroFlagWave 0.65s ease;
+  animation: heroFlagWave calc(0.65s * var(--motion-scale)) ease;
 }
 .hero-flag:hover .hero-flag-stitch {
   background: rgb(var(--danger) / 0.55);
@@ -1159,7 +1159,7 @@ useHead({
   transform: translateY(4px);
   box-shadow:
       0 4px 10px -6px rgba(244, 63, 94, 0.5),
-      inset 0 1px 0 rgba(0, 0, 0, 0.15);
+      inset 0 1px 0 rgb(var(--shadow-color) / calc(0.15 * var(--shadow-strength)));
 }
 
 @keyframes heroFlagWave {
@@ -1201,10 +1201,10 @@ useHead({
    ╚═══════════════════════════════════════════════════════════════╝ */
 .section {
   margin-bottom: 2.25rem;
-  animation: sectionRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: sectionRise calc(0.6s * var(--motion-scale)) var(--ease-emphasis) both;
 }
-.section:nth-of-type(2) { animation-delay: 0.05s; }
-.section:nth-of-type(3) { animation-delay: 0.1s; }
+.section:nth-of-type(2) { animation-delay: calc(0.05s * var(--motion-scale)); }
+.section:nth-of-type(3) { animation-delay: calc(0.1s * var(--motion-scale)); }
 @keyframes sectionRise {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -1218,7 +1218,7 @@ useHead({
   padding-bottom: 0.4rem;
 }
 .section-head-mark {
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 600;
   font-size: 1.85rem;
@@ -1230,22 +1230,22 @@ useHead({
 }
 .section-head-title {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
   font-size: clamp(1.15rem, 2.2vw, 1.6rem);
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .section-head-count {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   padding: 0.18rem 0.55rem;
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-variant-numeric: tabular-nums;
 }
 .section-head-line {
@@ -1284,14 +1284,14 @@ useHead({
       ),
       rgb(var(--bg-surface));
   border: 1px solid rgb(var(--rail, var(--fg-muted)) / 0.55);
-  border-radius: 0.55rem;
+  border-radius: var(--radius-lg);
   box-shadow:
-      0 6px 16px -10px rgba(0, 0, 0, 0.55),
+      0 6px 16px -10px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength))),
       inset 0 0 0 1px rgba(255, 255, 255, 0.025);
   transition:
-      background 0.2s ease,
-      border-color 0.2s ease,
-      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+      background var(--dur-4) ease,
+      border-color var(--dur-4) ease,
+      transform var(--dur-slow) var(--ease-emphasis);
 }
 .stat:hover {
   border-color: rgb(var(--rail, var(--fg-muted)) / 0.8);
@@ -1304,19 +1304,19 @@ useHead({
   filter: drop-shadow(0 0 8px rgb(var(--rail, var(--fg-muted)) / 0.45));
 }
 .stat-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: clamp(1.35rem, 2.4vw, 1.7rem);
   font-weight: 800;
   line-height: 1;
   color: rgb(var(--rail, var(--fg-strong)));
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   word-break: break-word;
 }
 .stat-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-top: 0.2rem;
@@ -1354,7 +1354,7 @@ useHead({
   padding: 3.5rem 1rem;
   background: rgb(var(--bg-elevated));
   border: 1px dashed rgb(var(--line-strong));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 .upload-empty-icon {
@@ -1364,7 +1364,7 @@ useHead({
 }
 .upload-empty p {
   margin: 0;
-  font-family: 'Fraunces', 'Charter', Georgia, serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1rem;
   color: rgb(var(--fg-muted));
@@ -1379,7 +1379,7 @@ useHead({
   gap: 0.5rem;
 }
 .upload-item {
-  animation: itemRise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: itemRise calc(0.55s * var(--motion-scale)) var(--ease-emphasis) both;
   animation-delay: var(--entry-delay, 0ms);
 }
 @keyframes itemRise {
@@ -1398,14 +1398,14 @@ useHead({
       ),
       rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.4rem;
+  border-radius: var(--radius-md);
   text-decoration: none;
   color: rgb(var(--fg-default));
-  box-shadow: 0 4px 12px -8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 12px -8px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)));
   transition:
-      background 0.18s ease,
-      border-color 0.18s ease,
-      transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      background var(--dur-3) ease,
+      border-color var(--dur-3) ease,
+      transform var(--dur-4) var(--ease-emphasis);
 }
 .upload-link:hover {
   background:
@@ -1426,7 +1426,7 @@ useHead({
   flex-shrink: 0;
   font-size: 1.15rem;
   color: rgb(var(--fg-muted));
-  transition: color 0.18s ease, transform 0.22s ease;
+  transition: color var(--dur-3) ease, transform var(--dur-4) ease;
 }
 .upload-link:hover .upload-icon {
   color: rgb(var(--release-purple));
@@ -1439,14 +1439,14 @@ useHead({
   gap: 0.3rem;
 }
 .upload-name {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
   font-weight: 600;
   color: rgb(var(--fg-strong));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: color 0.15s ease;
+  transition: color var(--dur-2) ease;
 }
 .upload-link:hover .upload-name { color: rgb(var(--release-purple)); }
 .upload-meta {
@@ -1454,9 +1454,9 @@ useHead({
   align-items: center;
   flex-wrap: wrap;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   font-variant-numeric: tabular-nums;
@@ -1486,12 +1486,12 @@ useHead({
   font-weight: 700;
 }
 .upload-s :deep(svg),
-.upload-l :deep(svg) { font-size: 9px; }
+.upload-l :deep(svg) { font-size: 0.5625rem; }
 .upload-arrow {
   flex-shrink: 0;
   color: rgb(var(--fg-faint));
   font-size: 0.9rem;
-  transition: color 0.18s, transform 0.18s;
+  transition: color var(--dur-3), transform var(--dur-3);
 }
 .upload-link:hover .upload-arrow {
   color: rgb(var(--release-purple));
@@ -1515,15 +1515,15 @@ useHead({
   padding: 0.5rem 0.95rem;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-strong));
-  border-radius: 0.3rem;
+  border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  transition: background var(--dur-4), border-color var(--dur-4), transform var(--dur-2);
 }
 .pager-btn:hover:not(:disabled) {
   background: rgb(var(--bg-hover));
@@ -1532,16 +1532,16 @@ useHead({
 }
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-pos {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: baseline;
   gap: 0.3rem;
 }
-.pager-cur { color: rgb(var(--fg-strong)); font-size: 15px; }
+.pager-cur { color: rgb(var(--fg-strong)); font-size: 0.9375rem; }
 .pager-sep { opacity: 0.4; }
 
 /* ╔═══════════════════════════════════════════════════════════════╗
@@ -1579,8 +1579,8 @@ useHead({
   .hero-eyebrow {
     justify-content: center;
     gap: 0.45rem;
-    font-size: 9.5px;
-    letter-spacing: 0.2em;
+    font-size: 0.5938rem;
+    letter-spacing: calc(0.2em * var(--tracking-scale));
   }
   /* Push the presence chip onto its own line on mobile — the
      `flex: 1 1 auto` spacer can't carve a usable gap on a narrow
@@ -1596,7 +1596,7 @@ useHead({
     text-align: left;
     width: 100%;
     padding: 1.9rem 1rem 1rem 1.7rem;
-    font-size: 13.5px;
+    font-size: 0.8438rem;
   }
   .hero-bio-mark { font-size: 2rem; left: 0.55rem; }
 
@@ -1620,16 +1620,16 @@ useHead({
   .stat { padding: 0.7rem 0.75rem; gap: 0.55rem; }
   .stat-icon { font-size: 0.95rem; }
   .stat-num { font-size: clamp(1.05rem, 4.5vw, 1.4rem); }
-  .stat-label { font-size: 8.5px; letter-spacing: 0.18em; }
+  .stat-label { font-size: 0.5313rem; letter-spacing: calc(0.18em * var(--tracking-scale)); }
 
   /* Upload rows wrap the meta onto a second line so the name stays
      legible and the meta doesn't get cropped. */
   .upload-link { padding: 0.7rem 0.85rem; gap: 0.55rem; }
   .upload-info { gap: 0.25rem; }
-  .upload-name { font-size: 13px; white-space: normal; }
+  .upload-name { font-size: 0.8125rem; white-space: normal; }
   .upload-meta {
-    font-size: 9.5px;
-    letter-spacing: 0.08em;
+    font-size: 0.5938rem;
+    letter-spacing: calc(0.08em * var(--tracking-scale));
     gap: 0.3rem;
   }
   .upload-arrow { display: none; }

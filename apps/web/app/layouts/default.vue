@@ -15,7 +15,7 @@
       hit when a fetch is genuinely slow.
     -->
     <NuxtLoadingIndicator
-      color="#d4a734"
+      color="rgb(var(--accent-warm))"
       :height="2"
       :duration="2500"
       :throttle="180"
@@ -29,7 +29,7 @@
       class="sticky top-0 z-30 border-b border-border backdrop-blur-md app-header"
     >
       <div
-        class="max-w-[1400px] mx-auto px-3 sm:px-4 flex items-center justify-between gap-3"
+        class="max-w-[var(--container-max)] mx-auto px-3 sm:px-4 flex items-center justify-between gap-3"
         style="height: var(--header-h);"
       >
         <NuxtLink to="/" class="flex items-center gap-2.5 group min-w-0">
@@ -655,7 +655,7 @@
           ]"
         >
           <div
-            class="max-w-[1400px] mx-auto px-4 py-2.5 flex items-center gap-3"
+            class="max-w-[var(--container-max)] mx-auto px-4 py-2.5 flex items-center gap-3"
           >
             <Icon
               :name="announcementStyles[announcement.type || 'info'].icon"
@@ -691,7 +691,7 @@
     </ClientOnly>
 
     <!-- Main Content -->
-    <main class="flex-grow max-w-[1400px] w-full mx-auto px-4 py-6">
+    <main class="flex-grow max-w-[var(--container-max)] w-full mx-auto px-4 py-6">
       <slot />
     </main>
 
@@ -706,7 +706,7 @@
     <!-- Footer -->
     <footer class="border-t border-border mt-auto py-6 bg-bg-secondary/30">
       <div
-        class="max-w-[1400px] mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4"
+        class="max-w-[var(--container-max)] mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4"
       >
         <div
           class="flex items-center gap-4 text-[10px] text-text-muted font-mono uppercase tracking-widest"
@@ -1073,9 +1073,9 @@ const ratioColor = computed(() => {
   padding: 0 0.5rem 0 0.7rem;
   background: rgb(var(--bg-elevated) / 0.55);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 6px;
-  transition: border-color 0.18s ease, background 0.18s ease,
-    box-shadow 0.18s ease;
+  border-radius: var(--radius-md);
+  transition: border-color var(--dur-3) ease, background var(--dur-3) ease,
+    box-shadow var(--dur-3) ease;
   position: relative;
 }
 .navsearch::before {
@@ -1113,15 +1113,15 @@ const ratioColor = computed(() => {
 .navsearch--block {
   /* Mobile drawer: full-width, slightly taller for thumb comfort. */
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding-left: 0.85rem;
 }
 
 .navsearch-icon {
   color: rgb(var(--fg-muted));
-  font-size: 14px;
+  font-size: 0.875rem;
   flex-shrink: 0;
-  transition: color 0.18s ease, transform 0.18s ease;
+  transition: color var(--dur-3) ease, transform var(--dur-3) ease;
 }
 .navsearch:focus-within .navsearch-icon,
 .navsearch--filled .navsearch-icon {
@@ -1136,18 +1136,18 @@ const ratioColor = computed(() => {
   border: 0;
   outline: 0;
   padding: 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12.5px;
+  font-family: var(--font-mono);
+  font-size: 0.7813rem;
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   caret-color: rgb(var(--accent));
 }
 .navsearch-input::placeholder {
   color: rgb(var(--fg-subtle));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-weight: 400;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .navsearch-input:focus::placeholder {
   color: rgb(var(--fg-faint));
@@ -1172,15 +1172,15 @@ const ratioColor = computed(() => {
   height: 1.2rem;
   min-width: 1.2rem;
   padding: 0 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-base) / 0.7);
   border: 1px solid rgb(var(--line-default));
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   flex-shrink: 0;
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity var(--dur-3) ease, transform var(--dur-3) ease;
 }
 
 /* Active affordance — clear button, swaps in once the user starts
@@ -1195,11 +1195,11 @@ const ratioColor = computed(() => {
   padding: 0;
   background: transparent;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   color: rgb(var(--fg-muted));
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 0.14s ease, background 0.14s ease;
+  transition: color var(--dur-2) ease, background var(--dur-2) ease;
 }
 .navsearch-clear:hover {
   color: rgb(var(--fg-strong));

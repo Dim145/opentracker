@@ -319,7 +319,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   gap: 1rem;
   padding: 1.85rem 1.5rem 2rem 2.25rem;
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background:
     radial-gradient(800px 200px at 0% 0%, color-mix(in srgb, rgb(var(--accent)) 12%, transparent), transparent 60%),
     rgb(var(--bg-surface));
@@ -336,17 +336,17 @@ async function handleDeleteTopic(topic: ForumTopic) {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-fade);
 }
 .cat-crumb-link {
   color: var(--ink-fade);
   text-decoration: none;
-  transition: color 0.12s;
+  transition: color var(--dur-1);
 }
 .cat-crumb-link:hover {
   color: var(--ink);
@@ -371,7 +371,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   justify-content: center;
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, rgb(var(--accent)) 14%, transparent);
   border: 1px solid color-mix(in srgb, rgb(var(--accent)) 35%, transparent);
   color: rgb(var(--accent));
@@ -388,10 +388,10 @@ async function handleDeleteTopic(topic: ForumTopic) {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent));
   margin: 0;
@@ -400,14 +400,14 @@ async function handleDeleteTopic(topic: ForumTopic) {
   display: inline-block;
   width: 4px;
   height: 4px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: var(--ink-faint);
 }
 .cat-banner-title {
   margin: 0;
   font-size: clamp(2.25rem, 5vw, 3.5rem);
   line-height: 1;
-  letter-spacing: -0.035em;
+  letter-spacing: calc(-0.035em * var(--tracking-scale));
   color: var(--ink);
   font-weight: 800;
   font-variation-settings: 'opsz' 96, 'SOFT' 30;
@@ -415,7 +415,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 }
 .cat-banner-tag {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 1rem;
   line-height: 1.45;
@@ -452,9 +452,9 @@ async function handleDeleteTopic(topic: ForumTopic) {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -465,7 +465,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 .cat-toolbar-sep {
   width: 4px;
   height: 4px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   background: rgb(var(--fg-faint));
 }
 .cat-toolbar-controls {
@@ -475,7 +475,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 .seg {
   display: inline-flex;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: rgb(var(--bg-surface));
 }
@@ -484,17 +484,17 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 0.7rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: transparent;
   border: 0;
   border-right: 1px solid rgb(var(--line-default));
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .seg-btn:last-child {
   border-right: 0;
@@ -524,8 +524,8 @@ async function handleDeleteTopic(topic: ForumTopic) {
   position: relative;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
-  transition: border-color 0.16s, transform 0.16s;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-2), transform var(--dur-2);
 }
 .topic-card:hover {
   border-color: rgb(var(--line-strong));
@@ -552,22 +552,22 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   border-right: 1px dashed rgb(var(--line-default));
   padding-right: 0.85rem;
 }
 .topic-card-num span {
   font-size: 1.85rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: calc(-0.03em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   font-variation-settings: 'opsz' 96;
   line-height: 1;
 }
 .topic-card-num-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px !important;
-  letter-spacing: 0.2em;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem !important;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   color: rgb(var(--fg-faint)) !important;
   text-transform: uppercase;
   margin-top: 0.2rem;
@@ -590,13 +590,13 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: center;
   gap: 0.3rem;
   padding: 0.18rem 0.5rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   color: rgb(var(--fg-muted));
 }
 .flag--pin {
@@ -617,7 +617,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   margin: 0;
   font-size: 1.5rem;
   line-height: 1.15;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   font-weight: 700;
   color: rgb(var(--fg-strong));
   font-variation-settings: 'opsz' 96;
@@ -631,7 +631,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 }
 .topic-card-excerpt {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.95rem;
   line-height: 1.55;
@@ -648,9 +648,9 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.35rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  font-size: 0.6563rem;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -680,18 +680,18 @@ async function handleDeleteTopic(topic: ForumTopic) {
   gap: 0.1rem;
 }
 .topic-card-stats dt {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
 .topic-card-stats dd {
   margin: 0;
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-size: 1.55rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   font-variation-settings: 'opsz' 96;
   line-height: 1;
@@ -700,19 +700,19 @@ async function handleDeleteTopic(topic: ForumTopic) {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 .topic-card-last-eyebrow {
   margin: 0;
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
+  font-size: 0.5938rem;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
 .topic-card-last-line {
   margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 0.6875rem;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
 }
 .topic-card-last-line strong {
@@ -720,7 +720,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 }
 .topic-card-last--empty {
   color: rgb(var(--fg-faint));
-  font-family: 'Fraunces', serif;
+  font-family: var(--font-display);
   font-style: italic;
   font-size: 0.92rem;
 }
@@ -734,13 +734,13 @@ async function handleDeleteTopic(topic: ForumTopic) {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
   cursor: pointer;
   opacity: 0;
-  transition: all 0.12s;
+  transition: all var(--dur-1);
 }
 .topic-card:hover .topic-card-delete,
 .topic-card:focus-within .topic-card-delete {
@@ -766,7 +766,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   gap: 0.85rem;
   padding: 3rem 1.5rem;
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .empty-icon {
   font-size: 2.5rem;
@@ -775,7 +775,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
 .empty-title {
   margin: 0;
   font-size: 1.6rem;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   font-weight: 700;
   font-variation-settings: 'opsz' 96;
@@ -806,8 +806,8 @@ async function handleDeleteTopic(topic: ForumTopic) {
   height: 9rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
-  animation: shimmer 1.6s infinite;
+  border-radius: var(--radius-sm);
+  animation: shimmer calc(1.6s * var(--motion-scale)) infinite;
   background: linear-gradient(
     90deg,
     rgb(var(--bg-surface)) 0%,
@@ -820,7 +820,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   height: 5.5rem;
   background: rgb(var(--bg-surface));
   border: 1px solid rgb(var(--line-default));
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(
     90deg,
     rgb(var(--bg-surface)) 0%,
@@ -828,7 +828,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
     rgb(var(--bg-surface)) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
+  animation: shimmer calc(1.6s * var(--motion-scale)) infinite;
 }
 @keyframes shimmer {
   0%   { background-position: 100% 0; }
@@ -841,18 +841,18 @@ async function handleDeleteTopic(topic: ForumTopic) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 1rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-strong));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   text-decoration: none;
-  transition: all 0.15s;
+  transition: all var(--dur-2);
 }
 .ed-btn:hover {
   background: rgb(var(--fg-strong));
