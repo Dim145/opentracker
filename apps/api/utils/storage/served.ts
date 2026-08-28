@@ -38,6 +38,12 @@ const MIME_TYPES: Record<string, string> = {
   ico: 'image/x-icon',
   avif: 'image/avif',
   torrent: 'application/x-bittorrent',
+  // Owner-uploaded faces live in the same object store. The font route sets the
+  // type explicitly rather than deriving it, because it accepts exactly one
+  // format and a fixed string cannot be talked into anything else — but a key
+  // ending `.woff2` must not fall through to `application/octet-stream` if
+  // anything else ever reads it back.
+  woff2: 'font/woff2',
 };
 
 /**
