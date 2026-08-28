@@ -152,8 +152,46 @@ console.log('\n5. PATCH /api/me { theme }');
   check('system is always allowed', sys.status === 200, `status ${sys.status}`);
 }
 
+// ── 5b. A partial update must not silently un-gate a theme ───────────
+console.log('\n5b. visibility cannot be dropped by omission');
+{
+  await sleep(200);
+  const made = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Gated',
+      base: 'dark',
+      duplicateOf: 'dark',
+      enabled: false,
+      visibility: 'roles',
+      requiredRoles: [roleId],
+    },
+  });
+  const id = made.body?.id ?? made.body?.theme?.id;
+  check('a role-gated theme exists', !!id, `status ${made.status}`);
+
+  // Found in review: the update route writes `visibility` unconditionally, so a
+  // schema default of `site` turned "the caller did not mention it" into "make
+  // this public". Omitting it must be refused, not interpreted.
+  await sleep(200);
+  const partial = await req('founder', `/api/admin/themes/${id}`, {
+    method: 'PUT',
+    body: { name: 'E2E Gated', base: 'dark', enabled: false },
+  });
+  check('omitting visibility is refused', partial.status === 400,
+    `status ${partial.status}`);
+
+  const after = await req('founder', '/api/admin/themes');
+  const row = (after.body?.themes ?? []).find((t) => t.id === id);
+  check('and the theme is still gated', row?.visibility === 'roles',
+    `visibility is now ${row?.visibility}`);
+
+  await req('founder', `/api/admin/themes/${id}`, { method: 'DELETE' });
+}
+
 // ── 6. System mode ───────────────────────────────────────────────────
 console.log('\n6. system mode mapping');
+await resetRateLimits();
 {
   const same = await req('founder', '/api/admin/themes/settings', {
     method: 'PUT',
@@ -180,6 +218,7 @@ console.log('\n6. system mode mapping');
 
 // ── 7. Deleting a theme does not strand its users ────────────────────
 console.log('\n7. delete');
+await resetRateLimits();
 {
   const del = await req('founder', `/api/admin/themes/${goldId}`, { method: 'DELETE' });
   check('deleted', del.status === 200 || del.status === 204, `status ${del.status}`);
@@ -190,6 +229,112 @@ console.log('\n7. delete');
 
   const sheet = await css();
   check('its block is gone', !sheet.text.includes("[data-theme='e2e-gold']"));
+}
+
+// ── 7b. Deleting a system half cannot collapse the two ───────────────
+console.log('\n7b. the two system halves stay different through a delete');
+{
+  await resetRateLimits();
+  const made = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Half',
+      base: 'dark',
+      duplicateOf: 'dark',
+      enabled: true,
+      visibility: 'site',
+    },
+  });
+  const id = made.body?.id ?? made.body?.theme?.id;
+
+  // A legal but awkward mapping: the LIGHT half is a custom theme and the DARK
+  // half is the `light` built-in. Deleting the custom theme resets the light
+  // half to `light` — which is what the dark half already is.
+  await sleep(200);
+  const map = await req('founder', '/api/admin/themes/settings', {
+    method: 'PUT',
+    body: { systemLight: 'e2e-half', systemDark: 'light' },
+  });
+  check('the awkward mapping is accepted', map.status === 200, `status ${map.status}`);
+
+  await sleep(200);
+  await req('founder', `/api/admin/themes/${id}`, { method: 'DELETE' });
+
+  const after = await req('founder', '/api/admin/themes');
+  const s2 = after.body?.settings ?? {};
+  check('the halves are still different after the delete',
+    s2.systemLight !== s2.systemDark,
+    `light=${s2.systemLight} dark=${s2.systemDark}`);
+  check('and neither still names the deleted theme',
+    s2.systemLight !== 'e2e-half' && s2.systemDark !== 'e2e-half',
+    `light=${s2.systemLight} dark=${s2.systemDark}`);
+
+  // Put it back so later phases start from the documented default.
+  await req('founder', '/api/admin/themes/settings', {
+    method: 'PUT',
+    body: { themeDefault: 'dark', systemLight: 'light', systemDark: 'dark' },
+  });
+}
+
+// ── 7c. Disabling releases the same references a delete does ─────────
+console.log('\n7c. disabling a theme in use releases it too');
+await resetRateLimits();
+{
+  const made = await req('founder', '/api/admin/themes', {
+    method: 'POST',
+    body: {
+      name: 'E2E Off',
+      base: 'dark',
+      duplicateOf: 'dark',
+      enabled: true,
+      visibility: 'site',
+    },
+  });
+  const id = made.body?.id ?? made.body?.theme?.id;
+  check('created', made.status === 200 || made.status === 201, `status ${made.status}`);
+
+  await sleep(200);
+  const set = await req('founder', '/api/admin/themes/settings', {
+    method: 'PUT',
+    body: { themeDefault: 'e2e-off', systemLight: 'e2e-off', systemDark: 'dark' },
+  });
+  check('it is the site default and the light half', set.status === 200, `status ${set.status}`);
+
+  // Disabling, not deleting. The theme still exists; it just stops being
+  // emitted, which is the same problem for anything pointing at it.
+  await sleep(200);
+  const off = await req('founder', `/api/admin/themes/${id}`, {
+    method: 'PUT',
+    body: { enabled: false, visibility: 'site' },
+  });
+  check('disabled', off.status === 200, `status ${off.status}`);
+
+  const after = await req('founder', '/api/admin/themes');
+  const s3 = after.body?.settings ?? {};
+  check('the site default no longer names it',
+    s3.themeDefault !== 'e2e-off', `themeDefault=${s3.themeDefault}`);
+  check('nor does either system half',
+    s3.systemLight !== 'e2e-off' && s3.systemDark !== 'e2e-off',
+    `light=${s3.systemLight} dark=${s3.systemDark}`);
+  check('and the halves are still different',
+    s3.systemLight !== s3.systemDark,
+    `light=${s3.systemLight} dark=${s3.systemDark}`);
+
+  // The stylesheet is the thing that actually breaks, so assert on it rather
+  // than only on the settings row.
+  const sheet = (await css()).text;
+  check('the disabled theme has no block',
+    !sheet.includes("data-theme='e2e-off'"), 'a disabled theme is still emitted');
+  const dflt = s3.themeDefault;
+  check('and whatever the default now names does have one',
+    ['light', 'dark'].includes(dflt) || sheet.includes(`data-theme='${dflt}'`),
+    `default ${dflt} has no block`);
+
+  await req('founder', `/api/admin/themes/${id}`, { method: 'DELETE' });
+  await req('founder', '/api/admin/themes/settings', {
+    method: 'PUT',
+    body: { themeDefault: 'dark', systemLight: 'light', systemDark: 'dark' },
+  });
 }
 
 // ── 8. The enabled cap ───────────────────────────────────────────────

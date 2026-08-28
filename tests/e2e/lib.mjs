@@ -63,7 +63,20 @@ export function expireFreshAuth() {
 /** Delete the rate-limit and ban keys. Resolves even if Redis is unreachable. */
 export function resetRateLimits() {
   // `keys` inside EVAL is fine on a test database and saves a SCAN loop.
-  return sweepKeys(['ot:ratelimit:*', 'ot:sec:ipban:*'], ['ot:ddos:blacklist']);
+  //
+  // `ot:ddos:detect:*` matters as much as the blacklist itself. The flood
+  // detector counts every `/api/` request per IP over a ten-second window and
+  // blacklists at 100 — and this harness fires requests back to back with no
+  // think time, so a long scenario reaches that in a way no human admin does.
+  // Clearing only `ot:ddos:blacklist` un-blocks the IP while leaving the
+  // counter that just blacklisted it sitting at 100, so the very next request
+  // blacklists it again. The counter expires on its own after ten seconds,
+  // which is why that bug looked like flakiness rather than a reset that does
+  // not reset.
+  return sweepKeys(
+    ['ot:ratelimit:*', 'ot:sec:ipban:*', 'ot:ddos:detect:*'],
+    ['ot:ddos:blacklist'],
+  );
 }
 
 /** One EVAL to delete by pattern, plus optional exact keys. */
