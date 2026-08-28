@@ -14,12 +14,33 @@
  * check rather than four. A `.ttf` renamed to `.woff2` fails the first four
  * bytes.
  *
- * What is NOT validated is the font's internal structure. Parsing a font
- * properly means a font parser, and a font parser is a larger attack surface
- * than the one it would be defending. The honest position: an uploaded face is
- * handed to the browser's own font engine, which is where every font on the web
- * ends up, and the gate is that only the owner can put one there. `nosniff` and
- * a fixed `Content-Type` make sure it is never interpreted as anything else.
+ * What is NOT validated is the font's internal structure, and the plan asked for
+ * `ots-sanitize` here. Two findings moved that decision rather than one opinion:
+ *
+ *   - **There is no such npm package.** `ots-sanitize`, `ots-wasm` and
+ *     `@jsquash/ots` are all unpublished. OTS is Chromium's C++ library, so
+ *     using it means a native build in the image and a C++ parser on untrusted
+ *     input in the request path — which is the exact shape the plan warns
+ *     against two bullets later ("jamais une toolchain de polices en synchrone
+ *     sur une requête", citing an RCE in fontTools).
+ *   - **The browsers already run it.** OTS is integrated into Chromium and
+ *     Firefox precisely so a system rasteriser never sees an unvalidated font.
+ *     A face OTS would reject is therefore rejected on the visitor's machine
+ *     before it reaches the engine the plan is worried about (FreeType,
+ *     zero-click, 2025). Doing it server-side is defence in depth over a check
+ *     that already happens, not the only line.
+ *
+ * So the gate stays: only the owner can put a face here, it must begin `wOF2`,
+ * it is served with a fixed `Content-Type` and `nosniff` so it can never be
+ * read as anything else, and the family name reaching CSS is generated rather
+ * than supplied. If a JS font parser is ever added for another reason — reading
+ * `fsType`, computing fallback metrics — the structural check comes free with
+ * it and should be turned on then.
+ *
+ * The licence question the plan also raised is not a parsing problem: a desktop
+ * licence does not permit webfont embedding, and no bit in the file settles
+ * whether the owner holds the right one. It is asked at the point of action
+ * instead, in the upload panel.
  *
  * ## Addressed by content
  *
