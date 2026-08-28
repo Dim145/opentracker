@@ -227,7 +227,7 @@ const age = computed(() =>
 .chip {
   padding: 3px 5px;
   border-radius: var(--radius-xs);
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   white-space: nowrap;
 }
 /* One hue per slot, held across every row. The colours are not decoration:
@@ -281,7 +281,7 @@ const age = computed(() =>
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.625rem;
   color: rgb(var(--fg-faint));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .rr-team::before {
   content: '·';

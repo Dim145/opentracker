@@ -228,7 +228,7 @@ function formatDate(iso: string): string {
 .queue-head-title {
   font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   margin: 0;
@@ -256,7 +256,7 @@ function formatDate(iso: string): string {
   cursor: pointer;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -321,7 +321,7 @@ function formatDate(iso: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   padding: 0.05rem 0.45rem;
   border-radius: var(--radius-sm);
   border: 1px solid;
@@ -358,7 +358,7 @@ function formatDate(iso: string): string {
 .queue-empty-text {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -440,7 +440,7 @@ function formatDate(iso: string): string {
 .queue-row-meta dt {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   font-weight: 700;

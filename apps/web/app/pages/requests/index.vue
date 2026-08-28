@@ -414,7 +414,7 @@ function formatReward(n: number): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -445,7 +445,7 @@ function formatReward(n: number): string {
   font-weight: 600;
   font-size: clamp(1.9rem, 4vw, 2.8rem);
   line-height: 1.05;
-  letter-spacing: -0.015em;
+  letter-spacing: calc(-0.015em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .board-intro {
@@ -469,7 +469,7 @@ function formatReward(n: number): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass));
   text-decoration: none;
@@ -515,7 +515,7 @@ function formatReward(n: number): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -580,7 +580,7 @@ function formatReward(n: number): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -607,7 +607,7 @@ function formatReward(n: number): string {
   color: rgb(var(--fg-default));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.75rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   transition: border-color var(--dur-3), box-shadow var(--dur-3);
 }
 .board-search-input:focus {
@@ -626,7 +626,7 @@ function formatReward(n: number): string {
   padding: 2.5rem 1rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -705,7 +705,7 @@ function formatReward(n: number): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--phosphor));
   white-space: nowrap;
@@ -744,7 +744,7 @@ function formatReward(n: number): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -763,7 +763,7 @@ function formatReward(n: number): string {
   font-weight: 600;
   font-size: 1.05rem;
   line-height: 1.25;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   overflow-wrap: anywhere;
   text-wrap: pretty;
@@ -800,12 +800,12 @@ function formatReward(n: number): string {
 .ticker-reward-value {
   font-size: 0.875rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .ticker-reward-unit {
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   opacity: 0.75;
 }
@@ -813,7 +813,7 @@ function formatReward(n: number): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   padding: 0.4rem 0.55rem;
@@ -903,7 +903,7 @@ function formatReward(n: number): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   text-decoration: none;
   transition: background var(--dur-3), color var(--dur-2), transform var(--dur-3);
@@ -933,7 +933,7 @@ function formatReward(n: number): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   cursor: pointer;
@@ -948,7 +948,7 @@ function formatReward(n: number): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: baseline;

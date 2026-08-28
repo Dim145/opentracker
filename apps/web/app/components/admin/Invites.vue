@@ -714,7 +714,7 @@ async function confirmDelete() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: clamp(1.6rem, 3vw, 2.1rem);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1;
   color: rgb(var(--fg-strong));
 }
@@ -727,14 +727,14 @@ async function confirmDelete() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .snap-sub {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -790,7 +790,7 @@ async function confirmDelete() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
@@ -801,7 +801,7 @@ async function confirmDelete() {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -814,7 +814,7 @@ async function confirmDelete() {
 .block-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
@@ -844,7 +844,7 @@ async function confirmDelete() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-bottom: 0.35rem;
@@ -943,7 +943,7 @@ async function confirmDelete() {
 .grant-suggestion-quota {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
@@ -990,7 +990,7 @@ async function confirmDelete() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--dur-2) ease;
@@ -1075,7 +1075,7 @@ async function confirmDelete() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   border-radius: calc(var(--radius-sm) - 1px);
@@ -1095,7 +1095,7 @@ async function confirmDelete() {
   padding: 0.1rem 0.35rem;
   background: rgb(var(--bg-base) / 0.4);
   border-radius: var(--radius-pill);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .ledger-segment--active .ledger-segment-count {
   color: rgb(var(--accent-warm));
@@ -1134,7 +1134,7 @@ async function confirmDelete() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
   white-space: nowrap;
 }
@@ -1151,7 +1151,7 @@ async function confirmDelete() {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   white-space: nowrap;
 }
 .entry--active .entry-code {
@@ -1170,7 +1170,7 @@ async function confirmDelete() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 0.22rem 0.55rem;
   border-radius: var(--radius-pill);
@@ -1205,7 +1205,7 @@ async function confirmDelete() {
 .entry-flow-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5313rem;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -1246,7 +1246,7 @@ async function confirmDelete() {
 .entry-date-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5313rem;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -1357,7 +1357,7 @@ async function confirmDelete() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   border-radius: var(--radius-sm);
@@ -1372,7 +1372,7 @@ async function confirmDelete() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 }
 
 /* ── Confirm modal ─────────────────────────────────────────── */

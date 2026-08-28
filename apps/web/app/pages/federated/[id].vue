@@ -200,7 +200,7 @@ function fmtDate(d: string | null) {
 .cat { width: 48px; height: 48px; border-radius: var(--radius-md); display: grid; place-items: center; font-size: 1.5rem; background: rgb(var(--bg-elevated)); border: 1px solid rgb(var(--line-default)); color: rgb(var(--fg-muted)); flex-shrink: 0; }
 .cat.movie { color: #f0abfc; } .cat.tv { color: #fda4af; } .cat.game { color: #fcd34d; } .cat.book { color: #93c5fd; }
 .fd-id { flex: 1; min-width: 0; }
-.fd-title { font-size: 1.375rem; font-weight: 700; color: rgb(var(--fg-strong)); letter-spacing: -0.01em; }
+.fd-title { font-size: 1.375rem; font-weight: 700; color: rgb(var(--fg-strong)); letter-spacing: calc(-0.01em * var(--tracking-scale)); }
 .fd-meta { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.5rem; font-size: 0.75rem; }
 .fd-meta .muted { display: inline-flex; align-items: center; gap: 0.25rem; color: rgb(var(--fg-muted)); }
 .origin { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.6875rem; font-family: var(--font-mono, monospace); color: #7dd3fc; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.1rem 0.45rem; border-radius: var(--radius-sm); }

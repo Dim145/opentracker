@@ -191,7 +191,7 @@ const refreshedAgo = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }
@@ -205,7 +205,7 @@ const refreshedAgo = computed(() => {
   margin: 0;
   font-size: 1.65rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .cr-intro {
@@ -293,7 +293,7 @@ const refreshedAgo = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .cr-status--on .cr-status-label { color: #6cd161; }
@@ -303,7 +303,7 @@ const refreshedAgo = computed(() => {
   font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 /* ── Section scaffold ────────────────────────────────────────── */
@@ -327,7 +327,7 @@ const refreshedAgo = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -339,7 +339,7 @@ const refreshedAgo = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -384,7 +384,7 @@ const refreshedAgo = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }

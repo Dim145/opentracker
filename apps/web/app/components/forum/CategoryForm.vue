@@ -161,7 +161,7 @@ const iconSuggestions = [
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }

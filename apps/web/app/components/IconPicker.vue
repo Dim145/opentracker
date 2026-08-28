@@ -390,7 +390,7 @@ onBeforeUnmount(() => {
   padding: 0.55rem 0.7rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.875rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
 }
 .icon-picker-input:disabled {
@@ -459,7 +459,7 @@ onBeforeUnmount(() => {
   padding: 2rem 1rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -524,7 +524,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   font-size: 0.5313rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   max-width: 100%;
@@ -539,7 +539,7 @@ onBeforeUnmount(() => {
   border-top: 1px dashed rgb(var(--line-default));
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -560,7 +560,7 @@ onBeforeUnmount(() => {
   padding: 0.25rem 0.55rem;
   font-family: inherit;
   font-size: 0.5938rem;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition:

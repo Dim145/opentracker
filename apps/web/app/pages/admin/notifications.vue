@@ -374,7 +374,7 @@ async function testChannel(ch: AdminChannel) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: clamp(1.6rem, 3vw, 2.1rem);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1;
   color: rgb(var(--fg-strong));
 }
@@ -391,7 +391,7 @@ async function testChannel(ch: AdminChannel) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -459,7 +459,7 @@ async function testChannel(ch: AdminChannel) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
@@ -470,7 +470,7 @@ async function testChannel(ch: AdminChannel) {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -482,7 +482,7 @@ async function testChannel(ch: AdminChannel) {
 .bucket-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }

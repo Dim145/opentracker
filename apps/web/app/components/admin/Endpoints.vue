@@ -114,7 +114,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -123,7 +123,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -164,7 +164,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   flex: 1;
@@ -180,7 +180,7 @@ onBeforeUnmount(() => {
 .endp-row-url {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.7188rem;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));

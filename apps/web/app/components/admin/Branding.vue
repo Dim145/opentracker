@@ -967,7 +967,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }
@@ -1007,7 +1007,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1081,7 +1081,7 @@ async function discard() {
 .nav-name {
   font-size: 1rem;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   font-weight: 500;
   line-height: 1.2;
   word-break: break-word;
@@ -1093,7 +1093,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   line-height: 1.3;
   word-break: break-word;
 }
@@ -1206,7 +1206,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
   white-space: nowrap;
@@ -1226,7 +1226,7 @@ async function discard() {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   line-height: 1.2;
   color: rgb(var(--fg-strong));
   word-break: break-word;
@@ -1289,7 +1289,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
@@ -1300,7 +1300,7 @@ async function discard() {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1328,7 +1328,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1450,7 +1450,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1475,7 +1475,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -1516,7 +1516,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1658,7 +1658,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1689,7 +1689,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
@@ -1709,7 +1709,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1739,7 +1739,7 @@ async function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }

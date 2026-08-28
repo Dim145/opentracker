@@ -1076,7 +1076,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }
@@ -1090,7 +1090,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   margin: 0;
   font-size: 1.65rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .tower-intro {
@@ -1115,7 +1115,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm-fg));
   cursor: pointer;
@@ -1139,7 +1139,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .tower-loading svg { font-size: 1.4rem; }
@@ -1188,7 +1188,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1290,7 +1290,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.3em;
+  letter-spacing: calc(0.3em * var(--tracking-scale));
   text-transform: uppercase;
   color: #f43f5e;
   flex: 1;
@@ -1299,7 +1299,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 
@@ -1336,7 +1336,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   word-break: break-word;
 }
@@ -1376,7 +1376,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1384,7 +1384,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 1.5rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   color: #f43f5e;
   text-shadow: 0 0 18px rgba(244, 63, 94, 0.35);
   line-height: 1.1;
@@ -1456,7 +1456,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1543,7 +1543,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   word-break: break-word;
 }
@@ -1561,7 +1561,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.03em;
+  letter-spacing: calc(0.03em * var(--tracking-scale));
 }
 .slot-when {
   display: inline-flex;
@@ -1595,7 +1595,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1638,7 +1638,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1647,7 +1647,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-size: 0.75rem;
   font-weight: 800;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
 .mul-pair-divider {
   color: rgb(var(--fg-faint));
@@ -1752,7 +1752,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
@@ -1764,7 +1764,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1841,13 +1841,13 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .ed-preset-sub {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 .ed-preset--on {
@@ -1889,7 +1889,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1899,7 +1899,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-size: 0.95rem;
   font-weight: 800;
   color: rgb(var(--accent-warm));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .ed-range {
   width: 100%;
@@ -1945,7 +1945,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   color: rgb(var(--fg-faint));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 /* ── Window leg pair ─────────────────────────────────── */
@@ -1970,7 +1970,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2040,7 +2040,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -2064,7 +2064,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--dur-2) ease;

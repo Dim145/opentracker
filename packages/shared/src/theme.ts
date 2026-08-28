@@ -246,6 +246,11 @@ export const THEME_TOKENS: readonly TokenDef[] = [
   // differ by 10-20 % in advance width, so a swap changes where every line
   // breaks. Keeping the mono role apart from the sans role means a theme cannot
   // accidentally put a proportional face in a column of hashes.
+  // Tracking, as a multiplier for the same reason as the others: 867 values,
+  // hand-tuned against each other — negative on the large headings, wide on the
+  // small mono labels — and a single global value would flatten a distinction
+  // the design makes on purpose. `0` removes tracking entirely.
+  { key: 'tracking-scale', kind: 'scalar', group: 'typography', max: 3 },
   {
     key: 'font-sans',
     kind: 'enum',
@@ -485,6 +490,7 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'bg-pattern-rgb': '255 255 255',
     'bg-pattern-alpha': '0.025',
     'bg-pattern-kind': 'dots',
+    'tracking-scale': '1',
     'font-sans': 'inter',
     'font-mono': 'jetbrains-mono',
     'font-display': 'fraunces',
@@ -527,6 +533,7 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'bg-pattern-rgb': '0 0 0',
     'bg-pattern-alpha': '0.04',
     'bg-pattern-kind': 'dots',
+    'tracking-scale': '1',
     'font-sans': 'inter',
     'font-mono': 'jetbrains-mono',
     'font-display': 'fraunces',

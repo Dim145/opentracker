@@ -482,7 +482,7 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .hero-eyebrow-line {
@@ -509,7 +509,7 @@ function kindIcon(kind: string): string {
   display: flex;
   flex-direction: column;
   line-height: 0.95;
-  letter-spacing: -0.035em;
+  letter-spacing: calc(-0.035em * var(--tracking-scale));
   font-family: 'Source Serif 4', 'Charter', Georgia, serif;
 }
 .hero-title-line {
@@ -521,7 +521,7 @@ function kindIcon(kind: string): string {
   color: rgb(var(--accent));
   font-style: italic;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
 .hero-title-line--strong {
   color: rgb(var(--fg-strong));
@@ -529,7 +529,7 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: clamp(2rem, 5.5vw, 3.25rem);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
 
 .hero-sub {
@@ -608,7 +608,7 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: clamp(1.6rem, 3.4vw, 2.1rem);
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: calc(-0.03em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1;
   margin-bottom: 0.5rem;
@@ -620,7 +620,7 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -639,7 +639,7 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-right: 0.5rem;
@@ -656,7 +656,7 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -786,7 +786,7 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--rail, var(--accent)));
 }
 .entry-case-prefix {
@@ -801,13 +801,13 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .entry-time-date {
   color: rgb(var(--fg-default));
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
 }
 .entry-time-sep { opacity: 0.5; }
 .entry-time-clock { color: rgb(var(--fg-faint)); }
@@ -834,7 +834,7 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -953,7 +953,7 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition:
@@ -1019,7 +1019,7 @@ function kindIcon(kind: string): string {
 .entry-resolution-meta {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: center;
@@ -1028,7 +1028,7 @@ function kindIcon(kind: string): string {
 }
 .entry-resolution-status {
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   font-weight: 700;
   color: rgb(var(--fg-default));
 }
@@ -1142,7 +1142,7 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: background-color var(--dur-4), border-color var(--dur-4), transform var(--dur-2);
@@ -1157,7 +1157,7 @@ function kindIcon(kind: string): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: baseline;
@@ -1187,7 +1187,7 @@ function kindIcon(kind: string): string {
     width: 100%;
   }
   .entry-time-date {
-    letter-spacing: 0.1em;
+    letter-spacing: calc(0.1em * var(--tracking-scale));
   }
   .entry-target-name {
     max-width: 28ch;

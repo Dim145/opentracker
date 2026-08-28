@@ -179,7 +179,7 @@ const tierLabel = computed(() =>
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.5625rem;
   line-height: 1;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   padding: 2px 4px;
   border-radius: var(--radius-xs);
   color: rgb(var(--fg-faint));
@@ -205,7 +205,7 @@ const tierLabel = computed(() =>
   margin-left: 6px;
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.5625rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
   align-self: center;
 }

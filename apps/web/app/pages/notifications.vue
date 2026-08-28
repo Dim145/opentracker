@@ -261,7 +261,7 @@ function descFor(row: NotificationRow): string {
 .np-eyebrow {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin: 0 0 0.4rem;
@@ -269,7 +269,7 @@ function descFor(row: NotificationRow): string {
 .np-title {
   font-size: clamp(1.8rem, 4vw, 2.5rem);
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   text-transform: uppercase;
   margin: 0;
   line-height: 1;
@@ -293,7 +293,7 @@ function descFor(row: NotificationRow): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -347,7 +347,7 @@ function descFor(row: NotificationRow): string {
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -360,7 +360,7 @@ function descFor(row: NotificationRow): string {
   margin: 0 0 0.4rem;
   font-size: 0.9rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -492,7 +492,7 @@ function descFor(row: NotificationRow): string {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;

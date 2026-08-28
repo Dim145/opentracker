@@ -269,7 +269,7 @@ function formatReleaseDate(iso: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: #a78bfa;
   z-index: 2;
@@ -337,7 +337,7 @@ function formatReleaseDate(iso: string | null): string {
   margin: 0;
   font-size: 1.35rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1.15;
   word-break: break-word;
@@ -358,7 +358,7 @@ function formatReleaseDate(iso: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 0.2rem 0.5rem;
   border-radius: var(--radius-sm);
@@ -379,7 +379,7 @@ function formatReleaseDate(iso: string | null): string {
   gap: 0.35rem;
   font-size: 0.85rem;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .gcard-stat-icon {
   font-size: 0.95rem;
@@ -408,7 +408,7 @@ function formatReleaseDate(iso: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -425,7 +425,7 @@ function formatReleaseDate(iso: string | null): string {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-base));
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .gcard-pill--platform {
   border-color: rgba(96, 165, 250, 0.35);
@@ -451,7 +451,7 @@ function formatReleaseDate(iso: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: #a78bfa;
   text-decoration: none;

@@ -374,7 +374,7 @@ async function download(): Promise<void> {
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
 }
 /* Two colours because they are two different answers, and the one people get
    wrong is the right-hand one. */

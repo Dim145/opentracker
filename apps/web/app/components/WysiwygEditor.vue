@@ -780,7 +780,7 @@ onBeforeUnmount(() => {
 .we-tags-label {
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-right: 0.25rem;
@@ -794,7 +794,7 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-sm);
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   color: rgb(var(--fg-default));
   cursor: pointer;
   transition: background var(--dur-2) ease, border-color var(--dur-2) ease,
@@ -814,7 +814,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   padding: 0.18rem 0.5rem;

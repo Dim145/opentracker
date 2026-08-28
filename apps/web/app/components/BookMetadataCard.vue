@@ -238,7 +238,7 @@ defineProps<{
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .bcard-tag-icon {
@@ -305,7 +305,7 @@ defineProps<{
   margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   line-height: 1.2;
   color: rgb(var(--fg-strong));
   word-break: break-word;
@@ -315,7 +315,7 @@ defineProps<{
   font-size: 0.78rem;
   font-weight: 700;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 /* Authors are the byline; we keep them on a single italic-looking
@@ -331,7 +331,7 @@ defineProps<{
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   margin-right: 0.4rem;
@@ -350,7 +350,7 @@ defineProps<{
   color: #f59e0b;
   font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 
 .bcard-stats {
@@ -405,7 +405,7 @@ defineProps<{
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.65rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }

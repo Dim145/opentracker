@@ -183,6 +183,18 @@
      type and spacing together, which is what it says on the label — it is an
      interface scale, not two independent knobs. Two knobs would let a theme put
      large text in tight boxes, which is mostly a way to overflow a table. */
+  /* Letter-spacing scale.
+     The site's signature is a mono uppercase over-title, and it appears with
+     six slightly different tracking values across 330 rules — copy-paste drift
+     around one design element. Unifying them would be a real cleanup and a
+     visible change to 150 of them, so it is not done here on my own judgement.
+     What IS done is the same thing as `--motion-scale`: every one of the 867
+     `letter-spacing` values keeps itself and multiplies by this, so the lever
+     exists with no change at 1. `0` removes all tracking; `2` is very airy, and
+     amplifies the negative tracking on large headings too, which is the design's
+     own intent rather than a bug. */
+  --tracking-scale: 1;
+
   --ui-scale:       1;
 
   --motion-scale:   1;
@@ -388,7 +400,7 @@
     font-size: 0.875rem;
     font-weight: 500;
     line-height: 1;
-    letter-spacing: -0.005em;
+    letter-spacing: calc(-0.005em * var(--tracking-scale));
     border-radius: var(--radius-sm);
     border: 1px solid transparent;
     cursor: pointer;
@@ -481,7 +493,7 @@
     font-weight: 600;
     color: rgb(var(--fg-subtle));
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: calc(0.08em * var(--tracking-scale));
     line-height: 1.4;
   }
   .eyebrow-mono {
@@ -496,7 +508,7 @@
     line-height: 1.15;
     font-weight: 700;
     color: rgb(var(--fg-strong));
-    letter-spacing: -0.02em;
+    letter-spacing: calc(-0.02em * var(--tracking-scale));
     margin: 0;
   }
   @media (min-width: 768px) {
@@ -509,7 +521,7 @@
     line-height: 1.3;
     font-weight: 600;
     color: rgb(var(--fg-strong));
-    letter-spacing: -0.01em;
+    letter-spacing: calc(-0.01em * var(--tracking-scale));
     margin: 0;
   }
 
@@ -546,7 +558,7 @@
     border-bottom: 1px solid rgb(var(--line-default));
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: calc(0.06em * var(--tracking-scale));
     font-size: 0.6875rem;
   }
   .data-table td {

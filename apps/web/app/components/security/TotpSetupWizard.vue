@@ -170,7 +170,7 @@ async function copySecret() {
   cursor: pointer;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -182,7 +182,7 @@ async function copySecret() {
   margin-top: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.8125rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   word-break: break-all;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
@@ -198,7 +198,7 @@ async function copySecret() {
   padding: 0.3rem 0.6rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   background: transparent;
   color: rgb(var(--fg-muted));
@@ -219,7 +219,7 @@ async function copySecret() {
 .totp-code-input {
   font-size: 1.6rem;
   font-weight: 700;
-  letter-spacing: 0.4em;
+  letter-spacing: calc(0.4em * var(--tracking-scale));
   text-align: center;
   padding: 0.6rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -228,7 +228,7 @@ async function copySecret() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -278,7 +278,7 @@ async function copySecret() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border-radius: var(--radius-xs);
   cursor: pointer;

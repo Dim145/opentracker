@@ -1234,12 +1234,12 @@ onMounted(() => {
 .fiche-step-num {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 }
 .fiche-step-label {
   font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: calc(0.09em * var(--tracking-scale));
 }
 .fiche-step.is-current button {
   color: rgb(var(--fg-strong));
@@ -1374,7 +1374,7 @@ onMounted(() => {
   margin: 0;
   font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: calc(0.09em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .fiche-track-card {
@@ -1395,7 +1395,7 @@ onMounted(() => {
 .fiche-track-index {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-subtle));
   flex: 0 0 auto;
 }
@@ -1499,7 +1499,7 @@ onMounted(() => {
   border-radius: var(--radius-xs);
   font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -1635,7 +1635,7 @@ onMounted(() => {
   margin: 0;
   font-size: 0.95rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
 }
 .fiche-nfo {
   flex: 1 1 auto;

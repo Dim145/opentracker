@@ -1215,7 +1215,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.5rem;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-bottom: 1.25rem;
@@ -1234,7 +1234,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .page-eyebrow {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin: 0 0 0.4rem;
@@ -1242,7 +1242,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .page-title {
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 900;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   text-transform: uppercase;
   margin: 0;
   line-height: 1;
@@ -1251,7 +1251,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   color: rgb(var(--fg-muted));
   font-weight: 400;
   font-style: italic;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 
 .ready-state {
@@ -1263,7 +1263,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   border: 1px solid;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .ready-state.idle {
@@ -1341,7 +1341,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   padding: 0.1rem 0.3rem;
   border-radius: var(--radius-xs);
   border: 1px solid currentColor;
@@ -1353,7 +1353,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.45rem;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
 }
 
@@ -1378,7 +1378,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
@@ -1388,7 +1388,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .section-title {
   font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   margin: 0;
@@ -1425,7 +1425,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .field-label {
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   display: inline-flex;
@@ -1435,7 +1435,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .field-hint {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: none;
   color: rgb(var(--fg-muted));
   opacity: 0.7;
@@ -1456,7 +1456,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   bottom: -1.25rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .char-counter--over {
@@ -1486,7 +1486,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.3rem;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1556,7 +1556,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   font-size: 0.88rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .toggle-sub {
   margin: 0;
@@ -1617,14 +1617,14 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.4rem;
   font-size: 0.85rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .theme-btn-sub {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 /* ─── Appearance blocks (theme + language as siblings) ──────── */
@@ -1646,7 +1646,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .appearance-block-eyebrow {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   padding: 0.15rem 0.45rem;
@@ -1657,7 +1657,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 
@@ -1766,7 +1766,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-default));
   transition: color var(--dur-3);
 }
@@ -1800,7 +1800,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 .lang-btn-label {
   font-size: 0.92rem;
   font-weight: 700;
-  letter-spacing: 0.005em;
+  letter-spacing: calc(0.005em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .lang-btn-sub {
@@ -1809,7 +1809,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.55rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .lang-btn-region {
@@ -1824,7 +1824,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-strong));
   font-size: 0.5625rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .lang-error {
@@ -1918,7 +1918,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   border-radius: var(--radius-pill);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid;
   transition: all var(--dur-2);
@@ -1981,7 +1981,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }

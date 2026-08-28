@@ -712,7 +712,7 @@ function useCounter(target: Ref<number>) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-bottom: 1.5rem;
@@ -722,12 +722,12 @@ function useCounter(target: Ref<number>) {
   color: rgb(var(--accent));
   font-size: 0.875rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
 }
 .mc-eyebrow-of {
   color: rgb(var(--fg-faint));
   font-weight: 500;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
 }
 .mc-eyebrow-rule {
   flex: 0 0 2.5rem;
@@ -805,7 +805,7 @@ function useCounter(target: Ref<number>) {
   color: rgb(var(--fg-strong));
   font-weight: 700;
   font-size: 0.6563rem;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
 }
 .mc-clock {
   color: rgb(var(--fg-muted));
@@ -851,7 +851,7 @@ function useCounter(target: Ref<number>) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   margin: 0 0 1.25rem;
@@ -870,7 +870,7 @@ function useCounter(target: Ref<number>) {
   font-weight: 800;
   font-size: clamp(2.5rem, 11vw, 8.5rem);
   line-height: 0.92;
-  letter-spacing: -0.04em;
+  letter-spacing: calc(-0.04em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   word-break: break-word;
   text-transform: uppercase;
@@ -884,11 +884,11 @@ function useCounter(target: Ref<number>) {
 .mc-hero-title :deep(em) {
   font-style: italic;
   color: rgb(var(--fg-muted));
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
 @keyframes mc-title-in {
   from { opacity: 0; transform: translateY(8px); letter-spacing: 0; }
-  to   { opacity: 1; transform: translateY(0); letter-spacing: -0.04em; }
+  to   { opacity: 1; transform: translateY(0); letter-spacing: calc(-0.04em * var(--tracking-scale)); }
 }
 
 .mc-hero-tagline {
@@ -971,7 +971,7 @@ function useCounter(target: Ref<number>) {
   font-weight: 800;
   font-size: clamp(1.8rem, 4.5vw, 2.85rem);
   line-height: 1;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   font-variant-numeric: tabular-nums;
 }
@@ -983,7 +983,7 @@ function useCounter(target: Ref<number>) {
   color: rgb(var(--fg-faint));
   font-weight: 500;
   font-size: 0.55em;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   margin-left: 0.3rem;
   text-transform: uppercase;
 }
@@ -991,7 +991,7 @@ function useCounter(target: Ref<number>) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1004,7 +1004,7 @@ function useCounter(target: Ref<number>) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--accent));
 }
 
@@ -1012,7 +1012,7 @@ function useCounter(target: Ref<number>) {
   margin: 1.25rem 0 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 .mc-hero-tip kbd {
@@ -1063,7 +1063,7 @@ function useCounter(target: Ref<number>) {
   border-bottom: 1px solid rgb(var(--line-default));
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   padding: 0.55rem 1.1rem;
@@ -1101,13 +1101,13 @@ function useCounter(target: Ref<number>) {
   font-weight: 700;
   color: rgb(var(--fg-faint));
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   transition: color var(--dur-2) ease;
 }
 .mc-ledger-name {
   color: rgb(var(--fg-strong));
   font-weight: 500;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1150,7 +1150,7 @@ function useCounter(target: Ref<number>) {
   margin: 0 0 0.85rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 1.125rem;
-  letter-spacing: 0.4em;
+  letter-spacing: calc(0.4em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
   white-space: pre;
 }
@@ -1167,7 +1167,7 @@ function useCounter(target: Ref<number>) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-fg));
   background: rgb(var(--accent));
@@ -1229,7 +1229,7 @@ function useCounter(target: Ref<number>) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1266,7 +1266,7 @@ function useCounter(target: Ref<number>) {
   font-size: 1.375rem;
   font-weight: 800;
   color: rgb(var(--fg-faint));
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1;
 }
 .mc-hot-row:hover .mc-hot-rank {
@@ -1337,7 +1337,7 @@ function useCounter(target: Ref<number>) {
 .mc-proto-key {
   font-size: 0.8125rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .mc-proto-row--down .mc-proto-key {
@@ -1393,7 +1393,7 @@ function useCounter(target: Ref<number>) {
   gap: 0.4rem;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--online));
 }
@@ -1452,7 +1452,7 @@ function useCounter(target: Ref<number>) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   color: rgb(var(--accent));
   margin-bottom: 0.5rem;
 }
@@ -1468,7 +1468,7 @@ function useCounter(target: Ref<number>) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.8125rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }

@@ -941,7 +941,7 @@ useHead({
   font-size: clamp(1.4rem, 3.5vw, 1.85rem);
   line-height: 1.1;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .search-title-faint {
@@ -960,7 +960,7 @@ useHead({
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-fg));
   background: rgb(var(--accent));
@@ -996,7 +996,7 @@ useHead({
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: transparent;
@@ -1032,7 +1032,7 @@ useHead({
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: transparent;
@@ -1071,7 +1071,7 @@ useHead({
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -1136,7 +1136,7 @@ useHead({
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: transparent;
@@ -1196,7 +1196,7 @@ useHead({
   gap: 0.65rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
@@ -1272,7 +1272,7 @@ useHead({
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1284,7 +1284,7 @@ useHead({
   margin: 0;
   font-size: 0.875rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1312,7 +1312,7 @@ useHead({
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .results-foot-summary strong {
@@ -1336,7 +1336,7 @@ useHead({
   border: 1px solid;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .media-id-chip--imdb {

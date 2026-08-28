@@ -48,7 +48,7 @@ defineProps<{
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   line-height: 1.45;

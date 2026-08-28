@@ -462,7 +462,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.3em;
+  letter-spacing: calc(0.3em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
   margin-bottom: 0.7rem;
@@ -479,7 +479,7 @@ onBeforeUnmount(() => {
     'Bitstream Vera Serif', 'Liberation Serif', 'P052', Georgia,
     'Times New Roman', serif;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
 .pool-title-main {
   display: inline;
@@ -562,7 +562,7 @@ onBeforeUnmount(() => {
   font-size: 1.7rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .pool-meter-sep {
   font-size: 1.4rem;
@@ -577,7 +577,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -591,7 +591,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -620,7 +620,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -644,7 +644,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
 }
 .pool-patron-name {
@@ -688,7 +688,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -706,7 +706,7 @@ onBeforeUnmount(() => {
   font-size: 1.4rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   outline: 0;
   transition: border-color var(--dur-3) ease, box-shadow var(--dur-3) ease;
 }
@@ -725,7 +725,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }
@@ -743,7 +743,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   cursor: pointer;
   transition: border-color var(--dur-3) ease, background var(--dur-3) ease,
     color var(--dur-3) ease;
@@ -789,7 +789,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   position: relative;

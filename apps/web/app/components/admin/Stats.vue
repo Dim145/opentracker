@@ -140,7 +140,7 @@ function formatNumber(n: number): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -148,7 +148,7 @@ function formatNumber(n: number): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 2.45rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1;
   color: rgb(var(--fg-strong));
 }
@@ -165,7 +165,7 @@ function formatNumber(n: number): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }

@@ -1139,7 +1139,7 @@ const ratioColor = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.7813rem;
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   caret-color: rgb(var(--accent));
 }
@@ -1147,7 +1147,7 @@ const ratioColor = computed(() => {
   color: rgb(var(--fg-subtle));
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-weight: 400;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .navsearch-input:focus::placeholder {
   color: rgb(var(--fg-faint));

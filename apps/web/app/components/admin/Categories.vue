@@ -959,7 +959,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }
@@ -973,7 +973,7 @@ async function seedCategories() {
   margin: 0;
   font-size: 1.65rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .atlas-intro {
@@ -994,7 +994,7 @@ async function seedCategories() {
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm-fg));
   cursor: pointer;
@@ -1034,13 +1034,13 @@ async function seedCategories() {
   font-size: 1.15rem;
   font-weight: 800;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .stat-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1118,7 +1118,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }
@@ -1151,7 +1151,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1175,7 +1175,7 @@ async function seedCategories() {
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--dur-2) ease;
@@ -1338,7 +1338,7 @@ async function seedCategories() {
      still fits inside the 64px call-number panel. */
   font-size: 0.85rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   font-variant-numeric: tabular-nums;
   color: rgb(var(--accent-warm));
   line-height: 1;
@@ -1364,7 +1364,7 @@ async function seedCategories() {
   margin: 0;
   font-size: 1rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   line-height: 1.2;
@@ -1372,7 +1372,7 @@ async function seedCategories() {
 }
 .entry-name--sub {
   font-size: 0.88rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .entry-attrs {
   display: flex;
@@ -1384,7 +1384,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   background: transparent;
   padding: 0;
 }
@@ -1399,7 +1399,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1581,7 +1581,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }
@@ -1653,7 +1653,7 @@ async function seedCategories() {
   /* Same sizing rule as the list rows — must fit 6-digit ids. */
   font-size: 0.85rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   font-variant-numeric: tabular-nums;
   color: rgb(var(--accent-warm));
   line-height: 1;
@@ -1674,7 +1674,7 @@ async function seedCategories() {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   line-height: 1.15;
@@ -1690,7 +1690,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   background: transparent;
   padding: 0;
 }
@@ -1705,7 +1705,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: #f43f5e;
 }
@@ -1757,7 +1757,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
@@ -1769,7 +1769,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1792,7 +1792,7 @@ async function seedCategories() {
 }
 .ed-input--mono {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 
@@ -1834,7 +1834,7 @@ async function seedCategories() {
   border-radius: var(--radius-sm);
   padding: 0.05rem 0.35rem;
   color: rgb(var(--accent-warm));
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 
 .ed-error {
@@ -1885,7 +1885,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   transition: color var(--dur-3) ease;
@@ -1930,7 +1930,7 @@ async function seedCategories() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   transition: color var(--dur-3) ease;
@@ -1992,7 +1992,7 @@ async function seedCategories() {
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--dur-2) ease;

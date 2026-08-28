@@ -427,7 +427,7 @@ function actionVerb(status: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.26em;
+  letter-spacing: calc(0.26em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }
@@ -451,7 +451,7 @@ function actionVerb(status: string | null): string {
   margin: 0;
   font-size: 1.8rem;
   font-weight: 800;
-  letter-spacing: -0.015em;
+  letter-spacing: calc(-0.015em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1.1;
 }
@@ -483,14 +483,14 @@ function actionVerb(status: string | null): string {
   font-size: 2rem;
   font-weight: 800;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   line-height: 1;
 }
 .wt-clock-date {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -545,7 +545,7 @@ function actionVerb(status: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -555,7 +555,7 @@ function actionVerb(status: string | null): string {
   font-weight: 800;
   color: rgb(var(--fg-strong));
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   margin-top: 0.1rem;
 }
 .tile-foot {
@@ -566,7 +566,7 @@ function actionVerb(status: string | null): string {
   padding-top: 0.55rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--tile-accent, rgb(var(--fg-muted)));
   font-weight: 700;
@@ -636,7 +636,7 @@ function actionVerb(status: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -647,7 +647,7 @@ function actionVerb(status: string | null): string {
 .feed-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -662,7 +662,7 @@ function actionVerb(status: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
@@ -707,7 +707,7 @@ function actionVerb(status: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
   padding-top: 0.15rem;
 }
@@ -732,7 +732,7 @@ function actionVerb(status: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .queue-uploader {
   display: inline-flex;
@@ -742,7 +742,7 @@ function actionVerb(status: string | null): string {
 .queue-uploader svg { font-size: 0.85rem; }
 .queue-cat {
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   font-size: 0.5938rem;
 }
 
@@ -764,7 +764,7 @@ function actionVerb(status: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .log-actor {
@@ -781,7 +781,7 @@ function actionVerb(status: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 0.2rem 0.45rem;
   border-radius: var(--radius-sm);
@@ -835,7 +835,7 @@ function actionVerb(status: string | null): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }

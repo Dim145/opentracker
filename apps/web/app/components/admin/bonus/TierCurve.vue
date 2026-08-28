@@ -389,7 +389,7 @@ function formatMul(v: number): string {
   font-size: 0.625rem;
   fill: rgb(var(--fg-muted));
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 /* ── Foot — axis legend + range readout ────────────────────── */
@@ -409,14 +409,14 @@ function formatMul(v: number): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .tcurve-axis-unit {
   color: rgb(var(--fg-faint));
   font-weight: 500;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
 }
 .tcurve-readout {
   display: inline-flex;
@@ -425,7 +425,7 @@ function formatMul(v: number): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   text-transform: uppercase;
 }

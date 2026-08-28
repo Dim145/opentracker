@@ -342,7 +342,7 @@ const searchableTitle = computed(() => {
 
 .gtr-cat {
   font-size: 0.5625rem;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 2px 6px;
   border-radius: var(--radius-xs);

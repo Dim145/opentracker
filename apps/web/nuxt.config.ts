@@ -137,8 +137,18 @@ export default defineNuxtConfig({
   // It also means the faces are not pinned. Google can reship a family and two
   // builds of the same tag will not be byte-identical — out of character for a
   // repository that pins `postgres:18.6-alpine` and hand-edits migration SQL for
-  // determinism. Accepted for the privacy win and because wave 3 needs a
-  // provider that can resolve families this repository has never seen.
+  // determinism. Accepted for the privacy win and because the curated font list
+  // needs a provider that can resolve families this repository has never seen.
+  //
+  // MEASURED, not hypothetical: one build in about ten failed with `ETIMEDOUT`
+  // reaching `fonts.googleapis.com` from inside the BuildKit container, while
+  // the same request succeeded from the host and from an ordinary container at
+  // the same moment. An immediate retry then worked. So the practical failure
+  // mode is a flaky release rather than a broken one, and the practical
+  // mitigation is to retry the build — but a release job that cannot tolerate a
+  // retry should switch these entries to `provider: 'local'` with the woff2
+  // files committed under `public/fonts/`, which removes the network from the
+  // build entirely at the cost of about 1.4 MB in git.
   fonts: {
     defaults: {
       subsets: ['latin', 'latin-ext'],

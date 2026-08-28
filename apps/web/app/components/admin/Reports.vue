@@ -662,7 +662,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }
@@ -676,7 +676,7 @@ function confirmBanPanel(report: Report) {
   margin: 0;
   font-size: 1.65rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .archive-intro {
@@ -716,7 +716,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -837,7 +837,7 @@ function confirmBanPanel(report: Report) {
 .dossier-case-label {
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -845,7 +845,7 @@ function confirmBanPanel(report: Report) {
   font-size: 0.6875rem;
   font-weight: 700;
   color: rgb(var(--accent-warm));
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   background: transparent;
 }
 .dossier-head-right {
@@ -860,7 +860,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .dossier-when-icon {
   font-size: 0.85rem;
@@ -876,7 +876,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .dossier-stamp--pending {
@@ -939,7 +939,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -980,7 +980,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.03em;
+  letter-spacing: calc(0.03em * var(--tracking-scale));
 }
 .meta-withdrawn {
   display: inline-flex;
@@ -1017,7 +1017,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   flex-shrink: 0;
@@ -1106,7 +1106,7 @@ function confirmBanPanel(report: Report) {
   font-family: inherit;
   font-size: 0.74rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--dur-2) ease;
@@ -1163,7 +1163,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   align-self: center;
@@ -1202,7 +1202,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: #f43f5e;
 }
@@ -1227,7 +1227,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: color var(--dur-2), background var(--dur-2), border-color var(--dur-2),
@@ -1329,7 +1329,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1361,7 +1361,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--dur-2) ease;
@@ -1378,7 +1378,7 @@ function confirmBanPanel(report: Report) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.75rem;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
 }
 .pager-state-sep {
   color: rgb(var(--fg-faint));

@@ -542,7 +542,7 @@ const explainer = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.3em;
+  letter-spacing: calc(0.3em * var(--tracking-scale));
   text-transform: uppercase;
   color: #f43f5e;
   flex: 1;
@@ -551,7 +551,7 @@ const explainer = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 
@@ -636,7 +636,7 @@ const explainer = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--accent-warm) / 0.45);
@@ -688,7 +688,7 @@ const explainer = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   border-radius: var(--radius-sm);
   border: 1px solid;
@@ -714,7 +714,7 @@ const explainer = computed(() => {
   margin: 0;
   font-size: 1.45rem;
   font-weight: 800;
-  letter-spacing: -0.015em;
+  letter-spacing: calc(-0.015em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1.15;
   word-break: break-word;
@@ -727,7 +727,7 @@ const explainer = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.7813rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   color: #f43f5e;
   text-shadow: 0 0 10px rgba(244, 63, 94, 0.25);
 }
@@ -776,14 +776,14 @@ const explainer = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .meter-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -796,7 +796,7 @@ const explainer = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 1.85rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1;
   color: rgb(var(--fg-strong));
 }
@@ -877,7 +877,7 @@ const explainer = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -902,7 +902,7 @@ const explainer = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -966,7 +966,7 @@ const explainer = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .bb-window-foot-leg--right {
@@ -994,7 +994,7 @@ const explainer = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }
@@ -1026,7 +1026,7 @@ const explainer = computed(() => {
   font-family: inherit;
   font-size: 0.8rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--dur-2) ease;

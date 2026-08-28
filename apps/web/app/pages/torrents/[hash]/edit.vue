@@ -834,7 +834,7 @@ useHead({ title: t('torrents.edit.headTitle') });
   color: #f5c518;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
 }
 </style>

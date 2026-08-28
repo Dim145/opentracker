@@ -1461,7 +1461,7 @@ async function onDetachRole(roleId: string) {
 .registry-eyebrow {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin: 0 0 0.4rem;
@@ -1469,7 +1469,7 @@ async function onDetachRole(roleId: string) {
 .registry-title {
   font-size: clamp(1.65rem, 3.4vw, 2.5rem);
   font-weight: 900;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
   margin: 0;
@@ -1558,14 +1558,14 @@ async function onDetachRole(roleId: string) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .kpi-value {
   font-size: 1.85rem;
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -1573,7 +1573,7 @@ async function onDetachRole(roleId: string) {
 .kpi-sub {
   font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .kpi-dot {
   display: inline-block;
@@ -1644,7 +1644,7 @@ async function onDetachRole(roleId: string) {
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-strong));
   font-size: 0.9rem;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 .filter-search-input:focus {
@@ -1654,7 +1654,7 @@ async function onDetachRole(roleId: string) {
 }
 .filter-search-input::placeholder {
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .filter-search-clear {
   position: absolute;
@@ -1691,7 +1691,7 @@ async function onDetachRole(roleId: string) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1703,7 +1703,7 @@ async function onDetachRole(roleId: string) {
   color: rgb(var(--fg-default));
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .filter-select-input:focus {
@@ -1717,7 +1717,7 @@ async function onDetachRole(roleId: string) {
   padding: 0.55rem 0.85rem;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   border: 1px dashed rgb(var(--line-default));
@@ -1757,7 +1757,7 @@ async function onDetachRole(roleId: string) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-surface));
@@ -1883,7 +1883,7 @@ async function onDetachRole(roleId: string) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .user-cell-body {
@@ -1896,7 +1896,7 @@ async function onDetachRole(roleId: string) {
   font-size: 0.85rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   text-decoration: none;
 }
 .user-cell-name:hover {
@@ -1916,7 +1916,7 @@ async function onDetachRole(roleId: string) {
   color: rgb(var(--fg-muted));
 }
 .user-uid {
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .user-ip {
   display: inline-flex;
@@ -1929,7 +1929,7 @@ async function onDetachRole(roleId: string) {
    * affordance from a raw IP so the moderator knows it's a hash
    * (cursor:help to surface the tooltip). */
   font-family: ui-monospace, SFMono-Regular, monospace;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   cursor: help;
 }
 
@@ -1945,7 +1945,7 @@ async function onDetachRole(roleId: string) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
@@ -2005,7 +2005,7 @@ async function onDetachRole(roleId: string) {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   min-width: 3.2rem;
   text-align: center;
 }
@@ -2135,7 +2135,7 @@ async function onDetachRole(roleId: string) {
 .bonus-balance-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2156,7 +2156,7 @@ async function onDetachRole(roleId: string) {
 .bonus-balance-unit {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   font-weight: 400;
@@ -2170,7 +2170,7 @@ async function onDetachRole(roleId: string) {
 .bonus-presets-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2216,7 +2216,7 @@ async function onDetachRole(roleId: string) {
 .bonus-field-label {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   display: flex;
@@ -2225,7 +2225,7 @@ async function onDetachRole(roleId: string) {
 }
 .bonus-field-hint {
   font-size: 0.5625rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
   text-transform: none;
   font-weight: 400;
@@ -2243,7 +2243,7 @@ async function onDetachRole(roleId: string) {
 .bonus-field-unit {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2266,7 +2266,7 @@ async function onDetachRole(roleId: string) {
 .bonus-preview-arrow {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2279,7 +2279,7 @@ async function onDetachRole(roleId: string) {
 .bonus-preview-unit {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   font-weight: 400;
@@ -2321,7 +2321,7 @@ async function onDetachRole(roleId: string) {
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: transform var(--dur-1);
@@ -2367,7 +2367,7 @@ async function onDetachRole(roleId: string) {
   color: rgb(var(--fg-default));
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   max-width: 9rem;
 }
@@ -2397,7 +2397,7 @@ async function onDetachRole(roleId: string) {
   font-size: 0.9rem;
   font-weight: 700;
   color: rgb(var(--fg-default));
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 .empty-sub {
   margin: 0;
@@ -2423,7 +2423,7 @@ async function onDetachRole(roleId: string) {
 .pager-summary {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.7188rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .pager-summary-strong {
@@ -2448,7 +2448,7 @@ async function onDetachRole(roleId: string) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2478,7 +2478,7 @@ async function onDetachRole(roleId: string) {
   color: rgb(var(--fg-default));
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   transition: all var(--dur-2);
 }
@@ -2495,7 +2495,7 @@ async function onDetachRole(roleId: string) {
   font-size: 0.6875rem;
   color: rgb(var(--fg-muted));
   padding: 0 0.65rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 }
 .pager-where strong {
   color: rgb(var(--fg-strong));
@@ -2542,7 +2542,7 @@ async function onDetachRole(roleId: string) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin: 0;
@@ -2587,7 +2587,7 @@ async function onDetachRole(roleId: string) {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .rm-row__sep {
@@ -2632,7 +2632,7 @@ async function onDetachRole(roleId: string) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   transition: all var(--dur-2);
@@ -2720,7 +2720,7 @@ async function onDetachRole(roleId: string) {
   font-weight: 700;
   color: rgb(var(--fg-default));
   margin-bottom: 0.4rem;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
 }
 .user-card-empty .empty-link {
   color: rgb(var(--fg-strong));
@@ -2753,7 +2753,7 @@ async function onDetachRole(roleId: string) {
   font-weight: 700;
   color: rgb(var(--fg-strong));
   text-decoration: none;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2795,7 +2795,7 @@ async function onDetachRole(roleId: string) {
 .user-card-stats dt {
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   margin-bottom: 0.2rem;

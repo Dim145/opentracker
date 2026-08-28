@@ -75,7 +75,7 @@ function print() {
     `<!doctype html><meta charset="utf-8"><title>${title}</title>` +
       `<style>body{font-family:ui-monospace,monospace;padding:2rem;color:#111}` +
       `h1{font-size:1.2rem}ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem 1.5rem}` +
-      `code{font-size:1.05rem;letter-spacing:.06em}` +
+      `code{font-size:1.05rem;letter-spacing:calc(.06em * var(--tracking-scale))}` +
       `</style>` +
       `<h1>${title}</h1>` +
       `<p>${intro}</p>` +
@@ -113,7 +113,7 @@ function print() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .rcv-actions {
@@ -128,7 +128,7 @@ function print() {
   padding: 0.4rem 0.7rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));

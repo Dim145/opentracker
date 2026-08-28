@@ -1295,7 +1295,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   font-weight: 700;
   color: rgb(var(--fg-strong));
   margin: 0;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 .drop-headline code {
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -1317,7 +1317,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-pill);
@@ -1351,7 +1351,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
 .field-hint {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: none;
   color: rgb(var(--fg-muted));
   margin-left: 0.5rem;
@@ -1431,7 +1431,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   gap: 0.6rem;
   font-size: 0.75rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .aside-progress li.done {
   color: #6cd161;
@@ -1493,7 +1493,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
 .result-meta dt {
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin: 0;
@@ -1525,7 +1525,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   padding: 0.4rem 0.85rem;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   border-radius: var(--radius-pill);

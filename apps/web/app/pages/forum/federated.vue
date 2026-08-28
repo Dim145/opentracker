@@ -80,7 +80,7 @@ function fmtDate(d: string | null) {
 .ff-back { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7813rem; color: rgb(var(--fg-muted)); margin-bottom: 1.25rem; }
 .ff-back:hover { color: rgb(var(--fg-default)); }
 .ff-head { margin-bottom: 1.5rem; }
-.ff-title { font-size: 1.75rem; font-weight: 700; color: rgb(var(--fg-strong)); letter-spacing: -0.02em; margin-top: 0.45rem; }
+.ff-title { font-size: 1.75rem; font-weight: 700; color: rgb(var(--fg-strong)); letter-spacing: calc(-0.02em * var(--tracking-scale)); margin-top: 0.45rem; }
 .ff-head .note { font-size: 0.8125rem; color: rgb(var(--fg-muted)); margin-top: 0.4rem; max-width: 64ch; line-height: 1.55; }
 
 .ff-peers { display: flex; flex-direction: column; gap: 1.5rem; }

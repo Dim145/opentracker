@@ -346,7 +346,7 @@ async function submit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
@@ -366,7 +366,7 @@ async function submit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass));
 }
@@ -421,7 +421,7 @@ async function submit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   color: rgb(var(--brass));
   padding: 0.18rem 0.45rem;
   border: 1px solid rgb(var(--brass) / 0.4);
@@ -433,7 +433,7 @@ async function submit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -442,7 +442,7 @@ async function submit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -470,7 +470,7 @@ async function submit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: color var(--dur-2), background var(--dur-3), border-color var(--dur-3), transform var(--dur-3);
@@ -524,7 +524,7 @@ async function submit() {
   align-self: flex-end;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 
@@ -557,7 +557,7 @@ async function submit() {
   padding-right: 3rem;
   font-size: 1rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--brass));
   background:
     linear-gradient(180deg, rgb(var(--brass) / 0.08), transparent 70%),
@@ -570,7 +570,7 @@ async function submit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass) / 0.7);
   pointer-events: none;
@@ -594,7 +594,7 @@ async function submit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -640,7 +640,7 @@ async function submit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   text-decoration: none;

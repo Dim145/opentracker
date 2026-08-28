@@ -248,7 +248,7 @@ async function handleSubmit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-fade);
   flex-wrap: wrap;
@@ -284,7 +284,7 @@ async function handleSubmit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-fade);
   margin: 0;
@@ -302,7 +302,7 @@ async function handleSubmit() {
   margin: 0;
   font-size: clamp(2.25rem, 5.5vw, 3.5rem);
   line-height: 1;
-  letter-spacing: -0.035em;
+  letter-spacing: calc(-0.035em * var(--tracking-scale));
   font-weight: 800;
   color: var(--ink);
   font-variation-settings: 'opsz' 144, 'SOFT' 30;
@@ -356,7 +356,7 @@ async function handleSubmit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -379,7 +379,7 @@ async function handleSubmit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   transition: all var(--dur-1);
 }
@@ -401,7 +401,7 @@ async function handleSubmit() {
   font-family: 'Fraunces', serif;
   font-weight: 700;
   font-size: 1.4rem;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: var(--ink);
   background: rgb(var(--bg-base));
   border: 1px solid var(--rule);
@@ -437,7 +437,7 @@ async function handleSubmit() {
   align-self: flex-end;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: var(--ink-faint);
   text-transform: uppercase;
 }
@@ -463,7 +463,7 @@ async function handleSubmit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-fade);
   margin: 0;
@@ -488,7 +488,7 @@ async function handleSubmit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--cat-color);
   width: max-content;
@@ -500,7 +500,7 @@ async function handleSubmit() {
   margin: 0;
   font-size: clamp(1.55rem, 3.5vw, 2.2rem);
   line-height: 1.05;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   font-weight: 700;
   color: var(--ink);
   font-variation-settings: 'opsz' 96, 'SOFT' 30;
@@ -514,7 +514,7 @@ async function handleSubmit() {
   gap: 0.35rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-fade);
 }
@@ -547,7 +547,7 @@ async function handleSubmit() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid var(--rule-strong);
   background: rgb(var(--bg-elevated));

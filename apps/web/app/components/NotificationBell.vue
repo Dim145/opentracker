@@ -364,7 +364,7 @@ function humanise(s: string): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   border: 2px solid rgb(var(--bg-base));
   box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.45);
 }
@@ -416,7 +416,7 @@ function humanise(s: string): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
 }
@@ -435,7 +435,7 @@ function humanise(s: string): string {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .nbell-pop-count {
@@ -451,7 +451,7 @@ function humanise(s: string): string {
   border: 1px solid rgba(244, 63, 94, 0.45);
   color: #f43f5e;
   border-radius: var(--radius-pill);
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 .nbell-pop-mark {
   display: inline-flex;
@@ -465,7 +465,7 @@ function humanise(s: string): string {
   font-family: inherit;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
   cursor: pointer;
@@ -501,7 +501,7 @@ function humanise(s: string): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -561,7 +561,7 @@ function humanise(s: string): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-align: center;
@@ -717,7 +717,7 @@ function humanise(s: string): string {
   margin: 0.2rem 0 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 
@@ -768,7 +768,7 @@ function humanise(s: string): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;

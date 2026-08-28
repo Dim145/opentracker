@@ -228,7 +228,7 @@ const blocks = computed<Block[]>(() => {
   line-height: 1.65;
   color: rgb(var(--fg-default));
   font-variation-settings: 'opsz' 14;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
 }
 .post-body-prose :deep(.pb-p) {
   margin: 0 0 0.85rem;

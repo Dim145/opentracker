@@ -433,7 +433,7 @@ function onBalanceFromPool(value: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
@@ -493,7 +493,7 @@ function onBalanceFromPool(value: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.32em;
+  letter-spacing: calc(0.32em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--accent-warm));
   margin-bottom: 1.1rem;
@@ -509,7 +509,7 @@ function onBalanceFromPool(value: number) {
   margin: 0;
   font-family: var(--font-serif);
   line-height: 0.95;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .hero-title-main {
@@ -585,7 +585,7 @@ function onBalanceFromPool(value: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-bottom: 0.55rem;
@@ -611,7 +611,7 @@ function onBalanceFromPool(value: number) {
   font-size: 2.2rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
 .balance-unit {
   display: block;
@@ -619,7 +619,7 @@ function onBalanceFromPool(value: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -765,7 +765,7 @@ function onBalanceFromPool(value: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   display: inline-flex;
@@ -783,7 +783,7 @@ function onBalanceFromPool(value: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 0.25rem 0.55rem;
   border: 1px solid rgb(var(--accent-warm) / 0.35);
@@ -849,7 +849,7 @@ function onBalanceFromPool(value: number) {
   font-weight: 500;
   font-style: italic;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   line-height: 1.2;
 }
 .piece-desc {
@@ -874,7 +874,7 @@ function onBalanceFromPool(value: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   text-transform: uppercase;
 }
@@ -913,13 +913,13 @@ function onBalanceFromPool(value: number) {
   font-size: 1.6rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .piece-cost-unit {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5313rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   margin-top: 0.2rem;
@@ -942,7 +942,7 @@ function onBalanceFromPool(value: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   border: 0;
   cursor: pointer;

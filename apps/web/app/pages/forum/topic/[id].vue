@@ -591,7 +591,7 @@ onMounted(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-fade);
   flex-wrap: wrap;
@@ -623,7 +623,7 @@ onMounted(() => {
   margin: 0;
   font-size: clamp(2.25rem, 5.5vw, 4rem);
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: calc(-0.04em * var(--tracking-scale));
   font-weight: 800;
   color: var(--ink);
   font-variation-settings: 'opsz' 144, 'SOFT' 30;
@@ -638,7 +638,7 @@ onMounted(() => {
   gap: 0.4rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-fade);
 }
@@ -664,7 +664,7 @@ onMounted(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid var(--rule);
   border-radius: var(--radius-pill);
@@ -727,7 +727,7 @@ onMounted(() => {
   font-family: 'Fraunces', serif;
   font-size: 1.4rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: var(--ink);
   font-variation-settings: 'opsz' 96;
   line-height: 1;
@@ -766,7 +766,7 @@ onMounted(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-weight: 700;
   font-size: 1rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .post-author-id {
   display: flex;
@@ -778,7 +778,7 @@ onMounted(() => {
   font-family: 'Fraunces', serif;
   font-weight: 700;
   font-size: 1rem;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   color: var(--ink);
   text-decoration: none;
   font-variation-settings: 'opsz' 14;
@@ -801,7 +801,7 @@ onMounted(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid var(--rule);
   border-radius: var(--radius-xs);
@@ -831,7 +831,7 @@ onMounted(() => {
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: var(--ink-fade);
   text-transform: uppercase;
 }
@@ -842,7 +842,7 @@ onMounted(() => {
   color: var(--ink-faint);
   font-style: italic;
   text-transform: none;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .post-meta-tools {
   margin-left: auto;
@@ -921,7 +921,7 @@ onMounted(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink);
 }
@@ -933,7 +933,7 @@ onMounted(() => {
 .composer-hint {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: var(--ink-fade);
   text-transform: uppercase;
 }
@@ -974,7 +974,7 @@ onMounted(() => {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: var(--ink-faint);
 }
 
@@ -1009,7 +1009,7 @@ onMounted(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid var(--rule-strong);
   background: rgb(var(--bg-elevated));

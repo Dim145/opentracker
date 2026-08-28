@@ -477,7 +477,7 @@ const relativeTime = computed(() => {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .cc-tagline {
@@ -494,7 +494,7 @@ const relativeTime = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 0.18rem 0.5rem 0.18rem 0.4rem;
   border-radius: var(--radius-sm);
@@ -663,7 +663,7 @@ const relativeTime = computed(() => {
 .field-opt {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   font-weight: 500;
@@ -755,7 +755,7 @@ const relativeTime = computed(() => {
   display: block;
   font-size: 0.76rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   color: rgb(var(--danger));
   margin-bottom: 0.15rem;
 }

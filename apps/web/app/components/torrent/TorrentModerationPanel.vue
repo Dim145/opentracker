@@ -596,7 +596,7 @@ function formatDate(iso: string): string {
   align-items: center;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   font-weight: 600;
@@ -625,7 +625,7 @@ function formatDate(iso: string): string {
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   margin: 0 0 0.2rem;
@@ -633,7 +633,7 @@ function formatDate(iso: string): string {
 }
 .mod-banner-count {
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: var(--c-text);
   background: rgb(var(--c) / 0.14);
   border: 1px solid var(--c-line);
@@ -647,7 +647,7 @@ function formatDate(iso: string): string {
   color: rgb(var(--fg-strong));
   margin: 0 0 0.2rem;
   line-height: 1.2;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
 }
 .mod-banner-sub {
   font-size: 0.7813rem;
@@ -685,7 +685,7 @@ function formatDate(iso: string): string {
 .mod-empty-text {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -784,7 +784,7 @@ function formatDate(iso: string): string {
 .mod-row-pip {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   font-weight: 700;
   padding: 0.1rem 0.4rem;
@@ -816,7 +816,7 @@ function formatDate(iso: string): string {
   font-style: normal;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   font-size: 0.625rem;
   padding: 0.05rem 0.35rem;
   background: rgb(var(--r) / 0.14);
@@ -846,7 +846,7 @@ function formatDate(iso: string): string {
   gap: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   font-weight: 700;
@@ -897,7 +897,7 @@ function formatDate(iso: string): string {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   cursor: pointer;
   transition:
     background var(--dur-2) ease,

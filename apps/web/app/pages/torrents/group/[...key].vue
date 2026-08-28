@@ -223,7 +223,7 @@ useHead(() => ({ title: title.value }));
   align-items: center;
   gap: 0.4rem;
   font-size: 0.6875rem;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   margin-bottom: 1.5rem;
@@ -306,7 +306,7 @@ useHead(() => ({ title: title.value }));
   gap: 0.3rem;
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.5625rem;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -318,7 +318,7 @@ useHead(() => ({ title: title.value }));
   margin: 0;
   font-size: clamp(1.4rem, 3vw, 2rem);
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .group-title--mono {

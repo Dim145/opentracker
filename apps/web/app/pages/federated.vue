@@ -433,7 +433,7 @@ function timeAgo(d: string | null) {
 <style scoped>
 .fbrowse { max-width: var(--container-max); margin: 0 auto; padding: 1.75rem var(--container-pad) 5rem; }
 .fb-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
-.fb-title { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; color: rgb(var(--fg-strong)); margin-top: 0.45rem; }
+.fb-title { font-size: 1.75rem; font-weight: 700; letter-spacing: calc(-0.02em * var(--tracking-scale)); color: rgb(var(--fg-strong)); margin-top: 0.45rem; }
 .fb-count { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--font-mono, monospace); font-size: 0.6875rem; color: #7dd3fc; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.2rem 0.55rem; border-radius: var(--radius-sm); }
 
 .fb-banner { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.8rem 1rem; border-radius: var(--radius-md); font-size: 0.7813rem; line-height: 1.55; background: rgba(56, 189, 248, 0.07); border: 1px solid rgba(56, 189, 248, 0.22); color: #bae6fd; margin-bottom: 1.25rem; }

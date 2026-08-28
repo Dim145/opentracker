@@ -228,7 +228,7 @@ onUnmounted(() => {
   border: 1px solid;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
 }
@@ -272,7 +272,7 @@ onUnmounted(() => {
 .detection-action {
   color: rgb(var(--fg-muted));
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 
 .detect-enter-active,

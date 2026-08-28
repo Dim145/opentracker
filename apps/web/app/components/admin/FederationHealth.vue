@@ -394,7 +394,7 @@ function hostOf(url: string): string {
 .fh-pulse-label {
   font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .fh-pulse-value {
@@ -463,7 +463,7 @@ function hostOf(url: string): string {
 .fh-tile-l {
   font-size: 0.66rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 
@@ -558,7 +558,7 @@ function hostOf(url: string): string {
 .fh-store-l {
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .fh-kinds {

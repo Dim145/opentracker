@@ -88,7 +88,7 @@ defineEmits<{
   font-size: 0.85rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .urt-desc {
   margin: 0;

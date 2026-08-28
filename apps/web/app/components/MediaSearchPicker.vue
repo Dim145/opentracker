@@ -707,7 +707,7 @@ async function resolveManual() {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .picker-kind--movie {
@@ -795,7 +795,7 @@ async function resolveManual() {
 }
 .picker-selected-ids .id-tag {
   font-size: 0.5625rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   padding: 0.15rem 0.55rem;
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
@@ -815,7 +815,7 @@ async function resolveManual() {
   padding: 0.4rem 0.75rem;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   border: 1px solid rgb(var(--line-default));
@@ -835,7 +835,7 @@ async function resolveManual() {
   gap: 0.5rem;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -871,7 +871,7 @@ async function resolveManual() {
 .picker-manual .id-tag {
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .picker-manual .id-tag--imdb { color: #f5c518; }
@@ -890,7 +890,7 @@ async function resolveManual() {
   align-items: center;
   gap: 0.5rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-pill);

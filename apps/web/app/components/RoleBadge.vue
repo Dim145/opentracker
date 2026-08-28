@@ -63,7 +63,7 @@ const badgeStyle = computed(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   line-height: 1.4;
   /* The label is the only part that breaks rhythm — keep tight. */
   white-space: nowrap;

@@ -485,7 +485,7 @@ a.fid-work-name:hover {
 .fid-flash-enter-active, .fid-flash-leave-active { transition: all var(--dur-4) ease; }
 .fid-flash-enter-from, .fid-flash-leave-to { opacity: 0; transform: translateY(-4px); }
 
-.fid-title { font-size: 1.75rem; font-weight: 700; color: rgb(var(--fg-strong)); letter-spacing: -0.02em; margin-top: 0.45rem; }
+.fid-title { font-size: 1.75rem; font-weight: 700; color: rgb(var(--fg-strong)); letter-spacing: calc(-0.02em * var(--tracking-scale)); margin-top: 0.45rem; }
 .fid-head .note { font-size: 0.8125rem; color: rgb(var(--fg-muted)); margin-top: 0.4rem; max-width: 64ch; line-height: 1.55; }
 
 .card { background: rgb(var(--bg-surface)); border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); }
@@ -496,11 +496,11 @@ a.fid-work-name:hover {
 .fid-form { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
 .fid-field { display: flex; flex-direction: column; gap: 0.3rem; }
 .fid-field.grow { flex: 1; min-width: 160px; }
-.fid-field label { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgb(var(--fg-subtle)); }
+.fid-field label { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: calc(0.05em * var(--tracking-scale)); color: rgb(var(--fg-subtle)); }
 .fid-field select.input { min-width: 180px; }
 
 .section-head { display: flex; align-items: center; gap: 0.6rem; padding-bottom: 0.7rem; border-bottom: 1px solid rgb(var(--line-default)); margin-bottom: 1rem; }
-.section-tag { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--font-mono, monospace); font-size: 0.6563rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: rgb(var(--fg-muted)); }
+.section-tag { display: inline-flex; align-items: center; gap: 0.45rem; font-family: var(--font-mono, monospace); font-size: 0.6563rem; font-weight: 700; text-transform: uppercase; letter-spacing: calc(0.05em * var(--tracking-scale)); color: rgb(var(--fg-muted)); }
 .section-tag :deep(svg) { color: var(--gold, rgb(var(--accent-warm))); font-size: 1rem; }
 .section-rule { flex: 1; height: 1px; background: rgb(var(--line-default)); }
 
@@ -512,7 +512,7 @@ a.fid-work-name:hover {
 .fid-handle { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.875rem; color: rgb(var(--fg-default)); }
 .fid-handle strong { color: rgb(var(--fg-strong)); }
 .fid-at { font-family: var(--font-mono, monospace); font-size: 0.7188rem; color: rgb(var(--fg-subtle)); }
-.fid-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.6563rem; font-weight: 600; padding: 0.12rem 0.45rem; border-radius: var(--radius-pill); border: 1px solid; text-transform: uppercase; letter-spacing: 0.03em; }
+.fid-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.6563rem; font-weight: 600; padding: 0.12rem 0.45rem; border-radius: var(--radius-pill); border: 1px solid; text-transform: uppercase; letter-spacing: calc(0.03em * var(--tracking-scale)); }
 .fid-badge.ok { color: #4ade80; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
 .fid-badge.pending { color: #facc15; background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.3); }
 .fid-x { margin-left: auto; color: rgb(var(--fg-subtle)); width: 28px; height: 28px; border-radius: var(--radius-sm); display: grid; place-items: center; border: 1px solid transparent; }
@@ -525,10 +525,10 @@ a.fid-work-name:hover {
 .fid-code { font-family: var(--font-mono, monospace); font-size: 0.7813rem; background: rgb(var(--bg-inset)); border: 1px dashed rgb(var(--line-strong)); border-radius: var(--radius-sm); padding: 0.35rem 0.6rem; color: var(--gold, rgb(var(--accent-warm))); user-select: all; }
 
 .fid-rep { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid rgb(var(--line-default)); }
-.fid-rep-title { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgb(var(--fg-subtle)); }
+.fid-rep-title { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: calc(0.05em * var(--tracking-scale)); color: rgb(var(--fg-subtle)); }
 .fid-rep-stats { display: flex; gap: 1.25rem; margin-top: 0.5rem; flex-wrap: wrap; }
 .fid-stat { display: flex; flex-direction: column; gap: 0.1rem; }
-.fid-stat .k { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgb(var(--fg-faint)); }
+.fid-stat .k { font-size: 0.625rem; text-transform: uppercase; letter-spacing: calc(0.05em * var(--tracking-scale)); color: rgb(var(--fg-faint)); }
 .fid-stat .v { font-family: var(--font-mono, monospace); font-size: 0.9375rem; font-weight: 700; color: rgb(var(--fg-strong)); }
 .fid-rep-na { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: rgb(var(--fg-subtle)); }
 </style>

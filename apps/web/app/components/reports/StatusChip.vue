@@ -21,7 +21,7 @@ defineProps<{
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   white-space: nowrap;
   border: 1px solid currentColor;

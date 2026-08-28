@@ -569,7 +569,7 @@ function formatDate(iso: string): string {
 }
 .tpl-quota-label {
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .tpl-quota-value {
@@ -697,7 +697,7 @@ function formatDate(iso: string): string {
   border-radius: var(--radius-sm);
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   white-space: nowrap;

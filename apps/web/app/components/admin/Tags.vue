@@ -434,7 +434,7 @@ function hexToRgba(hex: string, alpha: number): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
@@ -483,7 +483,7 @@ function hexToRgba(hex: string, alpha: number): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   white-space: nowrap;
@@ -491,7 +491,7 @@ function hexToRgba(hex: string, alpha: number): string {
 .ribbon-count strong {
   color: rgb(var(--fg-strong));
   font-size: 1.05rem;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   margin-right: 0.35rem;
 }
 
@@ -523,7 +523,7 @@ function hexToRgba(hex: string, alpha: number): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
@@ -534,7 +534,7 @@ function hexToRgba(hex: string, alpha: number): string {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -547,7 +547,7 @@ function hexToRgba(hex: string, alpha: number): string {
 .block-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
@@ -595,7 +595,7 @@ function hexToRgba(hex: string, alpha: number): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -668,7 +668,7 @@ function hexToRgba(hex: string, alpha: number): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--dur-2) ease;
@@ -797,7 +797,7 @@ function hexToRgba(hex: string, alpha: number): string {
 .chip-name {
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   line-height: 32px;
   white-space: nowrap;
@@ -805,7 +805,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 .chip-slug {
   font-size: 0.625rem;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   opacity: 0.7;
   line-height: 32px;
   white-space: nowrap;
@@ -902,7 +902,7 @@ function hexToRgba(hex: string, alpha: number): string {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: all var(--dur-2) ease;

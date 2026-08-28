@@ -1473,7 +1473,7 @@ function formatDuration(seconds: number) {
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 1.85rem;
   font-weight: 900;
-  letter-spacing: -0.04em;
+  letter-spacing: calc(-0.04em * var(--tracking-scale));
   color: rgba(255, 255, 255, 0.95);
   flex-shrink: 0;
   isolation: isolate;
@@ -1510,7 +1510,7 @@ function formatDuration(seconds: number) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--release-cyan));
   margin: 0;
@@ -1530,7 +1530,7 @@ function formatDuration(seconds: number) {
   font-family: 'Inter', system-ui, sans-serif;
   font-size: clamp(1.75rem, 4vw, 2.75rem);
   font-weight: 800;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   margin: 0;
   line-height: 1.05;
   color: rgb(var(--fg-strong));
@@ -1540,7 +1540,7 @@ function formatDuration(seconds: number) {
 .hero-handle {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   margin: 0;
 }
@@ -1570,13 +1570,13 @@ function formatDuration(seconds: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
 }
 .hero-pill--mono {
   text-transform: none;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .hero-pill--soft {
   color: rgb(var(--fg-muted));
@@ -1621,7 +1621,7 @@ function formatDuration(seconds: number) {
   border-radius: var(--radius-pill);
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid;
   transition: all var(--dur-2);
@@ -1698,14 +1698,14 @@ function formatDuration(seconds: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .kpi-value {
   font-size: clamp(1.4rem, 2.8vw, 1.85rem);
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1;
   color: rgb(var(--fg-strong));
   font-variant-numeric: tabular-nums;
@@ -1713,7 +1713,7 @@ function formatDuration(seconds: number) {
 .kpi-sub {
   font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 /* Second sub-line — coin tone, used for the "(of which X bonus)"
    breakdown on the Uploaded KPI. Reads as derived data, not as a
@@ -1730,7 +1730,7 @@ function formatDuration(seconds: number) {
   margin-top: -0.25rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
 }
 .kpi-sub-icon {
@@ -1769,12 +1769,12 @@ function formatDuration(seconds: number) {
   font-size: clamp(1.05rem, 2vw, 1.35rem);
   color: rgb(var(--accent-warm));
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .kpi-value-unit {
   font-size: 0.5625rem;
   font-weight: 500;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1784,7 +1784,7 @@ function formatDuration(seconds: number) {
   gap: 0.25rem;
   color: rgb(var(--fg-muted));
   text-decoration: none;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
@@ -1838,7 +1838,7 @@ function formatDuration(seconds: number) {
   font-style: italic;
   font-weight: 500;
   font-size: clamp(1.15rem, 2.2vw, 1.55rem);
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   text-transform: none;
   color: rgb(var(--fg-strong));
   margin: 0;
@@ -1921,7 +1921,7 @@ function formatDuration(seconds: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -2053,7 +2053,7 @@ function formatDuration(seconds: number) {
   font-style: italic;
   font-weight: 500;
   font-size: 1rem;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   text-transform: none;
   color: rgb(var(--fg-strong));
 }
@@ -2068,7 +2068,7 @@ function formatDuration(seconds: number) {
   padding: 1.25rem 1rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2085,7 +2085,7 @@ function formatDuration(seconds: number) {
 .bv-empty {
   font-style: italic;
   text-transform: none;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   font-size: 0.75rem;
   color: rgb(var(--fg-faint));
 }
@@ -2159,7 +2159,7 @@ function formatDuration(seconds: number) {
   color: rgb(var(--fg-faint));
   font-variant-numeric: tabular-nums;
   font-size: 0.6875rem;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   white-space: nowrap;
 }
 
@@ -2173,7 +2173,7 @@ function formatDuration(seconds: number) {
   border-radius: var(--radius-pill);
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid;
   white-space: nowrap;
@@ -2195,7 +2195,7 @@ function formatDuration(seconds: number) {
 .bv-source {
   color: rgb(var(--fg-default));
   font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2217,11 +2217,11 @@ function formatDuration(seconds: number) {
 .bv-amount-num {
   font-size: 1rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .bv-amount-unit {
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2270,7 +2270,7 @@ function formatDuration(seconds: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -2337,7 +2337,7 @@ function formatDuration(seconds: number) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2374,7 +2374,7 @@ function formatDuration(seconds: number) {
 .cred-value {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.78rem;
-  letter-spacing: 0.02em;
+  letter-spacing: calc(0.02em * var(--tracking-scale));
   color: #6cd161;
   word-break: break-all;
   user-select: all;
@@ -2423,7 +2423,7 @@ function formatDuration(seconds: number) {
   border-radius: var(--radius-pill);
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   transition: all var(--dur-2);
@@ -2499,7 +2499,7 @@ function formatDuration(seconds: number) {
   border-radius: var(--radius-pill);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   background: rgb(var(--fg-strong));
   color: rgb(var(--bg-base));
@@ -2526,7 +2526,7 @@ function formatDuration(seconds: number) {
   color: rgb(var(--fg-muted));
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   transition: all var(--dur-2);
 }
@@ -2658,7 +2658,7 @@ function formatDuration(seconds: number) {
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   color: rgb(var(--fg-default));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   font-size: 0.625rem;
   text-transform: uppercase;
   font-weight: 700;
@@ -2730,7 +2730,7 @@ function formatDuration(seconds: number) {
 .row-progress-text {
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   white-space: nowrap;
 }
@@ -2745,7 +2745,7 @@ function formatDuration(seconds: number) {
   border-radius: var(--radius-pill);
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-elevated));
@@ -2805,7 +2805,7 @@ function formatDuration(seconds: number) {
 .panel-pager-summary {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .panel-pager-summary strong {
@@ -2827,7 +2827,7 @@ function formatDuration(seconds: number) {
   color: rgb(var(--fg-default));
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   transition: all var(--dur-2);
 }

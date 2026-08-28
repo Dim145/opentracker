@@ -745,7 +745,7 @@ function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: clamp(1.5rem, 2.6vw, 1.9rem);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1;
 }
 .snap-num strong { color: rgb(var(--fg-strong)); font-weight: 800; }
@@ -756,7 +756,7 @@ function discard() {
 .snap--bypass .snap-num strong {
   font-size: 1.05rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .snap--bypass-on .snap-num strong { color: rgb(var(--accent-warm)); }
@@ -764,7 +764,7 @@ function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -804,7 +804,7 @@ function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
@@ -815,7 +815,7 @@ function discard() {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -828,7 +828,7 @@ function discard() {
 .block-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
@@ -922,7 +922,7 @@ function discard() {
   margin: 0 0 0.15rem;
   font-size: 0.92rem;
   font-weight: 800;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .gate-desc {
@@ -977,7 +977,7 @@ function discard() {
 .field-unit {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   padding: 0.05rem 0.4rem;
@@ -1190,7 +1190,7 @@ function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 0.2rem 0.45rem;
   border-radius: var(--radius-sm);
@@ -1269,7 +1269,7 @@ function discard() {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .savebar-status--dirty { color: rgb(var(--accent-warm)); }

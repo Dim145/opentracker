@@ -464,7 +464,7 @@ function bestResolution(list: string[]): string | null {
 .lvl-res {
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.5625rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
   padding: 2px 5px;
   border-radius: var(--radius-xs);

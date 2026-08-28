@@ -931,7 +931,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   text-decoration: none;
@@ -997,7 +997,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1042,7 +1042,7 @@ async function fill() {
   font-weight: 600;
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   line-height: 1.1;
-  letter-spacing: -0.015em;
+  letter-spacing: calc(-0.015em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   overflow-wrap: anywhere;
 }
@@ -1053,7 +1053,7 @@ async function fill() {
   margin-top: 0.55rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .hero-byline-link {
@@ -1100,7 +1100,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5625rem;
   font-weight: 800;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
   opacity: 0.75;
 }
@@ -1111,7 +1111,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 1.6rem;
   font-weight: 900;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   line-height: 1.1;
   text-shadow: 0 0 10px rgb(var(--brass) / 0.4);
 }
@@ -1124,7 +1124,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5313rem;
   font-weight: 800;
-  letter-spacing: 0.28em;
+  letter-spacing: calc(0.28em * var(--tracking-scale));
   text-transform: uppercase;
   opacity: 0.65;
 }
@@ -1176,7 +1176,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass));
 }
@@ -1184,7 +1184,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
   padding: 0.1rem 0.45rem;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-pill);
@@ -1224,7 +1224,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--status-filled));
 }
@@ -1283,7 +1283,7 @@ async function fill() {
   margin-bottom: 0.5rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .thread-num {
@@ -1301,7 +1301,7 @@ async function fill() {
 .thread-edited {
   font-style: italic;
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 .thread-actions { display: inline-flex; gap: 0.2rem; }
@@ -1367,7 +1367,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid rgb(var(--line-default));
   background: transparent;
@@ -1386,7 +1386,7 @@ async function fill() {
   text-align: center;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   border: 1px dashed rgb(var(--line-default));
@@ -1444,7 +1444,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass));
   cursor: pointer;
@@ -1471,7 +1471,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -1501,7 +1501,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brass));
   padding-bottom: 0.6rem;
@@ -1519,7 +1519,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   text-decoration: none;
@@ -1555,7 +1555,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1567,7 +1567,7 @@ async function fill() {
   border-radius: var(--radius-sm);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
 }
 .side-fill-input:focus {
@@ -1580,7 +1580,7 @@ async function fill() {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .side-empty {
@@ -1589,7 +1589,7 @@ async function fill() {
   text-align: center;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -1610,7 +1610,7 @@ async function fill() {
   padding: 0.4rem 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .timeline-dot {
@@ -1643,7 +1643,7 @@ async function fill() {
 .timeline-label {
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--fg-default));
   display: inline-flex;
   align-items: baseline;
@@ -1655,7 +1655,7 @@ async function fill() {
   color: rgb(var(--brass));
   text-decoration: none;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: none;
 }
 .timeline-user:hover { text-decoration: underline; }
@@ -1684,7 +1684,7 @@ async function fill() {
 .req-edit-label {
   font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: calc(0.09em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .req-edit-row {

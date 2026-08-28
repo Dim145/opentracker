@@ -260,7 +260,7 @@ function formatDate(iso: string): string {
   font-family: var(--font-mono);
   font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }

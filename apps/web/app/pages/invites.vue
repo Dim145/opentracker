@@ -574,7 +574,7 @@ async function confirmDelete() {
   gap: 0.625rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.32em;
+  letter-spacing: calc(0.32em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--gild);
   font-weight: 500;
@@ -593,7 +593,7 @@ async function confirmDelete() {
   font-weight: 400;
   font-size: clamp(7rem, 14vw, 11rem);
   font-variation-settings: 'opsz' 144;
-  letter-spacing: -0.06em;
+  letter-spacing: calc(-0.06em * var(--tracking-scale));
   color: var(--ink);
   display: block;
 }
@@ -660,7 +660,7 @@ async function confirmDelete() {
   border-radius: var(--radius-pill);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-muted);
   border: 1px solid rgb(var(--line-default));
@@ -762,7 +762,7 @@ async function confirmDelete() {
   color: var(--ink);
   margin: 0;
   line-height: 1.15;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .draft-sub {
   font-size: 0.875rem;
@@ -786,7 +786,7 @@ async function confirmDelete() {
 .draft-legend {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-muted);
   margin-bottom: 0.625rem;
@@ -828,7 +828,7 @@ async function confirmDelete() {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--ink-soft);
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .draft-segment-help {
   font-family: 'Fraunces', 'Times New Roman', serif;
@@ -914,7 +914,7 @@ async function confirmDelete() {
   font-style: italic;
   font-weight: 500;
   font-size: 1.125rem;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .draft-cta-arrow {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -973,7 +973,7 @@ async function confirmDelete() {
   color: var(--ink);
   margin: 0;
   line-height: 1.15;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .ledger-sub {
   font-size: 0.875rem;
@@ -1016,7 +1016,7 @@ async function confirmDelete() {
   font-weight: 400;
   color: var(--ink-muted);
   font-variation-settings: 'opsz' 144;
-  letter-spacing: -0.04em;
+  letter-spacing: calc(-0.04em * var(--tracking-scale));
   line-height: 1;
   text-align: right;
   padding-right: 0.5rem;
@@ -1046,7 +1046,7 @@ async function confirmDelete() {
 .ledger-code {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.8125rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: var(--ink);
   padding: 0.3rem 0.625rem;
   background: rgb(var(--bg-base));
@@ -1062,7 +1062,7 @@ async function confirmDelete() {
   gap: 0.3rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   font-weight: 500;
   padding: 0.25rem 0.5rem;
@@ -1100,7 +1100,7 @@ async function confirmDelete() {
 .ledger-meta dt {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-muted);
   font-weight: 500;
@@ -1219,7 +1219,7 @@ async function confirmDelete() {
 .seal-eyebrow {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-muted);
   margin: 0 0 0.125rem;
@@ -1231,7 +1231,7 @@ async function confirmDelete() {
   font-size: 1.25rem;
   color: var(--ink);
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 
 .seal-body {
@@ -1279,7 +1279,7 @@ async function confirmDelete() {
   justify-content: space-between;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--ink-muted);
 }
@@ -1288,7 +1288,7 @@ async function confirmDelete() {
   display: block;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: clamp(0.95rem, 2vw, 1.2rem);
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: var(--ink);
   font-weight: 700;
   user-select: all;

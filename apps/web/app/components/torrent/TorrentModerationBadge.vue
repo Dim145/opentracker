@@ -88,7 +88,7 @@ const title = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   color: var(--c-text);
   background: linear-gradient(180deg, var(--c-bg) 0%, var(--c-bg-soft) 100%);
   border: 1.5px solid var(--c-line);
@@ -131,7 +131,7 @@ const title = computed(() => {
 .mod-badge--sm {
   font-size: 0.5625rem;
   padding: 0.2rem 0.45rem;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   gap: 0.3rem;
 }
 

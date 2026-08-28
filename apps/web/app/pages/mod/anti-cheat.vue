@@ -944,7 +944,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -952,7 +952,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.8125rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--tone, var(--online)));
 }
@@ -1010,14 +1010,14 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .ac-tile-value {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 1.55rem;
   font-weight: 900;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1;
 }
@@ -1053,16 +1053,16 @@ const emptySub = computed(() => {
   font-family: 'Inter', system-ui, sans-serif;
   font-weight: 800;
   font-size: 1.05rem;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 }
 .ac-feed-count {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   padding: 0.15rem 0.55rem;
   border: 1px solid rgb(var(--line-default));
@@ -1083,7 +1083,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -1107,7 +1107,7 @@ const emptySub = computed(() => {
   border-radius: var(--radius-lg);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1226,7 +1226,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--kind-tone, var(--danger)));
 }
 .ac-case-num-prefix { font-size: 0.5938rem; opacity: 0.7; }
@@ -1244,7 +1244,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--kind-tone, var(--danger)));
 }
@@ -1280,7 +1280,7 @@ const emptySub = computed(() => {
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 0.5938rem;
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgba(255, 255, 255, 0.95);
   text-shadow: 0 1px 2px rgb(var(--shadow-color) / calc(0.25 * var(--shadow-strength)));
   flex-shrink: 0;
@@ -1335,7 +1335,7 @@ const emptySub = computed(() => {
 .ac-case-time {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
 }
 .ac-case-verdict {
@@ -1348,7 +1348,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .ac-case-verdict--open {
@@ -1382,7 +1382,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 1.05rem;
   font-weight: 900;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   padding: 0.18rem 0.55rem;
   border: 2px solid currentColor;
@@ -1424,7 +1424,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1457,7 +1457,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   user-select: none;
@@ -1494,12 +1494,12 @@ const emptySub = computed(() => {
   margin: 0;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-default));
 }
 .ac-already-line strong {
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--online));
 }
 .ac-already-note {
@@ -1517,7 +1517,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: background var(--dur-2), color var(--dur-2), border-color var(--dur-2);
@@ -1565,7 +1565,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -1611,7 +1611,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   border: 1px solid;
   cursor: pointer;
@@ -1690,7 +1690,7 @@ const emptySub = computed(() => {
   font-weight: 800;
   font-size: 1.05rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .ac-empty-sub {
@@ -1723,7 +1723,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   cursor: pointer;
   transition: background var(--dur-2), border-color var(--dur-2);
@@ -1737,7 +1737,7 @@ const emptySub = computed(() => {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: baseline;
@@ -1813,7 +1813,7 @@ const emptySub = computed(() => {
   color: rgb(var(--fg-muted));
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   cursor: pointer;
   transition: all var(--dur-3) ease;
 }

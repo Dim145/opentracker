@@ -138,7 +138,7 @@ async function lift(id: string): Promise<void> {
 .masks-empty { color: rgb(var(--fg-muted)); text-align: center; padding: 2rem 0; }
 .masks-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
 .masks-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.8rem; border: 1px solid rgb(var(--border) / 0.7); border-radius: var(--radius-lg); background: rgb(var(--bg-subtle) / 0.4); }
-.masks-scope { text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.05em; padding: 0.15rem 0.45rem; border-radius: var(--radius-sm); background: rgb(var(--border) / 0.6); color: rgb(var(--fg-muted)); flex: none; }
+.masks-scope { text-transform: uppercase; font-size: 0.65rem; letter-spacing: calc(0.05em * var(--tracking-scale)); padding: 0.15rem 0.45rem; border-radius: var(--radius-sm); background: rgb(var(--border) / 0.6); color: rgb(var(--fg-muted)); flex: none; }
 .masks-scope--author { background: rgb(var(--warning) / 0.2); color: rgb(var(--warning)); }
 /* An issuer mask hides everything one instance signed, whoever serves it —
    the widest of the four, so it reads as the strongest. */

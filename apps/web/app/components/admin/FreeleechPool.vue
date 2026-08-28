@@ -1205,7 +1205,7 @@ function describeWindow(w: Window): string {
   font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--gold);
 }
@@ -1222,7 +1222,7 @@ function describeWindow(w: Window): string {
   margin: 0 0 1.1rem;
   font-size: clamp(2.4rem, 6vw, 4rem);
   line-height: 0.95;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em * var(--tracking-scale));
 }
 .hero-title-le {
   font-family: var(--font-display);
@@ -1255,7 +1255,7 @@ function describeWindow(w: Window): string {
   color: rgb(var(--fg-muted));
   font-family: var(--font-mono);
   font-size: 0.8rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .boot-icon {
@@ -1310,14 +1310,14 @@ function describeWindow(w: Window): string {
   font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   color: rgb(var(--fg-faint));
 }
 .card-title {
   margin: 0;
   font-size: 1.4rem;
   font-weight: 600;
-  letter-spacing: -0.012em;
+  letter-spacing: calc(-0.012em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .card-help {
@@ -1412,7 +1412,7 @@ function describeWindow(w: Window): string {
   display: block;
   font-size: 2.2rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   line-height: 1;
 }
@@ -1428,7 +1428,7 @@ function describeWindow(w: Window): string {
   font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 500;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -1458,7 +1458,7 @@ function describeWindow(w: Window): string {
   font-family: var(--font-mono);
   font-size: 0.5938rem;
   font-weight: 500;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -1476,7 +1476,7 @@ function describeWindow(w: Window): string {
   font-size: 1.35rem;
   font-weight: 700;
   color: var(--gold);
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .readout-of {
   font-size: 0.82rem;
@@ -1530,7 +1530,7 @@ function describeWindow(w: Window): string {
   font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: var(--gold);
 }
@@ -1651,7 +1651,7 @@ function describeWindow(w: Window): string {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   transition: color var(--dur-4) ease;
@@ -1709,7 +1709,7 @@ function describeWindow(w: Window): string {
   font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1751,7 +1751,7 @@ function describeWindow(w: Window): string {
   padding: 0.85rem 1rem;
   font-size: 1.7rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
 }
 .textarea {
   resize: vertical;
@@ -1783,7 +1783,7 @@ function describeWindow(w: Window): string {
   font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -1833,7 +1833,7 @@ select.input option {
   color: rgb(var(--fg-default));
   font-size: 0.88rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
   cursor: pointer;
   transition: all var(--dur-3) ease;
 }
@@ -1976,7 +1976,7 @@ select.input option {
   font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -2030,7 +2030,7 @@ select.input option {
   font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .window-kind--oneoff { color: var(--cool); }
@@ -2057,7 +2057,7 @@ select.input option {
   font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -2106,7 +2106,7 @@ select.input option {
   font-family: var(--font-mono);
   font-size: 0.6563rem;
   font-weight: 600;
-  letter-spacing: 0.15em;
+  letter-spacing: calc(0.15em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
   border-bottom: 1px solid rgb(var(--line-default));
@@ -2140,7 +2140,7 @@ select.input option {
   font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
 }
 .pill--filling { color: var(--gold); }

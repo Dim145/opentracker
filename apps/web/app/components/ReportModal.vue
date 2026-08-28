@@ -362,7 +362,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: #f43f5e;
 }
@@ -400,7 +400,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-inset));
@@ -426,7 +426,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   flex-shrink: 0;
 }
 
@@ -446,7 +446,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -460,7 +460,7 @@ onBeforeUnmount(() => {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
   color: rgb(var(--fg-faint));
-  letter-spacing: 0.05em;
+  letter-spacing: calc(0.05em * var(--tracking-scale));
   transition: color var(--dur-3) ease;
 }
 .slip-counter--warn {
@@ -504,7 +504,7 @@ onBeforeUnmount(() => {
   font-size: 0.9rem;
 }
 .chip-label {
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 
 /* ── Textarea ───────────────────────────────────────────── */
@@ -570,7 +570,7 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-strong));
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   cursor: pointer;
   transition: all var(--dur-2) ease;
   font-family: inherit;
@@ -593,7 +593,7 @@ onBeforeUnmount(() => {
   color: white;
   text-transform: uppercase;
   font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
 }
 .slip-btn--file:hover:not(:disabled) {
   background: #e11d48;

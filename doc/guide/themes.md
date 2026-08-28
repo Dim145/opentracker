@@ -58,7 +58,7 @@ colour of every form field on the site at 2.08:1.
 
 ### What a theme can change
 
-Forty values, grouped the way the editor groups them.
+Forty-one values, grouped the way the editor groups them.
 
 | Group | Tokens |
 |---|---|
@@ -70,7 +70,7 @@ Forty values, grouped the way the editor groups them.
 | Elevation | `shadow-color`, `shadow-strength` |
 | Shape | `radius`, `radius-pill` |
 | Density | `ui-scale` |
-| Typography | `font-sans`, `font-mono`, `font-display` |
+| Typography | `font-sans`, `font-mono`, `font-display`, `tracking-scale` |
 | Motion | `motion-scale`, `ease-standard`, `ease-emphasis` |
 | Chrome | `focus-ring`, `bg-pattern-rgb`, `bg-pattern-alpha`, `bg-pattern-kind`, `bg-pattern-step`, `color-scheme` |
 | Ambience | `accent-cool`, `accent-paper` |
@@ -115,6 +115,13 @@ It is applied as `calc(100% * var(--ui-scale))`, so a visitor who has set a
 larger default font size in their browser keeps it and your factor multiplies on
 top. The floor is `0.75` rather than `0`: this interface is full of 0.56 rem
 micro-labels, and a theme that can render itself invisible is a theme that will.
+
+**`tracking-scale` multiplies the letter-spacing, all 867 of them.** Same shape
+as the other scales, and for the same reason: the values are tuned against each
+other — negative on the large headings, wide on the small mono labels — and one
+global value would flatten a distinction the design makes deliberately. `0`
+removes tracking entirely; `2` is very airy and widens the negative tracking on
+headings too, amplifying the design's own intent rather than fighting it.
 
 **The font roles pick from a list, not a text field, and the list is the point.**
 A font has to *be there*: the faces are downloaded when the image is built and

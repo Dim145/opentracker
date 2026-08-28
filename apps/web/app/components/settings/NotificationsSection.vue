@@ -1103,7 +1103,7 @@ async function saveRouting(silent = false) {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   color: rgb(var(--accent-warm));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
@@ -1114,7 +1114,7 @@ async function saveRouting(silent = false) {
   margin: 0;
   font-size: 0.92rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -1122,12 +1122,12 @@ async function saveRouting(silent = false) {
   margin: 0.18rem 0 0;
   font-size: 0.75rem;
   color: rgb(var(--fg-muted));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .ns-block-meta {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
@@ -1254,7 +1254,7 @@ async function saveRouting(silent = false) {
   font-size: 0.92rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .dest-target {
   font-family: ui-monospace, SFMono-Regular, monospace;
@@ -1274,7 +1274,7 @@ async function saveRouting(silent = false) {
 .dest-status {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.625rem;
-  letter-spacing: 0.16em;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   font-weight: 700;
   padding: 0.22rem 0.55rem;
@@ -1432,7 +1432,7 @@ async function saveRouting(silent = false) {
 .field-opt {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.5938rem;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   font-weight: 500;
@@ -1667,12 +1667,12 @@ async function saveRouting(silent = false) {
   font-size: 0.82rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
-  letter-spacing: 0.01em;
+  letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 .cat-stat {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6563rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   text-transform: uppercase;
 }
@@ -1776,7 +1776,7 @@ async function saveRouting(silent = false) {
   gap: 0.4rem;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--line-default));

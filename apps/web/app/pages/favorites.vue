@@ -474,7 +474,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6563rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -504,7 +504,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'Inter', system-ui, sans-serif;
   font-weight: 900;
   font-size: clamp(1.8rem, 3.4vw, 2.4rem);
-  letter-spacing: -0.02em;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   line-height: 1.05;
   color: rgb(var(--fg-strong));
 }
@@ -527,7 +527,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.24em;
+  letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -550,7 +550,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -573,7 +573,7 @@ async function unfavorite(row: FavoriteRow) {
   padding: 2.5rem 1rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -701,7 +701,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: calc(0.12em * var(--tracking-scale));
   color: rgb(var(--gold));
   text-shadow: 0 0 6px rgb(var(--gold) / 0.35);
 }
@@ -713,7 +713,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   /* Tiny "ink-stamp" treatment — the date sits in a thin border
@@ -748,7 +748,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   overflow: hidden;
@@ -767,7 +767,7 @@ async function unfavorite(row: FavoriteRow) {
   font-weight: 800;
   font-size: 0.98rem;
   line-height: 1.25;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   overflow-wrap: anywhere;
   text-wrap: pretty;
@@ -792,7 +792,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
 }
 .card-stat {
   display: inline-flex;
@@ -819,7 +819,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5938rem;
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brick));
   background: rgb(var(--brick) / 0.06);
@@ -906,7 +906,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.5313rem;
   font-weight: 800;
-  letter-spacing: 0.22em;
+  letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--brick) / 0.6);
   border: 1.5px solid rgb(var(--brick) / 0.45);
@@ -920,7 +920,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 1.15rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
 }
 .empty-sub {
@@ -943,7 +943,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   text-decoration: none;
   transition: background var(--dur-3), color var(--dur-2), transform var(--dur-3);
@@ -973,7 +973,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   cursor: pointer;
@@ -989,7 +989,7 @@ async function unfavorite(row: FavoriteRow) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   color: rgb(var(--fg-muted));
   display: inline-flex;
   align-items: baseline;
