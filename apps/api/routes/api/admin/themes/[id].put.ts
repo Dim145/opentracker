@@ -15,7 +15,11 @@ import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 import { uploadTokenProblems } from '~~/utils/fonts';
 import { updateThemeSchema } from '~~/utils/themeSchemas';
-import { MAX_ENABLED_THEMES, bumpThemeVersion } from '~~/utils/themes';
+import {
+  MAX_ENABLED_THEMES,
+  bumpThemeVersion,
+  releaseThemeReferences,
+} from '~~/utils/themes';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
@@ -33,7 +37,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const [existing] = await db
-    .select({ enabled: schema.themes.enabled })
+    .select({ enabled: schema.themes.enabled, slug: schema.themes.slug })
     .from(schema.themes)
     .where(eq(schema.themes.id, id))
     .limit(1);
@@ -80,6 +84,16 @@ export default defineEventHandler(async (event) => {
       updatedAt: new Date(),
     })
     .where(eq(schema.themes.id, id));
+
+  // Turning a theme OFF removes it from the stylesheet, so anything still
+  // pointing at it now points at a block that will not be emitted. The settings
+  // route refuses to point at a disabled theme; this is the same invariant
+  // approached from the other side, and without it an owner could disable the
+  // site default and leave every anonymous visitor on a `data-theme` with no
+  // matching rule.
+  if (body.enabled === false && existing.enabled) {
+    await releaseThemeReferences(existing.slug);
+  }
 
   await bumpThemeVersion();
   return { ok: true };

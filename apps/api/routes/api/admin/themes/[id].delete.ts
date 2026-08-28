@@ -17,11 +17,10 @@ import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
-import { setSetting, SETTINGS_KEYS } from '~~/utils/settings';
 import {
   bumpThemeVersion,
   getDefaultTheme,
-  getSystemMapping,
+  releaseThemeReferences,
 } from '~~/utils/themes';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
@@ -40,10 +39,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'No such theme' });
   }
 
-  const [siteDefault, system] = await Promise.all([
-    getDefaultTheme(),
-    getSystemMapping(),
-  ]);
+  // Read before the delete, because the fallback for members holding this slug
+  // depends on whether the slug being deleted IS the default.
+  const siteDefault = await getDefaultTheme();
   // If the theme being deleted IS the site default, members fall back to `dark`
   // rather than to a slug that is about to stop existing.
   const fallback = siteDefault === theme.slug ? 'dark' : siteDefault;
@@ -63,15 +61,7 @@ export default defineEventHandler(async (event) => {
   // outside the transaction — a rolled-back delete with a reset mapping would be
   // a worse inconsistency than the reverse, and the reverse self-heals on the
   // next save.
-  if (siteDefault === theme.slug) {
-    await setSetting(SETTINGS_KEYS.THEME_DEFAULT, 'dark');
-  }
-  if (system.light === theme.slug) {
-    await setSetting(SETTINGS_KEYS.THEME_SYSTEM_LIGHT, 'light');
-  }
-  if (system.dark === theme.slug) {
-    await setSetting(SETTINGS_KEYS.THEME_SYSTEM_DARK, 'dark');
-  }
+  await releaseThemeReferences(theme.slug);
 
   await bumpThemeVersion();
   return { ok: true, membersMoved: moved };

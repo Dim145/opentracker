@@ -309,6 +309,59 @@ export async function themeStylesheet(): Promise<{
   return { css: buildThemeCss(themes, mapping), version };
 }
 
+/**
+ * Point the site default and system mode away from `slug`, which is about to
+ * stop being servable — deleted, or disabled.
+ *
+ * There are two doors into "nothing serves this slug any more" and only one of
+ * them used to reset the pointers. Deleting did; disabling did not, so an owner
+ * who turned off the theme that happened to be the site default left every
+ * anonymous visitor on `<html data-theme='nocturne'>` with no `nocturne` block
+ * in the stylesheet — the page falls through to whatever `:root` declares and
+ * looks like the theme system is broken. Same for a system half, which quietly
+ * resolves to the dark built-in. `PUT /themes/settings` refuses to point AT a
+ * disabled theme, which is the same invariant seen from the other side; this is
+ * the code that keeps the two doors honest.
+ *
+ * Writes are conditional, so calling this for a slug nothing references costs
+ * three cached reads and no write.
+ */
+export async function releaseThemeReferences(slug: string): Promise<void> {
+  const [siteDefault, system] = await Promise.all([
+    getDefaultTheme(),
+    getSystemMapping(),
+  ]);
+
+  if (siteDefault === slug) {
+    await setSetting(SETTINGS_KEYS.THEME_DEFAULT, 'dark');
+  }
+
+  // The two halves, and the rule that says they must differ.
+  //
+  // Resetting one half to its built-in can collide with a half that already
+  // points AT that built-in: `light: 'nocturne', dark: 'light'` is a legal
+  // mapping, and releasing `nocturne` would leave both halves on `light`, so
+  // `system` would resolve to one appearance whichever way the OS is set. That
+  // is exactly what the rule exists to prevent, so the two are computed
+  // together rather than in independent `if`s — the second reset has to see
+  // what the first chose.
+  let { light, dark } = system;
+  if (light === slug) light = 'light';
+  if (dark === slug) dark = 'dark';
+  if (light === dark) {
+    // Whichever half was NOT just released keeps its value; the other moves to
+    // the opposite built-in.
+    if (system.light === slug) dark = dark === 'light' ? 'dark' : 'light';
+    else light = light === 'dark' ? 'light' : 'dark';
+  }
+  if (light !== system.light) {
+    await setSetting(SETTINGS_KEYS.THEME_SYSTEM_LIGHT, light);
+  }
+  if (dark !== system.dark) {
+    await setSetting(SETTINGS_KEYS.THEME_SYSTEM_DARK, dark);
+  }
+}
+
 /** Slug shape. Reaches a CSS attribute selector, so it is validated, not trusted. */
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
