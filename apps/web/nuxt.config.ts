@@ -432,6 +432,85 @@ export default defineNuxtConfig({
       meta: [
         { name: 'description', content: 'High-performance BitTorrent tracker' },
       ],
+      script: [
+        {
+          /**
+           * The cookie, applied before the first paint.
+           *
+           * Here for the same reason the stylesheet link is, and it is the same
+           * bug found twice: `useHead` in `app.vue` does not run in the static
+           * build, so this script reached the SSR markup and nowhere else. A
+           * member whose theme is NOT the site default therefore saw the default
+           * painted first and their own theme only once the bundle had booted —
+           * the exact case an operator running the `front` image would notice.
+           *
+           * `app.head` puts it in the HTML both shapes generate, where it is a
+           * blocking inline script in `<head>` and runs before anything paints.
+           *
+           * Under SSR the server has already written the attribute from the same
+           * cookie, so this agrees with it rather than fighting it.
+           *
+           * What it does, and what it deliberately does not:
+           *
+           * It checks the SHAPE of the cookie and nothing else. Which themes
+           * exist is the server's business, and a slug that no longer does
+           * resolves to the site default on the next `/api/auth/status` — a
+           * wrong theme for one paint beats an unthemed one, and beats a script
+           * that has to know the list.
+           *
+           * No cookie means "follows the site default", and it writes NOTHING
+           * for that case: `/api/theme.css` emits the default under a bare
+           * `:root`, so a document with no attribute is already painted right.
+           * Guessing `dark` here is what made the static build flash before.
+           */
+          // The shipped script carries no comments: it is inline in every
+          // document this application serves, so its prose is bytes on every
+          // page load. The reasoning lives above, in source, where it costs
+          // nobody anything.
+          //
+          // No backticks inside the literal — one in a comment closed it once
+          // already, which is how that rule got written down.
+          innerHTML: `
+            (function () {
+              try {
+                var m = document.cookie.match(/(?:^|;\\s*)trackarr-theme=([^;]*)/);
+                var v = m ? decodeURIComponent(m[1]) : '';
+                if (/^[a-z0-9-]{1,64}$/.test(v)) {
+                  document.documentElement.setAttribute('data-theme', v);
+                }
+              } catch (e) {}
+            })();
+          `,
+          tagPosition: 'head',
+        },
+      ],
+      link: [
+        {
+          /**
+           * The theme stylesheet, in the document from the start.
+           *
+           * Here rather than in `app.vue`'s `useHead` for one reason, and it is
+           * the whole reason the static build could not theme its first paint:
+           * with `ssr: false` there is no server to render `useHead`, so that
+           * link was injected by JavaScript after the bundle booted. The page
+           * therefore painted the bundle's built-in dark, downloaded the theme
+           * stylesheet, and only then became the site's theme — measured at
+           * several hundred milliseconds of the wrong colours.
+           *
+           * `app.head` is baked into the HTML Nuxt generates for BOTH shapes, so
+           * the link is render-blocking in both and the first paint is already
+           * the right one. Paired with the site default being emitted under a
+           * bare `:root`, no JavaScript is involved in getting the colours right
+           * at all.
+           */
+          rel: 'stylesheet',
+          href: '/api/theme.css',
+          // After `entry.css`, so a theme block wins over the built-in `:root`
+          // declarations it is meant to override. Capo gives stylesheets 60 by
+          // default; the built-ins live in the bundle, so this has to sort later.
+          tagPriority: 65,
+        },
+      ],
     },
   },
 

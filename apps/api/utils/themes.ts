@@ -217,10 +217,33 @@ function block(selector: string, tokens: TokenMap): string {
  * a CSS-level indirection is not available: custom properties cascade, so
  * `[data-theme=system] { --x: var(--from-other-theme) }` would need the other
  * theme's block to apply to the same element, which it does not.
+ *
+ * ## The site default also answers to a bare `:root`
+ *
+ * The default theme's block is emitted as `:root, :root[data-theme='<slug>']`,
+ * so a document with NO `data-theme` attribute at all renders the site default.
+ *
+ * That is not a nicety, it is the whole first paint of the static build. There
+ * is no server there to put the attribute in the markup, and the boot script
+ * cannot know what the default is — so before this, a visitor with no cookie got
+ * the bundle's built-in dark until `/api/branding` came back and JavaScript
+ * corrected it. Measured at 383 ms on a local network, which is a black page
+ * flipping to a pale one, in front of the visitor.
+ *
+ * This puts the answer in the one thing that already arrives before the first
+ * paint: the render-blocking stylesheet in `<head>`. No request is added,
+ * roughly no bytes are added — the selector gains eight characters — and the
+ * correct first paint stops depending on JavaScript in EITHER build.
+ *
+ * Specificity keeps it honest. A bare `:root` is (0,1,0) and
+ * `:root[data-theme='x']` is (0,2,0), so anyone who has chosen still wins,
+ * including the member whose cookie the boot script applies a moment later.
  */
 export function buildThemeCss(
   themes: ServableTheme[],
   mapping: { light: string; dark: string },
+  /** The slug an unstyled document falls back to. `system` is allowed. */
+  siteDefault: string,
 ): string {
   const bySlug = new Map(themes.map((t) => [t.slug, t]));
 
@@ -250,16 +273,39 @@ export function buildThemeCss(
   ]);
   if (faces) parts.push(faces);
 
+  /**
+   * The selector a theme answers to.
+   *
+   * The site default answers to a bare `:root` as well, so an unstyled document
+   * — the static build's first paint — lands on it. See the note above.
+   */
+  const selectorFor = (slug: string) =>
+    slug === siteDefault
+      ? `:root, :root[data-theme='${slug}']`
+      : `:root[data-theme='${slug}']`;
+
   for (const t of themes) {
-    parts.push(
-      block(`:root[data-theme='${t.slug}']`, resolveTokens(t.base, t.tokens)),
-    );
+    parts.push(selectorFor(t.slug) + ' {\n' + declarations(resolveTokens(t.base, t.tokens)) + '\n}');
     // The owner's free-form CSS, scoped to this theme. Stored unscoped so it can
     // also be emitted under `[data-theme='system']` below when this theme is one
     // of the halves — see `sanitiseCustomCss`.
+    //
+    // Not widened to a bare `:root` even when this is the default: the tokens
+    // are what the first paint needs, and free-form CSS scoped to nothing at all
+    // is a much larger blast radius for a much smaller gain. It applies the
+    // moment the attribute lands.
     if (t.customCss) {
       parts.push(scopeCustomCss(t.customCss, t.slug));
     }
+  }
+
+  // A built-in as the site default has no row above to widen, so it gets its own
+  // bare block. `dark` would work by accident — `main.css` already declares
+  // `:root, :root[data-theme="dark"]` — but `light` would not, and relying on
+  // one of the two matching the bundle's fallback is the kind of thing that
+  // holds until somebody edits `main.css`.
+  if ((BUILT_IN_THEMES as readonly string[]).includes(siteDefault)) {
+    parts.push(block(':root', tokensFor(siteDefault)));
   }
 
   /** A mapped theme's custom CSS, so system mode is not a second-class theme. */
@@ -268,13 +314,15 @@ export function buildThemeCss(
 
   // System mode. The light branch is unconditional so a browser that reports no
   // preference — or one whose user is in light mode — still gets something.
-  parts.push(block(":root[data-theme='system']", tokensFor(mapping.light)));
+  parts.push(
+    selectorFor(SYSTEM_THEME) + ' {\n' + declarations(tokensFor(mapping.light)) + '\n}',
+  );
   const lightCustom = customFor(mapping.light);
   if (lightCustom) parts.push(scopeCustomCss(lightCustom, 'system'));
 
   const darkParts = [
     '@media (prefers-color-scheme: dark) {',
-    "  :root[data-theme='system'] {",
+    `  ${selectorFor(SYSTEM_THEME)} {`,
     declarations(tokensFor(mapping.dark), '    '),
     '  }',
   ];
@@ -301,12 +349,13 @@ export async function themeStylesheet(): Promise<{
   css: string;
   version: string;
 }> {
-  const [themes, mapping, version] = await Promise.all([
+  const [themes, mapping, siteDefault, version] = await Promise.all([
     enabledThemes(),
     getSystemMapping(),
+    getDefaultTheme(),
     getThemeVersion(),
   ]);
-  return { css: buildThemeCss(themes, mapping), version };
+  return { css: buildThemeCss(themes, mapping, siteDefault), version };
 }
 
 /**

@@ -75,12 +75,67 @@ describe('what gets served', () => {
     expect(await enabledThemes()).toHaveLength(MAX_ENABLED_THEMES);
   });
 
+  // ── The site default answers to a bare `:root` ──────────────────────
+  //
+  // What the static build's first paint depends on. There is no server there to
+  // put `data-theme` in the markup and the boot script cannot know what the
+  // default is, so before this the page painted the bundle's built-in dark until
+  // `/api/branding` came back — 383 ms of a black page flipping to a pale one,
+  // measured. The stylesheet is the only thing that both knows the answer and
+  // arrives before the first paint.
+  describe('the site default', () => {
+    it('is what an unstyled document gets', async () => {
+      await makeTheme({ slug: 'nocturne', base: 'dark', tokens: { accent: '129 140 248' } });
+      const css = buildThemeCss(await enabledThemes(), { light: 'light', dark: 'dark' }, 'nocturne');
+      expect(css).toContain(":root, :root[data-theme='nocturne']");
+    });
+
+    it('and no other theme is', async () => {
+      await makeTheme({ slug: 'nocturne', base: 'dark' });
+      await makeTheme({ slug: 'ember', base: 'dark' });
+      const css = buildThemeCss(await enabledThemes(), { light: 'light', dark: 'dark' }, 'nocturne');
+      expect(css).toContain(":root[data-theme='ember']");
+      expect(css).not.toContain(":root, :root[data-theme='ember']");
+    });
+
+    it('keeps losing to an explicit choice', () => {
+      // The property that makes this safe rather than clever: a bare `:root` is
+      // specificity (0,1,0) and `:root[data-theme='x']` is (0,2,0). Asserted on
+      // the shape, because the point is that the widened selector is a LIST and
+      // not a replacement — `:root` alone would win ties by source order and
+      // override every theme below it.
+      const css = buildThemeCss([], { light: 'light', dark: 'dark' }, 'system');
+      expect(css).toContain(":root, :root[data-theme='system']");
+      expect(css).not.toMatch(/^:root \{/m);
+    });
+
+    it('widens both halves when it is `system`', () => {
+      const css = buildThemeCss([], { light: 'light', dark: 'dark' }, 'system');
+      // Once unconditionally, once inside the dark media query.
+      expect(css.match(/:root, :root\[data-theme='system'\]/g)).toHaveLength(2);
+      expect(css).toContain('@media (prefers-color-scheme: dark)');
+    });
+
+    it('gets its own block when it is a built-in', () => {
+      // `light` has no row to widen, and relying on `main.css` already declaring
+      // `:root, :root[data-theme="dark"]` would cover exactly one of the two.
+      const css = buildThemeCss([], { light: 'light', dark: 'dark' }, 'light');
+      expect(css).toMatch(/^:root \{/m);
+      expect(css).toContain(`--bg-base: ${BUILT_IN_TOKENS.light['bg-base']};`);
+    });
+
+    it('does not widen a theme nobody defaulted to', () => {
+      const css = buildThemeCss([], { light: 'light', dark: 'dark' }, 'dark');
+      expect(css).not.toContain(":root, :root[data-theme='system']");
+    });
+  });
+
   it('emits one block per theme, resolved against its base', async () => {
     await makeTheme({ slug: 'crimson', base: 'dark', tokens: { accent: '220 38 38' } });
     const css = buildThemeCss(await enabledThemes(), {
       light: 'light',
       dark: 'dark',
-    });
+    }, 'dark');
 
     expect(css).toContain(":root[data-theme='crimson']");
     expect(css).toContain('--accent: 220 38 38;');
@@ -103,7 +158,7 @@ describe('what gets served', () => {
     const css = buildThemeCss(await enabledThemes(), {
       light: 'light',
       dark: 'dark',
-    });
+    }, 'dark');
 
     expect(css).not.toContain('evil.example');
     expect(css).not.toContain('url(');
@@ -119,14 +174,14 @@ describe('what gets served', () => {
     const css = buildThemeCss(await enabledThemes(), {
       light: 'light',
       dark: 'dark',
-    });
+    }, 'dark');
     expect((css.match(/\{/g) ?? []).length).toBe((css.match(/\}/g) ?? []).length);
   });
 });
 
 describe('system mode', () => {
   it('emits both halves, the dark one behind the media query', async () => {
-    const css = buildThemeCss([], { light: 'light', dark: 'dark' });
+    const css = buildThemeCss([], { light: 'light', dark: 'dark' }, 'dark');
 
     expect(css).toContain(":root[data-theme='system']");
     expect(css).toContain('@media (prefers-color-scheme: dark)');
@@ -146,13 +201,13 @@ describe('system mode', () => {
     const css = buildThemeCss(await enabledThemes(), {
       light: 'light',
       dark: 'nocturne',
-    });
+    }, 'dark');
     const afterMedia = css.slice(css.indexOf('@media'));
     expect(afterMedia).toContain('--accent: 99 102 241;');
   });
 
   it('falls back rather than emitting an empty block for a missing slug', async () => {
-    const css = buildThemeCss([], { light: 'light', dark: 'deleted-theme' });
+    const css = buildThemeCss([], { light: 'light', dark: 'deleted-theme' }, 'dark');
     const afterMedia = css.slice(css.indexOf('@media'));
     expect(afterMedia).toContain(`--bg-base: ${BUILT_IN_TOKENS.dark['bg-base']};`);
   });
@@ -212,7 +267,7 @@ describe('themes reserved to a role', () => {
     const css = buildThemeCss(await enabledThemes(), {
       light: 'light',
       dark: 'dark',
-    });
+    }, 'dark');
     expect(css).toContain(":root[data-theme='donator']");
   });
 

@@ -222,6 +222,20 @@ await resetRateLimits();
     (await withDefault('e2e-crimson')) === 'e2e-crimson',
     'SSR did not carry the default');
 
+  // And without a server at all. The static build has no SSR to write the
+  // attribute and no way for its boot script to know the default, so the first
+  // paint rests entirely on the stylesheet emitting the default under a bare
+  // `:root`. Checked on the CSS rather than on a page, because that IS the
+  // mechanism — the static bundle is the same code with `ssr: false`.
+  const sheet = (await css()).text;
+  check('and the stylesheet paints it with no attribute at all',
+    sheet.includes(":root, :root[data-theme='e2e-crimson']"),
+    'no bare :root for the default — the static build would flash');
+  check('while another theme stays behind its attribute',
+    sheet.includes(":root[data-theme='e2e-gold']") &&
+      !sheet.includes(":root, :root[data-theme='e2e-gold']"),
+    'a non-default theme was widened');
+
   // And it keeps reaching them — a default is a live setting, not a value
   // stamped onto people once.
   check('changing the default moves them',
