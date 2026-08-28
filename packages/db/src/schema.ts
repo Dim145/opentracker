@@ -3275,3 +3275,105 @@ export const presentationTemplates = pgTable(
 export type PresentationTemplate = typeof presentationTemplates.$inferSelect;
 export type NewPresentationTemplate =
   typeof presentationTemplates.$inferInsert;
+
+// ============================================================================
+// Themes (admin-defined appearance)
+// ============================================================================
+//
+// `light` and `dark` are NOT rows. They are code constants in
+// `apps/web/app/assets/css/main.css`, mirrored in `packages/shared/src/theme.ts`
+// with a test that keeps the two in step — the same shape as
+// `presentationTemplates`, whose site default is "the code constant and cannot
+// be overridden". So nothing here can edit or delete them, and an instance
+// always has a working appearance to fall back to. This table holds only what
+// an admin created.
+//
+// What a row carries is VALUES, never names. The token schema is versioned with
+// the code because Tailwind freezes utility names at build time and compiles
+// them to `var(--token)`; a row cannot invent a utility. The practical upside is
+// that adding a token category later needs no migration.
+export const themes = pgTable(
+  'themes',
+  {
+    id: text('id').primaryKey(), // UUID
+    /**
+     * What `data-theme` is set to, and what `users.theme` stores.
+     *
+     * `[a-z0-9-]+`, derived from the name and validated at the route. It reaches
+     * a CSS selector, so it is the one field here whose shape is load-bearing:
+     * anything else would let a theme name close the attribute selector.
+     * `light`, `dark` and `system` are refused as slugs — they already mean
+     * something.
+     */
+    slug: text('slug').notNull().unique(),
+    name: text('name').notNull(),
+    description: text('description'),
+    /** `light` | `dark` — the built-in whose tokens this one starts from. */
+    base: text('base').notNull().default('dark'),
+    /**
+     * Only what DIVERGES from the base.
+     *
+     * Storing the resolved set instead would fork the theme from the base
+     * permanently: a later correction to a built-in token would never reach it.
+     * That is the WordPress style-variation failure — the variation is copied
+     * into the row and "the user will not receive those changes if they have
+     * already saved". A key absent here is an inheritance, not a value.
+     */
+    tokens: jsonb('tokens').$type<Record<string, string>>().notNull().default({}),
+    /**
+     * Raw CSS, owner-only, null by default.
+     *
+     * Reserved for wave 3 and deliberately present from the first migration:
+     * the column costs nothing empty, and adding it later would mean a second
+     * migration for a feature already decided. The gate is not the column, it is
+     * `requireOwnerSession` plus a value-level deny-list — see THEMES-PLAN §6.
+     */
+    customCss: text('custom_css'),
+    /**
+     * Whether members may choose it. Also whether it is emitted at all.
+     *
+     * A disabled theme is not served, so its tokens do not sit in every
+     * visitor's stylesheet — which is the only reason the "all themes in one
+     * cacheable sheet" decision stays affordable.
+     */
+    enabled: boolean('enabled').default(true).notNull(),
+    position: integer('position').default(0).notNull(),
+    /**
+     * `site` — anyone may pick it. `roles` — only holders of `requiredRoles`.
+     *
+     * **Not an access control**, and the admin console says so in as many
+     * words. Every enabled theme is in the one stylesheet every visitor gets,
+     * so somebody can set `data-theme` by hand in devtools and see it for the
+     * duration of their session. What IS enforced is persistence: `PATCH
+     * /api/me` refuses to store a theme the member is not entitled to, so
+     * nobody keeps it and nobody else ever sees it.
+     *
+     * Filtering the stylesheet per role would make it vary by viewer, and cache
+     * a variant per combination of roles. For decoration that is the wrong
+     * trade.
+     */
+    visibility: text('visibility').notNull().default('site'),
+    requiredRoles: jsonb('required_roles').$type<string[]>(),
+    createdBy: text('created_by').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // The emitter's read: enabled themes, in display order.
+    index('themes_enabled_idx').on(table.enabled, table.position),
+    // The two shapes a row may have, so no codepath can invent a third — a
+    // role-gated theme with no roles would be invisible to everyone including
+    // its author, which reads as a bug rather than as a setting.
+    check(
+      'themes_visibility_ck',
+      sql`(${table.visibility} = 'site' AND ${table.requiredRoles} IS NULL)
+          OR (${table.visibility} = 'roles' AND jsonb_array_length(${table.requiredRoles}) > 0)`,
+    ),
+    check('themes_base_ck', sql`${table.base} IN ('light', 'dark')`),
+  ],
+);
+
+export type Theme = typeof themes.$inferSelect;
+export type NewTheme = typeof themes.$inferInsert;
