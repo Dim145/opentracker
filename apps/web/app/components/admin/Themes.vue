@@ -251,7 +251,12 @@
         </p>
 
         <!-- ── Tokens ───────────────────────────────────────────────── -->
-        <div v-for="group in tokenGroups" :key="group.key" class="token-group">
+        <label class="flex items-center gap-2 text-2xs text-muted">
+          <input v-model="overridesOnly" type="checkbox" />
+          {{ $t('admin.themes.overridesOnly', { n: overriddenCount }) }}
+        </label>
+
+        <div v-for="group in visibleGroups" :key="group.key" class="token-group">
           <button class="token-group-head" @click="toggleGroup(group.key)">
             <Icon
               :name="openGroups.has(group.key) ? 'ph:caret-down-bold' : 'ph:caret-right-bold'"
@@ -264,7 +269,7 @@
 
           <div v-if="openGroups.has(group.key)" class="token-grid">
             <div
-              v-for="def in group.defs"
+              v-for="def in visibleDefs(group.defs)"
               :key="def.key"
               class="token-field"
               :class="{ 'token-field--overridden': isOverridden(def.key) }"
@@ -533,8 +538,11 @@ import {
   BUILT_IN_TOKENS,
   THEME_TOKENS,
   contrastWarnings,
+  isValidTokenValue,
   parseRgb,
   resolveTokens,
+  validateTokens,
+  type TokenDef,
   type TokenGroup,
 } from '@trackarr/shared/theme';
 
@@ -741,7 +749,31 @@ const tokenGroups = computed(() =>
     return { key, defs, keys: defs.map((d) => d.key) };
   }).filter((g) => g.defs.length),
 );
+
+/** Groups with nothing left after the filter collapse rather than showing empty. */
+const visibleGroups = computed(() =>
+  overridesOnly.value
+    ? tokenGroups.value.filter((g) => g.keys.some((k) => isOverridden(k)))
+    : tokenGroups.value,
+);
 const openGroups = ref(new Set<string>(['surface', 'foreground', 'accent']));
+
+/**
+ * "Only the overrides" — a filter, and a diff view.
+ *
+ * The storage model makes this free: `tokens` holds only what diverges, so
+ * "is this overridden?" is `key in tokens` with no state to keep. Its real use
+ * is the one §9c named — reading back what a theme actually changes before
+ * enabling it, rather than scrolling forty-seven fields looking for the seven
+ * that are not inherited.
+ */
+const overridesOnly = ref(false);
+const overriddenCount = computed(() =>
+  draft.value ? Object.keys(draft.value.tokens).length : 0,
+);
+function visibleDefs(defs: TokenDef[]): TokenDef[] {
+  return overridesOnly.value ? defs.filter((d) => isOverridden(d.key)) : defs;
+}
 function toggleGroup(key: string) {
   const next = new Set(openGroups.value);
   next.has(key) ? next.delete(key) : next.add(key);
@@ -951,6 +983,13 @@ function paintPreview() {
   clearPreview();
   const next: string[] = [];
   for (const [key, value] of Object.entries(draft.value.tokens)) {
+    // Belt as well as braces. Import is checked, but a field being typed into
+    // holds every intermediate string on the way to a valid one, and this writes
+    // to the real document — `setProperty` cannot break out of a declaration,
+    // yet a custom property IS read back by the application (`var(--bg-pattern-
+    // image)` lands in `background-image`), so a half-typed value is not
+    // automatically inert.
+    if (!isValidTokenValue(key, value)) continue;
     const prop = `--${key}`;
     document.documentElement.style.setProperty(prop, value);
     next.push(prop);
@@ -1096,10 +1135,35 @@ async function onImport(ev: Event) {
       base?: 'light' | 'dark';
       tokens?: Record<string, string>;
     };
+    // Checked here, not only on save.
+    //
+    // An imported theme is a file from somewhere else — the guide calls that out
+    // as the reason raw CSS is parsed rather than trusted — and the editor puts
+    // every token straight onto the live document when preview is on. So a file
+    // that never gets saved still reaches `documentElement.style`, and an
+    // unchecked value there is the owner's own browser doing what the file says.
+    // Review found this reading the other way round: the guide already promised
+    // an import is refused with every problem listed at once, and only the save
+    // was doing that.
+    const problems = validateTokens(doc.tokens ?? {});
+    if (problems.length) {
+      settingsError.value = t('admin.themes.importInvalid', {
+        problems: problems
+          .slice(0, 6)
+          .map((p) =>
+            p.reason === 'unknown-key'
+              ? `${p.key} (unknown)`
+              : `${p.key} (bad value)`,
+          )
+          .join(', ') + (problems.length > 6 ? `, +${problems.length - 6}` : ''),
+      });
+      return;
+    }
+
     // Loaded into the editor rather than saved outright: an imported theme is
     // somebody else's work on somebody else's palette, and the contrast warnings
     // are worth reading before it goes live. The server validates it again on
-    // save, so nothing here is a security check.
+    // save, so this is convenience as much as it is a check.
     startCreate({
       name: doc.name || file.name.replace(/\.json$/i, ''),
       description: doc.description ?? '',
