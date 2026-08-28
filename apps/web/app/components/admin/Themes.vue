@@ -197,6 +197,7 @@
 import {
   contrastWarnings,
   resolveTokens,
+  validateTokens,
 } from '@trackarr/shared/theme';
 import {
   emptyThemeAdminPayload,
@@ -313,15 +314,6 @@ async function remove(row: ThemeRow) {
     settingsError.value = messageOf(e);
   }
 }
-
-/**
- * Re-fetch `/api/theme.css` after a write.
- *
- * The response is cached for a minute with an ETag, so a plain reload of the
- * document would very likely serve the previous version. Swapping the `<link>`
- * href with a cache-busting query is the narrow way to make the page show what
- * was just saved without reloading it.
- */
 
 // ── Import / export ──────────────────────────────────────────────────
 const importFile = ref<HTMLInputElement | null>(null);
