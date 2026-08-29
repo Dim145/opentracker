@@ -116,7 +116,7 @@ node "$HERE/seed.mjs" > "$HERE/session.json"
 # clears the fresh-auth stamps to reach the refusal path, which makes every
 # session in the run stale, so it has to be last. A glob sorted alphabetically
 # would have put it in the middle and broken everything after it.
-SCENARIOS=(appearance fonts themes torrentVisibility messaging room freshauth)
+SCENARIOS=(appearance fonts themes torrentVisibility messaging room erasure freshauth)
 
 status=0
 for name in "${SCENARIOS[@]}"; do
@@ -131,7 +131,7 @@ done
 # A scenario file nobody listed is a scenario nobody runs.
 for scenario in "$HERE"/*.mjs; do
   name="$(basename "$scenario" .mjs)"
-  case "$name" in seed|crypto|lib) continue ;; esac
+  case "$name" in seed|crypto|lib|demo) continue ;; esac
   case " ${SCENARIOS[*]} " in *" $name "*) continue ;; esac
   echo "WARNING: $name.mjs is not in SCENARIOS and was not run" >&2
 done

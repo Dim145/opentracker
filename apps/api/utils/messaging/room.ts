@@ -1,5 +1,5 @@
 import { db, schema } from '@trackarr/db';
-import { and, desc, eq, gt, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, lt, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
   getMessagingRoomScope,
@@ -130,7 +130,10 @@ export async function roomPage(opts: { before?: Date; limit: number }) {
       authorDisplayName: schema.users.displayName,
     })
     .from(schema.roomMessages)
-    .leftJoin(schema.users, eq(schema.users.id, schema.roomMessages.authorId))
+    .leftJoin(
+      schema.users,
+      and(eq(schema.users.id, schema.roomMessages.authorId), isNull(schema.users.deletedAt))
+    )
     .where(
       and(
         eq(schema.roomMessages.conversationId, room.id),
@@ -150,7 +153,8 @@ export async function roomPage(opts: { before?: Date; limit: number }) {
       deleted: !!row.deletedAt,
       isSystem: row.isSystem,
       createdAt: row.createdAt,
-      author: row.authorId
+      // The joined name, not the id: an erased account keeps its rows.
+      author: row.authorName
         ? {
             id: row.authorId,
             username: row.authorName,

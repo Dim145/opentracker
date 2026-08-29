@@ -11,7 +11,7 @@
  * person using it.
  */
 import { db, schema } from '@trackarr/db';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
@@ -39,8 +39,10 @@ export default defineEventHandler(async (event) => {
 
   const body = await validateBody(event, bodySchema);
 
+  // An erased account keeps its row, blanked. It must not be a valid
+  // recipient: the conversation would have nobody left to read it.
   const target = await db.query.users.findFirst({
-    where: eq(schema.users.username, body.username),
+    where: and(eq(schema.users.username, body.username), isNull(schema.users.deletedAt)),
     columns: { id: true, username: true, displayName: true },
   });
   if (!target) {

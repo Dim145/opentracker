@@ -9,7 +9,7 @@
  * already held, which is stable whatever arrives after it.
  */
 import { db, schema } from '@trackarr/db';
-import { and, desc, eq, lt } from 'drizzle-orm';
+import { and, desc, eq, isNull, lt } from 'drizzle-orm';
 import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateQuery } from '~~/utils/schemas';
@@ -54,7 +54,11 @@ export default defineEventHandler(async (event) => {
       authorDisplayName: schema.users.displayName,
     })
     .from(schema.messages)
-    .leftJoin(schema.users, eq(schema.users.id, schema.messages.authorId))
+    .leftJoin(
+      schema.users,
+      // Erased authors fail the join on purpose — see the shaping below.
+      and(eq(schema.users.id, schema.messages.authorId), isNull(schema.users.deletedAt))
+    )
     .where(
       and(
         eq(schema.messages.conversationId, id),
@@ -76,7 +80,9 @@ export default defineEventHandler(async (event) => {
       deleted: !!row.deletedAt,
       createdAt: row.createdAt,
       editedAt: row.editedAt,
-      author: row.authorId
+      // Keyed on the joined name, not on `authorId`: erasure keeps the
+      // foreign key and blanks the row, so the id outlives the account.
+      author: row.authorName
         ? {
             id: row.authorId,
             username: row.authorName,

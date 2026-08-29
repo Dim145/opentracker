@@ -10,7 +10,7 @@
  * limit of one-key-per-account, not an implementation detail to hide.
  */
 import { db, schema } from '@trackarr/db';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireDmAccess } from '~~/utils/messaging/guard';
 
@@ -22,8 +22,11 @@ export default defineEventHandler(async (event) => {
   const username = getRouterParam(event, 'username');
   if (!username) throw createError({ statusCode: 400, message: 'Missing username' });
 
+  // Erasure blanks the row rather than dropping it, so the account is
+  // still findable by the random name it was left with. Handing out its
+  // key would outlive the erasure that was supposed to take it.
   const target = await db.query.users.findFirst({
-    where: eq(schema.users.username, username),
+    where: and(eq(schema.users.username, username), isNull(schema.users.deletedAt)),
     columns: { id: true },
   });
   if (!target) throw createError({ statusCode: 404, message: 'No such member' });

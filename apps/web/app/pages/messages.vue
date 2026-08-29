@@ -120,7 +120,22 @@
           </article>
         </div>
 
-        <div v-if="active.encrypted && cryptoState !== 'ready'" class="msg-locked">
+        <!--
+          Checked before the crypto panel, which would otherwise offer to
+          generate a key for a conversation no key can ever open again.
+          The reason is stated rather than left as an unexplained blank.
+        -->
+        <div v-if="erasedThread" class="msg-locked">
+          <p class="msg-locked-title">
+            <Icon name="ph:lock-key" class="w-4 h-4" />
+            {{ $t('messaging.deletedMember') }}
+          </p>
+          <p class="msg-locked-body">{{ $t('messaging.erasedConversation') }}</p>
+        </div>
+        <div
+          v-else-if="active.encrypted && cryptoState !== 'ready'"
+          class="msg-locked"
+        >
           <p class="msg-locked-title">
             <Icon name="ph:lock-key" class="w-4 h-4" />
             {{ cryptoState === 'foreign'
@@ -139,7 +154,7 @@
           </button>
         </div>
         <form
-          v-else-if="!active.encrypted || cryptoState === 'ready'"
+          v-else-if="!erasedThread && (!active.encrypted || cryptoState === 'ready')"
           class="msg-composer"
           @submit.prevent="send"
         >
@@ -276,6 +291,14 @@ const rotateAcknowledged = ref(false);
 
 const convCrypto = useConversationCrypto();
 const cryptoState = computed(() => convCrypto.state.value);
+
+// An encrypted conversation whose correspondent no longer exists. Erasure
+// destroys their published key and every message in the thread, so this is
+// terminal — not a device that has not caught up yet, which is what the
+// crypto panel is for.
+const erasedThread = computed(
+  () => !!active.value && active.value.encrypted && !active.value.with
+);
 
 /**
  * Whether the other member has published a key.

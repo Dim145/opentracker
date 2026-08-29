@@ -65,7 +65,10 @@ export default defineEventHandler(async (event) => {
       authorName: schema.users.username,
     })
     .from(schema.messages)
-    .leftJoin(schema.users, eq(schema.users.id, schema.messages.authorId))
+    .leftJoin(
+      schema.users,
+      and(eq(schema.users.id, schema.messages.authorId), isNull(schema.users.deletedAt))
+    )
     .where(
       and(
         inArray(schema.messages.conversationId, readable),
@@ -83,7 +86,9 @@ export default defineEventHandler(async (event) => {
       conversationId: row.conversationId,
       body: row.body,
       createdAt: row.createdAt,
-      author: row.authorId ? { id: row.authorId, username: row.authorName } : null,
+      author: row.authorName
+        ? { id: row.authorId, username: row.authorName }
+        : null,
     })),
   };
 });

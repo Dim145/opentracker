@@ -68,7 +68,13 @@ export default defineEventHandler(async (event) => {
     .from(schema.conversationParticipants)
     .leftJoin(
       schema.users,
-      eq(schema.users.id, schema.conversationParticipants.userId)
+      and(
+        eq(schema.users.id, schema.conversationParticipants.userId),
+        // An erased account is anonymised in place, not deleted, so the
+        // row is still here and still joins. Failing the join is what
+        // turns it back into the absence the client renders.
+        isNull(schema.users.deletedAt)
+      )
     )
     .where(
       and(
@@ -88,9 +94,9 @@ export default defineEventHandler(async (event) => {
       unreadCount: row.unreadCount,
       mutedUntil: row.mutedUntil,
       lastReadAt: row.lastReadAt,
-      // A deleted account keeps no name here: `authorId` went null on
-      // deletion and the client renders the absence, rather than a
-      // remembered username that erasure was supposed to remove.
+      // A deleted account keeps no name here: the join above refuses
+      // erased rows, so the client renders the absence rather than the
+      // `deleted-<random>` placeholder erasure left behind.
       with: other?.userId
         ? {
             id: other.userId,

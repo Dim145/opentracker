@@ -3623,6 +3623,26 @@
       "fuzzy": "Typo tolerance",
       "fuzzyLabel": "Catch typos",
       "fuzzyHint": "When a search finds nothing, a second pass looks for near matches — “crimsen” finds “Crimson”. It only runs against an otherwise empty page, but costs roughly ten times a normal search. Turn it off if the catalogue grows large or the server is under strain."
+    },
+    "messaging": {
+      "title": "Messaging",
+      "description": "Private messages and the public room are separate surfaces with separate audiences. Both start off — nobody sees a feature the instance has not decided to run.",
+      "dmScope": "Private messages",
+      "dmScopeHint": "Who may open and read one-to-one conversations.",
+      "roomScope": "Public room",
+      "roomScopeHint": "Who may read and post in the room. Needs moderators watching: it is the surface a single member can spoil for everyone.",
+      "retentionDays": "Room retention",
+      "retentionHint": "How long room messages are kept. Whole days are dropped at once, so lowering this takes effect at the next sweep.",
+      "slowMode": "Slow mode",
+      "slowModeHint": "Minimum delay between two messages from the same member. Zero disables it.",
+      "daysLabel": "days",
+      "secondsLabel": "seconds",
+      "retentionWarning": "Turning a surface off hides it; it deletes nothing. Shortening retention does delete — the next sweep drops every day now outside the window, and that cannot be undone.",
+      "scope": {
+        "off": "Off",
+        "staff": "Staff only",
+        "all": "Every member"
+      }
     }
   },
   "mod": {
@@ -4809,7 +4829,8 @@
       "unreadable": "Encrypted with a previous key — unreadable",
       "noKeyYet": "This browser has no messaging key yet.",
       "generate": "Set up encryption on this browser"
-    }
+    },
+    "erasedConversation": "Closed at your correspondent's request. This conversation was encrypted, and the account that held the other half of the key has been deleted — nothing here can be opened again, by anyone."
   },
   "room": {
     "title": "Room",

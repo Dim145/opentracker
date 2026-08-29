@@ -180,6 +180,68 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
       .set({ updatedAt: now })
       .where(eq(schema.torrents.uploaderId, userId));
 
+    // 2d. Messaging.
+    //
+    // Erasure keeps the `users` row, so none of the ON DELETE clauses on the
+    // messaging tables fire. Every one of them has to be done by hand here,
+    // and the split is the one the plan settled on: plaintext is kept and
+    // anonymised, ciphertext is destroyed.
+    //
+    // The published key goes first. It is what a correspondent needs to
+    // re-derive the conversation key, so leaving it would leave the erasure
+    // reversible for anyone who kept the other half.
+    await tx.delete(schema.userMessageKeys).where(eq(schema.userMessageKeys.userId, userId));
+
+    // Then the encrypted conversations, whole — both sides, not just this
+    // member's half. A ciphertext nobody can decrypt is not a preserved
+    // conversation, it is unreadable bytes retained after an erasure request;
+    // and the survivor is better served by an empty thread they can read the
+    // reason for than by rows that will never open again. The conversation row
+    // itself stays: with no key, no messages and no correspondent left to name,
+    // it is what the client turns into "closed at your correspondent's
+    // request".
+    const encryptedIds = (
+      await tx
+        .select({ id: schema.conversations.id })
+        .from(schema.conversations)
+        .innerJoin(
+          schema.conversationParticipants,
+          eq(schema.conversationParticipants.conversationId, schema.conversations.id),
+        )
+        .where(
+          and(
+            eq(schema.conversationParticipants.userId, userId),
+            eq(schema.conversations.encrypted, true),
+          ),
+        )
+    ).map((r) => r.id);
+
+    if (encryptedIds.length > 0) {
+      await tx.delete(schema.messages).where(inArray(schema.messages.conversationId, encryptedIds));
+      // The unread counter is denormalised, so deleting the messages it
+      // counted leaves the survivor with a badge pointing at nothing.
+      await tx
+        .update(schema.conversationParticipants)
+        .set({ unreadCount: 0 })
+        .where(inArray(schema.conversationParticipants.conversationId, encryptedIds));
+    }
+
+    // Blocks are a two-sided personal list and nothing else: both directions go.
+    await tx
+      .delete(schema.messagingBlocks)
+      .where(
+        or(
+          eq(schema.messagingBlocks.userId, userId),
+          eq(schema.messagingBlocks.blockedId, userId),
+        ),
+      );
+
+    // A room mute is an unenforceable restriction on an account that can no
+    // longer sign in. Unlike an anti-cheat flag it records no finding worth
+    // keeping — it is a timer against a person — so it goes rather than being
+    // blanked.
+    await tx.delete(schema.roomMutes).where(eq(schema.roomMutes.userId, userId));
+
     // 3. Scrub the row itself. The passkey is rotated to a fresh unusable value
     // so any announce URL the member kept stops working; the SRP material is
     // replaced with random bytes no client can reproduce; the profile text and

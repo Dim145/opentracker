@@ -3623,6 +3623,26 @@
       "fuzzy": "Tolérance aux fautes de frappe",
       "fuzzyLabel": "Rattraper les fautes de frappe",
       "fuzzyHint": "Quand la recherche ne trouve rien, une seconde passe cherche les titres approchants — « crimsen » retrouve « Crimson ». Elle ne s’exécute que face à une page vide, mais coûte environ dix fois une recherche normale. À couper si le catalogue devient trop gros ou le serveur trop chargé."
+    },
+    "messaging": {
+      "title": "Messagerie",
+      "description": "Les messages privés et le salon public sont deux surfaces distinctes, avec des publics distincts. Les deux démarrent désactivées — personne ne découvre une fonctionnalité que l'instance n'a pas décidé d'ouvrir.",
+      "dmScope": "Messages privés",
+      "dmScopeHint": "Qui peut ouvrir et lire une conversation à deux.",
+      "roomScope": "Salon public",
+      "roomScopeHint": "Qui peut lire et écrire dans le salon. Demande une modération présente : c'est la surface qu'un seul membre peut gâcher pour tout le monde.",
+      "retentionDays": "Rétention du salon",
+      "retentionHint": "Durée de conservation des messages du salon. La purge supprime des journées entières, donc une baisse prend effet au prochain passage.",
+      "slowMode": "Mode lent",
+      "slowModeHint": "Délai minimum entre deux messages d'un même membre. Zéro le désactive.",
+      "daysLabel": "jours",
+      "secondsLabel": "secondes",
+      "retentionWarning": "Désactiver une surface la masque, elle ne supprime rien. Raccourcir la rétention, si : le prochain passage supprime toutes les journées désormais hors fenêtre, sans retour possible.",
+      "scope": {
+        "off": "Désactivé",
+        "staff": "Staff uniquement",
+        "all": "Tous les membres"
+      }
     }
   },
   "mod": {
@@ -4809,7 +4829,8 @@
       "unreadable": "Chiffré avec une clé précédente — illisible",
       "noKeyYet": "Ce navigateur n'a pas encore de clé de messagerie.",
       "generate": "Activer le chiffrement sur ce navigateur"
-    }
+    },
+    "erasedConversation": "Fermée à la demande de votre correspondant. Cette conversation était chiffrée, et le compte qui détenait l'autre moitié de la clé a été supprimé — plus rien ici ne peut être ouvert, par personne."
   },
   "room": {
     "title": "Salon",
