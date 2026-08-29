@@ -5,6 +5,7 @@
     <AdminRegistration />
     <AdminNotificationRetention />
     <AdminMessagingSettings />
+    <AdminMessagingBroadcast />
     <AdminSearchSettings />
     <AdminRequestSettings />
     <AdminPanic />

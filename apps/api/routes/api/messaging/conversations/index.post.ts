@@ -64,7 +64,12 @@ export default defineEventHandler(async (event) => {
   const { conversation, created } = await findOrCreateDirectConversation(
     user.id,
     target.id,
-    { encrypted: body.encrypted }
+    {
+      encrypted: body.encrypted,
+      // Staff bypass the queue, as the design always said they would.
+      // Checked on the SENDER's session, so it cannot be claimed.
+      direct: !!user.isAdmin || !!user.isModerator,
+    }
   );
 
   return {
