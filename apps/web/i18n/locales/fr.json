@@ -4794,7 +4794,22 @@
     "recipient": "Membre",
     "start": "Démarrer",
     "offline": "Hors direct",
-    "offlineHint": "Les messages s'envoient et se lisent toujours ; ils n'arrivent simplement pas tout seuls. Rechargez pour voir la suite."
+    "offlineHint": "Les messages s'envoient et se lisent toujours ; ils n'arrivent simplement pas tout seuls. Rechargez pour voir la suite.",
+    "crypto": {
+      "label": "Chiffrer cette conversation",
+      "hint": "Vous seuls deux pourrez la lire. Le chiffrement est lié à CE navigateur : vous ne pourrez pas lire la conversation ailleurs, ni la retrouver si vous perdez cet appareil. Le staff ne pourra pas la lire non plus, y compris après un signalement.",
+      "unavailable": "{name} n'a pas encore activé le chiffrement, cette conversation ne peut donc pas être chiffrée.",
+      "lockedTitle": "Chiffrée pour un autre appareil",
+      "lockedBody": "Ces messages ont été scellés avec une clé qui n'existe que sur le navigateur où vous avez activé le chiffrement. Celui-ci ne peut pas les lire, et personne ne peut le faire à votre place.",
+      "useThisDevice": "Utiliser celui-ci à la place…",
+      "rotateTitle": "Remplacer votre clé",
+      "rotateWarning": "Vos conversations chiffrées deviendront définitivement illisibles, sur cet appareil comme sur les autres, et vos correspondants devront en ouvrir de nouvelles.",
+      "rotateConfirm": "Je comprends que c’est irréversible",
+      "rotateAction": "Remplacer ma clé",
+      "unreadable": "Chiffré avec une clé précédente — illisible",
+      "noKeyYet": "Ce navigateur n'a pas encore de clé de messagerie.",
+      "generate": "Activer le chiffrement sur ce navigateur"
+    }
   },
   "room": {
     "title": "Salon",

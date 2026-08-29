@@ -27,11 +27,22 @@ import { blockExistsBetween } from '~~/utils/messaging/moderation';
 /** Long enough for a real message, short enough not to be a document. */
 const BODY_MAX = 4000;
 
+/**
+ * base64**url**, not base64.
+ *
+ * The browser produces the URL-safe alphabet — `-` and `_`, no padding —
+ * because that is what `e2ee.ts` emits and what the key columns already
+ * hold. Validating against standard base64 rejected every ciphertext with
+ * a 400 that named the field and not the reason, which is a slow way to
+ * find a one-character difference.
+ */
+const B64URL = /^[A-Za-z0-9_-]+$/;
+
 const bodySchema = z
   .object({
     body: z.string().trim().min(1).max(BODY_MAX).optional(),
-    cipher: z.string().base64().max(BODY_MAX * 2).optional(),
-    iv: z.string().base64().max(64).optional(),
+    cipher: z.string().regex(B64URL).max(BODY_MAX * 2).optional(),
+    iv: z.string().regex(B64URL).max(64).optional(),
   })
   .strict();
 
@@ -88,8 +99,8 @@ export default defineEventHandler(async (event) => {
     conversationId: id,
     authorId: user.id,
     body: conversation.encrypted ? undefined : body.body,
-    cipher: body.cipher ? Buffer.from(body.cipher, 'base64') : undefined,
-    iv: body.iv ? Buffer.from(body.iv, 'base64') : undefined,
+    cipher: body.cipher ? Buffer.from(body.cipher, 'base64url') : undefined,
+    iv: body.iv ? Buffer.from(body.iv, 'base64url') : undefined,
   });
 
   // Answering the sender is not the same as replying to a stranger:

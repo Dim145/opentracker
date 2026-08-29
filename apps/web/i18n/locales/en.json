@@ -4794,7 +4794,22 @@
     "recipient": "Member",
     "start": "Start",
     "offline": "Not live",
-    "offlineHint": "Messages still send and read; they just do not arrive on their own. Reload to see what is new."
+    "offlineHint": "Messages still send and read; they just do not arrive on their own. Reload to see what is new.",
+    "crypto": {
+      "label": "Encrypt this conversation",
+      "hint": "Only the two of you can read it. Encryption is tied to THIS browser: you will not be able to read the conversation anywhere else, or recover it if you lose this device. Staff cannot read it either, including after a report.",
+      "unavailable": "{name} has not set up encryption yet, so this conversation cannot be encrypted.",
+      "lockedTitle": "Encrypted for another device",
+      "lockedBody": "These messages were sealed with a key that only exists on the browser where you turned encryption on. This one cannot read them, and nobody can do it for you.",
+      "useThisDevice": "Use this device instead…",
+      "rotateTitle": "Replace your key",
+      "rotateWarning": "Your encrypted conversations will become permanently unreadable, on this device and every other, and the people you were writing to will need to open new ones.",
+      "rotateConfirm": "I understand this cannot be undone",
+      "rotateAction": "Replace my key",
+      "unreadable": "Encrypted with a previous key — unreadable",
+      "noKeyYet": "This browser has no messaging key yet.",
+      "generate": "Set up encryption on this browser"
+    }
   },
   "room": {
     "title": "Room",

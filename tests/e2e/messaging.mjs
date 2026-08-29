@@ -286,14 +286,14 @@ async function main() {
   await resetRateLimits();
   const encSent = await req('donator', `${DM}/${encId}/messages`, {
     method: 'POST',
-    body: { cipher: 'q80=', iv: 'q80=' },
+    body: { cipher: 'q80', iv: 'q80' },
   });
   check('while ciphertext goes through', encSent.status === 200, String(encSent.status));
 
   const encThread = await req('founder', `${DM}/${encId}/messages`);
   check(
     'the server hands back the ciphertext it cannot read',
-    encThread.body?.messages?.[0]?.cipher === 'q80=' &&
+    encThread.body?.messages?.[0]?.cipher === 'q80' &&
       encThread.body?.messages?.[0]?.body === null,
     d(encThread.body?.messages?.[0])
   );
@@ -589,7 +589,76 @@ async function main() {
     })).status === 200
   );
 
-  console.log('\n14. back to off');
+  console.log('\n14. keys, and what encryption costs the staff');
+
+  await resetRateLimits();
+
+  // The key is opaque to the server: it stores what the browser published
+  // and hands it to whoever wants to seal a conversation to that member.
+  const fakeKey = 'A'.repeat(122);
+  check(
+    'a member publishes a public key',
+    (await req('donator', '/api/messaging/keys', {
+      method: 'PUT',
+      body: { publicKey: fakeKey, deviceLabel: 'poste e2e' },
+    })).status === 200
+  );
+
+  const ownKey = await req('donator', '/api/messaging/keys');
+  check(
+    'and sees it in their own panel',
+    ownKey.body?.published === true && ownKey.body?.alg === 'ECDH-P256',
+    d(ownKey.body)
+  );
+
+  const lookup = await req('plainuser', '/api/messaging/keys/donator');
+  check(
+    'somebody who wants to write to them gets it',
+    lookup.body?.available === true && lookup.body?.publicKey === fakeKey,
+    d(lookup.body, 80)
+  );
+
+  // The absence is an answer, not a 404: an encrypted conversation can
+  // only be started with somebody who has published, and the composer
+  // has to be able to say so and offer a plain one instead.
+  const noKey = await req('donator', '/api/messaging/keys/founder');
+  check(
+    'and its absence is a first-class answer',
+    noKey.status === 200 && noKey.body?.available === false,
+    `${noKey.status} ${d(noKey.body)}`
+  );
+
+  // What a report on an encrypted message can show. This is the cost of
+  // the feature, and it has to be visible rather than discovered by a
+  // moderator staring at an empty field.
+  const encMsg = (await req('donator', `${DM}/${encId}/messages`)).body?.messages?.[0];
+  check('there is an encrypted message to report', !!encMsg?.id, d(encMsg?.id));
+
+  await resetRateLimits();
+  const encReport = await req('donator', '/api/reports', {
+    method: 'POST',
+    body: {
+      targetType: 'message',
+      targetId: encMsg.id,
+      reason: 'contenu à examiner par le staff',
+    },
+  });
+  check('it can be reported', encReport.status === 200 || encReport.status === 201,
+    `${encReport.status} ${d(encReport.body, 120)}`);
+
+  const staffSees = await req('founder', `/api/mod/messages/${encMsg.id}`);
+  check(
+    'staff reach the report',
+    staffSees.status === 200,
+    `${staffSees.status} ${d(staffSees.body, 120)}`
+  );
+  check(
+    'and are told plainly that there is nothing to read',
+    staffSees.body?.encrypted === true && staffSees.body?.body === null,
+    d(staffSees.body, 140)
+  );
+
+  console.log('\n15. back to off');
 
   check('the scope closes again', (await setScopes({ dm: 'off' })) === 200);
   await resetRateLimits();

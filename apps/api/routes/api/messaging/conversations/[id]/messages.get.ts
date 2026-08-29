@@ -70,8 +70,8 @@ export default defineEventHandler(async (event) => {
       // A removed message keeps its row — the thread stays coherent and
       // the audit trail survives — but carries no payload.
       body: row.deletedAt ? null : row.body,
-      cipher: row.deletedAt ? null : row.cipher?.toString('base64') ?? null,
-      iv: row.deletedAt ? null : row.iv?.toString('base64') ?? null,
+      cipher: row.deletedAt ? null : row.cipher?.toString('base64url') ?? null,
+      iv: row.deletedAt ? null : row.iv?.toString('base64url') ?? null,
       isSystem: row.isSystem,
       deleted: !!row.deletedAt,
       createdAt: row.createdAt,

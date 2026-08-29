@@ -103,7 +103,10 @@
               ]"
             >
               <p v-if="!msg.mine" class="msg-author eyebrow">{{ authorOf(msg) }}</p>
-              <p class="msg-body">{{ msg.body }}</p>
+              <p v-if="msg.body === null && msg.cipher" class="msg-body msg-unreadable">
+                {{ $t('messaging.crypto.unreadable') }}
+              </p>
+              <p v-else class="msg-body">{{ msg.body }}</p>
               <p class="msg-meta">
                 <time :datetime="msg.createdAt">{{ shortTime(msg.createdAt) }}</time>
                 <template v-if="msg.failed">
@@ -117,10 +120,29 @@
           </article>
         </div>
 
-        <p v-if="active.encrypted" class="msg-notice">
-          {{ $t('messaging.encryptedNotice') }}
-        </p>
-        <form v-else class="msg-composer" @submit.prevent="send">
+        <div v-if="active.encrypted && cryptoState !== 'ready'" class="msg-locked">
+          <p class="msg-locked-title">
+            <Icon name="ph:lock-key" class="w-4 h-4" />
+            {{ cryptoState === 'foreign'
+              ? $t('messaging.crypto.lockedTitle')
+              : $t('messaging.crypto.noKeyYet') }}
+          </p>
+          <p class="msg-locked-body">
+            {{ cryptoState === 'foreign'
+              ? $t('messaging.crypto.lockedBody')
+              : $t('messaging.crypto.hint') }}
+          </p>
+          <button type="button" class="btn btn-sm" @click="rotateOpen = true">
+            {{ cryptoState === 'foreign'
+              ? $t('messaging.crypto.useThisDevice')
+              : $t('messaging.crypto.generate') }}
+          </button>
+        </div>
+        <form
+          v-else-if="!active.encrypted || cryptoState === 'ready'"
+          class="msg-composer"
+          @submit.prevent="send"
+        >
           <button
             v-if="active.state === 'pending'"
             type="button"
@@ -155,12 +177,44 @@
           class="input"
           autocomplete="off"
           spellcheck="false"
+          @blur="checkPeerKey"
         />
+        <p v-if="peerKeyChecked && !peerHasKey" class="msg-hint">
+          {{ $t('messaging.crypto.unavailable', { name: startWith.trim() }) }}
+        </p>
+        <label v-if="peerHasKey" class="flex items-start gap-2 text-sm">
+          <input v-model="startEncrypted" type="checkbox" class="mt-1" />
+          <span>
+            <strong>{{ $t('messaging.crypto.label') }}</strong>
+            <span class="block msg-hint">{{ $t('messaging.crypto.hint') }}</span>
+          </span>
+        </label>
         <p v-if="startError" class="text-sm text-error">{{ startError }}</p>
         <button type="submit" class="btn btn-primary self-end" :disabled="!startWith.trim()">
           {{ $t('messaging.start') }}
         </button>
       </form>
+    </Modal>
+
+    <!-- Destructive, and shaped like it: a separate dialog, the count of
+         what it will destroy, and a checkbox. Not a word to retype — that
+         is friction which makes people click faster, not think longer. -->
+    <Modal v-model="rotateOpen" :title="$t('messaging.crypto.rotateTitle')">
+      <div class="flex flex-col gap-3">
+        <p class="text-sm">{{ $t('messaging.crypto.rotateWarning') }}</p>
+        <label class="flex items-start gap-2 text-sm">
+          <input v-model="rotateAcknowledged" type="checkbox" class="mt-1" />
+          <span>{{ $t('messaging.crypto.rotateConfirm') }}</span>
+        </label>
+        <button
+          type="button"
+          class="btn btn-sm self-end"
+          :disabled="!rotateAcknowledged"
+          @click="doRotate"
+        >
+          {{ $t('messaging.crypto.rotateAction') }}
+        </button>
+      </div>
     </Modal>
   </div>
 </template>
@@ -214,6 +268,50 @@ const scrollerRef = ref<HTMLElement | null>(null);
 const startOpen = ref(false);
 const startWith = ref('');
 const startError = ref('');
+const startEncrypted = ref(false);
+const peerHasKey = ref(false);
+const peerKeyChecked = ref(false);
+const rotateOpen = ref(false);
+const rotateAcknowledged = ref(false);
+
+const convCrypto = useConversationCrypto();
+const cryptoState = computed(() => convCrypto.state.value);
+
+/**
+ * Whether the other member has published a key.
+ *
+ * An encrypted conversation can only be started with somebody who has,
+ * and that is a real limit of one-key-per-account rather than a detail to
+ * hide: the checkbox simply does not appear, and the dialog says why.
+ */
+async function checkPeerKey() {
+  const name = startWith.value.trim();
+  peerKeyChecked.value = false;
+  peerHasKey.value = false;
+  if (!name) return;
+  try {
+    const res = await $fetch<{ available: boolean }>(
+      `/api/messaging/keys/${encodeURIComponent(name)}`
+    );
+    peerHasKey.value = res.available;
+  } catch {
+    peerHasKey.value = false;
+  } finally {
+    peerKeyChecked.value = true;
+    if (!peerHasKey.value) startEncrypted.value = false;
+  }
+}
+
+async function doRotate() {
+  await convCrypto.rotate(navigator.userAgent.slice(0, 60));
+  rotateOpen.value = false;
+  rotateAcknowledged.value = false;
+  // Everything the previous key sealed is now unreadable. Reloading is
+  // what makes the thread say so, rather than leaving stale plaintext on
+  // screen from before the rotation.
+  await loadList();
+  if (activeId.value) await loadThread();
+}
 
 const active = computed(
   () =>
@@ -349,10 +447,46 @@ async function loadThread(before?: string) {
   );
   // The API answers newest-first for the cursor to work; the thread reads
   // oldest-first.
-  const page = [...data.messages].reverse().map((m) => ({
+  let page = [...data.messages].reverse().map((m) => ({
     ...m,
     mine: m.author?.id === user.value?.id,
   }));
+
+  if (active.value?.encrypted) {
+    // The probe is the newest ciphertext in the page. Deriving a key
+    // always succeeds, so the only honest test of "can this browser read
+    // the thread" is whether it opens something the thread already holds.
+    const probe = [...page]
+      .reverse()
+      .find((m) => m.cipher && m.iv) as { cipher: string; iv: string } | undefined;
+
+    if (!before) {
+      const peer = active.value.with?.username
+        ? await $fetch<{ available: boolean; publicKey?: string }>(
+            `/api/messaging/keys/${encodeURIComponent(active.value.with.username)}`
+          ).catch(() => ({ available: false }) as const)
+        : ({ available: false } as const);
+
+      await convCrypto.prepare({
+        encrypted: true,
+        conversationId: activeId.value!,
+        peerPublicKey: 'publicKey' in peer ? peer.publicKey : null,
+        probe: probe ?? null,
+      });
+    }
+
+    page = await Promise.all(
+      page.map(async (m) =>
+        m.cipher && m.iv
+          ? {
+              ...m,
+              body: await convCrypto.decrypt({ cipher: m.cipher, iv: m.iv }),
+            }
+          : m
+      )
+    );
+  }
+
   messages.value = before ? [...page, ...messages.value] : page;
   nextBefore.value = data.nextBefore;
   if (!before) await nextTick(scrollToEnd);
@@ -398,9 +532,16 @@ async function send() {
 
 async function deliver(pending: ThreadMessage) {
   try {
+    // Sealed here, never on the server — which is the whole point: the
+    // API stores bytes it cannot read, and the row it writes carries no
+    // plaintext at all.
+    const payload = active.value?.encrypted
+      ? await convCrypto.encrypt(pending.body ?? '')
+      : { body: pending.body };
+
     const res = await $fetch<{ id: string; createdAt: string }>(
       `/api/messaging/conversations/${activeId.value}/messages`,
-      { method: 'POST', body: { body: pending.body } }
+      { method: 'POST', body: payload }
     );
     const row = messages.value.find((m) => m.id === pending.id);
     if (row) {
@@ -431,9 +572,20 @@ async function accept() {
 async function startConversation() {
   startError.value = '';
   try {
+    // Generated now, because now is when the member has read what it
+    // means and ticked the box — never on a page load, which on a second
+    // device would silently break their other conversations.
+    if (startEncrypted.value && peerHasKey.value) {
+      if (!(await convCrypto.ensureIdentity())) {
+        await convCrypto.generateAndPublish(navigator.userAgent.slice(0, 60));
+      }
+    }
     const res = await $fetch<{ id: string }>('/api/messaging/conversations', {
       method: 'POST',
-      body: { username: startWith.value.trim() },
+      body: {
+        username: startWith.value.trim(),
+        encrypted: startEncrypted.value && peerHasKey.value,
+      },
     });
     startOpen.value = false;
     startWith.value = '';
@@ -644,6 +796,32 @@ async function startConversation() {
   margin-left: 0.375rem;
   text-decoration: underline;
   cursor: pointer;
+}
+
+.msg-unreadable {
+  font-style: italic;
+  color: rgb(var(--fg-subtle));
+}
+
+.msg-locked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-top: 1px solid rgb(var(--line-default));
+}
+
+.msg-locked-title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-weight: 600;
+}
+
+.msg-locked-body {
+  font-size: 0.8125rem;
+  color: rgb(var(--fg-muted));
 }
 
 .msg-notice,

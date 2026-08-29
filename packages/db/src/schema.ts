@@ -3754,3 +3754,37 @@ export const roomMutes = pgTable(
 
 export type RoomMute = typeof roomMutes.$inferSelect;
 export type NewRoomMute = typeof roomMutes.$inferInsert;
+
+/**
+ * One member's public key for encrypted conversations.
+ *
+ * One key per account, not per device, and that is the whole design: the
+ * private half never leaves the browser that made it, so a member who
+ * generates a key elsewhere replaces this row and loses the ability to
+ * read what the previous key sealed. That is the promise the interface
+ * makes — "not even you, on another device" — and a table shaped for
+ * multiple devices would quietly be promising something else.
+ *
+ * `alg` is here so the curve is never inferred. X25519 was measured
+ * working in a current browser, and P-256 was chosen anyway: a single
+ * curve everybody supports avoids the failure where two members cannot
+ * talk because their browsers picked different ones — which is hard to
+ * explain and resolves itself only as the slower half of the fleet
+ * updates. Recording it means a later move to X25519 is a migration
+ * rather than a guess.
+ */
+export const userMessageKeys = pgTable('user_message_keys', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** SPKI, base64url. */
+  publicKey: text('public_key').notNull(),
+  alg: text('alg').notNull().default('ECDH-P256'),
+  /** Purely indicative, shown in settings so a member recognises which
+   *  machine holds the key. Never used for anything. */
+  deviceLabel: text('device_label'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type UserMessageKey = typeof userMessageKeys.$inferSelect;
+export type NewUserMessageKey = typeof userMessageKeys.$inferInsert;
