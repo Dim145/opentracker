@@ -77,6 +77,9 @@ services:
       REDIS_URL: redis://:e2e-redis-password@redis:6379
       MESSAGING_TOKEN_SECRET: e2e-messaging-secret-0123456789abcdef
       RELAY_NODE_ID: relay-1
+      # The browser opens the stream from the site's origin, not the
+      # relay's. Without this it opens nothing.
+      RELAY_ALLOW_ORIGIN: http://localhost:53000
     ports:
       - "54100:4100"
     depends_on:
@@ -90,6 +93,11 @@ services:
       NUXT_HOST: 0.0.0.0
       NUXT_PORT: 3000
       API_INTERNAL_URL: http://api:4000
+      # The relay sits on its own origin in this stack, so the CSP has to
+      # be widened for it — deliberately, by naming the origin. A real
+      # deployment is better off proxying it under the site's own origin,
+      # where 'self' already covers it and nothing here changes.
+      NUXT_PUBLIC_RELAY_ORIGIN: http://localhost:54100
     ports:
       - "53000:3000"
     depends_on:

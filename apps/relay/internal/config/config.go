@@ -20,6 +20,7 @@ type Static struct {
 	ValkeyURL    string
 	TokenSecret  []byte
 	NodeID       string
+	AllowOrigin  string
 	RegisterTTL  time.Duration
 	RefreshEvery time.Duration
 }
@@ -76,6 +77,7 @@ func LoadStatic() (Static, error) {
 		ValkeyURL:    os.Getenv("REDIS_URL"),
 		TokenSecret:  []byte(os.Getenv("MESSAGING_TOKEN_SECRET")),
 		NodeID:       env("RELAY_NODE_ID", hostnameOr("relay")),
+		AllowOrigin:  os.Getenv("RELAY_ALLOW_ORIGIN"),
 		RegisterTTL:  30 * time.Second,
 		RefreshEvery: 10 * time.Second,
 	}

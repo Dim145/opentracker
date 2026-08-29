@@ -73,7 +73,8 @@ func main() {
 	mux.Handle("/events", &sse.Handler{
 		Hub:       h,
 		Live:      live,
-		Secret:    static.TokenSecret,
+		Secret:      static.TokenSecret,
+		AllowOrigin: static.AllowOrigin,
 		Heartbeat: 30 * time.Second,
 	})
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {

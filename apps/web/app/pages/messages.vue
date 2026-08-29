@@ -57,6 +57,14 @@
             <span class="sr-only">{{ $t('common.back') }}</span>
           </button>
           <span class="msg-thread-name truncate">{{ nameOf(active) }}</span>
+          <span
+            v-if="!connected"
+            class="msg-tag"
+            :title="$t('messaging.offlineHint')"
+          >
+            <Icon name="ph:cloud-slash" class="w-3 h-3" />
+            {{ $t('messaging.offline') }}
+          </span>
           <span v-if="active.encrypted" class="msg-tag">
             <Icon name="ph:lock-simple" class="w-3 h-3" />
             {{ $t('messaging.encrypted') }}
@@ -224,7 +232,14 @@ function nameOf(conv: Conversation) {
 
 function authorOf(msg: ThreadMessage) {
   if (!msg.author) return t('messaging.deletedMember');
-  return msg.author.displayName || msg.author.username;
+  // A streamed frame carries the author's id but not their name — the
+  // relay copies bytes and does not join. For anyone but me that is the
+  // conversation's other side, which the list already names.
+  return (
+    msg.author.displayName ||
+    msg.author.username ||
+    (active.value ? nameOf(active.value) : t('messaging.deletedMember'))
+  );
 }
 
 function shortTime(iso: string) {
@@ -262,6 +277,56 @@ watchEffect(() => {
 async function loadList() {
   await refreshList();
 }
+
+// ── Live delivery ────────────────────────────────────────────────────
+//
+// Everything above works without this. That is not an accident: the relay
+// is a separate process, and a page that only functioned while a socket
+// was open would have no answer for the socket being shut.
+
+const { connected, needsReload, start } = useMessagingStream((incoming) => {
+  for (const msg of incoming) {
+    if (msg.conversationId === activeId.value) {
+      // A message I just sent comes back through my own channel too — I am
+      // a participant. The optimistic row already carries the server's id
+      // by then, so matching on it is what stops the echo showing twice.
+      if (messages.value.some((m) => m.id === msg.id)) continue;
+      messages.value = [
+        ...messages.value,
+        {
+          id: msg.id,
+          body: msg.body,
+          cipher: msg.cipher,
+          deleted: false,
+          createdAt: msg.createdAt,
+          author: msg.authorId
+            ? { id: msg.authorId, username: '', displayName: null }
+            : null,
+          mine: msg.authorId === user.value?.id,
+        },
+      ];
+      void nextTick(scrollToEnd);
+      continue;
+    }
+    // For any other conversation, the counter is the notification. Nudging
+    // it locally avoids a round trip per arriving message — the list is
+    // reconciled on the next real load anyway.
+    const row =
+      inbox.value.find((c) => c.id === msg.conversationId) ??
+      requests.value.find((c) => c.id === msg.conversationId);
+    if (row) row.unreadCount += 1;
+    else void loadList(); // a conversation we did not know about yet
+  }
+});
+
+// Past the catch-up cap the view is cheaper to rebuild than to patch.
+watch(needsReload, async (needed) => {
+  if (!needed) return;
+  await loadList();
+  if (activeId.value) await loadThread();
+});
+
+onMounted(start);
 
 async function open(conv: Conversation) {
   activeId.value = conv.id;

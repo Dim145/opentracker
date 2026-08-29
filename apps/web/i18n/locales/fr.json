@@ -4792,6 +4792,8 @@
     "retry": "Réessayer",
     "newConversation": "Nouvelle conversation",
     "recipient": "Membre",
-    "start": "Démarrer"
+    "start": "Démarrer",
+    "offline": "Hors direct",
+    "offlineHint": "Les messages s'envoient et se lisent toujours ; ils n'arrivent simplement pas tout seuls. Rechargez pour voir la suite."
   }
 }

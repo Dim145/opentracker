@@ -4792,6 +4792,8 @@
     "retry": "Retry",
     "newConversation": "New conversation",
     "recipient": "Member",
-    "start": "Start"
+    "start": "Start",
+    "offline": "Not live",
+    "offlineHint": "Messages still send and read; they just do not arrive on their own. Reload to see what is new."
   }
 }

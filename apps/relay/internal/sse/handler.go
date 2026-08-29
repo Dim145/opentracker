@@ -24,6 +24,12 @@ type Handler struct {
 	Hub    *hub.Hub
 	Live   *config.Live
 	Secret []byte
+	// The browser opens this stream from the site's origin, which is not
+	// the relay's. Without a matching CORS header it opens nothing at all.
+	// An explicit origin rather than `*`, because the request carries a
+	// bearer and a wildcard would let any page on the internet ask for one
+	// on the reader's behalf.
+	AllowOrigin string
 	// Heartbeat keeps the connection warm through idle timeouts and, more
 	// usefully, is how a node notices a reader that vanished without a
 	// FIN — the write fails and the connection is reaped.
@@ -31,6 +37,11 @@ type Handler struct {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.AllowOrigin != "" {
+		w.Header().Set("Access-Control-Allow-Origin", h.AllowOrigin)
+		w.Header().Set("Vary", "Origin")
+	}
+
 	// The token rides in the query string because `EventSource` cannot set
 	// a header. That is a real trade and worth naming: a URL ends up in
 	// proxy logs. It is bounded by a short expiry rather than pretended

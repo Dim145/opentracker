@@ -392,10 +392,61 @@ async function main() {
     }
   }
 
-  console.log('\n10. back to off');
+  console.log('\n10. the catch-up, and its bound');
+
+  // Valkey pub/sub keeps nothing, so a reconnection needs somewhere to ask
+  // what it missed. This is also what makes it safe for the relay to close
+  // a slow reader: the cut is repairable.
+  await resetRateLimits();
+  const mark = new Date();
+  await sleep(1100);
+  await req('donator', `${DM}/${convId}/messages`, {
+    method: 'POST',
+    body: { body: 'arrivé pendant la coupure' },
+  });
+
+  const gap = await req(
+    'plainuser',
+    `/api/messaging/catch-up?since=${encodeURIComponent(mark.toISOString())}`
+  );
+  check(
+    'the catch-up returns what arrived during the gap',
+    gap.status === 200 &&
+      gap.body?.messages?.some((m) => m.body === 'arrivé pendant la coupure'),
+    `${gap.status} ${d(gap.body, 160)}`
+  );
+  check('and says it was not truncated', gap.body?.truncated === false, d(gap.body?.truncated));
+
+  // Too far back is answered with "reload", not with a bigger page: a node
+  // dying means every client it held asks at the same moment, and an
+  // unbounded query is the one just multiplied by a node's worth of
+  // readers.
+  const ancient = await req(
+    'plainuser',
+    `/api/messaging/catch-up?since=${encodeURIComponent(new Date(Date.now() - 26 * 3600 * 1000).toISOString())}`
+  );
+  check(
+    'a gap too wide to patch is refused rather than served',
+    ancient.body?.truncated === true && ancient.body?.messages?.length === 0,
+    d(ancient.body, 120)
+  );
+
+  check(
+    'and a stranger sees nothing of it',
+    ((await req('founder', `/api/messaging/catch-up?since=${encodeURIComponent(mark.toISOString())}`))
+      .body?.messages ?? []).every((m) => m.conversationId !== convId),
+    'founder is not in that conversation'
+  );
+
+  console.log('\n11. back to off');
 
   check('the scope closes again', (await setScopes({ dm: 'off' })) === 200);
   await resetRateLimits();
+  check(
+    'the catch-up goes with it',
+    (await req('donator', `/api/messaging/catch-up?since=${encodeURIComponent(new Date().toISOString())}`))
+      .status === 404
+  );
   check(
     'the token endpoint goes with it',
     (await req('donator', '/api/messaging/token')).status === 404
