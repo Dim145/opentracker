@@ -1,6 +1,8 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
 import {
   setRegistrationOpen,
+  setRoomRetentionDays,
+  setRoomSlowModeSeconds,
   setSetting,
   setTemplateQuotaPerUser,
   SETTINGS_KEYS,
@@ -192,6 +194,30 @@ export default defineEventHandler(async (event) => {
     body.require2FAScope === 'all'
   ) {
     await setSetting(SETTINGS_KEYS.REQUIRE_2FA_SCOPE, body.require2FAScope);
+  }
+
+  // Messaging scopes. Same three sentinel values as the 2FA scope, and
+  // the same 3-way segmented control on the front end. The two surfaces
+  // are independent: opening private messages without the room is the
+  // careful rollout, and the reverse is defensible too.
+  for (const [field, key] of [
+    ['messagingDmScope', SETTINGS_KEYS.MESSAGING_DM_SCOPE],
+    ['messagingRoomScope', SETTINGS_KEYS.MESSAGING_ROOM_SCOPE],
+  ] as const) {
+    const value = (body as Record<string, unknown>)[field];
+    if (value === 'off' || value === 'staff' || value === 'all') {
+      await setSetting(key, value);
+    }
+  }
+
+  // Room retention, in days. Clamped rather than rejected, and the floor
+  // is not cosmetic: at zero the room becomes a channel with no trace,
+  // where a report can no longer show the staff anything.
+  if (typeof body.messagingRoomRetentionDays === 'number') {
+    await setRoomRetentionDays(body.messagingRoomRetentionDays);
+  }
+  if (typeof body.messagingRoomSlowModeSeconds === 'number') {
+    await setRoomSlowModeSeconds(body.messagingRoomSlowModeSeconds);
   }
 
   // Notification retention TTLs. Clamped 1–3650 days; out-of-range

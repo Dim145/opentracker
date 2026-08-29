@@ -102,6 +102,14 @@ export const SETTINGS_KEYS = {
   // moderators, 'all' forces every user. 'off' is the default and
   // makes 2FA an opt-in personal setting.
   REQUIRE_2FA_SCOPE: 'require_2fa_scope',
+  // Messaging (off | staff | all), one scope per surface so private
+  // messages can open without the room, or the other way round. Both
+  // default to 'off': an instance that updates must not find itself with
+  // a harassment surface open it never decided on.
+  MESSAGING_DM_SCOPE: 'messaging_dm_scope',
+  MESSAGING_ROOM_SCOPE: 'messaging_room_scope',
+  MESSAGING_ROOM_RETENTION_DAYS: 'messaging_room_retention_days',
+  MESSAGING_ROOM_SLOW_MODE_S: 'messaging_room_slow_mode_s',
   INVITE_ENABLED: 'invite_enabled',
   DEFAULT_INVITES: 'default_invites',
   SITE_NAME: 'site_name',
@@ -571,5 +579,98 @@ export async function setTemplateQuotaPerUser(value: number): Promise<void> {
   await setSetting(
     SETTINGS_KEYS.TEMPLATE_QUOTA_PER_USER,
     String(clampTemplateQuota(value)),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Messaging
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Who may use a messaging surface. Same three states as the 2FA scope,
+ * and for the same reason: a boolean cannot express "staff only", which
+ * is what you want while rolling the feature out and what you fall back
+ * to if the room turns sour.
+ */
+export type MessagingScope = 'off' | 'staff' | 'all';
+
+function readScope(value: string | null): MessagingScope {
+  if (value === 'staff' || value === 'all') return value;
+  return 'off';
+}
+
+export async function getMessagingDmScope(): Promise<MessagingScope> {
+  return readScope(await getSetting(SETTINGS_KEYS.MESSAGING_DM_SCOPE));
+}
+
+export async function setMessagingDmScope(scope: MessagingScope) {
+  await setSetting(SETTINGS_KEYS.MESSAGING_DM_SCOPE, scope);
+}
+
+export async function getMessagingRoomScope(): Promise<MessagingScope> {
+  return readScope(await getSetting(SETTINGS_KEYS.MESSAGING_ROOM_SCOPE));
+}
+
+export async function setMessagingRoomScope(scope: MessagingScope) {
+  await setSetting(SETTINGS_KEYS.MESSAGING_ROOM_SCOPE, scope);
+}
+
+/**
+ * Whether this viewer may use the surface at all.
+ *
+ * Callers turn a `false` into a **404**, not a 403: a 403 confirms the
+ * feature exists, which is exactly what an instance running with it off
+ * would rather not say.
+ */
+export function scopeAdmits(
+  scope: MessagingScope,
+  user: { isAdmin?: boolean; isModerator?: boolean }
+): boolean {
+  if (scope === 'off') return false;
+  if (scope === 'all') return true;
+  return !!user.isAdmin || !!user.isModerator;
+}
+
+/**
+ * How long the room keeps its messages, in days.
+ *
+ * Fourteen holds both ends: at 3 messages a second it is 3.6M rows rather
+ * than the 7.8M thirty days would carry, while still covering the usual
+ * delay between a message going wrong and somebody reporting it.
+ *
+ * The floor is not a formality. At zero the room becomes a channel with no
+ * trace, where a report can no longer show anything to the staff — so the
+ * setting cannot go below a day, whatever an administrator types.
+ */
+export const ROOM_RETENTION_MIN_DAYS = 1;
+export const ROOM_RETENTION_DEFAULT_DAYS = 14;
+
+export async function getRoomRetentionDays(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.MESSAGING_ROOM_RETENTION_DAYS);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed)) return ROOM_RETENTION_DEFAULT_DAYS;
+  return Math.max(ROOM_RETENTION_MIN_DAYS, parsed);
+}
+
+export async function setRoomRetentionDays(days: number) {
+  const clamped = Math.max(ROOM_RETENTION_MIN_DAYS, Math.floor(days));
+  await setSetting(
+    SETTINGS_KEYS.MESSAGING_ROOM_RETENTION_DAYS,
+    String(clamped)
+  );
+}
+
+/** Seconds a member must wait between two room messages. 0 disables it. */
+export async function getRoomSlowModeSeconds(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.MESSAGING_ROOM_SLOW_MODE_S);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return parsed;
+}
+
+export async function setRoomSlowModeSeconds(seconds: number) {
+  await setSetting(
+    SETTINGS_KEYS.MESSAGING_ROOM_SLOW_MODE_S,
+    String(Math.max(0, Math.floor(seconds)))
   );
 }

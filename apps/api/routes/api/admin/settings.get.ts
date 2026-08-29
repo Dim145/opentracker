@@ -1,5 +1,11 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
-import { getSetting } from '~~/utils/settings';
+import {
+  getSetting,
+  getMessagingDmScope,
+  getMessagingRoomScope,
+  getRoomRetentionDays,
+  getRoomSlowModeSeconds,
+} from '~~/utils/settings';
 import {
   SEARCH_FIELDS_SETTING,
   SEARCH_FUZZY_SETTING,
@@ -97,7 +103,23 @@ export default defineEventHandler(async (event) => {
   const requestMaxFillsPerUser = await getRequestMaxFillsPerUser();
   const templateQuotaPerUser = await getTemplateQuotaPerUser();
 
+  const [
+    messagingDmScope,
+    messagingRoomScope,
+    messagingRoomRetentionDays,
+    messagingRoomSlowModeSeconds,
+  ] = await Promise.all([
+    getMessagingDmScope(),
+    getMessagingRoomScope(),
+    getRoomRetentionDays(),
+    getRoomSlowModeSeconds(),
+  ]);
+
   return {
+    messagingDmScope,
+    messagingRoomScope,
+    messagingRoomRetentionDays,
+    messagingRoomSlowModeSeconds,
     registrationOpen,
     minRatio,
     starterUpload,

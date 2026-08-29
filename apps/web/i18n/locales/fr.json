@@ -4761,12 +4761,37 @@
       "invites": "Invitations",
       "shop": "Boutique bonus",
       "notifications": "Notifications",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "messages": "Messages"
     },
     "actions": {
       "upload": "Publier un torrent",
       "theme": "Changer de thème",
       "signOut": "Se déconnecter"
     }
+  },
+  "messaging": {
+    "title": "Messages",
+    "inbox": "Boîte de réception",
+    "requests": "Demandes",
+    "requestsHint": "Premiers messages de membres à qui vous n'avez jamais écrit. Accepter déplace la conversation dans votre boîte.",
+    "empty": "Aucune conversation.",
+    "emptyRequests": "Aucune demande en attente.",
+    "emptyThread": "Rien ici pour le moment — écrivez le premier message.",
+    "pick": "Choisissez une conversation.",
+    "deletedMember": "Membre supprimé",
+    "placeholder": "Écrire un message…",
+    "send": "Envoyer",
+    "accept": "Accepter",
+    "encrypted": "Chiffrée",
+    "encryptedNotice": "Cette conversation est chiffrée. Le chiffrement arrive à une étape ultérieure — d'ici là elle ne peut être ni lue ni écrite ici.",
+    "olderMessages": "Charger les messages plus anciens",
+    "unreadOne": "1 non lu",
+    "unreadMany": "{count} non lus",
+    "sendFailed": "Non envoyé.",
+    "retry": "Réessayer",
+    "newConversation": "Nouvelle conversation",
+    "recipient": "Membre",
+    "start": "Démarrer"
   }
 }

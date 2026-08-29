@@ -2,7 +2,12 @@ import { count, eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users, webauthnCredentials } from '@trackarr/db/schema';
 import { getSetting, SETTINGS_KEYS, isInviteEnabled } from '~~/utils/server';
-import { getRequire2FAScope, isUserRequiredFor2FA } from '~~/utils/settings';
+import {
+  getMessagingDmScope,
+  getRequire2FAScope,
+  isUserRequiredFor2FA,
+  scopeAdmits,
+} from '~~/utils/settings';
 import { creditDailyLoginIfDue } from '~~/utils/bonusEarning';
 import type {
   LanguagePreference,
@@ -147,6 +152,18 @@ export default defineEventHandler(async (event) => {
         const has2FA =
           (fullUser?.totpEnabled ?? false) || passkeyCount > 0;
         (publicUser as any).requires2FASetup = required && !has2FA;
+
+        // Whether the messaging surfaces exist for THIS viewer. It has to
+        // ride on the session rather than on branding: the scope has a
+        // `staff` state, so the answer differs per member and a cached
+        // site-wide payload could not carry it. The chrome uses it to
+        // decide whether to show the entry at all — the routes enforce it
+        // again with a 404, since a client flag is a convenience and never
+        // a permission.
+        (publicUser as any).canMessage = scopeAdmits(
+          await getMessagingDmScope(),
+          { isAdmin: dbUser.isAdmin, isModerator: dbUser.isModerator }
+        );
       }
     } else {
       // User not found in DB, clear session

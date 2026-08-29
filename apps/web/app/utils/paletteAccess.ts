@@ -18,6 +18,8 @@ export interface PaletteViewer {
   isAdmin?: boolean;
   isModerator?: boolean;
   isOwner?: boolean;
+  /** Set by `/api/auth/status` from the messaging scope. */
+  canMessage?: boolean;
   /**
    * Set by `/api/auth/status` when the operator's 2FA enforcement covers this
    * account and nothing is enrolled yet. `auth.global.ts` confines such a
@@ -39,6 +41,12 @@ export interface PaletteAccess {
   owner: boolean;
   /** The account pages, which only mean anything with a session. */
   account: boolean;
+  /**
+   * Private messages. Unlike the rest, this one is not derived from the
+   * role: the scope has an `off` state, so the server decides and hands
+   * the answer down on the session.
+   */
+  messaging: boolean;
   /** The catalogue lookup — visibility itself is decided server-side. */
   torrentSearch: boolean;
 }
@@ -50,6 +58,7 @@ const CLOSED: PaletteAccess = {
   memberSearch: false,
   owner: false,
   account: false,
+  messaging: false,
   torrentSearch: false,
 };
 
@@ -78,6 +87,7 @@ export function paletteAccessFor(viewer: PaletteViewer | null): PaletteAccess {
     memberSearch: staff,
     owner: !!viewer.isOwner,
     account: true,
+    messaging: !!viewer.canMessage,
     torrentSearch: true,
   };
 }

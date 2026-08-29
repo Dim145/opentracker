@@ -16,10 +16,14 @@ import { paletteAccessFor } from '../app/utils/paletteAccess';
 // This decides what the palette OFFERS, which is a different failure: a menu
 // that lists a door you cannot open still tells you the door is there.
 
-const OWNER = { isAdmin: true, isModerator: false, isOwner: true };
-const ADMIN = { isAdmin: true, isModerator: false, isOwner: false };
-const MODERATOR = { isAdmin: false, isModerator: true, isOwner: false };
-const MEMBER = { isAdmin: false, isModerator: false, isOwner: false };
+// `canMessage` is on every fixture because it is NOT derived from the role:
+// the messaging scope has an `off` state, so the server decides and the
+// answer rides on the session. Leaving it off here would break the ladder
+// below for a reason that has nothing to do with roles.
+const OWNER = { isAdmin: true, isModerator: false, isOwner: true, canMessage: true };
+const ADMIN = { isAdmin: true, isModerator: false, isOwner: false, canMessage: true };
+const MODERATOR = { isAdmin: false, isModerator: true, isOwner: false, canMessage: true };
+const MEMBER = { isAdmin: false, isModerator: false, isOwner: false, canMessage: true };
 
 describe('paletteAccessFor', () => {
   it('refuses everything when signed out', () => {
@@ -46,6 +50,7 @@ describe('paletteAccessFor', () => {
       memberSearch: false,
       owner: false,
       account: true,
+      messaging: true,
       torrentSearch: true,
     });
   });
@@ -69,6 +74,18 @@ describe('paletteAccessFor', () => {
   it('gives the owner everything', () => {
     const access = paletteAccessFor(OWNER);
     expect(Object.values(access).every((v) => v === true)).toBe(true);
+  });
+
+  it('gates messaging on the server\'s answer, not on the role', () => {
+    // The scope can be off for everybody, including the owner — which is
+    // exactly what a fresh instance ships with.
+    expect(paletteAccessFor({ ...OWNER, canMessage: false }).messaging).toBe(false);
+    expect(paletteAccessFor({ ...MEMBER, canMessage: true }).messaging).toBe(true);
+    // And it never survives the two refusals.
+    expect(paletteAccessFor({ ...OWNER, requires2FASetup: true }).messaging).toBe(
+      false
+    );
+    expect(paletteAccessFor(null).messaging).toBe(false);
   });
 
   it('never grants a role more than the role above it', () => {

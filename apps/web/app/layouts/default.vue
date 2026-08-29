@@ -310,6 +310,20 @@
                     <Icon name="ph:identification-badge-bold" class="text-sky-400" />
                     {{ $t('nav.federatedIdentity', 'Federated identity') }}
                   </NuxtLink>
+                  <!-- Gated on the session's own answer, not on a role:
+                       the messaging scope has an `off` state, so the server
+                       decides. The routes enforce it again with a 404 — this
+                       flag only keeps the chrome from advertising a door
+                       that is not there. -->
+                  <NuxtLink
+                    v-if="canMessage"
+                    to="/messages"
+                    class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
+                    @click="showUserMenu = false"
+                  >
+                    <Icon name="ph:chat-circle-bold" />
+                    {{ $t('messaging.title') }}
+                  </NuxtLink>
                   <NuxtLink
                     to="/downloads"
                     class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
@@ -579,6 +593,15 @@
           >
             <Icon name="ph:users-three-bold" class="text-lg flex-shrink-0 text-emerald-500" />
             <span>{{ $t('nav.following') }}</span>
+          </NuxtLink>
+          <NuxtLink
+            v-if="canMessage"
+            to="/messages"
+            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
+            @click="showMobileNav = false"
+          >
+            <Icon name="ph:chat-circle-bold" class="text-lg flex-shrink-0" />
+            <span>{{ $t('messaging.title') }}</span>
           </NuxtLink>
           <NuxtLink
             to="/downloads"
@@ -998,6 +1021,11 @@ onMounted(() => {
 // The same decision the palette makes, from the same function, so the chip
 // cannot advertise a door the component would refuse to open. The component
 // enforces it; this only keeps the affordance honest.
+/** Whether messaging exists for this member — the server's answer. */
+const canMessage = computed(
+  () => !!(user.value as { canMessage?: boolean } | null)?.canMessage
+);
+
 const paletteAvailable = computed(
   () => paletteAccessFor(user.value).available
 );

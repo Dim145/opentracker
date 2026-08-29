@@ -198,6 +198,11 @@ const accountLinks = computed<PaletteItem[]>(() => {
   if (!access.value.account) return [];
   const links = [
     { to: '/me', key: 'profile', icon: 'ph:user' },
+    // Only when the scope admits this member — the palette never offers a
+    // page the chrome has decided not to show.
+    ...(access.value.messaging
+      ? [{ to: '/messages', key: 'messages', icon: 'ph:chat-circle' }]
+      : []),
     { to: '/favorites', key: 'favorites', icon: 'ph:heart' },
     { to: '/following', key: 'following', icon: 'ph:bell' },
     { to: '/downloads', key: 'downloads', icon: 'ph:download-simple' },

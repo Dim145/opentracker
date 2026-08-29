@@ -4761,12 +4761,37 @@
       "invites": "Invitations",
       "shop": "Bonus shop",
       "notifications": "Notifications",
-      "settings": "Settings"
+      "settings": "Settings",
+      "messages": "Messages"
     },
     "actions": {
       "upload": "Upload a torrent",
       "theme": "Change the theme",
       "signOut": "Sign out"
     }
+  },
+  "messaging": {
+    "title": "Messages",
+    "inbox": "Inbox",
+    "requests": "Requests",
+    "requestsHint": "First messages from members you have never written to. Accepting moves the conversation to your inbox.",
+    "empty": "No conversations yet.",
+    "emptyRequests": "No pending requests.",
+    "emptyThread": "Nothing here yet — write the first message.",
+    "pick": "Pick a conversation.",
+    "deletedMember": "Deleted member",
+    "placeholder": "Write a message…",
+    "send": "Send",
+    "accept": "Accept",
+    "encrypted": "Encrypted",
+    "encryptedNotice": "This conversation is encrypted. Encryption arrives in a later step — until then it cannot be read or written here.",
+    "olderMessages": "Load older messages",
+    "unreadOne": "1 unread",
+    "unreadMany": "{count} unread",
+    "sendFailed": "Not sent.",
+    "retry": "Retry",
+    "newConversation": "New conversation",
+    "recipient": "Member",
+    "start": "Start"
   }
 }

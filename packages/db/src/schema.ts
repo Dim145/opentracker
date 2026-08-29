@@ -3442,3 +3442,248 @@ export const uploadedFonts = pgTable(
 
 export type UploadedFont = typeof uploadedFonts.$inferSelect;
 export type NewUploadedFont = typeof uploadedFonts.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────────
+// Messaging
+//
+// Two surfaces over one shape: private conversations between two members,
+// and the public room. What separates them is their growth regime, not
+// their form — which is why the rows live in two tables while the
+// conversation they hang off is one.
+//
+// `messages` grows slowly and is never purged: members believe they keep
+// what they wrote. `room_messages` grows at the rate people talk, is
+// partitioned by day and purged by dropping partitions, because a DELETE
+// over millions of rows holds a lock, inflates the WAL and leaves work to
+// autovacuum.
+//
+// Authorship follows the rule the forum tables already set: `authorId` is
+// nullable with `set null`, so deleting an account never fails on a
+// foreign key and the content survives without attribution. For messaging
+// that is also the erasure story — a frozen username would be personal
+// data retained after a deletion request, so the UI renders a null author
+// as "deleted member" rather than a remembered name.
+// ─────────────────────────────────────────────────────────────────────
+
+export const conversations = pgTable(
+  'conversations',
+  {
+    id: text('id').primaryKey(),
+    /** 'dm' — exactly two participants. 'room' — the public shoutbox. */
+    kind: text('kind').notNull(),
+    /** Rooms only, and unique: the URL segment. Null for a DM. */
+    slug: text('slug'),
+    title: text('title'),
+    /**
+     * Set once, at creation, and never after. A conversation half of which
+     * is encrypted is unreadable to render, to export, to report on, and
+     * to explain — so the flag is immutable by design rather than by
+     * convention.
+     */
+    encrypted: boolean('encrypted').default(false).notNull(),
+    createdById: text('created_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    /**
+     * Denormalised. The conversation list is the most-hit view in the
+     * feature; recomputing it as an aggregate over `messages` on every
+     * render is the first bottleneck a messaging system meets.
+     */
+    lastMessageAt: timestamp('last_message_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('conversations_slug_idx').on(table.slug),
+    index('conversations_last_message_idx').on(table.lastMessageAt),
+    check('conversations_kind_ck', sql`${table.kind} IN ('dm', 'room')`),
+    // A room has a slug and a DM does not — one rule, both directions.
+    check(
+      'conversations_room_slug_ck',
+      sql`(${table.kind} = 'room') = (${table.slug} IS NOT NULL)`
+    ),
+    // A room cannot be encrypted: the key is derived per pair of members,
+    // so there is nobody to derive it with.
+    check(
+      'conversations_room_plain_ck',
+      sql`NOT (${table.kind} = 'room' AND ${table.encrypted})`
+    ),
+  ]
+);
+
+export const conversationParticipants = pgTable(
+  'conversation_participants',
+  {
+    conversationId: text('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    joinedAt: timestamp('joined_at').defaultNow().notNull(),
+    lastReadAt: timestamp('last_read_at'),
+    /**
+     * Denormalised too, and for the same reason as `lastMessageAt`:
+     * `COUNT(*) WHERE createdAt > lastReadAt` per conversation per render
+     * is the second bottleneck. Incremented on publish, zeroed on read.
+     */
+    unreadCount: integer('unread_count').default(0).notNull(),
+    mutedUntil: timestamp('muted_until'),
+    archivedAt: timestamp('archived_at'),
+    /**
+     * 'pending' is the first-contact queue: a message from someone you
+     * have never exchanged with lands there rather than in the inbox.
+     * Without it, at this membership size a known uploader's inbox is
+     * unusable within weeks.
+     */
+    state: text('state').default('active').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.conversationId, table.userId] }),
+    index('conversation_participants_inbox_idx').on(
+      table.userId,
+      table.state,
+      table.archivedAt
+    ),
+    check(
+      'conversation_participants_state_ck',
+      sql`${table.state} IN ('active', 'pending', 'blocked')`
+    ),
+    check(
+      'conversation_participants_unread_ck',
+      sql`${table.unreadCount} >= 0`
+    ),
+  ]
+);
+
+export const messages = pgTable(
+  'messages',
+  {
+    id: text('id').primaryKey(),
+    conversationId: text('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    authorId: text('author_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Plaintext. Null when the conversation is encrypted. */
+    body: text('body'),
+    /** AES-GCM payload. Null when it is not. */
+    cipher: bytea('cipher'),
+    iv: bytea('iv'),
+    isSystem: boolean('is_system').default(false).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    editedAt: timestamp('edited_at'),
+    deletedAt: timestamp('deleted_at'),
+    /** Who removed it. A deletion without an author is indefensible. */
+    deletedById: text('deleted_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (table) => [
+    index('messages_conversation_idx').on(
+      table.conversationId,
+      table.createdAt
+    ),
+    // Exactly one payload, enforced rather than assumed: a plaintext row
+    // in an encrypted conversation is the kind of bug that never shows.
+    // A deleted row is allowed to carry neither.
+    check(
+      'messages_payload_ck',
+      sql`${table.deletedAt} IS NOT NULL OR ((${table.body} IS NOT NULL) <> (${table.cipher} IS NOT NULL))`
+    ),
+    check(
+      'messages_cipher_iv_ck',
+      sql`(${table.cipher} IS NULL) = (${table.iv} IS NULL)`
+    ),
+  ]
+);
+
+/**
+ * The room's messages, partitioned by day.
+ *
+ * Drizzle has no notion of declarative partitioning, so the generated
+ * migration is hand-extended with `PARTITION BY RANGE (created_at)` and
+ * the initial partitions. Two consequences show up here:
+ *
+ *   - the primary key has to contain the partition key, hence `(id,
+ *     created_at)` rather than `id` alone;
+ *   - nothing writes to this table until the room ships, and the
+ *     migration pre-creates a window of partitions so the gap is covered
+ *     without a maintenance job existing yet.
+ *
+ * It carries no `encrypted` payload columns: a room is never encrypted.
+ */
+export const roomMessages = pgTable(
+  'room_messages',
+  {
+    id: text('id').notNull(),
+    conversationId: text('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    authorId: text('author_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    body: text('body').notNull(),
+    isSystem: boolean('is_system').default(false).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    deletedAt: timestamp('deleted_at'),
+    deletedById: text('deleted_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.id, table.createdAt] }),
+    index('room_messages_conversation_idx').on(
+      table.conversationId,
+      table.createdAt
+    ),
+  ]
+);
+
+export const conversationsRelations = relations(
+  conversations,
+  ({ one, many }) => ({
+    createdBy: one(users, {
+      fields: [conversations.createdById],
+      references: [users.id],
+    }),
+    participants: many(conversationParticipants),
+    messages: many(messages),
+  })
+);
+
+export const conversationParticipantsRelations = relations(
+  conversationParticipants,
+  ({ one }) => ({
+    conversation: one(conversations, {
+      fields: [conversationParticipants.conversationId],
+      references: [conversations.id],
+    }),
+    user: one(users, {
+      fields: [conversationParticipants.userId],
+      references: [users.id],
+    }),
+  })
+);
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
+  author: one(users, {
+    fields: [messages.authorId],
+    references: [users.id],
+  }),
+}));
+
+export type Conversation = typeof conversations.$inferSelect;
+export type NewConversation = typeof conversations.$inferInsert;
+export type ConversationParticipant =
+  typeof conversationParticipants.$inferSelect;
+export type NewConversationParticipant =
+  typeof conversationParticipants.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
+export type RoomMessage = typeof roomMessages.$inferSelect;
+export type NewRoomMessage = typeof roomMessages.$inferInsert;
