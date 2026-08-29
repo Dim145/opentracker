@@ -1,5 +1,7 @@
 import { db, schema } from '@trackarr/db';
-import { and, desc, eq, gt, isNull, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { roomReactionsFor } from './reactions';
+import { topBadgesFor } from '../roleBadge';
 import { randomUUID } from 'node:crypto';
 import {
   getMessagingRoomScope,
@@ -116,7 +118,12 @@ export async function slowModeBlock(user: {
   return ttl > 0 ? ttl : 0;
 }
 
-export async function roomPage(opts: { before?: Date; limit: number }) {
+export async function roomPage(opts: {
+  before?: Date;
+  limit: number;
+  /** Whose "I reacted to this" the page should carry. */
+  viewerId: string;
+}) {
   const room = await ensureRoom();
   const rows = await db
     .select({
@@ -124,6 +131,8 @@ export async function roomPage(opts: { before?: Date; limit: number }) {
       body: schema.roomMessages.body,
       isSystem: schema.roomMessages.isSystem,
       createdAt: schema.roomMessages.createdAt,
+      editedAt: schema.roomMessages.editedAt,
+      replyToId: schema.roomMessages.replyToId,
       deletedAt: schema.roomMessages.deletedAt,
       authorId: schema.roomMessages.authorId,
       authorName: schema.users.username,
@@ -143,8 +152,83 @@ export async function roomPage(opts: { before?: Date; limit: number }) {
     .orderBy(desc(schema.roomMessages.createdAt))
     .limit(opts.limit);
 
+  // One query for the page's reactions and one for its quotes. Per
+  // message would be two round trips times the page size, on the surface
+  // that is read most often.
+  const ids = rows.map((r) => r.id);
+  const reactions = await roomReactionsFor(ids, opts.viewerId);
+  // One badge per author, resolved for the whole page at once.
+  const badges = await topBadgesFor(
+    rows.map((r) => r.authorId).filter(Boolean) as string[]
+  );
+
+  const quotedIds = [...new Set(rows.map((r) => r.replyToId).filter(Boolean))] as string[];
+  const quoted = quotedIds.length
+    ? await db
+        .select({
+          id: schema.roomMessages.id,
+          body: schema.roomMessages.body,
+          deletedAt: schema.roomMessages.deletedAt,
+          authorName: schema.users.username,
+        })
+        .from(schema.roomMessages)
+        .leftJoin(
+          schema.users,
+          and(
+            eq(schema.users.id, schema.roomMessages.authorId),
+            isNull(schema.users.deletedAt)
+          )
+        )
+        .where(
+          and(
+            inArray(schema.roomMessages.id, quotedIds),
+            eq(schema.roomMessages.conversationId, room.id)
+          )
+        )
+    : [];
+  const quotedById = new Map(quoted.map((q) => [q.id, q]));
+
+  // The pin, resolved here rather than by a second request: it belongs
+  // above the log and the page would otherwise render without it and then
+  // jump. A pin whose message retention has already dropped resolves to
+  // nothing, which is correct — the room forgot it.
+  const pinned = room.pinnedMessageId
+    ? ((await db
+        .select({
+          id: schema.roomMessages.id,
+          body: schema.roomMessages.body,
+          createdAt: schema.roomMessages.createdAt,
+          deletedAt: schema.roomMessages.deletedAt,
+          authorName: schema.users.username,
+        })
+        .from(schema.roomMessages)
+        .leftJoin(
+          schema.users,
+          and(
+            eq(schema.users.id, schema.roomMessages.authorId),
+            isNull(schema.users.deletedAt)
+          )
+        )
+        .where(
+          and(
+            eq(schema.roomMessages.id, room.pinnedMessageId),
+            eq(schema.roomMessages.conversationId, room.id)
+          )
+        )
+        .limit(1)) ?? [])[0] ?? null
+    : null;
+
   return {
     roomId: room.id,
+    pinned:
+      pinned && !pinned.deletedAt
+        ? {
+            id: pinned.id,
+            body: pinned.body,
+            author: pinned.authorName,
+            createdAt: pinned.createdAt,
+          }
+        : null,
     messages: rows.map((row) => ({
       id: row.id,
       // A removed message keeps its row so the log stays honest; it just
@@ -153,12 +237,31 @@ export async function roomPage(opts: { before?: Date; limit: number }) {
       deleted: !!row.deletedAt,
       isSystem: row.isSystem,
       createdAt: row.createdAt,
+      editedAt: row.editedAt,
+      reactions: reactions[row.id]?.counts ?? {},
+      myReactions: reactions[row.id]?.mine ?? [],
+      // A quote whose target retention has already dropped renders as
+      // gone rather than as a blank: the room forgets on purpose, and
+      // showing that is more honest than hiding it.
+      replyTo: row.replyToId
+        ? (() => {
+            const q = quotedById.get(row.replyToId!);
+            if (!q) return { id: row.replyToId, gone: true };
+            return {
+              id: q.id,
+              gone: !!q.deletedAt,
+              author: q.authorName,
+              preview: q.deletedAt ? null : q.body.slice(0, 140),
+            };
+          })()
+        : null,
       // The joined name, not the id: an erased account keeps its rows.
       author: row.authorName
         ? {
             id: row.authorId,
             username: row.authorName,
             displayName: row.authorDisplayName,
+            badge: (row.authorId && badges[row.authorId]) || null,
           }
         : null,
     })),

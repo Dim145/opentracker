@@ -53,23 +53,38 @@ export default defineNitroPlugin(() => {
         const ahead = sql.raw(String(CREATE_AHEAD_DAYS));
         const retention = sql.raw(String(days));
 
+        // Two tables now, rolled and dropped together.
+        //
+        // `room_message_reactions` is partitioned on the MESSAGE's day, so
+        // a day's reactions sit in the partition that day's messages sit
+        // in. Rolling them in lockstep is what keeps that true; letting
+        // one lapse would send its inserts to the DEFAULT partition, which
+        // retention never drops.
+        const PARTITIONED = ['room_messages', 'room_message_reactions'] as const;
+
         // Create ahead. `IF NOT EXISTS` makes the whole thing idempotent,
         // so a replica that runs it twice costs nothing.
-        await db.execute(sql`
-          DO $$
-          DECLARE
-              day date := date_trunc('day', now())::date;
-              stop date := date_trunc('day', now())::date + ${ahead};
-          BEGIN
-              WHILE day < stop LOOP
-                  EXECUTE format(
-                      'CREATE TABLE IF NOT EXISTS %I PARTITION OF room_messages FOR VALUES FROM (%L) TO (%L)',
-                      'room_messages_' || to_char(day, 'YYYYMMDD'), day, day + 1
-                  );
-                  day := day + 1;
-              END LOOP;
-          END $$;
-        `);
+        for (const table of PARTITIONED) {
+          // A table name cannot be a bound parameter, and this one is not
+          // user input: it comes from the literal tuple above.
+          const relation = sql.raw(table);
+          const prefix = sql.raw(`'${table}_'`);
+          await db.execute(sql`
+            DO $$
+            DECLARE
+                day date := date_trunc('day', now())::date;
+                stop date := date_trunc('day', now())::date + ${ahead};
+            BEGIN
+                WHILE day < stop LOOP
+                    EXECUTE format(
+                        'CREATE TABLE IF NOT EXISTS %I PARTITION OF ${relation} FOR VALUES FROM (%L) TO (%L)',
+                        ${prefix} || to_char(day, 'YYYYMMDD'), day, day + 1
+                    );
+                    day := day + 1;
+                END LOOP;
+            END $$;
+          `);
+        }
 
         // Drop behind, and report it.
         //
@@ -82,27 +97,33 @@ export default defineNitroPlugin(() => {
         // Only partitions whose whole range is older than the cutoff. One
         // straddling it still holds messages inside retention, and
         // dropping it would take them.
-        const stale = await db.execute<{ relname: string }>(sql`
-          SELECT c.relname
-          FROM pg_inherits i
-          JOIN pg_class c ON c.oid = i.inhrelid
-          WHERE i.inhparent = 'room_messages'::regclass
-            AND c.relname ~ '^room_messages_[0-9]{8}$'
-            AND to_date(right(c.relname, 8), 'YYYYMMDD')
-                < (date_trunc('day', now()) - make_interval(days => ${retention}))::date
-        `);
+        let dropped = 0;
+        for (const table of PARTITIONED) {
+          const parent = sql.raw(`'${table}'`);
+          const pattern = sql.raw(`'^${table}_[0-9]{8}$'`);
+          const stale = await db.execute<{ relname: string }>(sql`
+            SELECT c.relname
+            FROM pg_inherits i
+            JOIN pg_class c ON c.oid = i.inhrelid
+            WHERE i.inhparent = ${parent}::regclass
+              AND c.relname ~ ${pattern}
+              AND to_date(right(c.relname, 8), 'YYYYMMDD')
+                  < (date_trunc('day', now()) - make_interval(days => ${retention}))::date
+          `);
 
-        const names = (stale as unknown as Array<{ relname: string }>).map(
-          (r) => r.relname
-        );
-        for (const name of names) {
-          // The name came from `pg_class` and matched a strict pattern
-          // above, so it cannot carry anything else.
-          await db.execute(sql`DROP TABLE IF EXISTS ${sql.raw(`"${name}"`)}`);
+          const names = (stale as unknown as Array<{ relname: string }>).map(
+            (r) => r.relname
+          );
+          for (const name of names) {
+            // The name came from `pg_class` and matched a strict pattern
+            // above, so it cannot carry anything else.
+            await db.execute(sql`DROP TABLE IF EXISTS ${sql.raw(`"${name}"`)}`);
+          }
+          dropped += names.length;
         }
-        if (names.length > 0) {
+        if (dropped > 0) {
           console.log(
-            `[messaging] room retention: dropped ${names.length} partition(s) older than ${days}d`
+            `[messaging] room retention: dropped ${dropped} partition(s) older than ${days}d`
           );
         }
       });

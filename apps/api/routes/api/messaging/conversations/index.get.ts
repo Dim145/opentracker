@@ -12,7 +12,7 @@
  * anything else does.
  */
 import { db, schema } from '@trackarr/db';
-import { and, desc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireDmAccess } from '~~/utils/messaging/guard';
 
@@ -85,6 +85,43 @@ export default defineEventHandler(async (event) => {
 
   const otherBy = new Map(others.map((o) => [o.conversationId, o]));
 
+  /*
+   * The last line of each conversation, for the list.
+   *
+   * A list that shows only names makes you open every thread to find out
+   * which one moved — the preview is what turns it into something you
+   * can scan.
+   *
+   * `DISTINCT ON` rather than a lateral join per row: one index scan over
+   * `(conversation_id, created_at)` for the whole page instead of one
+   * query per conversation. Encrypted threads deliberately return
+   * nothing: the server holds ciphertext and could not preview it if it
+   * wanted to, and the client says so rather than showing a blank.
+   */
+  const previews = await db.execute<{
+    conversation_id: string;
+    body: string | null;
+    encrypted: boolean;
+  }>(sql`
+    SELECT DISTINCT ON (m.conversation_id)
+           m.conversation_id,
+           CASE WHEN m.deleted_at IS NULL THEN left(m.body, 90) END AS body,
+           (m.cipher IS NOT NULL) AS encrypted
+    FROM messages m
+    WHERE m.conversation_id IN (${sql.join(
+      ids.map((id) => sql`${id}`),
+      sql`, `
+    )})
+    ORDER BY m.conversation_id, m.created_at DESC
+  `);
+  const previewBy = new Map(
+    (previews as unknown as Array<{
+      conversation_id: string;
+      body: string | null;
+      encrypted: boolean;
+    }>).map((p) => [p.conversation_id, p])
+  );
+
   const shaped = rows.map((row) => {
     const other = otherBy.get(row.conversationId);
     return {
@@ -94,6 +131,10 @@ export default defineEventHandler(async (event) => {
       unreadCount: row.unreadCount,
       mutedUntil: row.mutedUntil,
       lastReadAt: row.lastReadAt,
+      // Null when there is nothing to show, when the last message was
+      // removed, or when the thread is encrypted. The client renders each
+      // of those differently — a blank line would flatten all three.
+      preview: previewBy.get(row.conversationId)?.body ?? null,
       // A deleted account keeps no name here: the join above refuses
       // erased rows, so the client renders the absence rather than the
       // `deleted-<random>` placeholder erasure left behind.

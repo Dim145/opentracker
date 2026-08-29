@@ -9,7 +9,7 @@
  * the moments the room is busiest.
  */
 import { db, schema } from '@trackarr/db';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
@@ -25,7 +25,16 @@ import { publishToRoom } from '~~/utils/messaging/relay';
 const BODY_MAX = 1000;
 
 const bodySchema = z
-  .object({ body: z.string().trim().min(1).max(BODY_MAX) })
+  .object({
+    body: z.string().trim().min(1).max(BODY_MAX),
+    /**
+     * The message being answered. The room is one flat channel, so this
+     * is what keeps it readable once more than a handful of people are
+     * talking at once — without it every reply is addressed to whoever
+     * happens to be above it.
+     */
+    replyToId: z.string().uuid().optional(),
+  })
   .strict();
 
 export default defineEventHandler(async (event) => {
@@ -58,11 +67,31 @@ export default defineEventHandler(async (event) => {
   const now = new Date();
   const id = randomUUID();
 
+  // Checked against this room, and against retention: quoting a message
+  // whose day has already been dropped would render as a quote of
+  // nothing. Refusing is clearer than showing a hole.
+  if (body.replyToId) {
+    const target = await db.query.roomMessages.findFirst({
+      where: and(
+        eq(schema.roomMessages.id, body.replyToId),
+        eq(schema.roomMessages.conversationId, room.id)
+      ),
+      columns: { id: true },
+    });
+    if (!target) {
+      throw createError({
+        statusCode: 400,
+        message: 'The message being replied to is no longer in the room',
+      });
+    }
+  }
+
   await db.insert(schema.roomMessages).values({
     id,
     conversationId: room.id,
     authorId: user.id,
     body: body.body,
+    replyToId: body.replyToId ?? null,
     createdAt: now,
   });
   await db
@@ -78,6 +107,7 @@ export default defineEventHandler(async (event) => {
       id,
       body: body.body,
       createdAt: now,
+      replyToId: body.replyToId ?? null,
       author: {
         id: user.id,
         username: user.username,

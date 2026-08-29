@@ -25,7 +25,11 @@ export default defineEventHandler(async (event) => {
   await rateLimit(event, RATE_LIMITS.public);
 
   const query = validateQuery(event, querySchema);
-  const page = await roomPage({ before: query.before, limit: query.limit });
+  const page = await roomPage({
+    before: query.before,
+    limit: query.limit,
+    viewerId: user.id,
+  });
   const mute = await activeMute(user.id);
 
   return {
