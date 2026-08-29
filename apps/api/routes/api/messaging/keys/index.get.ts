@@ -22,6 +22,12 @@ export default defineEventHandler(async (event) => {
   return key
     ? {
         published: true,
+        // The key itself, so the browser can tell whether IT is the one
+        // that published. Nothing is given away — anybody can fetch the
+        // same value by username — and without it the client cannot tell
+        // "this device takes part" from "this device holds a key nobody
+        // encrypts to".
+        publicKey: key.publicKey,
         alg: key.alg,
         deviceLabel: key.deviceLabel,
         createdAt: key.createdAt,

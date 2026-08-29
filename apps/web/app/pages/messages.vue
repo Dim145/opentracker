@@ -5,6 +5,28 @@
     <aside class="msg-list" :class="{ 'msg-hide-mobile': !!activeId }">
       <header class="msg-list-head">
         <h1 class="h-page">{{ $t('messaging.title') }}</h1>
+        <!--
+          Publishing your own key had no entry point at all: it happened
+          only as a side effect of starting an encrypted conversation, and
+          you could only start one with somebody who already had a key.
+          Nobody could be first. This is the way in.
+        -->
+        <button
+          type="button"
+          class="msg-new"
+          :aria-label="hasIdentity
+            ? $t('messaging.crypto.rotateTitle')
+            : $t('messaging.crypto.enableTitle')"
+          :title="hasIdentity
+            ? $t('messaging.crypto.rotateTitle')
+            : $t('messaging.crypto.enableTitle')"
+          @click="rotateOpen = true"
+        >
+          <Icon
+            :name="hasIdentity ? 'ph:lock-key' : 'ph:lock-simple-open'"
+            class="w-4 h-4"
+          />
+        </button>
         <button type="button" class="msg-new" @click="startOpen = true">
           <Icon name="ph:plus" class="w-4 h-4" />
           <span class="sr-only">{{ $t('messaging.newConversation') }}</span>
@@ -394,6 +416,7 @@
           autocomplete="off"
           spellcheck="false"
           @blur="checkPeerKey"
+            @input="schedulePeerKeyCheck"
         />
         <p v-if="peerKeyChecked && !peerHasKey" class="msg-hint">
           {{ $t('messaging.crypto.unavailable', { name: startWith.trim() }) }}
@@ -415,20 +438,40 @@
     <!-- Destructive, and shaped like it: a separate dialog, the count of
          what it will destroy, and a checkbox. Not a word to retype — that
          is friction which makes people click faster, not think longer. -->
-    <Modal v-model="rotateOpen" :title="$t('messaging.crypto.rotateTitle')">
+    <!--
+      One dialog for the key, whichever act it is.
+
+      Creating the first one destroys nothing, so it asks for no
+      acknowledgement and warns about nothing. Replacing one does, and
+      keeps both. Two dialogs would say the same thing twice and drift.
+    -->
+    <Modal
+      v-model="rotateOpen"
+      :title="hasIdentity
+        ? $t('messaging.crypto.rotateTitle')
+        : $t('messaging.crypto.enableTitle')"
+    >
       <div class="flex flex-col gap-3">
-        <p class="text-sm">{{ $t('messaging.crypto.rotateWarning') }}</p>
-        <label class="flex items-start gap-2 text-sm">
+        <p class="text-sm">
+          {{ hasIdentity
+            ? $t('messaging.crypto.rotateWarning')
+            : $t('messaging.crypto.enableBody') }}
+        </p>
+        <label v-if="hasIdentity" class="flex items-start gap-2 text-sm">
           <input v-model="rotateAcknowledged" type="checkbox" class="mt-1" />
           <span>{{ $t('messaging.crypto.rotateConfirm') }}</span>
         </label>
+        <p v-if="rotateError" class="text-sm text-error">{{ rotateError }}</p>
         <button
           type="button"
           class="btn btn-sm self-end"
-          :disabled="!rotateAcknowledged"
+          :disabled="rotateBusy || (hasIdentity && !rotateAcknowledged)"
           @click="doRotate"
         >
-          {{ $t('messaging.crypto.rotateAction') }}
+          <Icon v-if="rotateBusy" name="ph:circle-notch" class="animate-spin" />
+          {{ hasIdentity
+            ? $t('messaging.crypto.rotateAction')
+            : $t('messaging.crypto.enableAction') }}
         </button>
       </div>
     </Modal>
@@ -561,6 +604,10 @@ const peerHasKey = ref(false);
 const peerKeyChecked = ref(false);
 const rotateOpen = ref(false);
 const rotateAcknowledged = ref(false);
+const rotateBusy = ref(false);
+const rotateError = ref('');
+/** Whether THIS browser holds a key. Decides which act the dialog offers. */
+const hasIdentity = ref(false);
 
 const convCrypto = useConversationCrypto();
 const cryptoState = computed(() => convCrypto.state.value);
@@ -580,33 +627,92 @@ const erasedThread = computed(
  * and that is a real limit of one-key-per-account rather than a detail to
  * hide: the checkbox simply does not appear, and the dialog says why.
  */
+/**
+ * Look the recipient up while they type, not only when the field loses
+ * focus. Typing a name and pressing Enter never blurs it, so the
+ * encryption checkbox stayed hidden and the option looked absent.
+ */
+let peerKeyTimer: ReturnType<typeof setTimeout> | null = null;
+function schedulePeerKeyCheck() {
+  if (peerKeyTimer) clearTimeout(peerKeyTimer);
+  peerKeyTimer = setTimeout(() => void checkPeerKey(), 350);
+}
+
+/**
+ * Look the recipient up.
+ *
+ * The previous answer is kept while a new one is in flight. Clearing it
+ * first made the "no key" hint appear and vanish on every blur — a
+ * flicker under the field, because blur and the debounced input check
+ * both fired and each reset the state before asking again.
+ *
+ * The result is also matched against the name that was current when the
+ * request went out: two lookups can land out of order, and the slower
+ * one would otherwise answer for a name nobody typed any more.
+ */
+let peerKeyRequest = 0;
 async function checkPeerKey() {
+  if (peerKeyTimer) {
+    clearTimeout(peerKeyTimer);
+    peerKeyTimer = null;
+  }
   const name = startWith.value.trim();
-  peerKeyChecked.value = false;
-  peerHasKey.value = false;
-  if (!name) return;
+  if (!name) {
+    peerKeyChecked.value = false;
+    peerHasKey.value = false;
+    startEncrypted.value = false;
+    return;
+  }
+  const ticket = ++peerKeyRequest;
+  let available = false;
   try {
     const res = await $fetch<{ available: boolean }>(
       `/api/messaging/keys/${encodeURIComponent(name)}`
     );
-    peerHasKey.value = res.available;
+    available = res.available;
   } catch {
-    peerHasKey.value = false;
+    available = false;
+  }
+  if (ticket !== peerKeyRequest || startWith.value.trim() !== name) return;
+  peerHasKey.value = available;
+  peerKeyChecked.value = true;
+  if (!available) startEncrypted.value = false;
+}
+
+/**
+ * Create or replace this browser's key.
+ *
+ * Wrapped, because it was not: a throw anywhere in here left the dialog
+ * open with the button clicked and nothing else — which is exactly what
+ * "I click Replace my key and nothing happens" looks like from outside.
+ * The failure is on screen now instead of only in the console.
+ */
+async function doRotate() {
+  rotateError.value = '';
+  rotateBusy.value = true;
+  try {
+    await convCrypto.rotate(navigator.userAgent.slice(0, 60));
+    rotateOpen.value = false;
+    rotateAcknowledged.value = false;
+    await refreshIdentity();
+    // Everything the previous key sealed is now unreadable. Reloading is
+    // what makes the thread say so, rather than leaving stale plaintext on
+    // screen from before the rotation.
+    await loadList();
+    if (activeId.value) await loadThread();
+  } catch (err) {
+    rotateError.value =
+      (err as { data?: { message?: string } })?.data?.message ??
+      (err as Error)?.message ??
+      t('messaging.crypto.rotateFailed');
   } finally {
-    peerKeyChecked.value = true;
-    if (!peerHasKey.value) startEncrypted.value = false;
+    rotateBusy.value = false;
   }
 }
 
-async function doRotate() {
-  await convCrypto.rotate(navigator.userAgent.slice(0, 60));
-  rotateOpen.value = false;
-  rotateAcknowledged.value = false;
-  // Everything the previous key sealed is now unreadable. Reloading is
-  // what makes the thread say so, rather than leaving stale plaintext on
-  // screen from before the rotation.
-  await loadList();
-  if (activeId.value) await loadThread();
+/** What the browser holds, read on arrival and after every rotation. */
+async function refreshIdentity() {
+  hasIdentity.value = !!(await convCrypto.ensureIdentity());
 }
 
 const active = computed(
@@ -747,6 +853,7 @@ watch(needsReload, async (needed) => {
 });
 
 onMounted(start);
+onMounted(refreshIdentity);
 
 async function open(conv: Conversation) {
   activeId.value = conv.id;
@@ -810,12 +917,13 @@ async function loadThread(before?: string) {
   }));
 
   if (active.value?.encrypted) {
-    // The probe is the newest ciphertext in the page. Deriving a key
-    // always succeeds, so the only honest test of "can this browser read
-    // the thread" is whether it opens something the thread already holds.
-    const probe = [...page]
-      .reverse()
-      .find((m) => m.cipher && m.iv) as { cipher: string; iv: string } | undefined;
+    // No probe any more. Testing "can this browser read the thread" by
+    // decrypting its newest ciphertext is right on a second device and
+    // wrong straight after a deliberate rotation: the old messages can
+    // never open again, so the state stayed `foreign` for ever and the
+    // one action offered to escape it did not. The composable compares
+    // published keys instead; unreadable history is rendered per
+    // message, which is where it belongs.
 
     if (!before) {
       const peer = active.value.with?.username
@@ -828,7 +936,6 @@ async function loadThread(before?: string) {
         encrypted: true,
         conversationId: activeId.value!,
         peerPublicKey: 'publicKey' in peer ? peer.publicKey : null,
-        probe: probe ?? null,
       });
     }
 

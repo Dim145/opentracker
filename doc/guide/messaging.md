@@ -120,8 +120,24 @@ de-encrypted later never promised anything.
 - The private key is a non-extractable `CryptoKey` in IndexedDB, **per
   device**. Another device sees the conversation and cannot read it,
   and says so rather than showing a blank.
+- Whether a browser can take part is decided by comparing its key with
+  the one the member **published**, not by trying to decrypt the thread's
+  history. The latter is right on a second device and wrong immediately
+  after a rotation: the old messages can never open again, by definition,
+  so the state stayed "another device holds the key" for ever and the one
+  action offered to escape it did not. Unreadable history is rendered per
+  message, which is where it belongs.
+- **Publishing your key is its own act**, reachable from the messages
+  page whether or not you are in an encrypted conversation. It used to
+  happen only as a side effect of starting one — and you could only start
+  one with somebody who already had a key, so on a fresh instance nobody
+  could be first.
+- The checkbox appears once the recipient is known to have published;
+  the lookup runs while you type, not only when the field loses focus,
+  because typing a name and pressing Enter never blurs it.
 - Rotating the key is an explicit act behind a confirmation, because it
-  makes the existing history unreadable to you as well.
+  makes the existing history unreadable to you as well. Creating the
+  first one destroys nothing and asks for no confirmation.
 - The published key is **validated as a real uncompressed P-256 SPKI** —
   91 bytes, the right algorithm prefix. A length check alone was not
   enough: any string of the right size was accepted, so one member with a

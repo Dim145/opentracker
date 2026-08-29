@@ -48,30 +48,72 @@ export function useConversationCrypto() {
   /**
    * Prepare for a conversation. Returns the state the caller should show.
    *
-   * `probe` is a ciphertext from the thread, used to tell `ready` from
-   * `foreign`: deriving a key always succeeds, so the only honest test is
-   * whether it actually opens something the thread already contains.
+   * `foreign` is told from `ready` by comparing this browser's key with
+   * the one the member has published — not by trying to decrypt the
+   * thread's history, which stays unreadable after a rotation no matter
+   * what and left the state stuck there.
    */
+  /**
+   * This member's published public key, whichever browser published it.
+   * Cached: it changes only when they rotate, and this asks on every
+   * thread open otherwise.
+   */
+  const publishedKey = ref<string | null | undefined>(undefined);
+
+  async function loadPublished(force = false) {
+    if (!force && publishedKey.value !== undefined) return publishedKey.value;
+    try {
+      const res = await $fetch<{ published: boolean; publicKey?: string }>(
+        '/api/messaging/keys'
+      );
+      publishedKey.value = res.published ? (res.publicKey ?? null) : null;
+    } catch {
+      publishedKey.value = null;
+    }
+    return publishedKey.value;
+  }
+
   async function prepare(opts: {
     encrypted: boolean;
     conversationId: string;
     peerPublicKey?: string | null;
-    probe?: { cipher: string; iv: string } | null;
   }): Promise<CryptoState> {
     key = null;
     if (!opts.encrypted) return (state.value = 'plain');
 
     const mine = await ensureIdentity();
-    if (!mine || !opts.peerPublicKey) return (state.value = 'noKey');
+    if (!mine) return (state.value = 'noKey');
 
-    // A peer key that WebCrypto refuses is not an exception to propagate.
-    //
-    // The server now rejects malformed keys at publication, but rows
+    /*
+     * `foreign` is decided by WHICH KEY IS PUBLISHED, not by whether the
+     * thread's history happens to open.
+     *
+     * It used to be the latter: decrypt the newest ciphertext and, on
+     * failure, call the browser foreign. That is right on a second
+     * device and wrong immediately after a deliberate rotation — the old
+     * messages can never open again, by definition, so the state stayed
+     * `foreign` for ever and the one action offered to escape it did not
+     * escape it. Clicking "use this device instead" appeared to do
+     * nothing at all.
+     *
+     * What actually decides whether this browser can take part is
+     * whether the correspondent encrypts to the key it holds. If the
+     * published key is this one, everything from here on works; the
+     * history sealed to an older key stays unreadable and each message
+     * says so on its own line.
+     */
+    if ((await loadPublished()) !== mine.publicKeyRaw) {
+      return (state.value = 'foreign');
+    }
+
+    // Their key, not mine. Saying `noKey` here blamed the wrong side.
+    if (!opts.peerPublicKey) return (state.value = 'peerKeyBroken');
+
+    // A peer key WebCrypto refuses is not an exception to propagate.
+    // The server rejects malformed keys at publication now, but rows
     // predating that check still exist, and a key for a curve this
     // browser does not support would fail here too. Letting the
-    // DOMException escape leaves the page doing nothing at all — which
-    // is what it did: the rotation succeeded, the network calls all
-    // returned 200, and the interface never moved.
+    // DOMException escape left the page doing nothing at all.
     try {
       key = await conversationKey(mine, opts.peerPublicKey, opts.conversationId);
     } catch {
@@ -79,16 +121,6 @@ export function useConversationCrypto() {
       return (state.value = 'peerKeyBroken');
     }
 
-    if (opts.probe) {
-      const opened = await openSealed(key, opts.probe);
-      if (opened === null) {
-        // The key derived fine and decrypts nothing: this thread belongs
-        // to a previous identity. Saying "foreign" rather than "error" is
-        // what lets the UI offer the one action that helps.
-        key = null;
-        return (state.value = 'foreign');
-      }
-    }
     return (state.value = 'ready');
   }
 
@@ -116,6 +148,9 @@ export function useConversationCrypto() {
       method: 'PUT',
       body: { publicKey: created.publicKeyRaw, deviceLabel },
     });
+    // This browser is now the one the world encrypts to. Recorded here
+    // rather than re-fetched, so the very next `prepare` sees it.
+    publishedKey.value = created.publicKeyRaw;
     return created;
   }
 
@@ -129,6 +164,8 @@ export function useConversationCrypto() {
   return {
     state,
     identity,
+    publishedKey,
+    loadPublished,
     prepare,
     decrypt,
     encrypt,

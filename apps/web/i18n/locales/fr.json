@@ -4864,7 +4864,11 @@
       "noKeyYet": "Ce navigateur n'a pas encore de clé de messagerie.",
       "generate": "Activer le chiffrement sur ce navigateur",
       "peerKeyBrokenTitle": "La clé de ton correspondant est illisible",
-      "peerKeyBrokenBody": "Ce qu'il a publié n'est pas une clé exploitable par ce navigateur : rien ici ne peut être chiffré ni déchiffré. Remplacer ta propre clé n'y changerait rien — c'est à lui de republier la sienne."
+      "peerKeyBrokenBody": "Ce qu'il a publié n'est pas une clé exploitable par ce navigateur : rien ici ne peut être chiffré ni déchiffré. Remplacer ta propre clé n'y changerait rien — c'est à lui de republier la sienne.",
+      "enableTitle": "Activer le chiffrement sur cet appareil",
+      "enableBody": "Ce navigateur reçoit sa propre clé. Les membres pourront alors démarrer une conversation chiffrée avec toi — et cet appareil sera le seul à pouvoir la lire. Aucune sauvegarde, aucune récupération : c'est ce qui rend la promesse vraie.",
+      "enableAction": "Créer ma clé",
+      "rotateFailed": "La clé n'a pas pu être publiée. Rien n'a été modifié."
     },
     "erasedConversation": "Fermée à la demande de votre correspondant. Cette conversation était chiffrée, et le compte qui détenait l'autre moitié de la clé a été supprimé — plus rien ici ne peut être ouvert, par personne.",
     "unreadLabel": "{count} non lu | {count} non lu | {count} non lus",

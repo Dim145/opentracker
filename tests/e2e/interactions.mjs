@@ -280,6 +280,69 @@ async function main() {
     })).status === 200
   );
 
+  await resetRateLimits();
+  console.log('\n7. publishing a key needs no invitation');
+
+  // The deadlock this closes: your key was only published as a side
+  // effect of STARTING an encrypted conversation, and you could only
+  // start one with somebody who already had a key. On a fresh instance
+  // nobody could be first.
+  //
+  // Only the three accounts the seed guarantees are used here. An
+  // earlier draft reached for `seedersam`, which exists on a
+  // demo-populated stack and not in a clean run — the scenario then died
+  // on an undefined cookie instead of reporting anything at all.
+  const REAL_KEY =
+    'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEVbdpcnLyqAqB6R5SdbsUHXZPltQpew7eeaCh_-TlKaagfLgBzZ3TxAv8JQGlya-mKuxEDCiw8HdPIyTa5fouSw';
+  check(
+    'a member in no encrypted conversation can still publish a key',
+    (await req('plainuser', '/api/messaging/keys', {
+      method: 'PUT',
+      body: { publicKey: REAL_KEY, deviceLabel: 'e2e' },
+    })).status === 200
+  );
+  check(
+    'and it is then offered to whoever wants to write to them',
+    (await req('founder', '/api/messaging/keys/plainuser')).body?.available === true
+  );
+
+  // Encryption is chosen once, at creation, and never changes — a
+  // conversation that could be encrypted later never promised anything.
+  // `donator` and `plainuser` already talk in the clear (section 1), so
+  // asking for an encrypted one hands the existing thread back untouched.
+  await resetRateLimits();
+  const existing = await req('donator', DM, {
+    method: 'POST',
+    body: { username: 'plainuser', encrypted: true },
+  });
+  check(
+    'an existing plaintext thread is handed back as it is, never upgraded',
+    existing.status === 200 &&
+      existing.body?.created === false &&
+      existing.body?.encrypted === false,
+    d(existing.body)
+  );
+
+  await resetRateLimits();
+  console.log('\n8. the browser can tell whether it is the one that published');
+
+  // Without this the client cannot distinguish "this device takes part"
+  // from "this device holds a key nobody encrypts to" — which is what
+  // made a rotation appear to do nothing: the state was decided by
+  // whether the thread's history opened, and after a rotation it never
+  // opens again.
+  const own = await req('plainuser', '/api/messaging/keys');
+  check(
+    'the own-key endpoint returns the key itself',
+    own.status === 200 && own.body?.published === true && !!own.body?.publicKey,
+    d(own.body, 90)
+  );
+  check(
+    'and it is the same value anybody else is given',
+    (await req('founder', '/api/messaging/keys/plainuser')).body?.publicKey ===
+      own.body?.publicKey
+  );
+
   report();
 }
 

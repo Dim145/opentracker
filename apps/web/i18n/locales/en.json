@@ -4864,7 +4864,11 @@
       "noKeyYet": "This browser has no messaging key yet.",
       "generate": "Set up encryption on this browser",
       "peerKeyBrokenTitle": "Your correspondent's key cannot be read",
-      "peerKeyBrokenBody": "What they published is not a key this browser can use, so nothing here can be encrypted or decrypted. Replacing your own key would not help — they have to publish theirs again."
+      "peerKeyBrokenBody": "What they published is not a key this browser can use, so nothing here can be encrypted or decrypted. Replacing your own key would not help — they have to publish theirs again.",
+      "enableTitle": "Turn on encryption for this device",
+      "enableBody": "This browser gets a key of its own. From then on, members can start an encrypted conversation with you — and this device is the only one that will be able to read it. There is no backup and no recovery: that is what makes the promise true.",
+      "enableAction": "Create my key",
+      "rotateFailed": "The key could not be published. Nothing was changed."
     },
     "erasedConversation": "Closed at your correspondent's request. This conversation was encrypted, and the account that held the other half of the key has been deleted — nothing here can be opened again, by anyone.",
     "unreadLabel": "{count} unread | {count} unread | {count} unread",
