@@ -1602,7 +1602,17 @@
       "settings": "Paramètres",
       "federation": "Fédération",
       "federationTaxonomy": "Taxonomie fédérée",
-      "listingTemplates": "Modèles de fiche"
+      "listingTemplates": "Modèles de fiche",
+      "groups": {
+        "members": "Membres",
+        "catalogue": "Catalogue",
+        "economy": "Économie",
+        "integrations": "Intégrations",
+        "appearance": "Apparence"
+      },
+      "filterPlaceholder": "Filtrer les sections…",
+      "noMatch": "Aucune section ne correspond.",
+      "closeMenu": "Fermer le menu d'administration"
     },
     "descriptions": {
       "dashboard": "Configuration du tracker et gestion des nœuds",

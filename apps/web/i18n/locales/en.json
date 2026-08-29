@@ -1602,7 +1602,17 @@
       "settings": "Settings",
       "federation": "Federation",
       "federationTaxonomy": "Federated taxonomy",
-      "listingTemplates": "Listing templates"
+      "listingTemplates": "Listing templates",
+      "groups": {
+        "members": "Members",
+        "catalogue": "Catalogue",
+        "economy": "Economy",
+        "integrations": "Integrations",
+        "appearance": "Appearance"
+      },
+      "filterPlaceholder": "Filter sections…",
+      "noMatch": "No section matches.",
+      "closeMenu": "Close the admin menu"
     },
     "descriptions": {
       "dashboard": "Tracker configuration and node management",
