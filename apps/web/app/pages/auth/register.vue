@@ -108,7 +108,7 @@
               v-model="form.inviteCode"
               type="text"
               :required="!status?.registrationOpen"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors font-mono"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors font-mono"
               :placeholder="$t('auth.register.inviteCodePlaceholder')"
             />
           </div>
@@ -126,7 +126,7 @@
               type="text"
               required
               autocomplete="username"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
               :placeholder="$t('auth.register.usernamePlaceholder')"
             />
           </div>
@@ -144,7 +144,7 @@
               type="password"
               required
               autocomplete="new-password"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
               :placeholder="$t('auth.register.passwordPlaceholder')"
             />
           </div>
@@ -162,7 +162,7 @@
               type="password"
               required
               autocomplete="new-password"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
               :placeholder="$t('auth.register.confirmPasswordPlaceholder')"
             />
           </div>
@@ -193,7 +193,7 @@
                 v-model="form.panicPassword"
                 type="password"
                 required
-                class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
+                class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
                 :placeholder="$t('auth.register.panicPasswordPlaceholder')"
               />
             </div>
@@ -210,7 +210,7 @@
                 v-model="form.confirmPanicPassword"
                 type="password"
                 required
-                class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
+                class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
                 :placeholder="$t('auth.register.confirmPanicPasswordPlaceholder')"
               />
             </div>

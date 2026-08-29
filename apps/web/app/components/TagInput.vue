@@ -285,6 +285,9 @@ defineExpose({ focus: focusInput });
   @apply w-2.5 h-2.5;
 }
 
+/* `outline-none` is deliberate: the focus treatment belongs to the wrapper,
+   `.tag-input:focus-within` above, so that the ring frames the whole chip
+   field rather than the bare caret slot inside it. */
 .tag-input-field {
   @apply flex-1 min-w-[80px] bg-transparent outline-none border-0
          text-text-primary placeholder-text-muted text-xs;

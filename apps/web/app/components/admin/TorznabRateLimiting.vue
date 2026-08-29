@@ -26,7 +26,7 @@
             type="number"
             min="10"
             max="3600"
-            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
+            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           />
           <span class="text-sm text-text-muted">{{ $t('admin.torznab.rateLimiting.seconds') }}</span>
           <div class="flex-1" />
@@ -47,7 +47,7 @@
             type="number"
             min="1"
             max="1000"
-            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
+            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           />
           <span class="text-sm text-text-muted"
             >{{ $t('admin.torznab.rateLimiting.requestsPerWindow', { window: formatDuration(localWindow) }) }}</span
@@ -80,7 +80,7 @@
             type="number"
             min="1"
             max="500"
-            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20"
+            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           />
           <span class="text-sm text-text-muted"
             >{{ $t('admin.torznab.rateLimiting.requestsPerWindow', { window: formatDuration(localWindow) }) }}</span

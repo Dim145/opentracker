@@ -35,7 +35,7 @@
             v-model="search"
             type="text"
             :placeholder="$t('admin.torznab.users.searchPlaceholder')"
-            class="w-full bg-bg-tertiary border border-border rounded pl-9 pr-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-fg-default/20"
+            class="w-full bg-bg-tertiary border border-border rounded pl-9 pr-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-fg-default/20"
           />
         </div>
       </div>

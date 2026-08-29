@@ -94,7 +94,7 @@
               id="encryptPanicPassword"
               v-model="encryptPassword"
               type="password"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-error transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-error transition-colors"
               :placeholder="$t('admin.panic.panicPasswordPlaceholder')"
             />
             <p class="text-text-muted text-xs mt-2">
@@ -162,7 +162,7 @@
               id="panicPassword"
               v-model="panicPassword"
               type="password"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-success transition-colors"
+              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-success transition-colors"
               :placeholder="$t('admin.panic.panicPasswordPlaceholder')"
               @keyup.enter="restoreDatabase"
             />

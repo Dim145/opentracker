@@ -323,7 +323,7 @@
       ref="codeAreaRef"
       :value="modelValue"
       :placeholder="resolvedPlaceholder"
-      class="we-code-area bg-bg-tertiary border border-border rounded-b px-3 py-2 w-full min-h-[260px] font-mono text-[12.5px] leading-relaxed text-text-default outline-none focus:border-fg-default/20 transition-colors"
+      class="we-code-area bg-bg-tertiary border border-border rounded-b px-3 py-2 w-full min-h-[260px] font-mono text-[12.5px] leading-relaxed text-text-default focus:border-fg-default/20 transition-colors"
       @input="onCodeInput"
     />
 
@@ -529,6 +529,14 @@ const editor = useEditor({
   ],
   editorProps: {
     attributes: {
+      /**
+       * `focus:outline-none` is deliberate here, and one of only two places
+       * that keeps it. This is the editing surface: the caret is the focus
+       * indicator, a 2px ring around the whole body would sit there for the
+       * length of every edit, and the wrapper below already carries
+       * `focus-within`. Everywhere else in the app the global ring wins —
+       * see the note in main.css.
+       */
       class:
         'prose prose-invert prose-sm max-w-none focus:outline-none min-h-[140px]',
     },

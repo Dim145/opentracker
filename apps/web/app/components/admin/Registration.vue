@@ -26,7 +26,7 @@
             :key="opt.value"
             type="button"
             :disabled="settingsLoading"
-            class="text-left px-3 py-3 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-white/10"
+            class="text-left px-3 py-3 rounded-lg border transition-colors"
             :class="[
               mode === opt.value
                 ? `${opt.activeBg} ${opt.activeBorder}`
@@ -66,7 +66,7 @@
               type="number"
               min="0"
               max="100"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
               :placeholder="$t('admin.registration.defaultInvitesPlaceholder')"
             />
           </div>
@@ -83,7 +83,7 @@
               type="number"
               step="0.1"
               min="0"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
               :placeholder="$t('admin.registration.minRatioPlaceholder')"
             />
             <span
@@ -105,7 +105,7 @@
               v-model.number="starterUploadGB"
               type="number"
               min="0"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
               :placeholder="$t('admin.registration.starterCreditPlaceholder')"
             />
             <span class="text-xs text-text-muted">GB</span>

@@ -20,7 +20,7 @@
           <button
             @click="enabled = !enabled"
             :class="[
-              'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white/20',
+              'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
               enabled ? 'bg-success' : 'bg-bg-tertiary border border-border',
             ]"
           >
@@ -47,7 +47,7 @@
             v-model="message"
             rows="3"
             maxlength="500"
-            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-fg-default/20 resize-none"
+            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 resize-none"
             :placeholder="$t('admin.announcements.messagePlaceholder')"
           />
           <p

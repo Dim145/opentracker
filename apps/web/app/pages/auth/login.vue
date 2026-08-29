@@ -72,7 +72,7 @@
             type="text"
             required
             autocomplete="username"
-            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
+            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
             :placeholder="$t('auth.login.usernamePlaceholder')"
           />
         </div>
@@ -90,7 +90,7 @@
             type="password"
             required
             autocomplete="current-password"
-            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-text-strong transition-colors"
+            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
             :placeholder="$t('auth.login.passwordPlaceholder')"
           />
         </div>
