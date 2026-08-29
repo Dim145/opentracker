@@ -1,0 +1,126 @@
+# Web CI — unit tests, and the build that stands in for a typecheck.
+#
+# Nothing ran against apps/web at all. Verified on 9a0a3dc, which changed twenty
+# files under apps/web: the only workflow it triggered was CodeQL. tracker-ci
+# filters on apps/tracker/**, api-ci on apps/api/** and packages/**, the docs
+# workflows on docs, and docker.yml only fires once a release is published. So
+# 686 unit tests and every guard in apps/web/test ran on contributors' machines
+# or not at all.
+#
+# That matters most for the guards, which exist precisely because nothing else
+# catches their failure mode. sfcImports.test.ts records what the gap already
+# cost: `validateTokens` was called in Themes.vue and never imported — valid
+# JavaScript, a free global, thrown only when the line runs — so every theme
+# import failed silently and reported "that file is not a theme export". A guard
+# nobody runs goes stale, and this one had no runner.
+#
+# This is the unit-test gate only. There is deliberately no typecheck job here,
+# for the reasons measured out at the top of api-ci.yml: vue-tsc 3.x cannot run
+# on the TypeScript this repo is on, and a tsc-only pass over the plain .ts
+# files reports mostly instrumentation noise. Do not read the two decisions as
+# one — the tests are a plain vitest run that needs no vue-tsc and finishes in
+# seconds.
+#
+# The `build` job is what partly covers for that missing typecheck. `nuxt build`
+# is the only thing in this repository that compiles the SFCs, and until now it
+# ran for the first time while a release was already being published. A broken
+# template reached main and sat there. Both deployment shapes build, because the
+# alternative is the one this project already lived through: a whole shape
+# nobody booted until it was in front of users.
+#
+# tests/e2e/run.sh is deliberately not here. It builds three images and boots a
+# five-service stack — far too heavy for every push. If it earns a place it
+# belongs on a schedule, the way tracker-ci runs its vulnerability scan on
+# Monday mornings, not on this trigger.
+name: Web CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.github/workflows/web-ci.yml'
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.github/workflows/web-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Test-only checkout — nothing is pushed back.
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          # Matches `node:24-alpine` in apps/web/Dockerfile, so CI checks the
+          # runtime we actually ship.
+          node-version: 24
+
+      # corepack rather than a third-party setup action: the pinned pnpm
+      # version already lives in package.json's `packageManager` field, and the
+      # Dockerfiles activate it exactly this way.
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests
+        run: pnpm --filter @trackarr/web test
+
+  build:
+    name: both deployment shapes build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      # Neither image is loaded or run: the question this job answers is
+      # whether the SFCs still compile, and a failed `nuxt build` fails the
+      # step. The gha cache keeps the repeat cost down; drop the job if that
+      # trade stops being worth it.
+      - name: SSR image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: false
+          cache-from: type=gha,scope=web-ssr
+          cache-to: type=gha,mode=max,scope=web-ssr
+
+      - name: Static image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: apps/web/Dockerfile.static
+          push: false
+          cache-from: type=gha,scope=web-static
+          cache-to: type=gha,mode=max,scope=web-static
