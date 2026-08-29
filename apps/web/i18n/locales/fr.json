@@ -4740,5 +4740,33 @@
     },
     "groupSite": "Modèles du site",
     "siteHelp": "Mises en page retenues par le staff pour tout le monde, à côté de celle d'origine. En lecture seule : dupliquez-en une pour obtenir votre propre copie modifiable."
+  },
+  "palette": {
+    "title": "Recherche rapide",
+    "placeholder": "Chercher une page, une action, un torrent…",
+    "open": "Ouvrir la recherche rapide",
+    "noResults": "Aucun résultat.",
+    "searching": "Recherche…",
+    "groups": {
+      "navigation": "Pages",
+      "actions": "Actions",
+      "torrents": "Torrents",
+      "users": "Membres"
+    },
+    "account": {
+      "profile": "Mon profil",
+      "favorites": "Favoris",
+      "following": "Suivis",
+      "downloads": "Téléchargements",
+      "invites": "Invitations",
+      "shop": "Boutique bonus",
+      "notifications": "Notifications",
+      "settings": "Paramètres"
+    },
+    "actions": {
+      "upload": "Publier un torrent",
+      "theme": "Changer de thème",
+      "signOut": "Se déconnecter"
+    }
   }
 }

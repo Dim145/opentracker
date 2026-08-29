@@ -4740,5 +4740,33 @@
     },
     "groupSite": "Site templates",
     "siteHelp": "Layouts the staff curated for everyone, alongside the built-in one. Read-only: duplicate one to get an editable copy of your own."
+  },
+  "palette": {
+    "title": "Quick search",
+    "placeholder": "Search pages, actions, torrents…",
+    "open": "Open quick search",
+    "noResults": "Nothing matches.",
+    "searching": "Searching…",
+    "groups": {
+      "navigation": "Pages",
+      "actions": "Actions",
+      "torrents": "Torrents",
+      "users": "Members"
+    },
+    "account": {
+      "profile": "My profile",
+      "favorites": "Favorites",
+      "following": "Following",
+      "downloads": "Downloads",
+      "invites": "Invitations",
+      "shop": "Bonus shop",
+      "notifications": "Notifications",
+      "settings": "Settings"
+    },
+    "actions": {
+      "upload": "Upload a torrent",
+      "theme": "Change the theme",
+      "signOut": "Sign out"
+    }
   }
 }
