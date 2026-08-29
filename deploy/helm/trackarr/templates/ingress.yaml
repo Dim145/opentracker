@@ -70,6 +70,19 @@ spec:
                 port:
                   number: {{ $.Values.api.service.port }}
           {{- end }}
+          {{- if $.Values.relay.enabled }}
+          # Only the stream. /healthz and /metrics stay on the same
+          # listener but off the Ingress, so nothing publishes them.
+          # The relay serves this exact path itself — no rewrite
+          # annotation, which is the one thing that differs per controller.
+          - path: /messaging/events
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $full }}-relay
+                port:
+                  number: {{ $.Values.relay.service.port | default $.Values.relay.port }}
+          {{- end }}
           {{- if $.Values.web.enabled }}
           - path: /
             pathType: Prefix

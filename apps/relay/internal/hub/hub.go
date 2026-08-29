@@ -60,6 +60,14 @@ type Hub struct {
 	sub   *redis.PubSub
 
 	count atomic.Int64
+
+	// Counters for the two numbers the scaling guide says to watch, and
+	// that no other component can see: how many readers this node cut for
+	// falling behind, and how many frames it wrote. Monotonic, so the
+	// scrape only ever has to rate() them.
+	dropped  atomic.Int64
+	frames   atomic.Int64
+	refused  atomic.Int64
 }
 
 func New(rdb *redis.Client, live *config.Live) *Hub {
@@ -70,7 +78,10 @@ func New(rdb *redis.Client, live *config.Live) *Hub {
 	}
 }
 
-func (h *Hub) Count() int64 { return h.count.Load() }
+func (h *Hub) Count() int64   { return h.count.Load() }
+func (h *Hub) Dropped() int64 { return h.dropped.Load() }
+func (h *Hub) Frames() int64  { return h.frames.Load() }
+func (h *Hub) Refused() int64 { return h.refused.Load() }
 
 // Run owns the single subscriber for this process.
 //
@@ -107,10 +118,12 @@ func (h *Hub) dispatch(channel string, payload []byte) {
 	for _, c := range targets {
 		select {
 		case c.out <- payload:
+			h.frames.Add(1)
 		default:
 			// The queue is full: this reader is not keeping up. Cut it
 			// loose rather than block the dispatch loop — one slow client
 			// must never delay everybody else on this node.
+			h.dropped.Add(1)
 			c.close(true)
 			h.Remove(c)
 		}
@@ -122,6 +135,7 @@ func (h *Hub) dispatch(channel string, payload []byte) {
 func (h *Hub) Add(ctx context.Context, channels ...string) (*Conn, bool) {
 	cfg := h.live.Get()
 	if h.count.Load() >= int64(cfg.MaxConnections) {
+		h.refused.Add(1)
 		return nil, false
 	}
 

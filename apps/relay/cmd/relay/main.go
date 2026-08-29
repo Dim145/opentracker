@@ -46,6 +46,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("[relay] REDIS_URL: %v", err)
 	}
+	// A password given separately wins over anything embedded in the URL:
+	// deployments set REDIS_PASSWORD, and the URL stays free of secrets.
+	if static.ValkeyPass != "" {
+		opts.Password = static.ValkeyPass
+	}
 	rdb := redis.NewClient(opts)
 	defer rdb.Close()
 
@@ -70,13 +75,19 @@ func main() {
 	go reg.Watch(ctx)
 
 	mux := http.NewServeMux()
-	mux.Handle("/events", &sse.Handler{
+	events := &sse.Handler{
 		Hub:         h,
 		Live:        live,
 		Secret:      static.TokenSecret,
 		AllowOrigin: static.AllowOrigin,
 		Heartbeat:   30 * time.Second,
-	})
+	}
+	mux.Handle("/events", events)
+	// The same handler on the public path. Serving it here rather than
+	// rewriting at the edge is what keeps one URL across Caddy, an Ingress
+	// and a direct connection: every rewrite rule is controller-specific,
+	// and getting one wrong fails as a 404 on a stream nobody watches.
+	mux.Handle("/messaging/events", events)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if err := rdb.Ping(r.Context()).Err(); err != nil {
 			http.Error(w, "valkey unreachable", http.StatusServiceUnavailable)
@@ -101,7 +112,23 @@ func main() {
 				"relay_connections " + itoa(h.Count()) + "\n" +
 				"# HELP relay_max_connections Ceiling this node was told to apply.\n" +
 				"# TYPE relay_max_connections gauge\n" +
-				"relay_max_connections " + itoa(int64(cfg.MaxConnections)) + "\n"))
+				"relay_max_connections " + itoa(int64(cfg.MaxConnections)) + "\n" +
+				// > 0.1% of connections/min is the threshold the scaling
+				// guide says to alert on: readers being cut is silent
+				// otherwise, and it looks exactly like a flaky network.
+				"# HELP relay_dropped_total Readers closed for falling behind.\n" +
+				"# TYPE relay_dropped_total counter\n" +
+				"relay_dropped_total " + itoa(h.Dropped()) + "\n" +
+				// The trend that says whether a second surface — a room
+				// dock, say — is affordable on this fleet.
+				"# HELP relay_frames_total Frames written to readers.\n" +
+				"# TYPE relay_frames_total counter\n" +
+				"relay_frames_total " + itoa(h.Frames()) + "\n" +
+				// Non-zero means the fleet is too small for its ceiling,
+				// which is a different fault from readers being dropped.
+				"# HELP relay_refused_total Connections refused at the ceiling.\n" +
+				"# TYPE relay_refused_total counter\n" +
+				"relay_refused_total " + itoa(h.Refused()) + "\n"))
 	})
 
 	srv := &http.Server{

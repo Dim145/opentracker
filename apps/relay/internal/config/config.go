@@ -16,8 +16,11 @@ import (
 
 // Static is read once, at boot.
 type Static struct {
-	Addr         string
-	ValkeyURL    string
+	Addr      string
+	ValkeyURL string
+	// Kept out of the URL on purpose: the URL is logged on a connection
+	// failure, and a password in it would be logged with it.
+	ValkeyPass   string
 	TokenSecret  []byte
 	NodeID       string
 	AllowOrigin  string
@@ -75,6 +78,7 @@ func LoadStatic() (Static, error) {
 	s := Static{
 		Addr:         env("RELAY_ADDR", ":4100"),
 		ValkeyURL:    os.Getenv("REDIS_URL"),
+		ValkeyPass:   os.Getenv("REDIS_PASSWORD"),
 		TokenSecret:  []byte(os.Getenv("MESSAGING_TOKEN_SECRET")),
 		NodeID:       env("RELAY_NODE_ID", hostnameOr("relay")),
 		AllowOrigin:  os.Getenv("RELAY_ALLOW_ORIGIN"),

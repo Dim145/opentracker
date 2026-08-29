@@ -136,6 +136,12 @@ services:
       NUXT_SESSION_SECRET: ${NUXT_SESSION_SECRET}
       ADMIN_API_KEY: ${ADMIN_API_KEY}
       IP_HASH_SECRET: ${IP_HASH_SECRET}
+      # Messaging. The URL is what the browser is told to connect to, so it
+      # is the public path through Caddy, not the container name. Leave the
+      # secret unset and the messaging pages fall back to polling instead
+      # of failing — the feature degrades, it does not break.
+      MESSAGING_SERVICE_URL: ${MESSAGING_SERVICE_URL:-/messaging}
+      MESSAGING_TOKEN_SECRET: ${MESSAGING_TOKEN_SECRET}
       # Caddy is in front — trust proxy headers for real client IPs
       TRUST_PROXY: "true"
       # Uploads: filesystem by default, into the volume mounted below.
@@ -250,6 +256,50 @@ services:
           pids: 100
         reservations:
           memory: 128M
+
+  # =============================================================================
+  # MESSAGING RELAY - Go, SSE fan-out only
+  # =============================================================================
+  # One node here. The count is a deployment choice, not a code one: the
+  # node registers itself in Valkey and the API sends every registered node
+  # the limits to apply, so `--scale relay=3` needs no configuration change.
+  relay:
+    image: ghcr.io/dim145/opentracker/relay:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/relay/Dockerfile
+    restart: always
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      REDIS_URL: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # Shared with the API, which mints the tokens this verifies. The two
+      # must match or every connection is rejected as forged.
+      MESSAGING_TOKEN_SECRET: ${MESSAGING_TOKEN_SECRET}
+      RELAY_ADDR: ":4100"
+      # Same-origin through Caddy, so no CORS grant is needed. Set this
+      # only if the relay is served from another hostname.
+      RELAY_ALLOW_ORIGIN: ${RELAY_ALLOW_ORIGIN:-}
+    expose:
+      - "4100"
+    networks:
+      - trackarr-internal
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          # A connection costs a bounded queue and little else; this holds
+          # far more than one node is told to accept.
+          memory: 256M
+          pids: 200
+        reservations:
+          memory: 64M
 
   # =============================================================================
   # DATABASE - PostgreSQL
