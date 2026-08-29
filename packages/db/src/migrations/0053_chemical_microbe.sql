@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "messaging_read_receipts" boolean DEFAULT true NOT NULL;

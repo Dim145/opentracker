@@ -433,11 +433,48 @@ async function open(conv: Conversation) {
   messages.value = [];
   nextBefore.value = null;
   await loadThread();
-  // Marking read is a single call per open, never one per message seen:
-  // at ten thousand people online that difference is the whole write
-  // budget of the feature.
-  await $fetch(`/api/messaging/conversations/${conv.id}/read`, { method: 'POST' });
+  markRead(conv);
+}
+
+/**
+ * Marking read is grouped, never one call per message seen.
+ *
+ * At ten thousand people online that difference is the whole write budget
+ * of the feature — reading would cost more than sending. At most one call
+ * every five seconds per conversation, plus one when the tab loses focus,
+ * which is the moment somebody stops reading and the one worth catching.
+ */
+const READ_DEBOUNCE_MS = 5_000;
+let lastMarked = 0;
+let markTimer: ReturnType<typeof setTimeout> | undefined;
+
+function markRead(conv: Conversation, immediate = false) {
   conv.unreadCount = 0;
+  const send = async () => {
+    lastMarked = Date.now();
+    await $fetch(`/api/messaging/conversations/${conv.id}/read`, {
+      method: 'POST',
+    }).catch(() => undefined);
+  };
+  clearTimeout(markTimer);
+  if (immediate || Date.now() - lastMarked > READ_DEBOUNCE_MS) {
+    void send();
+    return;
+  }
+  markTimer = setTimeout(send, READ_DEBOUNCE_MS);
+}
+
+if (import.meta.client) {
+  const onHidden = () => {
+    if (document.visibilityState === 'hidden' && active.value) {
+      markRead(active.value, true);
+    }
+  };
+  onMounted(() => document.addEventListener('visibilitychange', onHidden));
+  onBeforeUnmount(() => {
+    document.removeEventListener('visibilitychange', onHidden);
+    clearTimeout(markTimer);
+  });
 }
 
 async function loadThread(before?: string) {

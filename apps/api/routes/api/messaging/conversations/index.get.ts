@@ -12,7 +12,7 @@
  * anything else does.
  */
 import { db, schema } from '@trackarr/db';
-import { and, desc, eq, inArray, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireDmAccess } from '~~/utils/messaging/guard';
 
@@ -20,6 +20,11 @@ export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
   await requireDmAccess(user);
   await rateLimit(event, RATE_LIMITS.public);
+
+  // Archived conversations are a separate view rather than a flag on the
+  // same list: filing something away is meant to remove it from sight,
+  // and a list that still carries it with a marker has not done that.
+  const archived = getQuery(event).archived === 'true';
 
   const rows = await db
     .select({
@@ -29,6 +34,7 @@ export default defineEventHandler(async (event) => {
       unreadCount: schema.conversationParticipants.unreadCount,
       state: schema.conversationParticipants.state,
       mutedUntil: schema.conversationParticipants.mutedUntil,
+      lastReadAt: schema.conversationParticipants.lastReadAt,
     })
     .from(schema.conversationParticipants)
     .innerJoin(
@@ -39,7 +45,9 @@ export default defineEventHandler(async (event) => {
       and(
         eq(schema.conversationParticipants.userId, user.id),
         eq(schema.conversations.kind, 'dm'),
-        isNull(schema.conversationParticipants.archivedAt),
+        archived
+          ? isNotNull(schema.conversationParticipants.archivedAt)
+          : isNull(schema.conversationParticipants.archivedAt),
         ne(schema.conversationParticipants.state, 'blocked')
       )
     )
@@ -79,6 +87,7 @@ export default defineEventHandler(async (event) => {
       lastMessageAt: row.lastMessageAt,
       unreadCount: row.unreadCount,
       mutedUntil: row.mutedUntil,
+      lastReadAt: row.lastReadAt,
       // A deleted account keeps no name here: `authorId` went null on
       // deletion and the client renders the absence, rather than a
       // remembered username that erasure was supposed to remove.

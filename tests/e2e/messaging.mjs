@@ -658,7 +658,114 @@ async function main() {
     d(staffSees.body, 140)
   );
 
-  console.log('\n15. back to off');
+  console.log('\n15. archiving, muting, searching');
+
+  await resetRateLimits();
+
+  // Archiving is per-member. Filing your own inbox must not remove the
+  // thread from somebody else's — that would be a deletion, not filing.
+  check(
+    'a conversation archives',
+    (await req('plainuser', `${DM}/${convId}/archive`, { method: 'POST' })).status === 200
+  );
+  const afterArchive = (await req('plainuser', DM)).body;
+  check(
+    'and leaves the default list',
+    !afterArchive?.inbox?.some((c) => c.id === convId) &&
+      !afterArchive?.requests?.some((c) => c.id === convId),
+    d(afterArchive, 160)
+  );
+  const archivedList = await req('plainuser', `${DM}?archived=true`);
+  check(
+    'showing up in the archived view instead',
+    // The archived view keeps the same inbox/requests split as the
+    // default one: archiving changes where a conversation is listed, not
+    // whether it was ever accepted.
+    [
+      ...(archivedList.body?.inbox ?? []),
+      ...(archivedList.body?.requests ?? []),
+    ].some((c) => c.id === convId),
+    d(archivedList.body, 160)
+  );
+  const otherSide = (await req('donator', DM)).body;
+  check(
+    "while the other member still has it — filing is not deleting",
+    otherSide?.inbox?.some((c) => c.id === convId),
+    d(otherSide, 160)
+  );
+  check(
+    'and it comes back',
+    (await req('plainuser', `${DM}/${convId}/archive`, { method: 'DELETE' })).status === 200
+  );
+
+  await resetRateLimits();
+  const muted = await req('plainuser', `${DM}/${convId}/mute`, {
+    method: 'POST',
+    body: { hours: 4 },
+  });
+  check('a conversation mutes', muted.status === 200 && !!muted.body?.mutedUntil, d(muted.body));
+  check(
+    'and lifts',
+    (await req('plainuser', `${DM}/${convId}/mute`, { method: 'POST', body: { hours: 0 } }))
+      .body?.mutedUntil === null
+  );
+
+  // Search covers what the server can read, and says what it skipped.
+  await resetRateLimits();
+  await req('donator', `${DM}/${convId}/messages`, {
+    method: 'POST',
+    body: { body: 'une aiguille dans la botte de foin' },
+  });
+  const found = await req('plainuser', '/api/messaging/search?q=aiguille');
+  check(
+    'search finds a plaintext message',
+    found.body?.results?.some((r) => r.body?.includes('aiguille')),
+    d(found.body, 160)
+  );
+  // The encrypted conversation from phase 8 is donator's, not
+  // plainuser's — so it is donator who has something the search cannot
+  // look at, and who must be told so rather than shown a quietly shorter
+  // list.
+  const donatorSearch = await req('donator', '/api/messaging/search?q=aiguille');
+  check(
+    'and the member who has an encrypted thread is told it was skipped',
+    typeof donatorSearch.body?.skippedEncrypted === 'number' &&
+      donatorSearch.body.skippedEncrypted > 0,
+    d(donatorSearch.body?.skippedEncrypted)
+  );
+  check(
+    'while somebody with none is told zero, not nothing',
+    found.body?.skippedEncrypted === 0,
+    d(found.body?.skippedEncrypted)
+  );
+  const stranger = await req('founder', '/api/messaging/search?q=aiguille');
+  check(
+    'somebody else finds nothing of it',
+    !stranger.body?.results?.some((r) => r.conversationId === convId),
+    d(stranger.body?.results?.length)
+  );
+
+  // Read receipts are reciprocal: turning them off stops sending AND
+  // stops seeing.
+  await resetRateLimits();
+  check(
+    'read receipts can be turned off',
+    (await req('plainuser', '/api/me', {
+      method: 'PATCH',
+      body: { messagingReadReceipts: false },
+    })).status === 200
+  );
+  check(
+    'and back on',
+    (await req('plainuser', '/api/me', {
+      method: 'PATCH',
+      body: { messagingReadReceipts: true },
+    })).status === 200
+  );
+  const readAck = await req('plainuser', `${DM}/${convId}/read`, { method: 'POST' });
+  check('marking read answers with the timestamp', !!readAck.body?.readAt, d(readAck.body));
+
+  console.log('\n16. back to off');
 
   check('the scope closes again', (await setScopes({ dm: 'off' })) === 200);
   await resetRateLimits();

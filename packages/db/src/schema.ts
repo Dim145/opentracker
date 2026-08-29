@@ -123,6 +123,18 @@ export const users = pgTable(
     // newly-registered user never sees the XXX tree until they
     // explicitly turn it on in their profile settings.
     showAdultContent: boolean('show_adult_content').default(false).notNull(),
+    /**
+     * Read receipts, and they are reciprocal.
+     *
+     * Turning them off stops sending them AND stops seeing them. The
+     * asymmetric version — see when others read, never tell them when you
+     * did — is an information advantage the setting would be handing out,
+     * and on a private tracker plenty of members would rather not
+     * broadcast that they have read something at all.
+     */
+    messagingReadReceipts: boolean('messaging_read_receipts')
+      .default(true)
+      .notNull(),
     // Detaches the uploader's name from their releases, retroactively:
     // the flag lives on the account, not on the row, so flipping it
     // covers everything already uploaded. Read paths that face other

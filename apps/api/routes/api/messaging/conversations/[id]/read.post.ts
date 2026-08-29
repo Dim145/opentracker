@@ -12,10 +12,14 @@
  * changes nothing.
  */
 import { db, schema } from '@trackarr/db';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireDmAccess } from '~~/utils/messaging/guard';
-import { participantOf } from '~~/utils/messaging/conversations';
+import {
+  participantOf,
+  participantsOf,
+} from '~~/utils/messaging/conversations';
+import { publishToUsers } from '~~/utils/messaging/relay';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
@@ -30,9 +34,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Not found' });
   }
 
+  const readAt = new Date();
   await db
     .update(schema.conversationParticipants)
-    .set({ lastReadAt: new Date(), unreadCount: 0 })
+    .set({ lastReadAt: readAt, unreadCount: 0 })
     .where(
       and(
         eq(schema.conversationParticipants.conversationId, id),
@@ -40,5 +45,38 @@ export default defineEventHandler(async (event) => {
       )
     );
 
-  return { ok: true };
+  // Reciprocal: the receipt goes out only if this member accepts receiving
+  // them. Turning the setting off stops sending AND stops seeing — the
+  // asymmetric version would hand out an information advantage, which is
+  // not what somebody who opts out is asking for.
+  const me = await db.query.users.findFirst({
+    where: eq(schema.users.id, user.id),
+    columns: { messagingReadReceipts: true },
+  });
+
+  if (me?.messagingReadReceipts) {
+    const others = (await participantsOf(id)).filter((u) => u !== user.id);
+    // Only to those who accept them too. One side opting out silences the
+    // exchange in both directions, which is the honest reading of a
+    // reciprocal setting.
+    const willing = others.length
+      ? await db
+          .select({ id: schema.users.id })
+          .from(schema.users)
+          .where(
+            and(
+              inArray(schema.users.id, others),
+              eq(schema.users.messagingReadReceipts, true)
+            )
+          )
+      : [];
+    if (willing.length) {
+      await publishToUsers(
+        willing.map((w) => w.id),
+        { type: 'read', conversationId: id, by: user.id, at: readAt }
+      );
+    }
+  }
+
+  return { ok: true, readAt };
 });

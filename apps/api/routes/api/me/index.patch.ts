@@ -49,6 +49,7 @@ const bodySchema = z
     // settings.vue flips this and the read paths immediately stop
     // returning adult-tagged categories / torrents.
     showAdultContent: z.boolean().optional(),
+    messagingReadReceipts: z.boolean().optional(),
     // Detach the uploader's name from their releases, for other
     // members and for federated peers. Staff still see it.
     anonymousUploads: z.boolean().optional(),
@@ -103,6 +104,7 @@ export default defineEventHandler(async (event) => {
     bio: string | null;
     showLastSeen: boolean;
     showAdultContent: boolean;
+    messagingReadReceipts: boolean;
     anonymousUploads: boolean;
     hideDownloadHistory: boolean;
     restrictComments: boolean;
@@ -120,6 +122,9 @@ export default defineEventHandler(async (event) => {
   }
   if (body.showLastSeen !== undefined) {
     updates.showLastSeen = body.showLastSeen;
+  }
+  if (body.messagingReadReceipts !== undefined) {
+    updates.messagingReadReceipts = body.messagingReadReceipts;
   }
   if (body.showAdultContent !== undefined) {
     updates.showAdultContent = body.showAdultContent;
