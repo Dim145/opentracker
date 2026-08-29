@@ -22,6 +22,7 @@ import {
   recordMessage,
 } from '~~/utils/messaging/conversations';
 import { publishToUsers } from '~~/utils/messaging/relay';
+import { blockExistsBetween } from '~~/utils/messaging/moderation';
 
 /** Long enough for a real message, short enough not to be a document. */
 const BODY_MAX = 4000;
@@ -52,6 +53,19 @@ export default defineEventHandler(async (event) => {
   });
   if (!conversation) {
     throw createError({ statusCode: 404, message: 'Not found' });
+  }
+
+  // Blocked either way stops the send, not just the listing. `state` on
+  // my own row covers the case where I did the blocking; the standing
+  // refusal table covers the case where they did.
+  if (membership.state === 'blocked') {
+    throw createError({ statusCode: 403, message: 'This conversation is closed' });
+  }
+  const others = (await participantsOf(id)).filter((u) => u !== user.id);
+  for (const other of others) {
+    if (await blockExistsBetween(user.id, other)) {
+      throw createError({ statusCode: 403, message: 'This conversation is closed' });
+    }
   }
 
   const body = await validateBody(event, bodySchema);
@@ -97,8 +111,7 @@ export default defineEventHandler(async (event) => {
   // publish is allowed to fail: the row is written, the client will find it
   // on its next fetch or on reconnect. Losing the live copy degrades; losing
   // the message would be a bug.
-  const audience = await participantsOf(id);
-  await publishToUsers(audience, {
+  await publishToUsers([user.id, ...others], {
     type: 'message',
     conversationId: id,
     message: {

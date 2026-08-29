@@ -3687,3 +3687,41 @@ export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
 export type RoomMessage = typeof roomMessages.$inferSelect;
 export type NewRoomMessage = typeof roomMessages.$inferInsert;
+
+/**
+ * One member refusing another.
+ *
+ * Global rather than per-conversation, because that is what a block means
+ * to the person setting it: not "stop this thread" but "this person does
+ * not reach me". Per-conversation state exists too — `state = 'blocked'`
+ * on a participant row — and the two are different things: this table is
+ * the standing refusal, that column is one conversation's disposition.
+ *
+ * Without it the only escape from harassment is the staff, and at this
+ * membership size the staff becomes the bottleneck. A member has to be
+ * able to end it themselves, immediately, without asking anyone.
+ */
+export const messagingBlocks = pgTable(
+  'messaging_blocks',
+  {
+    // Who is refusing.
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // Who is refused.
+    blockedId: text('blocked_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.blockedId] }),
+    // The question asked on every send is "has the recipient blocked the
+    // sender", so the index has to lead with the blocked party.
+    index('messaging_blocks_blocked_idx').on(table.blockedId),
+    check('messaging_blocks_self_ck', sql`${table.userId} <> ${table.blockedId}`),
+  ]
+);
+
+export type MessagingBlock = typeof messagingBlocks.$inferSelect;
+export type NewMessagingBlock = typeof messagingBlocks.$inferInsert;

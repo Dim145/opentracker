@@ -1,11 +1,12 @@
 import { db, schema } from '@trackarr/db';
+import { validateBody } from '~~/utils/schemas';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notifyMany, listStaffRecipients } from '~~/utils/notify';
 
 const reportSchema = z.object({
-  targetType: z.enum(['torrent', 'user', 'post', 'comment', 'remote']),
+  targetType: z.enum(['torrent', 'user', 'post', 'comment', 'remote', 'message']),
   targetId: z.string().min(1),
   reason: z.string().min(10).max(500),
   details: z.string().max(2000).optional(),
@@ -15,8 +16,12 @@ export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
 
-  const body = await readBody(event);
-  const data = reportSchema.parse(body);
+  // Through `validateBody` rather than a bare `.parse`: a raw Zod throw
+  // leaves the handler unhandled and Nitro answers **500**, so "your
+  // reason is too short" reached the reporter as a server error. Same
+  // reasoning as the note on the role endpoint — a validation failure is
+  // a 400 with something a human can act on.
+  const data = await validateBody(event, reportSchema);
 
   // Self-reports are noise. A torrent uploader can already edit
   // or delete their own row, and a user reporting themselves has
@@ -55,6 +60,25 @@ export default defineEventHandler(async (event) => {
       });
       targetExists = !!comment;
       break;
+    case 'message': {
+      // Only a participant may report a private message. Without that
+      // check, reporting is a way to ask the staff to read a conversation
+      // you are not in — and to confirm which message ids exist.
+      const message = await db.query.messages.findFirst({
+        where: (m, { eq }) => eq(m.id, data.targetId),
+      });
+      if (message) {
+        const seat = await db.query.conversationParticipants.findFirst({
+          where: (p, { and, eq }) =>
+            and(
+              eq(p.conversationId, message.conversationId),
+              eq(p.userId, user.id)
+            ),
+        });
+        targetExists = !!seat;
+      }
+      break;
+    }
     case 'remote':
       // A mirrored release the member saw on /federated, identified by its
       // infohash — durable across re-syncs and across peers, and exactly the

@@ -438,7 +438,158 @@ async function main() {
     'founder is not in that conversation'
   );
 
-  console.log('\n11. back to off');
+  console.log('\n11. moderation');
+
+  await resetRateLimits();
+
+  // Reporting a private message is only open to somebody in it. Without
+  // that, a report is a way to ask the staff to read a conversation you
+  // are not part of — and to confirm which message ids exist.
+  const thread2 = await req('plainuser', `${DM}/${convId}/messages`);
+  const someMessage = thread2.body?.messages?.[0]?.id;
+  check('there is a message to report', !!someMessage, d(someMessage));
+
+  const outsider = await req('founder', '/api/reports', {
+    method: 'POST',
+    body: { targetType: 'message', targetId: someMessage, reason: 'spam répété et insistant' },
+  });
+  check(
+    'somebody outside the conversation cannot report it',
+    outsider.status === 404,
+    `${outsider.status} ${d(outsider.body, 120)}`
+  );
+
+  const reported = await req('plainuser', '/api/reports', {
+    method: 'POST',
+    body: { targetType: 'message', targetId: someMessage, reason: 'spam répété et insistant' },
+  });
+  check('a participant can', reported.status === 200 || reported.status === 201,
+    `${reported.status} ${d(reported.body, 140)}`);
+
+  // Staff read exactly one message, and only because it was reported.
+  const staffView = await req('founder', `/api/mod/messages/${someMessage}`);
+  check(
+    'staff can read the reported message',
+    staffView.status === 200 && typeof staffView.body?.body === 'string',
+    `${staffView.status} ${d(staffView.body, 140)}`
+  );
+
+  const unreported = await req('plainuser', `${DM}/${convId}/messages`);
+  const other = unreported.body?.messages?.find((m) => m.id !== someMessage)?.id;
+  if (other) {
+    check(
+      'but not one that was never reported — this is not an inbox they browse',
+      (await req('founder', `/api/mod/messages/${other}`)).status === 404
+    );
+  }
+  check(
+    'and a member cannot use that endpoint at all',
+    (await req('donator', `/api/mod/messages/${someMessage}`)).status === 403
+  );
+
+  await resetRateLimits();
+
+  console.log('\n12. blocking');
+
+  const blocked = await req('plainuser', '/api/messaging/blocks', {
+    method: 'POST',
+    body: { username: 'donator' },
+  });
+  check('a member can block another', blocked.status === 200, `${blocked.status} ${d(blocked.body, 120)}`);
+
+  check(
+    'the blocked side can no longer write into the shared conversation',
+    (await req('donator', `${DM}/${convId}/messages`, {
+      method: 'POST',
+      body: { body: 'toujours là ?' },
+    })).status === 403
+  );
+  check(
+    'nor open a new one',
+    (await req('donator', DM, { method: 'POST', body: { username: 'plainuser' } }))
+      .status === 403
+  );
+  // The two sides are refused differently, and on purpose.
+  //
+  // For the blocked party the conversation stays visible and the send is
+  // refused with a neutral "closed" — it must not read as "you have been
+  // blocked", or the refusal becomes the notification we are avoiding.
+  //
+  // For the one who blocked, the conversation is gone: out of their list,
+  // 404 on the thread. They chose that, so hiding it from them is the
+  // point rather than a leak.
+  check(
+    'and for the one who blocked it is gone entirely, not merely closed',
+    (await req('plainuser', `${DM}/${convId}/messages`, {
+      method: 'POST',
+      body: { body: 'ni moi' },
+    })).status === 404
+  );
+
+  const list = await req('plainuser', '/api/messaging/blocks');
+  check(
+    'the block is listed',
+    list.body?.blocks?.some((b) => b.username === 'donator'),
+    d(list.body, 140)
+  );
+
+  await resetRateLimits();
+  check(
+    'unblocking works',
+    (await req('plainuser', '/api/messaging/blocks/donator', { method: 'DELETE' }))
+      .status === 200
+  );
+  const afterUnblock = (await req('plainuser', DM)).body;
+  check(
+    'the conversation comes back as a request, not straight to the inbox',
+    afterUnblock?.requests?.some((c) => c.id === convId) &&
+      !afterUnblock?.inbox?.some((c) => c.id === convId),
+    d(afterUnblock, 180)
+  );
+  check(
+    'and writing is possible again',
+    (await req('donator', `${DM}/${convId}/messages`, {
+      method: 'POST',
+      body: { body: 'de retour' },
+    })).status === 200
+  );
+
+  console.log('\n13. withdrawing a message');
+
+  await resetRateLimits();
+  const mine = await req('donator', `${DM}/${convId}/messages`, {
+    method: 'POST',
+    body: { body: 'à retirer' },
+  });
+  check(
+    "a member cannot delete somebody else's",
+    (await req('plainuser', `${DM}/${convId}/messages/${mine.body.id}`, {
+      method: 'DELETE',
+    })).status === 403
+  );
+  check(
+    'but can delete their own',
+    (await req('donator', `${DM}/${convId}/messages/${mine.body.id}`, {
+      method: 'DELETE',
+    })).status === 200
+  );
+
+  const afterDelete = await req('plainuser', `${DM}/${convId}/messages`);
+  const gone = afterDelete.body?.messages?.find((m) => m.id === mine.body.id);
+  check(
+    'the row stays, blanked, so the thread and any report still hold',
+    gone?.deleted === true && gone?.body === null,
+    d(gone, 140)
+  );
+
+  check(
+    'staff can withdraw anything',
+    (await req('founder', `${DM}/${convId}/messages/${someMessage}`, {
+      method: 'DELETE',
+    })).status === 200
+  );
+
+  console.log('\n14. back to off');
 
   check('the scope closes again', (await setScopes({ dm: 'off' })) === 200);
   await resetRateLimits();

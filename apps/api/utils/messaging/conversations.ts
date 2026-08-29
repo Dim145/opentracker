@@ -1,6 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq, ne, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import { blockExistsBetween } from './moderation';
 
 /**
  * Either the pool or an open transaction.
@@ -35,6 +36,20 @@ export async function findOrCreateDirectConversation(
     throw createError({
       statusCode: 400,
       message: 'Cannot open a conversation with yourself',
+    });
+  }
+
+  // A block is symmetric, and it is checked here rather than only hidden
+  // from the list: a refusal that merely hides is a refusal the other side
+  // can walk around by keeping the URL.
+  //
+  // The message says nothing about who blocked whom. From the blocked
+  // side this has to look like any other conversation that cannot be
+  // opened, or the refusal becomes a notification.
+  if (await blockExistsBetween(meId, otherId)) {
+    throw createError({
+      statusCode: 403,
+      message: 'This conversation cannot be opened',
     });
   }
 

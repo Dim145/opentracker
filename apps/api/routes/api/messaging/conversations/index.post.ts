@@ -16,7 +16,14 @@ import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 import { requireDmAccess } from '~~/utils/messaging/guard';
-import { findOrCreateDirectConversation } from '~~/utils/messaging/conversations';
+import {
+  findDirectConversation,
+  findOrCreateDirectConversation,
+} from '~~/utils/messaging/conversations';
+import {
+  CONVERSATIONS_PER_DAY,
+  conversationsOpenedToday,
+} from '~~/utils/messaging/moderation';
 
 const bodySchema = z
   .object({
@@ -38,6 +45,18 @@ export default defineEventHandler(async (event) => {
   });
   if (!target) {
     throw createError({ statusCode: 404, message: 'No such member' });
+  }
+
+  // The per-minute limiter stops a burst; this stops the patient version —
+  // one new conversation a minute, all day. Checked before the lookup so
+  // an existing conversation is never refused by it: reopening a thread
+  // you already have is not opening a new one.
+  const existing = await findDirectConversation(user.id, target.id);
+  if (!existing && (await conversationsOpenedToday(user.id)) >= CONVERSATIONS_PER_DAY) {
+    throw createError({
+      statusCode: 429,
+      message: `At most ${CONVERSATIONS_PER_DAY} new conversations a day`,
+    });
   }
 
   const { conversation, created } = await findOrCreateDirectConversation(
