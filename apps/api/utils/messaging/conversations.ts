@@ -183,3 +183,14 @@ export async function recordMessage(input: {
     return message;
   });
 }
+
+/** Everybody in the conversation — the audience a published frame reaches. */
+export async function participantsOf(conversationId: string) {
+  const rows = await db
+    .select({ userId: schema.conversationParticipants.userId })
+    .from(schema.conversationParticipants)
+    .where(
+      eq(schema.conversationParticipants.conversationId, conversationId)
+    );
+  return rows.map((r) => r.userId);
+}

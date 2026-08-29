@@ -18,8 +18,10 @@ import { validateBody } from '~~/utils/schemas';
 import { requireDmAccess } from '~~/utils/messaging/guard';
 import {
   participantOf,
+  participantsOf,
   recordMessage,
 } from '~~/utils/messaging/conversations';
+import { publishToUsers } from '~~/utils/messaging/relay';
 
 /** Long enough for a real message, short enough not to be a document. */
 const BODY_MAX = 4000;
@@ -89,6 +91,25 @@ export default defineEventHandler(async (event) => {
         )
       );
   }
+
+  // After the commit, and never before. A frame for a message that is not
+  // in Postgres is a message the reader watches vanish on reload — and the
+  // publish is allowed to fail: the row is written, the client will find it
+  // on its next fetch or on reconnect. Losing the live copy degrades; losing
+  // the message would be a bug.
+  const audience = await participantsOf(id);
+  await publishToUsers(audience, {
+    type: 'message',
+    conversationId: id,
+    message: {
+      id: message!.id,
+      createdAt: message!.createdAt,
+      authorId: user.id,
+      body: conversation.encrypted ? null : (body.body ?? null),
+      cipher: body.cipher ?? null,
+      iv: body.iv ?? null,
+    },
+  });
 
   return {
     id: message!.id,

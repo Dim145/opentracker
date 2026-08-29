@@ -17,6 +17,7 @@ import {
   report,
   resetRateLimits,
   sessions,
+  sleep,
 } from './lib.mjs';
 
 const S = sessions(['founder', 'donator', 'plainuser']);
@@ -297,10 +298,108 @@ async function main() {
     d(encThread.body?.messages?.[0])
   );
 
-  console.log('\n9. back to off');
+  console.log('\n9. live delivery through the relay');
+
+  // The relay is the half of messaging that only exists as a separate
+  // process. A suite that never boots it proves nothing about the split —
+  // and the token format is a contract between two languages, so the
+  // useful test is the one that crosses the boundary for real.
+  await resetRateLimits();
+  const minted = await req('donator', '/api/messaging/token');
+  check(
+    'the API mints a relay token',
+    minted.status === 200 && !!minted.body?.token && !!minted.body?.url,
+    `${minted.status} ${d(minted.body, 120)}`
+  );
+
+  if (minted.status === 200) {
+    const relay = process.env.E2E_RELAY ?? 'http://localhost:54100';
+
+    // A forged bearer must not open a stream. The relay verifies a
+    // signature and nothing else, so this is its entire trust boundary.
+    const forged = await fetch(
+      `${relay}/events?token=${minted.body.token.split('.')[0]}.AAAA`
+    );
+    check('the relay refuses a forged token', forged.status === 401, String(forged.status));
+    await forged.body?.cancel();
+
+    const none = await fetch(`${relay}/events`);
+    check('and a missing one', none.status === 401, String(none.status));
+    await none.body?.cancel();
+
+    // Now the real thing: open a stream, send from the other side, and
+    // read the frame off the wire.
+    const controller = new AbortController();
+    const stream = await fetch(
+      `${relay}/events?token=${encodeURIComponent(minted.body.token)}`,
+      { signal: controller.signal }
+    );
+    check('a valid token opens the stream', stream.status === 200, String(stream.status));
+    check(
+      'as an event stream',
+      (stream.headers.get('content-type') ?? '').includes('text/event-stream'),
+      String(stream.headers.get('content-type'))
+    );
+
+    const frames = [];
+    const reader = stream.body.getReader();
+    const decoder = new TextDecoder();
+    const pump = (async () => {
+      let buffer = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) return;
+        buffer += decoder.decode(value, { stream: true });
+        let cut;
+        while ((cut = buffer.indexOf('\n\n')) !== -1) {
+          const raw = buffer.slice(0, cut);
+          buffer = buffer.slice(cut + 2);
+          if (raw.startsWith('data: ')) frames.push(raw.slice(6));
+        }
+      }
+    })();
+
+    // Give the relay a moment to register the subscription before the
+    // publish — Valkey pub/sub keeps nothing, so a frame published before
+    // the SUBSCRIBE lands is a frame nobody receives.
+    await sleep(400);
+    await req('plainuser', `${DM}/${convId}/messages`, {
+      method: 'POST',
+      body: { body: 'livré en direct' },
+    });
+
+    for (let i = 0; i < 40 && frames.length === 0; i++) await sleep(100);
+    controller.abort();
+    await pump.catch(() => undefined);
+
+    check('the frame arrives on the stream', frames.length > 0, `frames=${frames.length}`);
+    if (frames.length) {
+      let parsed;
+      try {
+        parsed = JSON.parse(frames[0]);
+      } catch {
+        parsed = null;
+      }
+      // Always an array, even for one message: the client has one shape to
+      // parse rather than two.
+      check('it is an array of messages', Array.isArray(parsed), d(frames[0], 120));
+      check(
+        'carrying the conversation and the body',
+        parsed?.[0]?.conversationId === convId &&
+          parsed?.[0]?.message?.body === 'livré en direct',
+        d(parsed?.[0], 160)
+      );
+    }
+  }
+
+  console.log('\n10. back to off');
 
   check('the scope closes again', (await setScopes({ dm: 'off' })) === 200);
   await resetRateLimits();
+  check(
+    'the token endpoint goes with it',
+    (await req('donator', '/api/messaging/token')).status === 404
+  );
   check(
     'and the conversation that existed is invisible too',
     (await req('donator', `${DM}/${convId}/messages`)).status === 404,

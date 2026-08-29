@@ -44,6 +44,10 @@ if [ "$BUILD" = "1" ]; then
   # The static shape too. It costs a build, and the alternative is what happened
   # before: a whole deployment shape nobody ever booted.
   docker build -q -f "$ROOT/apps/web/Dockerfile.static" -t trackarr-e2e-spa:local "$ROOT"
+  # The relay too. It is the half of messaging that only exists as a
+  # separate process, so a suite that never boots it proves nothing about
+  # the split.
+  docker build -q -f "$ROOT/apps/relay/Dockerfile" -t trackarr-e2e-relay:local "$ROOT"
 fi
 
 say "booting"

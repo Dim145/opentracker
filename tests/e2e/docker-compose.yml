@@ -57,6 +57,8 @@ services:
       TRUST_PROXY: "false"
       STORAGE_DRIVER: fs
       UPLOADS_DIR: /app/data/uploads
+      MESSAGING_SERVICE_URL: http://localhost:54100
+      MESSAGING_TOKEN_SECRET: e2e-messaging-secret-0123456789abcdef
     ports:
       - "54000:4000"
     volumes:
@@ -66,6 +68,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  relay:
+    image: trackarr-e2e-relay:local
+    environment:
+      REDIS_URL: redis://:e2e-redis-password@redis:6379
+      MESSAGING_TOKEN_SECRET: e2e-messaging-secret-0123456789abcdef
+      RELAY_NODE_ID: relay-1
+    ports:
+      - "54100:4100"
+    depends_on:
       redis:
         condition: service_healthy
 
