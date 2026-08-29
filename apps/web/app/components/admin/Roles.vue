@@ -255,12 +255,19 @@
             </label>
             <label class="form-field form-field--full">
               <span class="form-label">{{ $t('admin.roles.modal.iconLabel') }}</span>
-              <input
+              <!-- A picker rather than a bare text field: nobody types
+                   `ph:shield-check` from memory. It keeps a free-text
+                   input underneath, so an icon outside the curated list
+                   is still reachable — and now resolves from this
+                   instance rather than from a public CDN. -->
+              <IconPicker
                 v-model="form.icon"
-                type="text"
-                maxlength="64"
-                class="input form-input"
                 :placeholder="$t('admin.roles.modal.iconPlaceholder')"
+                :search-placeholder="$t('admin.iconPicker.searchPlaceholder')"
+                :empty-label="$t('admin.iconPicker.empty')"
+                :clear-label="$t('admin.iconPicker.clear')"
+                :footer-hint="$t('admin.iconPicker.footerHint')"
+                :toggle-aria-label="$t('admin.iconPicker.toggleAria')"
                 :disabled="saving"
               />
               <span class="form-hint">

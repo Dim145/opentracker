@@ -488,6 +488,19 @@ export const RATE_LIMITS = {
     progressive: true,
   },
 
+  // Icon data — its own bucket, and deliberately not `public`.
+  //
+  // `public` shares one counter across every public read, so an icon
+  // would spend the same budget as a search or a torrent listing, and a
+  // member browsing quickly would watch icons vanish. It is also
+  // progressive, which turns a decorative asset into an escalating
+  // penalty.
+  //
+  // The payload is immutable and already public, served with a one-year
+  // cache header, so a repeat visit costs nothing. This limit exists to
+  // bound a scraper, not to ration the interface.
+  icons: { windowSec: 60, maxRequests: 120, prefix: 'ico' },
+
   // Admin endpoints - moderate
   admin: { windowSec: 60, maxRequests: 30, prefix: 'adm' },
 

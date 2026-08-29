@@ -53,6 +53,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@iconify-json/ph':
+        specifier: ^1.2.2
+        version: 1.2.2
+      '@iconify/utils':
+        specifier: ^3.1.4
+        version: 3.1.4
       '@simplewebauthn/server':
         specifier: ^13.3.2
         version: 13.3.2
