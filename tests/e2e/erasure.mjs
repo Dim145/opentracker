@@ -101,12 +101,11 @@ async function main() {
   // its first encrypted conversation.
   const keyPut = await raw('/api/messaging/keys', {
     method: 'PUT',
-    // 88 base64url characters, the length an uncompressed raw P-256
-    // public key actually encodes to. The route takes the string opaquely
-    // — nothing here needs a real key, only a plausible one.
+    // A real uncompressed P-256 SPKI. The route validates the bytes —
+    // prefix and length — so a plausible-looking string is not enough.
     body: {
       publicKey:
-        'BKq7Zr3xN1vQwYzE8pLm4TcHgJdF6sRbA2nXkV9uO0iYtWePcSaDlZgMhKqRvBnUxJfEyTdCoIpLmQwZrXsAtGvH',
+        'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEVbdpcnLyqAqB6R5SdbsUHXZPltQpew7eeaCh_-TlKaagfLgBzZ3TxAv8JQGlya-mKuxEDCiw8HdPIyTa5fouSw',
       deviceLabel: 'harness',
     },
   });

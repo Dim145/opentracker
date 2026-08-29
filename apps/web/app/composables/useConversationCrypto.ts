@@ -21,8 +21,19 @@ import {
  *              one. This is the state after using a second device, and
  *              the only way out is destructive.
  *   plain    — the conversation is not encrypted
+ *   peerKeyBroken
+ *            — the correspondent published something this browser cannot
+ *              use as a key. Named rather than folded into `noKey`
+ *              because the two need opposite advice: `noKey` is fixed by
+ *              generating one here, and this one cannot be fixed here at
+ *              all — the other side has to republish.
  */
-export type CryptoState = 'plain' | 'ready' | 'noKey' | 'foreign';
+export type CryptoState =
+  | 'plain'
+  | 'ready'
+  | 'noKey'
+  | 'foreign'
+  | 'peerKeyBroken';
 
 export function useConversationCrypto() {
   const state = ref<CryptoState>('plain');
@@ -53,7 +64,20 @@ export function useConversationCrypto() {
     const mine = await ensureIdentity();
     if (!mine || !opts.peerPublicKey) return (state.value = 'noKey');
 
-    key = await conversationKey(mine, opts.peerPublicKey, opts.conversationId);
+    // A peer key that WebCrypto refuses is not an exception to propagate.
+    //
+    // The server now rejects malformed keys at publication, but rows
+    // predating that check still exist, and a key for a curve this
+    // browser does not support would fail here too. Letting the
+    // DOMException escape leaves the page doing nothing at all — which
+    // is what it did: the rotation succeeded, the network calls all
+    // returned 200, and the interface never moved.
+    try {
+      key = await conversationKey(mine, opts.peerPublicKey, opts.conversationId);
+    } catch {
+      key = null;
+      return (state.value = 'peerKeyBroken');
+    }
 
     if (opts.probe) {
       const opened = await openSealed(key, opts.probe);

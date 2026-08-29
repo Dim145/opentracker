@@ -595,13 +595,39 @@ async function main() {
 
   // The key is opaque to the server: it stores what the browser published
   // and hands it to whoever wants to seal a conversation to that member.
-  const fakeKey = 'A'.repeat(122);
+  // A REAL uncompressed P-256 SPKI, not filler.
+  //
+  // This used to be 122 'A's, and the server took it: the check was on
+  // length alone. The cost showed up in the browser, where a correspondent
+  // opening the conversation hit an unhandled DOMException from
+  // `importKey` and got a page that did nothing at all. One member with a
+  // bad key broke the feature for everyone who talked to them.
+  const realKey =
+    'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEVbdpcnLyqAqB6R5SdbsUHXZPltQpew7eeaCh_-TlKaagfLgBzZ3TxAv8JQGlya-mKuxEDCiw8HdPIyTa5fouSw';
   check(
     'a member publishes a public key',
     (await req('donator', '/api/messaging/keys', {
       method: 'PUT',
-      body: { publicKey: fakeKey, deviceLabel: 'poste e2e' },
+      body: { publicKey: realKey, deviceLabel: 'poste e2e' },
     })).status === 200
+  );
+
+  await resetRateLimits();
+  check(
+    'and filler of the right length is refused — the bytes are checked, not the size',
+    (await req('donator', '/api/messaging/keys', {
+      method: 'PUT',
+      body: { publicKey: 'A'.repeat(122) },
+    })).status === 400
+  );
+  await resetRateLimits();
+  check(
+    'as is a key for some other curve',
+    (await req('donator', '/api/messaging/keys', {
+      method: 'PUT',
+      // Valid base64url, right ballpark of length, wrong prefix.
+      body: { publicKey: 'B'.repeat(122) },
+    })).status === 400
   );
 
   const ownKey = await req('donator', '/api/messaging/keys');
@@ -614,7 +640,7 @@ async function main() {
   const lookup = await req('plainuser', '/api/messaging/keys/donator');
   check(
     'somebody who wants to write to them gets it',
-    lookup.body?.available === true && lookup.body?.publicKey === fakeKey,
+    lookup.body?.available === true && lookup.body?.publicKey === realKey,
     d(lookup.body, 80)
   );
 

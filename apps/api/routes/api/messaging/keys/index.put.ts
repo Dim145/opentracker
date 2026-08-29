@@ -15,11 +15,52 @@ import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 import { requireDmAccess } from '~~/utils/messaging/guard';
 
+/**
+ * A well-formed uncompressed P-256 SPKI, and nothing else.
+ *
+ * A length check is not enough, and the gap was not theoretical: any 122
+ * characters were accepted, so a member could publish rubbish — by
+ * accident, from a broken client, or on purpose — and every correspondent
+ * who opened a conversation with them hit an unhandled DOMException from
+ * `importKey` and saw a page that did nothing. One member could break the
+ * feature for everyone who talks to them.
+ *
+ * The bytes are checked rather than the shape of the string:
+ *   - 91 bytes exactly, the size of an uncompressed P-256 SPKI
+ *   - the fixed 26-byte AlgorithmIdentifier prefix for id-ecPublicKey +
+ *     prime256v1, which is what says "this is a P-256 key" and not some
+ *     other curve the client would then fail to import
+ *   - 0x04, the uncompressed-point marker, at the start of the key body
+ *
+ * That leaves the coordinates unchecked — verifying the point is on the
+ * curve needs the maths, and the client's `importKey` does it anyway. The
+ * point here is to reject what is obviously not a key, not to duplicate
+ * WebCrypto.
+ */
+const P256_SPKI_PREFIX = Buffer.from(
+  '3059301306072a8648ce3d020106082a8648ce3d030107034200',
+  'hex'
+);
+
+const publicKeySchema = z.string().superRefine((value, ctx) => {
+  const fail = (message: string) =>
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+
+  // `Buffer.from` never throws on bad base64url — it decodes what it can
+  // and drops the rest — so the length check below is what rejects a
+  // malformed string, not a parse error.
+  const raw = Buffer.from(value, 'base64url');
+  if (raw.length !== 91) {
+    return fail('publicKey must be a 91-byte P-256 SPKI');
+  }
+  if (!raw.subarray(0, P256_SPKI_PREFIX.length).equals(P256_SPKI_PREFIX)) {
+    return fail('publicKey must be an uncompressed P-256 SPKI');
+  }
+});
+
 const bodySchema = z
   .object({
-    // SPKI for P-256 is 91 bytes; base64url of that is 122 characters.
-    // Bounded on both sides so the column cannot be used as storage.
-    publicKey: z.string().min(32).max(512),
+    publicKey: publicKeySchema,
     deviceLabel: z.string().trim().max(64).optional(),
   })
   .strict();
