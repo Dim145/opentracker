@@ -4,6 +4,7 @@
     <AdminAnnouncements />
     <AdminRegistration />
     <AdminNotificationRetention />
+    <AdminMessagingSettings />
     <AdminSearchSettings />
     <AdminRequestSettings />
     <AdminPanic />

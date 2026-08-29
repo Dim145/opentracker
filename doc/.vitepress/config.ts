@@ -97,6 +97,7 @@ export default defineConfig({
             { text: 'UDP Tracker (BEP 15)', link: '/guide/udp-tracker' },
             { text: 'Metadata Providers', link: '/guide/metadata-providers' },
             { text: 'Notifications', link: '/guide/notifications' },
+            { text: 'Messaging', link: '/guide/messaging' },
             { text: 'Internationalization', link: '/guide/i18n' },
           ],
         },
