@@ -12,6 +12,7 @@ import {
   primaryKey,
   customType,
   check,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 import { ftsVector } from './search';
@@ -3481,6 +3482,19 @@ export const conversations = pgTable(
   'conversations',
   {
     id: text('id').primaryKey(),
+    /**
+     * The room's pinned announcement, if any.
+     *
+     * On the conversation rather than a flag on the message: "the pinned
+     * one" is a property of the room, and a boolean per message would
+     * allow two of them — which is the state every pin feature ends up
+     * having to clean up. No foreign key, because the room's messages are
+     * in a partitioned table whose key is composite; a pin whose day has
+     * been dropped resolves to nothing, which is correct.
+     */
+    pinnedMessageId: text('pinned_message_id'),
+    pinnedAt: timestamp('pinned_at'),
+    pinnedById: text('pinned_by_id'),
     /** 'dm' — exactly two participants. 'room' — the public shoutbox. */
     kind: text('kind').notNull(),
     /** Rooms only, and unique: the URL segment. Null for a DM. */
@@ -3577,6 +3591,16 @@ export const messages = pgTable(
     authorId: text('author_id').references(() => users.id, {
       onDelete: 'set null',
     }),
+    /**
+     * The message this one answers, in the same conversation.
+     *
+     * `set null` rather than cascade: deleting a quoted message must not
+     * take the replies with it — the thread would lose answers nobody
+     * asked to remove. The reply survives and simply stops quoting.
+     */
+    replyToId: text('reply_to_id').references((): AnyPgColumn => messages.id, {
+      onDelete: 'set null',
+    }),
     /** Plaintext. Null when the conversation is encrypted. */
     body: text('body'),
     /** AES-GCM payload. Null when it is not. */
@@ -3637,7 +3661,17 @@ export const roomMessages = pgTable(
     }),
     body: text('body').notNull(),
     isSystem: boolean('is_system').default(false).notNull(),
+    /**
+     * Carries no foreign key, unlike its private-message counterpart: the
+     * primary key here is `(id, created_at)` because the table is
+     * partitioned, and a reference would have to carry both halves. The
+     * quoted message is resolved by the read query instead, and a dangling
+     * id renders as a quote whose target is gone — which is also what
+     * happens when retention drops the day it lived in.
+     */
+    replyToId: text('reply_to_id'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    editedAt: timestamp('edited_at'),
     deletedAt: timestamp('deleted_at'),
     deletedById: text('deleted_by_id').references(() => users.id, {
       onDelete: 'set null',
@@ -3649,6 +3683,136 @@ export const roomMessages = pgTable(
       table.conversationId,
       table.createdAt
     ),
+  ]
+);
+
+/**
+ * A staff broadcast: one message, written once, delivered to a cohort.
+ *
+ * A row rather than a fire-and-forget loop, for one reason: at this
+ * membership a broadcast is thousands of inserts, and a process that
+ * restarts halfway through a loop leaves no record of how far it got. The
+ * row is what lets it resume, and what lets somebody answer "did that
+ * announcement actually go out?".
+ *
+ * Deliberately NOT a way to message all 352k members. The audiences are
+ * bounded cohorts — a role, the inactive, hit-and-run violators — because
+ * a private message to everybody is not a private message: it is an
+ * announcement, and the site already has a banner and a notification feed
+ * for that. Sending it as 352k conversations would cost a million rows to
+ * say something nobody can usefully reply to.
+ */
+export const messagingBroadcasts = pgTable(
+  'messaging_broadcasts',
+  {
+    id: text('id').primaryKey(),
+    createdById: text('created_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** `role:<id>` | `inactive:<days>` | `hnr` | `staff` */
+    audience: text('audience').notNull(),
+    body: text('body').notNull(),
+    /** Recipients resolved when the job started. */
+    total: integer('total').default(0).notNull(),
+    /** Moves as batches land, so progress survives a restart. */
+    sent: integer('sent').default(0).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    finishedAt: timestamp('finished_at'),
+    error: text('error'),
+  },
+  (table) => [index('messaging_broadcasts_created_idx').on(table.createdAt)]
+);
+
+/**
+ * The fixed set of reactions, as KEYS rather than emoji.
+ *
+ * Storing the character would make `❤️` (U+2764 U+FE0F) and `❤`
+ * (U+2764) two different reactions to the same message, and a client that
+ * normalises differently from another would silently split every count.
+ * A key cannot do that, is a third the size, and lets the rendered glyph
+ * change without a migration.
+ *
+ * Six, and fixed: an open picker makes the distinct-key space per message
+ * unbounded, which is what turns a reaction row into a scan.
+ */
+export const REACTION_KEYS = [
+  'up',
+  'heart',
+  'haha',
+  'wow',
+  'thanks',
+  'done',
+] as const;
+export type ReactionKey = (typeof REACTION_KEYS)[number];
+
+const reactionKeyCheck = (column: AnyPgColumn) =>
+  sql`${column} IN ('up', 'heart', 'haha', 'wow', 'thanks', 'done')`;
+
+/**
+ * Reactions on a private message.
+ *
+ * The primary key is the uniqueness rule: one member, one key, one
+ * message. Reacting twice with the same key is the same row, so the
+ * route can upsert and the client can be careless without double
+ * counting.
+ */
+export const messageReactions = pgTable(
+  'message_reactions',
+  {
+    messageId: text('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.messageId, table.userId, table.key] }),
+    // Rendering a page means fetching the reactions for the ids on it.
+    index('message_reactions_message_idx').on(table.messageId),
+    check('message_reactions_key_ck', reactionKeyCheck(table.key)),
+  ]
+);
+
+/**
+ * Reactions on a room message.
+ *
+ * Partitioned by the MESSAGE's day, not its own, so the retention sweep
+ * drops a day's reactions with the day's messages in the same operation.
+ * A separate unpartitioned table would either block the DROP behind a
+ * foreign key or leave rows pointing at messages that no longer exist,
+ * growing forever behind a feature that is supposed to forget.
+ *
+ * No foreign key for the same reason the reply column has none: the
+ * parent's key is composite because it is partitioned.
+ */
+export const roomMessageReactions = pgTable(
+  'room_message_reactions',
+  {
+    messageId: text('message_id').notNull(),
+    messageCreatedAt: timestamp('message_created_at').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [
+        table.messageId,
+        table.messageCreatedAt,
+        table.userId,
+        table.key,
+      ],
+    }),
+    index('room_message_reactions_message_idx').on(
+      table.messageId,
+      table.messageCreatedAt
+    ),
+    check('room_message_reactions_key_ck', reactionKeyCheck(table.key)),
   ]
 );
 
