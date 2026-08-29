@@ -158,213 +158,29 @@ definePageMeta({
 });
 
 const route = useRoute();
-const { t } = useI18n();
 
-interface NavItem {
-  label: string;
-  path: string;
-  icon: string;
-  description: string;
-}
-
-/**
- * Dashboard and Settings are pinned outside the groups — one is where you
- * arrive, the other is where you end up, and burying either in a section
- * costs a click on the two most-reached rows.
- */
-const navHome = computed<NavItem>(() => ({
-  label: t('admin.nav.dashboard'),
-  path: '/admin',
-  icon: 'ph:layout',
-  description: t('admin.descriptions.dashboard'),
-}));
-
-/**
- * Grouped by what the page governs, not by the feature that shipped it:
- * Banned IPs sits with people because that is what it acts on, and Torznab
- * sits with Federation because both are this tracker talking outwards.
- */
-const navGroups = computed(() => [
-  {
-    key: 'members',
-    label: t('admin.nav.groups.members'),
-    icon: 'ph:users-three',
-    items: [
-      {
-        label: t('admin.nav.users'),
-        path: '/admin/users',
-        icon: 'ph:users',
-        description: t('admin.descriptions.users'),
-      },
-      {
-        label: t('admin.nav.roles'),
-        path: '/admin/roles',
-        icon: 'ph:user-circle-gear',
-        description: t('admin.descriptions.roles'),
-      },
-      {
-        label: t('admin.nav.invitations'),
-        path: '/admin/invites',
-        icon: 'ph:envelope-simple',
-        description: t('admin.descriptions.invitations'),
-      },
-      {
-        label: t('admin.nav.bannedIps'),
-        path: '/admin/banned-ips',
-        icon: 'ph:prohibit',
-        description: t('admin.descriptions.bannedIps'),
-      },
-    ],
-  },
-  {
-    key: 'catalogue',
-    label: t('admin.nav.groups.catalogue'),
-    icon: 'ph:books',
-    items: [
-      {
-        label: t('admin.nav.categories'),
-        path: '/admin/categories',
-        icon: 'ph:folders',
-        description: t('admin.descriptions.categories'),
-      },
-      {
-        label: t('admin.nav.tags'),
-        path: '/admin/tags',
-        icon: 'ph:tag',
-        description: t('admin.descriptions.tags'),
-      },
-      {
-        label: t('admin.nav.uploadRules'),
-        path: '/admin/upload-rules',
-        icon: 'ph:check-square',
-        description: t('admin.descriptions.uploadRules'),
-      },
-      {
-        label: t('admin.nav.listingTemplates'),
-        path: '/admin/templates',
-        icon: 'ph:brackets-curly',
-        description: t('admin.descriptions.listingTemplates'),
-      },
-    ],
-  },
-  {
-    key: 'economy',
-    label: t('admin.nav.groups.economy'),
-    icon: 'ph:coins',
-    items: [
-      {
-        label: t('admin.nav.bonusRules'),
-        path: '/admin/bonus-rules',
-        icon: 'ph:strategy',
-        description: t('admin.descriptions.bonusRules'),
-      },
-      {
-        label: t('admin.nav.bonusEvents'),
-        path: '/admin/bonus-events',
-        icon: 'ph:gift',
-        description: t('admin.descriptions.bonusEvents'),
-      },
-      {
-        label: t('admin.nav.shop'),
-        path: '/admin/shop',
-        icon: 'ph:storefront',
-        description: t('admin.descriptions.shop'),
-      },
-      {
-        label: t('admin.nav.freeleechPool'),
-        path: '/admin/freeleech-pool',
-        icon: 'ph:hand-coins',
-        description: t('admin.descriptions.freeleechPool'),
-      },
-    ],
-  },
-  {
-    key: 'integrations',
-    label: t('admin.nav.groups.integrations'),
-    icon: 'ph:plugs-connected',
-    items: [
-      {
-        label: t('admin.nav.federation'),
-        path: '/admin/federation',
-        icon: 'ph:broadcast',
-        description: t('admin.descriptions.federation'),
-      },
-      {
-        label: t('admin.nav.federationTaxonomy'),
-        path: '/admin/federation-taxonomy',
-        icon: 'ph:tree-structure',
-        description: t('admin.descriptions.federationTaxonomy'),
-      },
-      {
-        label: t('admin.nav.torznab'),
-        path: '/admin/torznab',
-        icon: 'ph:plug',
-        description: t('admin.descriptions.torznab'),
-      },
-      {
-        label: t('admin.nav.notifications'),
-        path: '/admin/notifications',
-        icon: 'ph:bell-ringing',
-        description: t('admin.descriptions.notifications'),
-      },
-    ],
-  },
-  {
-    key: 'appearance',
-    label: t('admin.nav.groups.appearance'),
-    icon: 'ph:swatches',
-    items: [
-      {
-        label: t('admin.nav.branding'),
-        path: '/admin/branding',
-        icon: 'ph:paint-brush',
-        description: t('admin.descriptions.branding'),
-      },
-      {
-        label: t('admin.nav.themes'),
-        path: '/admin/themes',
-        icon: 'ph:palette',
-        description: t('admin.descriptions.themes'),
-      },
-    ],
-  },
-]);
-
-const navSettings = computed<NavItem>(() => ({
-  label: t('admin.nav.settings'),
-  path: '/admin/settings',
-  icon: 'ph:gear',
-  description: t('admin.descriptions.settings'),
-}));
-
-/**
- * The flat view of the same twenty destinations. Order matters: the dashboard
- * has to stay first, because it is `sectionFor`'s fallback.
- */
-const menuItems = computed<NavItem[]>(() => [
-  navHome.value,
-  ...navGroups.value.flatMap((group) => group.items),
-  navSettings.value,
-]);
+// The destinations themselves live in `useAdminNav` — the command palette
+// reads the same list, and two copies would drift.
+const { navHome, navGroups, navSettings, adminNavItems } = useAdminNav();
 
 /**
  * Which section the current route belongs to.
  *
  * An exact match first, then the longest entry the path starts with — because a
  * section may have sub-routes now. `/admin/themes/<id>` matched nothing and fell
- * through to `menuItems[0]`, so editing a theme was headed "Dashboard" and the
+ * through to the first entry, so editing a theme was headed "Dashboard" and the
  * sidebar highlighted the wrong row.
  *
  * The `/admin` root is excluded from the prefix pass: it is the prefix of
  * everything, and its own exact match above already covers it.
  */
 function sectionFor(path: string) {
-  const exact = menuItems.value.find((item) => item.path === path);
+  const exact = adminNavItems.value.find((item) => item.path === path);
   if (exact) return exact;
   return (
-    menuItems.value
+    adminNavItems.value
       .filter((item) => item.path !== '/admin' && path.startsWith(`${item.path}/`))
-      .sort((a, b) => b.path.length - a.path.length)[0] ?? menuItems.value[0]
+      .sort((a, b) => b.path.length - a.path.length)[0] ?? adminNavItems.value[0]
   );
 }
 

@@ -136,6 +136,21 @@
         </form>
 
         <div class="flex items-center gap-3 flex-shrink-0">
+          <!-- Palette affordance. A shortcut nobody is told about is a
+               shortcut nobody uses, so the key sits where people already look
+               for chrome rather than only in a help page. -->
+          <button
+            v-if="paletteAvailable"
+            type="button"
+            class="palette-chip hidden md:inline-flex"
+            :aria-label="$t('palette.open')"
+            :title="$t('palette.open')"
+            @click="openPalette"
+          >
+            <Icon name="ph:magnifying-glass" class="text-sm" />
+            <kbd>{{ paletteHint }}</kbd>
+          </button>
+
           <!-- Active bonus event icon — visible to every signed-in user
                whenever a Freeleech / Silverleech / custom multiplier
                window is in flight. Renders nothing while idle. -->
@@ -753,6 +768,9 @@
       </div>
     </footer>
   </div>
+    <!-- Global ⌘K palette. Mounted once here so every page has it, and handed
+         the federation flag the layout already resolved. -->
+    <CommandPalette :federation-enabled="!!branding?.federationEnabled" />
 </template>
 
 <script setup lang="ts">
@@ -968,6 +986,26 @@ function submitNavSearchMobile() {
   showMobileNav.value = false;
 }
 
+// The palette listens for ⌘K itself; this is the click path for the chip, and
+// a custom event rather than a ref so the layout does not have to reach into
+// the component. `paletteHint` is resolved on the client because the server
+// has no idea which keyboard is in front of the reader.
+const paletteHint = ref('Ctrl K');
+onMounted(() => {
+  if (/mac|iphone|ipad/i.test(navigator.userAgent)) paletteHint.value = '⌘K';
+});
+
+// The same decision the palette makes, from the same function, so the chip
+// cannot advertise a door the component would refuse to open. The component
+// enforces it; this only keeps the affordance honest.
+const paletteAvailable = computed(
+  () => paletteAccessFor(user.value).available
+);
+
+function openPalette() {
+  window.dispatchEvent(new Event('trackarr:toggle-palette'));
+}
+
 // Global `/` shortcut — focuses the navbar search from anywhere on
 // the page. We deliberately ignore the keypress while the user is
 // already typing in another field (input/textarea/contenteditable) so
@@ -1165,6 +1203,26 @@ const ratioColor = computed(() => {
 /* Idle affordance — a `/` keyboard hint badge that mirrors the in-page
    SearchBar component, doubling as visual weight balance against the
    left icon. Disappears on focus + when the user starts typing. */
+.palette-chip {
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgb(var(--line-default));
+  color: rgb(var(--fg-muted));
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.palette-chip:hover {
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--line-strong));
+}
+.palette-chip kbd {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+}
+
 .navsearch-kbd {
   display: inline-flex;
   align-items: center;
