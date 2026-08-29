@@ -69,6 +69,18 @@ export type NotificationType =
   | 'forum_reply_on_my_topic'
   | 'comment_deleted_by_staff'
   | 'forum_post_deleted_by_staff'
+  // ── Messaging ──────────────────────────────────────────────
+  // Only the FIRST unread of a conversation, never every message: at
+  // this membership one ping per message makes the bell worthless, and
+  // the unread badge already carries "there is more". Muting the
+  // conversation silences this and leaves the counter moving.
+  | 'message_received'
+  // A stranger's first contact, waiting in the request queue. Separate
+  // from the above because it is the event the queue exists to hold
+  // back — calling it a message would let anyone reach a phone before
+  // being accepted. External delivery stays opt-in per type, so it only
+  // ever leaves the site if the member asked for it.
+  | 'message_request_received'
   // ── P2 — Bonus economy ─────────────────────────────────────
   | 'bonus_event_started'
   | 'first_seeder_reward'

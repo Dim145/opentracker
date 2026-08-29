@@ -23,6 +23,7 @@ import {
 } from '~~/utils/messaging/conversations';
 import { publishToUsers } from '~~/utils/messaging/relay';
 import { blockExistsBetween } from '~~/utils/messaging/moderation';
+import { notify } from '~~/utils/notify';
 
 /** Long enough for a real message, short enough not to be a document. */
 const BODY_MAX = 4000;
@@ -43,6 +44,8 @@ const bodySchema = z
     body: z.string().trim().min(1).max(BODY_MAX).optional(),
     cipher: z.string().regex(B64URL).max(BODY_MAX * 2).optional(),
     iv: z.string().regex(B64URL).max(64).optional(),
+    /** The message being answered. Must be in this conversation. */
+    replyToId: z.string().uuid().optional(),
   })
   .strict();
 
@@ -95,9 +98,29 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const message = await recordMessage({
+  // A reply target from another conversation would quote something the
+  // reader cannot see — and would let anyone confirm an id exists by
+  // watching whether the send succeeds.
+  if (body.replyToId) {
+    const target = await db.query.messages.findFirst({
+      where: and(
+        eq(schema.messages.id, body.replyToId),
+        eq(schema.messages.conversationId, id)
+      ),
+      columns: { id: true },
+    });
+    if (!target) {
+      throw createError({
+        statusCode: 400,
+        message: 'The message being replied to is not in this conversation',
+      });
+    }
+  }
+
+  const { message, recipients } = await recordMessage({
     conversationId: id,
     authorId: user.id,
+    replyToId: body.replyToId,
     body: conversation.encrypted ? undefined : body.body,
     cipher: body.cipher ? Buffer.from(body.cipher, 'base64url') : undefined,
     iv: body.iv ? Buffer.from(body.iv, 'base64url') : undefined,
@@ -132,8 +155,38 @@ export default defineEventHandler(async (event) => {
       body: conversation.encrypted ? null : (body.body ?? null),
       cipher: body.cipher ?? null,
       iv: body.iv ?? null,
+      replyToId: body.replyToId ?? null,
     },
   });
+
+  // Notify, after the publish and never instead of it.
+  //
+  // Two rules, and both are about not becoming the thing people mute:
+  //
+  // 1. Only the FIRST unread of a thread. `unreadCount` came back as 1,
+  //    so it was 0 before this message — anything after that is telling
+  //    somebody about a badge they are already looking at. At this
+  //    membership, one notification per message would make the bell
+  //    useless within a day.
+  // 2. Muting the conversation silences the notification, not the
+  //    counter. Muting means "stop interrupting me", not "pretend
+  //    nothing happened".
+  //
+  // A pending row gets its own type. It is a stranger's first contact,
+  // and calling it the same event as a reply would let the queue the
+  // whole design rests on push to somebody's phone.
+  const now = Date.now();
+  for (const r of recipients) {
+    if (r.unreadCount !== 1) continue;
+    if (r.state === 'blocked') continue;
+    if (r.mutedUntil && r.mutedUntil.getTime() > now) continue;
+    void notify(
+      r.userId,
+      r.state === 'pending' ? 'message_request_received' : 'message_received',
+      { from: user.username, conversationId: id },
+      '/messages'
+    );
+  }
 
   return {
     id: message!.id,

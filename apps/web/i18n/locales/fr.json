@@ -3643,6 +3643,32 @@
         "staff": "Staff uniquement",
         "all": "Tous les membres"
       }
+    },
+    "broadcast": {
+      "title": "Diffusion staff",
+      "description": "Un message, livré à une cohorte bornée sous forme de vrai message privé auquel on peut répondre. Ce n'est pas un moyen d'écrire à tous les membres — la bannière d'annonce et le fil de notifications sont là pour ça.",
+      "audience": "Destinataires",
+      "audienceHint": "Comptés avant tout envoi.",
+      "byRole": "Un rôle",
+      "byInactive": "Membres inactifs",
+      "byHnr": "Violations de hit-and-run",
+      "byStaff": "Le staff",
+      "daysLabel": "jours sans connexion",
+      "message": "Message",
+      "messageHint": "Texte simple. Chacun le reçoit comme une conversation normale et peut te répondre.",
+      "counting": "Comptage…",
+      "willReach": "Cela touchera {count} membre(s).",
+      "send": "Envoyer la diffusion",
+      "recent": "Récentes",
+      "running": "en cours…",
+      "failed": "La diffusion n'a pas pu démarrer."
+    },
+    "iconPicker": {
+      "searchPlaceholder": "Rechercher une icône…",
+      "empty": "Aucune icône ne correspond.",
+      "clear": "Effacer",
+      "footerHint": "Ou tapez un nom Phosphor.",
+      "toggleAria": "Ouvrir le sélecteur d'icônes"
     }
   },
   "mod": {
@@ -4389,6 +4415,14 @@
       "federated_request_created": {
         "title": "Une release que vous avez peut-être est demandée",
         "desc": "« {title} » — vue sur {peerName} — a été demandée ici. Remplissez-la pour +{rewardPoints} pts."
+      },
+      "message_received": {
+        "title": "Nouveau message privé",
+        "desc": "{from} t'a écrit."
+      },
+      "message_request_received": {
+        "title": "Quelqu'un veut t'écrire",
+        "desc": "{from} a envoyé une demande. Accepte-la pour ouvrir la conversation."
       }
     }
   },
@@ -4828,9 +4862,42 @@
       "rotateAction": "Remplacer ma clé",
       "unreadable": "Chiffré avec une clé précédente — illisible",
       "noKeyYet": "Ce navigateur n'a pas encore de clé de messagerie.",
-      "generate": "Activer le chiffrement sur ce navigateur"
+      "generate": "Activer le chiffrement sur ce navigateur",
+      "peerKeyBrokenTitle": "La clé de ton correspondant est illisible",
+      "peerKeyBrokenBody": "Ce qu'il a publié n'est pas une clé exploitable par ce navigateur : rien ici ne peut être chiffré ni déchiffré. Remplacer ta propre clé n'y changerait rien — c'est à lui de republier la sienne."
     },
-    "erasedConversation": "Fermée à la demande de votre correspondant. Cette conversation était chiffrée, et le compte qui détenait l'autre moitié de la clé a été supprimé — plus rien ici ne peut être ouvert, par personne."
+    "erasedConversation": "Fermée à la demande de votre correspondant. Cette conversation était chiffrée, et le compte qui détenait l'autre moitié de la clé a été supprimé — plus rien ici ne peut être ouvert, par personne.",
+    "unreadLabel": "{count} non lu | {count} non lu | {count} non lus",
+    "reply": "Répondre",
+    "edit": "Modifier",
+    "edited": "modifié",
+    "editing": "Modification de ton message",
+    "replyingTo": "En réponse à {name}",
+    "replyGone": "Le message cité n'existe plus",
+    "reactions": {
+      "add": "Ajouter une réaction",
+      "pick": "Choisir une réaction",
+      "up": "D'accord",
+      "heart": "J'adore",
+      "haha": "Drôle",
+      "wow": "Étonnant",
+      "thanks": "Merci",
+      "done": "Fait"
+    },
+    "saveEdit": "Enregistrer la modification",
+    "encryptedPreview": "Chiffrée",
+    "noPreview": "Aucun message",
+    "ago": {
+      "now": "à l'instant",
+      "minutes": "{n} min",
+      "hours": "{n} h",
+      "days": "{n} j"
+    },
+    "badge": {
+      "owner": "Propriétaire",
+      "admin": "Admin",
+      "moderator": "Modo"
+    }
   },
   "room": {
     "title": "Salon",
@@ -4844,6 +4911,21 @@
     "offline": "Hors direct",
     "sendFailed": "Non envoyé.",
     "retry": "Réessayer",
-    "remove": "Retirer ce message"
+    "remove": "Retirer ce message",
+    "pin": "Épingler",
+    "unpin": "Désépingler",
+    "commands": {
+      "help": "/pin (en répondant) · /unpin · /mute PSEUDO [heures] [raison] · /unmute PSEUDO · /slow SECONDES",
+      "pinNeedsReply": "Réponds au message à épingler, puis tape /pin.",
+      "usageMute": "Usage : /mute PSEUDO [heures] [raison]",
+      "usageUnmute": "Usage : /unmute PSEUDO",
+      "usageSlow": "Usage : /slow SECONDES — 0 le désactive",
+      "muted": "{name} est réduit au silence.",
+      "unmuted": "{name} peut à nouveau parler.",
+      "slow": "Mode lent réglé à {seconds} s.",
+      "unknown": "Commande inconnue : /{cmd}. Essaie /help.",
+      "failed": "Ça n'a pas marché."
+    },
+    "subtitle": "Tout le monde, au même endroit"
   }
 }

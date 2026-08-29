@@ -3643,6 +3643,32 @@
         "staff": "Staff only",
         "all": "Every member"
       }
+    },
+    "broadcast": {
+      "title": "Staff broadcast",
+      "description": "One message, delivered to a bounded cohort as a real private message they can answer. Not a way to write to the whole membership — that is what the announcement banner and the notification feed are for.",
+      "audience": "Audience",
+      "audienceHint": "Resolved to a count before anything is sent.",
+      "byRole": "A role",
+      "byInactive": "Inactive members",
+      "byHnr": "Hit-and-run violators",
+      "byStaff": "Staff",
+      "daysLabel": "days without signing in",
+      "message": "Message",
+      "messageHint": "Plain text. Each recipient gets it as a normal conversation, so they can reply to you.",
+      "counting": "Counting…",
+      "willReach": "This will reach {count} member(s).",
+      "send": "Send broadcast",
+      "recent": "Recent",
+      "running": "running…",
+      "failed": "The broadcast could not be started."
+    },
+    "iconPicker": {
+      "searchPlaceholder": "Search an icon…",
+      "empty": "No icon matches.",
+      "clear": "Clear",
+      "footerHint": "Or type a Phosphor name.",
+      "toggleAria": "Open the icon picker"
     }
   },
   "mod": {
@@ -4389,6 +4415,14 @@
       "federated_request_created": {
         "title": "A release you may have is requested",
         "desc": "“{title}” — seen on {peerName} — was requested here. Fill it for +{rewardPoints} pts."
+      },
+      "message_received": {
+        "title": "New private message",
+        "desc": "{from} wrote to you."
+      },
+      "message_request_received": {
+        "title": "Someone wants to write to you",
+        "desc": "{from} sent a request. Accept it to open the conversation."
       }
     }
   },
@@ -4828,9 +4862,42 @@
       "rotateAction": "Replace my key",
       "unreadable": "Encrypted with a previous key — unreadable",
       "noKeyYet": "This browser has no messaging key yet.",
-      "generate": "Set up encryption on this browser"
+      "generate": "Set up encryption on this browser",
+      "peerKeyBrokenTitle": "Your correspondent's key cannot be read",
+      "peerKeyBrokenBody": "What they published is not a key this browser can use, so nothing here can be encrypted or decrypted. Replacing your own key would not help — they have to publish theirs again."
     },
-    "erasedConversation": "Closed at your correspondent's request. This conversation was encrypted, and the account that held the other half of the key has been deleted — nothing here can be opened again, by anyone."
+    "erasedConversation": "Closed at your correspondent's request. This conversation was encrypted, and the account that held the other half of the key has been deleted — nothing here can be opened again, by anyone.",
+    "unreadLabel": "{count} unread | {count} unread | {count} unread",
+    "reply": "Reply",
+    "edit": "Edit",
+    "edited": "edited",
+    "editing": "Editing your message",
+    "replyingTo": "Replying to {name}",
+    "replyGone": "The quoted message is gone",
+    "reactions": {
+      "add": "Add a reaction",
+      "pick": "Pick a reaction",
+      "up": "Agree",
+      "heart": "Love it",
+      "haha": "Funny",
+      "wow": "Surprising",
+      "thanks": "Thanks",
+      "done": "Done"
+    },
+    "saveEdit": "Save the change",
+    "encryptedPreview": "Encrypted",
+    "noPreview": "No message yet",
+    "ago": {
+      "now": "now",
+      "minutes": "{n} min",
+      "hours": "{n} h",
+      "days": "{n} d"
+    },
+    "badge": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "moderator": "Mod"
+    }
   },
   "room": {
     "title": "Room",
@@ -4844,6 +4911,21 @@
     "offline": "Not live",
     "sendFailed": "Not sent.",
     "retry": "Retry",
-    "remove": "Remove this message"
+    "remove": "Remove this message",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "commands": {
+      "help": "/pin (while replying) · /unpin · /mute NAME [hours] [reason] · /unmute NAME · /slow SECONDS",
+      "pinNeedsReply": "Reply to the message you want to pin, then type /pin.",
+      "usageMute": "Usage: /mute NAME [hours] [reason]",
+      "usageUnmute": "Usage: /unmute NAME",
+      "usageSlow": "Usage: /slow SECONDS — 0 turns it off",
+      "muted": "{name} is muted.",
+      "unmuted": "{name} can speak again.",
+      "slow": "Slow mode set to {seconds}s.",
+      "unknown": "Unknown command: /{cmd}. Try /help.",
+      "failed": "That did not work."
+    },
+    "subtitle": "Everyone, in one place"
   }
 }

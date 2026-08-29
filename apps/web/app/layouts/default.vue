@@ -163,6 +163,11 @@
                without manual polling. -->
           <NotificationBell v-if="user" />
 
+          <!-- Unread messages. Beside the bell rather than buried in the
+               user menu: a count nobody sees until they open a dropdown
+               is not a count. Renders nothing when messaging is off. -->
+          <MessagesBell v-if="user" />
+
           <!-- User Stats — desktop only -->
           <div
             v-if="user"

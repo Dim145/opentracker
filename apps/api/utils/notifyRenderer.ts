@@ -116,6 +116,16 @@ const EN: Dict = {
     title: 'Sign-in from new IP',
     desc: 'We saw a login from {currentIp} (previous: {previousIp}).',
   },
+  message_received: {
+    title: 'New private message',
+    desc: '{from} wrote to you.',
+  },
+  message_request_received: {
+    // No preview, deliberately. This is a stranger's first contact, and a
+    // preview would carry their text past the queue that is holding it.
+    title: 'Someone wants to write to you',
+    desc: '{from} sent a request. Accept it to open the conversation.',
+  },
   comment_on_my_upload: {
     title: 'New comment on your upload',
     desc: '{actorUsername} on “{torrentName}”: {preview}',
@@ -298,6 +308,14 @@ const FR: Dict = {
   login_new_ip: {
     title: 'Connexion depuis une nouvelle IP',
     desc: 'Connexion détectée depuis {currentIp} (précédente : {previousIp}).',
+  },
+  message_received: {
+    title: 'Nouveau message privé',
+    desc: '{from} t\'a écrit.',
+  },
+  message_request_received: {
+    title: 'Quelqu\'un veut t\'écrire',
+    desc: '{from} a envoyé une demande. Accepte-la pour ouvrir la conversation.',
   },
   comment_on_my_upload: {
     title: 'Nouveau commentaire sur ton upload',

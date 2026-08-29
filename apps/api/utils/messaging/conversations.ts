@@ -30,7 +30,19 @@ type Executor = typeof db | Tx;
 export async function findOrCreateDirectConversation(
   meId: string,
   otherId: string,
-  opts: { encrypted?: boolean } = {}
+  opts: {
+    encrypted?: boolean;
+    /**
+     * Skip the first-contact queue.
+     *
+     * True only for staff, and it is not a convenience: a moderator
+     * writing "your upload was rejected, here is why" lands in Requests
+     * otherwise, next to the spam the queue exists to hold — where it can
+     * be refused without being read, and refusing silently blocks the
+     * sender. The member then never hears from the staff again.
+     */
+    direct?: boolean;
+  } = {}
 ) {
   if (meId === otherId) {
     throw createError({
@@ -87,7 +99,12 @@ export async function findOrCreateDirectConversation(
       // The recipient starts in the first-contact queue. Accepting moves
       // it to the inbox; without this step a known uploader's inbox is
       // unusable within weeks at this membership size.
-      { conversationId: id, userId: otherId, joinedAt: now, state: 'pending' },
+      {
+        conversationId: id,
+        userId: otherId,
+        joinedAt: now,
+        state: opts.direct ? 'active' : 'pending',
+      },
     ]);
 
     return { conversation, created: true };
@@ -152,6 +169,13 @@ export async function participantOf(conversationId: string, userId: string) {
  *
  * One transaction, so a message can never exist without its counters
  * having moved.
+ *
+ * Returns the message and the participant rows the bump touched. The
+ * caller needs those to decide who to notify: a row that comes back with
+ * `unreadCount` of exactly 1 was at 0 before this message, which is the
+ * only precise definition of "the first unread in this thread". Reading
+ * it back afterwards would race with a concurrent send; taking it from
+ * the same statement cannot.
  */
 export async function recordMessage(input: {
   conversationId: string;
@@ -159,6 +183,7 @@ export async function recordMessage(input: {
   body?: string;
   cipher?: Buffer;
   iv?: Buffer;
+  replyToId?: string;
 }) {
   const id = randomUUID();
   const now = new Date();
@@ -173,6 +198,7 @@ export async function recordMessage(input: {
         body: input.body ?? null,
         cipher: input.cipher ?? null,
         iv: input.iv ?? null,
+        replyToId: input.replyToId ?? null,
         createdAt: now,
       })
       .returning();
@@ -182,7 +208,7 @@ export async function recordMessage(input: {
       .set({ lastMessageAt: now })
       .where(eq(schema.conversations.id, input.conversationId));
 
-    await tx
+    const recipients = await tx
       .update(schema.conversationParticipants)
       .set({ unreadCount: sql`${schema.conversationParticipants.unreadCount} + 1` })
       .where(
@@ -193,9 +219,15 @@ export async function recordMessage(input: {
           ),
           ne(schema.conversationParticipants.userId, input.authorId)
         )
-      );
+      )
+      .returning({
+        userId: schema.conversationParticipants.userId,
+        unreadCount: schema.conversationParticipants.unreadCount,
+        mutedUntil: schema.conversationParticipants.mutedUntil,
+        state: schema.conversationParticipants.state,
+      });
 
-    return message;
+    return { message, recipients };
   });
 }
 
