@@ -324,6 +324,39 @@ const g2 = await openWith('ghostgil', 'donator', { encrypted: true });
 if (g2) await accept('donator', g2);
 
 // ── The room ─────────────────────────────────────────────────────────
+// A public role, so the fourth badge case is visible too: owner, admin,
+// moderator all come from the staff flags, and this is the one that comes
+// from the operator's own list.
+console.log('\n▸ a public role');
+await resetRateLimits();
+await refreshFounder();
+{
+  const role = await as('founder', '/api/admin/roles', {
+    method: 'POST',
+    body: {
+      name: 'Uploadeur',
+      color: '#8b5cf6',
+      icon: 'ph:upload-simple',
+      showAsBadge: true,
+      priority: 50,
+      assignmentMode: 'manual',
+    },
+  });
+  const roleId = role.body?.id ?? role.body?.role?.id;
+  if (roleId) {
+    for (const who of ['seedersam', 'donator']) {
+      await resetRateLimits();
+      const r = await as('founder', `/api/admin/users/${S[who].id}/roles`, {
+        method: 'POST',
+        body: { roleId },
+      });
+      console.log(`  ${who.padEnd(10)} -> Uploadeur (${r.status})`);
+    }
+  } else {
+    console.log(`  role creation -> ${role.status}`);
+  }
+}
+
 console.log('\n▸ room');
 await resetRateLimits();
 const ROOM = '/api/messaging/room/messages';
@@ -337,6 +370,7 @@ const CHATTER = [
   ['adminalex', 'Reminder: retention here is fourteen days. Anything you want to keep, keep it somewhere else.'],
   ['lurkerlou', 'Noted. Is there a way to search back through it?'],
   ['modmaria', 'Not the room, no — it is deliberately ephemeral. Private messages are searchable.'],
+  ['founder', 'That is the intent, yes. The room is for talking, not for archiving.'],
   ['plainuser', 'Which is the right way round, honestly.'],
 ];
 let posted = 0;
@@ -354,6 +388,50 @@ console.log(`  ${posted}/${CHATTER.length} messages posted`);
 // Done at the end because it is destructive and because the interesting
 // part is what it leaves behind: a plaintext thread that survives with an
 // unnamed author, and an encrypted one that is emptied and explained.
+// ── A few of the new affordances, so they are visible on arrival ─────
+console.log('\n▸ reactions, replies and a pin');
+await resetRateLimits();
+if (c1) {
+  const thread = await as('plainuser', `${DM}/${c1}/messages`);
+  const first = thread.body?.messages?.[thread.body.messages.length - 1];
+  if (first) {
+    for (const [who, key] of [['plainuser', 'thanks'], ['seedersam', 'up'], ['donator', 'heart']]) {
+      await resetRateLimits();
+      await as(who, `${DM}/${c1}/messages/${first.id}/reactions`, {
+        method: 'POST',
+        body: { key },
+      });
+    }
+    await resetRateLimits();
+    await as('plainuser', `${DM}/${c1}/messages`, {
+      method: 'POST',
+      body: { body: 'Grabbing it now, thanks.', replyToId: first.id },
+    });
+  }
+}
+
+{
+  const room = await as('plainuser', ROOM.replace('/messages', ''));
+  const lines = room.body?.messages ?? [];
+  const target = lines.find((m) => (m.body ?? '').includes('retention'));
+  if (target) {
+    await resetRateLimits();
+    for (const who of ['seedersam', 'donator', 'lurkerlou']) {
+      await resetRateLimits();
+      await as(who, `${ROOM}/${target.id}/reactions`, {
+        method: 'POST',
+        body: { key: 'up' },
+      });
+    }
+    await resetRateLimits();
+    const pinned = await as('founder', '/api/mod/room/pin', {
+      method: 'POST',
+      body: { messageId: target.id },
+    });
+    console.log(`  pinned the retention reminder (${pinned.status})`);
+  }
+}
+
 console.log('\n▸ erasing ghostgil');
 await resetRateLimits();
 if (S.ghostgil?.cookie) {

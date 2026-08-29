@@ -11,40 +11,90 @@
         </button>
       </header>
 
-      <div v-if="requests.length" class="msg-section">
-        <p class="eyebrow msg-section-title">{{ $t('messaging.requests') }}</p>
-        <p class="msg-hint">{{ $t('messaging.requestsHint') }}</p>
+      <!-- Quick access: the room is a destination, not a conversation,
+           so it sits above the list rather than in it. One entry today —
+           the instance has exactly one public room. -->
+      <NuxtLink v-if="canRoom" to="/chat" class="msg-quick">
+        <span class="msg-quick-tile" aria-hidden="true">
+          <Icon name="ph:chats-circle-bold" />
+        </span>
+        <span class="msg-quick-text">
+          <span class="msg-quick-name">{{ $t('room.title') }}</span>
+          <span class="msg-quick-sub">{{ $t('room.subtitle') }}</span>
+        </span>
+      </NuxtLink>
+
+      <!--
+        Two tabs, not two stacked lists.
+
+        Stacked, the request queue pushed the inbox down the page every
+        time somebody new wrote — the list you read every day moved
+        because of the list you read once a week. As tabs each keeps its
+        own place, and the count on Requests says whether it is worth
+        opening.
+      -->
+      <div class="msg-tabs" role="tablist" :aria-label="$t('messaging.title')">
         <button
-          v-for="conv in requests"
-          :key="conv.id"
           type="button"
-          class="msg-row"
-          :class="conv.id === activeId ? 'bg-bg-tertiary text-text-primary' : 'text-text-muted hover:bg-bg-secondary/50'"
-          @click="open(conv)"
+          role="tab"
+          class="msg-tab"
+          :class="{ 'msg-tab--on': tab === 'inbox' }"
+          :aria-selected="tab === 'inbox'"
+          @click="tab = 'inbox'"
         >
-          <span class="msg-row-name truncate">{{ nameOf(conv) }}</span>
-          <span v-if="conv.unreadCount" class="msg-badge bg-accent">{{ conv.unreadCount }}</span>
+          {{ $t('messaging.inbox') }}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="msg-tab"
+          :class="{ 'msg-tab--on': tab === 'requests' }"
+          :aria-selected="tab === 'requests'"
+          @click="tab = 'requests'"
+        >
+          {{ $t('messaging.requests') }}
+          <span v-if="requests.length" class="msg-tab-count">{{ requests.length }}</span>
         </button>
       </div>
 
       <div class="msg-section">
-        <p class="eyebrow msg-section-title">{{ $t('messaging.inbox') }}</p>
-        <p v-if="!inbox.length" class="msg-hint">{{ $t('messaging.empty') }}</p>
+        <p v-if="tab === 'requests'" class="msg-hint">
+          {{ $t('messaging.requestsHint') }}
+        </p>
+        <p v-if="!shown.length" class="msg-hint">
+          {{ tab === 'requests' ? $t('messaging.emptyRequests') : $t('messaging.empty') }}
+        </p>
         <button
-          v-for="conv in inbox"
+          v-for="conv in shown"
           :key="conv.id"
           type="button"
           class="msg-row"
-          :class="conv.id === activeId ? 'bg-bg-tertiary text-text-primary' : 'text-text-muted hover:bg-bg-secondary/50'"
+          :class="{ 'msg-row--on': conv.id === activeId }"
           @click="open(conv)"
         >
-          <span class="msg-row-name truncate">{{ nameOf(conv) }}</span>
-          <Icon v-if="conv.encrypted" name="ph:lock-simple" class="msg-row-lock" />
+          <!-- An initial, not a photo: there are no avatars on this
+               instance, and a coloured disc derived from the name still
+               gives the eye something to lock onto when scanning. -->
+          <span class="msg-row-tile" aria-hidden="true">{{ initialOf(conv) }}</span>
+          <span class="msg-row-main">
+            <span class="msg-row-top">
+              <span class="msg-row-name">{{ nameOf(conv) }}</span>
+              <time
+                v-if="conv.lastMessageAt"
+                class="msg-row-time"
+                :datetime="conv.lastMessageAt"
+              >{{ shortAgo(conv.lastMessageAt) }}</time>
+            </span>
+            <span class="msg-row-preview">
+              <Icon v-if="conv.encrypted" name="ph:lock-simple" class="msg-row-lock" />
+              {{ previewOf(conv) }}
+            </span>
+          </span>
           <span
             v-if="conv.unreadCount"
-            class="msg-badge bg-accent"
+            class="msg-badge"
             :aria-label="conv.unreadCount === 1 ? $t('messaging.unreadOne') : $t('messaging.unreadMany', { count: conv.unreadCount })"
-          >{{ conv.unreadCount }}</span>
+          >{{ conv.unreadCount > 99 ? '99+' : conv.unreadCount }}</span>
         </button>
       </div>
     </aside>
@@ -56,7 +106,15 @@
             <Icon name="ph:arrow-left" class="w-4 h-4" />
             <span class="sr-only">{{ $t('common.back') }}</span>
           </button>
-          <span class="msg-thread-name truncate">{{ nameOf(active) }}</span>
+            <!-- The correspondent's name is the obvious place to ask
+                 "who is this"; an erased account has no profile left to
+                 point at, so it stays plain text. -->
+            <NuxtLink
+              v-if="active.with?.id"
+              :to="`/users/${active.with.id}`"
+              class="msg-thread-name msg-author-link truncate"
+            >{{ nameOf(active) }}</NuxtLink>
+            <span v-else class="msg-thread-name truncate">{{ nameOf(active) }}</span>
           <span
             v-if="!connected"
             class="msg-tag"
@@ -89,6 +147,7 @@
 
           <article
             v-for="msg in messages"
+            :id="`msg-${msg.id}`"
             :key="msg.id"
             class="msg-bubble-row"
             :class="msg.mine ? 'msg-mine' : 'msg-theirs'"
@@ -102,13 +161,54 @@
                 msg.failed ? 'border-error' : 'border-border',
               ]"
             >
-              <p v-if="!msg.mine" class="msg-author eyebrow">{{ authorOf(msg) }}</p>
+              <p v-if="!msg.mine" class="msg-author eyebrow">
+                <NuxtLink
+                  v-if="msg.author?.id"
+                  :to="`/users/${msg.author.id}`"
+                  class="msg-author-link"
+                >{{ authorOf(msg) }}</NuxtLink>
+                <span v-else>{{ authorOf(msg) }}</span>
+                <MessagingAuthorBadge :badge="msg.author?.badge" />
+              </p>
+
+              <!-- The quote carries a preview, never the message: a reply
+                   that embedded the full text would let a deleted message
+                   survive inside every answer to it. -->
+              <button
+                v-if="msg.replyTo"
+                type="button"
+                class="msg-quote"
+                :disabled="msg.replyTo.gone"
+                @click="jumpTo(msg.replyTo.id)"
+              >
+                <Icon name="ph:arrow-bend-up-left" class="msg-quote-icon" />
+                <span v-if="msg.replyTo.gone" class="msg-quote-gone">
+                  {{ $t('messaging.replyGone') }}
+                </span>
+                <span v-else class="msg-quote-text">
+                  <b>{{ msg.replyTo.author ?? $t('messaging.deletedMember') }}</b>
+                  {{ msg.replyTo.preview }}
+                </span>
+              </button>
+
               <p v-if="msg.body === null && msg.cipher" class="msg-body msg-unreadable">
                 {{ $t('messaging.crypto.unreadable') }}
               </p>
               <p v-else class="msg-body">{{ msg.body }}</p>
+              <!-- Resolved by the reader, so the card shows the torrent
+                   as it is now rather than as the sender saw it. -->
+              <MessagingTorrentCard
+                v-for="hash in torrentHashesIn(msg.body)"
+                :key="hash"
+                :hash="hash"
+              />
               <p class="msg-meta">
                 <time :datetime="msg.createdAt">{{ shortTime(msg.createdAt) }}</time>
+                <!-- Said out loud. An edit that leaves no mark lets
+                     somebody rewrite what they said after being answered. -->
+                <span v-if="msg.editedAt" class="msg-edited">
+                  · {{ $t('messaging.edited') }}
+                </span>
                 <template v-if="msg.failed">
                   · <span class="text-error">{{ $t('messaging.sendFailed') }}</span>
                   <button type="button" class="msg-retry" @click="retry(msg)">
@@ -116,7 +216,52 @@
                   </button>
                 </template>
               </p>
+
+
+              <!-- A floating toolbar, clear of the bubble's top edge.
+                   Revealed on hover on a pointer device and ALWAYS shown
+                   where there is no hover — an action that only exists on
+                   hover does not exist on a phone. -->
+              <div class="msg-actions">
+                <MessagingReactionPicker
+                  v-if="!msg.deleted && !String(msg.id).startsWith('pending-')"
+                  :mine="msg.myReactions ?? []"
+                  @toggle="(k) => react(msg, k)"
+                />
+                <button
+                  type="button"
+                  class="msg-action"
+                  :aria-label="$t('messaging.reply')"
+                  :title="$t('messaging.reply')"
+                  @click="startReply(msg)"
+                >
+                  <Icon name="ph:arrow-bend-up-left" />
+                </button>
+                <button
+                  v-if="msg.mine && !msg.deleted && !active?.encrypted"
+                  type="button"
+                  class="msg-action"
+                  :aria-label="$t('messaging.edit')"
+                  :title="$t('messaging.edit')"
+                  @click="beginEdit(msg)"
+                >
+                  <Icon name="ph:pencil-simple" />
+                </button>
+              </div>
             </div>
+
+            <!-- Outside the bubble, deliberately.
+                 Inside, the reaction row inflated the bubble every time
+                 somebody reacted, and the action buttons sat ON the last
+                 line of text — unreadable and unclickable at the same
+                 time. Out here they are their own row, the bubble keeps
+                 its shape, and neither ever covers a word. -->
+            <MessagingReactions
+              :counts="msg.reactions ?? {}"
+              :mine="msg.myReactions ?? []"
+              @toggle="(k) => react(msg, k)"
+            />
+
           </article>
         </div>
 
@@ -131,6 +276,21 @@
             {{ $t('messaging.deletedMember') }}
           </p>
           <p class="msg-locked-body">{{ $t('messaging.erasedConversation') }}</p>
+        </div>
+        <!-- The correspondent published something this browser cannot
+             use as a key. Separated from the two states above because
+             the advice is the opposite: nothing done HERE fixes it, so
+             offering a button that replaces my own key would destroy my
+             other conversations for no gain. -->
+        <div
+          v-else-if="active.encrypted && cryptoState === 'peerKeyBroken'"
+          class="msg-locked"
+        >
+          <p class="msg-locked-title">
+            <Icon name="ph:lock-key" class="w-4 h-4" />
+            {{ $t('messaging.crypto.peerKeyBrokenTitle') }}
+          </p>
+          <p class="msg-locked-body">{{ $t('messaging.crypto.peerKeyBrokenBody') }}</p>
         </div>
         <div
           v-else-if="active.encrypted && cryptoState !== 'ready'"
@@ -158,6 +318,41 @@
           class="msg-composer"
           @submit.prevent="send"
         >
+          <!-- What the composer is about to do, above the field rather
+               than inside it: a placeholder that says "replying to…"
+               disappears the moment you start typing, which is exactly
+               when you want to still be able to check it. -->
+          <div v-if="replyTo || editing" class="msg-context">
+            <Icon
+              :name="editing ? 'ph:pencil-simple' : 'ph:arrow-bend-up-left'"
+              class="msg-context-icon"
+            />
+            <span class="msg-context-text">
+              <template v-if="editing">{{ $t('messaging.editing') }}</template>
+              <template v-else>
+                {{ $t('messaging.replyingTo', { name: authorOf(replyTo!) }) }}
+                — {{ (replyTo!.body ?? '').slice(0, 60) }}
+              </template>
+            </span>
+            <button
+              type="button"
+              class="msg-context-clear"
+              :aria-label="$t('common.cancel')"
+              @click="clearContext"
+            >
+              <Icon name="ph:x" />
+            </button>
+          </div>
+
+          <!--
+            The banner above, the controls below.
+
+            The composer used to be one flex ROW, so the banner became a
+            sibling of the textarea and took its width — the field it was
+            describing was squeezed to nothing. Two rows, and the banner
+            sits where a banner belongs.
+          -->
+          <div class="msg-composer-row">
           <button
             v-if="active.state === 'pending'"
             type="button"
@@ -175,9 +370,15 @@
             @keydown.enter.exact.prevent="send"
           />
           <button type="submit" class="msg-send" :disabled="!draft.trim()">
-            <Icon name="ph:paper-plane-tilt" class="w-4 h-4" />
-            <span class="sr-only">{{ $t('messaging.send') }}</span>
+            <Icon
+              :name="editing ? 'ph:check' : 'ph:paper-plane-tilt'"
+              class="w-4 h-4"
+            />
+            <span class="sr-only">
+              {{ editing ? $t('messaging.saveEdit') : $t('messaging.send') }}
+            </span>
           </button>
+          </div>
         </form>
       </template>
       <p v-else class="msg-hint msg-placeholder">{{ $t('messaging.pick') }}</p>
@@ -235,6 +436,7 @@
 </template>
 
 <script setup lang="ts">
+import type { AuthorBadgeValue } from '~/components/messaging/AuthorBadge.vue';
 /**
  * Private messages — the P1 surface.
  *
@@ -253,8 +455,19 @@ interface Conversation {
   encrypted: boolean;
   lastMessageAt: string;
   unreadCount: number;
+  lastMessageAt?: string | null;
+  /** Last line, or null when there is none the server can show. */
+  preview?: string | null;
   state?: 'active' | 'pending';
   with: { id: string; username: string; displayName: string | null } | null;
+}
+
+interface ReplyRef {
+  id: string;
+  /** Retention or a deletion took the quoted message. */
+  gone?: boolean;
+  author?: string | null;
+  preview?: string | null;
 }
 
 interface ThreadMessage {
@@ -263,13 +476,26 @@ interface ThreadMessage {
   cipher: string | null;
   deleted: boolean;
   createdAt: string;
-  author: { id: string; username: string; displayName: string | null } | null;
+  editedAt?: string | null;
+  author: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    /** The single highest-priority public badge, or null. */
+    badge?: AuthorBadgeValue | null;
+  } | null;
+  reactions?: Record<string, number>;
+  myReactions?: string[];
+  replyTo?: ReplyRef | null;
   mine?: boolean;
   failed?: boolean;
 }
 
 const { t } = useI18n();
 const { user } = useUserSession();
+
+/** Which half of the list is on screen. Tabs, not two stacked lists. */
+const tab = ref<'inbox' | 'requests'>('inbox');
 
 const inbox = ref<Conversation[]>([]);
 const requests = ref<Conversation[]>([]);
@@ -278,7 +504,54 @@ const messages = ref<ThreadMessage[]>([]);
 const nextBefore = ref<string | null>(null);
 const loadingOlder = ref(false);
 const draft = ref('');
+/** The message the composer is answering, if any. */
+const replyTo = ref<ThreadMessage | null>(null);
+/** The message the composer is rewriting, if any. Mutually exclusive. */
+const editing = ref<ThreadMessage | null>(null);
 const scrollerRef = ref<HTMLElement | null>(null);
+
+const shown = computed(() =>
+  tab.value === 'requests' ? requests.value : inbox.value
+);
+
+const canRoom = computed(
+  () => !!(user.value as { canRoom?: boolean } | null)?.canRoom
+);
+
+/** First letter of the correspondent, for the row's disc. */
+function initialOf(conv: Conversation): string {
+  const name = conv.with?.displayName || conv.with?.username;
+  return (name?.[0] ?? '?').toUpperCase();
+}
+
+/**
+ * The last line of the conversation.
+ *
+ * Three distinct absences, kept distinct: an encrypted thread the server
+ * cannot preview, a thread whose last message was removed, and a thread
+ * with nothing in it. Collapsing them into one blank line would make the
+ * list lie about two of the three.
+ */
+function previewOf(conv: Conversation): string {
+  if (conv.encrypted) return t('messaging.encryptedPreview');
+  return conv.preview ?? t('messaging.noPreview');
+}
+
+/**
+ * Compact relative time for the list — "3 min", "2 h", "5 j".
+ *
+ * Not a full sentence: the row already carries a name, a preview and
+ * possibly a badge, and "il y a 3 minutes" spends a third of the width
+ * saying something the position in the list mostly already said.
+ */
+function shortAgo(iso: string): string {
+  const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (seconds < 60) return t('messaging.ago.now');
+  if (seconds < 3600) return t('messaging.ago.minutes', { n: Math.floor(seconds / 60) });
+  if (seconds < 86400) return t('messaging.ago.hours', { n: Math.floor(seconds / 3600) });
+  if (seconds < 604800) return t('messaging.ago.days', { n: Math.floor(seconds / 86400) });
+  return new Date(iso).toLocaleDateString();
+}
 
 const startOpen = ref(false);
 const startWith = ref('');
@@ -440,6 +713,30 @@ const { connected, needsReload, start } = useMessagingStream({
     else void loadList(); // a conversation we did not know about yet
     }
   },
+  // Reactions and edits are not messages: they carry no unread, do not
+  // scroll the thread, and belong to a row that is already on screen.
+  // Routing them through `onMessages` would make each one look like an
+  // arrival.
+  onFrame: (frame) => {
+    if (frame.conversationId !== activeId.value) return;
+    if (frame.type === 'reaction') {
+      const row = messages.value.find((m) => m.id === frame.messageId);
+      // The reactor applied it optimistically already; the echo would
+      // count it a second time.
+      if (row && frame.userId !== user.value?.id) {
+        applyReactionDelta(row, frame.key, frame.delta);
+      }
+      return;
+    }
+    if (frame.type === 'edit') {
+      const row = messages.value.find((m) => m.id === frame.messageId);
+      if (row) {
+        row.body = frame.body;
+        row.cipher = frame.cipher;
+        row.editedAt = frame.editedAt;
+      }
+    }
+  },
 });
 
 // Past the catch-up cap the view is cheaper to rebuild than to patch.
@@ -568,9 +865,12 @@ function scrollToEnd() {
 }
 
 async function send() {
+  if (editing.value) return submitEdit();
   const body = draft.value.trim();
   if (!body || !activeId.value || active.value?.encrypted) return;
   draft.value = '';
+  const answering = replyTo.value;
+  replyTo.value = null;
 
   // Optimistic: the row appears now and carries its own failure state, so
   // a slow round trip reads as sent rather than as the page hanging.
@@ -584,6 +884,13 @@ async function send() {
       ? { id: user.value.id, username: user.value.username, displayName: user.value.displayName }
       : null,
     mine: true,
+    replyTo: answering
+      ? {
+          id: answering.id,
+          author: answering.author?.username ?? null,
+          preview: (answering.body ?? '').slice(0, 140),
+        }
+      : null,
   };
   messages.value = [...messages.value, pending];
   await nextTick(scrollToEnd);
@@ -601,7 +908,10 @@ async function deliver(pending: ThreadMessage) {
 
     const res = await $fetch<{ id: string; createdAt: string }>(
       `/api/messaging/conversations/${activeId.value}/messages`,
-      { method: 'POST', body: payload }
+      {
+        method: 'POST',
+        body: { ...payload, replyToId: pending.replyTo?.id },
+      }
     );
     const row = messages.value.find((m) => m.id === pending.id);
     if (row) {
@@ -619,6 +929,80 @@ async function deliver(pending: ThreadMessage) {
 function retry(msg: ThreadMessage) {
   msg.failed = false;
   void deliver(msg);
+}
+
+/** Toggle one reaction on one message. */
+function react(msg: ThreadMessage, key: string) {
+  void toggleReaction(
+    `/api/messaging/conversations/${activeId.value}/messages/${msg.id}/reactions`,
+    msg,
+    key
+  );
+}
+
+function startReply(msg: ThreadMessage) {
+  // Mutually exclusive with an edit: the composer can only be doing one
+  // of the two, and leaving both set would send the edit as a reply.
+  editing.value = null;
+  replyTo.value = msg;
+  // The point of clicking reply is to type. Landing the caret saves a
+  // second click and tells the user the banner is about the field below.
+  void nextTick(() => {
+    document.querySelector<HTMLTextAreaElement>('.msg-input')?.focus();
+  });
+}
+
+function beginEdit(msg: ThreadMessage) {
+  replyTo.value = null;
+  editing.value = msg;
+  draft.value = msg.body ?? '';
+  void nextTick(() => {
+    const el = document.querySelector<HTMLTextAreaElement>('.msg-input');
+    el?.focus();
+    // Caret at the end, not selecting everything: an edit is usually a
+    // small correction, and a full selection makes the next keystroke
+    // delete the message.
+    el?.setSelectionRange(el.value.length, el.value.length);
+  });
+}
+
+function clearContext() {
+  // Leaving an edit puts the draft back where it was, rather than keeping
+  // the half-rewritten text in a box that now sends a NEW message.
+  if (editing.value) draft.value = '';
+  editing.value = null;
+  replyTo.value = null;
+}
+
+/** Scroll a quoted message into view and mark it, briefly. */
+function jumpTo(id: string) {
+  const el = document.getElementById(`msg-${id}`);
+  if (!el) return;
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  el.classList.add('msg-flash');
+  setTimeout(() => el.classList.remove('msg-flash'), 1200);
+}
+
+async function submitEdit() {
+  const target = editing.value;
+  const body = draft.value.trim();
+  if (!target || !body) return;
+  const previous = target.body;
+  // Optimistic, like the send: the correction shows immediately and is
+  // put back if the server refuses it.
+  target.body = body;
+  target.editedAt = new Date().toISOString();
+  draft.value = '';
+  editing.value = null;
+  try {
+    await $fetch(
+      `/api/messaging/conversations/${activeId.value}/messages/${target.id}`,
+      { method: 'PATCH', body: { body } }
+    );
+  } catch {
+    target.body = previous;
+    target.editedAt = null;
+  }
 }
 
 async function accept() {
@@ -719,28 +1103,171 @@ async function startConversation() {
   color: rgb(var(--fg-muted));
 }
 
+/* ── Quick access ─────────────────────────────────────────────────── */
+.msg-quick {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem;
+  margin: 0 0.5rem 0.25rem;
+  border-radius: var(--radius-md);
+  color: rgb(var(--fg-default));
+  text-decoration: none;
+  transition: background var(--dur-2) ease;
+}
+.msg-quick:hover { background: rgb(var(--fg-default) / 0.06); }
+.msg-quick-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  border-radius: var(--radius-md);
+  background: rgb(var(--accent-warm) / 0.16);
+  color: rgb(var(--accent-warm));
+  font-size: 1.05rem;
+}
+.msg-quick-text { display: flex; flex-direction: column; min-width: 0; }
+.msg-quick-name { font-size: 0.875rem; font-weight: 600; }
+.msg-quick-sub {
+  font-size: 0.7rem;
+  color: rgb(var(--fg-muted));
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────── */
+.msg-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  margin: 0.25rem 0.5rem 0.5rem;
+  border-radius: var(--radius-md);
+  background: rgb(var(--fg-default) / 0.05);
+}
+.msg-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  /* 44px: this is the control that switches the whole list. */
+  min-height: 2.25rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: rgb(var(--fg-muted));
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-2) ease, color var(--dur-2) ease;
+}
+.msg-tab:hover { color: rgb(var(--fg-default)); }
+.msg-tab--on {
+  background: rgb(var(--bg-elevated));
+  color: rgb(var(--fg-strong));
+}
+.msg-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.25rem;
+  border-radius: var(--radius-pill);
+  background: rgb(var(--accent-warm));
+  color: rgb(var(--bg-base));
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 800;
+}
+
+/* ── Rows ─────────────────────────────────────────────────────────── */
 .msg-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.625rem;
   width: 100%;
-  padding: 0.6875rem 0.625rem;
-  border-radius: var(--radius-sm);
+  /* Two lines of content, so the row is taller than it was — and past
+     the 44px touch minimum without needing padding to get there. */
+  padding: 0.5rem 0.625rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: rgb(var(--fg-default));
   text-align: left;
   cursor: pointer;
+  transition: background var(--dur-2) ease;
+}
+.msg-row:hover { background: rgb(var(--fg-default) / 0.05); }
+.msg-row--on { background: rgb(var(--fg-default) / 0.09); }
+
+.msg-row-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: rgb(var(--fg-default) / 0.1);
+  color: rgb(var(--fg-default));
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
+.msg-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.msg-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
 .msg-row-name {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.875rem;
+  font-weight: 600;
+}
+.msg-row-time {
+  flex: none;
+  /* Tabular figures: without them the column jitters as the numbers
+     change width, on a row that is already busy. */
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.65rem;
+  color: rgb(var(--fg-muted));
+}
+.msg-row-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: rgb(var(--fg-muted));
 }
 
 .msg-row-lock {
-  width: 0.875rem;
-  height: 0.875rem;
+  width: 0.75rem;
+  height: 0.75rem;
   flex-shrink: 0;
-  opacity: 0.6;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .msg-quick,
+  .msg-tab,
+  .msg-row { transition: none; }
 }
 
 .msg-badge {
@@ -748,10 +1275,17 @@ async function startConversation() {
   min-width: 1.25rem;
   padding: 0 0.375rem;
   border-radius: 9999px;
-  font-size: 0.6875rem;
+  /* Carried in CSS now: the row used to get its colour from a Tailwind
+     `bg-accent` utility in the template, which the rewrite dropped —
+     leaving a badge with a foreground colour and no ground. */
+  background: rgb(var(--accent-warm));
+  color: rgb(var(--bg-base));
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.65rem;
+  font-weight: 800;
   line-height: 1.25rem;
   text-align: center;
-  color: rgb(var(--accent-fg));
 }
 
 .msg-thread {
@@ -814,20 +1348,33 @@ async function startConversation() {
 }
 
 /* Sender differentiation carries on alignment as well as colour, never on
-   colour alone — the same rule the rest of this app follows for state. */
+   colour alone — the same rule the rest of this app follows for state.
+ *
+ * A COLUMN, not a row. The bubble now has a sibling under it (the
+ * reaction strip), and in a row that sibling sat beside the bubble
+ * instead of below it. Alignment therefore moves from `justify-content`
+ * to `align-items`: on a column the two axes swap, and leaving
+ * `justify-content` would have aligned nothing horizontally at all. */
 .msg-bubble-row {
   display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .msg-mine {
-  justify-content: flex-end;
+  align-items: flex-end;
 }
 
 .msg-theirs {
-  justify-content: flex-start;
+  align-items: flex-start;
 }
 
 .msg-bubble {
+  /* Anchors the floating toolbar. The toolbar is a child but escapes the
+     box upward with a negative offset, so it stays glued to the bubble
+     whichever side the bubble is on — anchored to the ROW instead, it
+     would float at the far edge of the thread. */
+  position: relative;
   max-width: min(85%, 34rem);
   padding: 0.5rem 0.6875rem;
   border-width: 1px;
@@ -835,7 +1382,16 @@ async function startConversation() {
   border-radius: var(--radius-md);
 }
 
+.msg-author-link {
+  color: inherit;
+  text-decoration: none;
+}
+.msg-author-link:hover { text-decoration: underline; }
+
 .msg-author {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   margin-bottom: 0.125rem;
 }
 
@@ -891,12 +1447,20 @@ async function startConversation() {
   color: rgb(var(--fg-muted));
 }
 
+/* A column: the reply/edit banner stacks ABOVE the controls. It used to
+   be a row, which made the banner a sibling of the textarea and left the
+   field it was describing with almost no width. */
 .msg-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border-top: 1px solid rgb(var(--line-default));
+}
+.msg-composer-row {
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
-  padding: 0.5rem;
-  border-top: 1px solid rgb(var(--line-default));
 }
 
 .msg-accept {
@@ -950,5 +1514,143 @@ async function startConversation() {
   .msg-back {
     display: none;
   }
+}
+/* ── Quote, edit, reactions ───────────────────────────────────────── */
+.msg-quote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.3rem;
+  width: 100%;
+  margin-bottom: 0.3rem;
+  padding: 0.25rem 0.4rem;
+  border: 0;
+  /* A rail rather than a box: the quote has to read as subordinate to
+     the message, and a full border makes it compete with it. */
+  border-left: 2px solid rgb(var(--accent-warm) / 0.6);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: rgb(var(--fg-default) / 0.05);
+  color: rgb(var(--fg-muted));
+  font-size: 0.7rem;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+.msg-quote:disabled { cursor: default; opacity: 0.7; }
+.msg-quote-icon { flex: none; margin-top: 0.1rem; }
+.msg-quote-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.msg-quote-text b { color: rgb(var(--fg-default)); font-weight: 700; }
+.msg-quote-gone { font-style: italic; }
+.msg-edited { color: rgb(var(--fg-muted)); font-style: italic; }
+
+.msg-actions {
+  position: absolute;
+  /* Anchored to the bubble's top EDGE, not offset by a guessed number of
+     rems. A fixed negative `top` has to guess the toolbar's own height,
+     and guessing short leaves it sitting on the first line of the
+     message — unreadable and unclickable at once. `bottom: 100%` puts it
+     entirely above whatever height it turns out to be; the small
+     negative margin pulls it back to overlap the border only. */
+  bottom: 100%;
+  margin-bottom: -0.5rem;
+  right: 0.25rem;
+  display: flex;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  /* Its own surface. Floating over the thread background is fine;
+     floating over words with no surface is what made it unreadable. */
+  background: rgb(var(--bg-elevated));
+  border: 1px solid rgb(var(--line-strong));
+  border-radius: var(--radius-pill);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.28);
+  opacity: 0;
+  transition: opacity var(--dur-2) ease;
+  z-index: 2;
+}
+.msg-bubble-row:hover .msg-actions,
+.msg-actions:focus-within { opacity: 1; }
+
+/* No hover, no discovery. On a touch screen the toolbar is simply
+   there — `hover-vs-tap`: an action that exists only on hover does not
+   exist on a phone. */
+@media (hover: none) {
+  .msg-actions { opacity: 1; }
+}
+
+.msg-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 28px visual, 44px hit area via the padding on .msg-actions plus
+     this — small enough not to dominate a one-line message. */
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: rgb(var(--fg-muted));
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color var(--dur-2) ease, background var(--dur-2) ease;
+}
+.msg-action:hover {
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--fg-default) / 0.1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .msg-action { transition: none; }
+}
+
+.msg-context {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  margin-bottom: 0.35rem;
+  border-left: 2px solid rgb(var(--accent-warm));
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: rgb(var(--fg-default) / 0.06);
+  font-size: 0.7rem;
+  color: rgb(var(--fg-muted));
+}
+.msg-context-icon { flex: none; }
+.msg-context-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msg-context-clear {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--fg-muted));
+  cursor: pointer;
+}
+.msg-context-clear:hover { color: rgb(var(--fg-strong)); }
+
+/* Marks the message a quote jumped to. Long enough to find it, short
+   enough not to linger as decoration. */
+.msg-flash .msg-bubble {
+  animation: msg-flash 1.2s ease-out;
+}
+@keyframes msg-flash {
+  0%, 40% { background: rgb(var(--accent-warm) / 0.22); }
+  100% { background: inherit; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .msg-actions { transition: none; }
+  .msg-flash .msg-bubble { animation: none; }
 }
 </style>
