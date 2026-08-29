@@ -83,3 +83,33 @@ func TestGoldenFromTypeScript(t *testing.T) {
 		t.Fatalf("Sign no longer produces the golden token:\n got %s\nwant %s", got, golden)
 	}
 }
+
+// TestRoomClaimDoesNotMoveTheFormat is the reason `rm` is `omitempty`.
+//
+// Adding a field to a format two languages agree on is exactly where
+// drift starts. Omitting it when false means a token without room access
+// is byte-identical to what this produced before the field existed — so
+// the golden above still holds, and only a room token carries the extra
+// bytes.
+func TestRoomClaimDoesNotMoveTheFormat(t *testing.T) {
+	plain := Sign(Claims{UserID: "u-1", Expiry: 1_700_000_060}, secret)
+	explicitlyFalse := Sign(Claims{UserID: "u-1", Expiry: 1_700_000_060, Room: false}, secret)
+	if plain != explicitlyFalse {
+		t.Fatalf("a false room claim changed the bytes:\n %s\n %s", plain, explicitlyFalse)
+	}
+
+	withRoom := Sign(Claims{UserID: "u-1", Expiry: 1_700_000_060, Room: true}, secret)
+	if withRoom == plain {
+		t.Fatal("a true room claim produced the same token as no claim")
+	}
+
+	claims, err := Verify(withRoom, secret, time.Unix(1_700_000_000, 0))
+	if err != nil || !claims.Room {
+		t.Fatalf("room claim did not survive the round trip: %v %+v", err, claims)
+	}
+	// And it cannot be granted by editing the token: the signature covers it.
+	forged := strings.Split(withRoom, ".")[0] + "." + strings.Split(plain, ".")[1]
+	if _, err := Verify(forged, secret, time.Unix(1_700_000_000, 0)); err != ErrSignature {
+		t.Fatalf("room access was forgeable: %v", err)
+	}
+}

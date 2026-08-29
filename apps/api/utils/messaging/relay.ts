@@ -33,6 +33,20 @@ export async function publishToUsers(userIds: string[], payload: unknown) {
   );
 }
 
+/** The room's single channel. Fan-out happens on the relay nodes. */
+export const ROOM_CHANNEL = 'messaging:room:general';
+
+/**
+ * Publish to the room.
+ *
+ * One publish for the whole room rather than one per reader: Valkey sees
+ * O(nodes), and each node writes to the connections it holds. That is the
+ * whole reason the fan-out is not in this process.
+ */
+export async function publishToRoom(payload: unknown) {
+  await redis.publish(ROOM_CHANNEL, JSON.stringify(payload)).catch(() => undefined);
+}
+
 export interface FleetConfig {
   maxConnections: number;
   queueDepth: number;

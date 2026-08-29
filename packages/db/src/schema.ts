@@ -3725,3 +3725,32 @@ export const messagingBlocks = pgTable(
 
 export type MessagingBlock = typeof messagingBlocks.$inferSelect;
 export type NewMessagingBlock = typeof messagingBlocks.$inferInsert;
+
+/**
+ * A member silenced in the room.
+ *
+ * A table rather than a column on `conversation_participants`, because
+ * the room has no participants: a shoutbox is ambient, nobody joins it,
+ * and giving three hundred and fifty thousand members a row each to carry
+ * an unread count nobody reads would be the wrong shape entirely.
+ *
+ * So the only per-member state the room has is this one, and it exists
+ * only while somebody is actually muted.
+ */
+export const roomMutes = pgTable(
+  'room_mutes',
+  {
+    userId: text('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    until: timestamp('until').notNull(),
+    /** Who silenced them. A moderation act with no author is indefensible. */
+    byId: text('by_id').references(() => users.id, { onDelete: 'set null' }),
+    reason: text('reason'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('room_mutes_until_idx').on(table.until)]
+);
+
+export type RoomMute = typeof roomMutes.$inferSelect;
+export type NewRoomMute = typeof roomMutes.$inferInsert;

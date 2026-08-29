@@ -316,6 +316,15 @@
                        flag only keeps the chrome from advertising a door
                        that is not there. -->
                   <NuxtLink
+                    v-if="canRoom"
+                    to="/chat"
+                    class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
+                    @click="showUserMenu = false"
+                  >
+                    <Icon name="ph:chats-circle-bold" />
+                    {{ $t('room.title') }}
+                  </NuxtLink>
+                  <NuxtLink
                     v-if="canMessage"
                     to="/messages"
                     class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
@@ -1021,9 +1030,13 @@ onMounted(() => {
 // The same decision the palette makes, from the same function, so the chip
 // cannot advertise a door the component would refuse to open. The component
 // enforces it; this only keeps the affordance honest.
-/** Whether messaging exists for this member — the server's answer. */
+/** Whether each messaging surface exists for this member — the server's
+ *  answer, since both scopes have an `off` state and a `staff` state. */
 const canMessage = computed(
   () => !!(user.value as { canMessage?: boolean } | null)?.canMessage
+);
+const canRoom = computed(
+  () => !!(user.value as { canRoom?: boolean } | null)?.canRoom
 );
 
 const paletteAvailable = computed(

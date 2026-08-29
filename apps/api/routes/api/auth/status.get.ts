@@ -4,6 +4,7 @@ import { users, webauthnCredentials } from '@trackarr/db/schema';
 import { getSetting, SETTINGS_KEYS, isInviteEnabled } from '~~/utils/server';
 import {
   getMessagingDmScope,
+  getMessagingRoomScope,
   getRequire2FAScope,
   isUserRequiredFor2FA,
   scopeAdmits,
@@ -160,9 +161,20 @@ export default defineEventHandler(async (event) => {
         // decide whether to show the entry at all — the routes enforce it
         // again with a 404, since a client flag is a convenience and never
         // a permission.
+        const roles = {
+          isAdmin: dbUser.isAdmin,
+          isModerator: dbUser.isModerator,
+        };
         (publicUser as any).canMessage = scopeAdmits(
           await getMessagingDmScope(),
-          { isAdmin: dbUser.isAdmin, isModerator: dbUser.isModerator }
+          roles
+        );
+        // The room has its own scope, so it gets its own answer: opening
+        // private messages without the room is the careful rollout, and
+        // the reverse is defensible too.
+        (publicUser as any).canRoom = scopeAdmits(
+          await getMessagingRoomScope(),
+          roles
         );
       }
     } else {

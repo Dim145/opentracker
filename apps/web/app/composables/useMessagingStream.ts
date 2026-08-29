@@ -36,7 +36,18 @@ interface TokenGrant {
   expiresAt: number;
 }
 
-export function useMessagingStream(onMessages: (m: StreamedMessage[]) => void) {
+export interface StreamHandlers {
+  /** Private messages, already catch-up-merged. */
+  onMessages?: (messages: StreamedMessage[]) => void;
+  /**
+   * Every frame, untouched. The room uses this: its events are not
+   * conversation messages and do not belong in the catch-up window, which
+   * is keyed on private-message timestamps.
+   */
+  onFrame?: (frame: Record<string, any>) => void;
+}
+
+export function useMessagingStream(handlers: StreamHandlers) {
   const connected = ref(false);
   /** Set when the gap was too wide to patch and the caller must refetch. */
   const needsReload = ref(false);
@@ -49,6 +60,8 @@ export function useMessagingStream(onMessages: (m: StreamedMessage[]) => void) {
   let lastSeen = new Date().toISOString();
 
   async function catchUp() {
+    // Only private messages have a gap worth repairing.
+    if (!handlers.onMessages) return;
     try {
       const data = await $fetch<{
         messages: StreamedMessage[];
@@ -73,7 +86,7 @@ export function useMessagingStream(onMessages: (m: StreamedMessage[]) => void) {
     for (const m of messages) {
       if (m.createdAt > lastSeen) lastSeen = m.createdAt;
     }
-    onMessages(messages);
+    handlers.onMessages?.(messages);
   }
 
   async function connect() {
@@ -103,11 +116,15 @@ export function useMessagingStream(onMessages: (m: StreamedMessage[]) => void) {
       try {
         // Always an array, even for one message: the relay coalesces a
         // burst into a single frame, so the client has one shape to parse.
-        const batch = JSON.parse(event.data) as Array<{
-          type: string;
-          conversationId: string;
-          message: Omit<StreamedMessage, 'conversationId'>;
-        }>;
+        const batch = JSON.parse(event.data) as Array<Record<string, any>>;
+
+        // Every frame reaches whoever asked for raw frames…
+        if (handlers.onFrame) for (const frame of batch) handlers.onFrame(frame);
+
+        // …while private messages also move the catch-up high-water mark.
+        // Room frames deliberately do not: the room has its own retention
+        // and no gap to repair, and letting them advance the mark would
+        // make a busy room hide a missed private message.
         const messages = batch
           .filter((f) => f.type === 'message')
           .map((f) => ({ ...f.message, conversationId: f.conversationId }));

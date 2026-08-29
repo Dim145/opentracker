@@ -35,7 +35,13 @@ export default defineNitroPlugin(() => {
     }
   };
 
-  void tick();
+  // Not immediately: at plugin init Valkey is still connecting, and the
+  // first tick reliably failed with "Stream isn't writeable". It recovered
+  // on the next interval, so the only cost was a warning in the log every
+  // boot — but a warning that always fires is one nobody reads when it
+  // means something.
   const timer = setInterval(tick, INTERVAL_MS);
   timer.unref?.();
+  const first = setTimeout(tick, 2_000);
+  first.unref?.();
 });

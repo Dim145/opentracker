@@ -35,6 +35,11 @@ var (
 type Claims struct {
 	UserID string `json:"uid"`
 	Expiry int64  `json:"exp"`
+	// Whether this member may listen to the room. `omitempty` is what
+	// keeps a token without room access byte-identical to what the format
+	// produced before this field existed — the golden value in the tests
+	// did not move when it was added.
+	Room bool `json:"rm,omitempty"`
 }
 
 var enc = base64.RawURLEncoding

@@ -4795,5 +4795,19 @@
     "start": "Démarrer",
     "offline": "Hors direct",
     "offlineHint": "Les messages s'envoient et se lisent toujours ; ils n'arrivent simplement pas tout seuls. Rechargez pour voir la suite."
+  },
+  "room": {
+    "title": "Salon",
+    "empty": "Rien n’a encore été dit.",
+    "placeholder": "Dire quelque chose…",
+    "send": "Envoyer",
+    "older": "Charger les messages plus anciens",
+    "deleted": "Message retiré",
+    "slowMode": "Mode lent : un message toutes les {seconds}s",
+    "muted": "Vous êtes réduit au silence ici jusqu’au {until}.",
+    "offline": "Hors direct",
+    "sendFailed": "Non envoyé.",
+    "retry": "Réessayer",
+    "remove": "Retirer ce message"
   }
 }

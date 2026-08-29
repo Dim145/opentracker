@@ -21,6 +21,18 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 export interface MessagingTokenClaims {
   uid: string;
   exp: number;
+  /**
+   * May this member listen to the room?
+   *
+   * Omitted when false, which is why adding it did not move the golden
+   * token: Go marshals it `omitempty`, so a token without room access is
+   * byte-identical to what the format produced before the field existed.
+   *
+   * It is a claim rather than a query parameter because the client must
+   * not be the one deciding — the room has its own scope, and asking for
+   * a channel is not the same as being allowed on it.
+   */
+  rm?: true;
 }
 
 /**

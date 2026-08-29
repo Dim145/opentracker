@@ -12,6 +12,7 @@
  */
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireDmAccess } from '~~/utils/messaging/guard';
+import { getMessagingRoomScope, scopeAdmits } from '~~/utils/settings';
 import {
   MESSAGING_TOKEN_TTL_SECONDS,
   signMessagingToken,
@@ -29,9 +30,18 @@ export default defineEventHandler(async (event) => {
   }
 
   const exp = Math.floor(Date.now() / 1000) + MESSAGING_TOKEN_TTL_SECONDS;
+  // The room has its own scope, so the token says whether this member may
+  // listen to it. The client cannot be the one to decide: asking for a
+  // channel is not the same as being allowed on it.
+  const room = scopeAdmits(await getMessagingRoomScope(), user);
+
   return {
     url,
-    token: signMessagingToken({ uid: user.id, exp }, secret),
+    token: signMessagingToken(
+      room ? { uid: user.id, exp, rm: true } : { uid: user.id, exp },
+      secret
+    ),
     expiresAt: exp,
+    room,
   };
 });

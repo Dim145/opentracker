@@ -36,12 +36,12 @@ const (
 )
 
 type Registry struct {
-	rdb  *redis.Client
-	live *config.Live
-	id   string
-	ttl  time.Duration
+	rdb   *redis.Client
+	live  *config.Live
+	id    string
+	ttl   time.Duration
 	every time.Duration
-	load func() int64
+	load  func() int64
 }
 
 func New(rdb *redis.Client, live *config.Live, s config.Static, load func() int64) *Registry {

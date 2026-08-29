@@ -27,7 +27,11 @@ import (
 // asks the API for what it missed. A dropped client is an invisible
 // incident; a fed one is a leak.
 type Conn struct {
-	Channel string
+	// Every channel this connection listens on: always the member's own,
+	// plus the room when the token allows it. A slice rather than one
+	// string because the room is shared — the alternative is a second
+	// connection per reader, and the browser caps those.
+	Channels []string
 	out     chan []byte
 	done    chan struct{}
 	closeMu sync.Once
@@ -113,31 +117,35 @@ func (h *Hub) dispatch(channel string, payload []byte) {
 	}
 }
 
-// Add registers a connection, subscribing to its channel if this node had
-// no reader for it yet. Returns false when the node is at its ceiling.
-func (h *Hub) Add(ctx context.Context, channel string) (*Conn, bool) {
+// Add registers a connection on every channel it listens to, subscribing
+// to any this node had no reader for yet. Returns false at the ceiling.
+func (h *Hub) Add(ctx context.Context, channels ...string) (*Conn, bool) {
 	cfg := h.live.Get()
 	if h.count.Load() >= int64(cfg.MaxConnections) {
 		return nil, false
 	}
 
 	c := &Conn{
-		Channel: channel,
-		out:     make(chan []byte, cfg.QueueDepth),
-		done:    make(chan struct{}),
+		Channels: channels,
+		out:      make(chan []byte, cfg.QueueDepth),
+		done:     make(chan struct{}),
 	}
 
+	var fresh []string
 	h.mu.Lock()
-	set, existed := h.conns[channel]
-	if !existed {
-		set = make(map[*Conn]struct{})
-		h.conns[channel] = set
+	for _, channel := range channels {
+		set, existed := h.conns[channel]
+		if !existed {
+			set = make(map[*Conn]struct{})
+			h.conns[channel] = set
+			fresh = append(fresh, channel)
+		}
+		set[c] = struct{}{}
 	}
-	set[c] = struct{}{}
 	h.mu.Unlock()
 
-	if !existed {
-		if err := h.sub.Subscribe(ctx, channel); err != nil {
+	if len(fresh) > 0 {
+		if err := h.sub.Subscribe(ctx, fresh...); err != nil {
 			h.Remove(c)
 			return nil, false
 		}
@@ -146,31 +154,39 @@ func (h *Hub) Add(ctx context.Context, channel string) (*Conn, bool) {
 	return c, true
 }
 
-// Remove unregisters a connection and unsubscribes the channel once the
-// last reader for it is gone. Idempotent: dispatch may have removed a
-// dropped connection before the handler notices.
+// Remove unregisters a connection from every channel it held, and
+// unsubscribes those whose last reader has gone. Idempotent: dispatch may
+// have removed a dropped connection before the handler notices.
 func (h *Hub) Remove(c *Conn) {
+	var emptied []string
+	present := false
+
 	h.mu.Lock()
-	set, ok := h.conns[c.Channel]
-	if !ok {
-		h.mu.Unlock()
-		return
-	}
-	if _, present := set[c]; !present {
-		h.mu.Unlock()
-		return
-	}
-	delete(set, c)
-	empty := len(set) == 0
-	if empty {
-		delete(h.conns, c.Channel)
+	for _, channel := range c.Channels {
+		set, ok := h.conns[channel]
+		if !ok {
+			continue
+		}
+		if _, in := set[c]; !in {
+			continue
+		}
+		present = true
+		delete(set, c)
+		if len(set) == 0 {
+			delete(h.conns, channel)
+			emptied = append(emptied, channel)
+		}
 	}
 	h.mu.Unlock()
 
+	if !present {
+		return
+	}
+
 	h.count.Add(-1)
 	c.close(false)
-	if empty && h.sub != nil {
-		_ = h.sub.Unsubscribe(context.Background(), c.Channel)
+	if len(emptied) > 0 && h.sub != nil {
+		_ = h.sub.Unsubscribe(context.Background(), emptied...)
 	}
 }
 

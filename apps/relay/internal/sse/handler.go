@@ -20,6 +20,10 @@ import (
 // quantity. A message to a DM publishes to both participants' channels.
 func UserChannel(userID string) string { return "messaging:user:" + userID }
 
+// RoomChannel is shared by everybody the token admits. One publish, and
+// the fan-out happens here rather than in Valkey.
+const RoomChannel = "messaging:room:general"
+
 type Handler struct {
 	Hub    *hub.Hub
 	Live   *config.Live
@@ -60,7 +64,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	conn, admitted := h.Hub.Add(ctx, UserChannel(claims.UserID))
+	// The room comes from the claim, never from a query parameter: asking
+	// for a channel is not the same as being allowed on it, and the room
+	// has its own scope.
+	channels := []string{UserChannel(claims.UserID)}
+	if claims.Room {
+		channels = append(channels, RoomChannel)
+	}
+	conn, admitted := h.Hub.Add(ctx, channels...)
 	if !admitted {
 		// The node is full. 503 with Retry-After rather than a silent
 		// hang, so the client backs off and lands on another node instead

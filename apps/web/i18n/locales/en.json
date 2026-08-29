@@ -4795,5 +4795,19 @@
     "start": "Start",
     "offline": "Not live",
     "offlineHint": "Messages still send and read; they just do not arrive on their own. Reload to see what is new."
+  },
+  "room": {
+    "title": "Room",
+    "empty": "Nothing said yet.",
+    "placeholder": "Say something…",
+    "send": "Send",
+    "older": "Load older messages",
+    "deleted": "Message removed",
+    "slowMode": "Slow mode: one message every {seconds}s",
+    "muted": "You are muted here until {until}.",
+    "offline": "Not live",
+    "sendFailed": "Not sent.",
+    "retry": "Retry",
+    "remove": "Remove this message"
   }
 }

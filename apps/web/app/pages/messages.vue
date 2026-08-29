@@ -284,7 +284,8 @@ async function loadList() {
 // is a separate process, and a page that only functioned while a socket
 // was open would have no answer for the socket being shut.
 
-const { connected, needsReload, start } = useMessagingStream((incoming) => {
+const { connected, needsReload, start } = useMessagingStream({
+  onMessages: (incoming) => {
   for (const msg of incoming) {
     if (msg.conversationId === activeId.value) {
       // A message I just sent comes back through my own channel too — I am
@@ -316,7 +317,8 @@ const { connected, needsReload, start } = useMessagingStream((incoming) => {
       requests.value.find((c) => c.id === msg.conversationId);
     if (row) row.unreadCount += 1;
     else void loadList(); // a conversation we did not know about yet
-  }
+    }
+  },
 });
 
 // Past the catch-up cap the view is cheaper to rebuild than to patch.
