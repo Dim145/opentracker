@@ -458,7 +458,7 @@ async function run(fn: () => Promise<unknown>, okMsg?: string) {
 async function toggleMaster(e: Event) {
   const enabled = (e.target as HTMLInputElement).checked;
   busy.master = true;
-  await run(() => $fetch('/api/admin/federation', { method: 'PUT', body: { enabled } }), t('admin.federation.toast.saved'));
+  await run(() => $fetch<unknown>('/api/admin/federation', { method: 'PUT', body: { enabled } }), t('admin.federation.toast.saved'));
 }
 
 /** Publish an unauthenticated view of the catalogue. Nobody's default. */
@@ -466,7 +466,7 @@ async function toggleDiscoverable(e: Event) {
   const discoverable = (e.target as HTMLInputElement).checked;
   await run(
     () =>
-      $fetch('/api/admin/federation', {
+      $fetch<unknown>('/api/admin/federation', {
         method: 'PUT',
         body: { discoverable },
       }),
@@ -480,7 +480,7 @@ async function toggleCredit(e: Event) {
   busy.master = true;
   await run(
     () =>
-      $fetch('/api/admin/federation', {
+      $fetch<unknown>('/api/admin/federation', {
         method: 'PUT',
         body: { creditEnabled },
       }),
@@ -494,7 +494,7 @@ async function toggleRelay(e: Event) {
   const relayEnabled = (e.target as HTMLInputElement).checked;
   await run(
     () =>
-      $fetch('/api/admin/federation', {
+      $fetch<unknown>('/api/admin/federation', {
         method: 'PUT',
         body: { relayEnabled },
       }),
@@ -505,7 +505,7 @@ async function toggleRelay(e: Event) {
 async function saveIdentity() {
   busy.identity = true;
   await run(
-    () => $fetch('/api/admin/federation', { method: 'PUT', body: { instanceName: idName.value || null, publicUrl: idUrl.value || null } }),
+    () => $fetch<unknown>('/api/admin/federation', { method: 'PUT', body: { instanceName: idName.value || null, publicUrl: idUrl.value || null } }),
     t('admin.federation.toast.saved'),
   );
   busy.identity = false;
@@ -513,25 +513,25 @@ async function saveIdentity() {
 async function toggleDefaultScope(k: keyof Scopes) {
   const next = { ...defScopes, [k]: !defScopes[k] };
   busy.scopes = true;
-  await run(() => $fetch('/api/admin/federation', { method: 'PUT', body: { defaultScopes: next } }), t('admin.federation.toast.saved'));
+  await run(() => $fetch<unknown>('/api/admin/federation', { method: 'PUT', body: { defaultScopes: next } }), t('admin.federation.toast.saved'));
   busy.scopes = false;
 }
 async function submitAdd() {
   const url = addUrl.value.trim();
   if (!url) return;
   busy.add = true;
-  await run(() => $fetch('/api/admin/federation/peers', { method: 'POST', body: { baseUrl: url, scopes: { ...defScopes } } }), t('admin.federation.toast.sent'));
+  await run(() => $fetch<unknown>('/api/admin/federation/peers', { method: 'POST', body: { baseUrl: url, scopes: { ...defScopes } } }), t('admin.federation.toast.sent'));
   busy.add = false;
   addUrl.value = '';
 }
 async function resend(p: Peer) {
   busy.row = p.id;
-  await run(() => $fetch('/api/admin/federation/peers', { method: 'POST', body: { baseUrl: p.baseUrl, scopes: { ...p.sharesWithThem } } }), t('admin.federation.toast.sent'));
+  await run(() => $fetch<unknown>('/api/admin/federation/peers', { method: 'POST', body: { baseUrl: p.baseUrl, scopes: { ...p.sharesWithThem } } }), t('admin.federation.toast.sent'));
   busy.row = '';
 }
 async function revoke(p: Peer) {
   busy.row = p.id;
-  await run(() => $fetch(`/api/admin/federation/peers/${p.id}`, { method: 'DELETE' }), t('admin.federation.toast.revoked'));
+  await run(() => $fetch<unknown>(`/api/admin/federation/peers/${p.id}`, { method: 'DELETE' }), t('admin.federation.toast.revoked'));
   busy.row = '';
 }
 function openApprove(p: Peer) {
@@ -544,7 +544,7 @@ async function confirmApprove() {
   if (!p) return;
   busy.approve = true;
   await run(
-    () => $fetch(`/api/admin/federation/peers/${p.id}/approve`, { method: 'POST', body: { sharesWithThem: { ...approveShare }, acceptsFromThem: { ...p.sharesWithThem } } }),
+    () => $fetch<unknown>(`/api/admin/federation/peers/${p.id}/approve`, { method: 'POST', body: { sharesWithThem: { ...approveShare }, acceptsFromThem: { ...p.sharesWithThem } } }),
     t('admin.federation.toast.approved'),
   );
   busy.approve = false;
@@ -572,7 +572,7 @@ async function saveScopes() {
   busy.manage = true;
   await run(
     () =>
-      $fetch(`/api/admin/federation/peers/${p.id}`, {
+      $fetch<unknown>(`/api/admin/federation/peers/${p.id}`, {
         method: 'PATCH',
         body: { sharesWithThem: { ...manageShares }, acceptsFromThem: { ...manageAccepts } },
       }),
@@ -586,7 +586,7 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
   if (!p) return;
   busy.manage = true;
   await run(
-    () => $fetch(`/api/admin/federation/peers/${p.id}`, { method: 'PATCH', body: { status } }),
+    () => $fetch<unknown>(`/api/admin/federation/peers/${p.id}`, { method: 'PATCH', body: { status } }),
     t('admin.federation.toast.saved'),
   );
   busy.manage = false;

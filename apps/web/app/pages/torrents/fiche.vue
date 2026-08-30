@@ -444,6 +444,10 @@ interface FicheTemplateRow {
   id: string;
   name: string;
   content: string;
+  /** Both are selected by `/api/me/templates` and both were read by the
+   *  summary line below, which declared neither. */
+  category?: 'universal' | 'video';
+  description?: string | null;
   mine?: boolean;
   isDefault?: boolean;
 }
@@ -584,7 +588,11 @@ const nfoOpen = ref(false);
 const copied = ref('');
 async function copy(what: 'bbcode' | 'nfo' | 'name') {
   const value =
-    what === 'bbcode' ? bbcode.value : what === 'nfo' ? nfo.value : release.releaseName;
+    what === 'bbcode'
+      ? bbcode.value
+      : what === 'nfo'
+        ? nfo.value
+        : (release.releaseName ?? '');
   try {
     await navigator.clipboard.writeText(value);
     copied.value = what;

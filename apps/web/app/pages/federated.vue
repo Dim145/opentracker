@@ -61,7 +61,10 @@
           hide-page-link
         />
       </template>
-      <div v-else-if="view === 'simple'" class="fb-empty">
+      <!-- Plain `v-else`: this sits INSIDE `v-if="view === 'grouped'"`, so
+           testing for `simple` here could never be true and the grouped
+           view showed a blank area instead of saying it found nothing. -->
+      <div v-else class="fb-empty">
         <Icon name="ph:broadcast-bold" />
         <p>{{ $t('federated.empty') }}</p>
       </div>
@@ -273,6 +276,8 @@ watch([q, mode], runLive);
 // Reads the mirror through the same shape the local catalogue uses. In live
 // mode the fan-out fills the mirror first, then this refreshes — one store,
 // whichever mode is on.
+import type { GroupScope } from '~/utils/groupScopes';
+
 interface GroupRow {
   key: string;
   source: 'tmdb' | 'igdb' | 'openlibrary' | 'solo';
@@ -286,8 +291,11 @@ interface GroupRow {
   categorySlugs: string[];
   seedMin: number;
   seedMax: number;
-  scopes: Array<{ scope: string; units: number; latest: string }>;
-  defaultScope: string;
+  // The same four scopes the local catalogue uses — typed as bare strings
+  // here, which is what stopped these rows being passed to the shared row
+  // component at all.
+  scopes: Array<{ scope: GroupScope; units: number; latest: string }>;
+  defaultScope: GroupScope;
 }
 
 const {

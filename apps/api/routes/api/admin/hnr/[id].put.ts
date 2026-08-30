@@ -1,3 +1,4 @@
+import { validateBody } from '~~/utils/schemas';
 import { requireModeratorSession } from '~~/utils/adminAuth';
 import { exemptHnr, clearHnr } from '~~/utils/server';
 import { z } from 'zod';
@@ -14,8 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'HnR entry ID required' });
   }
 
-  const body = await readBody(event);
-  const { action } = actionSchema.parse(body);
+  const { action } = await validateBody(event, actionSchema);
 
   let success = false;
   if (action === 'exempt') {

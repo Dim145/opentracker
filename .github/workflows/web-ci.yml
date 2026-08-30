@@ -14,12 +14,14 @@
 # import failed silently and reported "that file is not a theme export". A guard
 # nobody runs goes stale, and this one had no runner.
 #
-# This is the unit-test gate only. There is deliberately no typecheck job here,
-# for the reasons measured out at the top of api-ci.yml: vue-tsc 3.x cannot run
-# on the TypeScript this repo is on, and a tsc-only pass over the plain .ts
-# files reports mostly instrumentation noise. Do not read the two decisions as
-# one — the tests are a plain vitest run that needs no vue-tsc and finishes in
-# seconds.
+# The typecheck job is new, and so is the ability to have one. See the note at
+# the top of api-ci.yml for why it could not exist before and what changed:
+# `apps/web` pins TypeScript 5 for itself while the API stays on 7. It found
+# 105 pre-existing errors on the day it was switched on, several of them
+# features that had never rendered once — the mobile sort chips, the mobile
+# nav's labels, the partner link on a grouped row, the source toggle on the
+# catalogue. All 105 are fixed; the gate exists so the next one costs minutes
+# rather than a release.
 #
 # The `build` job is what partly covers for that missing typecheck. `nuxt build`
 # is the only thing in this repository that compiles the SFCs, and until now it
@@ -64,6 +66,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: Enable corepack
+        run: corepack enable
+
+      # `nuxt prepare` runs as apps/web's postinstall, so the generated
+      # `.nuxt` declarations — auto-imports, typed routes, component types —
+      # exist by the time vue-tsc starts.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter @trackarr/web run typecheck
+
   unit:
     name: unit tests
     runs-on: ubuntu-latest

@@ -97,3 +97,6 @@ export async function closeDatabase(): Promise<void> {
 // The full-text expression: shared between the index declarations (schema.ts)
 // and the search queries, so the two cannot diverge.
 export { ftsVector, FTS_CONFIG } from './search';
+// The reaction vocabulary lives with the CHECK constraint that enforces
+// it, so the API and the database cannot disagree about what is valid.
+export { REACTION_KEYS, type ReactionKey } from './schema';

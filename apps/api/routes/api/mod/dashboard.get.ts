@@ -19,6 +19,7 @@
  */
 import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
+import { getTicketsMode } from '~~/utils/settings';
 import { and, desc, eq, gt, isNotNull, sql } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
@@ -109,12 +110,29 @@ export default defineEventHandler(async (event) => {
     }),
   ]);
 
+  // Tickets, counted here rather than behind a badge of their own: this
+  // is the page a moderator opens to ask "what is waiting", and a queue
+  // that only announces itself on its own page is a queue nobody visits.
+  // `unassignedTickets` is the number that matters — an unassigned ticket
+  // is the one everybody assumes somebody else took.
+  const [ticketCounts] = await db
+    .select({
+      open: sql<number>`count(*) filter (where status in ('open','assigned'))::int`,
+      unassigned: sql<number>`count(*) filter (where status = 'open')::int`,
+    })
+    .from(schema.tickets);
+
   return {
     counts: {
       pendingTorrents: pendingTorrentsRow[0]?.count ?? 0,
       pendingReports: pendingReportsRow[0]?.count ?? 0,
       activeHnr: activeHnrRow[0]?.count ?? 0,
+      openTickets: ticketCounts?.open ?? 0,
+      unassignedTickets: ticketCounts?.unassigned ?? 0,
     },
+    // So the tile can stay away entirely on an instance with no desk,
+    // rather than linking to a page that answers 404.
+    ticketsMode: await getTicketsMode(),
     myStats: {
       actionsThisWeek: myActionsRow[0]?.count ?? 0,
       reportsClosedThisWeek: myReportsRow[0]?.count ?? 0,

@@ -1,4 +1,5 @@
 import { db, schema } from '@trackarr/db';
+import { validateBody } from '~~/utils/schemas';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { z } from 'zod';
 import { generateToken } from '~~/utils/server';
@@ -16,8 +17,7 @@ const generateInviteSchema = z.object({
 export default defineEventHandler(async (event) => {
   const admin = await requireAdminSession(event);
 
-  const body = await readBody(event);
-  const { count, expiresInDays } = generateInviteSchema.parse(body || {});
+  const { count, expiresInDays } = await validateBody(event, generateInviteSchema);
 
   const codes: string[] = [];
   const expiresAt = expiresInDays

@@ -381,4 +381,39 @@ console.log('\n4. raw CSS, owner only');
   }
 }
 
+
+// The scenario has made a few hundred requests by now; the icon route is
+// public and rate limited by IP, so without this it answers 403 and the
+// checks below measure the limiter rather than the route.
+await resetRateLimits();
+
+console.log('\n— icons come from this instance, never a CDN —');
+
+// The static shape has no Nuxt server, so `@nuxt/icon` would fall back to
+// api.iconify.design for anything the client bundle does not carry — an
+// external request the site's own connect-src blocks, which renders the
+// control as an empty box. The API answers instead, on the origin the
+// browser is already on.
+{
+  const ok = await fetch(`${API}/api/icons/ph.json?icons=smiley,crown-bold`);
+  const body = await ok.json().catch(() => null);
+  check(
+    'the API serves icon data',
+    ok.status === 200 && !!body?.icons?.smiley?.body,
+    `${ok.status} ${JSON.stringify(body).slice(0, 90)}`
+  );
+  check(
+    'including one only the branding grid uses',
+    !!body?.icons?.['crown-bold']?.body
+  );
+  check(
+    'an empty request is refused rather than answered with everything',
+    (await fetch(`${API}/api/icons/ph.json`)).status === 400
+  );
+  check(
+    'and a collection we do not carry is a 404, not a proxied fetch',
+    (await fetch(`${API}/api/icons/mdi.json?icons=home`)).status === 404
+  );
+}
+
 report();

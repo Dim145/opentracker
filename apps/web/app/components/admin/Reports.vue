@@ -114,11 +114,61 @@
                   <span class="target-link-name">{{ report.target.name }}</span>
                   <Icon name="ph:arrow-up-right-bold" class="target-link-arrow" />
                 </NuxtLink>
+                <!-- A private message has no public page to link to, so
+                     the absence of a link is not evidence that it is
+                     gone. It is read in the row below; here it is only
+                     identified. -->
+                <code
+                  v-else-if="report.targetType === 'message'"
+                  class="target-missing-id"
+                >#{{ report.targetId.slice(0, 8) }}</code>
                 <span v-else class="target-missing">
                   <Icon name="ph:warning-circle-bold" />
                   {{ $t('admin.reports.targetMissing') }}
                   <code class="target-missing-id">#{{ report.targetId.slice(0, 8) }}</code>
                 </span>
+              </div>
+            </div>
+
+            <!-- A reported message is not a link to follow: it is the
+                 evidence, and the only private message a moderator can
+                 read at all. Shown here, on request. -->
+            <div v-if="report.targetType === 'message'" class="meta-row">
+              <span class="meta-label">{{ $t('admin.reports.messageBody') }}</span>
+              <div class="meta-value">
+                <button
+                  v-if="!messageBodies[report.targetId]"
+                  type="button"
+                  class="msg-reveal"
+                  :disabled="messageLoading[report.targetId]"
+                  @click="loadReportedMessage(report.targetId)"
+                >
+                  <Icon
+                    :name="messageLoading[report.targetId] ? 'ph:circle-notch' : 'ph:eye-bold'"
+                    :class="{ 'animate-spin': messageLoading[report.targetId] }"
+                  />
+                  {{ messageError[report.targetId]
+                    ? $t('admin.reports.messageRetry')
+                    : $t('admin.reports.messageReveal') }}
+                </button>
+                <span
+                  v-else-if="messageBodies[report.targetId] === 'missing'"
+                  class="target-missing"
+                >
+                  <Icon name="ph:warning-circle-bold" />
+                  {{ $t('admin.reports.messageMissing') }}
+                </span>
+                <p
+                  v-else-if="(messageBodies[report.targetId] as ReportedMessage).encrypted"
+                  class="msg-sealed"
+                >
+                  <Icon name="ph:lock-key" />
+                  {{ $t('admin.reports.messageEncrypted') }}
+                </p>
+                <p v-else class="msg-quoted">
+                  {{ (messageBodies[report.targetId] as ReportedMessage).body
+                    || $t('admin.reports.messageRemoved') }}
+                </p>
               </div>
             </div>
 
@@ -352,7 +402,7 @@ interface ReportTarget {
 interface Report {
   id: string;
   reporterId: string;
-  targetType: 'torrent' | 'user' | 'post' | 'comment' | 'remote';
+  targetType: 'torrent' | 'user' | 'post' | 'comment' | 'remote' | 'message';
   targetId: string;
   reason: string;
   details?: string | null;
@@ -388,9 +438,10 @@ interface BanPanelState {
 }
 
 const page = ref(1);
-const statusFilter = ref<'' | 'pending' | 'resolved' | 'dismissed' | 'withdrawn'>(
-  'pending'
-);
+/** The filter strip's states. Spelled once — `setFilter` had dropped
+ *  `withdrawn` from its own copy, so the tab existed and was untypeable. */
+type StatusFilter = '' | 'pending' | 'resolved' | 'dismissed' | 'withdrawn';
+const statusFilter = ref<StatusFilter>('pending');
 const busy = ref<string | null>(null);
 // Inline ban-duration picker. Opened by clicking "Accept" on a
 // user-type report; null for every other case (the panel is the
@@ -446,7 +497,7 @@ const { data: reports, refresh } = await useFetch<ReportsResponse>(
 );
 
 // ── Filter strip ───────────────────────────────────────────
-const filterOptions = computed<{ value: '' | 'pending' | 'resolved' | 'dismissed' | 'withdrawn'; label: string }[]>(
+const filterOptions = computed<{ value: StatusFilter; label: string }[]>(
   () => [
     { value: 'pending', label: t('admin.reports.filterPending') },
     { value: 'resolved', label: t('admin.reports.filterResolved') },
@@ -456,14 +507,14 @@ const filterOptions = computed<{ value: '' | 'pending' | 'resolved' | 'dismissed
   ]
 );
 
-function filterCount(value: '' | 'pending' | 'resolved' | 'dismissed' | 'withdrawn'): number {
+function filterCount(value: StatusFilter): number {
   const counts = reports.value?.counts;
   if (!counts) return 0;
   if (value === '') return counts.all;
   return counts[value] ?? 0;
 }
 
-function setFilter(value: '' | 'pending' | 'resolved' | 'dismissed') {
+function setFilter(value: StatusFilter) {
   statusFilter.value = value;
   page.value = 1;
 }
@@ -495,8 +546,58 @@ function targetIcon(type: string): string {
       return 'ph:chats-circle-bold';
     case 'comment':
       return 'ph:quotes-bold';
+    case 'message':
+      return 'ph:envelope-simple-bold';
     default:
       return 'ph:question-bold';
+  }
+}
+
+/*
+ * A reported private message, read one at a time.
+ *
+ * The endpoint answers 404 for anything that was not reported, so it
+ * cannot be used to walk ids — a moderator does not browse an inbox.
+ * Fetched on demand rather than with the list: most reports are not
+ * about messages, and reading someone's private mail should take a
+ * deliberate click, not happen as a side effect of opening the queue.
+ *
+ * An encrypted conversation yields nothing whatever the role. Saying so
+ * plainly is the honest answer, and it is what has to appear instead of
+ * an empty box that reads like a failed load.
+ */
+interface ReportedMessage {
+  id: string;
+  createdAt: string;
+  encrypted: boolean;
+  deletedAt: string | null;
+  body: string | null;
+}
+const messageBodies = ref<Record<string, ReportedMessage | 'missing'>>({});
+const messageLoading = ref<Record<string, boolean>>({});
+/** A reveal that failed for a reason worth retrying. */
+const messageError = ref<Record<string, boolean>>({});
+
+async function loadReportedMessage(id: string) {
+  if (messageBodies.value[id] || messageLoading.value[id]) return;
+  messageLoading.value = { ...messageLoading.value, [id]: true };
+  messageError.value = { ...messageError.value, [id]: false };
+  try {
+    const res = await $fetch<ReportedMessage>(`/api/mod/messages/${id}`);
+    messageBodies.value = { ...messageBodies.value, [id]: res };
+  } catch (err) {
+    // Only a 404 (or a 403) means "gone". Anything else — offline, a
+    // 500, a rate limit — is transient, and storing the sentinel for it
+    // hid the button behind a permanent "no longer exists" about a
+    // message that does exist, with no way back short of a page reload.
+    const status = (err as { statusCode?: number })?.statusCode;
+    if (status === 404 || status === 403) {
+      messageBodies.value = { ...messageBodies.value, [id]: 'missing' };
+    } else {
+      messageError.value = { ...messageError.value, [id]: true };
+    }
+  } finally {
+    messageLoading.value = { ...messageLoading.value, [id]: false };
   }
 }
 
@@ -1383,5 +1484,46 @@ function confirmBanPanel(report: Report) {
 .pager-state-sep {
   color: rgb(var(--fg-faint));
   margin: 0 0.15rem;
+}
+/* ── A reported private message ───────────────────────────────────── */
+.msg-reveal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  padding: 0 0.65rem;
+  border: 1px solid rgb(var(--line-strong));
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: rgb(var(--fg-default));
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.msg-reveal:hover:not(:disabled) {
+  border-color: rgb(var(--accent));
+  background: rgb(var(--accent) / 0.1);
+}
+.msg-reveal:disabled { cursor: progress; opacity: 0.6; }
+.msg-quoted {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-left: 2px solid rgb(var(--line-strong));
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: rgb(var(--fg-default) / 0.05);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msg-sealed {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0;
+  color: rgb(var(--fg-muted));
+  font-size: 0.78rem;
+  line-height: 1.5;
+  font-style: italic;
 }
 </style>

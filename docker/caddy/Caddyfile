@@ -86,6 +86,30 @@
 		}
 	}
 
+	# Messaging relay. Separate from /api/* because it is a separate
+	# process with a different lifetime: these connections are held open
+	# for minutes, and they must not share the API's proxy settings.
+	# Only /events. The relay serves /metrics and /healthz on the same
+	# port, unauthenticated, because they are meant to be internal — and a
+	# /messaging/* route would have published both.
+	handle /messaging/events* {
+		header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+		reverse_proxy relay:4100 {
+			# Without this Caddy buffers the response and every event
+			# arrives when the stream closes, which for SSE is never.
+			flush_interval -1
+			# A stream that outlives the default 30s read timeout is the
+			# normal case here, not a stuck upstream.
+			transport http {
+				read_timeout 0
+			}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			import strip_spoofable_ip_headers
+		}
+	}
+
 	# Everything else goes to the Nuxt web container (SSR pages + assets).
 	handle {
 		reverse_proxy web:3000 {

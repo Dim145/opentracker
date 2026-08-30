@@ -1,4 +1,4 @@
-{{- range $name, $cfg := dict "web" $.Values.web "api" $.Values.api "tracker" $.Values.tracker }}
+{{- range $name, $cfg := dict "web" $.Values.web "api" $.Values.api "tracker" $.Values.tracker "relay" $.Values.relay }}
 {{- if and $cfg.enabled $cfg.podDisruptionBudget.enabled }}
 {{- $replicas := $cfg.autoscaling.enabled | ternary $cfg.autoscaling.minReplicas $cfg.replicaCount }}
 {{- if gt (int $replicas) 1 }}

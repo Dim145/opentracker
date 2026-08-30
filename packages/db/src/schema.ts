@@ -8,10 +8,12 @@ import {
   boolean,
   jsonb,
   index,
+  serial,
   uniqueIndex,
   primaryKey,
   customType,
   check,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 import { ftsVector } from './search';
@@ -123,6 +125,18 @@ export const users = pgTable(
     // newly-registered user never sees the XXX tree until they
     // explicitly turn it on in their profile settings.
     showAdultContent: boolean('show_adult_content').default(false).notNull(),
+    /**
+     * Read receipts, and they are reciprocal.
+     *
+     * Turning them off stops sending them AND stops seeing them. The
+     * asymmetric version — see when others read, never tell them when you
+     * did — is an information advantage the setting would be handing out,
+     * and on a private tracker plenty of members would rather not
+     * broadcast that they have read something at all.
+     */
+    messagingReadReceipts: boolean('messaging_read_receipts')
+      .default(true)
+      .notNull(),
     // Detaches the uploader's name from their releases, retroactively:
     // the flag lives on the account, not on the row, so flipping it
     // covers everything already uploaded. Read paths that face other
@@ -3442,3 +3456,748 @@ export const uploadedFonts = pgTable(
 
 export type UploadedFont = typeof uploadedFonts.$inferSelect;
 export type NewUploadedFont = typeof uploadedFonts.$inferInsert;
+
+// ─────────────────────────────────────────────────────────────────────
+// Messaging
+//
+// Two surfaces over one shape: private conversations between two members,
+// and the public room. What separates them is their growth regime, not
+// their form — which is why the rows live in two tables while the
+// conversation they hang off is one.
+//
+// `messages` grows slowly and is never purged: members believe they keep
+// what they wrote. `room_messages` grows at the rate people talk, is
+// partitioned by day and purged by dropping partitions, because a DELETE
+// over millions of rows holds a lock, inflates the WAL and leaves work to
+// autovacuum.
+//
+// Authorship follows the rule the forum tables already set: `authorId` is
+// nullable with `set null`, so deleting an account never fails on a
+// foreign key and the content survives without attribution. For messaging
+// that is also the erasure story — a frozen username would be personal
+// data retained after a deletion request, so the UI renders a null author
+// as "deleted member" rather than a remembered name.
+// ─────────────────────────────────────────────────────────────────────
+
+export const conversations = pgTable(
+  'conversations',
+  {
+    id: text('id').primaryKey(),
+    /**
+     * The room's pinned announcement, if any.
+     *
+     * On the conversation rather than a flag on the message: "the pinned
+     * one" is a property of the room, and a boolean per message would
+     * allow two of them — which is the state every pin feature ends up
+     * having to clean up. No foreign key, because the room's messages are
+     * in a partitioned table whose key is composite; a pin whose day has
+     * been dropped resolves to nothing, which is correct.
+     */
+    pinnedMessageId: text('pinned_message_id'),
+    pinnedAt: timestamp('pinned_at'),
+    pinnedById: text('pinned_by_id'),
+    /** 'dm' — exactly two participants. 'room' — the public shoutbox. */
+    kind: text('kind').notNull(),
+    /** Rooms only, and unique: the URL segment. Null for a DM. */
+    slug: text('slug'),
+    title: text('title'),
+    /**
+     * Set once, at creation, and never after. A conversation half of which
+     * is encrypted is unreadable to render, to export, to report on, and
+     * to explain — so the flag is immutable by design rather than by
+     * convention.
+     */
+    encrypted: boolean('encrypted').default(false).notNull(),
+    createdById: text('created_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    /**
+     * Denormalised. The conversation list is the most-hit view in the
+     * feature; recomputing it as an aggregate over `messages` on every
+     * render is the first bottleneck a messaging system meets.
+     */
+    lastMessageAt: timestamp('last_message_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('conversations_slug_idx').on(table.slug),
+    index('conversations_last_message_idx').on(table.lastMessageAt),
+    check('conversations_kind_ck', sql`${table.kind} IN ('dm', 'room')`),
+    // A room has a slug and a DM does not — one rule, both directions.
+    check(
+      'conversations_room_slug_ck',
+      sql`(${table.kind} = 'room') = (${table.slug} IS NOT NULL)`
+    ),
+    // A room cannot be encrypted: the key is derived per pair of members,
+    // so there is nobody to derive it with.
+    check(
+      'conversations_room_plain_ck',
+      sql`NOT (${table.kind} = 'room' AND ${table.encrypted})`
+    ),
+  ]
+);
+
+export const conversationParticipants = pgTable(
+  'conversation_participants',
+  {
+    conversationId: text('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    joinedAt: timestamp('joined_at').defaultNow().notNull(),
+    lastReadAt: timestamp('last_read_at'),
+    /**
+     * Denormalised too, and for the same reason as `lastMessageAt`:
+     * `COUNT(*) WHERE createdAt > lastReadAt` per conversation per render
+     * is the second bottleneck. Incremented on publish, zeroed on read.
+     */
+    unreadCount: integer('unread_count').default(0).notNull(),
+    mutedUntil: timestamp('muted_until'),
+    archivedAt: timestamp('archived_at'),
+    /**
+     * 'pending' is the first-contact queue: a message from someone you
+     * have never exchanged with lands there rather than in the inbox.
+     * Without it, at this membership size a known uploader's inbox is
+     * unusable within weeks.
+     */
+    state: text('state').default('active').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.conversationId, table.userId] }),
+    index('conversation_participants_inbox_idx').on(
+      table.userId,
+      table.state,
+      table.archivedAt
+    ),
+    check(
+      'conversation_participants_state_ck',
+      sql`${table.state} IN ('active', 'pending', 'blocked')`
+    ),
+    check(
+      'conversation_participants_unread_ck',
+      sql`${table.unreadCount} >= 0`
+    ),
+  ]
+);
+
+export const messages = pgTable(
+  'messages',
+  {
+    id: text('id').primaryKey(),
+    conversationId: text('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    authorId: text('author_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /**
+     * The message this one answers, in the same conversation.
+     *
+     * `set null` rather than cascade: deleting a quoted message must not
+     * take the replies with it — the thread would lose answers nobody
+     * asked to remove. The reply survives and simply stops quoting.
+     */
+    replyToId: text('reply_to_id').references((): AnyPgColumn => messages.id, {
+      onDelete: 'set null',
+    }),
+    /** Plaintext. Null when the conversation is encrypted. */
+    body: text('body'),
+    /** AES-GCM payload. Null when it is not. */
+    cipher: bytea('cipher'),
+    iv: bytea('iv'),
+    isSystem: boolean('is_system').default(false).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    editedAt: timestamp('edited_at'),
+    deletedAt: timestamp('deleted_at'),
+    /** Who removed it. A deletion without an author is indefensible. */
+    deletedById: text('deleted_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (table) => [
+    index('messages_conversation_idx').on(
+      table.conversationId,
+      table.createdAt
+    ),
+    // Exactly one payload, enforced rather than assumed: a plaintext row
+    // in an encrypted conversation is the kind of bug that never shows.
+    // A deleted row is allowed to carry neither.
+    check(
+      'messages_payload_ck',
+      sql`${table.deletedAt} IS NOT NULL OR ((${table.body} IS NOT NULL) <> (${table.cipher} IS NOT NULL))`
+    ),
+    check(
+      'messages_cipher_iv_ck',
+      sql`(${table.cipher} IS NULL) = (${table.iv} IS NULL)`
+    ),
+  ]
+);
+
+/**
+ * The room's messages, partitioned by day.
+ *
+ * Drizzle has no notion of declarative partitioning, so the generated
+ * migration is hand-extended with `PARTITION BY RANGE (created_at)` and
+ * the initial partitions. Two consequences show up here:
+ *
+ *   - the primary key has to contain the partition key, hence `(id,
+ *     created_at)` rather than `id` alone;
+ *   - nothing writes to this table until the room ships, and the
+ *     migration pre-creates a window of partitions so the gap is covered
+ *     without a maintenance job existing yet.
+ *
+ * It carries no `encrypted` payload columns: a room is never encrypted.
+ */
+export const roomMessages = pgTable(
+  'room_messages',
+  {
+    id: text('id').notNull(),
+    conversationId: text('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    authorId: text('author_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    body: text('body').notNull(),
+    isSystem: boolean('is_system').default(false).notNull(),
+    /**
+     * Carries no foreign key, unlike its private-message counterpart: the
+     * primary key here is `(id, created_at)` because the table is
+     * partitioned, and a reference would have to carry both halves. The
+     * quoted message is resolved by the read query instead, and a dangling
+     * id renders as a quote whose target is gone — which is also what
+     * happens when retention drops the day it lived in.
+     */
+    replyToId: text('reply_to_id'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    editedAt: timestamp('edited_at'),
+    deletedAt: timestamp('deleted_at'),
+    deletedById: text('deleted_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.id, table.createdAt] }),
+    index('room_messages_conversation_idx').on(
+      table.conversationId,
+      table.createdAt
+    ),
+  ]
+);
+
+/**
+ * A staff broadcast: one message, written once, delivered to a cohort.
+ *
+ * A row rather than a fire-and-forget loop, for one reason: at this
+ * membership a broadcast is thousands of inserts, and a process that
+ * restarts halfway through a loop leaves no record of how far it got. The
+ * row is what lets it resume, and what lets somebody answer "did that
+ * announcement actually go out?".
+ *
+ * Deliberately NOT a way to message all 352k members. The audiences are
+ * bounded cohorts — a role, the inactive, hit-and-run violators — because
+ * a private message to everybody is not a private message: it is an
+ * announcement, and the site already has a banner and a notification feed
+ * for that. Sending it as 352k conversations would cost a million rows to
+ * say something nobody can usefully reply to.
+ */
+export const messagingBroadcasts = pgTable(
+  'messaging_broadcasts',
+  {
+    id: text('id').primaryKey(),
+    createdById: text('created_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** `role:<id>` | `inactive:<days>` | `hnr` | `staff` */
+    audience: text('audience').notNull(),
+    body: text('body').notNull(),
+    /** Recipients resolved when the job started. */
+    total: integer('total').default(0).notNull(),
+    /** Moves as batches land, so progress survives a restart. */
+    sent: integer('sent').default(0).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    finishedAt: timestamp('finished_at'),
+    error: text('error'),
+  },
+  (table) => [index('messaging_broadcasts_created_idx').on(table.createdAt)]
+);
+
+/**
+ * The fixed set of reactions, as KEYS rather than emoji.
+ *
+ * Storing the character would make `❤️` (U+2764 U+FE0F) and `❤`
+ * (U+2764) two different reactions to the same message, and a client that
+ * normalises differently from another would silently split every count.
+ * A key cannot do that, is a third the size, and lets the rendered glyph
+ * change without a migration.
+ *
+ * Six, and fixed: an open picker makes the distinct-key space per message
+ * unbounded, which is what turns a reaction row into a scan.
+ */
+export const REACTION_KEYS = [
+  'up',
+  'heart',
+  'haha',
+  'wow',
+  'thanks',
+  'done',
+] as const;
+export type ReactionKey = (typeof REACTION_KEYS)[number];
+
+const reactionKeyCheck = (column: AnyPgColumn) =>
+  sql`${column} IN ('up', 'heart', 'haha', 'wow', 'thanks', 'done')`;
+
+/**
+ * Reactions on a private message.
+ *
+ * The primary key is the uniqueness rule: one member, one key, one
+ * message. Reacting twice with the same key is the same row, so the
+ * route can upsert and the client can be careless without double
+ * counting.
+ */
+export const messageReactions = pgTable(
+  'message_reactions',
+  {
+    messageId: text('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.messageId, table.userId, table.key] }),
+    // Rendering a page means fetching the reactions for the ids on it.
+    index('message_reactions_message_idx').on(table.messageId),
+    check('message_reactions_key_ck', reactionKeyCheck(table.key)),
+  ]
+);
+
+/**
+ * Reactions on a room message.
+ *
+ * Partitioned by the MESSAGE's day, not its own, so the retention sweep
+ * drops a day's reactions with the day's messages in the same operation.
+ * A separate unpartitioned table would either block the DROP behind a
+ * foreign key or leave rows pointing at messages that no longer exist,
+ * growing forever behind a feature that is supposed to forget.
+ *
+ * No foreign key for the same reason the reply column has none: the
+ * parent's key is composite because it is partitioned.
+ */
+export const roomMessageReactions = pgTable(
+  'room_message_reactions',
+  {
+    messageId: text('message_id').notNull(),
+    messageCreatedAt: timestamp('message_created_at').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [
+        table.messageId,
+        table.messageCreatedAt,
+        table.userId,
+        table.key,
+      ],
+    }),
+    index('room_message_reactions_message_idx').on(
+      table.messageId,
+      table.messageCreatedAt
+    ),
+    check('room_message_reactions_key_ck', reactionKeyCheck(table.key)),
+  ]
+);
+
+export const conversationsRelations = relations(
+  conversations,
+  ({ one, many }) => ({
+    createdBy: one(users, {
+      fields: [conversations.createdById],
+      references: [users.id],
+    }),
+    participants: many(conversationParticipants),
+    messages: many(messages),
+  })
+);
+
+export const conversationParticipantsRelations = relations(
+  conversationParticipants,
+  ({ one }) => ({
+    conversation: one(conversations, {
+      fields: [conversationParticipants.conversationId],
+      references: [conversations.id],
+    }),
+    user: one(users, {
+      fields: [conversationParticipants.userId],
+      references: [users.id],
+    }),
+  })
+);
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
+  author: one(users, {
+    fields: [messages.authorId],
+    references: [users.id],
+  }),
+}));
+
+export type Conversation = typeof conversations.$inferSelect;
+export type NewConversation = typeof conversations.$inferInsert;
+export type ConversationParticipant =
+  typeof conversationParticipants.$inferSelect;
+export type NewConversationParticipant =
+  typeof conversationParticipants.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
+export type RoomMessage = typeof roomMessages.$inferSelect;
+export type NewRoomMessage = typeof roomMessages.$inferInsert;
+
+/**
+ * One member refusing another.
+ *
+ * Global rather than per-conversation, because that is what a block means
+ * to the person setting it: not "stop this thread" but "this person does
+ * not reach me". Per-conversation state exists too — `state = 'blocked'`
+ * on a participant row — and the two are different things: this table is
+ * the standing refusal, that column is one conversation's disposition.
+ *
+ * Without it the only escape from harassment is the staff, and at this
+ * membership size the staff becomes the bottleneck. A member has to be
+ * able to end it themselves, immediately, without asking anyone.
+ */
+export const messagingBlocks = pgTable(
+  'messaging_blocks',
+  {
+    // Who is refusing.
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // Who is refused.
+    blockedId: text('blocked_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.blockedId] }),
+    // The question asked on every send is "has the recipient blocked the
+    // sender", so the index has to lead with the blocked party.
+    index('messaging_blocks_blocked_idx').on(table.blockedId),
+    check('messaging_blocks_self_ck', sql`${table.userId} <> ${table.blockedId}`),
+  ]
+);
+
+export type MessagingBlock = typeof messagingBlocks.$inferSelect;
+export type NewMessagingBlock = typeof messagingBlocks.$inferInsert;
+
+/**
+ * A member's ticket to the staff.
+ *
+ * Its own tables rather than a `conversations` row with a third `kind`,
+ * and that is the main structural decision here. A conversation carries
+ * blocking, per-pair uniqueness, optional encryption, archiving, muting
+ * and the first-contact queue — none of which apply to a ticket, and two
+ * of which would be actively wrong. A member who has blocked a moderator
+ * must still be able to reach the staff; a ticket has one member and N
+ * staff rather than exactly two people; and there is nothing to encrypt
+ * to, because the recipient is a role rather than a device.
+ *
+ * Addressed to the staff as a body, never to a person. That is the whole
+ * point of having it at all: a direct message to a named moderator dies
+ * when they stop being one, and nobody else ever learns it existed.
+ */
+export const tickets = pgTable(
+  'tickets',
+  {
+    id: text('id').primaryKey(),
+    /**
+     * The number people actually quote. A UUID is the right key and the
+     * wrong reference — "have a look at #42" is how this gets talked
+     * about, in the room and in the ticket itself.
+     */
+    number: serial('number').notNull(),
+    /** Null once that account is erased; `openedByName` is the record. */
+    openedById: text('opened_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    openedByName: text('opened_by_name').notNull(),
+    /**
+     * appeal | upload | account | bug | other.
+     *
+     * Text plus this comment rather than an enum, like every other
+     * category column here: adding one later is a zod edit, not a
+     * migration. It exists to make the queue triageable and nothing more
+     * — there is deliberately no priority, which in every queue this size
+     * becomes a field where everything is "high".
+     */
+    category: text('category').default('other').notNull(),
+    subject: text('subject').notNull(),
+    /**
+     * open | closed. Two, because there are two.
+     *
+     * Everything a helpdesk is tempted to put here is derived instead:
+     * "taken" is `assignedToId IS NOT NULL`, and "waiting on whom" is
+     * read off `lastMessageBy`. Neither can go stale, and neither can
+     * disagree with the thread above it — a status maintained by hand is
+     * a status that is wrong by Friday.
+     *
+     * This is the shape osTicket, FreeScout and Zammad each arrived at
+     * separately: a small set of states that change behaviour, with the
+     * words people actually use layered on top. osTicket ships `Resolved`
+     * and `Closed` as two statuses that are byte-identical in behaviour;
+     * Znuny ships `closed successful` and `closed unsuccessful`. That is
+     * a *reason* wearing a status costume, and it is why the queue query
+     * in each of them has to enumerate which statuses count as finished.
+     * Here `status <> 'open'` is the whole question.
+     */
+    status: text('status').default('open').notNull(),
+    /**
+     * resolved | rejected | stale | withdrawn — why it ended, set only
+     * when closed.
+     *
+     * Split out rather than folded into `status` because that is the
+     * lesson everyone learned late: GitHub shipped issues binary for
+     * fifteen years, then added `state_reason` rather than a "rejected"
+     * state; Atlassian's own guidance says the resolution field "removes
+     * the need to have multiple statuses to state why the issue is
+     * closed"; Bugzilla has had `resolution` as its own column since the
+     * nineties. The member still reads "Rejeté" — that word is a label
+     * over this column, not a branch in the life cycle.
+     *
+     * `withdrawn` is the member closing their own ticket, and it is worth
+     * its own value rather than being folded into `resolved`: "we sorted
+     * it" and "they stopped needing it" are different facts about the
+     * desk, and a queue that cannot tell them apart cannot tell whether
+     * it is working.
+     */
+    closureReason: text('closure_reason'),
+    /**
+     * When the member was warned this would close on its own. Null until
+     * warned, and cleared by any new message.
+     *
+     * The sweep needs two passes rather than one, and this column is
+     * what makes the second one honest. Closing on silence is the most
+     * dangerous default in this whole feature — none of osTicket,
+     * Zammad, FreeScout or Discourse ships it at all, and Zendesk, which
+     * does, cannot be turned off and generates a steady supply of people
+     * whose reply landed on a closed ticket nobody was watching. Warning
+     * first, and letting any reply cancel it, is the difference between
+     * a tidy queue and a queue that quietly eats requests.
+     */
+    idleNoticeAt: timestamp('idle_notice_at', { withTimezone: true }),
+    /**
+     * Who picked it up. Null is the state that matters: an unassigned
+     * ticket is the one nobody has taken, and a shared queue with no
+     * assignee is how every member of a small team ends up assuming
+     * somebody else did.
+     */
+    assignedToId: text('assigned_to_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    assignedToName: text('assigned_to_name'),
+    assignedAt: timestamp('assigned_at'),
+    closedById: text('closed_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    closedByName: text('closed_by_name'),
+    closedAt: timestamp('closed_at'),
+    /** Shown to the member. A closure with no reason reads as a shrug. */
+    closingNote: text('closing_note'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    /** Denormalised, for the same reason `conversations` carries it. */
+    lastMessageAt: timestamp('last_message_at').defaultNow().notNull(),
+    /** Who wrote last — 'member' | 'staff'. The queue sorts on it. */
+    lastMessageBy: text('last_message_by').default('member').notNull(),
+  },
+  (table) => [
+    uniqueIndex('tickets_number_idx').on(table.number),
+    // The staff queue: open ones first, oldest activity first.
+    index('tickets_status_idx').on(table.status, table.lastMessageAt),
+    // A member's own list.
+    index('tickets_opened_by_idx').on(table.openedById, table.createdAt),
+    check('tickets_status_ck', sql`${table.status} IN ('open', 'closed')`),
+    check(
+      'tickets_closure_ck',
+      sql`${table.closureReason} IS NULL
+          OR ${table.closureReason}
+             IN ('resolved', 'rejected', 'stale', 'withdrawn')`
+    ),
+  ]
+);
+
+export type Ticket = typeof tickets.$inferSelect;
+export type NewTicket = typeof tickets.$inferInsert;
+
+/**
+ * One line of a ticket.
+ *
+ * Not partitioned: a ticket is a handful of rows and the whole table is
+ * smaller than a day of the room. Cascades with its ticket, which is the
+ * one place in this schema where deleting the parent should take the
+ * children — a ticket is a single unit of correspondence rather than two
+ * people's separate records of it.
+ */
+export const ticketMessages = pgTable(
+  'ticket_messages',
+  {
+    id: text('id').primaryKey(),
+    ticketId: text('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    authorId: text('author_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Survives an erasure so the thread still reads as a conversation. */
+    authorName: text('author_name').notNull(),
+    /** Whether this line came from the staff side. Stored rather than
+     *  derived from a role, because a role can change afterwards and the
+     *  thread has to keep reading the way it was written. */
+    fromStaff: boolean('from_staff').default(false).notNull(),
+    body: text('body').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('ticket_messages_ticket_idx').on(table.ticketId, table.createdAt)]
+);
+
+export type TicketMessage = typeof ticketMessages.$inferSelect;
+export type NewTicketMessage = typeof ticketMessages.$inferInsert;
+
+/**
+ * Every time a staff member reads a reported private message.
+ *
+ * The one place in this application where somebody can read another
+ * member's private correspondence, and until now it left no trace: the
+ * route opened, the message was returned, and nothing recorded that it
+ * had happened. That is the gap the schema itself named — "this is the
+ * closest thing the app has to an audit trail; there is no staff action
+ * log anywhere" — and it is the wrong gap to have precisely here.
+ *
+ * Written on the READ, not on the report. A report is somebody asking;
+ * this table is somebody looking. The two are different acts, they are
+ * days apart, and only the second one is an access to private data.
+ *
+ * Kept when the reader's account is erased (`SET NULL`, not cascade).
+ * Losing who looked would make the log useless in the one case where it
+ * matters most — the reader themselves. The report id is kept for the
+ * same reason and by the same means: a dismissed report must not erase
+ * the record that its message was read under it.
+ *
+ * Never deleted on a timer. It is small — one row per read, not per
+ * message — and a retention that outlives its subject is the point of an
+ * audit trail.
+ */
+export const messageReadLog = pgTable(
+  'message_read_log',
+  {
+    id: text('id').primaryKey(),
+    /** Who looked. Null once that account is erased; the row survives. */
+    readerId: text('reader_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Kept as text: the username at the time, so an erasure does not
+     *  turn a year of entries into a column of nulls nobody can read. */
+    readerName: text('reader_name').notNull(),
+    /** The message. Not a foreign key — retention or a withdrawal can
+     *  remove it, and the record of it having been read must not go with
+     *  it. That is exactly the case an audit trail exists for. */
+    messageId: text('message_id').notNull(),
+    conversationId: text('conversation_id').notNull(),
+    /** The report that opened the window. Survives the report's deletion. */
+    reportId: text('report_id'),
+    /**
+     * Whether anything was actually legible.
+     *
+     * An encrypted conversation yields nothing whatever the role, and the
+     * route says so rather than erroring. The attempt is still logged —
+     * "a moderator tried to read this and could not" is a fact about the
+     * moderator, not about the message.
+     */
+    disclosed: boolean('disclosed').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // "Who read what, most recent first" is the whole read pattern.
+    index('message_read_log_created_idx').on(table.createdAt),
+    index('message_read_log_reader_idx').on(table.readerId, table.createdAt),
+    index('message_read_log_message_idx').on(table.messageId),
+  ]
+);
+
+export type MessageReadLog = typeof messageReadLog.$inferSelect;
+export type NewMessageReadLog = typeof messageReadLog.$inferInsert;
+
+/**
+ * A member silenced in the room.
+ *
+ * A table rather than a column on `conversation_participants`, because
+ * the room has no participants: a shoutbox is ambient, nobody joins it,
+ * and giving three hundred and fifty thousand members a row each to carry
+ * an unread count nobody reads would be the wrong shape entirely.
+ *
+ * So the only per-member state the room has is this one, and it exists
+ * only while somebody is actually muted.
+ */
+export const roomMutes = pgTable(
+  'room_mutes',
+  {
+    userId: text('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    until: timestamp('until').notNull(),
+    /** Who silenced them. A moderation act with no author is indefensible. */
+    byId: text('by_id').references(() => users.id, { onDelete: 'set null' }),
+    reason: text('reason'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('room_mutes_until_idx').on(table.until)]
+);
+
+export type RoomMute = typeof roomMutes.$inferSelect;
+export type NewRoomMute = typeof roomMutes.$inferInsert;
+
+/**
+ * One member's public key for encrypted conversations.
+ *
+ * One key per account, not per device, and that is the whole design: the
+ * private half never leaves the browser that made it, so a member who
+ * generates a key elsewhere replaces this row and loses the ability to
+ * read what the previous key sealed. That is the promise the interface
+ * makes — "not even you, on another device" — and a table shaped for
+ * multiple devices would quietly be promising something else.
+ *
+ * `alg` is here so the curve is never inferred. X25519 was measured
+ * working in a current browser, and P-256 was chosen anyway: a single
+ * curve everybody supports avoids the failure where two members cannot
+ * talk because their browsers picked different ones — which is hard to
+ * explain and resolves itself only as the slower half of the fleet
+ * updates. Recording it means a later move to X25519 is a migration
+ * rather than a guess.
+ */
+export const userMessageKeys = pgTable('user_message_keys', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** SPKI, base64url. */
+  publicKey: text('public_key').notNull(),
+  alg: text('alg').notNull().default('ECDH-P256'),
+  /** Purely indicative, shown in settings so a member recognises which
+   *  machine holds the key. Never used for anything. */
+  deviceLabel: text('device_label'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type UserMessageKey = typeof userMessageKeys.$inferSelect;
+export type NewUserMessageKey = typeof userMessageKeys.$inferInsert;

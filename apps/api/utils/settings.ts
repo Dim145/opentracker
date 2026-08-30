@@ -102,6 +102,21 @@ export const SETTINGS_KEYS = {
   // moderators, 'all' forces every user. 'off' is the default and
   // makes 2FA an opt-in personal setting.
   REQUIRE_2FA_SCOPE: 'require_2fa_scope',
+  // Messaging (off | staff | all), one scope per surface so private
+  // messages can open without the room, or the other way round. Both
+  // default to 'off': an instance that updates must not find itself with
+  // a harassment surface open it never decided on.
+  MESSAGING_DM_SCOPE: 'messaging_dm_scope',
+  MESSAGING_ROOM_SCOPE: 'messaging_room_scope',
+  MESSAGING_ROOM_RETENTION_DAYS: 'messaging_room_retention_days',
+  MESSAGING_DM_RETENTION_DAYS: 'messaging_dm_retention_days',
+  // off | suspended | on. Not a scope: the axis is what you may DO,
+  // not who may see it. `suspended` keeps every open ticket workable
+  // and refuses new ones — the answer to a staff that is underwater,
+  // which turning the feature off would answer by abandoning people
+  // mid-conversation.
+  TICKETS_MODE: 'tickets_mode',
+  MESSAGING_ROOM_SLOW_MODE_S: 'messaging_room_slow_mode_s',
   INVITE_ENABLED: 'invite_enabled',
   DEFAULT_INVITES: 'default_invites',
   SITE_NAME: 'site_name',
@@ -571,5 +586,163 @@ export async function setTemplateQuotaPerUser(value: number): Promise<void> {
   await setSetting(
     SETTINGS_KEYS.TEMPLATE_QUOTA_PER_USER,
     String(clampTemplateQuota(value)),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Messaging
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Who may use a messaging surface. Same three states as the 2FA scope,
+ * and for the same reason: a boolean cannot express "staff only", which
+ * is what you want while rolling the feature out and what you fall back
+ * to if the room turns sour.
+ */
+export type MessagingScope = 'off' | 'staff' | 'all';
+
+function readScope(value: string | null): MessagingScope {
+  if (value === 'staff' || value === 'all') return value;
+  return 'off';
+}
+
+export async function getMessagingDmScope(): Promise<MessagingScope> {
+  return readScope(await getSetting(SETTINGS_KEYS.MESSAGING_DM_SCOPE));
+}
+
+export async function setMessagingDmScope(scope: MessagingScope) {
+  await setSetting(SETTINGS_KEYS.MESSAGING_DM_SCOPE, scope);
+}
+
+export async function getMessagingRoomScope(): Promise<MessagingScope> {
+  return readScope(await getSetting(SETTINGS_KEYS.MESSAGING_ROOM_SCOPE));
+}
+
+export async function setMessagingRoomScope(scope: MessagingScope) {
+  await setSetting(SETTINGS_KEYS.MESSAGING_ROOM_SCOPE, scope);
+}
+
+/**
+ * Whether this viewer may use the surface at all.
+ *
+ * Callers turn a `false` into a **404**, not a 403: a 403 confirms the
+ * feature exists, which is exactly what an instance running with it off
+ * would rather not say.
+ */
+export function scopeAdmits(
+  scope: MessagingScope,
+  user: { isAdmin?: boolean; isModerator?: boolean }
+): boolean {
+  if (scope === 'off') return false;
+  if (scope === 'all') return true;
+  return !!user.isAdmin || !!user.isModerator;
+}
+
+/**
+ * How long the room keeps its messages, in days.
+ *
+ * Fourteen holds both ends: at 3 messages a second it is 3.6M rows rather
+ * than the 7.8M thirty days would carry, while still covering the usual
+ * delay between a message going wrong and somebody reporting it.
+ *
+ * The floor is not a formality. At zero the room becomes a channel with no
+ * trace, where a report can no longer show anything to the staff — so the
+ * setting cannot go below a day, whatever an administrator types.
+ */
+export const ROOM_RETENTION_MIN_DAYS = 1;
+/**
+ * And a ceiling, which lived only in the admin component's input — a
+ * direct PUT could set ten thousand days and the sweep would then keep
+ * every partition ever created.
+ */
+export const ROOM_RETENTION_MAX_DAYS = 365;
+export const ROOM_RETENTION_DEFAULT_DAYS = 14;
+
+export async function getRoomRetentionDays(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.MESSAGING_ROOM_RETENTION_DAYS);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed)) return ROOM_RETENTION_DEFAULT_DAYS;
+  return Math.max(ROOM_RETENTION_MIN_DAYS, parsed);
+}
+
+export async function setRoomRetentionDays(days: number) {
+  const clamped = Math.min(
+    ROOM_RETENTION_MAX_DAYS,
+    Math.max(ROOM_RETENTION_MIN_DAYS, Math.floor(days))
+  );
+  await setSetting(
+    SETTINGS_KEYS.MESSAGING_ROOM_RETENTION_DAYS,
+    String(clamped)
+  );
+}
+
+/**
+ * How long a private message is kept, in days. Zero is off.
+ *
+ * **Off by default, and it stays off on upgrade.** Every other retention
+ * in this codebase ships with a window because the data is the
+ * instance's; this data is the members'. Turning it on for them at deploy
+ * time would delete correspondence they have no idea is on a timer, so
+ * the operator decides and the members are told — the setting is
+ * published on `/privacy`, which reads it live rather than repeating a
+ * number that would drift.
+ *
+ * The floor above zero is seven days, for the same reason the room's is
+ * one: a report is filed after the fact, and a window shorter than the
+ * gap between "this happened" and "somebody said so" leaves the staff
+ * with nothing to look at.
+ */
+export const DM_RETENTION_MIN_DAYS = 7;
+export const DM_RETENTION_MAX_DAYS = 3650;
+
+export async function getDmRetentionDays(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.MESSAGING_DM_RETENTION_DAYS);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return Math.min(DM_RETENTION_MAX_DAYS, Math.max(DM_RETENTION_MIN_DAYS, parsed));
+}
+
+/**
+ * Whether members may open tickets, and whether the ones open still work.
+ *
+ * Three states rather than a boolean, because "we cannot keep up right
+ * now" and "we do not run a ticket desk" are different sentences and only
+ * one of them should strand somebody who is already mid-conversation.
+ */
+export type TicketsMode = 'off' | 'suspended' | 'on';
+
+export async function getTicketsMode(): Promise<TicketsMode> {
+  const value = await getSetting(SETTINGS_KEYS.TICKETS_MODE);
+  return value === 'on' || value === 'suspended' ? value : 'off';
+}
+
+export async function setTicketsMode(mode: TicketsMode) {
+  await setSetting(SETTINGS_KEYS.TICKETS_MODE, mode);
+}
+
+export async function setDmRetentionDays(days: number) {
+  const floored = Math.floor(days);
+  const clamped =
+    floored <= 0
+      ? 0
+      : Math.min(DM_RETENTION_MAX_DAYS, Math.max(DM_RETENTION_MIN_DAYS, floored));
+  await setSetting(
+    SETTINGS_KEYS.MESSAGING_DM_RETENTION_DAYS,
+    String(clamped)
+  );
+}
+
+/** Seconds a member must wait between two room messages. 0 disables it. */
+export async function getRoomSlowModeSeconds(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.MESSAGING_ROOM_SLOW_MODE_S);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return parsed;
+}
+
+export async function setRoomSlowModeSeconds(seconds: number) {
+  await setSetting(
+    SETTINGS_KEYS.MESSAGING_ROOM_SLOW_MODE_S,
+    String(Math.max(0, Math.floor(seconds)))
   );
 }

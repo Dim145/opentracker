@@ -288,6 +288,41 @@ export default defineNuxtConfig({
     // visible effect is a sub-100ms placeholder on first paint of
     // the settings page.
     serverBundle: { collections: ['ph'] },
+
+    // Never the public Iconify API.
+    //
+    // The default is `fallbackToApi: true`, so any icon the client
+    // bundle does not carry was fetched from api.iconify.design at
+    // render — an external request on every page that used one, and one
+    // the site's own `connect-src 'self'` policy blocks, so the control
+    // rendered as an empty box instead. Off, an unknown icon renders
+    // nothing: a visible gap rather than a request to somebody else's
+    // server.
+    fallbackToApi: false,
+
+    // Served from our own origin, in both shapes — but not by the same
+    // process, because the static shape has no Nuxt server at all.
+    //
+    // SSR: Nuxt's own endpoint, which reads the full Phosphor collection
+    //   out of the server bundle above. NOT the module default
+    //   `/api/_nuxt_icon`: the reverse proxy sends /api/* to the API
+    //   container, so that path 404s behind Caddy and falls back to the
+    //   CDN — working in a bare stack and failing in production, which
+    //   is the worst shape a bug can have.
+    //
+    // Static: the API container, which serves the same contract at
+    //   /api/icons. The SPA's nginx already proxies /api there, so the
+    //   request never leaves the origin the browser is on. Bundling all
+    //   of Phosphor into the client instead would be 9161 icons and
+    //   roughly 4 MB of JavaScript, to cover two admin fields.
+    localApiEndpoint: STATIC_BUILD ? '/api/icons' : '/_icons',
+
+    // `server` in both: the option names where the client asks, and
+    // `localApiEndpoint` above says where that is. The module default
+    // when `ssr` is off is `iconify`, which is the public API — the
+    // thing this block exists to stop.
+    provider: 'server',
+
     clientBundle: {
       scan: true,
       includeCustomCollections: true,
@@ -299,6 +334,101 @@ export default defineNuxtConfig({
       // to revisit whether they really need to be client-bundled.
       sizeLimitKb: 320,
       icons: [
+        // The branding quick-select grid. Three of its twelve were
+        // reaching for the CDN — same cause, a JS array the scanner
+        // cannot see.
+        'ph:atom-bold',
+        'ph:crown-bold',
+        'ph:diamond-bold',
+        // Everything IconPicker offers.
+        //
+        // The picker's list is a JS array and the <Icon :name> behind it
+        // is dynamic, so `scan: true` cannot see any of it — sixty of
+        // these were reaching for the CDN at render. They are a bounded,
+        // curated set, so bundling them costs a known amount and makes
+        // category icons work in the static shape too, where there is no
+        // server to ask.
+        'ph:android-logo-bold',
+        'ph:apple-logo-bold',
+        'ph:archive-bold',
+        'ph:basketball-bold',
+        'ph:book-bold',
+        'ph:book-open-bold',
+        'ph:books-bold',
+        'ph:camera-bold',
+        'ph:cards-bold',
+        'ph:code-bold',
+        'ph:coffee-bold',
+        'ph:cooking-pot-bold',
+        'ph:cube-bold',
+        'ph:dice-five-bold',
+        'ph:dots-three-bold',
+        'ph:eye-slash-bold',
+        'ph:file-bold',
+        'ph:file-pdf-bold',
+        'ph:file-text-bold',
+        'ph:file-zip-bold',
+        'ph:files-bold',
+        'ph:film-reel-bold',
+        'ph:film-slate-bold',
+        'ph:film-strip-bold',
+        'ph:fire-bold',
+        'ph:flame-bold',
+        'ph:folder-bold',
+        'ph:folder-simple-bold',
+        'ph:football-bold',
+        'ph:game-controller-bold',
+        'ph:ghost-bold',
+        'ph:globe-bold',
+        'ph:graduation-cap-bold',
+        'ph:hammer-bold',
+        'ph:headphones-bold',
+        'ph:heart-bold',
+        'ph:image-bold',
+        'ph:image-square-bold',
+        'ph:images-bold',
+        'ph:lightning-bold',
+        'ph:linux-logo-bold',
+        'ph:microphone-bold',
+        'ph:monitor-bold',
+        'ph:monitor-play-bold',
+        'ph:music-note-bold',
+        'ph:music-notes-bold',
+        'ph:newspaper-bold',
+        'ph:package-bold',
+        'ph:planet-bold',
+        'ph:popcorn-bold',
+        'ph:projector-screen-bold',
+        'ph:puzzle-piece-bold',
+        'ph:rocket-bold',
+        'ph:scroll-bold',
+        'ph:soccer-ball-bold',
+        'ph:sparkle-bold',
+        'ph:speaker-high-bold',
+        'ph:star-bold',
+        'ph:student-bold',
+        'ph:television-bold',
+        'ph:television-simple-bold',
+        'ph:tennis-ball-bold',
+        'ph:terminal-bold',
+        'ph:trophy-bold',
+        'ph:video-camera-bold',
+        'ph:vinyl-record-bold',
+        'ph:windows-logo-bold',
+        // Messaging.
+        //
+        // `scan: true` finds icons written literally in a template; it
+        // cannot see one behind a ternary. Every dynamic :name below has
+        // to be listed, or the client falls back to fetching it from
+        // api.iconify.design at runtime — which the CSP blocks
+        // (`connect-src 'self'`) and the control renders as an empty box.
+        'ph:smiley',
+        'ph:arrow-bend-up-left',
+        'ph:pencil-simple',
+        'ph:paper-plane-tilt',
+        'ph:chat-circle',
+        'ph:chat-circle-dots-fill',
+        'ph:check',
         // Theme toggle (default.vue)
         'ph:sun',
         'ph:sun-bold',
@@ -324,6 +454,16 @@ export default defineNuxtConfig({
         'ph:prohibit-bold',
         'ph:package-bold',
         'ph:folder-bold',
+        // Bound through a ternary, so `scan: true` never sees the
+        // name and the CSP turns the miss into an empty box: the
+        // reveal button on a reported message swaps it for the
+        // spinner, and the conversation menu swaps both of its first
+        // two entries when the thread is filed away or silenced.
+        'ph:eye-bold',
+        'ph:tray-arrow-up',
+        'ph:archive',
+        'ph:bell-slash',
+        'ph:bell',
         // Notification toast icons
         'ph:check-circle-bold',
         'ph:x-circle-bold',

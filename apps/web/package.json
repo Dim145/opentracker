@@ -10,7 +10,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "nuxt typecheck"
   },
   "dependencies": {
     "@iconify-json/simple-icons": "^1.2.93",
@@ -46,6 +47,8 @@
     "@nuxt/fonts": "^0.14.0",
     "@nuxt/icon": "^2.5.0",
     "@types/turndown": "^5.0.6",
-    "vitest": "^4.1.10"
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10",
+    "vue-tsc": "^3.3.11"
   }
 }

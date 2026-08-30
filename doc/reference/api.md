@@ -107,7 +107,6 @@ The in-app inbox is always-on; external channels are opt-in per user.
 | Method | Path                                              | Auth | Purpose                                                                  |
 | ------ | ------------------------------------------------- | ---- | ------------------------------------------------------------------------ |
 | GET    | `/api/me/notifications`                           | user | Paginated inbox.                                                         |
-| GET    | `/api/me/notifications/unread-count`              | user | Bell-badge count.                                                        |
 | GET    | `/api/me/notifications/stream`                    | user | Server-Sent Events stream — live push to open tabs (Redis pub/sub fanout).|
 | POST   | `/api/me/notifications/:id/read`                  | user | Mark a single row as read.                                               |
 | POST   | `/api/me/notifications/read-all`                  | user | Mark every row as read.                                                  |

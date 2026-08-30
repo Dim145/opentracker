@@ -36,7 +36,16 @@ export type WebPushStatus =
 
 const SW_PATH = '/sw.js';
 
-function urlBase64ToUint8Array(base64: string): Uint8Array {
+/*
+ * `Uint8Array<ArrayBuffer>`, not the bare alias.
+ *
+ * Since TypeScript 5.7 `Uint8Array` is generic over its backing buffer and
+ * defaults to `ArrayBufferLike`, which includes `SharedArrayBuffer` — and
+ * WebCrypto's `BufferSource` does not. Every `crypto.subtle` call taking
+ * one of these therefore failed to match an overload. The value here is
+ * always backed by a plain `ArrayBuffer`; the annotation just says so.
+ */
+function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
   const normalised = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = atob(normalised);

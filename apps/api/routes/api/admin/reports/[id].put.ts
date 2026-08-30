@@ -36,6 +36,7 @@ import {
   invalidateBanCache,
   invalidateRoleCache,
 } from '~~/utils/adminAuth';
+import { validateBody } from '~~/utils/schemas';
 import { relinquishOwnership } from '~~/utils/owner';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -67,8 +68,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Report ID required' });
   }
 
-  const body = await readBody(event);
-  const data = resolveReportSchema.parse(body);
+  const data = await validateBody(event, resolveReportSchema);
 
   const report = await db.query.reports.findFirst({
     where: eq(schema.reports.id, id),

@@ -232,6 +232,18 @@ export const adminSettingsSchema = z.object({
   // logged-in user. The middleware redirects to /settings/security
   // until they comply.
   require2FAScope: z.enum(['off', 'staff', 'all']).optional(),
+  // Messaging. Two independent surfaces, three states each — a boolean
+  // could not express "staff only", which is what a rollout needs and
+  // what the room falls back to if it turns sour.
+  messagingDmScope: z.enum(['off', 'staff', 'all']).optional(),
+  messagingRoomScope: z.enum(['off', 'staff', 'all']).optional(),
+  // Clamped in the handler rather than rejected here: a sloppy value in a
+  // multi-section save should not fail the whole request. The floor of one
+  // day is enforced there too.
+  messagingRoomRetentionDays: z.number().int().min(0).max(3650).optional(),
+  messagingDmRetentionDays: z.number().int().min(0).max(3650).optional(),
+  ticketsMode: z.enum(['off', 'suspended', 'on']).optional(),
+  messagingRoomSlowModeSeconds: z.number().int().min(0).max(3600).optional(),
   // Notification retention TTLs in days. Both default to 90 in the
   // settings getter. Bounded 1–3650 here; the PUT handler also
   // clamps before writing as a defence-in-depth.

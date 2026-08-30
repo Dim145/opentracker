@@ -1,4 +1,4 @@
-{{- range $name, $cfg := dict "web" $.Values.web "api" $.Values.api "tracker" $.Values.tracker }}
+{{- range $name, $cfg := dict "web" $.Values.web "api" $.Values.api "tracker" $.Values.tracker "relay" $.Values.relay }}
 {{- if and $cfg.enabled $cfg.autoscaling.enabled }}
 ---
 apiVersion: autoscaling/v2
@@ -30,6 +30,19 @@ spec:
         target:
           type: Utilization
           averageUtilization: {{ . }}
+    {{- end }}
+    {{- with $cfg.autoscaling.targetConnectionsPerPod }}
+    # Held connections, not CPU. Ten thousand idle SSE readers cost almost
+    # no CPU while filling a node completely, so a CPU-driven HPA never
+    # fires and the node starts refusing instead of scaling. Needs the
+    # custom metrics API (prometheus-adapter) exposing relay_connections.
+    - type: Pods
+      pods:
+        metric:
+          name: relay_connections
+        target:
+          type: AverageValue
+          averageValue: {{ . | quote }}
     {{- end }}
 {{- end }}
 {{- end }}

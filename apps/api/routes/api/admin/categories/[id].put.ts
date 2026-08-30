@@ -111,6 +111,16 @@ export default defineEventHandler(async (event) => {
       .where(eq(schema.categories.id, id))
       .returning();
 
+  // The adult-category list is cached in process for a minute, so a
+  // category flagged here would not actually be hidden until the TTL
+  // rolled over — an operator marking a subtree adult and watching it
+  // stay visible for the next sixty seconds, with nothing saying why.
+  // The invalidator existed for exactly this and nothing called it.
+  //
+  // Per-process, so on a multi-replica deployment the others still wait
+  // out the TTL. That is what the TTL is for; this removes the wait on
+  // the replica the operator is actually looking at.
+  invalidateAdultCategoryCache();
     return category;
   } catch (error: any) {
     if (error.code === '23505') {

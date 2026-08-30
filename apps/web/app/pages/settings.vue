@@ -15,7 +15,7 @@
         </div>
         <div v-if="dirtyCount > 0" class="ready-state partial">
           <Icon name="ph:pencil-line-bold" />
-          <span>{{ $t('settings.unsavedChangesCount', dirtyCount, { n: dirtyCount }) }}</span>
+          <span>{{ $t('settings.unsavedChangesCount', { n: dirtyCount }, dirtyCount) }}</span>
         </div>
         <div v-else class="ready-state idle">
           <Icon name="ph:check-bold" />
@@ -690,7 +690,7 @@
           </span>
           <span v-else class="action-ready">
             <Icon name="ph:floppy-disk-bold" />
-            {{ $t('settings.changesReady', dirtyCount, { n: dirtyCount }) }}
+            {{ $t('settings.changesReady', { n: dirtyCount }, dirtyCount) }}
           </span>
         </span>
         <button
@@ -813,7 +813,6 @@ function hydrate() {
     anonymousUploads: form.anonymousUploads,
     hideDownloadHistory: form.hideDownloadHistory,
     restrictComments: form.restrictComments,
-    shareReputationFederated: form.shareReputationFederated,
     shareReputationFederated: form.shareReputationFederated,
   };
 }

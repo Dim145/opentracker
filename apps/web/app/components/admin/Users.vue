@@ -938,7 +938,8 @@ const roles = ref<Role[]>([]);
 onMounted(async () => {
   if (user.value?.isAdmin) {
     try {
-      roles.value = (await $fetch('/api/admin/roles')) as Role[];
+      // The generic, not a cast — see the same call in Roles.vue.
+      roles.value = await $fetch<Role[]>('/api/admin/roles');
     } catch {
       // Roles are admin-only and may 403 for moderators; that's fine.
     }

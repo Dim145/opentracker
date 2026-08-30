@@ -116,6 +116,16 @@ const EN: Dict = {
     title: 'Sign-in from new IP',
     desc: 'We saw a login from {currentIp} (previous: {previousIp}).',
   },
+  message_received: {
+    title: 'New private message',
+    desc: '{from} wrote to you.',
+  },
+  message_request_received: {
+    // No preview, deliberately. This is a stranger's first contact, and a
+    // preview would carry their text past the queue that is holding it.
+    title: 'Someone wants to write to you',
+    desc: '{from} sent a request. Accept it to open the conversation.',
+  },
   comment_on_my_upload: {
     title: 'New comment on your upload',
     desc: '{actorUsername} on “{torrentName}”: {preview}',
@@ -163,6 +173,22 @@ const EN: Dict = {
   report_actioned: {
     title: 'Your report was actioned',
     desc: 'Status: {status}. {resolution}',
+  },
+  ticket_opened: {
+    title: 'New ticket',
+    desc: '{from} opened a ticket: “{subject}”',
+  },
+  ticket_answered: {
+    title: 'Your ticket has a reply',
+    desc: '{from} answered “{subject}”',
+  },
+  ticket_closed: {
+    title: 'Your ticket was closed',
+    desc: '“{subject}” — {status}',
+  },
+  ticket_idle_warning: {
+    title: 'Your ticket will close on its own',
+    desc: '“{subject}” — answer within {days} days to keep it open',
   },
   trusted_device_added: {
     title: 'Trusted device added',
@@ -299,6 +325,14 @@ const FR: Dict = {
     title: 'Connexion depuis une nouvelle IP',
     desc: 'Connexion détectée depuis {currentIp} (précédente : {previousIp}).',
   },
+  message_received: {
+    title: 'Nouveau message privé',
+    desc: '{from} t\'a écrit.',
+  },
+  message_request_received: {
+    title: 'Quelqu\'un veut t\'écrire',
+    desc: '{from} a envoyé une demande. Accepte-la pour ouvrir la conversation.',
+  },
   comment_on_my_upload: {
     title: 'Nouveau commentaire sur ton upload',
     desc: '{actorUsername} sur « {torrentName} » : {preview}',
@@ -346,6 +380,22 @@ const FR: Dict = {
   report_actioned: {
     title: 'Ton signalement a été traité',
     desc: 'Statut : {status}. {resolution}',
+  },
+  ticket_opened: {
+    title: 'Nouveau ticket',
+    desc: '{from} a ouvert un ticket : « {subject} »',
+  },
+  ticket_answered: {
+    title: 'Réponse à votre ticket',
+    desc: '{from} a répondu à « {subject} »',
+  },
+  ticket_closed: {
+    title: 'Votre ticket a été clôturé',
+    desc: '« {subject} » — {status}',
+  },
+  ticket_idle_warning: {
+    title: 'Votre ticket va se clôturer tout seul',
+    desc: '« {subject} » — réponds sous {days} jours pour le garder ouvert',
   },
   trusted_device_added: {
     title: 'Appareil de confiance ajouté',

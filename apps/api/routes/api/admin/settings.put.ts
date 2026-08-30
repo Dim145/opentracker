@@ -1,6 +1,10 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
 import {
   setRegistrationOpen,
+  setDmRetentionDays,
+  setTicketsMode,
+  setRoomRetentionDays,
+  setRoomSlowModeSeconds,
   setSetting,
   setTemplateQuotaPerUser,
   SETTINGS_KEYS,
@@ -192,6 +196,46 @@ export default defineEventHandler(async (event) => {
     body.require2FAScope === 'all'
   ) {
     await setSetting(SETTINGS_KEYS.REQUIRE_2FA_SCOPE, body.require2FAScope);
+  }
+
+  // Messaging scopes. Same three sentinel values as the 2FA scope, and
+  // the same 3-way segmented control on the front end. The two surfaces
+  // are independent: opening private messages without the room is the
+  // careful rollout, and the reverse is defensible too.
+  for (const [field, key] of [
+    ['messagingDmScope', SETTINGS_KEYS.MESSAGING_DM_SCOPE],
+    ['messagingRoomScope', SETTINGS_KEYS.MESSAGING_ROOM_SCOPE],
+  ] as const) {
+    const value = (body as Record<string, unknown>)[field];
+    if (value === 'off' || value === 'staff' || value === 'all') {
+      await setSetting(key, value);
+    }
+  }
+
+  // Room retention, in days. Clamped rather than rejected, and the floor
+  // is not cosmetic: at zero the room becomes a channel with no trace,
+  // where a report can no longer show the staff anything.
+  if (typeof body.messagingRoomRetentionDays === 'number') {
+    await setRoomRetentionDays(body.messagingRoomRetentionDays);
+  }
+  if (typeof body.messagingRoomSlowModeSeconds === 'number') {
+    await setRoomSlowModeSeconds(body.messagingRoomSlowModeSeconds);
+  }
+  // Private-message retention. Zero is off and is the default — these
+  // rows belong to the members rather than to the instance, so nothing
+  // deletes them until an operator says so. Above zero the floor is a
+  // week: a report is filed after the fact, and a window shorter than the
+  // delay between "this happened" and "somebody said so" leaves the staff
+  // nothing to look at. Published to members on `/privacy`.
+  if (typeof body.messagingDmRetentionDays === 'number') {
+    await setDmRetentionDays(body.messagingDmRetentionDays);
+  }
+  // off | suspended | on. `suspended` is the one worth having: it keeps
+  // every open ticket workable and refuses new ones, which is the honest
+  // answer to a staff that is underwater. Switching the desk off answers
+  // the same question by abandoning whoever is mid-conversation.
+  if (typeof body.ticketsMode === 'string') {
+    await setTicketsMode(body.ticketsMode);
   }
 
   // Notification retention TTLs. Clamped 1–3650 days; out-of-range

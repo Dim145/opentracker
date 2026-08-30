@@ -73,6 +73,9 @@ secrets:
   sessionSecret: ""
   adminApiKey: ""
   ipHashSecret: ""
+  # Shared by the API (which signs) and the relay (which verifies). Pin it
+  # only to match an existing deployment; generated and stable otherwise.
+  messagingTokenSecret: ""
 
 # -----------------------------------------------------------------------------
 # Non-secret configuration
@@ -371,6 +374,72 @@ tracker:
   podAnnotations: {}
   podLabels: {}
   extraEnv: []
+
+# -----------------------------------------------------------------------------
+# Messaging relay
+#
+# SSE fan-out and nothing else: it holds connections, reads one Valkey
+# subscription and writes frames. It never touches Postgres, so it scales
+# on its own axis and a relay outage degrades the messaging pages to
+# polling rather than breaking them.
+#
+# The node count is a deployment choice, not a code one. Each pod registers
+# itself under a TTL key and the API recomputes the per-node limits from
+# how many are alive, then broadcasts them — one pod on a small Docker
+# host, eight on Kubernetes, no configuration change either way.
+# -----------------------------------------------------------------------------
+relay:
+  # Off by default: messaging itself ships disabled (an admin turns it on),
+  # and a relay with no readers is a pod doing nothing.
+  enabled: false
+  # Two, so a rollout never drops every open stream at once.
+  replicaCount: 2
+  image:
+    repository: relay
+    tag: ""
+  port: 4100
+  service:
+    type: ClusterIP
+    port: ""
+    annotations: {}
+
+  # What the browser is told to connect to. Empty means "/messaging" on the
+  # same origin, which needs no CORS grant and no CSP widening. Set an
+  # absolute URL only when publishing the relay under another hostname —
+  # and then set allowOrigin to the site's origin as well.
+  publicUrl: ""
+  allowOrigin: ""
+
+  # Long enough for in-flight frames to land; readers reconnect with jitter
+  # and catch up from the API, so this is about smoothing, not correctness.
+  terminationGracePeriodSeconds: 30
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 8
+    # Deliberately empty. A node full of idle SSE readers shows near-zero
+    # CPU, so a CPU target never fires and the node refuses connections
+    # instead of the fleet growing. Scale on the connection count below.
+    targetCPUUtilizationPercentage: ""
+    targetMemoryUtilizationPercentage: ""
+    # Requires prometheus-adapter exposing relay_connections as a pod
+    # metric. Leave it empty and the HPA has no metric at all — set
+    # replicaCount instead and scale by hand.
+    targetConnectionsPerPod: "8000"
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  podAnnotations: {}
+  podLabels: {}
+  extraEnv: []
+  resources:
+    requests: { cpu: 100m, memory: 64Mi }
+    limits: { memory: 256Mi }
 
 # -----------------------------------------------------------------------------
 # Ingress

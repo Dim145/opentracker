@@ -7,6 +7,7 @@
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
+import { validateBody } from '~~/utils/schemas';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { setRemoteCategoryMapping } from '~~/utils/federation/categoryMap';
 
@@ -17,7 +18,7 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireAdminSession(event);
-  const body = bodySchema.parse(await readBody(event));
+  const body = await validateBody(event, bodySchema);
 
   // The target must be a real local category — a mapping to a category that no
   // longer exists would resolve to nothing and never widen a filter.

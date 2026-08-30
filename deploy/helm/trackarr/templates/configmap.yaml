@@ -24,4 +24,11 @@ data:
   TRACKER_INTERNAL_URL: {{ printf "http://%s-tracker:%v" (include "trackarr.fullname" .) (.Values.tracker.service.port | default .Values.tracker.http.port) | quote }}
 
   REDIS_KEY_PREFIX: {{ .Values.externalRedis.keyPrefix | default "ot:" | quote }}
+{{- if .Values.relay.enabled }}
+  # What the API tells the browser to connect to — a path, not a service
+  # name, because the browser resolves it. Same origin means no CORS grant
+  # and no widening of connect-src. Set relay.publicUrl only when the relay
+  # is published under a different hostname.
+  MESSAGING_SERVICE_URL: {{ .Values.relay.publicUrl | default "/messaging" | quote }}
+{{- end }}
 {{- end }}

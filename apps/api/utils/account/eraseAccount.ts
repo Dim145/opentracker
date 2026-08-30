@@ -180,6 +180,137 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
       .set({ updatedAt: now })
       .where(eq(schema.torrents.uploaderId, userId));
 
+    // 2d. Messaging.
+    //
+    // Erasure keeps the `users` row, so none of the ON DELETE clauses on the
+    // messaging tables fire. Every one of them has to be done by hand here,
+    // and the split is the one the plan settled on: plaintext is kept and
+    // anonymised, ciphertext is destroyed.
+    //
+    // The published key goes first. It is what a correspondent needs to
+    // re-derive the conversation key, so leaving it would leave the erasure
+    // reversible for anyone who kept the other half.
+    await tx.delete(schema.userMessageKeys).where(eq(schema.userMessageKeys.userId, userId));
+
+    // Then the encrypted conversations, whole — both sides, not just this
+    // member's half. A ciphertext nobody can decrypt is not a preserved
+    // conversation, it is unreadable bytes retained after an erasure request;
+    // and the survivor is better served by an empty thread they can read the
+    // reason for than by rows that will never open again. The conversation row
+    // itself stays: with no key, no messages and no correspondent left to name,
+    // it is what the client turns into "closed at your correspondent's
+    // request".
+    const encryptedIds = (
+      await tx
+        .select({ id: schema.conversations.id })
+        .from(schema.conversations)
+        .innerJoin(
+          schema.conversationParticipants,
+          eq(schema.conversationParticipants.conversationId, schema.conversations.id),
+        )
+        .where(
+          and(
+            eq(schema.conversationParticipants.userId, userId),
+            eq(schema.conversations.encrypted, true),
+          ),
+        )
+    ).map((r) => r.id);
+
+    if (encryptedIds.length > 0) {
+      await tx.delete(schema.messages).where(inArray(schema.messages.conversationId, encryptedIds));
+      // The unread counter is denormalised, so deleting the messages it
+      // counted leaves the survivor with a badge pointing at nothing.
+      await tx
+        .update(schema.conversationParticipants)
+        .set({ unreadCount: 0 })
+        .where(inArray(schema.conversationParticipants.conversationId, encryptedIds));
+    }
+
+    // Blocks are a two-sided personal list and nothing else: both directions go.
+    await tx
+      .delete(schema.messagingBlocks)
+      .where(
+        or(
+          eq(schema.messagingBlocks.userId, userId),
+          eq(schema.messagingBlocks.blockedId, userId),
+        ),
+      );
+
+    // A room mute is an unenforceable restriction on an account that can no
+    // longer sign in. Unlike an anti-cheat flag it records no finding worth
+    // keeping — it is a timer against a person — so it goes rather than being
+    // blanked.
+    await tx.delete(schema.roomMutes).where(eq(schema.roomMutes.userId, userId));
+
+    /*
+     * The staff read log keeps its rows, and loses only the pointer.
+     *
+     * `reader_id` is declared `ON DELETE set null`, and that never fires
+     * here — this function UPDATEs the users row rather than deleting it,
+     * so every declared cascade on this table is decoration. Done by hand,
+     * like every other one.
+     *
+     * The name column stays. It is the record: an audit trail that becomes
+     * a column of nulls in the one case where it matters most — a
+     * moderator erasing their own account — is not an audit trail. What
+     * goes is the join back to the (anonymised) row, which would otherwise
+     * render every past read as `deleted-a1b2c3`.
+     */
+    await tx
+      .update(schema.messageReadLog)
+      .set({ readerId: null })
+      .where(eq(schema.messageReadLog.readerId, userId));
+
+    /*
+     * Tickets keep the staff's record and lose the member's name.
+     *
+     * The opposite call from the read log two blocks up, and for the
+     * opposite reason. There the name IS the record — a moderator erasing
+     * themselves must not erase who looked. Here the name is the person
+     * asking to be forgotten, and the thing worth keeping is the staff's
+     * record of a decision, which a ticket may well be an appeal against.
+     *
+     * So the ticket survives, anonymised, exactly like a plaintext direct
+     * message does. Deleting it outright would let anyone erase the
+     * record of what they were told by deleting their account.
+     */
+    const erasedName = `deleted-${randomBytes(6).toString('hex')}`;
+    await tx
+      .update(schema.tickets)
+      .set({ openedById: null, openedByName: erasedName })
+      .where(eq(schema.tickets.openedById, userId));
+    // Their own lines. Staff lines on the same ticket are untouched: a
+    // moderator's answer is the moderator's, not the member's.
+    await tx
+      .update(schema.ticketMessages)
+      .set({ authorId: null, authorName: erasedName })
+      .where(
+        and(
+          eq(schema.ticketMessages.authorId, userId),
+          eq(schema.ticketMessages.fromStaff, false)
+        )
+      );
+    // And where they were staff: the assignment and the closure are acts,
+    // and an act with no author is indefensible — same rule as the read
+    // log. The pointer goes, the name stays.
+    await tx
+      .update(schema.tickets)
+      .set({ assignedToId: null })
+      .where(eq(schema.tickets.assignedToId, userId));
+    await tx
+      .update(schema.tickets)
+      .set({ closedById: null })
+      .where(eq(schema.tickets.closedById, userId));
+    await tx
+      .update(schema.ticketMessages)
+      .set({ authorId: null })
+      .where(
+        and(
+          eq(schema.ticketMessages.authorId, userId),
+          eq(schema.ticketMessages.fromStaff, true)
+        )
+      );
+
     // 3. Scrub the row itself. The passkey is rotated to a fresh unusable value
     // so any announce URL the member kept stops working; the SRP material is
     // replaced with random bytes no client can reproduce; the profile text and

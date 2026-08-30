@@ -1,5 +1,10 @@
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
+// The config type is a NAMED export of the wrapper, re-exported from
+// `dompurify` itself. `DOMPurify.Config` named a namespace on the default
+// export that does not exist, so both profiles below were untyped — and
+// `dompurify` is not a direct dependency here, so it cannot be the source.
+import type { Config as DomPurifyConfig } from 'isomorphic-dompurify';
 
 /**
  * Strict DOMPurify config used for every untrusted v-html injection.
@@ -19,7 +24,7 @@ import DOMPurify from 'isomorphic-dompurify';
  *     anchor pointing off-origin so authored links can't tabnab the
  *     opener and don't leak referrers.
  */
-const SAFE_PROFILE: DOMPurify.Config = {
+const SAFE_PROFILE: DomPurifyConfig = {
   ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|#)/i,
   FORBID_TAGS: ['style', 'iframe', 'form', 'input', 'base', 'meta', 'object'],
   FORBID_ATTR: ['style', 'srcdoc', 'autofocus'],
@@ -38,7 +43,7 @@ const SAFE_PROFILE: DOMPurify.Config = {
  * expression(), positioning, etc.). The hook is gated on `richActive`
  * so it never loosens the strict path used for branding/forum/markdown.
  */
-const RICH_PROFILE: DOMPurify.Config = {
+const RICH_PROFILE: DomPurifyConfig = {
   ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|#)/i,
   FORBID_TAGS: ['style', 'iframe', 'form', 'input', 'base', 'meta', 'object'],
   FORBID_ATTR: ['srcdoc', 'autofocus'],

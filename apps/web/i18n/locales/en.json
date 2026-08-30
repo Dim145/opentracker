@@ -563,8 +563,8 @@
       "rotateWarning": "Every account you have proven elsewhere will be unlinked.",
       "rotateConfirm": "Retire it",
       "rotated": "Retired. Your new identifier:",
-      "custodyOff": "This instance holds your key for you. You can take it over: it is generated in your browser and never leaves it.",
-      "custodyOn": "You hold your own key. This instance cannot sign as you.",
+      "custodyOff": "This instance holds your key and can sign as you with it. Taking it over generates a new one here instead — that one is created in your browser and never leaves it, and from then on this instance cannot sign in your name.",
+      "custodyOn": "You hold your own key. This instance cannot sign as you. It is your portable identity and nothing else — encrypted conversations use a different key, which has always been yours.",
       "takeCustody": "Hold my own key",
       "custodyWarning": "Only this browser will have it. Lose it and you lose the identifier — download the file straight after.",
       "custodyConfirm": "Generate it here",
@@ -1340,7 +1340,8 @@
         "user": "User",
         "post": "Post",
         "comment": "Comment",
-        "remote": "Federated release"
+        "remote": "Federated release",
+        "message": "Private message"
       },
       "reasons": {
         "spam": "Spam or advertising",
@@ -2989,7 +2990,8 @@
         "user": "User",
         "post": "Post",
         "comment": "Comment",
-        "remote": "Federated release"
+        "remote": "Federated release",
+        "message": "Private message"
       },
       "toasts": {
         "resolved": "Report accepted",
@@ -3016,7 +3018,13 @@
         }
       },
       "filterWithdrawn": "Withdrawn",
-      "withdrawnByReporter": "This reporter has withdrawn {n} reports"
+      "withdrawnByReporter": "This reporter has withdrawn {n} reports",
+      "messageBody": "Message",
+      "messageReveal": "Read the reported message",
+      "messageMissing": "That message is gone, or was never reported.",
+      "messageEncrypted": "Encrypted — nobody holds the key, staff included. Act on what the reporter quoted.",
+      "messageRemoved": "Removed by its author or by staff.",
+      "messageRetry": "That did not load. Try again."
     },
     "tags": {
       "title": "Tags",
@@ -3289,7 +3297,9 @@
       "cssWillRefuse": "The server will refuse this:",
       "editorBack": "Back to the list",
       "editorTitleNew": "New theme",
-      "fontFamilySuggest": "Suggestions come from the file you picked and from faces already uploaded."
+      "fontFamilySuggest": "Suggestions come from the file you picked and from faces already uploaded.",
+      "notFoundTitle": "That theme is gone.",
+      "notFoundBody": "It was deleted, or the address names a theme that never existed."
     },
     "homepage": {
       "title": "Homepage Content",
@@ -3623,6 +3633,63 @@
       "fuzzy": "Typo tolerance",
       "fuzzyLabel": "Catch typos",
       "fuzzyHint": "When a search finds nothing, a second pass looks for near matches — “crimsen” finds “Crimson”. It only runs against an otherwise empty page, but costs roughly ten times a normal search. Turn it off if the catalogue grows large or the server is under strain."
+    },
+    "messaging": {
+      "title": "Messaging",
+      "description": "Private messages and the public room are separate surfaces with separate audiences. Both start off — nobody sees a feature the instance has not decided to run.",
+      "dmScope": "Private messages",
+      "dmScopeHint": "Who may open and read one-to-one conversations.",
+      "roomScope": "Public room",
+      "roomScopeHint": "Who may read and post in the room. Needs moderators watching: it is the surface a single member can spoil for everyone.",
+      "retentionDays": "Room retention",
+      "retentionHint": "How long room messages are kept. Whole days are dropped at once, so lowering this takes effect at the next sweep.",
+      "slowMode": "Slow mode",
+      "slowModeHint": "Minimum delay between two messages from the same member. Zero disables it.",
+      "daysLabel": "days",
+      "secondsLabel": "seconds",
+      "retentionWarning": "Turning a surface off hides it; it deletes nothing. Shortening retention does delete — the next sweep drops every day now outside the window, and that cannot be undone.",
+      "scope": {
+        "off": "Off",
+        "staff": "Staff only",
+        "all": "Every member"
+      },
+      "dmRetentionDays": "Private-message retention",
+      "dmRetentionHint": "How long a private message is kept before it is deleted automatically. Zero leaves them until a participant deletes them or an account is erased — which is the default, and stays the default on upgrade: these are the members' conversations, not the instance's records. Above zero the floor is seven days, because a report is filed after the fact.",
+      "dmRetentionOff": "days — 0 means no timer",
+      "dmRetentionPublished": "Whatever you set here is published to members on /privacy, which reads it live.",
+      "ticketsMode": "Tickets to the staff",
+      "ticketsModeHint": "A member writes to the staff rather than to one person — even one they have blocked. Suspended: the desk stays visible and open tickets keep working, but no new ones can be opened.",
+      "tickets": {
+        "off": "Off",
+        "suspended": "Suspended — no new tickets",
+        "on": "On"
+      }
+    },
+    "broadcast": {
+      "title": "Staff broadcast",
+      "description": "One message, delivered to a bounded cohort as a real private message they can answer. Not a way to write to the whole membership — that is what the announcement banner and the notification feed are for.",
+      "audience": "Audience",
+      "audienceHint": "Resolved to a count before anything is sent.",
+      "byRole": "A role",
+      "byInactive": "Inactive members",
+      "byHnr": "Hit-and-run violators",
+      "byStaff": "Staff",
+      "daysLabel": "days without signing in",
+      "message": "Message",
+      "messageHint": "Plain text. Each recipient gets it as a normal conversation, so they can reply to you.",
+      "counting": "Counting…",
+      "willReach": "This will reach {count} member(s).",
+      "send": "Send broadcast",
+      "recent": "Recent",
+      "running": "running…",
+      "failed": "The broadcast could not be started."
+    },
+    "iconPicker": {
+      "searchPlaceholder": "Search an icon…",
+      "empty": "No icon matches.",
+      "clear": "Clear",
+      "footerHint": "Or type a Phosphor name.",
+      "toggleAria": "Open the icon picker"
     }
   },
   "mod": {
@@ -3633,7 +3700,9 @@
       "users": "Users",
       "reports": "Reports",
       "hnr": "Hit & Run",
-      "antiCheat": "Anti-cheat"
+      "antiCheat": "Anti-cheat",
+      "messageReads": "Message reads",
+      "tickets": "Tickets"
     },
     "descriptions": {
       "dashboard": "Moderation overview and quick actions",
@@ -3641,7 +3710,9 @@
       "users": "Manage user accounts and bans",
       "reports": "Review and handle user reports",
       "hnr": "Monitor and manage H&R violations",
-      "antiCheat": "Triage announces flagged by the cheat detector"
+      "antiCheat": "Triage announces flagged by the cheat detector",
+      "messageReads": "Every time a staff member opened a reported private message.",
+      "tickets": "What members have asked the staff, oldest first."
     },
     "antiCheat": {
       "title": "Anti-cheat",
@@ -3747,7 +3818,10 @@
         "myActions": "My actions · 7 days",
         "myActionsHint": "{n} reports closed",
         "masks": "Federated masks",
-        "masksHint": "Hide partner content"
+        "masksHint": "Hide partner content",
+        "tickets": "Tickets",
+        "ticketsHint": "the staff queue",
+        "ticketsUntaken": "{n} nobody has taken"
       },
       "queue": {
         "title": "Freshest pending",
@@ -3798,6 +3872,35 @@
         "author": "This uploader",
         "issuer": "This instance"
       }
+    },
+    "messageReads": {
+      "note": "One line per read of a reported private message — the one route through which anybody here reads another member's correspondence. It carries no message bodies: it says a thing was opened, by whom, and stops. Everyone who can open one can see every time anyone did.",
+      "empty": "Nobody has opened a reported message yet.",
+      "disclosed": "read",
+      "sealed": "encrypted — nothing shown",
+      "readerGone": "This account has been erased. The name is kept because the record is the point."
+    },
+    "tickets": {
+      "title": "Tickets",
+      "queue": "Queue",
+      "archive": "Closed",
+      "untaken": "{n} nobody has taken",
+      "nobody": "nobody yet",
+      "emptyQueue": "Nothing waiting.",
+      "emptyArchive": "Nothing closed yet.",
+      "openAction": "Open",
+      "take": "Take it",
+      "release": "Hand back",
+      "resolve": "Resolve",
+      "reject": "Reject",
+      "reopen": "Reopen",
+      "closeHint": "The member sees this. A closure with no reason reads as a shrug.",
+      "notePlaceholder": "What was done, or why not.",
+      "ageMinutes": "{n} min",
+      "ageHours": "{n} h",
+      "ageDays": "{n} d",
+      "withdrawn": "Withdrawn",
+      "withdrawnBy": "{name} closed their own ticket."
     }
   },
   "forum": {
@@ -4369,6 +4472,30 @@
       "federated_request_created": {
         "title": "A release you may have is requested",
         "desc": "“{title}” — seen on {peerName} — was requested here. Fill it for +{rewardPoints} pts."
+      },
+      "message_received": {
+        "title": "New private message",
+        "desc": "{from} wrote to you."
+      },
+      "message_request_received": {
+        "title": "Someone wants to write to you",
+        "desc": "{from} sent a request. Accept it to open the conversation."
+      },
+      "ticket_opened": {
+        "title": "New ticket",
+        "desc": "{from} opened “{subject}”."
+      },
+      "ticket_answered": {
+        "title": "Your ticket has a reply",
+        "desc": "{from} answered “{subject}”."
+      },
+      "ticket_closed": {
+        "title": "Your ticket was closed",
+        "desc": "“{subject}” — {status}."
+      },
+      "ticket_idle_warning": {
+        "title": "Your ticket will close",
+        "desc": "“{subject}” — answer within {days} days to keep it open."
       }
     }
   },
@@ -4761,12 +4888,264 @@
       "invites": "Invitations",
       "shop": "Bonus shop",
       "notifications": "Notifications",
-      "settings": "Settings"
+      "settings": "Settings",
+      "messages": "Messages"
     },
     "actions": {
       "upload": "Upload a torrent",
       "theme": "Change the theme",
       "signOut": "Sign out"
     }
+  },
+  "messaging": {
+    "title": "Messages",
+    "inbox": "Inbox",
+    "requests": "Requests",
+    "requestsHint": "First messages from members you have never written to. Accepting moves the conversation to your inbox.",
+    "empty": "No conversations yet.",
+    "emptyRequests": "No pending requests.",
+    "emptyThread": "Nothing here yet — write the first message.",
+    "pick": "Pick a conversation.",
+    "deletedMember": "Deleted member",
+    "placeholder": "Write a message…",
+    "send": "Send",
+    "accept": "Accept",
+    "encrypted": "Encrypted",
+    "encryptedNotice": "This conversation is encrypted. Encryption arrives in a later step — until then it cannot be read or written here.",
+    "olderMessages": "Load older messages",
+    "unreadOne": "1 unread",
+    "unreadMany": "{count} unread",
+    "sendFailed": "Not sent.",
+    "retry": "Retry",
+    "newConversation": "New conversation",
+    "recipient": "Member",
+    "start": "Start",
+    "offline": "Not live",
+    "offlineHint": "Messages still send and read; they just do not arrive on their own. Reload to see what is new.",
+    "crypto": {
+      "label": "Encrypt this conversation",
+      "hint": "The server stores ciphertext it holds no key for — not the staff, not after a report. Your own key is made here and never leaves this browser. What cannot be checked is your correspondent's key and this page's code, which both come from the server. Tied to THIS browser: you will not read the conversation anywhere else, and losing this device loses it.",
+      "unavailable": "{name} has not set up encryption yet, so this conversation cannot be encrypted.",
+      "lockedTitle": "Encrypted for another device",
+      "lockedBody": "These messages were sealed with a key that only exists on the browser where you turned encryption on. This one cannot read them, and nobody can do it for you.",
+      "useThisDevice": "Use this device instead…",
+      "rotateTitle": "Replace your key",
+      "rotateWarning": "Your encrypted conversations will become permanently unreadable, on this device and every other, and the people you were writing to will need to open new ones.",
+      "rotateConfirm": "I understand this cannot be undone",
+      "rotateAction": "Replace my key",
+      "unreadable": "Encrypted with a previous key — unreadable",
+      "noKeyYet": "This browser has no messaging key yet.",
+      "generate": "Set up encryption on this browser",
+      "peerKeyBrokenTitle": "Your correspondent's key cannot be read",
+      "peerKeyBrokenBody": "What they published is not a key this browser can use, so nothing here can be encrypted or decrypted. Replacing your own key would not help — they have to publish theirs again.",
+      "enableTitle": "Turn on encryption for this device",
+      "enableBody": "This browser gets a key of its own. From then on, members can start an encrypted conversation with you — and this device is the only one that will read it. There is no backup and no recovery, which is what makes the stored messages unreadable to us. It is not a defence against this instance being altered: the code doing the encrypting is served by the same instance.",
+      "enableAction": "Create my key",
+      "rotateFailed": "The key could not be published. Nothing was changed.",
+      "notReady": "This device cannot encrypt for this conversation yet.",
+      "notSealed": "not encrypted",
+      "notSealedHint": "Written in clear into an encrypted conversation — a staff broadcast cannot be sealed for each recipient. The server can read this line.",
+      "promiseTitle": "What the padlock covers",
+      "promiseBody": "Messages in this conversation are sealed in your browser and stored as ciphertext. Nobody operating this instance can read them from the database, and a report carries only what the reporter quotes.\n\nYour own conversation key never leaves this browser — it is created here and the platform will not hand it back even to this page. That is not the part to worry about, and it is not the portable identity key from your settings: that one is a separate key with a custody choice, and taking custody of it changes nothing here.\n\nWhat is not verifiable is the other side. Your correspondent's public key is whatever this server's directory hands over, and the code that seals is downloaded from the same server on every visit — so an altered instance could serve a different key or different code, and there is no fingerprint here to compare out of band. Treat it as protection for messages at rest, not as a guarantee against whoever runs the site."
+    },
+    "erasedConversation": "Closed at your correspondent's request. This conversation was encrypted, and the account that held the other half of the key has been deleted — nothing here can be opened again, by anyone.",
+    "unreadLabel": "{count} unread | {count} unread | {count} unread",
+    "reply": "Reply",
+    "edit": "Edit",
+    "edited": "edited",
+    "editing": "Editing your message",
+    "replyingTo": "Replying to {name}",
+    "replyGone": "The quoted message is gone",
+    "reactions": {
+      "add": "Add a reaction",
+      "pick": "Pick a reaction",
+      "up": "Agree",
+      "heart": "Love it",
+      "haha": "Funny",
+      "wow": "Surprising",
+      "thanks": "Thanks",
+      "done": "Done"
+    },
+    "saveEdit": "Save the change",
+    "encryptedPreview": "Encrypted",
+    "noPreview": "No message yet",
+    "ago": {
+      "now": "now",
+      "minutes": "{n} min",
+      "hours": "{n} h",
+      "days": "{n} d"
+    },
+    "badge": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "moderator": "Mod"
+    },
+    "editFailed": "The change could not be saved.",
+    "replyAccepts": "Replying accepts this request and opens the conversation both ways.",
+    "remove": "Remove",
+    "removeFailed": "The message could not be removed.",
+    "archived": "Archived",
+    "search": {
+      "placeholder": "Search your messages…",
+      "clear": "Clear the search",
+      "searching": "Searching…",
+      "none": "Nothing matches.",
+      "skipped": "Encrypted conversations were not searched — the server cannot read them.",
+      "tooShort": "Two characters at least."
+    },
+    "menu": {
+      "label": "Conversation actions",
+      "archive": "Archive",
+      "unarchive": "Move back to the inbox",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "mutedUntil": "Muted until {until}",
+      "for": {
+        "1": "1 h",
+        "8": "8 h",
+        "24": "1 day",
+        "168": "1 week"
+      },
+      "report": "Report a message",
+      "block": "Block {name}",
+      "archivedDone": "Filed away.",
+      "unarchivedDone": "Back in the inbox.",
+      "mutedDone": "Muted.",
+      "unmutedDone": "Unmuted.",
+      "blockedDone": "{name} is blocked.",
+      "failed": "That did not work."
+    },
+    "blockTitle": "Block {name}?",
+    "blockBody": "Neither of you will be able to write to the other, and this conversation closes. They are not told — a refusal that announces itself is an invitation to try again from another account. You can undo it from your blocked list.",
+    "blockConfirm": "Block",
+    "blocks": {
+      "link": "Blocked members",
+      "title": "Blocked members",
+      "hint": "Neither of you can write to the other. Lifting a block puts the conversation back in Requests — it does not reopen it.",
+      "empty": "You have not blocked anyone.",
+      "since": "blocked {when}",
+      "lift": "Unblock",
+      "lifted": "{name} is unblocked."
+    },
+    "report": {
+      "encrypted": "This conversation is encrypted: the staff cannot read this message. Quote what matters in the details box, or the report says nothing."
+    },
+    "archivedTitle": "Filed away",
+    "archivedBody": "Archived conversations are read-only. Take it back out to answer — a message from them does the same on its own.",
+    "torrentGone": "That torrent is gone."
+  },
+  "room": {
+    "title": "Room",
+    "empty": "Nothing said yet.",
+    "placeholder": "Say something…",
+    "send": "Send",
+    "older": "Load older messages",
+    "deleted": "Message removed",
+    "slowMode": "Slow mode: one message every {seconds}s",
+    "muted": "You are muted here until {until}.",
+    "offline": "Not live",
+    "sendFailed": "Not sent.",
+    "retry": "Retry",
+    "remove": "Remove this message",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "commands": {
+      "help": "/pin (while replying) · /unpin · /mute NAME [hours] [reason] · /unmute NAME · /mutes · /slow SECONDS",
+      "pinNeedsReply": "Reply to the message you want to pin, then type /pin.",
+      "usageMute": "Usage: /mute NAME [hours] [reason]",
+      "usageUnmute": "Usage: /unmute NAME",
+      "usageSlow": "Usage: /slow SECONDS — 0 turns it off",
+      "muted": "{name} is muted.",
+      "unmuted": "{name} can speak again.",
+      "slow": "Slow mode set to {seconds}s.",
+      "unknown": "Unknown command: /{cmd}. Try /help.",
+      "failed": "That did not work.",
+      "mutes": "Muted: {list}",
+      "mutesNone": "Nobody is muted.",
+      "muteEntry": "{name} ({until})",
+      "minutesLeft": "{count} min left",
+      "hoursLeft": "{count} h left"
+    },
+    "subtitle": "Everyone, in one place"
+  },
+  "privacy": {
+    "eyebrow": "Retention register",
+    "title": "What this instance keeps",
+    "lede": "Every duration below is read from this instance as it is configured right now, not copied into prose that could drift from it.",
+    "asOf": "Published by {instance}. Change a setting and this page changes with it.",
+    "registerLabel": "Retention periods",
+    "notesLabel": "Notes",
+    "unitDays": "days",
+    "dm": {
+      "title": "Private messages",
+      "timed": "Deleted automatically once they are {n} days old. Either participant can delete one sooner, and doing so blanks the row for both of you.",
+      "forever": "Kept until you delete them. This instance has set no timer, so a private message stays until a participant removes it or an account is erased."
+    },
+    "room": {
+      "title": "The public room",
+      "text": "The room is ephemeral by design: anything older than {n} days is dropped wholesale, not searched and not archived."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "text": "Read notifications are removed after {read} days, unread ones after {unread}."
+    },
+    "erasure": {
+      "title": "Erasing your account",
+      "text": "Your row is anonymised rather than dropped: the username becomes a random placeholder, the profile and last-seen address are cleared, and the passkey is rotated so any announce URL you kept stops working. Messages in encrypted conversations are destroyed outright — nobody could read them once the key is gone. Plaintext conversations survive with your name removed, because the other participant's copy is their record of an exchange they took part in."
+    },
+    "crypto": {
+      "title": "Encrypted conversations",
+      "text": "An encrypted conversation is sealed in your browser and stored as ciphertext this server has no key for — not the staff, not after a report. That covers the stored messages. It does not cover the server itself: the code that seals and your correspondent's key both come from it, and there is no fingerprint here to check either against."
+    },
+    "staff": {
+      "title": "What staff can read",
+      "text": "A moderator opens one private message, and only one that has an open report against it. The endpoint answers nothing for any other message, so it cannot be used to walk a conversation, and it answers nothing at all for an encrypted one. Every one of those reads is recorded — who, when, and whether anything was legible — and the record is visible to all staff, not only to whoever ordered it."
+    },
+    "foot": "This page lists retention. It is not a substitute for whatever notice the operator of this instance is required to publish where it is hosted."
+  },
+  "tickets": {
+    "title": "Tickets",
+    "openTab": "Open",
+    "history": "History",
+    "empty": "No open ticket",
+    "emptyHistory": "Nothing closed yet",
+    "new": "New ticket",
+    "subject": "Subject",
+    "subjectPlaceholder": "In a few words",
+    "category": "Category",
+    "message": "What is going on",
+    "messagePlaceholder": "Everything that would save a moderator from asking.",
+    "send": "Open the ticket",
+    "suspended": "The staff is not taking new tickets right now. The ones already open still work.",
+    "openedBy": "Opened by {name}",
+    "takenBy": "taken by {name}",
+    "staff": "staff",
+    "reply": "Reply",
+    "replyPlaceholder": "Write here…",
+    "failed": "That did not go through.",
+    "categories": {
+      "appeal": "Appeal",
+      "upload": "Upload",
+      "account": "Account",
+      "bug": "Bug",
+      "other": "Other"
+    },
+    "status": {
+      "open": "Waiting",
+      "taken": "Being handled",
+      "resolved": "Resolved",
+      "rejected": "Rejected",
+      "stale": "Closed, no reply",
+      "withdrawn": "Closed by you"
+    },
+    "closedAs": {
+      "resolved": "Resolved by {name}.",
+      "rejected": "Closed as not actionable by {name}.",
+      "stale": "Closed automatically after no reply. Open a new ticket if this is not settled.",
+      "withdrawn": "You closed this ticket. The staff can reopen it."
+    },
+    "withdraw": "Close this ticket",
+    "withdrawHint": "You will not be able to write to it or reopen it — only the staff can. If it comes back, open a new ticket.",
+    "menuLabel": "Ticket actions"
   }
 }

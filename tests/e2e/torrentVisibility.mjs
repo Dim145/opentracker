@@ -347,6 +347,39 @@ async function main() {
   const anon = await fetch(`${API}/api/torrents?search=${MARK}&limit=5`);
   check('and the catalogue refuses an anonymous caller', anon.status === 401, String(anon.status));
 
+  // The grouped view, with federation ON.
+  //
+  // `hasActiveCataloguePeer` composed a predicate that references
+  // `remote_torrents` into a query selecting from `federation_peers`
+  // alone, so Postgres answered `missing FROM-clause entry` and the whole
+  // grouped catalogue returned 500 — on every instance that had ever
+  // switched federation on, with or without a partner. It is off by
+  // default, which is why nothing caught it.
+  await resetRateLimits();
+  const groupsOff = await req('founder', '/api/torrents/groups?limit=5');
+  check('the grouped catalogue answers with federation off', groupsOff.status === 200,
+    `${groupsOff.status}`);
+
+  const fedOn = await req('founder', '/api/admin/federation', {
+    method: 'PUT',
+    body: { enabled: true },
+  });
+  check('federation can be switched on', fedOn.status === 200, `${fedOn.status}`);
+
+  const groupsOn = await req('founder', '/api/torrents/groups?limit=5');
+  check(
+    'and the grouped catalogue still answers with it on',
+    groupsOn.status === 200,
+    `${groupsOn.status} ${JSON.stringify(groupsOn.body).slice(0, 120)}`
+  );
+
+  // Put it back: a scenario that changes the world it runs in breaks the
+  // next one.
+  await req('founder', '/api/admin/federation', {
+    method: 'PUT',
+    body: { enabled: false },
+  });
+
   report();
 }
 

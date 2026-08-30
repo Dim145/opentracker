@@ -46,7 +46,7 @@
       </div>
       <span class="ribbon-count tabular-nums">
         <strong>{{ tags.length }}</strong>
-        {{ $t('admin.tags.snapshot.tags', tags.length, { n: tags.length }) }}
+        {{ $t('admin.tags.snapshot.tags', { n: tags.length }, tags.length) }}
       </span>
     </section>
 
@@ -138,7 +138,7 @@
           <template v-if="filterText && filteredTags.length !== tags.length">
             / {{ tags.length }}
           </template>
-          {{ $t('admin.tags.snapshot.tags', tags.length, { n: tags.length }) }}
+          {{ $t('admin.tags.snapshot.tags', { n: tags.length }, tags.length) }}
         </span>
       </header>
 

@@ -163,6 +163,11 @@
                without manual polling. -->
           <NotificationBell v-if="user" />
 
+          <!-- Unread messages. Beside the bell rather than buried in the
+               user menu: a count nobody sees until they open a dropdown
+               is not a count. Renders nothing when messaging is off. -->
+          <MessagesBell v-if="user" />
+
           <!-- User Stats — desktop only -->
           <div
             v-if="user"
@@ -309,6 +314,29 @@
                   >
                     <Icon name="ph:identification-badge-bold" class="text-sky-400" />
                     {{ $t('nav.federatedIdentity', 'Federated identity') }}
+                  </NuxtLink>
+                  <!-- Gated on the session's own answer, not on a role:
+                       the messaging scope has an `off` state, so the server
+                       decides. The routes enforce it again with a 404 — this
+                       flag only keeps the chrome from advertising a door
+                       that is not there. -->
+                  <NuxtLink
+                    v-if="canRoom"
+                    to="/chat"
+                    class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
+                    @click="showUserMenu = false"
+                  >
+                    <Icon name="ph:chats-circle-bold" />
+                    {{ $t('room.title') }}
+                  </NuxtLink>
+                  <NuxtLink
+                    v-if="canMessage"
+                    to="/messages"
+                    class="w-full px-4 py-2 text-left text-sm text-text-secondary hover:bg-fg-default/5 transition-colors flex items-center gap-2"
+                    @click="showUserMenu = false"
+                  >
+                    <Icon name="ph:chat-circle-bold" />
+                    {{ $t('messaging.title') }}
                   </NuxtLink>
                   <NuxtLink
                     to="/downloads"
@@ -558,7 +586,10 @@
             @click="showMobileNav = false"
           >
             <Icon :name="link.icon" class="text-lg flex-shrink-0" />
-            <span>{{ link.label }}</span>
+            <!-- `$t(link.labelKey)`, like the desktop bar two hundred lines
+                 up. `label` is not a field of these items, so every entry in
+                 the mobile drawer rendered with an empty name. -->
+            <span>{{ $t(link.labelKey) }}</span>
           </NuxtLink>
         </nav>
 
@@ -579,6 +610,15 @@
           >
             <Icon name="ph:users-three-bold" class="text-lg flex-shrink-0 text-emerald-500" />
             <span>{{ $t('nav.following') }}</span>
+          </NuxtLink>
+          <NuxtLink
+            v-if="canMessage"
+            to="/messages"
+            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
+            @click="showMobileNav = false"
+          >
+            <Icon name="ph:chat-circle-bold" class="text-lg flex-shrink-0" />
+            <span>{{ $t('messaging.title') }}</span>
           </NuxtLink>
           <NuxtLink
             to="/downloads"
@@ -742,7 +782,14 @@
             >v{{ appVersion }}</span
           >
         </div>
-        <div class="flex gap-6">
+        <div class="flex items-center gap-6">
+          <!-- The retention register. In the footer because that is where
+               somebody goes looking for it, and because a notice nobody
+               can find is a notice nobody was given. -->
+          <NuxtLink
+            to="/privacy"
+            class="text-[10px] font-mono uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
+          >{{ $t('privacy.eyebrow') }}</NuxtLink>
           <a
             href="https://n0w.me/"
             target="_blank"
@@ -822,13 +869,15 @@ const branding = await useBranding();
 
 // Set dynamic favicon and title template
 useHead({
-  titleTemplate: computed(() => {
+  // A plain function, not a `computed` wrapping one: `titleTemplate` takes
+  // a string or a function, and a `ComputedRef<fn>` is neither. It reads
+  // `branding.value` when it runs, which is what makes it reactive.
+  titleTemplate: (title?: string) => {
     const suffix =
       branding.value?.pageTitleSuffix ||
       `- ${stripTags(branding.value?.siteName) || 'TRACKARR'}`;
-    return (title?: string) =>
-      title ? `${title} ${suffix}` : suffix.replace(/^- /, '');
-  }),
+    return title ? `${title} ${suffix}` : suffix.replace(/^- /, '');
+  },
   link: [
     {
       rel: 'icon',
@@ -998,6 +1047,15 @@ onMounted(() => {
 // The same decision the palette makes, from the same function, so the chip
 // cannot advertise a door the component would refuse to open. The component
 // enforces it; this only keeps the affordance honest.
+/** Whether each messaging surface exists for this member — the server's
+ *  answer, since both scopes have an `off` state and a `staff` state. */
+const canMessage = computed(
+  () => !!(user.value as { canMessage?: boolean } | null)?.canMessage
+);
+const canRoom = computed(
+  () => !!(user.value as { canRoom?: boolean } | null)?.canRoom
+);
+
 const paletteAvailable = computed(
   () => paletteAccessFor(user.value).available
 );

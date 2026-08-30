@@ -56,7 +56,7 @@
         </div>
         <span class="bucket-meta">
           <strong>{{ liveChannels.length }}</strong>
-          {{ $t('admin.notifications.fleet.channels', liveChannels.length, { n: liveChannels.length }) }}
+          {{ $t('admin.notifications.fleet.channels', { n: liveChannels.length }, liveChannels.length) }}
         </span>
       </header>
       <ul class="card-grid">
@@ -88,7 +88,7 @@
         </div>
         <span class="bucket-meta">
           <strong>{{ actionChannels.length }}</strong>
-          {{ $t('admin.notifications.fleet.channels', actionChannels.length, { n: actionChannels.length }) }}
+          {{ $t('admin.notifications.fleet.channels', { n: actionChannels.length }, actionChannels.length) }}
         </span>
       </header>
       <ul class="card-grid">
@@ -120,7 +120,7 @@
         </div>
         <span class="bucket-meta">
           <strong>{{ availableChannels.length }}</strong>
-          {{ $t('admin.notifications.fleet.channels', availableChannels.length, { n: availableChannels.length }) }}
+          {{ $t('admin.notifications.fleet.channels', { n: availableChannels.length }, availableChannels.length) }}
         </span>
       </header>
       <ul class="card-grid">

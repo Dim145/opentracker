@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./releaseParse": "./src/releaseParse.ts",
     "./didProof": "./src/didProof.ts",
+    "./media": "./src/media.ts",
     "./templateEngine": "./src/templateEngine.ts",
     "./theme": "./src/theme.ts",
     "./css": "./src/css.ts"

@@ -15,6 +15,7 @@
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
+import { validateBody } from '~~/utils/schemas';
 import { requireAuthSession, requireFreshAuth } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { eraseAccount } from '~~/utils/account/eraseAccount';
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
   await rateLimit(event, RATE_LIMITS.mutation);
   await requireFreshAuth(event);
 
-  const { confirm } = bodySchema.parse(await readBody(event));
+  const { confirm } = await validateBody(event, bodySchema);
 
   // The current username from the row, not the session — the session can be
   // stale, and the whole point is to match what the account is right now.

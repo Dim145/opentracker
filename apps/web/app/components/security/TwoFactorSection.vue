@@ -371,7 +371,10 @@ const totpRecoveryCodes = ref<string[]>([]);
 
 async function startTotpSetup() {
   try {
-    totpSetup.value = await $fetch('/api/me/2fa/totp/setup', {
+    // The generic, not inference from Nuxt's route table: assigning the
+    // inferred result into a typed ref makes the compiler walk that table
+    // and blow the instantiation depth.
+    totpSetup.value = await $fetch<{ qrDataUrl: string; uri: string; secret: string }>('/api/me/2fa/totp/setup', {
       method: 'POST',
     });
     totpRecoveryCodes.value = [];

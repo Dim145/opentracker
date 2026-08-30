@@ -268,21 +268,10 @@ interface MediaSearchHit {
 }
 
 /** Full normalised metadata returned by /api/metadata/lookup. */
-interface MediaMetadata {
-  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb' | 'openlibrary';
-  type: 'movie' | 'tv' | 'game' | 'book';
-  tmdbId?: number | null;
-  imdbId?: string | null;
-  tvdbId?: number | null;
-  igdbId?: number | null;
-  openlibraryId?: string | null;
-  isbn13?: string | null;
-  isbn10?: string | null;
-  title: string;
-  year: number | null;
-  posterUrl: string | null;
-  [key: string]: unknown;
-}
+/* The shared wire type. This declared five identity fields and an index
+ * signature, so every card that received a result rejected it. See
+ * `packages/shared/src/media.ts`. */
+import type { MediaMetadata } from '@trackarr/shared/media';
 
 const { t } = useI18n();
 

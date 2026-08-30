@@ -1,0 +1,117 @@
+{{- if .Values.relay.enabled }}
+{{- $c := "relay" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "trackarr.fullname" . }}-relay
+  labels:
+    {{- include "trackarr.componentLabels" (dict "ctx" $ "component" $c) | nindent 4 }}
+  annotations:
+    {{- include "trackarr.annotations" . | nindent 4 }}
+spec:
+  {{- if not .Values.relay.autoscaling.enabled }}
+  replicas: {{ .Values.relay.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "trackarr.componentSelectorLabels" (dict "ctx" $ "component" $c) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "trackarr.componentSelectorLabels" (dict "ctx" $ "component" $c) | nindent 8 }}
+        {{- with .Values.relay.podLabels }}{{ toYaml . | nindent 8 }}{{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.relay.podAnnotations }}{{ toYaml . | nindent 8 }}{{- end }}
+    spec:
+      serviceAccountName: {{ include "trackarr.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "trackarr.podSecurityContext" . | nindent 8 }}
+      # Every pod termination disconnects readers, who reconnect with jitter
+      # and ask the API for what they missed. The grace period is what keeps
+      # a rollout from doing that to all of them at once.
+      terminationGracePeriodSeconds: {{ .Values.relay.terminationGracePeriodSeconds }}
+      {{- with .Values.relay.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.relay.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.relay.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.relay.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: relay
+          image: {{ include "trackarr.image" (dict "ctx" $ "image" .Values.relay.image) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- include "trackarr.containerSecurityContext" . | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.relay.port }}
+              protocol: TCP
+          envFrom:
+            {{- include "trackarr.envFrom" . | nindent 12 }}
+          env:
+            {{- include "trackarr.redisEnv" . | nindent 12 }}
+            - name: RELAY_ADDR
+              value: ":{{ .Values.relay.port }}"
+            # The node registers under this name and the API addresses its
+            # config to it. The pod name is already unique per replica, and
+            # it changes on reschedule — which is correct: a rescheduled pod
+            # is a new node, and the old registration expires on its TTL.
+            - name: RELAY_NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: RELAY_ALLOW_ORIGIN
+              value: {{ .Values.relay.allowOrigin | quote }}
+            {{- with .Values.config.extraEnv }}{{ toYaml . | nindent 12 }}{{- end }}
+            {{- with .Values.relay.extraEnv }}{{ toYaml . | nindent 12 }}{{- end }}
+          startupProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 3
+            failureThreshold: 20
+          readinessProbe:
+            # /healthz pings Valkey, which is right: a relay that cannot
+            # reach it has nothing to fan out and should take no readers.
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            # Deliberately NOT /healthz — a Valkey failover would otherwise
+            # restart every replica at once, dropping every open stream.
+            tcpSocket: { port: http }
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.relay.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "trackarr.fullname" . }}-relay
+  labels:
+    {{- include "trackarr.componentLabels" (dict "ctx" $ "component" $c) | nindent 4 }}
+  {{- with .Values.relay.service.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.relay.service.type }}
+  ports:
+    # One port. /events, /healthz and /metrics all live on it — the
+    # ServiceMonitor below scrapes this same port by name, and the Ingress
+    # publishes only the /messaging/events path from it.
+    - name: http
+      port: {{ .Values.relay.service.port | default .Values.relay.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "trackarr.componentSelectorLabels" (dict "ctx" $ "component" $c) | nindent 4 }}
+{{- end }}

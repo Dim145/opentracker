@@ -563,8 +563,8 @@
       "rotateWarning": "Tous les comptes que vous avez prouvés ailleurs seront déliés.",
       "rotateConfirm": "La retirer",
       "rotated": "Retirée. Votre nouvel identifiant :",
-      "custodyOff": "Cette instance détient votre clé pour vous. Vous pouvez la reprendre : elle est générée dans votre navigateur et n'en sort jamais.",
-      "custodyOn": "Vous détenez votre clé. Cette instance ne peut pas signer à votre place.",
+      "custodyOff": "Cette instance détient votre clé et peut signer en votre nom avec. La reprendre en génère une nouvelle ici à la place — celle-là est créée dans votre navigateur et n'en sort jamais, et à partir de là cette instance ne peut plus signer à votre place.",
+      "custodyOn": "Vous détenez votre clé. Cette instance ne peut pas signer à votre place. C'est votre identité portable et rien d'autre — les conversations chiffrées utilisent une autre clé, qui vous appartient depuis toujours.",
       "takeCustody": "Détenir ma clé",
       "custodyWarning": "Seul ce navigateur l'aura. La perdre, c'est perdre l'identifiant — téléchargez le fichier juste après.",
       "custodyConfirm": "La générer ici",
@@ -1340,7 +1340,8 @@
         "user": "Utilisateur",
         "post": "Message",
         "comment": "Commentaire",
-        "remote": "Release fédérée"
+        "remote": "Release fédérée",
+        "message": "Message privé"
       },
       "reasons": {
         "spam": "Spam ou publicité",
@@ -2989,7 +2990,8 @@
         "user": "Utilisateur",
         "post": "Message",
         "comment": "Commentaire",
-        "remote": "Release fédérée"
+        "remote": "Release fédérée",
+        "message": "Message privé"
       },
       "toasts": {
         "resolved": "Signalement accepté",
@@ -3016,7 +3018,13 @@
         }
       },
       "filterWithdrawn": "Retirés",
-      "withdrawnByReporter": "Ce signaleur a retiré {n} signalements"
+      "withdrawnByReporter": "Ce signaleur a retiré {n} signalements",
+      "messageBody": "Message",
+      "messageReveal": "Lire le message signalé",
+      "messageMissing": "Ce message n'existe plus, ou n'a jamais été signalé.",
+      "messageEncrypted": "Chiffré — personne n'en détient la clé, le staff compris. Agis sur ce que le signalant a cité.",
+      "messageRemoved": "Retiré par son auteur ou par le staff.",
+      "messageRetry": "Le chargement a échoué. Réessaie."
     },
     "tags": {
       "title": "Tags",
@@ -3289,7 +3297,9 @@
       "cssWillRefuse": "Le serveur refusera ceci :",
       "editorBack": "Retour à la liste",
       "editorTitleNew": "Nouveau thème",
-      "fontFamilySuggest": "Les suggestions viennent du fichier choisi et des fontes déjà téléversées."
+      "fontFamilySuggest": "Les suggestions viennent du fichier choisi et des fontes déjà téléversées.",
+      "notFoundTitle": "Ce thème n'existe plus.",
+      "notFoundBody": "Il a été supprimé, ou l'adresse désigne un thème qui n'a jamais existé."
     },
     "homepage": {
       "title": "Contenu de la page d'accueil",
@@ -3623,6 +3633,63 @@
       "fuzzy": "Tolérance aux fautes de frappe",
       "fuzzyLabel": "Rattraper les fautes de frappe",
       "fuzzyHint": "Quand la recherche ne trouve rien, une seconde passe cherche les titres approchants — « crimsen » retrouve « Crimson ». Elle ne s’exécute que face à une page vide, mais coûte environ dix fois une recherche normale. À couper si le catalogue devient trop gros ou le serveur trop chargé."
+    },
+    "messaging": {
+      "title": "Messagerie",
+      "description": "Les messages privés et le salon public sont deux surfaces distinctes, avec des publics distincts. Les deux démarrent désactivées — personne ne découvre une fonctionnalité que l'instance n'a pas décidé d'ouvrir.",
+      "dmScope": "Messages privés",
+      "dmScopeHint": "Qui peut ouvrir et lire une conversation à deux.",
+      "roomScope": "Salon public",
+      "roomScopeHint": "Qui peut lire et écrire dans le salon. Demande une modération présente : c'est la surface qu'un seul membre peut gâcher pour tout le monde.",
+      "retentionDays": "Rétention du salon",
+      "retentionHint": "Durée de conservation des messages du salon. La purge supprime des journées entières, donc une baisse prend effet au prochain passage.",
+      "slowMode": "Mode lent",
+      "slowModeHint": "Délai minimum entre deux messages d'un même membre. Zéro le désactive.",
+      "daysLabel": "jours",
+      "secondsLabel": "secondes",
+      "retentionWarning": "Désactiver une surface la masque, elle ne supprime rien. Raccourcir la rétention, si : le prochain passage supprime toutes les journées désormais hors fenêtre, sans retour possible.",
+      "scope": {
+        "off": "Désactivé",
+        "staff": "Staff uniquement",
+        "all": "Tous les membres"
+      },
+      "dmRetentionDays": "Conservation des messages privés",
+      "dmRetentionHint": "Combien de temps un message privé est gardé avant suppression automatique. Zéro les laisse jusqu'à ce qu'un participant les supprime ou qu'un compte soit effacé — c'est la valeur par défaut, et elle le reste après une mise à jour : ce sont les conversations des membres, pas les archives de l'instance. Au-dessus de zéro, le plancher est de sept jours, parce qu'un signalement arrive après coup.",
+      "dmRetentionOff": "jours — 0 = aucune durée",
+      "dmRetentionPublished": "Ce que tu règles ici est publié aux membres sur /privacy, qui le lit en direct.",
+      "ticketsMode": "Tickets vers le staff",
+      "ticketsModeHint": "Un membre écrit au staff plutôt qu'à quelqu'un en particulier — même s'il a bloqué la personne de garde. Suspendu : la file reste visible et les tickets ouverts continuent, mais on ne peut plus en ouvrir.",
+      "tickets": {
+        "off": "Désactivé",
+        "suspended": "Suspendu — plus de nouveaux tickets",
+        "on": "Activé"
+      }
+    },
+    "broadcast": {
+      "title": "Diffusion staff",
+      "description": "Un message, livré à une cohorte bornée sous forme de vrai message privé auquel on peut répondre. Ce n'est pas un moyen d'écrire à tous les membres — la bannière d'annonce et le fil de notifications sont là pour ça.",
+      "audience": "Destinataires",
+      "audienceHint": "Comptés avant tout envoi.",
+      "byRole": "Un rôle",
+      "byInactive": "Membres inactifs",
+      "byHnr": "Violations de hit-and-run",
+      "byStaff": "Le staff",
+      "daysLabel": "jours sans connexion",
+      "message": "Message",
+      "messageHint": "Texte simple. Chacun le reçoit comme une conversation normale et peut te répondre.",
+      "counting": "Comptage…",
+      "willReach": "Cela touchera {count} membre(s).",
+      "send": "Envoyer la diffusion",
+      "recent": "Récentes",
+      "running": "en cours…",
+      "failed": "La diffusion n'a pas pu démarrer."
+    },
+    "iconPicker": {
+      "searchPlaceholder": "Rechercher une icône…",
+      "empty": "Aucune icône ne correspond.",
+      "clear": "Effacer",
+      "footerHint": "Ou tapez un nom Phosphor.",
+      "toggleAria": "Ouvrir le sélecteur d'icônes"
     }
   },
   "mod": {
@@ -3633,7 +3700,9 @@
       "users": "Utilisateurs",
       "reports": "Signalements",
       "hnr": "Hit & Run",
-      "antiCheat": "Anti-cheat"
+      "antiCheat": "Anti-cheat",
+      "messageReads": "Lectures de messages",
+      "tickets": "Tickets"
     },
     "descriptions": {
       "dashboard": "Aperçu de la modération et actions rapides",
@@ -3641,7 +3710,9 @@
       "users": "Gérer les comptes utilisateurs et les bannissements",
       "reports": "Examiner et traiter les signalements des utilisateurs",
       "hnr": "Surveiller et gérer les violations H&R",
-      "antiCheat": "Triager les annonces signalées par le détecteur anti-triche"
+      "antiCheat": "Triager les annonces signalées par le détecteur anti-triche",
+      "messageReads": "Chaque fois qu'un membre du staff a ouvert un message privé signalé.",
+      "tickets": "Ce que les membres ont demandé au staff, les plus anciens d'abord."
     },
     "antiCheat": {
       "title": "Anti-cheat",
@@ -3747,7 +3818,10 @@
         "myActions": "Mes actions · 7 j",
         "myActionsHint": "{n} signalements clos",
         "masks": "Masques fédérés",
-        "masksHint": "Masquer du contenu partenaire"
+        "masksHint": "Masquer du contenu partenaire",
+        "tickets": "Tickets",
+        "ticketsHint": "la file du staff",
+        "ticketsUntaken": "{n} que personne n'a pris"
       },
       "queue": {
         "title": "Plus frais en attente",
@@ -3798,6 +3872,35 @@
         "author": "Cet uploadeur",
         "issuer": "Cette instance"
       }
+    },
+    "messageReads": {
+      "note": "Une ligne par lecture d'un message privé signalé — la seule route par laquelle quelqu'un lit ici la correspondance d'un autre membre. Aucun contenu de message : elle dit qu'une chose a été ouverte, par qui, et s'arrête là. Tous ceux qui peuvent en ouvrir un voient chaque fois que quelqu'un l'a fait.",
+      "empty": "Personne n'a encore ouvert de message signalé.",
+      "disclosed": "lu",
+      "sealed": "chiffré — rien affiché",
+      "readerGone": "Ce compte a été effacé. Le nom est conservé, c'est tout l'intérêt du registre."
+    },
+    "tickets": {
+      "title": "Tickets",
+      "queue": "File",
+      "archive": "Clôturés",
+      "untaken": "{n} que personne n'a pris",
+      "nobody": "personne",
+      "emptyQueue": "Rien en attente.",
+      "emptyArchive": "Rien de clôturé.",
+      "openAction": "Ouvrir",
+      "take": "Le prendre",
+      "release": "Le rendre",
+      "resolve": "Résoudre",
+      "reject": "Rejeter",
+      "reopen": "Rouvrir",
+      "closeHint": "Le membre voit ce texte. Une clôture sans motif se lit comme un haussement d'épaules.",
+      "notePlaceholder": "Ce qui a été fait, ou pourquoi non.",
+      "ageMinutes": "{n} min",
+      "ageHours": "{n} h",
+      "ageDays": "{n} j",
+      "withdrawn": "Retiré",
+      "withdrawnBy": "{name} a clôturé son propre ticket."
     }
   },
   "forum": {
@@ -4369,6 +4472,30 @@
       "federated_request_created": {
         "title": "Une release que vous avez peut-être est demandée",
         "desc": "« {title} » — vue sur {peerName} — a été demandée ici. Remplissez-la pour +{rewardPoints} pts."
+      },
+      "message_received": {
+        "title": "Nouveau message privé",
+        "desc": "{from} t'a écrit."
+      },
+      "message_request_received": {
+        "title": "Quelqu'un veut t'écrire",
+        "desc": "{from} a envoyé une demande. Accepte-la pour ouvrir la conversation."
+      },
+      "ticket_opened": {
+        "title": "Nouveau ticket",
+        "desc": "{from} a ouvert « {subject} »."
+      },
+      "ticket_answered": {
+        "title": "Réponse à ton ticket",
+        "desc": "{from} a répondu à « {subject} »."
+      },
+      "ticket_closed": {
+        "title": "Ton ticket est clôturé",
+        "desc": "« {subject} » — {status}."
+      },
+      "ticket_idle_warning": {
+        "title": "Ton ticket va se clôturer",
+        "desc": "« {subject} » — réponds sous {days} jours pour le garder ouvert."
       }
     }
   },
@@ -4761,12 +4888,264 @@
       "invites": "Invitations",
       "shop": "Boutique bonus",
       "notifications": "Notifications",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "messages": "Messages"
     },
     "actions": {
       "upload": "Publier un torrent",
       "theme": "Changer de thème",
       "signOut": "Se déconnecter"
     }
+  },
+  "messaging": {
+    "title": "Messages",
+    "inbox": "Boîte de réception",
+    "requests": "Demandes",
+    "requestsHint": "Premiers messages de membres à qui vous n'avez jamais écrit. Accepter déplace la conversation dans votre boîte.",
+    "empty": "Aucune conversation.",
+    "emptyRequests": "Aucune demande en attente.",
+    "emptyThread": "Rien ici pour le moment — écrivez le premier message.",
+    "pick": "Choisissez une conversation.",
+    "deletedMember": "Membre supprimé",
+    "placeholder": "Écrire un message…",
+    "send": "Envoyer",
+    "accept": "Accepter",
+    "encrypted": "Chiffrée",
+    "encryptedNotice": "Cette conversation est chiffrée. Le chiffrement arrive à une étape ultérieure — d'ici là elle ne peut être ni lue ni écrite ici.",
+    "olderMessages": "Charger les messages plus anciens",
+    "unreadOne": "1 non lu",
+    "unreadMany": "{count} non lus",
+    "sendFailed": "Non envoyé.",
+    "retry": "Réessayer",
+    "newConversation": "Nouvelle conversation",
+    "recipient": "Membre",
+    "start": "Démarrer",
+    "offline": "Hors direct",
+    "offlineHint": "Les messages s'envoient et se lisent toujours ; ils n'arrivent simplement pas tout seuls. Rechargez pour voir la suite.",
+    "crypto": {
+      "label": "Chiffrer cette conversation",
+      "hint": "Le serveur stocke du chiffré dont il n'a pas la clé — ni le staff, ni après un signalement. Ta propre clé est fabriquée ici et ne quitte jamais ce navigateur. Ce qui n'est pas vérifiable, c'est la clé de ton correspondant et le code de cette page, qui viennent tous les deux du serveur. Lié à CE navigateur : tu ne liras la conversation nulle part ailleurs, et perdre cet appareil la perd.",
+      "unavailable": "{name} n'a pas encore activé le chiffrement, cette conversation ne peut donc pas être chiffrée.",
+      "lockedTitle": "Chiffrée pour un autre appareil",
+      "lockedBody": "Ces messages ont été scellés avec une clé qui n'existe que sur le navigateur où vous avez activé le chiffrement. Celui-ci ne peut pas les lire, et personne ne peut le faire à votre place.",
+      "useThisDevice": "Utiliser celui-ci à la place…",
+      "rotateTitle": "Remplacer votre clé",
+      "rotateWarning": "Vos conversations chiffrées deviendront définitivement illisibles, sur cet appareil comme sur les autres, et vos correspondants devront en ouvrir de nouvelles.",
+      "rotateConfirm": "Je comprends que c’est irréversible",
+      "rotateAction": "Remplacer ma clé",
+      "unreadable": "Chiffré avec une clé précédente — illisible",
+      "noKeyYet": "Ce navigateur n'a pas encore de clé de messagerie.",
+      "generate": "Activer le chiffrement sur ce navigateur",
+      "peerKeyBrokenTitle": "La clé de ton correspondant est illisible",
+      "peerKeyBrokenBody": "Ce qu'il a publié n'est pas une clé exploitable par ce navigateur : rien ici ne peut être chiffré ni déchiffré. Remplacer ta propre clé n'y changerait rien — c'est à lui de republier la sienne.",
+      "enableTitle": "Activer le chiffrement sur cet appareil",
+      "enableBody": "Ce navigateur reçoit sa propre clé. Les membres pourront alors démarrer une conversation chiffrée avec toi — et cet appareil sera le seul à pouvoir la lire. Aucune sauvegarde, aucune récupération : c'est ce qui rend les messages stockés illisibles pour nous. Ce n'est pas une protection contre une instance modifiée : le code qui chiffre est servi par cette même instance.",
+      "enableAction": "Créer ma clé",
+      "rotateFailed": "La clé n'a pas pu être publiée. Rien n'a été modifié.",
+      "notReady": "Cet appareil ne peut pas encore chiffrer pour cette conversation.",
+      "notSealed": "non chiffré",
+      "notSealedHint": "Écrit en clair dans une conversation chiffrée — une diffusion du staff ne peut pas être scellée pour chaque destinataire. Le serveur peut lire cette ligne.",
+      "promiseTitle": "Ce que le cadenas couvre",
+      "promiseBody": "Les messages de cette conversation sont scellés dans ton navigateur et stockés chiffrés. Personne qui exploite cette instance ne peut les lire depuis la base, et un signalement ne transporte que ce que le signalant cite.\n\nTa propre clé de conversation ne quitte jamais ce navigateur : elle y est créée, et la plateforme refuse de la rendre, même à cette page. Ce n'est pas là qu'est le problème — et ce n'est pas la clé d'identité portable de tes paramètres : celle-là est une clé distincte, avec un choix de détention, et la reprendre ne change rien ici.\n\nCe qui n'est pas vérifiable, c'est l'autre côté. La clé publique de ton correspondant est celle que l'annuaire de ce serveur te donne, et le code qui scelle en est téléchargé à chaque visite — une instance modifiée pourrait donc servir une autre clé ou un autre code, et il n'y a ici aucune empreinte à comparer hors bande. À considérer comme une protection des messages au repos, pas comme une garantie vis-à-vis de qui fait tourner le site."
+    },
+    "erasedConversation": "Fermée à la demande de votre correspondant. Cette conversation était chiffrée, et le compte qui détenait l'autre moitié de la clé a été supprimé — plus rien ici ne peut être ouvert, par personne.",
+    "unreadLabel": "{count} non lu | {count} non lu | {count} non lus",
+    "reply": "Répondre",
+    "edit": "Modifier",
+    "edited": "modifié",
+    "editing": "Modification de ton message",
+    "replyingTo": "En réponse à {name}",
+    "replyGone": "Le message cité n'existe plus",
+    "reactions": {
+      "add": "Ajouter une réaction",
+      "pick": "Choisir une réaction",
+      "up": "D'accord",
+      "heart": "J'adore",
+      "haha": "Drôle",
+      "wow": "Étonnant",
+      "thanks": "Merci",
+      "done": "Fait"
+    },
+    "saveEdit": "Enregistrer la modification",
+    "encryptedPreview": "Chiffrée",
+    "noPreview": "Aucun message",
+    "ago": {
+      "now": "à l'instant",
+      "minutes": "{n} min",
+      "hours": "{n} h",
+      "days": "{n} j"
+    },
+    "badge": {
+      "owner": "Propriétaire",
+      "admin": "Admin",
+      "moderator": "Modo"
+    },
+    "editFailed": "La modification n'a pas pu être enregistrée.",
+    "replyAccepts": "Répondre accepte cette demande et ouvre la conversation dans les deux sens.",
+    "remove": "Supprimer",
+    "removeFailed": "Le message n'a pas pu être supprimé.",
+    "archived": "Archivées",
+    "search": {
+      "placeholder": "Rechercher dans tes messages…",
+      "clear": "Effacer la recherche",
+      "searching": "Recherche…",
+      "none": "Aucun résultat.",
+      "skipped": "Les conversations chiffrées n'ont pas été fouillées — le serveur ne peut pas les lire.",
+      "tooShort": "Deux caractères minimum."
+    },
+    "menu": {
+      "label": "Actions sur la conversation",
+      "archive": "Archiver",
+      "unarchive": "Remettre dans la boîte",
+      "mute": "Mettre en sourdine",
+      "unmute": "Réactiver",
+      "mutedUntil": "En sourdine jusqu'au {until}",
+      "for": {
+        "1": "1 h",
+        "8": "8 h",
+        "24": "1 jour",
+        "168": "1 semaine"
+      },
+      "report": "Signaler un message",
+      "block": "Bloquer {name}",
+      "archivedDone": "Archivée.",
+      "unarchivedDone": "De retour dans la boîte.",
+      "mutedDone": "Mise en sourdine.",
+      "unmutedDone": "Sourdine levée.",
+      "blockedDone": "{name} est bloqué.",
+      "failed": "Ça n'a pas marché."
+    },
+    "blockTitle": "Bloquer {name} ?",
+    "blockBody": "Aucun de vous deux ne pourra plus écrire à l'autre, et cette conversation se ferme. Il n'en est pas averti — un refus qui s'annonce est une invitation à recommencer depuis un autre compte. Tu peux revenir en arrière depuis ta liste de blocages.",
+    "blockConfirm": "Bloquer",
+    "blocks": {
+      "link": "Membres bloqués",
+      "title": "Membres bloqués",
+      "hint": "Aucun de vous deux ne peut écrire à l'autre. Lever un blocage remet la conversation dans les demandes — ça ne la rouvre pas.",
+      "empty": "Tu n'as bloqué personne.",
+      "since": "bloqué {when}",
+      "lift": "Débloquer",
+      "lifted": "{name} est débloqué."
+    },
+    "report": {
+      "encrypted": "Cette conversation est chiffrée : le staff ne peut pas lire ce message. Cite l'essentiel dans le champ de détails, sinon le signalement ne dit rien."
+    },
+    "archivedTitle": "Archivée",
+    "archivedBody": "Une conversation archivée est en lecture seule. Remets-la dans la boîte pour répondre — un message de sa part le fait tout seul.",
+    "torrentGone": "Ce torrent n'existe plus."
+  },
+  "room": {
+    "title": "Salon",
+    "empty": "Rien n’a encore été dit.",
+    "placeholder": "Dire quelque chose…",
+    "send": "Envoyer",
+    "older": "Charger les messages plus anciens",
+    "deleted": "Message retiré",
+    "slowMode": "Mode lent : un message toutes les {seconds}s",
+    "muted": "Vous êtes réduit au silence ici jusqu’au {until}.",
+    "offline": "Hors direct",
+    "sendFailed": "Non envoyé.",
+    "retry": "Réessayer",
+    "remove": "Retirer ce message",
+    "pin": "Épingler",
+    "unpin": "Désépingler",
+    "commands": {
+      "help": "/pin (en répondant) · /unpin · /mute PSEUDO [heures] [raison] · /unmute PSEUDO · /mutes · /slow SECONDES",
+      "pinNeedsReply": "Réponds au message à épingler, puis tape /pin.",
+      "usageMute": "Usage : /mute PSEUDO [heures] [raison]",
+      "usageUnmute": "Usage : /unmute PSEUDO",
+      "usageSlow": "Usage : /slow SECONDES — 0 le désactive",
+      "muted": "{name} est réduit au silence.",
+      "unmuted": "{name} peut à nouveau parler.",
+      "slow": "Mode lent réglé à {seconds} s.",
+      "unknown": "Commande inconnue : /{cmd}. Essaie /help.",
+      "failed": "Ça n'a pas marché.",
+      "mutes": "En sourdine : {list}",
+      "mutesNone": "Personne n'est en sourdine.",
+      "muteEntry": "{name} ({until})",
+      "minutesLeft": "{count} min restantes",
+      "hoursLeft": "{count} h restantes"
+    },
+    "subtitle": "Tout le monde, au même endroit"
+  },
+  "privacy": {
+    "eyebrow": "Registre de conservation",
+    "title": "Ce que cette instance garde",
+    "lede": "Chaque durée ci-dessous est lue sur cette instance telle qu'elle est configurée en ce moment, pas recopiée dans un texte qui pourrait s'en écarter.",
+    "asOf": "Publié par {instance}. Change un réglage et cette page change avec lui.",
+    "registerLabel": "Durées de conservation",
+    "notesLabel": "Notes",
+    "unitDays": "jours",
+    "dm": {
+      "title": "Messages privés",
+      "timed": "Supprimés automatiquement passé {n} jours. Chacun des deux participants peut en supprimer un plus tôt, ce qui vide la ligne pour vous deux.",
+      "forever": "Gardés jusqu'à ce que tu les supprimes. Cette instance n'a fixé aucune durée : un message privé reste tant qu'un participant ne le retire pas ou qu'un compte n'est pas effacé."
+    },
+    "room": {
+      "title": "Le salon public",
+      "text": "Le salon est éphémère par construction : tout ce qui dépasse {n} jours est supprimé en bloc, sans être indexé ni archivé."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "text": "Les notifications lues sont retirées après {read} jours, les non lues après {unread}."
+    },
+    "erasure": {
+      "title": "Effacer ton compte",
+      "text": "Ta ligne est anonymisée plutôt que supprimée : le pseudo devient un placeholder aléatoire, le profil et la dernière adresse vue sont vidés, et la passkey est régénérée pour que toute URL d'annonce conservée cesse de fonctionner. Les messages des conversations chiffrées sont détruits — personne ne pourrait plus les lire une fois la clé partie. Les conversations en clair survivent, ton nom en moins : la copie de l'autre participant est son propre souvenir d'un échange auquel il a pris part."
+    },
+    "crypto": {
+      "title": "Conversations chiffrées",
+      "text": "Une conversation chiffrée est scellée dans ton navigateur et stockée sous une forme dont ce serveur n'a pas la clé — ni le staff, ni après un signalement. Ça couvre les messages stockés. Ça ne couvre pas le serveur lui-même : le code qui scelle et la clé de ton correspondant viennent tous les deux de lui, et il n'y a ici aucune empreinte pour les vérifier."
+    },
+    "staff": {
+      "title": "Ce que le staff peut lire",
+      "text": "Un modérateur ouvre un message privé, et seulement un qui fait l'objet d'un signalement ouvert. La route ne répond rien pour un autre message — elle ne permet donc pas de parcourir une conversation — et rien du tout pour un message chiffré. Chacune de ces lectures est enregistrée — qui, quand, et si quelque chose était lisible — et le registre est visible de tout le staff, pas seulement de celui qui l'a demandé."
+    },
+    "foot": "Cette page liste des durées de conservation. Elle ne remplace pas la notice que l'exploitant de cette instance doit publier là où elle est hébergée."
+  },
+  "tickets": {
+    "title": "Tickets",
+    "openTab": "Ouverts",
+    "history": "Historique",
+    "empty": "Aucun ticket ouvert",
+    "emptyHistory": "Rien de clôturé pour l'instant",
+    "new": "Nouveau ticket",
+    "subject": "Sujet",
+    "subjectPlaceholder": "En quelques mots",
+    "category": "Catégorie",
+    "message": "Ce qui se passe",
+    "messagePlaceholder": "Tout ce qui évitera à un modérateur d'avoir à demander.",
+    "send": "Ouvrir le ticket",
+    "suspended": "Le staff ne prend pas de nouveaux tickets en ce moment. Ceux déjà ouverts fonctionnent toujours.",
+    "openedBy": "Ouvert par {name}",
+    "takenBy": "pris en charge par {name}",
+    "staff": "staff",
+    "reply": "Répondre",
+    "replyPlaceholder": "Écris ici…",
+    "failed": "Ça n'est pas passé.",
+    "categories": {
+      "appeal": "Recours",
+      "upload": "Upload",
+      "account": "Compte",
+      "bug": "Bug",
+      "other": "Autre"
+    },
+    "status": {
+      "open": "En attente",
+      "taken": "Pris en charge",
+      "resolved": "Résolu",
+      "rejected": "Rejeté",
+      "stale": "Clôturé faute de réponse",
+      "withdrawn": "Clôturé par toi"
+    },
+    "closedAs": {
+      "resolved": "Résolu par {name}.",
+      "rejected": "Clôturé sans suite par {name}.",
+      "stale": "Clôturé automatiquement, faute de réponse. Rouvre un ticket si le sujet n'est pas réglé.",
+      "withdrawn": "Tu as clôturé ce ticket. Le staff peut le rouvrir."
+    },
+    "withdraw": "Clôturer ce ticket",
+    "withdrawHint": "Tu n'auras plus la main dessus, ni pour écrire ni pour le rouvrir — seul le staff peut le rouvrir. Si le sujet revient, ouvre un nouveau ticket.",
+    "menuLabel": "Actions sur le ticket"
   }
 }

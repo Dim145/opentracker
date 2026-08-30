@@ -264,7 +264,7 @@
               <span class="dest-id">
                 <strong class="dest-name">{{ $t('settings.notifications.addDestination') }}</strong>
                 <span class="dest-target dest-target--soft">
-                  {{ $t('settings.notifications.availablePicker', unconfiguredChannels.length, { n: unconfiguredChannels.length }) }}
+                  {{ $t('settings.notifications.availablePicker', { n: unconfiguredChannels.length }, unconfiguredChannels.length) }}
                 </span>
               </span>
               <Icon
@@ -423,7 +423,7 @@
           <div v-if="routingDirty" class="route-save">
             <span class="route-save-info">
               <Icon name="ph:floppy-disk-bold" />
-              <span>{{ $t('settings.notifications.changesPending', routingDiffCount, { n: routingDiffCount }) }}</span>
+              <span>{{ $t('settings.notifications.changesPending', { n: routingDiffCount }, routingDiffCount) }}</span>
             </span>
             <button
               type="button"

@@ -488,7 +488,7 @@
       <div v-if="dirty" class="savebar">
         <span class="savebar-status">
           <Icon name="ph:floppy-disk-bold" />
-          {{ $t('admin.branding.unsavedChanges', dirtyCount, { n: dirtyCount }) }}
+          {{ $t('admin.branding.unsavedChanges', { n: dirtyCount }, dirtyCount) }}
         </span>
         <button
           type="button"

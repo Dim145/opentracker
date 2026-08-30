@@ -195,6 +195,107 @@ describe('account erasure', () => {
     expect(idrec!.supersededAt).not.toBeNull();
   });
 
+  describe('what it leaves on a ticket', () => {
+    /**
+     * The desk is the one messaging surface where erasure has to make a
+     * distinction: a member's own words come off, and a staff act does
+     * not. "Assigned to nobody" and "closed by nobody" would make a
+     * moderation record indefensible, so the pointer goes and the name
+     * stays — the same rule the read log follows.
+     */
+    async function ticketWith(openerId: string, staffId: string) {
+      const id = randomUUID();
+      await db.insert(schema.tickets).values({
+        id,
+        openedById: openerId,
+        openedByName: 'alice',
+        subject: 'Something',
+        assignedToId: staffId,
+        assignedToName: 'a moderator',
+        closedById: staffId,
+        closedByName: 'a moderator',
+      });
+      const mine = randomUUID();
+      const theirs = randomUUID();
+      await db.insert(schema.ticketMessages).values([
+        { id: mine, ticketId: id, authorId: openerId, authorName: 'alice', fromStaff: false, body: 'my question' },
+        { id: theirs, ticketId: id, authorId: staffId, authorName: 'a moderator', fromStaff: true, body: 'the answer' },
+      ]);
+      return { id, mine, theirs };
+    }
+
+    it('takes the name off what the member wrote and keeps the staff act', async () => {
+      const opener = await makeUser({ username: 'alice' });
+      const staff = await makeUser({ isModerator: true });
+      const t = await ticketWith(opener, staff);
+
+      await eraseAccount(opener);
+
+      const [ticket] = await db
+        .select()
+        .from(schema.tickets)
+        .where(eq(schema.tickets.id, t.id));
+
+      expect(ticket!.openedById).toBeNull();
+      // A tombstone, not the old username, and not the account id.
+      expect(ticket!.openedByName).toMatch(/^deleted-[0-9a-f]+$/);
+      expect(ticket!.openedByName).not.toContain(opener);
+
+      // The moderator did not erase, so their act is untouched.
+      expect(ticket!.assignedToId).toBe(staff);
+      expect(ticket!.closedByName).toBe('a moderator');
+
+      const lines = await db
+        .select()
+        .from(schema.ticketMessages)
+        .where(eq(schema.ticketMessages.ticketId, t.id));
+
+      const mine = lines.find((l) => l.id === t.mine)!;
+      const theirs = lines.find((l) => l.id === t.theirs)!;
+      expect(mine.authorId).toBeNull();
+      expect(mine.authorName).toMatch(/^deleted-[0-9a-f]+$/);
+      // The thread survives — the other party's copy of an exchange they
+      // took part in, exactly as for a plaintext conversation.
+      expect(mine.body).toBe('my question');
+      expect(theirs.authorId).toBe(staff);
+      expect(theirs.authorName).toBe('a moderator');
+    });
+
+    it('keeps a moderator name on the acts when the MODERATOR erases', async () => {
+      const opener = await makeUser();
+      const staff = await makeUser({ isModerator: true, username: 'maria' });
+      const t = await ticketWith(opener, staff);
+
+      await eraseAccount(staff);
+
+      const [ticket] = await db
+        .select()
+        .from(schema.tickets)
+        .where(eq(schema.tickets.id, t.id));
+
+      expect(ticket!.assignedToId).toBeNull();
+      expect(ticket!.closedById).toBeNull();
+      // The pointer goes, the name stays: an act of moderation with no
+      // author at all is not auditable.
+      expect(ticket!.assignedToName).toBe('a moderator');
+      expect(ticket!.closedByName).toBe('a moderator');
+
+      const [theirs] = await db
+        .select()
+        .from(schema.ticketMessages)
+        .where(eq(schema.ticketMessages.id, t.theirs));
+      expect(theirs!.authorId).toBeNull();
+      expect(theirs!.authorName).toBe('a moderator');
+
+      // And the member's own line is not collateral.
+      const [mine] = await db
+        .select()
+        .from(schema.ticketMessages)
+        .where(eq(schema.ticketMessages.id, t.mine));
+      expect(mine!.authorId).toBe(opener);
+    });
+  });
+
   describe('the catalogue stops naming them', () => {
     it('re-mints the release without the uploader name or DID', async () => {
       // What erasure used to leave standing. The records were already signed

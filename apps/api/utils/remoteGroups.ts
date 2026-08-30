@@ -27,7 +27,7 @@
  * that wrong and a group claims three times the content it holds — the kind of
  * error that looks like a well-stocked catalogue.
  */
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { eq, sql, type SQL } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { NOT_MASKED } from './federation/remoteMask';
 import {
@@ -92,7 +92,8 @@ export const remoteScopeSql: SQL = scopeExpr(REMOTE_COLUMNS);
 // Active peer AND not locally masked — folded together so every mirror read in
 // this file inherits moderation without each call site having to remember it.
 // `mixedGroups.ts` composes the identical predicate for the merged catalogue.
-const ACTIVE_PEER = sql`${schema.federationPeers.status} = 'active' AND ${NOT_MASKED}`;
+const PEER_IS_ACTIVE = sql`${schema.federationPeers.status} = 'active'`;
+const ACTIVE_PEER = sql`${PEER_IS_ACTIVE} AND ${NOT_MASKED}`;
 
 export interface RemoteGroupRow {
   key: string;
@@ -270,12 +271,22 @@ export function remoteGroupWhere(
   return sql.join(parts, sql` AND `);
 }
 
-/** True when at least one partner is actively sharing a catalogue with us. */
+/**
+ * True when at least one partner is actively sharing a catalogue with us.
+ *
+ * `PEER_IS_ACTIVE`, not `ACTIVE_PEER`: the latter folds in `NOT_MASKED`,
+ * which references `remote_torrents` columns, and this query selects from
+ * `federation_peers` alone. Postgres answered `missing FROM-clause entry
+ * for table "remote_torrents"` — so the grouped catalogue view returned
+ * 500 on every instance with federation switched on, which is every
+ * instance that would ever have a partner. The question here is about a
+ * peer's status; masks are about rows, and there are no rows in it.
+ */
 export async function hasActiveCataloguePeer(): Promise<boolean> {
   const [row] = await db
     .select({ id: schema.federationPeers.id })
     .from(schema.federationPeers)
-    .where(and(ACTIVE_PEER))
+    .where(PEER_IS_ACTIVE)
     .limit(1);
   return !!row;
 }

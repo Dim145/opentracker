@@ -44,6 +44,27 @@ const INLINE_SCRIPT = /<script(?![^>]*\ssrc=)(?![^>]*\snonce=)/gi;
  */
 const INLINE_STYLE = /<style(?![^>]*\snonce=)/gi;
 
+/**
+ * Only an explicit origin, and only when configured.
+ *
+ * A relay reached through a same-origin path needs nothing here. This
+ * exists for the deployment that gives it its own hostname, and it is
+ * deliberately not derived from `MESSAGING_SERVICE_URL`: widening a
+ * security header should be something an operator wrote down, not
+ * something that happened because another variable was set.
+ */
+const relayOrigin = (() => {
+  const raw = process.env.NUXT_PUBLIC_RELAY_ORIGIN?.trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
+    return url.origin;
+  } catch {
+    return '';
+  }
+})();
+
 function buildPolicy(nonce: string): string {
   return [
     "default-src 'self'",
@@ -77,13 +98,20 @@ function buildPolicy(nonce: string): string {
     // own API — metadata lookups are proxied server-side so the TMDb key
     // never reaches the browser. Leaving `https:` here meant that after an
     // XSS, exfiltration to any host was still allowed.
-    "connect-src 'self'",
+    // The messaging relay, when an operator puts it on its own origin.
+    //
+    // Leaving this unset is the recommended shape: proxy the relay under
+    // the site's own origin (`/relay` → the relay service) and `'self'`
+    // already covers it. Setting it is a conscious widening of a directive
+    // that was narrowed on purpose — one origin, never a scheme.
+    `connect-src 'self'${relayOrigin ? ` ${relayOrigin}` : ''}`,
     "frame-ancestors 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
   ].join('; ');
 }
+
 
 export default defineNitroPlugin((nitro) => {
   nitro.hooks.hook('render:html', (html, { event }) => {

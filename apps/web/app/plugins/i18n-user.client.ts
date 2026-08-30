@@ -30,7 +30,10 @@ export default defineNuxtPlugin({
   enforce: 'post',
   setup() {
     const { user } = useUserSession();
-    let i18n: ReturnType<typeof useI18n>;
+    // Inferred from the call. Pre-declaring it as `ReturnType<typeof
+    // useI18n>` gave the generic default (`'en-US'`), not this project's
+    // typed messages, so the assignment never matched.
+    let i18n;
     try {
       i18n = useI18n();
     } catch {

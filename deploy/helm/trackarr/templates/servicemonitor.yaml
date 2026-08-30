@@ -21,3 +21,25 @@ spec:
         name: {{ include "trackarr.secretName" . }}
         key: METRICS_AUTH_TOKEN
 {{- end }}
+{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled .Values.relay.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "trackarr.fullname" . }}-relay
+  labels:
+    {{- include "trackarr.componentLabels" (dict "ctx" $ "component" "relay") | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}{{ toYaml . | nindent 4 }}{{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "trackarr.componentSelectorLabels" (dict "ctx" $ "component" "relay") | nindent 6 }}
+  endpoints:
+    # No bearer token, unlike the API: the relay's /metrics carries counts
+    # and a ceiling, no member data, and it is reachable only inside the
+    # cluster — the Ingress publishes /messaging/events and nothing else.
+    - port: http
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout }}
+{{- end }}

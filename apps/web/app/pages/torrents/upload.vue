@@ -556,21 +556,9 @@ interface TorrentResult {
   };
 }
 
-interface MediaMetadata {
-  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb' | 'openlibrary';
-  type: 'movie' | 'tv' | 'game' | 'book';
-  tmdbId?: number | null;
-  imdbId?: string | null;
-  tvdbId?: number | null;
-  igdbId?: number | null;
-  openlibraryId?: string | null;
-  isbn13?: string | null;
-  isbn10?: string | null;
-  title: string;
-  year: number | null;
-  posterUrl: string | null;
-  [key: string]: unknown;
-}
+/* The shared wire type — this page used to declare its own, looser copy,
+ * which no metadata card would accept. See `packages/shared/src/media.ts`. */
+import type { MediaMetadata } from '@trackarr/shared/media';
 
 const route = useRoute();
 
