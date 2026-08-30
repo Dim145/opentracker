@@ -3693,7 +3693,8 @@
       "users": "Users",
       "reports": "Reports",
       "hnr": "Hit & Run",
-      "antiCheat": "Anti-cheat"
+      "antiCheat": "Anti-cheat",
+      "messageReads": "Message reads"
     },
     "descriptions": {
       "dashboard": "Moderation overview and quick actions",
@@ -3701,7 +3702,8 @@
       "users": "Manage user accounts and bans",
       "reports": "Review and handle user reports",
       "hnr": "Monitor and manage H&R violations",
-      "antiCheat": "Triage announces flagged by the cheat detector"
+      "antiCheat": "Triage announces flagged by the cheat detector",
+      "messageReads": "Every time a staff member opened a reported private message."
     },
     "antiCheat": {
       "title": "Anti-cheat",
@@ -3858,6 +3860,13 @@
         "author": "This uploader",
         "issuer": "This instance"
       }
+    },
+    "messageReads": {
+      "note": "One line per read of a reported private message — the one route through which anybody here reads another member's correspondence. It carries no message bodies: it says a thing was opened, by whom, and stops. Everyone who can open one can see every time anyone did.",
+      "empty": "Nobody has opened a reported message yet.",
+      "disclosed": "read",
+      "sealed": "encrypted — nothing shown",
+      "readerGone": "This account has been erased. The name is kept because the record is the point."
     }
   },
   "forum": {
@@ -5040,7 +5049,7 @@
     },
     "staff": {
       "title": "What staff can read",
-      "text": "A moderator opens one private message, and only one that has an open report against it. The endpoint answers nothing for any other message, so it cannot be used to walk a conversation, and it answers nothing at all for an encrypted one."
+      "text": "A moderator opens one private message, and only one that has an open report against it. The endpoint answers nothing for any other message, so it cannot be used to walk a conversation, and it answers nothing at all for an encrypted one. Every one of those reads is recorded — who, when, and whether anything was legible — and the record is visible to all staff, not only to whoever ordered it."
     },
     "foot": "This page lists retention. It is not a substitute for whatever notice the operator of this instance is required to publish where it is hosted."
   }

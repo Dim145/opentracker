@@ -3693,7 +3693,8 @@
       "users": "Utilisateurs",
       "reports": "Signalements",
       "hnr": "Hit & Run",
-      "antiCheat": "Anti-cheat"
+      "antiCheat": "Anti-cheat",
+      "messageReads": "Lectures de messages"
     },
     "descriptions": {
       "dashboard": "Aperçu de la modération et actions rapides",
@@ -3701,7 +3702,8 @@
       "users": "Gérer les comptes utilisateurs et les bannissements",
       "reports": "Examiner et traiter les signalements des utilisateurs",
       "hnr": "Surveiller et gérer les violations H&R",
-      "antiCheat": "Triager les annonces signalées par le détecteur anti-triche"
+      "antiCheat": "Triager les annonces signalées par le détecteur anti-triche",
+      "messageReads": "Chaque fois qu'un membre du staff a ouvert un message privé signalé."
     },
     "antiCheat": {
       "title": "Anti-cheat",
@@ -3858,6 +3860,13 @@
         "author": "Cet uploadeur",
         "issuer": "Cette instance"
       }
+    },
+    "messageReads": {
+      "note": "Une ligne par lecture d'un message privé signalé — la seule route par laquelle quelqu'un lit ici la correspondance d'un autre membre. Aucun contenu de message : elle dit qu'une chose a été ouverte, par qui, et s'arrête là. Tous ceux qui peuvent en ouvrir un voient chaque fois que quelqu'un l'a fait.",
+      "empty": "Personne n'a encore ouvert de message signalé.",
+      "disclosed": "lu",
+      "sealed": "chiffré — rien affiché",
+      "readerGone": "Ce compte a été effacé. Le nom est conservé, c'est tout l'intérêt du registre."
     }
   },
   "forum": {
@@ -5040,7 +5049,7 @@
     },
     "staff": {
       "title": "Ce que le staff peut lire",
-      "text": "Un modérateur ouvre un message privé, et seulement un qui fait l'objet d'un signalement ouvert. La route ne répond rien pour un autre message — elle ne permet donc pas de parcourir une conversation — et rien du tout pour un message chiffré."
+      "text": "Un modérateur ouvre un message privé, et seulement un qui fait l'objet d'un signalement ouvert. La route ne répond rien pour un autre message — elle ne permet donc pas de parcourir une conversation — et rien du tout pour un message chiffré. Chacune de ces lectures est enregistrée — qui, quand, et si quelque chose était lisible — et le registre est visible de tout le staff, pas seulement de celui qui l'a demandé."
     },
     "foot": "Cette page liste des durées de conservation. Elle ne remplace pas la notice que l'exploitant de cette instance doit publier là où elle est hébergée."
   }

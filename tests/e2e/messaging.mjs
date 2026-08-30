@@ -512,6 +512,31 @@ async function main() {
     `${staffView.status} ${d(staffView.body, 140)}`
   );
 
+  // Reading it leaves a trace, and the trace is the point: this is the one
+  // route through which somebody reads another member's correspondence,
+  // and it used to leave none.
+  const log = await req('founder', '/api/mod/messages/read-log');
+  const entry = (log.body?.entries ?? []).find((e) => e.messageId === someMessage);
+  check(
+    'the read is logged, with who and what it opened',
+    log.status === 200 && !!entry && entry.readerName === 'founder',
+    `${log.status} ${d(log.body?.entries?.[0], 160)}`
+  );
+  check(
+    'and whether anything was legible',
+    entry?.disclosed === true,
+    d(entry)
+  );
+  check(
+    'the log carries no message bodies — it is not a second way to read the mail',
+    !!entry && !('body' in entry),
+    d(entry)
+  );
+  check(
+    'and a member cannot read the log either',
+    (await req('donator', '/api/mod/messages/read-log')).status === 403
+  );
+
   const unreported = await req('plainuser', `${DM}/${convId}/messages`);
   const other = unreported.body?.messages?.find((m) => m.id !== someMessage)?.id;
   if (other) {

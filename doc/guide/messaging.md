@@ -152,6 +152,35 @@ de-encrypted later never promised anything.
 ciphertext. A report on an encrypted conversation carries what the
 reporter chooses to quote, and nothing else.
 
+**Every read is logged.** `GET /api/mod/messages/:id` is the one route in
+this application through which somebody reads another member's private
+correspondence, and it used to leave no trace whatever — the schema said
+as much about itself: "this is the closest thing the app has to an audit
+trail; there is no staff action log anywhere". `message_read_log` now
+takes a row per read, and four decisions in it are worth stating:
+
+- **On the read, not on the report.** A report is somebody asking; the log
+  is somebody looking. They are different acts and usually days apart, and
+  only the second is an access to private data.
+- **Awaited, before the message is handed over.** Writing it after the
+  response, or not waiting, would make the trace the part that gets
+  dropped under load — which is exactly when it is worth having. A write
+  that fails is logged loudly rather than swallowed.
+- **The reader's name is a column, not a join.** `reader_id` is nulled
+  when that account is erased; `reader_name` stays. A log that becomes a
+  column of nulls in the one case where it matters most — a moderator
+  erasing themselves — is not a log. The message id is not a foreign key
+  either, so retention or a withdrawal cannot take the record with the
+  message.
+- **Visible to every moderator**, at `/mod/message-reads`, not to admins
+  alone. A log the watched cannot see is surveillance; a log they can see
+  is a norm. It carries no message bodies: it says a thing was opened, by
+  whom, and stops.
+
+An attempt on an encrypted conversation is recorded too, marked as having
+disclosed nothing. "A moderator tried to read this and could not" is a
+fact about the moderator rather than about the message.
+
 ### What the padlock covers, and what it does not
 
 It is worth being exact, because the interface used to say "only the two

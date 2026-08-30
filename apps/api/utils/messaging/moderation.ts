@@ -1,5 +1,6 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq, gte, or, sql } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 
 /**
  * Moderation primitives for messaging: who may reach whom, and how much.
@@ -104,7 +105,56 @@ export async function reportedMessageFor(messageId: string) {
     // Null when the conversation is encrypted, and that is not a failure
     // to report: nobody holds the key, including us.
     body: conversation?.encrypted ? null : message.body,
+    /** For the access log. Which report opened the window. */
+    reportId: reported[0]!.id,
   };
+}
+
+/**
+ * Record that a staff member read a reported private message.
+ *
+ * On the READ, never on the report. A report is somebody asking; this is
+ * somebody looking, and only the second is an access to private data.
+ * They are different acts and usually days apart.
+ *
+ * `readerName` is stored alongside the id because the id is nulled when
+ * that account is erased, and a log that becomes a column of nulls in the
+ * one case where it matters most — the reader themselves — is not a log.
+ *
+ * The message id is deliberately NOT a foreign key: retention or a
+ * withdrawal can remove the message, and the record of it having been
+ * read must survive that. An audit trail that disappears with its subject
+ * is the shape of the problem, not the fix.
+ *
+ * Best-effort, and it says so out loud rather than in a comment: a failed
+ * write must not swallow the moderator's answer, but it must not be
+ * silent either — an accountability record nobody notices missing is
+ * worse than none.
+ */
+export async function logReportedMessageRead(input: {
+  readerId: string;
+  readerName: string;
+  messageId: string;
+  conversationId: string;
+  reportId: string | null;
+  disclosed: boolean;
+}): Promise<void> {
+  try {
+    await db.insert(schema.messageReadLog).values({
+      id: randomUUID(),
+      readerId: input.readerId,
+      readerName: input.readerName,
+      messageId: input.messageId,
+      conversationId: input.conversationId,
+      reportId: input.reportId,
+      disclosed: input.disclosed,
+    });
+  } catch (err) {
+    console.error(
+      '[moderation] failed to log a reported-message read:',
+      (err as Error).message
+    );
+  }
 }
 
 /** Everyone this member is refusing, for the settings screen. */

@@ -242,6 +242,25 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
     // blanked.
     await tx.delete(schema.roomMutes).where(eq(schema.roomMutes.userId, userId));
 
+    /*
+     * The staff read log keeps its rows, and loses only the pointer.
+     *
+     * `reader_id` is declared `ON DELETE set null`, and that never fires
+     * here — this function UPDATEs the users row rather than deleting it,
+     * so every declared cascade on this table is decoration. Done by hand,
+     * like every other one.
+     *
+     * The name column stays. It is the record: an audit trail that becomes
+     * a column of nulls in the one case where it matters most — a
+     * moderator erasing their own account — is not an audit trail. What
+     * goes is the join back to the (anonymised) row, which would otherwise
+     * render every past read as `deleted-a1b2c3`.
+     */
+    await tx
+      .update(schema.messageReadLog)
+      .set({ readerId: null })
+      .where(eq(schema.messageReadLog.readerId, userId));
+
     // 3. Scrub the row itself. The passkey is rotated to a fresh unusable value
     // so any announce URL the member kept stops working; the SRP material is
     // replaced with random bytes no client can reproduce; the profile text and

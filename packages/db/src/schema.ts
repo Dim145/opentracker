@@ -3903,6 +3903,70 @@ export type MessagingBlock = typeof messagingBlocks.$inferSelect;
 export type NewMessagingBlock = typeof messagingBlocks.$inferInsert;
 
 /**
+ * Every time a staff member reads a reported private message.
+ *
+ * The one place in this application where somebody can read another
+ * member's private correspondence, and until now it left no trace: the
+ * route opened, the message was returned, and nothing recorded that it
+ * had happened. That is the gap the schema itself named — "this is the
+ * closest thing the app has to an audit trail; there is no staff action
+ * log anywhere" — and it is the wrong gap to have precisely here.
+ *
+ * Written on the READ, not on the report. A report is somebody asking;
+ * this table is somebody looking. The two are different acts, they are
+ * days apart, and only the second one is an access to private data.
+ *
+ * Kept when the reader's account is erased (`SET NULL`, not cascade).
+ * Losing who looked would make the log useless in the one case where it
+ * matters most — the reader themselves. The report id is kept for the
+ * same reason and by the same means: a dismissed report must not erase
+ * the record that its message was read under it.
+ *
+ * Never deleted on a timer. It is small — one row per read, not per
+ * message — and a retention that outlives its subject is the point of an
+ * audit trail.
+ */
+export const messageReadLog = pgTable(
+  'message_read_log',
+  {
+    id: text('id').primaryKey(),
+    /** Who looked. Null once that account is erased; the row survives. */
+    readerId: text('reader_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Kept as text: the username at the time, so an erasure does not
+     *  turn a year of entries into a column of nulls nobody can read. */
+    readerName: text('reader_name').notNull(),
+    /** The message. Not a foreign key — retention or a withdrawal can
+     *  remove it, and the record of it having been read must not go with
+     *  it. That is exactly the case an audit trail exists for. */
+    messageId: text('message_id').notNull(),
+    conversationId: text('conversation_id').notNull(),
+    /** The report that opened the window. Survives the report's deletion. */
+    reportId: text('report_id'),
+    /**
+     * Whether anything was actually legible.
+     *
+     * An encrypted conversation yields nothing whatever the role, and the
+     * route says so rather than erroring. The attempt is still logged —
+     * "a moderator tried to read this and could not" is a fact about the
+     * moderator, not about the message.
+     */
+    disclosed: boolean('disclosed').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // "Who read what, most recent first" is the whole read pattern.
+    index('message_read_log_created_idx').on(table.createdAt),
+    index('message_read_log_reader_idx').on(table.readerId, table.createdAt),
+    index('message_read_log_message_idx').on(table.messageId),
+  ]
+);
+
+export type MessageReadLog = typeof messageReadLog.$inferSelect;
+export type NewMessageReadLog = typeof messageReadLog.$inferInsert;
+
+/**
  * A member silenced in the room.
  *
  * A table rather than a column on `conversation_participants`, because

@@ -16,10 +16,13 @@
  */
 import { requireModeratorSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
-import { reportedMessageFor } from '~~/utils/messaging/moderation';
+import {
+  logReportedMessageRead,
+  reportedMessageFor,
+} from '~~/utils/messaging/moderation';
 
 export default defineEventHandler(async (event) => {
-  await requireModeratorSession(event);
+  const { user } = await requireModeratorSession(event);
   await rateLimit(event, RATE_LIMITS.admin);
 
   const id = getRouterParam(event, 'id');
@@ -27,6 +30,29 @@ export default defineEventHandler(async (event) => {
 
   const message = await reportedMessageFor(id);
   if (!message) throw createError({ statusCode: 404, message: 'Not found' });
+
+  /*
+   * Logged before it is handed over, and awaited.
+   *
+   * This is the one route in the application through which somebody reads
+   * another member's private correspondence, and it used to leave no
+   * trace at all. Writing after the response, or not waiting for it,
+   * would make the trace the part that gets dropped under load — which is
+   * exactly when it is worth having.
+   *
+   * `disclosed` distinguishes the two outcomes. An encrypted conversation
+   * yields nothing whatever the role, and that attempt is still recorded:
+   * "a moderator tried to read this and could not" is a fact about the
+   * moderator rather than about the message.
+   */
+  await logReportedMessageRead({
+    readerId: user.id,
+    readerName: user.username,
+    messageId: message.id,
+    conversationId: message.conversationId,
+    reportId: message.reportId,
+    disclosed: message.body !== null,
+  });
 
   return message;
 });
