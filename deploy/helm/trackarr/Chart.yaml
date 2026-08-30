@@ -8,7 +8,7 @@ sources:
 version: 0.2.1
 # Matches the application release this chart was validated against. Override
 # the image tags in values.yaml to run a different one.
-appVersion: "0.33.0"
+appVersion: "0.34.0"
 kubeVersion: ">=1.27.0-0"
 maintainers:
   - name: Dim145
