@@ -35,24 +35,51 @@
         </button>
       </div>
 
-      <p v-if="!closed && counts.untaken" class="tq-untaken">
-        <Icon name="ph:warning-circle-bold" />
-        {{ $t('mod.tickets.untaken', { n: counts.untaken }) }}
-      </p>
+      <div class="tq-bar-right">
+        <!-- The warning sits to the LEFT of the toggle so that hiding it
+             does not slide the toggle across the bar. A control that moves
+             when you press it is a control you press twice. -->
+        <p v-if="!closed && !mineOnly && counts.untaken" class="tq-untaken">
+          <Icon name="ph:warning-circle-bold" />
+          {{ $t('mod.tickets.untaken', { n: counts.untaken }) }}
+        </p>
+
+        <!--
+          Not a third tab. The tabs answer "open or finished", and "mine"
+          cuts across both — a moderator wants their own closed ones too.
+          Two axes on one control is how a filter starts lying about what
+          it is showing.
+        -->
+        <button
+          v-if="mineCount"
+          type="button"
+          class="tq-mine"
+          :class="{ 'tq-mine--on': mineOnly }"
+          :aria-pressed="mineOnly"
+          @click="mineOnly = !mineOnly"
+        >
+          <Icon name="ph:user-check-bold" />
+          {{ $t('mod.tickets.mine') }}
+          <span class="tq-mine-count">{{ mineCount }}</span>
+        </button>
+      </div>
     </div>
 
     <p v-if="pending && !tickets.length" class="tq-empty">{{ $t('common.loading') }}</p>
-    <p v-else-if="!tickets.length" class="tq-empty">
-      {{ closed ? $t('mod.tickets.emptyArchive') : $t('mod.tickets.emptyQueue') }}
+    <p v-else-if="!visible.length" class="tq-empty">
+      {{ mineOnly
+        ? $t('mod.tickets.emptyMine')
+        : closed ? $t('mod.tickets.emptyArchive') : $t('mod.tickets.emptyQueue') }}
     </p>
 
     <ol v-else class="tq-list">
       <li
-        v-for="t in tickets"
+        v-for="t in visible"
         :key="t.id"
         class="tq-row"
         :class="{
           'tq-row--untaken': t.status === 'open' && !t.assignedToId,
+          'tq-row--mine': isMine(t),
           'tq-row--waiting': t.lastMessageBy === 'member' && !closed,
         }"
       >
@@ -94,9 +121,16 @@
                 <span class="tq-assignee tq-assignee--none">{{ t.closedByName }}</span>
               </template>
             </template>
-            <span v-else-if="t.assignedToName" class="tq-assignee">
+            <span
+              v-else-if="t.assignedToName"
+              class="tq-assignee"
+              :class="{ 'tq-assignee--me': isMine(t) }"
+            >
               <Icon name="ph:user-check-bold" />
-              {{ t.assignedToName }}
+              <!-- Your own name is the one thing on this line you already
+                   know. It says "you" so the row can be scanned rather
+                   than read. -->
+              {{ isMine(t) ? $t('mod.tickets.you') : t.assignedToName }}
             </span>
             <span v-else class="tq-assignee tq-assignee--none">
               {{ $t('mod.tickets.nobody') }}
@@ -164,6 +198,39 @@ const { data, pending, refresh } = await useFetch<{
 });
 
 const tickets = computed(() => data.value?.tickets ?? []);
+
+/**
+ * Which of these are yours.
+ *
+ * Compared client-side against the session id, which is safe in a way
+ * reading a ROLE off the same cookie is not: an account id never changes,
+ * so a sealed value cannot go stale. `ticketFor` reconciles the staff
+ * flags against the live role for exactly the opposite reason.
+ */
+const { user } = useUserSession();
+const myId = computed(() => user.value?.id ?? null);
+const isMine = (row: { assignedToId: string | null }) =>
+  !!myId.value && row.assignedToId === myId.value;
+
+/**
+ * The filter, applied here rather than in the query.
+ *
+ * The list is already loaded and capped, so a round trip would buy
+ * nothing — and going to the server would make the count in the button
+ * disagree with what the button reveals, which is the one thing a filter
+ * must never do.
+ */
+const mineOnly = ref(false);
+const mineCount = computed(() => tickets.value.filter(isMine).length);
+const visible = computed(() =>
+  mineOnly.value ? tickets.value.filter(isMine) : tickets.value
+);
+
+// A tab with nothing of yours in it would strand the toggle in the "on"
+// position over an empty list, with no visible way back.
+watch(mineCount, (n) => {
+  if (!n) mineOnly.value = false;
+});
 const counts = computed(
   () => data.value?.counts ?? { open: 0, untaken: 0, closed: 0 }
 );
@@ -186,7 +253,7 @@ const detailTitle = computed(() =>
 );
 
 function open(id: string) {
-  const row = tickets.value.find((x) => x.id === id);
+  const row = visible.value.find((x) => x.id === id);
   if (row) openRow.value = { number: row.number, subject: row.subject };
   activeId.value = id;
   void router.replace({ query: { ...route.query, id } });
@@ -240,7 +307,6 @@ watch(tickets, (rows) => {
 .tq-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
   margin-bottom: 1.25rem;
@@ -317,6 +383,13 @@ watch(tickets, (rows) => {
 }
 /* Untaken is the state the queue exists to surface. */
 .tq-row--untaken { border-left-color: rgb(var(--accent-warm)); }
+
+/* And yours is the one you came for. A different colour rather than a
+   stronger one: these are not degrees of the same thing — untaken means
+   nobody is on it, mine means somebody is, and that somebody is you.
+   The two can never apply to the same row. */
+.tq-row--mine { border-left-color: rgb(var(--info)); }
+.tq-row--mine .tq-age { color: rgb(var(--info)); }
 .tq-row--waiting { background: rgb(var(--fg-default) / 0.02); }
 
 .tq-age {
@@ -375,6 +448,61 @@ watch(tickets, (rows) => {
 .tq-who--gone { text-decoration: line-through; text-decoration-thickness: 1px; }
 .tq-sep { color: rgb(var(--fg-subtle)); }
 .tq-assignee { display: inline-flex; align-items: center; gap: 0.25rem; }
+.tq-assignee--me { color: rgb(var(--info)); font-weight: 600; }
+
+/* ── The "mine" toggle ────────────────────────────────────────────── */
+.tq-bar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  /* Pinned right, and pinned there whether or not the warning beside it
+     is showing. `space-between` on the parent looked the same until the
+     bar wrapped, at which point it re-anchored the group per line and the
+     toggle jumped across the row as you pressed it. */
+  margin-left: auto;
+}
+
+.tq-mine {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  padding: 0 0.75rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: rgb(var(--fg-muted));
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-2) ease, color var(--dur-2) ease,
+    border-color var(--dur-2) ease;
+}
+.tq-mine:hover { color: rgb(var(--fg-strong)); }
+.tq-mine--on {
+  border-color: rgb(var(--info) / 0.5);
+  background: rgb(var(--info) / 0.12);
+  color: rgb(var(--info));
+}
+.tq-mine-count {
+  min-width: 1.1rem;
+  padding: 0 0.25rem;
+  border-radius: var(--radius-pill);
+  background: rgb(var(--fg-default) / 0.1);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-align: center;
+}
+.tq-mine--on .tq-mine-count {
+  background: rgb(var(--info) / 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tq-mine { transition: none; }
+}
 .tq-assignee--none { color: rgb(var(--fg-subtle)); font-style: italic; }
 
 /* The outcome, in the archive. Enough colour to scan a column of them and

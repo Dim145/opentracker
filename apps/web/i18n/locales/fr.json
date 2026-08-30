@@ -3900,7 +3900,10 @@
       "ageHours": "{n} h",
       "ageDays": "{n} j",
       "withdrawn": "Retiré",
-      "withdrawnBy": "{name} a clôturé son propre ticket."
+      "withdrawnBy": "{name} a clôturé son propre ticket.",
+      "mine": "Les miens",
+      "you": "toi",
+      "emptyMine": "Tu n'as rien pris en charge ici."
     }
   },
   "forum": {
