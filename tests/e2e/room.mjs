@@ -252,7 +252,92 @@ async function main() {
     d(removed, 140)
   );
 
-  console.log('\n7. back to off');
+  console.log('\n7. live delivery through the relay');
+
+  // The relay had no end-to-end coverage at all: the suite proved the
+  // token endpoint minted a grant and stopped there. SSE is a streaming
+  // GET, so `fetch` plus a reader is enough — no EventSource needed, and
+  // Node has none.
+  //
+  // Note what this does NOT cover: whether a page ever opens the stream.
+  // `chat.vue` destructured `connected` and never called `start()`, so
+  // the room said "offline" in every browser while everything below
+  // passed. That gap is closed by the composable starting itself.
+  //
+  // The token endpoint is behind `requireDmAccess`, and this scenario only
+  // ever touches the ROOM scope — the DM one is left wherever the previous
+  // scenario put it, and `messaging.mjs` ends with both off. Turned on for
+  // this phase and put back at the end, like every other fixture here.
+  await resetRateLimits();
+  check(
+    'direct messages are on, so a relay token can be minted',
+    (await req('founder', '/api/admin/settings', {
+      method: 'PUT',
+      body: { messagingDmScope: 'all' },
+    })).status === 200
+  );
+
+  const grant = await req('plainuser', '/api/messaging/token');
+  check(
+    'a member is granted a relay token that carries the room',
+    grant.status === 200 && !!grant.body?.token && grant.body?.room === true,
+    d(grant.body, 120)
+  );
+
+  if (grant.body?.token) {
+    const url = `${grant.body.url.replace(/\/$/, '')}/events?token=${encodeURIComponent(grant.body.token)}`;
+    const ac = new AbortController();
+    // Bounded on both ends: the abort below and the reader loop's own cap.
+    const timer = setTimeout(() => ac.abort(), 12000);
+    let opened = false;
+    let seen = '';
+    try {
+      const res = await fetch(url, {
+        headers: { accept: 'text/event-stream' },
+        signal: ac.signal,
+      });
+      opened = res.status === 200 &&
+        (res.headers.get('content-type') ?? '').includes('text/event-stream');
+      check('the relay opens the stream', opened, `${res.status} ${res.headers.get('content-type')}`);
+
+      if (opened) {
+        // Say something in the room once the stream is up.
+        const posted = await req('founder', `${ROOM}/messages`, {
+          method: 'POST',
+          body: { body: 'en direct depuis le relais' },
+        });
+        check('and a message can be posted while it is open', posted.status === 200);
+
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        // At most 40 chunks, so a silent relay ends the test rather than
+        // hanging it.
+        for (let i = 0; i < 40 && !seen.includes('en direct depuis le relais'); i += 1) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          seen += dec.decode(value, { stream: true });
+        }
+        check(
+          'and the room frame arrives on it',
+          seen.includes('en direct depuis le relais'),
+          seen.slice(0, 160)
+        );
+      }
+    } catch (err) {
+      check('the relay stream works', false, String(err).slice(0, 120));
+    } finally {
+      clearTimeout(timer);
+      ac.abort();
+    }
+  }
+
+  // Put the DM scope back where this scenario found it.
+  await req('founder', '/api/admin/settings', {
+    method: 'PUT',
+    body: { messagingDmScope: 'off' },
+  });
+
+  console.log('\n8. back to off');
 
   check('the room closes', (await setRoom('off')) === 200);
   await resetRateLimits();

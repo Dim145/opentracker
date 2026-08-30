@@ -1507,7 +1507,7 @@ async function openFromSearch(hit: SearchHit) {
 // is a separate process, and a page that only functioned while a socket
 // was open would have no answer for the socket being shut.
 
-const { connected, needsReload, start } = useMessagingStream({
+const { connected, needsReload } = useMessagingStream({
   onMessages: async (incoming) => {
   for (const msg of incoming) {
     if (msg.conversationId === activeId.value) {
@@ -1612,7 +1612,6 @@ watch(needsReload, async (needed) => {
   if (activeId.value) await loadThread();
 });
 
-onMounted(start);
 onMounted(refreshIdentity);
 onMounted(loadDrafts);
 

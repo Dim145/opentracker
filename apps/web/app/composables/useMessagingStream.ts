@@ -91,13 +91,34 @@ export function useMessagingStream(handlers: StreamHandlers) {
 
   async function connect() {
     if (stopped) return;
+    // Never two. `start()` is public and `onMounted` calls it, so a caller
+    // that also calls it by hand would otherwise leave the first stream
+    // open with nothing holding it.
+    source?.close();
+    source = null;
     let grant: TokenGrant;
     try {
       grant = await $fetch<TokenGrant>('/api/messaging/token');
-    } catch {
-      // No relay configured, or messaging is off. Neither is an error: the
-      // pages work without live delivery, they just stop updating on their
-      // own.
+    } catch (err) {
+      /*
+       * Only a 404 is a final answer.
+       *
+       * The route answers 404 when messaging is off or no relay is
+       * configured — live delivery does not exist on this instance, and
+       * giving up is right: the pages work by reloading.
+       *
+       * Everything else is transient and used to be treated the same way,
+       * which meant giving up FOR THE LIFE OF THE PAGE. The route is
+       * rate-limited at twelve a minute keyed on the caller's IP, and a
+       * token is minted on every page load of both messaging surfaces —
+       * so a member moving between them quickly, or sharing an exit with
+       * anyone else, gets a 429 on arrival and the page then sits on
+       * "offline" for ever with an idle relay one request away. A 401
+       * from a session that expired mid-visit, or a 502 while the API
+       * restarts, did the same.
+       */
+      const status = (err as { statusCode?: number })?.statusCode;
+      if (status !== 404) scheduleReconnect();
       return;
     }
 
@@ -165,6 +186,21 @@ export function useMessagingStream(handlers: StreamHandlers) {
     connected.value = false;
   }
 
+  /*
+   * Started here, not by the caller.
+   *
+   * It teardown itself on unmount and always has; the other end was left
+   * to whoever used it, and the room forgot. `chat.vue` destructured
+   * `connected` alone and never called `start()`, so the room has never
+   * had live delivery in a browser — the relay ran, the token was minted,
+   * the CORS and the CSP were right, and nothing ever opened the stream.
+   * Only `/messages` called it, which is why only the room said "offline".
+   *
+   * `start` and `stop` stay exported for a caller that wants to suspend a
+   * stream and bring it back; `connect()` closes any open source first, so
+   * calling `start()` again is safe rather than a second connection.
+   */
+  onMounted(start);
   onBeforeUnmount(stop);
 
   return { connected, needsReload, start, stop };
