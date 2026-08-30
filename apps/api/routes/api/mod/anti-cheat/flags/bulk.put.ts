@@ -18,6 +18,7 @@
 import { db, schema } from '@trackarr/db';
 import { inArray } from 'drizzle-orm';
 import { z } from 'zod';
+import { validateBody } from '~~/utils/schemas';
 import { requireModeratorSession } from '~~/utils/adminAuth';
 
 const MAX_IDS = 200;
@@ -34,8 +35,7 @@ const bulkSchema = z.object({
 export default defineEventHandler(async (event) => {
   const { user } = await requireModeratorSession(event);
 
-  const body = await readBody(event);
-  const data = bulkSchema.parse(body);
+  const data = await validateBody(event, bulkSchema);
 
   // De-dupe ids client-side. The same row showing up twice in the
   // request is a no-op for the UPDATE but cleans up `updated.length`

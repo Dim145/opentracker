@@ -1,7 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { validateParam, infoHashSchema } from '~~/utils/schemas';
+import { validateParam, infoHashSchema, validateBody } from '~~/utils/schemas';
 import { resolveTagsByName, MAX_TAGS_PER_TORRENT } from '~~/utils/tags';
 
 // Accept either pre-resolved `tagIds` (kept for the existing admin UI)
@@ -36,8 +36,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Not authorized' });
   }
 
-  const body = await readBody(event);
-  const parsed = updateTagsSchema.parse(body);
+  const parsed = await validateBody(event, updateTagsSchema);
 
   // Resolve names → ids first so we can fail before mutating anything.
   const resolvedIds = parsed.tags

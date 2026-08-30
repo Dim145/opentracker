@@ -49,8 +49,7 @@ export default defineEventHandler(async (event) => {
   }
   const id = idResult.data;
 
-  const body = await readBody(event);
-  const data = reviewSchema.parse(body);
+  const data = await validateBody(event, reviewSchema);
 
   const updated = await db
     .update(schema.anticheatFlags)

@@ -1,4 +1,5 @@
 import { db, schema } from '@trackarr/db';
+import { validateBody } from '~~/utils/schemas';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -11,8 +12,7 @@ const grantInvitesSchema = z.object({
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
 
-  const body = await readBody(event);
-  const { userId, count } = grantInvitesSchema.parse(body);
+  const { userId, count } = await validateBody(event, grantInvitesSchema);
 
   const result = await db
     .update(schema.users)

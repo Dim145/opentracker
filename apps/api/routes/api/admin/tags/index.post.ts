@@ -1,4 +1,5 @@
 import { db, schema } from '@trackarr/db';
+import { validateBody } from '~~/utils/schemas';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
@@ -20,8 +21,7 @@ const createTagSchema = z.object({
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
 
-  const body = await readBody(event);
-  const data = createTagSchema.parse(body);
+  const data = await validateBody(event, createTagSchema);
 
   const tag = await db
     .insert(schema.tags)
