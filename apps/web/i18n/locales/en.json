@@ -4480,6 +4480,22 @@
       "message_request_received": {
         "title": "Someone wants to write to you",
         "desc": "{from} sent a request. Accept it to open the conversation."
+      },
+      "ticket_opened": {
+        "title": "New ticket",
+        "desc": "{from} opened “{subject}”."
+      },
+      "ticket_answered": {
+        "title": "Your ticket has a reply",
+        "desc": "{from} answered “{subject}”."
+      },
+      "ticket_closed": {
+        "title": "Your ticket was closed",
+        "desc": "“{subject}” — {status}."
+      },
+      "ticket_idle_warning": {
+        "title": "Your ticket will close",
+        "desc": "“{subject}” — answer within {days} days to keep it open."
       }
     }
   },

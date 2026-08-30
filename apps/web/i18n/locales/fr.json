@@ -4480,6 +4480,22 @@
       "message_request_received": {
         "title": "Quelqu'un veut t'écrire",
         "desc": "{from} a envoyé une demande. Accepte-la pour ouvrir la conversation."
+      },
+      "ticket_opened": {
+        "title": "Nouveau ticket",
+        "desc": "{from} a ouvert « {subject} »."
+      },
+      "ticket_answered": {
+        "title": "Réponse à ton ticket",
+        "desc": "{from} a répondu à « {subject} »."
+      },
+      "ticket_closed": {
+        "title": "Ton ticket est clôturé",
+        "desc": "« {subject} » — {status}."
+      },
+      "ticket_idle_warning": {
+        "title": "Ton ticket va se clôturer",
+        "desc": "« {subject} » — réponds sous {days} jours pour le garder ouvert."
       }
     }
   },

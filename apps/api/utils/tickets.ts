@@ -163,9 +163,22 @@ export async function ticketFor(
   return ticket;
 }
 
-/** Every line of it, oldest first — a ticket reads as a transcript. */
+/**
+ * Every line of it, oldest first — a ticket reads as a transcript.
+ *
+ * An erased member's line comes back with no name at all, so the page
+ * renders the absence the way it does everywhere else. Erasure leaves a
+ * `deleted-<random>` token in the column — it has to leave something,
+ * the column is NOT NULL — but that token is a record, not a label, and
+ * showing it puts a different placeholder on this surface than the one
+ * every other messaging surface uses.
+ *
+ * A staff line keeps its name. Erasure nulls the pointer there and
+ * deliberately preserves the name, because an act of moderation with no
+ * author is indefensible — same rule as the read log.
+ */
 export async function ticketThread(ticketId: string) {
-  return db
+  const rows = await db
     .select({
       id: schema.ticketMessages.id,
       authorId: schema.ticketMessages.authorId,
@@ -177,4 +190,8 @@ export async function ticketThread(ticketId: string) {
     .from(schema.ticketMessages)
     .where(eq(schema.ticketMessages.ticketId, ticketId))
     .orderBy(schema.ticketMessages.createdAt);
+
+  return rows.map((r) =>
+    r.authorId === null && !r.fromStaff ? { ...r, authorName: null } : r
+  );
 }

@@ -74,7 +74,11 @@
             <NuxtLink v-if="t.openedById" :to="`/users/${t.openedById}`" class="tq-who">
               {{ t.openedByName }}
             </NuxtLink>
-            <span v-else class="tq-who tq-who--gone">{{ t.openedByName }}</span>
+            <!-- Erased. The same words the inbox and the room use for it,
+                 rather than the token erasure left in the column. -->
+            <span v-else class="tq-who tq-who--gone">
+              {{ t.openedByName ?? $t('messaging.deletedMember') }}
+            </span>
             <span class="tq-sep" aria-hidden="true">·</span>
 
             <!-- In the queue the question is who has it. In the archive it
@@ -128,7 +132,7 @@ interface QueueRow {
   status: string;
   closureReason: string | null;
   openedById: string | null;
-  openedByName: string;
+  openedByName: string | null;
   assignedToId: string | null;
   assignedToName: string | null;
   closedByName: string | null;

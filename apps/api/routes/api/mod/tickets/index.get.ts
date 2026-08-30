@@ -59,7 +59,12 @@ export default defineEventHandler(async (event) => {
     .from(schema.tickets);
 
   return {
-    tickets: rows,
+    // No `deleted-<random>` token on the way out: an erased opener has no
+    // name here, and the page renders that absence like every other
+    // messaging surface does.
+    tickets: rows.map((r) =>
+      r.openedById === null ? { ...r, openedByName: null } : r
+    ),
     counts: counts ?? { open: 0, untaken: 0, closed: 0 },
   };
 });

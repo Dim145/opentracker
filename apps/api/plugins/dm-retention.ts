@@ -1,7 +1,7 @@
 /**
  * Delete private messages past the operator's window.
  *
- * `messages` is a plain table, not partitioned like `room_messages`: a
+ * `messages` is a plain table, not partitioned like `roommessages`: a
  * private conversation is a handful of rows a year rather than a quarter
  * of a million a day, so a partition per day would be almost entirely
  * empty and the planner would carry the cost for nothing. Retention here
@@ -30,17 +30,7 @@
  * swept is old enough to have been read, and `lastMessageAt` orders a
  * list rather than claiming a row still exists.
  */
-import { sql } from 'drizzle-orm';
-import { db, schema } from '@trackarr/db';
-import { withCronLock } from '~~/utils/cronLock';
-import { getDmRetentionDays } from '~~/utils/settings';
-
-const LOCK_KEY = 'dm_retention:lock';
-const LOCK_TTL_S = 5 * 60;
-/** Rows per statement. Small enough that the lock is never felt. */
-const BATCH = 2_000;
-/** Statements per tick. `BATCH * MAX_BATCHES` is the ceiling per pass. */
-const MAX_BATCHES = 50;
+import { sweepDmRetention } from '~~/utils/messaging/retention';
 
 export default defineNitroPlugin(() => {
   const intervalMs = Number(
@@ -49,42 +39,10 @@ export default defineNitroPlugin(() => {
 
   const tick = async () => {
     try {
-      const days = await getDmRetentionDays();
-      // Off. Not an error, and not something to log every six hours.
-      if (days <= 0) return;
-
-      await withCronLock(LOCK_KEY, LOCK_TTL_S, async () => {
-        const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-        let removed = 0;
-
-        for (let i = 0; i < MAX_BATCHES; i += 1) {
-          // `IN (subquery LIMIT n)` rather than `DELETE … LIMIT`, which
-          // Postgres does not have. The subquery is ordered so successive
-          // batches walk the oldest rows first and the work shrinks
-          // monotonically.
-          const result = await db.execute(sql`
-            DELETE FROM ${schema.messages}
-             WHERE id IN (
-               SELECT id FROM ${schema.messages}
-                WHERE created_at < ${cutoff}
-                ORDER BY created_at
-                LIMIT ${BATCH}
-             )
-          `);
-          const n = Number((result as { count?: number }).count ?? 0);
-          removed += n;
-          if (n < BATCH) break;
-        }
-
-        if (removed > 0) {
-          console.log(
-            `[dm-retention] removed ${removed} message(s) older than ${days}d`
-          );
-        }
-      });
+      await sweepDmRetention();
     } catch (err) {
-      // A failed sweep is not fatal: nothing depends on it having run, and
-      // the next tick tries again with the same cutoff arithmetic.
+      // A failed sweep is not fatal: nothing depends on it having run,
+      // and the next tick tries again from the same arithmetic.
       console.warn('[dm-retention] sweep failed:', (err as Error).message);
     }
   };

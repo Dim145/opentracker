@@ -1,7 +1,7 @@
 /**
  * Roll the room's partition window forward.
  *
- * `room_messages` is partitioned by day, so retention is a `DROP` of whole
+ * `roommessages` is partitioned by day, so retention is a `DROP` of whole
  * partitions rather than a `DELETE` over millions of rows — instant, no
  * lock held, nothing left for autovacuum. At three messages a second the
  * room writes a quarter of a million rows a day; at fourteen days that is
@@ -20,15 +20,7 @@
  * creating the same partition race on the DDL, and dropping is not
  * something to do twice by accident.
  */
-import { sql } from 'drizzle-orm';
-import { db } from '@trackarr/db';
-import { withCronLock } from '~~/utils/cronLock';
-import { getRoomRetentionDays } from '~~/utils/settings';
-
-const LOCK_KEY = 'room_retention:lock';
-const LOCK_TTL_S = 5 * 60;
-/** How far ahead partitions are kept. Comfortably more than one tick. */
-const CREATE_AHEAD_DAYS = 7;
+import { sweepRoomRetention } from '~~/utils/messaging/retention';
 
 export default defineNitroPlugin(() => {
   const intervalMs = Number(
@@ -37,109 +29,14 @@ export default defineNitroPlugin(() => {
 
   const tick = async () => {
     try {
-      await withCronLock(LOCK_KEY, LOCK_TTL_S, async () => {
-        // Interpolated, not bound — and that is not laziness.
-        //
-        // A `DO $$ … $$` body is a string literal to the parser, so a `$1`
-        // inside it is text rather than a placeholder: the parameter never
-        // reaches the block, and the statement either fails or silently
-        // does nothing. This one did nothing, which is why the first
-        // version of this job created partitions and dropped none.
-        //
-        // Interpolation is safe because both values are integers by
-        // construction — clamped by the setting accessor, floored here,
-        // and never strings. Anything else would need a different shape.
-        const days = Math.max(1, Math.floor(await getRoomRetentionDays()));
-        const ahead = sql.raw(String(CREATE_AHEAD_DAYS));
-        const retention = sql.raw(String(days));
-
-        // Two tables now, rolled and dropped together.
-        //
-        // `room_message_reactions` is partitioned on the MESSAGE's day, so
-        // a day's reactions sit in the partition that day's messages sit
-        // in. Rolling them in lockstep is what keeps that true; letting
-        // one lapse would send its inserts to the DEFAULT partition, which
-        // retention never drops.
-        const PARTITIONED = ['room_messages', 'room_message_reactions'] as const;
-
-        // Create ahead. `IF NOT EXISTS` makes the whole thing idempotent,
-        // so a replica that runs it twice costs nothing.
-        for (const table of PARTITIONED) {
-          // A table name cannot be a bound parameter, and this one is not
-          // user input: it comes from the literal tuple above.
-          const relation = sql.raw(table);
-          const prefix = sql.raw(`'${table}_'`);
-          await db.execute(sql`
-            DO $$
-            DECLARE
-                day date := date_trunc('day', now())::date;
-                stop date := date_trunc('day', now())::date + ${ahead};
-            BEGIN
-                WHILE day < stop LOOP
-                    EXECUTE format(
-                        'CREATE TABLE IF NOT EXISTS %I PARTITION OF ${relation} FOR VALUES FROM (%L) TO (%L)',
-                        ${prefix} || to_char(day, 'YYYYMMDD'), day, day + 1
-                    );
-                    day := day + 1;
-                END LOOP;
-            END $$;
-          `);
-        }
-
-        // Drop behind, and report it.
-        //
-        // Not a `DO` block: that returns nothing, so the first version of
-        // this job could not say whether it had dropped anything — and it
-        // had not, which took a hand-run of the same SQL to discover. A
-        // maintenance task with no output is a task nobody can tell is
-        // working.
-        //
-        // Only partitions whose whole range is older than the cutoff. One
-        // straddling it still holds messages inside retention, and
-        // dropping it would take them.
-        let dropped = 0;
-        for (const table of PARTITIONED) {
-          const parent = sql.raw(`'${table}'`);
-          const pattern = sql.raw(`'^${table}_[0-9]{8}$'`);
-          const stale = await db.execute<{ relname: string }>(sql`
-            SELECT c.relname
-            FROM pg_inherits i
-            JOIN pg_class c ON c.oid = i.inhrelid
-            WHERE i.inhparent = ${parent}::regclass
-              AND c.relname ~ ${pattern}
-              AND to_date(right(c.relname, 8), 'YYYYMMDD')
-                  < (date_trunc('day', now()) - make_interval(days => ${retention}))::date
-          `);
-
-          const names = (stale as unknown as Array<{ relname: string }>).map(
-            (r) => r.relname
-          );
-          for (const name of names) {
-            // The name came from `pg_class` and matched a strict pattern
-            // above, so it cannot carry anything else.
-            await db.execute(sql`DROP TABLE IF EXISTS ${sql.raw(`"${name}"`)}`);
-          }
-          dropped += names.length;
-        }
-        if (dropped > 0) {
-          console.log(
-            `[messaging] room retention: dropped ${dropped} partition(s) older than ${days}d`
-          );
-        }
-      });
+      await sweepRoomRetention();
     } catch (err) {
+      // A failed sweep is not fatal: nothing depends on it having run,
+      // and the next tick tries again from the same arithmetic.
       console.warn('[messaging] room retention tick failed:', (err as Error).message);
     }
   };
 
-  // Delayed, for the same reason as the fleet broadcaster: at plugin init
-  // Valkey is still connecting, `withCronLock` cannot take its lock, and
-  // it returns false — **silently**. So the boot tick did nothing and the
-  // next one was six hours away, which is why partitions were created by
-  // the migration and never rolled forward. The symptom was fixed on the
-  // fleet plugin first; the cause was here too.
-  const timer = setInterval(tick, intervalMs);
-  timer.unref?.();
-  const first = setTimeout(tick, 5_000);
-  first.unref?.();
+  setTimeout(() => void tick(), 45_000);
+  setInterval(() => void tick(), intervalMs);
 });

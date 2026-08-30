@@ -20,7 +20,9 @@ export default defineEventHandler(async (event) => {
   if (!ticket) throw createError({ statusCode: 404, message: 'Not found' });
 
   return {
-    ticket,
+    // Same rule as the queue: the erasure token is a record, not a label.
+    ticket:
+      ticket.openedById === null ? { ...ticket, openedByName: null } : ticket,
     messages: await ticketThread(id),
     /*
      * Whether THIS caller may end it, decided here rather than in the

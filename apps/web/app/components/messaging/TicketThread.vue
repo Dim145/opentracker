@@ -54,7 +54,7 @@
       </div>
 
       <p class="tk-facts">
-        <span>{{ $t('tickets.openedBy', { name: ticket.openedByName }) }}</span>
+        <span>{{ $t('tickets.openedBy', { name: ticket.openedByName ?? $t('messaging.deletedMember') }) }}</span>
         <span class="tk-sep" aria-hidden="true">·</span>
         <span>{{ $t(`tickets.categories.${ticket.category}`) }}</span>
         <template v-if="ticket.assignedToName">
@@ -83,7 +83,7 @@
         :class="m.fromStaff ? 'tk-line--staff' : 'tk-line--member'"
       >
         <p class="tk-author">
-          <span class="tk-name">{{ m.authorName }}</span>
+          <span class="tk-name" :class="{ 'tk-name--gone': !m.authorName }">{{ m.authorName ?? $t('messaging.deletedMember') }}</span>
           <span v-if="m.fromStaff" class="tk-badge">{{ $t('tickets.staff') }}</span>
           <time class="tk-time" :datetime="m.createdAt">{{ stamp(m.createdAt) }}</time>
         </p>
@@ -220,7 +220,7 @@ interface TicketRow {
   status: string;
   closureReason: string | null;
   openedById: string | null;
-  openedByName: string;
+  openedByName: string | null;
   assignedToId: string | null;
   assignedToName: string | null;
   closedByName: string | null;
@@ -231,7 +231,7 @@ interface TicketRow {
 interface TicketLine {
   id: string;
   authorId: string | null;
-  authorName: string;
+  authorName: string | null;
   fromStaff: boolean;
   body: string;
   createdAt: string;
@@ -489,6 +489,8 @@ async function reopen() {
 .tk-status--rejected { color: rgb(var(--fg-muted)); }
 .tk-status--stale { color: rgb(var(--fg-subtle)); }
 .tk-status--withdrawn { color: rgb(var(--fg-muted)); }
+/* An erased author reads as an absence, not as a name in the same weight. */
+.tk-name--gone { color: rgb(var(--fg-muted)); font-weight: 500; }
 
 .tk-facts {
   display: flex;
