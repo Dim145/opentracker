@@ -4868,7 +4868,8 @@
       "enableTitle": "Activer le chiffrement sur cet appareil",
       "enableBody": "Ce navigateur reçoit sa propre clé. Les membres pourront alors démarrer une conversation chiffrée avec toi — et cet appareil sera le seul à pouvoir la lire. Aucune sauvegarde, aucune récupération : c'est ce qui rend la promesse vraie.",
       "enableAction": "Créer ma clé",
-      "rotateFailed": "La clé n'a pas pu être publiée. Rien n'a été modifié."
+      "rotateFailed": "La clé n'a pas pu être publiée. Rien n'a été modifié.",
+      "notReady": "Cet appareil ne peut pas encore chiffrer pour cette conversation."
     },
     "erasedConversation": "Fermée à la demande de votre correspondant. Cette conversation était chiffrée, et le compte qui détenait l'autre moitié de la clé a été supprimé — plus rien ici ne peut être ouvert, par personne.",
     "unreadLabel": "{count} non lu | {count} non lu | {count} non lus",
@@ -4901,7 +4902,11 @@
       "owner": "Propriétaire",
       "admin": "Admin",
       "moderator": "Modo"
-    }
+    },
+    "editFailed": "La modification n'a pas pu être enregistrée.",
+    "replyAccepts": "Répondre accepte cette demande et ouvre la conversation dans les deux sens.",
+    "remove": "Supprimer",
+    "removeFailed": "Le message n'a pas pu être supprimé."
   },
   "room": {
     "title": "Salon",

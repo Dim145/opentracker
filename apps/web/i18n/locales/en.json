@@ -4868,7 +4868,8 @@
       "enableTitle": "Turn on encryption for this device",
       "enableBody": "This browser gets a key of its own. From then on, members can start an encrypted conversation with you — and this device is the only one that will be able to read it. There is no backup and no recovery: that is what makes the promise true.",
       "enableAction": "Create my key",
-      "rotateFailed": "The key could not be published. Nothing was changed."
+      "rotateFailed": "The key could not be published. Nothing was changed.",
+      "notReady": "This device cannot encrypt for this conversation yet."
     },
     "erasedConversation": "Closed at your correspondent's request. This conversation was encrypted, and the account that held the other half of the key has been deleted — nothing here can be opened again, by anyone.",
     "unreadLabel": "{count} unread | {count} unread | {count} unread",
@@ -4901,7 +4902,11 @@
       "owner": "Owner",
       "admin": "Admin",
       "moderator": "Mod"
-    }
+    },
+    "editFailed": "The change could not be saved.",
+    "replyAccepts": "Replying accepts this request and opens the conversation both ways.",
+    "remove": "Remove",
+    "removeFailed": "The message could not be removed."
   },
   "room": {
     "title": "Room",

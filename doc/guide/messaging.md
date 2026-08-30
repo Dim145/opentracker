@@ -328,6 +328,17 @@ A first contact gets its own type, `message_request_received`, because it
 is the event the queue exists to hold back. External delivery is opt-in
 per type, so nothing leaves the site unless the member asked for it.
 
+## Reachable, and not
+
+Six capabilities have routes and, as of today, **no way in from the
+interface**: blocking a member, searching a conversation, archiving a
+thread, muting one, deleting a private message, and staff reading a
+reported message. Three of those are P7 features that were reported as
+delivered and were only half of it — the API half.
+
+They are listed here rather than quietly left out because a route with
+no caller reads as working code until somebody looks for the button.
+
 ## Retention
 
 Room messages live in a partitioned table, one partition per day, and

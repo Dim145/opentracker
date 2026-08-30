@@ -343,6 +343,77 @@ async function main() {
       own.body?.publicKey
   );
 
+  await resetRateLimits();
+  console.log('\n9. an encrypted conversation accepts what the page sends');
+
+  // The page refused to send in an encrypted conversation at all — a
+  // leftover guard, silent, with nothing in the console. Nothing here
+  // drives the page, so what this pins is the contract the page relies
+  // on: ciphertext in, ciphertext edited, plaintext refused both times.
+  const encConv = await req('donator', DM, {
+    method: 'POST',
+    body: { username: 'founder', encrypted: true },
+  });
+  const encId = encConv.body?.id;
+  check('an encrypted conversation is available', !!encId, d(encConv.body));
+
+  await resetRateLimits();
+  const sealed = await req('donator', `${DM}/${encId}/messages`, {
+    method: 'POST',
+    body: { cipher: 'q80', iv: 'q80' },
+  });
+  check('ciphertext is accepted', sealed.status === 200, d(sealed.body));
+
+  await resetRateLimits();
+  check(
+    'and an edit may be sealed too — the route takes cipher, not body',
+    (await req('donator', `${DM}/${encId}/messages/${sealed.body?.id}`, {
+      method: 'PATCH',
+      body: { cipher: 'rM0', iv: 'rM0' },
+    })).status === 200
+  );
+  await resetRateLimits();
+  check(
+    'while a plaintext edit is refused, as a plaintext send is',
+    (await req('donator', `${DM}/${encId}/messages/${sealed.body?.id}`, {
+      method: 'PATCH',
+      body: { body: 'en clair' },
+    })).status === 400
+  );
+
+  await resetRateLimits();
+  console.log('\n10. withdrawing a private message');
+
+  // The route always described this case — "everybody else needs a seat,
+  // and may only withdraw what they wrote" — and no button called it.
+  // The room had one, the private surface did not.
+  const doomed = await req('donator', `${DM}/${convId}/messages`, {
+    method: 'POST',
+    body: { body: 'Written, then withdrawn.' },
+  });
+  await resetRateLimits();
+  check(
+    'the correspondent cannot withdraw it',
+    (await req('plainuser', `${DM}/${convId}/messages/${doomed.body?.id}`, {
+      method: 'DELETE',
+    })).status === 403
+  );
+  await resetRateLimits();
+  check(
+    'the author can',
+    (await req('donator', `${DM}/${convId}/messages/${doomed.body?.id}`, {
+      method: 'DELETE',
+    })).status === 200
+  );
+
+  const after = await req('plainuser', `${DM}/${convId}/messages`);
+  const gone = after.body?.messages?.find((m) => m.id === doomed.body?.id);
+  check(
+    'and the row survives, blanked — the thread stays coherent',
+    !!gone && gone.deleted === true && gone.body === null,
+    d(gone)
+  );
+
   report();
 }
 

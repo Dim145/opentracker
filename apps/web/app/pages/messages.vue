@@ -260,7 +260,7 @@
                   <Icon name="ph:arrow-bend-up-left" />
                 </button>
                 <button
-                  v-if="msg.mine && !msg.deleted && !active?.encrypted"
+                  v-if="msg.mine && !msg.deleted"
                   type="button"
                   class="msg-action"
                   :aria-label="$t('messaging.edit')"
@@ -268,6 +268,20 @@
                   @click="beginEdit(msg)"
                 >
                   <Icon name="ph:pencil-simple" />
+                </button>
+                <!-- The route has always described this case — "everybody
+                     else needs a seat, and may only withdraw what they
+                     wrote" — and nothing called it. The room had the
+                     button; the private surface did not. -->
+                <button
+                  v-if="(msg.mine || isStaff) && !msg.deleted"
+                  type="button"
+                  class="msg-action msg-action--danger"
+                  :aria-label="$t('messaging.remove')"
+                  :title="$t('messaging.remove')"
+                  @click="removeMessage(msg)"
+                >
+                  <Icon name="ph:trash" />
                 </button>
               </div>
             </div>
@@ -366,6 +380,8 @@
             </button>
           </div>
 
+          <p v-if="sendError" class="msg-send-error">{{ sendError }}</p>
+
           <!--
             The banner above, the controls below.
 
@@ -374,6 +390,13 @@
             describing was squeezed to nothing. Two rows, and the banner
             sits where a banner belongs.
           -->
+          <!-- Replying to a request accepts it — that is the design, and
+               it was silent about it: an Accept button and a composer side
+               by side, with no hint that using the second does the first. -->
+          <p v-if="active.state === 'pending'" class="msg-pending-hint">
+            {{ $t('messaging.replyAccepts') }}
+          </p>
+
           <div class="msg-composer-row">
           <button
             v-if="active.state === 'pending'"
@@ -536,6 +559,8 @@ interface ThreadMessage {
 
 const { t } = useI18n();
 const { user } = useUserSession();
+const route = useRoute();
+const router = useRouter();
 
 /** Which half of the list is on screen. Tabs, not two stacked lists. */
 const tab = ref<'inbox' | 'requests'>('inbox');
@@ -599,6 +624,16 @@ function shortAgo(iso: string): string {
 const startOpen = ref(false);
 const startWith = ref('');
 const startError = ref('');
+/**
+ * A refusal from the composer, shown above it.
+ *
+ * `startError` lives in the new-conversation dialog, so writing there
+ * from `send()` would have set a message nobody could see — the same
+ * silence the guard above already produced.
+ */
+const sendError = ref('');
+/** How many sends are in flight. See the echo guard in `onMessages`. */
+const sending = ref(0);
 const startEncrypted = ref(false);
 const peerHasKey = ref(false);
 const peerKeyChecked = ref(false);
@@ -785,18 +820,32 @@ async function loadList() {
 // was open would have no answer for the socket being shut.
 
 const { connected, needsReload, start } = useMessagingStream({
-  onMessages: (incoming) => {
+  onMessages: async (incoming) => {
   for (const msg of incoming) {
     if (msg.conversationId === activeId.value) {
-      // A message I just sent comes back through my own channel too — I am
-      // a participant. The optimistic row already carries the server's id
-      // by then, so matching on it is what stops the echo showing twice.
       if (messages.value.some((m) => m.id === msg.id)) continue;
+      // A message I just sent comes back through my own channel too — I am
+      // a participant — and the optimistic row does not carry the server's
+      // id until the POST resolves. The echo can win that race, and then
+      // the message appears twice: once as I typed it, once as ciphertext
+      // I have to wait for a reload to read. My own messages are already
+      // on screen, so an echo arriving mid-send is simply dropped.
+      if (msg.authorId === user.value?.id && sending.value > 0) continue;
+
+      // Decrypted here, not only in `loadThread`. Without this every
+      // message arriving live in an encrypted conversation rendered as
+      // unreadable until the page was reloaded — mine and my
+      // correspondent's alike.
+      const body =
+        msg.cipher && msg.iv
+          ? await convCrypto.decrypt({ cipher: msg.cipher, iv: msg.iv })
+          : msg.body;
+
       messages.value = [
         ...messages.value,
         {
           id: msg.id,
-          body: msg.body,
+          body,
           cipher: msg.cipher,
           deleted: false,
           createdAt: msg.createdAt,
@@ -854,14 +903,98 @@ watch(needsReload, async (needed) => {
 
 onMounted(start);
 onMounted(refreshIdentity);
+onMounted(loadDrafts);
+
+/**
+ * Come back to the conversation the URL names.
+ *
+ * A stale id — archived, blocked, or belonging to somebody else's
+ * session — is simply not in the list, and opens nothing rather than a
+ * thread with no header and no way back.
+ */
+onMounted(async () => {
+  const wanted = route.query.c;
+  if (typeof wanted !== 'string' || !wanted) return;
+  // The list is fetched with `useFetch` awaited in setup, so it is
+  // already here — no waiting, and no promise to invent.
+  const conv =
+    inbox.value.find((c) => c.id === wanted) ??
+    requests.value.find((c) => c.id === wanted);
+  if (!conv) return;
+  tab.value = conv.state === 'pending' ? 'requests' : 'inbox';
+  await open(conv);
+});
+
+// Send whatever is in the box to its conversation before the tab goes.
+onBeforeUnmount(stashDraft);
 
 async function open(conv: Conversation) {
+  // The draft belongs to the conversation it was written in. Kept in one
+  // map rather than a single ref: with a single ref, half a message to
+  // one member followed you into the next thread and was sent to
+  // somebody else.
+  stashDraft();
+  clearContext();
+
   activeId.value = conv.id;
+  draft.value = drafts.value[conv.id] ?? '';
   messages.value = [];
   nextBefore.value = null;
+
+  // In the URL, so a reload comes back to the thread that was open
+  // rather than to an empty pane — and so a conversation can be linked
+  // to at all.
+  void router.replace({ query: { ...route.query, c: conv.id } });
+
   await loadThread();
   markRead(conv);
 }
+
+/**
+ * Drafts, per conversation, surviving a reload.
+ *
+ * `localStorage` because a draft is a per-device convenience: it belongs
+ * to the browser somebody was typing in, not to the account. Wrapped
+ * because a private window or blocked site data makes the accessor
+ * itself throw.
+ */
+const DRAFTS_KEY = 'trackarr:message-drafts';
+const drafts = ref<Record<string, string>>({});
+
+function loadDrafts() {
+  try {
+    drafts.value = JSON.parse(localStorage.getItem(DRAFTS_KEY) ?? '{}');
+  } catch {
+    drafts.value = {};
+  }
+}
+
+function persistDrafts() {
+  try {
+    localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts.value));
+  } catch {
+    // Nothing to do and nothing worth saying: the draft simply will not
+    // outlive the tab.
+  }
+}
+
+/** Park the current draft under the conversation it was written in. */
+function stashDraft() {
+  const id = activeId.value;
+  if (!id) return;
+  const text = draft.value.trim();
+  if (text) drafts.value[id] = draft.value;
+  else delete drafts.value[id];
+  persistDrafts();
+}
+
+// Typing is frequent and writing to localStorage on every keystroke is
+// wasteful; once a second is imperceptible and survives a reload.
+let draftTimer: ReturnType<typeof setTimeout> | null = null;
+watch(draft, () => {
+  if (draftTimer) clearTimeout(draftTimer);
+  draftTimer = setTimeout(stashDraft, 1000);
+});
 
 /**
  * Marking read is grouped, never one call per message seen.
@@ -974,8 +1107,34 @@ function scrollToEnd() {
 async function send() {
   if (editing.value) return submitEdit();
   const body = draft.value.trim();
-  if (!body || !activeId.value || active.value?.encrypted) return;
+  if (!body || !activeId.value) return;
+
+  /*
+   * This used to read `|| active.value?.encrypted` and return.
+   *
+   * A leftover from before the composer could seal anything: it refused
+   * every encrypted conversation, silently, with a bare `return` — you
+   * typed, pressed send, and nothing happened, with nothing in the
+   * console to say why. `deliver()` has sealed the payload since
+   * encryption landed, so the guard was not protecting anything.
+   *
+   * What is worth refusing is sending without a usable key, which would
+   * seal to nothing the correspondent can open. The composer is only
+   * rendered once the state is `ready`, so this is belt and braces —
+   * and it says so instead of returning quietly.
+   */
+  if (active.value?.encrypted && cryptoState.value !== 'ready') {
+    sendError.value = t('messaging.crypto.notReady');
+    return;
+  }
+  sendError.value = '';
   draft.value = '';
+  // Sent is not drafted. Left behind, the text came back the next time
+  // the conversation was opened, next to the message it had become.
+  if (activeId.value) {
+    delete drafts.value[activeId.value];
+    persistDrafts();
+  }
   const answering = replyTo.value;
   replyTo.value = null;
 
@@ -1005,6 +1164,7 @@ async function send() {
 }
 
 async function deliver(pending: ThreadMessage) {
+  sending.value += 1;
   try {
     // Sealed here, never on the server — which is the whole point: the
     // API stores bytes it cannot read, and the row it writes carries no
@@ -1030,12 +1190,46 @@ async function deliver(pending: ThreadMessage) {
   } catch {
     const row = messages.value.find((m) => m.id === pending.id);
     if (row) row.failed = true;
+  } finally {
+    sending.value -= 1;
   }
 }
 
 function retry(msg: ThreadMessage) {
   msg.failed = false;
   void deliver(msg);
+}
+
+const isStaff = computed(
+  () =>
+    !!(user.value as { isAdmin?: boolean; isModerator?: boolean } | null)
+      ?.isAdmin ||
+    !!(user.value as { isModerator?: boolean } | null)?.isModerator
+);
+
+/**
+ * Withdraw a message. The row survives, blanked — the thread stays
+ * coherent and a report still has something to point at.
+ */
+async function removeMessage(msg: ThreadMessage) {
+  const previousBody = msg.body;
+  const previousCipher = msg.cipher;
+  msg.deleted = true;
+  msg.body = null;
+  msg.cipher = null;
+  try {
+    await $fetch(
+      `/api/messaging/conversations/${activeId.value}/messages/${msg.id}`,
+      { method: 'DELETE' }
+    );
+  } catch (err) {
+    msg.deleted = false;
+    msg.body = previousBody;
+    msg.cipher = previousCipher;
+    sendError.value =
+      (err as { data?: { message?: string } })?.data?.message ??
+      t('messaging.removeFailed');
+  }
 }
 
 /** Toggle one reaction on one message. */
@@ -1102,22 +1296,37 @@ async function submitEdit() {
   draft.value = '';
   editing.value = null;
   try {
+    // Sealed here for an encrypted conversation, exactly as a new message
+    // is. Without it the edit button had to be hidden there — the route
+    // accepts a correction it would never receive, and the one surface
+    // that could send it refused to.
+    const payload = active.value?.encrypted
+      ? await convCrypto.encrypt(body)
+      : { body };
     await $fetch(
       `/api/messaging/conversations/${activeId.value}/messages/${target.id}`,
-      { method: 'PATCH', body: { body } }
+      { method: 'PATCH', body: payload }
     );
-  } catch {
+  } catch (err) {
     target.body = previous;
     target.editedAt = null;
+    sendError.value =
+      (err as { data?: { message?: string } })?.data?.message ??
+      t('messaging.editFailed');
   }
 }
 
 async function accept() {
-  if (!activeId.value) return;
-  await $fetch(`/api/messaging/conversations/${activeId.value}/accept`, {
-    method: 'POST',
-  });
+  const id = activeId.value;
+  if (!id) return;
+  await $fetch(`/api/messaging/conversations/${id}/accept`, { method: 'POST' });
   await loadList();
+  // The conversation has moved to the inbox, so the view follows it.
+  // Reloading the list alone left the reader on the Requests tab looking
+  // at a list the thread was no longer in, with no way to tell whether
+  // anything had happened.
+  tab.value = 'inbox';
+  activeId.value = id;
 }
 
 async function startConversation() {
@@ -1443,7 +1652,11 @@ async function startConversation() {
   flex: 1;
   overflow-y: auto;
   max-height: 60vh;
-  padding: 0.75rem;
+  /* Extra room at the top. The hover toolbar sits ABOVE its bubble, and
+     `overflow-y: auto` clips whatever leaves the box — so on the first
+     message it was cut in half by the header. The padding gives it
+     somewhere to be. */
+  padding: 1.5rem 0.75rem 0.75rem;
 }
 
 .msg-older {
@@ -1563,6 +1776,16 @@ async function startConversation() {
   gap: 0.4rem;
   padding: 0.5rem;
   border-top: 1px solid rgb(var(--line-default));
+}
+.msg-pending-hint {
+  padding: 0.25rem 0.1rem;
+  color: rgb(var(--fg-muted));
+  font-size: 0.72rem;
+}
+.msg-send-error {
+  padding: 0.25rem 0.1rem;
+  color: rgb(var(--danger));
+  font-size: 0.72rem;
 }
 .msg-composer-row {
   display: flex;
@@ -1708,6 +1931,12 @@ async function startConversation() {
 .msg-action:hover {
   color: rgb(var(--fg-strong));
   background: rgb(var(--fg-default) / 0.1);
+}
+/* Destructive, and coloured like it — and last in the row, so it is not
+   the button next to the one you meant. */
+.msg-action--danger:hover {
+  color: rgb(var(--danger));
+  background: rgb(var(--danger) / 0.12);
 }
 @media (prefers-reduced-motion: reduce) {
   .msg-action { transition: none; }
