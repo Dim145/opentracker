@@ -18,89 +18,27 @@
  *   - how the upload form's media-id picker pre-selects a tab,
  *   - which metadata card the torrent detail page renders.
  */
-export type MediaTypeHint = 'movie' | 'tv' | 'game' | 'book';
-
-/** Stable identifiers for every source. Add a literal here when
- *  you wire a new provider into `index.ts`. */
-export type MediaSourceId =
-  | 'tmdb'
-  | 'imdb'
-  | 'tvdb'
-  | 'igdb'
-  | 'openlibrary';
-
-/**
- * Normalised detail payload returned by `lookup()`. Every provider
- * fills `source`, `type`, `title`, `url`; the rest is best-effort
- * and may be null. Provider-specific fields live under their own
- * id key (`tmdbId`, `igdbId`, …) so the wire shape is still typed
- * even with multiple providers.
+/*
+ * Aliased from the shared package, not re-exported from it.
+ *
+ * The definition lives in `packages/shared/src/media.ts` so the web renders
+ * exactly the shape this produces — it used to keep seven hand-written
+ * approximations of it. Nitro's auto-import scanner turns every export of
+ * this file into a global, and it cannot follow an `export … from`: the
+ * global and the direct import then resolve to two distinct symbols and
+ * every provider fails to match its own `MediaSource` slot. A local alias
+ * is a declaration, so the scanner sees it, and it is the shared type by
+ * construction rather than a copy that can drift.
  */
-export interface MediaMetadata {
-  source: MediaSourceId;
-  type: MediaTypeHint;
-  /** Provider-side canonical id, also surfaced as one of the
-   *  typed slots below depending on the source. */
-  title: string;
-  originalTitle: string | null;
-  tagline: string | null;
-  year: number | null;
-  overview: string | null;
-  posterUrl: string | null;
-  backdropUrl: string | null;
-  genres: string[];
-  /** Minutes; for TV this is the per-episode runtime. Null for
-   *  games / other types. */
-  runtime: number | null;
-  /** 0–10 IMDb-style or 0–100 IGDB-style; the provider normalises
-   *  to 0–10 so the UI can render one scale. */
-  voteAverage: number | null;
-  voteCount: number | null;
-  url: string;
+import type {
+  MediaMetadata as SharedMediaMetadata,
+  MediaSourceId as SharedMediaSourceId,
+  MediaTypeHint as SharedMediaTypeHint,
+} from '@trackarr/shared/media';
 
-  /** Raw release date (YYYY-MM-DD) — the listing spells it out in full. */
-  releaseDate?: string | null;
-  countries?: string[];
-  /** Director(s) for a film, creator(s) for a series. */
-  directors?: string[];
-  cast?: Array<{ name: string; character: string | null; photoUrl: string | null }>;
-  seasonCount?: number | null;
-  episodeCount?: number | null;
-
-  // ── Source-specific typed slots ────────────────────────────
-  // Filled by the relevant provider; null otherwise. The Torznab /
-  // *Arr cross-reference uses these to match against the user's
-  // library.
-  tmdbId?: number | null;
-  imdbId?: string | null;
-  tvdbId?: number | null;
-  igdbId?: number | null;
-  /** Book-only — canonical Open Library work id (`OL\d+W`). */
-  openlibraryId?: string | null;
-  /** Game-only — release platform names ("PlayStation 5", "PC", …). */
-  platforms?: string[];
-  /** Game-only — single-player / multiplayer / co-operative tags. */
-  gameModes?: string[];
-  /** Game-only — high-resolution screenshots. */
-  screenshots?: string[];
-  /** Game-only — IGDB-side first-release date as ISO if any
-   *  region has shipped. */
-  firstReleaseDate?: string | null;
-  /** Book-only — surfaced author names in publication order. */
-  authors?: string[];
-  /** Book-only — publisher name (best-effort across providers). */
-  publisher?: string | null;
-  /** Book-only — page count for the canonical edition. */
-  pageCount?: number | null;
-  /** Book-only — ISBN-13 if Open Library / Google Books had it. */
-  isbn13?: string | null;
-  /** Book-only — ISBN-10 if available; useful for legacy catalogues. */
-  isbn10?: string | null;
-  /** Book-only — which provider actually resolved this record
-   *  ('openlibrary' or 'googlebooks'). Lets the UI surface the
-   *  origin alongside the canonical 'source: openlibrary' header. */
-  bookProvider?: 'openlibrary' | 'googlebooks';
-}
+export type MediaTypeHint = SharedMediaTypeHint;
+export type MediaSourceId = SharedMediaSourceId;
+export type MediaMetadata = SharedMediaMetadata;
 
 /** Lighter shape returned by `search()` for the upload-form picker. */
 export interface MediaSearchHit {

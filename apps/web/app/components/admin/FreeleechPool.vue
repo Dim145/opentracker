@@ -1043,7 +1043,9 @@ async function confirmReset() {
     message: t('admin.freeleechPool.confirmReset.message'),
     confirmText: t('admin.freeleechPool.reset'),
     cancelText: t('common.cancel'),
-    danger: true,
+    // `destructive`, not `danger` — the latter is not an option the dialog
+    // has, so it was dropped and the reset asked like any other question.
+    destructive: true,
   });
   if (!ok) return;
   resetting.value = true;

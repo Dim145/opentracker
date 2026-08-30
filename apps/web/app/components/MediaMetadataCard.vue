@@ -130,23 +130,18 @@
 </template>
 
 <script setup lang="ts">
+/*
+ * The shared wire type, not a local copy.
+ *
+ * Seven approximations of this shape used to live across the picker, the
+ * three cards and the three pages that pass a result between them. They had
+ * drifted enough that no card would accept what the picker emitted. See
+ * `packages/shared/src/media.ts`.
+ */
+import type { MediaMetadata } from '@trackarr/shared/media';
+
 interface Props {
-  metadata: {
-    type: 'movie' | 'tv';
-    title: string;
-    originalTitle: string | null;
-    tagline: string | null;
-    year: number | null;
-    overview: string | null;
-    posterUrl: string | null;
-    backdropUrl: string | null;
-    genres: string[];
-    runtime: number | null;
-    voteAverage: number | null;
-    voteCount: number | null;
-    imdbId: string | null;
-    url: string;
-  } | null;
+  metadata: MediaMetadata | null;
   size?: 'compact' | 'full';
 }
 

@@ -3297,7 +3297,9 @@
       "cssWillRefuse": "Le serveur refusera ceci :",
       "editorBack": "Retour à la liste",
       "editorTitleNew": "Nouveau thème",
-      "fontFamilySuggest": "Les suggestions viennent du fichier choisi et des fontes déjà téléversées."
+      "fontFamilySuggest": "Les suggestions viennent du fichier choisi et des fontes déjà téléversées.",
+      "notFoundTitle": "Ce thème n'existe plus.",
+      "notFoundBody": "Il a été supprimé, ou l'adresse désigne un thème qui n'a jamais existé."
     },
     "homepage": {
       "title": "Contenu de la page d'accueil",

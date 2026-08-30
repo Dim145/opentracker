@@ -710,6 +710,9 @@ interface Tag {
 interface TorrentDetail {
   id: string;
   infoHash: string;
+  /** From `redactUploader`: the row has an uploader, who asked to be hidden.
+   *  It was read in the template and declared nowhere. */
+  uploaderAnonymous?: boolean;
   name: string;
   size: number;
   description: string | null;
@@ -934,42 +937,14 @@ const moderationOnTop = computed(() => {
 // covers IMDb / TVDB; IGDB serves video games. Order in
 // `lookupParams` matters: a movie/TV-hinted torrent prefers TMDb
 // even when an IGDB id is also stored.
+/* The shared wire type. This page declared its own copy with `source`
+ * optional, which is not what the route returns and is exactly what the
+ * three cards below reject. See `packages/shared/src/media.ts`. */
+import type { MediaMetadata } from '@trackarr/shared/media';
 interface MediaMetadataResponse {
   enabled: boolean;
   found: boolean;
-  metadata: {
-    source?: 'tmdb' | 'imdb' | 'tvdb' | 'igdb' | 'openlibrary';
-    type: 'movie' | 'tv' | 'game' | 'book';
-    title: string;
-    originalTitle: string | null;
-    tagline: string | null;
-    year: number | null;
-    overview: string | null;
-    posterUrl: string | null;
-    backdropUrl: string | null;
-    genres: string[];
-    runtime: number | null;
-    voteAverage: number | null;
-    voteCount: number | null;
-    imdbId: string | null;
-    url: string;
-    // IGDB-only fields. Optional so the existing TMDb shape is
-    // unchanged; the GameMetadataCard reads them when present.
-    igdbId?: number | null;
-    platforms?: string[];
-    gameModes?: string[];
-    screenshots?: string[];
-    firstReleaseDate?: string | null;
-    // Open Library / Google Books fields. Optional so the existing
-    // shapes are unchanged; BookMetadataCard reads them when set.
-    openlibraryId?: string | null;
-    authors?: string[];
-    publisher?: string | null;
-    pageCount?: number | null;
-    isbn13?: string | null;
-    isbn10?: string | null;
-    bookProvider?: 'openlibrary' | 'googlebooks';
-  } | null;
+  metadata: MediaMetadata | null;
 }
 
 // Derive an external metadata hint from the torrent's category — a

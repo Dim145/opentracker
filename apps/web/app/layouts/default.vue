@@ -586,7 +586,10 @@
             @click="showMobileNav = false"
           >
             <Icon :name="link.icon" class="text-lg flex-shrink-0" />
-            <span>{{ link.label }}</span>
+            <!-- `$t(link.labelKey)`, like the desktop bar two hundred lines
+                 up. `label` is not a field of these items, so every entry in
+                 the mobile drawer rendered with an empty name. -->
+            <span>{{ $t(link.labelKey) }}</span>
           </NuxtLink>
         </nav>
 
@@ -859,13 +862,15 @@ const branding = await useBranding();
 
 // Set dynamic favicon and title template
 useHead({
-  titleTemplate: computed(() => {
+  // A plain function, not a `computed` wrapping one: `titleTemplate` takes
+  // a string or a function, and a `ComputedRef<fn>` is neither. It reads
+  // `branding.value` when it runs, which is what makes it reactive.
+  titleTemplate: (title?: string) => {
     const suffix =
       branding.value?.pageTitleSuffix ||
       `- ${stripTags(branding.value?.siteName) || 'TRACKARR'}`;
-    return (title?: string) =>
-      title ? `${title} ${suffix}` : suffix.replace(/^- /, '');
-  }),
+    return title ? `${title} ${suffix}` : suffix.replace(/^- /, '');
+  },
   link: [
     {
       rel: 'icon',

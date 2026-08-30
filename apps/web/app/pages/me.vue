@@ -68,7 +68,7 @@
                   class="hero-pill hero-pill--soft"
                 >
                   <Icon name="ph:envelope-simple-bold" />
-                  {{ $t('me.stats.invitesPill', profile.invitesRemaining, { n: profile.invitesRemaining }) }}
+                  {{ $t('me.stats.invitesPill', { n: profile.invitesRemaining }, profile.invitesRemaining) }}
                 </span>
                 <span
                   v-if="profile.lastIp"

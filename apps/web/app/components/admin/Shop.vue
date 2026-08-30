@@ -507,7 +507,7 @@ function effectLabel(item: ShopItemRow): string {
   }
   if (item.type === 'invite') {
     const c = Number(item.payload.count ?? 1);
-    return t('shop.effects.invite', c, { n: c });
+    return t('shop.effects.invite', { n: c }, c);
   }
   return '';
 }

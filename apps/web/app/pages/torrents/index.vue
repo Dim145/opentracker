@@ -403,15 +403,16 @@ const sortOrder = ref<SortDirection>(
  * Clicking the active column reverses it; clicking another switches to it.
  *
  * A fresh column starts descending, which is what every one of these means when
- * you first ask for it: newest, biggest, most seeded. `name` and `category` are
- * the exceptions — nobody wants Z-to-A first.
+ * you first ask for it: newest, biggest, most seeded. `name` is the exception —
+ * nobody wants Z-to-A first. (`category` used to be listed here too; it is not
+ * a sortable column, so that half of the condition never ran.)
  */
 function applySort(key: TorrentSortKey) {
   if (sortBy.value === key) {
     sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
   } else {
     sortBy.value = key;
-    sortOrder.value = key === 'name' || key === 'category' ? 'asc' : 'desc';
+    sortOrder.value = key === 'name' ? 'asc' : 'desc';
   }
   page.value = 1;
   updateUrl();
@@ -590,6 +591,17 @@ interface ServedGroup {
  * setup, and a `const` read from there before this line is a dead-zone crash.
  */
 const sources = ref<'all' | 'local'>('all');
+
+/**
+ * Whether this instance has partners at all.
+ *
+ * The source toggle's guard read a bare `federated` that was declared
+ * nowhere — `undefined`, so the control only showed once `sources` had
+ * already been switched to `local`, which is the one state you cannot
+ * reach without it. Same flag the admin panels and the palette read.
+ */
+const branding = await useBranding();
+const federated = computed(() => Boolean(branding.value?.federationEnabled));
 
 // Fetch groups — the grouped view's own endpoint. It folds the WHOLE catalogue,
 // not the page the flat listing happened to return, so its counts, episode sets

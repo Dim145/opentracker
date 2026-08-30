@@ -438,9 +438,10 @@ interface BanPanelState {
 }
 
 const page = ref(1);
-const statusFilter = ref<'' | 'pending' | 'resolved' | 'dismissed' | 'withdrawn'>(
-  'pending'
-);
+/** The filter strip's states. Spelled once — `setFilter` had dropped
+ *  `withdrawn` from its own copy, so the tab existed and was untypeable. */
+type StatusFilter = '' | 'pending' | 'resolved' | 'dismissed' | 'withdrawn';
+const statusFilter = ref<StatusFilter>('pending');
 const busy = ref<string | null>(null);
 // Inline ban-duration picker. Opened by clicking "Accept" on a
 // user-type report; null for every other case (the panel is the
@@ -496,7 +497,7 @@ const { data: reports, refresh } = await useFetch<ReportsResponse>(
 );
 
 // ── Filter strip ───────────────────────────────────────────
-const filterOptions = computed<{ value: '' | 'pending' | 'resolved' | 'dismissed' | 'withdrawn'; label: string }[]>(
+const filterOptions = computed<{ value: StatusFilter; label: string }[]>(
   () => [
     { value: 'pending', label: t('admin.reports.filterPending') },
     { value: 'resolved', label: t('admin.reports.filterResolved') },
@@ -506,14 +507,14 @@ const filterOptions = computed<{ value: '' | 'pending' | 'resolved' | 'dismissed
   ]
 );
 
-function filterCount(value: '' | 'pending' | 'resolved' | 'dismissed' | 'withdrawn'): number {
+function filterCount(value: StatusFilter): number {
   const counts = reports.value?.counts;
   if (!counts) return 0;
   if (value === '') return counts.all;
   return counts[value] ?? 0;
 }
 
-function setFilter(value: '' | 'pending' | 'resolved' | 'dismissed') {
+function setFilter(value: StatusFilter) {
   statusFilter.value = value;
   page.value = 1;
 }

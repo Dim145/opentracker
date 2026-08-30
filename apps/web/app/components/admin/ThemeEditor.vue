@@ -1,5 +1,25 @@
 <template>
-  <div class="space-y-6">
+  <!--
+    Guarded, and not only for the compiler.
+
+    `load()` fills the draft from the row the list already carries, and
+    does nothing when the id names no row — a theme deleted in another
+    tab, or a hand-typed URL. The whole template below reads `draft.*`
+    unguarded, so that case was a TypeError on render rather than a page
+    saying what happened. The script has guarded `draft.value` throughout
+    from the start; the template never did.
+  -->
+  <div v-if="!draft" class="card">
+    <div class="card-body space-y-2">
+      <p class="text-sm font-semibold">{{ $t('admin.themes.notFoundTitle') }}</p>
+      <p class="text-xs text-text-muted">{{ $t('admin.themes.notFoundBody') }}</p>
+      <NuxtLink to="/admin/themes" class="btn btn-sm">
+        {{ $t('admin.themes.editorBack') }}
+      </NuxtLink>
+    </div>
+  </div>
+
+  <div v-else class="space-y-6">
     <div class="card">
       <div class="card-header flex items-center justify-between gap-2">
         <div class="flex items-center gap-2">

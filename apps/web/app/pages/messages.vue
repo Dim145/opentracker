@@ -1535,6 +1535,10 @@ const { connected, needsReload, start } = useMessagingStream({
           id: msg.id,
           body,
           cipher: msg.cipher,
+          // The nonce travels with the ciphertext. Dropped here, a row
+          // that arrived live could never be decrypted a second time —
+          // `loadThread` keys its re-decrypt on `cipher && iv`.
+          iv: msg.iv ?? null,
           deleted: false,
           createdAt: msg.createdAt,
           author: msg.authorId

@@ -103,8 +103,11 @@ const mutedLabel = computed(() =>
 
 function run(action: 'archive' | 'mute' | 'block', hours = 0) {
   open.value = false;
+  // Spelled out rather than `emit(action)`: `defineEmits` declares one
+  // overload per event, so a union argument matches none of them.
   if (action === 'mute') emit('mute', hours);
-  else emit(action);
+  else if (action === 'archive') emit('archive');
+  else emit('block');
 }
 
 // Clicking elsewhere closes it, and so does Escape — a menu you can only

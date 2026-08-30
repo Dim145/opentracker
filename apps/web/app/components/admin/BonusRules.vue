@@ -277,7 +277,7 @@
         </div>
         <span class="block-meta">
           <strong>{{ seedCountTiers.length }}</strong>
-          {{ $t('admin.bonusRules.snap.tiers', seedCountTiers.length, { n: seedCountTiers.length }) }}
+          {{ $t('admin.bonusRules.snap.tiers', { n: seedCountTiers.length }, seedCountTiers.length) }}
         </span>
       </header>
 
@@ -292,7 +292,7 @@
         />
         <p v-if="seedCurveHiddenCount > 0" class="curve-footnote">
           <Icon name="ph:info" />
-          {{ $t('admin.bonusRules.seedTiers.curveHidden', seedCurveHiddenCount, { n: seedCurveHiddenCount }) }}
+          {{ $t('admin.bonusRules.seedTiers.curveHidden', { n: seedCurveHiddenCount }, seedCurveHiddenCount) }}
         </p>
       </div>
 
@@ -379,7 +379,7 @@
         </div>
         <span class="block-meta">
           <strong>{{ ageTiers.length }}</strong>
-          {{ $t('admin.bonusRules.snap.tiers', ageTiers.length, { n: ageTiers.length }) }}
+          {{ $t('admin.bonusRules.snap.tiers', { n: ageTiers.length }, ageTiers.length) }}
         </span>
       </header>
 

@@ -287,7 +287,7 @@
 
           <div v-if="dirtyCount > 0" class="aside-pending">
             <Icon name="ph:pencil-line-bold" />
-            <span>{{ $t('settings.unsavedChangesCount', dirtyCount, { n: dirtyCount }) }}</span>
+            <span>{{ $t('settings.unsavedChangesCount', { n: dirtyCount }, dirtyCount) }}</span>
           </div>
         </div>
       </aside>
@@ -319,7 +319,7 @@
           </span>
           <span v-else class="action-ready">
             <Icon name="ph:floppy-disk" />
-            {{ $t('torrents.edit.changesPending', dirtyCount, { n: dirtyCount }) }}
+            {{ $t('torrents.edit.changesPending', { n: dirtyCount }, dirtyCount) }}
           </span>
         </span>
         <button
@@ -388,21 +388,9 @@ interface TorrentDetail {
   openlibraryId?: string | null;
 }
 
-interface MediaMetadata {
-  source: 'tmdb' | 'imdb' | 'tvdb' | 'igdb' | 'openlibrary';
-  type: 'movie' | 'tv' | 'game' | 'book';
-  tmdbId?: number | null;
-  imdbId?: string | null;
-  tvdbId?: number | null;
-  igdbId?: number | null;
-  openlibraryId?: string | null;
-  isbn13?: string | null;
-  isbn10?: string | null;
-  title: string;
-  year: number | null;
-  posterUrl: string | null;
-  [key: string]: unknown;
-}
+/* The shared wire type — this page used to declare its own, looser copy,
+ * which no metadata card would accept. See `packages/shared/src/media.ts`. */
+import type { MediaMetadata } from '@trackarr/shared/media';
 
 const route = useRoute();
 const router = useRouter();

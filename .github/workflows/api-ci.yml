@@ -14,15 +14,14 @@
 # file exists by the time the typecheck starts; the root `typecheck` script
 # regenerates it anyway to stay honest about a stale checkout.
 #
-# There is deliberately no equivalent job for apps/web. A Nuxt typecheck needs
-# vue-tsc to read the SFCs, and vue-tsc 3.x cannot run on the TypeScript 7 this
-# repo is on: it resolves an internal tsc path that TS 7 no longer exports and
-# dies with ERR_PACKAGE_PATH_NOT_EXPORTED. Measured in a throwaway container, so
-# it is a hard blocker rather than a missing dependency. A tsc-only pass over the
-# web's plain .ts files was also tried: it reports mostly instrumentation noise
-# (Nuxt and Nitro auto-imports live in generated declarations, Vite `?url` asset
-# imports resolve only through Vite) and would need per-file excludes to stay
-# green, which is worse than no gate. Revisit when vue-tsc supports TS 7.
+# apps/web now has its own typecheck job, in web-ci.yml. The blocker recorded
+# here was real and still is: vue-tsc 3.3.11 resolves `typescript/lib/tsc`,
+# which TS 7 does not export, and dies with ERR_PACKAGE_PATH_NOT_EXPORTED —
+# reproduced again on the day this changed. What it missed is that the two
+# packages do not have to agree: `apps/web` pins `typescript@~5.9.3` as its own
+# devDependency and pnpm keeps it there, while this check goes on running
+# against the TS 7 at the root. One repo, two compilers, each on a codebase it
+# can read.
 name: API CI
 
 on:

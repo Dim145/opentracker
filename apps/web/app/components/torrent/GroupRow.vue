@@ -141,7 +141,15 @@ export interface GroupSummary {
   minSize: number;
   maxSize: number;
   leadName: string;
-  categoryIds: string[];
+  /**
+   * Local category ids. Optional for the same reason `leechMin` and
+   * `seedTotal` are: the federated mirror has no local categories and
+   * sends `categorySlugs` instead. The federated page passes its own rows
+   * to this component and could not, because this was required.
+   */
+  categoryIds?: string[];
+  /** What the mirror sends in their place. */
+  categorySlugs?: string[];
   seedMin: number;
   seedMax: number;
   /** Absent on the federated mirror, which does not track leechers per source. */

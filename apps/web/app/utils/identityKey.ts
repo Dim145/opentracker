@@ -45,7 +45,16 @@ export interface HeldKey {
 function toB64(bytes: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(bytes)));
 }
-function fromB64(text: string): Uint8Array {
+/*
+ * `Uint8Array<ArrayBuffer>`, not the bare alias.
+ *
+ * Since TypeScript 5.7 `Uint8Array` is generic over its backing buffer and
+ * defaults to `ArrayBufferLike`, which includes `SharedArrayBuffer` — and
+ * WebCrypto's `BufferSource` does not. Every `crypto.subtle` call taking
+ * one of these therefore failed to match an overload. The value here is
+ * always backed by a plain `ArrayBuffer`; the annotation just says so.
+ */
+function fromB64(text: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
 }
 
@@ -147,7 +156,7 @@ export async function signDocument(
   const body = rest as Record<string, unknown>;
   const config = proofConfigFor(key.did, new Date());
 
-  const digest = async (bytes: Uint8Array) =>
+  const digest = async (bytes: Uint8Array<ArrayBuffer>) =>
     new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   const input = composeSigningInput(
     await digest(canonicalUtf8(config)),

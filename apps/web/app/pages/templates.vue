@@ -446,7 +446,7 @@ function onModalDuplicate(row: FicheTemplateRow | null) {
   const content = row?.content ?? seedContent.value;
   const name = row?.name ?? seedName.value;
   editorOpen.value = false;
-  if (quotaFull.value) {
+  if (quotaFull.value && quota.value) {
     notifications.error(t('templates.quotaReached', { max: quota.value.max }));
     return;
   }

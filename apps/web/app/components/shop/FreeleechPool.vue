@@ -215,7 +215,11 @@ const emit = defineEmits<{
   (e: 'balanceChanged', value: number): void;
 }>();
 
-const { data, refresh } = await useFetch<PoolState>(
+// `PoolState | null`, not `PoolState`: the default below returns null, and
+// with the narrower generic no overload matched — which collapsed the
+// result type to an unresolved `_ResT` and took twenty-four template
+// reads down with it. The route genuinely can answer nothing.
+const { data, refresh } = await useFetch<PoolState | null>(
   '/api/freeleech-pool/state',
   { default: () => null }
 );

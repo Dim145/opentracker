@@ -643,7 +643,9 @@ const loading = ref(true);
 async function loadRoles() {
   loading.value = true;
   try {
-    roles.value = (await $fetch('/api/admin/roles')) as Role[];
+    // The generic, not a cast. `as Role[]` left `$fetch` inferring from
+    // Nuxt's route table and the comparison blew the instantiation depth.
+    roles.value = await $fetch<Role[]>('/api/admin/roles');
   } catch (err) {
     console.error('[Roles] load failed:', err);
   } finally {
@@ -802,9 +804,11 @@ const recomputing = ref(false);
 async function recompute() {
   recomputing.value = true;
   try {
-    const result = (await $fetch('/api/admin/roles/recompute', {
-      method: 'POST',
-    })) as { changed: number; considered: number; skipped: number };
+    const result = await $fetch<{
+      changed: number;
+      considered: number;
+      skipped: number;
+    }>('/api/admin/roles/recompute', { method: 'POST' });
     notifications.success(
       t('admin.roles.toasts.recomputeResult', {
         considered: result.considered,

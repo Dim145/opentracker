@@ -35,7 +35,12 @@ export function formatDay(dateStr: string): string {
   });
 }
 
-export function formatAge(dateStr: string): string {
+export function formatAge(dateStr: string | Date | null | undefined): string {
+  // Nullable because every caller already passes something nullable: a
+  // release carries `moderatedAt ?? createdAt ?? null`, and an invalid Date
+  // renders as "Invalid Date" rather than throwing — which is what the
+  // callers have been relying on.
+  if (!dateStr) return '';
   const date = new Date(dateStr);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);

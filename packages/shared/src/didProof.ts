@@ -43,7 +43,18 @@ export function canonicalise(value: unknown): string {
 }
 
 /** Canonical form as bytes, which is what actually gets hashed and signed. */
-export function canonicalUtf8(value: unknown): Uint8Array {
+/*
+ * The returns below are annotated `Uint8Array<ArrayBuffer>` rather than the
+ * bare alias.
+ *
+ * Since TypeScript 5.7 `Uint8Array` is generic over its backing buffer and
+ * defaults to `ArrayBufferLike` — which admits `SharedArrayBuffer`, and
+ * WebCrypto's `BufferSource` does not. Every browser-side `crypto.subtle`
+ * call fed from these failed to match an overload. All three are backed by
+ * a plain `ArrayBuffer`; saying so costs nothing and is what the callers
+ * already assume.
+ */
+export function canonicalUtf8(value: unknown): Uint8Array<ArrayBuffer> {
   return new TextEncoder().encode(canonicalise(value));
 }
 
@@ -144,7 +155,7 @@ export function proofConfigFor(did: string, created: Date): ProofConfig {
 export function composeSigningInput(
   proofConfigHash: Uint8Array,
   documentHash: Uint8Array,
-): Uint8Array {
+): Uint8Array<ArrayBuffer> {
   const out = new Uint8Array(proofConfigHash.length + documentHash.length);
   out.set(proofConfigHash, 0);
   out.set(documentHash, proofConfigHash.length);
@@ -175,7 +186,7 @@ export function base58btcEncode(bytes: Uint8Array): string {
   return out || '1';
 }
 
-export function base58btcDecode(text: string): Uint8Array {
+export function base58btcDecode(text: string): Uint8Array<ArrayBuffer> {
   // O(n²) in the input (a growing BigInt, multiplied per character), so it is
   // bounded before it runs: a did:key for Ed25519 is 47 base58 characters, and
   // this decodes a peer- or file-supplied string. See the server copy in
@@ -211,7 +222,7 @@ export function didKeyFromRaw(raw: Uint8Array): string {
 }
 
 /** The raw public key inside a `did:key`, or throws. */
-export function rawFromDidKey(did: string): Uint8Array {
+export function rawFromDidKey(did: string): Uint8Array<ArrayBuffer> {
   if (!did.startsWith('did:key:z')) throw new Error('not a did:key');
   const tagged = base58btcDecode(did.slice('did:key:z'.length));
   if (tagged[0] !== 0xed || tagged[1] !== 0x01) {

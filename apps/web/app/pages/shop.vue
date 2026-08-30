@@ -125,7 +125,7 @@
               {{ $t('shop.soldOut') }}
             </template>
             <template v-else>
-              {{ $t('shop.editionOf', item.stock, { n: item.stock }) }}
+              {{ $t('shop.editionOf', { n: item.stock }, item.stock) }}
             </template>
           </span>
         </header>
@@ -288,7 +288,7 @@ function describeEffect(effect: ShopItemEffect): string {
   }
   if (effect.type === 'invite') {
     const count = Number(effect.args.count ?? 1);
-    return t('shop.effects.invite', count, { n: count });
+    return t('shop.effects.invite', { n: count }, count);
   }
   return '';
 }

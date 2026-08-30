@@ -61,15 +61,18 @@
 
             <!-- The one thing the local catalogue cannot answer about itself:
                  somebody else has more of this work. A link, not a merge. -->
+            <!-- `partnerCount`: `partnerReleaseCount` was never a field of
+                 anything — not GroupSummary, not the API, not the sibling
+                 row component — so this link never rendered once. -->
             <NuxtLink
-              v-if="group.partnerReleaseCount"
+              v-if="group.partnerCount"
               :to="`/federated?q=${encodeURIComponent(searchableTitle)}`"
               class="gtr-partners"
               :title="$t('search.group.onPartnersHint')"
               @click.stop
             >
               <Icon name="ph:broadcast-bold" />
-              {{ $t('search.group.onPartners', { n: group.partnerReleaseCount }) }}
+              {{ $t('search.group.onPartners', { n: group.partnerCount }) }}
             </NuxtLink>
 
             <span v-if="group.peerCount" class="gtr-partners">

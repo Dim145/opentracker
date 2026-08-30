@@ -389,7 +389,7 @@
         <div class="ac-bulkbar-summary">
           <span class="ac-bulkbar-count tabular-nums">{{ selectedCount }}</span>
           <span class="ac-bulkbar-label">
-            {{ $t('mod.antiCheat.bulk.summary', selectedCount, { n: selectedCount }) }}
+            {{ $t('mod.antiCheat.bulk.summary', { n: selectedCount }, selectedCount) }}
           </span>
         </div>
 
@@ -787,7 +787,7 @@ async function submitBulk() {
       },
     );
     notifications.success(
-      t('mod.antiCheat.bulk.toastDone', res.updated, { n: res.updated }),
+      t('mod.antiCheat.bulk.toastDone', { n: res.updated }, res.updated),
     );
     clearSelection();
     await refresh();

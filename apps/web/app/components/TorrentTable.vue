@@ -323,6 +323,22 @@ const emit = defineEmits<{
   sort: [key: TorrentSortKey];
 }>();
 
+/**
+ * The mobile sort chips, in the same order as the desktop columns.
+ *
+ * The template has iterated this since the card layout was written, and it
+ * was never declared: Vue resolved it to `undefined`, `v-for` over
+ * undefined renders nothing, and the whole sort bar has been absent on
+ * every phone. Nothing threw — the same shape as the `validateTokens`
+ * bug that `web-ci.yml` records.
+ */
+const mobileSortOptions = computed<{ key: TorrentSortKey; label: string }[]>(
+  () =>
+    (['name', 'seeders', 'leechers', 'completed', 'size', 'age'] as const).map(
+      (key) => ({ key, label: t(`components.torrentTable.${key}`) })
+    )
+);
+
 
 // Header for the favorite column appears as soon as ANY row in
 // the current page carries a `viewerFavorited` flag — the parent
@@ -341,7 +357,7 @@ const categoriesById = computed(() => {
   return map;
 });
 
-function getCategoryDisplayName(category: { name: string; parentId?: string }) {
+function getCategoryDisplayName(category: { name: string; parentId?: string | null }) {
   const parent = category.parentId
     ? categoriesById.value.get(category.parentId)
     : undefined;

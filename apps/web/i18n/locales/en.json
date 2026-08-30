@@ -3297,7 +3297,9 @@
       "cssWillRefuse": "The server will refuse this:",
       "editorBack": "Back to the list",
       "editorTitleNew": "New theme",
-      "fontFamilySuggest": "Suggestions come from the file you picked and from faces already uploaded."
+      "fontFamilySuggest": "Suggestions come from the file you picked and from faces already uploaded.",
+      "notFoundTitle": "That theme is gone.",
+      "notFoundBody": "It was deleted, or the address names a theme that never existed."
     },
     "homepage": {
       "title": "Homepage Content",

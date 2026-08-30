@@ -160,28 +160,18 @@
 </template>
 
 <script setup lang="ts">
-interface BookMetadata {
-  source?: string;
-  type: string;
-  title: string;
-  year: number | null;
-  overview: string | null;
-  posterUrl: string | null;
-  genres?: string[];
-  voteAverage: number | null;
-  voteCount: number | null;
-  url: string;
-  authors?: string[];
-  publisher?: string | null;
-  pageCount?: number | null;
-  isbn13?: string | null;
-  isbn10?: string | null;
-  openlibraryId?: string | null;
-  bookProvider?: 'openlibrary' | 'googlebooks';
-}
+/*
+ * The shared wire type, not a local copy.
+ *
+ * Seven approximations of this shape used to live across the picker, the
+ * three cards and the three pages that pass a result between them. They had
+ * drifted enough that no card would accept what the picker emitted. See
+ * `packages/shared/src/media.ts`.
+ */
+import type { MediaMetadata } from '@trackarr/shared/media';
 
 defineProps<{
-  metadata: BookMetadata;
+  metadata: MediaMetadata;
 }>();
 </script>
 
