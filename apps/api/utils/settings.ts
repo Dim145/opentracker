@@ -109,6 +109,7 @@ export const SETTINGS_KEYS = {
   MESSAGING_DM_SCOPE: 'messaging_dm_scope',
   MESSAGING_ROOM_SCOPE: 'messaging_room_scope',
   MESSAGING_ROOM_RETENTION_DAYS: 'messaging_room_retention_days',
+  MESSAGING_DM_RETENTION_DAYS: 'messaging_dm_retention_days',
   MESSAGING_ROOM_SLOW_MODE_S: 'messaging_room_slow_mode_s',
   INVITE_ENABLED: 'invite_enabled',
   DEFAULT_INVITES: 'default_invites',
@@ -643,6 +644,12 @@ export function scopeAdmits(
  * setting cannot go below a day, whatever an administrator types.
  */
 export const ROOM_RETENTION_MIN_DAYS = 1;
+/**
+ * And a ceiling, which lived only in the admin component's input — a
+ * direct PUT could set ten thousand days and the sweep would then keep
+ * every partition ever created.
+ */
+export const ROOM_RETENTION_MAX_DAYS = 365;
 export const ROOM_RETENTION_DEFAULT_DAYS = 14;
 
 export async function getRoomRetentionDays(): Promise<number> {
@@ -653,9 +660,50 @@ export async function getRoomRetentionDays(): Promise<number> {
 }
 
 export async function setRoomRetentionDays(days: number) {
-  const clamped = Math.max(ROOM_RETENTION_MIN_DAYS, Math.floor(days));
+  const clamped = Math.min(
+    ROOM_RETENTION_MAX_DAYS,
+    Math.max(ROOM_RETENTION_MIN_DAYS, Math.floor(days))
+  );
   await setSetting(
     SETTINGS_KEYS.MESSAGING_ROOM_RETENTION_DAYS,
+    String(clamped)
+  );
+}
+
+/**
+ * How long a private message is kept, in days. Zero is off.
+ *
+ * **Off by default, and it stays off on upgrade.** Every other retention
+ * in this codebase ships with a window because the data is the
+ * instance's; this data is the members'. Turning it on for them at deploy
+ * time would delete correspondence they have no idea is on a timer, so
+ * the operator decides and the members are told — the setting is
+ * published on `/privacy`, which reads it live rather than repeating a
+ * number that would drift.
+ *
+ * The floor above zero is seven days, for the same reason the room's is
+ * one: a report is filed after the fact, and a window shorter than the
+ * gap between "this happened" and "somebody said so" leaves the staff
+ * with nothing to look at.
+ */
+export const DM_RETENTION_MIN_DAYS = 7;
+export const DM_RETENTION_MAX_DAYS = 3650;
+
+export async function getDmRetentionDays(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.MESSAGING_DM_RETENTION_DAYS);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return Math.min(DM_RETENTION_MAX_DAYS, Math.max(DM_RETENTION_MIN_DAYS, parsed));
+}
+
+export async function setDmRetentionDays(days: number) {
+  const floored = Math.floor(days);
+  const clamped =
+    floored <= 0
+      ? 0
+      : Math.min(DM_RETENTION_MAX_DAYS, Math.max(DM_RETENTION_MIN_DAYS, floored));
+  await setSetting(
+    SETTINGS_KEYS.MESSAGING_DM_RETENTION_DAYS,
     String(clamped)
   );
 }

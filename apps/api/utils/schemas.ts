@@ -241,6 +241,7 @@ export const adminSettingsSchema = z.object({
   // multi-section save should not fail the whole request. The floor of one
   // day is enforced there too.
   messagingRoomRetentionDays: z.number().int().min(0).max(3650).optional(),
+  messagingDmRetentionDays: z.number().int().min(0).max(3650).optional(),
   messagingRoomSlowModeSeconds: z.number().int().min(0).max(3600).optional(),
   // Notification retention TTLs in days. Both default to 90 in the
   // settings getter. Bounded 1–3650 here; the PUT handler also

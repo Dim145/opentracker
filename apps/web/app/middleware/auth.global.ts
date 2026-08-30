@@ -22,8 +22,23 @@ export default defineNuxtRouteMiddleware(async (to) => {
     user: null,
   }));
 
-  const publicRoutes = ['/auth/login', '/auth/register'];
-  const isPublicRoute = publicRoutes.includes(to.path);
+  /*
+   * Two kinds of route survive being signed out, and they are not the
+   * same kind.
+   *
+   * `authRoutes` are for somebody who has no session yet, and are
+   * pointless once they do — a signed-in visitor is sent home from them.
+   *
+   * `openRoutes` are readable either way. `/privacy` publishes how long
+   * this instance keeps things: somebody deciding whether to register
+   * has to be able to read it, and so does a member who already did.
+   * Putting it in the first list bounced every signed-in member off their
+   * own retention notice.
+   */
+  const authRoutes = ['/auth/login', '/auth/register'];
+  const openRoutes = ['/privacy'];
+  const isAuthRoute = authRoutes.includes(to.path);
+  const isPublicRoute = isAuthRoute || openRoutes.includes(to.path);
 
   const now = Date.now();
   const stateUninitialized =
@@ -72,7 +87,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/auth/login');
   }
 
-  if (loggedIn && isPublicRoute) {
+  if (loggedIn && isAuthRoute) {
     return navigateTo('/');
   }
 

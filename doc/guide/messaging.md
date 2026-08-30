@@ -152,6 +152,68 @@ de-encrypted later never promised anything.
 ciphertext. A report on an encrypted conversation carries what the
 reporter chooses to quote, and nothing else.
 
+### What the padlock covers, and what it does not
+
+It is worth being exact, because the interface used to say "only the two
+of you can read it" and that is not a claim this shape can support.
+
+**It does cover the stored messages.** The rows hold ciphertext and the
+server has no key for them. Nobody operating the instance reads a private
+conversation out of the database, a moderator opening a report on one is
+told plainly that there is nothing to show, and a database that leaks
+leaks ciphertext.
+
+**It does not cover the instance itself.** This is browser-delivered
+encryption: the code that seals is downloaded from the same server on
+every visit, and the correspondent's public key is whatever that server's
+key directory hands over. An altered instance could serve different code
+or a different key, and nothing in the interface would look any
+different. There is no fingerprint to compare out of band — no safety
+number, no key-change warning — so a member cannot detect it.
+
+That is the standard, well-documented limit of doing this in a web page
+rather than in an installed client, and it is not fixable by trying
+harder inside the page. What is fixable is the wording, so the interface
+now says the above rather than promising more: the padlock in a thread
+header is a button, and it opens that explanation.
+
+**Two keys, and only one of them is at issue.** A member has a portable
+identity key (`did:key`, Ed25519, signs federation records) and a
+messaging key (ECDH P-256, seals conversations). They are independent —
+neither signs for the other, and nothing in `e2ee.ts` touches
+`identityKey.ts` or the reverse.
+
+They also have opposite custody models, which is exactly why saying "your
+key" without saying which one is a way to mislead:
+
+| | Identity key | Messaging key |
+|---|---|---|
+| Held by default | the instance | this browser |
+| Can the member take custody? | yes, `Settings → Portable identity` | there is nothing to take — it is generated here |
+| Can the instance sign / read with it? | until custody is taken, yes | never; the private key is non-extractable |
+| Recoverable | export the file | no, by construction |
+
+The settings copy used to say "this instance holds your key for you — you
+can take it over: it is generated in your browser and never leaves it",
+which describes the key you would GET in the present tense of the key you
+HAVE. It now says what is true of each. And the padlock's explanation
+names which key it is talking about, because a member who had just read
+about custody in settings would otherwise reasonably conclude that taking
+it fixed the caveat in messaging. It does not — the unverifiable half is
+the *correspondent's* public key, which is nobody's to take custody of.
+
+Two smaller consequences worth writing down:
+
+- The key store is asked to persist (`navigator.storage.persist()`)
+  before the key is written. WebKit deletes script-created storage after
+  seven days without a visit, and the private key is non-extractable —
+  a member back from a fortnight away would otherwise find every
+  encrypted conversation permanently unreadable, having done nothing.
+- A staff broadcast is written in clear into whichever conversation the
+  pair already has, encrypted or not, because it cannot be sealed for
+  each recipient. The thread marks those lines "not encrypted" rather
+  than letting the padlock cover them.
+
 ## Reactions, replies and edits
 
 **Reactions are six fixed keys**, not an emoji picker. Two reasons, and
@@ -371,12 +433,41 @@ Two consequences worth saying out loud:
   outside the window, and that cannot be undone.
 - **Turning a surface off deletes nothing.** It hides it.
 
-Private messages are not retained on a timer. They are deleted when a
-participant deletes them, and an erasure destroys the **encrypted** ones
-outright — nobody could read them anyway once the key is gone. Plaintext
-conversations survive an erasure with their author blanked: the other
-participant's copy is their record of an exchange they took part in, and
-removing it would be deleting somebody else's mail.
+Private messages **can** be retained on a timer, and are not by default.
+`/admin/settings → Messaging` carries the window in days; zero — the
+value a fresh install and an upgrade both get — means no timer at all.
+Above zero the floor is seven days.
+
+The default is off on purpose, and it is the one retention in this
+codebase that is. Every other window covers rows the instance produced
+about itself; these are the members' correspondence. Switching a timer on
+for them at deploy time would delete conversations nobody had been told
+were on one.
+
+The sweep (`apps/api/plugins/dm-retention.ts`) is a batched `DELETE`, not
+a partition drop: a private conversation is a handful of rows a year, so
+partitioning it by day the way `room_messages` is would leave the planner
+carrying thousands of near-empty partitions. Two thousand rows per
+statement, fifty statements per pass, so shortening a window from a year
+to a month spreads the catch-up over several ticks instead of holding the
+table. Only messages go — the conversation survives with nothing in it,
+because a thread vanishing from an inbox with no explanation is worse
+than an empty one.
+
+An erasure destroys the **encrypted** messages outright: nobody could
+read them once the key is gone. Plaintext conversations survive it with
+their author blanked, because the other participant's copy is their
+record of an exchange they took part in.
+
+### Published, not just configured
+
+Whatever is set is readable by members at `/privacy`, which is public —
+no account needed, because the people deciding whether to make one are
+exactly the people the notice is for. The page reads the live settings
+rather than repeating numbers, since a page saying fourteen days while
+the sweep runs on thirty is worse than no page. `GET /api/privacy` is the
+same facts as JSON, and carries settings only — nothing about any
+member — which is what lets it answer before a session exists.
 
 ## What erasure does
 

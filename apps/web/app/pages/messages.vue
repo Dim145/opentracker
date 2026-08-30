@@ -273,10 +273,20 @@
             <Icon name="ph:cloud-slash" class="w-3 h-3" />
             {{ $t('messaging.offline') }}
           </span>
-          <span v-if="active.encrypted" class="msg-tag">
+          <!-- A button, not a label. A padlock is a claim, and the member
+               has no way to check it from the outside — the least this can
+               do is say where the claim stops. -->
+          <button
+            v-if="active.encrypted"
+            type="button"
+            class="msg-tag msg-tag--button"
+            :aria-label="$t('messaging.crypto.promiseTitle')"
+            @click="promiseOpen = true"
+          >
             <Icon name="ph:lock-simple" class="w-3 h-3" />
             {{ $t('messaging.encrypted') }}
-          </span>
+            <Icon name="ph:info" class="w-3 h-3 msg-tag-more" />
+          </button>
         </header>
 
         <!-- `role="log"` plus a polite live region: a screen reader
@@ -763,6 +773,18 @@
       </div>
     </Modal>
 
+    <!--
+      What the padlock covers, and where it stops.
+
+      Written out rather than implied by an icon: this is browser-delivered
+      encryption, so the code that seals and the key it seals to both come
+      from the same server, and nothing in the interface can prove either.
+      That is worth saying to somebody deciding what to type.
+    -->
+    <Modal v-model="promiseOpen" :title="$t('messaging.crypto.promiseTitle')">
+      <p class="msg-promise">{{ $t('messaging.crypto.promiseBody') }}</p>
+    </Modal>
+
     <!-- Reporting a message. The slip teleports to the body, so where it
          sits in this tree is organisational only. -->
     <ReportModal
@@ -860,6 +882,8 @@ interface SearchHit {
 const searchResults = ref<SearchHit[]>([]);
 
 const blockOpen = ref(false);
+/** The padlock's own explanation, opened from the thread header. */
+const promiseOpen = ref(false);
 /** The message a report is being filed against. */
 const reportTarget = ref<ThreadMessage | null>(null);
 
@@ -3019,5 +3043,22 @@ async function startConversation() {
 .msg-search-clear:hover {
   background: rgb(var(--fg-default) / 0.1);
   color: rgb(var(--fg-default));
+}
+/* The padlock reads as a control, because it is one. */
+.msg-tag--button {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.msg-tag--button:hover { color: rgb(var(--fg-default)); }
+.msg-tag-more { opacity: 0.6; }
+
+/* `pre-line`: the explanation is two paragraphs and the break matters —
+   the second one is the part people skip. */
+.msg-promise {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  white-space: pre-line;
 }
 </style>

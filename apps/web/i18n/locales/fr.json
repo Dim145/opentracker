@@ -563,8 +563,8 @@
       "rotateWarning": "Tous les comptes que vous avez prouvés ailleurs seront déliés.",
       "rotateConfirm": "La retirer",
       "rotated": "Retirée. Votre nouvel identifiant :",
-      "custodyOff": "Cette instance détient votre clé pour vous. Vous pouvez la reprendre : elle est générée dans votre navigateur et n'en sort jamais.",
-      "custodyOn": "Vous détenez votre clé. Cette instance ne peut pas signer à votre place.",
+      "custodyOff": "Cette instance détient votre clé et peut signer en votre nom avec. La reprendre en génère une nouvelle ici à la place — celle-là est créée dans votre navigateur et n'en sort jamais, et à partir de là cette instance ne peut plus signer à votre place.",
+      "custodyOn": "Vous détenez votre clé. Cette instance ne peut pas signer à votre place. C'est votre identité portable et rien d'autre — les conversations chiffrées utilisent une autre clé, qui vous appartient depuis toujours.",
       "takeCustody": "Détenir ma clé",
       "custodyWarning": "Seul ce navigateur l'aura. La perdre, c'est perdre l'identifiant — téléchargez le fichier juste après.",
       "custodyConfirm": "La générer ici",
@@ -3652,7 +3652,11 @@
         "off": "Désactivé",
         "staff": "Staff uniquement",
         "all": "Tous les membres"
-      }
+      },
+      "dmRetentionDays": "Conservation des messages privés",
+      "dmRetentionHint": "Combien de temps un message privé est gardé avant suppression automatique. Zéro les laisse jusqu'à ce qu'un participant les supprime ou qu'un compte soit effacé — c'est la valeur par défaut, et elle le reste après une mise à jour : ce sont les conversations des membres, pas les archives de l'instance. Au-dessus de zéro, le plancher est de sept jours, parce qu'un signalement arrive après coup.",
+      "dmRetentionOff": "jours — 0 = aucune durée",
+      "dmRetentionPublished": "Ce que tu règles ici est publié aux membres sur /privacy, qui le lit en direct."
     },
     "broadcast": {
       "title": "Diffusion staff",
@@ -4861,7 +4865,7 @@
     "offlineHint": "Les messages s'envoient et se lisent toujours ; ils n'arrivent simplement pas tout seuls. Rechargez pour voir la suite.",
     "crypto": {
       "label": "Chiffrer cette conversation",
-      "hint": "Vous seuls deux pourrez la lire. Le chiffrement est lié à CE navigateur : vous ne pourrez pas lire la conversation ailleurs, ni la retrouver si vous perdez cet appareil. Le staff ne pourra pas la lire non plus, y compris après un signalement.",
+      "hint": "Le serveur stocke du chiffré dont il n'a pas la clé — ni le staff, ni après un signalement. Ta propre clé est fabriquée ici et ne quitte jamais ce navigateur. Ce qui n'est pas vérifiable, c'est la clé de ton correspondant et le code de cette page, qui viennent tous les deux du serveur. Lié à CE navigateur : tu ne liras la conversation nulle part ailleurs, et perdre cet appareil la perd.",
       "unavailable": "{name} n'a pas encore activé le chiffrement, cette conversation ne peut donc pas être chiffrée.",
       "lockedTitle": "Chiffrée pour un autre appareil",
       "lockedBody": "Ces messages ont été scellés avec une clé qui n'existe que sur le navigateur où vous avez activé le chiffrement. Celui-ci ne peut pas les lire, et personne ne peut le faire à votre place.",
@@ -4876,12 +4880,14 @@
       "peerKeyBrokenTitle": "La clé de ton correspondant est illisible",
       "peerKeyBrokenBody": "Ce qu'il a publié n'est pas une clé exploitable par ce navigateur : rien ici ne peut être chiffré ni déchiffré. Remplacer ta propre clé n'y changerait rien — c'est à lui de republier la sienne.",
       "enableTitle": "Activer le chiffrement sur cet appareil",
-      "enableBody": "Ce navigateur reçoit sa propre clé. Les membres pourront alors démarrer une conversation chiffrée avec toi — et cet appareil sera le seul à pouvoir la lire. Aucune sauvegarde, aucune récupération : c'est ce qui rend la promesse vraie.",
+      "enableBody": "Ce navigateur reçoit sa propre clé. Les membres pourront alors démarrer une conversation chiffrée avec toi — et cet appareil sera le seul à pouvoir la lire. Aucune sauvegarde, aucune récupération : c'est ce qui rend les messages stockés illisibles pour nous. Ce n'est pas une protection contre une instance modifiée : le code qui chiffre est servi par cette même instance.",
       "enableAction": "Créer ma clé",
       "rotateFailed": "La clé n'a pas pu être publiée. Rien n'a été modifié.",
       "notReady": "Cet appareil ne peut pas encore chiffrer pour cette conversation.",
       "notSealed": "non chiffré",
-      "notSealedHint": "Écrit en clair dans une conversation chiffrée — une diffusion du staff ne peut pas être scellée pour chaque destinataire. Le serveur peut lire cette ligne."
+      "notSealedHint": "Écrit en clair dans une conversation chiffrée — une diffusion du staff ne peut pas être scellée pour chaque destinataire. Le serveur peut lire cette ligne.",
+      "promiseTitle": "Ce que le cadenas couvre",
+      "promiseBody": "Les messages de cette conversation sont scellés dans ton navigateur et stockés chiffrés. Personne qui exploite cette instance ne peut les lire depuis la base, et un signalement ne transporte que ce que le signalant cite.\n\nTa propre clé de conversation ne quitte jamais ce navigateur : elle y est créée, et la plateforme refuse de la rendre, même à cette page. Ce n'est pas là qu'est le problème — et ce n'est pas la clé d'identité portable de tes paramètres : celle-là est une clé distincte, avec un choix de détention, et la reprendre ne change rien ici.\n\nCe qui n'est pas vérifiable, c'est l'autre côté. La clé publique de ton correspondant est celle que l'annuaire de ce serveur te donne, et le code qui scelle en est téléchargé à chaque visite — une instance modifiée pourrait donc servir une autre clé ou un autre code, et il n'y a ici aucune empreinte à comparer hors bande. À considérer comme une protection des messages au repos, pas comme une garantie vis-à-vis de qui fait tourner le site."
     },
     "erasedConversation": "Fermée à la demande de votre correspondant. Cette conversation était chiffrée, et le compte qui détenait l'autre moitié de la clé a été supprimé — plus rien ici ne peut être ouvert, par personne.",
     "unreadLabel": "{count} non lu | {count} non lu | {count} non lus",
@@ -5002,5 +5008,40 @@
       "hoursLeft": "{count} h restantes"
     },
     "subtitle": "Tout le monde, au même endroit"
+  },
+  "privacy": {
+    "eyebrow": "Registre de conservation",
+    "title": "Ce que cette instance garde",
+    "lede": "Chaque durée ci-dessous est lue sur cette instance telle qu'elle est configurée en ce moment, pas recopiée dans un texte qui pourrait s'en écarter.",
+    "asOf": "Publié par {instance}. Change un réglage et cette page change avec lui.",
+    "registerLabel": "Durées de conservation",
+    "notesLabel": "Notes",
+    "unitDays": "jours",
+    "dm": {
+      "title": "Messages privés",
+      "timed": "Supprimés automatiquement passé {n} jours. Chacun des deux participants peut en supprimer un plus tôt, ce qui vide la ligne pour vous deux.",
+      "forever": "Gardés jusqu'à ce que tu les supprimes. Cette instance n'a fixé aucune durée : un message privé reste tant qu'un participant ne le retire pas ou qu'un compte n'est pas effacé."
+    },
+    "room": {
+      "title": "Le salon public",
+      "text": "Le salon est éphémère par construction : tout ce qui dépasse {n} jours est supprimé en bloc, sans être indexé ni archivé."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "text": "Les notifications lues sont retirées après {read} jours, les non lues après {unread}."
+    },
+    "erasure": {
+      "title": "Effacer ton compte",
+      "text": "Ta ligne est anonymisée plutôt que supprimée : le pseudo devient un placeholder aléatoire, le profil et la dernière adresse vue sont vidés, et la passkey est régénérée pour que toute URL d'annonce conservée cesse de fonctionner. Les messages des conversations chiffrées sont détruits — personne ne pourrait plus les lire une fois la clé partie. Les conversations en clair survivent, ton nom en moins : la copie de l'autre participant est son propre souvenir d'un échange auquel il a pris part."
+    },
+    "crypto": {
+      "title": "Conversations chiffrées",
+      "text": "Une conversation chiffrée est scellée dans ton navigateur et stockée sous une forme dont ce serveur n'a pas la clé — ni le staff, ni après un signalement. Ça couvre les messages stockés. Ça ne couvre pas le serveur lui-même : le code qui scelle et la clé de ton correspondant viennent tous les deux de lui, et il n'y a ici aucune empreinte pour les vérifier."
+    },
+    "staff": {
+      "title": "Ce que le staff peut lire",
+      "text": "Un modérateur ouvre un message privé, et seulement un qui fait l'objet d'un signalement ouvert. La route ne répond rien pour un autre message — elle ne permet donc pas de parcourir une conversation — et rien du tout pour un message chiffré."
+    },
+    "foot": "Cette page liste des durées de conservation. Elle ne remplace pas la notice que l'exploitant de cette instance doit publier là où elle est hébergée."
   }
 }

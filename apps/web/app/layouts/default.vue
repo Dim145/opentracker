@@ -782,7 +782,14 @@
             >v{{ appVersion }}</span
           >
         </div>
-        <div class="flex gap-6">
+        <div class="flex items-center gap-6">
+          <!-- The retention register. In the footer because that is where
+               somebody goes looking for it, and because a notice nobody
+               can find is a notice nobody was given. -->
+          <NuxtLink
+            to="/privacy"
+            class="text-[10px] font-mono uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
+          >{{ $t('privacy.eyebrow') }}</NuxtLink>
           <a
             href="https://n0w.me/"
             target="_blank"

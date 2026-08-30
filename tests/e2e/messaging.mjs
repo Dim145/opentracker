@@ -632,6 +632,57 @@ async function main() {
   // so accepting one against a member who has never published a key
   // creates a thread nobody can ever open. Refused on the server: the
   // client's checkbox is debounced, and it cannot be the rule.
+  console.log('\n12b. retention, and publishing it');
+
+  // Off by default, and it must stay off across an upgrade: these rows
+  // are the members' correspondence, not the instance's records.
+  await resetRateLimits();
+  const published = await fetch(`${API}/api/privacy`);
+  const facts = await published.json();
+  check(
+    'the retention register answers without a session',
+    published.status === 200 && typeof facts?.messaging?.directMessageDays === 'number',
+    `${published.status} ${d(facts, 140)}`
+  );
+  check(
+    'and private messages start with no timer',
+    facts.messaging.directMessageDays === 0,
+    d(facts.messaging)
+  );
+
+  check(
+    'a window can be set',
+    (await req('founder', '/api/admin/settings', {
+      method: 'PUT',
+      body: { messagingDmRetentionDays: 30 },
+    })).status === 200
+  );
+  check(
+    'and the page that publishes it reads the new value, not a copy',
+    (await (await fetch(`${API}/api/privacy`)).json()).messaging.directMessageDays === 30
+  );
+
+  // The floor is not cosmetic: a report is filed after the fact, and a
+  // window shorter than that gap leaves the staff nothing to look at.
+  await req('founder', '/api/admin/settings', {
+    method: 'PUT',
+    body: { messagingDmRetentionDays: 2 },
+  });
+  check(
+    'below the floor it is raised, not accepted',
+    (await (await fetch(`${API}/api/privacy`)).json()).messaging.directMessageDays === 7
+  );
+
+  // And zero is off rather than a value to floor upward.
+  await req('founder', '/api/admin/settings', {
+    method: 'PUT',
+    body: { messagingDmRetentionDays: 0 },
+  });
+  check(
+    'zero is off, not seven',
+    (await (await fetch(`${API}/api/privacy`)).json()).messaging.directMessageDays === 0
+  );
+
   console.log('\n13. withdrawing a message');
 
   await resetRateLimits();

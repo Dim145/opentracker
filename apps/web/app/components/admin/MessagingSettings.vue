@@ -71,6 +71,29 @@
         </SettingsGroup>
 
         <SettingsGroup
+          :label="$t('admin.messaging.dmRetentionDays')"
+          :description="$t('admin.messaging.dmRetentionHint')"
+        >
+          <div class="flex items-center gap-3">
+            <input
+              v-model.number="dmRetentionDays"
+              type="number"
+              min="0"
+              max="3650"
+              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+            />
+            <span class="text-xs text-text-muted">
+              {{ dmRetentionDays > 0
+                ? $t('admin.messaging.daysLabel')
+                : $t('admin.messaging.dmRetentionOff') }}
+            </span>
+          </div>
+          <p class="mt-2 text-xs text-text-muted">
+            {{ $t('admin.messaging.dmRetentionPublished') }}
+          </p>
+        </SettingsGroup>
+
+        <SettingsGroup
           :label="$t('admin.messaging.slowMode')"
           :description="$t('admin.messaging.slowModeHint')"
         >
@@ -126,6 +149,14 @@ type Scope = 'off' | 'staff' | 'all';
 const dmScope = ref<Scope>('off');
 const roomScope = ref<Scope>('off');
 const retentionDays = ref(14);
+/**
+ * Zero is off, and off is the default that survives an upgrade. These
+ * rows are the members' correspondence rather than the instance's own
+ * data: switching a timer on for them at deploy time would delete
+ * conversations nobody told them were on one. Whatever is set here is
+ * published on `/privacy`, which reads it live.
+ */
+const dmRetentionDays = ref(0);
 const slowModeSeconds = ref(0);
 const loading = ref(false);
 const saved = ref(false);
@@ -135,6 +166,7 @@ const { data } = await useFetch<{
   messagingRoomScope?: Scope;
   messagingRoomRetentionDays?: number;
   messagingRoomSlowModeSeconds?: number;
+  messagingDmRetentionDays?: number;
 }>('/api/admin/settings');
 
 watch(
@@ -144,6 +176,9 @@ watch(
     if (v?.messagingRoomScope) roomScope.value = v.messagingRoomScope;
     if (typeof v?.messagingRoomRetentionDays === 'number') {
       retentionDays.value = v.messagingRoomRetentionDays;
+    }
+    if (typeof v?.messagingDmRetentionDays === 'number') {
+      dmRetentionDays.value = v.messagingDmRetentionDays;
     }
     if (typeof v?.messagingRoomSlowModeSeconds === 'number') {
       slowModeSeconds.value = v.messagingRoomSlowModeSeconds;
@@ -165,6 +200,10 @@ async function save() {
         // the browser hints the same range rather than accepting a value
         // that comes back changed.
         messagingRoomRetentionDays: clamp(retentionDays.value, 1, 365, 14),
+        // Zero passes through as zero — it is "off", not a value to floor
+        // up to the minimum. Above zero the server's own floor is a week.
+        messagingDmRetentionDays:
+          dmRetentionDays.value > 0 ? clamp(dmRetentionDays.value, 7, 3650, 30) : 0,
         messagingRoomSlowModeSeconds: clamp(slowModeSeconds.value, 0, 3600, 0),
       },
     });

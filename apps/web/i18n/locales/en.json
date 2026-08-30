@@ -563,8 +563,8 @@
       "rotateWarning": "Every account you have proven elsewhere will be unlinked.",
       "rotateConfirm": "Retire it",
       "rotated": "Retired. Your new identifier:",
-      "custodyOff": "This instance holds your key for you. You can take it over: it is generated in your browser and never leaves it.",
-      "custodyOn": "You hold your own key. This instance cannot sign as you.",
+      "custodyOff": "This instance holds your key and can sign as you with it. Taking it over generates a new one here instead — that one is created in your browser and never leaves it, and from then on this instance cannot sign in your name.",
+      "custodyOn": "You hold your own key. This instance cannot sign as you. It is your portable identity and nothing else — encrypted conversations use a different key, which has always been yours.",
       "takeCustody": "Hold my own key",
       "custodyWarning": "Only this browser will have it. Lose it and you lose the identifier — download the file straight after.",
       "custodyConfirm": "Generate it here",
@@ -3652,7 +3652,11 @@
         "off": "Off",
         "staff": "Staff only",
         "all": "Every member"
-      }
+      },
+      "dmRetentionDays": "Private-message retention",
+      "dmRetentionHint": "How long a private message is kept before it is deleted automatically. Zero leaves them until a participant deletes them or an account is erased — which is the default, and stays the default on upgrade: these are the members' conversations, not the instance's records. Above zero the floor is seven days, because a report is filed after the fact.",
+      "dmRetentionOff": "days — 0 means no timer",
+      "dmRetentionPublished": "Whatever you set here is published to members on /privacy, which reads it live."
     },
     "broadcast": {
       "title": "Staff broadcast",
@@ -4861,7 +4865,7 @@
     "offlineHint": "Messages still send and read; they just do not arrive on their own. Reload to see what is new.",
     "crypto": {
       "label": "Encrypt this conversation",
-      "hint": "Only the two of you can read it. Encryption is tied to THIS browser: you will not be able to read the conversation anywhere else, or recover it if you lose this device. Staff cannot read it either, including after a report.",
+      "hint": "The server stores ciphertext it holds no key for — not the staff, not after a report. Your own key is made here and never leaves this browser. What cannot be checked is your correspondent's key and this page's code, which both come from the server. Tied to THIS browser: you will not read the conversation anywhere else, and losing this device loses it.",
       "unavailable": "{name} has not set up encryption yet, so this conversation cannot be encrypted.",
       "lockedTitle": "Encrypted for another device",
       "lockedBody": "These messages were sealed with a key that only exists on the browser where you turned encryption on. This one cannot read them, and nobody can do it for you.",
@@ -4876,12 +4880,14 @@
       "peerKeyBrokenTitle": "Your correspondent's key cannot be read",
       "peerKeyBrokenBody": "What they published is not a key this browser can use, so nothing here can be encrypted or decrypted. Replacing your own key would not help — they have to publish theirs again.",
       "enableTitle": "Turn on encryption for this device",
-      "enableBody": "This browser gets a key of its own. From then on, members can start an encrypted conversation with you — and this device is the only one that will be able to read it. There is no backup and no recovery: that is what makes the promise true.",
+      "enableBody": "This browser gets a key of its own. From then on, members can start an encrypted conversation with you — and this device is the only one that will read it. There is no backup and no recovery, which is what makes the stored messages unreadable to us. It is not a defence against this instance being altered: the code doing the encrypting is served by the same instance.",
       "enableAction": "Create my key",
       "rotateFailed": "The key could not be published. Nothing was changed.",
       "notReady": "This device cannot encrypt for this conversation yet.",
       "notSealed": "not encrypted",
-      "notSealedHint": "Written in clear into an encrypted conversation — a staff broadcast cannot be sealed for each recipient. The server can read this line."
+      "notSealedHint": "Written in clear into an encrypted conversation — a staff broadcast cannot be sealed for each recipient. The server can read this line.",
+      "promiseTitle": "What the padlock covers",
+      "promiseBody": "Messages in this conversation are sealed in your browser and stored as ciphertext. Nobody operating this instance can read them from the database, and a report carries only what the reporter quotes.\n\nYour own conversation key never leaves this browser — it is created here and the platform will not hand it back even to this page. That is not the part to worry about, and it is not the portable identity key from your settings: that one is a separate key with a custody choice, and taking custody of it changes nothing here.\n\nWhat is not verifiable is the other side. Your correspondent's public key is whatever this server's directory hands over, and the code that seals is downloaded from the same server on every visit — so an altered instance could serve a different key or different code, and there is no fingerprint here to compare out of band. Treat it as protection for messages at rest, not as a guarantee against whoever runs the site."
     },
     "erasedConversation": "Closed at your correspondent's request. This conversation was encrypted, and the account that held the other half of the key has been deleted — nothing here can be opened again, by anyone.",
     "unreadLabel": "{count} unread | {count} unread | {count} unread",
@@ -5002,5 +5008,40 @@
       "hoursLeft": "{count} h left"
     },
     "subtitle": "Everyone, in one place"
+  },
+  "privacy": {
+    "eyebrow": "Retention register",
+    "title": "What this instance keeps",
+    "lede": "Every duration below is read from this instance as it is configured right now, not copied into prose that could drift from it.",
+    "asOf": "Published by {instance}. Change a setting and this page changes with it.",
+    "registerLabel": "Retention periods",
+    "notesLabel": "Notes",
+    "unitDays": "days",
+    "dm": {
+      "title": "Private messages",
+      "timed": "Deleted automatically once they are {n} days old. Either participant can delete one sooner, and doing so blanks the row for both of you.",
+      "forever": "Kept until you delete them. This instance has set no timer, so a private message stays until a participant removes it or an account is erased."
+    },
+    "room": {
+      "title": "The public room",
+      "text": "The room is ephemeral by design: anything older than {n} days is dropped wholesale, not searched and not archived."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "text": "Read notifications are removed after {read} days, unread ones after {unread}."
+    },
+    "erasure": {
+      "title": "Erasing your account",
+      "text": "Your row is anonymised rather than dropped: the username becomes a random placeholder, the profile and last-seen address are cleared, and the passkey is rotated so any announce URL you kept stops working. Messages in encrypted conversations are destroyed outright — nobody could read them once the key is gone. Plaintext conversations survive with your name removed, because the other participant's copy is their record of an exchange they took part in."
+    },
+    "crypto": {
+      "title": "Encrypted conversations",
+      "text": "An encrypted conversation is sealed in your browser and stored as ciphertext this server has no key for — not the staff, not after a report. That covers the stored messages. It does not cover the server itself: the code that seals and your correspondent's key both come from it, and there is no fingerprint here to check either against."
+    },
+    "staff": {
+      "title": "What staff can read",
+      "text": "A moderator opens one private message, and only one that has an open report against it. The endpoint answers nothing for any other message, so it cannot be used to walk a conversation, and it answers nothing at all for an encrypted one."
+    },
+    "foot": "This page lists retention. It is not a substitute for whatever notice the operator of this instance is required to publish where it is hosted."
   }
 }

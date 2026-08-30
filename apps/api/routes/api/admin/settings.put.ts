@@ -1,6 +1,7 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
 import {
   setRegistrationOpen,
+  setDmRetentionDays,
   setRoomRetentionDays,
   setRoomSlowModeSeconds,
   setSetting,
@@ -218,6 +219,15 @@ export default defineEventHandler(async (event) => {
   }
   if (typeof body.messagingRoomSlowModeSeconds === 'number') {
     await setRoomSlowModeSeconds(body.messagingRoomSlowModeSeconds);
+  }
+  // Private-message retention. Zero is off and is the default — these
+  // rows belong to the members rather than to the instance, so nothing
+  // deletes them until an operator says so. Above zero the floor is a
+  // week: a report is filed after the fact, and a window shorter than the
+  // delay between "this happened" and "somebody said so" leaves the staff
+  // nothing to look at. Published to members on `/privacy`.
+  if (typeof body.messagingDmRetentionDays === 'number') {
+    await setDmRetentionDays(body.messagingDmRetentionDays);
   }
 
   // Notification retention TTLs. Clamped 1–3650 days; out-of-range
