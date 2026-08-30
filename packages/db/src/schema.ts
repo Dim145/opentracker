@@ -8,6 +8,7 @@ import {
   boolean,
   jsonb,
   index,
+  serial,
   uniqueIndex,
   primaryKey,
   customType,
@@ -3901,6 +3902,178 @@ export const messagingBlocks = pgTable(
 
 export type MessagingBlock = typeof messagingBlocks.$inferSelect;
 export type NewMessagingBlock = typeof messagingBlocks.$inferInsert;
+
+/**
+ * A member's ticket to the staff.
+ *
+ * Its own tables rather than a `conversations` row with a third `kind`,
+ * and that is the main structural decision here. A conversation carries
+ * blocking, per-pair uniqueness, optional encryption, archiving, muting
+ * and the first-contact queue — none of which apply to a ticket, and two
+ * of which would be actively wrong. A member who has blocked a moderator
+ * must still be able to reach the staff; a ticket has one member and N
+ * staff rather than exactly two people; and there is nothing to encrypt
+ * to, because the recipient is a role rather than a device.
+ *
+ * Addressed to the staff as a body, never to a person. That is the whole
+ * point of having it at all: a direct message to a named moderator dies
+ * when they stop being one, and nobody else ever learns it existed.
+ */
+export const tickets = pgTable(
+  'tickets',
+  {
+    id: text('id').primaryKey(),
+    /**
+     * The number people actually quote. A UUID is the right key and the
+     * wrong reference — "have a look at #42" is how this gets talked
+     * about, in the room and in the ticket itself.
+     */
+    number: serial('number').notNull(),
+    /** Null once that account is erased; `openedByName` is the record. */
+    openedById: text('opened_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    openedByName: text('opened_by_name').notNull(),
+    /**
+     * appeal | upload | account | bug | other.
+     *
+     * Text plus this comment rather than an enum, like every other
+     * category column here: adding one later is a zod edit, not a
+     * migration. It exists to make the queue triageable and nothing more
+     * — there is deliberately no priority, which in every queue this size
+     * becomes a field where everything is "high".
+     */
+    category: text('category').default('other').notNull(),
+    subject: text('subject').notNull(),
+    /**
+     * open | closed. Two, because there are two.
+     *
+     * Everything a helpdesk is tempted to put here is derived instead:
+     * "taken" is `assignedToId IS NOT NULL`, and "waiting on whom" is
+     * read off `lastMessageBy`. Neither can go stale, and neither can
+     * disagree with the thread above it — a status maintained by hand is
+     * a status that is wrong by Friday.
+     *
+     * This is the shape osTicket, FreeScout and Zammad each arrived at
+     * separately: a small set of states that change behaviour, with the
+     * words people actually use layered on top. osTicket ships `Resolved`
+     * and `Closed` as two statuses that are byte-identical in behaviour;
+     * Znuny ships `closed successful` and `closed unsuccessful`. That is
+     * a *reason* wearing a status costume, and it is why the queue query
+     * in each of them has to enumerate which statuses count as finished.
+     * Here `status <> 'open'` is the whole question.
+     */
+    status: text('status').default('open').notNull(),
+    /**
+     * resolved | rejected | stale | withdrawn — why it ended, set only
+     * when closed.
+     *
+     * Split out rather than folded into `status` because that is the
+     * lesson everyone learned late: GitHub shipped issues binary for
+     * fifteen years, then added `state_reason` rather than a "rejected"
+     * state; Atlassian's own guidance says the resolution field "removes
+     * the need to have multiple statuses to state why the issue is
+     * closed"; Bugzilla has had `resolution` as its own column since the
+     * nineties. The member still reads "Rejeté" — that word is a label
+     * over this column, not a branch in the life cycle.
+     *
+     * `withdrawn` is the member closing their own ticket, and it is worth
+     * its own value rather than being folded into `resolved`: "we sorted
+     * it" and "they stopped needing it" are different facts about the
+     * desk, and a queue that cannot tell them apart cannot tell whether
+     * it is working.
+     */
+    closureReason: text('closure_reason'),
+    /**
+     * When the member was warned this would close on its own. Null until
+     * warned, and cleared by any new message.
+     *
+     * The sweep needs two passes rather than one, and this column is
+     * what makes the second one honest. Closing on silence is the most
+     * dangerous default in this whole feature — none of osTicket,
+     * Zammad, FreeScout or Discourse ships it at all, and Zendesk, which
+     * does, cannot be turned off and generates a steady supply of people
+     * whose reply landed on a closed ticket nobody was watching. Warning
+     * first, and letting any reply cancel it, is the difference between
+     * a tidy queue and a queue that quietly eats requests.
+     */
+    idleNoticeAt: timestamp('idle_notice_at', { withTimezone: true }),
+    /**
+     * Who picked it up. Null is the state that matters: an unassigned
+     * ticket is the one nobody has taken, and a shared queue with no
+     * assignee is how every member of a small team ends up assuming
+     * somebody else did.
+     */
+    assignedToId: text('assigned_to_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    assignedToName: text('assigned_to_name'),
+    assignedAt: timestamp('assigned_at'),
+    closedById: text('closed_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    closedByName: text('closed_by_name'),
+    closedAt: timestamp('closed_at'),
+    /** Shown to the member. A closure with no reason reads as a shrug. */
+    closingNote: text('closing_note'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    /** Denormalised, for the same reason `conversations` carries it. */
+    lastMessageAt: timestamp('last_message_at').defaultNow().notNull(),
+    /** Who wrote last — 'member' | 'staff'. The queue sorts on it. */
+    lastMessageBy: text('last_message_by').default('member').notNull(),
+  },
+  (table) => [
+    uniqueIndex('tickets_number_idx').on(table.number),
+    // The staff queue: open ones first, oldest activity first.
+    index('tickets_status_idx').on(table.status, table.lastMessageAt),
+    // A member's own list.
+    index('tickets_opened_by_idx').on(table.openedById, table.createdAt),
+    check('tickets_status_ck', sql`${table.status} IN ('open', 'closed')`),
+    check(
+      'tickets_closure_ck',
+      sql`${table.closureReason} IS NULL
+          OR ${table.closureReason}
+             IN ('resolved', 'rejected', 'stale', 'withdrawn')`
+    ),
+  ]
+);
+
+export type Ticket = typeof tickets.$inferSelect;
+export type NewTicket = typeof tickets.$inferInsert;
+
+/**
+ * One line of a ticket.
+ *
+ * Not partitioned: a ticket is a handful of rows and the whole table is
+ * smaller than a day of the room. Cascades with its ticket, which is the
+ * one place in this schema where deleting the parent should take the
+ * children — a ticket is a single unit of correspondence rather than two
+ * people's separate records of it.
+ */
+export const ticketMessages = pgTable(
+  'ticket_messages',
+  {
+    id: text('id').primaryKey(),
+    ticketId: text('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    authorId: text('author_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** Survives an erasure so the thread still reads as a conversation. */
+    authorName: text('author_name').notNull(),
+    /** Whether this line came from the staff side. Stored rather than
+     *  derived from a role, because a role can change afterwards and the
+     *  thread has to keep reading the way it was written. */
+    fromStaff: boolean('from_staff').default(false).notNull(),
+    body: text('body').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('ticket_messages_ticket_idx').on(table.ticketId, table.createdAt)]
+);
+
+export type TicketMessage = typeof ticketMessages.$inferSelect;
+export type NewTicketMessage = typeof ticketMessages.$inferInsert;
 
 /**
  * Every time a staff member reads a reported private message.

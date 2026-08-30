@@ -487,6 +487,19 @@ export const RATE_LIMITS = {
     prefix: 'mut',
     progressive: true,
   },
+  /**
+   * The channel to the staff, on its own counter.
+   *
+   * Sharing `mutation` meant a member who had been busy elsewhere —
+   * reacting, editing, uploading — could find themselves unable to answer
+   * a moderator. Discourse hit exactly this and split the staff channel
+   * out of the shared quota rather than raising it (PR #38021): a message
+   * to the moderators is not the same kind of act as everything else, and
+   * starving it is the one failure this feature cannot afford. The caps
+   * that matter for abuse are elsewhere — three open tickets a member,
+   * five a day, counted in `utils/tickets.ts`.
+   */
+  tickets: { windowSec: 60, maxRequests: 20, prefix: 'tk', progressive: false },
 
   // Icon data — its own bucket, and deliberately not `public`.
   //

@@ -54,6 +54,25 @@
           </select>
         </SettingsGroup>
 
+        <!-- Three states rather than a switch, because "suspended" is the
+             one an overwhelmed staff actually needs: the desk stays where
+             members can see it and every open ticket keeps working, but
+             nothing new arrives. A plain on/off forces the choice between
+             drowning and abandoning people mid-conversation. -->
+        <SettingsGroup
+          :label="$t('admin.messaging.ticketsMode')"
+          :description="$t('admin.messaging.ticketsModeHint')"
+        >
+          <select
+            v-model="ticketsMode"
+            class="w-full md:w-64 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
+          >
+            <option value="off">{{ $t('admin.messaging.tickets.off') }}</option>
+            <option value="suspended">{{ $t('admin.messaging.tickets.suspended') }}</option>
+            <option value="on">{{ $t('admin.messaging.tickets.on') }}</option>
+          </select>
+        </SettingsGroup>
+
         <SettingsGroup
           :label="$t('admin.messaging.retentionDays')"
           :description="$t('admin.messaging.retentionHint')"
@@ -145,8 +164,10 @@
 
 <script setup lang="ts">
 type Scope = 'off' | 'staff' | 'all';
+type TicketsMode = 'off' | 'suspended' | 'on';
 
 const dmScope = ref<Scope>('off');
+const ticketsMode = ref<TicketsMode>('off');
 const roomScope = ref<Scope>('off');
 const retentionDays = ref(14);
 /**
@@ -163,6 +184,7 @@ const saved = ref(false);
 
 const { data } = await useFetch<{
   messagingDmScope?: Scope;
+  ticketsMode?: TicketsMode;
   messagingRoomScope?: Scope;
   messagingRoomRetentionDays?: number;
   messagingRoomSlowModeSeconds?: number;
@@ -173,6 +195,7 @@ watch(
   data,
   (v) => {
     if (v?.messagingDmScope) dmScope.value = v.messagingDmScope;
+    if (v?.ticketsMode) ticketsMode.value = v.ticketsMode;
     if (v?.messagingRoomScope) roomScope.value = v.messagingRoomScope;
     if (typeof v?.messagingRoomRetentionDays === 'number') {
       retentionDays.value = v.messagingRoomRetentionDays;
@@ -195,6 +218,7 @@ async function save() {
       method: 'PUT',
       body: {
         messagingDmScope: dmScope.value,
+        ticketsMode: ticketsMode.value,
         messagingRoomScope: roomScope.value,
         // The server clamps to its own floor and ceiling; these match so
         // the browser hints the same range rather than accepting a value

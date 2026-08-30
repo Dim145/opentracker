@@ -89,6 +89,37 @@
         </span>
       </NuxtLink>
 
+      <!-- Only where a desk is running. An instance with tickets switched
+           off has no queue, and a tile reading zero would be advertising a
+           page that answers 404. -->
+      <NuxtLink
+        v-if="ticketsMode !== 'off'"
+        to="/mod/tickets"
+        class="tile tile--tickets"
+        :style="{ '--stagger': '105ms' }"
+      >
+        <span class="tile-label">{{ $t('mod.dashboard.tiles.tickets') }}</span>
+        <span class="tile-value tabular-nums">
+          {{ formatCount(data?.counts.openTickets) }}
+        </span>
+        <span class="tile-foot">
+          <!-- The untaken count is the one that matters: an assigned ticket
+               has somebody on it, an unassigned one has everybody assuming
+               somebody else does. -->
+          <span
+            v-if="(data?.counts.unassignedTickets ?? 0) > 0"
+            class="tile-pulse"
+            aria-hidden="true"
+          />
+          {{
+            (data?.counts.unassignedTickets ?? 0) > 0
+              ? $t('mod.dashboard.tiles.ticketsUntaken', { n: data?.counts.unassignedTickets })
+              : $t('mod.dashboard.tiles.ticketsHint')
+          }}
+          <Icon name="ph:arrow-up-right-bold" class="tile-arrow" />
+        </span>
+      </NuxtLink>
+
       <NuxtLink
         to="/mod/hnr"
         class="tile tile--hnr"
@@ -232,6 +263,8 @@ interface Counts {
   pendingTorrents: number;
   pendingReports: number;
   activeHnr: number;
+  openTickets: number;
+  unassignedTickets: number;
 }
 
 interface MyStats {
@@ -263,13 +296,16 @@ interface DashboardResponse {
   me: { id: string; username: string };
   recentPending: PendingRow[];
   recentActions: ActionRow[];
+  ticketsMode: 'off' | 'suspended' | 'on';
 }
 
 const { data } = await useFetch<DashboardResponse>('/api/mod/dashboard');
 
+const ticketsMode = computed(() => data.value?.ticketsMode ?? 'off');
+
 const hasAlerts = computed(() => {
   const c = data.value?.counts;
-  return !!c && (c.pendingTorrents > 0 || c.pendingReports > 0);
+  return !!c && (c.pendingTorrents > 0 || c.pendingReports > 0 || c.unassignedTickets > 0);
 });
 
 // ── Greeting prefix — picks a hello based on the wall-clock hour
@@ -537,6 +573,7 @@ function actionVerb(status: string | null): string {
 }
 .tile--pending { --tile-accent: #f43f5e; }
 .tile--reports { --tile-accent: rgb(var(--accent-warm)); }
+.tile--tickets { --tile-accent: #38bdf8; }
 .tile--hnr { --tile-accent: #fb923c; }
 .tile--me { --tile-accent: #6cd161; }
 .tile--me { cursor: default; }

@@ -174,6 +174,22 @@ const EN: Dict = {
     title: 'Your report was actioned',
     desc: 'Status: {status}. {resolution}',
   },
+  ticket_opened: {
+    title: 'New ticket',
+    desc: '{from} opened a ticket: “{subject}”',
+  },
+  ticket_answered: {
+    title: 'Your ticket has a reply',
+    desc: '{from} answered “{subject}”',
+  },
+  ticket_closed: {
+    title: 'Your ticket was closed',
+    desc: '“{subject}” — {status}',
+  },
+  ticket_idle_warning: {
+    title: 'Your ticket will close on its own',
+    desc: '“{subject}” — answer within {days} days to keep it open',
+  },
   trusted_device_added: {
     title: 'Trusted device added',
     desc: 'A new device was marked as trusted on your account.',
@@ -364,6 +380,22 @@ const FR: Dict = {
   report_actioned: {
     title: 'Ton signalement a été traité',
     desc: 'Statut : {status}. {resolution}',
+  },
+  ticket_opened: {
+    title: 'Nouveau ticket',
+    desc: '{from} a ouvert un ticket : « {subject} »',
+  },
+  ticket_answered: {
+    title: 'Réponse à votre ticket',
+    desc: '{from} a répondu à « {subject} »',
+  },
+  ticket_closed: {
+    title: 'Votre ticket a été clôturé',
+    desc: '« {subject} » — {status}',
+  },
+  ticket_idle_warning: {
+    title: 'Votre ticket va se clôturer tout seul',
+    desc: '« {subject} » — réponds sous {days} jours pour le garder ouvert',
   },
   trusted_device_added: {
     title: 'Appareil de confiance ajouté',

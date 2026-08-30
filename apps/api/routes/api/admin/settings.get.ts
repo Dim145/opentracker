@@ -4,6 +4,7 @@ import {
   getMessagingDmScope,
   getMessagingRoomScope,
   getDmRetentionDays,
+  getTicketsMode,
   getRoomRetentionDays,
   getRoomSlowModeSeconds,
 } from '~~/utils/settings';
@@ -110,12 +111,14 @@ export default defineEventHandler(async (event) => {
     messagingRoomRetentionDays,
     messagingRoomSlowModeSeconds,
     messagingDmRetentionDays,
+    ticketsMode,
   ] = await Promise.all([
     getMessagingDmScope(),
     getMessagingRoomScope(),
     getRoomRetentionDays(),
     getRoomSlowModeSeconds(),
     getDmRetentionDays(),
+    getTicketsMode(),
   ]);
 
   return {
@@ -124,6 +127,7 @@ export default defineEventHandler(async (event) => {
     messagingRoomRetentionDays,
     messagingRoomSlowModeSeconds,
     messagingDmRetentionDays,
+    ticketsMode,
     registrationOpen,
     minRatio,
     starterUpload,

@@ -105,6 +105,13 @@ export type NotificationType =
   | 'new_pending_upload'
   | 'new_report_filed'
   | 'report_actioned'
+  // A member opened a ticket. Goes to every staff member, because a
+  // ticket is addressed to the staff as a body rather than to a person.
+  | 'ticket_opened'
+  // ── P2 — Ticket, member-as-recipient ───────────────────────
+  | 'ticket_answered'
+  | 'ticket_closed'
+  | 'ticket_idle_warning'
   // ── P2 — Security (soft) ───────────────────────────────────
   | 'trusted_device_added'
   // ── Federation (owner-facing) ──────────────────────────────

@@ -3656,7 +3656,14 @@
       "dmRetentionDays": "Conservation des messages privés",
       "dmRetentionHint": "Combien de temps un message privé est gardé avant suppression automatique. Zéro les laisse jusqu'à ce qu'un participant les supprime ou qu'un compte soit effacé — c'est la valeur par défaut, et elle le reste après une mise à jour : ce sont les conversations des membres, pas les archives de l'instance. Au-dessus de zéro, le plancher est de sept jours, parce qu'un signalement arrive après coup.",
       "dmRetentionOff": "jours — 0 = aucune durée",
-      "dmRetentionPublished": "Ce que tu règles ici est publié aux membres sur /privacy, qui le lit en direct."
+      "dmRetentionPublished": "Ce que tu règles ici est publié aux membres sur /privacy, qui le lit en direct.",
+      "ticketsMode": "Tickets vers le staff",
+      "ticketsModeHint": "Un membre écrit au staff plutôt qu'à quelqu'un en particulier — même s'il a bloqué la personne de garde. Suspendu : la file reste visible et les tickets ouverts continuent, mais on ne peut plus en ouvrir.",
+      "tickets": {
+        "off": "Désactivé",
+        "suspended": "Suspendu — plus de nouveaux tickets",
+        "on": "Activé"
+      }
     },
     "broadcast": {
       "title": "Diffusion staff",
@@ -3694,7 +3701,8 @@
       "reports": "Signalements",
       "hnr": "Hit & Run",
       "antiCheat": "Anti-cheat",
-      "messageReads": "Lectures de messages"
+      "messageReads": "Lectures de messages",
+      "tickets": "Tickets"
     },
     "descriptions": {
       "dashboard": "Aperçu de la modération et actions rapides",
@@ -3703,7 +3711,8 @@
       "reports": "Examiner et traiter les signalements des utilisateurs",
       "hnr": "Surveiller et gérer les violations H&R",
       "antiCheat": "Triager les annonces signalées par le détecteur anti-triche",
-      "messageReads": "Chaque fois qu'un membre du staff a ouvert un message privé signalé."
+      "messageReads": "Chaque fois qu'un membre du staff a ouvert un message privé signalé.",
+      "tickets": "Ce que les membres ont demandé au staff, les plus anciens d'abord."
     },
     "antiCheat": {
       "title": "Anti-cheat",
@@ -3809,7 +3818,10 @@
         "myActions": "Mes actions · 7 j",
         "myActionsHint": "{n} signalements clos",
         "masks": "Masques fédérés",
-        "masksHint": "Masquer du contenu partenaire"
+        "masksHint": "Masquer du contenu partenaire",
+        "tickets": "Tickets",
+        "ticketsHint": "la file du staff",
+        "ticketsUntaken": "{n} que personne n'a pris"
       },
       "queue": {
         "title": "Plus frais en attente",
@@ -3867,6 +3879,28 @@
       "disclosed": "lu",
       "sealed": "chiffré — rien affiché",
       "readerGone": "Ce compte a été effacé. Le nom est conservé, c'est tout l'intérêt du registre."
+    },
+    "tickets": {
+      "title": "Tickets",
+      "queue": "File",
+      "archive": "Clôturés",
+      "untaken": "{n} que personne n'a pris",
+      "nobody": "personne",
+      "emptyQueue": "Rien en attente.",
+      "emptyArchive": "Rien de clôturé.",
+      "openAction": "Ouvrir",
+      "take": "Le prendre",
+      "release": "Le rendre",
+      "resolve": "Résoudre",
+      "reject": "Rejeter",
+      "reopen": "Rouvrir",
+      "closeHint": "Le membre voit ce texte. Une clôture sans motif se lit comme un haussement d'épaules.",
+      "notePlaceholder": "Ce qui a été fait, ou pourquoi non.",
+      "ageMinutes": "{n} min",
+      "ageHours": "{n} h",
+      "ageDays": "{n} j",
+      "withdrawn": "Retiré",
+      "withdrawnBy": "{name} a clôturé son propre ticket."
     }
   },
   "forum": {
@@ -5052,5 +5086,50 @@
       "text": "Un modérateur ouvre un message privé, et seulement un qui fait l'objet d'un signalement ouvert. La route ne répond rien pour un autre message — elle ne permet donc pas de parcourir une conversation — et rien du tout pour un message chiffré. Chacune de ces lectures est enregistrée — qui, quand, et si quelque chose était lisible — et le registre est visible de tout le staff, pas seulement de celui qui l'a demandé."
     },
     "foot": "Cette page liste des durées de conservation. Elle ne remplace pas la notice que l'exploitant de cette instance doit publier là où elle est hébergée."
+  },
+  "tickets": {
+    "title": "Tickets",
+    "openTab": "Ouverts",
+    "history": "Historique",
+    "empty": "Aucun ticket ouvert",
+    "emptyHistory": "Rien de clôturé pour l'instant",
+    "new": "Nouveau ticket",
+    "subject": "Sujet",
+    "subjectPlaceholder": "En quelques mots",
+    "category": "Catégorie",
+    "message": "Ce qui se passe",
+    "messagePlaceholder": "Tout ce qui évitera à un modérateur d'avoir à demander.",
+    "send": "Ouvrir le ticket",
+    "suspended": "Le staff ne prend pas de nouveaux tickets en ce moment. Ceux déjà ouverts fonctionnent toujours.",
+    "openedBy": "Ouvert par {name}",
+    "takenBy": "pris en charge par {name}",
+    "staff": "staff",
+    "reply": "Répondre",
+    "replyPlaceholder": "Écris ici…",
+    "failed": "Ça n'est pas passé.",
+    "categories": {
+      "appeal": "Recours",
+      "upload": "Upload",
+      "account": "Compte",
+      "bug": "Bug",
+      "other": "Autre"
+    },
+    "status": {
+      "open": "En attente",
+      "taken": "Pris en charge",
+      "resolved": "Résolu",
+      "rejected": "Rejeté",
+      "stale": "Clôturé faute de réponse",
+      "withdrawn": "Clôturé par toi"
+    },
+    "closedAs": {
+      "resolved": "Résolu par {name}.",
+      "rejected": "Clôturé sans suite par {name}.",
+      "stale": "Clôturé automatiquement, faute de réponse. Rouvre un ticket si le sujet n'est pas réglé.",
+      "withdrawn": "Tu as clôturé ce ticket. Le staff peut le rouvrir."
+    },
+    "withdraw": "Clôturer ce ticket",
+    "withdrawHint": "Tu n'auras plus la main dessus, ni pour écrire ni pour le rouvrir — seul le staff peut le rouvrir. Si le sujet revient, ouvre un nouveau ticket.",
+    "menuLabel": "Actions sur le ticket"
   }
 }

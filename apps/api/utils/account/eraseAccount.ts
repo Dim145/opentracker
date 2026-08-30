@@ -261,6 +261,56 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
       .set({ readerId: null })
       .where(eq(schema.messageReadLog.readerId, userId));
 
+    /*
+     * Tickets keep the staff's record and lose the member's name.
+     *
+     * The opposite call from the read log two blocks up, and for the
+     * opposite reason. There the name IS the record — a moderator erasing
+     * themselves must not erase who looked. Here the name is the person
+     * asking to be forgotten, and the thing worth keeping is the staff's
+     * record of a decision, which a ticket may well be an appeal against.
+     *
+     * So the ticket survives, anonymised, exactly like a plaintext direct
+     * message does. Deleting it outright would let anyone erase the
+     * record of what they were told by deleting their account.
+     */
+    const erasedName = `deleted-${randomBytes(6).toString('hex')}`;
+    await tx
+      .update(schema.tickets)
+      .set({ openedById: null, openedByName: erasedName })
+      .where(eq(schema.tickets.openedById, userId));
+    // Their own lines. Staff lines on the same ticket are untouched: a
+    // moderator's answer is the moderator's, not the member's.
+    await tx
+      .update(schema.ticketMessages)
+      .set({ authorId: null, authorName: erasedName })
+      .where(
+        and(
+          eq(schema.ticketMessages.authorId, userId),
+          eq(schema.ticketMessages.fromStaff, false)
+        )
+      );
+    // And where they were staff: the assignment and the closure are acts,
+    // and an act with no author is indefensible — same rule as the read
+    // log. The pointer goes, the name stays.
+    await tx
+      .update(schema.tickets)
+      .set({ assignedToId: null })
+      .where(eq(schema.tickets.assignedToId, userId));
+    await tx
+      .update(schema.tickets)
+      .set({ closedById: null })
+      .where(eq(schema.tickets.closedById, userId));
+    await tx
+      .update(schema.ticketMessages)
+      .set({ authorId: null })
+      .where(
+        and(
+          eq(schema.ticketMessages.authorId, userId),
+          eq(schema.ticketMessages.fromStaff, true)
+        )
+      );
+
     // 3. Scrub the row itself. The passkey is rotated to a fresh unusable value
     // so any announce URL the member kept stops working; the SRP material is
     // replaced with random bytes no client can reproduce; the profile text and

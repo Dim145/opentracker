@@ -2,6 +2,7 @@ import { requireAdminSession } from '~~/utils/adminAuth';
 import {
   setRegistrationOpen,
   setDmRetentionDays,
+  setTicketsMode,
   setRoomRetentionDays,
   setRoomSlowModeSeconds,
   setSetting,
@@ -228,6 +229,13 @@ export default defineEventHandler(async (event) => {
   // nothing to look at. Published to members on `/privacy`.
   if (typeof body.messagingDmRetentionDays === 'number') {
     await setDmRetentionDays(body.messagingDmRetentionDays);
+  }
+  // off | suspended | on. `suspended` is the one worth having: it keeps
+  // every open ticket workable and refuses new ones, which is the honest
+  // answer to a staff that is underwater. Switching the desk off answers
+  // the same question by abandoning whoever is mid-conversation.
+  if (typeof body.ticketsMode === 'string') {
+    await setTicketsMode(body.ticketsMode);
   }
 
   // Notification retention TTLs. Clamped 1–3650 days; out-of-range

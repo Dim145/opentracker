@@ -3656,7 +3656,14 @@
       "dmRetentionDays": "Private-message retention",
       "dmRetentionHint": "How long a private message is kept before it is deleted automatically. Zero leaves them until a participant deletes them or an account is erased — which is the default, and stays the default on upgrade: these are the members' conversations, not the instance's records. Above zero the floor is seven days, because a report is filed after the fact.",
       "dmRetentionOff": "days — 0 means no timer",
-      "dmRetentionPublished": "Whatever you set here is published to members on /privacy, which reads it live."
+      "dmRetentionPublished": "Whatever you set here is published to members on /privacy, which reads it live.",
+      "ticketsMode": "Tickets to the staff",
+      "ticketsModeHint": "A member writes to the staff rather than to one person — even one they have blocked. Suspended: the desk stays visible and open tickets keep working, but no new ones can be opened.",
+      "tickets": {
+        "off": "Off",
+        "suspended": "Suspended — no new tickets",
+        "on": "On"
+      }
     },
     "broadcast": {
       "title": "Staff broadcast",
@@ -3694,7 +3701,8 @@
       "reports": "Reports",
       "hnr": "Hit & Run",
       "antiCheat": "Anti-cheat",
-      "messageReads": "Message reads"
+      "messageReads": "Message reads",
+      "tickets": "Tickets"
     },
     "descriptions": {
       "dashboard": "Moderation overview and quick actions",
@@ -3703,7 +3711,8 @@
       "reports": "Review and handle user reports",
       "hnr": "Monitor and manage H&R violations",
       "antiCheat": "Triage announces flagged by the cheat detector",
-      "messageReads": "Every time a staff member opened a reported private message."
+      "messageReads": "Every time a staff member opened a reported private message.",
+      "tickets": "What members have asked the staff, oldest first."
     },
     "antiCheat": {
       "title": "Anti-cheat",
@@ -3809,7 +3818,10 @@
         "myActions": "My actions · 7 days",
         "myActionsHint": "{n} reports closed",
         "masks": "Federated masks",
-        "masksHint": "Hide partner content"
+        "masksHint": "Hide partner content",
+        "tickets": "Tickets",
+        "ticketsHint": "the staff queue",
+        "ticketsUntaken": "{n} nobody has taken"
       },
       "queue": {
         "title": "Freshest pending",
@@ -3867,6 +3879,28 @@
       "disclosed": "read",
       "sealed": "encrypted — nothing shown",
       "readerGone": "This account has been erased. The name is kept because the record is the point."
+    },
+    "tickets": {
+      "title": "Tickets",
+      "queue": "Queue",
+      "archive": "Closed",
+      "untaken": "{n} nobody has taken",
+      "nobody": "nobody yet",
+      "emptyQueue": "Nothing waiting.",
+      "emptyArchive": "Nothing closed yet.",
+      "openAction": "Open",
+      "take": "Take it",
+      "release": "Hand back",
+      "resolve": "Resolve",
+      "reject": "Reject",
+      "reopen": "Reopen",
+      "closeHint": "The member sees this. A closure with no reason reads as a shrug.",
+      "notePlaceholder": "What was done, or why not.",
+      "ageMinutes": "{n} min",
+      "ageHours": "{n} h",
+      "ageDays": "{n} d",
+      "withdrawn": "Withdrawn",
+      "withdrawnBy": "{name} closed their own ticket."
     }
   },
   "forum": {
@@ -5052,5 +5086,50 @@
       "text": "A moderator opens one private message, and only one that has an open report against it. The endpoint answers nothing for any other message, so it cannot be used to walk a conversation, and it answers nothing at all for an encrypted one. Every one of those reads is recorded — who, when, and whether anything was legible — and the record is visible to all staff, not only to whoever ordered it."
     },
     "foot": "This page lists retention. It is not a substitute for whatever notice the operator of this instance is required to publish where it is hosted."
+  },
+  "tickets": {
+    "title": "Tickets",
+    "openTab": "Open",
+    "history": "History",
+    "empty": "No open ticket",
+    "emptyHistory": "Nothing closed yet",
+    "new": "New ticket",
+    "subject": "Subject",
+    "subjectPlaceholder": "In a few words",
+    "category": "Category",
+    "message": "What is going on",
+    "messagePlaceholder": "Everything that would save a moderator from asking.",
+    "send": "Open the ticket",
+    "suspended": "The staff is not taking new tickets right now. The ones already open still work.",
+    "openedBy": "Opened by {name}",
+    "takenBy": "taken by {name}",
+    "staff": "staff",
+    "reply": "Reply",
+    "replyPlaceholder": "Write here…",
+    "failed": "That did not go through.",
+    "categories": {
+      "appeal": "Appeal",
+      "upload": "Upload",
+      "account": "Account",
+      "bug": "Bug",
+      "other": "Other"
+    },
+    "status": {
+      "open": "Waiting",
+      "taken": "Being handled",
+      "resolved": "Resolved",
+      "rejected": "Rejected",
+      "stale": "Closed, no reply",
+      "withdrawn": "Closed by you"
+    },
+    "closedAs": {
+      "resolved": "Resolved by {name}.",
+      "rejected": "Closed as not actionable by {name}.",
+      "stale": "Closed automatically after no reply. Open a new ticket if this is not settled.",
+      "withdrawn": "You closed this ticket. The staff can reopen it."
+    },
+    "withdraw": "Close this ticket",
+    "withdrawHint": "You will not be able to write to it or reopen it — only the staff can. If it comes back, open a new ticket.",
+    "menuLabel": "Ticket actions"
   }
 }

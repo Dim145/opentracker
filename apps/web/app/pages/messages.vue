@@ -70,6 +70,130 @@
         </span>
       </NuxtLink>
 
+      <!--
+        Tickets, above the conversations and separated from them.
+
+        A ticket is not a conversation with a person — it is addressed to
+        the staff as a body, it has a state, and it stops accepting lines
+        when it closes. Filing it under the same list as "seedersam" would
+        say the opposite of all three.
+
+        Hidden entirely when the desk is off: an instance that does not
+        run one should look like a build that never had it.
+      -->
+      <!--
+        Folded by default when there is nothing open.
+
+        The desk is the second thing on this page, not the first — most
+        visits here are about a conversation — and a section that always
+        stood at full height pushed the inbox down for the ninety-nine
+        visits out of a hundred where there was no ticket to look at. So
+        the row itself is the control, and it carries the count so that
+        folded never means hidden.
+      -->
+      <section
+        v-if="ticketsMode !== 'off'"
+        class="msg-tickets"
+        :class="{ 'msg-tickets--folded': !ticketsExpanded }"
+      >
+        <header class="msg-section-head">
+          <h2 class="msg-section-heading">
+            <button
+              type="button"
+              class="msg-section-toggle"
+              :aria-expanded="ticketsExpanded"
+              aria-controls="msg-tickets-body"
+              @click="ticketsExpanded = !ticketsExpanded"
+            >
+              <Icon name="ph:lifebuoy" class="msg-section-icon" />
+              <span class="msg-section-title">{{ $t('tickets.title') }}</span>
+              <span v-if="openTicketCount" class="msg-section-count">
+                {{ openTicketCount }}
+              </span>
+              <Icon
+                name="ph:caret-down-bold"
+                class="msg-section-caret"
+                :class="{ 'msg-section-caret--on': ticketsExpanded }"
+              />
+            </button>
+          </h2>
+          <button
+            v-if="ticketsMode === 'on'"
+            type="button"
+            class="msg-new"
+            :aria-label="$t('tickets.new')"
+            :title="$t('tickets.new')"
+            @click="openTicketDialog"
+          >
+            <Icon name="ph:plus" class="w-4 h-4" />
+          </button>
+        </header>
+
+        <div v-show="ticketsExpanded" id="msg-tickets-body">
+        <div class="msg-tabs msg-tabs--sub" role="tablist" :aria-label="$t('tickets.title')">
+          <button
+            type="button"
+            role="tab"
+            class="msg-tab"
+            :class="{ 'msg-tab--on': !ticketHistory }"
+            :aria-selected="!ticketHistory"
+            @click="ticketHistory = false"
+          >
+            {{ $t('tickets.openTab') }}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="msg-tab"
+            :class="{ 'msg-tab--on': ticketHistory }"
+            :aria-selected="ticketHistory"
+            @click="ticketHistory = true"
+          >
+            {{ $t('tickets.history') }}
+          </button>
+        </div>
+
+        <p v-if="ticketsMode === 'suspended'" class="msg-hint msg-hint--warn">
+          {{ $t('tickets.suspended') }}
+        </p>
+
+        <div class="msg-section">
+          <p v-if="!tickets.length" class="msg-hint">
+            {{ ticketHistory ? $t('tickets.emptyHistory') : $t('tickets.empty') }}
+          </p>
+          <button
+            v-for="tk in tickets"
+            :key="tk.id"
+            type="button"
+            class="msg-row"
+            :class="{ 'msg-row--on': tk.id === activeTicketId }"
+            @click="openTicket(tk.id)"
+          >
+            <span class="msg-row-tile msg-row-tile--ticket" aria-hidden="true">
+              #{{ tk.number }}
+            </span>
+            <span class="msg-row-main">
+              <span class="msg-row-top">
+                <span class="msg-row-name">{{ tk.subject }}</span>
+                <time class="msg-row-time" :datetime="tk.lastMessageAt">
+                  {{ shortAgo(tk.lastMessageAt) }}
+                </time>
+              </span>
+              <span class="msg-row-preview">
+                {{ $t(`tickets.status.${ticketState(tk)}`) }}
+                <template v-if="tk.assignedToName"> · {{ tk.assignedToName }}</template>
+              </span>
+            </span>
+          </button>
+        </div>
+        </div>
+      </section>
+
+      <header v-if="ticketsMode !== 'off'" class="msg-section-head">
+        <Icon name="ph:chat-circle" class="msg-section-icon" />
+        <h2 class="msg-section-title">{{ $t('messaging.title') }}</h2>
+      </header>
+
       <!-- Search across every conversation. Plaintext only, and the
            result says so rather than letting "nothing found" stand for
            "nothing I am able to look at".
@@ -238,8 +362,30 @@
       </footer>
     </aside>
 
-    <section class="msg-thread" :class="{ 'msg-hide-mobile': !activeId }">
-      <template v-if="active">
+    <section
+      class="msg-thread"
+      :class="{ 'msg-hide-mobile': !activeId && !activeTicketId }"
+    >
+      <!-- A ticket takes the same pane as a conversation, because it is
+           the same act: the thing you are reading. -->
+      <template v-if="activeTicketId">
+        <header class="msg-thread-head">
+          <button type="button" class="msg-back" @click="activeTicketId = null">
+            <Icon name="ph:arrow-left" class="w-4 h-4" />
+            <span class="sr-only">{{ $t('common.back') }}</span>
+          </button>
+          <span class="msg-thread-name truncate">{{ activeTicketSubject }}</span>
+        </header>
+        <div class="msg-ticket-pane">
+          <MessagingTicketThread
+            :key="activeTicketId"
+            :ticket-id="activeTicketId"
+            @changed="refreshTickets"
+          />
+        </div>
+      </template>
+
+      <template v-else-if="active">
         <header class="msg-thread-head">
           <!-- Through `closeThread`, not a bare assignment: leaving by the
                back arrow has to file the draft first, exactly like
@@ -785,6 +931,47 @@
       <p class="msg-promise">{{ $t('messaging.crypto.promiseBody') }}</p>
     </Modal>
 
+    <!-- Opening a ticket. No recipient field, on purpose: it goes to the
+         staff as a body, which is the whole reason it is not a DM. -->
+    <Modal v-model="ticketFormOpen" :title="$t('tickets.new')">
+      <form class="flex flex-col gap-3" @submit.prevent="openTicketForm">
+        <label class="eyebrow" for="tk-subject">{{ $t('tickets.subject') }}</label>
+        <input
+          id="tk-subject"
+          v-model="ticketSubject"
+          class="input"
+          maxlength="140"
+          :placeholder="$t('tickets.subjectPlaceholder')"
+        />
+
+        <label class="eyebrow" for="tk-cat">{{ $t('tickets.category') }}</label>
+        <select id="tk-cat" v-model="ticketCategory" class="input">
+          <option v-for="c in TICKET_CATEGORIES" :key="c" :value="c">
+            {{ $t(`tickets.categories.${c}`) }}
+          </option>
+        </select>
+
+        <label class="eyebrow" for="tk-body">{{ $t('tickets.message') }}</label>
+        <textarea
+          id="tk-body"
+          v-model="ticketBody"
+          rows="5"
+          class="input"
+          maxlength="4000"
+          :placeholder="$t('tickets.messagePlaceholder')"
+        />
+
+        <p v-if="ticketError" class="msg-hint msg-hint--warn">{{ ticketError }}</p>
+        <button
+          type="submit"
+          class="btn btn-primary self-end"
+          :disabled="ticketBusy || ticketSubject.trim().length < 4 || ticketBody.trim().length < 10"
+        >
+          {{ $t('tickets.send') }}
+        </button>
+      </form>
+    </Modal>
+
     <!-- Reporting a message. The slip teleports to the body, so where it
          sits in this tree is organisational only. -->
     <ReportModal
@@ -884,6 +1071,127 @@ const searchResults = ref<SearchHit[]>([]);
 const blockOpen = ref(false);
 /** The padlock's own explanation, opened from the thread header. */
 const promiseOpen = ref(false);
+
+// ── Tickets ──────────────────────────────────────────────────────────
+//
+// A separate surface in the same page. Its own list, its own state, and
+// no interaction with the conversation lists beyond sharing the pane —
+// opening one closes the other, because they are two things to read
+// rather than two panes.
+interface TicketRow {
+  id: string;
+  number: number;
+  subject: string;
+  category: string;
+  status: string;
+  closureReason: string | null;
+  assignedToId: string | null;
+  assignedToName: string | null;
+  createdAt: string;
+  lastMessageAt: string;
+  lastMessageBy: string;
+}
+const TICKET_CATEGORIES = ['appeal', 'upload', 'account', 'bug', 'other'] as const;
+
+const ticketHistory = ref(false);
+const activeTicketId = ref<string | null>(null);
+const ticketFormOpen = ref(false);
+const ticketSubject = ref('');
+const ticketCategory = ref<(typeof TICKET_CATEGORIES)[number]>('other');
+const ticketBody = ref('');
+const ticketBusy = ref(false);
+const ticketError = ref('');
+
+const { data: ticketData, refresh: refreshTickets } = await useFetch<{
+  mode: 'off' | 'suspended' | 'on';
+  openCount: number;
+  tickets: TicketRow[];
+}>('/api/tickets', {
+  query: computed(() => ({ closed: ticketHistory.value ? 'true' : 'false' })),
+  // The desk may be off, and 404 is how that is said on this surface.
+  // Not an error: the section simply does not exist.
+  default: () => ({ mode: 'off' as const, openCount: 0, tickets: [] }),
+});
+
+const ticketsMode = computed(() => ticketData.value?.mode ?? 'off');
+const tickets = computed(() => ticketData.value?.tickets ?? []);
+const openTicketCount = computed(() => ticketData.value?.openCount ?? 0);
+
+/**
+ * Folded or not.
+ *
+ * Decided once, from whether anything is actually open — an empty desk
+ * has nothing to show and should not cost a screenful. After that it is
+ * the reader's, and nothing reaches back in to fold it while they are
+ * looking at it.
+ */
+const ticketsExpanded = ref(false);
+let ticketsFoldDecided = false;
+
+watch(
+  ticketData,
+  (v) => {
+    if (ticketsFoldDecided || !v) return;
+    ticketsFoldDecided = true;
+    // A deep link to one ticket unfolds regardless: arriving at a section
+    // that hid the thing the link was for is the one case where the count
+    // is the wrong question.
+    ticketsExpanded.value = v.openCount > 0 || !!activeTicketId.value;
+  },
+  { immediate: true }
+);
+
+/** Opening the composer unfolds first — the new row lands in there. */
+function openTicketDialog() {
+  ticketsExpanded.value = true;
+  ticketFormOpen.value = true;
+}
+const activeTicketSubject = computed(
+  () => tickets.value.find((t) => t.id === activeTicketId.value)?.subject ?? ''
+);
+
+function openTicket(id: string) {
+  // One pane, one thing in it.
+  ticketsExpanded.value = true;
+  activeId.value = null;
+  activeTicketId.value = id;
+  void router.replace({ query: { ...route.query, ticket: id, c: undefined } });
+}
+
+watch(activeTicketId, (v) => {
+  if (!v && route.query.ticket) {
+    void router.replace({ query: { ...route.query, ticket: undefined } });
+  }
+});
+
+async function openTicketForm() {
+  if (ticketBusy.value) return;
+  ticketBusy.value = true;
+  ticketError.value = '';
+  try {
+    const res = await $fetch<{ id: string }>('/api/tickets', {
+      method: 'POST',
+      body: {
+        subject: ticketSubject.value.trim(),
+        category: ticketCategory.value,
+        body: ticketBody.value.trim(),
+      },
+    });
+    ticketFormOpen.value = false;
+    ticketSubject.value = '';
+    ticketBody.value = '';
+    ticketCategory.value = 'other';
+    ticketHistory.value = false;
+    await refreshTickets();
+    openTicket(res.id);
+    say(t('tickets.title'));
+  } catch (err) {
+    ticketError.value =
+      (err as { data?: { message?: string } })?.data?.message ?? t('tickets.failed');
+  } finally {
+    ticketBusy.value = false;
+  }
+}
 /** The message a report is being filed against. */
 const reportTarget = ref<ThreadMessage | null>(null);
 
@@ -1651,6 +1959,17 @@ onMounted(loadDrafts);
  * broken one.
  */
 onMounted(async () => {
+  // A notification about a ticket links straight to it.
+  if (typeof route.query.ticket === 'string' && route.query.ticket) {
+    activeTicketId.value = route.query.ticket;
+    // It may be a closed one, and the list defaults to open.
+    if (!tickets.value.some((tk) => tk.id === route.query.ticket)) {
+      ticketHistory.value = true;
+      await refreshTickets();
+    }
+    return;
+  }
+
   const wanted = typeof route.query.c === 'string' ? route.query.c : null;
 
   if (route.query.v === 'archived') {
@@ -1714,6 +2033,8 @@ async function open(conv: Conversation) {
   stashDraft();
   clearContext();
 
+  // One pane, one thing in it — see `openTicket`.
+  activeTicketId.value = null;
   activeId.value = conv.id;
   draft.value = drafts.value[conv.id] ?? '';
   messages.value = [];
@@ -3060,5 +3381,91 @@ async function startConversation() {
   font-size: 0.85rem;
   line-height: 1.6;
   white-space: pre-line;
+}
+/* ── Tickets ──────────────────────────────────────────────────────── */
+.msg-section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.5rem;
+  margin: 0.75rem 0 0.25rem;
+}
+.msg-section-icon { color: rgb(var(--fg-subtle)); font-size: 0.9rem; }
+
+/* The whole row is the control, so the hit area is the line and not the
+   caret — an 11px chevron is a target nobody wants to aim at. */
+/* Folded, the section is one line, and the rhythm of a section break
+   underneath it reads as a gap somebody forgot to fill. */
+.msg-tickets--folded + .msg-section-head { margin-top: 0.25rem; }
+
+.msg-section-heading { flex: 1; min-width: 0; margin: 0; }
+.msg-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 1.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.msg-section-toggle:hover .msg-section-title,
+.msg-section-toggle:hover .msg-section-icon,
+.msg-section-toggle:hover .msg-section-caret {
+  color: rgb(var(--fg-default));
+}
+
+/* Folded is not hidden: the count is what makes it safe to fold. */
+.msg-section-count {
+  flex: none;
+  min-width: 1.1rem;
+  padding: 0 0.3rem;
+  border-radius: var(--radius-pill);
+  background: rgb(var(--accent-warm));
+  color: rgb(var(--bg-base));
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1.1rem;
+  text-align: center;
+}
+
+.msg-section-caret {
+  flex: none;
+  color: rgb(var(--fg-subtle));
+  font-size: 0.7rem;
+  transition: transform var(--dur-2) ease, color var(--dur-2) ease;
+}
+.msg-section-caret--on { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .msg-section-caret { transition: none; }
+}
+
+.msg-section-title {
+  flex: 1;
+  margin: 0;
+  color: rgb(var(--fg-subtle));
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.msg-tabs--sub { margin-top: 0; }
+
+/* The number, not an initial: a ticket is quoted by it. */
+.msg-row-tile--ticket {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: -0.02em;
+}
+
+.msg-ticket-pane {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
 }
 </style>

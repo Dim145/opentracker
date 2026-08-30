@@ -104,6 +104,12 @@ const menuItems = computed(() => [
     icon: 'ph:shield-warning',
     description: t('mod.descriptions.antiCheat'),
   },
+  {
+    label: t('mod.nav.tickets'),
+    path: '/mod/tickets',
+    icon: 'ph:lifebuoy',
+    description: t('mod.descriptions.tickets'),
+  },
   // Visible to every moderator, not to admins alone. A log the watched
   // cannot see is surveillance; a log they can see is a norm.
   {

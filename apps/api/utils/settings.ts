@@ -110,6 +110,12 @@ export const SETTINGS_KEYS = {
   MESSAGING_ROOM_SCOPE: 'messaging_room_scope',
   MESSAGING_ROOM_RETENTION_DAYS: 'messaging_room_retention_days',
   MESSAGING_DM_RETENTION_DAYS: 'messaging_dm_retention_days',
+  // off | suspended | on. Not a scope: the axis is what you may DO,
+  // not who may see it. `suspended` keeps every open ticket workable
+  // and refuses new ones — the answer to a staff that is underwater,
+  // which turning the feature off would answer by abandoning people
+  // mid-conversation.
+  TICKETS_MODE: 'tickets_mode',
   MESSAGING_ROOM_SLOW_MODE_S: 'messaging_room_slow_mode_s',
   INVITE_ENABLED: 'invite_enabled',
   DEFAULT_INVITES: 'default_invites',
@@ -694,6 +700,24 @@ export async function getDmRetentionDays(): Promise<number> {
   const parsed = value ? parseInt(value, 10) : NaN;
   if (!Number.isFinite(parsed) || parsed <= 0) return 0;
   return Math.min(DM_RETENTION_MAX_DAYS, Math.max(DM_RETENTION_MIN_DAYS, parsed));
+}
+
+/**
+ * Whether members may open tickets, and whether the ones open still work.
+ *
+ * Three states rather than a boolean, because "we cannot keep up right
+ * now" and "we do not run a ticket desk" are different sentences and only
+ * one of them should strand somebody who is already mid-conversation.
+ */
+export type TicketsMode = 'off' | 'suspended' | 'on';
+
+export async function getTicketsMode(): Promise<TicketsMode> {
+  const value = await getSetting(SETTINGS_KEYS.TICKETS_MODE);
+  return value === 'on' || value === 'suspended' ? value : 'off';
+}
+
+export async function setTicketsMode(mode: TicketsMode) {
+  await setSetting(SETTINGS_KEYS.TICKETS_MODE, mode);
 }
 
 export async function setDmRetentionDays(days: number) {
