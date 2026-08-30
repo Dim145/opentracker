@@ -318,6 +318,30 @@ async function main() {
     d((inbox.body?.inbox ?? []).map((c) => c.with?.username))
   );
 
+  // A broadcast cannot be sealed for each recipient — the sender never
+  // holds thousands of public keys, and delivery runs on the server with
+  // no key at all — so it is written in clear, including into a
+  // conversation the pair opened encrypted. There is one conversation
+  // per pair, so there is nowhere else to put it.
+  //
+  // Pinned here rather than left to be rediscovered. The thread wears a
+  // padlock; the client marks any line that does not keep that promise,
+  // and it recognises them by exactly this shape: a body, no cipher.
+  const thread = (inbox.body?.inbox ?? []).find(
+    (c) => c.with?.username === 'founder'
+  );
+  if (thread?.encrypted) {
+    const msgs = await req('donator', `${DM}/${thread.id}/messages`);
+    const line = (msgs.body?.messages ?? []).find(
+      (m) => m.body === 'Staff sync at the usual time.'
+    );
+    check(
+      'a broadcast into an encrypted thread arrives in clear, and is shaped so the reader can tell',
+      !!line && line.cipher === null,
+      d(line)
+    );
+  }
+
   // Put the fixture back: later scenarios assume donator is an ordinary
   // member, and a scenario that changes the world it runs in is a
   // scenario that breaks the next one.

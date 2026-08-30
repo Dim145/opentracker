@@ -1340,7 +1340,8 @@
         "user": "User",
         "post": "Post",
         "comment": "Comment",
-        "remote": "Federated release"
+        "remote": "Federated release",
+        "message": "Private message"
       },
       "reasons": {
         "spam": "Spam or advertising",
@@ -2989,7 +2990,8 @@
         "user": "User",
         "post": "Post",
         "comment": "Comment",
-        "remote": "Federated release"
+        "remote": "Federated release",
+        "message": "Private message"
       },
       "toasts": {
         "resolved": "Report accepted",
@@ -3016,7 +3018,13 @@
         }
       },
       "filterWithdrawn": "Withdrawn",
-      "withdrawnByReporter": "This reporter has withdrawn {n} reports"
+      "withdrawnByReporter": "This reporter has withdrawn {n} reports",
+      "messageBody": "Message",
+      "messageReveal": "Read the reported message",
+      "messageMissing": "That message is gone, or was never reported.",
+      "messageEncrypted": "Encrypted — nobody holds the key, staff included. Act on what the reporter quoted.",
+      "messageRemoved": "Removed by its author or by staff.",
+      "messageRetry": "That did not load. Try again."
     },
     "tags": {
       "title": "Tags",
@@ -4869,7 +4877,9 @@
       "enableBody": "This browser gets a key of its own. From then on, members can start an encrypted conversation with you — and this device is the only one that will be able to read it. There is no backup and no recovery: that is what makes the promise true.",
       "enableAction": "Create my key",
       "rotateFailed": "The key could not be published. Nothing was changed.",
-      "notReady": "This device cannot encrypt for this conversation yet."
+      "notReady": "This device cannot encrypt for this conversation yet.",
+      "notSealed": "not encrypted",
+      "notSealedHint": "Written in clear into an encrypted conversation — a staff broadcast cannot be sealed for each recipient. The server can read this line."
     },
     "erasedConversation": "Closed at your correspondent's request. This conversation was encrypted, and the account that held the other half of the key has been deleted — nothing here can be opened again, by anyone.",
     "unreadLabel": "{count} unread | {count} unread | {count} unread",
@@ -4906,7 +4916,56 @@
     "editFailed": "The change could not be saved.",
     "replyAccepts": "Replying accepts this request and opens the conversation both ways.",
     "remove": "Remove",
-    "removeFailed": "The message could not be removed."
+    "removeFailed": "The message could not be removed.",
+    "archived": "Archived",
+    "search": {
+      "placeholder": "Search your messages…",
+      "clear": "Clear the search",
+      "searching": "Searching…",
+      "none": "Nothing matches.",
+      "skipped": "Encrypted conversations were not searched — the server cannot read them.",
+      "tooShort": "Two characters at least."
+    },
+    "menu": {
+      "label": "Conversation actions",
+      "archive": "Archive",
+      "unarchive": "Move back to the inbox",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "mutedUntil": "Muted until {until}",
+      "for": {
+        "1": "1 h",
+        "8": "8 h",
+        "24": "1 day",
+        "168": "1 week"
+      },
+      "report": "Report a message",
+      "block": "Block {name}",
+      "archivedDone": "Filed away.",
+      "unarchivedDone": "Back in the inbox.",
+      "mutedDone": "Muted.",
+      "unmutedDone": "Unmuted.",
+      "blockedDone": "{name} is blocked.",
+      "failed": "That did not work."
+    },
+    "blockTitle": "Block {name}?",
+    "blockBody": "Neither of you will be able to write to the other, and this conversation closes. They are not told — a refusal that announces itself is an invitation to try again from another account. You can undo it from your blocked list.",
+    "blockConfirm": "Block",
+    "blocks": {
+      "link": "Blocked members",
+      "title": "Blocked members",
+      "hint": "Neither of you can write to the other. Lifting a block puts the conversation back in Requests — it does not reopen it.",
+      "empty": "You have not blocked anyone.",
+      "since": "blocked {when}",
+      "lift": "Unblock",
+      "lifted": "{name} is unblocked."
+    },
+    "report": {
+      "encrypted": "This conversation is encrypted: the staff cannot read this message. Quote what matters in the details box, or the report says nothing."
+    },
+    "archivedTitle": "Filed away",
+    "archivedBody": "Archived conversations are read-only. Take it back out to answer — a message from them does the same on its own.",
+    "torrentGone": "That torrent is gone."
   },
   "room": {
     "title": "Room",
@@ -4924,7 +4983,7 @@
     "pin": "Pin",
     "unpin": "Unpin",
     "commands": {
-      "help": "/pin (while replying) · /unpin · /mute NAME [hours] [reason] · /unmute NAME · /slow SECONDS",
+      "help": "/pin (while replying) · /unpin · /mute NAME [hours] [reason] · /unmute NAME · /mutes · /slow SECONDS",
       "pinNeedsReply": "Reply to the message you want to pin, then type /pin.",
       "usageMute": "Usage: /mute NAME [hours] [reason]",
       "usageUnmute": "Usage: /unmute NAME",
@@ -4933,7 +4992,12 @@
       "unmuted": "{name} can speak again.",
       "slow": "Slow mode set to {seconds}s.",
       "unknown": "Unknown command: /{cmd}. Try /help.",
-      "failed": "That did not work."
+      "failed": "That did not work.",
+      "mutes": "Muted: {list}",
+      "mutesNone": "Nobody is muted.",
+      "muteEntry": "{name} ({until})",
+      "minutesLeft": "{count} min left",
+      "hoursLeft": "{count} h left"
     },
     "subtitle": "Everyone, in one place"
   }

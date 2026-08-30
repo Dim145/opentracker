@@ -1,3 +1,4 @@
+import { reconcileStaffRoles } from '~~/utils/adminAuth';
 import { getMessagingDmScope, scopeAdmits } from '~~/utils/settings';
 
 /**
@@ -11,9 +12,17 @@ import { getMessagingDmScope, scopeAdmits } from '~~/utils/settings';
  * never had the feature.
  */
 export async function requireDmAccess(user: {
+  id: string;
   isAdmin?: boolean;
   isModerator?: boolean;
+  isOwner?: boolean;
 }) {
+  // Against the live roles, not the seven-day cookie. Every DM route
+  // passes through here, and several of them branch on staff flags —
+  // skipping the first-contact queue, deleting somebody else's message,
+  // minting a relay token that carries the room. See
+  // `reconcileStaffRoles`.
+  await reconcileStaffRoles(user);
   const scope = await getMessagingDmScope();
   if (!scopeAdmits(scope, user)) {
     throw createError({ statusCode: 404, message: 'Not found' });

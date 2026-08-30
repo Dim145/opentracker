@@ -7,9 +7,16 @@
  * alternative, where tidying your own inbox removes the thread from
  * somebody else's, is not a filing action, it is a deletion.
  *
- * A new message does NOT un-archive. Somebody who filed a conversation
- * away has said something; having it jump back on the next reply would
- * undo that decision on the sender's behalf.
+ * A new message DOES un-archive, for whoever receives it. The rule used
+ * to be the opposite, and the opposite turned archiving into a way of
+ * silencing a person rather than filing their thread: the unread count
+ * climbed inside a list nobody looks at, and the only way back was to
+ * remember they existed. Every mainstream messenger does the same — Gmail,
+ * Messenger and Telegram all restore on the next message.
+ *
+ * While it IS on the shelf it is read-only, which is this instance's own
+ * decision rather than a convention: no message, no edit, no withdrawal,
+ * no reaction, enforced on the server.
  */
 import { db, schema } from '@trackarr/db';
 import { and, eq } from 'drizzle-orm';

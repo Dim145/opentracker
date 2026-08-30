@@ -9,6 +9,7 @@ import {
   scopeAdmits,
 } from '~~/utils/settings';
 import { redis } from '~~/utils/server';
+import { reconcileStaffRoles } from '~~/utils/adminAuth';
 
 /**
  * The public room.
@@ -27,9 +28,15 @@ import { redis } from '~~/utils/server';
 export const ROOM_SLUG = 'general';
 
 export async function requireRoomAccess(user: {
+  id: string;
   isAdmin?: boolean;
   isModerator?: boolean;
+  isOwner?: boolean;
 }) {
+  // Live roles, not the sealed cookie — the room's slow-mode exemption
+  // and its `staff` scope both read these flags. See
+  // `reconcileStaffRoles`.
+  await reconcileStaffRoles(user);
   const scope = await getMessagingRoomScope();
   // 404, like the rest of the surface: a 403 would confirm the room
   // exists on an instance that decided it does not.

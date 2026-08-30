@@ -574,6 +574,13 @@ async function submitEdit() {
   }
 }
 
+/** How much longer a mute has to run, rounded to something readable. */
+function shortUntil(iso: string): string {
+  const mins = Math.max(0, Math.round((new Date(iso).getTime() - Date.now()) / 60000));
+  if (mins < 60) return t('room.commands.minutesLeft', { count: mins });
+  return t('room.commands.hoursLeft', { count: Math.round(mins / 60) });
+}
+
 /**
  * Staff slash commands.
  *
@@ -629,6 +636,31 @@ async function runCommand(raw: string): Promise<boolean> {
           },
         });
         commandNote.value = t('room.commands.muted', { name });
+        return true;
+      }
+
+      /*
+       * `/unmute` takes a name and there was nowhere to read one. A mute
+       * expires on its own, but "wait it out" is not the same as being
+       * able to lift it, and a moderator coming on shift after somebody
+       * else has no way to know who is silenced.
+       */
+      case 'mutes': {
+        const { mutes } = await $fetch<{
+          mutes: { username: string; until: string; by: string | null }[];
+        }>('/api/mod/room/mutes');
+        commandNote.value = mutes.length
+          ? t('room.commands.mutes', {
+              list: mutes
+                .map((m) =>
+                  t('room.commands.muteEntry', {
+                    name: m.username,
+                    until: shortUntil(m.until),
+                  })
+                )
+                .join(' · '),
+            })
+          : t('room.commands.mutesNone');
         return true;
       }
 

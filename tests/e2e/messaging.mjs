@@ -268,6 +268,44 @@ async function main() {
     `${plain.status} ${d(plain.body, 120)}`
   );
 
+  //
+  // Only meaningful on a pair with no conversation yet: there is one per
+  // pair, and reopening an existing one cannot change a flag decided when
+  // it was created. The precondition is checked rather than assumed.
+  await resetRateLimits();
+  const founderKey = await req('plainuser', '/api/messaging/keys/founder');
+  const already = [
+    ...((await req('plainuser', DM)).body?.inbox ?? []),
+    ...((await req('plainuser', DM)).body?.requests ?? []),
+  ].some((c) => c.with?.username === 'founder');
+  check(
+    'founder has published no key, and there is no thread with them yet',
+    founderKey.body?.available === false && !already,
+    `key=${d(founderKey.body)} existing=${already}`
+  );
+  if (founderKey.body?.available === false && !already) {
+    const keyless = await req('plainuser', DM, {
+      method: 'POST',
+      body: { username: 'founder', encrypted: true },
+    });
+    check(
+      'an encrypted conversation with somebody who has no key is refused',
+      keyless.status === 409,
+      `${keyless.status} ${d(keyless.body, 140)}`
+    );
+  }
+
+  // Both sides need a published key: an encrypted conversation with a
+  // keyless peer is one nobody can ever open, and the server refuses it.
+  // Section 14 covers the key endpoint itself; here it is a fixture.
+  check(
+    'founder publishes a key so an encrypted thread is possible',
+    (await req('founder', '/api/messaging/keys', {
+      method: 'PUT',
+      body: { publicKey: 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEVbdpcnLyqAqB6R5SdbsUHXZPltQpew7eeaCh_-TlKaagfLgBzZ3TxAv8JQGlya-mKuxEDCiw8HdPIyTa5fouSw', deviceLabel: 'fixture' },
+    })).status === 200
+  );
+
   const enc = await req('donator', DM, {
     method: 'POST',
     body: { username: 'founder', encrypted: true },
@@ -526,6 +564,42 @@ async function main() {
     })).status === 404
   );
 
+  // A refusal has to cover every way of reaching the other side, not
+  // just a new message. An edit rewrites text they already have and
+  // pushes an `edit` frame down their relay; a reaction pushes one too.
+  // Both were open, and a direct message has no edit window — so the
+  // same row could be rewritten for ever, at the blocker.
+  const donatorLine = ((await req('donator', `${DM}/${convId}/messages`)).body?.messages ?? [])
+    .find((m) => m.author?.username === 'donator' && !m.deleted);
+  check('the blocked side still has a line of their own', !!donatorLine, d(donatorLine));
+  if (donatorLine) {
+    check(
+      'the blocked side cannot rewrite an old message to get through',
+      (await req('donator', `${DM}/${convId}/messages/${donatorLine.id}`, {
+        method: 'PATCH',
+        body: { body: 'JE PASSE PAR ICI' },
+      })).status === 403
+    );
+    check(
+      'nor react',
+      (await req('donator', `${DM}/${convId}/messages/${donatorLine.id}/reactions`, {
+        method: 'POST',
+        body: { key: 'heart' },
+      })).status === 403
+    );
+  }
+
+  // Staff are exempt as sender. Without that a member made themselves
+  // permanently unreachable by the moderation team with one click, and a
+  // broadcast skipped them in silence — `runBroadcast` swallows the
+  // refusal, so its `sent` counter simply does not count them.
+  await resetRateLimits();
+  check(
+    'a member cannot block the staff out',
+    (await req('founder', DM, { method: 'POST', body: { username: 'donator' } }))
+      .status === 200
+  );
+
   const list = await req('plainuser', '/api/messaging/blocks');
   check(
     'the block is listed',
@@ -554,6 +628,10 @@ async function main() {
     })).status === 200
   );
 
+  // An encrypted conversation needs both keys and the flag is immutable,
+  // so accepting one against a member who has never published a key
+  // creates a thread nobody can ever open. Refused on the server: the
+  // client's checkbox is debounced, and it cannot be the rule.
   console.log('\n13. withdrawing a message');
 
   await resetRateLimits();
@@ -647,7 +725,11 @@ async function main() {
   // The absence is an answer, not a 404: an encrypted conversation can
   // only be started with somebody who has published, and the composer
   // has to be able to say so and offer a plain one instead.
-  const noKey = await req('donator', '/api/messaging/keys/founder');
+  //
+  // Asked about `plainuser`, who publishes nothing in this scenario —
+  // founder is given a key back in section 8, as the fixture for the
+  // encrypted thread.
+  const noKey = await req('donator', '/api/messaging/keys/plainuser');
   check(
     'and its absence is a first-class answer',
     noKey.status === 200 && noKey.body?.available === false,
@@ -719,9 +801,102 @@ async function main() {
     otherSide?.inbox?.some((c) => c.id === convId),
     d(otherSide, 160)
   );
+  // The shelf is read-only, and the rule lives on the server: enforced
+  // only in the client it would be a suggestion, and this one is the
+  // whole meaning of archiving. Answering from inside the archive and
+  // staying archived is a hiding place, not a shelf.
+  check(
+    'and it is read-only while it is filed away',
+    (await req('plainuser', `${DM}/${convId}/messages`, {
+      method: 'POST',
+      body: { body: 'depuis les archives' },
+    })).status === 409
+  );
+  // Read-only means every way of writing, not just new messages. An edit
+  // or a withdrawal changes what the other side sees and pushes a frame
+  // down the relay; a reaction does too. A shelf you can still edit from
+  // is not a shelf — and this was enforced on `send` alone at first.
+  const ownLine = (await req('plainuser', `${DM}/${convId}/messages`)).body?.messages
+    ?.find((m) => m.author?.username === 'plainuser' && !m.deleted);
+  check('there is a line of mine to act on', !!ownLine, d(ownLine));
+  if (ownLine) {
+    check(
+      'editing is refused from the shelf too',
+      (await req('plainuser', `${DM}/${convId}/messages/${ownLine.id}`, {
+        method: 'PATCH',
+        body: { body: 'réécrit depuis les archives' },
+      })).status === 409
+    );
+    check(
+      'and reacting',
+      (await req('plainuser', `${DM}/${convId}/messages/${ownLine.id}/reactions`, {
+        method: 'POST',
+        body: { key: 'up' },
+      })).status === 409
+    );
+    check(
+      'and withdrawing',
+      (await req('plainuser', `${DM}/${convId}/messages/${ownLine.id}`, {
+        method: 'DELETE',
+      })).status === 409
+    );
+  }
+  // Reading is not writing: the thread stays open to its own reader.
+  check(
+    'while reading it still works',
+    (await req('plainuser', `${DM}/${convId}/messages`)).status === 200
+  );
+
+  // ...for the one who filed it. The other side never asked for that.
+  check(
+    'while the other member can still write into it',
+    (await req('donator', `${DM}/${convId}/messages`, {
+      method: 'POST',
+      body: { body: 'toujours là, moi' },
+    })).status === 200
+  );
+  // And that arrival is what takes it off the shelf. Otherwise archiving
+  // silences somebody instead of filing their thread: the unread count
+  // climbs inside a list nobody looks at.
+  //
+  // Off the shelf, not accepted: which of the two live lists it lands in
+  // is the seat's business. Here it is still a first-contact request, so
+  // it comes back into the queue — un-archiving is not agreeing to
+  // anything, and asserting `inbox` would have pinned that confusion.
+  const afterArrival = await req('plainuser', DM);
+  check(
+    'and a message arriving takes it off the shelf on its own',
+    [
+      ...(afterArrival.body?.inbox ?? []),
+      ...(afterArrival.body?.requests ?? []),
+    ].some((c) => c.id === convId),
+    d(afterArrival.body, 160)
+  );
+  check(
+    'so it is no longer in the archived view',
+    !([
+      ...((await req('plainuser', `${DM}?archived=true`)).body?.inbox ?? []),
+      ...((await req('plainuser', `${DM}?archived=true`)).body?.requests ?? []),
+    ].some((c) => c.id === convId))
+  );
+
+  // Filing it again, so what follows starts from the same place as
+  // before — and so the explicit way back is exercised too.
+  await resetRateLimits();
+  check(
+    'it files away again',
+    (await req('plainuser', `${DM}/${convId}/archive`, { method: 'POST' })).status === 200
+  );
   check(
     'and it comes back',
     (await req('plainuser', `${DM}/${convId}/archive`, { method: 'DELETE' })).status === 200
+  );
+  check(
+    'writable again once it is out',
+    (await req('plainuser', `${DM}/${convId}/messages`, {
+      method: 'POST',
+      body: { body: 'de retour dans la boîte' },
+    })).status === 200
   );
 
   await resetRateLimits();

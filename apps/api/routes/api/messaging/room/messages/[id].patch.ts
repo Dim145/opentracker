@@ -18,7 +18,12 @@ import { db, schema } from '@trackarr/db';
 import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
-import { activeMute, ensureRoom, requireRoomAccess } from '~~/utils/messaging/room';
+import {
+  activeMute,
+  ensureRoom,
+  requireRoomAccess,
+  slowModeBlock,
+} from '~~/utils/messaging/room';
 import { publishToRoom } from '~~/utils/messaging/relay';
 
 const BODY_MAX = 1000;
@@ -40,6 +45,20 @@ export default defineEventHandler(async (event) => {
       statusCode: 403,
       message: `You are muted in the room until ${mute.until.toISOString()}`,
       data: { mutedUntil: mute.until },
+    });
+  }
+
+  // Slow mode damps fan-out, and an edit or a reaction fans out to every
+  // connected reader exactly like a message does. Enforced here too, on
+  // the same bucket rather than a second one: the setting says one action
+  // every N seconds, and letting reactions run free while messages waited
+  // left the tool with a hole the size of the mutation limiter.
+  const wait = await slowModeBlock(user);
+  if (wait > 0) {
+    throw createError({
+      statusCode: 429,
+      message: `Slow mode: ${wait}s to wait`,
+      data: { retryAfter: wait },
     });
   }
 

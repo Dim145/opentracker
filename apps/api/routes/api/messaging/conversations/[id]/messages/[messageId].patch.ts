@@ -23,7 +23,12 @@ import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 import { requireDmAccess } from '~~/utils/messaging/guard';
-import { participantOf, participantsOf } from '~~/utils/messaging/conversations';
+import {
+  participantOf,
+  participantsOf,
+  requireNoBlockInConversation,
+  requireUnarchivedSeat,
+} from '~~/utils/messaging/conversations';
 import { publishToUsers } from '~~/utils/messaging/relay';
 
 const BODY_MAX = 4000;
@@ -48,9 +53,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const membership = await participantOf(id, user.id);
+  requireUnarchivedSeat(membership);
   if (!membership || membership.state === 'blocked') {
     throw createError({ statusCode: 404, message: 'Not found' });
   }
+  await requireNoBlockInConversation(id, user.id);
 
   const conversation = await db.query.conversations.findFirst({
     where: eq(schema.conversations.id, id),

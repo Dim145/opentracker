@@ -72,7 +72,14 @@ export async function reportedMessageFor(messageId: string) {
     .where(
       and(
         eq(schema.reports.targetType, 'message'),
-        eq(schema.reports.targetId, messageId)
+        eq(schema.reports.targetId, messageId),
+        // While the report is OPEN, not for ever after.
+        //
+        // Without this, one report — even one the staff themselves
+        // dismissed, or one the reporter withdrew — left that private
+        // message readable by every moderator permanently. The window is
+        // the report; closing the report closes the window.
+        eq(schema.reports.status, 'pending')
       )
     )
     .limit(1);

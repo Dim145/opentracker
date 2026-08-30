@@ -111,6 +111,23 @@ async function main() {
     d(second.body?.data)
   );
 
+  // Reactions and edits fan out to every connected reader exactly like a
+  // message does, so slow mode has to cover them. It did not: while
+  // messages waited, the same member could toggle reactions at the
+  // mutation-limiter rate and each toggle went out to the whole room.
+  const slowTarget = second.status === 429
+    ? ((await req('plainuser', ROOM)).body?.messages ?? []).find((m) => !m.deleted)
+    : null;
+  if (slowTarget) {
+    check(
+      'reactions wait for slow mode too',
+      (await req('plainuser', `${ROOM}/messages/${slowTarget.id}/reactions`, {
+        method: 'POST',
+        body: { key: 'up' },
+      })).status === 429
+    );
+  }
+
   // Slow mode damps a flood; the people expected to talk it down should
   // not be damped by it.
   const staffBurst = await Promise.all([
@@ -172,10 +189,34 @@ async function main() {
     })).status === 403
   );
 
+  // `/unmute` takes a name, so there has to be somewhere to read one.
+  // Without the list a moderator coming on after somebody else has a
+  // command they cannot use, and the only way out is to wait.
+  await resetRateLimits();
+  const muteList = await req('founder', '/api/mod/room/mutes');
+  check(
+    'staff can see who is muted, and until when',
+    muteList.status === 200 &&
+      (muteList.body?.mutes ?? []).some(
+        (m) => m.username === 'donator' && !!m.until
+      ),
+    `${muteList.status} ${d(muteList.body, 160)}`
+  );
+  check(
+    'and a member cannot read that list either',
+    (await req('plainuser', '/api/mod/room/mutes')).status === 403
+  );
+
   await resetRateLimits();
   check(
     'the mute lifts',
     (await req('founder', '/api/mod/room/mutes/donator', { method: 'DELETE' })).status === 200
+  );
+  check(
+    'and leaves the list with it',
+    !((await req('founder', '/api/mod/room/mutes')).body?.mutes ?? []).some(
+      (m) => m.username === 'donator'
+    )
   );
   check(
     'and they can talk again',

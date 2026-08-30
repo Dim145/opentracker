@@ -202,6 +202,35 @@ export async function invalidateIpBanCache(ip: string): Promise<void> {
 }
 
 /**
+ * The same reconciliation, for a surface that is not behind
+ * `requireModeratorSession` but still branches on staff flags.
+ *
+ * Messaging does exactly that: it is open to every member, and the staff
+ * flags only widen what a member may do — skip the first-contact queue,
+ * delete somebody else's message, ignore slow mode, see a `staff`-scoped
+ * surface. Read from the sealed cookie those stay true for the seven days
+ * the session lives, so a demoted moderator kept every one of them.
+ *
+ * Mutates the object it is given, which is the session's own `user`, so
+ * every later read in the same request sees the live value. A member with
+ * no staff flags either way costs one cached Redis read.
+ */
+export async function reconcileStaffRoles(user: {
+  id: string;
+  isAdmin?: boolean;
+  isModerator?: boolean;
+  isOwner?: boolean;
+}): Promise<void> {
+  const live = await readLiveRoles(user.id);
+  if (!live) {
+    throw createError({ statusCode: 403, message: 'Account no longer exists' });
+  }
+  user.isAdmin = live.isAdmin;
+  user.isModerator = live.isModerator;
+  user.isOwner = live.isOwner;
+}
+
+/**
  * Re-validate the caller's staff role against the live DB (cached)
  * rather than trusting the sealed cookie, and reconcile the in-memory
  * session so downstream reads see the authoritative value.

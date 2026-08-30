@@ -61,6 +61,31 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  /*
+   * An encrypted conversation needs BOTH published keys, and the flag is
+   * immutable — so accepting `encrypted: true` against a member who has
+   * never published one creates a thread neither side can ever open, for
+   * ever. The client hides the checkbox in that case, but the client's
+   * answer is debounced and it kept the previous recipient's: typing a
+   * name and pressing Enter fast enough ticked the box for somebody it
+   * had not looked up. The rule belongs here.
+   *
+   * Skipped when a conversation already exists: the flag was decided when
+   * it was created and this request cannot change it.
+   */
+  if (body.encrypted && !existing) {
+    const peerKey = await db.query.userMessageKeys.findFirst({
+      where: eq(schema.userMessageKeys.userId, target.id),
+      columns: { userId: true },
+    });
+    if (!peerKey) {
+      throw createError({
+        statusCode: 409,
+        message: 'That member has not published a key — this conversation cannot be encrypted',
+      });
+    }
+  }
+
   const { conversation, created } = await findOrCreateDirectConversation(
     user.id,
     target.id,

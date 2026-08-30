@@ -14,7 +14,10 @@ import { db, schema } from '@trackarr/db';
 import { and, eq } from 'drizzle-orm';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireDmAccess } from '~~/utils/messaging/guard';
-import { participantOf } from '~~/utils/messaging/conversations';
+import {
+  participantOf,
+  requireUnarchivedSeat,
+} from '~~/utils/messaging/conversations';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
@@ -42,6 +45,7 @@ export default defineEventHandler(async (event) => {
   if (!isStaff) {
     const seat = await participantOf(conversationId, user.id);
     if (!seat) throw createError({ statusCode: 404, message: 'Not found' });
+    requireUnarchivedSeat(seat);
     if (message.authorId !== user.id) {
       throw createError({ statusCode: 403, message: 'Not your message' });
     }

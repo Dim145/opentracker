@@ -454,6 +454,16 @@ export default defineNuxtConfig({
         'ph:prohibit-bold',
         'ph:package-bold',
         'ph:folder-bold',
+        // Bound through a ternary, so `scan: true` never sees the
+        // name and the CSP turns the miss into an empty box: the
+        // reveal button on a reported message swaps it for the
+        // spinner, and the conversation menu swaps both of its first
+        // two entries when the thread is filed away or silenced.
+        'ph:eye-bold',
+        'ph:tray-arrow-up',
+        'ph:archive',
+        'ph:bell-slash',
+        'ph:bell',
         // Notification toast icons
         'ph:check-circle-bold',
         'ph:x-circle-bold',

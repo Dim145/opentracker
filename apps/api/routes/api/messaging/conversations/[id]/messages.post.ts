@@ -69,16 +69,42 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Not found' });
   }
 
+  /*
+   * Filed away is read-only.
+   *
+   * Archiving used to be a listing filter and nothing more, so a thread
+   * could be answered from inside the archive and stay archived — which
+   * is not a shelf, it is a hiding place. Refused here rather than only
+   * hidden in the interface: a rule the client alone enforces is a
+   * suggestion, and this one is the whole meaning of the shelf.
+   *
+   * Only the SENDER's own row. Somebody who filed a conversation away
+   * still receives into it — that is what un-archives it, below.
+   */
+  if (membership.archivedAt) {
+    throw createError({
+      statusCode: 409,
+      message: 'This conversation is archived — take it out of the archive to reply',
+    });
+  }
+
   // Blocked either way stops the send, not just the listing. `state` on
   // my own row covers the case where I did the blocking; the standing
   // refusal table covers the case where they did.
   if (membership.state === 'blocked') {
     throw createError({ statusCode: 403, message: 'This conversation is closed' });
   }
+  // Staff are exempt as sender, for the reason written at the block check
+  // in `findOrCreateDirectConversation`: a member must not be able to put
+  // themselves out of the moderation team's reach. Read from the live
+  // roles — `requireDmAccess` reconciles them — not from the cookie.
+  const staffSender = !!user.isAdmin || !!user.isModerator;
   const others = (await participantsOf(id)).filter((u) => u !== user.id);
-  for (const other of others) {
-    if (await blockExistsBetween(user.id, other)) {
-      throw createError({ statusCode: 403, message: 'This conversation is closed' });
+  if (!staffSender) {
+    for (const other of others) {
+      if (await blockExistsBetween(user.id, other)) {
+        throw createError({ statusCode: 403, message: 'This conversation is closed' });
+      }
     }
   }
 

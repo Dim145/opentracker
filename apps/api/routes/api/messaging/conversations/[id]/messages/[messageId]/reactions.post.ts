@@ -16,7 +16,12 @@ import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 import { requireDmAccess } from '~~/utils/messaging/guard';
-import { participantOf, participantsOf } from '~~/utils/messaging/conversations';
+import {
+  participantOf,
+  participantsOf,
+  requireNoBlockInConversation,
+  requireUnarchivedSeat,
+} from '~~/utils/messaging/conversations';
 import { publishToUsers } from '~~/utils/messaging/relay';
 import { REACTION_KEYS, toggleDirectReaction } from '~~/utils/messaging/reactions';
 
@@ -37,9 +42,11 @@ export default defineEventHandler(async (event) => {
   // reason as everywhere else on this surface: probing ids must tell you
   // nothing about which ones exist.
   const membership = await participantOf(id, user.id);
+  requireUnarchivedSeat(membership);
   if (!membership || membership.state === 'blocked') {
     throw createError({ statusCode: 404, message: 'Not found' });
   }
+  await requireNoBlockInConversation(id, user.id);
 
   const body = await validateBody(event, bodySchema);
 

@@ -1,5 +1,29 @@
 <template>
   <div class="msg-shell">
+    <!--
+      A short confirmation, floating over the page.
+
+      It cannot live inside the thread: archiving, blocking and unblocking
+      all close or move the very thing you acted on, so a line rendered
+      there leaves with it and the action looks like it did nothing. The
+      state existed and had styles; it had no markup at all.
+
+      `role="status"` + polite: announced, never stealing the caret.
+    -->
+    <Teleport to="body">
+      <Transition name="msg-notice">
+        <p
+          v-if="notice"
+          class="msg-notice"
+          :class="{ 'msg-notice--warn': noticeKind === 'warn' }"
+          role="status"
+          aria-live="polite"
+        >
+          <Icon :name="noticeKind === 'warn' ? 'ph:warning-bold' : 'ph:check-circle-bold'" />
+          {{ notice }}
+        </p>
+      </Transition>
+    </Teleport>
     <!-- Below md the two panes become one: the list, then the thread with
          a way back. Two columns on a phone means two half-columns. -->
     <aside class="msg-list" :class="{ 'msg-hide-mobile': !!activeId }">
@@ -46,6 +70,34 @@
         </span>
       </NuxtLink>
 
+      <!-- Search across every conversation. Plaintext only, and the
+           result says so rather than letting "nothing found" stand for
+           "nothing I am able to look at".
+
+           A <label> rather than a bare div: the whole box is then the
+           input's hit area, so clicking the magnifier or the padding
+           puts the caret in the field instead of doing nothing. -->
+      <label class="msg-search">
+        <Icon name="ph:magnifying-glass" class="msg-search-icon" aria-hidden="true" />
+        <input
+          v-model="searchQuery"
+          type="search"
+          class="msg-search-input"
+          :placeholder="$t('messaging.search.placeholder')"
+          :aria-label="$t('messaging.search.placeholder')"
+          @input="scheduleSearch"
+        />
+        <button
+          v-if="searchQuery"
+          type="button"
+          class="msg-search-clear"
+          :aria-label="$t('messaging.search.clear')"
+          @click="clearSearch"
+        >
+          <Icon name="ph:x-bold" />
+        </button>
+      </label>
+
       <!--
         Two tabs, not two stacked lists.
 
@@ -55,14 +107,54 @@
         own place, and the count on Requests says whether it is worth
         opening.
       -->
-      <div class="msg-tabs" role="tablist" :aria-label="$t('messaging.title')">
+
+      <div v-if="searching" class="msg-section">
+        <p class="msg-hint">{{ $t('messaging.search.searching') }}</p>
+      </div>
+      <!-- One character is below the route's minimum, so it searches for
+           nothing — but the list was hidden the moment the box was not
+           empty, and the results block only appeared at two. A single
+           keystroke emptied the page: no rows, no results, no reason. -->
+      <div v-else-if="searchQuery.trim().length === 1" class="msg-section">
+        <p class="msg-hint">{{ $t('messaging.search.tooShort') }}</p>
+      </div>
+      <div v-else-if="searchQuery.trim().length >= 2" class="msg-section">
+        <p v-if="!searchResults.length" class="msg-hint">
+          {{ $t('messaging.search.none') }}
+        </p>
+        <p v-if="searchSkipped" class="msg-hint msg-hint--warn">
+          {{ $t('messaging.search.skipped') }}
+        </p>
+        <button
+          v-for="hit in searchResults"
+          :key="hit.id"
+          type="button"
+          class="msg-row"
+          @click="openFromSearch(hit)"
+        >
+          <span class="msg-row-tile" aria-hidden="true">
+            {{ (hit.author?.username?.[0] ?? '?').toUpperCase() }}
+          </span>
+          <span class="msg-row-main">
+            <span class="msg-row-top">
+              <span class="msg-row-name">{{ hit.author?.username ?? $t('messaging.deletedMember') }}</span>
+              <time class="msg-row-time" :datetime="hit.createdAt">
+                {{ shortAgo(hit.createdAt) }}
+              </time>
+            </span>
+            <span class="msg-row-preview">{{ hit.body }}</span>
+          </span>
+        </button>
+      </div>
+
+      <div v-else class="msg-tabs" role="tablist" :aria-label="$t('messaging.title')">
         <button
           type="button"
           role="tab"
           class="msg-tab"
-          :class="{ 'msg-tab--on': tab === 'inbox' }"
-          :aria-selected="tab === 'inbox'"
-          @click="tab = 'inbox'"
+          :class="{ 'msg-tab--on': view === 'live' && tab === 'inbox' }"
+          :aria-selected="view === 'live' && tab === 'inbox'"
+          @click="showLive('inbox')"
         >
           {{ $t('messaging.inbox') }}
         </button>
@@ -70,16 +162,29 @@
           type="button"
           role="tab"
           class="msg-tab"
-          :class="{ 'msg-tab--on': tab === 'requests' }"
-          :aria-selected="tab === 'requests'"
-          @click="tab = 'requests'"
+          :class="{ 'msg-tab--on': view === 'live' && tab === 'requests' }"
+          :aria-selected="view === 'live' && tab === 'requests'"
+          @click="showLive('requests')"
         >
           {{ $t('messaging.requests') }}
           <span v-if="requests.length" class="msg-tab-count">{{ requests.length }}</span>
         </button>
+        <!-- Archived is a separate VIEW, not a filter over the same list:
+             filing something away is meant to remove it from sight, and a
+             list that still carries it with a marker has not done that. -->
+        <button
+          type="button"
+          role="tab"
+          class="msg-tab"
+          :class="{ 'msg-tab--on': view === 'archived' }"
+          :aria-selected="view === 'archived'"
+          @click="showArchived()"
+        >
+          {{ $t('messaging.archived') }}
+        </button>
       </div>
 
-      <div class="msg-section">
+      <div v-if="!searchQuery.trim()" class="msg-section">
         <p v-if="tab === 'requests'" class="msg-hint">
           {{ $t('messaging.requestsHint') }}
         </p>
@@ -119,12 +224,27 @@
           >{{ conv.unreadCount > 99 ? '99+' : conv.unreadCount }}</span>
         </button>
       </div>
+
+      <!-- The block dialog promises "you can undo this from your block
+           list", so the list has to exist somewhere reachable. It is not
+           a conversation, so it is not a tab: it sits at the foot of the
+           pane, quiet until you look for it. -->
+      <footer class="msg-list-foot">
+        <button type="button" class="msg-foot-link" @click="openBlocks">
+          <Icon name="ph:prohibit" />
+          {{ $t('messaging.blocks.link') }}
+          <span v-if="blocks.length" class="msg-foot-count">{{ blocks.length }}</span>
+        </button>
+      </footer>
     </aside>
 
     <section class="msg-thread" :class="{ 'msg-hide-mobile': !activeId }">
       <template v-if="active">
         <header class="msg-thread-head">
-          <button type="button" class="msg-back" @click="activeId = null">
+          <!-- Through `closeThread`, not a bare assignment: leaving by the
+               back arrow has to file the draft first, exactly like
+               opening another conversation does. -->
+          <button type="button" class="msg-back" @click="closeThread">
             <Icon name="ph:arrow-left" class="w-4 h-4" />
             <span class="sr-only">{{ $t('common.back') }}</span>
           </button>
@@ -137,6 +257,14 @@
               class="msg-thread-name msg-author-link truncate"
             >{{ nameOf(active) }}</NuxtLink>
             <span v-else class="msg-thread-name truncate">{{ nameOf(active) }}</span>
+            <MessagingThreadMenu
+              :peer="active.with?.username ?? null"
+              :archived="activeArchived"
+              :muted-until="active.mutedUntil ?? null"
+              @archive="toggleArchive"
+              @mute="(h) => setMute(h)"
+              @block="blockOpen = true"
+            />
           <span
             v-if="!connected"
             class="msg-tag"
@@ -226,6 +354,26 @@
               />
               <p class="msg-meta">
                 <time :datetime="msg.createdAt">{{ shortTime(msg.createdAt) }}</time>
+                <!--
+                  In an encrypted thread, a line the server can read.
+
+                  A staff broadcast is written straight into whichever
+                  conversation the pair already has — there is one per
+                  pair — and it cannot be end-to-end encrypted: the
+                  sender never holds thousands of recipients' keys. So it
+                  arrives in clear inside a thread wearing a padlock.
+                  Marked rather than hidden: the badge on the thread is a
+                  promise, and any line that does not keep it has to say
+                  so where it is read.
+                -->
+                <span
+                  v-if="active?.encrypted && msg.body !== null && !msg.cipher"
+                  class="msg-clear"
+                  :title="$t('messaging.crypto.notSealedHint')"
+                >
+                  · <Icon name="ph:lock-simple-open" />
+                  {{ $t('messaging.crypto.notSealed') }}
+                </span>
                 <!-- Said out loud. An edit that leaves no mark lets
                      somebody rewrite what they said after being answered. -->
                 <span v-if="msg.editedAt" class="msg-edited">
@@ -243,8 +391,13 @@
               <!-- A floating toolbar, clear of the bubble's top edge.
                    Revealed on hover on a pointer device and ALWAYS shown
                    where there is no hover — an action that only exists on
-                   hover does not exist on a phone. -->
-              <div class="msg-actions">
+                   hover does not exist on a phone.
+
+                   Gone entirely on a filed-away thread: reply, edit,
+                   withdraw and react all write, and the server refuses
+                   every one of them from an archived seat. Leaving the
+                   buttons would offer four controls that answer 409. -->
+              <div v-if="!activeArchived" class="msg-actions">
                 <MessagingReactionPicker
                   v-if="!msg.deleted && !String(msg.id).startsWith('pending-')"
                   :mine="msg.myReactions ?? []"
@@ -268,6 +421,19 @@
                   @click="beginEdit(msg)"
                 >
                   <Icon name="ph:pencil-simple" />
+                </button>
+                <!-- A report is about ONE message, so the flag is on the
+                     message rather than in the conversation menu, which
+                     would have had nothing to point at. -->
+                <button
+                  v-if="!msg.mine && !msg.deleted"
+                  type="button"
+                  class="msg-action"
+                  :aria-label="$t('messaging.menu.report')"
+                  :title="$t('messaging.menu.report')"
+                  @click="reportTarget = msg"
+                >
+                  <Icon name="ph:flag" />
                 </button>
                 <!-- The route has always described this case — "everybody
                      else needs a seat, and may only withdraw what they
@@ -306,7 +472,29 @@
           generate a key for a conversation no key can ever open again.
           The reason is stated rather than left as an unexplained blank.
         -->
-        <div v-if="erasedThread" class="msg-locked">
+        <!--
+          Filed away, and read-only until it is taken back out.
+
+          Archiving used to remove a conversation from the list and
+          change nothing else: the composer was right there, so a thread
+          could be answered from inside the archive and stay archived —
+          which is not a shelf, it is a hiding place. Frozen, with the
+          one control that undoes it, so there is no dead end.
+
+          Checked first: an archived conversation is archived whatever
+          else is true of it.
+        -->
+        <div v-if="activeArchived" class="msg-locked">
+          <p class="msg-locked-title">
+            <Icon name="ph:archive" class="w-4 h-4" />
+            {{ $t('messaging.archivedTitle') }}
+          </p>
+          <p class="msg-locked-body">{{ $t('messaging.archivedBody') }}</p>
+          <button type="button" class="btn btn-sm" @click="toggleArchive">
+            {{ $t('messaging.menu.unarchive') }}
+          </button>
+        </div>
+        <div v-else-if="erasedThread" class="msg-locked">
           <p class="msg-locked-title">
             <Icon name="ph:lock-key" class="w-4 h-4" />
             {{ $t('messaging.deletedMember') }}
@@ -429,7 +617,11 @@
       <p v-else class="msg-hint msg-placeholder">{{ $t('messaging.pick') }}</p>
     </section>
 
-    <Modal v-model="startOpen" :title="$t('messaging.newConversation')">
+    <Modal
+      v-model="startOpen"
+      :title="$t('messaging.newConversation')"
+      @update:model-value="(open: boolean) => open && resetStartForm()"
+    >
       <form class="flex flex-col gap-3" @submit.prevent="startConversation">
         <label class="eyebrow" for="msg-recipient">{{ $t('messaging.recipient') }}</label>
         <input
@@ -498,6 +690,91 @@
         </button>
       </div>
     </Modal>
+
+    <!--
+      Blocking is symmetric and silent, so the dialog has to be the place
+      it is said out loud: what it does to both sides, that the other one
+      is not told, and where to undo it. A confirmation that only says
+      "are you sure?" moves the decision without informing it.
+    -->
+    <Modal v-model="blockOpen" :title="$t('messaging.blockTitle', { name: peerName })">
+      <div class="flex flex-col gap-3">
+        <p class="text-sm">{{ $t('messaging.blockBody') }}</p>
+        <p v-if="blockError" class="msg-hint msg-hint--warn">{{ blockError }}</p>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="btn btn-sm" @click="blockOpen = false">
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm msg-btn-danger"
+            :disabled="blockBusy"
+            @click="doBlock"
+          >
+            <Icon v-if="blockBusy" name="ph:circle-notch" class="animate-spin" />
+            {{ $t('messaging.blockConfirm') }}
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    <!-- Everyone this member refuses, and the one control that matters:
+         stop refusing them. Empty is the normal state, and it says so
+         rather than showing a bare frame. -->
+    <Modal v-model="blocksOpen" :title="$t('messaging.blocks.title')">
+      <div class="flex flex-col gap-3">
+        <p class="msg-hint">{{ $t('messaging.blocks.hint') }}</p>
+        <p v-if="blocksLoading" class="msg-hint">{{ $t('common.loading') }}</p>
+        <p v-else-if="!blocks.length" class="msg-hint">
+          {{ $t('messaging.blocks.empty') }}
+        </p>
+        <ul v-else class="msg-blocks">
+          <li v-for="b in blocks" :key="b.id" class="msg-blocks-row">
+            <!-- The disc and the name go to the profile, the same way
+                 they do in a thread and in the room. Blocking somebody
+                 does not stop them having a page, and checking who they
+                 were is exactly what this list is opened for. -->
+            <NuxtLink :to="`/users/${b.id}`" class="msg-blocks-who">
+              <span class="msg-row-tile" aria-hidden="true">
+                {{ (b.displayName || b.username).slice(0, 1).toUpperCase() }}
+              </span>
+              <span class="msg-blocks-main">
+                <span class="msg-blocks-name">{{ b.displayName || b.username }}</span>
+                <time class="msg-blocks-since" :datetime="b.createdAt">
+                  {{ $t('messaging.blocks.since', { when: shortAgo(b.createdAt) }) }}
+                </time>
+              </span>
+            </NuxtLink>
+            <button
+              type="button"
+              class="btn btn-sm"
+              :disabled="unblocking === b.username"
+              @click="unblock(b.username)"
+            >
+              <Icon
+                v-if="unblocking === b.username"
+                name="ph:circle-notch"
+                class="animate-spin"
+              />
+              {{ $t('messaging.blocks.lift') }}
+            </button>
+          </li>
+        </ul>
+      </div>
+    </Modal>
+
+    <!-- Reporting a message. The slip teleports to the body, so where it
+         sits in this tree is organisational only. -->
+    <ReportModal
+      v-if="reportTarget"
+      :is-open="!!reportTarget"
+      target-type="message"
+      :target-id="reportTarget.id"
+      :target-label="reportLabel"
+      :caveat="reportCaveat"
+      @close="reportTarget = null"
+      @submitted="onReported"
+    />
   </div>
 </template>
 
@@ -519,9 +796,10 @@ import type { AuthorBadgeValue } from '~/components/messaging/AuthorBadge.vue';
 interface Conversation {
   id: string;
   encrypted: boolean;
-  lastMessageAt: string;
   unreadCount: number;
   lastMessageAt?: string | null;
+  /** Until when notifications are silenced, or null. */
+  mutedUntil?: string | null;
   /** Last line, or null when there is none the server can show. */
   preview?: string | null;
   state?: 'active' | 'pending';
@@ -540,6 +818,8 @@ interface ThreadMessage {
   id: string;
   body: string | null;
   cipher: string | null;
+  /** The AES-GCM nonce that goes with `cipher`. Null on a plain line. */
+  iv: string | null;
   deleted: boolean;
   createdAt: string;
   editedAt?: string | null;
@@ -564,9 +844,29 @@ const router = useRouter();
 
 /** Which half of the list is on screen. Tabs, not two stacked lists. */
 const tab = ref<'inbox' | 'requests'>('inbox');
+/** Which list is being fetched at all. Archived is its own view. */
+const view = ref<'live' | 'archived'>('live');
+
+const searchQuery = ref('');
+const searching = ref(false);
+const searchSkipped = ref(false);
+interface SearchHit {
+  id: string;
+  conversationId: string;
+  body: string;
+  createdAt: string;
+  author: { id: string | null; username: string } | null;
+}
+const searchResults = ref<SearchHit[]>([]);
+
+const blockOpen = ref(false);
+/** The message a report is being filed against. */
+const reportTarget = ref<ThreadMessage | null>(null);
 
 const inbox = ref<Conversation[]>([]);
 const requests = ref<Conversation[]>([]);
+/** The shelf. Kept apart so the tab counts stay about the live lists. */
+const archived = ref<Conversation[]>([]);
 const activeId = ref<string | null>(null);
 const messages = ref<ThreadMessage[]>([]);
 const nextBefore = ref<string | null>(null);
@@ -578,9 +878,26 @@ const replyTo = ref<ThreadMessage | null>(null);
 const editing = ref<ThreadMessage | null>(null);
 const scrollerRef = ref<HTMLElement | null>(null);
 
-const shown = computed(() =>
-  tab.value === 'requests' ? requests.value : inbox.value
+const shown = computed(() => {
+  if (view.value === 'archived') return archived.value;
+  return tab.value === 'requests' ? requests.value : inbox.value;
+});
+
+/** Whether the open conversation is on the shelf. */
+const activeArchived = computed(
+  () => !!activeId.value && archived.value.some((c) => c.id === activeId.value)
 );
+
+/** Anywhere it might be: the two live lists, or the shelf. */
+function conversationById(id: string | null): Conversation | null {
+  if (!id) return null;
+  return (
+    inbox.value.find((c) => c.id === id) ??
+    requests.value.find((c) => c.id === id) ??
+    archived.value.find((c) => c.id === id) ??
+    null
+  );
+}
 
 const canRoom = computed(
   () => !!(user.value as { canRoom?: boolean } | null)?.canRoom
@@ -622,6 +939,23 @@ function shortAgo(iso: string): string {
 }
 
 const startOpen = ref(false);
+/**
+ * Forget the previous recipient's answer when the dialog reopens.
+ *
+ * `peerHasKey` decides whether the encryption checkbox exists, and
+ * `startEncrypted` whether it is ticked. Kept from the last time, the box
+ * appeared already ticked before a name had been typed — and the lookup
+ * is debounced 350 ms while Enter never blurs the field, so a fast typist
+ * could create an ENCRYPTED conversation with somebody who has no key.
+ * The flag is immutable: that thread can never be opened by either side.
+ */
+function resetStartForm() {
+  startWith.value = '';
+  startError.value = '';
+  startEncrypted.value = false;
+  peerHasKey.value = false;
+  peerKeyChecked.value = false;
+}
 const startWith = ref('');
 const startError = ref('');
 /**
@@ -750,12 +1084,7 @@ async function refreshIdentity() {
   hasIdentity.value = !!(await convCrypto.ensureIdentity());
 }
 
-const active = computed(
-  () =>
-    inbox.value.find((c) => c.id === activeId.value) ??
-    requests.value.find((c) => c.id === activeId.value) ??
-    null
-);
+const active = computed(() => conversationById(activeId.value));
 
 function nameOf(conv: Conversation) {
   // A deleted account leaves no name behind: `authorId` went null on
@@ -809,8 +1138,367 @@ watchEffect(() => {
   }));
 });
 
+/**
+ * The archived view keeps its own list rather than overwriting the live
+ * ones.
+ *
+ * It used to replace `inbox`/`requests`, which meant the count on the
+ * Requests tab silently became the count of ARCHIVED requests — usually
+ * zero — so opening the archive looked like the queue had emptied. The
+ * badge is about the inbox; it has to keep saying so from every tab.
+ *
+ * One list, not two: the archive is a shelf, and splitting a shelf into
+ * "inbox" and "requests" is a distinction that only matters where
+ * something is waiting for an answer.
+ */
 async function loadList() {
+  if (view.value === 'archived') {
+    const data = await $fetch<{ inbox: Conversation[]; requests: Conversation[] }>(
+      '/api/messaging/conversations',
+      { query: { archived: 'true' } }
+    );
+    archived.value = [
+      ...(data.inbox ?? []).map((c) => ({ ...c, state: 'active' as const })),
+      ...(data.requests ?? []).map((c) => ({ ...c, state: 'pending' as const })),
+    ].sort((a, b) =>
+      String(b.lastMessageAt ?? '').localeCompare(String(a.lastMessageAt ?? ''))
+    );
+    return;
+  }
   await refreshList();
+}
+
+/** Back to the live lists, on the tab asked for. */
+async function showLive(which: 'inbox' | 'requests') {
+  tab.value = which;
+  if (view.value === 'live') return;
+  view.value = 'live';
+  activeId.value = null;
+  void router.replace({ query: { ...route.query, v: undefined, c: undefined } });
+  await loadList();
+}
+
+async function showArchived() {
+  if (view.value === 'archived') return;
+  view.value = 'archived';
+  tab.value = 'inbox';
+  activeId.value = null;
+  // In the URL like the open conversation is, so a reload does not drop
+  // the reader back into the inbox they had just left.
+  void router.replace({ query: { ...route.query, v: 'archived', c: undefined } });
+  await loadList();
+}
+
+/**
+ * File the conversation away, or take it back out.
+ *
+ * Per member: archiving removes it from YOUR list and touches nothing on
+ * the other side. The alternative is not filing, it is deleting in
+ * somebody else's name.
+ */
+async function toggleArchive() {
+  const id = activeId.value;
+  if (!id) return;
+  const archiving = !activeArchived.value;
+  try {
+    await $fetch(`/api/messaging/conversations/${id}/archive`, {
+      method: archiving ? 'POST' : 'DELETE',
+    });
+    if (archiving) {
+      // It has left the list on screen, so the pane closes rather than
+      // showing a conversation the list no longer contains. The shelf is
+      // dropped rather than appended to: it is refetched every time it
+      // is opened, and a half-updated cache is what decides whether the
+      // composer is frozen.
+      activeId.value = null;
+      archived.value = [];
+      await loadList();
+    } else {
+      // Coming back out, the view follows the thread the same way
+      // accepting a request does. Staying on Archived left the reader
+      // looking at an empty list, which reads as "it vanished".
+      archived.value = archived.value.filter((c) => c.id !== id);
+      view.value = 'live';
+      tab.value = 'inbox';
+      void router.replace({ query: { ...route.query, v: undefined } });
+      await loadList();
+      activeId.value = id;
+    }
+    say(archiving
+      ? t('messaging.menu.archivedDone')
+      : t('messaging.menu.unarchivedDone'));
+  } catch (err) {
+    // Through the toast, not `sendError`: that one renders inside the
+    // composer, and the composer is exactly what is NOT on screen when a
+    // thread is filed away, locked by crypto, or belongs to an erased
+    // member. A refusal posted there is a refusal nobody sees.
+    say(
+      (err as { data?: { message?: string } })?.data?.message ??
+        t('messaging.menu.failed'),
+      'warn'
+    );
+  }
+}
+
+/** Silence the notifications, not the counter. Zero hours lifts it. */
+async function setMute(hours: number) {
+  const id = activeId.value;
+  if (!id) return;
+  try {
+    const res = await $fetch<{ mutedUntil: string | null }>(
+      `/api/messaging/conversations/${id}/mute`,
+      { method: 'POST', body: { hours } }
+    );
+    const row = conversationById(id);
+    if (row) row.mutedUntil = res.mutedUntil;
+    say(hours > 0
+      ? t('messaging.menu.mutedDone')
+      : t('messaging.menu.unmutedDone'));
+  } catch (err) {
+    say(
+      (err as { data?: { message?: string } })?.data?.message ??
+        t('messaging.menu.failed'),
+      'warn'
+    );
+  }
+}
+
+/**
+ * Block the correspondent. Symmetric and silent by design: a refusal that
+ * announces itself is an invitation to try again from another account.
+ */
+const blockBusy = ref(false);
+const blockError = ref('');
+/** Who the block dialog is about, readable after the thread is closed. */
+const peerName = computed(() =>
+  active.value ? nameOf(active.value) : ''
+);
+
+async function doBlock() {
+  const name = active.value?.with?.username;
+  if (!name) return;
+  blockBusy.value = true;
+  blockError.value = '';
+  try {
+    await $fetch('/api/messaging/blocks', {
+      method: 'POST',
+      body: { username: name },
+    });
+    blockOpen.value = false;
+    activeId.value = null;
+    await loadList();
+    // The count at the foot is now one higher. Refetched rather than
+    // incremented: the server is the one that knows whether it took.
+    await loadBlocks();
+    say(t('messaging.menu.blockedDone', { name }));
+  } catch (err) {
+    // Inside its own dialog, not on the thread behind it — the thread is
+    // about to close, so an error posted there would vanish with it.
+    blockError.value =
+      (err as { data?: { message?: string } })?.data?.message ??
+      t('messaging.menu.failed');
+  } finally {
+    blockBusy.value = false;
+  }
+}
+
+// ── Blocked members ──────────────────────────────────────────────────
+interface BlockedMember {
+  id: string;
+  username: string;
+  displayName: string | null;
+  createdAt: string;
+}
+const blocksOpen = ref(false);
+const blocks = ref<BlockedMember[]>([]);
+const blocksLoading = ref(false);
+const unblocking = ref<string | null>(null);
+
+async function loadBlocks() {
+  blocksLoading.value = true;
+  try {
+    const data = await $fetch<{ blocks: BlockedMember[] }>('/api/messaging/blocks');
+    blocks.value = data.blocks ?? [];
+  } catch {
+    blocks.value = [];
+  } finally {
+    blocksLoading.value = false;
+  }
+}
+
+async function openBlocks() {
+  blocksOpen.value = true;
+  await loadBlocks();
+}
+
+/*
+ * Fetched once on arrival, not only when the dialog opens, so the foot of
+ * the list can carry the count. A block you set months ago and forgot is
+ * exactly the one worth being reminded of, and a link with no number
+ * gives no reason to ever open it.
+ */
+onMounted(loadBlocks);
+
+/**
+ * Lift a block. The shared conversation comes back as a request rather
+ * than an active thread — unblocking is not the same as agreeing to talk
+ * again — so the list is reloaded to show it where it actually landed.
+ */
+async function unblock(username: string) {
+  unblocking.value = username;
+  try {
+    await $fetch(`/api/messaging/blocks/${encodeURIComponent(username)}`, {
+      method: 'DELETE',
+    });
+    blocks.value = blocks.value.filter((b) => b.username !== username);
+    await loadList();
+    say(t('messaging.blocks.lifted', { name: username }));
+  } catch (err) {
+    say(
+      (err as { data?: { message?: string } })?.data?.message ??
+        t('messaging.menu.failed'),
+      'warn'
+    );
+  } finally {
+    unblocking.value = null;
+  }
+}
+
+/**
+ * What the report slip shows in its target row: the line being reported,
+ * as the reporter reads it. The label never leaves the browser — only
+ * the reason and the details are posted — so showing decrypted text here
+ * hands nothing to the server.
+ */
+const reportLabel = computed(() => {
+  const msg = reportTarget.value;
+  if (!msg) return '';
+  return (msg.body ?? '').slice(0, 80);
+});
+
+/**
+ * And the part the reporter cannot guess: in an encrypted conversation
+ * the server holds ciphertext and no key, so the staff will open this
+ * report and see nothing. Whatever they are meant to act on has to be
+ * typed into the details box — said here, while the box is still open.
+ */
+const reportCaveat = computed(() =>
+  reportTarget.value?.cipher ? t('messaging.report.encrypted') : undefined
+);
+
+/*
+ * The slip raises its own global toast on success, so this only has to
+ * close it. A second confirmation of the same act is noise.
+ */
+function onReported() {
+  reportTarget.value = null;
+}
+
+/** Leave the thread, keeping what was typed in it. */
+function closeThread() {
+  stashDraft();
+  activeId.value = null;
+}
+
+/** A short-lived confirmation. Silent success reads as nothing happened. */
+const notice = ref('');
+const noticeKind = ref<'ok' | 'warn'>('ok');
+let noticeTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Say it, and say which of the two things it is.
+ *
+ * The timer is restarted rather than stacked: two confirmations a second
+ * apart used to share the first one's four seconds, so the second was cut
+ * short. And it is set here rather than in a watcher, because a watcher
+ * does not fire when the same sentence is said twice — unblocking two
+ * people in a row showed one confirmation.
+ */
+function say(text: string, kind: 'ok' | 'warn' = 'ok') {
+  noticeKind.value = kind;
+  notice.value = text;
+  if (noticeTimer) clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => (notice.value = ''), 4000);
+}
+
+// ── Search ───────────────────────────────────────────────────────────
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+let searchTicket = 0;
+
+function scheduleSearch() {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(runSearch, 300);
+}
+
+function clearSearch() {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchQuery.value = '';
+  searchResults.value = [];
+  searchSkipped.value = false;
+  searching.value = false;
+}
+
+async function runSearch() {
+  const q = searchQuery.value.trim();
+  // The route asks for two characters. Below that this would be a request
+  // per keystroke returning most of the inbox.
+  if (q.length < 2) {
+    searchResults.value = [];
+    searchSkipped.value = false;
+    searching.value = false;
+    return;
+  }
+  const ticket = ++searchTicket;
+  searching.value = true;
+  try {
+    const res = await $fetch<{ results: SearchHit[]; skippedEncrypted: boolean }>(
+      '/api/messaging/search',
+      { query: { q } }
+    );
+    if (ticket !== searchTicket) return;
+    searchResults.value = res.results ?? [];
+    searchSkipped.value = !!res.skippedEncrypted;
+  } catch {
+    if (ticket !== searchTicket) return;
+    searchResults.value = [];
+    searchSkipped.value = false;
+  } finally {
+    if (ticket === searchTicket) searching.value = false;
+  }
+}
+
+/**
+ * Jump from a hit to the conversation that holds it.
+ *
+ * Search deliberately reaches into archived conversations — filing
+ * something away is not a reason to stop being able to find it — so the
+ * hit may name a thread that is in neither live list. Switching the view
+ * is the whole point of the jump; without it the result was a row that
+ * looked clickable and did nothing.
+ */
+async function openFromSearch(hit: SearchHit) {
+  let conv = conversationById(hit.conversationId);
+  if (!conv) {
+    // Look on the shelf without moving there yet. Switching first meant
+    // that a hit which could not be resolved at all — a conversation past
+    // the list route's 200-row cap — left the reader in an archive they
+    // never asked for, with `?v=archived` in the URL.
+    const wasView = view.value;
+    view.value = 'archived';
+    tab.value = 'inbox';
+    await loadList();
+    conv = conversationById(hit.conversationId);
+    if (!conv) {
+      view.value = wasView;
+      await loadList();
+      return;
+    }
+    void router.replace({ query: { ...route.query, v: 'archived' } });
+  } else if (view.value === 'live') {
+    tab.value = conv.state === 'pending' ? 'requests' : 'inbox';
+  }
+  clearSearch();
+  await open(conv);
 }
 
 // ── Live delivery ────────────────────────────────────────────────────
@@ -856,16 +1544,35 @@ const { connected, needsReload, start } = useMessagingStream({
         },
       ];
       void nextTick(scrollToEnd);
+      // It has just come off the shelf, server-side. Without this the
+      // thread you are reading keeps its "filed away, read-only" panel
+      // while the server would accept a reply, and the row stays under
+      // Archived until a reload.
+      if (archived.value.some((c) => c.id === msg.conversationId)) {
+        archived.value = archived.value.filter((c) => c.id !== msg.conversationId);
+        view.value = 'live';
+        tab.value = 'inbox';
+        void router.replace({ query: { ...route.query, v: undefined } });
+        void refreshList();
+      }
       continue;
     }
     // For any other conversation, the counter is the notification. Nudging
     // it locally avoids a round trip per arriving message — the list is
     // reconciled on the next real load anyway.
-    const row =
-      inbox.value.find((c) => c.id === msg.conversationId) ??
-      requests.value.find((c) => c.id === msg.conversationId);
-    if (row) row.unreadCount += 1;
-    else void loadList(); // a conversation we did not know about yet
+    const row = conversationById(msg.conversationId);
+    if (!row) {
+      void refreshList(); // one we did not know about yet
+      if (view.value === 'archived') void loadList();
+    } else if (archived.value.some((c) => c.id === row.id)) {
+      // It was on the shelf, and the server has just taken it off:
+      // something arriving is exactly what un-archiving is for. Drop it
+      // here and let the live list pick it up where it now belongs.
+      archived.value = archived.value.filter((c) => c.id !== row.id);
+      void refreshList();
+    } else {
+      row.unreadCount += 1;
+    }
     }
   },
   // Reactions and edits are not messages: they carry no unread, do not
@@ -906,23 +1613,67 @@ onMounted(refreshIdentity);
 onMounted(loadDrafts);
 
 /**
- * Come back to the conversation the URL names.
+ * Come back to where the URL says the reader was: the view, then the
+ * conversation.
  *
- * A stale id — archived, blocked, or belonging to somebody else's
- * session — is simply not in the list, and opens nothing rather than a
- * thread with no header and no way back.
+ * A stale id — blocked, or belonging to somebody else's session — is
+ * simply not in either list, and opens nothing rather than a thread with
+ * no header and no way back. An archived one IS found, because the
+ * archived view is fetched before giving up: a link to a filed
+ * conversation that silently opens nothing is indistinguishable from a
+ * broken one.
  */
 onMounted(async () => {
-  const wanted = route.query.c;
-  if (typeof wanted !== 'string' || !wanted) return;
-  // The list is fetched with `useFetch` awaited in setup, so it is
-  // already here — no waiting, and no promise to invent.
-  const conv =
-    inbox.value.find((c) => c.id === wanted) ??
-    requests.value.find((c) => c.id === wanted);
-  if (!conv) return;
-  tab.value = conv.state === 'pending' ? 'requests' : 'inbox';
+  const wanted = typeof route.query.c === 'string' ? route.query.c : null;
+
+  if (route.query.v === 'archived') {
+    view.value = 'archived';
+    tab.value = 'inbox';
+    await loadList();
+  }
+  // The live lists are fetched with `useFetch` awaited in setup, so they
+  // are already here — no waiting, and no promise to invent.
+  if (wanted && !conversationById(wanted) && view.value === 'live') {
+    view.value = 'archived';
+    tab.value = 'inbox';
+    await loadList();
+  }
+
+  // Where it actually is decides the view, not what the URL remembered.
+  // A message arriving takes a conversation off the shelf, so a link
+  // saved yesterday can name a thread that is no longer filed away —
+  // and opening it under the archived view would show it frozen and
+  // sitting in a list that does not contain it.
+  const filed = !!wanted && archived.value.some((c) => c.id === wanted);
+  const conv = wanted ? conversationById(wanted) : null;
+  if (view.value === 'archived' && wanted && !filed) {
+    view.value = 'live';
+    void router.replace({ query: { ...route.query, v: undefined } });
+    await loadList();
+  }
+
+  if (!conv) {
+    // A stale id — blocked, or from somebody else's session. Opens
+    // nothing rather than a thread with no header and no way back.
+    if (!wanted) return;
+    void router.replace({ query: { ...route.query, c: undefined } });
+    return;
+  }
+  if (view.value === 'live') {
+    tab.value = conv.state === 'pending' ? 'requests' : 'inbox';
+  }
   await open(conv);
+});
+
+/*
+ * And out of the URL when the pane closes — by the back button, by
+ * archiving, by blocking. Left behind, `?c=` reopens on reload a thread
+ * the reader had just closed, or sends them into the archive to find a
+ * conversation they filed away.
+ */
+watch(activeId, (id) => {
+  if (id || !route.query.c) return;
+  void router.replace({ query: { ...route.query, c: undefined } });
 });
 
 // Send whatever is in the box to its conversation before the tab goes.
@@ -947,7 +1698,12 @@ async function open(conv: Conversation) {
   void router.replace({ query: { ...route.query, c: conv.id } });
 
   await loadThread();
-  markRead(conv);
+  // Not while it is still a request. Opening one used to post a read
+  // receipt to somebody you have not accepted — the exact thing the
+  // first-contact queue exists to withhold, and what Signal spells out
+  // to the recipient: they do not know you have seen it until you
+  // accept. Accepting, or replying, marks it read.
+  if (conv.state !== 'pending') markRead(conv);
 }
 
 /**
@@ -982,6 +1738,11 @@ function persistDrafts() {
 function stashDraft() {
   const id = activeId.value;
   if (!id) return;
+  // An edit in progress is not a draft. `beginEdit` puts the existing
+  // message body into the composer; stashing it here filed that body
+  // under the conversation, and reopening the thread pre-filled the box
+  // with text that Send would post a SECOND time.
+  if (editing.value) return;
   const text = draft.value.trim();
   if (text) drafts.value[id] = draft.value;
   else delete drafts.value[id];
@@ -1008,19 +1769,34 @@ const READ_DEBOUNCE_MS = 5_000;
 let lastMarked = 0;
 let markTimer: ReturnType<typeof setTimeout> | undefined;
 
+/**
+ * One timer, so a pending mark has to be flushed before it is replaced.
+ *
+ * It used to be cancelled outright: opening A, B and C inside the debounce
+ * window zeroed B's badge locally and never told the server, so B came
+ * back unread on the next reload. The debounce exists to stop a burst of
+ * requests, not to drop the middle one.
+ */
+let pendingRead: (() => Promise<void>) | null = null;
+
 function markRead(conv: Conversation, immediate = false) {
   conv.unreadCount = 0;
+  const id = conv.id;
   const send = async () => {
     lastMarked = Date.now();
-    await $fetch(`/api/messaging/conversations/${conv.id}/read`, {
+    pendingRead = null;
+    await $fetch(`/api/messaging/conversations/${id}/read`, {
       method: 'POST',
     }).catch(() => undefined);
   };
   clearTimeout(markTimer);
+  // Whatever was waiting goes out now rather than being thrown away.
+  if (pendingRead) void pendingRead();
   if (immediate || Date.now() - lastMarked > READ_DEBOUNCE_MS) {
     void send();
     return;
   }
+  pendingRead = send;
   markTimer = setTimeout(send, READ_DEBOUNCE_MS);
 }
 
@@ -1144,6 +1920,7 @@ async function send() {
     id: `pending-${Date.now()}`,
     body,
     cipher: null,
+    iv: null,
     deleted: false,
     createdAt: new Date().toISOString(),
     author: user.value
@@ -1164,6 +1941,17 @@ async function send() {
 }
 
 async function deliver(pending: ThreadMessage) {
+  // Pinned at the start, never re-read.
+  //
+  // Sealing an encrypted message is an `await`, and `activeId` can change
+  // during it: the URL was built from `activeId.value` AFTER the seal, so
+  // switching threads mid-send posted one conversation's ciphertext into
+  // another. The failure path had the mirror bug — it looked the message
+  // up in `messages.value`, which `open()` had already replaced, so a
+  // send that failed after a switch left no trace at all.
+  const conversationId = activeId.value;
+  const thread = messages.value;
+  if (!conversationId) return;
   sending.value += 1;
   try {
     // Sealed here, never on the server — which is the whole point: the
@@ -1174,21 +1962,38 @@ async function deliver(pending: ThreadMessage) {
       : { body: pending.body };
 
     const res = await $fetch<{ id: string; createdAt: string }>(
-      `/api/messaging/conversations/${activeId.value}/messages`,
+      `/api/messaging/conversations/${conversationId}/messages`,
       {
         method: 'POST',
         body: { ...payload, replyToId: pending.replyTo?.id },
       }
     );
-    const row = messages.value.find((m) => m.id === pending.id);
+    const row = thread.find((m) => m.id === pending.id);
     if (row) {
       row.id = res.id;
       row.createdAt = res.createdAt;
       row.failed = false;
+      // The ciphertext too, not only the id.
+      //
+      // The optimistic row is built from what was typed: a body, and no
+      // cipher — which is exactly the shape of a line the server CAN
+      // read, so the thread marked every message you sent as "not
+      // encrypted" until a reload replaced it with the real row. The row
+      // now says what was actually stored.
+      if ('cipher' in payload) {
+        row.cipher = payload.cipher;
+        row.iv = payload.iv;
+      }
     }
-    if (active.value?.state === 'pending') await loadList();
+    if (active.value?.state === 'pending') {
+      // Replying accepts, so the conversation has just moved to the
+      // inbox. Follow it, the way `accept()` does — otherwise the reader
+      // is left on a Requests tab that has gone empty underneath them.
+      await loadList();
+      tab.value = 'inbox';
+    }
   } catch {
-    const row = messages.value.find((m) => m.id === pending.id);
+    const row = thread.find((m) => m.id === pending.id);
     if (row) row.failed = true;
   } finally {
     sending.value -= 1;
@@ -1226,9 +2031,13 @@ async function removeMessage(msg: ThreadMessage) {
     msg.deleted = false;
     msg.body = previousBody;
     msg.cipher = previousCipher;
-    sendError.value =
+    // The toast, not `sendError`: withdrawing is reachable from threads
+    // that have no composer to show it in.
+    say(
       (err as { data?: { message?: string } })?.data?.message ??
-      t('messaging.removeFailed');
+        t('messaging.removeFailed'),
+      'warn'
+    );
   }
 }
 
@@ -1289,6 +2098,7 @@ async function submitEdit() {
   const body = draft.value.trim();
   if (!target || !body) return;
   const previous = target.body;
+  const previousEditedAt = target.editedAt ?? null;
   // Optimistic, like the send: the correction shows immediately and is
   // put back if the server refuses it.
   target.body = body;
@@ -1309,7 +2119,10 @@ async function submitEdit() {
     );
   } catch (err) {
     target.body = previous;
-    target.editedAt = null;
+    // Back to what it was, which is not necessarily "never edited": a
+    // message edited yesterday kept its mark, and a failed edit today
+    // used to erase it.
+    target.editedAt = previousEditedAt;
     sendError.value =
       (err as { data?: { message?: string } })?.data?.message ??
       t('messaging.editFailed');
@@ -1319,7 +2132,18 @@ async function submitEdit() {
 async function accept() {
   const id = activeId.value;
   if (!id) return;
-  await $fetch(`/api/messaging/conversations/${id}/accept`, { method: 'POST' });
+  try {
+    await $fetch(`/api/messaging/conversations/${id}/accept`, { method: 'POST' });
+  } catch (err) {
+    // It had none: a refusal was an unhandled rejection and the button
+    // simply did nothing.
+    say(
+      (err as { data?: { message?: string } })?.data?.message ??
+        t('messaging.menu.failed'),
+      'warn'
+    );
+    return;
+  }
   await loadList();
   // The conversation has moved to the inbox, so the view follows it.
   // Reloading the list alone left the reader on the Requests tab looking
@@ -1349,10 +2173,15 @@ async function startConversation() {
     });
     startOpen.value = false;
     startWith.value = '';
+    // A brand-new conversation is never on the shelf, so the archived
+    // view could not contain it: `loadList()` there fetched the archive
+    // and found nothing, and the dialog closed onto an unchanged list
+    // with no thread and no error.
+    view.value = 'live';
+    tab.value = 'inbox';
+    void router.replace({ query: { ...route.query, v: undefined } });
     await loadList();
-    const conv =
-      inbox.value.find((c) => c.id === res.id) ??
-      requests.value.find((c) => c.id === res.id);
+    const conv = conversationById(res.id);
     if (conv) await open(conv);
   } catch (err) {
     startError.value =
@@ -1369,6 +2198,8 @@ async function startConversation() {
    which of them is on screen; above md both are always shown, so the
    class has nothing left to hide. */
 .msg-shell {
+  /* Anchors the confirmation line above both panes. */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -1760,11 +2591,42 @@ async function startConversation() {
   color: rgb(var(--fg-muted));
 }
 
-.msg-notice,
 .msg-placeholder {
   padding: 1rem;
   font-size: 0.8125rem;
   color: rgb(var(--fg-muted));
+}
+
+/* Over both panes, and over the dialogs too — unblocking is confirmed
+   from inside one. `notifications: 60` on the app's z-index ladder. */
+.msg-notice {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: min(90%, 28rem);
+  padding: 0.45rem 0.85rem;
+  transform: translateX(-50%);
+  border: 1px solid rgb(var(--online) / 0.4);
+  border-radius: var(--radius-pill);
+  background: rgb(var(--bg-elevated));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  color: rgb(var(--fg-default));
+  font-size: 0.78rem;
+  pointer-events: none;
+}
+.msg-notice--warn { border-color: rgb(var(--warning) / 0.5); }
+.msg-notice-enter-active,
+.msg-notice-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.msg-notice-enter-from,
+.msg-notice-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -0.4rem);
 }
 
 /* A column: the reply/edit banner stacks ABOVE the controls. It used to
@@ -1988,5 +2850,171 @@ async function startConversation() {
 @media (prefers-reduced-motion: reduce) {
   .msg-actions { transition: none; }
   .msg-flash .msg-bubble { animation: none; }
+}
+/* ── The foot of the list: blocks ─────────────────────────────────── */
+.msg-list-foot {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgb(var(--line));
+}
+.msg-foot-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: rgb(var(--fg-muted));
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.msg-foot-link:hover {
+  background: rgb(var(--fg-default) / 0.06);
+  color: rgb(var(--fg-default));
+}
+.msg-foot-count {
+  margin-left: auto;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  background: rgb(var(--fg-default) / 0.1);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.msg-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+.msg-blocks-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.25rem;
+}
+.msg-blocks-who {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.2rem;
+  margin: -0.2rem;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+  transition: background var(--dur-2) ease;
+}
+.msg-blocks-who:hover { background: rgb(var(--fg-default) / 0.06); }
+.msg-blocks-who:hover .msg-blocks-name { text-decoration: underline; }
+.msg-blocks-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.msg-blocks-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msg-blocks-since {
+  color: rgb(var(--fg-muted));
+  font-size: 0.72rem;
+}
+
+/* Destructive, and coloured like it — the only red button on the page. */
+.msg-btn-danger {
+  border-color: rgb(var(--danger) / 0.5);
+  color: rgb(var(--danger));
+}
+.msg-btn-danger:hover:not(:disabled) {
+  background: rgb(var(--danger) / 0.12);
+  border-color: rgb(var(--danger));
+}
+.msg-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: rgb(var(--warning));
+}
+/* ── Search ───────────────────────────────────────────────────────────
+   It shipped with no rules whatsoever: a bare browser input with the
+   magnifier stacked above it and the UA's own search decorations. The
+   field lines up with the tabs below — same margin, same radius, same
+   height — because two controls at the top of a column that do not share
+   an edge read as two accidents. */
+.msg-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0.5rem;
+  padding: 0 0.6rem;
+  min-height: 2.25rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-md);
+  background: rgb(var(--fg-default) / 0.05);
+  color: rgb(var(--fg-muted));
+  cursor: text;
+  transition: border-color var(--dur-2) ease, background var(--dur-2) ease;
+}
+.msg-search:focus-within {
+  border-color: rgb(var(--accent));
+  background: rgb(var(--bg-elevated));
+}
+.msg-search-icon {
+  flex: none;
+  font-size: 0.9rem;
+  color: rgb(var(--fg-muted));
+}
+.msg-search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--fg-default));
+  /* 16px: anything smaller makes iOS zoom the page on focus. */
+  font-size: 1rem;
+  line-height: 1.2;
+}
+@media (min-width: 768px) {
+  .msg-search-input { font-size: 0.8125rem; }
+}
+.msg-search-input:focus { outline: none; }
+.msg-search-input::placeholder { color: rgb(var(--fg-muted)); }
+/* WebKit draws its own cancel button and magnifier inside type="search";
+   both fight the ones above. */
+.msg-search-input::-webkit-search-cancel-button,
+.msg-search-input::-webkit-search-decoration {
+  appearance: none;
+}
+.msg-search-clear {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: rgb(var(--fg-muted));
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background var(--dur-2) ease, color var(--dur-2) ease;
+}
+.msg-search-clear:hover {
+  background: rgb(var(--fg-default) / 0.1);
+  color: rgb(var(--fg-default));
 }
 </style>

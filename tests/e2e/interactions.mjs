@@ -350,6 +350,14 @@ async function main() {
   // leftover guard, silent, with nothing in the console. Nothing here
   // drives the page, so what this pins is the contract the page relies
   // on: ciphertext in, ciphertext edited, plaintext refused both times.
+  // Both sides need a published key — the server refuses an encrypted
+  // conversation with a peer who has none, since nobody could ever open
+  // it. A fixture here, not the subject of this scenario.
+  await req('founder', '/api/messaging/keys', {
+    method: 'PUT',
+    body: { publicKey: 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEVbdpcnLyqAqB6R5SdbsUHXZPltQpew7eeaCh_-TlKaagfLgBzZ3TxAv8JQGlya-mKuxEDCiw8HdPIyTa5fouSw', deviceLabel: 'fixture' },
+  });
+
   const encConv = await req('donator', DM, {
     method: 'POST',
     body: { username: 'founder', encrypted: true },

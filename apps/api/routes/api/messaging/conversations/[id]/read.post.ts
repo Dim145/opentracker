@@ -19,6 +19,7 @@ import {
   participantOf,
   participantsOf,
 } from '~~/utils/messaging/conversations';
+import { blockExistsBetween } from '~~/utils/messaging/moderation';
 import { publishToUsers } from '~~/utils/messaging/relay';
 
 export default defineEventHandler(async (event) => {
@@ -70,11 +71,23 @@ export default defineEventHandler(async (event) => {
             )
           )
       : [];
-    if (willing.length) {
-      await publishToUsers(
-        willing.map((w) => w.id),
-        { type: 'read', conversationId: id, by: user.id, at: readAt }
-      );
+    // And not to anybody either side has refused. Marking a thread read
+    // is a local act and stays allowed — but the receipt is a live
+    // presence signal, and sending it from a blocked account is the
+    // notification the silence exists to avoid. Checked here rather than
+    // at the top of the handler: the refusal must not stop the member
+    // from clearing their own unread counter.
+    const reachable: string[] = [];
+    for (const w of willing) {
+      if (!(await blockExistsBetween(user.id, w.id))) reachable.push(w.id);
+    }
+    if (reachable.length) {
+      await publishToUsers(reachable, {
+        type: 'read',
+        conversationId: id,
+        by: user.id,
+        at: readAt,
+      });
     }
   }
 

@@ -58,7 +58,14 @@ export async function findOrCreateDirectConversation(
   // The message says nothing about who blocked whom. From the blocked
   // side this has to look like any other conversation that cannot be
   // opened, or the refusal becomes a notification.
-  if (await blockExistsBetween(meId, otherId)) {
+  //
+  // Staff are exempt as SENDER. `direct` is set from the sender's own
+  // staff flags and nothing else, so it cannot be claimed. Without this a
+  // member made themselves permanently unreachable by the moderation team
+  // by blocking one of them — and a broadcast skipped them in silence,
+  // because `runBroadcast` swallows the refusal and its `sent` counter
+  // simply does not count them. Gazelle has the same carve-out.
+  if (!opts.direct && (await blockExistsBetween(meId, otherId))) {
     throw createError({
       statusCode: 403,
       message: 'This conversation cannot be opened',
@@ -162,6 +169,68 @@ export async function participantOf(conversationId: string, userId: string) {
 }
 
 /**
+ * Refuse anything that would reach somebody who refused this member.
+ *
+ * A block is symmetric, and "symmetric" has to cover every way of
+ * reaching the other side — not only a new message. Editing an old line
+ * rewrites text the other side already has and pushes an `edit` frame
+ * down their relay; a reaction pushes a `reaction` frame; a read receipt
+ * pushes presence. Each one is a channel, and the edit one is unlimited:
+ * a direct message has no edit window, so the same row can be rewritten
+ * for ever.
+ *
+ * The refusal says "closed", never "you have been blocked" — a refusal
+ * that names itself is the notification the silence exists to avoid.
+ *
+ * Checks BOTH directions, because `state = 'blocked'` is written only on
+ * the blocker's own participant row: the blocked side's row stays
+ * `active` and their seat check passes.
+ */
+export async function requireNoBlockInConversation(
+  conversationId: string,
+  userId: string
+) {
+  const others = (await participantsOf(conversationId)).filter(
+    (u) => u !== userId
+  );
+  for (const other of others) {
+    if (await blockExistsBetween(userId, other)) {
+      throw createError({
+        statusCode: 403,
+        message: 'This conversation is closed',
+      });
+    }
+  }
+}
+
+/**
+ * Refuse a write from a seat that has filed the conversation away.
+ *
+ * Archiving is read-only, and read-only has to mean every way of writing
+ * — not just new messages. Editing, withdrawing and reacting all change
+ * what the other side sees and all push a frame down the relay, so a
+ * thread on the shelf that can still be edited is not on a shelf.
+ *
+ * Takes the seat the caller has already fetched: every call site needs it
+ * for its own checks, and re-reading it here would be a second query for
+ * an answer already in hand.
+ *
+ * Staff acting without a seat pass `null` and are not concerned: their
+ * authority does not come from a participant row, and moderating a
+ * conversation somebody filed away is exactly when it is needed.
+ */
+export function requireUnarchivedSeat(
+  seat: { archivedAt: Date | null } | null
+) {
+  if (seat?.archivedAt) {
+    throw createError({
+      statusCode: 409,
+      message: 'This conversation is archived — take it out of the archive first',
+    });
+  }
+}
+
+/**
  * Record a message and move the counters that make the inbox cheap to
  * render: `lastMessageAt` on the conversation, `unreadCount` on every
  * other participant. Both are denormalised on purpose — recomputing them
@@ -208,9 +277,22 @@ export async function recordMessage(input: {
       .set({ lastMessageAt: now })
       .where(eq(schema.conversations.id, input.conversationId));
 
+    /*
+     * `archivedAt: null` alongside the counter: a message arriving takes
+     * the conversation off the shelf for whoever receives it.
+     *
+     * Otherwise archiving silences somebody rather than filing their
+     * thread — the unread count would climb inside a list nobody looks
+     * at, and the only way back would be to remember they exist. It is
+     * cleared for RECIPIENTS only; the author's own filing is untouched,
+     * and the send route refuses a send from an archived seat anyway.
+     */
     const recipients = await tx
       .update(schema.conversationParticipants)
-      .set({ unreadCount: sql`${schema.conversationParticipants.unreadCount} + 1` })
+      .set({
+        unreadCount: sql`${schema.conversationParticipants.unreadCount} + 1`,
+        archivedAt: null,
+      })
       .where(
         and(
           eq(

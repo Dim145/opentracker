@@ -124,6 +124,17 @@
               <Icon name="ph:lock-key-bold" class="slip-anonymous-icon" />
               <span>{{ $t('components.report.anonymousNote') }}</span>
             </p>
+
+            <!-- A caller-supplied caveat, shown where the decision is
+                 made rather than after it. Today's one use: a message
+                 from an encrypted conversation, which the staff cannot
+                 read — so the details field is the only evidence they
+                 will ever have, and the reporter has to be told that
+                 while they still have the box in front of them. -->
+            <p v-if="caveat" class="slip-caveat">
+              <Icon name="ph:warning-bold" class="slip-anonymous-icon" />
+              <span>{{ caveat }}</span>
+            </p>
           </div>
 
           <!-- ── Actions ──────────────────────────────────── -->
@@ -160,10 +171,12 @@ const { t } = useI18n();
 
 const props = defineProps<{
   isOpen: boolean;
-  targetType: 'torrent' | 'user' | 'post' | 'comment' | 'remote';
+  targetType: 'torrent' | 'user' | 'post' | 'comment' | 'remote' | 'message';
   targetId: string;
   /** Optional human label shown in the slip's target row. */
   targetLabel?: string;
+  /** Optional warning shown above the actions, before submitting. */
+  caveat?: string;
 }>();
 
 const emit = defineEmits<{
@@ -626,5 +639,14 @@ onBeforeUnmount(() => {
 .slip-leave-to .slip {
   opacity: 0;
   transform: translateY(-16px) scale(0.96);
+}
+.slip-caveat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  color: rgb(var(--warning));
+  font-size: 0.72rem;
+  line-height: 1.5;
 }
 </style>

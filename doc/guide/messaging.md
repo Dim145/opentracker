@@ -328,16 +328,35 @@ A first contact gets its own type, `message_request_received`, because it
 is the event the queue exists to hold back. External delivery is opt-in
 per type, so nothing leaves the site unless the member asked for it.
 
-## Reachable, and not
+## Filing a conversation away
 
-Six capabilities have routes and, as of today, **no way in from the
-interface**: blocking a member, searching a conversation, archiving a
-thread, muting one, deleting a private message, and staff reading a
-reported message. Three of those are P7 features that were reported as
-delivered and were only half of it — the API half.
+Archiving is per member and read-only. It removes a conversation from
+your list and touches nothing on the other side — the alternative is not
+filing, it is deleting in somebody else's name — and while it is on the
+shelf the thread cannot be written to at all: no message, no edit, no
+withdrawal, no reaction. Enforced on the server, not only in the
+interface, because a rule the client alone keeps is a suggestion.
 
-They are listed here rather than quietly left out because a route with
-no caller reads as working code until somebody looks for the button.
+A message arriving takes it off the shelf. Without that, archiving
+silences a person instead of filing their thread: the unread count would
+climb inside a list nobody looks at, and the only way back would be to
+remember they exist.
+
+The way out by hand is the same control that put it there, offered on the
+thread itself rather than only in the menu.
+
+## Blocking covers every way through
+
+A block is symmetric and silent, and "symmetric" has to mean more than
+"cannot send". Editing an old line rewrites text the other side already
+has and pushes an `edit` frame down their relay; a reaction pushes one
+too; a read receipt pushes presence. All three are refused between two
+members either of whom has blocked the other, and a direct message has no
+edit window — so without that check the same row could be rewritten at
+somebody for ever.
+
+The refusal says "closed", never "you have been blocked": a refusal that
+names itself is the notification the silence exists to avoid.
 
 ## Retention
 
@@ -353,7 +372,11 @@ Two consequences worth saying out loud:
 - **Turning a surface off deletes nothing.** It hides it.
 
 Private messages are not retained on a timer. They are deleted when a
-participant deletes them, or when an account is erased.
+participant deletes them, and an erasure destroys the **encrypted** ones
+outright — nobody could read them anyway once the key is gone. Plaintext
+conversations survive an erasure with their author blanked: the other
+participant's copy is their record of an exchange they took part in, and
+removing it would be deleting somebody else's mail.
 
 ## What erasure does
 

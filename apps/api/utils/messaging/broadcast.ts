@@ -161,6 +161,18 @@ export async function runBroadcast(
             // that gets refused unread.
             { direct: true }
           );
+          /*
+           * In clear, including into a conversation the pair opened
+           * encrypted — there is one conversation per pair, and a
+           * broadcast cannot be sealed for each recipient: the sender
+           * never holds thousands of public keys, and this loop runs on
+           * the server with no key at all.
+           *
+           * Not silent about it. The thread renders any plaintext line
+           * inside an encrypted conversation with a "not encrypted"
+           * mark, so the padlock on the thread keeps meaning what it
+           * says. See `msg-clear` in apps/web/app/pages/messages.vue.
+           */
           const { message } = await recordMessage({
             conversationId: conversation.id,
             authorId: senderId,

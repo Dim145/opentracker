@@ -126,6 +126,25 @@ export async function createIdentity(): Promise<StoredIdentity> {
     privateKey: pair.privateKey,
     publicKeyRaw: b64url(raw),
   };
+  // Ask for the storage to be kept before writing the one thing that
+  // cannot be recovered.
+  //
+  // IndexedDB is "best-effort" by default, and WebKit deletes
+  // script-created storage after seven days without a visit. A member who
+  // spends a week away would come back to every encrypted conversation
+  // permanently unreadable, having done nothing — and the private key is
+  // non-extractable by construction, so there is no backup to fall back
+  // on. Requesting persistence is what turns that from "eventually" into
+  // "only if they clear it themselves".
+  //
+  // Best-effort in turn: some browsers grant it silently, some ask, some
+  // refuse. A refusal changes nothing that was not already true, so it is
+  // not worth interrupting the flow over.
+  try {
+    await navigator.storage?.persist?.();
+  } catch {
+    /* not available, or refused — the write still happens */
+  }
   await idbPut(KEY_ID, identity);
   return identity;
 }

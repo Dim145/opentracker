@@ -1340,7 +1340,8 @@
         "user": "Utilisateur",
         "post": "Message",
         "comment": "Commentaire",
-        "remote": "Release fédérée"
+        "remote": "Release fédérée",
+        "message": "Message privé"
       },
       "reasons": {
         "spam": "Spam ou publicité",
@@ -2989,7 +2990,8 @@
         "user": "Utilisateur",
         "post": "Message",
         "comment": "Commentaire",
-        "remote": "Release fédérée"
+        "remote": "Release fédérée",
+        "message": "Message privé"
       },
       "toasts": {
         "resolved": "Signalement accepté",
@@ -3016,7 +3018,13 @@
         }
       },
       "filterWithdrawn": "Retirés",
-      "withdrawnByReporter": "Ce signaleur a retiré {n} signalements"
+      "withdrawnByReporter": "Ce signaleur a retiré {n} signalements",
+      "messageBody": "Message",
+      "messageReveal": "Lire le message signalé",
+      "messageMissing": "Ce message n'existe plus, ou n'a jamais été signalé.",
+      "messageEncrypted": "Chiffré — personne n'en détient la clé, le staff compris. Agis sur ce que le signalant a cité.",
+      "messageRemoved": "Retiré par son auteur ou par le staff.",
+      "messageRetry": "Le chargement a échoué. Réessaie."
     },
     "tags": {
       "title": "Tags",
@@ -4869,7 +4877,9 @@
       "enableBody": "Ce navigateur reçoit sa propre clé. Les membres pourront alors démarrer une conversation chiffrée avec toi — et cet appareil sera le seul à pouvoir la lire. Aucune sauvegarde, aucune récupération : c'est ce qui rend la promesse vraie.",
       "enableAction": "Créer ma clé",
       "rotateFailed": "La clé n'a pas pu être publiée. Rien n'a été modifié.",
-      "notReady": "Cet appareil ne peut pas encore chiffrer pour cette conversation."
+      "notReady": "Cet appareil ne peut pas encore chiffrer pour cette conversation.",
+      "notSealed": "non chiffré",
+      "notSealedHint": "Écrit en clair dans une conversation chiffrée — une diffusion du staff ne peut pas être scellée pour chaque destinataire. Le serveur peut lire cette ligne."
     },
     "erasedConversation": "Fermée à la demande de votre correspondant. Cette conversation était chiffrée, et le compte qui détenait l'autre moitié de la clé a été supprimé — plus rien ici ne peut être ouvert, par personne.",
     "unreadLabel": "{count} non lu | {count} non lu | {count} non lus",
@@ -4906,7 +4916,56 @@
     "editFailed": "La modification n'a pas pu être enregistrée.",
     "replyAccepts": "Répondre accepte cette demande et ouvre la conversation dans les deux sens.",
     "remove": "Supprimer",
-    "removeFailed": "Le message n'a pas pu être supprimé."
+    "removeFailed": "Le message n'a pas pu être supprimé.",
+    "archived": "Archivées",
+    "search": {
+      "placeholder": "Rechercher dans tes messages…",
+      "clear": "Effacer la recherche",
+      "searching": "Recherche…",
+      "none": "Aucun résultat.",
+      "skipped": "Les conversations chiffrées n'ont pas été fouillées — le serveur ne peut pas les lire.",
+      "tooShort": "Deux caractères minimum."
+    },
+    "menu": {
+      "label": "Actions sur la conversation",
+      "archive": "Archiver",
+      "unarchive": "Remettre dans la boîte",
+      "mute": "Mettre en sourdine",
+      "unmute": "Réactiver",
+      "mutedUntil": "En sourdine jusqu'au {until}",
+      "for": {
+        "1": "1 h",
+        "8": "8 h",
+        "24": "1 jour",
+        "168": "1 semaine"
+      },
+      "report": "Signaler un message",
+      "block": "Bloquer {name}",
+      "archivedDone": "Archivée.",
+      "unarchivedDone": "De retour dans la boîte.",
+      "mutedDone": "Mise en sourdine.",
+      "unmutedDone": "Sourdine levée.",
+      "blockedDone": "{name} est bloqué.",
+      "failed": "Ça n'a pas marché."
+    },
+    "blockTitle": "Bloquer {name} ?",
+    "blockBody": "Aucun de vous deux ne pourra plus écrire à l'autre, et cette conversation se ferme. Il n'en est pas averti — un refus qui s'annonce est une invitation à recommencer depuis un autre compte. Tu peux revenir en arrière depuis ta liste de blocages.",
+    "blockConfirm": "Bloquer",
+    "blocks": {
+      "link": "Membres bloqués",
+      "title": "Membres bloqués",
+      "hint": "Aucun de vous deux ne peut écrire à l'autre. Lever un blocage remet la conversation dans les demandes — ça ne la rouvre pas.",
+      "empty": "Tu n'as bloqué personne.",
+      "since": "bloqué {when}",
+      "lift": "Débloquer",
+      "lifted": "{name} est débloqué."
+    },
+    "report": {
+      "encrypted": "Cette conversation est chiffrée : le staff ne peut pas lire ce message. Cite l'essentiel dans le champ de détails, sinon le signalement ne dit rien."
+    },
+    "archivedTitle": "Archivée",
+    "archivedBody": "Une conversation archivée est en lecture seule. Remets-la dans la boîte pour répondre — un message de sa part le fait tout seul.",
+    "torrentGone": "Ce torrent n'existe plus."
   },
   "room": {
     "title": "Salon",
@@ -4924,7 +4983,7 @@
     "pin": "Épingler",
     "unpin": "Désépingler",
     "commands": {
-      "help": "/pin (en répondant) · /unpin · /mute PSEUDO [heures] [raison] · /unmute PSEUDO · /slow SECONDES",
+      "help": "/pin (en répondant) · /unpin · /mute PSEUDO [heures] [raison] · /unmute PSEUDO · /mutes · /slow SECONDES",
       "pinNeedsReply": "Réponds au message à épingler, puis tape /pin.",
       "usageMute": "Usage : /mute PSEUDO [heures] [raison]",
       "usageUnmute": "Usage : /unmute PSEUDO",
@@ -4933,7 +4992,12 @@
       "unmuted": "{name} peut à nouveau parler.",
       "slow": "Mode lent réglé à {seconds} s.",
       "unknown": "Commande inconnue : /{cmd}. Essaie /help.",
-      "failed": "Ça n'a pas marché."
+      "failed": "Ça n'a pas marché.",
+      "mutes": "En sourdine : {list}",
+      "mutesNone": "Personne n'est en sourdine.",
+      "muteEntry": "{name} ({until})",
+      "minutesLeft": "{count} min restantes",
+      "hoursLeft": "{count} h restantes"
     },
     "subtitle": "Tout le monde, au même endroit"
   }
