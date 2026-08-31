@@ -123,6 +123,32 @@ export interface TorznabItem {
   downloadUrl: string;
   downloadVolumeFactor?: number; // 0 = freeleech, 1 = normal
   uploadVolumeFactor?: number; // 1 = normal, 2 = double upload
+  /**
+   * The v1 infohash, hex. Spec'd as an enumerated Torznab attribute and read
+   * by Prowlarr to match a release against a client's existing torrents
+   * without downloading the .torrent first. We already have it — it is the
+   * `guid` of every local item — so emitting it costs nothing and saves the
+   * consumer a round trip.
+   */
+  infoHash?: string;
+  /**
+   * What the site will require of this release once it is grabbed.
+   *
+   * Both are spec'd for exactly this: a tracker stating its seeding
+   * requirements per torrent so the client can honour them by itself. We
+   * enforce a minimum ratio (announce-time gate) and a hit-and-run seed time
+   * (a sanction, after the fact) and until now told nobody in advance — the
+   * member found out when the gate closed or the sanction landed. The same
+   * two numbers, sent through the channel Sonarr / Radarr already read, turn
+   * hit-and-run from a trap into a contract.
+   *
+   * Omitted (rather than sent as 0) when the site does not impose them, since
+   * a stated 0 and an absent value are the same instruction and the shorter
+   * one cannot be misread as "seed for zero seconds".
+   */
+  minimumRatio?: number;
+  /** Seconds. */
+  minimumSeedTime?: number;
   // Torznab predefined external-id attributes (issue #47). Sonarr /
   // Radarr / Lidarr use these to match a release against their own
   // library. We pass them through as-is — IMDb keeps its `tt` prefix,
@@ -152,6 +178,25 @@ export function buildSearchXml(feed: TorznabFeed): string {
         `      <torznab:attr name="downloadvolumefactor" value="${item.downloadVolumeFactor ?? 1}"/>`,
         `      <torznab:attr name="uploadvolumefactor" value="${item.uploadVolumeFactor ?? 1}"/>`,
       ];
+
+      if (item.infoHash) {
+        attrs.push(
+          `      <torznab:attr name="infohash" value="${escapeXml(item.infoHash)}"/>`
+        );
+      }
+      // `> 0` and not `!= null`: a site with no ratio requirement stores 0,
+      // and forwarding that would read as a requirement of zero rather than
+      // as the absence of one.
+      if (item.minimumRatio && item.minimumRatio > 0) {
+        attrs.push(
+          `      <torznab:attr name="minimumratio" value="${item.minimumRatio}"/>`
+        );
+      }
+      if (item.minimumSeedTime && item.minimumSeedTime > 0) {
+        attrs.push(
+          `      <torznab:attr name="minimumseedtime" value="${item.minimumSeedTime}"/>`
+        );
+      }
 
       if (item.imdbId) {
         attrs.push(

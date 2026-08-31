@@ -44,6 +44,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 - **UDP announce (BEP 15)** on `6969/udp`; ~6×–8× cheaper on the wire than HTTP; stateless `connection_id` = HMAC-SHA256(secret, ip ‖ minute), so no per-id memory.
 - **BEP 41 URL_DATA passkey** — `udp://host:6969/announce/PASSKEY` works as-is in every modern client.
 - **Multi-tier `.torrent` files** — generator advertises HTTP + UDP independently. `TRACKER_UDP_ENABLED=false` disables UDP and drops it from new `.torrent` files in one go.
+- **Torznab that tells the truth** — `minimumratio` and `minimumseedtime` carry the site's real obligations to Sonarr / Radarr, and the volume factors follow the running bonus event instead of claiming normal rates during a freeleech.
 
 ### Bonus economy & resilience
 

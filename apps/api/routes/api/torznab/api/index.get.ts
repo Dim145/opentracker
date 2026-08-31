@@ -46,6 +46,12 @@ import {
   trackRateLimitHit,
 } from '~~/utils/torznabStats';
 import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
+import {
+  getHnrRequiredSeedTime,
+  getMinRatio,
+  isHnrEnabled,
+} from '~~/utils/settings';
+import { getActiveSnapshot } from '~~/utils/bonusEvents';
 import { escapeLike } from '~~/utils/sql';
 import { adultCategoryIds } from '~~/utils/adultContent';
 
@@ -377,6 +383,41 @@ async function performSearch(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
+  /**
+   * What this site asks of every release, resolved once for the whole page.
+   *
+   * These are site-wide settings, not per-torrent columns, so they are read
+   * here and stamped onto every item rather than looked up inside the map —
+   * one Redis-cached read instead of `limit` of them.
+   *
+   * `minimumseedtime` is only sent when hit-and-run is actually switched on.
+   * The required seed time has a value either way (86 400 s by default), but
+   * announcing a requirement the site will never enforce would have clients
+   * seed against a rule that does not exist.
+   *
+   * The volume factors used to be hard-coded to 1 with a note about freeleech
+   * "enhancement". A site-wide bonus event is exactly that, and it was already
+   * being applied on the announce hot path — so the feed was telling *Arr
+   * clients "normal rates" during a freeleech. Per-torrent multipliers still
+   * do not exist (there is no column for them); this reflects what the site is
+   * doing right now, which is the part that was wrong.
+   */
+  const [minRatio, hnrOn, requiredSeedTime, activeEvent] = await Promise.all([
+    getMinRatio(),
+    isHnrEnabled(),
+    getHnrRequiredSeedTime(),
+    getActiveSnapshot(),
+  ]);
+  const minimumSeedTime = hnrOn ? requiredSeedTime : 0;
+  // Multipliers are stored in basis points (100 = 1.00x); Torznab wants the
+  // plain factor.
+  const downloadVolumeFactor = activeEvent
+    ? activeEvent.downloadMultiplier / 100
+    : 1;
+  const uploadVolumeFactor = activeEvent
+    ? activeEvent.uploadMultiplier / 100
+    : 1;
+
   // Fetch torrents
   const torrents = await db.query.torrents.findMany({
     where: whereClause,
@@ -408,8 +449,11 @@ async function performSearch(
         leechers: stats.leechers,
         grabs: stats.completed,
         downloadUrl: `${baseUrl}/api/torznab/download?id=${torrent.infoHash}&apikey=${user.passkey}`,
-        downloadVolumeFactor: 1, // Could be enhanced with freeleech support
-        uploadVolumeFactor: 1,
+        downloadVolumeFactor,
+        uploadVolumeFactor,
+        infoHash: torrent.infoHash,
+        minimumRatio: minRatio,
+        minimumSeedTime,
         imdbId: torrent.imdbId ?? undefined,
         // Strip any `tv/` / `movie/` prefix before emitting — the
         // Torznab spec expects bare digits and *Arr clients won't
@@ -453,8 +497,14 @@ async function performSearch(
           leechers: r.leechers,
           grabs: 0,
           downloadUrl: magnetLink(r.infoHash, r.name),
+          // A mirrored release is announced to the instance that holds it, so
+          // its rates and its seeding requirements are that instance's, not
+          // ours. We do not mirror either, and guessing would tell a client to
+          // honour a rule from the wrong site — so both are left at the neutral
+          // value and the obligations are omitted entirely.
           downloadVolumeFactor: 1,
           uploadVolumeFactor: 1,
+          infoHash: r.infoHash,
         });
       }
     }

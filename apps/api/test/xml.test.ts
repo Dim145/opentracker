@@ -79,3 +79,48 @@ describe('buildSearchXml — CDATA breakout (finding M5)', () => {
     expect(xml).not.toContain('<title>Rls <b>');
   });
 });
+
+describe('buildSearchXml — seeding obligations and infohash', () => {
+  it('emits infohash, minimumratio and minimumseedtime when the site sets them', () => {
+    const xml = buildSearchXml(
+      feed([
+        item({
+          infoHash: 'a'.repeat(40),
+          minimumRatio: 0.8,
+          minimumSeedTime: 172800,
+        }),
+      ])
+    );
+
+    expect(xml).toContain(`<torznab:attr name="infohash" value="${'a'.repeat(40)}"/>`);
+    expect(xml).toContain('<torznab:attr name="minimumratio" value="0.8"/>');
+    expect(xml).toContain('<torznab:attr name="minimumseedtime" value="172800"/>');
+  });
+
+  it('omits an obligation the site does not impose rather than sending 0', () => {
+    // A stated 0 and an absent value mean the same thing to a client, and the
+    // stated one can be misread as "seed for zero seconds".
+    const xml = buildSearchXml(
+      feed([item({ infoHash: 'b'.repeat(40), minimumRatio: 0, minimumSeedTime: 0 })])
+    );
+
+    expect(xml).toContain('name="infohash"');
+    expect(xml).not.toContain('name="minimumratio"');
+    expect(xml).not.toContain('name="minimumseedtime"');
+  });
+
+  it('omits infohash entirely when the item carries none', () => {
+    // Mirrored (federated) releases are the case: we hold the hash, but the
+    // obligations belong to the origin instance, so only the hash is sent.
+    const xml = buildSearchXml(feed([item()]));
+    expect(xml).not.toContain('name="infohash"');
+  });
+
+  it('carries the volume factors through unchanged', () => {
+    const xml = buildSearchXml(
+      feed([item({ downloadVolumeFactor: 0, uploadVolumeFactor: 2 })])
+    );
+    expect(xml).toContain('<torznab:attr name="downloadvolumefactor" value="0"/>');
+    expect(xml).toContain('<torznab:attr name="uploadvolumefactor" value="2"/>');
+  });
+});
