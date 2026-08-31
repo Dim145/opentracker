@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { sniffImage, assertImageType } from '../utils/imageSniff';
+import {
+  sniffImage,
+  assertImageType,
+  imageDimensions,
+  manifestIconSizes,
+} from '../utils/imageSniff';
 
 // Identifying an uploaded image from its bytes rather than its declared type.
 //
@@ -106,5 +111,105 @@ describe('assertImageType', () => {
     // GIF must not be stored under a `.png` extension.
     expect(() => assertImageType(gif, ['image/png', 'image/webp'])).toThrow();
     expect(() => assertImageType(Buffer.from('<html>'), ['image/png'])).toThrow();
+  });
+});
+
+// Measuring the image, which the web app manifest turns into a claim a browser
+// acts on: Chrome installs a site only when an icon declares ≥ 512×512, and it
+// reads the declaration rather than the file. A wrong number buys an install
+// prompt and a blurry icon.
+describe('imageDimensions', () => {
+  /** A PNG header with a real IHDR — the only chunk the reader looks at. */
+  function pngOf(width: number, height: number): Buffer {
+    const buf = Buffer.alloc(24);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(buf, 0);
+    buf.writeUInt32BE(13, 8); // IHDR length
+    buf.write('IHDR', 12, 'latin1');
+    buf.writeUInt32BE(width, 16);
+    buf.writeUInt32BE(height, 20);
+    return buf;
+  }
+
+  it('reads a PNG IHDR', () => {
+    expect(imageDimensions(pngOf(512, 512))).toEqual({
+      width: 512,
+      height: 512,
+    });
+  });
+
+  it('reads a GIF logical screen descriptor (little-endian)', () => {
+    const buf = Buffer.alloc(16);
+    buf.write('GIF89a', 0, 'latin1');
+    buf.writeUInt16LE(300, 6);
+    buf.writeUInt16LE(200, 8);
+    expect(imageDimensions(buf)).toEqual({ width: 300, height: 200 });
+  });
+
+  it('reads a WEBP VP8X canvas (24-bit, stored minus one)', () => {
+    const buf = Buffer.alloc(32);
+    buf.write('RIFF', 0, 'latin1');
+    buf.write('WEBP', 8, 'latin1');
+    buf.write('VP8X', 12, 'latin1');
+    // 192 and 96, each written as value-1 over three little-endian bytes.
+    buf[24] = 191;
+    buf[27] = 95;
+    expect(imageDimensions(buf)).toEqual({ width: 192, height: 96 });
+  });
+
+  it('walks past a JPEG APP segment to reach the frame header', () => {
+    // SOI, then an APP0 of declared length 8, then SOF0 carrying 64×32.
+    const buf = Buffer.concat([
+      Buffer.from([0xff, 0xd8]),
+      Buffer.from([0xff, 0xe0, 0x00, 0x08, 1, 2, 3, 4, 5, 6]),
+      Buffer.from([0xff, 0xc0, 0x00, 0x11, 0x08]),
+      (() => {
+        const d = Buffer.alloc(4);
+        d.writeUInt16BE(32, 0); // height first — JPEG's order
+        d.writeUInt16BE(64, 2);
+        return d;
+      })(),
+      Buffer.alloc(8),
+    ]);
+    expect(imageDimensions(buf)).toEqual({ width: 64, height: 32 });
+  });
+
+  it('gives up rather than guessing on a JPEG that reaches its scan data', () => {
+    // SOI then SOS: the entropy-coded data starts and no frame header follows.
+    const buf = Buffer.concat([
+      Buffer.from([0xff, 0xd8]),
+      Buffer.from([0xff, 0xda, 0x00, 0x08]),
+      Buffer.alloc(16),
+    ]);
+    expect(imageDimensions(buf)).toBeNull();
+  });
+
+  it('returns null for an SVG, which has no intrinsic pixel size', () => {
+    expect(imageDimensions(Buffer.from('<svg width="10"></svg>'))).toBeNull();
+  });
+
+  it('returns null on a truncated header instead of reading past the end', () => {
+    expect(imageDimensions(pngOf(512, 512).subarray(0, 18))).toBeNull();
+    expect(imageDimensions(Buffer.alloc(4))).toBeNull();
+  });
+});
+
+describe('manifestIconSizes', () => {
+  it('states the square when there is one', () => {
+    expect(manifestIconSizes({ width: 512, height: 512 })).toBe('512x512');
+  });
+
+  it('falls back to `any` when the measurement is missing', () => {
+    // An SVG, an unwalked format, or an image uploaded before the measurement
+    // existed. Never a fabricated square.
+    expect(manifestIconSizes(null)).toBe('any');
+  });
+
+  it('refuses to call a non-square image an icon size', () => {
+    // `sizes` names squares. A banner is not an 800-pixel icon.
+    expect(manifestIconSizes({ width: 800, height: 200 })).toBe('any');
+  });
+
+  it('rejects degenerate dimensions', () => {
+    expect(manifestIconSizes({ width: 0, height: 0 })).toBe('any');
   });
 });

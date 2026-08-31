@@ -110,6 +110,7 @@ export default defineConfig({
             { text: 'Favorites', link: '/guide/favorites' },
             { text: 'Follows', link: '/guide/follows' },
             { text: 'Cross-seed', link: '/guide/cross-seed' },
+            { text: 'Install as an App', link: '/guide/install-as-app' },
             { text: 'Federation', link: '/guide/federation' },
           ],
         },

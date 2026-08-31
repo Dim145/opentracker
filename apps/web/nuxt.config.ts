@@ -650,6 +650,23 @@ export default defineNuxtConfig({
           // default; the built-ins live in the bundle, so this has to sort later.
           tagPriority: 65,
         },
+        {
+          /**
+           * The web app manifest — what makes the site installable.
+           *
+           * Served by the API for the same reason the stylesheet above is:
+           * everything in it (name, colours, icon) is operator-configurable,
+           * and `app.head` is the only place that reaches the HTML of BOTH
+           * shapes this app ships in. A static `public/manifest.webmanifest`
+           * would bake one instance's branding into every instance's bundle.
+           *
+           * A manifest's `scope` is not confined to its own directory the way
+           * a service worker's is, so serving it from `/api/` and claiming `/`
+           * is legitimate — see the route for the rest.
+           */
+          rel: 'manifest',
+          href: '/api/manifest.webmanifest',
+        },
       ],
     },
   },

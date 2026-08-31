@@ -36,6 +36,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 - **Dedicated upload page** — auto title + tags from filename, multi-source search picker, duplicate preflight, conditional ID block per category, Tiptap WYSIWYG description, NFO drag-drop (CP437 → UTF-8).
 - **Release sheet builder** — a four-step wizard at `/torrents/fiche` turns a video file into a BBCode sheet, an NFO and a normalised release name, then hands all three to the upload form. MediaInfo runs **in the browser** through WebAssembly and reads only the chunks it asks for, so a 40 GB remux is analysed without ever being uploaded. Every dropdown keeps an "Other…" entry, and bitrate/size unit selectors change the frame of reference without touching the value.
 - **Operator console** — `/admin` covers users, categories, roles, invites, branding, panic, tags, Torznab, reports, HnR.
+- **Installable (PWA)** — a manifest served by the API, so the app's name, colours and icon follow the instance's branding. No offline cache: every page here is a live view of a swarm.
 - **Notification fan-out** — every event-emitting route hits Postgres + Redis pub/sub + the user's chosen external transport (SMTP, Telegram, Discord, ntfy, Gotify, Pushover, Slack, Mattermost, webhook, Apprise, **Web Push**).
 
 ### Tracker protocols

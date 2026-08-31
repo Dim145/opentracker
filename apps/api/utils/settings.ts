@@ -123,6 +123,14 @@ export const SETTINGS_KEYS = {
   SITE_LOGO: 'site_logo',
   SITE_LOGO_IMAGE: 'site_logo_image',
   SITE_FAVICON: 'site_favicon',
+  // Pixel size of the two uploaded images, as `WxH`, written by the upload
+  // routes from the bytes themselves. Only the web app manifest reads them:
+  // a browser trusts the `sizes` an icon declares, so the declaration has to
+  // be measured rather than assumed. Absent (or `any`) means "unknown" — an
+  // SVG, a format we do not walk, or an image uploaded before the
+  // measurement existed. See `utils/imageSniff.manifestIconSizes`.
+  SITE_LOGO_IMAGE_SIZE: 'site_logo_image_size',
+  SITE_FAVICON_SIZE: 'site_favicon_size',
   SITE_SUBTITLE: 'site_subtitle',
   SITE_NAME_COLOR: 'site_name_color',
   SITE_NAME_BOLD: 'site_name_bold',
@@ -356,6 +364,23 @@ export async function getSiteLogo(): Promise<string> {
 export async function getSiteLogoImage(): Promise<string | null> {
   const value = await getSetting(SETTINGS_KEYS.SITE_LOGO_IMAGE);
   return value || null;
+}
+
+/**
+ * The `sizes` string for the uploaded logo / favicon, as measured at upload.
+ *
+ * `any` is both the fallback and a legitimate answer — see the note on the
+ * settings keys. Never fabricate a square here: the manifest's whole value to
+ * a browser is that the number can be trusted.
+ */
+export async function getSiteLogoImageSizes(): Promise<string> {
+  const value = await getSetting(SETTINGS_KEYS.SITE_LOGO_IMAGE_SIZE);
+  return value || 'any';
+}
+
+export async function getSiteFaviconSizes(): Promise<string> {
+  const value = await getSetting(SETTINGS_KEYS.SITE_FAVICON_SIZE);
+  return value || 'any';
 }
 
 export async function getSiteFavicon(): Promise<string | null> {

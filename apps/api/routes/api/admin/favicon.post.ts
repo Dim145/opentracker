@@ -1,7 +1,11 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { setSetting, SETTINGS_KEYS } from '~~/utils/server';
 import { randomBytes } from 'crypto';
-import { assertImageType } from '~~/utils/imageSniff';
+import {
+  assertImageType,
+  imageDimensions,
+  manifestIconSizes,
+} from '~~/utils/imageSniff';
 import { getStorage } from '~~/utils/storage';
 import { resolveObjectKey } from '~~/utils/storage/keys';
 
@@ -91,6 +95,11 @@ export default defineEventHandler(async (event) => {
 
   // Save to settings
   await setSetting(SETTINGS_KEYS.SITE_FAVICON, fileUrl);
+  // Measured, not assumed — see the note in the sibling logo route.
+  await setSetting(
+    SETTINGS_KEYS.SITE_FAVICON_SIZE,
+    manifestIconSizes(imageDimensions(file.data))
+  );
 
   // Delete old favicon if it exists and is in uploads folder. The setting is
   // written by this route, so the value should always be a plain filename —
