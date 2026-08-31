@@ -1095,6 +1095,23 @@ export const torrents = pgTable(
     index('torrents_content_signature_idx').on(table.contentSignature),
     // The cross-tracker content key drives cross-seed / fill matching joins.
     index('torrents_content_root_v2_idx').on(table.contentRootV2),
+    /**
+     * The announce form of the v2 hash.
+     *
+     * BEP 52 keeps the SHA-256 for content addressing, but tracker and DHT
+     * protocols were built around 20-byte hashes — so a v2 or hybrid client
+     * announces the SHA-256 truncated to 20 bytes, i.e. the first 40 hex
+     * characters of `info_hash_v2`. The tracker looks a torrent up by exactly
+     * that when the v1 lookup misses.
+     *
+     * An expression index rather than a stored column: the value is a prefix
+     * of a column that is already here, and a second copy of a hash is a
+     * second thing to keep in step. Partial, because most rows are v1-only
+     * and a NULL entry per one of them is dead weight in the hot path's index.
+     */
+    index('torrents_info_hash_v2_short_idx')
+      .on(sql`left(${table.infoHashV2}, 40)`)
+      .where(sql`${table.infoHashV2} IS NOT NULL`),
     index('torrents_openlibrary_idx').on(table.openlibraryId),
     index('torrents_moderation_status_idx').on(table.moderationStatus),
     // GIN rather than GiST: it is the recommended opclass for LIKE/ILIKE and,

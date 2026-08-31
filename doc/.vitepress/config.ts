@@ -95,6 +95,7 @@ export default defineConfig({
             { text: 'Seed Bonus Economy', link: '/guide/seed-bonus' },
             { text: 'Freeleech Pool', link: '/guide/freeleech-pool' },
             { text: 'UDP Tracker (BEP 15)', link: '/guide/udp-tracker' },
+            { text: 'BitTorrent v2 (BEP 52)', link: '/guide/bittorrent-v2' },
             { text: 'Metadata Providers', link: '/guide/metadata-providers' },
             { text: 'Notifications', link: '/guide/notifications' },
             { text: 'Messaging', link: '/guide/messaging' },

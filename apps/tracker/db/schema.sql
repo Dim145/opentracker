@@ -29,6 +29,11 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS torrents (
     id            text      PRIMARY KEY,
     info_hash     text      NOT NULL UNIQUE,
+    -- SHA-256 of the v2 info dict, hex, for a v2 or hybrid torrent; NULL for
+    -- a v1-only one. A client announcing into the v2 swarm sends the first 20
+    -- bytes of this, so the announce path looks up `left(info_hash_v2, 40)`.
+    -- Written by the api at upload time; the tracker only reads it.
+    info_hash_v2  text,
     name          text      NOT NULL,
     size          bigint    NOT NULL,
     description   text,

@@ -177,6 +177,67 @@ func (d *DB) IsIpBanned(ctx context.Context, ip string) (bool, error) {
 	return banned, nil
 }
 
+// ResolveAnnouncedTorrent maps the infohash a client announced onto a torrent
+// row and the swarm key its peers belong under.
+//
+// One infohash used to be the whole story. BEP 52 gave a torrent two: the v1
+// SHA-1 and the v2 SHA-256, the latter truncated to 20 bytes on the wire
+// because the tracker protocol has no room for 32. A hybrid torrent carries
+// both, and a client that speaks v2 joins BOTH swarms — so it announces twice,
+// under two different hashes, for the same content.
+//
+// Before this, the second announce found no row: the lookup was `info_hash`
+// and nothing else. What the member saw was a torrent that worked and, beside
+// it, an announce erroring every interval; what the swarm got was two halves
+// that could not see each other, since v1-only peers and v2-capable peers were
+// keyed apart in Redis.
+//
+// So: try v1 first, and only fall back to the v2 form when that misses.
+//
+//   - The v1 lookup is a unique-index hit and the overwhelmingly common case.
+//     It is unchanged, and pays nothing for any of this.
+//   - The fallback is a partial expression index over the v2 rows only. A v2
+//     announce therefore costs two lookups where a v1 announce costs one,
+//     which is the right way round: the rare case pays.
+//
+// The returned `swarmKey` is the CANONICAL `info_hash` in both cases. Callers
+// use it for every keyed operation — peer set, dedup window, completed
+// counter, seed-time bookkeeping — and that single substitution is what merges
+// a hybrid torrent's two swarms into one.
+//
+// A note on what this deliberately does not do: it does not deduplicate a peer
+// that announces both swarms with two different peer_ids. libtorrent reuses one
+// peer_id, so the Redis key (swarm, peer) collapses the pair by itself and the
+// common case is exact. A client that rotated its id would be counted twice —
+// the same as a member running two clients today, and bounded by the same
+// per-announce cap and anti-cheat heuristics. Deduplicating by (user, torrent)
+// instead would mean rebuilding the peer store around a different key, which is
+// a much larger change than the bug warrants.
+func (d *DB) ResolveAnnouncedTorrent(
+	ctx context.Context,
+	announcedHex string,
+) (torrentID string, swarmKey string, err error) {
+	id, err := d.Q.FindActiveTorrentByInfoHash(ctx, announcedHex)
+	if err == nil {
+		return id, announcedHex, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return "", "", err
+	}
+
+	row, v2Err := d.Q.FindActiveTorrentByInfoHashV2Short(ctx, announcedHex)
+	if v2Err != nil {
+		// Report the v1 miss, not the v2 one: pgx.ErrNoRows from either arm
+		// means the same thing to the caller ("no such torrent"), and a
+		// transient v2 failure would otherwise mask a clean not-found.
+		if errors.Is(v2Err, pgx.ErrNoRows) {
+			return "", "", err
+		}
+		return "", "", v2Err
+	}
+	return row.ID, row.InfoHash, nil
+}
+
 // InvalidateCache drops every cached setting. Used in tests.
 func (d *DB) InvalidateCache() {
 	d.cacheMu.Lock()

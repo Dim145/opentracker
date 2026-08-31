@@ -41,6 +41,16 @@ import { createHash } from 'node:crypto';
 export interface V2Content {
   /** SHA-256 of the bencoded `info` dict, hex. Torrent-specific (hybrid announce). */
   infoHashV2: string;
+  /**
+   * The first 20 bytes of `infoHashV2`, hex — what a v2 or hybrid client
+   * actually sends to the tracker.
+   *
+   * BEP 52 keeps the SHA-256 for content addressing but the tracker and DHT
+   * protocols were built around 20-byte hashes, so a v2 announce carries the
+   * SHA-256 truncated to 20 bytes. That is the value the announce path matches
+   * on; it is derived rather than stored, so the two can never disagree.
+   */
+  infoHashV2Short: string;
   /** Cross-tracker content key over the sorted per-file roots, hex. */
   contentRootV2: string;
   /** Per-file Merkle roots, sorted by path. `root` is '' for a zero-length file. */
@@ -110,6 +120,99 @@ function collectRoots(
 }
 
 /**
+ * Where the `info` dictionary's bytes start and end inside a `.torrent`.
+ *
+ * An infohash — v1 or v2 — is the hash of the ORIGINAL bytes of the info dict,
+ * not of a re-encoding of the decoded value. The two agree for a canonical
+ * torrent (sorted keys, valid UTF-8 paths) and diverge for everything else, and
+ * "everything else" exists in the wild: a client that emits keys out of order,
+ * or a path that is not valid UTF-8, which a decoder surfaces as something it
+ * cannot round-trip.
+ *
+ * The divergence used to be affordable because nothing matched on the v2 hash
+ * — the note further down said so. The announce path matches on it now, and a
+ * hash that is *usually* right is exactly the failure mode nobody would find:
+ * a member with an unusual client whose hybrid torrent announces into a swarm
+ * that does not exist, on a site where every other hybrid torrent works.
+ *
+ * So the bytes are located instead. This is a bencode scanner that walks
+ * structure without interpreting it — it does not need to understand a single
+ * value, only where each one ends — and returns the half-open range of the
+ * top-level `info` value.
+ *
+ * Returns null for anything it cannot walk: a truncated file, a non-dict root,
+ * no `info` key. Bounded by the buffer length on every path, so a hostile file
+ * cannot make it loop.
+ */
+export function infoDictRange(
+  bytes: Buffer
+): { start: number; end: number } | null {
+  // `skip` returns the index one past the value that starts at `i`, or -1.
+  const skip = (i: number): number => {
+    if (i >= bytes.length) return -1;
+    const c = bytes[i]!;
+
+    // Integer: `i<digits>e`.
+    if (c === 0x69 /* i */) {
+      const e = bytes.indexOf(0x65 /* e */, i + 1);
+      return e === -1 ? -1 : e + 1;
+    }
+
+    // Dict or list: recurse until the matching `e`.
+    if (c === 0x64 /* d */ || c === 0x6c /* l */) {
+      let j = i + 1;
+      while (j < bytes.length && bytes[j] !== 0x65 /* e */) {
+        const next = skip(j);
+        if (next <= j) return -1; // no progress: malformed
+        j = next;
+      }
+      return j < bytes.length ? j + 1 : -1;
+    }
+
+    // Byte string: `<length>:<bytes>`. Digits only — a leading `-` or a
+    // missing colon is malformed, not a negative length.
+    if (c >= 0x30 && c <= 0x39) {
+      const colon = bytes.indexOf(0x3a /* : */, i);
+      if (colon === -1) return -1;
+      const digits = bytes.toString('latin1', i, colon);
+      if (!/^[0-9]+$/.test(digits)) return -1;
+      const len = Number.parseInt(digits, 10);
+      // `Number.parseInt` on a 20-digit length yields something past any real
+      // buffer; the bound below rejects it either way.
+      const end = colon + 1 + len;
+      return end <= bytes.length ? end : -1;
+    }
+
+    return -1;
+  };
+
+  if (bytes.length < 2 || bytes[0] !== 0x64 /* d */) return null;
+
+  let i = 1;
+  while (i < bytes.length && bytes[i] !== 0x65 /* e */) {
+    // Every key in a bencoded dict is a byte string.
+    const keyStart = i;
+    const keyEnd = skip(keyStart);
+    if (keyEnd <= keyStart) return null;
+    const colon = bytes.indexOf(0x3a /* : */, keyStart);
+    if (colon === -1 || colon >= keyEnd) return null;
+    const key = bytes.toString('latin1', colon + 1, keyEnd);
+
+    const valEnd = skip(keyEnd);
+    if (valEnd <= keyEnd) return null;
+
+    if (key === 'info') return { start: keyEnd, end: valEnd };
+    i = valEnd;
+  }
+  return null;
+}
+
+/** The 20-byte truncation BEP 52 announces, as hex. */
+export function truncateV2(infoHashV2Hex: string): string {
+  return infoHashV2Hex.slice(0, 40);
+}
+
+/**
  * Derive v2 content addressing from raw `.torrent` bytes. Compute it from the
  * exact bytes you store and serve (post-normalisation), so a client re-deriving
  * from the same file lands on the same `infoHashV2`.
@@ -138,18 +241,28 @@ export function extractV2(torrentBytes: Buffer | Uint8Array): V2Content | null {
 
   roots.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 
-  // NOTE: this hashes a RE-ENCODE of the decoded info dict, not the original
-  // byte slice. For a canonical torrent (sorted keys, UTF-8 paths) that equals
-  // the true BEP-52 infohash; for a non-canonical dict, or a path that is not
-  // valid UTF-8 (which `bencode` surfaces as a hex string), it diverges. We can
-  // afford that because `infoHashV2` is only stored and carried in the record —
-  // nothing joins or matches on it — and `contentRootV2` (the key that IS
-  // matched) stays deterministic within this codebase, so opentracker↔opentracker
-  // matching is unaffected. If a future consumer needs the portable, exact v2
-  // infohash, compute it from the original info-dict byte range instead.
+  // Hashed over the ORIGINAL info-dict bytes, located by `infoDictRange`.
+  //
+  // This used to hash a re-encode of the decoded dict, which is the same thing
+  // for a canonical torrent and a different thing for one whose keys are out of
+  // order or whose paths are not valid UTF-8. That was affordable while nothing
+  // matched on the value; the announce path matches on it now, so it has to be
+  // the hash a client computes rather than a hash that usually is.
+  //
+  // A file we cannot locate the range in is treated as unaddressable — the same
+  // answer as a malformed file, and the same answer as before for anything that
+  // was never going to work.
+  const raw = Buffer.isBuffer(torrentBytes)
+    ? torrentBytes
+    : Buffer.from(torrentBytes);
+  const range = infoDictRange(raw);
+  if (!range) return null;
+
   let infoHashV2: string;
   try {
-    infoHashV2 = createHash('sha256').update(bencode.encode(info)).digest('hex');
+    infoHashV2 = createHash('sha256')
+      .update(raw.subarray(range.start, range.end))
+      .digest('hex');
   } catch {
     return null;
   }
@@ -157,5 +270,10 @@ export function extractV2(torrentBytes: Buffer | Uint8Array): V2Content | null {
     .update(JSON.stringify(roots))
     .digest('hex');
 
-  return { infoHashV2, contentRootV2, fileRoots: roots };
+  return {
+    infoHashV2,
+    infoHashV2Short: truncateV2(infoHashV2),
+    contentRootV2,
+    fileRoots: roots,
+  };
 }

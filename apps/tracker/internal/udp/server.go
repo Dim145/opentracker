@@ -365,11 +365,14 @@ func (s *Server) handleScrape(ctx context.Context, data []byte, raddr *net.UDPAd
 		count = maxScrapeHashes
 	}
 	stats := make([]ScrapeStat, count)
+	// Delegated to the shared processor so a v2 hash resolves here exactly as
+	// it does over HTTP — the framing differs between the two transports, the
+	// answer must not. One budget for the whole packet.
+	resolveBudget := server.MaxScrapeResolves
 	for i := 0; i < count; i++ {
 		ih := hashes[i*infoHashSize : (i+1)*infoHashSize]
 		hex := hexBytes(ih)
-		seeders, leechers, _ := s.store.Counts(ctx, hex)
-		completed, _ := s.store.CompletedCount(ctx, hex)
+		seeders, leechers, completed := s.proc.ScrapeStats(ctx, hex, &resolveBudget)
 		stats[i] = ScrapeStat{
 			Seeders:   seeders,
 			Completed: completed,

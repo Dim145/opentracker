@@ -314,13 +314,29 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// 3. Torrent must exist and be active. We capture the row's id —
 	// previously discarded — so step 6 can persist per-(user, torrent)
 	// byte deltas into hnr_tracking without an extra round-trip.
-	torrentID, err := s.db.Q.FindActiveTorrentByInfoHash(ctx, infoHashHex)
+	//
+	// The announced hash is not necessarily the swarm key. A hybrid torrent
+	// (BEP 52) has a v1 and a v2 infohash and a v2-capable client announces
+	// under both; the resolver maps either onto the row and hands back the
+	// CANONICAL v1 hash. Reassigning `infoHashHex` to it here is what puts both
+	// halves of that swarm under one Redis key — every keyed operation below
+	// (dedup window, peer set, completed counter, seed time, anti-cheat) reads
+	// this variable and therefore agrees. See db.ResolveAnnouncedTorrent.
+	torrentID, swarmKey, err := s.db.ResolveAnnouncedTorrent(ctx, infoHashHex)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return AnnounceOutcome{Failure: "Torrent not found or inactive"}
 		}
 		slog.Error("internal error", "where", "find torrent", "err", err)
 		return AnnounceOutcome{Failure: "Internal tracker error"}
+	}
+	if swarmKey != infoHashHex {
+		// A v2 announce. Logged at debug rather than info: it is entirely
+		// normal, happens every interval for every v2-capable peer, and the
+		// only reason to want it is diagnosing a swarm that looks split.
+		slog.Debug("v2 announce folded into the v1 swarm",
+			"announced", infoHashHex, "swarm", swarmKey)
+		infoHashHex = swarmKey
 	}
 
 	// 4. Dedup window — skip if same {hash,peer,event} fired within 2 seconds
@@ -877,6 +893,58 @@ func (s *Server) recordSeedTime(passkey, infoHashHex string, secondsToAdd int32)
 // /scrape
 // ----------------------------------------------------------------------------
 
+// MaxScrapeResolves bounds how many v2 lookups one scrape may trigger.
+//
+// A scrape carries up to 64 hashes and, historically, cost zero database
+// queries: each hash was read straight out of Redis. Resolving every hash
+// would turn one packet into 64 queries, which is a denial-of-service handed
+// out for free. Resolving none would leave a v2 client's scrape permanently
+// answering zero, since the swarm now lives under the canonical key.
+//
+// So only hashes Redis has never heard of are resolved, and only this many per
+// request. Past the budget the answer is what it was before this existed —
+// zeroes — never something worse.
+//
+// Exported so the UDP transport shares the same ceiling.
+const MaxScrapeResolves = 8
+
+// ScrapeStats answers one hash of a scrape, folding the BEP 52 second swarm in.
+//
+// `resolveBudget` is decremented on each database lookup and is shared across
+// one scrape request; pass a pointer to a single counter for the whole batch.
+// Exported because the UDP transport has its own scrape framing but needs the
+// same answer — the two must not drift.
+func (s *Server) ScrapeStats(
+	ctx context.Context,
+	announcedHex string,
+	resolveBudget *int,
+) (seeders, leechers int, completed int64) {
+	seeders, leechers, _ = s.peers.Counts(ctx, announcedHex)
+	completed, _ = s.peers.CompletedCount(ctx, announcedHex)
+
+	// All zero is the only case worth a query, and it is ambiguous: a dead v1
+	// torrent looks exactly like a live v2 one scraped under the wrong key.
+	// The lookup is what tells them apart, and a dead torrent pays one index
+	// probe for it.
+	if seeders != 0 || leechers != 0 || completed != 0 {
+		return seeders, leechers, completed
+	}
+	if resolveBudget == nil || *resolveBudget <= 0 {
+		return seeders, leechers, completed
+	}
+	*resolveBudget--
+
+	_, swarmKey, err := s.db.ResolveAnnouncedTorrent(ctx, announcedHex)
+	if err != nil || swarmKey == announcedHex {
+		// Unknown, or a v1 hash that really has no peers. Either way the
+		// zeroes above are the honest answer.
+		return seeders, leechers, completed
+	}
+	seeders, leechers, _ = s.peers.Counts(ctx, swarmKey)
+	completed, _ = s.peers.CompletedCount(ctx, swarmKey)
+	return seeders, leechers, completed
+}
+
 func (s *Server) handleScrape(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
@@ -892,6 +960,8 @@ func (s *Server) handleScrape(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	stats := make([]ScrapeStat, 0, len(hashes))
+	// One budget for the whole batch — see MaxScrapeResolves.
+	resolveBudget := MaxScrapeResolves
 	for _, h := range hashes {
 		if len(h) != announce.InfoHashLen {
 			continue
@@ -900,9 +970,10 @@ func (s *Server) handleScrape(w http.ResponseWriter, r *http.Request) {
 		copy(raw[:], h)
 		hex := hexBytes(raw[:])
 
-		seeders, leechers, _ := s.peers.Counts(ctx, hex)
-		completed, _ := s.peers.CompletedCount(ctx, hex)
+		seeders, leechers, completed := s.ScrapeStats(ctx, hex, &resolveBudget)
 		stats = append(stats, ScrapeStat{
+			// Echoed back as announced, not as resolved: the client asked
+			// about this hash and matches the reply to it.
 			InfoHashRaw: raw,
 			Seeders:     seeders,
 			Leechers:    leechers,

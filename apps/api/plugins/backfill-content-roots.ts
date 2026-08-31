@@ -11,6 +11,23 @@
  *
  * The parse is the cost, so the batch is capped and a cross-replica lock keeps
  * one replica doing the work.
+ *
+ * ## Why the cursor key is versioned
+ *
+ * `info_hash_v2` used to be hashed over a RE-ENCODE of the decoded info dict.
+ * That equals the real BEP 52 infohash for a canonical torrent and diverges for
+ * one whose keys are unsorted or whose paths are not valid UTF-8 — which was
+ * affordable while nothing matched on the value, and stopped being affordable
+ * the moment the announce path did (see `utils/bittorrentV2`).
+ *
+ * Rows written under the old rule are therefore wrong for a minority of
+ * torrents, and there is no way to tell which from the stored value alone. So
+ * the cursor key carries a version: bumping it sends the sweep over the
+ * catalogue once more, re-deriving every row from the bytes it still holds.
+ * A row that was already right is rewritten with the same value.
+ *
+ * Cheaper than a data migration and it cannot lock the table: the same capped,
+ * locked, resumable walk that filled the columns in the first place.
  */
 import { db, schema } from '@trackarr/db';
 import { and, asc, eq, gt, isNotNull } from 'drizzle-orm';
@@ -21,7 +38,9 @@ import { withCronLock } from '~~/utils/cronLock';
 const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 const FIRST_RUN_DELAY_MS = 75 * 1000;
 const BATCH_SIZE = 50;
-const CURSOR_KEY = 'content_root_v2_backfill_cursor';
+// v2: re-derives `info_hash_v2` from the original info-dict bytes rather than a
+// re-encode. Bump this (and say why above) whenever the derivation changes.
+const CURSOR_KEY = 'content_root_v2_backfill_cursor_v2';
 
 async function tick(): Promise<{ processed: number; v2: number }> {
   const cursor = (await getSetting(CURSOR_KEY)) ?? '';
