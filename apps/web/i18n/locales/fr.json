@@ -396,7 +396,8 @@
       "notifications": "Notifications",
       "accountInfo": "Compte",
       "danger": "Zone de danger",
-      "templates": "Modèles de fiche"
+      "templates": "Modèles de fiche",
+      "data": "Vos données"
     },
     "danger": {
       "deleteTitle": "Supprimer ce compte",
@@ -575,6 +576,13 @@
     "templates": {
       "blurb": "L’assistant d’upload construit une fiche BBCode à partir d’une mise en page. Conservez ici les vôtres et choisissez celle dont l’assistant part.",
       "manage": "Gérer les modèles de fiche"
+    },
+    "data": {
+      "blurb": "Téléchargez tout ce que ce tracker détient sur vous, en un seul fichier JSON : profil, mises en ligne, historique de téléchargement, grand livre de bonus, messages du forum et le reste.",
+      "download": "Télécharger mes données",
+      "preparing": "Préparation…",
+      "error": "L'export n'a pas pu être constitué. Réessayez dans un instant.",
+      "excludedNote": "Les identifiants, le corps des messages privés et l'identité des autres membres n'y figurent pas. Le fichier énumère chaque omission et sa raison."
     }
   },
   "torrents": {

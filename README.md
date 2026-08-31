@@ -28,6 +28,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 - **Proof of Work on registration** stops drive-by signup spam.
 - **Hashed IPs** — SHA-256 with daily-rotating salt; no raw IP persisted. Banning a user atomically banlists their last-known IP.
 - **Privacy toggles** — hide last-seen on public profile (mods/admins always see the truth).
+- **Your data, both ways** — one-click JSON export of everything the instance holds about you (GDPR Art. 15 / 20) alongside self-service erasure (Art. 17). Both behind a fresh-login step-up; the export names every omission and why.
 
 ### Browse, upload & operate
 

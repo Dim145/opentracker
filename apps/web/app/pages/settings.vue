@@ -614,6 +614,38 @@
           </div>
         </section>
 
+        <!-- Your data — the access / portability half of the rights the danger
+             zone below covers the erasure half of. Deliberately NOT inside the
+             danger zone: downloading a copy of your own record is not a
+             destructive act and should not be dressed as one. -->
+        <section id="data" class="form-section">
+          <header class="section-head">
+            <span class="section-number">08</span>
+            <h2 class="section-title">{{ $t('settings.sections.data') }}</h2>
+            <span class="section-rule" />
+          </header>
+
+          <div class="section-body">
+            <p class="templates-blurb">{{ $t('settings.data.blurb') }}</p>
+            <p v-if="exportError" class="danger-error">
+              <Icon name="ph:warning-circle-fill" /> {{ exportError }}
+            </p>
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm templates-link"
+              :disabled="exporting"
+              @click="downloadExport"
+            >
+              <Icon
+                :name="exporting ? 'ph:circle-notch' : 'ph:download-simple'"
+                :class="{ 'animate-spin': exporting }"
+              />
+              {{ exporting ? $t('settings.data.preparing') : $t('settings.data.download') }}
+            </button>
+            <p class="templates-blurb">{{ $t('settings.data.excludedNote') }}</p>
+          </div>
+        </section>
+
         <!-- Danger zone — irreversible self-service account erasure. Kept last
              and visually apart so it is never a mis-click away from a save. -->
         <section id="danger" class="form-section">
@@ -887,7 +919,8 @@ type SectionKey =
   | 'security'
   | 'notifications'
   | 'account'
-  | 'templates';
+  | 'templates'
+  | 'data';
 const sections = computed<
   Array<{ key: SectionKey; num: string; label: string; icon: string }>
 >(() => [
@@ -898,6 +931,7 @@ const sections = computed<
   { key: 'notifications', num: '05', label: t('settings.sections.notifications'), icon: 'ph:bell-ringing' },
   { key: 'account', num: '06', label: t('settings.sections.accountInfo'), icon: 'ph:info' },
   { key: 'templates', num: '07', label: t('settings.sections.templates'), icon: 'ph:brackets-curly' },
+  { key: 'data', num: '08', label: t('settings.sections.data'), icon: 'ph:download-simple' },
 ]);
 const activeSection = ref<SectionKey>('identity');
 onMounted(() => {
@@ -1184,6 +1218,48 @@ async function signOut() {
 const deleteConfirm = ref('');
 const deleting = ref(false);
 const deleteError = ref('');
+// ── Data export (GDPR Art. 15 / 20) ─────────────────────────────
+const exporting = ref(false);
+const exportError = ref('');
+
+/**
+ * Fetched as a blob and saved from the browser, not opened as a navigation.
+ *
+ * A plain `window.location = '/api/me/export'` would carry the cookie and work
+ * — right up to the fresh-auth step-up the route requires, whose 401 would
+ * replace the settings page with a raw JSON error. Going through `$fetch` keeps
+ * the failure in this page, where it can say "log in again" like the erasure
+ * button below already does.
+ */
+async function downloadExport() {
+  exporting.value = true;
+  exportError.value = '';
+  try {
+    const blob = await $fetch<Blob>('/api/me/export', { responseType: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    // The server sends a Content-Disposition filename, but a blob: download
+    // cannot read it — so the name is rebuilt here from the same two parts.
+    a.download = `trackarr-export-${form.username}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err: unknown) {
+    const e = err as {
+      statusCode?: number;
+      data?: { message?: string; data?: { reauthRequired?: boolean } };
+      message?: string;
+    };
+    if (e?.data?.data?.reauthRequired || e?.statusCode === 401) {
+      exportError.value = t('settings.danger.reauthRequired');
+    } else {
+      exportError.value = e?.data?.message || e?.message || t('settings.data.error');
+    }
+  } finally {
+    exporting.value = false;
+  }
+}
+
 async function deleteAccount() {
   if (deleteConfirm.value !== form.username) return;
   deleting.value = true;

@@ -396,7 +396,8 @@
       "notifications": "Notifications",
       "accountInfo": "Account info",
       "danger": "Danger zone",
-      "templates": "Listing templates"
+      "templates": "Listing templates",
+      "data": "Your data"
     },
     "danger": {
       "deleteTitle": "Delete this account",
@@ -575,6 +576,13 @@
     "templates": {
       "blurb": "The upload wizard builds a BBCode listing from a layout. Keep your own layouts here and pick which one the wizard starts from.",
       "manage": "Manage listing templates"
+    },
+    "data": {
+      "blurb": "Download everything this tracker holds about you, as one JSON file: your profile, uploads, snatch history, bonus ledger, forum posts and the rest.",
+      "download": "Download my data",
+      "preparing": "Preparing…",
+      "error": "Could not build the export. Try again in a moment.",
+      "excludedNote": "Credentials, private-message bodies and other members’ identities are left out. The file lists every omission and why."
     }
   },
   "torrents": {
