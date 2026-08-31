@@ -253,6 +253,23 @@ async function refreshSessionRoles(
 export async function requireAuthSession(event: H3Event) {
   const session = await requireUserSession(event);
 
+  /**
+   * Remember who is acting, for the audit log.
+   *
+   * Set HERE — on the plain authentication gate — and not in the staff gates
+   * below, on purpose. A member who aims a request at `/api/admin/**` and takes
+   * a 403 from `requireAdminSession` has already passed this line, so the
+   * attempt is recorded with their name on it. That is the row an operator
+   * most wants: a privilege escalation being tried is worth more than the
+   * hundredth successful ban.
+   *
+   * The staff flags are re-read from the live role a few lines further down in
+   * the staff gates, and they mutate `session.user` in place — so by the time
+   * the audit hook reads this object it holds the authoritative role, not the
+   * one the sealed cookie asserted.
+   */
+  event.context.auditActor = session.user;
+
   // Skip DB check if already verified by middleware (per-request
   // memoisation — distinct from the Redis cache).
   if (event.context.authChecked) {

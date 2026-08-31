@@ -84,6 +84,10 @@ interface PrivacyFacts {
     notificationsReadDays: number;
     notificationsUnreadDays: number;
   };
+  /** The staff audit log. `0` = kept indefinitely. */
+  staffAudit: {
+    retentionDays: number;
+  };
 }
 
 const { t } = useI18n();
@@ -141,6 +145,23 @@ const entries = computed<Entry[]>(() => {
       unread: f.notifications.notificationsUnreadDays,
     }),
   });
+
+  // The staff register. Listed with the durations rather than among the notes
+  // below because it IS a duration, and because a member who was banned or had
+  // an upload rejected is the target of one of its rows — the period is theirs
+  // to know, not only the operator's.
+  {
+    const d = f.staffAudit.retentionDays;
+    rows.push({
+      key: 'staffAudit',
+      days: d,
+      forever: d <= 0,
+      title: t('privacy.staffAudit.title'),
+      text: d > 0
+        ? t('privacy.staffAudit.timed', { n: d })
+        : t('privacy.staffAudit.forever'),
+    });
+  }
 
   return rows;
 });

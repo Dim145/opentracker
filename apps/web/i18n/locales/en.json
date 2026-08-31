@@ -1621,7 +1621,8 @@
       },
       "filterPlaceholder": "Filter sections…",
       "noMatch": "No section matches.",
-      "closeMenu": "Close the admin menu"
+      "closeMenu": "Close the admin menu",
+      "audit": "Audit log"
     },
     "descriptions": {
       "dashboard": "Tracker configuration and node management",
@@ -1643,7 +1644,8 @@
       "settings": "System-wide registration and tracker settings",
       "federation": "Link this tracker with trusted Trackarr instances",
       "federationTaxonomy": "Map partners' category slugs onto your own categories",
-      "listingTemplates": "Curate the listing layouts every member can pick in the upload wizard."
+      "listingTemplates": "Curate the listing layouts every member can pick in the upload wizard.",
+      "audit": "Every change made from the staff console — who, what, when."
     },
     "taxonomy": {
       "title": "Federated taxonomy",
@@ -3698,6 +3700,50 @@
       "clear": "Clear",
       "footerHint": "Or type a Phosphor name.",
       "toggleAria": "Open the icon picker"
+    },
+    "audit": {
+      "eyebrow": "Accountability",
+      "title": "Audit log",
+      "lede": "Every mutating request to the admin and moderation consoles, with the account that made it. Append-only: entries cannot be edited or deleted, and leave only when the retention period expires. Readable by admins; moderator actions appear here too.",
+      "refresh": "Reload",
+      "filtersLabel": "Filters",
+      "tableLabel": "Audit entries",
+      "pagerLabel": "Pagination",
+      "search": "Search",
+      "searchPlaceholder": "Staff or target name…",
+      "action": "Action",
+      "anyAction": "Any action",
+      "from": "From",
+      "to": "To",
+      "failuresOnly": "Refused only",
+      "clear": "Clear filters",
+      "empty": "No entry matches these filters.",
+      "pageOf": "Page {page} of {pages}",
+      "foot": "Times are UTC. A refused request is recorded too — a run of them from one account is the pattern this register exists to show. Post-panic recovery is not logged: after panic mode there is no session, so there is no account to name.",
+      "col": {
+        "when": "When (UTC)",
+        "actor": "Staff",
+        "action": "Action",
+        "target": "Target",
+        "status": "Status",
+        "detail": "Detail"
+      },
+      "detail": {
+        "request": "Request",
+        "changes": "Changes",
+        "ipHash": "Address",
+        "ipNote": "Hashed with a salt that rotates daily — comparable only within the same day."
+      },
+      "retention": {
+        "label": "Retention",
+        "title": "How long entries are kept",
+        "text": "Days before an entry is swept. 0 keeps them indefinitely. Published on the public privacy page, so members can read the period that applies to decisions taken about them.",
+        "days": "Days",
+        "save": "Save",
+        "saved": "Retention updated.",
+        "failed": "Could not save the retention period.",
+        "forever": "Entries are currently kept indefinitely."
+      }
     }
   },
   "mod": {
@@ -5112,7 +5158,12 @@
       "title": "What staff can read",
       "text": "A moderator opens one private message, and only one that has an open report against it. The endpoint answers nothing for any other message, so it cannot be used to walk a conversation, and it answers nothing at all for an encrypted one. Every one of those reads is recorded — who, when, and whether anything was legible — and the record is visible to all staff, not only to whoever ordered it."
     },
-    "foot": "This page lists retention. It is not a substitute for whatever notice the operator of this instance is required to publish where it is hosted."
+    "foot": "This page lists retention. It is not a substitute for whatever notice the operator of this instance is required to publish where it is hosted.",
+    "staffAudit": {
+      "title": "Staff actions",
+      "timed": "Every change made from the moderation or admin console — a ban, a role, a setting, a rejected upload — is recorded with who made it and when, and kept for {n} days. Readable by admins only. The entry cannot be edited or removed by the staffer who caused it.",
+      "forever": "Every change made from the moderation or admin console — a ban, a role, a setting, a rejected upload — is recorded with who made it and when, and kept indefinitely. Readable by admins only. The entry cannot be edited or removed by the staffer who caused it."
+    }
   },
   "tickets": {
     "title": "Tickets",

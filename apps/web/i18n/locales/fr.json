@@ -1621,7 +1621,8 @@
       },
       "filterPlaceholder": "Filtrer les sections…",
       "noMatch": "Aucune section ne correspond.",
-      "closeMenu": "Fermer le menu d'administration"
+      "closeMenu": "Fermer le menu d'administration",
+      "audit": "Journal d'audit"
     },
     "descriptions": {
       "dashboard": "Configuration du tracker et gestion des nœuds",
@@ -1643,7 +1644,8 @@
       "settings": "Paramètres globaux d'inscription et de tracker",
       "federation": "Relier ce tracker à des instances Trackarr de confiance",
       "federationTaxonomy": "Faire correspondre les slugs de catégorie des partenaires à vos propres catégories",
-      "listingTemplates": "Choisir les mises en page de fiche proposées à tous les membres dans l'assistant d'upload."
+      "listingTemplates": "Choisir les mises en page de fiche proposées à tous les membres dans l'assistant d'upload.",
+      "audit": "Chaque changement fait depuis la console du personnel — qui, quoi, quand."
     },
     "taxonomy": {
       "title": "Taxonomie fédérée",
@@ -3698,6 +3700,50 @@
       "clear": "Effacer",
       "footerHint": "Ou tapez un nom Phosphor.",
       "toggleAria": "Ouvrir le sélecteur d'icônes"
+    },
+    "audit": {
+      "eyebrow": "Redevabilité",
+      "title": "Journal d'audit",
+      "lede": "Chaque requête modifiante vers les consoles d'administration et de modération, avec le compte qui l'a faite. En ajout seul : une entrée ne peut être ni modifiée ni supprimée, et ne part qu'à l'expiration du délai de conservation. Lisible par les administrateurs ; les actions des modérateurs y figurent aussi.",
+      "refresh": "Recharger",
+      "filtersLabel": "Filtres",
+      "tableLabel": "Entrées d'audit",
+      "pagerLabel": "Pagination",
+      "search": "Rechercher",
+      "searchPlaceholder": "Nom du personnel ou de la cible…",
+      "action": "Action",
+      "anyAction": "N'importe quelle action",
+      "from": "Du",
+      "to": "Au",
+      "failuresOnly": "Refusées seulement",
+      "clear": "Effacer les filtres",
+      "empty": "Aucune entrée ne correspond à ces filtres.",
+      "pageOf": "Page {page} sur {pages}",
+      "foot": "Les heures sont en UTC. Une requête refusée est enregistrée aussi — une série de refus depuis un même compte est précisément le motif que ce registre existe pour montrer. La restauration après un panic n'est pas journalisée : après le panic mode il n'y a plus de session, donc aucun compte à nommer.",
+      "col": {
+        "when": "Quand (UTC)",
+        "actor": "Personnel",
+        "action": "Action",
+        "target": "Cible",
+        "status": "Statut",
+        "detail": "Détail"
+      },
+      "detail": {
+        "request": "Requête",
+        "changes": "Changements",
+        "ipHash": "Adresse",
+        "ipNote": "Hachée avec un sel qui tourne chaque jour — comparable seulement au sein d'une même journée."
+      },
+      "retention": {
+        "label": "Conservation",
+        "title": "Durée de conservation des entrées",
+        "text": "Nombre de jours avant balayage d'une entrée. 0 les conserve sans limite. Publié sur la page de confidentialité publique, pour que les membres puissent lire le délai qui s'applique aux décisions les concernant.",
+        "days": "Jours",
+        "save": "Enregistrer",
+        "saved": "Conservation mise à jour.",
+        "failed": "La durée de conservation n'a pas pu être enregistrée.",
+        "forever": "Les entrées sont actuellement conservées sans limite de durée."
+      }
     }
   },
   "mod": {
@@ -5112,7 +5158,12 @@
       "title": "Ce que le staff peut lire",
       "text": "Un modérateur ouvre un message privé, et seulement un qui fait l'objet d'un signalement ouvert. La route ne répond rien pour un autre message — elle ne permet donc pas de parcourir une conversation — et rien du tout pour un message chiffré. Chacune de ces lectures est enregistrée — qui, quand, et si quelque chose était lisible — et le registre est visible de tout le staff, pas seulement de celui qui l'a demandé."
     },
-    "foot": "Cette page liste des durées de conservation. Elle ne remplace pas la notice que l'exploitant de cette instance doit publier là où elle est hébergée."
+    "foot": "Cette page liste des durées de conservation. Elle ne remplace pas la notice que l'exploitant de cette instance doit publier là où elle est hébergée.",
+    "staffAudit": {
+      "title": "Actions du personnel",
+      "timed": "Chaque changement fait depuis la console de modération ou d'administration — un bannissement, un rôle, un réglage, une mise en ligne refusée — est enregistré avec son auteur et sa date, et conservé {n} jours. Lisible par les administrateurs uniquement. L'entrée ne peut être ni modifiée ni supprimée par le membre du personnel qui l'a provoquée.",
+      "forever": "Chaque changement fait depuis la console de modération ou d'administration — un bannissement, un rôle, un réglage, une mise en ligne refusée — est enregistré avec son auteur et sa date, et conservé sans limite de durée. Lisible par les administrateurs uniquement. L'entrée ne peut être ni modifiée ni supprimée par le membre du personnel qui l'a provoquée."
+    }
   },
   "tickets": {
     "title": "Tickets",

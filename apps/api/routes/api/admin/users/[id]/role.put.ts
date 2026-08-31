@@ -16,6 +16,7 @@ import { validateBody } from '~~/utils/schemas';
 import { eq, and, ne, count } from 'drizzle-orm';
 import { z } from 'zod';
 import { notify } from '~~/utils/notify';
+import { auditDetail } from '~~/utils/audit';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 const bodySchema = z
@@ -39,7 +40,13 @@ export default defineEventHandler(async (event) => {
 
   const target = await db.query.users.findFirst({
     where: eq(schema.users.id, id),
-    columns: { id: true, isAdmin: true, isModerator: true, isOwner: true },
+    columns: {
+      id: true,
+      username: true,
+      isAdmin: true,
+      isModerator: true,
+      isOwner: true,
+    },
   });
   if (!target) {
     throw createError({ statusCode: 404, message: 'User not found' });
@@ -90,6 +97,19 @@ export default defineEventHandler(async (event) => {
       });
     }
   }
+
+  // A privilege grant is the row an audit log exists for: it is how one
+  // compromised account becomes several. Both flags, both directions.
+  auditDetail(event, {
+    action: 'user.role',
+    targetType: 'user',
+    targetId: target.id,
+    targetLabel: target.username,
+    changes: {
+      isAdmin: { from: target.isAdmin, to: body.isAdmin },
+      isModerator: { from: target.isModerator, to: body.isModerator },
+    },
+  });
 
   const [updated] = await db
     .update(schema.users)

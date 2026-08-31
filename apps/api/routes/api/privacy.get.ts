@@ -15,6 +15,7 @@
  */
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import {
+  getAuditRetentionDays,
   getDmRetentionDays,
   getMessagingDmScope,
   getMessagingRoomScope,
@@ -33,6 +34,7 @@ export default defineEventHandler(async (event) => {
     roomMessageDays,
     notificationsReadDays,
     notificationsUnreadDays,
+    auditDays,
   ] = await Promise.all([
     getMessagingDmScope(),
     getMessagingRoomScope(),
@@ -40,6 +42,7 @@ export default defineEventHandler(async (event) => {
     getRoomRetentionDays(),
     getNotificationsRetentionReadDays(),
     getNotificationsRetentionUnreadDays(),
+    getAuditRetentionDays(),
   ]);
 
   return {
@@ -51,5 +54,15 @@ export default defineEventHandler(async (event) => {
       roomMessageDays,
     },
     notifications: { notificationsReadDays, notificationsUnreadDays },
+    /**
+     * The staff audit log. Published for the same reason every other period
+     * here is: a retention nobody can read is a retention nobody was told
+     * about. What it records is staff actions, not member browsing — but a
+     * member who was banned, warned or had their upload rejected IS the target
+     * of one of those rows, so the period is theirs to know.
+     *
+     * `0` means kept indefinitely.
+     */
+    staffAudit: { retentionDays: auditDays },
   };
 });

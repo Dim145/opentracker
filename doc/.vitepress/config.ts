@@ -76,6 +76,7 @@ export default defineConfig({
             { text: 'Zero-Knowledge Auth', link: '/guide/zero-knowledge-auth' },
             { text: 'Two-Factor Auth', link: '/guide/two-factor-auth' },
             { text: 'Panic Mode', link: '/guide/panic-mode' },
+            { text: 'Staff Audit Log', link: '/guide/audit-log' },
             { text: 'Your Data (GDPR)', link: '/guide/your-data' },
           ],
         },

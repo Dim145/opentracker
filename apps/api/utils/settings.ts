@@ -129,6 +129,16 @@ export const SETTINGS_KEYS = {
   // be measured rather than assumed. Absent (or `any`) means "unknown" — an
   // SVG, a format we do not walk, or an image uploaded before the
   // measurement existed. See `utils/imageSniff.manifestIconSizes`.
+  /**
+   * How long staff audit entries are kept, in days. 0 = forever.
+   *
+   * Long by default (a year) because the question an audit log answers is
+   * usually asked late — after a member disputes a ban, or after a staff
+   * account turns out to have been compromised weeks ago. Operators in
+   * jurisdictions that require a shorter hold can shorten it, and the value is
+   * published on `/api/privacy` either way.
+   */
+  AUDIT_LOG_RETENTION_DAYS: 'audit_log_retention_days',
   SITE_LOGO_IMAGE_SIZE: 'site_logo_image_size',
   SITE_FAVICON_SIZE: 'site_favicon_size',
   SITE_SUBTITLE: 'site_subtitle',
@@ -364,6 +374,18 @@ export async function getSiteLogo(): Promise<string> {
 export async function getSiteLogoImage(): Promise<string | null> {
   const value = await getSetting(SETTINGS_KEYS.SITE_LOGO_IMAGE);
   return value || null;
+}
+
+/**
+ * Days an audit entry survives. 0 means "keep indefinitely" — the sweep skips
+ * entirely rather than treating 0 as "delete everything", which is the reading
+ * that would quietly empty the register.
+ */
+export async function getAuditRetentionDays(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.AUDIT_LOG_RETENTION_DAYS);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 0) return 365;
+  return parsed;
 }
 
 /**

@@ -414,6 +414,13 @@
       "when": 1788198389400,
       "tag": "0058_bep52_announce",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1788199247442,
+      "tag": "0059_staff_audit_log",
+      "breakpoints": true
     }
   ]
 }

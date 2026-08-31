@@ -2448,6 +2448,118 @@ export type AnticheatFlag = typeof anticheatFlags.$inferSelect;
 export type NewAnticheatFlag = typeof anticheatFlags.$inferInsert;
 
 // ============================================================================
+// Staff audit log — who did what, across the whole console
+// ============================================================================
+//
+// Every mutating request to `/api/admin/**` and `/api/mod/**` lands here, one
+// row per request, written after the response by a Nitro hook rather than by
+// each route. See `apps/api/utils/audit.ts` and `apps/api/plugins/audit-log.ts`.
+//
+// ## Why the table exists
+//
+// The instance already had a shelf of thematic ledgers, each good inside its
+// own lane: `freeleech_pool_contributions` is append-only, `bonus_grants`
+// records every credit, `torrent_moderation_messages` holds the discussion on
+// an upload, a withdrawn report leaves a tombstone, and the one route that
+// reads private mail logs itself. What none of them answered is the question
+// asked across the site: who banned this member, who changed that setting, who
+// touched federation, who fired panic mode — and when.
+//
+// A system that goes to this much trouble to protect members from the site
+// (hashed IPs on a rotating salt, zero-knowledge auth, panic encryption, GDPR
+// erasure) and cannot say which moderator did what has the asymmetry the wrong
+// way round. It is also what makes a compromised staff account invisible.
+//
+// ## Append-only, and what that means here
+//
+// Nothing in the application updates or deletes a row except the retention
+// sweep. There is no edit path and no "mark as reviewed": a register whose
+// entries can be amended by the people it registers is not a register. The
+// retention sweep is the single exception, it deletes whole rows by age, and
+// the period it uses is published on `/api/privacy` like every other one.
+//
+// ## Denormalised actor, on purpose
+//
+// `actorId` is a nullable FK so an erased account does not take its history
+// with it; `actorName` and `actorRole` are copies taken at write time. Three
+// reasons, and the first is the one that matters: the point of the row is what
+// was true WHEN the action happened. A moderator later promoted to admin, or
+// renamed, or erased, must not retroactively change the record. The other two
+// are that a listing then needs no join, and that GDPR erasure can scrub the
+// name in place (see `utils/account/eraseAccount`) without deleting the entry.
+//
+// ## The IP is hashed, and only comparable within a day
+//
+// `actorIpHash` goes through the same daily-rotating-salt hash as everywhere
+// else — no raw IP is persisted anywhere in this system and an audit log is a
+// poor place to make the first exception. The consequence is stated rather
+// than hidden: two rows can be compared for "same IP" only if they fall on the
+// same day. That is enough for "this admin's session came from somewhere else
+// than the rest of today's actions" and not enough for a long-range history,
+// which is the trade the rest of the codebase already makes.
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: text('id').primaryKey(),
+    // Null once the actor's account has been erased. The name survives in
+    // `actorName`, scrubbed to the tombstone by the erasure.
+    actorId: text('actor_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    actorName: text('actor_name').notNull(),
+    /** `owner` | `admin` | `moderator`, as it was at the time. */
+    actorRole: text('actor_role').notNull(),
+    /**
+     * A stable, dotted key naming the operation — `user.ban`,
+     * `settings.update`, `federation.peer.revoke`.
+     *
+     * Set by the route when it calls `auditDetail`; otherwise derived from the
+     * method and path so an un-enriched route still produces something a
+     * person can read and a filter can group on. Deriving rather than leaving
+     * it null is what makes coverage a property of the middleware instead of a
+     * property of somebody remembering.
+     */
+    action: text('action').notNull(),
+    method: text('method').notNull(),
+    /** Request path, query string stripped — it can carry personal data. */
+    path: text('path').notNull(),
+    /** `user` | `torrent` | `setting` | `peer` | … — free-form by design. */
+    targetType: text('target_type'),
+    targetId: text('target_id'),
+    /** Human-readable target, denormalised for the same reason the actor is. */
+    targetLabel: text('target_label'),
+    /**
+     * What changed, as `{ field: { from, to } }`, or any shape a route finds
+     * clearer. Only ever what the route chose to record: request bodies are
+     * NEVER captured wholesale, because they carry passwords, panic passwords
+     * and channel tokens.
+     */
+    changes: jsonb('changes'),
+    statusCode: integer('status_code').notNull(),
+    actorIpHash: text('actor_ip_hash'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // The default listing: newest first, whole table.
+    index('audit_log_created_idx').on(table.createdAt.desc()),
+    // "Everything this staffer did" — the first question asked of an audit log
+    // when an account is suspected.
+    index('audit_log_actor_idx').on(table.actorId, table.createdAt.desc()),
+    // "Everything done to this member / torrent" — the second question.
+    index('audit_log_target_idx').on(
+      table.targetType,
+      table.targetId,
+      table.createdAt.desc()
+    ),
+    // Filtering the listing by operation.
+    index('audit_log_action_idx').on(table.action, table.createdAt.desc()),
+  ]
+);
+
+export type AuditLogEntry = typeof auditLog.$inferSelect;
+export type NewAuditLogEntry = typeof auditLog.$inferInsert;
+
+// ============================================================================
 // Federation (inter-instance, opt-in, owner-controlled — Phase 0 socle)
 // ============================================================================
 //

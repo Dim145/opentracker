@@ -253,6 +253,13 @@ export const adminSettingsSchema = z.object({
     .min(1)
     .max(3650)
     .optional(),
+  /**
+   * Staff audit retention, in days. `0` is legitimate here and means "keep
+   * indefinitely" — unlike the notification periods above, which have no such
+   * reading and start at 1. An audit log an operator can only shorten is an
+   * audit log with a built-in expiry nobody chose.
+   */
+  auditRetentionDays: z.number().int().min(0).max(3650).optional(),
   notificationsRetentionUnreadDays: z
     .number()
     .int()

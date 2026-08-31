@@ -108,6 +108,16 @@ export function useAdminNav() {
           icon: 'ph:prohibit',
           description: t('admin.descriptions.bannedIps'),
         },
+        {
+          // Sits with people for the same reason Banned IPs does — it is
+          // about who did what to whom. Not marked `ownerOnly`: every admin
+          // is accountable for the console, and a register only the owner can
+          // read is one nobody checks.
+          label: t('admin.nav.audit'),
+          path: '/admin/audit',
+          icon: 'ph:scroll',
+          description: t('admin.descriptions.audit'),
+        },
       ],
     },
     {

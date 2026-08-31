@@ -27,6 +27,7 @@ import {
   uuidSchema,
 } from '~~/utils/schemas';
 import { notify } from '~~/utils/notify';
+import { auditDetail } from '~~/utils/audit';
 
 export default defineEventHandler(async (event) => {
   const { user: actor } = await requireModeratorSession(event);
@@ -51,6 +52,23 @@ export default defineEventHandler(async (event) => {
       message: 'Only admins can ban a moderator',
     });
   }
+
+  // The audit row for this request. Named here rather than left to the
+  // path-derived fallback because a ban is the decision most often disputed
+  // later, and "who, whom, why, for how long" is what the dispute turns on.
+  auditDetail(event, {
+    action: 'user.ban',
+    targetType: 'user',
+    targetId: target.id,
+    targetLabel: target.username,
+    changes: {
+      isBanned: { from: target.isBanned, to: true },
+      reason,
+      // Present only when the caller asked for a timed ban; a permanent one
+      // carries no duration and recording `null` would read as "cleared".
+      ...(body.duration ? { durationSeconds: body.duration } : {}),
+    },
+  });
 
   await db
     .update(users)

@@ -18,6 +18,7 @@ import { users, bannedIps, torrents } from '@trackarr/db/schema';
 import { invalidateBanCache, requireModeratorSession } from '~~/utils/adminAuth';
 import { validateParam, uuidSchema } from '~~/utils/schemas';
 import { notify } from '~~/utils/notify';
+import { auditDetail } from '~~/utils/audit';
 
 export default defineEventHandler(async (event) => {
   const { user: actor } = await requireModeratorSession(event);
@@ -37,6 +38,14 @@ export default defineEventHandler(async (event) => {
       message: 'This ban was issued by an admin and can only be lifted by an admin',
     });
   }
+
+  auditDetail(event, {
+    action: 'user.unban',
+    targetType: 'user',
+    targetId: target.id,
+    targetLabel: target.username,
+    changes: { isBanned: { from: true, to: false } },
+  });
 
   await db
     .update(users)

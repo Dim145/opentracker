@@ -53,7 +53,8 @@
  * ## What is kept, and on what basis
  *
  * Not everything touching the account goes. `notifications`, `hnr_tracking`,
- * `bonus_events`, `invitations` and `reports` survive, attached to the scrubbed
+ * `bonus_events`, `invitations`, `reports` and — where the member was staff —
+ * their entries in `audit_log` survive, attached to the scrubbed
  * row. Each is either a record of an obligation between the tracker and other
  * members (a hit-and-run, an invitation tree, a report somebody else filed) or
  * part of the economy's audit trail, and none of them holds a raw identifier
@@ -308,6 +309,36 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
         and(
           eq(schema.ticketMessages.authorId, userId),
           eq(schema.ticketMessages.fromStaff, true)
+        )
+      );
+
+    // The staff audit log, on exactly the rule above: the pointer goes, the
+    // name stays. Banning a member is an act taken under authority, and an act
+    // under authority with no author is indefensible — an ex-moderator must not
+    // be able to un-sign their own decisions by closing their account.
+    //
+    // Done by hand rather than left to the FK: the row in `users` SURVIVES an
+    // erasure (that is the whole design — the catalogue hangs off it), so no
+    // ON DELETE ever fires and every reference has to be cleared here.
+    //
+    // What this costs, and it is the honest reading: the audit log keeps a
+    // username after erasure. It is kept on the same basis as the invitation
+    // tree and the reports the erasure already keeps — a record of an
+    // obligation between the tracker and OTHER members, which the person on
+    // one side of it cannot unilaterally erase.
+    await tx
+      .update(schema.auditLog)
+      .set({ actorId: null })
+      .where(eq(schema.auditLog.actorId, userId));
+    // Where they were the TARGET, though, the pointer and the label both go:
+    // being banned is not an act they took, it is a thing recorded about them.
+    await tx
+      .update(schema.auditLog)
+      .set({ targetId: null, targetLabel: erasedName })
+      .where(
+        and(
+          eq(schema.auditLog.targetType, 'user'),
+          eq(schema.auditLog.targetId, userId)
         )
       );
 

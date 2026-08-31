@@ -45,6 +45,7 @@ import {
   getFeature3Desc,
   isInviteEnabled,
   getDefaultInvites,
+  getAuditRetentionDays,
 } from '~~/utils/server';
 import {
   getRequire2FAScope,
@@ -93,6 +94,10 @@ export default defineEventHandler(async (event) => {
   const inviteEnabled = await isInviteEnabled();
   const defaultInvites = await getDefaultInvites();
   const require2FAScope = await getRequire2FAScope();
+  // Staff audit retention. Read here rather than only from `/api/privacy` so
+  // the admin console can offer the control next to the register itself — a
+  // setting with no way in is a setting only its author can change.
+  const auditRetentionDays = await getAuditRetentionDays();
   const notificationsRetentionReadDays =
     await getNotificationsRetentionReadDays();
   const notificationsRetentionUnreadDays =
@@ -159,6 +164,7 @@ export default defineEventHandler(async (event) => {
     inviteEnabled,
     defaultInvites,
     require2FAScope,
+    auditRetentionDays,
     notificationsRetentionReadDays,
     notificationsRetentionUnreadDays,
     requestAutoValidateHours,

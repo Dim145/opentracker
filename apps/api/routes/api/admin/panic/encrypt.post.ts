@@ -8,6 +8,7 @@ import {
   torrentComments,
 } from '@trackarr/db/schema';
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { auditDetail } from '~~/utils/audit';
 import {
   deriveKey,
   generateSalt,
@@ -22,6 +23,12 @@ import {
  */
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
+  // Named before the body is read, so the entry exists even when a guard
+  // below rejects the request — an attempted panic is worth as much as a
+  // completed one, and the status code on the row says which it was.
+  //
+  // No `changes`: the body carries the raw panic password.
+  auditDetail(event, { action: 'panic.encrypt', targetType: 'instance' });
 
   const body = await readBody(event);
 
