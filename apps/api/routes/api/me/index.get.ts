@@ -8,6 +8,7 @@
  */
 import { db, schema } from '@trackarr/db';
 import { eq, sql, desc } from 'drizzle-orm';
+import { isLegacyPasskeyReadAllowed } from '~~/utils/settings';
 
 export default defineEventHandler(async (event) => {
   const { user: session } = await requireUserSession(event);
@@ -67,7 +68,7 @@ export default defineEventHandler(async (event) => {
 
   // Fold in counts that are useful at the top of the profile but
   // would otherwise need separate round-trips.
-  const [uploadsRow, hnrRow] = await Promise.all([
+  const [uploadsRow, hnrRow, legacyPasskeyAccepted] = await Promise.all([
     db
       .select({ value: sql<number>`count(*)::int` })
       .from(schema.torrents)
@@ -86,6 +87,7 @@ export default defineEventHandler(async (event) => {
       })
       .from(schema.hnrTracking)
       .where(eq(schema.hnrTracking.userId, user.id)),
+    isLegacyPasskeyReadAllowed(),
   ]);
 
   const ratio =
@@ -127,5 +129,20 @@ export default defineEventHandler(async (event) => {
       activeSeeds: hnrRow[0]?.value?.active ?? 0,
       hnr: hnrRow[0]?.value?.hnr ?? 0,
     },
+    /**
+     * Whether the announce passkey still opens the read surfaces.
+     *
+     * A site setting, not a secret, and it lives here because the only other
+     * place that returned it was `GET /api/me/keys` — which MINTS the two read
+     * keys on first read. So the banner telling a member their passkey is still
+     * accepted on feeds, and that they should migrate, appeared only after they
+     * revealed or copied an RSS key: only after they had already found the thing
+     * the banner exists to point them at. The member who most needs it — still
+     * using their passkey in Prowlarr, never opened the RSS card — never saw it.
+     * Fetching `/api/me/keys` eagerly instead would have minted a key for every
+     * member who opens their profile, which is the decision that route exists to
+     * avoid.
+     */
+    legacyPasskeyAccepted,
   };
 });

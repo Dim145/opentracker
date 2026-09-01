@@ -306,12 +306,14 @@
       <div class="tracker-grid">
         <article class="cred">
           <div class="cred-head">
-            <span class="cred-label">{{ $t('me.credentials.passkey') }}</span>
+            <h3 class="cred-label">{{ $t('me.credentials.passkey') }}</h3>
             <div class="cred-actions">
               <button
                 type="button"
                 class="cred-btn"
                 :title="passkeyVisible ? $t('me.credentials.hide') : $t('me.credentials.show')"
+                :aria-label="$t('me.credentials.revealPasskey')"
+                :aria-pressed="passkeyVisible"
                 :disabled="passkeyLoading"
                 @click="togglePasskey"
               >
@@ -330,7 +332,7 @@
                 type="button"
                 class="cred-btn"
                 :title="copied === 'passkey' ? $t('common.copied') : $t('common.copy')"
-                :disabled="!passkey"
+                :aria-label="$t('me.credentials.copyPasskey')"
                 @click="copy('passkey')"
               >
                 <Icon
@@ -345,6 +347,7 @@
                 type="button"
                 class="cred-btn cred-btn--danger"
                 :title="$t('me.credentials.rotate')"
+                :aria-label="$t('me.credentials.rotatePasskey')"
                 :disabled="passkeyRotating"
                 @click="rotatePasskey"
               >
@@ -370,12 +373,14 @@
 
         <article class="cred">
           <div class="cred-head">
-            <span class="cred-label">{{ $t('me.credentials.announceUrl') }}</span>
+            <h3 class="cred-label">{{ $t('me.credentials.announceUrl') }}</h3>
             <div class="cred-actions">
               <button
                 type="button"
                 class="cred-btn"
                 :title="announceVisible ? $t('me.credentials.hide') : $t('me.credentials.show')"
+                :aria-label="$t('me.credentials.revealAnnounce')"
+                :aria-pressed="announceVisible"
                 @click="announceVisible = !announceVisible"
               >
                 <Icon
@@ -386,7 +391,7 @@
                 type="button"
                 class="cred-btn"
                 :title="copied === 'announce' ? $t('common.copied') : $t('common.copy')"
-                :disabled="!passkey"
+                :aria-label="$t('me.credentials.copyAnnounce')"
                 @click="copy('announce')"
               >
                 <Icon
@@ -414,12 +419,14 @@
              should not break a single torrent in your client. -->
         <article v-for="k in readKeyCards" :key="k.kind" class="cred">
           <div class="cred-head">
-            <span class="cred-label">{{ k.label }}</span>
+            <h3 class="cred-label">{{ k.label }}</h3>
             <div class="cred-actions">
               <button
                 type="button"
                 class="cred-btn"
                 :title="k.visible ? $t('me.credentials.hide') : $t('me.credentials.show')"
+                :aria-label="$t('me.credentials.revealKey', { key: k.label })"
+                :aria-pressed="k.visible"
                 @click="toggleReadKey(k.kind)"
               >
                 <Icon :name="k.visible ? 'ph:eye-slash-bold' : 'ph:eye-bold'" />
@@ -428,7 +435,7 @@
                 type="button"
                 class="cred-btn"
                 :title="copied === k.kind ? $t('common.copied') : $t('common.copy')"
-                :disabled="!k.value"
+                :aria-label="$t('me.credentials.copyKey', { key: k.label })"
                 @click="copyReadKey(k.kind)"
               >
                 <Icon :name="copied === k.kind ? 'ph:check-bold' : 'ph:copy-simple-bold'" />
@@ -437,12 +444,13 @@
                 type="button"
                 class="cred-btn cred-btn--warn"
                 :title="$t('me.credentials.rotate')"
-                :disabled="readKeysBusy"
+                :aria-label="$t('me.credentials.rotateKey', { key: k.label })"
+                :disabled="readKeysBusy === k.kind"
                 @click="rotateReadKey(k.kind)"
               >
                 <Icon
-                  :name="readKeysBusy ? 'ph:circle-notch' : 'ph:arrows-clockwise-bold'"
-                  :class="{ 'animate-spin': readKeysBusy }"
+                  :name="readKeysBusy === k.kind ? 'ph:circle-notch' : 'ph:arrows-clockwise-bold'"
+                  :class="{ 'animate-spin': readKeysBusy === k.kind }"
                 />
               </button>
             </div>
@@ -455,7 +463,7 @@
           <!-- Only under the RSS key: a Prowlarr definition is what that key
                is for, and offering it beside the API key would suggest the
                two are interchangeable. -->
-          <p v-if="k.kind === 'rss'" class="cred-note">
+          <p v-if="k.kind === 'rss'" class="cred-note cred-note--link">
             <Icon name="ph:download-simple-bold" />
             <a href="/api/torznab/cardigann.yml" download>
               {{ $t('me.credentials.prowlarrDefinition') }}
@@ -464,7 +472,7 @@
           </p>
         </article>
 
-        <p v-if="readKeys?.legacyPasskeyAccepted" class="cred-legacy">
+        <p v-if="profile?.legacyPasskeyAccepted" class="cred-legacy">
           <Icon name="ph:warning-bold" />
           {{ $t('me.credentials.legacyPasskeyNote') }}
         </p>
@@ -785,6 +793,10 @@ interface MeProfile {
     activeSeeds: number;
     hnr: number;
   };
+  /** Whether the announce passkey still opens the read surfaces. Comes from the
+   *  profile rather than from `/api/me/keys`, which mints a read key on first
+   *  read — see the note on that field in the route. */
+  legacyPasskeyAccepted: boolean;
 }
 
 const { data: profile } = await useFetch<MeProfile>('/api/me', {
@@ -1062,7 +1074,11 @@ const readKeyVisible = reactive<{ rss: boolean; api: boolean }>({
   rss: false,
   api: false,
 });
-const readKeysBusy = ref(false);
+/* Which key is rotating, not "a key is rotating": a boolean disabled the rotate
+   button on BOTH cards at once, so rotating the RSS key froze the API key's
+   control for the duration. `alerts.vue` scopes its per-row busy state
+   correctly and is the pattern here. */
+const readKeysBusy = ref<'rss' | 'api' | null>(null);
 
 async function loadReadKeys() {
   if (readKeys.value) return;
@@ -1123,8 +1139,16 @@ async function rotateReadKey(kind: 'rss' | 'api') {
   });
   if (!ok) return;
 
-  readKeysBusy.value = true;
+  readKeysBusy.value = kind;
   try {
+    // The container has to exist before the new value can go into it. Rotating
+    // without revealing first left `readKeys` null, so the guard below skipped
+    // and the new key was DISCARDED — while the card flipped to visible, showed
+    // a literal "…", and a green toast said "Key rotated". The member had just
+    // invalidated whatever Prowlarr was using and the replacement was neither on
+    // screen nor copyable; only a page reload recovered it.
+    await loadReadKeys();
+
     // The URL is widened to `string` on purpose. Left as a template literal,
     // Nitro's route-typing tries to match it against every declared route and
     // TypeScript gives up with "excessive stack depth" — the inference is not
@@ -1133,10 +1157,11 @@ async function rotateReadKey(kind: 'rss' | 'api') {
     const res = await $fetch<{ kind: 'rss' | 'api'; key: string }>(url, {
       method: 'POST',
     });
-    if (readKeys.value) {
-      if (res.kind === 'rss') readKeys.value.rssKey = res.key;
-      else readKeys.value.apiKey = res.key;
+    if (!readKeys.value) {
+      readKeys.value = { rssKey: '', apiKey: '', legacyPasskeyAccepted: false };
     }
+    if (res.kind === 'rss') readKeys.value.rssKey = res.key;
+    else readKeys.value.apiKey = res.key;
     readKeyVisible[kind] = true;
     notifications.success(t('me.credentials.rotated'));
   } catch (err: unknown) {
@@ -1151,7 +1176,7 @@ async function rotateReadKey(kind: 'rss' | 'api') {
         : e?.data?.message || e?.message || t('me.credentials.rotateFailed')
     );
   } finally {
-    readKeysBusy.value = false;
+    readKeysBusy.value = null;
   }
 }
 
@@ -2547,7 +2572,19 @@ function formatDuration(seconds: number) {
   font-family: var(--font-mono);
   font-size: 0.78rem;
   letter-spacing: calc(0.02em * var(--tracking-scale));
-  color: #6cd161;
+  /*
+   * Tokens, not hex.
+   *
+   * These three were `#6cd161`, `#34d4d8` and `#f5c518` — fixed colours chosen
+   * against the dark theme, and the contrast gate added on this branch measures
+   * token PAIRS, so it cannot see a literal inside a component's scoped CSS.
+   * They sailed past it and broke in the light theme: `#f5c518` on a near-white
+   * surface measures 1.64:1, and that was the colour of "Never share this" — the
+   * most safety-critical sentence on the page rendered as the least readable
+   * one. `--online` / `--info` / `--warning` are re-declared per theme (21 128
+   * 61 / 3 105 161 / 180 83 9 in light) and clear AA in both.
+   */
+  color: rgb(var(--online));
   word-break: break-all;
   user-select: all;
   padding: 0.6rem 0.75rem;
@@ -2597,12 +2634,18 @@ function formatDuration(seconds: number) {
 }
 
 .cred-note--info {
-  color: #34d4d8;
-  opacity: 0.85;
+  color: rgb(var(--info));
 }
-.cred-note:not(.cred-note--info) {
-  color: #f5c518;
+/* The warning colour is for warnings. `:not(.cred-note--info)` also caught the
+   Prowlarr download row — a plain, helpful link — and painted it the same amber
+   as "a passkey given to a third party can announce on your behalf", which
+   spends the page's one alarm colour on a file download. */
+.cred-note:not(.cred-note--info):not(.cred-note--link) {
+  color: rgb(var(--warning));
 }
+.cred-note--link { color: rgb(var(--fg-muted)); }
+.cred-note--link a { color: rgb(var(--info)); }
+.cred-note--link a:hover { text-decoration: underline; }
 
 /* ─── Tabs ─────────────────────────────────────────────────── */
 .tabs-shell {
