@@ -487,6 +487,103 @@
   .btn-xs { padding: 0.2rem 0.45rem; font-size: 0.6875rem; }
 
   /* ---------------------------------------------------------------------------
+   * Icon buttons — the square affordance next to a heading or in a table row
+   *
+   * This lived in two `<style scoped>` blocks (`admin/Users.vue`,
+   * `admin/banned-ips.vue`) with byte-identical bodies, while five files used
+   * the class. A scoped rule compiles to `.tool-btn[data-v-…]`, so the three
+   * files that only *used* it — `alerts.vue`, `torrents/index.vue`,
+   * `admin/audit.vue` — rendered bare native buttons: Tailwind's preflight
+   * strips a button's background, border and padding, so what shipped was an
+   * unboxed 16px glyph with no hover and no focus surface. The delete control on
+   * `/alerts` was the worst of it, because `--danger` was never defined
+   * anywhere: the irreversible action and the safe one beside it were
+   * distinguishable only by the shape of their icon.
+   *
+   * 2.25rem square is not a round number picked for looks — it is 36px, which
+   * clears the 24px minimum of WCAG 2.2 SC 2.5.8 with room for the border.
+   *
+   * The scoped copies stay where they are. `<style scoped>` is unlayered, so it
+   * still wins over `@layer components` regardless of specificity, and those two
+   * pages keep rendering exactly as they do today.
+   * --------------------------------------------------------------------------- */
+  .tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: none;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgb(var(--line-default));
+    background: rgb(var(--bg-elevated));
+    color: rgb(var(--fg-muted));
+    cursor: pointer;
+    transition:
+      color var(--dur-2) ease,
+      background-color var(--dur-2) ease,
+      border-color var(--dur-2) ease;
+  }
+  .tool-btn:hover:not(:disabled) {
+    color: rgb(var(--fg-strong));
+    border-color: rgb(var(--fg-default) / 0.3);
+  }
+  .tool-btn:disabled,
+  .tool-btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  /* Destructive. Muted until pointed at, so a row of controls does not read as
+     a row of alarms — but unmistakable on hover and on focus, which is where a
+     member is when they are about to press it. */
+  .tool-btn--danger:hover:not(:disabled),
+  .tool-btn--danger:focus-visible:not(:disabled) {
+    color: rgb(var(--danger));
+    border-color: rgb(var(--danger) / 0.5);
+    background: rgb(var(--danger) / 0.1);
+  }
+  /* A labelled variant: still a button, still boxed, but sized by its text
+     rather than square. */
+  .tool-btn--text {
+    width: auto;
+    gap: 0.4rem;
+    padding: 0 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: rgb(var(--fg-default));
+  }
+  .tool-btn--sm {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+  .tool-btn--sm.tool-btn--text { width: auto; padding: 0 0.6rem; font-size: 0.75rem; }
+
+  /* ---------------------------------------------------------------------------
+   * Field labels — the micro-label above an input, and the sentence under it
+   *
+   * Thirteen files defined this in `<style scoped>`; `admin/audit.vue` and
+   * `admin/InviteTree.vue` used it without defining it, so their six labels
+   * rendered as 16px inherited body text instead of a 10px uppercase label.
+   * The values below are `ThemeEditor.vue`'s, which is the most common of the
+   * thirteen. The scoped copies keep their own tracking, as above.
+   * --------------------------------------------------------------------------- */
+  .field-label {
+    display: block;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: calc(0.14em * var(--tracking-scale));
+    color: rgb(var(--fg-muted));
+    margin-bottom: 0.25rem;
+  }
+  .field-help {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.6875rem;
+    color: rgb(var(--fg-subtle));
+  }
+
+  /* ---------------------------------------------------------------------------
    * Inputs
    * --------------------------------------------------------------------------- */
   .input {
@@ -504,6 +601,16 @@
   .input:focus {
     border-color: rgb(var(--fg-default));
     outline: none;
+  }
+  /* `outline: none` above is for the mouse, where a border change is enough and
+     a ring around every field is noise. It was also killing the ring for the
+     keyboard, because `.input:focus` outranks the bare `:focus-visible` rule
+     further up — so tabbing through a form of eight fields signalled position
+     with a 1px border tint and nothing else. Restated here at equal
+     specificity, and later in the sheet, so the keyboard gets its ring back. */
+  .input:focus-visible {
+    outline: 2px solid rgb(var(--focus-ring));
+    outline-offset: 2px;
   }
 
   /* ---------------------------------------------------------------------------

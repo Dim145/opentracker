@@ -1,7 +1,18 @@
 <template>
   <Teleport to="body">
+    <!-- A live region, because this container is the only channel every
+         confirmation on the site travels through: a rotated key, a saved
+         search, a reseed request, and every error including the ones a route
+         hands back verbatim. Without it a screen reader hears nothing after
+         pressing any of them — the toast appears, animates, and leaves in
+         silence. `polite` rather than `assertive` so it waits for a gap instead
+         of cutting the reader off mid-sentence, and `aria-atomic` so a toast is
+         read as one message rather than as the fragments it is built from. -->
     <div
       class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
     >
       <TransitionGroup name="notification">
         <div
