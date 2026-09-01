@@ -35,7 +35,14 @@
      and is not perceptible next to the old value. Same class of defect as the
      `--fg-faint` note below, found by the contrast gate the theme system needs
      anyway. */
-  --fg-subtle:      121 121 121;
+  /* 127, up from 121. The note above measured this token against `--bg-base`
+     only, which is the surface it fails on LAST: 121 gave 4.55:1 there and
+     4.23:1 on `--bg-surface` — every muted label inside a card — and 4.40:1 on
+     `--bg-inset`. 127 clears 4.5:1 on all three. Found by extending the
+     contrast gate to the surfaces it was not checking, which is the third time
+     this file records the same lesson: the pair nobody declared is the pair
+     that ships broken. */
+  --fg-subtle:      127 127 127;
   /* Bumped from 74/74/74 (~1.84:1 on bg-base — WCAG fail) up to
      130/130/130 (~5.2:1 on bg-base) so the dozen-or-so mono micro
      labels using --fg-faint as a text colour stay legible. */
@@ -242,8 +249,8 @@
   --fg-default:     10 10 10;
   --fg-strong:      0 0 0;
   --fg-muted:       85 85 85;
-  --fg-subtle:      115 115 115;
-  /* 115, down from 176 — the biggest visible change in this file, and a bug
+  --fg-subtle:      111 111 111;
+  /* 111, down from 176 — the biggest visible change in this file, and a bug
      fix rather than a preference. 176 on `--bg-base` is **2.08:1**, which is
      unreadable, and it is the same defect the dark theme already had: the note
      above records `--fg-faint` being raised from 1.84:1 to 5.2:1 there for
@@ -253,8 +260,13 @@
 
      Light-mode micro labels and placeholders are therefore noticeably darker
      than before. That is the point: at 2.08:1 they were decorative, not
-     legible. */
-  --fg-faint:       115 115 115;
+     legible.
+
+     111, down from 115, for the same reason `--fg-subtle` moved with it: in the
+     light theme `--bg-inset` (245) is the DARKEST surface rather than a middle
+     one, so it is the worst case here and it was not measured either. 115 gave
+     4.35:1 on it; 111 gives 4.55:1. */
+  --fg-faint:       111 111 111;
 
   --line-default:   229 229 229;
   --line-strong:    208 208 208;

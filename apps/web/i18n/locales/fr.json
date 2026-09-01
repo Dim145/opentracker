@@ -3413,7 +3413,32 @@
       "editorTitleNew": "Nouveau thème",
       "fontFamilySuggest": "Les suggestions viennent du fichier choisi et des fontes déjà téléversées.",
       "notFoundTitle": "Ce thème n'existe plus.",
-      "notFoundBody": "Il a été supprimé, ou l'adresse désigne un thème qui n'a jamais existé."
+      "notFoundBody": "Il a été supprimé, ou l'adresse désigne un thème qui n'a jamais existé.",
+      "contrastGroup": "Contraste",
+      "contrastMin": "minimum {required}:1",
+      "contrastAbout": "Chaque combinaison dans laquelle l’interface peint du texte, mesurée contre le niveau AA de WCAG 2.2 — 4,5:1 pour le texte, 3:1 pour les grands caractères et l’anneau de focus. Un manque est un avertissement, pas un refus : le thème s’enregistre quand même.",
+      "contrastPairs": {
+        "fg-default__bg-base": "Texte courant",
+        "fg-default__bg-surface": "Texte sur les cartes",
+        "fg-strong__bg-base": "Titres",
+        "fg-muted__bg-base": "Texte secondaire",
+        "fg-muted__bg-surface": "Texte secondaire sur les cartes",
+        "fg-subtle__bg-base": "Étiquettes discrètes",
+        "fg-faint__bg-base": "Micro-étiquettes",
+        "accent-fg__accent": "Bouton principal",
+        "accent-warm-fg__accent-warm": "Bouton doré",
+        "focus-ring__bg-base": "Anneau de focus",
+        "fg-default__bg-elevated": "Texte saisi dans un champ",
+        "fg-faint__bg-elevated": "Texte d’exemple des champs",
+        "fg-default__bg-inset": "Texte sur les panneaux encastrés",
+        "fg-subtle__bg-inset": "Étiquettes discrètes sur panneaux encastrés",
+        "fg-faint__bg-inset": "Micro-étiquettes sur panneaux encastrés",
+        "fg-subtle__bg-surface": "Étiquettes discrètes sur les cartes",
+        "danger__bg-surface": "Texte d’erreur",
+        "warning__bg-surface": "Texte d’avertissement",
+        "online__bg-surface": "Texte de succès",
+        "accent__bg-surface": "Texte en couleur d’accent"
+      }
     },
     "homepage": {
       "title": "Contenu de la page d'accueil",

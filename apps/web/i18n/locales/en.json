@@ -3413,7 +3413,32 @@
       "editorTitleNew": "New theme",
       "fontFamilySuggest": "Suggestions come from the file you picked and from faces already uploaded.",
       "notFoundTitle": "That theme is gone.",
-      "notFoundBody": "It was deleted, or the address names a theme that never existed."
+      "notFoundBody": "It was deleted, or the address names a theme that never existed.",
+      "contrastGroup": "Contrast",
+      "contrastMin": "needs {required}:1",
+      "contrastAbout": "Every combination the interface paints text in, measured against WCAG 2.2 AA — 4.5:1 for text, 3:1 for large text and for the focus ring. A shortfall is a warning, not a refusal: the theme saves either way.",
+      "contrastPairs": {
+        "fg-default__bg-base": "Body text",
+        "fg-default__bg-surface": "Text on cards",
+        "fg-strong__bg-base": "Headings",
+        "fg-muted__bg-base": "Secondary text",
+        "fg-muted__bg-surface": "Secondary text on cards",
+        "fg-subtle__bg-base": "Muted labels",
+        "fg-faint__bg-base": "Micro labels",
+        "accent-fg__accent": "Primary button",
+        "accent-warm-fg__accent-warm": "Gold button",
+        "focus-ring__bg-base": "Focus ring",
+        "fg-default__bg-elevated": "Text typed in a field",
+        "fg-faint__bg-elevated": "Field placeholder",
+        "fg-default__bg-inset": "Text on inset panels",
+        "fg-subtle__bg-inset": "Muted labels on inset panels",
+        "fg-faint__bg-inset": "Micro labels on inset panels",
+        "fg-subtle__bg-surface": "Muted labels on cards",
+        "danger__bg-surface": "Error text",
+        "warning__bg-surface": "Warning text",
+        "online__bg-surface": "Success text",
+        "accent__bg-surface": "Accent text"
+      }
     },
     "homepage": {
       "title": "Homepage Content",

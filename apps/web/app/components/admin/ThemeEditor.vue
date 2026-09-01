@@ -225,7 +225,9 @@
           </div>
         </div>
 
-        <!-- Contrast, on the draft as it stands. -->
+        <!-- Contrast, on the draft as it stands. The notice interrupts; the
+             group below it is the whole measurement, because 4.6:1 and 12:1
+             both look like silence and only one of them survives a nudge. -->
         <div v-if="draftWarnings.length" class="notice notice--warn">
           <Icon name="ph:warning-bold" />
           <span>
@@ -240,6 +242,43 @@
               </li>
             </ul>
           </span>
+        </div>
+
+        <div class="token-group">
+          <button class="token-group-head" @click="toggleGroup('contrast')">
+            <Icon
+              :name="openGroups.has('contrast') ? 'ph:caret-down-bold' : 'ph:caret-right-bold'"
+            />
+            {{ $t('admin.themes.contrastGroup') }}
+            <span
+              class="token-group-count"
+              :class="{ 'contrast-count--fail': draftWarnings.length > 0 }"
+            >
+              {{ passingPairs }}/{{ draftReport.length }}
+            </span>
+          </button>
+          <div v-if="openGroups.has('contrast')" class="contrast-list">
+            <p class="field-help">{{ $t('admin.themes.contrastAbout') }}</p>
+            <div
+              v-for="r in draftReport"
+              :key="`${r.pair.fg}-${r.pair.bg}`"
+              class="contrast-row"
+              :class="{ 'contrast-row--fail': !r.passes }"
+            >
+              <!-- The sample is the point: it shows what the number means, in
+                   the two colours being measured, at the size they are used. -->
+              <span class="contrast-sample" :style="sampleStyle(r.pair)">Aa</span>
+              <span class="contrast-what">{{ pairLabel(r.pair) }}</span>
+              <span class="contrast-ratio">{{ r.ratio.toFixed(2) }}:1</span>
+              <span class="contrast-min">{{
+                $t('admin.themes.contrastMin', { required: r.required })
+              }}</span>
+              <Icon
+                class="contrast-verdict"
+                :name="r.passes ? 'ph:check-bold' : 'ph:warning-bold'"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- Uploaded fonts. Owner only to ADD one; every administrator may then
@@ -403,6 +442,7 @@ import {
   BUILT_IN_TOKENS,
   FONT_STACKS,
   THEME_TOKENS,
+  contrastReport,
   contrastWarnings,
   isValidTokenValue,
   parseRgb,
@@ -425,7 +465,7 @@ const props = defineProps<{
   themeId: string | null;
 }>();
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const router = useRouter();
 const { messageOf, reloadThemeStylesheet } = useThemeAdmin();
 
@@ -746,6 +786,36 @@ function resolvedFor(row: { base: 'light' | 'dark'; tokens: Record<string, strin
 const draftWarnings = computed(() =>
   draft.value ? contrastWarnings(resolvedFor(draft.value)) : [],
 );
+const draftReport = computed(() =>
+  draft.value ? contrastReport(resolvedFor(draft.value)) : [],
+);
+const passingPairs = computed(
+  () => draftReport.value.filter((r) => r.passes).length,
+);
+
+/**
+ * The pair's name, translated when we have a translation for it.
+ *
+ * `pair.what` is English in the shared schema — it is a code comment that
+ * happens to be rendered — so the key is derived from the two token names,
+ * which are stable, and the English falls through when a locale has not
+ * described that pair yet. Interpolating `what` into a translated sentence, as
+ * the warning line above still does, is what made a French console read
+ * "muted labels on cards" in the first place.
+ */
+function pairLabel(pair: { fg: string; bg: string; what: string }): string {
+  const key = `admin.themes.contrastPairs.${pair.fg}__${pair.bg}`;
+  return te(key) ? t(key) : pair.what;
+}
+
+/** The two colours actually being measured, straight from the resolved draft. */
+function sampleStyle(pair: { fg: string; bg: string }) {
+  const tokens = draft.value ? resolvedFor(draft.value) : {};
+  return {
+    color: `rgb(${tokens[pair.fg] ?? '0 0 0'})`,
+    background: `rgb(${tokens[pair.bg] ?? '255 255 255'})`,
+  };
+}
 
 
 // ── Live preview ─────────────────────────────────────────────────────
@@ -944,6 +1014,33 @@ const familySuggestions = computed(() => {
 </script>
 
 <style scoped>
+.contrast-list { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.5rem 0.75rem 0.75rem; }
+.contrast-row {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto auto 1rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+}
+.contrast-row--fail { background: rgb(var(--warning) / 0.08); }
+.contrast-sample {
+  display: grid;
+  place-items: center;
+  height: 1.5rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+.contrast-what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contrast-ratio { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.contrast-min { color: rgb(var(--fg-subtle)); font-size: 0.6875rem; }
+.contrast-verdict { color: rgb(var(--online)); }
+.contrast-row--fail .contrast-verdict { color: rgb(var(--warning)); }
+.contrast-count--fail { color: rgb(var(--warning)); }
+
 .field-label {
   display: block;
   font-size: 0.625rem;

@@ -533,7 +533,7 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'fg-default': '250 250 250',
     'fg-strong': '255 255 255',
     'fg-muted': '161 161 161',
-    'fg-subtle': '121 121 121',
+    'fg-subtle': '127 127 127',
     'fg-faint': '130 130 130',
     'line-default': '42 42 42',
     'line-strong': '58 58 58',
@@ -582,8 +582,8 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'fg-default': '10 10 10',
     'fg-strong': '0 0 0',
     'fg-muted': '85 85 85',
-    'fg-subtle': '115 115 115',
-    'fg-faint': '115 115 115',
+    'fg-subtle': '111 111 111',
+    'fg-faint': '111 111 111',
     'line-default': '229 229 229',
     'line-strong': '208 208 208',
     accent: '10 10 10',
@@ -821,6 +821,47 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   // chunky high-contrast rules — a worse site, in the name of a clause that
   // does not apply. The focus ring below is the real 1.4.11 case.
   { fg: 'focus-ring', bg: 'bg-base', what: 'focus ring', nonText: true },
+
+  // ── The surfaces the first pass did not reach ────────────────────────────
+  //
+  // Every entry below is a combination `main.css` actually paints, and each was
+  // added because the pair above it turned out not to cover it. Three of them
+  // caught a real failure in the shipped themes on the day they were written,
+  // which is the only argument for a pair worth having.
+  //
+  // `bg-elevated` is the field fill: `.input` sets `background-color:
+  // rgb(var(--bg-elevated))` and `color: rgb(var(--fg-default))`, and its
+  // placeholder is `--fg-faint`. So the text a member types, on every form on
+  // the site, was checked against neither surface it sits on.
+  { fg: 'fg-default', bg: 'bg-elevated', what: 'text typed in a field' },
+  { fg: 'fg-faint', bg: 'bg-elevated', what: 'field placeholder' },
+  // `bg-inset` is the recessed panel — 36 components use it. In the dark theme
+  // it sits between base and surface, but in light it is the DARKEST surface
+  // (245 against 250/255), so it is the worst case there rather than a middle
+  // one, and bracketing it was not enough.
+  { fg: 'fg-default', bg: 'bg-inset', what: 'text on inset panels' },
+  { fg: 'fg-subtle', bg: 'bg-inset', what: 'muted labels on inset panels' },
+  { fg: 'fg-faint', bg: 'bg-inset', what: 'micro labels on inset panels' },
+  // Cards. `fg-muted` on `bg-surface` was checked and `fg-subtle` was not,
+  // which is how the dark theme shipped muted card labels at 4.23:1 while the
+  // same token measured 4.55:1 on the page behind them.
+  { fg: 'fg-subtle', bg: 'bg-surface', what: 'muted labels on cards' },
+  // The status colours are painted as TEXT, not only as fills: `text-error`
+  // appears in 18 components, `text-warning` in 9, `text-accent` in 9,
+  // `text-online` in 1. `--info` is not here because it has no text use at all
+  // — it fills and it borders, and a pair that nothing renders is a pair that
+  // will be wrong without anyone noticing.
+  //
+  // Checked against `bg-surface` alone, and that is an assumption worth
+  // stating: status text lives inside cards, and the two page surfaces differ
+  // by ten points of grey in both built-ins (10 against 20, 250 against 255),
+  // so the second measurement would say the same thing to two decimal places.
+  // A theme that separates them widely will hear about it from the
+  // `fg-default` pairs above, which do check both.
+  { fg: 'danger', bg: 'bg-surface', what: 'error text' },
+  { fg: 'warning', bg: 'bg-surface', what: 'warning text' },
+  { fg: 'online', bg: 'bg-surface', what: 'success text' },
+  { fg: 'accent', bg: 'bg-surface', what: 'accent text' },
 ] as const;
 
 /** Relative luminance, per WCAG 2.x. */
@@ -849,6 +890,39 @@ export interface ContrastWarning {
   readonly required: number;
 }
 
+export interface ContrastResult extends ContrastWarning {
+  readonly passes: boolean;
+}
+
+/**
+ * Every declared pair, measured — passing ones included.
+ *
+ * The gate used to answer only with what fails, which is the right thing to
+ * interrupt an admin with and the wrong thing to tune a colour against: 4.6:1
+ * and 12:1 both look like silence, and one of them breaks on the next nudge.
+ * The editor shows this whole list, and shows the failures separately.
+ *
+ * Pairs whose two tokens are not both triplets are omitted rather than reported
+ * as passing — a half-typed value is not a verdict.
+ */
+export function contrastReport(tokens: TokenMap): ContrastResult[] {
+  const out: ContrastResult[] = [];
+  for (const pair of CONTRAST_PAIRS) {
+    const ratio = contrastRatio(tokens[pair.fg] ?? '', tokens[pair.bg] ?? '');
+    if (ratio === null) continue;
+    // 1.4.3 for text, 1.4.11 for the non-text case, and WCAG's own large-text
+    // allowance for the one pair that qualifies.
+    const required = pair.nonText || pair.large ? 3 : 4.5;
+    out.push({
+      pair,
+      ratio: Math.round(ratio * 100) / 100,
+      required,
+      passes: ratio >= required,
+    });
+  }
+  return out;
+}
+
 /**
  * Every declared pair that falls short, with what it needed.
  *
@@ -859,14 +933,10 @@ export interface ContrastWarning {
  * eight lines and the alternative is a dependency with a licence to read.
  */
 export function contrastWarnings(tokens: TokenMap): ContrastWarning[] {
-  const out: ContrastWarning[] = [];
-  for (const pair of CONTRAST_PAIRS) {
-    const ratio = contrastRatio(tokens[pair.fg] ?? '', tokens[pair.bg] ?? '');
-    if (ratio === null) continue;
-    const required = pair.nonText ? 3 : pair.large ? 3 : 4.5;
-    if (ratio < required) {
-      out.push({ pair, ratio: Math.round(ratio * 100) / 100, required });
-    }
-  }
-  return out;
+  // Derived from the full report rather than measured a second time: two loops
+  // over the same pairs is how a warning ends up disagreeing with the figure
+  // printed next to it.
+  return contrastReport(tokens)
+    .filter((r) => !r.passes)
+    .map(({ pair, ratio, required }) => ({ pair, ratio, required }));
 }
