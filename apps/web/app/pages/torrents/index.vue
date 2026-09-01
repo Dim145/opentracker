@@ -723,7 +723,13 @@ const canSaveSearch = computed(
   () =>
     !!searchQuery.value.trim() ||
     !!selectedCategory.value ||
-    selectedTags.value.length > 0
+    selectedTags.value.length > 0 ||
+    // A filter by IMDb/TMDb/TVDB id counts. The route has accepted these three
+    // since it was written and `/alerts` renders a chip for each, but the only
+    // thing that creates a saved search never sent them — so the chips were
+    // dead UI, and a member browsing one film's id could not save that watch at
+    // all, which is exactly the search worth being told about.
+    !!activeMediaId.value
 );
 
 async function saveCurrentSearch() {
@@ -732,9 +738,18 @@ async function saveCurrentSearch() {
   const fromCategory = selectedCategory.value
     ? categoryLabel([selectedCategory.value])
     : null;
+  // Two tag-only searches both became "Untitled search", and the alerts page is
+  // read-and-delete by design — so they stayed indistinguishable forever.
+  // Naming the criteria is what makes the fallback usable.
+  const fromTags = selectedTags.value.length ? selectedTags.value.join(', ') : null;
+  const fromMedia = activeMediaId.value
+    ? `${activeMediaId.value.label} ${activeMediaId.value.display}`
+    : null;
   const label = (
     searchQuery.value.trim() ||
     fromCategory ||
+    fromTags ||
+    fromMedia ||
     t('search.saveSearch.untitled')
   ).slice(0, 80);
   savingSearch.value = true;
@@ -746,13 +761,26 @@ async function saveCurrentSearch() {
         query: searchQuery.value.trim() || undefined,
         categoryId: selectedCategory.value || undefined,
         tags: selectedTags.value.length ? selectedTags.value : undefined,
+        imdbId: mediaIdFilter.value?.source === 'imdb' ? mediaIdFilter.value.id : undefined,
+        tmdbId: mediaIdFilter.value?.source === 'tmdb' ? mediaIdFilter.value.id : undefined,
+        tvdbId: mediaIdFilter.value?.source === 'tvdb' ? mediaIdFilter.value.id : undefined,
       },
     });
     savedSearchNotifications.success(t('search.saveSearch.saved'));
   } catch (err: unknown) {
-    const e = err as { data?: { message?: string }; message?: string };
+    // Mapped on the route's own `reason`, not echoed from its message. The two
+    // 4xx bodies here are English sentences written for a log — "You can keep up
+    // to 20 saved searches. Delete one first." — and echoing them put English in
+    // front of a French member at the one moment they needed to understand what
+    // to do next.
+    const e = err as { data?: { reason?: string; max?: number } };
+    const reason = e?.data?.reason;
     savedSearchNotifications.error(
-      e?.data?.message || e?.message || t('search.saveSearch.failed')
+      reason === 'limit'
+        ? t('search.saveSearch.limit', { max: e?.data?.max ?? 20 })
+        : reason === 'no-criteria'
+          ? t('search.saveSearch.noCriteria')
+          : t('search.saveSearch.failed')
     );
   } finally {
     savingSearch.value = false;

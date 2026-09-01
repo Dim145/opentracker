@@ -58,6 +58,7 @@
     "settings": "Settings",
     "downloads": "Downloads",
     "favorites": "My favorites",
+    "alerts": "Saved searches",
     "following": "My circle",
     "requests": "Requests",
     "invitations": "Invitations",
@@ -958,6 +959,8 @@
       "manage": "Manage alerts",
       "saved": "Saved. You will be notified when a matching release is accepted.",
       "failed": "Could not save this search.",
+      "limit": "You can keep {max} saved searches. Delete one on the Saved searches page first.",
+      "noCriteria": "Add some text, a category or a tag first — a saved search needs something to watch for.",
       "untitled": "Untitled search"
     }
   },
@@ -5436,8 +5439,14 @@
     "run": "Run this search",
     "delete": "Delete",
     "deleteFailed": "Could not delete this saved search.",
-    "matched": "Matched {count} times",
-    "lastMatch": "last {when} ago",
+    "matched": "Matched once | Matched {n} times",
+    "lastMatch": "last one {when}",
+    "notifyOn": "Notifies you",
+    "notifyOff": "Silent",
+    "runFor": "Run the search “{label}”",
+    "deleteFor": "Delete the saved search “{label}”",
+    "deleteConfirmTitle": "Delete this saved search?",
+    "deleteConfirmBody": "“{label}” stops watching and you will not be notified of new matches. Saved searches are created from the catalogue, so you would have to rebuild the criteria to get it back.",
     "noMatchYet": "Nothing has matched yet.",
     "empty": {
       "title": "No saved searches",

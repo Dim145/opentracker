@@ -39,10 +39,20 @@
             <span v-if="s.tvdbId" class="al-chip"><Icon name="ph:television" />{{ s.tvdbId }}</span>
           </p>
           <p class="al-meta">
+            <!-- Whether it will actually tell you is the first thing about a
+                 standing instruction, and it was the one thing the row did not
+                 render: `notify` was in the payload and in the interface, and
+                 an armed filter looked identical to a silent one on a page
+                 whose lede promises a notification. -->
+            <span class="al-state" :class="{ 'al-state--off': !s.notify }">
+              <Icon :name="s.notify ? 'ph:bell-ringing-fill' : 'ph:bell-slash'" />
+              {{ s.notify ? $t('alerts.notifyOn') : $t('alerts.notifyOff') }}
+            </span>
+            <span class="al-sep" aria-hidden="true">·</span>
             <template v-if="s.matchCount > 0">
-              {{ $t('alerts.matched', { count: s.matchCount }) }}
+              {{ $t('alerts.matched', s.matchCount) }}
               <span v-if="s.lastMatchedAt">
-                · {{ $t('alerts.lastMatch', { when: formatAge(s.lastMatchedAt) }) }}
+                · {{ $t('alerts.lastMatch', { when: formatAgo(s.lastMatchedAt, locale) }) }}
               </span>
             </template>
             <template v-else>{{ $t('alerts.noMatchYet') }}</template>
@@ -50,14 +60,23 @@
         </div>
 
         <div class="al-item-actions">
-          <NuxtLink :to="searchLink(s)" class="tool-btn" :title="$t('alerts.run')">
+          <!-- `title` alone is the last resort in accessible-name computation:
+               it is unreliable and invisible on touch. `aria-label` names the
+               control; `title` stays for the mouse. -->
+          <NuxtLink
+            :to="searchLink(s)"
+            class="tool-btn"
+            :title="$t('alerts.run')"
+            :aria-label="$t('alerts.runFor', { label: s.label })"
+          >
             <Icon name="ph:magnifying-glass-bold" />
           </NuxtLink>
           <button
             type="button"
-            class="tool-btn tool-btn--danger"
+            class="tool-btn tool-btn--danger al-delete"
             :disabled="busy === s.id"
             :title="$t('alerts.delete')"
+            :aria-label="$t('alerts.deleteFor', { label: s.label })"
             @click="remove(s)"
           >
             <Icon
@@ -99,8 +118,9 @@ interface SavedSearch {
   matchCount: number;
 }
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const notifications = useNotificationStore();
+const confirmDialog = useConfirm();
 
 const { data, refresh } = await useFetch<{ items: SavedSearch[]; max: number }>(
   '/api/me/saved-searches',
@@ -123,6 +143,19 @@ function searchLink(s: SavedSearch): string {
 }
 
 async function remove(s: SavedSearch) {
+  // One click on an unlabelled glyph permanently deleted a standing
+  // instruction, on a page that offers no way to recreate one — the criteria
+  // live on the catalogue page, so the member has to reconstruct the search
+  // before they can save it again. Meanwhile the credentials card asks for a
+  // confirmation on rotations it describes as reversible.
+  const ok = await confirmDialog({
+    title: t('alerts.deleteConfirmTitle'),
+    message: t('alerts.deleteConfirmBody', { label: s.label }),
+    confirmText: t('alerts.delete'),
+    destructive: true,
+  });
+  if (!ok) return;
+
   busy.value = s.id;
   try {
     await $fetch<{ success: boolean }>(`/api/me/saved-searches/${s.id}` as string, {
@@ -147,15 +180,24 @@ useHead({ title: () => t('alerts.title') });
  * page somebody visits twice a year.
  */
 .alerts {
-  max-width: 52rem;
+  /* A narrow measure is right for this content — short labels, short chips —
+     but 52rem inside a 1400px shell made this page visibly a different width
+     from every sibling in the same menu group, which reads as unfinished
+     rather than as considered. 64rem is the compromise. And no 3rem of dead
+     space above the eyebrow: `downloads.vue` and `favorites.vue` both start at
+     the top of the column. */
+  max-width: 64rem;
   margin: 0 auto;
-  padding: 3rem 1.25rem 5rem;
+  padding: 1.5rem 0 4rem;
 }
 
 .al-eyebrow {
   margin: 0 0 0.25rem;
   font-size: 0.7rem;
-  letter-spacing: 0.14em;
+  /* Scaled, like the other 39 labels on this branch. A theme that opens the
+     tracking retracked the whole site except the six labels that hardcoded
+     it. */
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -173,7 +215,7 @@ useHead({ title: () => t('alerts.title') });
 .al-count {
   margin: 1.5rem 0 0.75rem;
   font-size: 0.75rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -183,7 +225,7 @@ useHead({ title: () => t('alerts.title') });
   padding: 3rem 1.5rem;
   text-align: center;
   border: 1px dashed rgb(var(--line-default));
-  border-radius: 0.6rem;
+  border-radius: var(--radius-md);
 }
 .al-empty-icon {
   width: 2.5rem;
@@ -235,28 +277,62 @@ useHead({ title: () => t('alerts.title') });
   gap: 0.25rem;
   padding: 0.1rem 0.4rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.25rem;
+  border-radius: var(--radius-xs);
   font-size: 0.72rem;
   color: rgb(var(--fg-muted));
+  /* A 60-character free-text query went into one chip with no bound, so at
+     390px the flex row overflowed the card. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .al-chip--text {
   border-color: rgb(var(--accent) / 0.4);
   color: rgb(var(--accent));
 }
 .al-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
   margin: 0;
   font-size: 0.75rem;
   color: rgb(var(--fg-subtle));
 }
+.al-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: rgb(var(--online));
+}
+/* Off is stated in words as well as colour, and the icon changes shape — a bell
+   with a slash through it — so nothing here depends on telling green from
+   grey. */
+.al-state--off { color: rgb(var(--fg-subtle)); }
+.al-sep { color: rgb(var(--fg-subtle)); }
 .al-item-actions {
   display: flex;
+  align-items: center;
   gap: 0.4rem;
   flex-shrink: 0;
 }
+/* Space between the safe action and the irreversible one, so a mis-aimed tap
+   on a phone cannot land on delete. */
+.al-delete { margin-left: 0.5rem; }
 
-@media (max-width: 34rem) {
+@media (max-width: 45rem) {
   .al-item {
     flex-direction: column;
+  }
+  /* At 560px the row was still side-by-side with the chips crammed against the
+     controls; 45rem is the house breakpoint (`users/[id].vue`,
+     `settings.vue`). Once stacked, the controls sit on their own line and get a
+     rule above them so they read as the row's actions rather than as more
+     metadata. */
+  .al-item-actions {
+    align-self: stretch;
+    justify-content: flex-end;
+    padding-top: 0.6rem;
+    border-top: 1px solid rgb(var(--line-default));
   }
 }
 </style>

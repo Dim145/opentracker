@@ -58,6 +58,7 @@
     "settings": "Paramètres",
     "downloads": "Téléchargements",
     "favorites": "Mes favoris",
+    "alerts": "Recherches enregistrées",
     "following": "Mon réseau",
     "requests": "Demandes",
     "invitations": "Invitations",
@@ -958,6 +959,8 @@
       "manage": "Gérer les alertes",
       "saved": "Enregistrée. Vous serez prévenu·e quand une release correspondante sera acceptée.",
       "failed": "Cette recherche n'a pas pu être enregistrée.",
+      "limit": "Vous pouvez conserver {max} recherches enregistrées. Supprimez-en une depuis la page Recherches enregistrées.",
+      "noCriteria": "Ajoutez d’abord du texte, une catégorie ou un tag — une recherche enregistrée a besoin de quelque chose à surveiller.",
       "untitled": "Recherche sans titre"
     }
   },
@@ -5436,8 +5439,14 @@
     "run": "Lancer cette recherche",
     "delete": "Supprimer",
     "deleteFailed": "Cette recherche n'a pas pu être supprimée.",
-    "matched": "A correspondu {count} fois",
-    "lastMatch": "la dernière il y a {when}",
+    "matched": "A correspondu une fois | A correspondu {n} fois",
+    "lastMatch": "la dernière {when}",
+    "notifyOn": "Vous prévient",
+    "notifyOff": "Silencieuse",
+    "runFor": "Lancer la recherche « {label} »",
+    "deleteFor": "Supprimer la recherche enregistrée « {label} »",
+    "deleteConfirmTitle": "Supprimer cette recherche enregistrée ?",
+    "deleteConfirmBody": "« {label} » cesse de surveiller et vous ne serez plus prévenu·e des nouvelles correspondances. Les recherches enregistrées se créent depuis le catalogue : il faudrait reconstruire les critères pour la retrouver.",
     "noMatchYet": "Rien ne correspond pour le moment.",
     "empty": {
       "title": "Aucune recherche enregistrée",

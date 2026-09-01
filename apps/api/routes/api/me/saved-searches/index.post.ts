@@ -61,6 +61,10 @@ export default defineEventHandler(async (event) => {
   if (!hasCriteria) {
     throw createError({
       statusCode: 400,
+      // `data.reason` so the browser can pick its own translated sentence.
+      // The message here is written for a developer reading a log; echoing it
+      // into the page put an English string in front of a French member.
+      data: { reason: 'no-criteria' },
       message:
         'A saved search needs at least one criterion — some text, a category, a tag or a media id.',
     });
@@ -102,6 +106,7 @@ export default defineEventHandler(async (event) => {
   if (created === 0) {
     throw createError({
       statusCode: 400,
+      data: { reason: 'limit', max },
       message: `You can keep up to ${max} saved searches. Delete one first.`,
     });
   }
