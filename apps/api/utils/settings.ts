@@ -139,6 +139,18 @@ export const SETTINGS_KEYS = {
    * published on `/api/privacy` either way.
    */
   AUDIT_LOG_RETENTION_DAYS: 'audit_log_retention_days',
+  /**
+   * Whether the announce passkey still authenticates the READ surfaces (RSS,
+   * Torznab) now that those have keys of their own.
+   *
+   * Default true, and that is a migration stance rather than a preference: the
+   * passkey was the only key those surfaces ever accepted, so every feed URL a
+   * member has configured anywhere carries it. Flipping this to false the day
+   * the split ships would break all of them at once, which is exactly the
+   * breakage the split exists to prevent. An operator turns it off once their
+   * members have moved over.
+   */
+  LEGACY_PASSKEY_READ_ACCESS: 'legacy_passkey_read_access',
   SITE_LOGO_IMAGE_SIZE: 'site_logo_image_size',
   SITE_FAVICON_SIZE: 'site_favicon_size',
   SITE_SUBTITLE: 'site_subtitle',
@@ -381,6 +393,15 @@ export async function getSiteLogoImage(): Promise<string | null> {
  * entirely rather than treating 0 as "delete everything", which is the reading
  * that would quietly empty the register.
  */
+/**
+ * True while the announce passkey may still be used on the read surfaces.
+ * Defaults to true — see the note on the settings key.
+ */
+export async function isLegacyPasskeyReadAllowed(): Promise<boolean> {
+  const value = await getSetting(SETTINGS_KEYS.LEGACY_PASSKEY_READ_ACCESS);
+  return value !== 'false';
+}
+
 export async function getAuditRetentionDays(): Promise<number> {
   const value = await getSetting(SETTINGS_KEYS.AUDIT_LOG_RETENTION_DAYS);
   const parsed = value ? parseInt(value, 10) : NaN;

@@ -37,6 +37,31 @@ export const users = pgTable(
     authSalt: text('auth_salt').notNull(), // Client-generated salt (base64)
     authVerifier: text('auth_verifier').notNull(), // Derived verifier (base64)
     passkey: text('passkey').notNull().unique(), // For private tracker auth
+    /**
+     * The two read keys, separate from the announce passkey.
+     *
+     * One secret used to do all three jobs, and that had a consequence nobody
+     * chose: a member who pasted their RSS URL into a third-party service
+     * handed over the credential that announces on their behalf, and rotating
+     * the passkey because of it broke every torrent in their client at the
+     * same time. Splitting them means each can be revoked for its own reason.
+     *
+     * `rssKey` authenticates the RSS feeds and the Torznab endpoint — the
+     * things a member gives to Prowlarr or a feed reader. `apiKey` is for
+     * programmatic calls (the unregistered-hashes check today, more later).
+     * Neither can announce, and neither goes into a `.torrent`.
+     *
+     * Nullable, and minted on first request rather than at registration: a
+     * member who never wires up a feed reader should not be carrying two live
+     * secrets they have never seen. Postgres allows many NULLs under a unique
+     * index, so the constraint still holds for the ones that exist.
+     *
+     * These are NOT put in the session cookie, unlike `passkey`. The cookie is
+     * sealed for seven days, so a value inside it survives a rotation — which
+     * is precisely what "revoke this key" must not do.
+     */
+    rssKey: text('rss_key').unique(),
+    apiKey: text('api_key').unique(),
     isAdmin: boolean('is_admin').default(false).notNull(),
     isModerator: boolean('is_moderator').default(false).notNull(),
     /**

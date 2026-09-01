@@ -2,7 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
 import { desc, eq, and } from 'drizzle-orm';
 import { z } from 'zod';
-import { requireSessionOrApikey } from '~~/utils/adminAuth';
+import { requireReadAccess } from '~~/utils/account/readKeyAuth';
 import { getTorznabIncludeFederated } from '~~/utils/torznabSettings';
 import { getFederationConfig, isFederationLive } from '~~/utils/federation/config';
 import { federatedFeedRows } from '~~/utils/federation/feedRows';
@@ -21,7 +21,7 @@ const querySchema = z.object({
  * tracker, members-only, pending uploads filtered out.
  */
 export default defineEventHandler(async (event) => {
-  const { user } = await requireSessionOrApikey(event);
+  const { user } = await requireReadAccess(event, 'rss');
   const params = paramsSchema.parse(getRouterParams(event));
   const query = querySchema.parse(getQuery(event));
 

@@ -2,7 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { getStats } from '~~/utils/server';
 import { desc, eq, and, or, isNull, notInArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { requireSessionOrApikey } from '~~/utils/adminAuth';
+import { requireReadAccess } from '~~/utils/account/readKeyAuth';
 import { adultCategoryIds } from '~~/utils/adultContent';
 
 const querySchema = z.object({
@@ -18,12 +18,13 @@ const querySchema = z.object({
  * already turned down.
  */
 export default defineEventHandler(async (event) => {
-  const { user } = await requireSessionOrApikey(event);
+  const { user } = await requireReadAccess(event, 'rss');
   const query = querySchema.parse(getQuery(event));
 
   // Build the where so feeds for users who haven't opted into XXX
-  // skip those entries entirely. requireSessionOrApikey already
-  // surfaces showAdultContent on the user record.
+  // skip those entries entirely. `requireReadAccess` reads
+  // showAdultContent from the row rather than the session cookie, so a
+  // member who changed the setting today does not get yesterday's feed.
   const conditions = [
     eq(schema.torrents.isActive, true),
     eq(schema.torrents.moderationStatus, 'accepted'),

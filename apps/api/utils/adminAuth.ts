@@ -380,58 +380,13 @@ export async function requireFreshAuth(event: H3Event): Promise<void> {
 }
 
 /**
- * Auth gate for endpoints that need to be reachable by both browser
- * sessions (cookie-based) and external clients that authenticate by
- * passkey/apikey (RSS readers, *Arr-style integrations). Tries the
- * session cookie first, then falls back to a `?apikey=` or
- * `?passkey=` query parameter.
+ * Read-surface authentication (RSS, Torznab, the programmatic API) lives in
+ * `utils/account/readKeyAuth.requireReadAccess`.
  *
- * Returns `{ user }` shaped like a session for callers, regardless of
- * which path matched. On failure, throws 401 — same shape as
- * `requireUserSession` so callers don't need a separate error path.
- *
- * The DB-side `isBanned` check still runs: a banned user can't slip
- * past via passkey just because their session was already cleared.
+ * It used to live here as `requireSessionOrApikey`, which accepted `?apikey=`
+ * or `?passkey=` against `users.passkey` with no shape check and no
+ * lowercasing — while the Torznab gate did both, so the same key could work on
+ * one surface and fail on the other. The replacement resolves a session, then
+ * the surface's own key, then the announce passkey while an operator still
+ * allows it.
  */
-export async function requireSessionOrApikey(event: H3Event) {
-  // 1. Try the regular session path (cheap, also covers banned-user
-  // invalidation as a side effect).
-  try {
-    return await requireAuthSession(event);
-  } catch {
-    // fall through to apikey
-  }
-
-  const query = getQuery(event);
-  const apikey =
-    (typeof query.apikey === 'string' && query.apikey) ||
-    (typeof query.passkey === 'string' && query.passkey) ||
-    null;
-  if (!apikey) {
-    throw createError({ statusCode: 401, message: 'Authentication required' });
-  }
-
-  const [user] = await db
-    .select({
-      id: users.id,
-      username: users.username,
-      passkey: users.passkey,
-      isAdmin: users.isAdmin,
-      isModerator: users.isModerator,
-      isBanned: users.isBanned,
-      uploaded: users.uploaded,
-      downloaded: users.downloaded,
-      // Adult content opt-in flag carried alongside the rest so
-      // RSS / Torznab consumers don't need to re-query for it.
-      showAdultContent: users.showAdultContent,
-    })
-    .from(users)
-    .where(eq(users.passkey, apikey))
-    .limit(1);
-
-  if (!user || user.isBanned) {
-    throw createError({ statusCode: 401, message: 'Authentication required' });
-  }
-
-  return { user };
-}

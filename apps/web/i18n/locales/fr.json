@@ -301,7 +301,7 @@
       "title": "Identifiants tracker",
       "passkey": "Passkey",
       "announceUrl": "URL d'annonce",
-      "rotate": "Rotation",
+      "rotate": "Renouveler",
       "show": "Afficher",
       "hide": "Masquer",
       "warning": "Ne partagez jamais ces identifiants. Une rotation cassera tout client torrent encore configuré avec l'ancienne URL d'annonce.",
@@ -312,7 +312,16 @@
       "rotateConfirmAction": "Régénérer",
       "rotateSuccess": "Passkey régénérée — copiez la nouvelle dans votre client BitTorrent.",
       "rotateFailed": "Échec de la régénération de la passkey",
-      "copyFailed": "Impossible de copier dans le presse-papiers"
+      "copyFailed": "Impossible de copier dans le presse-papiers",
+      "rssKey": "Clé RSS / Torznab",
+      "rssKeyNote": "À utiliser dans Prowlarr, Sonarr, Radarr ou un lecteur de flux. Elle lit le catalogue et ne peut pas annoncer.",
+      "apiKey": "Clé API",
+      "apiKeyNote": "Pour les scripts qui appellent l'API. Elle lit et ne peut pas annoncer.",
+      "rotateReadKeyTitle": "Renouveler cette clé ?",
+      "rotateReadKeyBody": "Tout ce qui utilise l'ancienne valeur cesse de fonctionner immédiatement. Vos torrents ne sont pas affectés : cette clé ne peut pas annoncer.",
+      "rotated": "Clé renouvelée.",
+      "reauthRequired": "Reconnectez-vous pour renouveler une clé.",
+      "legacyPasskeyNote": "Votre passkey d'annonce fonctionne encore sur les flux pour l'instant, afin que vos configurations existantes continuent de tourner. Basculez-les sur la clé RSS ci-dessus : une passkey confiée à un tiers permet d'annoncer en votre nom."
     },
     "activity": {
       "title": "Activité",

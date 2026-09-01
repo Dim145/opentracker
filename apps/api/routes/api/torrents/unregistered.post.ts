@@ -37,7 +37,7 @@
 import { inArray } from 'drizzle-orm';
 import { z } from 'zod/v4';
 import { db, schema } from '@trackarr/db';
-import { requireAuthSession } from '~~/utils/adminAuth';
+import { requireReadAccess } from '~~/utils/account/readKeyAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateBody } from '~~/utils/schemas';
 
@@ -51,10 +51,9 @@ const bodySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  // A member's own read of the catalogue, so a session. A script wanting to
-  // call this needs a cookie for now; per-user read keys come later on this
-  // branch, and this is the first route that will want one.
-  await requireAuthSession(event);
+  // Session or key: this is meant to be called by a script as much as by a
+  // browser, and a script has no cookie.
+  await requireReadAccess(event, 'api');
   await rateLimit(event, RATE_LIMITS.mutation);
 
   const body = await validateBody(event, bodySchema);

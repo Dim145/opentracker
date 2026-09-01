@@ -78,6 +78,7 @@ export default defineConfig({
             { text: 'Panic Mode', link: '/guide/panic-mode' },
             { text: 'Staff Audit Log', link: '/guide/audit-log' },
             { text: 'Your Data (GDPR)', link: '/guide/your-data' },
+            { text: 'Keys', link: '/guide/api-keys' },
           ],
         },
         {

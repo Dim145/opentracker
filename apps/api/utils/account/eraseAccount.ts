@@ -361,6 +361,13 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
         authSalt: randomBytes(24).toString('base64'),
         authVerifier: randomBytes(48).toString('base64'),
         passkey: randomUUID().replace(/-/g, ''),
+      // The two read keys go entirely rather than being rotated to an unusable
+      // value: unlike the passkey they are nullable, so "no key" is a state the
+      // schema already has a word for, and an erased account has nothing to
+      // read. Cleared by hand because the row survives an erasure — no ON
+      // DELETE ever fires here.
+      rssKey: null,
+      apiKey: null,
         totpSecret: null,
         totpEnabled: false,
         trustDevicesEnabled: false,

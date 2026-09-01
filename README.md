@@ -28,6 +28,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 - **Proof of Work on registration** stops drive-by signup spam.
 - **Hashed IPs** — SHA-256 with daily-rotating salt; no raw IP persisted. Banning a user atomically banlists their last-known IP.
 - **Privacy toggles** — hide last-seen on public profile (mods/admins always see the truth).
+- **Three keys, not one** — the announce passkey, an RSS/Torznab key and an API key, each revocable on its own. Handing a feed URL to a third party no longer hands over the credential that announces for you. See [Keys](doc/guide/api-keys.md).
 - **Your data, both ways** — one-click JSON export of everything the instance holds about you (GDPR Art. 15 / 20) alongside self-service erasure (Art. 17). Both behind a fresh-login step-up; the export names every omission and why.
 
 ### Browse, upload & operate

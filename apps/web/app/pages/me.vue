@@ -407,6 +407,57 @@
             {{ $t('me.credentials.useInClient') }}
           </p>
         </article>
+
+        <!-- The read keys. Separate from the passkey above because that is the
+             whole point of them: giving a feed URL to a service should not hand
+             over the credential that announces on your behalf, and revoking one
+             should not break a single torrent in your client. -->
+        <article v-for="k in readKeyCards" :key="k.kind" class="cred">
+          <div class="cred-head">
+            <span class="cred-label">{{ k.label }}</span>
+            <div class="cred-actions">
+              <button
+                type="button"
+                class="cred-btn"
+                :title="k.visible ? $t('me.credentials.hide') : $t('me.credentials.show')"
+                @click="toggleReadKey(k.kind)"
+              >
+                <Icon :name="k.visible ? 'ph:eye-slash-bold' : 'ph:eye-bold'" />
+              </button>
+              <button
+                type="button"
+                class="cred-btn"
+                :title="copied === k.kind ? $t('common.copied') : $t('common.copy')"
+                :disabled="!k.value"
+                @click="copyReadKey(k.kind)"
+              >
+                <Icon :name="copied === k.kind ? 'ph:check-bold' : 'ph:copy-simple-bold'" />
+              </button>
+              <button
+                type="button"
+                class="cred-btn cred-btn--warn"
+                :title="$t('me.credentials.rotate')"
+                :disabled="readKeysBusy"
+                @click="rotateReadKey(k.kind)"
+              >
+                <Icon
+                  :name="readKeysBusy ? 'ph:circle-notch' : 'ph:arrows-clockwise-bold'"
+                  :class="{ 'animate-spin': readKeysBusy }"
+                />
+              </button>
+            </div>
+          </div>
+          <code class="cred-value">{{ k.visible ? k.value || '…' : k.mask }}</code>
+          <p class="cred-note cred-note--info">
+            <Icon name="ph:info-bold" />
+            {{ k.note }}
+          </p>
+        </article>
+
+        <p v-if="readKeys?.legacyPasskeyAccepted" class="cred-legacy">
+          <Icon name="ph:warning-bold" />
+          {{ $t('me.credentials.legacyPasskeyNote') }}
+        </p>
       </div>
     </section>
 
@@ -917,7 +968,7 @@ const passkeyVisible = ref(false);
 const passkeyLoading = ref(false);
 const passkeyRotating = ref(false);
 const announceVisible = ref(false);
-const copied = ref<'' | 'passkey' | 'announce'>('');
+const copied = ref<'' | 'passkey' | 'announce' | 'rss' | 'api'>('');
 
 const passkeyMask = '••••  ••••  ••••  ••••  ••••  ••••  ••••  ••••  ••••  ••••';
 
@@ -980,6 +1031,117 @@ async function rotatePasskey() {
     );
   } finally {
     passkeyRotating.value = false;
+  }
+}
+
+/**
+ * The two read keys.
+ *
+ * Fetched lazily like the passkey is, and for the same reason: a value that
+ * only matters when somebody asks for it should not be in the payload of every
+ * page load. Unlike the passkey they are NOT in the session cookie — the cookie
+ * is sealed for seven days and a revoked key that keeps working for a week is
+ * not a revoked key.
+ */
+const readKeys = ref<{
+  rssKey: string;
+  apiKey: string;
+  legacyPasskeyAccepted: boolean;
+} | null>(null);
+const readKeyVisible = reactive<{ rss: boolean; api: boolean }>({
+  rss: false,
+  api: false,
+});
+const readKeysBusy = ref(false);
+
+async function loadReadKeys() {
+  if (readKeys.value) return;
+  try {
+    // Typed explicitly: left to infer, Nitro's route matcher walks every
+    // declared route to find the response shape and TypeScript gives up with
+    // "excessive stack depth" on the sibling `/api/me/keys/[kind]`.
+    readKeys.value = await $fetch<{
+      rssKey: string;
+      apiKey: string;
+      legacyPasskeyAccepted: boolean;
+    }>('/api/me/keys');
+  } catch {
+    // Same posture as the passkey card: a failure leaves the value hidden
+    // rather than replacing the page with an error.
+  }
+}
+
+const readKeyCards = computed(() => [
+  {
+    kind: 'rss' as const,
+    label: t('me.credentials.rssKey'),
+    note: t('me.credentials.rssKeyNote'),
+    value: readKeys.value?.rssKey ?? '',
+    visible: readKeyVisible.rss,
+    mask: '••••••••••••••••',
+  },
+  {
+    kind: 'api' as const,
+    label: t('me.credentials.apiKey'),
+    note: t('me.credentials.apiKeyNote'),
+    value: readKeys.value?.apiKey ?? '',
+    visible: readKeyVisible.api,
+    mask: '••••••••••••••••',
+  },
+]);
+
+async function toggleReadKey(kind: 'rss' | 'api') {
+  if (!readKeyVisible[kind]) await loadReadKeys();
+  readKeyVisible[kind] = !readKeyVisible[kind];
+}
+
+async function copyReadKey(kind: 'rss' | 'api') {
+  await loadReadKeys();
+  const value = kind === 'rss' ? readKeys.value?.rssKey : readKeys.value?.apiKey;
+  if (!value) return;
+  await navigator.clipboard.writeText(value);
+  copied.value = kind;
+  setTimeout(() => (copied.value = ''), 1500);
+}
+
+async function rotateReadKey(kind: 'rss' | 'api') {
+  const ok = await confirmDialog({
+    title: t('me.credentials.rotateReadKeyTitle'),
+    message: t('me.credentials.rotateReadKeyBody'),
+    confirmText: t('me.credentials.rotate'),
+    destructive: true,
+  });
+  if (!ok) return;
+
+  readKeysBusy.value = true;
+  try {
+    // The URL is widened to `string` on purpose. Left as a template literal,
+    // Nitro's route-typing tries to match it against every declared route and
+    // TypeScript gives up with "excessive stack depth" — the inference is not
+    // buying anything here, since the response type is stated right above it.
+    const url: string = `/api/me/keys/${kind}`;
+    const res = await $fetch<{ kind: 'rss' | 'api'; key: string }>(url, {
+      method: 'POST',
+    });
+    if (readKeys.value) {
+      if (res.kind === 'rss') readKeys.value.rssKey = res.key;
+      else readKeys.value.apiKey = res.key;
+    }
+    readKeyVisible[kind] = true;
+    notifications.success(t('me.credentials.rotated'));
+  } catch (err: unknown) {
+    const e = err as {
+      statusCode?: number;
+      data?: { message?: string; data?: { reauthRequired?: boolean } };
+      message?: string;
+    };
+    notifications.error(
+      e?.data?.data?.reauthRequired || e?.statusCode === 401
+        ? t('me.credentials.reauthRequired')
+        : e?.data?.message || e?.message || t('me.credentials.rotateFailed')
+    );
+  } finally {
+    readKeysBusy.value = false;
   }
 }
 
@@ -2391,6 +2553,39 @@ function formatDuration(seconds: number) {
   gap: 0.4rem;
   color: rgb(var(--fg-muted));
 }
+/* The rotate button on a read key. Warm rather than red: rotating one of
+   these is a routine, reversible thing to do — nothing breaks except what you
+   deliberately handed out. */
+.cred-btn--warn:not(:disabled):hover {
+  color: rgb(var(--warning));
+  border-color: rgb(var(--warning) / 0.5);
+}
+
+.cred-note-hint {
+  color: rgb(var(--fg-subtle));
+}
+
+.cred-legacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgb(var(--warning) / 0.35);
+  border-radius: 0.4rem;
+  background: rgb(var(--warning) / 0.08);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: rgb(var(--fg-muted));
+}
+.cred-legacy svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.1rem;
+  color: rgb(var(--warning));
+}
+
 .cred-note--info {
   color: #34d4d8;
   opacity: 0.85;

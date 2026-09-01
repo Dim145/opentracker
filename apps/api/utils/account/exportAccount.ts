@@ -517,7 +517,7 @@ export async function exportAccount(userId: string) {
       },
       {
         what: 'Credentials and secrets',
-        where: 'password verifier, passkey material, trusted-device tokens, TOTP secret, notification-channel tokens and webhook URLs, the account passkey',
+        where: 'password verifier, passkey material, trusted-device tokens, TOTP secret, notification-channel tokens and webhook URLs, the announce passkey, the RSS and API keys',
         why: 'A live credential in a downloaded file is a worse risk than one in the database. Channel types and state are exported; the credential is not.',
       },
       {

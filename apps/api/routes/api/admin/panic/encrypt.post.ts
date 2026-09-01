@@ -104,6 +104,13 @@ export default defineEventHandler(async (event) => {
         authSalt: encryptField(user.authSalt, key)!,
         authVerifier: encryptField(user.authVerifier, key)!,
         passkey: encryptField(user.passkey, key)!,
+        // The two read keys are credentials like the passkey is. Leaving them
+        // out would mean a panicked database still carrying live secrets in
+        // plaintext — a "the data is encrypted" that is only mostly true, which
+        // is the kind of gap nobody finds until it matters. `encryptField`
+        // passes null through, so an account that never minted one stays null.
+        rssKey: encryptField(user.rssKey, key) ?? undefined,
+        apiKey: encryptField(user.apiKey, key) ?? undefined,
         lastIp: encryptField(user.lastIp, key) ?? undefined,
       })
       .where(eq(users.id, user.id));

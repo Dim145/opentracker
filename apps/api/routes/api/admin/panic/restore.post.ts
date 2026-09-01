@@ -144,6 +144,8 @@ export default defineEventHandler(async (event) => {
           authSalt: decryptField(user.authSalt, key, legacyIv)!,
           authVerifier: decryptField(user.authVerifier, key, legacyIv)!,
           passkey: decryptField(user.passkey, key, legacyIv)!,
+          rssKey: decryptField(user.rssKey, key, legacyIv) ?? undefined,
+          apiKey: decryptField(user.apiKey, key, legacyIv) ?? undefined,
           lastIp: decryptField(user.lastIp, key, legacyIv) ?? undefined,
         })
         .where(eq(users.id, user.id));

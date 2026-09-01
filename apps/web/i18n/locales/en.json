@@ -312,7 +312,16 @@
       "rotateConfirmAction": "Regenerate",
       "rotateSuccess": "Passkey rotated — copy the new one into your torrent client.",
       "rotateFailed": "Failed to regenerate passkey",
-      "copyFailed": "Could not copy to clipboard"
+      "copyFailed": "Could not copy to clipboard",
+      "rssKey": "RSS / Torznab key",
+      "rssKeyNote": "Use this in Prowlarr, Sonarr, Radarr or a feed reader. It can read the catalogue and cannot announce.",
+      "apiKey": "API key",
+      "apiKeyNote": "For scripts calling the API. It can read and cannot announce.",
+      "rotateReadKeyTitle": "Rotate this key?",
+      "rotateReadKeyBody": "Anything using the old value stops working immediately. Your torrents are unaffected — this key cannot announce.",
+      "rotated": "Key rotated.",
+      "reauthRequired": "Log in again to rotate a key.",
+      "legacyPasskeyNote": "Your announce passkey still works on feeds for now, so existing setups keep running. Move them to the RSS key above: a passkey given to a third party can announce on your behalf."
     },
     "activity": {
       "title": "Activity",

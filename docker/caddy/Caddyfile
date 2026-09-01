@@ -120,11 +120,16 @@
 		}
 	}
 
-	# Drop the `passkey` query param from access logs before they hit
-	# disk. The tracker requires it in the URL by BitTorrent protocol,
-	# so we can't strip it from the request itself, but we can prevent
-	# it from being persisted in the log file (which is otherwise a
-	# textbook log-leak vector for credential exfiltration).
+	# Drop every credential query param from access logs before they hit
+	# disk. The tracker requires `passkey` in the URL by BitTorrent protocol,
+	# and a feed reader puts `apikey` there because Torznab has no other way
+	# to carry one — so we can't strip them from the request itself, but we
+	# can prevent them from being persisted in the log file (which is
+	# otherwise a textbook log-leak vector for credential exfiltration).
+	#
+	# `apikey` and `rsskey` joined `passkey` when the read surfaces got keys
+	# of their own: before that, `apikey` WAS the passkey and this scrub
+	# covered it by accident rather than on purpose.
 	log {
 		output file /var/log/caddy/access.log {
 			roll_size 100mb
@@ -136,6 +141,8 @@
 			fields {
 				uri query {
 					delete passkey
+					delete apikey
+					delete rsskey
 				}
 			}
 		}
@@ -171,6 +178,8 @@
 			fields {
 				uri query {
 					delete passkey
+					delete apikey
+					delete rsskey
 				}
 			}
 		}
