@@ -15,6 +15,8 @@
  * upload.
  */
 import { z } from 'zod/v4';
+import { eq } from 'drizzle-orm';
+import { db, schema } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateQuery } from '~~/utils/schemas';
@@ -28,5 +30,31 @@ export default defineEventHandler(async (event) => {
   const { user } = await requireAuthSession(event);
   await rateLimit(event, RATE_LIMITS.public);
   const { year } = validateQuery(event, querySchema);
-  return memberYear(user.id, year);
+
+  /**
+   * `hide_download_history` is a door, not a content filter.
+   *
+   * `/api/me/downloads` refuses the list to the AUTHENTICATED CALLER when the
+   * flag is set, and says why: what the toggle buys is that a stolen session
+   * cannot enumerate the snatch list. Three of the figures here come from the
+   * same table on the same precondition — a year of downloaded bytes and a grab
+   * count are exactly what that door is shut against — so the flag has to be
+   * honoured here too. The upload side comes from `torrents` and stays.
+   */
+  const me = await db.query.users.findFirst({
+    where: eq(schema.users.id, user.id),
+    columns: { hideDownloadHistory: true },
+  });
+
+  const summary = await memberYear(user.id, year);
+  if (!me?.hideDownloadHistory) return { ...summary, downloadsHidden: false };
+
+  return {
+    ...summary,
+    snatches: 0,
+    seedTimeSeconds: 0,
+    bytesUp: 0,
+    bytesDown: 0,
+    downloadsHidden: true,
+  };
 });

@@ -155,13 +155,26 @@ const areaPath = computed(
   () => `${linePath.value} L${VIEW_W},${VIEW_H} L0,${VIEW_H} Z`
 );
 
+/**
+ * Bars are anchored at ZERO, not at the series minimum.
+ *
+ * `y()` interpolates between the minimum and the maximum, which is right for a
+ * cumulative counter — the slope is the story — and wrong for a per-period
+ * delta: a 90-day traffic series running between 900 GiB and 1 TiB drew the
+ * quietest day as a hairline and the busiest as a full bar, rendering an 11 %
+ * spread as a factor of a hundred. Worse, it made the quietest period look
+ * identical to a period with nothing at all.
+ */
+const barMax = computed(() => Math.max(1, ...props.points));
+
 const bars = computed(() => {
   const n = props.points.length;
   const slot = VIEW_W / n;
   const gap = Math.min(0.6, slot * 0.25);
   const zero = VIEW_H - 1;
   return props.points.map((value, i) => {
-    const top = y(value);
+    const usable = VIEW_H - 2;
+    const top = zero - (Math.max(0, value) / barMax.value) * usable;
     return {
       x: i * slot + gap / 2,
       w: Math.max(0.4, slot - gap),

@@ -48,6 +48,8 @@ import { adultCategoryIds } from './adultContent';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface Snapshot {
+  /** `YYYY-MM-DD`, formatted by Postgres — see `snapshots()`. */
+  day: string;
   at: Date;
   users: number;
   torrents: number;
@@ -81,7 +83,13 @@ export interface DailyPoint {
 export function dailyPoints(rows: Snapshot[]): DailyPoint[] {
   const byDay = new Map<string, Snapshot>();
   for (const row of rows) {
-    const day = row.at.toISOString().slice(0, 10);
+    // The day comes from the query, not from `at.toISOString()`. `created_at` is
+    // `timestamp without time zone`, and postgres.js hands a zone-less value to
+    // `new Date()`, which reads it in the PROCESS's zone — and the shipped
+    // compose file sets `TZ=Europe/Paris`. Bucketing in JavaScript therefore cut
+    // the days at 22:00 UTC and labelled them "UTC", which put a New Year's Eve
+    // upload in the previous year's review.
+    const day = row.day;
     const seen = byDay.get(day);
     if (!seen || row.at > seen.at) byDay.set(day, row);
   }
@@ -121,11 +129,28 @@ export interface DailyDelta {
  * against zero — which would otherwise print the site's entire history as one
  * day's traffic.
  */
+/** Whole days between two `YYYY-MM-DD` labels. */
+function daysBetween(a: string, b: string): number {
+  return Math.round(
+    (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000
+  );
+}
+
 export function dailyDeltas(points: DailyPoint[]): DailyDelta[] {
   const out: DailyDelta[] = [];
   for (let i = 1; i < points.length; i++) {
     const prev = points[i - 1]!;
     const cur = points[i]!;
+    /**
+     * A gap in the snapshots is skipped rather than attributed.
+     *
+     * `dailyPoints` deliberately omits a day with no snapshot, so after an
+     * outage from the 3rd to the 7th the 8th's difference covers five days of
+     * traffic — and `busiestDay` then names the day after the longest outage as
+     * the busiest of the year, every time, with a bar that dwarfs the chart.
+     * There is no way to split it honestly, so it is left out.
+     */
+    if (daysBetween(prev.day, cur.day) !== 1) continue;
     out.push({
       day: cur.day,
       bytes: Math.max(0, cur.uploaded - prev.uploaded),
@@ -233,9 +258,13 @@ export async function siteNow(adultIds: string[]): Promise<SiteNow> {
 
   const [swarm] = await db
     .select({
-      seeders: sql<number>`coalesce(sum(${schema.torrentStats.seeders}), 0)::int`,
-      leechers: sql<number>`coalesce(sum(${schema.torrentStats.leechers}), 0)::int`,
-      snatches: sql<number>`coalesce(sum(${schema.torrentStats.completed}), 0)::int`,
+      // `sum()` of an integer is a bigint, and `completed` is cumulative: a
+      // catalogue past roughly 2.1 billion total completions would have made the
+      // `::int` cast throw `integer out of range` and taken the whole page with
+      // it. Kept as bigint and narrowed in JS, like the byte figures.
+      seeders: sql<number>`coalesce(sum(${schema.torrentStats.seeders}), 0)::bigint`,
+      leechers: sql<number>`coalesce(sum(${schema.torrentStats.leechers}), 0)::bigint`,
+      snatches: sql<number>`coalesce(sum(${schema.torrentStats.completed}), 0)::bigint`,
     })
     .from(schema.torrentStats)
     .innerJoin(
@@ -260,9 +289,9 @@ export async function siteNow(adultIds: string[]): Promise<SiteNow> {
   return {
     torrents: counts?.torrents ?? 0,
     members: members?.n ?? 0,
-    seeders: swarm?.seeders ?? 0,
-    leechers: swarm?.leechers ?? 0,
-    snatches: swarm?.snatches ?? 0,
+    seeders: Number(swarm?.seeders ?? 0),
+    leechers: Number(swarm?.leechers ?? 0),
+    snatches: Number(swarm?.snatches ?? 0),
     catalogued: Number(counts?.catalogued ?? 0),
     trafficTotal: Number(latest?.uploaded ?? 0),
   };
@@ -272,6 +301,9 @@ export async function siteNow(adultIds: string[]): Promise<SiteNow> {
 export async function snapshots(since: Date, until?: Date): Promise<Snapshot[]> {
   const rows = await db
     .select({
+      // Formatted by Postgres so the label is the stored (UTC) date rather than
+      // whatever zone this process happens to run in.
+      day: sql<string>`to_char(${schema.siteStats.createdAt}, 'YYYY-MM-DD')`,
       at: schema.siteStats.createdAt,
       users: schema.siteStats.usersCount,
       torrents: schema.siteStats.torrentsCount,
@@ -371,6 +403,8 @@ export async function topTorrents(
 }
 
 export interface TopUploader {
+  /** The profile page routes on the id, not the name. */
+  id: string;
   username: string;
   uploads: number;
 }
@@ -387,6 +421,7 @@ export async function topUploaders(
 ): Promise<TopUploader[]> {
   const rows = await db
     .select({
+      id: schema.users.id,
       username: schema.users.username,
       uploads: sql<number>`count(*)::int`,
     })
@@ -396,10 +431,13 @@ export async function topUploaders(
       and(
         visibleTorrents(adultIds),
         eq(schema.users.anonymousUploads, false),
-        isNull(schema.users.deletedAt)
+        isNull(schema.users.deletedAt),
+        // A banned account is not a member of the site any more, and a cheater
+        // heading the public board is the worst version of this page.
+        eq(schema.users.isBanned, false)
       )
     )
-    .groupBy(schema.users.username)
+    .groupBy(schema.users.id, schema.users.username)
     .orderBy(desc(sql`count(*)`))
     .limit(limit);
   return rows;
@@ -451,9 +489,16 @@ export async function siteYear(
       )
     );
 
-  // Completions dated inside the year, from the hit-and-run ledger — the only
-  // per-download record the site keeps. `torrent_stats.completed` is a running
-  // total with no date, so it cannot answer a question about a year.
+  /**
+   * COMPLETIONS dated inside the year, not grabs.
+   *
+   * `hnr_tracking` is the only dated per-download record — `torrent_stats.completed`
+   * is a running total with no date — but a row is written when a member clicks
+   * the `.torrent`, before a single byte moves. Counting rows therefore counted
+   * downloads of a metainfo file, while the figure beside it in the header counts
+   * real completions: two different quantities under one word. `completed_at`
+   * is what makes them the same question.
+   */
   const [snatched] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(schema.hnrTracking)
@@ -464,8 +509,9 @@ export async function siteYear(
     .where(
       and(
         visibleTorrents(adultIds),
-        gte(schema.hnrTracking.downloadedAt, start),
-        lt(schema.hnrTracking.downloadedAt, end)
+        sql`${schema.hnrTracking.completedAt} is not null`,
+        gte(schema.hnrTracking.completedAt, start),
+        lt(schema.hnrTracking.completedAt, end)
       )
     );
 

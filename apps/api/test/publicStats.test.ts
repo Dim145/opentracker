@@ -19,6 +19,9 @@ import {
  */
 
 const snap = (iso: string, uploaded: number, extra: Partial<Snapshot> = {}): Snapshot => ({
+  // The day label comes from Postgres in the real query (`to_char`), because a
+  // JS Date reads a zone-less timestamp in the process's zone. Mirrored here.
+  day: iso.slice(0, 10),
   at: new Date(iso),
   users: 10,
   torrents: 100,
@@ -104,6 +107,34 @@ describe('dailyDeltas', () => {
       ]),
     );
     expect(deltas[0]).toMatchObject({ torrents: 0, users: 0 });
+  });
+});
+
+describe('dailyDeltas across a gap', () => {
+  it('does not attribute an outage to the day it ended', () => {
+    // Five days down, then a snapshot. The naive difference makes that one day
+    // look like the busiest of the year — every time, on every instance that
+    // ever restarted — and draws a bar that flattens the rest of the chart.
+    const deltas = dailyDeltas(
+      dailyPoints([
+        snap('2026-03-01T10:00:00Z', 1_000),
+        snap('2026-03-02T10:00:00Z', 2_000),
+        snap('2026-03-08T10:00:00Z', 9_000),
+        snap('2026-03-09T10:00:00Z', 9_500),
+      ]),
+    );
+    expect(deltas.map((d) => d.day)).toEqual(['2026-03-02', '2026-03-09']);
+    expect(deltas.map((d) => d.bytes)).toEqual([1_000, 500]);
+  });
+
+  it('and therefore does not let a gap win busiestDay', () => {
+    const points = dailyPoints([
+      snap('2026-03-01T10:00:00Z', 0),
+      snap('2026-03-02T10:00:00Z', 5_000),
+      snap('2026-03-20T10:00:00Z', 900_000),
+      snap('2026-03-21T10:00:00Z', 906_000),
+    ]);
+    expect(busiestDay(dailyDeltas(points))?.day).toBe('2026-03-21');
   });
 });
 

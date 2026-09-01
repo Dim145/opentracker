@@ -26,16 +26,42 @@
  * cached for a minute, like the rest of the stats.
  */
 import { z } from 'zod/v4';
+import { eq } from 'drizzle-orm';
+import { db, schema } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateQuery } from '~~/utils/schemas';
-import { hiddenCategoryIds, siteYear } from '~~/utils/publicStats';
+import {
+  firstSnapshotAt,
+  hiddenCategoryIds,
+  selectableYears,
+  siteYear,
+} from '~~/utils/publicStats';
 
 const querySchema = z.object({
   // 2000 is not a guess: BitTorrent was published in 2001, so a tracker with
   // data before that is a clock problem rather than a year.
   year: z.coerce.number().int().min(2000).max(2100),
 });
+
+/**
+ * The caller's adult preference, read from the row.
+ *
+ * NOT from the session: no login path writes `showAdultContent` into the sealed
+ * cookie, so `user.showAdultContent` was always `undefined` — always
+ * fail-closed, which meant a member who HAD opted in never saw their own
+ * categories here, and the `all` half of the cache key was dead code. Every
+ * neighbouring route reads the row for the same reason, and deliberately does
+ * not put the flag in the cookie: a seven-day session would keep serving an
+ * adult view for a week after the member turned it off.
+ */
+async function callerShowsAdult(userId: string): Promise<boolean> {
+  const me = await db.query.users.findFirst({
+    where: eq(schema.users.id, userId),
+    columns: { showAdultContent: true },
+  });
+  return me?.showAdultContent ?? false;
+}
 
 const FRESH_TTL_MS = 60_000;
 const SETTLED_TTL_MS = 24 * 60 * 60 * 1000;
@@ -46,7 +72,26 @@ export default defineEventHandler(async (event) => {
   await rateLimit(event, RATE_LIMITS.public);
 
   const { year } = validateQuery(event, querySchema);
-  const showAdult = !!user.showAdultContent;
+
+  /**
+   * Only a year this instance can answer for.
+   *
+   * The schema's [2000, 2100] range was 101 cache keys against a 40-entry cache,
+   * so a caller walking the range missed every time — and each miss is four
+   * range scans over `torrents` plus one over `hnr_tracking`. An empty year
+   * costs exactly as much as a full one, because the planner has to look to find
+   * nothing. The window parameter on the sibling route learned this already:
+   * the parameter IS the cache key, so it has to be small.
+   */
+  const offered = selectableYears(await firstSnapshotAt(), new Date());
+  if (!offered.includes(year)) {
+    throw createError({
+      statusCode: 400,
+      message: `This instance has no data for ${year}.`,
+    });
+  }
+
+  const showAdult = await callerShowsAdult(user.id);
   const key = `${year}:${showAdult ? 'all' : 'safe'}`;
 
   const hit = cache.get(key);

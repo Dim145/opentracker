@@ -25,6 +25,7 @@
     <section class="st-panel" aria-labelledby="st-growth">
       <div class="st-panel-head">
         <h2 id="st-growth">{{ $t('stats.growth.title') }}</h2>
+        <p class="st-panel-note">{{ $t('stats.growth.note') }}</p>
         <div class="st-windows" role="group" :aria-label="$t('stats.growth.windowAria')">
           <button
             v-for="w in WINDOWS"
@@ -137,7 +138,7 @@
       <ol v-if="data?.topUploaders?.length" class="st-board">
         <li v-for="(u, i) in data.topUploaders" :key="u.username" class="st-board-row">
           <span class="st-rank-n">{{ i + 1 }}</span>
-          <NuxtLink :to="`/users/${u.username}`" class="st-board-name">{{ u.username }}</NuxtLink>
+          <NuxtLink :to="`/users/${u.id}`" class="st-board-name">{{ u.username }}</NuxtLink>
           <span class="st-board-count">{{ $t('stats.uploaders.count', { n: u.uploads }) }}</span>
         </li>
       </ol>
@@ -243,12 +244,17 @@
         <h3 class="st-sub">{{ $t('stats.mine.title', { year }) }}</h3>
         <div class="st-mine-grid">
           <div><b>{{ mine.uploads.toLocaleString() }}</b><span>{{ $t('stats.mine.uploads') }}</span></div>
-          <div><b>{{ mine.snatches.toLocaleString() }}</b><span>{{ $t('stats.mine.snatches') }}</span></div>
-          <div><b>{{ bytes(mine.bytesUp) }}</b><span>{{ $t('stats.mine.up') }}</span></div>
-          <div><b>{{ bytes(mine.bytesDown) }}</b><span>{{ $t('stats.mine.down') }}</span></div>
-          <div><b>{{ hours(mine.seedTimeSeconds) }}</b><span>{{ $t('stats.mine.seedTime') }}</span></div>
+          <template v-if="!mine.downloadsHidden">
+            <div><b>{{ mine.snatches.toLocaleString() }}</b><span>{{ $t('stats.mine.snatches') }}</span></div>
+            <div><b>{{ bytes(mine.bytesUp) }}</b><span>{{ $t('stats.mine.up') }}</span></div>
+            <div><b>{{ bytes(mine.bytesDown) }}</b><span>{{ $t('stats.mine.down') }}</span></div>
+            <div><b>{{ hours(mine.seedTimeSeconds) }}</b><span>{{ $t('stats.mine.seedTime') }}</span></div>
+          </template>
           <div><b>{{ Math.round(mine.bonusEarned).toLocaleString() }}</b><span>{{ $t('stats.mine.bonus') }}</span></div>
         </div>
+        <!-- Said rather than silently omitted: four missing figures with no
+             explanation read as a broken page. -->
+        <p v-if="mine.downloadsHidden" class="st-mine-cat">{{ $t('stats.mine.hidden') }}</p>
         <p v-if="mine.bestRelease" class="st-mine-best">
           {{ $t('stats.mine.best') }}
           <NuxtLink :to="`/torrents/${mine.bestRelease.infoHash}`">{{ mine.bestRelease.name }}</NuxtLink>
@@ -340,7 +346,7 @@ interface SiteStats {
     snatches: number;
   }>;
   biggestSwarms: SiteStats['mostSnatched'];
-  topUploaders: Array<{ username: string; uploads: number }>;
+  topUploaders: Array<{ id: string; username: string; uploads: number }>;
   years: number[];
 }
 
@@ -375,6 +381,8 @@ const { data: yearData } = await useFetch<YearStats>('/api/stats/year', {
 });
 
 interface MineStats {
+  /** True when the member has turned their download history off. */
+  downloadsHidden?: boolean;
   uploads: number;
   snatches: number;
   seedTimeSeconds: number;

@@ -5469,7 +5469,8 @@
       "members": "Members",
       "membersUnit": "members",
       "traffic": "Traffic per day",
-      "none": "No snapshots yet — the collector writes one an hour, so this fills in from the next one."
+      "none": "No snapshots yet — the collector writes one an hour, so this fills in from the next one.",
+      "note": "Whole-catalogue counters from the hourly snapshot — every status and every category, so they sit above the filtered figures at the top."
     },
     "series": {
       "tooShort": "Not enough history to draw yet.",
@@ -5521,7 +5522,8 @@
       "days": "{n} d",
       "best": "Your most snatched release:",
       "bestSnatches": "{n} snatches",
-      "favourite": "Mostly {category} — {n} of your uploads."
+      "favourite": "Mostly {category} — {n} of your uploads.",
+      "hidden": "Your download figures are hidden because you turned your download history off in Settings → Privacy."
     }
   }
 }

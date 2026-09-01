@@ -5469,7 +5469,8 @@
       "members": "Membres",
       "membersUnit": "membres",
       "traffic": "Trafic par jour",
-      "none": "Aucun relevé pour l’instant — le collecteur en écrit un par heure, la courbe se remplira au prochain."
+      "none": "Aucun relevé pour l’instant — le collecteur en écrit un par heure, la courbe se remplira au prochain.",
+      "note": "Compteurs du catalogue entier, relevés chaque heure — tous les statuts et toutes les catégories, donc au-dessus des chiffres filtrés du haut de page."
     },
     "series": {
       "tooShort": "Pas encore assez d’historique pour tracer.",
@@ -5521,7 +5522,8 @@
       "days": "{n} j",
       "best": "Votre release la plus téléchargée :",
       "bestSnatches": "{n} téléchargements",
-      "favourite": "Surtout {category} — {n} de vos envois."
+      "favourite": "Surtout {category} — {n} de vos envois.",
+      "hidden": "Vos chiffres de téléchargement sont masqués parce que vous avez désactivé votre historique dans Réglages → Confidentialité."
     }
   }
 }

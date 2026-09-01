@@ -51,6 +51,11 @@ For the same reason, a per-day figure is clamped at zero rather than shown
 negative — a chart reporting "-4.2 TB on Tuesday" would be a number a reader
 would try to explain.
 
+**Your own download figures follow your privacy setting.** With
+`Settings → Privacy → hide download history` on, the grabs, bytes and seed time
+are withheld from your year — the same door that closes `/downloads`, since a
+stolen session must not be able to read them either. Your uploads still show.
+
 ## Where the numbers come from
 
 | Section | Source |
@@ -59,12 +64,17 @@ would try to explain.
 | History | `site_stats`, one snapshot an hour |
 | Categories | `torrents` joined `categories` |
 | Rankings | `torrent_stats.completed` / `.seeders` |
-| Snatches in a year | `hnr_tracking`, which is the only dated per-download record |
+| Snatches in a year | `hnr_tracking`, counting rows with a **completion** date — a row appears when a member downloads the `.torrent`, so counting rows would count metainfo downloads rather than completions |
 | Your year | your own rows in the four tables above, plus `bonus_grants` |
 
 A day with no snapshot is absent from the charts rather than drawn as zero: an
 instance that was down for six hours must not draw a cliff on a counter that
-never moved. Under each chart, **Show the numbers** opens the same values as a
+never moved. For the same reason a per-day figure is **skipped** across a gap
+rather than attributed to the day the snapshots resumed — otherwise the day after
+the longest outage is reported as the busiest of the year, every time.
+
+The day a snapshot belongs to is decided by Postgres, not by the API process, so
+the labels are UTC dates regardless of the container's `TZ`. Under each chart, **Show the numbers** opens the same values as a
 table — the picture is not the data.
 
 ## Years, and time zones

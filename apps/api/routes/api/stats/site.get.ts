@@ -16,6 +16,8 @@
  * perceive.
  */
 import { z } from 'zod/v4';
+import { eq } from 'drizzle-orm';
+import { db, schema } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateQuery } from '~~/utils/schemas';
@@ -38,6 +40,25 @@ const querySchema = z.object({
   window: z.enum(['30', '90', '365']).default('90'),
 });
 
+/**
+ * The caller's adult preference, read from the row.
+ *
+ * NOT from the session: no login path writes `showAdultContent` into the sealed
+ * cookie, so `user.showAdultContent` was always `undefined` — always
+ * fail-closed, which meant a member who HAD opted in never saw their own
+ * categories here, and the `all` half of the cache key was dead code. Every
+ * neighbouring route reads the row for the same reason, and deliberately does
+ * not put the flag in the cookie: a seven-day session would keep serving an
+ * adult view for a week after the member turned it off.
+ */
+async function callerShowsAdult(userId: string): Promise<boolean> {
+  const me = await db.query.users.findFirst({
+    where: eq(schema.users.id, userId),
+    columns: { showAdultContent: true },
+  });
+  return me?.showAdultContent ?? false;
+}
+
 const CACHE_TTL_MS = 60_000;
 const cache = new Map<string, { at: number; value: unknown }>();
 
@@ -47,7 +68,7 @@ export default defineEventHandler(async (event) => {
 
   const { window } = validateQuery(event, querySchema);
   const days = Number(window);
-  const showAdult = !!user.showAdultContent;
+  const showAdult = await callerShowsAdult(user.id);
   const key = `${days}:${showAdult ? 'all' : 'safe'}`;
 
   const hit = cache.get(key);
@@ -71,9 +92,17 @@ export default defineEventHandler(async (event) => {
   const value = {
     now,
     days,
-    // The series is what it is: if the collector has only been running a week,
-    // the chart shows a week rather than 83 empty days. Padding it would draw a
-    // flat line at zero and call it history.
+    /**
+     * The series is what it is: if the collector has only been running a week,
+     * the chart shows a week rather than 83 empty days. Padding it would draw a
+     * flat line at zero and call it history.
+     *
+     * These points come from `site_stats`, which the operator's collector writes
+     * as WHOLE-CATALOGUE counters — every status, adult included, and every
+     * account. So they can legitimately sit above the filtered figures in `now`,
+     * and the page labels them as the catalogue total rather than implying they
+     * are the same number over time.
+     */
     points,
     deltas: dailyDeltas(points),
     categories,
