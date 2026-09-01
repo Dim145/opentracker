@@ -291,6 +291,17 @@
         <span class="section-head-line" aria-hidden="true" />
       </header>
 
+      <!-- The procedure the invite tree exists for starts here — a moderator
+           looking at an account they suspect — and there was no path to it from
+           any member: the only way in was to reach the page from the sidebar and
+           retype the username by hand. -->
+      <p class="logins-tools">
+        <NuxtLink :to="`/admin/invite-tree?userId=${user.id}`" class="btn btn-secondary btn-sm">
+          <Icon name="ph:git-fork" />
+          {{ $t('admin.inviteTree.openTree') }}
+        </NuxtLink>
+      </p>
+
       <div class="logins-head">
         <p class="logins-lede">{{ $t('users.logins.lede') }}</p>
         <button
@@ -1804,6 +1815,7 @@ useHead({
    torrent page. Neither login table had one, nor any media query, so at 390px
    the columns simply crushed each other. Focusable, because a scroll container
    the keyboard cannot reach hides whatever it is scrolling. */
+.logins-tools { margin: 0 0 0.75rem; }
 .logins-frame {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;

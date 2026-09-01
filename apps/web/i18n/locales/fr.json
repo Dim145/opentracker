@@ -3898,14 +3898,19 @@
       "search": "Rechercher",
       "notFound": "Aucun membre ne correspond.",
       "failed": "L'arbre d'invitations n'a pas pu être chargé.",
-      "invitedBy": "Invité par",
+      "invitedBy": "Parrains",
       "invited": "Invités par {name}",
       "noInviter": "Personne n'a invité ce membre : c'est le premier compte, ou il s'est inscrit pendant une période d'inscription ouverte.",
-      "depthLimit": "La chaîne remonte plus haut que ce que cette vue parcourt.",
+      "depthLimit": "La chaîne continue au-dessus : {depth} générations est la limite de cette vue, donc le compte affiché en haut n’est pas forcément le premier.",
       "noInvitees": "Ce membre n'a fait entrer personne.",
       "generation": "génération {n}",
       "erased": "compte effacé",
-      "truncated": "Tronqué à {nodes} membres ou {depth} générations — le reste n’est pas affiché."
+      "truncated": "Seuls les {nodes} premiers membres et {depth} générations sont affichés.",
+      "blank": "Cherchez un membre pour voir qui s’est porté garant de lui, et qui il a fait entrer.",
+      "legendBanned": "banni",
+      "legendErased": "compte effacé",
+      "summary": "{members} membres, dont {banned} bannis, sur {depth} générations.",
+      "openTree": "Arbre d’invitations"
     },
     "irc": {
       "eyebrow": "Intégration",

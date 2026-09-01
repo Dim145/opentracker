@@ -3898,14 +3898,19 @@
       "search": "Look up",
       "notFound": "No member matches that.",
       "failed": "Could not load the invite tree.",
-      "invitedBy": "Invited by",
+      "invitedBy": "Sponsors",
       "invited": "Invited by {name}",
       "noInviter": "Nobody invited this member — they are the first account, or they registered while registration was open.",
-      "depthLimit": "The chain goes further up than this view walks.",
+      "depthLimit": "The chain continues above this — {depth} generations is as far as this view walks, so the account at the top is not necessarily the first.",
       "noInvitees": "This member has not brought anybody in.",
       "generation": "generation {n}",
       "erased": "erased account",
-      "truncated": "Truncated at {nodes} members or {depth} generations — the rest is not shown."
+      "truncated": "Only the first {nodes} members and {depth} generations are shown.",
+      "blank": "Look up a member to see who vouched for them, and who they brought in.",
+      "legendBanned": "banned",
+      "legendErased": "erased account",
+      "summary": "{members} members, {banned} of them banned, across {depth} generations.",
+      "openTree": "Invite tree"
     },
     "irc": {
       "eyebrow": "Integration",

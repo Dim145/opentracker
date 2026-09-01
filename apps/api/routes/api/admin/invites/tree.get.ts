@@ -129,8 +129,23 @@ export default defineEventHandler(async (event) => {
 
     ancestors.push(toNode(row, depth, invite.usedAt));
     cursor = row.id;
+  }
 
-    if (depth === MAX_DEPTH) truncatedUp = true;
+  /**
+   * Whether the chain actually continues past the tenth generation.
+   *
+   * This used to be `depth === MAX_DEPTH` inside the loop, which is true as soon
+   * as a tenth ancestor is found — so a chain that is EXACTLY ten deep, with the
+   * founder at the top, reported itself as truncated. One extra probe answers
+   * the question the flag is claiming to answer.
+   */
+  if (ancestors.length === MAX_DEPTH) {
+    const [further] = await db
+      .select({ createdBy: schema.invitations.createdBy })
+      .from(schema.invitations)
+      .where(eq(schema.invitations.usedBy, cursor))
+      .limit(1);
+    truncatedUp = !!further && !seen.has(further.createdBy);
   }
 
   // ── Down ───────────────────────────────────────────────────────────
@@ -237,6 +252,19 @@ export default defineEventHandler(async (event) => {
      * record is incomplete.
      */
     ancestorsEnd: truncatedUp ? 'depth-limit' : 'root',
+    /**
+     * One flag per direction, because the console renders one notice per
+     * section.
+     *
+     * A single `truncatedUp || truncatedDown` meant an up-truncation printed
+     * "truncated at 400 members or 10 generations" underneath the DESCENDANT
+     * list — telling the operator the branch they can see is incomplete when it
+     * is the chain above that is. On a page whose whole job is tracing a
+     * filiation, that sends the investigation to the wrong end of the tree.
+     * `truncated` stays for anything already reading it.
+     */
+    truncatedUp,
+    truncatedDown,
     truncated: truncatedUp || truncatedDown,
     limits: { maxDepth: MAX_DEPTH, maxNodes: MAX_NODES },
     nodeCount,
