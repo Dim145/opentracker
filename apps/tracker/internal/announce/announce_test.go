@@ -138,6 +138,7 @@ func TestEvent_String(t *testing.T) {
 		EventStarted:   "started",
 		EventStopped:   "stopped",
 		EventCompleted: "completed",
+		EventPaused:    "paused",
 		EventNone:      "update",
 	}
 	for ev, want := range cases {
@@ -149,7 +150,9 @@ func TestEvent_String(t *testing.T) {
 
 func TestParse_UnknownEvent_RecordedOnRequest(t *testing.T) {
 	q := baseValid()
-	q.Set("event", "paused")
+	// Not `paused` — that used to be this test's example of an unknown token
+	// and is a recognised BEP 21 event since. Any token no BEP defines does.
+	q.Set("event", "hibernating")
 	r, err := Parse(q)
 	if err != nil {
 		t.Fatal(err)
@@ -157,8 +160,8 @@ func TestParse_UnknownEvent_RecordedOnRequest(t *testing.T) {
 	if r.Event != EventNone {
 		t.Errorf("Event: got %v, want EventNone for unknown token", r.Event)
 	}
-	if r.UnknownEventRaw != "paused" {
-		t.Errorf("UnknownEventRaw: got %q, want %q", r.UnknownEventRaw, "paused")
+	if r.UnknownEventRaw != "hibernating" {
+		t.Errorf("UnknownEventRaw: got %q, want %q", r.UnknownEventRaw, "hibernating")
 	}
 }
 
@@ -275,5 +278,63 @@ func TestRequest_IsSeederTrueWhenLeftZero(t *testing.T) {
 	}
 	if !r.IsSeeder() {
 		t.Error("IsSeeder() should be true when left=0")
+	}
+}
+
+// BEP 21 — a partial seed says `left=0` and `event=paused`. It holds every
+// piece it asked for and not the whole torrent, so it belongs in the swarm and
+// does not belong in the seeder count.
+func TestParsePausedIsNotASeeder(t *testing.T) {
+	q := baseValid()
+	q.Set("left", "0")
+	q.Set("event", "paused")
+
+	r, err := Parse(q)
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if r.Event != EventPaused {
+		t.Errorf("Event = %v, want EventPaused", r.Event)
+	}
+	if r.Event.String() != "paused" {
+		t.Errorf("Event.String() = %q, want %q", r.Event.String(), "paused")
+	}
+	if r.IsSeeder() {
+		t.Error("a paused peer with left=0 must not count as a seeder")
+	}
+	// It is a recognised event, so it must not also be reported as an unknown
+	// one — that would put it in the operator's "misbehaving client" log.
+	if r.UnknownEventRaw != "" {
+		t.Errorf("UnknownEventRaw = %q, want empty", r.UnknownEventRaw)
+	}
+}
+
+// The ordinary case must be untouched: left=0 with no event is still a seed.
+func TestParseLeftZeroWithoutPausedIsStillASeeder(t *testing.T) {
+	q := baseValid()
+	q.Set("left", "0")
+
+	r, err := Parse(q)
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if !r.IsSeeder() {
+		t.Error("left=0 with no event must still be a seeder")
+	}
+}
+
+// A paused peer that still has data left is a leecher either way — the event
+// must not be able to promote anything.
+func TestParsePausedWithBytesLeftIsALeecher(t *testing.T) {
+	q := baseValid()
+	q.Set("left", "1024")
+	q.Set("event", "paused")
+
+	r, err := Parse(q)
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if r.IsSeeder() {
+		t.Error("a paused peer with bytes left must not count as a seeder")
 	}
 }

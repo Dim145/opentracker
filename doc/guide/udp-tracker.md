@@ -227,3 +227,40 @@ The package ships **17 unit tests** covering the parser shapes, BEP 41
 fragmentation, connection-id validity windows, the IPv4-in-16 stability
 trick (so a peer that announces from `1.2.3.4` and again from
 `::ffff:1.2.3.4` keeps the same id), and the anti-spoofing guard.
+
+---
+
+## Partial seeds (BEP 21)
+
+A client that holds every piece it asked for — but not the whole torrent,
+because the member deselected files — reports `left=0` and `event=paused`.
+
+That is a real client behaviour and not an exotic one: qBittorrent sends it
+whenever somebody downloads only part of a multi-file torrent. Some trackers
+reject the value outright and break those clients. This one never did, but it
+did count the peer as a **seed**, which inflated the swarm's seeder count and
+made a torrent look healthier than it was.
+
+A paused peer now:
+
+- **stays in the swarm** — it has real pieces to serve, and other peers should
+  be given its address;
+- **counts as a leecher**, so the seeder count means what a member reads it to
+  mean;
+- **does not bank seed time.** Hit-and-run asks a member to seed what they took,
+  and somebody holding a deselected subset cannot satisfy that however long they
+  stay connected.
+
+HTTP only. BEP 15 numbers its events 0 to 3 and has no code for this, so a UDP
+announce can never carry it.
+
+## Non-compact responses are not supported
+
+`compact=0` is ignored: the tracker always answers with the compact peer format
+(BEP 23 for IPv4, BEP 7's `peers6` for IPv6).
+
+This is deliberate and is not going to change. Every client written this century
+requests compact and most cannot parse anything else; the non-compact peer-dict
+format costs several times the bytes for the same information. It is written
+down here because "why does `compact=0` do nothing" is a reasonable question to
+ask once.

@@ -22,6 +22,15 @@ const (
 	EventStarted
 	EventStopped
 	EventCompleted
+	// EventPaused is BEP 21's partial-seed signal. A client that holds every
+	// piece it asked for — but not the whole torrent, because the member
+	// deselected files — reports `left=0` and `event=paused`. It is still
+	// worth connecting to: it has real pieces to serve. It is simply not a
+	// seed, and BEP 21 asks the tracker not to report it as one.
+	//
+	// HTTP only. BEP 15 numbers its events 0..3 and has no code for this, so a
+	// UDP announce can never carry it.
+	EventPaused
 )
 
 // String returns a stable lowercase event name for logging/storage.
@@ -33,6 +42,8 @@ func (e Event) String() string {
 		return "stopped"
 	case EventCompleted:
 		return "completed"
+	case EventPaused:
+		return "paused"
 	default:
 		return "update"
 	}
@@ -127,6 +138,15 @@ func Parse(q url.Values) (*Request, error) {
 		r.Event = EventStopped
 	case "completed":
 		r.Event = EventCompleted
+	case "paused":
+		// BEP 21. Recognised rather than swallowed, which is what lets the
+		// peer be classified correctly below — and it is a real client
+		// behaviour, not an exotic one: qBittorrent sends it whenever a member
+		// downloads only some files of a multi-file torrent. Trackers that
+		// reject the value outright break those clients; we never did, but we
+		// did count the peer as a seed, which inflated the swarm's seeder
+		// count and made the torrent look healthier than it was.
+		r.Event = EventPaused
 	default:
 		// Per BEP 3, unknown events are equivalent to a periodic
 		// announce (no event). We still want operator visibility so
@@ -158,8 +178,13 @@ func Parse(q url.Values) (*Request, error) {
 	return r, nil
 }
 
-// IsSeeder reports whether the announce describes a seeding peer (left == 0).
-func (r *Request) IsSeeder() bool { return r.Left == 0 }
+// IsSeeder reports whether the announce describes a seeding peer.
+//
+// `left == 0` is necessary and no longer sufficient: a BEP 21 partial seed has
+// nothing left to fetch of what it asked for, yet does not hold the torrent. It
+// stays in the swarm — it has pieces others want — and counts as a leecher, so
+// the seeder count means what a member reads it to mean.
+func (r *Request) IsSeeder() bool { return r.Left == 0 && r.Event != EventPaused }
 
 func parseInt64(s string) (int64, bool) {
 	if s == "" {

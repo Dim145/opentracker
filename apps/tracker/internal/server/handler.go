@@ -708,6 +708,13 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// concurrent announces with distinct events (started/completed/update,
 	// all left=0) can't each book the same `elapsed` — an N× over-credit
 	// the per-event dedup at step 4 doesn't stop (finding M7).
+	//
+	// A BEP 21 partial seed is excluded by `IsSeeder()` and that is the
+	// intended reading: hit-and-run asks a member to seed what they took, and
+	// somebody holding a deselected subset cannot satisfy it however long they
+	// stay connected. They keep serving the pieces they do have — they are
+	// still in the swarm — they simply do not bank seed time towards a
+	// requirement they cannot meet.
 	if req.IsSeeder() && prev != nil {
 		elapsed := (time.Now().UnixMilli() - prev.UpdatedAt) / 1000
 		seedKey := infoHashHex + ":" + peerHex + ":seedtime"

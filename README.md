@@ -48,6 +48,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 - **BEP 41 URL_DATA passkey** — `udp://host:6969/announce/PASSKEY` works as-is in every modern client.
 - **Multi-tier `.torrent` files** — generator advertises HTTP + UDP independently. `TRACKER_UDP_ENABLED=false` disables UDP and drops it from new `.torrent` files in one go.
 - **BitTorrent v2 (BEP 52)** — a v2 or hybrid torrent announces under a second, truncated SHA-256 infohash; the tracker resolves either form and keys both on the canonical hash, so a hybrid torrent's two swarms are one. `content_root_v2` gives cross-tracker content addressing that piece length and the private flag cannot move. See [BitTorrent v2](doc/guide/bittorrent-v2.md).
+- **BEP 21 partial seeds** — a client holding only the files it asked for announces `event=paused`; it stays in the swarm, counts as a leecher rather than a seed, and banks no seed time towards a requirement it cannot meet.
 - **Torznab that tells the truth** — `minimumratio` and `minimumseedtime` carry the site's real obligations to Sonarr / Radarr, and the volume factors follow the running bonus event instead of claiming normal rates during a freeleech.
 
 ### Bonus economy & resilience
