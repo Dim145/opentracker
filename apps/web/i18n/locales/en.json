@@ -5450,49 +5450,60 @@
     "title": "State of the tracker",
     "lede": "What the site is made of, how it got here, and what a year of it looked like. Everything on this page is aggregate — no member’s volume appears anywhere.",
     "uncategorised": "Uncategorised",
-    "foot": "Counters are snapshotted hourly. Years run from January to January, in UTC.",
+    "foot": "Updated hourly. Calendar years, UTC.",
+    "delta": "+{n} in {days} days",
+    "rank": {
+      "release": "Release",
+      "size": "Size",
+      "snatches": "Snatches",
+      "seeders": "Seeders",
+      "releases": "Releases",
+      "more": "See the full list →"
+    },
     "now": {
       "title": "Right now",
       "torrents": "Releases",
       "members": "Members",
       "seeders": "Seeders",
       "leechers": "{n} leeching",
-      "snatches": "Completed",
-      "traffic": "Traffic"
+      "snatches": "Snatches",
+      "traffic": "Traffic, all time"
     },
     "growth": {
       "title": "How it got here",
       "window": "{days} days",
       "windowAria": "Length of history to show",
-      "torrents": "Releases",
+      "torrents": "Catalogue, all statuses",
       "torrentsUnit": "releases",
       "members": "Members",
       "membersUnit": "members",
       "traffic": "Traffic per day",
       "none": "No snapshots yet — the collector writes one an hour, so this fills in from the next one.",
-      "note": "Whole-catalogue counters from the hourly snapshot — every status and every category, so they sit above the filtered figures at the top."
+      "note": "Every release ever added, including dead and pending ones."
     },
     "series": {
       "tooShort": "Not enough history to draw yet.",
       "table": "Show the numbers",
+      "tableFor": "Show the numbers — {label}",
+      "weekly": "per week",
       "when": "When",
       "summaryBars": "{label}: {total} in total, highest {peak} on {when}",
-      "summaryTrend": "{label}: {from} to {to}"
+      "summaryTrend": "{label}: {from} on {first}, {to} on {last}"
     },
     "categories": {
       "title": "What is in the catalogue",
-      "note": "Live, accepted releases only. Bars are relative to the largest category.",
+      "note": "Live, accepted releases only. Each bar is the category’s share of the catalogue.",
       "none": "Nothing catalogued yet."
     },
     "top": {
-      "snatched": "Most snatched",
+      "snatched": "Most snatched, all time",
       "swarms": "Biggest swarms",
       "none": "Nothing to rank yet."
     },
     "uploaders": {
       "title": "Who is uploading",
-      "note": "Ranked by number of live releases, never by volume — there is no setting on this site by which you could decline to appear in a volume board, so there is no volume board. Members who upload anonymously are not listed.",
-      "count": "{n} releases",
+      "note": "Ranked by releases online, never by volume. Members who upload anonymously are not listed.",
+      "count": "{n} release | {n} releases",
       "none": "Nobody has uploaded yet."
     },
     "year": {
@@ -5521,7 +5532,7 @@
       "hours": "{n} h",
       "days": "{n} d",
       "best": "Your most snatched release:",
-      "bestSnatches": "{n} snatches",
+      "bestSnatches": "{n} snatch | {n} snatches",
       "favourite": "Mostly {category} — {n} of your uploads.",
       "hidden": "Your download figures are hidden because you turned your download history off in Settings → Privacy."
     }
