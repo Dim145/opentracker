@@ -330,6 +330,18 @@ The Torznab API admin panel (`/admin/torznab`) provides comprehensive management
 - Block users from API access
 - View per-user request logs
 
+A block is recorded against the member, not against the key they happen to be
+holding. It is stored under a hash of their announce passkey, and every route
+that rotates that passkey — the member's own settings page included — moves the
+block onto the replacement, keeping the original reason and date. So resetting a
+leaked passkey does not quietly lift a restriction, and a blocked member cannot
+lift it themselves by minting a new key. Unblocking is its own action, under
+**Blacklist Management**.
+
+If Redis is unreachable, a rotation is refused rather than performed without the
+block following it: the member is told to try again, and their passkey is
+unchanged.
+
 ### Request Logs
 
 - Real-time log of recent API requests

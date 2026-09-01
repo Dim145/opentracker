@@ -24,7 +24,10 @@ import { db, schema } from '@trackarr/db';
 import { requireAuthSession, requireFreshAuth } from '~~/utils/adminAuth';
 import { generatePasskey } from '~~/utils/auth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
-import { clearTorznabUserStats } from '~~/utils/torznabStats';
+import {
+  carryTorznabBlock,
+  retireTorznabPasskey,
+} from '~~/utils/torznabStats';
 import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
@@ -45,14 +48,22 @@ export default defineEventHandler(async (event) => {
   const oldPasskey = row.passkey;
   const newPasskey = generatePasskey();
 
+  // Before the row changes. A Torznab access block is keyed by a hash of the
+  // passkey, so a rotation that did not carry it over would hand a blocked
+  // member the lift for free — this route is self-service, needs no
+  // administrator, and would have been the whole restriction's back door.
+  // Refuses the rotation if it cannot be sure, rather than freeing the member.
+  await carryTorznabBlock(oldPasskey, newPasskey);
+
   await db
     .update(schema.users)
     .set({ passkey: newPasskey })
     .where(eq(schema.users.id, user.id));
 
-  // The per-passkey Torznab counters are keyed on the old value; leaving them
-  // behind would both leak the rotation and strand the rows.
-  await clearTorznabUserStats(oldPasskey);
+  // The old value belongs to nobody now: its block entry and its per-passkey
+  // counters both index a hash no account matches any more, and leaving the
+  // counters behind would also leak the rotation.
+  await retireTorznabPasskey(oldPasskey);
 
   // The session cookie carries the passkey, so it now holds a dead one. Write
   // the new value back rather than force a re-login.

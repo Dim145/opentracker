@@ -7,7 +7,10 @@ import { requireAdminSession } from '~~/utils/adminAuth';
 import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
 import { generatePasskey } from '~~/utils/auth';
-import { clearTorznabUserStats } from '~~/utils/torznabStats';
+import {
+  carryTorznabBlock,
+  retireTorznabPasskey,
+} from '~~/utils/torznabStats';
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
@@ -40,14 +43,19 @@ export default defineEventHandler(async (event) => {
   // Generate new passkey
   const newPasskey = generatePasskey();
 
+  // Resetting a leaked key is not lifting a restriction, and the two live on
+  // the same page: without this, the reset button beside the block button
+  // silently undid it. Unblocking is its own route, deliberately.
+  await carryTorznabBlock(oldPasskey, newPasskey);
+
   // Update user
   await db
     .update(schema.users)
     .set({ passkey: newPasskey })
     .where(eq(schema.users.id, userId));
 
-  // Clear old stats
-  await clearTorznabUserStats(oldPasskey);
+  // Block entry and counters for a value that is nobody's any more.
+  await retireTorznabPasskey(oldPasskey);
 
   return {
     success: true,
