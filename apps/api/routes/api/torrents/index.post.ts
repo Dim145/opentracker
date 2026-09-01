@@ -13,6 +13,7 @@ import { normalizeMediaId } from '~~/utils/mediaIds';
 import { getUploadRules, evaluateUpload } from '~~/utils/uploadRules';
 import { notifyMany, listStaffRecipients } from '~~/utils/notify';
 import { fanoutFollowedUserUpload } from '~~/utils/followerFanout';
+import { fanoutSavedSearchMatches } from '~~/utils/savedSearchFanout';
 
 
 /**
@@ -536,6 +537,20 @@ export default defineEventHandler(async (event) => {
       torrentId: id,
       torrentInfoHash: infoHash,
       torrentName: name,
+    });
+    // Saved-search alerts, on the same edge. Placed here rather than beside
+    // the insert because a filter can match on tags, and the tags are attached
+    // a few dozen lines above this — evaluating earlier would silently miss
+    // every tag-based filter.
+    void fanoutSavedSearchMatches({
+      id,
+      name,
+      infoHash,
+      categoryId: categoryId || null,
+      imdbId,
+      tmdbId,
+      tvdbId,
+      uploaderId: user.id,
     });
   }
 

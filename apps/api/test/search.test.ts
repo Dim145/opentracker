@@ -5,6 +5,7 @@ import {
   fuzzyTerm,
   parseSearchFields,
   parseSearchFuzzy,
+  toExactTsQuery,
   toPrefixTsQuery,
 } from '../utils/search';
 
@@ -152,5 +153,28 @@ describe('fuzzyTerm', () => {
   it('refuses empty input or input with no usable character', () => {
     expect(fuzzyTerm('')).toBeNull();
     expect(fuzzyTerm('***')).toBeNull();
+  });
+});
+
+// A saved alert is settled intent, not a query bar with focus. `crown` must
+// not fire on `crownfall` — the member would have no way to see it coming, and
+// it arrives as a notification rather than as a page they can re-read.
+describe('toExactTsQuery', () => {
+  it('drops the prefix marker the live search appends', () => {
+    expect(toPrefixTsQuery('the crown')).toBe('the & crown:*');
+    expect(toExactTsQuery('the crown')).toBe('the & crown');
+  });
+
+  it('normalises exactly like the live search otherwise', () => {
+    expect(toExactTsQuery('Blade.Runner 2049!')).toBe('blade & runner & 2049');
+  });
+
+  it('returns null when nothing usable is left', () => {
+    expect(toExactTsQuery('   ')).toBeNull();
+    expect(toExactTsQuery('...')).toBeNull();
+  });
+
+  it('leaves a single term intact but unprefixed', () => {
+    expect(toExactTsQuery('dune')).toBe('dune');
   });
 });

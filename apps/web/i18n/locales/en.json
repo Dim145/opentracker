@@ -928,6 +928,13 @@
     },
     "pinned": {
       "title": "Pinned"
+    },
+    "saveSearch": {
+      "action": "Save this search",
+      "manage": "Manage alerts",
+      "saved": "Saved. You will be notified when a matching release is accepted.",
+      "failed": "Could not save this search.",
+      "untitled": "Untitled search"
     }
   },
   "users": {
@@ -4615,6 +4622,10 @@
       "reseed_requested": {
         "title": "Reseed requested",
         "desc": "“{torrentName}” has no seeders. You downloaded it once — can you seed it again?"
+      },
+      "saved_search_match": {
+        "title": "A saved search matched",
+        "desc": "“{torrentName}” matches your saved search “{searchLabel}”."
       }
     }
   },
@@ -5008,7 +5019,8 @@
       "shop": "Bonus shop",
       "notifications": "Notifications",
       "settings": "Settings",
-      "messages": "Messages"
+      "messages": "Messages",
+      "alerts": "Saved searches"
     },
     "actions": {
       "upload": "Upload a torrent",
@@ -5271,5 +5283,22 @@
     "withdraw": "Close this ticket",
     "withdrawHint": "You will not be able to write to it or reopen it — only the staff can. If it comes back, open a new ticket.",
     "menuLabel": "Ticket actions"
+  },
+  "alerts": {
+    "eyebrow": "Standing instructions",
+    "title": "Saved searches",
+    "lede": "Each of these watches for new releases. When an upload is accepted and matches, you get a notification — no bot, no seedbox, nothing to keep running.",
+    "count": "{used} of {max} saved",
+    "run": "Run this search",
+    "delete": "Delete",
+    "deleteFailed": "Could not delete this saved search.",
+    "matched": "Matched {count} times",
+    "lastMatch": "last {when} ago",
+    "noMatchYet": "Nothing has matched yet.",
+    "empty": {
+      "title": "No saved searches",
+      "body": "Search the catalogue, then use “Save this search” to be told when something new matches it.",
+      "cta": "Browse the catalogue"
+    }
   }
 }

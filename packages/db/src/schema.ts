@@ -2646,6 +2646,92 @@ export const auditLog = pgTable(
   ]
 );
 
+// ============================================================================
+// Saved searches — "tell me when something like this appears"
+// ============================================================================
+//
+// The server-side half of what members do today with autobrr: a stored filter
+// that fires a notification when a matching upload is accepted. Unlike an IRC
+// announce channel it works for the member who has no seedbox and no bot, which
+// is most of them.
+//
+// ## The vocabulary is the listing's, deliberately
+//
+// `query`, `categoryId`, `tags` and the three media ids are exactly the
+// parameters `/api/torrents` accepts — no more. A filter the catalogue cannot
+// produce could not be created from a "save this search" button, and a filter
+// that matched on something the listing cannot show would be impossible to
+// preview. Resolution and source are tags here, as they are there
+// (`utils/releaseTags` derives them at upload).
+//
+// ## `tsquery` is stored, not re-derived
+//
+// The listing builds its tsquery per request with a `:*` on the last term,
+// because the member is still typing. A saved alert is settled intent —
+// `"the crown"` must not fire on `"the crownfall"` — so the prefix is dropped
+// when the row is written and the result is stored. That also means one
+// SQL-side comparison per upload instead of re-parsing every filter.
+export const savedSearches = pgTable(
+  'saved_searches',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** What the member calls it. Shown in the notification. */
+    label: text('label').notNull(),
+    /** The free-text part, as typed. Kept for display and for editing. */
+    query: text('query'),
+    /**
+     * The same text as a Postgres tsquery, normalised at write time and
+     * WITHOUT the trailing `:*` the live search appends. Null when the filter
+     * carries no free text at all, which is legitimate — "anything new in this
+     * category" is a filter.
+     */
+    tsquery: text('tsquery'),
+    categoryId: text('category_id').references(() => categories.id, {
+      onDelete: 'cascade',
+    }),
+    /** Tag slugs, ALL of which must be present — the listing's AND semantics. */
+    tags: jsonb('tags').$type<string[]>(),
+    imdbId: text('imdb_id'),
+    tmdbId: text('tmdb_id'),
+    tvdbId: text('tvdb_id'),
+    /** Off keeps the filter as a saved search without the notifications. */
+    notify: boolean('notify').default(true).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    lastMatchedAt: timestamp('last_matched_at'),
+    matchCount: integer('match_count').default(0).notNull(),
+  },
+  (table) => [
+    index('saved_searches_user_idx').on(table.userId, table.createdAt.desc()),
+    // The evaluation sweep reads every armed filter and nothing else, so the
+    // index it wants is partial on exactly that.
+    index('saved_searches_notify_idx')
+      .on(table.notify)
+      .where(sql`${table.notify}`),
+  ]
+);
+
+/**
+ * Declared so the listing route can eager-load the category it filters on —
+ * the page shows "Movies" rather than a uuid. Without this, `with: { category }`
+ * is a runtime error rather than a type error, which is a poor way to find out.
+ */
+export const savedSearchesRelations = relations(savedSearches, ({ one }) => ({
+  user: one(users, {
+    fields: [savedSearches.userId],
+    references: [users.id],
+  }),
+  category: one(categories, {
+    fields: [savedSearches.categoryId],
+    references: [categories.id],
+  }),
+}));
+
+export type SavedSearch = typeof savedSearches.$inferSelect;
+export type NewSavedSearch = typeof savedSearches.$inferInsert;
+
 export type AuditLogEntry = typeof auditLog.$inferSelect;
 export type NewAuditLogEntry = typeof auditLog.$inferInsert;
 

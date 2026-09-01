@@ -48,6 +48,10 @@ const EN: Dict = {
     title: 'Torrent removed by staff',
     desc: '{actorUsername} deleted “{torrentName}”.',
   },
+  saved_search_match: {
+    title: 'A saved search matched',
+    desc: '“{torrentName}” matches your saved search “{searchLabel}”.',
+  },
   reseed_requested: {
     title: 'Reseed requested',
     desc: '“{torrentName}” has no seeders. You downloaded it once — can you seed it again?',
@@ -260,6 +264,10 @@ const FR: Dict = {
   torrent_deleted_by_staff: {
     title: 'Torrent supprimé par un staff',
     desc: '{actorUsername} a supprimé « {torrentName} ».',
+  },
+  saved_search_match: {
+    title: 'Une recherche enregistrée correspond',
+    desc: '« {torrentName} » correspond à votre recherche « {searchLabel} ».',
   },
   reseed_requested: {
     title: 'Remise en partage demandée',

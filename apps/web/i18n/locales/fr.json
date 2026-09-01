@@ -928,6 +928,13 @@
     },
     "pinned": {
       "title": "Épinglés"
+    },
+    "saveSearch": {
+      "action": "Enregistrer cette recherche",
+      "manage": "Gérer les alertes",
+      "saved": "Enregistrée. Vous serez prévenu·e quand une release correspondante sera acceptée.",
+      "failed": "Cette recherche n'a pas pu être enregistrée.",
+      "untitled": "Recherche sans titre"
     }
   },
   "users": {
@@ -4615,6 +4622,10 @@
       "reseed_requested": {
         "title": "Remise en partage demandée",
         "desc": "« {torrentName} » n’a plus aucune source. Vous l’avez téléchargé : pouvez-vous le repartager ?"
+      },
+      "saved_search_match": {
+        "title": "Une recherche enregistrée correspond",
+        "desc": "« {torrentName} » correspond à votre recherche « {searchLabel} »."
       }
     }
   },
@@ -5008,7 +5019,8 @@
       "shop": "Boutique bonus",
       "notifications": "Notifications",
       "settings": "Paramètres",
-      "messages": "Messages"
+      "messages": "Messages",
+      "alerts": "Recherches enregistrées"
     },
     "actions": {
       "upload": "Publier un torrent",
@@ -5271,5 +5283,22 @@
     "withdraw": "Clôturer ce ticket",
     "withdrawHint": "Tu n'auras plus la main dessus, ni pour écrire ni pour le rouvrir — seul le staff peut le rouvrir. Si le sujet revient, ouvre un nouveau ticket.",
     "menuLabel": "Actions sur le ticket"
+  },
+  "alerts": {
+    "eyebrow": "Consignes permanentes",
+    "title": "Recherches enregistrées",
+    "lede": "Chacune surveille les nouvelles releases. Quand une mise en ligne est acceptée et correspond, vous recevez une notification — sans bot, sans seedbox, sans rien à faire tourner.",
+    "count": "{used} sur {max} enregistrées",
+    "run": "Lancer cette recherche",
+    "delete": "Supprimer",
+    "deleteFailed": "Cette recherche n'a pas pu être supprimée.",
+    "matched": "A correspondu {count} fois",
+    "lastMatch": "la dernière il y a {when}",
+    "noMatchYet": "Rien ne correspond pour le moment.",
+    "empty": {
+      "title": "Aucune recherche enregistrée",
+      "body": "Cherchez dans le catalogue, puis utilisez « Enregistrer cette recherche » pour être prévenu·e quand quelque chose de nouveau y correspond.",
+      "cta": "Parcourir le catalogue"
+    }
   }
 }

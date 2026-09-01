@@ -229,6 +229,28 @@
       />
     </div>
 
+    <!-- ── Save this search ──────────────────────────────────────
+         Offered only when there is something to save. A filter is created
+         from here rather than from a form on the alerts page because the
+         member already has the criteria in front of them — retyping them
+         somewhere else is how a saved search ends up not matching what they
+         were actually looking at. -->
+    <div v-if="hasActiveQuery && canSaveSearch" class="save-search">
+      <button
+        type="button"
+        class="tool-btn tool-btn--text"
+        :disabled="savingSearch"
+        @click="saveCurrentSearch"
+      >
+        <Icon
+          :name="savingSearch ? 'ph:circle-notch' : 'ph:bookmark-simple-bold'"
+          :class="{ 'animate-spin': savingSearch }"
+        />
+        {{ $t('search.saveSearch.action') }}
+      </button>
+      <NuxtLink to="/alerts" class="save-search-link">{{ $t('search.saveSearch.manage') }}</NuxtLink>
+    </div>
+
     <!-- ── Pinned ────────────────────────────────────────────────
          Above the results and visually apart, because a pin answers a
          different question than the listing does: not "what matches" but
@@ -687,6 +709,55 @@ const { data: trendingData } = await useFetch<{ data: TorrentWithStats[] }>(
 
 const torrents = computed(() => torrentsData.value?.data ?? []);
 const pinnedTorrents = computed(() => torrentsData.value?.pinned ?? []);
+
+/**
+ * Saving the current filter as an alert.
+ *
+ * Only when the filter has something in it that a stored search could act on —
+ * a bare sort order is not a search, and saving one would produce a filter that
+ * fires on every upload.
+ */
+const savedSearchNotifications = useNotificationStore();
+const savingSearch = ref(false);
+const canSaveSearch = computed(
+  () =>
+    !!searchQuery.value.trim() ||
+    !!selectedCategory.value ||
+    selectedTags.value.length > 0
+);
+
+async function saveCurrentSearch() {
+  // The typed text makes the best label; failing that, the category name; and
+  // failing both, a placeholder the member can recognise on the alerts page.
+  const fromCategory = selectedCategory.value
+    ? categoryLabel([selectedCategory.value])
+    : null;
+  const label = (
+    searchQuery.value.trim() ||
+    fromCategory ||
+    t('search.saveSearch.untitled')
+  ).slice(0, 80);
+  savingSearch.value = true;
+  try {
+    await $fetch<{ id: string }>('/api/me/saved-searches', {
+      method: 'POST',
+      body: {
+        label,
+        query: searchQuery.value.trim() || undefined,
+        categoryId: selectedCategory.value || undefined,
+        tags: selectedTags.value.length ? selectedTags.value : undefined,
+      },
+    });
+    savedSearchNotifications.success(t('search.saveSearch.saved'));
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string }; message?: string };
+    savedSearchNotifications.error(
+      e?.data?.message || e?.message || t('search.saveSearch.failed')
+    );
+  } finally {
+    savingSearch.value = false;
+  }
+}
 const trendingTorrents = computed(() => trendingData.value?.data ?? []);
 
 // ── View-aware result state ──────────────────────────────────
@@ -1291,6 +1362,21 @@ useHead({
 }
 
 /* ─── Loading / empty ───────────────────────────────────── */
+/* ── Save this search ─────────────────────────────────────────── */
+.save-search {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.save-search-link {
+  font-size: 0.75rem;
+  color: rgb(var(--fg-subtle));
+}
+.save-search-link:hover {
+  color: rgb(var(--accent));
+}
+
 /* ── Pinned block ────────────────────────────────────────────────
    Set apart from the flow by a rule and an icon rather than by a tint: the
    rows inside are ordinary rows and should read as such. */

@@ -586,6 +586,7 @@ const notifTypes = [
   'moderation_message_received',
   'torrent_deleted_by_staff',
   'reseed_requested',
+  'saved_search_match',
   'hnr_violation_marked',
   'hnr_cleared',
   'hnr_exempted',
@@ -656,7 +657,7 @@ const categories: EventCategory[] = [
     key: 'catalogue',
     icon: 'ph:hand-heart-bold',
     color: '#4ade80',
-    types: ['reseed_requested'],
+    types: ['reseed_requested', 'saved_search_match'],
   },
   {
     key: 'account',

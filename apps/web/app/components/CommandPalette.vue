@@ -204,6 +204,7 @@ const accountLinks = computed<PaletteItem[]>(() => {
       ? [{ to: '/messages', key: 'messages', icon: 'ph:chat-circle' }]
       : []),
     { to: '/favorites', key: 'favorites', icon: 'ph:heart' },
+    { to: '/alerts', key: 'alerts', icon: 'ph:bookmark-simple' },
     { to: '/following', key: 'following', icon: 'ph:bell' },
     { to: '/downloads', key: 'downloads', icon: 'ph:download-simple' },
     { to: '/invites', key: 'invites', icon: 'ph:envelope-simple' },

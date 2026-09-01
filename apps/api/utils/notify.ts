@@ -51,6 +51,11 @@ export type NotificationType =
    * to know whether you still hold the files.
    */
   | 'reseed_requested'
+  /**
+   * A stored filter matched a newly accepted upload. Carries the filter's own
+   * label so a member running several knows which one fired.
+   */
+  | 'saved_search_match'
   // ── P1 — Hit & Run ─────────────────────────────────────────
   | 'hnr_violation_marked'
   | 'hnr_cleared'

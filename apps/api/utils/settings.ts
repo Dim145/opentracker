@@ -151,6 +151,15 @@ export const SETTINGS_KEYS = {
    * members have moved over.
    */
   LEGACY_PASSKEY_READ_ACCESS: 'legacy_passkey_read_access',
+  /**
+   * How many saved searches one member may keep.
+   *
+   * Every armed filter is evaluated against every accepted upload, so this is
+   * the knob that bounds the feature's cost. 20 is generous for a person and
+   * small enough that a thousand members cost twenty thousand comparisons per
+   * upload — one indexed query, not twenty thousand.
+   */
+  SAVED_SEARCH_MAX_PER_USER: 'saved_search_max_per_user',
   SITE_LOGO_IMAGE_SIZE: 'site_logo_image_size',
   SITE_FAVICON_SIZE: 'site_favicon_size',
   SITE_SUBTITLE: 'site_subtitle',
@@ -400,6 +409,13 @@ export async function getSiteLogoImage(): Promise<string | null> {
 export async function isLegacyPasskeyReadAllowed(): Promise<boolean> {
   const value = await getSetting(SETTINGS_KEYS.LEGACY_PASSKEY_READ_ACCESS);
   return value !== 'false';
+}
+
+export async function getSavedSearchMaxPerUser(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.SAVED_SEARCH_MAX_PER_USER);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 1) return 20;
+  return parsed;
 }
 
 export async function getAuditRetentionDays(): Promise<number> {

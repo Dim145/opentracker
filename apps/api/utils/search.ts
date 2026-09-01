@@ -78,6 +78,24 @@ export function parseSearchFuzzy(raw: string | null | undefined): boolean {
  * Returns `null` when nothing usable is left, in which case the caller must
  * skip the filter rather than return nothing.
  */
+/**
+ * The same normalisation WITHOUT the trailing `:*`.
+ *
+ * The prefix in `toPrefixTsQuery` exists because the member is still typing:
+ * `crown` should match `crownfall` while the query bar has focus. A saved alert
+ * is settled intent, and the same prefix there would fire "The Crown" on every
+ * release whose title merely starts the same way — a false positive the member
+ * has no way to see coming, arriving as a notification.
+ *
+ * Shares the term-splitting with the prefix version rather than repeating it,
+ * so the two can never disagree about what counts as a term.
+ */
+export function toExactTsQuery(input: string): string | null {
+  const prefixed = toPrefixTsQuery(input);
+  if (!prefixed) return null;
+  return prefixed.replace(/:\*$/, '');
+}
+
 export function toPrefixTsQuery(input: string): string | null {
   const terms = input
     .toLowerCase()
