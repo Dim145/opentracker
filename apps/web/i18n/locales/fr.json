@@ -3432,6 +3432,9 @@
       "notFoundBody": "Il a été supprimé, ou l'adresse désigne un thème qui n'a jamais existé.",
       "contrastGroup": "Contraste",
       "contrastMin": "minimum {required}:1",
+      "contrastCol": { "pair": "Paire", "measured": "Mesuré", "needs": "Minimum" },
+      "contrastPass": "Conforme",
+      "contrastFail": "Non conforme",
       "contrastAbout": "Chaque combinaison dans laquelle l’interface peint du texte, mesurée contre le niveau AA de WCAG 2.2 — 4,5:1 pour le texte, 3:1 pour les grands caractères et l’anneau de focus. Un manque est un avertissement, pas un refus : le thème s’enregistre quand même.",
       "contrastPairs": {
         "fg-default__bg-base": "Texte courant",

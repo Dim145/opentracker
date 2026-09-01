@@ -3432,6 +3432,9 @@
       "notFoundBody": "It was deleted, or the address names a theme that never existed.",
       "contrastGroup": "Contrast",
       "contrastMin": "needs {required}:1",
+      "contrastCol": { "pair": "Pair", "measured": "Measured", "needs": "Needs" },
+      "contrastPass": "Passes",
+      "contrastFail": "Fails",
       "contrastAbout": "Every combination the interface paints text in, measured against WCAG 2.2 AA — 4.5:1 for text, 3:1 for large text and for the focus ring. A shortfall is a warning, not a refusal: the theme saves either way.",
       "contrastPairs": {
         "fg-default__bg-base": "Body text",
