@@ -132,7 +132,10 @@ export default defineConfig({
       '/integrations/': [
         {
           text: 'Integrations',
-          items: [{ text: 'Torznab API', link: '/integrations/torznab' }],
+          items: [
+            { text: 'Torznab API', link: '/integrations/torznab' },
+            { text: 'IRC announce', link: '/integrations/irc' },
+          ],
         },
       ],
       '/reference/': [

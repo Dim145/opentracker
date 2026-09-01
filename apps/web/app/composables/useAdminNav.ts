@@ -212,6 +212,12 @@ export function useAdminNav() {
           description: t('admin.descriptions.torznab'),
         },
         {
+          label: t('admin.nav.irc'),
+          path: '/admin/irc',
+          icon: 'ph:broadcast',
+          description: t('admin.descriptions.irc'),
+        },
+        {
           label: t('admin.nav.notifications'),
           path: '/admin/notifications',
           icon: 'ph:bell-ringing',

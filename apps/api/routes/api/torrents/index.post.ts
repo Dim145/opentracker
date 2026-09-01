@@ -14,6 +14,7 @@ import { getUploadRules, evaluateUpload } from '~~/utils/uploadRules';
 import { notifyMany, listStaffRecipients } from '~~/utils/notify';
 import { fanoutFollowedUserUpload } from '~~/utils/followerFanout';
 import { fanoutSavedSearchMatches } from '~~/utils/savedSearchFanout';
+import { announceRelease } from '~~/utils/irc/announcer';
 
 
 /**
@@ -551,6 +552,20 @@ export default defineEventHandler(async (event) => {
       tmdbId,
       tvdbId,
       uploaderId: user.id,
+    });
+    // And the IRC channel. A fresh upload carries no per-torrent buff of its
+    // own — those are a moderation action — so the three multiplier fields are
+    // null and the announcer folds in whatever site-wide event is running.
+    void announceRelease({
+      id,
+      infoHash,
+      name,
+      size: totalSize,
+      categoryId: categoryId || null,
+      uploaderId: user.id,
+      downloadMultiplier: null,
+      uploadMultiplier: null,
+      multipliersUntil: null,
     });
   }
 

@@ -1708,6 +1708,7 @@
       "uploadRules": "Upload Rules",
       "invitations": "Invitations",
       "torznab": "Torznab API",
+      "irc": "IRC announce",
       "branding": "Branding",
       "themes": "Themes",
       "notifications": "Notifications",
@@ -1742,6 +1743,7 @@
       "uploadRules": "Server-enforced gates every torrent upload must pass",
       "invitations": "Manage invitation system",
       "torznab": "Configure *arr integration and rate limiting",
+      "irc": "One line in #announce per accepted upload — what autobrr races on.",
       "branding": "Customize site appearance and branding",
       "themes": "Create and edit the themes members can choose, and pick what system mode maps to.",
       "notifications": "Configure external notification channels (email, Discord, Telegram, …)",
@@ -3889,6 +3891,67 @@
       "generation": "generation {n}",
       "erased": "erased account",
       "truncated": "Truncated at {nodes} members or {depth} generations — the rest is not shown."
+    },
+    "irc": {
+      "eyebrow": "Integration",
+      "title": "IRC announce channel",
+      "lede": "One line in a channel per accepted upload — the mechanism autobrr and autodl-irssi race on. An RSS feed is polled; a channel message arrives.",
+      "kept": "unchanged",
+      "saved": "Saved.",
+      "failed": "That did not work.",
+      "test": "Say a test line",
+      "tested": "Sent: {line}",
+      "definition": "autobrr definition",
+      "preview": "What the channel will see",
+      "tokensTitle": "Fields you can put in the line",
+      "unmapped": "for people",
+      "notLeader": "Another API instance holds the connection — exactly one does, so that a release is announced once. The state above is what this instance knows.",
+      "states": {
+        "idle": "Not announcing",
+        "connecting": "Connecting",
+        "registering": "Registering",
+        "joining": "Joining the channel",
+        "ready": "In the channel",
+        "error": "Not connected"
+      },
+      "sections": {
+        "connection": "Where to connect",
+        "auth": "How to identify",
+        "line": "What to say",
+        "traffic": "Since it connected"
+      },
+      "fields": {
+        "enabled": "Announce accepted uploads to IRC",
+        "host": "Server",
+        "port": "Port",
+        "tls": "TLS",
+        "nick": "Nick",
+        "channel": "Channel",
+        "channelKey": "Channel key",
+        "saslUser": "SASL account",
+        "saslPassword": "SASL password",
+        "serverPassword": "Server password",
+        "perform": "Lines to send after connecting",
+        "template": "Announce line",
+        "siteUrl": "Public address",
+        "announceAdult": "Announce adult releases too"
+      },
+      "hints": {
+        "enabled": "Off by default. Nothing is said in the channel until you turn this on.",
+        "nick": "Some networks require a bot suffix before letting a client into an announce channel, e.g. trackarr|bot.",
+        "auth": "SASL if the network offers it, a server password if it wants one, and perform lines for anything else — identifying to NickServ, or asking a channel bot for an invite.",
+        "perform": "One raw IRC line per row, sent after registration and before joining. Treated as secret.",
+        "template": "Fields in braces. The regular expression handed to members’ clients is derived from this line, so the two cannot disagree — change the format and the definition follows.",
+        "siteUrl": "Where the link in the line points. The bot has no request to work it out from; with this empty the line carries a path.",
+        "announceAdult": "A channel is one stream with no per-member preferences in it. Members can turn adult content off on the site; nobody can turn it off in a channel.",
+        "dropped": "Lines dropped because the queue was full while the connection was down. The oldest go first: on an announce channel a stale release is worth less than a fresh one."
+      },
+      "stats": {
+        "sent": "Lines said",
+        "queued": "Waiting",
+        "dropped": "Dropped",
+        "since": "In the channel since"
+      }
     }
   },
   "mod": {

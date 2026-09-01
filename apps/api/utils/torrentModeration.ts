@@ -20,6 +20,7 @@ import { db, schema } from '@trackarr/db';
 import { and, eq, inArray } from 'drizzle-orm';
 import { fanoutFollowedUserUpload } from './followerFanout';
 import { fanoutSavedSearchMatches } from './savedSearchFanout';
+import { announceRelease } from './irc/announcer';
 import { randomUUID } from 'node:crypto';
 import { redis } from '../redis/client';
 
@@ -228,6 +229,23 @@ export async function transitionStatus(opts: {
       tmdbId: updated.tmdbId,
       tvdbId: updated.tvdbId,
       uploaderId: updated.uploaderId,
+    });
+
+    // The IRC announce channel, on the same edge and for the same reason: this
+    // is the moment a release becomes something a member could grab. Racing is
+    // the whole point of the channel, so the line goes out here rather than on
+    // a sweep — and fire-and-forget, because a channel that is down must not
+    // hold up a moderator's queue.
+    void announceRelease({
+      id: updated.id,
+      infoHash: updated.infoHash,
+      name: updated.name,
+      size: Number(updated.size),
+      categoryId: updated.categoryId,
+      uploaderId: updated.uploaderId,
+      downloadMultiplier: updated.downloadMultiplier,
+      uploadMultiplier: updated.uploadMultiplier,
+      multipliersUntil: updated.multipliersUntil,
     });
   }
 

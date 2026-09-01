@@ -1708,6 +1708,7 @@
       "uploadRules": "Règles d'upload",
       "invitations": "Invitations",
       "torznab": "API Torznab",
+      "irc": "Annonce IRC",
       "branding": "Identité visuelle",
       "themes": "Thèmes",
       "notifications": "Notifications",
@@ -1742,6 +1743,7 @@
       "uploadRules": "Garde-fous appliqués côté serveur sur chaque upload de torrent",
       "invitations": "Gérer le système d'invitations",
       "torznab": "Configurer l'intégration *arr et la limitation de débit",
+      "irc": "Une ligne dans #announce par upload accepté — ce sur quoi autobrr court.",
       "branding": "Personnaliser l'apparence et l'identité visuelle du site",
       "themes": "Créer et régler les thèmes que les membres peuvent choisir, et définir le mode système.",
       "notifications": "Configurer les canaux de notifications externes (email, Discord, Telegram, …)",
@@ -3889,6 +3891,67 @@
       "generation": "génération {n}",
       "erased": "compte effacé",
       "truncated": "Tronqué à {nodes} membres ou {depth} générations — le reste n’est pas affiché."
+    },
+    "irc": {
+      "eyebrow": "Intégration",
+      "title": "Canal d’annonce IRC",
+      "lede": "Une ligne dans un canal par upload accepté — le mécanisme sur lequel autobrr et autodl-irssi courent. Un flux RSS se sonde ; un message de canal arrive.",
+      "kept": "inchangé",
+      "saved": "Enregistré.",
+      "failed": "Ça n’a pas fonctionné.",
+      "test": "Envoyer une ligne de test",
+      "tested": "Envoyé : {line}",
+      "definition": "Définition autobrr",
+      "preview": "Ce que verra le canal",
+      "tokensTitle": "Champs disponibles dans la ligne",
+      "unmapped": "pour les humains",
+      "notLeader": "Une autre instance de l’API tient la connexion — une seule le fait, pour qu’une release soit annoncée une fois. L’état ci-dessus est ce que cette instance sait.",
+      "states": {
+        "idle": "Pas d’annonce",
+        "connecting": "Connexion",
+        "registering": "Enregistrement",
+        "joining": "Entrée dans le canal",
+        "ready": "Dans le canal",
+        "error": "Non connecté"
+      },
+      "sections": {
+        "connection": "Où se connecter",
+        "auth": "Comment s’identifier",
+        "line": "Quoi dire",
+        "traffic": "Depuis la connexion"
+      },
+      "fields": {
+        "enabled": "Annoncer les uploads acceptés sur IRC",
+        "host": "Serveur",
+        "port": "Port",
+        "tls": "TLS",
+        "nick": "Pseudo",
+        "channel": "Canal",
+        "channelKey": "Clé du canal",
+        "saslUser": "Compte SASL",
+        "saslPassword": "Mot de passe SASL",
+        "serverPassword": "Mot de passe du serveur",
+        "perform": "Lignes à envoyer après connexion",
+        "template": "Ligne d’annonce",
+        "siteUrl": "Adresse publique",
+        "announceAdult": "Annoncer aussi les releases adultes"
+      },
+      "hints": {
+        "enabled": "Désactivé par défaut. Rien n’est dit dans le canal avant que vous ne l’activiez.",
+        "nick": "Certains réseaux exigent un suffixe de bot avant d’autoriser un client dans un canal d’annonce, par exemple trackarr|bot.",
+        "auth": "SASL si le réseau le propose, un mot de passe serveur s’il en veut un, et des lignes « perform » pour le reste : s’identifier auprès de NickServ, ou demander une invitation à un bot de canal.",
+        "perform": "Une ligne IRC brute par entrée, envoyée après l’enregistrement et avant de rejoindre le canal. Traitée comme un secret.",
+        "template": "Les champs entre accolades. L’expression régulière remise aux clients des membres est dérivée de cette ligne, donc les deux ne peuvent pas diverger : changez le format et la définition suit.",
+        "siteUrl": "Où pointe le lien de la ligne. Le bot n’a pas de requête pour le déduire ; vide, la ligne ne porte qu’un chemin.",
+        "announceAdult": "Un canal est un flux unique, sans préférence par membre. Les membres peuvent désactiver le contenu adulte sur le site ; personne ne peut le désactiver dans un canal.",
+        "dropped": "Lignes abandonnées parce que la file était pleine pendant une coupure. Les plus anciennes partent d’abord : sur un canal d’annonce, une release rassie vaut moins qu’une fraîche."
+      },
+      "stats": {
+        "sent": "Lignes dites",
+        "queued": "En attente",
+        "dropped": "Abandonnées",
+        "since": "Dans le canal depuis"
+      }
     }
   },
   "mod": {
