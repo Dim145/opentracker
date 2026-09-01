@@ -3,11 +3,18 @@
     <!-- ── Head ────────────────────────────────────────────── -->
     <header class="au-head">
       <div>
-        <p class="au-eyebrow">{{ $t('admin.audit.eyebrow') }}</p>
         <h2 class="au-title">
           {{ $t('admin.audit.title') }}
-          <span class="au-title-accent tabular-nums">{{ data?.total ?? 0 }}</span>
+          <!-- Labelled, because a bare number beside a title reads as a total
+               and this one is the FILTERED count. -->
+          <span class="au-title-accent tabular-nums">
+            {{ $t('admin.audit.matching', data?.total ?? 0) }}
+          </span>
         </h2>
+        <!-- One sentence. The other three explained the model — append-only,
+             retention, who may read — to an operator who opened the register to
+             look at rows, and they now sit in the footnote where that kind of
+             thing belongs. -->
         <p class="au-lede">{{ $t('admin.audit.lede') }}</p>
       </div>
       <button
@@ -15,6 +22,7 @@
         class="tool-btn"
         :disabled="loading"
         :title="$t('admin.audit.refresh')"
+        :aria-label="$t('admin.audit.refresh')"
         @click="refreshData()"
       >
         <Icon name="ph:arrows-clockwise-bold" :class="{ 'animate-spin': loading }" />
@@ -71,7 +79,18 @@
     </section>
 
     <!-- ── The register ────────────────────────────────────── -->
-    <section class="au-table-wrap" :aria-label="$t('admin.audit.tableLabel')">
+    <!-- Focusable, and dimmed while a new filter is in flight: `useFetch` keeps
+         the previous page in `data`, so the fifty rows from the last filter
+         stayed on screen at full opacity and an operator had no way to tell
+         whether what they were reading answered their query yet. -->
+    <section
+      class="au-table-wrap"
+      :class="{ 'au-table-wrap--loading': loading }"
+      tabindex="0"
+      role="region"
+      :aria-label="$t('admin.audit.tableLabel')"
+      :aria-busy="loading"
+    >
       <table class="au-table">
         <thead>
           <tr>
@@ -84,25 +103,61 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Two states, two sentences. On a fresh install, with no filter
+               set, the operator read "No entry matches these filters" about
+               filters they had not touched — and reasonably concluded the page
+               was broken. -->
           <tr v-if="!loading && !rows.length">
-            <td colspan="6" class="au-empty">{{ $t('admin.audit.empty') }}</td>
+            <td colspan="6" class="au-empty">
+              <template v-if="anyFilter">
+                {{ $t('admin.audit.emptyFiltered') }}
+                <button type="button" class="au-linkbtn" @click="clearFilters">
+                  {{ $t('admin.audit.clear') }}
+                </button>
+              </template>
+              <template v-else>{{ $t('admin.audit.emptyFresh') }}</template>
+            </td>
           </tr>
           <template v-for="row in rows" :key="row.id">
             <tr :class="{ 'au-row--failed': !ok(row.statusCode) }">
               <td class="au-when">
                 <time :datetime="row.createdAt">{{ stamp(row.createdAt) }}</time>
               </td>
+              <!-- Inline, not stacked. Two cells were vertical piles, which put
+                   every row at ~55px against the house table's ~36px: a page of
+                   50 entries came to 2,750px of scrolling on a register whose
+                   own style comment promises "a ledger, not a dashboard". And
+                   both names are links now — an operator reading "alice banned
+                   bob" could reach neither of them without copying a username
+                   and changing page. -->
               <td class="au-actor">
-                <span class="au-actor-name">{{ row.actorName }}</span>
+                <NuxtLink
+                  v-if="row.actorId"
+                  :to="`/users/${row.actorId}`"
+                  class="au-actor-name"
+                >{{ row.actorName }}</NuxtLink>
+                <span v-else class="au-actor-name">{{ row.actorName }}</span>
                 <span class="au-role" :class="`au-role--${row.actorRole}`">
                   {{ row.actorRole }}
                 </span>
               </td>
-              <td><code class="au-action">{{ row.action }}</code></td>
+              <td>
+                <code class="au-action">{{ row.action }}</code>
+                <!-- The request, in the open. It was behind a chevron that
+                     appeared on every row because `path` is always set, so an
+                     operator learned to ignore the chevron — and therefore also
+                     missed the rows carrying a real diff. -->
+                <code class="au-request">{{ row.method }} {{ row.path }}</code>
+              </td>
               <td class="au-target">
                 <template v-if="row.targetLabel || row.targetId">
                   <span v-if="row.targetType" class="au-target-type">{{ row.targetType }}</span>
-                  <span class="au-target-label">{{ row.targetLabel || row.targetId }}</span>
+                  <NuxtLink
+                    v-if="row.targetType === 'user' && row.targetId"
+                    :to="`/users/${row.targetId}`"
+                    class="au-target-label"
+                  >{{ row.targetLabel || row.targetId }}</NuxtLink>
+                  <span v-else class="au-target-label">{{ row.targetLabel || row.targetId }}</span>
                 </template>
                 <span v-else class="au-dash">—</span>
               </td>
@@ -117,6 +172,7 @@
                   type="button"
                   class="tool-btn tool-btn--sm"
                   :aria-expanded="expanded === row.id"
+                  :aria-controls="`au-detail-${row.id}`"
                   :aria-label="$t('admin.audit.col.detail')"
                   @click="expanded = expanded === row.id ? null : row.id"
                 >
@@ -128,7 +184,7 @@
               </td>
             </tr>
             <tr v-if="expanded === row.id" class="au-detail-row">
-              <td colspan="6">
+              <td :id="`au-detail-${row.id}`" colspan="6">
                 <dl class="au-detail">
                   <div>
                     <dt>{{ $t('admin.audit.detail.request') }}</dt>
@@ -143,7 +199,14 @@
                   </div>
                   <div v-if="row.changes">
                     <dt>{{ $t('admin.audit.detail.changes') }}</dt>
-                    <dd><pre class="au-json">{{ pretty(row.changes) }}</pre></dd>
+                    <dd>
+                      <pre
+                        class="au-json"
+                        tabindex="0"
+                        role="region"
+                        :aria-label="$t('admin.audit.detail.changes')"
+                      >{{ pretty(row.changes) }}</pre>
+                    </dd>
                   </div>
                 </dl>
               </td>
@@ -361,7 +424,17 @@ async function saveRetention() {
 }
 
 const ok = (status: number) => status >= 200 && status < 300;
-const hasDetail = (row: AuditRow) => !!row.changes || !!row.actorIpHash || !!row.path;
+/**
+ * Whether opening this row shows anything the row does not already say.
+ *
+ * It used to include `!!row.path`, which is always set — so the chevron
+ * appeared on every one of the fifty rows, and opening most of them revealed
+ * two values: the request line and a hash. An operator learns to ignore a
+ * control that pays nothing, and then misses the rows that carry a real diff.
+ * The request line is now printed in the Action cell, so the chevron means
+ * exactly one thing: there is a change to read.
+ */
+const hasDetail = (row: AuditRow) => !!row.changes || !!row.actorIpHash;
 
 /**
  * Pinned to `en-GB` for the same reason the account page pins its locale: a
@@ -413,7 +486,7 @@ useHead({ title: () => t('admin.audit.title') });
 .au-eyebrow {
   margin: 0 0 0.25rem;
   font-size: 0.7rem;
-  letter-spacing: 0.14em;
+  letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -444,7 +517,7 @@ useHead({ title: () => t('admin.audit.title') });
   gap: 0.75rem;
   padding: 0.9rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-surface));
 }
 .au-field {
@@ -456,7 +529,10 @@ useHead({ title: () => t('admin.audit.title') });
 .au-field--grow {
   flex: 1 1 14rem;
 }
+/* 36px, like `.irc-switch` in the same batch of work, which commented exactly
+   why: the whole row is the target, not a 13px checkbox. */
 .au-toggle {
+  min-height: 2.25rem;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -467,10 +543,19 @@ useHead({ title: () => t('admin.audit.title') });
 /* ── Table ───────────────────────────────────────────────────── */
 /* Its own scroll container: the action and path columns are long, and the
    page body must never scroll sideways. */
+.au-table-wrap:focus-visible,
+.au-json:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+.au-table-wrap--loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
 .au-table-wrap {
   overflow-x: auto;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
 }
 .au-table {
   width: 100%;
@@ -482,19 +567,51 @@ useHead({ title: () => t('admin.audit.title') });
   text-align: left;
   padding: 0.6rem 0.75rem;
   font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  /* Scaled with the theme, like every other micro-label on the site. */
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   border-bottom: 1px solid rgb(var(--line-default));
   white-space: nowrap;
+  /* Pinned. Fifty rows means the header leaves the viewport on the first
+     scroll, and after that six columns of dense text have no names — the
+     cheapest scanning win on the page. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgb(var(--bg-surface));
 }
 .au-table td {
-  padding: 0.55rem 0.75rem;
+  padding: 0.45rem 0.75rem;
   border-bottom: 1px solid rgb(var(--line-default));
-  vertical-align: top;
+  vertical-align: middle;
 }
+.au-detail-row td { vertical-align: top; }
 .au-table tbody tr:last-child td {
   border-bottom: 0;
+}
+/* The same 3 % wash the house `.data-table` uses. Following one row from its
+   timestamp to its status code across six columns and 46rem of minimum width
+   was being done by eye; this is not decoration, it is the scanning tool. */
+.au-table tbody tr:hover td {
+  background-color: rgb(var(--fg-default) / 0.03);
+}
+.au-table tbody tr.au-detail-row:hover td { background-color: transparent; }
+/* The first column carries the reading key of a register, so it stays put when
+   the table is scrolled sideways on a phone. */
+.au-when {
+  position: sticky;
+  left: 0;
+  background: rgb(var(--bg-surface));
+}
+.au-linkbtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: rgb(var(--info));
+  cursor: pointer;
+  text-decoration: underline;
 }
 .au-num {
   text-align: right;
@@ -507,15 +624,30 @@ useHead({ title: () => t('admin.audit.title') });
 }
 .au-actor {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
 }
 .au-actor-name {
   font-weight: 600;
 }
+a.au-actor-name:hover { color: rgb(var(--accent-warm)); }
+/* Inline with the action key, not stacked under it.
+   Surfacing the request line was right — behind a chevron that appeared on
+   every row, it taught operators to ignore the chevron — but putting it on its
+   own line just moved the row's second line from the actor cell to the action
+   cell and left the height at 53px against the house table's 36px. Inline it
+   wraps only on a narrow column. */
+.au-request {
+  margin-left: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: rgb(var(--fg-subtle));
+  overflow-wrap: anywhere;
+}
 .au-role {
   font-size: 0.65rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -529,19 +661,21 @@ useHead({ title: () => t('admin.audit.title') });
 }
 .au-target {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
   max-width: 18rem;
 }
 .au-target-type {
   font-size: 0.65rem;
-  letter-spacing: 0.06em;
+  letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
 .au-target-label {
   word-break: break-word;
 }
+a.au-target-label:hover { color: rgb(var(--accent-warm)); }
 .au-dash,
 .au-empty {
   color: rgb(var(--fg-subtle));
@@ -561,6 +695,9 @@ useHead({ title: () => t('admin.audit.title') });
 .au-row--failed td:first-child {
   box-shadow: inset 2px 0 0 rgb(var(--danger));
 }
+.au-caret {
+  transition: transform var(--dur-2) ease;
+}
 .au-caret--open {
   transform: rotate(180deg);
 }
@@ -577,7 +714,7 @@ useHead({ title: () => t('admin.audit.title') });
 }
 .au-detail dt {
   font-size: 0.68rem;
-  letter-spacing: 0.08em;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   margin-bottom: 0.2rem;
@@ -597,7 +734,7 @@ useHead({ title: () => t('admin.audit.title') });
   font-size: 0.76rem;
   line-height: 1.5;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   background: rgb(var(--bg-inset));
 }
 
@@ -621,7 +758,7 @@ useHead({ title: () => t('admin.audit.title') });
   gap: 1rem;
   padding: 0.9rem;
   border: 1px solid rgb(var(--line-default));
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   background: rgb(var(--bg-surface));
 }
 .au-retention-title {

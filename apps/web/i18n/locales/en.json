@@ -3847,9 +3847,9 @@
       "toggleAria": "Open the icon picker"
     },
     "audit": {
-      "eyebrow": "Accountability",
+      "eyebrow": "Traceability",
       "title": "Audit log",
-      "lede": "Every mutating request to the admin and moderation consoles, with the account that made it. Append-only: entries cannot be edited or deleted, and leave only when the retention period expires. Readable by admins; moderator actions appear here too.",
+      "lede": "Every change made from the staff consoles, with the account that made it.",
       "refresh": "Reload",
       "filtersLabel": "Filters",
       "tableLabel": "Audit entries",
@@ -3860,11 +3860,13 @@
       "anyAction": "Any action",
       "from": "From",
       "to": "To",
-      "failuresOnly": "Refused only",
+      "failuresOnly": "Failures only",
       "clear": "Clear filters",
-      "empty": "No entry matches these filters.",
+      "emptyFiltered": "No entry matches these filters.",
+      "emptyFresh": "Nothing has been recorded yet. An entry appears as soon as a staff member changes something.",
+      "matching": "1 entry | {n} entries",
       "pageOf": "Page {page} of {pages}",
-      "foot": "Times are UTC. A refused request is recorded too — a run of them from one account is the pattern this register exists to show. Post-panic recovery is not logged: after panic mode there is no session, so there is no account to name.",
+      "foot": "Times are UTC. Append-only — an entry cannot be edited or deleted, and leaves only when the retention period expires. A refused request is recorded too: a run of them from one account is the pattern this register exists to show. Recovery from panic mode is not recorded, because there is no session then and so no account to name.",
       "col": {
         "when": "When (UTC)",
         "actor": "Staff",
@@ -3882,7 +3884,7 @@
       "retention": {
         "label": "Retention",
         "title": "How long entries are kept",
-        "text": "Days before an entry is swept. 0 keeps them indefinitely. Published on the public privacy page, so members can read the period that applies to decisions taken about them.",
+        "text": "Days before an entry is swept. 0 keeps them indefinitely, and the period is published on the public privacy page.",
         "days": "Days",
         "save": "Save",
         "saved": "Retention updated.",
