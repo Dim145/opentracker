@@ -898,7 +898,14 @@
         "ask": "Ask for a reseed",
         "asking": "Asking…",
         "hint": "Nobody is seeding this. Members who downloaded it before will be asked to put it back online.",
-        "done": "Asked {count} past downloaders to seed it again.",
+        "done": "Asked 1 past downloader to seed it again. | Asked {n} past downloaders to seed it again.",
+        "nobody": "Nobody who downloaded this is still reachable — there was nobody left to ask.",
+        "already": "Somebody already asked for this release today. One request a day, so the notification is worth reading.",
+        "state": {
+          "asked": "Asked. Members who downloaded this will be notified.",
+          "nobody": "Nobody who downloaded this is still reachable.",
+          "already": "Already asked today — one request a day."
+        },
         "failed": "Could not send the request."
       }
     }
@@ -1378,7 +1385,7 @@
       "silverleech": "Silverleech",
       "doubleUpload": "Double upload",
       "custom": "Boosted",
-      "until": "until {when}"
+      "endsIn": "ends {when}"
     }
   },
   "bonus": {

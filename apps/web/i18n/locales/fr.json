@@ -898,7 +898,14 @@
         "ask": "Demander une remise en partage",
         "asking": "Envoi…",
         "hint": "Plus personne ne partage. Les membres qui l'ont téléchargé seront invités à le remettre en ligne.",
-        "done": "{count} anciens téléchargeurs ont été sollicités.",
+        "done": "1 ancien téléchargeur a été sollicité. | {n} anciens téléchargeurs ont été sollicités.",
+        "nobody": "Plus aucun de ceux qui l’ont téléchargé n’est joignable — il n’y avait personne à solliciter.",
+        "already": "Quelqu’un a déjà fait la demande aujourd’hui. Une par jour, pour que la notification garde du poids.",
+        "state": {
+          "asked": "Demande envoyée. Les membres qui l’ont téléchargé seront prévenus.",
+          "nobody": "Plus aucun de ceux qui l’ont téléchargé n’est joignable.",
+          "already": "Déjà demandé aujourd’hui — une demande par jour."
+        },
         "failed": "La demande n'a pas pu être envoyée."
       }
     }
@@ -1378,7 +1385,7 @@
       "silverleech": "Silverleech",
       "doubleUpload": "Upload doublé",
       "custom": "Bonifié",
-      "until": "jusqu'à {when}"
+      "endsIn": "se termine {when}"
     }
   },
   "bonus": {

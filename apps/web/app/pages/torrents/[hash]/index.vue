@@ -157,9 +157,14 @@
           <span class="hero-eyebrow-sep">·</span>
           <span class="buff-badge" :class="`buff-badge--${buff.kind}`">
             <Icon :name="buff.icon" />
-            {{ $t(`torrent.buff.${buff.kind}`) }}
-            <span v-if="buff.until" class="buff-until" :title="formatDate(buff.until)">
-              {{ $t('torrent.buff.until', { when: formatAge(buff.until) }) }}
+            <!-- A named buff says its name; an unnamed one says its numbers.
+                 "Boosted" told a member a multiplier was in force and refused to
+                 say which, so they could not tell a 0.25× download from a 3×
+                 upload — the one thing that decides whether it is worth
+                 grabbing now. Both figures are already computed here. -->
+            {{ buff.kind === 'custom' ? buffPair : $t(`torrent.buff.${buff.kind}`) }}
+            <span v-if="buffEndsIn" class="buff-until" :title="formatDate(buff.until!)">
+              {{ $t('torrent.buff.endsIn', { when: buffEndsIn }) }}
             </span>
           </span>
         </template>
@@ -272,6 +277,35 @@
           <span class="media-id-badge-id">{{ torrent.tvdbId }}</span>
           <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
         </a>
+      </div>
+
+      <!-- Replaced BY something, said before the download button rather than
+           five sections below it.
+           This banner used to live down in the cross-seed section, carrying a
+           comment that read "a member who landed here should be told before they
+           press download, not after they scroll" — some 280 lines and two full
+           screens after the button. Deliberately not red: the release still
+           works and its swarm is untouched, and colouring a factual notice as a
+           danger would make members abandon a download that is fine. -->
+      <div v-if="supersessions?.supersededBy" class="supersede-banner">
+        <Icon name="ph:arrow-bend-right-up-bold" class="supersede-banner-icon" />
+        <div class="supersede-banner-body">
+          <p class="supersede-banner-lead">
+            {{ $t('torrents.detail.supersede.replacedBy') }}
+          </p>
+          <NuxtLink
+            :to="`/torrents/${supersessions?.supersededBy?.infoHash}`"
+            class="supersede-banner-link"
+          >
+            {{ supersessions?.supersededBy?.name }}
+          </NuxtLink>
+          <p v-if="supersessions?.supersededBy?.reason" class="supersede-banner-reason">
+            {{ supersessions?.supersededBy?.reason }}
+          </p>
+          <p class="supersede-banner-note">
+            {{ $t('torrents.detail.supersede.stillSeedable') }}
+          </p>
+        </div>
       </div>
 
       <!-- One bold primary action (Download) flanked by mono ghosts
@@ -474,9 +508,10 @@
       <div v-if="canAskReseed" class="reseed-ask">
         <p class="reseed-hint">
           <Icon name="ph:hand-heart-bold" class="reseed-icon" />
-          {{ $t('torrents.detail.reseed.hint') }}
+          {{ reseedResult ? $t(`torrents.detail.reseed.state.${reseedResult}`) : $t('torrents.detail.reseed.hint') }}
         </p>
         <button
+          v-if="!reseedResult"
           type="button"
           class="btn btn-secondary btn-sm"
           :disabled="reseedBusy"
@@ -553,39 +588,16 @@
          with the cross-seed sections because it answers the same kind of
          question (what else is this?), and reuses their markup so a reader
          scanning the page meets one list format, not three. -->
-    <section
-      v-if="supersessions?.supersededBy || supersessions?.supersedes.length"
-      class="section section--cross"
-    >
+    <section v-if="supersessions?.supersedes.length" class="section section--cross">
       <header class="section-head">
         <span class="section-head-mark" aria-hidden="true">§</span>
         <h2 class="section-head-title">{{ $t('torrents.detail.supersede.title') }}</h2>
         <span class="section-head-line" aria-hidden="true" />
       </header>
 
-      <!-- Replaced BY something: the important direction, and a banner rather
-           than a list item — a member who landed here should be told before
-           they press download, not after they scroll. -->
-      <div v-if="supersessions.supersededBy" class="supersede-banner">
-        <Icon name="ph:arrow-bend-right-up-bold" class="supersede-banner-icon" />
-        <div class="supersede-banner-body">
-          <p class="supersede-banner-lead">
-            {{ $t('torrents.detail.supersede.replacedBy') }}
-          </p>
-          <NuxtLink
-            :to="`/torrents/${supersessions.supersededBy.infoHash}`"
-            class="supersede-banner-link"
-          >
-            {{ supersessions.supersededBy.name }}
-          </NuxtLink>
-          <p v-if="supersessions.supersededBy.reason" class="supersede-banner-reason">
-            {{ supersessions.supersededBy.reason }}
-          </p>
-          <p class="supersede-banner-note">
-            {{ $t('torrents.detail.supersede.stillSeedable') }}
-          </p>
-        </div>
-      </div>
+      <!-- Replaced BY something is announced in the hero, above the download
+           button — see the banner there. What stays here is the other
+           direction. -->
 
       <!-- Replaces others: informational, so it reads as the ordinary list. -->
       <template v-if="supersessions.supersedes.length">
@@ -978,7 +990,7 @@ interface TorrentDetail {
   gatedAdult?: boolean;
 }
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const route = useRoute();
 const hash = route.params.hash as string;
 
@@ -1359,6 +1371,26 @@ const buff = computed(() => {
   return { kind, icon, until: t0.multipliersUntil ?? null, dl, ul };
 });
 
+/** "0.25× DL · 2× UL" — the multipliers a `custom` buff refuses to name. */
+const buffPair = computed(() => {
+  if (!buff.value) return '';
+  const f = (percent: number) => `${(percent / 100).toLocaleString(locale.value)}×`;
+  return `${f(buff.value.dl)} DL · ${f(buff.value.ul)} UL`;
+});
+
+/**
+ * How long the buff has left, or nothing.
+ *
+ * `formatAge` was being asked this and answering "just now" for every date in
+ * the future, so a freeleech with three days on it advertised itself as
+ * already over. `formatUntil` is the forward-looking one, and it returns an
+ * empty string once the deadline has passed — which is also the moment the
+ * badge should stop claiming a deadline at all.
+ */
+const buffEndsIn = computed(() =>
+  buff.value?.until ? formatUntil(buff.value.until, locale.value) : ''
+);
+
 const isStaff = computed(
   () => !!user.value && (user.value.isAdmin || user.value.isModerator)
 );
@@ -1441,6 +1473,17 @@ const canAskReseed = computed(
     !supersessions.value?.supersededBy
 );
 
+/**
+ * What the last reseed request did, so the button can stop offering itself.
+ *
+ * `null` means "not asked in this visit"; anything else replaces the control
+ * with the outcome. Pressing it used to leave the button in its ordinary
+ * enabled state with nothing on the page recording that the ask had happened —
+ * and since the cooldown is site-wide and daily, the next member to press it
+ * got a 429 for a slot somebody else had already used.
+ */
+const reseedResult = ref<'asked' | 'nobody' | 'already' | null>(null);
+
 async function askReseed() {
   reseedBusy.value = true;
   try {
@@ -1448,12 +1491,27 @@ async function askReseed() {
       `/api/torrents/${hash}/reseed-request`,
       { method: 'POST' }
     );
-    notifications.success(t('torrents.detail.reseed.done', { count: res.notified }));
+    // Nought notified is not a success. It consumed the day's one slot and
+    // told the member it had worked.
+    if (res.notified === 0) {
+      reseedResult.value = 'nobody';
+      notifications.error(t('torrents.detail.reseed.nobody'));
+    } else {
+      reseedResult.value = 'asked';
+      notifications.success(t('torrents.detail.reseed.done', res.notified));
+    }
   } catch (err: unknown) {
-    const e = err as { data?: { message?: string }; message?: string };
-    notifications.error(
-      e?.data?.message || e?.message || t('torrents.detail.reseed.failed')
-    );
+    const e = err as { statusCode?: number; data?: { message?: string }; message?: string };
+    // Mapped on the status, not echoed from the body. `reseed-request` answers
+    // a 429 with an English sentence written for a developer — "A reseed has
+    // already been requested for this torrent today." — and echoing
+    // `e.data.message` put that English into a French page.
+    if (e?.statusCode === 429) {
+      reseedResult.value = 'already';
+      notifications.error(t('torrents.detail.reseed.already'));
+    } else {
+      notifications.error(t('torrents.detail.reseed.failed'));
+    }
   } finally {
     reseedBusy.value = false;
   }
