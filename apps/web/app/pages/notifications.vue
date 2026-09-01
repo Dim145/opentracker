@@ -192,6 +192,7 @@ const TYPE_DEFAULTS: Record<
   upload_reset: { icon: 'ph:arrow-counter-clockwise-bold', tone: 'info' },
   moderation_message_received: { icon: 'ph:chat-circle-text-bold', tone: 'info' },
   torrent_deleted_by_staff: { icon: 'ph:trash-bold', tone: 'danger' },
+  reseed_requested: { icon: 'ph:hand-heart-bold', tone: 'social' },
   hnr_violation_marked: { icon: 'ph:lightning-bold', tone: 'danger' },
   hnr_cleared: { icon: 'ph:check-circle-bold', tone: 'gain' },
   hnr_exempted: { icon: 'ph:shield-check-bold', tone: 'gain' },

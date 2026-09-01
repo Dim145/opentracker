@@ -44,6 +44,13 @@ export type NotificationType =
   | 'upload_reset'
   | 'moderation_message_received'
   | 'torrent_deleted_by_staff'
+  // ── Catalogue health ───────────────────────────────────────
+  /**
+   * Somebody asked for a dead torrent to be seeded again, and you are on the
+   * list because you downloaded it once. Not a demand — the member has no way
+   * to know whether you still hold the files.
+   */
+  | 'reseed_requested'
   // ── P1 — Hit & Run ─────────────────────────────────────────
   | 'hnr_violation_marked'
   | 'hnr_cleared'

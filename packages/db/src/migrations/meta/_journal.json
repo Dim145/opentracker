@@ -428,6 +428,13 @@
       "when": 1788215642688,
       "tag": "0060_torrent_buffs",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1788216646668,
+      "tag": "0061_torrent_supersede",
+      "breakpoints": true
     }
   ]
 }

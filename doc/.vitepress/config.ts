@@ -88,6 +88,7 @@ export default defineConfig({
             { text: 'Roles & Permissions', link: '/guide/roles-and-permissions' },
             { text: 'Invitations', link: '/guide/invitations' },
             { text: 'Moderation', link: '/guide/moderation' },
+            { text: 'Torrent Lifecycle', link: '/guide/torrent-lifecycle' },
             { text: 'Reports', link: '/guide/reports' },
             { text: 'Anti-cheat', link: '/guide/anti-cheat' },
             { text: 'Upload Rules', link: '/guide/upload-rules' },

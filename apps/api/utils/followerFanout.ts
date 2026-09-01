@@ -21,6 +21,9 @@
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { notify } from './notify';
+// The pool and its size live in `utils/fanout` — they gained a second caller
+// (the reseed request) and a shared cap is the point of having one.
+import { FANOUT_CONCURRENCY, withConcurrency } from './fanout';
 
 interface FanoutInput {
   uploaderId: string;
@@ -28,42 +31,6 @@ interface FanoutInput {
   torrentId: string;
   torrentInfoHash: string;
   torrentName: string;
-}
-
-/** Pool size for per-follower notify dispatch. 20 is high
- *  enough that a few hundred followers finish in roughly one
- *  notify round-trip's worth of wall time, low enough that an
- *  uploader with 50k+ followers can't open 50k+ concurrent
- *  connections to Postgres and Redis at upload time. */
-const FANOUT_CONCURRENCY = 20;
-
-/**
- * Worker-pool concurrency limiter. Spins up `concurrency`
- * workers that pop items from a shared queue. Each task's
- * failure is swallowed — the fan-out is best-effort and a
- * single recipient's notify glitch must not skip the rest.
- */
-async function withConcurrency<T>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<void>,
-): Promise<void> {
-  if (items.length === 0) return;
-  const queue = items.slice();
-  const workers = Array(Math.min(concurrency, items.length))
-    .fill(0)
-    .map(async () => {
-      while (queue.length > 0) {
-        const item = queue.shift();
-        if (item === undefined) return;
-        try {
-          await fn(item);
-        } catch {
-          // best-effort: don't let one bad recipient sink the rest
-        }
-      }
-    });
-  await Promise.all(workers);
 }
 
 export async function fanoutFollowedUserUpload(

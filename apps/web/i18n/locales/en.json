@@ -464,7 +464,8 @@
         "social": "Social",
         "requests": "Requests",
         "invites": "Invitations",
-        "moderator": "Moderation tasks"
+        "moderator": "Moderation tasks",
+        "catalogue": "Catalogue"
       }
     },
     "identity": {
@@ -832,7 +833,30 @@
         "saved": "Buffs updated.",
         "failed": "Could not update the buffs."
       },
-      "staffTools": "Staff tools"
+      "staffTools": "Staff tools",
+      "supersede": {
+        "title": "Superseded",
+        "replacedBy": "Replaced by",
+        "replaces": "This release replaces the following, which are kept online for whoever is still seeding them.",
+        "stillSeedable": "This release is still downloadable and its swarm is untouched — the newer one is simply the one staff consider current.",
+        "staffTitle": "Supersede",
+        "staffLede": "Point this release at the one that replaces it. The older release stays online and keeps its swarm — what changes is that both pages say which one is current.",
+        "hashLabel": "Replacement infohash",
+        "reasonLabel": "Reason (optional)",
+        "mark": "Mark as superseded",
+        "currently": "Currently superseded by “{name}”.",
+        "clear": "Lift it",
+        "saved": "Marked as superseded.",
+        "cleared": "Supersede marking lifted.",
+        "failed": "Could not update the supersede marking."
+      },
+      "reseed": {
+        "ask": "Ask for a reseed",
+        "asking": "Asking…",
+        "hint": "Nobody is seeding this. Members who downloaded it before will be asked to put it back online.",
+        "done": "Asked {count} past downloaders to seed it again.",
+        "failed": "Could not send the request."
+      }
     }
   },
   "search": {
@@ -4578,6 +4602,10 @@
       "ticket_idle_warning": {
         "title": "Your ticket will close",
         "desc": "“{subject}” — answer within {days} days to keep it open."
+      },
+      "reseed_requested": {
+        "title": "Reseed requested",
+        "desc": "“{torrentName}” has no seeders. You downloaded it once — can you seed it again?"
       }
     }
   },

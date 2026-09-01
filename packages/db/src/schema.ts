@@ -1057,6 +1057,33 @@ export const torrents = pgTable(
      * admin's.
      */
     isSticky: boolean('is_sticky').default(false).notNull(),
+    /**
+     * Trumping — this release has been superseded by a better one.
+     *
+     * A catalogue with no way to say "that one replaces this one" ages by
+     * accumulating duplicates of uneven quality with no hierarchy between
+     * them. The moderation pipeline could already say a release was rejected;
+     * it could not say a release was fine and is simply no longer the one to
+     * take.
+     *
+     * The pointer is advisory, and that is the whole design: a superseded
+     * torrent stays listed, stays downloadable, and keeps its swarm. People
+     * are seeding it, and retiring it under them would turn a tidy-up into a
+     * hit-and-run. What changes is that both pages say so, and a member
+     * choosing between two copies is told which one the staff consider
+     * current.
+     *
+     * `ON DELETE set null` rather than cascade: deleting the newer release
+     * must not delete the older one it replaced. The older row simply stops
+     * being superseded — which is true, at that point.
+     */
+    supersededById: text('superseded_by_id').references(
+      (): AnyPgColumn => torrents.id,
+      { onDelete: 'set null' }
+    ),
+    supersededAt: timestamp('superseded_at'),
+    /** Free text, shown to members: "better source", "wrong audio track". */
+    supersedeReason: text('supersede_reason'),
     // Per-torrent opt-in for swarm federation (Phase 4). When true AND the
     // owner has a swarm-scoped peer link, this torrent's peers may be shared
     // with / mixed from partner instances. Off by default — it re-opens the
@@ -1125,6 +1152,12 @@ export const torrents = pgTable(
     index('torrents_tvdb_idx').on(table.tvdbId),
     index('torrents_igdb_idx').on(table.igdbId),
     index('torrents_content_signature_idx').on(table.contentSignature),
+    // The reverse of the supersede pointer: "what did this release replace".
+    // The forward direction is a primary-key lookup and needs nothing.
+    // Partial, because the column is null for all but a handful of rows.
+    index('torrents_superseded_by_idx')
+      .on(table.supersededById)
+      .where(sql`${table.supersededById} IS NOT NULL`),
     // The cross-tracker content key drives cross-seed / fill matching joins.
     index('torrents_content_root_v2_idx').on(table.contentRootV2),
     /**

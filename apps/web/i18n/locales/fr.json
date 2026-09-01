@@ -464,7 +464,8 @@
         "social": "Social",
         "requests": "Demandes",
         "invites": "Invitations",
-        "moderator": "Tâches de modération"
+        "moderator": "Tâches de modération",
+        "catalogue": "Catalogue"
       }
     },
     "identity": {
@@ -832,7 +833,30 @@
         "saved": "Bonus mis à jour.",
         "failed": "Les bonus n'ont pas pu être mis à jour."
       },
-      "staffTools": "Outils du personnel"
+      "staffTools": "Outils du personnel",
+      "supersede": {
+        "title": "Remplacée",
+        "replacedBy": "Remplacée par",
+        "replaces": "Cette release en remplace les suivantes, laissées en ligne pour celles et ceux qui les partagent encore.",
+        "stillSeedable": "Cette release reste téléchargeable et son essaim est intact — la plus récente est simplement celle que l'équipe considère comme actuelle.",
+        "staffTitle": "Remplacement",
+        "staffLede": "Désignez la release qui remplace celle-ci. L'ancienne reste en ligne et garde son essaim — ce qui change, c'est que les deux pages disent laquelle est actuelle.",
+        "hashLabel": "Infohash du remplaçant",
+        "reasonLabel": "Raison (facultatif)",
+        "mark": "Marquer comme remplacée",
+        "currently": "Actuellement remplacée par « {name} ».",
+        "clear": "Retirer",
+        "saved": "Marquée comme remplacée.",
+        "cleared": "Marquage retiré.",
+        "failed": "Le marquage n'a pas pu être mis à jour."
+      },
+      "reseed": {
+        "ask": "Demander une remise en partage",
+        "asking": "Envoi…",
+        "hint": "Plus personne ne partage. Les membres qui l'ont téléchargé seront invités à le remettre en ligne.",
+        "done": "{count} anciens téléchargeurs ont été sollicités.",
+        "failed": "La demande n'a pas pu être envoyée."
+      }
     }
   },
   "search": {
@@ -4578,6 +4602,10 @@
       "ticket_idle_warning": {
         "title": "Ton ticket va se clôturer",
         "desc": "« {subject} » — réponds sous {days} jours pour le garder ouvert."
+      },
+      "reseed_requested": {
+        "title": "Remise en partage demandée",
+        "desc": "« {torrentName} » n’a plus aucune source. Vous l’avez téléchargé : pouvez-vous le repartager ?"
       }
     }
   },

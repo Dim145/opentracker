@@ -585,6 +585,7 @@ const notifTypes = [
   'upload_reset',
   'moderation_message_received',
   'torrent_deleted_by_staff',
+  'reseed_requested',
   'hnr_violation_marked',
   'hnr_cleared',
   'hnr_exempted',
@@ -647,6 +648,15 @@ const categories: EventCategory[] = [
     icon: 'ph:siren-bold',
     color: '#ff6b6b',
     types: ['hnr_violation_marked', 'hnr_cleared', 'hnr_exempted'],
+  },
+  {
+    // Grouped with moderation rather than with hit-and-run: a reseed request
+    // is somebody asking for help, not the site telling you off, and the two
+    // land very differently in an inbox.
+    key: 'catalogue',
+    icon: 'ph:hand-heart-bold',
+    color: '#4ade80',
+    types: ['reseed_requested'],
   },
   {
     key: 'account',

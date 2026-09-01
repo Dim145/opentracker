@@ -466,6 +466,29 @@
           </div>
         </li>
       </ul>
+
+      <!-- A dead swarm used to be a zero and nothing else. The site knows who
+           downloaded this once, so the zero can lead somewhere. Hidden for a
+           superseded release: asking members to resurrect one works against a
+           decision staff already took. -->
+      <div v-if="canAskReseed" class="reseed-ask">
+        <p class="reseed-hint">
+          <Icon name="ph:hand-heart-bold" class="reseed-icon" />
+          {{ $t('torrents.detail.reseed.hint') }}
+        </p>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          :disabled="reseedBusy"
+          @click="askReseed"
+        >
+          <Icon
+            :name="reseedBusy ? 'ph:circle-notch' : 'ph:megaphone-bold'"
+            :class="{ 'animate-spin': reseedBusy }"
+          />
+          {{ reseedBusy ? $t('torrents.detail.reseed.asking') : $t('torrents.detail.reseed.ask') }}
+        </button>
+      </div>
     </section>
 
     <!-- § NOTE — uploader's description, when present. Treated as an
@@ -524,6 +547,69 @@
           </NuxtLink>
         </li>
       </ul>
+    </section>
+
+    <!-- § SUPERSEDED — this release was replaced, or replaces others. Sits
+         with the cross-seed sections because it answers the same kind of
+         question (what else is this?), and reuses their markup so a reader
+         scanning the page meets one list format, not three. -->
+    <section
+      v-if="supersessions?.supersededBy || supersessions?.supersedes.length"
+      class="section section--cross"
+    >
+      <header class="section-head">
+        <span class="section-head-mark" aria-hidden="true">§</span>
+        <h2 class="section-head-title">{{ $t('torrents.detail.supersede.title') }}</h2>
+        <span class="section-head-line" aria-hidden="true" />
+      </header>
+
+      <!-- Replaced BY something: the important direction, and a banner rather
+           than a list item — a member who landed here should be told before
+           they press download, not after they scroll. -->
+      <div v-if="supersessions.supersededBy" class="supersede-banner">
+        <Icon name="ph:arrow-bend-right-up-bold" class="supersede-banner-icon" />
+        <div class="supersede-banner-body">
+          <p class="supersede-banner-lead">
+            {{ $t('torrents.detail.supersede.replacedBy') }}
+          </p>
+          <NuxtLink
+            :to="`/torrents/${supersessions.supersededBy.infoHash}`"
+            class="supersede-banner-link"
+          >
+            {{ supersessions.supersededBy.name }}
+          </NuxtLink>
+          <p v-if="supersessions.supersededBy.reason" class="supersede-banner-reason">
+            {{ supersessions.supersededBy.reason }}
+          </p>
+          <p class="supersede-banner-note">
+            {{ $t('torrents.detail.supersede.stillSeedable') }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Replaces others: informational, so it reads as the ordinary list. -->
+      <template v-if="supersessions.supersedes.length">
+        <p class="cross-note">
+          <Icon name="ph:info-bold" class="cross-note-icon" />
+          {{ $t('torrents.detail.supersede.replaces') }}
+        </p>
+        <ul class="cross-list">
+          <li v-for="old0 in supersessions.supersedes" :key="old0.infoHash" class="cross-item">
+            <NuxtLink :to="`/torrents/${old0.infoHash}`" class="cross-link">
+              <Icon name="ph:arrow-bend-left-down-bold" class="cross-icon" />
+              <span class="cross-name">{{ old0.name }}</span>
+              <span class="cross-meta">
+                <span class="cross-meta-size">{{ formatSize(old0.size) }}</span>
+                <template v-if="old0.supersedeReason">
+                  <span class="cross-meta-sep">·</span>
+                  <span class="cross-meta-cat">{{ old0.supersedeReason }}</span>
+                </template>
+              </span>
+              <Icon name="ph:arrow-right-bold" class="cross-arrow" />
+            </NuxtLink>
+          </li>
+        </ul>
+      </template>
     </section>
 
     <!-- § FEDERATED CROSS-SEED — same content on a partner (M2). If you also
@@ -670,6 +756,53 @@
           @click="clearBuffs"
         >
           {{ $t('torrents.detail.buffs.clear') }}
+        </button>
+      </div>
+
+      <!-- Trumping. Takes the replacement's infohash because that is what a
+           moderator has in front of them — they are looking at the newer
+           release's page in the other tab. -->
+      <h3 class="staff-block-title staff-block-title--spaced">
+        {{ $t('torrents.detail.supersede.staffTitle') }}
+      </h3>
+      <p class="buffs-lede">{{ $t('torrents.detail.supersede.staffLede') }}</p>
+
+      <div v-if="supersessions?.supersededBy" class="buffs-actions">
+        <p class="buffs-lede" style="margin: 0">
+          {{ $t('torrents.detail.supersede.currently', { name: supersessions.supersededBy.name }) }}
+        </p>
+        <button type="button" class="btn-ghost" :disabled="supersedeBusy" @click="clearSupersede">
+          {{ $t('torrents.detail.supersede.clear') }}
+        </button>
+      </div>
+
+      <div v-else class="buffs-grid">
+        <label class="buffs-field" style="flex: 1 1 22rem">
+          <span class="field-label">{{ $t('torrents.detail.supersede.hashLabel') }}</span>
+          <input
+            v-model="supersedeForm.hash"
+            type="text"
+            class="input"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="40 hex"
+          />
+        </label>
+        <label class="buffs-field" style="flex: 1 1 16rem">
+          <span class="field-label">{{ $t('torrents.detail.supersede.reasonLabel') }}</span>
+          <input v-model="supersedeForm.reason" type="text" class="input" maxlength="500" />
+        </label>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          :disabled="supersedeBusy || supersedeForm.hash.length !== 40"
+          @click="saveSupersede"
+        >
+          <Icon
+            :name="supersedeBusy ? 'ph:circle-notch' : 'ph:arrow-bend-right-up-bold'"
+            :class="{ 'animate-spin': supersedeBusy }"
+          />
+          {{ $t('torrents.detail.supersede.mark') }}
         </button>
       </div>
     </section>
@@ -926,6 +1059,30 @@ const branding = await useBranding();
 const federationEnabled = computed(() =>
   Boolean(branding.value?.federationEnabled),
 );
+
+/**
+ * Both directions of the trump pointer. A fourth side fetch beside the
+ * cross-seed ones, non-blocking for the same reason: the page must render
+ * whether or not this endpoint answers, and a hidden section is the right
+ * degradation.
+ */
+const { data: supersessions, refresh: refreshSupersessions } = await useFetch<{
+  supersededBy: {
+    infoHash: string;
+    name: string;
+    size: number;
+    at: string | null;
+    reason: string | null;
+  } | null;
+  supersedes: Array<{
+    infoHash: string;
+    name: string;
+    size: number;
+    supersedeReason: string | null;
+  }>;
+}>(`/api/torrents/${hash}/supersessions`, {
+  default: () => ({ supersededBy: null, supersedes: [] }),
+});
 
 const { data: federatedCrossSeeds } = await useFetch<{
   items: FederatedCrossSeedItem[];
@@ -1267,6 +1424,82 @@ function saveBuffs() {
 
 function clearBuffs() {
   return putBuffs({ downloadMultiplier: 100, uploadMultiplier: 100, until: null });
+}
+
+/**
+ * Offered only when the swarm is genuinely dead and the release is still the
+ * current one. The server checks both again — this is about not showing a
+ * button that will be refused, not about trusting the client.
+ */
+const reseedBusy = ref(false);
+const canAskReseed = computed(
+  () =>
+    loggedIn.value &&
+    !!torrent.value &&
+    !torrent.value.gatedAdult &&
+    torrent.value.stats?.seeders === 0 &&
+    !supersessions.value?.supersededBy
+);
+
+async function askReseed() {
+  reseedBusy.value = true;
+  try {
+    const res = await $fetch<{ notified: number }>(
+      `/api/torrents/${hash}/reseed-request`,
+      { method: 'POST' }
+    );
+    notifications.success(t('torrents.detail.reseed.done', { count: res.notified }));
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string }; message?: string };
+    notifications.error(
+      e?.data?.message || e?.message || t('torrents.detail.reseed.failed')
+    );
+  } finally {
+    reseedBusy.value = false;
+  }
+}
+
+const supersedeForm = reactive({ hash: '', reason: '' });
+const supersedeBusy = ref(false);
+
+async function saveSupersede() {
+  supersedeBusy.value = true;
+  try {
+    await $fetch(`/api/mod/torrents/${hash}/supersede`, {
+      method: 'PUT',
+      body: {
+        supersededById: supersedeForm.hash.trim().toLowerCase(),
+        reason: supersedeForm.reason.trim() || undefined,
+      },
+    });
+    supersedeForm.hash = '';
+    supersedeForm.reason = '';
+    await refreshSupersessions();
+    notifications.success(t('torrents.detail.supersede.saved'));
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string }; message?: string };
+    notifications.error(
+      e?.data?.message || e?.message || t('torrents.detail.supersede.failed')
+    );
+  } finally {
+    supersedeBusy.value = false;
+  }
+}
+
+async function clearSupersede() {
+  supersedeBusy.value = true;
+  try {
+    await $fetch(`/api/mod/torrents/${hash}/supersede`, { method: 'DELETE' });
+    await refreshSupersessions();
+    notifications.success(t('torrents.detail.supersede.cleared'));
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string }; message?: string };
+    notifications.error(
+      e?.data?.message || e?.message || t('torrents.detail.supersede.failed')
+    );
+  } finally {
+    supersedeBusy.value = false;
+  }
 }
 
 // Compute permissions
@@ -3112,6 +3345,84 @@ async function confirmDelete() {
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
 }
+
+/* ── Reseed ask ───────────────────────────────────────────────────
+   Sits under the stat row it belongs to, separated by a rule rather than a
+   panel: it is a follow-up to the zero above it, not a section of its own. */
+.reseed-ask {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgb(var(--line-default));
+}
+.reseed-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  max-width: 60ch;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: rgb(var(--fg-muted));
+}
+.reseed-icon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: rgb(var(--accent));
+}
+
+/* ── Superseded banner ────────────────────────────────────────────
+   A banner rather than a list row for the "replaced by" direction: a member
+   who landed on an outdated release should be told before they press
+   download. The tone is informational, not a warning — the file is still
+   perfectly seedable, and colouring it red would say otherwise. */
+.supersede-banner {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgb(var(--info) / 0.35);
+  border-radius: 0.5rem;
+  background: rgb(var(--info) / 0.08);
+}
+.supersede-banner-icon {
+  flex-shrink: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.1rem;
+  color: rgb(var(--info));
+}
+.supersede-banner-body {
+  min-width: 0;
+}
+.supersede-banner-lead {
+  margin: 0 0 0.2rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+}
+.supersede-banner-link {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.supersede-banner-reason,
+.supersede-banner-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: rgb(var(--fg-muted));
+}
+.supersede-banner-note {
+  color: rgb(var(--fg-subtle));
+  font-size: 0.75rem;
+}
+
 /* ── Buff badge (hero eyebrow) ────────────────────────────────────
    Reads as a label, not a button: it states a fact about the release and
    nothing about it is clickable. */
