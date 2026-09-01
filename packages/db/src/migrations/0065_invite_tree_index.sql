@@ -1,0 +1,1 @@
+CREATE INDEX "invitations_used_by_idx" ON "invitations" USING btree ("used_by") WHERE "invitations"."used_by" IS NOT NULL;

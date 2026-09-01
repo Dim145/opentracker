@@ -456,6 +456,13 @@
       "when": 1788218521458,
       "tag": "0064_login_events",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1788218955902,
+      "tag": "0065_invite_tree_index",
+      "breakpoints": true
     }
   ]
 }

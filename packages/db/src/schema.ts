@@ -2042,6 +2042,12 @@ export const invitations = pgTable(
   },
   (table) => [
     index('invitations_created_by_idx').on(table.createdBy),
+    // The genealogy walks `usedBy` once per generation — "who invited this
+    // member" — so without an index a ten-deep tree is ten sequential scans.
+    // Partial: most rows are unredeemed and would be dead weight in it.
+    index('invitations_used_by_idx')
+      .on(table.usedBy)
+      .where(sql`${table.usedBy} IS NOT NULL`),
     index('invitations_code_idx').on(table.code),
   ]
 );

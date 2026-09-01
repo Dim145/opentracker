@@ -1722,7 +1722,8 @@
       "filterPlaceholder": "Filtrer les sections…",
       "noMatch": "Aucune section ne correspond.",
       "closeMenu": "Fermer le menu d'administration",
-      "audit": "Journal d'audit"
+      "audit": "Journal d'audit",
+      "inviteTree": "Arbre d'invitations"
     },
     "descriptions": {
       "dashboard": "Configuration du tracker et gestion des nœuds",
@@ -1745,7 +1746,8 @@
       "federation": "Relier ce tracker à des instances Trackarr de confiance",
       "federationTaxonomy": "Faire correspondre les slugs de catégorie des partenaires à vos propres catégories",
       "listingTemplates": "Choisir les mises en page de fiche proposées à tous les membres dans l'assistant d'upload.",
-      "audit": "Chaque changement fait depuis la console du personnel — qui, quoi, quand."
+      "audit": "Chaque changement fait depuis la console du personnel — qui, quoi, quand.",
+      "inviteTree": "Qui s'est porté garant d'un membre, et qui ce membre a fait entrer."
     },
     "taxonomy": {
       "title": "Taxonomie fédérée",
@@ -3844,6 +3846,21 @@
         "failed": "La durée de conservation n'a pas pu être enregistrée.",
         "forever": "Les entrées sont actuellement conservées sans limite de durée."
       }
+    },
+    "inviteTree": {
+      "lookup": "Membre",
+      "lookupPlaceholder": "Nom d'utilisateur…",
+      "search": "Rechercher",
+      "notFound": "Aucun membre ne correspond.",
+      "failed": "L'arbre d'invitations n'a pas pu être chargé.",
+      "invitedBy": "Invité par",
+      "invited": "Invités par {name}",
+      "noInviter": "Personne n'a invité ce membre : c'est le premier compte, ou il s'est inscrit pendant une période d'inscription ouverte.",
+      "depthLimit": "La chaîne remonte plus haut que ce que cette vue parcourt.",
+      "noInvitees": "Ce membre n'a fait entrer personne.",
+      "generation": "génération {n}",
+      "erased": "compte effacé",
+      "truncated": "Tronqué à {nodes} membres ou {depth} générations — le reste n’est pas affiché."
     }
   },
   "mod": {

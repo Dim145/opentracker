@@ -1722,7 +1722,8 @@
       "filterPlaceholder": "Filter sections…",
       "noMatch": "No section matches.",
       "closeMenu": "Close the admin menu",
-      "audit": "Audit log"
+      "audit": "Audit log",
+      "inviteTree": "Invite tree"
     },
     "descriptions": {
       "dashboard": "Tracker configuration and node management",
@@ -1745,7 +1746,8 @@
       "federation": "Link this tracker with trusted Trackarr instances",
       "federationTaxonomy": "Map partners' category slugs onto your own categories",
       "listingTemplates": "Curate the listing layouts every member can pick in the upload wizard.",
-      "audit": "Every change made from the staff console — who, what, when."
+      "audit": "Every change made from the staff console — who, what, when.",
+      "inviteTree": "Who vouched for a member, and who they let in."
     },
     "taxonomy": {
       "title": "Federated taxonomy",
@@ -3844,6 +3846,21 @@
         "failed": "Could not save the retention period.",
         "forever": "Entries are currently kept indefinitely."
       }
+    },
+    "inviteTree": {
+      "lookup": "Member",
+      "lookupPlaceholder": "Username…",
+      "search": "Look up",
+      "notFound": "No member matches that.",
+      "failed": "Could not load the invite tree.",
+      "invitedBy": "Invited by",
+      "invited": "Invited by {name}",
+      "noInviter": "Nobody invited this member — they are the first account, or they registered while registration was open.",
+      "depthLimit": "The chain goes further up than this view walks.",
+      "noInvitees": "This member has not brought anybody in.",
+      "generation": "generation {n}",
+      "erased": "erased account",
+      "truncated": "Truncated at {nodes} members or {depth} generations — the rest is not shown."
     }
   },
   "mod": {

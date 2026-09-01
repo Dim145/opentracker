@@ -75,3 +75,45 @@ Switching modes mid-flight is safe: the running middleware reads the live values
 | `DELETE`| `/api/admin/invites/:id`        | admin       | Admin override. Refund mirrors the user-side rule (active → creator).   |
 
 The auto-fill of the code field on `/auth/register?code=XXXX...` is wired client-side: the page reads `route.query.code`, trims and uppercases it, and seeds the form. An invalid value is rejected by the same back-end check used by manual paste.
+
+---
+
+## The invite tree
+
+**Admin → Invite tree** walks the genealogy in both directions from any member:
+who vouched for them, and who they let in.
+
+The procedure it serves is standard across the trackers that have had it for
+decades. An account is banned for cheating, and the first question is who
+vouched for them — because whoever did is either careless or complicit, and
+their other invitees are worth a look.
+
+The data has always been here, in `invitations.created_by` and
+`invitations.used_by`. Both pages that read it only ever rendered one
+generation.
+
+### Reading it
+
+- **Upwards** is a chain, nearest first: `generation 1` is whoever invited the
+  member you looked up.
+- **Downwards** is a tree, indented by generation.
+- A **banned** account is marked. An **erased** one renders as a tombstone
+  rather than a link — erasure scrubs the username and leaves every invitation
+  row intact, so the *edges* survive perfectly, which is exactly what a
+  genealogy needs, but the name behind them is gone.
+
+### Where a chain ends
+
+Two different endings, and the page distinguishes them:
+
+- **`root`** — nobody invited this member. They are either the first account or
+  they registered while registration was open. Those two are indistinguishable
+  in the data, and saying "root" rather than showing an empty list is what stops
+  a reader assuming the record is incomplete.
+- **depth limit** — the chain goes further up than this view walks.
+
+### Bounds
+
+Ten generations each way, four hundred members in total. A prolific inviter
+three generations down is a lot of rows, and an unbounded recursive walk over a
+social graph is a query nobody meant to write. The page says when it truncated.

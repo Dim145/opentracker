@@ -118,6 +118,12 @@ export function useAdminNav() {
           icon: 'ph:scroll',
           description: t('admin.descriptions.audit'),
         },
+        {
+          label: t('admin.nav.inviteTree'),
+          path: '/admin/invite-tree',
+          icon: 'ph:tree-structure',
+          description: t('admin.descriptions.inviteTree'),
+        },
       ],
     },
     {
