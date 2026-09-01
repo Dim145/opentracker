@@ -538,7 +538,28 @@
       "errors": {
         "samePassword": "Le nouveau mot de passe doit être différent de l'actuel",
         "updatePassword": "Échec de la mise à jour du mot de passe"
-      }
+      },
+      "loginHistory": "Historique de connexion",
+      "loginHistoryHint": "D'où ce compte s'est connecté, tentatives échouées comprises.",
+      "loginHistoryShow": "Afficher",
+      "loginHistoryEmpty": "Aucune connexion enregistrée pour le moment.",
+      "loginHistoryNote": "Les adresses sont hachées avec un sel qui change chaque jour : deux lignes ne sont comparables qu'au sein d'une même journée. Les heures sont en UTC.",
+      "loginWhen": "Quand (UTC)",
+      "loginMethod": "Méthode",
+      "loginAddress": "Adresse",
+      "loginResult": "Résultat",
+      "loginMethods": {
+        "password": "Mot de passe",
+        "passkey": "Clé d’accès",
+        "totp": "Authentificateur",
+        "recovery": "Code de secours",
+        "trusted-device": "Appareil de confiance"
+      },
+      "loginOutcomes": {
+        "success": "Connexion",
+        "failed": "Refusée"
+      },
+      "loginHistoryHide": "Masquer"
     },
     "account": {
       "userId": "ID utilisateur",
@@ -970,6 +991,20 @@
         }
       },
       "uploadsAnonymous": "Ce membre publie anonymement — ses publications ne sont pas listées ici."
+    },
+    "logins": {
+      "title": "Historique de connexion",
+      "lede": "D'où ce compte s'est connecté. Visible par le personnel uniquement.",
+      "show": "Afficher",
+      "hide": "Masquer",
+      "empty": "Aucune connexion enregistrée pour ce compte.",
+      "when": "Quand (UTC)",
+      "method": "Méthode",
+      "address": "Adresse",
+      "agent": "Client",
+      "refused": "refusée",
+      "multipleToday": "{count} adresses différentes sur la journée la plus récente.",
+      "note": "Les adresses sont hachées avec un sel qui change chaque jour : elles ne sont comparables qu'au sein d'une même journée — deux hachés différents à une semaine d'intervalle peuvent très bien être la même adresse."
     }
   },
   "following": {

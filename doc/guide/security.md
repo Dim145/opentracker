@@ -46,3 +46,41 @@ The system automatically detects and blocks:
 
 - [Zero-Knowledge Authentication](/guide/zero-knowledge-auth) — How passwords are never transmitted
 - [Panic Mode](/guide/panic-mode) — Emergency data encryption
+
+---
+
+## Login history
+
+Every attempt to open a session is recorded — successful or not — with the
+method that was used, the browser, and a hash of the address.
+
+Members read their own at **Settings → Security → Login history**. Staff read
+any member's from that member's profile page.
+
+### Failures are the interesting half
+
+There is **no per-account lockout** on this site. Throttling is entirely per IP,
+so an attempt spread across addresses meets nothing at all. This table is what
+makes such an attempt visible afterwards even though nothing stopped it at the
+time — a run of refusals against one account, from addresses that differ, is a
+shape worth recognising.
+
+### What the address hash can and cannot tell you
+
+It goes through the same daily-rotating salt as every other IP in this system,
+which means **two rows are comparable only within the same day**. Two different
+hashes a week apart may well be the same address.
+
+That is enough for the question staff actually ask — "is this account being used
+from several places right now", the shape of account sharing on an invite-only
+tracker — and not enough for a long-range history. Both views say so rather than
+letting a reader draw a conclusion from noise. The moderator view computes the
+count of distinct addresses **on the most recent day only**, for the same
+reason.
+
+### Retention
+
+`login_event_retention_days` — **default 90**, `0` keeps them indefinitely.
+Shorter than the [audit log](./audit-log.md)'s year because this is a
+high-volume table and the questions it answers are about the recent past. The
+period is published on the public `/privacy` page.

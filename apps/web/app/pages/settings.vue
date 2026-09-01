@@ -531,6 +531,64 @@
                  the action hands over a private key, and that is what the
                  member needs to have in mind while doing it. -->
             <SettingsPortableIdentity />
+
+            <!-- Where this account has been used from. Loaded on demand: a
+                 member opens this to answer one question, and paying for the
+                 query on every settings visit would be paying for nothing. -->
+            <article class="action-card">
+              <div class="action-card-body">
+                <h3 class="action-card-title">
+                  <Icon name="ph:clock-counter-clockwise-bold" />
+                  {{ $t('settings.security.loginHistory') }}
+                </h3>
+                <p class="action-card-text">
+                  {{ $t('settings.security.loginHistoryHint') }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="btn-ghost"
+                :disabled="loginsLoading"
+                @click="toggleLogins"
+              >
+                <Icon
+                  :name="loginsLoading ? 'ph:circle-notch' : loginsOpen ? 'ph:caret-up-bold' : 'ph:caret-down-bold'"
+                  :class="{ 'animate-spin': loginsLoading }"
+                />
+                {{ loginsOpen ? $t('settings.security.loginHistoryHide') : $t('settings.security.loginHistoryShow') }}
+              </button>
+            </article>
+
+            <div v-if="loginsOpen" class="logins">
+              <p v-if="!logins.length" class="logins-empty">
+                {{ $t('settings.security.loginHistoryEmpty') }}
+              </p>
+              <table v-else class="logins-table">
+                <thead>
+                  <tr>
+                    <th scope="col">{{ $t('settings.security.loginWhen') }}</th>
+                    <th scope="col">{{ $t('settings.security.loginMethod') }}</th>
+                    <th scope="col">{{ $t('settings.security.loginAddress') }}</th>
+                    <th scope="col">{{ $t('settings.security.loginResult') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="l in logins" :key="l.id" :class="{ 'logins-row--failed': l.outcome !== 'success' }">
+                    <td class="logins-when">
+                      <time :datetime="l.createdAt">{{ loginStamp(l.createdAt) }}</time>
+                    </td>
+                    <td>{{ $t(`settings.security.loginMethods.${l.method}`) }}</td>
+                    <td><code class="logins-hash">{{ l.ipHash || '—' }}</code></td>
+                    <td>
+                      <span :class="l.outcome === 'success' ? 'logins-ok' : 'logins-bad'">
+                        {{ $t(`settings.security.loginOutcomes.${l.outcome}`) }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p class="logins-note">{{ $t('settings.security.loginHistoryNote') }}</p>
+            </div>
           </div>
         </section>
 
@@ -1218,6 +1276,57 @@ async function signOut() {
 const deleteConfirm = ref('');
 const deleting = ref(false);
 const deleteError = ref('');
+// ── Login history ───────────────────────────────────────────────
+interface LoginEvent {
+  id: string;
+  method: string;
+  outcome: string;
+  ipHash: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+const loginsOpen = ref(false);
+const loginsLoading = ref(false);
+const logins = ref<LoginEvent[]>([]);
+
+async function toggleLogins() {
+  if (loginsOpen.value) {
+    loginsOpen.value = false;
+    return;
+  }
+  if (logins.value.length === 0) {
+    loginsLoading.value = true;
+    try {
+      const res = await $fetch<{ items: LoginEvent[] }>('/api/me/logins');
+      logins.value = res.items;
+    } catch {
+      // Leave it closed rather than replacing the section with an error: this
+      // is a curiosity, not something the member is blocked on.
+      loginsLoading.value = false;
+      return;
+    } finally {
+      loginsLoading.value = false;
+    }
+  }
+  loginsOpen.value = true;
+}
+
+/**
+ * UTC and unambiguous, like the audit log's. A history read while worrying
+ * about a break-in is the wrong place for "3 days ago".
+ */
+function loginStamp(iso: string): string {
+  return new Date(iso).toLocaleString('en-GB', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  });
+}
+
 // ── Data export (GDPR Art. 15 / 20) ─────────────────────────────
 const exporting = ref(false);
 const exportError = ref('');
@@ -2283,5 +2392,57 @@ onBeforeRouteLeave((_to, _from, next) => {
 .danger-btn:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* ── Login history ────────────────────────────────────────────────
+   A ledger inside a settings page: tabular figures, hairline rules, no
+   decoration. It is read once, while worried. */
+.logins {
+  margin-top: 0.75rem;
+}
+.logins-empty,
+.logins-note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: rgb(var(--fg-subtle));
+}
+.logins-note {
+  margin-top: 0.6rem;
+}
+.logins-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.logins-table th {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+  border-bottom: 1px solid rgb(var(--line-default));
+}
+.logins-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid rgb(var(--line-default));
+}
+.logins-when {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--fg-subtle));
+}
+.logins-hash {
+  font-size: 0.72rem;
+}
+.logins-ok {
+  color: rgb(var(--online));
+}
+.logins-bad {
+  color: rgb(var(--danger));
+}
+.logins-row--failed td:first-child {
+  box-shadow: inset 2px 0 0 rgb(var(--danger));
 }
 </style>

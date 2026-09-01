@@ -160,6 +160,8 @@ export const SETTINGS_KEYS = {
    * upload — one indexed query, not twenty thousand.
    */
   SAVED_SEARCH_MAX_PER_USER: 'saved_search_max_per_user',
+  /** Days a login event is kept. 0 = forever. See the retention plugin. */
+  LOGIN_EVENT_RETENTION_DAYS: 'login_event_retention_days',
   SITE_LOGO_IMAGE_SIZE: 'site_logo_image_size',
   SITE_FAVICON_SIZE: 'site_favicon_size',
   SITE_SUBTITLE: 'site_subtitle',
@@ -409,6 +411,13 @@ export async function getSiteLogoImage(): Promise<string | null> {
 export async function isLegacyPasskeyReadAllowed(): Promise<boolean> {
   const value = await getSetting(SETTINGS_KEYS.LEGACY_PASSKEY_READ_ACCESS);
   return value !== 'false';
+}
+
+export async function getLoginEventRetentionDays(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.LOGIN_EVENT_RETENTION_DAYS);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 0) return 90;
+  return parsed;
 }
 
 export async function getSavedSearchMaxPerUser(): Promise<number> {

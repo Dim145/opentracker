@@ -10,6 +10,7 @@ import { consumeTrustedDevice } from '~~/utils/trustedDevices';
 import { notify } from '~~/utils/notify';
 import { liftExpiredBan } from '~~/utils/banExpiry';
 import { decryptSecret, encryptSecretRequired, needsRewrite } from '~~/utils/credentialSecrets';
+import { recordLogin } from '~~/utils/account/loginLog';
 
 /**
  * POST /api/auth/login
@@ -80,6 +81,15 @@ export default defineEventHandler(async (event) => {
     .digest('hex');
 
   if (!secureCompare(body.proof, expectedProof)) {
+    // Recorded before the throw. There is no per-account lockout on this site —
+    // throttling is entirely per IP — so an attempt spread across addresses
+    // meets nothing at all, and this row is the only trace it leaves.
+    void recordLogin(event, {
+      userId: user.id,
+      username: user.username,
+      method: 'password',
+      outcome: 'failed',
+    });
     throw createError({
       statusCode: 401,
       message: 'Invalid credentials',
@@ -216,6 +226,19 @@ export default defineEventHandler(async (event) => {
       bonusPoints: user.bonusPoints,
     },
     loggedInAt: Date.now(),
+  });
+
+  // `trusted-device` when the second factor was skipped by a remembered
+  // browser, `password` otherwise. The distinction is the point: a member
+  // reading their own history should be able to see which sessions never met
+  // their second factor.
+  void recordLogin(event, {
+    userId: user.id,
+    username: user.username,
+    method: (event.context as { trustedDeviceUsed?: boolean }).trustedDeviceUsed
+      ? 'trusted-device'
+      : 'password',
+    outcome: 'success',
   });
 
   // Stamp the fresh-auth window even on no-2FA logins so the same

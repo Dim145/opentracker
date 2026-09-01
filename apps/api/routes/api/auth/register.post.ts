@@ -15,6 +15,7 @@ import { verifyPoWSolution } from '~~/utils/pow';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { markFreshAuth } from '~~/utils/twoFactor';
 import { encryptSecretRequired } from '~~/utils/credentialSecrets';
+import { recordLogin } from '~~/utils/account/loginLog';
 
 /**
  * Postgres advisory lock id used to serialise the "first user gets
@@ -279,6 +280,15 @@ export default defineEventHandler(async (event) => {
   // site-default setting inert — it recorded a choice nobody made, and nothing
   // downstream could tell it apart from one. Language keeps its schema default
   // ('en'), which has no equivalent site-wide setting to defer to.
+  // Registration opens a session like a login does, and a history that starts
+  // at the second visit reads as if the first one is missing.
+  void recordLogin(event, {
+    userId,
+    username: body.username,
+    method: 'password',
+    outcome: 'success',
+  });
+
   await setUserSession(event, {
     user: {
       id: userId,

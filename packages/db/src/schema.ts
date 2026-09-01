@@ -2732,6 +2732,66 @@ export const savedSearchesRelations = relations(savedSearches, ({ one }) => ({
 export type SavedSearch = typeof savedSearches.$inferSelect;
 export type NewSavedSearch = typeof savedSearches.$inferInsert;
 
+// ============================================================================
+// Login events — where an account has been used from
+// ============================================================================
+//
+// Two audiences, one table. A member asking "was that me?" after an unexpected
+// notification, and a moderator asking whether an account is being shared —
+// which on an invite-only tracker is the offence that matters most and the one
+// there was no evidence for.
+//
+// ## Failures are rows too
+//
+// A failed attempt is the more interesting half. The site has no per-account
+// lockout — throttling is entirely per IP, so a distributed attempt against one
+// account meets nothing — and this is what makes such an attempt visible after
+// the fact even though nothing blocked it at the time.
+//
+// ## The address is hashed, and only comparable within a day
+//
+// Same daily-rotating salt as everywhere else. So "two logins from the same
+// place" is answerable inside one day and not across weeks. That is a real
+// limit and the UI says so rather than letting a reader assume otherwise.
+//
+// Worth stating plainly because the README's "no raw IP is persisted" is not
+// quite true today: `users.lastIp` holds one, for the IP-ban check. This table
+// does not add a second exception.
+export const loginEvents = pgTable(
+  'login_events',
+  {
+    id: text('id').primaryKey(),
+    /**
+     * Null once the account is erased — the event survives, since it is part
+     * of the record of an account's use, but it stops pointing anywhere.
+     */
+    userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+    /**
+     * Denormalised for the same reason the audit log denormalises its actor:
+     * the row describes something that happened at a moment, and a later
+     * rename must not rewrite it.
+     */
+    username: text('username').notNull(),
+    /** `password` | `passkey` | `totp` | `recovery` | `trusted-device` */
+    method: text('method').notNull(),
+    /** `success` | `failed` */
+    outcome: text('outcome').notNull(),
+    ipHash: text('ip_hash'),
+    /** Truncated: a User-Agent is long, and only its shape is of any use. */
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // "Where has my account been used from" and the staff equivalent.
+    index('login_events_user_idx').on(table.userId, table.createdAt.desc()),
+    // The retention sweep, and an operator scanning recent failures site-wide.
+    index('login_events_created_idx').on(table.createdAt.desc()),
+  ]
+);
+
+export type LoginEvent = typeof loginEvents.$inferSelect;
+export type NewLoginEvent = typeof loginEvents.$inferInsert;
+
 export type AuditLogEntry = typeof auditLog.$inferSelect;
 export type NewAuditLogEntry = typeof auditLog.$inferInsert;
 

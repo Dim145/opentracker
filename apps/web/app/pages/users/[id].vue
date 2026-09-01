@@ -280,6 +280,66 @@
       </section>
     </template>
 
+    <!-- Sign-in history, staff only. Placed on the profile rather than in a
+         moderation console because this is where a moderator already is when
+         the question comes up: they are looking at the member they suspect.
+         Loaded on demand — most profile visits are not investigations. -->
+    <section v-if="user && viewerIsStaff" class="section section--logins">
+      <header class="section-head">
+        <span class="section-head-mark" aria-hidden="true">§</span>
+        <h2 class="section-head-title">{{ $t('users.logins.title') }}</h2>
+        <span class="section-head-line" aria-hidden="true" />
+      </header>
+
+      <div class="logins-head">
+        <p class="logins-lede">{{ $t('users.logins.lede') }}</p>
+        <button type="button" class="btn btn-secondary btn-sm" :disabled="loginsLoading" @click="toggleLogins">
+          <Icon
+            :name="loginsLoading ? 'ph:circle-notch' : loginsOpen ? 'ph:caret-up-bold' : 'ph:caret-down-bold'"
+            :class="{ 'animate-spin': loginsLoading }"
+          />
+          {{ loginsOpen ? $t('users.logins.hide') : $t('users.logins.show') }}
+        </button>
+      </div>
+
+      <template v-if="loginsOpen">
+        <p
+          v-if="distinctToday > 1"
+          class="logins-flag"
+        >
+          <Icon name="ph:warning-bold" />
+          {{ $t('users.logins.multipleToday', { count: distinctToday }) }}
+        </p>
+        <p v-if="!logins.length" class="logins-lede">{{ $t('users.logins.empty') }}</p>
+        <table v-else class="logins-table">
+          <thead>
+            <tr>
+              <th scope="col">{{ $t('users.logins.when') }}</th>
+              <th scope="col">{{ $t('users.logins.method') }}</th>
+              <th scope="col">{{ $t('users.logins.address') }}</th>
+              <th scope="col">{{ $t('users.logins.agent') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="l in logins" :key="l.id">
+              <td class="logins-when">
+                <time :datetime="l.createdAt">{{ loginStamp(l.createdAt) }}</time>
+              </td>
+              <td>
+                {{ l.method }}
+                <span v-if="l.outcome !== 'success'" class="logins-bad">
+                  · {{ $t('users.logins.refused') }}
+                </span>
+              </td>
+              <td><code class="logins-hash">{{ l.ipHash || '—' }}</code></td>
+              <td class="logins-agent">{{ l.userAgent || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="logins-note">{{ $t('users.logins.note') }}</p>
+      </template>
+    </section>
+
     <!-- Report modal — opens from the tear-off tab on the hero.
          Teleports to body, so its position in the tree is purely
          organisational. -->
@@ -352,6 +412,61 @@ interface UploadsResponse {
 const route = useRoute();
 const userId = computed(() => route.params.id as string);
 const { loggedIn, user: viewer } = useUserSession();
+
+// ── Sign-in history (staff) ─────────────────────────────────────
+interface LoginEvent {
+  id: string;
+  method: string;
+  outcome: string;
+  ipHash: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+const viewerIsStaff = computed(
+  () => !!viewer.value && (viewer.value.isAdmin || viewer.value.isModerator)
+);
+const loginsOpen = ref(false);
+const loginsLoading = ref(false);
+const logins = ref<LoginEvent[]>([]);
+const distinctToday = ref(0);
+
+async function toggleLogins() {
+  if (loginsOpen.value) {
+    loginsOpen.value = false;
+    return;
+  }
+  if (logins.value.length === 0 && user.value) {
+    loginsLoading.value = true;
+    try {
+      const url: string = `/api/mod/users/${user.value.id}/logins`;
+      const res = await $fetch<{
+        items: LoginEvent[];
+        distinctAddressesToday: number;
+      }>(url);
+      logins.value = res.items;
+      distinctToday.value = res.distinctAddressesToday;
+    } catch {
+      loginsLoading.value = false;
+      return;
+    } finally {
+      loginsLoading.value = false;
+    }
+  }
+  loginsOpen.value = true;
+}
+
+/** UTC, unambiguous — the same stamp the audit log uses, for the same reason. */
+function loginStamp(iso: string): string {
+  return new Date(iso).toLocaleString('en-GB', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  });
+}
 
 // Fetch user profile
 const {
@@ -1633,5 +1748,78 @@ useHead({
     gap: 0.3rem;
   }
   .upload-arrow { display: none; }
+}
+
+/* ── Sign-in history (staff) ──────────────────────────────────────── */
+.logins-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.logins-lede,
+.logins-note {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: rgb(var(--fg-muted));
+}
+.logins-note {
+  margin-top: 0.6rem;
+  font-size: 0.72rem;
+  color: rgb(var(--fg-subtle));
+}
+.logins-flag {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgb(var(--warning) / 0.4);
+  border-radius: 0.4rem;
+  background: rgb(var(--warning) / 0.08);
+  font-size: 0.8125rem;
+  color: rgb(var(--fg-muted));
+}
+.logins-flag svg {
+  color: rgb(var(--warning));
+}
+.logins-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.logins-table th {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+  border-bottom: 1px solid rgb(var(--line-default));
+}
+.logins-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid rgb(var(--line-default));
+  vertical-align: top;
+}
+.logins-when {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--fg-subtle));
+}
+.logins-hash {
+  font-size: 0.72rem;
+}
+.logins-agent {
+  max-width: 24rem;
+  overflow-wrap: anywhere;
+  color: rgb(var(--fg-subtle));
+}
+.logins-bad {
+  color: rgb(var(--danger));
 }
 </style>

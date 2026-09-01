@@ -538,7 +538,28 @@
       "errors": {
         "samePassword": "New password must differ from the current one",
         "updatePassword": "Failed to update password"
-      }
+      },
+      "loginHistory": "Login history",
+      "loginHistoryHint": "Where this account has been signed in from, including attempts that failed.",
+      "loginHistoryShow": "Show",
+      "loginHistoryEmpty": "No sign-ins recorded yet.",
+      "loginHistoryNote": "Addresses are hashed with a salt that changes daily, so two rows can only be compared within the same day. Times are UTC.",
+      "loginWhen": "When (UTC)",
+      "loginMethod": "Method",
+      "loginAddress": "Address",
+      "loginResult": "Result",
+      "loginMethods": {
+        "password": "Password",
+        "passkey": "Passkey",
+        "totp": "Authenticator",
+        "recovery": "Recovery code",
+        "trusted-device": "Trusted device"
+      },
+      "loginOutcomes": {
+        "success": "Signed in",
+        "failed": "Refused"
+      },
+      "loginHistoryHide": "Hide"
     },
     "account": {
       "userId": "User ID",
@@ -970,6 +991,20 @@
         }
       },
       "uploadsAnonymous": "This member publishes anonymously — their releases are not listed here."
+    },
+    "logins": {
+      "title": "Sign-in history",
+      "lede": "Where this account has been signed in from. Visible to staff only.",
+      "show": "Show",
+      "hide": "Hide",
+      "empty": "No sign-ins recorded for this account.",
+      "when": "When (UTC)",
+      "method": "Method",
+      "address": "Address",
+      "agent": "Client",
+      "refused": "refused",
+      "multipleToday": "{count} different addresses on the most recent day.",
+      "note": "Addresses are hashed with a salt that changes daily, so they can only be compared within the same day — two different hashes a week apart may well be the same address."
     }
   },
   "following": {

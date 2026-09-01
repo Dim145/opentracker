@@ -25,6 +25,7 @@ import {
 import { issueTrustedDevice } from '~~/utils/trustedDevices';
 import { validateBody } from '~~/utils/schemas';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { recordLogin } from '~~/utils/account/loginLog';
 
 const bodySchema = z.object({
   challengeToken: z.string().min(16).max(128),
@@ -132,6 +133,13 @@ export default defineEventHandler(async (event) => {
     },
   });
   if (!user) throw createError({ statusCode: 401, message: 'User not found' });
+
+  void recordLogin(event, {
+    userId: user.id,
+    username: user.username,
+    method: 'passkey',
+    outcome: 'success',
+  });
 
   await setUserSession(event, {
     user: {

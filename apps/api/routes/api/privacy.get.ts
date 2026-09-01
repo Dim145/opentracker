@@ -16,6 +16,7 @@
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import {
   getAuditRetentionDays,
+  getLoginEventRetentionDays,
   getDmRetentionDays,
   getMessagingDmScope,
   getMessagingRoomScope,
@@ -35,6 +36,7 @@ export default defineEventHandler(async (event) => {
     notificationsReadDays,
     notificationsUnreadDays,
     auditDays,
+    loginDays,
   ] = await Promise.all([
     getMessagingDmScope(),
     getMessagingRoomScope(),
@@ -43,6 +45,7 @@ export default defineEventHandler(async (event) => {
     getNotificationsRetentionReadDays(),
     getNotificationsRetentionUnreadDays(),
     getAuditRetentionDays(),
+    getLoginEventRetentionDays(),
   ]);
 
   return {
@@ -64,5 +67,11 @@ export default defineEventHandler(async (event) => {
      * `0` means kept indefinitely.
      */
     staffAudit: { retentionDays: auditDays },
+    /**
+     * The login history. A member's own record of where their account has been
+     * used from — and unlike the staff register above, it is about them rather
+     * than about the site, which is why it is kept for months and not a year.
+     */
+    loginHistory: { retentionDays: loginDays },
   };
 });
