@@ -29,6 +29,7 @@ import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { escapeLike } from '~~/utils/sql';
+import { validateQuery } from '~~/utils/schemas';
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -55,7 +56,7 @@ export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
   await rateLimit(event, RATE_LIMITS.public);
 
-  const params = querySchema.parse(getQuery(event));
+  const params = validateQuery(event, querySchema);
 
   const conditions: SQL[] = [];
   if (params.actorId) {
