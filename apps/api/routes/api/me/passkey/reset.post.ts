@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
   // member the lift for free — this route is self-service, needs no
   // administrator, and would have been the whole restriction's back door.
   // Refuses the rotation if it cannot be sure, rather than freeing the member.
-  await carryTorznabBlock(oldPasskey, newPasskey);
+  const carried = await carryTorznabBlock(oldPasskey, newPasskey);
 
   await db
     .update(schema.users)
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
   // The old value belongs to nobody now: its block entry and its per-passkey
   // counters both index a hash no account matches any more, and leaving the
   // counters behind would also leak the rotation.
-  await retireTorznabPasskey(oldPasskey);
+  await retireTorznabPasskey(oldPasskey, carried);
 
   // The session cookie carries the passkey, so it now holds a dead one. Write
   // the new value back rather than force a re-login.

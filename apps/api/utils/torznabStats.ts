@@ -533,8 +533,20 @@ export async function carryTorznabBlock(
  * account matches. Best-effort by the same reasoning that makes the carry-over
  * strict: what is left behind here is litter, not a hole.
  */
-export async function retireTorznabPasskey(passkey: string): Promise<void> {
-  await unblockTorznabUser(passkey);
+export async function retireTorznabPasskey(
+  passkey: string,
+  /**
+   * Whether `carryTorznabBlock` reported moving a block for this rotation.
+   *
+   * Deleting the old entry unconditionally lost a block an administrator wrote
+   * DURING the rotation: the carry reads an empty slot, the admin writes one, the
+   * row changes, and the retire then deletes the admin's decision. A few
+   * milliseconds wide, and the member picks when to replay it — so the delete is
+   * conditional on there having been something to move.
+   */
+  carriedBlock = true
+): Promise<void> {
+  if (carriedBlock) await unblockTorznabUser(passkey);
   await clearTorznabUserStats(passkey);
 }
 

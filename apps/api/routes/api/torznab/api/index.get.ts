@@ -282,7 +282,7 @@ async function handleMovieSearch(
 async function performSearch(
   event: H3Event,
   query: z.infer<typeof torznabQuerySchema>,
-  user: { passkey: string; showAdultContent: boolean }
+  user: { passkey: string; presentedKey: string; showAdultContent: boolean }
 ) {
   const baseUrl = getRequestURL(event).origin;
   const conditions: SQL[] = [];
@@ -452,7 +452,10 @@ async function performSearch(
         seeders: stats.seeders,
         leechers: stats.leechers,
         grabs: stats.completed,
-        downloadUrl: `${baseUrl}/api/torznab/download?id=${torrent.infoHash}&apikey=${user.passkey}`,
+        // The key the caller presented, never `passkey`: this URL is in the
+        // response body, so building it from the announce credential handed a
+        // read-key holder the one thing a read key is meant to withhold.
+        downloadUrl: `${baseUrl}/api/torznab/download?id=${torrent.infoHash}&apikey=${user.presentedKey}`,
         ...volumeFactors(torrent, siteWide),
         infoHash: torrent.infoHash,
         minimumRatio: minRatio,

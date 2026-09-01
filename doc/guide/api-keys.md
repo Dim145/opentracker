@@ -20,6 +20,25 @@ client at the same time.
 Splitting them means each can be revoked for its own reason. Rotate the key you
 gave to a service that turned out to be careless, and nothing else moves.
 
+## What a read key still gets you — read this before pasting one anywhere
+
+A read key cannot announce. It can, however, **download `.torrent` files**, and
+a `.torrent` from this site carries your announce URL — which carries your
+passkey. That is how BitTorrent works: the file has to name a tracker the client
+can announce to, as you.
+
+So the honest boundary is:
+
+- A read key in a feed reader, an *arr stack or an autobrr you control: exactly
+  what it is for. Your passkey never appears in a feed URL or in anybody's
+  access log, and you can revoke the key without touching your client.
+- A read key handed to somebody you would not trust with your passkey: **not
+  safe.** One grab hands them a file with your announce URL in it.
+
+Anything that can download a torrent from this tracker on your behalf can
+announce on your behalf. The keys reduce exposure and make revocation
+independent; they do not turn a third party into a stranger.
+
 ## Rotating
 
 Each key rotates independently, behind a fresh-login step-up. The old value
@@ -28,6 +47,10 @@ with no cache in front of them, which is what makes "revoke" mean revoke.
 
 Rotating the announce passkey still breaks every `.torrent` in your client, as
 it always did. That is why the other two exist.
+
+One caveat on "the next request": the tracker caches a passkey → account lookup
+for up to a minute, so an announce with a just-rotated passkey can still be
+accepted for that long. The read keys have no cache in front of them.
 
 ## Minted on demand
 

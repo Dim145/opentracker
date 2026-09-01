@@ -23,6 +23,7 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { generateToken } from '~~/utils/server';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { requireFreshAuth } from '~~/utils/adminAuth';
 import {
   carryTorznabBlock,
   retireTorznabPasskey,
@@ -40,6 +41,11 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
+  // The same step-up `me/passkey/reset` requires, and for the reason that route
+  // states: a borrowed session must not be able to lock the real owner's client
+  // out of the tracker. Two doors to the same action, one of them unguarded, is
+  // just the unguarded one.
+  await requireFreshAuth(event);
   await rateLimit(event, RATE_LIMITS.mutation);
   await readValidatedBody(event, bodySchema.parse);
 
@@ -69,7 +75,7 @@ export default defineEventHandler(async (event) => {
   // Before the update, and refusing rather than failing open: the block is
   // keyed by passkey hash, so a rotation that dropped it would let a blocked
   // member self-lift an administrator's restriction by minting a new passkey.
-  await carryTorznabBlock(current.passkey, fresh);
+  const carried = await carryTorznabBlock(current.passkey, fresh);
 
   const [updated] = await db
     .update(schema.users)
@@ -85,7 +91,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // The old value is nobody's now — block entry and counters both go.
-  await retireTorznabPasskey(current.passkey);
+  await retireTorznabPasskey(current.passkey, carried);
 
   // Refresh the session in place so the next reveal/copy on the page
   // returns the new value rather than the stale one we cached at login.

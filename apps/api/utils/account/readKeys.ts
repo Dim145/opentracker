@@ -28,7 +28,7 @@
  * which is why the Torznab gate accepts "32 or 40". New keys use one length so
  * the next gate can be exact.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { generatePasskey } from '~~/utils/auth';
 
@@ -70,11 +70,23 @@ export async function ensureKey(
   const [claimed] = await db
     .update(schema.users)
     .set({ [kind === 'rss' ? 'rssKey' : 'apiKey']: minted })
-    .where(eq(schema.users.id, userId))
+    // The guard this function's docstring always described and did not have.
+    // Without it two concurrent first reads — a double click on the reveal
+    // button is enough — both minted, the last write won the row, and each
+    // request returned ITS OWN value: one member walked away with a key the row
+    // does not carry, and a 401 with no explanation.
+    .where(and(eq(schema.users.id, userId), isNull(column)))
     .returning({ value: column });
+  if (claimed?.value) return claimed.value;
 
-  // `.returning()` gives us the row as it is now, whoever won.
-  return claimed?.value ?? minted;
+  // We lost the race: read what actually landed rather than returning the value
+  // we minted and threw away.
+  const [settled] = await db
+    .select({ value: column })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+  return settled?.value ?? minted;
 }
 
 /**

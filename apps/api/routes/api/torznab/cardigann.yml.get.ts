@@ -41,6 +41,7 @@ import { getCategoriesWithNewznabIds } from './utils/categories';
 import { getSiteName } from '~~/utils/server';
 import { getTorznabEnabled } from '~~/utils/torznabSettings';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { requireAuthSession } from '~~/utils/adminAuth';
 
 /** YAML double-quoted scalar. Cardigann definitions are plain YAML 1.1. */
 function q(value: string): string {
@@ -66,6 +67,10 @@ function slugify(name: string): string {
 }
 
 export default defineEventHandler(async (event) => {
+  // Members only. The file names the instance, its address and the operator's
+  // whole category taxonomy, and an invite-only tracker publishes none of those
+  // — the sibling that generates the autobrr definition gates the same way.
+  await requireAuthSession(event);
   await rateLimit(event, RATE_LIMITS.public);
 
   if (!(await getTorznabEnabled())) {
@@ -76,7 +81,17 @@ export default defineEventHandler(async (event) => {
   }
 
   const siteName = await getSiteName();
-  const id = slugify(siteName);
+  /**
+   * The identity is derived from the HOST, not from the site name.
+   *
+   * `getSiteName()` falls back to `TRACKARR`, so every instance nobody renamed
+   * produced `id: trackarr` and the same filename — two of them in one Prowlarr
+   * overwrite each other, which is exactly what this was supposed to avoid. A
+   * name can also collide with a shipped definition (`nyaa`, `1337x`), in which
+   * case Prowlarr keeps its own and drops ours with one log line.
+   */
+  const host = getRequestURL(event).host;
+  const id = `trackarr-${slugify(host)}`;
   const categories = await getCategoriesWithNewznabIds();
 
   // Same derivation the Torznab feed itself uses, so the definition points at
@@ -124,12 +139,14 @@ ${mappings || '    - {id: 8000, cat: Other, desc: "Other"}'}
 
 settings:
   - name: apikey
-    type: text
+    type: password
     label: RSS key
   - name: info_key
     type: info
     label: About your key
-    default: "Your RSS / Torznab key is on your profile page under Credentials. It can read the catalogue and cannot announce, so it is safe to paste here."
+    default: ${q(
+      'Your RSS / Torznab key is on your profile page under Credentials. Use that one rather than your announce passkey: the key cannot announce, and you can revoke it on its own. Note that a .torrent this indexer grabs still carries your announce URL, so treat any client you paste this into as trusted.'
+    )}
 
 login:
   # A cheap query that answers 401 when the key is wrong, so Prowlarr's

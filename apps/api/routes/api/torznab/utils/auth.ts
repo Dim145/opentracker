@@ -14,6 +14,17 @@ export interface TorznabUser {
   id: string;
   username: string;
   passkey: string;
+  /**
+   * The credential the CALLER actually presented, lowercased.
+   *
+   * Not the same thing as `passkey`, and the difference was a live leak: every
+   * `<enclosure>` in a search response is built from a key, and building it
+   * from `passkey` published the member's ANNOUNCE credential to whoever held
+   * their read key — which is the one credential the read keys exist to keep
+   * out of a third party's hands. Anything echoing a key back into a response
+   * uses this field.
+   */
+  presentedKey: string;
   isBanned: boolean;
   isAdmin: boolean;
   isModerator: boolean;
@@ -73,6 +84,10 @@ export async function authenticateTorznab(
     passkey: schema.users.passkey,
     isBanned: schema.users.isBanned,
     bannedUntil: schema.users.bannedUntil,
+    // `findByReadKey` and `findByPasskey` both filter this out; this surface is
+    // the only one that did not, and it is the one an erased account would
+    // reach first if a future path ever cleared a name without clearing keys.
+    deletedAt: schema.users.deletedAt,
     isAdmin: schema.users.isAdmin,
     isModerator: schema.users.isModerator,
     showAdultContent: schema.users.showAdultContent,
@@ -94,7 +109,7 @@ export async function authenticateTorznab(
 
   const user = users[0];
 
-  if (!user) {
+  if (!user || user.deletedAt) {
     throw createTorznabError(event, TORZNAB_ERRORS.INCORRECT_CREDENTIALS);
   }
 
@@ -105,8 +120,8 @@ export async function authenticateTorznab(
 
   // Strip the helper-only field before returning the user to the
   // rest of the Torznab pipeline — it doesn't need it.
-  const { bannedUntil: _bannedUntil, ...torznabUser } = user;
-  return torznabUser;
+  const { bannedUntil: _bannedUntil, deletedAt: _deletedAt, ...torznabUser } = user;
+  return { ...torznabUser, presentedKey: supplied };
 }
 
 /**

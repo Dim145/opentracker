@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   // Resetting a leaked key is not lifting a restriction, and the two live on
   // the same page: without this, the reset button beside the block button
   // silently undid it. Unblocking is its own route, deliberately.
-  await carryTorznabBlock(oldPasskey, newPasskey);
+  const carried = await carryTorznabBlock(oldPasskey, newPasskey);
 
   // Update user
   await db
@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
     .where(eq(schema.users.id, userId));
 
   // Block entry and counters for a value that is nobody's any more.
-  await retireTorznabPasskey(oldPasskey);
+  await retireTorznabPasskey(oldPasskey, carried);
 
   return {
     success: true,
