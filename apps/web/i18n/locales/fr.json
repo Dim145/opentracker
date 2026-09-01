@@ -48,6 +48,7 @@
     "federated": "Fédéré",
     "federatedIdentity": "Identité fédérée",
     "forum": "Forum",
+    "stats": "Statistiques",
     "admin": "Admin",
     "mod": "Modération",
     "uploaded": "Envoyé",
@@ -5378,6 +5379,85 @@
       "title": "Aucune recherche enregistrée",
       "body": "Cherchez dans le catalogue, puis utilisez « Enregistrer cette recherche » pour être prévenu·e quand quelque chose de nouveau y correspond.",
       "cta": "Parcourir le catalogue"
+    }
+  },
+  "stats": {
+    "eyebrow": "Le site",
+    "title": "État du tracker",
+    "lede": "De quoi le site est fait, comment il en est arrivé là, et à quoi a ressemblé une année. Tout est agrégé : le volume d’aucun membre n’apparaît ici.",
+    "uncategorised": "Sans catégorie",
+    "foot": "Les compteurs sont relevés toutes les heures. Les années vont de janvier à janvier, en UTC.",
+    "now": {
+      "title": "En ce moment",
+      "torrents": "Releases",
+      "members": "Membres",
+      "seeders": "Sources",
+      "leechers": "{n} en téléchargement",
+      "snatches": "Téléchargements terminés",
+      "traffic": "Trafic"
+    },
+    "growth": {
+      "title": "Comment on en est arrivé là",
+      "window": "{days} jours",
+      "windowAria": "Durée d’historique à afficher",
+      "torrents": "Releases",
+      "torrentsUnit": "releases",
+      "members": "Membres",
+      "membersUnit": "membres",
+      "traffic": "Trafic par jour",
+      "none": "Aucun relevé pour l’instant — le collecteur en écrit un par heure, la courbe se remplira au prochain."
+    },
+    "series": {
+      "tooShort": "Pas encore assez d’historique pour tracer.",
+      "table": "Afficher les chiffres",
+      "when": "Quand",
+      "summaryBars": "{label} : {total} au total, maximum {peak} le {when}",
+      "summaryTrend": "{label} : de {from} à {to}"
+    },
+    "categories": {
+      "title": "Ce que contient le catalogue",
+      "note": "Uniquement les releases actives et acceptées. Les barres sont relatives à la plus grosse catégorie.",
+      "none": "Rien au catalogue pour l’instant."
+    },
+    "top": {
+      "snatched": "Les plus téléchargées",
+      "swarms": "Les plus gros essaims",
+      "none": "Rien à classer pour l’instant."
+    },
+    "uploaders": {
+      "title": "Qui envoie",
+      "note": "Classement par nombre de releases en ligne, jamais par volume : aucun réglage de ce site ne permet de refuser d’apparaître dans un classement de volume, donc il n’y en a pas. Les membres qui envoient anonymement ne sont pas listés.",
+      "count": "{n} releases",
+      "none": "Personne n’a encore envoyé de release."
+    },
+    "year": {
+      "title": "Bilan {year}",
+      "pickAria": "Choisir une année",
+      "added": "Releases ajoutées",
+      "joined": "Membres arrivés",
+      "snatches": "Téléchargements",
+      "traffic": "Trafic",
+      "trafficNote": "au moins — le compteur baisse quand un compte est effacé",
+      "byMonth": "Releases par mois",
+      "topCategories": "Catégories les plus actives",
+      "topReleases": "Les plus téléchargées de l’année",
+      "busiest": "Journée la plus chargée : {day}, {bytes} échangés.",
+      "nothing": "Rien cette année.",
+      "none": "Aucune donnée pour cette année."
+    },
+    "mine": {
+      "title": "Votre {year}",
+      "uploads": "Envois",
+      "snatches": "Téléchargements",
+      "up": "Envoyé",
+      "down": "Téléchargé",
+      "seedTime": "Partagé",
+      "bonus": "Bonus gagnés",
+      "hours": "{n} h",
+      "days": "{n} j",
+      "best": "Votre release la plus téléchargée :",
+      "bestSnatches": "{n} téléchargements",
+      "favourite": "Surtout {category} — {n} de vos envois."
     }
   }
 }

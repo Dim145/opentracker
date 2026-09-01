@@ -117,6 +117,7 @@ export default defineConfig({
             { text: 'Cross-seed', link: '/guide/cross-seed' },
             { text: 'Install as an App', link: '/guide/install-as-app' },
             { text: 'Saved Searches', link: '/guide/saved-searches' },
+            { text: 'Site Statistics', link: '/guide/stats' },
             { text: 'Federation', link: '/guide/federation' },
           ],
         },

@@ -982,6 +982,7 @@ const navLinks = [
   { to: '/federated', labelKey: 'nav.federated', icon: 'ph:broadcast', adminOnly: false, federationOnly: true },
   { to: '/requests', labelKey: 'nav.requests', icon: 'ph:megaphone-bold', adminOnly: false },
   { to: '/forum', labelKey: 'nav.forum', icon: 'ph:chat-centered-text', adminOnly: false },
+  { to: '/stats', labelKey: 'nav.stats', icon: 'ph:chart-line-up', adminOnly: false },
   { to: '/admin', labelKey: 'nav.admin', icon: 'ph:shield-check', adminOnly: true },
   { to: '/mod', labelKey: 'nav.mod', icon: 'ph:shield', modOnly: true },
 ];

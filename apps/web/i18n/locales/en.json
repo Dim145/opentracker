@@ -48,6 +48,7 @@
     "federated": "Federated",
     "federatedIdentity": "Federated identity",
     "forum": "Forum",
+    "stats": "Stats",
     "admin": "Admin",
     "mod": "Mod",
     "uploaded": "Uploaded",
@@ -5378,6 +5379,85 @@
       "title": "No saved searches",
       "body": "Search the catalogue, then use “Save this search” to be told when something new matches it.",
       "cta": "Browse the catalogue"
+    }
+  },
+  "stats": {
+    "eyebrow": "The site",
+    "title": "State of the tracker",
+    "lede": "What the site is made of, how it got here, and what a year of it looked like. Everything on this page is aggregate — no member’s volume appears anywhere.",
+    "uncategorised": "Uncategorised",
+    "foot": "Counters are snapshotted hourly. Years run from January to January, in UTC.",
+    "now": {
+      "title": "Right now",
+      "torrents": "Releases",
+      "members": "Members",
+      "seeders": "Seeders",
+      "leechers": "{n} leeching",
+      "snatches": "Completed",
+      "traffic": "Traffic"
+    },
+    "growth": {
+      "title": "How it got here",
+      "window": "{days} days",
+      "windowAria": "Length of history to show",
+      "torrents": "Releases",
+      "torrentsUnit": "releases",
+      "members": "Members",
+      "membersUnit": "members",
+      "traffic": "Traffic per day",
+      "none": "No snapshots yet — the collector writes one an hour, so this fills in from the next one."
+    },
+    "series": {
+      "tooShort": "Not enough history to draw yet.",
+      "table": "Show the numbers",
+      "when": "When",
+      "summaryBars": "{label}: {total} in total, highest {peak} on {when}",
+      "summaryTrend": "{label}: {from} to {to}"
+    },
+    "categories": {
+      "title": "What is in the catalogue",
+      "note": "Live, accepted releases only. Bars are relative to the largest category.",
+      "none": "Nothing catalogued yet."
+    },
+    "top": {
+      "snatched": "Most snatched",
+      "swarms": "Biggest swarms",
+      "none": "Nothing to rank yet."
+    },
+    "uploaders": {
+      "title": "Who is uploading",
+      "note": "Ranked by number of live releases, never by volume — there is no setting on this site by which you could decline to appear in a volume board, so there is no volume board. Members who upload anonymously are not listed.",
+      "count": "{n} releases",
+      "none": "Nobody has uploaded yet."
+    },
+    "year": {
+      "title": "{year} in review",
+      "pickAria": "Choose a year",
+      "added": "Releases added",
+      "joined": "Members joined",
+      "snatches": "Snatches",
+      "traffic": "Traffic",
+      "trafficNote": "at least — the counter drops when an account is erased",
+      "byMonth": "Releases per month",
+      "topCategories": "Busiest categories",
+      "topReleases": "Most snatched of the year",
+      "busiest": "Busiest day: {day}, {bytes} moved.",
+      "nothing": "Nothing this year.",
+      "none": "No data for this year."
+    },
+    "mine": {
+      "title": "Your {year}",
+      "uploads": "Uploads",
+      "snatches": "Snatches",
+      "up": "Uploaded",
+      "down": "Downloaded",
+      "seedTime": "Seeded",
+      "bonus": "Bonus earned",
+      "hours": "{n} h",
+      "days": "{n} d",
+      "best": "Your most snatched release:",
+      "bestSnatches": "{n} snatches",
+      "favourite": "Mostly {category} — {n} of your uploads."
     }
   }
 }
