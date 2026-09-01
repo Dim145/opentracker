@@ -46,6 +46,8 @@ import {
   isInviteEnabled,
   getDefaultInvites,
   getAuditRetentionDays,
+  getLoginEventRetentionDays,
+  getSavedSearchMaxPerUser,
 } from '~~/utils/server';
 import {
   getRequire2FAScope,
@@ -98,6 +100,8 @@ export default defineEventHandler(async (event) => {
   // the admin console can offer the control next to the register itself — a
   // setting with no way in is a setting only its author can change.
   const auditRetentionDays = await getAuditRetentionDays();
+  const loginEventRetentionDays = await getLoginEventRetentionDays();
+  const savedSearchMaxPerUser = await getSavedSearchMaxPerUser();
   const notificationsRetentionReadDays =
     await getNotificationsRetentionReadDays();
   const notificationsRetentionUnreadDays =
@@ -165,6 +169,8 @@ export default defineEventHandler(async (event) => {
     defaultInvites,
     require2FAScope,
     auditRetentionDays,
+    loginEventRetentionDays,
+    savedSearchMaxPerUser,
     notificationsRetentionReadDays,
     notificationsRetentionUnreadDays,
     requestAutoValidateHours,

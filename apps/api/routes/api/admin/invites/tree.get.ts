@@ -34,6 +34,7 @@ import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 import { z } from 'zod/v4';
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { auditDetail, writeAuditEntry } from '~~/utils/audit';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateQuery } from '~~/utils/schemas';
 
@@ -90,7 +91,7 @@ function toNode(
 }
 
 export default defineEventHandler(async (event) => {
-  await requireAdminSession(event);
+  const session = await requireAdminSession(event);
   await rateLimit(event, RATE_LIMITS.public);
 
   const { userId } = validateQuery(event, querySchema);
@@ -140,6 +141,20 @@ export default defineEventHandler(async (event) => {
   let frontier: Node[] = [root];
   for (let depth = 1; depth <= MAX_DEPTH && frontier.length > 0; depth++) {
     const parentIds = frontier.map((n) => n.id);
+    /**
+     * Bounded in SQL, not only in the response.
+     *
+     * `MAX_NODES` was applied while building the answer, so a prolific inviter
+     * three generations down still had every one of their redeemed invitations
+     * returned to the API first — the whole table, potentially, to produce four
+     * hundred nodes. The remaining budget is the limit, plus one so a truncation
+     * is still detectable.
+     */
+    const remaining = MAX_NODES - nodeCount;
+    if (remaining <= 0) {
+      truncatedDown = true;
+      break;
+    }
     const invites = await db
       .select({
         createdBy: schema.invitations.createdBy,
@@ -149,10 +164,25 @@ export default defineEventHandler(async (event) => {
       .from(schema.invitations)
       .where(
         and(inArray(schema.invitations.createdBy, parentIds), isNotNull(schema.invitations.usedBy))
-      );
+      )
+      .orderBy(schema.invitations.usedAt)
+      .limit(remaining + 1);
     if (invites.length === 0) break;
+    if (invites.length > remaining) truncatedDown = true;
 
-    const childIds = [...new Set(invites.map((i) => i.usedBy!))];
+    /**
+     * A member already placed in the tree is not placed again.
+     *
+     * The upward walk has this guard and the descent did not: `invitations` has
+     * no constraint preventing a cycle (A invited B, B invited A after a staff
+     * edit), and without the guard the same pair is emitted once per generation
+     * until the node budget runs out — bounded, but it renders as a family tree
+     * that repeats itself.
+     */
+    const childIds = [
+      ...new Set(invites.map((i) => i.usedBy!).filter((id) => !seen.has(id))),
+    ];
+    if (childIds.length === 0) break;
     const rows = await db.select(USER_COLUMNS).from(schema.users).where(inArray(schema.users.id, childIds));
     const rowById = new Map(rows.map((r) => [r.id, r]));
     const byParent = new Map(frontier.map((n) => [n.id, n]));
@@ -167,6 +197,8 @@ export default defineEventHandler(async (event) => {
       const parent = byParent.get(invite.createdBy);
       if (!row || !parent) continue;
 
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
       const node = toNode(row, depth, invite.usedAt);
       (parent.children ??= []).push(node);
       next.push(node);
@@ -176,6 +208,22 @@ export default defineEventHandler(async (event) => {
     frontier = next;
     if (depth === MAX_DEPTH && next.length > 0) truncatedDown = true;
   }
+
+  /**
+   * Logged explicitly, because the hook does not log reads.
+   *
+   * That is the right default — a register of authority records decisions, not
+   * who looked at a page — and this is the one read worth the exception: it is
+   * the social graph of the entire site in one response, and the commit that
+   * added it claimed it was audited when it was not.
+   */
+  auditDetail(event, {
+    action: 'admin.invites.tree.read',
+    targetType: 'user',
+    targetId: userId,
+    targetLabel: root.username,
+  });
+  void writeAuditEntry(event, session.user, 200);
 
   return {
     subject: root,

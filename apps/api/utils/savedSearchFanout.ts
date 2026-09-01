@@ -55,6 +55,18 @@ const SLOW_SWEEP_MS = 500;
 export async function fanoutSavedSearchMatches(
   torrent: SavedSearchCandidate
 ): Promise<void> {
+  try {
+    await runFanout(torrent);
+  } catch (err) {
+    // Its sibling wraps the identical shape, and for the same reason: this is
+    // called with `void` from two routes, so without the catch a failure
+    // surfaces as an anonymous unhandled rejection instead of a line naming
+    // the feature that failed.
+    console.warn('[SavedSearch] fan-out failed:', (err as Error).message);
+  }
+}
+
+async function runFanout(torrent: SavedSearchCandidate): Promise<void> {
   const started = Date.now();
 
   // The torrent's tag slugs, once. A filter matching on tags needs all of its

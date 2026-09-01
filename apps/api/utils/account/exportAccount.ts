@@ -36,6 +36,12 @@
  *     this export has no business decrypting with. A file in a Downloads
  *     folder is a worse place for a live token than the database is. Channel
  *     *types* and their state are exported; the credential is not.
+ *   - **The names inside a notification.** A notification this account received
+ *     may name the moderator who acted on it, the member who used its invite, or
+ *     quote a staff message. The notification, its type and its date are
+ *     exported; those names are not — they are the same staff and third-party
+ *     data the two entries above withhold, and a payload is not a loophole in
+ *     that rule.
  *   - **Anti-cheat findings.** Art. 15 is not absolute — it yields where
  *     disclosure would prejudice the detection of abuse or the rights of
  *     others. Handing somebody the heuristics that flagged them is a recipe
@@ -58,6 +64,48 @@ import { db, schema } from '@trackarr/db';
  * in a browser's download.
  */
 const CAP = 5000;
+
+/**
+ * Keys a notification payload may carry into the export.
+ *
+ * The payloads are written by whichever route emitted the notification, and
+ * several of them name somebody else: `actorUsername` is the moderator who
+ * banned this account, `inviteeUsername` is the member who used its invite,
+ * `preview` is 200 characters of a staff message, `uploaderUsername` is another
+ * member. Exporting the payload verbatim therefore handed out exactly the two
+ * things this file promises to withhold — staff identity and who used an invite
+ * — in a structured document, on one GET.
+ *
+ * A whitelist rather than a blocklist: a notification type added next year must
+ * not be able to widen this by accident.
+ */
+const PAYLOAD_KEYS_KEPT = new Set([
+  'reason',
+  'amount',
+  'itemName',
+  'itemType',
+  'torrentName',
+  'infoHash',
+  'label',
+  'category',
+  'points',
+  'multiplier',
+  'until',
+  'seedTime',
+  'requiredSeedTime',
+  'expiresAt',
+  'status',
+  'count',
+]);
+
+function safeNotificationPayload(payload: unknown): Record<string, unknown> {
+  if (!payload || typeof payload !== 'object') return {};
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload as Record<string, unknown>)) {
+    if (PAYLOAD_KEYS_KEPT.has(key)) out[key] = value;
+  }
+  return out;
+}
 
 /** A capped list, honest about what it left out. */
 interface Capped<T> {
@@ -166,6 +214,27 @@ export async function exportAccount(userId: string) {
     templates,
     notificationRows,
     notificationCount,
+    // Real totals for the nine collections that were reporting `items.length`
+    // as their own total — which made `truncated` permanently false and turned a
+    // 5000-row prefix into a document claiming to be the whole record. The
+    // header of this file calls that failure worse than refusing to export.
+    followingCount,
+    favouriteCount,
+    inviteCount,
+    templateCount,
+    requestCount,
+    requestFillCount,
+    ticketCount,
+    ticketMessageCount,
+    reportCount,
+    poolContributionCount,
+    // The two personal tables this branch added and did not bring here. The
+    // rule at the top of the file is that a personal table belongs in both the
+    // export and the erasure.
+    savedSearchRows,
+    savedSearchCount,
+    loginRows,
+    loginCount,
   ] = await Promise.all([
     db.query.trustedDevices.findMany({
       where: eq(schema.trustedDevices.userId, userId),
@@ -396,6 +465,7 @@ export async function exportAccount(userId: string) {
       where: eq(schema.notifications.userId, userId),
       columns: {
         type: true,
+        // The payload is filtered on the way out — see `safeNotificationPayload`.
         payload: true,
         link: true,
         readAt: true,
@@ -405,6 +475,60 @@ export async function exportAccount(userId: string) {
       limit: CAP,
     }),
     countOf(schema.notifications, eq(schema.notifications.userId, userId)),
+    countOf(schema.userFollows, eq(schema.userFollows.followerId, userId)),
+    countOf(schema.torrentFavorites, eq(schema.torrentFavorites.userId, userId)),
+    countOf(schema.invitations, eq(schema.invitations.createdBy, userId)),
+    countOf(
+      schema.presentationTemplates,
+      eq(schema.presentationTemplates.ownerId, userId)
+    ),
+    countOf(schema.uploadRequests, eq(schema.uploadRequests.requesterId, userId)),
+    countOf(
+      schema.uploadRequestFillAttempts,
+      eq(schema.uploadRequestFillAttempts.userId, userId)
+    ),
+    countOf(schema.tickets, eq(schema.tickets.openedById, userId)),
+    countOf(schema.ticketMessages, eq(schema.ticketMessages.authorId, userId)),
+    countOf(schema.reports, eq(schema.reports.reporterId, userId)),
+    countOf(
+      schema.freeleechPoolContributions,
+      eq(schema.freeleechPoolContributions.userId, userId)
+    ),
+    // Saved searches: the member's own stored filters, in their own words.
+    db.query.savedSearches.findMany({
+      where: eq(schema.savedSearches.userId, userId),
+      columns: {
+        label: true,
+        query: true,
+        tags: true,
+        imdbId: true,
+        tmdbId: true,
+        tvdbId: true,
+        notify: true,
+        createdAt: true,
+      },
+      limit: CAP,
+    }),
+    countOf(schema.savedSearches, eq(schema.savedSearches.userId, userId)),
+    /**
+     * Login history. The address is exported as the stored HASH, not as an
+     * address: this table never held a raw IP, and inventing one for the export
+     * would be inventing data. The hash is only comparable within one day —
+     * stated in the guide, and in the field name.
+     */
+    db
+      .select({
+        at: schema.loginEvents.createdAt,
+        outcome: schema.loginEvents.outcome,
+        method: schema.loginEvents.method,
+        ipHashDailyRotating: schema.loginEvents.ipHash,
+        userAgent: schema.loginEvents.userAgent,
+      })
+      .from(schema.loginEvents)
+      .where(eq(schema.loginEvents.userId, userId))
+      .orderBy(desc(schema.loginEvents.createdAt))
+      .limit(CAP),
+    countOf(schema.loginEvents, eq(schema.loginEvents.userId, userId)),
   ]);
 
   // Ticket messages, for the tickets just read. Second query rather than a
@@ -457,47 +581,52 @@ export async function exportAccount(userId: string) {
     notificationSettings: { channels, routing },
 
     social: {
-      following: capped(following, following.length),
+      following: capped(following, followingCount),
       /** Other people. A number, by design — see the note at the top. */
       followerCount,
-      favourites: capped(favourites, favourites.length),
+      favourites: capped(favourites, favouriteCount),
     },
 
-    invitesCreated: capped(invitesCreated, invitesCreated.length),
+    invitesCreated: capped(invitesCreated, inviteCount),
 
     contributions: {
       uploads: capped(uploads, uploadCount),
       torrentComments: capped(comments, commentCount),
       forumTopics: capped(topics, topicCount),
       forumPosts: capped(posts, postCount),
-      presentationTemplates: capped(templates, templates.length),
+      presentationTemplates: capped(templates, templateCount),
     },
 
     activity: {
       snatches: capped(snatches, snatchCount),
-      notifications: capped(notificationRows, notificationCount),
+      notifications: capped(
+        notificationRows.map((n) => ({
+          ...n,
+          payload: safeNotificationPayload(n.payload),
+        })),
+        notificationCount
+      ),
+      savedSearches: capped(savedSearchRows, savedSearchCount),
+      logins: capped(loginRows, loginCount),
     },
 
     economy: {
       bonusLedger: capped(bonus, bonusCount),
       shopPurchases: capped(purchases, purchaseCount),
-      freeleechPoolContributions: capped(
-        poolContributions,
-        poolContributions.length
-      ),
+      freeleechPoolContributions: capped(poolContributions, poolContributionCount),
     },
 
     requests: {
-      opened: capped(requests, requests.length),
-      fillAttempts: capped(requestFills, requestFills.length),
+      opened: capped(requests, requestCount),
+      fillAttempts: capped(requestFills, requestFillCount),
     },
 
     support: {
-      tickets: capped(ticketRows, ticketRows.length),
-      myMessages: capped(myTicketMessages, myTicketMessages.length),
+      tickets: capped(ticketRows, ticketCount),
+      myMessages: capped(myTicketMessages, ticketMessageCount),
     },
 
-    reportsFiled: capped(reportsFiled, reportsFiled.length),
+    reportsFiled: capped(reportsFiled, reportCount),
 
     messaging: {
       conversationCount,

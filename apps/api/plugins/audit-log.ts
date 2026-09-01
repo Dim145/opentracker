@@ -30,6 +30,7 @@
  * belong in a register of authority.
  */
 import type { H3Event } from 'h3';
+import { redis } from '~~/utils/server';
 import { isAuditable, writeAuditEntry, type AuditActor } from '~~/utils/audit';
 
 /**
@@ -44,7 +45,16 @@ function record(event: H3Event, statusOverride?: number): void {
 
   const method = event.method ?? 'GET';
   const path = (event.path ?? '').split('?')[0] ?? '';
-  if (!isAuditable(method, path)) return;
+
+  // The actor is read before the predicate now, because whether a member-facing
+  // path is auditable depends on who is calling it — see `STAFF_REACH`.
+  const earlyActor = event.context.auditActor as AuditActor | undefined;
+  const actorIsStaff = !!(
+    earlyActor?.isAdmin ||
+    earlyActor?.isModerator ||
+    earlyActor?.isOwner
+  );
+  if (!isAuditable(method, path, actorIsStaff)) return;
 
   // Set by `requireAuthSession`. Absent means the request never got past
   // authentication, which is the rate limiter's business and not this
@@ -52,14 +62,48 @@ function record(event: H3Event, statusOverride?: number): void {
   const actor = event.context.auditActor as AuditActor | undefined;
   if (!actor?.id) return;
 
+  /**
+   * A refusal is worth a line; ten thousand of them are not.
+   *
+   * `auditActor` is set by plain authentication, and a staff gate throws its 403
+   * BEFORE the route's own rate limit — so any member could loop
+   * `PUT /api/admin/settings` and write a row per request, bounded only by the
+   * global 100-per-10-seconds DDoS floor. Roughly 750 000 rows a day, in an
+   * append-only table with a year of retention and no per-row delete: the flood
+   * would bury the exact pattern this register exists to show, and an admin
+   * could not clean it out.
+   *
+   * So a refusal from somebody who is not staff is throttled to one row per
+   * minute per (actor, action). The first attempt is always recorded — which is
+   * the line that matters — and the storm behind it is not.
+   */
+  const isStaff = !!(actor.isAdmin || actor.isModerator || actor.isOwner);
+  const statusForGate = statusOverride ?? event.node?.res?.statusCode ?? 200;
+  if (!isStaff && statusForGate >= 400) {
+    const key = `audit:throttle:${actor.id}:${event.method ?? 'GET'}:${path}`;
+    // Fire and forget: a Redis hiccup must not lose an audit row, so the
+    // fallback is to write it.
+    void redis
+      .set(key, '1', 'EX', 60, 'NX')
+      .then((first) => {
+        if (first === 'OK') writeAudit();
+      })
+      .catch(() => writeAudit());
+    event.context.auditWritten = true;
+    return;
+  }
+
   event.context.auditWritten = true;
 
-  const statusCode = statusOverride ?? event.node?.res?.statusCode ?? 200;
+  writeAudit();
 
-  // Not awaited: the response has already gone out, and holding the hook open
-  // would keep the request's context alive for the length of an INSERT.
-  // `writeAuditEntry` swallows its own failures.
-  void writeAuditEntry(event, actor, statusCode);
+  function writeAudit(): void {
+    const statusCode = statusOverride ?? event.node?.res?.statusCode ?? 200;
+    // Not awaited: the response has already gone out, and holding the hook open
+    // would keep the request's context alive for the length of an INSERT.
+    // `writeAuditEntry` swallows its own failures.
+    void writeAuditEntry(event, actor!, statusCode);
+  }
 }
 
 export default defineNitroPlugin((nitro) => {

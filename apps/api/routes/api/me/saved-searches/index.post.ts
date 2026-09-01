@@ -16,7 +16,7 @@
  * site. A ceiling somebody chose beats one that emerges at three in the
  * morning.
  */
-import { and, count, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod/v4';
 import { db, schema } from '@trackarr/db';
@@ -67,31 +67,44 @@ export default defineEventHandler(async (event) => {
   }
 
   const max = await getSavedSearchMaxPerUser();
-  const [{ value: existing } = { value: 0 }] = await db
-    .select({ value: count() })
-    .from(schema.savedSearches)
-    .where(eq(schema.savedSearches.userId, user.id));
-  if (existing >= max) {
+  const id = randomUUID();
+
+  /**
+   * The cap is enforced by the INSERT, not by a count before it.
+   *
+   * Read-then-insert is a race, and this cap is the only bound on what the
+   * fan-out costs the whole site: ten concurrent posts at nineteen filters each
+   * all read nineteen and all inserted. `INSERT … SELECT … WHERE (SELECT count(*)
+   * …) < max` decides it in one statement; an insert that did not happen means
+   * the ceiling was reached.
+   *
+   * Written as SQL rather than through the query builder because the builder's
+   * insert-from-select would need every column aliased to its snake_case name
+   * by hand anyway, and this way the predicate sits where a reader expects it.
+   */
+  const inserted = await db.execute(sql`
+    insert into ${schema.savedSearches}
+      (id, user_id, label, query, tsquery, category_id, tags, imdb_id, tmdb_id, tvdb_id, notify)
+    select
+      ${id}, ${user.id}, ${body.label}, ${query}, ${tsquery}, ${categoryId},
+      ${tags.length ? tags : null}, ${imdbId}, ${tmdbId}, ${tvdbId}, ${body.notify ?? true}
+    where (
+      select count(*) from ${schema.savedSearches}
+      where ${schema.savedSearches.userId} = ${user.id}
+    ) < ${max}
+    returning id
+  `);
+
+  const created =
+    (inserted as unknown as { length?: number; count?: number })?.length ??
+    (inserted as unknown as { count?: number })?.count ??
+    0;
+  if (created === 0) {
     throw createError({
       statusCode: 400,
       message: `You can keep up to ${max} saved searches. Delete one first.`,
     });
   }
-
-  const id = randomUUID();
-  await db.insert(schema.savedSearches).values({
-    id,
-    userId: user.id,
-    label: body.label,
-    query,
-    tsquery,
-    categoryId,
-    tags: tags.length ? tags : null,
-    imdbId,
-    tmdbId,
-    tvdbId,
-    notify: body.notify ?? true,
-  });
 
   return { id, success: true };
 });

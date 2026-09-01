@@ -94,14 +94,27 @@ export function deriveAction(
   path: string,
   paramValues: readonly string[] = []
 ): string {
-  const params = new Set(paramValues.filter(Boolean));
-  const parts = path
-    .replace(/^\/api\//, '')
-    .split('/')
-    .filter(Boolean)
-    // Matched a route parameter: an identifier by definition, whatever it
-    // looks like.
-    .filter((p) => !params.has(p))
+  /**
+   * Route parameters are dropped by POSITION, not by value.
+   *
+   * By value, any segment that happened to equal a parameter's value went too —
+   * so a member called `mutes` turned `mod/room/mutes/:username` into
+   * `mod.room.delete`, and an admin filtering the register by action key would
+   * never see those lines. Usernames are 3–20 characters with no reserved list,
+   * so `mod`, `room` and `mutes` are all registrable.
+   *
+   * The positions come from the values: a parameter's value appears exactly
+   * where the router matched it, and taking the FIRST unclaimed occurrence of
+   * each value is what makes this positional rather than a set membership test.
+   */
+  const segments = path.replace(/^\/api\//, '').split('/').filter(Boolean);
+  const dropped = new Set<number>();
+  for (const value of paramValues.filter(Boolean)) {
+    const at = segments.findIndex((seg, i) => seg === value && !dropped.has(i));
+    if (at >= 0) dropped.add(at);
+  }
+  const parts = segments
+    .filter((_, i) => !dropped.has(i))
     // Identifier-shaped: a UUID, a 40-hex infohash, a long opaque id, or a
     // bare number. `slug`-shaped segments are kept — they name things.
     .filter(
@@ -144,9 +157,41 @@ const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
  * browsing — which the privacy toggles elsewhere in this codebase exist to
  * prevent.
  */
-export function isAuditable(method: string, path: string): boolean {
+/**
+ * Member-facing paths where a staff member exercises a staff power.
+ *
+ * The console prefixes are not the whole story, and "who did what, across the
+ * whole console" was too generous a claim: a moderator deletes a torrent
+ * through `DELETE /api/torrents/:hash`, a comment through
+ * `/api/torrents/comments/:id`, moderates the forum through `/api/forum/...`,
+ * and removes a message through the messaging routes. Every one of those is an
+ * act of authority against somebody else's content, and none of them left a row.
+ *
+ * Matched only when the ACTOR is staff, which is what keeps the register from
+ * becoming a log of everybody's activity — the thing the predicate above is
+ * careful to avoid. A moderator deleting their own comment is audited too, and
+ * that is the right side to err on: the register records what authority did,
+ * and it cannot know intent.
+ */
+const STAFF_REACH: readonly RegExp[] = [
+  /^\/api\/torrents\/[^/]+$/,
+  /^\/api\/torrents\/[^/]+\/(tags|federate-swarm|index)$/,
+  /^\/api\/torrents\/comments\/[^/]+$/,
+  /^\/api\/forum\//,
+  /^\/api\/messaging\/room\/messages\/[^/]+$/,
+  /^\/api\/messaging\/conversations\/[^/]+\/messages\/[^/]+$/,
+  /^\/api\/requests\/[^/]+\/comments\/[^/]+$/,
+  /^\/api\/tickets\/[^/]+\//,
+];
+
+export function isAuditable(
+  method: string,
+  path: string,
+  actorIsStaff = false
+): boolean {
   if (!MUTATING.has(method.toUpperCase())) return false;
-  return path.startsWith('/api/admin/') || path.startsWith('/api/mod/');
+  if (path.startsWith('/api/admin/') || path.startsWith('/api/mod/')) return true;
+  return actorIsStaff && STAFF_REACH.some((re) => re.test(path));
 }
 
 /**

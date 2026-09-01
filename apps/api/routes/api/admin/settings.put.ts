@@ -282,6 +282,28 @@ export default defineEventHandler(async (event) => {
       String(Math.floor(body.auditRetentionDays)),
     );
   }
+
+  if (
+    typeof body.loginEventRetentionDays === 'number' &&
+    body.loginEventRetentionDays >= 0 &&
+    body.loginEventRetentionDays <= 3650
+  ) {
+    await setSetting(
+      SETTINGS_KEYS.LOGIN_EVENT_RETENTION_DAYS,
+      String(Math.floor(body.loginEventRetentionDays))
+    );
+  }
+
+  if (
+    typeof body.savedSearchMaxPerUser === 'number' &&
+    body.savedSearchMaxPerUser >= 1 &&
+    body.savedSearchMaxPerUser <= 200
+  ) {
+    await setSetting(
+      SETTINGS_KEYS.SAVED_SEARCH_MAX_PER_USER,
+      String(Math.floor(body.savedSearchMaxPerUser))
+    );
+  }
   if (
     typeof body.notificationsRetentionUnreadDays === 'number' &&
     body.notificationsRetentionUnreadDays >= 1 &&

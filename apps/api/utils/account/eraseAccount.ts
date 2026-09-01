@@ -64,6 +64,7 @@
 import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { db, schema } from '@trackarr/db';
+import { retireTorznabPasskey } from '~~/utils/torznabStats';
 import { invalidateBanCache } from '~~/utils/adminAuth';
 import {
   getFederationConfig,
@@ -90,6 +91,19 @@ export interface EraseResult {
  * push is best-effort and never blocks the local erasure from committing.
  */
 export async function eraseAccount(userId: string): Promise<EraseResult> {
+  /**
+   * The passkey as it is now, read before the transaction rotates it away.
+   *
+   * Needed after the commit to clear what is keyed on its hash outside
+   * Postgres — see the note further down.
+   */
+  const [before] = await db
+    .select({ passkey: schema.users.passkey })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+  const oldPasskey = before?.passkey ?? null;
+
   // The member's identifiers, before we touch anything — needed to find the
   // partner-asserted links that mention them.
   const keys = await db
@@ -140,6 +154,19 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
     await tx.delete(schema.userNotificationChannels).where(eq(schema.userNotificationChannels.userId, userId));
     await tx.delete(schema.userNotificationRouting).where(eq(schema.userNotificationRouting.userId, userId));
     await tx.delete(schema.userRoles).where(eq(schema.userRoles.userId, userId));
+    /**
+     * The two personal tables this branch added.
+     *
+     * Deleted by hand for the reason the whole function exists: the `users` row
+     * SURVIVES an erasure, so no `ON DELETE` ever fires. Left behind, the saved
+     * filters kept matching uploads and writing notifications to a tombstone
+     * for ever, and the login history stayed attributed to the account — and
+     * readable through the moderator view — for its full retention period.
+     */
+    await tx
+      .delete(schema.savedSearches)
+      .where(eq(schema.savedSearches.userId, userId));
+    await tx.delete(schema.loginEvents).where(eq(schema.loginEvents.userId, userId));
     await tx.delete(schema.torrentFavorites).where(eq(schema.torrentFavorites.userId, userId));
     await tx
       .delete(schema.userFollows)
@@ -376,6 +403,20 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
       })
       .where(eq(schema.users.id, userId));
   });
+
+  /**
+   * The Torznab residue of the passkey we just rotated away.
+   *
+   * Keyed by a hash of the OLD value, so nothing in the transaction above
+   * touches it: an access block against an account that no longer exists, and
+   * up to seven days of request logs carrying an IP hash and a user agent. On
+   * the one route whose job is to leave nothing behind.
+   */
+  if (oldPasskey) {
+    await retireTorznabPasskey(oldPasskey).catch((err) => {
+      console.warn('[erase] torznab residue survived:', (err as Error).message);
+    });
+  }
 
   // The cached gate must forget the old "ok" at once, or the account stays
   // reachable for up to the 60 s TTL behind a live cookie.

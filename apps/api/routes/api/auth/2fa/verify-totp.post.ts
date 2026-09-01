@@ -117,6 +117,16 @@ export default defineEventHandler(async (event) => {
       )
       .returning({ id: recoveryCodes.id });
     if (consumed.length === 0) {
+      // Recorded for the same reason a wrong TOTP is, and with more force: a
+      // recovery code bypasses the authenticator entirely, so a run of failed
+      // attempts against one is the highest-signal shape this table can hold.
+      // It was the one second-factor failure that left no trace.
+      void recordLogin(event, {
+        userId: user.id,
+        username: user.username,
+        method: 'recovery',
+        outcome: 'failed',
+      });
       throw createError({
         statusCode: 400,
         message: 'Invalid or already-used recovery code.',

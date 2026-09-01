@@ -331,7 +331,7 @@
                   · {{ $t('users.logins.refused') }}
                 </span>
               </td>
-              <td><code class="logins-hash">{{ l.ipHash || '—' }}</code></td>
+              <td><code class="logins-hash">{{ l.address || '—' }}</code></td>
               <td class="logins-agent">{{ l.userAgent || '—' }}</td>
             </tr>
           </tbody>
@@ -418,7 +418,8 @@ interface LoginEvent {
   id: string;
   method: string;
   outcome: string;
-  ipHash: string | null;
+  /** An ordinal within this response — see the API route for why. */
+  address: string | null;
   userAgent: string | null;
   createdAt: string;
 }

@@ -22,6 +22,19 @@ describe('isAuditable', () => {
     expect(isAuditable('HEAD', '/api/admin/users')).toBe(false);
   });
 
+  it('takes a staff power exercised through a member-facing path', () => {
+    // The console prefixes are not the whole story: a moderator deletes a
+    // torrent, a comment or a forum post through the ordinary member routes,
+    // and every one of those is an act of authority that left no row.
+    expect(isAuditable('DELETE', '/api/torrents/abc', true)).toBe(true);
+    expect(isAuditable('DELETE', '/api/torrents/comments/12', true)).toBe(true);
+    expect(isAuditable('PATCH', '/api/forum/posts/9', true)).toBe(true);
+    expect(isAuditable('DELETE', '/api/messaging/room/messages/7', true)).toBe(true);
+    // …and the same request from a member is still nobody's business.
+    expect(isAuditable('DELETE', '/api/torrents/abc', false)).toBe(false);
+    expect(isAuditable('PATCH', '/api/forum/posts/9', false)).toBe(false);
+  });
+
   it('ignores member-facing mutations', () => {
     // Logging these would turn the register into a record of everybody's
     // activity — the opposite of what the privacy toggles elsewhere protect.

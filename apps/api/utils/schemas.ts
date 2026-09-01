@@ -260,6 +260,13 @@ export const adminSettingsSchema = z.object({
    * audit log with a built-in expiry nobody chose.
    */
   auditRetentionDays: z.number().int().min(0).max(3650).optional(),
+  // Both of these had a getter, a default and a documented meaning, and no
+  // writer anywhere — so the retention period an operator reads about in the
+  // privacy notice, and the ceiling the saved-search fan-out logs advice about
+  // ("consider lowering saved_search_max_per_user"), could only be changed with
+  // a SQL prompt.
+  loginEventRetentionDays: z.number().int().min(0).max(3650).optional(),
+  savedSearchMaxPerUser: z.number().int().min(1).max(200).optional(),
   notificationsRetentionUnreadDays: z
     .number()
     .int()
