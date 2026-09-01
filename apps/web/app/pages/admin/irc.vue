@@ -1,23 +1,59 @@
 <template>
   <div class="irc">
+    <!-- No page title here. `pages/admin.vue` already renders an `h1` and a
+         description for every admin sub-page, so this one used to print a
+         second `h1` and a second lede saying nearly the same thing — two page
+         titles stacked, and two announced to a screen reader. `audit.vue` drops
+         to `h2` for the same reason. -->
     <header class="irc-head">
-      <div>
-        <p class="irc-eyebrow">{{ $t('admin.irc.eyebrow') }}</p>
-        <h1 class="irc-title">{{ $t('admin.irc.title') }}</h1>
-        <p class="irc-lede">{{ $t('admin.irc.lede') }}</p>
-      </div>
-
       <!-- State first. An operator opening this page is almost always here to
-           find out whether the bot is in the channel. -->
-      <div class="irc-state" :class="`irc-state--${state}`">
+           find out whether the bot is in the channel. A live region, because
+           the answer changes without a navigation — after a save, after a
+           reconnect — and a status nobody is told about is a status nobody
+           reads. -->
+      <div
+        class="irc-state"
+        :class="`irc-state--${state}`"
+        role="status"
+        aria-live="polite"
+      >
         <span class="irc-dot" />
         <div>
           <p class="irc-state-label">{{ $t(`admin.irc.states.${state}`) }}</p>
           <p v-if="status?.nick" class="irc-state-sub">{{ status.nick }}</p>
-          <p v-else-if="status?.lastError" class="irc-state-sub">{{ status.lastError }}</p>
         </div>
       </div>
+      <!-- The state used to be a snapshot taken at mount and never touched
+           again: no polling, no reload, so an operator who had just put the bot
+           into service read "Connecting" and watched a dead word indefinitely.
+           `audit.vue` and `Users.vue` both have a reload; this had none. -->
+      <button
+        type="button"
+        class="tool-btn"
+        :disabled="reloading"
+        :title="$t('common.refresh')"
+        :aria-label="$t('common.refresh')"
+        @click="reload"
+      >
+        <Icon
+          :name="reloading ? 'ph:circle-notch' : 'ph:arrows-clockwise'"
+          :class="{ 'irc-spin': reloading }"
+        />
+      </button>
     </header>
+
+    <!-- When it is broken, the reason is the most important string on the page,
+         and it lived in a 22-character box with `text-overflow: ellipsis` and no
+         `title` — so "SASL authentication failed: invalid credentials" reached
+         the operator as "SASL authenticatio…". Truncating a nick is right;
+         truncating the diagnosis is not. -->
+    <p v-if="state === 'error' && status?.lastError" class="irc-fault">
+      <Icon name="ph:warning-circle" />
+      <span>
+        {{ $t('admin.irc.faultLead') }}
+        <code>{{ status.lastError }}</code>
+      </span>
+    </p>
 
     <!-- Said plainly, because a console that shows `idle` on a working bot is
          how an operator concludes the feature is broken. -->
@@ -27,36 +63,55 @@
     </p>
 
     <form class="irc-form" @submit.prevent="save">
-      <section class="irc-card">
-        <h2>{{ $t('admin.irc.sections.connection') }}</h2>
+      <!-- The master switch, on its own. It governs all three cards below, and
+           sitting inside the first one it read as though it belonged to the
+           connection. Decking it also used to change nothing on screen: all
+           fourteen fields stayed live and at full opacity, so an operator could
+           fill the form in and never learn that nothing would be announced. -->
+      <div class="irc-master" :class="{ 'irc-master--off': !form.enabled }">
         <label class="irc-switch">
           <input v-model="form.enabled" type="checkbox" />
           <span>{{ $t('admin.irc.fields.enabled') }}</span>
         </label>
         <p class="irc-help">{{ $t('admin.irc.hints.enabled') }}</p>
+      </div>
 
-        <div class="irc-grid">
+      <!-- `inert` and not just dimmed: a field an operator cannot reach is a
+           clearer statement than a field that looks faded and still takes
+           input. -->
+      <div class="irc-cards" :class="{ 'irc-cards--off': !form.enabled }" :inert="!form.enabled">
+      <section class="irc-card">
+        <h2>{{ $t('admin.irc.sections.connection') }}</h2>
+
+        <!-- Server, port and TLS as one explicit row rather than three cells of
+             an `auto-fit` grid: the port is five digits, so a 13rem track left a
+             3rem hole beside it, and the checkbox was aligned to the inputs by a
+             hardcoded top margin that became a stray gap at one column. -->
+        <div class="irc-conn">
           <div class="irc-field">
-            <label for="irc-host">{{ $t('admin.irc.fields.host') }}</label>
+            <label for="irc-host">{{ $t('admin.irc.fields.host') }}<span class="irc-req">*</span></label>
             <input id="irc-host" v-model="form.host" class="input" autocomplete="off" placeholder="irc.example.com" />
           </div>
-          <div class="irc-field irc-field--narrow">
-            <label for="irc-port">{{ $t('admin.irc.fields.port') }}</label>
+          <div class="irc-field">
+            <label for="irc-port">{{ $t('admin.irc.fields.port') }}<span class="irc-req">*</span></label>
             <input id="irc-port" v-model.number="form.port" class="input" type="number" min="1" max="65535" />
           </div>
-          <div class="irc-field irc-field--narrow">
+          <div class="irc-field">
             <label class="irc-switch irc-switch--inline">
               <input v-model="form.tls" type="checkbox" />
               <span>{{ $t('admin.irc.fields.tls') }}</span>
             </label>
           </div>
+        </div>
+
+        <div class="irc-grid">
           <div class="irc-field">
-            <label for="irc-nick">{{ $t('admin.irc.fields.nick') }}</label>
+            <label for="irc-nick">{{ $t('admin.irc.fields.nick') }}<span class="irc-req">*</span></label>
             <input id="irc-nick" v-model="form.nick" class="input" autocomplete="off" />
             <span class="irc-help">{{ $t('admin.irc.hints.nick') }}</span>
           </div>
           <div class="irc-field">
-            <label for="irc-channel">{{ $t('admin.irc.fields.channel') }}</label>
+            <label for="irc-channel">{{ $t('admin.irc.fields.channel') }}<span class="irc-req">*</span></label>
             <input id="irc-channel" v-model="form.channel" class="input" autocomplete="off" placeholder="#announce" />
           </div>
           <div class="irc-field">
@@ -75,7 +130,11 @@
 
       <section class="irc-card">
         <h2>{{ $t('admin.irc.sections.auth') }}</h2>
-        <p class="irc-help">{{ $t('admin.irc.hints.auth') }}</p>
+        <!-- Nothing on this form said which of the fourteen fields were needed,
+             so an operator filling everything in out of caution set a server
+             password their network does not use. Four are required and marked;
+             the rest are not. -->
+        <p class="irc-help">{{ $t('admin.irc.hints.auth') }} {{ $t('admin.irc.optional') }}</p>
         <div class="irc-grid">
           <div class="irc-field">
             <label for="irc-sasl-user">{{ $t('admin.irc.fields.saslUser') }}</label>
@@ -105,6 +164,13 @@
           </div>
         </div>
 
+        <!-- The contract these three fields run on, said once. It was carried
+             only by the word "unchanged" in a placeholder, conditional on a
+             stored secret existing — so a blank field with a secret behind it
+             and a blank field with nothing behind it differed by one grey word
+             at 11px. -->
+        <p class="irc-help irc-help--rule">{{ $t('admin.irc.secretsKept') }}</p>
+
         <div class="irc-field">
           <label for="irc-perform">{{ $t('admin.irc.fields.perform') }}</label>
           <textarea
@@ -113,13 +179,21 @@
             class="input irc-mono"
             rows="3"
             spellcheck="false"
-            :placeholder="
-              config?.hasPerform
-                ? $t('admin.irc.performKept', { n: config.performCount })
-                : 'PRIVMSG Voyager :invite trackarr KEY'
-            "
+            placeholder="PRIVMSG Voyager :invite trackarr KEY"
+            @input="performDirty = true"
           />
           <span class="irc-help">{{ $t('admin.irc.hints.perform') }}</span>
+          <!-- Out of the placeholder and into a permanent line. As a
+               placeholder, the count of what is stored vanished at the first
+               keystroke — exactly when the operator is replacing lines they can
+               no longer read, and has no way to know how many they are about to
+               overwrite or to change their mind. -->
+          <span v-if="config?.hasPerform" class="irc-help irc-help--kept">
+            {{ $t('admin.irc.performKept', config.performCount) }}
+            <button type="button" class="irc-linkbtn" @click="resetPerform">
+              {{ $t('admin.irc.performReset') }}
+            </button>
+          </span>
         </div>
       </section>
 
@@ -141,8 +215,25 @@
              the output, not a description of it. -->
         <div class="irc-preview">
           <p class="irc-preview-label">{{ $t('admin.irc.preview') }}</p>
-          <p class="irc-preview-line">{{ preview }}</p>
+          <p
+            class="irc-preview-line"
+            tabindex="0"
+            role="group"
+            :aria-label="$t('admin.irc.preview')"
+          >{{ preview }}</p>
         </div>
+
+        <!-- The autobrr definition is derived from the template above, so it
+             belongs beside it rather than in the form's action row — where it
+             was a borderless `<a download>` among two buttons, and where it
+             appeared only after a save because it was keyed on the PERSISTED
+             `enabled`, shifting the row under the operator. -->
+        <p v-if="enabled" class="irc-export">
+          <a href="/api/irc/autobrr.yml" class="btn btn-secondary btn-sm" download>
+            <Icon name="ph:download-simple" />
+            {{ $t('admin.irc.definition') }}
+          </a>
+        </p>
 
         <details class="irc-tokens">
           <summary>{{ $t('admin.irc.tokensTitle') }}</summary>
@@ -186,27 +277,33 @@
           <Icon :name="testing ? 'ph:circle-notch' : 'ph:paper-plane-tilt'" :class="{ 'irc-spin': testing }" />
           {{ $t('admin.irc.test') }}
         </button>
-        <a
-          v-if="enabled"
-          href="/api/irc/autobrr.yml"
-          class="btn btn-ghost"
-          download
+        <!-- Why it is dead, said. `.btn:disabled` sets `pointer-events: none`,
+             which removes even the possibility of a tooltip, so a greyed
+             control with no explanation was all the operator got. -->
+        <span v-if="state !== 'ready'" class="irc-help">{{ $t('admin.irc.testWhen') }}</span>
+        <!-- Always in the DOM, so an insertion is announced rather than missed,
+             and `aria-live` because this is the only feedback the page's main
+             action has. -->
+        <span
+          class="irc-message"
+          :class="{ 'irc-message--bad': failed }"
+          role="status"
+          aria-live="polite"
         >
-          <Icon name="ph:download-simple" />
-          {{ $t('admin.irc.definition') }}
-        </a>
-        <span v-if="message" class="irc-message" :class="{ 'irc-message--bad': failed }">
           {{ message }}
         </span>
       </div>
+      </div>
     </form>
 
-    <section v-if="status" class="irc-card irc-card--stats">
+    <!-- Only once there is something to report. Four zeros and an em dash before
+         the bot has ever connected is a panel that looks like a failure. -->
+    <section v-if="status && status.since" class="irc-card irc-card--stats">
       <h2>{{ $t('admin.irc.sections.traffic') }}</h2>
       <dl class="irc-stats">
-        <div><dt>{{ $t('admin.irc.stats.sent') }}</dt><dd>{{ status.sent }}</dd></div>
-        <div><dt>{{ $t('admin.irc.stats.queued') }}</dt><dd>{{ status.queued }}</dd></div>
-        <div><dt>{{ $t('admin.irc.stats.dropped') }}</dt><dd>{{ status.dropped }}</dd></div>
+        <div><dt>{{ $t('admin.irc.stats.sent') }}</dt><dd>{{ status.sent.toLocaleString() }}</dd></div>
+        <div><dt>{{ $t('admin.irc.stats.queued') }}</dt><dd>{{ status.queued.toLocaleString() }}</dd></div>
+        <div><dt>{{ $t('admin.irc.stats.dropped') }}</dt><dd>{{ status.dropped.toLocaleString() }}</dd></div>
         <div>
           <dt>{{ $t('admin.irc.stats.since') }}</dt>
           <dd>{{ status.since ? new Date(status.since).toLocaleString() : '—' }}</dd>
@@ -282,6 +379,33 @@ interface IrcPayload {
 
 const { data, refresh } = await useFetch<IrcPayload>('/api/admin/irc');
 
+const reloading = ref(false);
+async function reload() {
+  reloading.value = true;
+  try {
+    await refresh();
+  } finally {
+    reloading.value = false;
+  }
+}
+
+/**
+ * Keep watching while the answer is still moving.
+ *
+ * `ready` and `idle` are settled; everything between them — connecting,
+ * registering, joining, error-then-retry — resolves in seconds without any
+ * navigation, and the page had no way to notice. Ten seconds is slow enough to
+ * be free and fast enough that an operator does not reach for the reload they
+ * now also have.
+ */
+const SETTLED = new Set(['ready', 'idle']);
+onMounted(() => {
+  const timer = setInterval(() => {
+    if (!SETTLED.has(state.value)) void refresh();
+  }, 10_000);
+  onBeforeUnmount(() => clearInterval(timer));
+});
+
 const config = computed(() => data.value?.config);
 const status = computed(() => data.value?.status);
 const tokens = computed(() => data.value?.tokens ?? []);
@@ -305,15 +429,37 @@ const form = reactive({
   announceAdult: false,
 });
 const performText = ref('');
-/** Whether the admin has touched the field — see the note at the save. */
+/**
+ * Whether the admin has touched the field — see the note at the save.
+ *
+ * Set from the textarea's own `@input`, not from a `watch` on the value. A
+ * watcher flushes on the microtask queue, so `performText.value = ''` followed
+ * by `performDirty.value = false` at the end of a save ran in that order and
+ * THEN the watcher fired, leaving the flag true — and the next save therefore
+ * sent `perform: []` and deleted the operator's stored perform lines without
+ * anybody asking it to.
+ */
 const performDirty = ref(false);
-watch(performText, () => {
-  performDirty.value = true;
-});
+function resetPerform() {
+  performText.value = '';
+  performDirty.value = false;
+}
 
+/**
+ * Seed the form from the stored config — once, and never over live edits.
+ *
+ * This ran on every change to `data`, which meant every `refresh()`. The test
+ * button called one in its `finally`, so pressing "Say a test line" to check
+ * the bot silently reverted every unsaved field on the page, including the
+ * template the operator had just written, while the message said the test had
+ * been sent. A slow save did the same to whatever was being typed while it was
+ * in flight.
+ */
+const formDirty = ref(false);
 watchEffect(() => {
   const c = config.value;
   if (!c) return;
+  if (formDirty.value) return;
   form.enabled = !!data.value?.enabled;
   form.host = c.host;
   form.port = c.port;
@@ -330,6 +476,16 @@ watchEffect(() => {
   // below is what tells the admin something IS stored.
   performText.value = '';
 });
+
+// Anything the operator changes marks the form dirty, which stops the seeding
+// above from reaching in and overwriting it.
+watch(
+  () => ({ ...form }),
+  () => {
+    formDirty.value = true;
+  },
+  { deep: true }
+);
 
 /**
  * The line as the channel will see it, rendered here rather than round-tripped
@@ -395,6 +551,9 @@ async function save() {
     performText.value = '';
     performDirty.value = false;
     message.value = t('admin.irc.saved');
+    // Saved is saved: let the seeding take over again so the page shows what is
+    // stored rather than a stale copy of what was typed.
+    formDirty.value = false;
     await refresh();
   } catch (err: unknown) {
     failed.value = true;
@@ -418,16 +577,20 @@ async function sendTest() {
       (err as { data?: { message?: string } })?.data?.message ?? t('admin.irc.failed');
   } finally {
     testing.value = false;
-    await refresh();
+    // Deliberately no `refresh()`. Testing the connection is not a reason to
+    // re-read the configuration, and doing it here is what discarded unsaved
+    // work. `reload()` is the operator's own control for that, and the poll
+    // below keeps the state block honest.
   }
 }
 </script>
 
 <style scoped>
 .irc {
-  max-width: 60rem;
-  margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
+  /* No own max-width and no own gutter: `pages/admin.vue` already constrains
+     the column this sits in, so re-centring inside it at 60rem indented the
+     content by a gutter and capped it 20rem short of its neighbours — moving
+     from Audit to IRC stepped everything sideways. */
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -435,28 +598,8 @@ async function sendTest() {
 .irc-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.irc-eyebrow {
-  font-size: 0.625rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: calc(0.16em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
-}
-.irc-title {
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: rgb(var(--fg-strong));
-}
-.irc-lede {
-  font-size: 0.8125rem;
-  color: rgb(var(--fg-muted));
-  max-width: 48ch;
-  margin-top: 0.25rem;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 /* ── state ────────────────────────────────────────────────────────────── */
@@ -488,10 +631,30 @@ async function sendTest() {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgb(var(--fg-subtle));
+  /* Only ever a nick now, which is what this bound was right for. */
   max-width: 22ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* The diagnosis, full width and wrapping. */
+.irc-fault {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgb(var(--danger) / 0.4);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--danger) / 0.08);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: rgb(var(--fg-default));
+}
+.irc-fault svg { flex: none; margin-top: 0.1rem; color: rgb(var(--danger)); }
+.irc-fault code {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+  color: rgb(var(--fg-strong));
 }
 
 .irc-notice {
@@ -508,6 +671,32 @@ async function sendTest() {
 
 /* ── form ─────────────────────────────────────────────────────────────── */
 .irc-form { display: flex; flex-direction: column; gap: 1rem; }
+.irc-cards { display: flex; flex-direction: column; gap: 1rem; }
+.irc-cards--off { opacity: 0.55; }
+.irc-master {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid rgb(var(--line-strong));
+  border-radius: var(--radius-md);
+  background: rgb(var(--bg-elevated));
+}
+.irc-master--off { border-color: rgb(var(--line-default)); }
+.irc-conn {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: end;
+}
+@media (min-width: 40rem) {
+  .irc-conn { grid-template-columns: minmax(0, 1fr) 7rem auto; }
+}
+.irc-req {
+  color: rgb(var(--accent-warm));
+  margin-left: 0.15rem;
+}
 .irc-card {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
@@ -526,9 +715,20 @@ async function sendTest() {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: 0.75rem;
+  /* From the top. `end` was an attempt to line a checkbox up with its
+     neighbours' inputs, and it made every row bottom-aligned instead — so a
+     cell with a three-line hint pushed its own label above the others'. The
+     server/port/TLS row that actually needed it has its own grid. */
+  align-items: start;
 }
 .irc-field { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
-.irc-field--narrow { max-width: 10rem; }
+/* A port is five digits: `max-width` inside a 13rem track left a 3rem hole in
+   the middle of the first row, and at one column it stranded a 160px field in
+   350px of space. Narrowing the TRACK is what was wanted. */
+.irc-field--narrow { max-width: 100%; }
+@media (min-width: 40rem) {
+  .irc-field--narrow { max-width: 8rem; }
+}
 .irc-field label {
   font-size: 0.625rem;
   font-weight: 700;
@@ -537,6 +737,22 @@ async function sendTest() {
   color: rgb(var(--fg-muted));
 }
 .irc-help { font-size: 0.6875rem; color: rgb(var(--fg-subtle)); }
+/* The count of what is stored, and the way back to it. */
+.irc-help--kept { color: rgb(var(--fg-muted)); }
+.irc-help--rule {
+  padding-top: 0.5rem;
+  border-top: 1px solid rgb(var(--line-default));
+}
+.irc-linkbtn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: rgb(var(--info));
+  cursor: pointer;
+  text-decoration: underline;
+}
+.irc-export { margin-top: 0.2rem; }
 .irc-mono { font-family: var(--font-mono); font-size: 0.75rem; }
 .irc-switch {
   display: flex;
@@ -548,7 +764,9 @@ async function sendTest() {
   /* The whole row is the target, so the checkbox is not a 13px hit area. */
   min-height: 2.25rem;
 }
-.irc-switch--inline { margin-top: 1rem; }
+/* No `margin-top` hack. `align-items: end` on the grid does the alignment, and
+   the hack became a stray 16px gap the moment the grid dropped to one column. */
+.irc-switch--inline { min-height: 2.25rem; }
 
 .irc-preview {
   border: 1px dashed rgb(var(--line-strong));
@@ -570,6 +788,10 @@ async function sendTest() {
   color: rgb(var(--fg-default));
   overflow-x: auto;
   white-space: pre;
+}
+.irc-preview-line:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
 }
 
 .irc-tokens { font-size: 0.75rem; }
@@ -610,9 +832,10 @@ async function sendTest() {
 .irc-message--bad { color: rgb(var(--danger)); }
 .irc-spin { animation: irc-spin 900ms linear infinite; }
 @keyframes irc-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) {
-  .irc-spin { animation-duration: 2.4s; }
-}
+/* No local `prefers-reduced-motion` block: `main.css` already overrides every
+   animation duration to 0.01ms with `!important`, so the 2.4s this used to
+   declare never applied. Code that claims to handle a case already handled is
+   worse than no code, because the next reader believes it. */
 
 .irc-card--stats { gap: 0.5rem; }
 .irc-stats {

@@ -25,6 +25,7 @@
     "size": "Size",
     "category": "Category",
     "hash": "Hash",
+    "refresh": "Refresh",
     "copy": "Copy",
     "copied": "Copied",
     "open": "Open",
@@ -3907,16 +3908,16 @@
     "irc": {
       "eyebrow": "Integration",
       "title": "IRC announce channel",
-      "lede": "One line in a channel per accepted upload — the mechanism autobrr and autodl-irssi race on. An RSS feed is polled; a channel message arrives.",
-      "kept": "unchanged",
+      "lede": "One line in a channel per accepted upload — the mechanism autobrr and autodl-irssi watch. An RSS feed has to be asked; a channel message arrives on its own.",
+      "kept": "saved",
       "saved": "Saved.",
-      "failed": "That did not work.",
+      "failed": "Saving failed. Check that the API is reachable and try again.",
       "test": "Say a test line",
       "tested": "Sent: {line}",
       "definition": "autobrr definition",
       "preview": "What the channel will see",
       "tokensTitle": "Fields you can put in the line",
-      "unmapped": "for people",
+      "unmapped": "not in the pattern",
       "notLeader": "Another API instance holds the connection — exactly one does, so that a release is announced once. The state above is what this instance knows.",
       "states": {
         "idle": "Not announcing",
@@ -3959,12 +3960,17 @@
         "dropped": "Lines dropped because the queue was full while the connection was down. The oldest go first: on an announce channel a stale release is worth less than a fresh one."
       },
       "stats": {
-        "sent": "Lines said",
+        "sent": "Lines sent",
         "queued": "Waiting",
         "dropped": "Dropped",
         "since": "In the channel since"
       },
-      "performKept": "{n} line(s) stored — type to replace them"
+      "performKept": "1 line stored. Writing here replaces it; leaving it empty keeps it. | {n} lines stored. Writing here replaces them all; leaving it empty keeps them.",
+      "performReset": "Keep them",
+      "optional": "Everything in this card is optional.",
+      "secretsKept": "Leave a password field empty to keep the one already saved.",
+      "faultLead": "The last attempt failed:",
+      "testWhen": "Available once the bot is in the channel."
     }
   },
   "mod": {

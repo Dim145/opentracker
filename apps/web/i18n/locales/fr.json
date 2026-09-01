@@ -25,6 +25,7 @@
     "size": "Taille",
     "category": "Catégorie",
     "hash": "Hash",
+    "refresh": "Rafraîchir",
     "copy": "Copier",
     "copied": "Copié",
     "open": "Ouvrir",
@@ -3907,16 +3908,16 @@
     "irc": {
       "eyebrow": "Intégration",
       "title": "Canal d’annonce IRC",
-      "lede": "Une ligne dans un canal par upload accepté — le mécanisme sur lequel autobrr et autodl-irssi courent. Un flux RSS se sonde ; un message de canal arrive.",
-      "kept": "inchangé",
+      "lede": "Une ligne dans un canal par upload accepté — le mécanisme qu’autobrr et autodl-irssi surveillent. Un flux RSS, il faut l’interroger ; un message de canal arrive de lui-même.",
+      "kept": "enregistré",
       "saved": "Enregistré.",
-      "failed": "Ça n’a pas fonctionné.",
+      "failed": "L’enregistrement a échoué. Vérifiez que l’API répond, puis réessayez.",
       "test": "Envoyer une ligne de test",
       "tested": "Envoyé : {line}",
       "definition": "Définition autobrr",
       "preview": "Ce que verra le canal",
       "tokensTitle": "Champs disponibles dans la ligne",
-      "unmapped": "pour les humains",
+      "unmapped": "pas dans le motif",
       "notLeader": "Une autre instance de l’API tient la connexion — une seule le fait, pour qu’une release soit annoncée une fois. L’état ci-dessus est ce que cette instance sait.",
       "states": {
         "idle": "Pas d’annonce",
@@ -3959,12 +3960,17 @@
         "dropped": "Lignes abandonnées parce que la file était pleine pendant une coupure. Les plus anciennes partent d’abord : sur un canal d’annonce, une release rassie vaut moins qu’une fraîche."
       },
       "stats": {
-        "sent": "Lignes dites",
+        "sent": "Lignes envoyées",
         "queued": "En attente",
         "dropped": "Abandonnées",
         "since": "Dans le canal depuis"
       },
-      "performKept": "{n} ligne(s) enregistrée(s) — écrivez pour les remplacer"
+      "performKept": "1 ligne enregistrée. Écrire ici la remplace ; laisser vide la conserve. | {n} lignes enregistrées. Écrire ici les remplace toutes ; laisser vide les conserve.",
+      "performReset": "Les conserver",
+      "optional": "Tout ce qui figure dans cette carte est facultatif.",
+      "secretsKept": "Laissez un champ de mot de passe vide pour conserver celui déjà enregistré.",
+      "faultLead": "La dernière tentative a échoué :",
+      "testWhen": "Disponible quand le bot est dans le canal."
     }
   },
   "mod": {
