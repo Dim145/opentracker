@@ -68,11 +68,18 @@ would cover the thing you are judging.
 **Contrast is checked, not enforced.** It warns; it does not refuse.
 
 The **Contrast** group in the editor measures every combination the interface
-paints text in — twenty of them — and shows each with its ratio, the minimum it
-needs, and a sample drawn in the two colours being measured. The count in the
-group header is the summary: `20/20` means the theme is readable everywhere.
-Failures are also raised as a warning above the fields, so a theme cannot fail
-quietly.
+paints text in — twenty of them — under named columns: a sample drawn in the two
+colours being measured and at the size they are used, what the pair is, the ratio
+measured, and the minimum it needs. Under each pair's name are **the two token
+names**, so the reader knows which of the two to change rather than having to
+guess. The count in the group header is the summary: `20/20` means the theme is
+readable everywhere. Failures are also raised as a warning above the fields, so a
+theme cannot fail quietly.
+
+**What the gate cannot see.** It measures token *pairs*. A colour written as a
+hex literal inside a component's own stylesheet is invisible to it — which is
+how three such literals in the credentials card shipped at 1.6:1 to 2:1 in the
+light theme. If you are writing a component, use the tokens.
 
 Showing the passing pairs is the point rather than clutter: 4.6:1 and 12:1 both
 look like silence when only failures are listed, and one of them breaks on the

@@ -10,9 +10,14 @@ is most of them.
 Search the catalogue as usual, then **Save this search**. The filter is taken
 from what is on screen, which is the point: retyping criteria into a separate
 form is how a saved search ends up not matching what you were actually looking
-at.
+at. That includes a filter by media id — browsing one film's IMDb id and asking
+to be told about it is exactly the watch worth saving.
 
-Manage them at **/alerts**.
+The control appears even on a search with **no results**, which is the most
+valuable moment to save one: nothing matches yet, tell me when it does.
+
+Manage them at **/alerts** — reachable from the account menu, from the command
+palette, and from **Manage alerts** beside the save control.
 
 ## What a filter can hold
 
@@ -31,6 +36,10 @@ Blu-Ray x265" is three tags, not three new fields.
 
 A filter with no criteria at all is refused: it would match every upload
 forever, which is not a saved search but a firehose.
+
+Each row on **/alerts** says whether it will actually notify you, how many times
+it has matched, and when it last did. Deleting one asks first: the criteria live
+on the catalogue page, so getting it back means rebuilding the search.
 
 ## What it matches against
 

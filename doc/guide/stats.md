@@ -9,16 +9,29 @@ administrators — a member saw four counters on the homepage and nothing else.
 
 ## What is on it
 
-- **Right now** — releases and the bytes they add up to, members, seeders and
-  leechers, completed downloads, total traffic.
-- **How it got here** — releases, members and traffic per day over 30, 90 or 365
-  days.
-- **What is in the catalogue** — releases and bytes per category.
-- **Most snatched** and **biggest swarms** — ten releases each.
-- **Who is uploading** — the ten members with the most live releases.
+- **Right now** — releases, members, seeders, snatches and traffic since the
+  beginning. The releases and members figures each carry the change over the
+  window shown below them, so the page answers "is the site growing" without
+  scrolling to a chart.
+- **How it got here** — releases and members over 30, 90 or 365 days, plus
+  traffic per day across the full width. Each chart labels the top and bottom of
+  its own scale: the two cumulative series are anchored at their minimum, not at
+  zero, because the slope is the story, and an unlabelled min-anchored axis is
+  the oldest way to overstate growth. Above 120 points the traffic bars are
+  summed into weeks — 365 bars in the space available cannot be read — and the
+  axis says `per week` when that happens. The collapsed table under each chart
+  always carries every point.
+- **What is in the catalogue** — releases and bytes per category. Each bar is the
+  category's **share of the catalogue**, so two categories can be compared by
+  eye.
+- **Most snatched** and **biggest swarms** — ten releases each, with size and
+  count in named columns. Both are **all time**: the window switcher above
+  governs the history panel only, which is why their titles say so.
+- **Who is filling the catalogue** — the ten members with the most live releases.
 - **The year in review** — one year at a time, with a monthly breakdown, the
   busiest categories and releases, and the busiest single day.
-- **Your year** — your own uploads, snatches, bytes, seed time and bonus.
+- **Your year** — your own uploads, snatches, bytes, seed time and bonus, as a
+  section of its own at the same weight as the rest of the page.
 
 ## What is deliberately not on it
 

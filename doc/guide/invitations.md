@@ -92,15 +92,29 @@ The data has always been here, in `invitations.created_by` and
 `invitations.used_by`. Both pages that read it only ever rendered one
 generation.
 
+### Getting there
+
+From the sidebar, or — more usefully — from **Invite tree** in the staff section
+of any member's profile, which opens the page already on that member. The
+procedure starts on the account you suspect, so retyping a username was the
+wrong way in.
+
 ### Reading it
 
-- **Upwards** is a chain, nearest first: `generation 1` is whoever invited the
-  member you looked up.
-- **Downwards** is a tree, indented by generation.
-- A **banned** account is marked. An **erased** one renders as a tombstone
-  rather than a link — erasure scrubs the username and leaves every invitation
-  row intact, so the *edges* survive perfectly, which is exactly what a
-  genealogy needs, but the name behind them is gone.
+- **Sponsors** is a chain, nearest first: `generation 1` is whoever invited the
+  member you looked up, and each step right is one generation further back.
+- **Invited by …** is a tree, indented by generation, with one guide line per
+  generation so a name can be traced to its own sponsor. A summary line above it
+  gives the figure the procedure runs on: how many members, **how many of them
+  are banned**, and over how many generations.
+- Each row carries the date the invitation was used, so a cluster of bans can be
+  told apart from three years of ordinary history.
+- A **banned** account is marked in words as well as in colour. An **erased** one
+  renders as a tombstone rather than a link — erasure scrubs the username and
+  leaves every invitation row intact, so the *edges* survive perfectly, which is
+  exactly what a genealogy needs, but the name behind them is gone.
+- The tree is announced as a tree: each row carries its generation as
+  `aria-level`, so the hierarchy is not carried by indentation alone.
 
 ### Where a chain ends
 

@@ -122,7 +122,27 @@ announce on your behalf; a read key cannot. See [API keys](../guide/api-keys.md)
 The three credentials are stored encrypted at rest, with the same key as the
 notification-channel secrets (`CHANNEL_ENCRYPTION_KEY`, falling back to
 `NUXT_SESSION_SECRET`). The console never returns them; a blank field means
-"keep the stored one".
+"keep the stored one", and the console says so under the fields rather than
+leaving it to a placeholder.
+
+### Reading the console
+
+- **The switch at the top governs everything below it.** With it off, the three
+  cards are dimmed and inert: what you type there will not be announced until
+  you turn it on, and the page says that by making the fields unreachable rather
+  than by leaving them looking live.
+- **Four fields are required** and marked with a `*`: server, port, nick and
+  channel. Everything else is optional.
+- **The state block refreshes itself** while the answer is still moving —
+  connecting, registering, joining — and there is a reload button beside it. When
+  the state is `error`, the reason is printed in full underneath rather than
+  truncated into the state block.
+- **The autobrr definition** downloads from the *What to say* card, beside the
+  template it is derived from.
+- **Test line** says a fixed sentence, not your template: a route that let staff
+  put arbitrary text in a channel would be a broadcast surface. It answers "is
+  the bot connected"; the live preview under the template answers "is my format
+  right".
 
 ### Adult releases
 
