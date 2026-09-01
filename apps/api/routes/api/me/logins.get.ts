@@ -46,10 +46,21 @@ function labelAddresses<T extends { ipHash: string | null; createdAt: Date }>(
     // Keyed on hash AND day, because the salt rotates daily: the same address
     // is a different hash tomorrow, and pretending otherwise would invent a
     // continuity the data does not have.
-    const key = `${ipHash}:${row.createdAt.toISOString().slice(0, 10)}`;
+    //
+    // Numbered WITHIN the day, not across the response. A single counter over
+    // the whole page meant one home address on five different days rendered as
+    // `#1 #2 #3 #4 #5` — so the ordinary case, one place over many days, looked
+    // exactly like five different places, on the one screen whose entire job is
+    // spotting somebody else signing in as you. Restarting each day also makes
+    // the "only comparable within one day" caveat something the numbers say for
+    // themselves rather than something a footnote has to teach.
+    const day = row.createdAt.toISOString().slice(0, 10);
+    const key = `${ipHash}:${day}`;
     let ordinal = seen.get(key);
     if (ordinal === undefined) {
-      ordinal = seen.size + 1;
+      let next = 1;
+      for (const k of seen.keys()) if (k.endsWith(`:${day}`)) next += 1;
+      ordinal = next;
       seen.set(key, ordinal);
     }
     return { ...rest, address: `#${ordinal}` } as Omit<T, 'ipHash'> & { address: string };

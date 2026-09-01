@@ -554,8 +554,9 @@
       "loginHistory": "Historique de connexion",
       "loginHistoryHint": "D'où ce compte s'est connecté, tentatives échouées comprises.",
       "loginHistoryShow": "Afficher",
-      "loginHistoryEmpty": "Aucune connexion enregistrée pour le moment.",
-      "loginHistoryNote": "Les adresses sont hachées avec un sel qui change chaque jour : deux lignes ne sont comparables qu'au sein d'une même journée. Les heures sont en UTC.",
+      "loginHistoryEmpty": "Rien d’enregistré pour l’instant — les connexions sont conservées 90 jours, et celle-ci n’est peut-être pas encore écrite.",
+      "loginHistoryNote": "Les adresses s’affichent en #1, #2… et sont numérotées par journée : le même lieu est #1 chaque jour, et un second numéro dans une même journée signifie un second lieu ce jour-là. Les heures sont en UTC. Les {n} dernières connexions ; les événements sont conservés 90 jours.",
+      "loginClient": "Client",
       "loginWhen": "Quand (UTC)",
       "loginMethod": "Méthode",
       "loginAddress": "Adresse",
@@ -1017,8 +1018,8 @@
       "address": "Adresse",
       "agent": "Client",
       "refused": "refusée",
-      "multipleToday": "{count} adresses différentes sur la journée la plus récente.",
-      "note": "Les adresses sont hachées avec un sel qui change chaque jour : elles ne sont comparables qu'au sein d'une même journée — deux hachés différents à une semaine d'intervalle peuvent très bien être la même adresse."
+      "multipleToday": "{count} adresses différentes le {day}, sur {logins} connexions.",
+      "note": "Les adresses s’affichent en #1, #2… et sont numérotées par journée : le même lieu est #1 chaque jour, et un second numéro dans une même journée signifie un second lieu ce jour-là. Les {n} dernières connexions affichées ; les événements sont conservés 90 jours."
     }
   },
   "following": {

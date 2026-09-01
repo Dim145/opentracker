@@ -549,6 +549,8 @@
                 type="button"
                 class="btn-ghost"
                 :disabled="loginsLoading"
+                :aria-expanded="loginsOpen"
+                aria-controls="me-logins"
                 @click="toggleLogins"
               >
                 <Icon
@@ -559,35 +561,57 @@
               </button>
             </article>
 
-            <div v-if="loginsOpen" class="logins">
+            <div v-if="loginsOpen" id="me-logins" class="logins">
               <p v-if="!logins.length" class="logins-empty">
                 {{ $t('settings.security.loginHistoryEmpty') }}
               </p>
-              <table v-else class="logins-table">
-                <thead>
-                  <tr>
-                    <th scope="col">{{ $t('settings.security.loginWhen') }}</th>
-                    <th scope="col">{{ $t('settings.security.loginMethod') }}</th>
-                    <th scope="col">{{ $t('settings.security.loginAddress') }}</th>
-                    <th scope="col">{{ $t('settings.security.loginResult') }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="l in logins" :key="l.id" :class="{ 'logins-row--failed': l.outcome !== 'success' }">
-                    <td class="logins-when">
-                      <time :datetime="l.createdAt">{{ loginStamp(l.createdAt) }}</time>
-                    </td>
-                    <td>{{ $t(`settings.security.loginMethods.${l.method}`) }}</td>
-                    <td><code class="logins-hash">{{ l.address || '—' }}</code></td>
-                    <td>
-                      <span :class="l.outcome === 'success' ? 'logins-ok' : 'logins-bad'">
-                        {{ $t(`settings.security.loginOutcomes.${l.outcome}`) }}
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <p class="logins-note">{{ $t('settings.security.loginHistoryNote') }}</p>
+              <!-- A scroll frame, and focusable, so the keyboard can reach the
+                   width the mouse can drag. -->
+              <div
+                v-else
+                class="logins-frame"
+                tabindex="0"
+                role="region"
+                :aria-label="$t('settings.security.loginHistory')"
+              >
+                <table class="logins-table">
+                  <caption class="sr-only">{{ $t('settings.security.loginHistory') }}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{{ $t('settings.security.loginWhen') }}</th>
+                      <th scope="col">{{ $t('settings.security.loginMethod') }}</th>
+                      <th scope="col">{{ $t('settings.security.loginAddress') }}</th>
+                      <!-- The column that answers the question. The device
+                           string was fetched, typed on `LoginEvent`, and shown
+                           only to STAFF — so the member, the one person who
+                           knows which devices they own, could not see "Chrome on
+                           Windows" against their iPhone-and-Mac life, while a
+                           moderator who knows nothing about their hardware
+                           could. -->
+                      <th scope="col">{{ $t('settings.security.loginClient') }}</th>
+                      <th scope="col">{{ $t('settings.security.loginResult') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="l in logins" :key="l.id" :class="{ 'logins-row--failed': l.outcome !== 'success' }">
+                      <td class="logins-when">
+                        <time :datetime="l.createdAt">{{ loginStamp(l.createdAt) }}</time>
+                      </td>
+                      <td>{{ $t(`settings.security.loginMethods.${l.method}`) }}</td>
+                      <td><code class="logins-hash">{{ l.address || '—' }}</code></td>
+                      <td class="logins-agent">{{ l.userAgent || '—' }}</td>
+                      <td>
+                        <span :class="l.outcome === 'success' ? 'logins-ok' : 'logins-bad'">
+                          {{ $t(`settings.security.loginOutcomes.${l.outcome}`) }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="logins-note">
+                {{ $t('settings.security.loginHistoryNote', { n: logins.length }) }}
+              </p>
             </div>
           </div>
         </section>
@@ -2402,6 +2426,25 @@ onBeforeRouteLeave((_to, _from, next) => {
   margin-top: 0.75rem;
 }
 .logins-empty,
+/* A scroll frame for a table wider than a phone, like `.swarm-frame` on the
+   torrent page. Neither login table had one, nor any media query, so at 390px
+   the columns simply crushed each other. Focusable, because a scroll container
+   the keyboard cannot reach hides whatever it is scrolling. */
+.logins-frame {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.logins-frame:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+.logins-table { min-width: 34rem; }
+.logins-agent {
+  max-width: 18rem;
+  overflow-wrap: anywhere;
+  color: rgb(var(--fg-subtle));
+  font-size: 0.75rem;
+}
 .logins-note {
   margin: 0;
   font-size: 0.75rem;

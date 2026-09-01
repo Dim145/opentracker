@@ -554,8 +554,9 @@
       "loginHistory": "Login history",
       "loginHistoryHint": "Where this account has been signed in from, including attempts that failed.",
       "loginHistoryShow": "Show",
-      "loginHistoryEmpty": "No sign-ins recorded yet.",
-      "loginHistoryNote": "Addresses are hashed with a salt that changes daily, so two rows can only be compared within the same day. Times are UTC.",
+      "loginHistoryEmpty": "Nothing recorded yet — sign-ins are kept for 90 days, and this one may not have been written yet.",
+      "loginHistoryNote": "Addresses show as #1, #2… and are numbered per day: the same place is #1 every day, and a second number within one day means a second place that day. Times are UTC. Showing the {n} most recent sign-ins; events are kept for 90 days.",
+      "loginClient": "Client",
       "loginWhen": "When (UTC)",
       "loginMethod": "Method",
       "loginAddress": "Address",
@@ -1017,8 +1018,8 @@
       "address": "Address",
       "agent": "Client",
       "refused": "refused",
-      "multipleToday": "{count} different addresses on the most recent day.",
-      "note": "Addresses are hashed with a salt that changes daily, so they can only be compared within the same day — two different hashes a week apart may well be the same address."
+      "multipleToday": "{count} different addresses on {day}, across {logins} sign-ins.",
+      "note": "Addresses show as #1, #2… and are numbered per day: the same place is #1 every day, and a second number within one day means a second place that day. Showing the {n} most recent sign-ins; events are kept for 90 days."
     }
   },
   "following": {

@@ -293,7 +293,14 @@
 
       <div class="logins-head">
         <p class="logins-lede">{{ $t('users.logins.lede') }}</p>
-        <button type="button" class="btn btn-secondary btn-sm" :disabled="loginsLoading" @click="toggleLogins">
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          :disabled="loginsLoading"
+          :aria-expanded="loginsOpen"
+          aria-controls="user-logins-body"
+          @click="toggleLogins"
+        >
           <Icon
             :name="loginsLoading ? 'ph:circle-notch' : loginsOpen ? 'ph:caret-up-bold' : 'ph:caret-down-bold'"
             :class="{ 'animate-spin': loginsLoading }"
@@ -302,16 +309,27 @@
         </button>
       </div>
 
-      <template v-if="loginsOpen">
-        <p
-          v-if="distinctToday > 1"
-          class="logins-flag"
-        >
+      <div v-if="loginsOpen" id="user-logins-body">
+        <!-- Threshold at 3, not 2: a phone plus a laptop trips 2, so a
+             warning-tinted panel fired on the median member and taught the
+             reader to ignore it. And it names the day and the login count —
+             "the most recent day" could be today or four months ago, and both
+             figures were already in the payload and dropped on the floor. -->
+        <p v-if="distinctToday > 2" class="logins-flag">
           <Icon name="ph:warning-bold" />
-          {{ $t('users.logins.multipleToday', { count: distinctToday }) }}
+          {{ $t('users.logins.multipleToday', {
+            count: distinctToday,
+            day: latestLoginDay,
+            logins: loginsThatDay,
+          }) }}
         </p>
         <p v-if="!logins.length" class="logins-lede">{{ $t('users.logins.empty') }}</p>
-        <table v-else class="logins-table">
+        <!-- A scroll frame, like `.swarm-frame` on the torrent page. Four
+             columns including a 120-character user-agent, with no wrapper and no
+             media query, shredded each row into a thirty-line ribbon at 390px —
+             one row per screen, for a moderator investigating on a phone. -->
+        <div v-else class="logins-frame" tabindex="0" role="region" :aria-label="$t('users.logins.title')">
+        <table class="logins-table">
           <thead>
             <tr>
               <th scope="col">{{ $t('users.logins.when') }}</th>
@@ -326,7 +344,12 @@
                 <time :datetime="l.createdAt">{{ loginStamp(l.createdAt) }}</time>
               </td>
               <td>
-                {{ l.method }}
+                <!-- Translated, like the member's own view of the same column.
+                     A moderator read `trusted-device` and `totp` while the
+                     member read "Trusted device" and "Authenticator", so the two
+                     halves of one investigation used different vocabularies for
+                     the same fact. -->
+                {{ loginMethod(l.method) }}
                 <span v-if="l.outcome !== 'success'" class="logins-bad">
                   · {{ $t('users.logins.refused') }}
                 </span>
@@ -336,8 +359,9 @@
             </tr>
           </tbody>
         </table>
-        <p class="logins-note">{{ $t('users.logins.note') }}</p>
-      </template>
+        </div>
+        <p class="logins-note">{{ $t('users.logins.note', { n: logins.length }) }}</p>
+      </div>
     </section>
 
     <!-- Report modal — opens from the tear-off tab on the hero.
@@ -359,7 +383,7 @@
 import { formatSize, formatDay, formatAge } from '~/utils/format';
 import { getCategoryIcon } from '~/utils/categoryIcon';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 
 interface UserProfile {
   id: string;
@@ -431,6 +455,17 @@ const loginsOpen = ref(false);
 const loginsLoading = ref(false);
 const logins = ref<LoginEvent[]>([]);
 const distinctToday = ref(0);
+/* Which day the count above is about, and how many sign-ins it covers. The
+   route returns both and the page dropped both, so "the most recent day" could
+   have been today or four months ago. */
+const latestLoginDay = ref('—');
+const loginsThatDay = ref(0);
+
+/** The member's own vocabulary for the same enum. */
+function loginMethod(method: string): string {
+  const key = `settings.security.loginMethods.${method}`;
+  return te(key) ? t(key) : method;
+}
 
 async function toggleLogins() {
   if (loginsOpen.value) {
@@ -444,9 +479,13 @@ async function toggleLogins() {
       const res = await $fetch<{
         items: LoginEvent[];
         distinctAddressesToday: number;
+        distinctAddressesDay: string | null;
+        successfulLoginsThatDay: number;
       }>(url);
       logins.value = res.items;
       distinctToday.value = res.distinctAddressesToday;
+      latestLoginDay.value = res.distinctAddressesDay ?? '—';
+      loginsThatDay.value = res.successfulLoginsThatDay;
     } catch {
       loginsLoading.value = false;
       return;
@@ -1761,6 +1800,25 @@ useHead({
   margin-bottom: 0.75rem;
 }
 .logins-lede,
+/* A scroll frame for a table wider than a phone, like `.swarm-frame` on the
+   torrent page. Neither login table had one, nor any media query, so at 390px
+   the columns simply crushed each other. Focusable, because a scroll container
+   the keyboard cannot reach hides whatever it is scrolling. */
+.logins-frame {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.logins-frame:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+.logins-table { min-width: 34rem; }
+.logins-agent {
+  max-width: 18rem;
+  overflow-wrap: anywhere;
+  color: rgb(var(--fg-subtle));
+  font-size: 0.75rem;
+}
 .logins-note {
   margin: 0;
   max-width: 60ch;
