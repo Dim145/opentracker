@@ -10,24 +10,43 @@ import (
 )
 
 const findActiveTorrentByInfoHash = `-- name: FindActiveTorrentByInfoHash :one
-SELECT id
+SELECT id,
+       CASE WHEN multipliers_until IS NULL OR multipliers_until > now()
+            THEN download_multiplier ELSE 100 END AS download_multiplier,
+       CASE WHEN multipliers_until IS NULL OR multipliers_until > now()
+            THEN upload_multiplier   ELSE 100 END AS upload_multiplier
   FROM torrents
  WHERE info_hash = $1
    AND is_active = true
  LIMIT 1
 `
 
+type FindActiveTorrentByInfoHashRow struct {
+	ID                 string
+	DownloadMultiplier int32
+	UploadMultiplier   int32
+}
+
 // Returns the active torrent matching the given hex info_hash, or no rows
 // if either it doesn't exist or it's been deactivated.
-func (q *Queries) FindActiveTorrentByInfoHash(ctx context.Context, infoHash string) (string, error) {
+//
+// The two multipliers come back with it, already neutralised when the buff has
+// lapsed. Doing that here rather than in Go is what keeps the announce path
+// free of clock logic AND free of a sweep that has to run on time: a buff
+// expires the moment its timestamp passes, whether or not anything noticed.
+func (q *Queries) FindActiveTorrentByInfoHash(ctx context.Context, infoHash string) (FindActiveTorrentByInfoHashRow, error) {
 	row := q.db.QueryRow(ctx, findActiveTorrentByInfoHash, infoHash)
-	var id string
-	err := row.Scan(&id)
-	return id, err
+	var i FindActiveTorrentByInfoHashRow
+	err := row.Scan(&i.ID, &i.DownloadMultiplier, &i.UploadMultiplier)
+	return i, err
 }
 
 const findActiveTorrentByInfoHashV2Short = `-- name: FindActiveTorrentByInfoHashV2Short :one
-SELECT id, info_hash
+SELECT id, info_hash,
+       CASE WHEN multipliers_until IS NULL OR multipliers_until > now()
+            THEN download_multiplier ELSE 100 END AS download_multiplier,
+       CASE WHEN multipliers_until IS NULL OR multipliers_until > now()
+            THEN upload_multiplier   ELSE 100 END AS upload_multiplier
   FROM torrents
  WHERE left(info_hash_v2, 40) = $1::text
    AND is_active = true
@@ -35,8 +54,10 @@ SELECT id, info_hash
 `
 
 type FindActiveTorrentByInfoHashV2ShortRow struct {
-	ID       string
-	InfoHash string
+	ID                 string
+	InfoHash           string
+	DownloadMultiplier int32
+	UploadMultiplier   int32
 }
 
 // The BEP 52 second swarm.
@@ -61,6 +82,11 @@ type FindActiveTorrentByInfoHashV2ShortRow struct {
 func (q *Queries) FindActiveTorrentByInfoHashV2Short(ctx context.Context, announcedHash string) (FindActiveTorrentByInfoHashV2ShortRow, error) {
 	row := q.db.QueryRow(ctx, findActiveTorrentByInfoHashV2Short, announcedHash)
 	var i FindActiveTorrentByInfoHashV2ShortRow
-	err := row.Scan(&i.ID, &i.InfoHash)
+	err := row.Scan(
+		&i.ID,
+		&i.InfoHash,
+		&i.DownloadMultiplier,
+		&i.UploadMultiplier,
+	)
 	return i, err
 }

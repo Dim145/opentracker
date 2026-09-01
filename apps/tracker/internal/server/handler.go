@@ -322,7 +322,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// halves of that swarm under one Redis key — every keyed operation below
 	// (dedup window, peer set, completed counter, seed time, anti-cheat) reads
 	// this variable and therefore agrees. See db.ResolveAnnouncedTorrent.
-	torrentID, swarmKey, err := s.db.ResolveAnnouncedTorrent(ctx, infoHashHex)
+	resolved, err := s.db.ResolveAnnouncedTorrent(ctx, infoHashHex)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return AnnounceOutcome{Failure: "Torrent not found or inactive"}
@@ -330,13 +330,14 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		slog.Error("internal error", "where", "find torrent", "err", err)
 		return AnnounceOutcome{Failure: "Internal tracker error"}
 	}
-	if swarmKey != infoHashHex {
+	torrentID := resolved.ID
+	if resolved.SwarmKey != infoHashHex {
 		// A v2 announce. Logged at debug rather than info: it is entirely
 		// normal, happens every interval for every v2-capable peer, and the
 		// only reason to want it is diagnosing a swarm that looks split.
 		slog.Debug("v2 announce folded into the v1 swarm",
-			"announced", infoHashHex, "swarm", swarmKey)
-		infoHashHex = swarmKey
+			"announced", infoHashHex, "swarm", resolved.SwarmKey)
+		infoHashHex = resolved.SwarmKey
 	}
 
 	// 4. Dedup window — skip if same {hash,peer,event} fired within 2 seconds
@@ -555,14 +556,23 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		}
 	}
 
-	// 5b. Apply the active bonus event multipliers (Freeleech /
-	// Silverleech / custom) before persisting. The resolver reads
-	// from a 30 s in-memory cache backed by Redis, so this is a
-	// near-zero-cost call when no event is active. With identity
-	// (1x/1x) the deltas are unchanged. The cap above guarantees
-	// the multiplication can never overflow int64
-	// (1 TiB × 1000 / 100 = 10 TiB ≪ 9.2 EiB).
-	mults := s.bonus.Get(ctx)
+	// 5b. Apply the bonus multipliers before persisting.
+	//
+	// Two sources now. The site-wide event (Freeleech / Silverleech / custom)
+	// comes from a 30 s in-memory cache backed by Redis, so it is a near-zero
+	// cost call when nothing is running. The per-torrent buff arrived on the
+	// row we already had to read in step 3, so it costs nothing at all — and
+	// the SQL has already neutralised it if it lapsed, which is why there is no
+	// clock here.
+	//
+	// `Best` gives the member the better of the two on each axis rather than
+	// the product; see the note on it for why the product is the wrong answer.
+	// With no event and no buff both are identity and the deltas are unchanged.
+	//
+	// The 1 TiB cap above still guarantees the multiplication cannot overflow
+	// int64 (1 TiB × 1000 / 100 = 10 TiB ≪ 9.2 EiB), and `Best` cannot raise a
+	// multiplier above the larger of its two inputs, so it does not widen that.
+	mults := bonus.Best(s.bonus.Get(ctx), resolved.Multipliers)
 	deltaUp, deltaDown = mults.Apply(deltaUp, deltaDown)
 
 	// 6. Persist user stats deltas (best-effort: log but don't reject).
@@ -934,14 +944,14 @@ func (s *Server) ScrapeStats(
 	}
 	*resolveBudget--
 
-	_, swarmKey, err := s.db.ResolveAnnouncedTorrent(ctx, announcedHex)
-	if err != nil || swarmKey == announcedHex {
+	resolved, err := s.db.ResolveAnnouncedTorrent(ctx, announcedHex)
+	if err != nil || resolved.SwarmKey == announcedHex {
 		// Unknown, or a v1 hash that really has no peers. Either way the
 		// zeroes above are the honest answer.
 		return seeders, leechers, completed
 	}
-	seeders, leechers, _ = s.peers.Counts(ctx, swarmKey)
-	completed, _ = s.peers.CompletedCount(ctx, swarmKey)
+	seeders, leechers, _ = s.peers.Counts(ctx, resolved.SwarmKey)
+	completed, _ = s.peers.CompletedCount(ctx, resolved.SwarmKey)
 	return seeders, leechers, completed
 }
 

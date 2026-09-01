@@ -150,6 +150,19 @@
           :status="torrent.moderationStatus"
           size="sm"
         />
+        <!-- The buff this release carries ON ITS OWN. Deliberately blind to a
+             site-wide event: a badge on one torrent among a hundred has to
+             mean this one, or it means nothing. -->
+        <template v-if="buff">
+          <span class="hero-eyebrow-sep">·</span>
+          <span class="buff-badge" :class="`buff-badge--${buff.kind}`">
+            <Icon :name="buff.icon" />
+            {{ $t(`torrent.buff.${buff.kind}`) }}
+            <span v-if="buff.until" class="buff-until" :title="formatDate(buff.until)">
+              {{ $t('torrent.buff.until', { when: formatAge(buff.until) }) }}
+            </span>
+          </span>
+        </template>
         <span class="hero-eyebrow-spacer" aria-hidden="true" />
         <!-- Favorite star — sits to the left of the report button so
              the "save" action is the warmer affordance and the
@@ -591,6 +604,76 @@
       </div>
     </section>
 
+    <!-- § STAFF TOOLS — two blocks that share one thing: they are decisions
+         about a release rather than facts about it. Kept together so the page
+         has one operator area instead of three, and each block carries its own
+         gate. Pinning is editorial and any moderator may do it; the
+         multipliers mint credit and only an admin may. The form mirrors that
+         rather than hiding a 403 behind a button that looks available. -->
+    <section v-if="isStaff" class="section section--buffs">
+      <header class="section-head">
+        <span class="section-head-mark" aria-hidden="true">§</span>
+        <h2 class="section-head-title">{{ $t('torrents.detail.staffTools') }}</h2>
+        <span class="section-head-line" aria-hidden="true" />
+      </header>
+
+      <h3 class="staff-block-title">{{ $t('torrents.detail.buffs.title') }}</h3>
+      <p class="buffs-lede">{{ $t('torrents.detail.buffs.lede') }}</p>
+
+      <div class="buffs-grid">
+        <label class="buffs-field">
+          <span class="field-label">{{ $t('torrents.detail.buffs.download') }}</span>
+          <select v-model.number="buffForm.downloadMultiplier" class="input" :disabled="!user?.isAdmin">
+            <option :value="0">0× — {{ $t('torrent.buff.freeleech') }}</option>
+            <option :value="50">0.5× — {{ $t('torrent.buff.silverleech') }}</option>
+            <option :value="100">1× — {{ $t('torrents.detail.buffs.normal') }}</option>
+          </select>
+        </label>
+
+        <label class="buffs-field">
+          <span class="field-label">{{ $t('torrents.detail.buffs.upload') }}</span>
+          <select v-model.number="buffForm.uploadMultiplier" class="input" :disabled="!user?.isAdmin">
+            <option :value="100">1× — {{ $t('torrents.detail.buffs.normal') }}</option>
+            <option :value="150">1.5×</option>
+            <option :value="200">2× — {{ $t('torrent.buff.doubleUpload') }}</option>
+            <option :value="300">3×</option>
+          </select>
+        </label>
+
+        <label class="buffs-field">
+          <span class="field-label">{{ $t('torrents.detail.buffs.until') }}</span>
+          <input
+            v-model="buffForm.until"
+            type="datetime-local"
+            class="input"
+            :disabled="!user?.isAdmin"
+          />
+          <span class="buffs-hint">{{ $t('torrents.detail.buffs.untilHint') }}</span>
+        </label>
+
+        <label class="buffs-toggle">
+          <input v-model="buffForm.isSticky" type="checkbox" />
+          <span>{{ $t('torrents.detail.buffs.pin') }}</span>
+        </label>
+      </div>
+
+      <div class="buffs-actions">
+        <button type="button" class="btn btn-secondary" :disabled="buffBusy" @click="saveBuffs">
+          <Icon :name="buffBusy ? 'ph:circle-notch' : 'ph:check-bold'" :class="{ 'animate-spin': buffBusy }" />
+          {{ $t('torrents.detail.buffs.save') }}
+        </button>
+        <button
+          v-if="buff"
+          type="button"
+          class="btn-ghost"
+          :disabled="buffBusy || !user?.isAdmin"
+          @click="clearBuffs"
+        >
+          {{ $t('torrents.detail.buffs.clear') }}
+        </button>
+      </div>
+    </section>
+
     <!-- § SWARM — admin-only peer list. Operational data, kept as a
          table because that's the format that scans best. -->
     <section v-if="user?.isAdmin" class="section section--swarm">
@@ -736,6 +819,19 @@ interface TorrentDetail {
   // header badge + the inline panel can render without an extra
   // round-trip.
   moderationStatus?: 'pending' | 'accepted' | 'changes_requested' | 'rejected';
+  /**
+   * Per-torrent bonus buffs. Basis points ×100 as stored — `0` freeleech,
+   * `100` normal, `200` double upload — with `multipliersUntil` null when the
+   * buff has no end date.
+   *
+   * A lapsed buff is NOT neutralised in the payload: the row is sent as it is
+   * and the badge decides, so a staffer editing it sees the values that are
+   * actually stored rather than a helpful lie.
+   */
+  downloadMultiplier?: number;
+  uploadMultiplier?: number;
+  multipliersUntil?: string | null;
+  isSticky?: boolean;
   stats: {
     seeders: number;
     leechers: number;
@@ -1066,6 +1162,112 @@ async function toggleFedSwarm() {
 }
 const notifications = useNotificationStore();
 const confirm = useConfirm();
+
+/**
+ * The buff this release carries on its own, or null.
+ *
+ * Mirrors `apps/api/utils/torrentBuffs.buffLabel` — same four names, same
+ * "lapsed reads as none" rule. Duplicated here rather than sent pre-computed
+ * because the staff panel below edits the raw numbers, and a payload carrying
+ * both the numbers and a label derived from them is a payload with two answers
+ * to one question.
+ */
+const buff = computed(() => {
+  const t0 = torrent.value;
+  if (!t0 || t0.downloadMultiplier === undefined || t0.uploadMultiplier === undefined) {
+    return null;
+  }
+  const lapsed = !!t0.multipliersUntil && new Date(t0.multipliersUntil) <= new Date();
+  if (lapsed) return null;
+  const dl = t0.downloadMultiplier;
+  const ul = t0.uploadMultiplier;
+  if (dl === 100 && ul === 100) return null;
+
+  const kind =
+    dl === 0 && ul === 100
+      ? 'freeleech'
+      : dl === 50 && ul === 100
+        ? 'silverleech'
+        : dl === 100 && ul === 200
+          ? 'doubleUpload'
+          : 'custom';
+  const icon =
+    kind === 'freeleech'
+      ? 'ph:gift-fill'
+      : kind === 'silverleech'
+        ? 'ph:gift'
+        : kind === 'doubleUpload'
+          ? 'ph:arrow-fat-lines-up-fill'
+          : 'ph:sparkle-fill';
+  return { kind, icon, until: t0.multipliersUntil ?? null, dl, ul };
+});
+
+const isStaff = computed(
+  () => !!user.value && (user.value.isAdmin || user.value.isModerator)
+);
+
+/**
+ * The staff form's own state, seeded from the row and NOT bound to it.
+ *
+ * A `datetime-local` input wants `YYYY-MM-DDTHH:mm` in local time, while the
+ * row carries an ISO instant — so the two cannot share a ref without one of
+ * them being wrong. Seeding once and converting on save keeps the conversion
+ * in one place.
+ */
+const buffForm = reactive({
+  downloadMultiplier: 100,
+  uploadMultiplier: 100,
+  until: '',
+  isSticky: false,
+});
+const buffBusy = ref(false);
+
+watch(
+  torrent,
+  (t0) => {
+    if (!t0) return;
+    buffForm.downloadMultiplier = t0.downloadMultiplier ?? 100;
+    buffForm.uploadMultiplier = t0.uploadMultiplier ?? 100;
+    buffForm.isSticky = t0.isSticky ?? false;
+    // Trim the seconds and the zone: the input accepts neither.
+    buffForm.until = t0.multipliersUntil
+      ? new Date(t0.multipliersUntil).toISOString().slice(0, 16)
+      : '';
+  },
+  { immediate: true }
+);
+
+async function putBuffs(body: Record<string, unknown>) {
+  buffBusy.value = true;
+  try {
+    await $fetch(`/api/mod/torrents/${hash}/buffs`, { method: 'PUT', body });
+    await refresh();
+    notifications.success(t('torrents.detail.buffs.saved'));
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string }; message?: string };
+    notifications.error(e?.data?.message || e?.message || t('torrents.detail.buffs.failed'));
+  } finally {
+    buffBusy.value = false;
+  }
+}
+
+function saveBuffs() {
+  // A moderator may only send the pin — the multipliers would be refused, and
+  // sending them anyway would turn every pin into a 403.
+  if (!user.value?.isAdmin) {
+    return putBuffs({ isSticky: buffForm.isSticky });
+  }
+  return putBuffs({
+    downloadMultiplier: buffForm.downloadMultiplier,
+    uploadMultiplier: buffForm.uploadMultiplier,
+    until: buffForm.until ? new Date(buffForm.until).toISOString() : null,
+    isSticky: buffForm.isSticky,
+  });
+}
+
+function clearBuffs() {
+  return putBuffs({ downloadMultiplier: 100, uploadMultiplier: 100, until: null });
+}
 
 // Compute permissions
 const canEdit = computed(() => {
@@ -1883,10 +2085,12 @@ async function confirmDelete() {
 .section--nfo      { --section-tint: var(--warning); }
 .section--cross    { --section-tint: var(--release-purple); }
 .section--swarm    { --section-tint: var(--danger); }
+.section--buffs    { --section-tint: var(--accent-warm); }
 .section--activity .section-head-line,
 .section--nfo .section-head-line,
 .section--cross .section-head-line,
 .section--swarm .section-head-line,
+.section--buffs .section-head-line,
 .section--note .section-head-line {
   background: linear-gradient(
     90deg,
@@ -2907,5 +3111,90 @@ async function confirmDelete() {
   text-transform: lowercase;
   letter-spacing: calc(0.04em * var(--tracking-scale));
   color: rgb(var(--fg-default));
+}
+/* ── Buff badge (hero eyebrow) ────────────────────────────────────
+   Reads as a label, not a button: it states a fact about the release and
+   nothing about it is clickable. */
+.buff-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid rgb(var(--buff-tint) / 0.4);
+  border-radius: 0.25rem;
+  background: rgb(var(--buff-tint) / 0.12);
+  color: rgb(var(--buff-tint));
+  font-size: 0.66rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.buff-badge--freeleech    { --buff-tint: var(--online); }
+.buff-badge--silverleech  { --buff-tint: var(--info); }
+.buff-badge--doubleUpload { --buff-tint: var(--accent-warm); }
+.buff-badge--custom       { --buff-tint: var(--accent); }
+.buff-until {
+  opacity: 0.75;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ── Staff tools ──────────────────────────────────────────────────── */
+.staff-block-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-default));
+}
+.staff-block-title--spaced {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgb(var(--line-default));
+}
+
+/* ── Staff buff panel ─────────────────────────────────────────────── */
+.buffs-lede {
+  margin: 0 0 1rem;
+  max-width: 62ch;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: rgb(var(--fg-muted));
+}
+.buffs-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.85rem;
+}
+.buffs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 11rem;
+}
+.buffs-hint {
+  font-size: 0.7rem;
+  color: rgb(var(--fg-subtle));
+}
+.buffs-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-bottom: 0.55rem;
+  font-size: 0.8125rem;
+}
+.buffs-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 40rem) {
+  .buffs-field {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }
 </style>

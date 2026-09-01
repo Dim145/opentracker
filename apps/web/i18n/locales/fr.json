@@ -817,7 +817,22 @@
         "footer": "Document retenu à la demande du visiteur"
       },
       "uploaderAnonymous": "Anonyme",
-      "uploaderAnonymousTooltip": "Ce membre a choisi de ne pas associer son nom à ses publications."
+      "uploaderAnonymousTooltip": "Ce membre a choisi de ne pas associer son nom à ses publications.",
+      "buffs": {
+        "title": "Bonus de la release",
+        "lede": "Les multiplicateurs ne concernent que cette release. Si un événement global tourne en même temps, le membre reçoit le plus avantageux de chaque côté — un bonus ne peut jamais rendre un torrent plus cher. L'épinglage est éditorial : il remonte la release en tête des listings et ne change rien à son coût.",
+        "download": "Téléchargement",
+        "upload": "Envoi",
+        "normal": "Normal",
+        "until": "Fin",
+        "untilHint": "Laisser vide pour aucune date de fin.",
+        "pin": "Épingler en tête des listings",
+        "save": "Enregistrer",
+        "clear": "Retirer le bonus",
+        "saved": "Bonus mis à jour.",
+        "failed": "Les bonus n'ont pas pu être mis à jour."
+      },
+      "staffTools": "Outils du personnel"
     }
   },
   "search": {
@@ -877,6 +892,9 @@
       "sourcesAll": "Partout",
       "sourcesLocal": "Ici seulement",
       "sourcesHint": "Inclure les releases des instances partenaires"
+    },
+    "pinned": {
+      "title": "Épinglés"
     }
   },
   "users": {
@@ -1263,6 +1281,13 @@
         "changesRequestedTitle": "Un modérateur a demandé des modifications. Éditez le torrent pour le resoumettre.",
         "rejectedTitle": "Rejeté. Masqué des listes publiques ; seul un modérateur peut le déplacer ailleurs."
       }
+    },
+    "buff": {
+      "freeleech": "Freeleech",
+      "silverleech": "Silverleech",
+      "doubleUpload": "Upload doublé",
+      "custom": "Bonifié",
+      "until": "jusqu'à {when}"
     }
   },
   "bonus": {

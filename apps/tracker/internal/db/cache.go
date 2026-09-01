@@ -23,6 +23,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/florianjs/trackarr/apps/tracker/internal/bonus"
 	"github.com/florianjs/trackarr/apps/tracker/internal/queries"
 )
 
@@ -213,29 +214,53 @@ func (d *DB) IsIpBanned(ctx context.Context, ip string) (bool, error) {
 // per-announce cap and anti-cheat heuristics. Deduplicating by (user, torrent)
 // instead would mean rebuilding the peer store around a different key, which is
 // a much larger change than the bug warrants.
+// The per-torrent buffs ride along on the same row, so they cost nothing: the
+// lookup had to happen anyway, and the SQL has already neutralised a lapsed
+// buff. Callers combine them with the site-wide event via `bonus.Best`.
+type ResolvedTorrent struct {
+	ID string
+	// SwarmKey is the CANONICAL v1 info_hash, whichever form was announced.
+	SwarmKey    string
+	Multipliers bonus.Multipliers
+}
+
 func (d *DB) ResolveAnnouncedTorrent(
 	ctx context.Context,
 	announcedHex string,
-) (torrentID string, swarmKey string, err error) {
-	id, err := d.Q.FindActiveTorrentByInfoHash(ctx, announcedHex)
+) (ResolvedTorrent, error) {
+	row, err := d.Q.FindActiveTorrentByInfoHash(ctx, announcedHex)
 	if err == nil {
-		return id, announcedHex, nil
+		return ResolvedTorrent{
+			ID:       row.ID,
+			SwarmKey: announcedHex,
+			Multipliers: bonus.Multipliers{
+				Download: int(row.DownloadMultiplier),
+				Upload:   int(row.UploadMultiplier),
+			},
+		}, nil
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
-		return "", "", err
+		return ResolvedTorrent{}, err
 	}
 
-	row, v2Err := d.Q.FindActiveTorrentByInfoHashV2Short(ctx, announcedHex)
+	v2, v2Err := d.Q.FindActiveTorrentByInfoHashV2Short(ctx, announcedHex)
 	if v2Err != nil {
 		// Report the v1 miss, not the v2 one: pgx.ErrNoRows from either arm
 		// means the same thing to the caller ("no such torrent"), and a
 		// transient v2 failure would otherwise mask a clean not-found.
 		if errors.Is(v2Err, pgx.ErrNoRows) {
-			return "", "", err
+			return ResolvedTorrent{}, err
 		}
-		return "", "", v2Err
+		return ResolvedTorrent{}, v2Err
 	}
-	return row.ID, row.InfoHash, nil
+	return ResolvedTorrent{
+		ID:       v2.ID,
+		SwarmKey: v2.InfoHash,
+		Multipliers: bonus.Multipliers{
+			Download: int(v2.DownloadMultiplier),
+			Upload:   int(v2.UploadMultiplier),
+		},
+	}, nil
 }
 
 // InvalidateCache drops every cached setting. Used in tests.

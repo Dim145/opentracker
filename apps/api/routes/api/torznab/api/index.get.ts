@@ -52,6 +52,7 @@ import {
   isHnrEnabled,
 } from '~~/utils/settings';
 import { getActiveSnapshot } from '~~/utils/bonusEvents';
+import { IDENTITY, volumeFactors } from '~~/utils/torrentBuffs';
 import { escapeLike } from '~~/utils/sql';
 import { adultCategoryIds } from '~~/utils/adultContent';
 
@@ -409,14 +410,17 @@ async function performSearch(
     getActiveSnapshot(),
   ]);
   const minimumSeedTime = hnrOn ? requiredSeedTime : 0;
-  // Multipliers are stored in basis points (100 = 1.00x); Torznab wants the
-  // plain factor.
-  const downloadVolumeFactor = activeEvent
-    ? activeEvent.downloadMultiplier / 100
-    : 1;
-  const uploadVolumeFactor = activeEvent
-    ? activeEvent.uploadMultiplier / 100
-    : 1;
+  // The site-wide half of the volume factors. The per-torrent half is on each
+  // row and is folded in inside the map below, so two releases in one response
+  // can legitimately carry different factors — which is the whole point of a
+  // per-torrent buff, and was impossible while these were one pair of numbers
+  // for the page.
+  const siteWide = activeEvent
+    ? {
+        download: activeEvent.downloadMultiplier,
+        upload: activeEvent.uploadMultiplier,
+      }
+    : IDENTITY;
 
   // Fetch torrents
   const torrents = await db.query.torrents.findMany({
@@ -449,8 +453,7 @@ async function performSearch(
         leechers: stats.leechers,
         grabs: stats.completed,
         downloadUrl: `${baseUrl}/api/torznab/download?id=${torrent.infoHash}&apikey=${user.passkey}`,
-        downloadVolumeFactor,
-        uploadVolumeFactor,
+        ...volumeFactors(torrent, siteWide),
         infoHash: torrent.infoHash,
         minimumRatio: minRatio,
         minimumSeedTime,

@@ -41,6 +41,13 @@ CREATE TABLE IF NOT EXISTS torrents (
     uploader_id   text,
     category_id   text,
     is_active     boolean   NOT NULL DEFAULT true,
+    -- Per-torrent bonus multipliers, basis points x100 (0 = freeleech,
+    -- 100 = normal, 200 = double). NULL `multipliers_until` means the buff has
+    -- no end date; a past one means it has lapsed, and the announce query
+    -- neutralises it in SQL so the hot path carries no clock logic.
+    download_multiplier integer NOT NULL DEFAULT 100,
+    upload_multiplier   integer NOT NULL DEFAULT 100,
+    multipliers_until   timestamp,
     is_approved   boolean   NOT NULL DEFAULT false,
     created_at    timestamp NOT NULL DEFAULT NOW()
 );

@@ -94,6 +94,7 @@ export default defineConfig({
             { text: 'Forum', link: '/guide/forum' },
             { text: 'Hit-and-Run', link: '/guide/hit-and-run' },
             { text: 'Bonus Events', link: '/guide/bonus-events' },
+            { text: 'Per-torrent Buffs', link: '/guide/torrent-buffs' },
             { text: 'Seed Bonus Economy', link: '/guide/seed-bonus' },
             { text: 'Freeleech Pool', link: '/guide/freeleech-pool' },
             { text: 'UDP Tracker (BEP 15)', link: '/guide/udp-tracker' },

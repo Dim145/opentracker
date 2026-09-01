@@ -817,7 +817,22 @@
         "footer": "Document withheld at viewer request"
       },
       "uploaderAnonymous": "Anonymous",
-      "uploaderAnonymousTooltip": "This member chose not to have their name attached to their releases."
+      "uploaderAnonymousTooltip": "This member chose not to have their name attached to their releases.",
+      "buffs": {
+        "title": "Bonus buffs",
+        "lede": "Multipliers apply to this release alone. Where a site-wide event is also running, a member gets whichever is better on each side — a buff can never make a torrent cost more. Pinning is editorial: it lifts the release to the top of listings and changes nothing about what it costs.",
+        "download": "Download",
+        "upload": "Upload",
+        "normal": "Normal",
+        "until": "Ends",
+        "untilHint": "Leave empty for no end date.",
+        "pin": "Pin to the top of listings",
+        "save": "Save",
+        "clear": "Remove the buff",
+        "saved": "Buffs updated.",
+        "failed": "Could not update the buffs."
+      },
+      "staffTools": "Staff tools"
     }
   },
   "search": {
@@ -877,6 +892,9 @@
       "sourcesAll": "Everywhere",
       "sourcesLocal": "Here only",
       "sourcesHint": "Include releases held by partner instances"
+    },
+    "pinned": {
+      "title": "Pinned"
     }
   },
   "users": {
@@ -1263,6 +1281,13 @@
         "changesRequestedTitle": "A moderator asked for changes. Edit the torrent to resubmit it.",
         "rejectedTitle": "Rejected. Hidden from public listings; only a moderator can move it elsewhere."
       }
+    },
+    "buff": {
+      "freeleech": "Freeleech",
+      "silverleech": "Silverleech",
+      "doubleUpload": "Double upload",
+      "custom": "Boosted",
+      "until": "until {when}"
     }
   },
   "bonus": {

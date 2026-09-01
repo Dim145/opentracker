@@ -27,7 +27,12 @@ type Querier interface {
 	CreateHnrEntry(ctx context.Context, arg CreateHnrEntryParams) error
 	// Returns the active torrent matching the given hex info_hash, or no rows
 	// if either it doesn't exist or it's been deactivated.
-	FindActiveTorrentByInfoHash(ctx context.Context, infoHash string) (string, error)
+	//
+	// The two multipliers come back with it, already neutralised when the buff has
+	// lapsed. Doing that here rather than in Go is what keeps the announce path
+	// free of clock logic AND free of a sweep that has to run on time: a buff
+	// expires the moment its timestamp passes, whether or not anything noticed.
+	FindActiveTorrentByInfoHash(ctx context.Context, infoHash string) (FindActiveTorrentByInfoHashRow, error)
 	// The BEP 52 second swarm.
 	//
 	// A v2 or hybrid torrent has two infohashes and a client that supports v2

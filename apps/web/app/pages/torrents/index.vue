@@ -229,6 +229,25 @@
       />
     </div>
 
+    <!-- ── Pinned ────────────────────────────────────────────────
+         Above the results and visually apart, because a pin answers a
+         different question than the listing does: not "what matches" but
+         "read this one". Rendered with the same table so the columns line up
+         with the flow underneath — a pin changes the position of a release,
+         never how it is read. -->
+    <section v-if="pinnedTorrents.length > 0" class="pinned-block">
+      <header class="pinned-head">
+        <Icon name="ph:push-pin-fill" class="pinned-icon" />
+        <h2 class="pinned-title">{{ $t('search.pinned.title') }}</h2>
+        <span class="pinned-rule" />
+      </header>
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+          <TorrentTable :torrents="pinnedTorrents" :compact="true" />
+        </div>
+      </div>
+    </section>
+
     <!-- ── Results body ──────────────────────────────────────── -->
     <section v-if="hasActiveQuery">
       <div v-if="isLoading" class="results-loading">
@@ -504,6 +523,13 @@ const {
   pending,
   refresh: refreshTorrents,
 } = await useFetch<{
+  /**
+   * Editorially pinned releases, page 1 only, under the same filters as the
+   * flow. They are held OUT of `data` on every page, so a release appears
+   * exactly once in a listing and the page count describes what can actually
+   * be scrolled through.
+   */
+  pinned: TorrentWithStats[];
   data: TorrentWithStats[];
   pagination: {
     page: number;
@@ -660,6 +686,7 @@ const { data: trendingData } = await useFetch<{ data: TorrentWithStats[] }>(
 );
 
 const torrents = computed(() => torrentsData.value?.data ?? []);
+const pinnedTorrents = computed(() => torrentsData.value?.pinned ?? []);
 const trendingTorrents = computed(() => trendingData.value?.data ?? []);
 
 // ── View-aware result state ──────────────────────────────────
@@ -1264,6 +1291,36 @@ useHead({
 }
 
 /* ─── Loading / empty ───────────────────────────────────── */
+/* ── Pinned block ────────────────────────────────────────────────
+   Set apart from the flow by a rule and an icon rather than by a tint: the
+   rows inside are ordinary rows and should read as such. */
+.pinned-block {
+  margin-bottom: 1.75rem;
+}
+.pinned-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.pinned-icon {
+  width: 1rem;
+  height: 1rem;
+  color: rgb(var(--accent));
+}
+.pinned-title {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+}
+.pinned-rule {
+  flex: 1;
+  height: 1px;
+  background: rgb(var(--line-default));
+}
+
 .results-loading,
 .results-empty {
   display: flex;

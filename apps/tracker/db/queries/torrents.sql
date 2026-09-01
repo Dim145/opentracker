@@ -1,7 +1,16 @@
 -- name: FindActiveTorrentByInfoHash :one
 -- Returns the active torrent matching the given hex info_hash, or no rows
 -- if either it doesn't exist or it's been deactivated.
-SELECT id
+--
+-- The two multipliers come back with it, already neutralised when the buff has
+-- lapsed. Doing that here rather than in Go is what keeps the announce path
+-- free of clock logic AND free of a sweep that has to run on time: a buff
+-- expires the moment its timestamp passes, whether or not anything noticed.
+SELECT id,
+       CASE WHEN multipliers_until IS NULL OR multipliers_until > now()
+            THEN download_multiplier ELSE 100 END AS download_multiplier,
+       CASE WHEN multipliers_until IS NULL OR multipliers_until > now()
+            THEN upload_multiplier   ELSE 100 END AS upload_multiplier
   FROM torrents
  WHERE info_hash = $1
    AND is_active = true
@@ -27,7 +36,11 @@ SELECT id
 -- argument from a bare comparison and generates `*string` for a value the
 -- caller always has. The cast is on the parameter, not on the column, so the
 -- expression index still serves the predicate.
-SELECT id, info_hash
+SELECT id, info_hash,
+       CASE WHEN multipliers_until IS NULL OR multipliers_until > now()
+            THEN download_multiplier ELSE 100 END AS download_multiplier,
+       CASE WHEN multipliers_until IS NULL OR multipliers_until > now()
+            THEN upload_multiplier   ELSE 100 END AS upload_multiplier
   FROM torrents
  WHERE left(info_hash_v2, 40) = sqlc.arg(announced_hash)::text
    AND is_active = true

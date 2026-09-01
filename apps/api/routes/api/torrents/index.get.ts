@@ -18,6 +18,16 @@ import {
 } from '~~/utils/search';
 import { adultCategoryIds } from '~~/utils/adultContent';
 
+/**
+ * How many pinned releases one listing may carry.
+ *
+ * Small on purpose. A pin is an editorial act — "read this one" — and the
+ * moment a first screen is all pins the listing has stopped being a listing.
+ * An operator who wants ten things at the top wants a homepage block, not a
+ * catalogue.
+ */
+const MAX_PINNED = 5;
+
 export default defineEventHandler(async (event) => {
   // Require authentication
   const { user } = await requireUserSession(event);
@@ -216,8 +226,22 @@ export default defineEventHandler(async (event) => {
 
   // The search predicate is kept apart from the filters, so the fuzzy fallback
   // replays the same query replacing only that.
+  /**
+   * Pinned releases are lifted out of the flow entirely, on every page.
+   *
+   * Not folded into the ORDER BY, which is the obvious implementation and the
+   * wrong one: putting `is_sticky DESC` in front of the sort key stops every
+   * existing single-column index from serving it, so a catalogue that sorted by
+   * date off an index starts doing a full sort on every page. A separate,
+   * capped query costs one extra round trip on page 1 and nothing after.
+   *
+   * Excluded on every page rather than only on page 1 so a torrent appears
+   * exactly once in a listing, and so `total` and the page count agree with
+   * what the reader can actually scroll through.
+   */
+  const notPinned = eq(schema.torrents.isSticky, false);
   const compose = (search: SQL | null) => {
-    const all = search ? [...conditions, search] : conditions;
+    const all = search ? [...conditions, search, notPinned] : [...conditions, notPinned];
     return all.length > 0 ? and(...all) : undefined;
   };
   const countRows = async (where: SQL | undefined) => {
@@ -246,6 +270,29 @@ export default defineEventHandler(async (event) => {
   // tiebreaker.
   const orderByClause = buildTorrentOrderBy(query.sortBy, query.order);
 
+  /**
+   * The pinned block, page 1 only, and under the SAME filters as the flow —
+   * a release pinned site-wide has no business appearing in a search for
+   * something else, and a member filtering by category is asking a question
+   * that a pin does not override.
+   *
+   * Capped hard: pinning is an editorial act and a page whose first screen is
+   * all pins is a page with no listing on it.
+   */
+  const pinnedRows =
+    query.page === 1
+      ? await db.query.torrents.findMany({
+          where: and(
+            ...(searchCondition ? [...conditions, searchCondition] : conditions),
+            eq(schema.torrents.isSticky, true),
+          ),
+          columns: { torrentData: false },
+          with: { category: true, torrentTags: { with: { tag: true } } },
+          orderBy: orderByClause,
+          limit: MAX_PINNED,
+        })
+      : [];
+
   const torrents = await db.query.torrents.findMany({
     where: whereClause,
     // Negative projection: select every column EXCEPT the raw .torrent
@@ -267,10 +314,15 @@ export default defineEventHandler(async (event) => {
 
   // `total` was already computed above: it is what gates the fuzzy fallback.
 
+  // Pinned rows and flow rows are enriched as one list — one Redis round of
+  // stats, one favourites query — then split back apart at the end. Doing it
+  // twice would double both for a block that is usually empty.
+  const allRows = [...pinnedRows, ...torrents];
+
   // Enrich with live stats from Redis. Tolerate partial failure: a Redis hiccup
   // for one torrent should not fail the whole listing — fall back to zeroes.
   const settled = await Promise.allSettled(
-    torrents.map((t) => getStats(t.infoHash))
+    allRows.map((t) => getStats(t.infoHash))
   );
 
   // Bulk-lookup the viewer's favorited torrent_ids among the page
@@ -279,7 +331,7 @@ export default defineEventHandler(async (event) => {
   // toggle's filled/outline state authoritative without a
   // per-row round-trip.
   let favoritedSet = new Set<string>();
-  if (torrents.length > 0) {
+  if (allRows.length > 0) {
     const rows = await db
       .select({ torrentId: schema.torrentFavorites.torrentId })
       .from(schema.torrentFavorites)
@@ -288,14 +340,14 @@ export default defineEventHandler(async (event) => {
           eq(schema.torrentFavorites.userId, user.id),
           inArray(
             schema.torrentFavorites.torrentId,
-            torrents.map((t) => t.id),
+            allRows.map((t) => t.id),
           ),
         ),
       );
     favoritedSet = new Set(rows.map((r) => r.torrentId));
   }
 
-  const enriched = torrents.map((torrent, i) => {
+  const enriched = allRows.map((torrent, i) => {
     const r = settled[i];
     const stats =
       r.status === 'fulfilled'
@@ -316,10 +368,14 @@ export default defineEventHandler(async (event) => {
   });
 
   return {
-    data: enriched,
+    // Split back apart in the order they went in.
+    pinned: enriched.slice(0, pinnedRows.length),
+    data: enriched.slice(pinnedRows.length),
     pagination: {
       page: query.page,
       limit: query.limit,
+      // Pinned rows are outside this count, which is what keeps the page
+      // count honest about the flow the reader is paging through.
       total,
       pages: Math.ceil(total / query.limit),
     },

@@ -1025,6 +1025,38 @@ export const torrents = pgTable(
     infoHashV2: text('info_hash_v2'),
     contentRootV2: text('content_root_v2'),
     isActive: boolean('is_active').default(true).notNull(),
+    /**
+     * Per-torrent bonus multipliers — the "buffs" an operator applies to one
+     * release rather than to the whole site.
+     *
+     * Basis points ×100, the SAME convention `bonus_events` uses, so the
+     * project has one unit system rather than two: `0` = freeleech, `50` =
+     * silverleech, `100` = normal, `200` = double upload.
+     *
+     * Two multipliers plus an expiry rather than a `freeleech_until` boolean
+     * family: one pair of columns expresses freeleech, silverleech,
+     * double-upload and every combination, where three booleans can contradict
+     * each other and need a precedence rule nobody remembers.
+     *
+     * `multipliersUntil` NULL means "until an operator changes it". A past
+     * timestamp means the buff has lapsed — the announce path neutralises it in
+     * SQL rather than in Go, so there is no clock logic on the hot path and no
+     * sweep to forget to run.
+     *
+     * How these combine with a running site-wide event is in
+     * `apps/tracker/internal/bonus`: the member gets the better of the two on
+     * each axis, never the product.
+     */
+    downloadMultiplier: integer('download_multiplier').default(100).notNull(),
+    uploadMultiplier: integer('upload_multiplier').default(100).notNull(),
+    multipliersUntil: timestamp('multipliers_until'),
+    /**
+     * Pinned to the top of listings. Editorial, not economic — it moves a
+     * release up the page and changes nothing about what it costs to grab.
+     * That is why it is a moderator's call while the multipliers above are an
+     * admin's.
+     */
+    isSticky: boolean('is_sticky').default(false).notNull(),
     // Per-torrent opt-in for swarm federation (Phase 4). When true AND the
     // owner has a swarm-scoped peer link, this torrent's peers may be shared
     // with / mixed from partner instances. Off by default — it re-opens the

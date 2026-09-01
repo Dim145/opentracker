@@ -55,6 +55,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 - **Seed-bonus points** — customisable per-minute rules (time, torrent age, rarity); tiered curves with live preview; ledger-backed.
 - **Bonus shop** — operator-curated catalogue with built-in `upload_credit` and `invite` effects.
 - **Bonus events** — time-bounded Freeleech / Silverleech / custom multipliers, applied on the announce hot path.
+- **Per-torrent buffs** — freeleech, silverleech or double-upload on one release, plus pinning. Where a buff meets a site-wide event the member gets the better of the two on each axis, never the product; a lapsed buff is neutralised in the announce query itself, so nothing has to sweep. See [Per-torrent buffs](doc/guide/torrent-buffs.md).
 - **Panic Mode** — instant AES-256-GCM encryption of torrent data + user fields; recovery requires the original Panic Password. See [Panic Mode](doc/guide/panic-mode.md).
 - **Distributed rate limiting** — Redis-backed sliding windows; progressive penalties; auto IP bans.
 - **Optional static deployment** — distroless nginx serves a CSR bundle in **~28 MB** (see below).
