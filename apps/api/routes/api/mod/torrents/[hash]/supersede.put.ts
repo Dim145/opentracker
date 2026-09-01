@@ -34,7 +34,7 @@
  * Both verbs land in the staff audit log — they are mutating calls under
  * `/api/mod/`, so the hook records them whether or not this route says anything.
  */
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod/v4';
 import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
@@ -142,7 +142,7 @@ export default defineEventHandler(async (event) => {
     },
   });
 
-  await db
+  const written = await db
     .update(schema.torrents)
     .set({
       supersededById: target.id,
@@ -158,9 +158,32 @@ export default defineEventHandler(async (event) => {
         eq(schema.torrents.id, source.id),
         source.supersededById === null
           ? isNull(schema.torrents.supersededById)
-          : eq(schema.torrents.supersededById, source.supersededById)
+          : eq(schema.torrents.supersededById, source.supersededById),
+        /**
+         * And the TARGET must still be a chain head at write time.
+         *
+         * The cycle walk above runs as its own statements, so two moderators
+         * pointing A at B and B at A concurrently each read the other row as
+         * unsuperseded, each walk terminates cleanly, and both writes commit.
+         * Nothing hangs — every reader is bounded — but both releases then
+         * refuse reseed requests for ever and each page sends members to the
+         * other. Checking the target inside the predicate closes the window
+         * without a transaction.
+         */
+        sql`(select superseded_by_id from torrents where id = ${target.id}) is null`
       )
-    );
+    )
+    .returning({ id: schema.torrents.id });
+
+  if (written.length === 0) {
+    // Either another moderator changed this row, or the target stopped being a
+    // chain head. Both mean "read it again": the state the caller decided from
+    // is gone.
+    throw createError({
+      statusCode: 409,
+      message: 'Somebody changed one of these two releases. Reload and try again.',
+    });
+  }
 
   return {
     success: true,

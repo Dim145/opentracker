@@ -949,12 +949,30 @@ func (s *Server) ScrapeStats(
 	if resolveBudget == nil || *resolveBudget <= 0 {
 		return seeders, leechers, completed
 	}
+
+	// A hash we have already failed to resolve costs nothing to fail again.
+	//
+	// /scrape takes no passkey — by protocol — so before this the endpoint that
+	// used to cost zero database work became two index probes per unknown hash,
+	// eight hashes per request, from anybody on the internet. The connection
+	// pool is shared with the announce path, so a few thousand requests a second
+	// of random hashes stopped the tracker answering for everyone.
+	//
+	// The negative answer is the cheap half: it is stable (a hash this site does
+	// not have does not start existing), it is what a flood is made of, and it
+	// lives in Redis, which is already on this path for the peer counts above.
+	if s.peers.ResolveMissCached(ctx, announcedHex) {
+		return seeders, leechers, completed
+	}
+
 	*resolveBudget--
 
 	resolved, err := s.db.ResolveAnnouncedTorrent(ctx, announcedHex)
 	if err != nil || resolved.SwarmKey == announcedHex {
 		// Unknown, or a v1 hash that really has no peers. Either way the
-		// zeroes above are the honest answer.
+		// zeroes above are the honest answer — and worth remembering, so the
+		// next probe for the same hash does not pay for the same lookup.
+		s.peers.RememberResolveMiss(ctx, announcedHex)
 		return seeders, leechers, completed
 	}
 	seeders, leechers, _ = s.peers.Counts(ctx, resolved.SwarmKey)

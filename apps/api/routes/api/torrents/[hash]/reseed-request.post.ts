@@ -31,7 +31,7 @@
  * torrent they downloaded does not enumerate anything — but it does tell them
  * the site remembers, which is why the guide says so plainly.
  */
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, isNull, ne } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
@@ -117,7 +117,11 @@ export default defineEventHandler(async (event) => {
         eq(schema.users.isBanned, false)
       )
     )
-    .orderBy(schema.hnrTracking.downloadedAt)
+    // Newest first, which is what the note above says and what the feature is
+      // for: ascending pinged the 200 people who grabbed it longest ago — the
+      // least likely to still hold the data — and the daily lock meant nobody
+      // could try again that day.
+      .orderBy(desc(schema.hnrTracking.downloadedAt))
     .limit(MAX_RECIPIENTS);
 
   const recipients = snatchers.map((r) => r.userId);

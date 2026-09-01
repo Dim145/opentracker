@@ -37,7 +37,12 @@ export default defineEventHandler(async (event) => {
     isStaff ? undefined : eq(alias.moderationStatus, 'accepted');
 
   const source = await db.query.torrents.findFirst({
-    where: eq(schema.torrents.infoHash, hash.toLowerCase()),
+    // The visibility filter belongs on the SOURCE too, and its absence made
+    // this an existence oracle: a rejected hash answered 200 with empty
+    // relations while an unknown hash answered 404, so a member could sort
+    // hashes into "moderation turned this down" and "never heard of it". The
+    // detail endpoint flat-404s for exactly this reason.
+    where: and(eq(schema.torrents.infoHash, hash.toLowerCase()), visible(schema.torrents)),
     columns: {
       id: true,
       supersededById: true,

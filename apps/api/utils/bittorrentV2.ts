@@ -147,9 +147,19 @@ function collectRoots(
 export function infoDictRange(
   bytes: Buffer
 ): { start: number; end: number } | null {
-  // `skip` returns the index one past the value that starts at `i`, or -1.
-  const skip = (i: number): number => {
-    if (i >= bytes.length) return -1;
+  /**
+   * `skip` returns the index one past the value that starts at `i`, or -1.
+   *
+   * `depth` is the bound the comment above did not have. The walk cannot loop —
+   * every step is forward — but it recurses once per nesting level, so a file
+   * with fifteen thousand nested containers before the `info` key blew the
+   * stack, and `extractV2` is called without a try/catch on the upload path: a
+   * `RangeError` reached the member as a 500 instead of "this file cannot be
+   * read". Nothing legitimate nests past a handful of levels.
+   */
+  const MAX_DEPTH = 64;
+  const skip = (i: number, depth = 0): number => {
+    if (i >= bytes.length || depth > MAX_DEPTH) return -1;
     const c = bytes[i]!;
 
     // Integer: `i<digits>e`.
@@ -162,8 +172,8 @@ export function infoDictRange(
     if (c === 0x64 /* d */ || c === 0x6c /* l */) {
       let j = i + 1;
       while (j < bytes.length && bytes[j] !== 0x65 /* e */) {
-        const next = skip(j);
-        if (next <= j) return -1; // no progress: malformed
+        const next = skip(j, depth + 1);
+        if (next <= j) return -1; // no progress, or too deep: malformed
         j = next;
       }
       return j < bytes.length ? j + 1 : -1;

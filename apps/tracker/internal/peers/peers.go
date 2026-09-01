@@ -405,6 +405,32 @@ func (s *Store) IncrementCompleted(ctx context.Context, infoHashHex string) erro
 	return err
 }
 
+// resolveMissTTL bounds how long a "this site has no such torrent" answer is
+// remembered for the scrape path.
+//
+// Five minutes: long enough that a flood of random hashes pays for one lookup
+// each rather than one per request, short enough that a torrent uploaded a
+// moment ago is scrapeable almost immediately. The value is only ever a
+// NEGATIVE answer — a hash that resolves is not cached here, so a real torrent
+// can never be hidden by this.
+const resolveMissTTL = 5 * time.Minute
+
+// RememberResolveMiss records that `infoHashHex` did not resolve to a torrent.
+//
+// Best-effort: a Redis failure here costs a repeated database lookup, which is
+// exactly the state before this cache existed.
+func (s *Store) RememberResolveMiss(ctx context.Context, infoHashHex string) {
+	_ = s.client.Set(ctx, s.resolveMissKey(infoHashHex), "1", resolveMissTTL).Err()
+}
+
+// ResolveMissCached reports whether we already know this hash does not resolve.
+func (s *Store) ResolveMissCached(ctx context.Context, infoHashHex string) bool {
+	n, err := s.client.Exists(ctx, s.resolveMissKey(infoHashHex)).Result()
+	return err == nil && n > 0
+}
+
+func (s *Store) resolveMissKey(h string) string { return s.prefix + "resolve_miss:" + h }
+
 // completedOnceTTL bounds the snatch-dedup marker. It only needs to outlast
 // realistic replay attempts; the authoritative completion record is the
 // hnr_tracking row in Postgres.

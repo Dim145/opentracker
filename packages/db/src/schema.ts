@@ -15,7 +15,7 @@ import {
   check,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
-import { relations, sql } from 'drizzle-orm';
+import { desc, relations, sql } from 'drizzle-orm';
 import { ftsVector } from './search';
 
 // Custom type for bytea (binary data)
@@ -1074,7 +1074,21 @@ export const torrents = pgTable(
      */
     downloadMultiplier: integer('download_multiplier').default(100).notNull(),
     uploadMultiplier: integer('upload_multiplier').default(100).notNull(),
-    multipliersUntil: timestamp('multipliers_until'),
+    /**
+     * `withTimezone` because this column is read by BOTH Postgres and
+     * JavaScript, for the same decision.
+     *
+     * The Go announce compares it with `now()` — correct, the session is UTC —
+     * while postgres.js hands a zone-less value to `new Date()`, which reads it
+     * in the API container's zone (`TZ=Europe/Paris` in the shipped compose
+     * file). So for a window the width of the offset, the tracker charged a
+     * freeleech the feed had already declared expired, or the other way round
+     * on a negative offset — and the admin form re-serialised the skewed value,
+     * walking every expiry two hours earlier on each save.
+     *
+     * A `timestamptz` puts an offset on the wire, and all three readers agree.
+     */
+    multipliersUntil: timestamp('multipliers_until', { withTimezone: true }),
     /**
      * Pinned to the top of listings. Editorial, not economic — it moves a
      * release up the page and changes nothing about what it costs to grab.
@@ -1203,6 +1217,29 @@ export const torrents = pgTable(
       .on(sql`left(${table.infoHashV2}, 40)`)
       .where(sql`${table.infoHashV2} IS NOT NULL`),
     index('torrents_openlibrary_idx').on(table.openlibraryId),
+    // The year-in-review queries filter `created_at` by range, and the two
+    // expression indexes on `coalesce(moderated_at, created_at)` cannot serve a
+    // bare column range — so four aggregates were scanning the catalogue.
+    /**
+     * The floor the Go announce has no way to enforce.
+     *
+     * `bonus.validateSnapshot` rejects a negative or absurd multiplier when it
+     * comes from Redis, explicitly to avoid crediting negative bytes — but the
+     * per-torrent values arrive from this table and are passed straight through.
+     * Zod bounds the one route that writes them; a psql prompt, a restore or a
+     * future route would not be bounded by anything.
+     */
+    check(
+      'torrents_multipliers_sane',
+      sql`${table.downloadMultiplier} between 0 and 200 and ${table.uploadMultiplier} between 0 and 1000`
+    ),
+    index('torrents_created_at_idx').on(table.createdAt),
+    // Page one of the listing asks for pinned torrents in a separate query, and
+    // with no index Postgres had to exhaust the candidate set to prove that the
+    // usual answer — none — is right.
+    index('torrents_sticky_idx')
+      .on(table.isSticky)
+      .where(sql`${table.isSticky}`),
     index('torrents_moderation_status_idx').on(table.moderationStatus),
     // GIN rather than GiST: it is the recommended opclass for LIKE/ILIKE and,
     // measured over 200,000 rows, returns in 20 ms against 26 ms while building
@@ -1407,15 +1444,24 @@ export type CatalogRecord = typeof catalogRecords.$inferSelect;
 // ============================================================================
 // Torrent Stats (Aggregated, updated periodically from Redis)
 // ============================================================================
-export const torrentStats = pgTable('torrent_stats', {
-  infoHash: text('info_hash')
-    .primaryKey()
-    .references(() => torrents.infoHash, { onDelete: 'cascade' }),
-  seeders: integer('seeders').default(0).notNull(),
-  leechers: integer('leechers').default(0).notNull(),
-  completed: integer('completed').default(0).notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+export const torrentStats = pgTable(
+  'torrent_stats',
+  {
+    infoHash: text('info_hash')
+      .primaryKey()
+      .references(() => torrents.infoHash, { onDelete: 'cascade' }),
+    seeders: integer('seeders').default(0).notNull(),
+    leechers: integer('leechers').default(0).notNull(),
+    completed: integer('completed').default(0).notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  // The two rankings on the statistics page order by these and take ten rows.
+  // With only the primary key, each one scanned and sorted the whole table.
+  (table) => [
+    index('torrent_stats_completed_idx').on(desc(table.completed)),
+    index('torrent_stats_seeders_idx').on(desc(table.seeders)),
+  ]
+);
 
 // ============================================================================
 // Announce Log (For tracking/debugging, optional)
@@ -2013,6 +2059,11 @@ export const hnrTracking = pgTable(
     // `hnr_user_torrent_idx` and `hnr_user_is_hnr_idx` below, so Postgres can
     // serve a user_id-only lookup from either. It was pure write amplification
     // on a table the announce path updates once per announce.
+    // `downloaded_at` and `completed_at` are what the year review filters on,
+    // and neither had an index: one sequential scan of the whole ledger per
+    // request, for an answer that is often zero rows.
+    index('hnr_downloaded_at_idx').on(table.downloadedAt),
+    index('hnr_completed_at_idx').on(table.completedAt),
     index('hnr_torrent_idx').on(table.torrentId),
     // Partial. `is_hnr` is a boolean and the interesting side is the rare one:
     // a full index spends most of its pages describing the rows nobody
@@ -2695,8 +2746,14 @@ export const savedSearches = pgTable(
      * category" is a filter.
      */
     tsquery: text('tsquery'),
+    /**
+     * `set null` rather than `cascade`: deleting a category should narrow a
+     * member's filter, not delete it. Cascading meant an operator merging two
+     * categories silently threw away every saved search that mentioned either —
+     * rows the member created, with no notification and no trace.
+     */
     categoryId: text('category_id').references(() => categories.id, {
-      onDelete: 'cascade',
+      onDelete: 'set null',
     }),
     /** Tag slugs, ALL of which must be present — the listing's AND semantics. */
     tags: jsonb('tags').$type<string[]>(),
