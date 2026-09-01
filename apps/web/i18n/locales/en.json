@@ -321,7 +321,9 @@
       "rotateReadKeyBody": "Anything using the old value stops working immediately. Your torrents are unaffected — this key cannot announce.",
       "rotated": "Key rotated.",
       "reauthRequired": "Log in again to rotate a key.",
-      "legacyPasskeyNote": "Your announce passkey still works on feeds for now, so existing setups keep running. Move them to the RSS key above: a passkey given to a third party can announce on your behalf."
+      "legacyPasskeyNote": "Your announce passkey still works on feeds for now, so existing setups keep running. Move them to the RSS key above: a passkey given to a third party can announce on your behalf.",
+      "prowlarrDefinition": "Prowlarr definition (.yml)",
+      "prowlarrHint": "Drop it in Prowlarr’s Definitions/Custom folder, restart, then add this tracker and paste the key above."
     },
     "activity": {
       "title": "Activity",

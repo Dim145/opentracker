@@ -361,3 +361,54 @@ The Torznab API admin panel (`/admin/torznab`) provides comprehensive management
 - Confirm the tracker URL is accessible
 - Check firewall rules allow outbound HTTPS
 - Try the capabilities endpoint first to test connectivity
+
+---
+
+## Prowlarr: a ready-made indexer definition
+
+`GET /api/torznab/cardigann.yml` returns a Cardigann definition **for this
+instance**, with its name, its URL and its own categories already filled in.
+
+```bash
+curl -O https://tracker.example/api/torznab/cardigann.yml
+# then drop it in Prowlarr's Definitions/Custom folder:
+#   Docker      /config/Definitions/Custom/
+#   Linux/macOS ~/.config/Prowlarr/Definitions/Custom/
+#   Windows     C:\ProgramData\Prowlarr\Definitions\Custom\
+```
+
+Restart Prowlarr, add the tracker by name, and paste your **RSS key** (see
+[Keys](../guide/api-keys.md) — not the announce passkey).
+
+Members can download it straight from their profile page, beside the key
+itself.
+
+### Why it is generated rather than shipped in the repo
+
+The categories. They are operator-configured — names, slugs and Newznab
+mappings all live in the database — so a static file could describe every
+instance's categories except the one the member is actually joining.
+
+### Two things operators should know
+
+**Reloading is unreliable offline.** Prowlarr's `IndexerDefinitionUpdate`
+command downloads the official definition pack *first* and only clears its cache
+afterwards, inside the same `try`. On a host with no egress to
+`indexers.prowlarr.com` the exception is swallowed and the cache is never
+cleared — **restart Prowlarr instead**. There is also a five-minute rolling
+cache on the request generator.
+
+**Renaming the instance means renaming the file.** Prowlarr keys a custom
+definition on its *filename*, and refuses to load one whose filename **or
+`name`** collides with a built-in — the built-in wins and yours is dropped with
+nothing but a line in the log. The generated file is named after your site, so
+if you rename the site, re-download it and remove the old file.
+
+### What the definition maps
+
+Every `<torznab:attr>` this feed emits, including `infohash`, both volume
+factors and — where the site imposes them — `minimumratio` and
+`minimumseedtime`. Note that the selectors address attributes rather than
+elements (`[name=seeders]` + `attribute: value`): a namespace-prefixed element
+cannot be cleanly addressed in CSS, which is why every Cardigann definition that
+consumes a Torznab feed is written this way.

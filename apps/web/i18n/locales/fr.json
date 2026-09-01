@@ -321,7 +321,9 @@
       "rotateReadKeyBody": "Tout ce qui utilise l'ancienne valeur cesse de fonctionner immédiatement. Vos torrents ne sont pas affectés : cette clé ne peut pas annoncer.",
       "rotated": "Clé renouvelée.",
       "reauthRequired": "Reconnectez-vous pour renouveler une clé.",
-      "legacyPasskeyNote": "Votre passkey d'annonce fonctionne encore sur les flux pour l'instant, afin que vos configurations existantes continuent de tourner. Basculez-les sur la clé RSS ci-dessus : une passkey confiée à un tiers permet d'annoncer en votre nom."
+      "legacyPasskeyNote": "Votre passkey d'annonce fonctionne encore sur les flux pour l'instant, afin que vos configurations existantes continuent de tourner. Basculez-les sur la clé RSS ci-dessus : une passkey confiée à un tiers permet d'annoncer en votre nom.",
+      "prowlarrDefinition": "Définition Prowlarr (.yml)",
+      "prowlarrHint": "À déposer dans le dossier Definitions/Custom de Prowlarr, puis redémarrer, ajouter ce tracker et coller la clé ci-dessus."
     },
     "activity": {
       "title": "Activité",

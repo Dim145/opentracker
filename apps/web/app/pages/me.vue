@@ -452,6 +452,16 @@
             <Icon name="ph:info-bold" />
             {{ k.note }}
           </p>
+          <!-- Only under the RSS key: a Prowlarr definition is what that key
+               is for, and offering it beside the API key would suggest the
+               two are interchangeable. -->
+          <p v-if="k.kind === 'rss'" class="cred-note">
+            <Icon name="ph:download-simple-bold" />
+            <a href="/api/torznab/cardigann.yml" download>
+              {{ $t('me.credentials.prowlarrDefinition') }}
+            </a>
+            <span class="cred-note-hint">{{ $t('me.credentials.prowlarrHint') }}</span>
+          </p>
         </article>
 
         <p v-if="readKeys?.legacyPasskeyAccepted" class="cred-legacy">
