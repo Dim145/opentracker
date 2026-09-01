@@ -96,13 +96,18 @@ describe('an operator can change the format', () => {
     expect(groups?.tags).toBe('1080p, bluray, x264');
   });
 
-  it('handles a template that repeats a token', () => {
-    // Go's regexp rejects a duplicate group name, so the second use has to be a
-    // back-reference — and an operator naming the hash twice is reasonable.
+  it('repeats a token as a non-capturing group, because RE2 has no backreference', () => {
+    // Measured against Go 1.26, which is what autobrr compiles this with:
+    //   `(?P<a>x) (?P<a>y)` compiles;  `(?P<a>x) (?P=a)` is a syntax error.
+    // The first version of this emitted the backreference and asserted it here,
+    // so the test locked in a pattern autobrr rejects outright — and the
+    // round-trip could not see it, because `toJsRegExp` rewrote it to `\k<a>`,
+    // which JavaScript does accept.
     const custom = 'NEW {name} :: {infoHash} :: {url} :: {infoHash}';
     const { pattern } = announcePattern(custom);
     expect(pattern).toContain('(?P<infoHash>');
-    expect(pattern).toContain('(?P=infoHash)');
+    expect(pattern).not.toContain('(?P=');
+    expect(pattern).toContain('(?:[a-f0-9]{40})');
     const groups = parse(custom, renderAnnounce(custom, SAMPLE_FIELDS));
     expect(groups?.infoHash).toBe(SAMPLE_FIELDS.infoHash);
   });
@@ -121,6 +126,51 @@ describe('an operator can change the format', () => {
     expect(parse(custom, renderAnnounce(custom, SAMPLE_FIELDS))?.category).toBe(
       'Movies'
     );
+  });
+});
+
+describe('the failures the review found', () => {
+  it('keeps a long release name parseable by cutting the name, not the line', () => {
+    // The tail of the default template is `:: {url} :: {infoHash}` and the
+    // pattern anchors on the hash, so truncating the finished line produced a
+    // line no client could parse — for every release with a name over about 170
+    // characters, which is routine.
+    for (const length of [150, 171, 200, 256]) {
+      const line = renderAnnounce(DEFAULT_ANNOUNCE_TEMPLATE, {
+        ...SAMPLE_FIELDS,
+        name: 'A'.repeat(length),
+      });
+      expect(Buffer.byteLength(line, 'utf8')).toBeLessThanOrEqual(400);
+      const groups = parse(DEFAULT_ANNOUNCE_TEMPLATE, line);
+      expect(groups, `name of ${length} chars`).toBeDefined();
+      expect(groups?.infoHash).toBe(SAMPLE_FIELDS.infoHash);
+    }
+  });
+
+  it('parses a colon inside a tag name, and leaves the URL alone', () => {
+    // `tags.name` is free text — only the slug is charset-restricted — so a
+    // member could create `quality:high` on their own upload and every future
+    // release carrying that tag was announced unparseably. Fixed in the token
+    // rather than by stripping colons from values: a live probe showed that
+    // stripping turned `https://` into `https-//` in the link field.
+    const line = renderAnnounce(DEFAULT_ANNOUNCE_TEMPLATE, {
+      ...SAMPLE_FIELDS,
+      tags: 'x264, quality:high',
+    });
+    const groups = parse(DEFAULT_ANNOUNCE_TEMPLATE, line);
+    expect(groups).toBeDefined();
+    expect(groups?.tags).toBe('x264, quality:high');
+    expect(line).toContain('https://tracker.example.com/');
+  });
+
+  it('cuts a multi-byte name on a character boundary', () => {
+    const line = renderAnnounce(DEFAULT_ANNOUNCE_TEMPLATE, {
+      ...SAMPLE_FIELDS,
+      name: '日'.repeat(300),
+    });
+    expect(Buffer.byteLength(line, 'utf8')).toBeLessThanOrEqual(400);
+    expect(line).not.toContain('\ufffd');
+    expect(parse(DEFAULT_ANNOUNCE_TEMPLATE, line)?.infoHash).toBe(SAMPLE_FIELDS.infoHash);
   });
 });
 

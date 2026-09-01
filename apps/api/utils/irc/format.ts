@@ -104,7 +104,14 @@ export const ANNOUNCE_TOKENS: Readonly<Record<string, AnnounceToken>> = {
   },
   tags: {
     variable: 'tags',
-    pattern: '[^:]*?',
+    // Lazy and unrestricted, like `name` and `category`. It used to be
+    // `[^:]*?`, which looked conservative and was a live defect: `tags.name` is
+    // free text — only the SLUG is charset-restricted — so a member creating a
+    // tag called `quality:high` on their own upload made every release carrying
+    // that tag unparseable. Stripping the colon from values instead was worse,
+    // and a probe against a real ircd said so immediately: it turns `https://`
+    // into `https-//` in the link field.
+    pattern: '.+?',
     describes: 'comma-separated tags, or `-`',
   },
   uploader: {
@@ -190,29 +197,57 @@ function byteLength(s: string): number {
 }
 
 /**
- * Render one line.
+ * Render one line, cutting the NAME rather than the line.
  *
- * Truncation is by bytes and not by characters, because the 512-byte frame is a
- * byte limit and a release name is UTF-8. Cutting mid-sequence would emit a
- * replacement character to every client in the channel, so the cut walks back
- * to a whole character.
+ * Cutting the finished line was wrong in a way the sample could never show: the
+ * tail of the default template is `:: {url} :: {infoHash}`, and the pattern
+ * anchors on `[a-f0-9]{40}$`. A release name over about 170 characters — routine
+ * in anime and scene naming, and the upload route allows 256 — pushed the hash
+ * off the end, so the line was announced in a form no client could parse. Every
+ * such release, silently.
+ *
+ * So the name absorbs the overflow. Everything else in the line is short and
+ * structural, and a name is the one field a reader can still recognise from its
+ * first hundred characters.
+ *
+ * Byte-based, because the 512-byte frame is a byte limit and a release name is
+ * UTF-8; the cut walks back to a whole character so no client renders a
+ * replacement glyph.
  */
 export function renderAnnounce(
   template: string,
   fields: AnnounceFields
 ): string {
-  const line = template.replace(/\{(\w+)\}/g, (whole, token: string) => {
-    if (!(token in ANNOUNCE_TOKENS)) return whole;
-    const value = fields[token as keyof AnnounceFields];
-    return sanitiseValue(value == null ? '' : String(value));
-  });
+  const render = (values: AnnounceFields) =>
+    template.replace(/\{(\w+)\}/g, (whole, token: string) => {
+      if (!(token in ANNOUNCE_TOKENS)) return whole;
+      const value = values[token as keyof AnnounceFields];
+      return sanitiseValue(value == null ? '' : String(value));
+    });
 
+  const line = render(fields);
   if (byteLength(line) <= MAX_LINE_BYTES) return line;
-  let cut = line;
-  while (byteLength(cut) > MAX_LINE_BYTES - 1 && cut.length > 0) {
-    cut = cut.slice(0, -1);
+
+  // What the rest of the line costs, measured rather than assumed — an operator
+  // template can be any shape.
+  const overhead = byteLength(render({ ...fields, name: '' }));
+  const budget = MAX_LINE_BYTES - overhead - 3; // the ellipsis is three bytes
+  if (budget <= 0) {
+    // A template whose fixed text alone overflows the frame: nothing to save by
+    // cutting the name, so fall back to cutting the line and let the operator
+    // see a short template is required.
+    let cut = line;
+    while (byteLength(cut) > MAX_LINE_BYTES - 3 && cut.length > 0) {
+      cut = cut.slice(0, -1);
+    }
+    return `${cut}…`;
   }
-  return `${cut}…`;
+
+  let name = sanitiseValue(fields.name ?? '');
+  while (byteLength(name) > budget && name.length > 0) {
+    name = name.slice(0, -1);
+  }
+  return render({ ...fields, name: `${name}…` });
 }
 
 /** Which tokens a template uses, in order, ignoring anything unknown. */
@@ -241,10 +276,19 @@ export interface AnnouncePattern {
 /**
  * Turn a template into the pattern that reads its output.
  *
- * A token used twice gets a named group once and a back-reference after, since
- * Go's regexp rejects a repeated group name — and a template that mentions the
- * infohash in both the URL and a field of its own is a reasonable thing for an
- * operator to write.
+ * A token used twice gets a named group once and a NON-CAPTURING repeat after,
+ * and the reason is the opposite of what this comment first claimed. Measured
+ * against Go 1.26, which is what autobrr compiles the pattern with:
+ *
+ *   duplicate group name  `(?P<a>x) (?P<a>y)`  → compiles
+ *   backreference         `(?P<a>x) (?P=a)`    → invalid or unsupported Perl syntax
+ *
+ * RE2 has no backreference construct at all. Emitting one produced a definition
+ * autobrr rejects outright — and the round-trip check could not see it, because
+ * `toJsRegExp` rewrote it to `\k<name>`, which JavaScript does support. So the
+ * repeat drops the equality constraint between occurrences, which parsing does
+ * not need: the value is captured once, and the second occurrence only has to
+ * be matched.
  */
 export function announcePattern(template: string): AnnouncePattern {
   let pattern = '';
@@ -267,7 +311,7 @@ export function announcePattern(template: string): AnnouncePattern {
       continue;
     }
     if (named.has(token)) {
-      pattern += `(?P=${token})`;
+      pattern += `(?:${def.pattern})`;
       continue;
     }
     named.add(token);
@@ -287,9 +331,7 @@ export function announcePattern(template: string): AnnouncePattern {
  * shipped pattern instead of a lookalike.
  */
 export function toJsRegExp(pattern: string): RegExp {
-  return new RegExp(
-    pattern.replace(/\(\?P</g, '(?<').replace(/\(\?P=(\w+)\)/g, '\\k<$1>')
-  );
+  return new RegExp(pattern.replace(/\(\?P</g, '(?<'));
 }
 
 /**

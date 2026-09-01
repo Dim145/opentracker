@@ -3951,7 +3951,8 @@
         "queued": "Waiting",
         "dropped": "Dropped",
         "since": "In the channel since"
-      }
+      },
+      "performKept": "{n} line(s) stored — type to replace them"
     }
   },
   "mod": {

@@ -3951,7 +3951,8 @@
         "queued": "En attente",
         "dropped": "Abandonnées",
         "since": "Dans le canal depuis"
-      }
+      },
+      "performKept": "{n} ligne(s) enregistrée(s) — écrivez pour les remplacer"
     }
   },
   "mod": {

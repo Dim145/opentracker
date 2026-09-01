@@ -73,6 +73,10 @@ export interface IrcStatus {
 }
 
 const WRITE_INTERVAL_MS = 1_500;
+/** No byte in either direction for this long means the peer is gone. */
+const IDLE_TIMEOUT_MS = 300_000;
+/** Our own keepalive, comfortably inside the deadline above. */
+const PING_EVERY_MS = 120_000;
 const QUEUE_CAP = 200;
 const CONNECT_TIMEOUT_MS = 20_000;
 /** A registration that never completes is indistinguishable from a hung socket
@@ -96,6 +100,10 @@ export class IrcClient {
   private droppedCount = 0;
   private timer: NodeJS.Timeout | null = null;
   private connectTimer: NodeJS.Timeout | null = null;
+  private registerTimer: NodeJS.Timeout | null = null;
+  private pinger: NodeJS.Timeout | null = null;
+  /** When the last PRIVMSG actually went out, for the pacing above. */
+  private lastSentAt = 0;
   private nickAttempt = 0;
   private closed = false;
 
@@ -184,6 +192,19 @@ export class IrcClient {
     this.connectTimer.unref?.();
 
     this.socket.setEncoding('utf8');
+    /**
+     * A dead peer that never sends a FIN — a kernel panic, a partition, a
+     * middlebox dropping the flow — leaves this socket open and the state
+     * `ready` forever. The reconciler then sees a healthy client, keeps renewing
+     * the lease, and every release is announced into nothing while the console
+     * says the bot is in the channel. So: a traffic deadline, plus our own PING
+     * on a shorter cadence so a merely quiet channel is not torn down.
+     */
+    this.socket.setTimeout(IDLE_TIMEOUT_MS, () => this.fail('no traffic'));
+    this.pinger = setInterval(() => {
+      if (this.state === 'ready') this.raw(`PING :${Date.now()}`);
+    }, PING_EVERY_MS);
+    this.pinger.unref?.();
     this.socket.on('data', (chunk: string) => this.onData(chunk));
     this.socket.on('error', (err: Error) => this.fail(err.message));
     this.socket.on('close', () => {
@@ -242,7 +263,14 @@ export class IrcClient {
             `${this.config.saslUser}\0${this.config.saslUser}\0${this.config.saslPassword}`,
             'utf8'
           ).toString('base64');
-          this.raw(`AUTHENTICATE ${payload}`);
+          // IRCv3 requires the payload in 400-byte chunks, and a bare `+` when
+          // the length is an exact multiple — otherwise a long credential rides
+          // past the 512-byte frame and authentication fails with no
+          // diagnostic at all.
+          for (let i = 0; i < payload.length; i += 400) {
+            this.raw(`AUTHENTICATE ${payload.slice(i, i + 400)}`);
+          }
+          if (payload.length % 400 === 0) this.raw('AUTHENTICATE +');
         }
         return;
       }
@@ -331,30 +359,54 @@ export class IrcClient {
     }
   }
 
+  /**
+   * Drain the queue, one line per `WRITE_INTERVAL_MS`.
+   *
+   * The interval is measured from the LAST line actually sent, not from the
+   * start of a drain. The first version armed its timer only when the queue was
+   * still non-empty after a shift, so every `say()` that arrived to an empty
+   * queue wrote immediately — which is every announce, since each one drains the
+   * queue. Ten uploads accepted in the same second went out inside a
+   * millisecond of each other, and an ircd answers that with a kill for excess
+   * flood: the queue existed and paced nothing.
+   */
   private pump(): void {
     if (this.timer || this.state !== 'ready' || this.queue.length === 0) return;
+
+    const wait = Math.max(0, WRITE_INTERVAL_MS - (Date.now() - this.lastSentAt));
     const send = () => {
       this.timer = null;
       if (this.state !== 'ready') return;
       const next = this.queue.shift();
       if (next === undefined) return;
       this.raw(`PRIVMSG ${this.config.channel} :${next}`);
+      this.lastSentAt = Date.now();
       this.sentCount++;
       if (this.queue.length > 0) {
         this.timer = setTimeout(send, WRITE_INTERVAL_MS);
         this.timer.unref?.();
       }
     };
-    send();
+
+    if (wait === 0) {
+      send();
+      return;
+    }
+    this.timer = setTimeout(send, wait);
+    this.timer.unref?.();
   }
 
   private armRegisterDeadline(): void {
-    const deadline = setTimeout(() => {
+    // Kept in a field rather than discarded: without the handle a closed client
+    // — and the config object holding its credentials — stayed reachable for the
+    // length of the deadline after `close()`.
+    this.registerTimer = setTimeout(() => {
+      this.registerTimer = null;
       if (this.state === 'registering' || this.state === 'joining') {
         this.fail('registration did not complete');
       }
     }, REGISTER_TIMEOUT_MS);
-    deadline.unref?.();
+    this.registerTimer.unref?.();
   }
 
   private clearConnectTimer(): void {
@@ -369,6 +421,14 @@ export class IrcClient {
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
+    }
+    if (this.registerTimer) {
+      clearTimeout(this.registerTimer);
+      this.registerTimer = null;
+    }
+    if (this.pinger) {
+      clearInterval(this.pinger);
+      this.pinger = null;
     }
   }
 

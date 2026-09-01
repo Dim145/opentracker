@@ -44,11 +44,15 @@ costs a few characters and buys a parser with no optional groups — and an
 optional group is how a client silently attributes one field's value to another
 when the middle one is missing.
 
+A colon is stripped from every value, because the format reserves it. Tag names
+are the reason: they are free text, and one tag called `quality:high` would
+otherwise make every release carrying it unparseable.
+
 ### Fields
 
 | Token | autobrr variable | Meaning |
 | --- | --- | --- |
-| `{name}` | `releaseName` | the release name |
+| `{name}` | `releaseName` | the release name — truncated first if the line would overflow, so the hash at the end always survives |
 | `{category}` | `category` | the category, or `uncategorised` |
 | `{size}` | `torrentSize` | total size, e.g. `14.62 GiB` |
 | `{freeleechPercent}` | `freeleechPercent` | how much of the download is free |
@@ -111,7 +115,7 @@ announce on your behalf; a read key cannot. See [API keys](../guide/api-keys.md)
 | Channel / key | The key is stored encrypted. |
 | SASL account / password | Preferred when the network offers it. |
 | Server password | For networks that want one before registration. |
-| Lines to send after connecting | One raw IRC line per row, sent after registration and before joining — identifying to NickServ, or asking a channel bot for an invite. Treated as a secret. |
+| Lines to send after connecting | One raw IRC line per row, sent after registration and before joining — identifying to NickServ, or asking a channel bot for an invite. Treated as a secret: the console shows how many are stored and never shows the lines themselves. Leave the field empty to keep them; type into it to replace them. |
 | Public address | Where the link in the line points. The bot has no HTTP request to derive it from; with this empty the line carries a path. |
 | Announce adult releases | Off by default — see below. |
 
@@ -141,8 +145,19 @@ renews every fifteen seconds. Three instances would otherwise mean three bots in
 the channel and every release announced three times — to autobrr, which would
 grab it three times.
 
+The line itself is rendered on whichever instance accepted the release and
+published to Redis; the lease holder is subscribed and says it. That indirection
+is the whole reason the feature works in a fleet: an upload is served by any
+instance, and only one of them has a socket.
+
 The console shows whether the instance you are looking at is the one holding the
-connection. If it is not, the state shown is what that instance last knew.
+connection. If it is not, the state shown is what that instance last knew — but
+the test button still works from there, because the test line travels the same
+way an announce does.
+
+A release is announced **once**, not once per approval: an ordinary edit sends a
+torrent back through moderation, and re-approving it must not put the same line
+in the channel again. The marker lasts a fortnight.
 
 ## Failure, and what it costs
 
@@ -154,9 +169,15 @@ Lines wait in a bounded queue while the bot is disconnected, and past the cap th
 **oldest** are dropped: on an announce channel a stale release is worth less than
 a fresh one. The console shows how many were dropped.
 
-Writes are paced at one line every 1.5 seconds, because servers kill clients that
-talk too fast and the penalty is a disconnect mid-burst — which would lose
-exactly the run of releases a moderator just accepted.
+Writes are paced at one line every 1.5 seconds — measured from the last line
+actually sent, so ten uploads accepted in the same second leave over fifteen
+seconds rather than in one burst. Servers kill clients that talk too fast, and
+the penalty is a disconnect mid-burst, which would lose exactly the run of
+releases a moderator just accepted.
+
+A connection that stops carrying traffic is dropped and rebuilt: without that, a
+peer that dies without closing the socket leaves the bot reporting itself in the
+channel while every line goes nowhere.
 
 ## Format changes
 

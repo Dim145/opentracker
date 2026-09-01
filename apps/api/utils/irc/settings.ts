@@ -113,22 +113,36 @@ export async function setIrcConfig(
   await setSetting(IRC_SETTINGS.CONFIG, encryptJson(config));
 }
 
-/** What the admin console may see: the same config with the secrets blanked. */
+/**
+ * What the admin console may see: the same config with the credentials blanked.
+ *
+ * `perform` is in that list, and it was the omission worth fixing: the field's
+ * documented purpose is a NickServ IDENTIFY line, so it is the entry most likely
+ * to hold a password — and it was being returned verbatim, rendered into a
+ * textarea, and embedded in the page's server-rendered payload. Admin-only, but
+ * the contract this module states is that a secret is never re-emitted, and a
+ * contract kept on three fields out of four is a contract nobody can rely on.
+ */
 export function redactIrcConfig(
   config: IrcAnnounceConfig
 ): IrcAnnounceConfig & {
   hasServerPassword: boolean;
   hasSaslPassword: boolean;
   hasChannelKey: boolean;
+  hasPerform: boolean;
+  performCount: number;
 } {
   return {
     ...config,
     serverPassword: '',
     saslPassword: '',
     channelKey: '',
+    perform: [],
     hasServerPassword: !!config.serverPassword,
     hasSaslPassword: !!config.saslPassword,
     hasChannelKey: !!config.channelKey,
+    hasPerform: config.perform.length > 0,
+    performCount: config.perform.length,
   };
 }
 

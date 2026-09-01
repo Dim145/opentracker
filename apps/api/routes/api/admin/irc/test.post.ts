@@ -21,19 +21,25 @@ export default defineEventHandler(async (event) => {
   const { user } = await requireAdminSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
 
+  // Only refuse on what this instance can be sure of. Since the line travels
+  // through Redis to whichever instance holds the socket, an admin talking to a
+  // non-leader can still test the bot — which is the common case in a fleet.
   const status = ircStatus();
-  if (status.state !== 'ready') {
+  if (status.leader && status.state !== 'ready') {
     throw createError({
       statusCode: 409,
-      message: status.leader
-        ? `The bot is not in the channel (${status.state}${status.lastError ? `: ${status.lastError}` : ''}).`
-        : 'Another instance holds the connection; ask it, or check the status here in a moment.',
+      message: `The bot is not in the channel (${status.state}${
+        status.lastError ? `: ${status.lastError}` : ''
+      }).`,
     });
   }
 
   const line = `Test line from ${user.username} — the announce bot is connected.`;
-  if (!saySomething(line)) {
-    throw createError({ statusCode: 409, message: 'The bot is not connected here.' });
+  if (!(await saySomething(line))) {
+    throw createError({
+      statusCode: 409,
+      message: 'Nothing is listening for lines — the bot is not connected.',
+    });
   }
   return { sent: true, line };
 });

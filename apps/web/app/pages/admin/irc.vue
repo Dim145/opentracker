@@ -113,7 +113,11 @@
             class="input irc-mono"
             rows="3"
             spellcheck="false"
-            placeholder="PRIVMSG Voyager :invite trackarr KEY"
+            :placeholder="
+              config?.hasPerform
+                ? $t('admin.irc.performKept', { n: config.performCount })
+                : 'PRIVMSG Voyager :invite trackarr KEY'
+            "
           />
           <span class="irc-help">{{ $t('admin.irc.hints.perform') }}</span>
         </div>
@@ -255,9 +259,11 @@ interface IrcPayload {
     template: string;
     siteUrl: string;
     announceAdult: boolean;
-    hasServerPassword: boolean;
+      hasServerPassword: boolean;
     hasSaslPassword: boolean;
     hasChannelKey: boolean;
+    hasPerform: boolean;
+    performCount: number;
   };
   status: {
     state: string;
@@ -299,6 +305,11 @@ const form = reactive({
   announceAdult: false,
 });
 const performText = ref('');
+/** Whether the admin has touched the field — see the note at the save. */
+const performDirty = ref(false);
+watch(performText, () => {
+  performDirty.value = true;
+});
 
 watchEffect(() => {
   const c = config.value;
@@ -314,7 +325,10 @@ watchEffect(() => {
   form.template = c.template;
   form.siteUrl = c.siteUrl;
   form.announceAdult = c.announceAdult;
-  performText.value = c.perform.join('\n');
+  // Not prefilled: the GET no longer returns these lines, because the field's
+  // job is a NickServ password. Empty means "keep what is stored"; the count
+  // below is what tells the admin something IS stored.
+  performText.value = '';
 });
 
 /**
@@ -364,15 +378,22 @@ async function save() {
         serverPassword: form.serverPassword || undefined,
         saslPassword: form.saslPassword || undefined,
         channelKey: form.channelKey || undefined,
-        perform: performText.value
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean),
+        // Absent means unchanged, the same contract as the passwords. An admin
+        // clearing the field on purpose sends an empty array, which the API
+        // treats as "no perform lines".
+        perform: performDirty.value
+          ? performText.value
+              .split('\n')
+              .map((line) => line.trim())
+              .filter(Boolean)
+          : undefined,
       },
     });
     form.serverPassword = '';
     form.saslPassword = '';
     form.channelKey = '';
+    performText.value = '';
+    performDirty.value = false;
     message.value = t('admin.irc.saved');
     await refresh();
   } catch (err: unknown) {

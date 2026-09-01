@@ -30,6 +30,7 @@
  * is the same rule the catalogue, the feeds and the federated catalogue already
  * apply — this is simply one more surface that must not be the exception.
  */
+import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { redis } from '~~/utils/server';
@@ -53,11 +54,26 @@ import {
 } from './settings';
 
 const LEASE_KEY = 'irc_announce:leader';
+/**
+ * Where a rendered line is handed to whichever instance holds the connection.
+ *
+ * Without this the feature worked only on a single-instance deployment, and
+ * failed in a way no test would show: `announceRelease` runs in the process that
+ * served the upload, and only the LEASE HOLDER has a client — so on three
+ * instances roughly two thirds of accepted releases were dropped silently. The
+ * fix for announcing three times had produced announcing once in three.
+ *
+ * Publishing unconditionally, including from the leader itself, keeps one path:
+ * every line is rendered where the release was accepted and said where the
+ * socket is.
+ */
+const LINE_CHANNEL = 'irc_announce:line';
 const LEASE_TTL_S = 45;
 export const LEASE_RENEW_MS = 15_000;
 
 let client: IrcClient | null = null;
 let leaseOwner: string | null = null;
+let subscriber: ReturnType<typeof redis.duplicate> | null = null;
 let activeSignature = '';
 let lastError: string | null = null;
 /** Kept for the admin console when this instance is not the leader. */
@@ -79,8 +95,21 @@ function signatureOf(config: IrcAnnounceConfig): string {
   ]);
 }
 
+/**
+ * This process's lease identity, minted once at load.
+ *
+ * `pid:hostname` was not enough: `HOSTNAME` is provided by the container
+ * runtime rather than by anything here, and the `'local'` fallback plus two
+ * containers running the API as pid 1 gives two instances the SAME token — at
+ * which point the compare-and-renew below succeeds against the other one's key
+ * and both hold the lease. Every other lock in this codebase uses
+ * `pid:Date.now()`; this adds a uuid because two containers can start in the
+ * same millisecond.
+ */
+const LEASE_OWNER = `${process.pid}:${Date.now()}:${randomUUID()}`;
+
 function owner(): string {
-  return `${process.pid}:${process.env.HOSTNAME || 'local'}`;
+  return LEASE_OWNER;
 }
 
 /**
@@ -143,6 +172,37 @@ function stop(reason: string): void {
 }
 
 /**
+ * Listen for lines published by the other instances.
+ *
+ * Started once and left running: a subscriber that came and went with the lease
+ * would drop whatever arrived during the handover. Lines that arrive while this
+ * instance is not the one holding the connection are dropped here instead —
+ * cheap, and it means exactly one instance speaks.
+ */
+function ensureSubscriber(): void {
+  if (subscriber) return;
+  try {
+    // The shared client runs with `enableOfflineQueue: false` for the hot
+    // request paths, which is the wrong default for a long-lived idle
+    // subscriber — same override the settings invalidator uses.
+    subscriber = redis.duplicate({ lazyConnect: false, enableOfflineQueue: true });
+    subscriber.on('error', (err: Error) => {
+      console.warn('[IRC] line subscriber error:', err.message);
+    });
+    subscriber.on('message', (channel: string, message: string) => {
+      if (channel !== LINE_CHANNEL) return;
+      // `client` is only non-null on the holder, so this is the fence.
+      if (!client || leaseOwner !== owner()) return;
+      client.say(message);
+    });
+    void subscriber.subscribe(LINE_CHANNEL);
+  } catch (err) {
+    subscriber = null;
+    console.warn('[IRC] could not subscribe to the line channel:', (err as Error).message);
+  }
+}
+
+/**
  * Bring the connection in line with the settings. Called by the plugin on a
  * timer, and by the admin routes after a save so a change lands immediately.
  */
@@ -163,6 +223,10 @@ export async function reconcile(): Promise<void> {
     await releaseLease();
     return;
   }
+
+  // Before the lease: whoever ends up holding it needs the subscription, and an
+  // instance that never wins still pays nothing for one idle connection.
+  ensureSubscriber();
 
   if (!(await holdLease())) return;
 
@@ -229,14 +293,28 @@ export function ircStatus(): IrcStatus & { leader: boolean } {
 }
 
 /** Say one arbitrary line — the admin console's test button, and nothing else. */
-export function saySomething(line: string): boolean {
-  if (!client) return false;
-  client.say(line);
-  return true;
+export async function saySomething(line: string): Promise<boolean> {
+  // Through the channel like an announce, so the admin console of an instance
+  // that does not hold the connection can still test it.
+  try {
+    const heard = await redis.publish(LINE_CHANNEL, line);
+    return heard > 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function shutdownAnnouncer(): Promise<void> {
   stop('shutting down');
+  if (subscriber) {
+    try {
+      await subscriber.unsubscribe(LINE_CHANNEL);
+      subscriber.disconnect();
+    } catch {
+      // Going away regardless.
+    }
+    subscriber = null;
+  }
   await releaseLease();
 }
 
@@ -282,8 +360,8 @@ export interface AnnounceCandidate {
 export async function announceRelease(
   torrent: AnnounceCandidate
 ): Promise<void> {
-  if (!client) return;
-
+  // Deliberately NOT `if (!client) return`: this runs on whichever instance
+  // served the upload, which is usually not the one holding the socket.
   let config: IrcAnnounceConfig;
   try {
     if (!(await getIrcEnabled())) return;
@@ -374,5 +452,42 @@ export async function announceRelease(
     infoHash: torrent.infoHash,
   };
 
-  client.say(renderAnnounce(config.template, fields));
+  const line = renderAnnounce(config.template, fields);
+
+  /**
+   * Once per release, not once per approval.
+   *
+   * The moderation edge is `pending → accepted`, and an ordinary edit sends an
+   * accepted torrent back to `pending` — so a member editing their own release
+   * and a moderator re-approving it announced the same thing again, and every
+   * autobrr in the channel grabbed it a second time. A key per infohash, kept
+   * for a fortnight, is enough: an announce is only interesting while the
+   * release is new, and a fortnight is well past that.
+   */
+  try {
+    const first = await redis.set(
+      `irc_announce:said:${torrent.infoHash}`,
+      '1',
+      'EX',
+      1_209_600,
+      'NX'
+    );
+    if (first !== 'OK') return;
+  } catch {
+    // Redis unavailable: announce rather than stay silent. A duplicate line is
+    // a nuisance; a missing one is the feature not working.
+  }
+
+  /**
+   * Published, never said directly — see `LINE_CHANNEL`. This also closes a
+   * narrower bug: the guard at the top of this function ran eight awaits ago,
+   * and `reconcile()` nulls `client` on any tick where the socket is in error,
+   * so `client.say(...)` here could throw on null exactly during an IRC outage.
+   */
+  try {
+    await redis.publish(LINE_CHANNEL, line);
+  } catch (err) {
+    // A line is not worth an exception on the upload path.
+    console.warn('[IRC] could not publish an announce:', (err as Error).message);
+  }
 }

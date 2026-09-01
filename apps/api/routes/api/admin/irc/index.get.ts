@@ -13,12 +13,14 @@
  * conclude the bot is down.
  */
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { ircStatus } from '~~/utils/irc/announcer';
 import { ANNOUNCE_TOKENS, DEFAULT_ANNOUNCE_TEMPLATE, announcePattern } from '~~/utils/irc/format';
 import { getIrcConfig, getIrcEnabled, redactIrcConfig } from '~~/utils/irc/settings';
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
+  await rateLimit(event, RATE_LIMITS.public);
 
   const [enabled, config] = await Promise.all([getIrcEnabled(), getIrcConfig()]);
 

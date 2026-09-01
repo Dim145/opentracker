@@ -44,7 +44,7 @@ import {
 } from '~~/utils/irc/settings';
 
 /** `null` clears a secret, an absent/empty string keeps it. */
-const secret = z.union([z.string(), z.null()]).optional();
+const secret = z.union([z.string().max(300), z.null()]).optional();
 
 const bodySchema = z.object({
   enabled: z.boolean(),
@@ -63,10 +63,29 @@ const bodySchema = z.object({
   serverPassword: secret,
   saslUser: z.string().trim().max(60),
   saslPassword: secret,
-  perform: z.array(z.string().trim().max(400)).max(8),
+  /**
+   * Absent means unchanged, like the three password fields — the GET no longer
+   * returns these lines, so a form that round-tripped what it received would
+   * erase them. An explicit empty array clears them.
+   */
+  perform: z
+    .array(z.string().trim().max(400).regex(/^[^\r\n]*$/, 'One line per entry'))
+    .max(8)
+    .optional(),
   channel: z.string().trim().max(60).regex(/^[#&][^\s,]+$/, 'Not a valid channel'),
   channelKey: secret,
-  template: z.string().trim().min(1).max(500),
+  // No control characters. A newline survives `.trim()`, and the generated
+  // autobrr definition puts the template's derived pattern in a single-quoted
+  // YAML scalar — where a raw newline either breaks the file or, with matching
+  // indentation, injects structure into the artifact whose whole job is to be
+  // trustworthy. Every gate passed on such a template before this: the length,
+  // the `{name}` requirement, and the round-trip.
+  template: z
+    .string()
+    .trim()
+    .min(1)
+    .max(500)
+    .regex(/^[^\u0000-\u001f\u007f]+$/, 'The line cannot contain control characters'),
   siteUrl: z.string().trim().max(300),
   announceAdult: z.boolean(),
 });
@@ -77,6 +96,27 @@ export default defineEventHandler(async (event) => {
 
   const body = await validateBody(event, bodySchema);
   const stored = await getIrcConfig();
+
+  /**
+   * Two lazy unbounded groups with no literal text between them make the match
+   * ambiguous, and the cost of proving a failure grows with each one: measured
+   * at 20 seconds of blocked event loop for four adjacent groups, on a template
+   * inside the 500-character cap. Node is single-threaded, so that is the whole
+   * API instance serving nothing.
+   *
+   * Refusing adjacency costs nothing real — a parser cannot tell two adjacent
+   * free-text fields apart anyway, so such a template was never going to work.
+   */
+  const adjacent = /\(\?P<\w+>\.\+\?\)\(\?P<\w+>/.test(
+    announcePattern(body.template).pattern
+  );
+  if (adjacent) {
+    throw createError({
+      statusCode: 400,
+      message:
+        'Two free-text fields cannot sit next to each other — put a separator between them.',
+    });
+  }
 
   // Round-trip the template before anything is written: a stored template that
   // its own regex cannot read is a broken definition handed to every member.
@@ -110,7 +150,9 @@ export default defineEventHandler(async (event) => {
     serverPassword: keep(body.serverPassword, stored.serverPassword),
     saslUser: body.saslUser,
     saslPassword: keep(body.saslPassword, stored.saslPassword),
-    perform: body.perform.filter((line) => line.length > 0),
+    perform: body.perform
+      ? body.perform.filter((line) => line.length > 0)
+      : stored.perform,
     channel: body.channel,
     channelKey: keep(body.channelKey, stored.channelKey),
     template: body.template,
