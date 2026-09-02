@@ -34,7 +34,6 @@
         v-if="isOpen"
         class="slip-backdrop"
         @click.self="close"
-        @keydown.esc="close"
       >
         <div
           ref="slipRef"
@@ -274,35 +273,21 @@ async function submitReport() {
   }
 }
 
-// Focus + Esc management. The window-level listener fires even
-// when the user has tabbed outside the slip, and the panel auto-
-// focuses on open so the very first keystroke is captured.
+// Focus, Échap, verrou de défilement et restitution du focus.
+//
+// Il n'y avait que Échap. `role="dialog"` + `aria-modal="true"` annoncent une
+// modale au lecteur d'écran, mais ne rendent pas la page inerte pour le
+// navigateur : la tabulation sortait du bordereau et repartait dans la page
+// masquée par l'ombrage, sans moyen évident de revenir, et la fermeture rendait
+// le focus à `<body>`. La mécanique est celle de `Modal.vue`, désormais
+// partagée — ce composant ne peut pas réutiliser `Modal.vue` lui-même, son
+// habillage (bord dentelé, en-tête à drapeau) lui est propre.
 const slipRef = ref<HTMLElement | null>(null);
 
-function handleEsc(e: KeyboardEvent) {
-  if (e.key === 'Escape' && props.isOpen) {
-    e.preventDefault();
-    close();
-  }
-}
-
-watch(
-  () => props.isOpen,
-  (open) => {
-    if (typeof window === 'undefined') return;
-    if (open) {
-      window.addEventListener('keydown', handleEsc);
-      nextTick(() => slipRef.value?.focus());
-    } else {
-      window.removeEventListener('keydown', handleEsc);
-    }
-  }
-);
-
-onBeforeUnmount(() => {
-  if (typeof window !== 'undefined') {
-    window.removeEventListener('keydown', handleEsc);
-  }
+useModalChrome({
+  isOpen: () => props.isOpen,
+  panel: slipRef,
+  onEscape: close,
 });
 </script>
 

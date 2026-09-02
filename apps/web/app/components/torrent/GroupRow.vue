@@ -103,10 +103,32 @@
         </span>
       </div>
 
-      <Icon
-        :name="open ? 'ph:caret-up-bold' : 'ph:caret-down-bold'"
-        class="grp-chev"
-      />
+      <!--
+        Le chevron est un vrai bouton, pas une décoration.
+
+        L'ouverture était à la souris seule : `.grp-head` est un `<div>` avec un
+        `@click`, donc absent de l'ordre de tabulation et sourd à Entrée. On ne
+        peut pas lui donner `role="button"` pour autant — il contient déjà des
+        boutons (les puces de portée), et un rôle `button` autour d'eux les
+        retirerait de l'arbre d'accessibilité. Le contrôle explicite est donc
+        ici, et le clic sur la ligne reste un raccourci pour la souris.
+      -->
+      <button
+        type="button"
+        class="grp-chev-btn"
+        :aria-expanded="open"
+        :aria-label="
+          open
+            ? $t('search.group.collapseAria', { title })
+            : $t('search.group.expandAria', { title })
+        "
+        @click.stop="toggle()"
+      >
+        <Icon
+          :name="open ? 'ph:caret-up-bold' : 'ph:caret-down-bold'"
+          class="grp-chev"
+        />
+      </button>
     </div>
 
     <TorrentGroupTree
@@ -502,6 +524,20 @@ const age = computed(() => formatAge(props.group.latest));
   color: rgb(var(--fg-faint));
 }
 
+.grp-chev-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  border-radius: var(--radius-sm);
+}
+.grp-chev-btn:hover .grp-chev {
+  color: rgb(var(--fg-muted));
+}
 .grp-chev {
   width: 0.9rem;
   height: 0.9rem;
@@ -545,7 +581,7 @@ const age = computed(() => formatAge(props.group.latest));
   .grp-body {
     grid-area: body;
   }
-  .grp-chev {
+  .grp-chev-btn {
     grid-area: chev;
   }
   .grp-facts {

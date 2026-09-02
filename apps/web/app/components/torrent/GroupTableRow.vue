@@ -15,7 +15,6 @@
   <tr
     class="gtr"
     :class="{ 'gtr--open': open }"
-    :aria-expanded="open"
     @click="toggle()"
   >
     <td>
@@ -111,8 +110,30 @@
     </td>
     <td class="gtr-size">{{ sizeSpan }}</td>
     <td class="gtr-age">{{ age }}</td>
+    <!--
+      Le chevron est un vrai bouton, pas une décoration.
+
+      L'ouverture était à la souris seule : un `<tr>` avec un `@click` n'est ni
+      dans l'ordre de tabulation ni sensible à Entrée. Rendre la ligne elle-même
+      focalisable ne suffirait pas — elle contient déjà des boutons et un lien,
+      et `role="button"` autour d'eux les retirerait de l'arbre
+      d'accessibilité. Le clic sur la ligne reste un raccourci pour la souris ;
+      c'est ce bouton qui porte l'état pour tout le monde.
+    -->
     <td class="gtr-chev">
-      <Icon :name="open ? 'ph:caret-up-bold' : 'ph:caret-down-bold'" />
+      <button
+        type="button"
+        class="gtr-chev-btn"
+        :aria-expanded="open"
+        :aria-label="
+          open
+            ? $t('search.group.collapseAria', { title })
+            : $t('search.group.expandAria', { title })
+        "
+        @click.stop="toggle()"
+      >
+        <Icon :name="open ? 'ph:caret-up-bold' : 'ph:caret-down-bold'" />
+      </button>
     </td>
   </tr>
 
@@ -427,6 +448,20 @@ const searchableTitle = computed(() => {
 .gtr-chev {
   text-align: center;
   color: rgb(var(--fg-faint));
+}
+.gtr-chev-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  border-radius: var(--radius-sm);
+}
+.gtr-chev-btn:hover {
+  color: rgb(var(--fg-muted));
 }
 
 .gtr-expanded > td {
