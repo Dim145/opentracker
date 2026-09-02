@@ -9,6 +9,8 @@ import {
 } from '@trackarr/db/schema';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { auditDetail } from '~~/utils/audit';
+import { z } from 'zod';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import {
   CURRENT_KDF_VERSION,
   deriveKey,
@@ -24,8 +26,31 @@ import {
  * Encrypt all sensitive database data
  * This is an emergency action that renders data unreadable
  */
+/*
+ * Le corps est borné, et l'appel limité — comme `restore`.
+ *
+ * `restore` porte les trois durcissements (seau `RATE_LIMITS.auth`, budget
+ * global, schéma `.max(200)`) et les justifie : « free CPU amplification »,
+ * parce que la valeur atteint scrypt. `encrypt` dérive la MÊME clé depuis le
+ * MÊME mot de passe et n'en avait aucun — `readBody()` nu, aucune limite.
+ *
+ * Deux conséquences. Un `panicPassword` de plusieurs mégaoctets part dans
+ * scrypt à chaque appel ; et surtout `verifyPassword(admin.panicPasswordHash,
+ * …)` plus bas est un oracle : sans plafond, une session d'administration
+ * compromise essaie le mot de passe qui déchiffre TOUTE la base autant de fois
+ * qu'elle veut. Que la porte demande déjà une session admin ne change rien —
+ * c'est précisément le scénario contre lequel le mode panique existe.
+ */
+const bodySchema = z
+  .object({
+    confirm: z.literal('ENCRYPT_ALL_DATA'),
+    panicPassword: z.string().min(1, 'Panic password is required').max(200),
+  })
+  .strict();
+
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
+  await rateLimit(event, RATE_LIMITS.auth);
   // Named before the body is read, so the entry exists even when a guard
   // below rejects the request — an attempted panic is worth as much as a
   // completed one, and the status code on the row says which it was.
@@ -33,25 +58,11 @@ export default defineEventHandler(async (event) => {
   // No `changes`: the body carries the raw panic password.
   auditDetail(event, { action: 'panic.encrypt', targetType: 'instance' });
 
-  const body = await readBody(event);
-
-  if (body.confirm !== 'ENCRYPT_ALL_DATA') {
-    throw createError({
-      statusCode: 400,
-      message: 'Confirmation required. Send { confirm: "ENCRYPT_ALL_DATA" }',
-    });
-  }
-
   // The raw panic password is required so the encryption key can be
   // derived from it (not from the stored hash). Deriving from the
   // hash would leave BOTH KDF inputs (hash + salt) inside the very
   // dump panic mode is meant to protect — see finding C1.
-  if (!body.panicPassword || typeof body.panicPassword !== 'string') {
-    throw createError({
-      statusCode: 400,
-      message: 'Panic password is required to encrypt.',
-    });
-  }
+  const body = await readValidatedBody(event, bodySchema.parse);
 
   const currentState = await db.query.panicState.findFirst();
   if (currentState?.isEncrypted) {
