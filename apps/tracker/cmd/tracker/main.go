@@ -125,7 +125,7 @@ func main() {
 	if cfg.UDPEnabled {
 		udpAddr := ":" + strconv.Itoa(cfg.UDPPort)
 		var err error
-		udpSrv, err = udp.New(udpAddr, cfg.IPHashSecret, srv, store)
+		udpSrv, err = udp.New(udpAddr, cfg.IPHashSecret, srv, store, cfg.UDPScrapeEnabled)
 		if err != nil {
 			logger.Error("udp listen", "err", err)
 			os.Exit(1)

@@ -6,9 +6,8 @@ import (
 	"errors"
 	"log/slog"
 	"net"
-	"runtime/debug"
 	"runtime"
-	"strconv"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -80,6 +79,16 @@ type Server struct {
 	droppedParse   atomic.Uint64
 	droppedConnID  atomic.Uint64
 	droppedPasskey atomic.Uint64
+	droppedReject  atomic.Uint64
+
+	// Le scrape UDP peut être fermé sans fermer l'annonce.
+	//
+	// Le scrape HTTP exige une passkey ; celui-ci ne le peut pas, BEP 15 ne
+	// prévoyant aucun emplacement pour une donnée d'authentification dans une
+	// requête de scrape. L'exploitant d'un tracker privé qui ne veut pas
+	// publier la taille de ses essaims ferme donc l'accès plutôt que
+	// l'authentifier. Voir `TRACKER_UDP_SCRAPE_ENABLED`.
+	scrapeEnabled bool
 }
 
 // New builds a UDP server bound to `addr` and ready to dispatch
@@ -88,7 +97,9 @@ type Server struct {
 // Binding happens here (rather than in Start) so the caller can fail
 // fast on a port conflict at boot — same pattern as `http.Server.Listen`
 // happens inside `ListenAndServe`, but exposed earlier.
-func New(addr string, secret string, proc *server.Server, store *peers.Store) (*Server, error) {
+// New construit le serveur UDP. `scrapeEnabled` vient de
+// `TRACKER_UDP_SCRAPE_ENABLED` : voir le champ du même nom.
+func New(addr string, secret string, proc *server.Server, store *peers.Store, scrapeEnabled bool) (*Server, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return nil, err
@@ -102,13 +113,14 @@ func New(addr string, secret string, proc *server.Server, store *peers.Store) (*
 		cpus = 1
 	}
 	s := &Server{
-		conn:      conn,
-		connID:    NewConnIDIssuer(secret),
-		addr:      udpAddr,
-		proc:      proc,
-		store:     store,
-		logger:    slog.Default(),
-		workerSem: make(chan struct{}, cpus*workerSlotsPerCPU),
+		scrapeEnabled: scrapeEnabled,
+		conn:          conn,
+		connID:        NewConnIDIssuer(secret),
+		addr:          udpAddr,
+		proc:          proc,
+		store:         store,
+		logger:        slog.Default(),
+		workerSem:     make(chan struct{}, cpus*workerSlotsPerCPU),
 	}
 	s.bufPool = sync.Pool{
 		New: func() any {
@@ -223,6 +235,13 @@ func (s *Server) handlePacket(ctx context.Context, bufp *[]byte, n int, raddr *n
 	case action == ActionAnnounce:
 		s.handleAnnounce(ctx, data, raddr)
 	case action == ActionScrape:
+		if !s.scrapeEnabled {
+			// Silence plutôt qu'une erreur : répondre à une source non
+			// vérifiée, c'est le réflecteur que `handleConnect` refuse déjà
+			// d'être. BEP 15 prévoit qu'un client sans réponse refasse son
+			// `connect`.
+			return
+		}
 		s.handleScrape(ctx, data, raddr)
 	default:
 		// Drop unknown action. We could send action=3 with "Bad
@@ -323,14 +342,24 @@ func (s *Server) handleAnnounce(ctx context.Context, data []byte, raddr *net.UDP
 	// unknown).
 	out := s.proc.ProcessAnnounce(ctx, apiReq, clientIP, "")
 	if out.Failure != "" {
-		// Failure carries the user-facing reason ("Invalid passkey",
-		// "Low ratio…", "Torrent not found or inactive"). Surface it
-		// alongside the remote so the operator can correlate with a
-		// specific peer.
-		s.logger.Info("udp announce rejected",
-			"remote", raddr.String(),
-			"reason", out.Failure,
-		)
+		// Échantillonné, et sans adresse en clair.
+		//
+		// Une ligne par datagramme rejeté : les trois compteurs plus haut
+		// n'écrivent qu'une fois sur dix mille précisément parce qu'« une ligne
+		// de journal par datagramme est un primitif d'épuisement de disque » —
+		// ce chemin-ci l'avait oublié. Une passkey invalide ou un ratio bas se
+		// répète à chaque annonce du client, sans limite.
+		//
+		// Et `raddr.String()` écrivait l'adresse en clair, là où le chemin HTTP
+		// n'écrit rien en cas d'échec et hache l'adresse quand il journalise.
+		// Le motif suffit à l'exploitant ; l'adresse ne lui apprend rien qu'il
+		// ne puisse retrouver autrement.
+		if n := s.droppedReject.Add(1); n%10_000 == 1 {
+			s.logger.Info("udp announces rejected",
+				"count", n,
+				"reason", out.Failure,
+			)
+		}
 		_, _ = s.conn.WriteToUDP(
 			EncodeError(nil, req.TransactionID, out.Failure),
 			raddr,
@@ -450,10 +479,6 @@ func hexBytes(b []byte) string {
 	}
 	return string(out)
 }
-
-// portStr is a small helper used by tests to materialise the bound
-// address. Not used in the hot path.
-func portStr(p int) string { return ":" + strconv.Itoa(p) }
 
 // _ asserts the announce package is compiled in even if the package
 // imports get reorganised — we rely on `announce.InfoHashLen` and

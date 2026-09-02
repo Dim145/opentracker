@@ -10,15 +10,16 @@ import (
 )
 
 type Config struct {
-	HTTPPort       int
-	UDPPort        int
-	UDPEnabled     bool
-	DatabaseURL    string
-	RedisURL       string
-	RedisPassword  string
-	RedisKeyPrefix string
-	IPHashSecret   string
-	Debug          bool
+	HTTPPort         int
+	UDPPort          int
+	UDPEnabled       bool
+	UDPScrapeEnabled bool
+	DatabaseURL      string
+	RedisURL         string
+	RedisPassword    string
+	RedisKeyPrefix   string
+	IPHashSecret     string
+	Debug            bool
 	// FederationSwarm gates the cross-announce peer injection (Phase 4).
 	// Off by default — mixing partner-instance peers into responses re-opens
 	// the private swarm isolation, so it's an explicit operator opt-in.
@@ -73,13 +74,34 @@ func Load() (*Config, error) {
 		// tweaking. UDP support is opt-in via TRACKER_UDP_ENABLED so an
 		// operator who doesn't want to expose it (HTTPS-only deployments,
 		// strict firewall rules, etc.) can keep the listener off.
-		UDPPort:        getEnvInt("TRACKER_UDP_PORT", 6969),
-		UDPEnabled:     getEnvDefault("TRACKER_UDP_ENABLED", "true") == "true",
-		DatabaseURL:    os.Getenv("DATABASE_URL"),
-		RedisURL:       os.Getenv("REDIS_URL"),
-		RedisPassword:  os.Getenv("REDIS_PASSWORD"),
-		RedisKeyPrefix: getEnvDefault("REDIS_KEY_PREFIX", "ot:"),
-		IPHashSecret:   os.Getenv("IP_HASH_SECRET"),
+		UDPPort:    getEnvInt("TRACKER_UDP_PORT", 6969),
+		UDPEnabled: getEnvDefault("TRACKER_UDP_ENABLED", "true") == "true",
+		// Le scrape UDP, séparément de l'annonce.
+		//
+		// Le scrape HTTP exige une passkey (voir `handleScrape` dans
+		// `internal/server/handler.go`, et le pourquoi : reconstituer le
+		// catalogue depuis une liste de hashes publics). Le scrape UDP ne le
+		// peut pas — BEP 15 ne prévoit AUCUN emplacement pour une donnée
+		// d'authentification dans une requête de scrape ; l'extension BEP 41
+		// qui porte la passkey de l'annonce ne s'applique qu'à l'annonce.
+		// Exiger une passkey ici reviendrait à casser le scrape UDP pour tous
+		// les clients conformes.
+		//
+		// L'asymétrie est donc dans les protocoles, pas dans ce code. Ce qui
+		// manquait, c'est le choix : un tracker privé qui ne veut pas publier
+		// la taille de ses essaims peut désormais fermer le scrape sans perdre
+		// l'annonce UDP. La contrainte réelle reste modeste — l'appelant doit
+		// d'abord faire un `connect` depuis sa vraie adresse, et la réponse ne
+		// contient que des compteurs, jamais de pairs.
+		//
+		// Défaut `true` : un déploiement existant ne change pas de
+		// comportement en se mettant à jour.
+		UDPScrapeEnabled: getEnvDefault("TRACKER_UDP_SCRAPE_ENABLED", "true") == "true",
+		DatabaseURL:      os.Getenv("DATABASE_URL"),
+		RedisURL:         os.Getenv("REDIS_URL"),
+		RedisPassword:    os.Getenv("REDIS_PASSWORD"),
+		RedisKeyPrefix:   getEnvDefault("REDIS_KEY_PREFIX", "ot:"),
+		IPHashSecret:     os.Getenv("IP_HASH_SECRET"),
 		// 20 is what the pool was hardcoded to before this became a
 		// setting; keeping it as the default means an existing deployment
 		// behaves identically after the upgrade.

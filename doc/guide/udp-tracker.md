@@ -88,6 +88,7 @@ it — clients won't waste announces on a dead endpoint.
 # Tracker (apps/tracker)
 TRACKER_UDP_PORT=6969          # Default. The de-facto BEP 15 port.
 TRACKER_UDP_ENABLED=true       # Default. Set to "false" to disable the listener.
+TRACKER_UDP_SCRAPE_ENABLED=true # Default. "false" closes UDP scrape, keeps announce.
 
 # Web / API (NUXT_PUBLIC_*) — surfaced in /api/runtime-config and
 # /api/torrents/[hash]/download
@@ -125,6 +126,21 @@ UDP gives you the source address straight off the socket; there's no
 fill in is **deliberately ignored** — trusting it would let any peer
 register on behalf of arbitrary IPv4 addresses (the classic source-spoofing
 attack on UDP trackers).
+
+
+### Why UDP scrape has no passkey, and what to do about it
+
+HTTP scrape requires one. UDP scrape cannot: BEP 15 defines a scrape request as
+a connection id, an action, a transaction id and a run of info hashes — there is
+no field for authentication data, and the BEP 41 options extension that carries
+the passkey applies to *announce* only. Requiring a passkey here would break UDP
+scrape for every conforming client rather than protect anything.
+
+The asymmetry is therefore in the protocols, not in this tracker. What it costs
+you is real but bounded: a caller learns swarm SIZES for info hashes they
+already know, never peer addresses, and only after a `connect` round trip from
+their own address. If that is more than a private tracker wants to publish,
+close it — `TRACKER_UDP_SCRAPE_ENABLED=false` leaves UDP announce working.
 
 ## Observability
 

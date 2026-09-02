@@ -256,6 +256,10 @@ services:
       # so it's exposed directly on the host via `ports` below.
       TRACKER_UDP_PORT: 6969
       TRACKER_UDP_ENABLED: ${TRACKER_UDP_ENABLED:-false}
+      # Ferme le scrape UDP sans fermer l'annonce : le scrape HTTP exige une
+      # passkey, celui-ci ne le peut pas (BEP 15 n'a pas d'emplacement pour
+      # une donnée d'authentification dans une requête de scrape).
+      TRACKER_UDP_SCRAPE_ENABLED: ${TRACKER_UDP_SCRAPE_ENABLED:-true}
       TRACKER_DEBUG: ${TRACKER_DEBUG:-false}
       # Caddy proxies BitTorrent announces on `/announce` and on the
       # `tracker.*` subdomain. Without trusting its X-Real-IP /
