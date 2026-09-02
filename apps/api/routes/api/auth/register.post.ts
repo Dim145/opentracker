@@ -142,10 +142,25 @@ export default defineEventHandler(async (event) => {
   }
 
   // Check for existing username
+  /*
+   * Insensible à la casse.
+   *
+   * Le contrôle et l'index unique portaient tous deux sur la valeur exacte,
+   * donc `Admin` pouvait être créé alors qu'`admin` existait. Le jeu de
+   * caractères est `[a-zA-Z0-9_-]`, donc pas d'homographes Unicode — mais la
+   * collision par casse suffit à usurper un pseudonyme de personnel dans les
+   * commentaires, le forum, les messages privés et le journal de modération.
+   * Et `auth/challenge` étant lui aussi sensible à la casse, les deux comptes
+   * se connectent normalement.
+   *
+   * L'index unique fonctionnel de la migration est ce qui rend la garantie
+   * réelle : ce contrôle-ci répond 409 plutôt que de laisser la base lever une
+   * violation de contrainte.
+   */
   const existingUsername = await db
     .select({ username: users.username })
     .from(users)
-    .where(eq(users.username, body.username))
+    .where(sql`lower(${users.username}) = ${body.username.toLowerCase()}`)
     .limit(1);
 
   if (existingUsername.length > 0) {

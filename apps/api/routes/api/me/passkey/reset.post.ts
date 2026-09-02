@@ -20,6 +20,8 @@
  * of the tracker.
  */
 import { eq } from 'drizzle-orm';
+import { redis } from '~~/utils/server';
+import { createHash } from 'node:crypto';
 import { db, schema } from '@trackarr/db';
 import { requireAuthSession, requireFreshAuth } from '~~/utils/adminAuth';
 import { generatePasskey } from '~~/utils/auth';
@@ -64,6 +66,29 @@ export default defineEventHandler(async (event) => {
   // counters both index a hash no account matches any more, and leaving the
   // counters behind would also leak the rotation.
   await retireTorznabPasskey(oldPasskey, carried);
+
+  /*
+   * Le cache du tracker, purgé tout de suite.
+   *
+   * Le tracker résout `(passkey → user)` par un cache Redis de 60 s indexé sur
+   * `sha256(passkey)[:16]`. Il l'invalide lui-même sur son chemin de déban
+   * paresseux, et laisse le TTL couvrir le reste — un contrat écrit pour les
+   * changements d'état de BANNISSEMENT, pas pour une RÉVOCATION. Résultat :
+   * une passkey régénérée ici continuait d'annoncer une minute durant, ce qui
+   * est exactement la fenêtre qu'une rotation existe pour fermer (« ma clé a
+   * fuité »).
+   *
+   * La même clé, calculée de la même façon, effacée depuis ce côté-ci : c'est
+   * une suppression Redis, pas un appel au tracker, donc il n'y a pas de
+   * couplage de service à ajouter.
+   */
+  try {
+    const digest = createHash('sha256').update(oldPasskey).digest('hex').slice(0, 16);
+    await redis.del(`${process.env.REDIS_KEY_PREFIX ?? 'ot:'}trk:pk:${digest}`);
+  } catch {
+    // Le TTL de 60 s reste le repli : ne pas faire échouer une rotation
+    // parce que le cache a hoqueté.
+  }
 
   // The session cookie carries the passkey, so it now holds a dead one. Write
   // the new value back rather than force a re-login.

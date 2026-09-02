@@ -61,8 +61,15 @@ export const registerSchema = z.object({
       'Username can only contain letters, numbers, underscores, and hyphens'
     ),
   // ZKE fields - server never sees password
-  authSalt: z.string().min(40, 'Invalid salt'),
-  authVerifier: z.string().min(40, 'Invalid verifier'),
+  // Bornées en haut aussi. Les deux atterrissent dans des colonnes `text` non
+  // bornées, par un appelant NON authentifié (`POST /api/auth/register`), et
+  // un client honnête envoie 44 caractères de base64 pour 32 octets. Sans
+  // plafond, chaque inscription pouvait y planter la taille maximale d'un corps
+  // Nitro — puis `encryptSecretRequired` chiffrait tout cela à chaque écriture,
+  // et `login.post.ts` concaténait le vérificateur dans un SHA-256 à chaque
+  // tentative.
+  authSalt: z.string().min(40, 'Invalid salt').max(64, 'Invalid salt'),
+  authVerifier: z.string().min(40, 'Invalid verifier').max(64, 'Invalid verifier'),
   // Proof of Work
   powChallenge: z.string().length(64, 'Invalid PoW challenge'),
   powNonce: z.string().min(1, 'Invalid PoW nonce'),

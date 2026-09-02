@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3';
+import { readLiveRoles } from './liveRoles';
 import { useSession } from 'h3';
 import { touchPresence } from './presence';
 
@@ -115,6 +116,31 @@ export async function getSessionId(event: H3Event): Promise<string> {
   return s.id;
 }
 
+/**
+ * La porte d'authentification, et les deux choses qu'elle doit faire au passage.
+ *
+ * **Les drapeaux de personnel sont relus dans la base, pas dans le cookie.**
+ * Le cookie est un jeton scellé de sept jours : lus depuis lui, `isAdmin` et
+ * `isModerator` restaient vrais toute cette durée, si bien qu'un modérateur
+ * rétrogradé conservait ses pouvoirs sur douze routes mutantes qui n'élargissent
+ * les leurs que sur ces drapeaux — réécrire le message d'un autre membre,
+ * supprimer n'importe quel torrent, publier sans passer par la file de revue,
+ * désanonymiser un uploadeur. `invalidateRoleCache` était bien appelé à la
+ * rétrogradation, et son effet s'arrêtait aux portes `/api/admin/**` et
+ * `/api/mod/**` : depuis un client HTTP, le reste tenait.
+ *
+ * `reconcileStaffRoles` existait, avec ce défaut écrit mot pour mot dans son
+ * commentaire, et n'était câblé qu'à la messagerie et aux tickets. Le poser ICI
+ * plutôt que dans les douze routes est ce qui garantit qu'une treizième, écrite
+ * demain, en hérite : le coût est une lecture Redis mise en cache 60 s, que la
+ * chaîne d'authentification faisait déjà pour l'état de bannissement.
+ *
+ * **L'acteur du journal d'audit est posé ici aussi**, pour la même raison :
+ * `requireAuthSession` le posait et `requireUserSession` non, si bien que dix
+ * routes que `STAFF_REACH` déclare vouloir tracer n'écrivaient aucune ligne —
+ * ni succès, ni refus. Le choix entre les deux gardes, indistinguable vu de la
+ * route, décidait de la traçabilité.
+ */
 export async function requireUserSession(
   event: H3Event
 ): Promise<UserSessionData & { user: SessionUser }> {
@@ -125,5 +151,21 @@ export async function requireUserSession(
       message: 'Authentication required',
     });
   }
-  return data as UserSessionData & { user: SessionUser };
+  const session = data as UserSessionData & { user: SessionUser };
+
+  // Mémoïsé par requête : une route qui enchaîne `requireUserSession` puis
+  // `requireAuthSession` ne paie la lecture qu'une fois.
+  if (!event.context.rolesReconciled) {
+    const live = await readLiveRoles(session.user.id);
+    if (!live) {
+      throw createError({ statusCode: 403, message: 'Account no longer exists' });
+    }
+    session.user.isAdmin = live.isAdmin;
+    session.user.isModerator = live.isModerator;
+    session.user.isOwner = live.isOwner;
+    event.context.rolesReconciled = true;
+  }
+
+  event.context.auditActor = session.user;
+  return session;
 }
