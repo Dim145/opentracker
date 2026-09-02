@@ -16,7 +16,7 @@
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { invalidateBypassCache } from '~~/utils/torrentModeration';
-import { validateBody } from '~~/utils/schemas';
+import { validateBody, validateRouterParams } from '~~/utils/schemas';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { notify } from '~~/utils/notify';
@@ -28,7 +28,7 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user: actor } = await requireAdminSession(event);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
   const body = await validateBody(event, bodySchema);
 
   const [user] = await db

@@ -12,7 +12,7 @@
  */
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession, requireFreshAuth } from '~~/utils/adminAuth';
-import { validateBody } from '~~/utils/schemas';
+import { validateBody, validateRouterParams } from '~~/utils/schemas';
 import { eq, and, ne, count } from 'drizzle-orm';
 import { z } from 'zod';
 import { notify } from '~~/utils/notify';
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
   // Privilege grants are the highest-impact admin action — require a
   // fresh login on top of the admin gate (finding L10).
   await requireFreshAuth(event);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
   // Routed through validateBody so a Zod failure renders as a clean
   // 400 with a human message, not a wall of `unrecognized_keys` issue
   // objects. The frontend used to send the whole RegistryUser object
@@ -118,7 +118,19 @@ export default defineEventHandler(async (event) => {
       isModerator: body.isModerator,
     })
     .where(eq(schema.users.id, id))
-    .returning();
+    // Une projection, pas la ligne entière. `.returning()` nu renvoyait les
+    // 33 colonnes de `users` — dont `passkey`, `rssKey` et `apiKey`, stockées
+    // EN CLAIR, plus `authVerifier`, `totpSecret`, `panicPasswordHash` et
+    // `lastIp`. Nommer un modérateur rendait donc sa passkey d'annonce à
+    // l'administrateur, qui pouvait dès lors annoncer à sa place. Le point de
+    // terminaison n'a besoin que de deux booléens.
+    .returning({
+      id: schema.users.id,
+      username: schema.users.username,
+      isAdmin: schema.users.isAdmin,
+      isModerator: schema.users.isModerator,
+      isOwner: schema.users.isOwner,
+    });
 
   // Bust the cached role so the staff gates observe the change
   // within the request, not after the 60 s TTL — and a demotion

@@ -25,6 +25,7 @@
 import { db, schema } from '@trackarr/db';
 import { count, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { validateQuery } from '~~/utils/schemas';
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -33,7 +34,7 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
-  const params = querySchema.parse(getQuery(event));
+  const params = validateQuery(event, querySchema);
 
   // Read the preference before the listing: when the history is hidden
   // there is nothing to page over, so we skip both queries rather than

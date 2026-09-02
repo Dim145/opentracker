@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
-import { validateBody } from '~~/utils/schemas';
+import { validateBody, validateRouterParams } from '~~/utils/schemas';
 import { uploadTokenProblems } from '~~/utils/fonts';
 import { updateThemeSchema } from '~~/utils/themeSchemas';
 import {
@@ -26,7 +26,7 @@ const paramsSchema = z.object({ id: z.string().uuid() });
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
   const body = await validateBody(event, updateThemeSchema);
   // A font role may name an uploaded face. The shared validator accepts the
   // SHAPE `upload:<uuid>`; only the database can say whether that face exists

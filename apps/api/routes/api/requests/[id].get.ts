@@ -13,12 +13,13 @@ import { db, schema } from '@trackarr/db';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { getRequestMaxFillsPerUser } from '~~/utils/settings';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
 
   const row = await db.query.uploadRequests.findFirst({
     where: eq(schema.uploadRequests.id, id),

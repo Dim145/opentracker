@@ -17,6 +17,7 @@
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
+import { validateQuery } from '~~/utils/schemas';
 import {
   ALL_SOURCE_IDS,
   isMetadataEnabled,
@@ -47,7 +48,7 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  const { query, source, type, year } = querySchema.parse(getQuery(event));
+  const { query, source, type, year } = validateQuery(event, querySchema);
 
   if (!isSourceEnabled(source)) {
     setResponseStatus(event, 503);

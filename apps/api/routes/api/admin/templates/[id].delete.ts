@@ -15,13 +15,14 @@ import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
   await rateLimit(event, RATE_LIMITS.admin);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
 
   const [deleted] = await db
     .delete(schema.presentationTemplates)

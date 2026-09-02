@@ -9,6 +9,7 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
@@ -23,7 +24,7 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
-  const { id, cid } = paramsSchema.parse(getRouterParams(event));
+  const { id, cid } = validateRouterParams(event, paramsSchema);
   const body = await readValidatedBody(event, bodySchema.parse);
 
   const comment = await db.query.uploadRequestComments.findFirst({

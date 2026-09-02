@@ -6,6 +6,7 @@ import { requireReadAccess } from '~~/utils/account/readKeyAuth';
 import { getTorznabIncludeFederated } from '~~/utils/torznabSettings';
 import { getFederationConfig, isFederationLive } from '~~/utils/federation/config';
 import { federatedFeedRows } from '~~/utils/federation/feedRows';
+import { validateQuery, validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({
   slug: z.string().min(1),
@@ -22,8 +23,8 @@ const querySchema = z.object({
  */
 export default defineEventHandler(async (event) => {
   const { user } = await requireReadAccess(event, 'rss');
-  const params = paramsSchema.parse(getRouterParams(event));
-  const query = querySchema.parse(getQuery(event));
+  const params = validateRouterParams(event, paramsSchema);
+  const query = validateQuery(event, querySchema);
 
   const category = await db.query.categories.findFirst({
     where: eq(schema.categories.slug, params.slug),

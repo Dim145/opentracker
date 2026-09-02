@@ -19,6 +19,7 @@ import { invalidateBypassCache } from '~~/utils/torrentModeration';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { notify } from '~~/utils/notify';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({
   id: z.string().uuid(),
@@ -27,7 +28,7 @@ const paramsSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user: actor } = await requireAdminSession(event);
-  const { id, roleId } = paramsSchema.parse(getRouterParams(event));
+  const { id, roleId } = validateRouterParams(event, paramsSchema);
 
   const [removed] = await db
     .delete(schema.userRoles)

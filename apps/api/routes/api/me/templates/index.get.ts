@@ -25,6 +25,7 @@ import { and, asc, desc, eq, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { getTemplateQuotaPerUser } from '~~/utils/settings';
+import { validateQuery } from '~~/utils/schemas';
 
 const querySchema = z.object({
   scope: z.enum(['mine', 'site', 'all']).default('all'),
@@ -40,7 +41,7 @@ export default defineEventHandler(async (event) => {
   // wizard both refetch after every write, and throttling those alongside
   // the writes themselves would make the UI stall on ordinary use.
   await rateLimit(event, RATE_LIMITS.public);
-  const query = querySchema.parse(getQuery(event));
+  const query = validateQuery(event, querySchema);
   const offset = (query.page - 1) * query.limit;
 
   const mine = eq(schema.presentationTemplates.ownerId, user.id);

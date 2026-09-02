@@ -424,6 +424,40 @@ export function validateQuery<T>(event: any, schema: z.ZodSchema<T>): T {
 }
 
 /**
+ * Valide TOUS les paramètres de route d'un coup, comme `validateQuery` le fait
+ * pour la chaîne de requête.
+ *
+ * Il manquait, et son absence coûtait cher : vingt-six routes appelaient
+ * `paramsSchema.parse(getRouterParams(event))` en direct. Une `ZodError` non
+ * rattrapée ne devient pas un 400 — elle remonte comme erreur non gérée et
+ * Nitro répond **500 « Server Error »**. Mesuré le 2026-09-02 sur la pile
+ * compilée : `/api/tags?limit=abc` renvoyait 500, quand `/api/torrents?limit=abc`,
+ * qui passe par `validateQuery`, répondait
+ * « 400 limit: Invalid input: expected number, received NaN ».
+ *
+ * Deux conséquences, au-delà du message illisible : un 500 écrit une trace
+ * complète dans le journal à CHAQUE requête malformée — un lecteur de flux mal
+ * configuré sur `/api/rss/latest` en produit en continu — et il annonce au
+ * client une panne du serveur là où c'est sa propre requête qui est en cause.
+ *
+ * `validateParam` existait déjà mais ne prend qu'UN paramètre nommé, ce qui ne
+ * couvre pas les routes à deux segments (`/requests/[id]/comments/[cid]`).
+ */
+export function validateRouterParams<T>(event: any, schema: z.ZodSchema<T>): T {
+  try {
+    return schema.parse(getRouterParams(event));
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw createError({
+        statusCode: 400,
+        message: error.issues.map(describeZodIssue).join('; '),
+      });
+    }
+    throw error;
+  }
+}
+
+/**
  * Validate route parameter with Zod schema
  * Throws HTTP 400 error with validation messages on failure
  */

@@ -40,6 +40,7 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import { z } from 'zod';
+import { validateQuery } from '~~/utils/schemas';
 
 const querySchema = z.object({
   search: z.string().trim().max(120).optional(),
@@ -55,7 +56,7 @@ const AUTO_PREFIX = 'Banned user:';
 
 export default defineEventHandler(async (event) => {
   await requireModeratorSession(event);
-  const params = querySchema.parse(getQuery(event));
+  const params = validateQuery(event, querySchema);
 
   const conditions: SQL[] = [];
   if (params.search) {

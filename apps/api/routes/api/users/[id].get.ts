@@ -1,6 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq, sql, desc } from 'drizzle-orm';
 import { z } from 'zod';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({
   id: z.string().min(1),
@@ -9,7 +10,7 @@ const paramsSchema = z.object({
 export default defineEventHandler(async (event) => {
   const { user: viewer } = await requireUserSession(event);
 
-  const params = paramsSchema.parse(getRouterParams(event));
+  const params = validateRouterParams(event, paramsSchema);
 
   const user = await db.query.users.findFirst({
     where: eq(schema.users.id, params.id),

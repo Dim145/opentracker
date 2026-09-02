@@ -22,6 +22,7 @@ import { and, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 const bodySchema = z.object({
@@ -33,7 +34,7 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
   // A PUT with no payload at all is the normal call, and readBody then
   // yields undefined (or throws on an empty-but-typed body) — neither of
   // which zod tolerates, hence the explicit fallback and safeParse.

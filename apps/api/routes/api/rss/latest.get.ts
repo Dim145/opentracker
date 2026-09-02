@@ -4,6 +4,7 @@ import { desc, eq, and, or, isNull, notInArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { requireReadAccess } from '~~/utils/account/readKeyAuth';
 import { adultCategoryIds } from '~~/utils/adultContent';
+import { validateQuery } from '~~/utils/schemas';
 
 const querySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(50),
@@ -19,7 +20,7 @@ const querySchema = z.object({
  */
 export default defineEventHandler(async (event) => {
   const { user } = await requireReadAccess(event, 'rss');
-  const query = querySchema.parse(getQuery(event));
+  const query = validateQuery(event, querySchema);
 
   // Build the where so feeds for users who haven't opted into XXX
   // skip those entries entirely. `requireReadAccess` reads
