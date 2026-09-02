@@ -827,7 +827,7 @@
             v-html="
               sanitizeHtml(
                 branding?.footerText ||
-                `© ${new Date().getFullYear()} ${branding?.siteName || 'Trackarr'}`
+                `© ${footerYear} ${branding?.siteName || 'Trackarr'}`
               )
             "
           ></span>
@@ -928,6 +928,15 @@ const appVersion = computed(
 // layout, the homepage hero, and the auth pages so we don't
 // fetch the same payload 3-4 times per SSR request.
 const branding = await useBranding();
+
+// L'année du copyright de repli, calculée une seule fois et transportée dans
+// la charge utile. Elle était appelée dans le rendu — donc au rendu serveur,
+// puis à nouveau au rendu client. Le pied de page est sur TOUTES les pages :
+// au passage d'année, ou pour un onglet ouvert de part et d'autre de minuit le
+// 31 décembre, l'hydratation trouvait deux textes différents et réécrivait
+// l'arbre entier. `useState` sérialise la valeur du serveur et le client la
+// relit telle quelle.
+const footerYear = useState('footer-year', () => new Date().getFullYear());
 
 // Set dynamic favicon and title template
 useHead({

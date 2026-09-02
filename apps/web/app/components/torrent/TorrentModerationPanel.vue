@@ -263,7 +263,12 @@ const composerError = ref<string | null>(null);
 // Clicking the banner flips this on; aria-expanded + aria-controls
 // keep keyboard / screen-reader users in the loop.
 const expanded = ref(false);
-const bodyId = `mod-panel-body-${Math.random().toString(36).slice(2, 9)}`;
+// `useId()` plutôt que `Math.random()` : ce panneau est rendu côté serveur pour
+// le téléverseur et pour le staff, et l'identifiant est calculé au `setup`. Le
+// serveur en tirait un, le client un autre, et l'hydratation trouvait
+// `aria-controls` pointant à côté de `id`. `Modal.vue` a eu exactement le même
+// défaut, corrigé de la même façon.
+const bodyId = useId();
 function toggle() {
   expanded.value = !expanded.value;
 }
