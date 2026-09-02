@@ -53,6 +53,28 @@
 
 	encode gzip zstd
 
+	# La taille de corps, bornée à la bordure.
+	#
+	# Caddy n'a AUCUNE limite par défaut : `request_body { max_size }` est
+	# facultatif. Or `POST /api/torrents` fait passer le corps entier par
+	# `readMultipartFormData`, qui le met en mémoire AVANT que les gardes 413 de
+	# la route (10 Mio pour le .torrent, 256 Kio pour le NFO) puissent se
+	# prononcer — le commentaire de la route le dit lui-même. Un membre
+	# authentifié envoyant un POST de 600 Mo faisait donc dépasser le tas
+	# (plafonné à 512 Mo) dans un conteneur plafonné à 768 Mo : OOM, redémarrage
+	# par `restart: always`, et l'opération se répète pour le prix de la bande
+	# passante montante.
+	#
+	# 32 Mo aligne ce déploiement sur le chart Helm, qui borne déjà à `32m` via
+	# `proxy-body-size` — c'était le chemin Compose, celui que les opérateurs
+	# tiers installent, qui n'avait rien. `request_body` est dans l'ordre par
+	# défaut des directives (avant `reverse_proxy`), donc la poser au niveau du
+	# site couvre tous les `handle`. Les annonces et le flux SSE sont en GET :
+	# aucun effet sur eux.
+	request_body {
+		max_size 32MB
+	}
+
 	# Tracker announce on the main domain (what BitTorrent clients hit when
 	# the .torrent file's `announce` is your-domain.com/announce).
 	handle /announce* {
@@ -130,6 +152,16 @@
 	# `apikey` and `rsskey` joined `passkey` when the read surfaces got keys
 	# of their own: before that, `apikey` WAS the passkey and this scrub
 	# covered it by accident rather than on purpose.
+	#
+	# `token` joined them last, and it was the one real hole: the messaging
+	# relay is proxied from this same site (`handle /events*` above), and
+	# `EventSource` cannot set an Authorization header — so the relay token
+	# HAS to ride in the query string, as `internal/sse/handler.go` says in
+	# as many words. Every SSE connection was therefore writing a valid
+	# bearer token into this file, kept for 720h. The token only lives 300s
+	# (`MESSAGING_TOKEN_TTL_SECONDS`), so the window was small, but a
+	# 30-day record of credentials is exactly what this block exists to
+	# prevent.
 	log {
 		output file /var/log/caddy/access.log {
 			roll_size 100mb
@@ -139,10 +171,21 @@
 		format filter {
 			wrap json
 			fields {
-				uri query {
+				# `request>uri`, PAS `uri`.
+				#
+				# La clé d'un champ dans ce bloc est son chemin aplati dans
+				# l'entrée JSON, et l'URI y vit sous `request`. Avec `uri`, le
+				# filtre ne correspond à AUCUN champ : Caddy ne s'en plaint pas,
+				# ne journalise rien d'anormal, et écrit l'URI telle quelle.
+				# Mesuré sur la pile compilée le 2026-09-02 : une requête
+				# `/events?token=CANARY…` et une `?apikey=CANARY…` sont
+				# ressorties entières du fichier. Le nettoyage du `passkey`
+				# décrit au-dessus n'avait donc jamais eu lieu.
+				request>uri query {
 					delete passkey
 					delete apikey
 					delete rsskey
+					delete token
 				}
 			}
 		}
@@ -159,10 +202,35 @@
 		-Server
 	}
 
-	reverse_proxy tracker:8080 {
-		header_up X-Real-IP {remote_host}
-		header_up X-Forwarded-For {remote_host}
-		import strip_spoofable_ip_headers
+	# Deux chemins, pas tout le tracker.
+	#
+	# Ce bloc relayait `tracker:8080` sans filtre, donc `/health` était public :
+	# il rend l'état de Postgres et de Redis à quiconque. L'API garde
+	# délibérément ce détail pour elle (`api/tracker-health.get.ts` ne surface
+	# qu'un booléen « joignable », et son commentaire dit que la ventilation par
+	# composant est un diagnostic d'administrateur) — le sous-domaine du tracker
+	# la donnait par la porte de derrière.
+	handle /announce* {
+		reverse_proxy tracker:8080 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			import strip_spoofable_ip_headers
+		}
+	}
+
+	handle /scrape* {
+		reverse_proxy tracker:8080 {
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			import strip_spoofable_ip_headers
+		}
+	}
+
+	# Tout le reste — `/health` en particulier — n'a pas à sortir. Le
+	# healthcheck du conteneur interroge le tracker directement sur le réseau
+	# interne, il n'est pas concerné.
+	handle {
+		respond 404
 	}
 
 	# Same passkey scrub as on the main domain — every request to this
@@ -176,10 +244,12 @@
 		format filter {
 			wrap json
 			fields {
-				uri query {
+				# `request>uri` et non `uri` — voir le bloc du domaine principal.
+				request>uri query {
 					delete passkey
 					delete apikey
 					delete rsskey
+					delete token
 				}
 			}
 		}
