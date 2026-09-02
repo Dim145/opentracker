@@ -45,6 +45,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'This topic is locked' });
   }
 
+  // Ni un sujet où quelqu'un d'autre a pris la parole : la cascade sur
+  // `forum_posts.topic_id` emporterait ses messages avec. Voir
+  // `utils/forumDeletion.ts`.
+  if (!isModerator) {
+    await assertTopicDeletableByAuthor(id, session.user.id);
+  }
+
   await db.delete(forumTopics).where(eq(forumTopics.id, id));
 
   return { message: 'Topic deleted' };
