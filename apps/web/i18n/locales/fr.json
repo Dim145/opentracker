@@ -204,7 +204,8 @@
         "invalidCredentials": "Identifiant ou mot de passe invalide.",
         "invalidCode": "Le code ne correspond pas. Réessayez.",
         "rateLimited": "Trop de tentatives. Réessayez plus tard."
-      }
+      },
+      "sessionsRevoked": "Tous vos appareils ont été déconnectés, celui-ci compris. Reconnectez-vous pour continuer."
     },
     "register": {
       "title": "Créer un compte",
@@ -547,7 +548,9 @@
         "invites": "Invitations",
         "moderator": "Tâches de modération",
         "catalogue": "Catalogue"
-      }
+      },
+      "bulkAria": "Destination des notifications — {category}",
+      "routeAria": "Destination de la notification « {event} »"
     },
     "identity": {
       "username": "Identifiant",
@@ -1055,7 +1058,9 @@
       "partnersOnlyHint": "Cette instance n'a aucune de ces releases — elles viennent des partenaires",
       "sourcesAll": "Partout",
       "sourcesLocal": "Ici seulement",
-      "sourcesHint": "Inclure les releases des instances partenaires"
+      "sourcesHint": "Inclure les releases des instances partenaires",
+      "expandAria": "Afficher les versions de {title}",
+      "collapseAria": "Masquer les versions de {title}"
     },
     "pinned": {
       "title": "Épinglés"
@@ -1538,6 +1543,13 @@
         "uploadReduced": "Seuls {pct}% de vos octets uploadés comptent.",
         "uploadMultiplied": "Les octets uploadés sont multipliés par {mult}×."
       }
+    },
+    "countdown": {
+      "ended": "terminé",
+      "days": "{d}j {h}h",
+      "hours": "{h}h {m}min",
+      "minutes": "{m}min {s}s",
+      "seconds": "{s}s"
     }
   },
   "components": {
@@ -1590,7 +1602,8 @@
       "search": "Rechercher",
       "searchBy": "Rechercher par {label}",
       "pressEnterToFilter": "Appuyez sur Entrée pour filtrer",
-      "placeholder": "Rechercher par nom, hash, ou collez un lien IMDb / TMDb / TVDB…"
+      "placeholder": "Rechercher par nom, hash, ou collez un lien IMDb / TMDb / TVDB…",
+      "ariaLabel": "Rechercher"
     },
     "categorySidebar": {
       "categories": "Catégories",

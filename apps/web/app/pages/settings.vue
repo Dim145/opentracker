@@ -532,6 +532,41 @@
               </button>
             </article>
 
+            <!-- Le voisin ci-dessus ferme CETTE session ; celui-ci les ferme
+                 toutes. C'est la bonne réponse quand on ne sait pas quel
+                 appareil est compromis, et c'est pour cela que le texte le dit
+                 avant le clic plutôt que de laisser la déconnexion passer pour
+                 une panne. -->
+            <article class="action-card">
+              <div class="action-card-body">
+                <h3 class="action-card-title">
+                  <Icon name="ph:devices-bold" />
+                  {{ $t('settings.security.revokeAll') }}
+                </h3>
+                <p class="action-card-text">
+                  {{ $t('settings.security.revokeAllHint') }}
+                </p>
+                <p v-if="revokeAllError" class="password-error">
+                  <Icon name="ph:warning-circle-fill" />
+                  {{ revokeAllError }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="sbtn-ghost btn-ghost--danger"
+                :disabled="revokingAll"
+                @click="revokeAllSessions"
+              >
+                <Icon
+                  :name="revokingAll ? 'ph:circle-notch' : 'ph:devices-bold'"
+                  :class="{ 'animate-spin': revokingAll }"
+                />
+                {{ revokingAll
+                  ? $t('settings.security.revokingAll')
+                  : $t('settings.security.revokeAllButton') }}
+              </button>
+            </article>
+
             <!-- Filed under security rather than under identity on purpose:
                  the action hands over a private key, and that is what the
                  member needs to have in mind while doing it. -->
@@ -1378,6 +1413,16 @@ function loginStamp(iso: string): string {
   });
 }
 
+// ── Révocation de toutes les sessions ───────────────────────────
+const revokingAll = ref(false);
+const revokeAllError = ref('');
+// `askConfirm` et non `confirm` : le garde de sortie de route, plus bas, appelle
+// le `confirm()` NATIF — bloquant, parce qu'il doit répondre avant `next()`.
+// Une liaison locale nommée `confirm` l'aurait masqué en silence, et comme
+// celle-ci rend une promesse (toujours vraie), `!confirm(…)` n'aurait plus
+// jamais retenu personne sur une page aux modifications non enregistrées.
+const askConfirm = useConfirm();
+
 // ── Data export (GDPR Art. 15 / 20) ─────────────────────────────
 const exporting = ref(false);
 const exportError = ref('');
@@ -1417,6 +1462,65 @@ async function downloadExport() {
     }
   } finally {
     exporting.value = false;
+  }
+}
+
+/**
+ * Périmer TOUTES les sessions du compte, celle-ci comprise.
+ *
+ * La route incrémente `users.session_epoch`, ce qui invalide d'un coup tout ce
+ * qui a été délivré avant : la requête SUIVANTE de ce navigateur reçoit un 401.
+ * C'est voulu, et c'est ce que la confirmation doit dire — sans quoi la
+ * déconnexion immédiate se lit comme une panne. On efface donc la session
+ * localement et on renvoie vers la connexion avec la raison, plutôt que
+ * d'attendre le 401 et de laisser le message générique d'expiration parler à
+ * notre place.
+ */
+async function revokeAllSessions() {
+  revokeAllError.value = '';
+  const ok = await askConfirm({
+    title: t('settings.security.revokeAllConfirmTitle'),
+    message: t('settings.security.revokeAllConfirmBody'),
+    confirmText: t('settings.security.revokeAllConfirmAction'),
+    destructive: true,
+  });
+  if (!ok) return;
+
+  revokingAll.value = true;
+  try {
+    await $fetch('/api/me/sessions/revoke-all', { method: 'POST' });
+    await clearSession();
+    router.push({ path: '/auth/login', query: { revoked: 'all' } });
+  } catch (err: unknown) {
+    const e = err as {
+      statusCode?: number;
+      data?: {
+        message?: string;
+        data?: { reauthRequired?: boolean };
+        reason?: string;
+      };
+      message?: string;
+    };
+    // Déjà révoquée : la demande a abouti, par nous ou depuis un autre
+    // appareil. Le résultat voulu est le même, donc on va au bout.
+    if (e?.data?.reason === 'session-revoked') {
+      await clearSession();
+      router.push({ path: '/auth/login', query: { revoked: 'all' } });
+      return;
+    }
+    if (e?.statusCode === 429) {
+      revokeAllError.value = t('settings.security.revokeAllRateLimited');
+    } else if (e?.data?.data?.reauthRequired || e?.statusCode === 401) {
+      // La route exige une authentification fraîche, comme la
+      // réinitialisation de passkey : le même message que les autres
+      // actions à palier de ce panneau.
+      revokeAllError.value = t('settings.danger.reauthRequired');
+    } else {
+      revokeAllError.value =
+        e?.data?.message || e?.message || t('settings.security.revokeAllError');
+    }
+  } finally {
+    revokingAll.value = false;
   }
 }
 
@@ -1496,7 +1600,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   if (dirtyCount.value === 0 && !unsavedElsewhere.value) return next();
   if (
     typeof window !== 'undefined' &&
-    !confirm(t('settings.unsavedChangesPrompt'))
+    !window.confirm(t('settings.unsavedChangesPrompt'))
   ) {
     return next(false);
   }

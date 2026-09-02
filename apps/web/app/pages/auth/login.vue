@@ -28,6 +28,20 @@
         ></div>
       </div>
 
+      <!-- « Déconnecter partout » a fermé cette session aussi.
+           Sans cette notice, l'utilisateur qui vient de cliquer arrive sur un
+           formulaire de connexion nu et lit une panne là où il n'y a que la
+           conséquence annoncée de son geste. -->
+      <div
+        v-if="revoked"
+        class="mb-6 p-3 bg-info/10 border border-info/20 rounded flex items-start gap-3"
+      >
+        <Icon name="ph:devices-bold" class="text-info text-lg mt-0.5 shrink-0" />
+        <p class="text-info text-xs leading-relaxed">
+          {{ $t('auth.login.sessionsRevoked') }}
+        </p>
+      </div>
+
       <!-- Registration mode banner. Three explicit states:
              - closed       → no sign-up path at all
              - invite-only  → sign-up requires a code (link still shown)
@@ -186,6 +200,10 @@ definePageMeta({
 
 const { fetch: fetchSession } = useUserSession();
 const router = useRouter();
+const route = useRoute();
+
+/** Posé par la révocation globale des sessions, dans les réglages. */
+const revoked = computed(() => route.query.revoked === 'all');
 
 const { data: status } = await useFetch('/api/auth/status');
 

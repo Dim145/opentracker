@@ -204,7 +204,8 @@
         "invalidCredentials": "Invalid username or password.",
         "invalidCode": "That code didn't match. Try again.",
         "rateLimited": "Too many attempts. Try again later."
-      }
+      },
+      "sessionsRevoked": "Every device has been signed out, this one included. Sign in again to continue."
     },
     "register": {
       "title": "Create an account",
@@ -547,7 +548,9 @@
         "invites": "Invitations",
         "moderator": "Moderation tasks",
         "catalogue": "Catalogue"
-      }
+      },
+      "bulkAria": "Where {category} notifications go",
+      "routeAria": "Where the \"{event}\" notification goes"
     },
     "identity": {
       "username": "Username",
@@ -1055,7 +1058,9 @@
       "partnersOnlyHint": "This instance holds none of these releases — they come from partners",
       "sourcesAll": "Everywhere",
       "sourcesLocal": "Here only",
-      "sourcesHint": "Include releases held by partner instances"
+      "sourcesHint": "Include releases held by partner instances",
+      "expandAria": "Show the releases of {title}",
+      "collapseAria": "Hide the releases of {title}"
     },
     "pinned": {
       "title": "Pinned"
@@ -1538,6 +1543,13 @@
         "uploadReduced": "Only {pct}% of your uploaded bytes count.",
         "uploadMultiplied": "Uploaded bytes are multiplied by {mult}×."
       }
+    },
+    "countdown": {
+      "ended": "ended",
+      "days": "{d}d {h}h",
+      "hours": "{h}h {m}m",
+      "minutes": "{m}m {s}s",
+      "seconds": "{s}s"
     }
   },
   "components": {
@@ -1590,7 +1602,8 @@
       "search": "Search",
       "searchBy": "Search by {label}",
       "pressEnterToFilter": "Press Enter to filter",
-      "placeholder": "Search by name, hash, or paste an IMDb / TMDb / TVDB link…"
+      "placeholder": "Search by name, hash, or paste an IMDb / TMDb / TVDB link…",
+      "ariaLabel": "Search"
     },
     "categorySidebar": {
       "categories": "Categories",
