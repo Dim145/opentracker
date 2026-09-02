@@ -138,6 +138,42 @@ func (d *dedup) checkRedisFor(ctx context.Context, key string, window time.Durat
 	return ok
 }
 
+// Release lève un marqueur posé par `CheckAndMarkFor`.
+//
+// `CheckAndMark*` pose la marque AVANT que l'effet de bord qu'elle protège ait
+// eu lieu — c'est ce qui la rend atomique entre instances, et c'est aussi ce qui
+// laisse la marque en place quand cet effet échoue. Pour le crédit de temps de
+// seed, la fenêtre est de 900 s : une écriture Postgres ratée n'était pas
+// seulement perdue, elle interdisait toute reprise pendant un quart d'heure.
+//
+// Lever la marque rend la place à l'annonce suivante. Ce n'est PAS une
+// annulation exacte — entre l'échec et la levée, une annonce concurrente a pu
+// passer son tour — mais le coût d'un intervalle manqué n'a rien à voir avec
+// celui d'un quart d'heure aveugle.
+//
+// Les deux couches sont levées. Ne lever que Redis laisserait la carte locale
+// refuser jusqu'à la fin de la fenêtre sur l'instance qui a échoué, c'est-à-dire
+// exactement celle vers laquelle le client va se réannoncer.
+//
+// Aucune erreur n'est remontée : si Redis ne répond pas, `checkRedisFor` échoue
+// déjà OUVERT (il rend `true` sans poser de marque), donc il n'y a rien à lever
+// dans ce cas de figure.
+func (d *dedup) Release(ctx context.Context, key string) {
+	d.mu.Lock()
+	delete(d.seen, key)
+	d.mu.Unlock()
+
+	if d.rdb == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, dedupRedisTimeout)
+	defer cancel()
+	if err := d.rdb.Del(ctx, d.prefix+"dedup:"+key).Err(); err != nil {
+		slog.Warn("dedup: could not release a marker, the next credit will wait out its window",
+			"err", err)
+	}
+}
+
 // Stop signals the cleanup goroutine to exit.
 func (d *dedup) Stop() { close(d.stop) }
 

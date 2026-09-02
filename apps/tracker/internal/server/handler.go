@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -70,6 +71,17 @@ type Server struct {
 	// drop in-flight DB writes — a `completed` announce arriving
 	// during shutdown could lose its HnR entry and leak credit.
 	bgTasks sync.WaitGroup
+
+	// seedTimeDropped compte les crédits de temps de seed qui n'ont PAS été
+	// écrits — sémaphore saturé, erreur Postgres, panique rattrapée.
+	//
+	// Il existe parce que la panne qu'il mesure était indétectable : un échec
+	// d'écriture n'écrivait qu'un `slog.Warn`, et le seul symptôme visible
+	// était que des membres ne franchissaient jamais leurs heures exigées — un
+	// mois plus tard, et attribué à autre chose. Monotone, échantillonné dans
+	// le journal comme les compteurs UDP : ce qui compte est la PENTE, pas la
+	// valeur.
+	seedTimeDropped atomic.Uint64
 }
 
 // New builds a Server. It does not start listening — callers wire it into
@@ -812,7 +824,9 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 			ctx, seedKey, time.Duration(minAnnounceInterval)*time.Second,
 		) {
 			s.bgTasks.Add(1)
-			go s.recordSeedTime(user.ID, torrentID, infoHashHex, int32(elapsed))
+			// `seedKey` suit jusqu'à l'écriture : la marque vient d'être posée,
+			// et c'est à celui qui échoue de la rendre. Voir `recordSeedTime`.
+			go s.recordSeedTime(user.ID, torrentID, infoHashHex, seedKey, int32(elapsed))
 		}
 	}
 
@@ -959,8 +973,54 @@ func (s *Server) recordHnrCompletion(userID, torrentID, infoHashHex string) {
 }
 
 // Mêmes raisons que `recordHnrCompletion` : par les identifiants.
-func (s *Server) recordSeedTime(userID, torrentID, infoHashHex string, secondsToAdd int32) {
+//
+// `seedKey` est la marque de déduplication posée par l'appelant, et cette
+// fonction la REND si elle n'écrit pas.
+//
+// La marque est posée avant l'écriture — c'est ce qui la rend atomique entre
+// instances — mais rien ne la retirait quand l'écriture n'avait pas lieu. Or
+// cette fonction peut renoncer en silence de trois façons : le sémaphore à huit
+// places saturé pendant 5 s, une erreur Postgres (hoquet, `statement_timeout`,
+// pool épuisé), ou une panique rattrapée. Dans les trois cas la marque restait
+// posée pour 900 secondes, et toute annonce suivante du même couple
+// (membre, torrent) passait son tour — y compris celle qui aurait rattrapé.
+//
+// Un hoquet Postgres de trois secondes pendant une rafale perdait donc
+// l'intervalle de TOUS les seedeurs concernés et interdisait la reprise pendant
+// un quart d'heure : le hit-and-run cessait de mesurer, sans que rien ne le
+// dise. Le plafond sur `elapsed` (un intervalle d'annonce) rend d'ailleurs la
+// perte irrattrapable une fois la fenêtre passée — une annonce ultérieure ne
+// peut pas créditer deux intervalles pour en compenser un.
+//
+// Rendre la marque ramène le coût d'un échec de quinze minutes à un intervalle.
+// Ce n'est pas la réparation complète — la base ne détient toujours pas la
+// vérité, un `last_seed_credit_at` la rendrait auto-réparante — mais c'est celle
+// qui ne demande ni migration ni changement du chemin chaud.
+func (s *Server) recordSeedTime(userID, torrentID, infoHashHex, seedKey string, secondsToAdd int32) {
 	defer s.bgTasks.Done()
+
+	credited := false
+	// Enregistré AVANT le `recover` ci-dessous, donc exécuté APRÈS lui : les
+	// defer se déroulent en ordre inverse. Une panique est donc rattrapée, puis
+	// la marque est rendue — sans quoi le seul chemin qui ne rend rien serait
+	// celui qui en a le plus besoin.
+	//
+	// `context.Background()` et non `s.appCtx` : rendre une marque est une
+	// compensation qui doit aboutir même pendant l'arrêt, où `appCtx` est déjà
+	// annulé. `Release` porte sa propre échéance courte.
+	defer func() {
+		if credited {
+			return
+		}
+		if n := s.seedTimeDropped.Add(1); n%1_000 == 1 {
+			slog.Warn("seed time credits dropped",
+				"count", n,
+				"info_hash", infoHashHex,
+				"seconds", secondsToAdd)
+		}
+		s.dedup.Release(context.Background(), seedKey)
+	}()
+
 	// See `recordHnrCompletion` for the rationale — without this
 	// recover() a panic here would leak the semaphore slot it's
 	// about to take.
@@ -987,7 +1047,9 @@ func (s *Server) recordSeedTime(userID, torrentID, infoHashHex string, secondsTo
 			"info_hash", infoHashHex,
 			"seconds", secondsToAdd,
 			"err", err)
+		return
 	}
+	credited = true
 }
 
 // ----------------------------------------------------------------------------
