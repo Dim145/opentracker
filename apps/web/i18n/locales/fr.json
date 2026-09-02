@@ -1,5 +1,28 @@
 {
+  "error": {
+    "detail": "Détail technique",
+    "home": "Retour au site",
+    "retry": "Réessayer",
+    "notFound": {
+      "title": "Cette page n’est pas là",
+      "text": "Le lien est peut-être ancien, ou ce qu’il visait a été retiré. Votre compte n’y est pour rien."
+    },
+    "forbidden": {
+      "title": "Pas pour ce compte",
+      "text": "Vous êtes connecté·e, mais cette page ne vous est pas ouverte. Si vous pensez qu’elle devrait l’être, demandez au personnel."
+    },
+    "unauthorised": {
+      "title": "Il faut vous connecter",
+      "text": "Cette page est réservée aux membres. Connectez-vous et vous serez ramené·e ici."
+    },
+    "server": {
+      "title": "Quelque chose a cassé de notre côté",
+      "text": "Ce n’est pas de votre fait. Réessayer suffit souvent ; sinon, l’opérateur le retrouvera dans les journaux."
+    }
+  },
   "common": {
+    "draftRestored": "Brouillon restauré",
+    "draftDiscard": "Repartir de zéro",
     "save": "Enregistrer",
     "saved": "Enregistré",
     "saveChanges": "Enregistrer les modifications",
@@ -26,6 +49,12 @@
     "category": "Catégorie",
     "hash": "Hash",
     "refresh": "Rafraîchir",
+    "saveFailed": "L'enregistrement a échoué. Vérifiez la connexion et réessayez.",
+    "deleteFailed": "La suppression a échoué. Rien n’a été modifié.",
+    "actionFailed": "L’action n’est pas passée. Rien n’a été modifié.",
+    "loadFailed": "Impossible de lire ceci sur l’instance.",
+    "loadFailedHint": "Rien ne manque ici : la lecture a échoué. Réessayez, et prévenez l’opérateur si cela persiste.",
+    "retry": "Réessayer",
     "copy": "Copier",
     "copied": "Copié",
     "open": "Ouvrir",
@@ -68,6 +97,10 @@
     "signOut": "Se déconnecter",
     "signIn": "Se connecter",
     "signUp": "S'inscrire",
+    "skipToContent": "Aller au contenu",
+    "footerSite": "Le site de l’auteur",
+    "footerSource": "Code source sur GitHub",
+    "footerChat": "Discord de la communauté",
     "menu": "Menu",
     "toggleTheme": "Changer de thème",
     "languageSelector": "Choisir la langue",
@@ -162,6 +195,11 @@
       "usePasskey": "Utiliser une passkey",
       "trustDevice": "Faire confiance à ce navigateur pendant 30 jours",
       "verifyButton": "Vérifier",
+      "status": {
+        "challenge": "Récupération du défi…",
+        "proof": "Dérivation de la preuve…",
+        "authenticating": "Connexion…"
+      },
       "errors": {
         "invalidCredentials": "Identifiant ou mot de passe invalide.",
         "invalidCode": "Le code ne correspond pas. Réessayez.",
@@ -389,6 +427,25 @@
     }
   },
   "settings": {
+    "appearance": {
+      "localeSaveFailed": "Impossible d’enregistrer le changement de langue. Réessayez.",
+      "themeEyebrow": "Mode",
+      "themeTitle": "Thème",
+      "themeHelp": "Le thème vous suit d’un appareil à l’autre : il est enregistré sur votre compte et gardé en cache localement pour un premier affichage sans clignotement.",
+      "localeEyebrow": "Langue",
+      "localeHelp": "Enregistrée sur votre compte, la même langue d’interface vous suit d’un appareil à l’autre. Les textes pas encore traduits s’affichent en anglais.",
+      "siteDefault": "Défaut du site",
+      "siteDefaultSub": "Actuellement {name}",
+      "siteDefaultUnknown": "Ce que le propriétaire choisit",
+      "system": "Système",
+      "systemSub": "Suit votre système d’exploitation",
+      "light": "Clair",
+      "lightSub": "Tons de jour",
+      "dark": "Sombre",
+      "darkSub": "Minuit éditorial",
+      "basedLight": "Basé sur le clair",
+      "basedDark": "Basé sur le sombre"
+    },
     "title": "Paramètres & contrôles",
     "pageTitle": "Paramètres",
     "eyebrow": "Préférences du compte",
@@ -446,6 +503,8 @@
       "addPickerHelp": "Choisis un transport. Tu pourras renseigner tes identifiants juste après.",
       "targetMasked": "Configuré",
       "webPush": {
+        "enableFailed": "Impossible d’activer les notifications du navigateur.",
+        "disableFailed": "Impossible de couper les notifications du navigateur.",
         "enable": "Activer dans ce navigateur",
         "disable": "Désactiver dans ce navigateur",
         "enabledHere": "Actif dans ce navigateur — les notifications système atterriront ici.",
@@ -589,6 +648,11 @@
       }
     },
     "identityExport": {
+      "forget": "Retirer de ce navigateur",
+      "forgetConfirm": {
+        "title": "Retirer la clé de ce navigateur ?",
+        "message": "L’instance n’a jamais eu votre moitié privée : sans le fichier d’export, cette clé est définitivement perdue et vous devrez en créer une nouvelle identité."
+      },
       "title": "Emportez votre identité",
       "what": "Votre compte ici est aussi une clé à part entière. L'exporter permet à une autre instance de vous reconnaître comme la même personne — et aux uploads qui vous sont attribués de garder votre nom où qu'ils aillent.",
       "travels": "Part avec vous",
@@ -694,6 +758,7 @@
       "publishing": "Publication…",
       "publishRelease": "Publier la release",
       "ready": {
+        "duplicate": "Ce .torrent est déjà au catalogue",
         "pickCategory": "Choisir une catégorie",
         "awaitingFile": "En attente du fichier source",
         "titleRequired": "Titre requis",
@@ -716,7 +781,18 @@
         "uploadFailed": "Échec de l'envoi"
       },
       "result": {
-        "subtitle": "La release est désormais indexée et prête à être partagée.",
+        "published": {
+          "title": "Release publiée",
+          "subtitle": "La release est désormais indexée et prête à être partagée."
+        },
+        "pending": {
+          "title": "En attente de validation",
+          "subtitle": "Un modérateur doit l’approuver avant qu’elle apparaisse au catalogue. Continuez à seeder en attendant."
+        },
+        "exists": {
+          "title": "Cette release existe déjà",
+          "subtitle": "Le tracker connaissait déjà cet infohash : rien n’a été publié. Ouvrez la release existante et seedez-la."
+        },
         "downloadTorrent": "Télécharger le .torrent",
         "viewRelease": "Voir la release",
         "uploadAnother": "Envoyer une autre release"
@@ -727,6 +803,10 @@
       "ficheEditAnyway": "Débloquer le mode visuel"
     },
     "edit": {
+      "denied": {
+        "title": "Cette release n’est pas la vôtre",
+        "text": "Seul l’uploadeur d’une release, ou un membre de l’équipe, peut en modifier la fiche. Si quelque chose y est faux, signalez-la depuis sa page."
+      },
       "backToRelease": "Retour à la release",
       "eyebrow": "Édition · {hash}…",
       "titleMain": "Modifier",
@@ -1194,6 +1274,11 @@
   },
   "security": {
     "twoFactor": {
+      "confirmRemovePasskey": {
+        "title": "Retirer cette clé d’accès ?",
+        "message": "Il faudra la ré-enregistrer depuis l’appareil qui la porte. Si c’est votre seule clé, votre compte n’aura plus de second facteur."
+      },
+      "statusUnknown": "Impossible de lire si la double authentification est active. Cela ne veut pas dire qu’elle est coupée — réessayez.",
       "passkeyCount": "{n} passkey | {n} passkeys",
       "totpEnabled": "Activé",
       "recoveryCodesLeft": "{n} code de récupération restant | {n} codes de récupération restants",
@@ -1448,6 +1533,7 @@
   },
   "components": {
     "modal": {
+      "fallbackLabel": "Boîte de dialogue",
       "close": "Fermer"
     },
     "confirm": {
@@ -1775,6 +1861,10 @@
       "inviteTree": "Qui s'est porté garant d'un membre, et qui ce membre a fait entrer."
     },
     "taxonomy": {
+      "confirmRemove": {
+        "title": "Retirer cette correspondance ?",
+        "message": "Les releases du partenaire rangées dans cette catégorie repartiront sans classement."
+      },
       "title": "Taxonomie fédérée",
       "sub": "Les partenaires classent leurs releases sous leurs propres slugs de catégorie. Reliez un slug étranger à l'une de vos catégories et le filtre du catalogue fera remonter les releases de ce partenaire dessous — sinon une catégorie nommée différemment reste invisible pour un membre qui filtre par catégorie.",
       "mapped": "Correspondances déclarées",
@@ -1791,6 +1881,10 @@
       "adultTag": "adulte"
     },
     "federation": {
+      "confirmRevoke": {
+        "title": "Révoquer ce partenaire ?",
+        "message": "« {name} » ne pourra plus rien nous envoyer, et ce qu’il avait publié disparaît du catalogue. Il faudra rétablir le lien des deux côtés pour revenir en arrière."
+      },
       "intro": "Reliez ce tracker à d'autres instances Trackarr de confiance. Vous décidez avec qui vous vous liez et exactement ce que vous partagez — les liens entrants requièrent votre approbation.",
       "ownerOnly": "Owner uniquement",
       "master": {
@@ -2106,6 +2200,7 @@
       }
     },
     "uploadRules": {
+      "loadFailed": "Ces règles n’ont pas pu être lues sur l’instance. Ce qui est affiché ci-dessous n’est PAS la politique en vigueur — rechargez avant de modifier quoi que ce soit.",
       "globalRules": "Règles globales",
       "snap": {
         "gatesArmed": "Portes armées",
@@ -2348,6 +2443,7 @@
         "subPart1": "Masqué pour les utilisateurs n'ayant pas activé XXX dans leurs paramètres — s'applique aux listes, à la recherche, au RSS, à Torznab et au fil d'accueil."
       },
       "row": {
+        "stock": "{n} torrent | {n} torrents",
         "subCount": "{n} sous-cat. | {n} sous-cat.",
         "editCategory": "Modifier la catégorie",
         "deleteCategory": "Supprimer la catégorie",
@@ -2362,6 +2458,8 @@
         "saveChanges": "Enregistrer les modifications"
       },
       "deleteConfirm": {
+        "blockedSubs": "Cette catégorie a {n} sous-catégorie. Supprimez-la d’abord. | Cette catégorie a {n} sous-catégories. Supprimez-les d’abord.",
+        "blockedTorrents": "Cette catégorie contient {n} torrent. Déplacez-le d’abord — la suppression ne le déclasse pas. | Cette catégorie contient {n} torrents. Déplacez-les d’abord — la suppression ne les déclasse pas.",
         "title": "Supprimer la catégorie",
         "messageNamed": "Supprimer définitivement la catégorie « {name} » ? Les torrents qui s'y trouvent deviendront non classés.",
         "messageGeneric": "Supprimer définitivement cette catégorie ? Les torrents qui s'y trouvent deviendront non classés.",
@@ -2385,6 +2483,10 @@
       }
     },
     "bonusRules": {
+      "confirmTierDelete": {
+        "title": "Supprimer ce palier ?",
+        "message": "Les torrents que ce palier couvrait retombent sur le palier suivant, ou sur ×1 s’il n’y en a pas."
+      },
       "on": "Activée",
       "off": "Désactivée",
       "addTier": "Ajouter un palier",
@@ -2398,6 +2500,7 @@
         "tiers": "palier | paliers"
       },
       "units": {
+        "hundredths": "en centièmes — 150 = ×1,50",
         "seeders": "seeders",
         "seedersOrFewer": "seeders ou moins",
         "days": "jours",
@@ -2458,6 +2561,7 @@
         "multiplier": "Multiplicateur"
       },
       "toasts": {
+        "tierUpdated": "Palier enregistré",
         "ruleUpdated": "Règle mise à jour",
         "tierDeleted": "Palier supprimé"
       },
@@ -3145,6 +3249,7 @@
         "hintTimed": "L'utilisateur sera banni pour {duration}. Reconnexion impossible, tracker et Torznab bloqués.",
         "hintPermanent": "Bannissement définitif. À ne lever que manuellement.",
         "submitResolve": "Fermer le dossier",
+        "submitPick": "Choisissez d’abord une issue",
         "submitBan": "Bannir & fermer",
         "duration": {
           "none": "Aucune",
@@ -3241,6 +3346,12 @@
       "dbSize": "Taille BDD"
     },
     "branding": {
+      "confirmRemoveFavicon": {
+        "title": "Supprimer le favicon ?",
+        "message": "Le fichier est retiré du stockage et le site reprend l’icône par défaut."
+      },
+      "faviconSaved": "Favicone mise à jour. Celle-ci s’applique tout de suite — elle ne fait pas partie de l’enregistrement ci-dessous.",
+      "faviconRemoved": "Favicone retirée. Celle d’origine est de retour.",
       "intro": "Façonnez l'apparence du site — logo, textes et page d'accueil. Tout se met à jour en direct dans l'aperçu ci-dessus.",
       "identity": {
         "title": "Identité",
@@ -3316,6 +3427,11 @@
       "saveTextBranding": "Enregistrer les textes"
     },
     "themes": {
+      "confirmRemoveFont": {
+        "title": "Supprimer cette police ?",
+        "message": "Le fichier est retiré du stockage. Les thèmes qui la nomment devront en choisir une autre."
+      },
+      "confirmDisable": "Couper « {name} » ? Les membres qui l’avaient choisi repasseront au thème par défaut.",
       "settingsTitle": "Apparence du site",
       "defaultLabel": "Thème par défaut",
       "defaultDescription": "Ce que voit un visiteur non connecté, et le thème d'un nouveau membre.",
@@ -3389,6 +3505,7 @@
         "accent-hover": "L'accent survolé par le curseur.",
         "accent-paper": "Réservé à la moitié papier des palettes par page — le parchemin de Favoris. Stocké et émis ; rien ne le lit encore.",
         "accent-warm": "Le second accent. Avantages, bonus, tout ce qui est doré.",
+        "accent-warm-text": "L'or quand il sert d'encre et non de fond. Plus profond que le remplissage en thème clair : une couleur lisible sous du texte noir n'est pas lisible en tant que texte.",
         "accent-warm-fg": "Le texte et les icônes posés sur l'accent chaud.",
         "bg-base": "La page elle-même, derrière tout le reste.",
         "bg-elevated": "Menus, boîtes de dialogue et infobulles — la couche posée sur une carte.",
@@ -3418,8 +3535,13 @@
         "font-display": "La fonte des titres et des intitulés de section.",
         "font-mono": "La fonte à chasse fixe : empreintes, tailles, ratios — tout ce qui doit s aligner en colonne.",
         "font-sans": "La fonte de l'interface : navigation, boutons, texte courant.",
+        "online-fg": "L'encre posée sur un fond de succès plein. Un thème qui déplace la couleur de succès doit déplacer celle-ci avec lui.",
+        "warning-fg": "L'encre posée sur un fond d'avertissement plein.",
+        "info-fg": "L'encre posée sur un fond d'information plein.",
+        "danger-fg": "L'encre posée sur un bouton de danger plein. Un thème qui éclaircit la couleur de danger doit déplacer celle-ci avec lui.",
         "info": "Informations neutres.",
         "line-default": "Bordures et séparateurs.",
+        "line-field": "La bordure d'un champ de saisie. Distincte des filets décoratifs : c'est elle qui identifie le contrôle, donc elle doit atteindre 3:1 — le filet d'une carte, non.",
         "line-strong": "Une bordure qui doit se voir : champ actif, en-tête de tableau.",
         "motion-scale": "Un multiplicateur sur toutes les durées. 0 arrête tout mouvement.",
         "online": "En bonne santé : en partage, connecté, réussi.",
@@ -3440,7 +3562,11 @@
       "notFoundBody": "Il a été supprimé, ou l'adresse désigne un thème qui n'a jamais existé.",
       "contrastGroup": "Contraste",
       "contrastMin": "minimum {required}:1",
-      "contrastCol": { "pair": "Paire", "measured": "Mesuré", "needs": "Minimum" },
+      "contrastCol": {
+        "pair": "Paire",
+        "measured": "Mesuré",
+        "needs": "Minimum"
+      },
       "contrastPass": "Conforme",
       "contrastFail": "Non conforme",
       "contrastAbout": "Chaque combinaison dans laquelle l’interface peint du texte, mesurée contre le niveau AA de WCAG 2.2 — 4,5:1 pour le texte, 3:1 pour les grands caractères et l’anneau de focus. Un manque est un avertissement, pas un refus : le thème s’enregistre quand même.",
@@ -3994,6 +4120,7 @@
   "mod": {
     "eyebrow": "Modération",
     "nav": {
+      "federationMasks": "Masques fédération",
       "dashboard": "Tableau de bord",
       "pendingTorrents": "Torrents en attente",
       "users": "Utilisateurs",
@@ -4004,6 +4131,7 @@
       "tickets": "Tickets"
     },
     "descriptions": {
+      "federationMasks": "Contenus partenaires retirés de la vue locale",
       "dashboard": "Aperçu de la modération et actions rapides",
       "pendingTorrents": "Examiner et approuver les torrents en attente",
       "users": "Gérer les comptes utilisateurs et les bannissements",
@@ -4017,7 +4145,7 @@
       "title": "Anti-cheat",
       "eyebrow": "Anti-triche",
       "unreviewed": "à traiter",
-      "tagline": "Le tracker signale chaque annonce qui sent le ratio-cheating (vélocité impossible, upload sans leecher, signature client inconnue). Rien n'est bannit automatiquement : ici tu confirmes ou tu écartes.",
+      "tagline": "Le tracker signale chaque annonce qui sent le ratio-cheating (vélocité impossible, upload sans leecher, signature client inconnue). Rien n'est banni automatiquement : ici tu confirmes ou tu écartes.",
       "tabsAria": "Filtrer par statut",
       "pagerAria": "Pagination des signalements anti-triche",
       "radar": {
@@ -4071,15 +4199,17 @@
         "reReview": "Revoir"
       },
       "verdict": {
-        "clean": "Innocent",
-        "warned": "Averti",
-        "banned": "Banni",
-        "monitoring": "Surveillé"
+        "clean": "Écarté",
+        "warned": "Averti — à sanctionner",
+        "banned": "Confirmé — à sanctionner",
+        "monitoring": "Sous surveillance"
       },
       "submitReview": "Enregistrer",
       "notePlaceholder": "Note (optionnel) — contexte pour le prochain modérateur qui croisera ce compte.",
       "toastReviewed": "Signalement traité.",
       "bulk": {
+        "confirmTitle": "Décider {n} dossier ? | Décider {n} dossiers ?",
+        "confirmBody": "Le verdict « {verdict} » sera posé sur le dossier sélectionné, sans l’ouvrir. | Le verdict « {verdict} » sera posé sur les {n} dossiers sélectionnés, sans les ouvrir.",
         "selectAll": "Sélectionner la page",
         "deselectAll": "Désélectionner la page",
         "selectRow": "Sélectionner ce signalement",
@@ -4157,6 +4287,15 @@
       }
     },
     "masks": {
+      "scopeShort": {
+        "record": "Enregistrement",
+        "infohash": "Infohash",
+        "author": "Uploadeur",
+        "issuer": "Instance"
+      },
+      "addFailed": "Impossible de masquer : {reason}",
+      "liftFailed": "Impossible de lever le masque : {reason}",
+      "lifted": "Masque levé",
       "title": "Contenu fédéré masqué",
       "sub": "Releases cachées de toute vue locale du catalogue partenaire. Rien n’est supprimé et aucun partenaire n’est prévenu — retirez un masque et le contenu réapparaît.",
       "hide": "Masquer",
@@ -4915,6 +5054,10 @@
     "empty": "Aucun sujet fédéré pour l'instant — connectez des partenaires qui partagent leur périmètre social."
   },
   "federatedIdentity": {
+    "confirmRemove": {
+      "title": "Délier cette identité ?",
+      "message": "Les partenaires cesseront de rattacher ces publications à votre compte."
+    },
     "eyebrow": "Compte",
     "title": "Identité fédérée",
     "intro": "Prouvez que vous possédez un compte sur une instance partenaire pour afficher sa réputation ici. Elle n'est jamais fusionnée avec votre ratio ou vos bonus locaux.",
@@ -5209,6 +5352,11 @@
     }
   },
   "messaging": {
+    "withdraw": "Retirer",
+    "confirmWithdraw": {
+      "title": "Retirer ce message ?",
+      "message": "Il devient « retiré » chez votre correspondant aussi. Le texte est perdu."
+    },
     "title": "Messages",
     "inbox": "Boîte de réception",
     "requests": "Demandes",
@@ -5346,6 +5494,10 @@
     "torrentGone": "Ce torrent n'existe plus."
   },
   "room": {
+    "confirmDelete": {
+      "title": "Supprimer ce message ?",
+      "message": "Il disparaît pour tout le salon, et son texte n’est pas récupérable."
+    },
     "title": "Salon",
     "empty": "Rien n’a encore été dit.",
     "placeholder": "Dire quelque chose…",
@@ -5384,6 +5536,8 @@
     "title": "Ce que cette instance garde",
     "lede": "Chaque durée ci-dessous est lue sur cette instance telle qu'elle est configurée en ce moment, pas recopiée dans un texte qui pourrait s'en écarter.",
     "asOf": "Publié par {instance}. Change un réglage et cette page change avec lui.",
+    "loading": "Lecture des réglages de cette instance…",
+    "unavailable": "Ces durées n’ont pas pu être lues sur l’instance à l’instant. Cela ne veut pas dire que rien n’est conservé — rechargez, et prévenez l’opérateur si cela persiste.",
     "registerLabel": "Durées de conservation",
     "notesLabel": "Notes",
     "unitDays": "jours",
@@ -5394,7 +5548,8 @@
     },
     "room": {
       "title": "Le salon public",
-      "text": "Le salon est éphémère par construction : tout ce qui dépasse {n} jours est supprimé en bloc, sans être indexé ni archivé."
+      "text": "Le salon est éphémère par construction : tout ce qui dépasse {n} jours est supprimé en bloc, sans être indexé ni archivé.",
+      "forever": "Le salon est conservé sans limite sur cette instance — rien de ce qui s’y dit n’est balayé par un minuteur."
     },
     "notifications": {
       "title": "Notifications",
@@ -5413,6 +5568,11 @@
       "text": "Un modérateur ouvre un message privé, et seulement un qui fait l'objet d'un signalement ouvert. La route ne répond rien pour un autre message — elle ne permet donc pas de parcourir une conversation — et rien du tout pour un message chiffré. Chacune de ces lectures est enregistrée — qui, quand, et si quelque chose était lisible — et le registre est visible de tout le staff, pas seulement de celui qui l'a demandé."
     },
     "foot": "Cette page liste des durées de conservation. Elle ne remplace pas la notice que l'exploitant de cette instance doit publier là où elle est hébergée.",
+    "loginHistory": {
+      "title": "Votre historique de connexion",
+      "timed": "Chaque tentative d’ouverture de session sur votre compte — réussie ou refusée, avec la méthode et le client — est conservée {n} jours, puis balayée. Vous lisez la vôtre dans Réglages → Sécurité ; le personnel la lit depuis votre profil.",
+      "forever": "Chaque tentative d’ouverture de session sur votre compte est conservée sans limite sur cette instance."
+    },
     "staffAudit": {
       "title": "Actions du personnel",
       "timed": "Chaque changement fait depuis la console de modération ou d'administration — un bannissement, un rôle, un réglage, une mise en ligne refusée — est enregistré avec son auteur et sa date, et conservé {n} jours. Lisible par les administrateurs uniquement. L'entrée ne peut être ni modifiée ni supprimée par le membre du personnel qui l'a provoquée.",

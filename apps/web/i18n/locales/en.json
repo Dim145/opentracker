@@ -1,5 +1,28 @@
 {
+  "error": {
+    "detail": "Technical detail",
+    "home": "Back to the site",
+    "retry": "Try again",
+    "notFound": {
+      "title": "That page is not here",
+      "text": "The link may be old, or what it pointed at has been removed. Nothing is wrong with your account."
+    },
+    "forbidden": {
+      "title": "Not for this account",
+      "text": "You are signed in, but this page is not open to you. If you think it should be, ask a member of staff."
+    },
+    "unauthorised": {
+      "title": "You need to sign in",
+      "text": "This page is for members. Sign in and you will be brought back here."
+    },
+    "server": {
+      "title": "Something broke on our side",
+      "text": "This is not your doing. Trying again often works; if it does not, the operator will find it in the logs."
+    }
+  },
   "common": {
+    "draftRestored": "Draft restored",
+    "draftDiscard": "Start over",
     "save": "Save",
     "saved": "Saved",
     "saveChanges": "Save changes",
@@ -26,6 +49,12 @@
     "category": "Category",
     "hash": "Hash",
     "refresh": "Refresh",
+    "saveFailed": "Could not save. Check the connection and try again.",
+    "deleteFailed": "Could not delete. Nothing was changed.",
+    "actionFailed": "That did not go through. Nothing was changed.",
+    "loadFailed": "Could not load this from the instance.",
+    "loadFailedHint": "Nothing here is missing — it could not be read. Try again, and tell the operator if it persists.",
+    "retry": "Try again",
     "copy": "Copy",
     "copied": "Copied",
     "open": "Open",
@@ -68,6 +97,10 @@
     "signOut": "Sign out",
     "signIn": "Sign in",
     "signUp": "Sign up",
+    "skipToContent": "Skip to content",
+    "footerSite": "The author’s site",
+    "footerSource": "Source code on GitHub",
+    "footerChat": "Community Discord",
     "menu": "Menu",
     "toggleTheme": "Toggle theme",
     "languageSelector": "Select language",
@@ -162,6 +195,11 @@
       "usePasskey": "Use a passkey",
       "trustDevice": "Trust this browser for 30 days",
       "verifyButton": "Verify",
+      "status": {
+        "challenge": "Fetching challenge…",
+        "proof": "Deriving proof…",
+        "authenticating": "Signing in…"
+      },
       "errors": {
         "invalidCredentials": "Invalid username or password.",
         "invalidCode": "That code didn't match. Try again.",
@@ -389,6 +427,25 @@
     }
   },
   "settings": {
+    "appearance": {
+      "localeSaveFailed": "Could not save the language change. Please try again.",
+      "themeEyebrow": "Mode",
+      "themeTitle": "Theme",
+      "themeHelp": "Theme follows you across devices — stored on your account and cached locally for a flicker-free first paint.",
+      "localeEyebrow": "Locale",
+      "localeHelp": "Saved on your account so the same UI language follows you across devices. New strings always fall back to English when a translation isn’t ready yet.",
+      "siteDefault": "Site default",
+      "siteDefaultSub": "Currently {name}",
+      "siteDefaultUnknown": "Whatever the owner picks",
+      "system": "System",
+      "systemSub": "Follows your operating system",
+      "light": "Light",
+      "lightSub": "Day-friendly tones",
+      "dark": "Dark",
+      "darkSub": "Editorial midnight",
+      "basedLight": "Light-based",
+      "basedDark": "Dark-based"
+    },
     "title": "Settings & controls",
     "pageTitle": "Settings",
     "eyebrow": "Account preferences",
@@ -447,6 +504,8 @@
       "targetMasked": "Configured",
       "optional": "optional",
       "webPush": {
+        "enableFailed": "Could not turn on browser notifications.",
+        "disableFailed": "Could not turn off browser notifications.",
         "enable": "Enable in this browser",
         "disable": "Disable in this browser",
         "enabledHere": "Active in this browser — system notifications will land here.",
@@ -589,6 +648,11 @@
       }
     },
     "identityExport": {
+      "forget": "Remove from this browser",
+      "forgetConfirm": {
+        "title": "Remove the key from this browser?",
+        "message": "The instance never held your private half: without the export file this key is gone for good, and you would have to mint a new identity."
+      },
       "title": "Take your identity with you",
       "what": "Your account here is also a key of its own. Exporting it lets another instance recognise you as the same person — and lets the uploads attributed to you keep your name wherever they travel.",
       "travels": "Travels with you",
@@ -694,6 +758,7 @@
       "publishing": "Publishing…",
       "publishRelease": "Publish release",
       "ready": {
+        "duplicate": "This .torrent is already in the catalogue",
         "pickCategory": "Pick a category",
         "awaitingFile": "Awaiting source file",
         "titleRequired": "Title required",
@@ -716,7 +781,18 @@
         "uploadFailed": "Upload failed"
       },
       "result": {
-        "subtitle": "The release is now indexed and ready to share.",
+        "published": {
+          "title": "Release published",
+          "subtitle": "The release is now indexed and ready to share."
+        },
+        "pending": {
+          "title": "Waiting for approval",
+          "subtitle": "A moderator has to approve it before it shows up in the catalogue. Keep seeding in the meantime."
+        },
+        "exists": {
+          "title": "This release already exists",
+          "subtitle": "The tracker already knew this infohash: nothing was published. Open the existing release and seed it."
+        },
         "downloadTorrent": "Download .torrent",
         "viewRelease": "View release",
         "uploadAnother": "Upload another release"
@@ -727,6 +803,10 @@
       "ficheEditAnyway": "Unlock visual mode"
     },
     "edit": {
+      "denied": {
+        "title": "This release is not yours",
+        "text": "Only the uploader of a release, or a staff member, can edit its metadata. If something on it is wrong, report it from the release page."
+      },
       "backToRelease": "Back to release",
       "eyebrow": "Editing · {hash}…",
       "titleMain": "Edit",
@@ -1194,6 +1274,11 @@
   },
   "security": {
     "twoFactor": {
+      "confirmRemovePasskey": {
+        "title": "Remove this passkey?",
+        "message": "You will have to enrol it again from the device that holds it. If it is your only key, your account is left without a second factor."
+      },
+      "statusUnknown": "Could not read whether two-factor is on. This does not mean it is off — try again.",
       "passkeyCount": "{n} passkey | {n} passkeys",
       "totpEnabled": "Enabled",
       "recoveryCodesLeft": "{n} recovery code left | {n} recovery codes left",
@@ -1448,6 +1533,7 @@
   },
   "components": {
     "modal": {
+      "fallbackLabel": "Dialog",
       "close": "Close"
     },
     "confirm": {
@@ -1775,6 +1861,10 @@
       "inviteTree": "Who vouched for a member, and who they let in."
     },
     "taxonomy": {
+      "confirmRemove": {
+        "title": "Remove this mapping?",
+        "message": "Partner releases filed under this category go back to unclassified."
+      },
       "title": "Federated taxonomy",
       "sub": "Partners file releases under their own category slugs. Map a foreign slug onto one of your categories and the browse filter will surface that partner's releases under it — otherwise a differently-named category stays invisible to a member browsing by category.",
       "mapped": "Declared mappings",
@@ -1791,6 +1881,10 @@
       "adultTag": "adult"
     },
     "federation": {
+      "confirmRevoke": {
+        "title": "Revoke this partner?",
+        "message": "“{name}” can no longer send us anything, and what it had published leaves the catalogue. Restoring the link takes action on both sides."
+      },
       "intro": "Connect this tracker to other Trackarr instances you trust. You decide who you link with and exactly what you share — inbound links need your approval.",
       "ownerOnly": "Owner only",
       "master": {
@@ -2106,6 +2200,7 @@
       }
     },
     "uploadRules": {
+      "loadFailed": "These rules could not be read from the instance. What is shown below is NOT the policy in force — reload before changing anything.",
       "globalRules": "Global rules",
       "snap": {
         "gatesArmed": "Gates armed",
@@ -2348,6 +2443,7 @@
         "subPart1": "Hidden from users who haven't enabled XXX in their profile settings — applies to listings, search, RSS, Torznab and the homepage feed."
       },
       "row": {
+        "stock": "{n} torrent | {n} torrents",
         "subCount": "{n} sub | {n} subs",
         "editCategory": "Edit category",
         "deleteCategory": "Delete category",
@@ -2362,6 +2458,8 @@
         "saveChanges": "Save changes"
       },
       "deleteConfirm": {
+        "blockedSubs": "This category has {n} subcategory. Delete it first. | This category has {n} subcategories. Delete those first.",
+        "blockedTorrents": "This category holds {n} torrent. Move it first — deleting does not unclassify it. | This category holds {n} torrents. Move them first — deleting does not unclassify them.",
         "title": "Delete category",
         "messageNamed": "Permanently delete the category “{name}”? Torrents currently in it will become uncategorised.",
         "messageGeneric": "Permanently delete this category? Torrents currently in it will become uncategorised.",
@@ -2385,6 +2483,10 @@
       }
     },
     "bonusRules": {
+      "confirmTierDelete": {
+        "title": "Delete this tier?",
+        "message": "Torrents this tier covered fall back to the next tier, or to ×1 if there is none."
+      },
       "on": "On",
       "off": "Off",
       "addTier": "Add tier",
@@ -2398,6 +2500,7 @@
         "tiers": "tier | tiers"
       },
       "units": {
+        "hundredths": "in hundredths — 150 = ×1.50",
         "seeders": "seeders",
         "seedersOrFewer": "seeders or fewer",
         "days": "days",
@@ -2458,6 +2561,7 @@
         "multiplier": "Multiplier"
       },
       "toasts": {
+        "tierUpdated": "Tier saved",
         "ruleUpdated": "Rule updated",
         "tierDeleted": "Tier deleted"
       },
@@ -3145,6 +3249,7 @@
         "hintTimed": "The user will be banned for {duration}. Login, tracker and Torznab blocked.",
         "hintPermanent": "Permanent ban. Lift manually only.",
         "submitResolve": "Close case",
+        "submitPick": "Choose an outcome first",
         "submitBan": "Ban & close",
         "duration": {
           "none": "None",
@@ -3241,6 +3346,12 @@
       "dbSize": "DB Size"
     },
     "branding": {
+      "confirmRemoveFavicon": {
+        "title": "Delete the favicon?",
+        "message": "The file leaves storage and the site falls back to the default icon."
+      },
+      "faviconSaved": "Favicon updated. This one applies immediately — it is not part of the save below.",
+      "faviconRemoved": "Favicon removed. The built-in one is back.",
       "intro": "Shape the look and feel of the entire site — logo, copy, and the homepage. Everything updates live in the preview above.",
       "identity": {
         "title": "Identity",
@@ -3316,6 +3427,11 @@
       "saveTextBranding": "Save Text Branding"
     },
     "themes": {
+      "confirmRemoveFont": {
+        "title": "Delete this font?",
+        "message": "The file leaves storage. Themes that name it will have to pick another."
+      },
+      "confirmDisable": "Disable “{name}”? Members who had picked it fall back to the default theme.",
       "settingsTitle": "Site appearance",
       "defaultLabel": "Default theme",
       "defaultDescription": "What a signed-out visitor sees, and what a new member starts on.",
@@ -3389,6 +3505,7 @@
         "accent-hover": "The accent with the cursor over it.",
         "accent-paper": "Reserved for the paper half of the per-page palettes — the parchment behind Favourites. Stored and emitted; nothing reads it yet.",
         "accent-warm": "The second accent. Perks, bonuses, anything gilded.",
+        "accent-warm-text": "The gold when it is ink rather than fill. Darker than the fill in the light theme, because a colour readable behind black text is not readable as text itself.",
         "accent-warm-fg": "Text and icons on the warm accent.",
         "bg-base": "The page itself, behind everything else.",
         "bg-elevated": "Menus, dialogs and popovers — the layer sitting on a card.",
@@ -3418,8 +3535,13 @@
         "font-display": "The face for headings and section titles.",
         "font-mono": "The fixed-width face: hashes, sizes, ratios — anything that has to line up in a column.",
         "font-sans": "The interface face: navigation, buttons, body copy.",
+        "online-fg": "The ink on a filled success colour. A theme that moves the success colour has to move this with it.",
+        "warning-fg": "The ink on a filled warning colour.",
+        "info-fg": "The ink on a filled info colour.",
+        "danger-fg": "The ink on a filled danger button. A theme that lightens the danger colour has to move this with it.",
         "info": "Neutral notices.",
         "line-default": "Borders and separators.",
+        "line-field": "The border of a text field. Separate from the decorative hairlines because this one identifies the control, so it has to clear 3:1 — a card's rule does not.",
         "line-strong": "A border meant to be noticed: a focused field, a table head.",
         "motion-scale": "A multiplier on every animation duration. 0 stops all movement.",
         "online": "Healthy: seeding, connected, succeeded.",
@@ -3440,7 +3562,11 @@
       "notFoundBody": "It was deleted, or the address names a theme that never existed.",
       "contrastGroup": "Contrast",
       "contrastMin": "needs {required}:1",
-      "contrastCol": { "pair": "Pair", "measured": "Measured", "needs": "Needs" },
+      "contrastCol": {
+        "pair": "Pair",
+        "measured": "Measured",
+        "needs": "Needs"
+      },
       "contrastPass": "Passes",
       "contrastFail": "Fails",
       "contrastAbout": "Every combination the interface paints text in, measured against WCAG 2.2 AA — 4.5:1 for text, 3:1 for large text and for the focus ring. A shortfall is a warning, not a refusal: the theme saves either way.",
@@ -3994,6 +4120,7 @@
   "mod": {
     "eyebrow": "Moderation",
     "nav": {
+      "federationMasks": "Federation masks",
       "dashboard": "Dashboard",
       "pendingTorrents": "Pending Torrents",
       "users": "Users",
@@ -4004,6 +4131,7 @@
       "tickets": "Tickets"
     },
     "descriptions": {
+      "federationMasks": "Partner content hidden from the local view",
       "dashboard": "Moderation overview and quick actions",
       "pendingTorrents": "Review and approve pending torrent uploads",
       "users": "Manage user accounts and bans",
@@ -4071,15 +4199,17 @@
         "reReview": "Re-review"
       },
       "verdict": {
-        "clean": "Clean",
-        "warned": "Warned",
-        "banned": "Banned",
-        "monitoring": "Monitoring"
+        "clean": "Dismissed",
+        "warned": "Warned — to sanction",
+        "banned": "Confirmed — to sanction",
+        "monitoring": "Under watch"
       },
       "submitReview": "Save",
       "notePlaceholder": "Note (optional) — context for the next moderator who lands on this account.",
       "toastReviewed": "Flag reviewed.",
       "bulk": {
+        "confirmTitle": "Decide {n} case? | Decide {n} cases?",
+        "confirmBody": "The “{verdict}” verdict will be stamped on the selected case without opening it. | The “{verdict}” verdict will be stamped on all {n} selected cases without opening them.",
         "selectAll": "Select page",
         "deselectAll": "Deselect page",
         "selectRow": "Select this flag",
@@ -4157,6 +4287,15 @@
       }
     },
     "masks": {
+      "scopeShort": {
+        "record": "Record",
+        "infohash": "Infohash",
+        "author": "Uploader",
+        "issuer": "Instance"
+      },
+      "addFailed": "Could not hide it: {reason}",
+      "liftFailed": "Could not lift the mask: {reason}",
+      "lifted": "Mask lifted",
       "title": "Masked federated content",
       "sub": "Releases hidden from every local view of the partner catalogue. Nothing is deleted and no partner is told — lift a mask and the content reappears.",
       "hide": "Hide",
@@ -4915,6 +5054,10 @@
     "empty": "No federated topics yet — connect partners that share their social scope."
   },
   "federatedIdentity": {
+    "confirmRemove": {
+      "title": "Unlink this identity?",
+      "message": "Partners stop attributing those publications to your account."
+    },
     "eyebrow": "Account",
     "title": "Federated identity",
     "intro": "Prove you own an account on a partner instance to show its reputation here. It's never merged into your local ratio or bonus.",
@@ -5209,6 +5352,11 @@
     }
   },
   "messaging": {
+    "withdraw": "Withdraw",
+    "confirmWithdraw": {
+      "title": "Withdraw this message?",
+      "message": "It shows as withdrawn on the other side too. The text is gone."
+    },
     "title": "Messages",
     "inbox": "Inbox",
     "requests": "Requests",
@@ -5346,6 +5494,10 @@
     "torrentGone": "That torrent is gone."
   },
   "room": {
+    "confirmDelete": {
+      "title": "Delete this message?",
+      "message": "It disappears for the whole room, and its text is not recoverable."
+    },
     "title": "Room",
     "empty": "Nothing said yet.",
     "placeholder": "Say something…",
@@ -5384,6 +5536,8 @@
     "title": "What this instance keeps",
     "lede": "Every duration below is read from this instance as it is configured right now, not copied into prose that could drift from it.",
     "asOf": "Published by {instance}. Change a setting and this page changes with it.",
+    "loading": "Reading this instance’s settings…",
+    "unavailable": "These durations could not be read from the instance just now. This does not mean nothing is kept — reload, and tell the operator if it persists.",
     "registerLabel": "Retention periods",
     "notesLabel": "Notes",
     "unitDays": "days",
@@ -5394,7 +5548,8 @@
     },
     "room": {
       "title": "The public room",
-      "text": "The room is ephemeral by design: anything older than {n} days is dropped wholesale, not searched and not archived."
+      "text": "The room is ephemeral by design: anything older than {n} days is dropped wholesale, not searched and not archived.",
+      "forever": "The room is kept indefinitely on this instance — nothing said in it is swept on a timer."
     },
     "notifications": {
       "title": "Notifications",
@@ -5413,6 +5568,11 @@
       "text": "A moderator opens one private message, and only one that has an open report against it. The endpoint answers nothing for any other message, so it cannot be used to walk a conversation, and it answers nothing at all for an encrypted one. Every one of those reads is recorded — who, when, and whether anything was legible — and the record is visible to all staff, not only to whoever ordered it."
     },
     "foot": "This page lists retention. It is not a substitute for whatever notice the operator of this instance is required to publish where it is hosted.",
+    "loginHistory": {
+      "title": "Your sign-in history",
+      "timed": "Every attempt to open a session on your account — successful or refused, with the method and the client — is kept {n} days, then swept. You read your own at Settings → Security; staff read it from your profile.",
+      "forever": "Every attempt to open a session on your account is kept indefinitely on this instance."
+    },
     "staffAudit": {
       "title": "Staff actions",
       "timed": "Every change made from the moderation or admin console — a ban, a role, a setting, a rejected upload — is recorded with who made it and when, and kept for {n} days. Readable by admins only. The entry cannot be edited or removed by the staffer who caused it.",
