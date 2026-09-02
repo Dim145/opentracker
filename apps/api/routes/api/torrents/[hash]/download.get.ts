@@ -37,6 +37,7 @@ export default defineEventHandler(async (event) => {
       torrentData: schema.torrents.torrentData,
       moderationStatus: schema.torrents.moderationStatus,
       uploaderId: schema.torrents.uploaderId,
+      isActive: schema.torrents.isActive,
     })
     .from(schema.torrents)
     .where(eq(schema.torrents.infoHash, infoHash))
@@ -53,8 +54,14 @@ export default defineEventHandler(async (event) => {
 
   const isStaff = !!(user.isAdmin || user.isModerator);
   const isOwner = torrent.uploaderId === user.id;
+  // `!torrent.isActive` compte autant que le statut de modération.
+  //
+  // `is_active` est l'interrupteur qu'un opérateur bascule pour retirer une
+  // release — le tracker Go refuse alors de l'annoncer, RSS et Torznab la
+  // taisent — mais le `.torrent` restait servi ici. Retirer une release et
+  // continuer à distribuer son fichier est le contraire d'un retrait.
   if (
-    torrent.moderationStatus !== 'accepted' &&
+    (torrent.moderationStatus !== 'accepted' || !torrent.isActive) &&
     !isStaff &&
     !isOwner
   ) {

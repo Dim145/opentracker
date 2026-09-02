@@ -64,6 +64,29 @@ export default defineEventHandler(async (event) => {
     );
   }
 
+  /*
+   * `is_active` est un interrupteur d'opérateur, et il ne coupait pas ici.
+   *
+   * `apps/tracker/db/queries/torrents.sql` le décrit comme tel et le tracker Go
+   * refuse d'annoncer une release inactive. Côté API il est honoré par RSS, par
+   * Torznab, par la fédération, par les groupes et par les statistiques — mais
+   * il était ABSENT du catalogue web, de la fiche et du téléchargement du
+   * `.torrent`, c'est-à-dire des trois seules surfaces qui comptent pour un
+   * retrait. Un opérateur qui basculait le drapeau à la main pour une demande
+   * DMCA voyait la release disparaître partout SAUF de l'endroit où on la
+   * trouve et de celui où on la récupère.
+   *
+   * Rien n'écrit `false` dans le code aujourd'hui, donc c'était inerte — un
+   * piège qui attendait la première fois qu'on s'en serve.
+   *
+   * Le personnel et le téléverseur continuent de voir la ligne : ils voient
+   * déjà les dépôts en attente, et retirer une release de la vue de celui qui
+   * doit la traiter n'aide personne.
+   */
+  if (!canSeeUnapproved) {
+    conditions.push(eq(schema.torrents.isActive, true));
+  }
+
   // Hide adult-categorised torrents from users who haven't opted in.
   // Uncategorised torrents (categoryId = null) are never adult so they
   // pass through unconditionally.
