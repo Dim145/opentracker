@@ -61,18 +61,58 @@ func Open(ctx context.Context, dsn string, maxConns int, syncCommit string) (*pg
 	// through. The setting is spliced into SQL — an env var is operator-chosen
 	// text, and `off; DROP …` must not be a thing that can happen even from a
 	// trusted source.
+	/*
+	 * Un plafond côté serveur sur la durée d'une requête.
+	 *
+	 * Il n'y en avait aucun : ni `statement_timeout`, ni contexte borné sur le
+	 * chemin de requête. En HTTP, `ReadTimeout` et `WriteTimeout` posent des
+	 * échéances de SOCKET et n'annulent pas `r.Context()` ; en UDP,
+	 * `handlePacket` reçoit le contexte de durée de vie du PROCESSUS, donc
+	 * aucune borne du tout. Un plan qui dérape — statistiques périmées, index
+	 * en construction, verrou — retenait une connexion du pool sans que rien ne
+	 * puisse l'annuler. À vingt connexions par instance, vingt annonces
+	 * suffisaient à saturer le pool, et les suivantes bloquaient dans `Acquire`
+	 * sans échéance : le tracker entier cessait de répondre. Redis était
+	 * protégé (3 s) ; Postgres non.
+	 *
+	 * Posé via `AfterConnect` et non `RuntimeParams` : PgBouncer est en façade
+	 * en production, et un paramètre de démarrage ne survit pas au pooling
+	 * transaction. `AfterConnect` s'exécute sur la connexion réelle, comme le
+	 * fait déjà `synchronous_commit` juste en dessous.
+	 */
+	const statementTimeoutMs = 3000
+	const idleInTxTimeoutMs = 5000
+
+	var syncStmt string
 	switch syncCommit {
 	case "on", "off", "local":
-		stmt := "SET synchronous_commit = " + syncCommit
-		cfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-			_, err := conn.Exec(ctx, stmt)
-			return err
-		}
+		// Only the three values Postgres accepts for this purpose are allowed
+		// through. The setting is spliced into SQL — an env var is
+		// operator-chosen text, and `off; DROP …` must not be a thing that can
+		// happen even from a trusted source.
+		syncStmt = "SET synchronous_commit = " + syncCommit
 	case "":
 		// Unset: leave the server default alone.
 	default:
 		return nil, fmt.Errorf(
 			"TRACKER_SYNCHRONOUS_COMMIT must be on, off or local (got %q)", syncCommit)
+	}
+
+	cfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		if _, err := conn.Exec(ctx, fmt.Sprintf(
+			"SET statement_timeout = %d", statementTimeoutMs)); err != nil {
+			return err
+		}
+		if _, err := conn.Exec(ctx, fmt.Sprintf(
+			"SET idle_in_transaction_session_timeout = %d", idleInTxTimeoutMs)); err != nil {
+			return err
+		}
+		if syncStmt != "" {
+			if _, err := conn.Exec(ctx, syncStmt); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 	cfg.MaxConnIdleTime = 30 * time.Second
 	cfg.ConnConfig.ConnectTimeout = 10 * time.Second

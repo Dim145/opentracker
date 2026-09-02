@@ -14,6 +14,15 @@ SELECT id,
   FROM torrents
  WHERE info_hash = $1
    AND is_active = true
+   -- Le chemin d'annonce est la SEULE application qu'un refus de modération
+   -- possède. `is_active` est un interrupteur d'opérateur et `transitionStatus`
+   -- ne le touche jamais : filtrer sur lui seul laissait une release REFUSÉE
+   -- continuer à distribuer des pairs, à créditer du ratio et à créer des
+   -- lignes de hit-and-run. Une ligne refusée est conservée pour que le même
+   -- infohash ne puisse pas être renvoyé en silence ; elle n'a pas à rester
+   -- annonçable pour autant. Idem pour tout ce qui attend encore une
+   -- validation.
+   AND moderation_status = 'accepted'
  LIMIT 1;
 
 -- name: FindActiveTorrentByInfoHashV2Short :one
@@ -44,4 +53,7 @@ SELECT id, info_hash,
   FROM torrents
  WHERE left(info_hash_v2, 40) = sqlc.arg(announced_hash)::text
    AND is_active = true
+   -- Même filtre que le chemin v1 ci-dessus : le second essaim d'un torrent
+   -- hybride n'est pas une porte de service.
+   AND moderation_status = 'accepted'
  LIMIT 1;

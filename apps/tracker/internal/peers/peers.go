@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -129,6 +130,35 @@ type Store struct {
 	// path a Redis GET on every announce for the same torrent within
 	// `remoteCacheTTL`.
 	remoteCache sync.Map // string → *remoteCacheEntry
+	// Les deux caches ci-dessus n'avaient aucun plafond. `expiresAt` n'est
+	// consulté qu'en LECTURE, et seul `invalidateCounts` — appelé par `Set` et
+	// `Remove` — supprime une entrée : une clé jamais réannoncée restait donc
+	// en mémoire pour la vie du processus.
+	//
+	// Or `/scrape` ne demande aucune passkey et accepte 74 infohashes par
+	// requête, donc l'espace des clés est choisi par n'importe qui sur
+	// l'internet. Mesuré à 221 octets par entrée, soit environ 13,5 Mo/s de tas
+	// définitivement retenu à mille requêtes par seconde. `resolve_miss` borne
+	// bien les requêtes Postgres — pas la mémoire.
+	//
+	// Le voisinage avait déjà la réponse : `db.ipBanCache` est plafonné à
+	// 50 000 entrées et `dedup` à 100 000, tous deux avec éviction.
+	countsLen  atomic.Int64
+	remoteLen  atomic.Int64
+}
+
+// maxSwarmCache borne chacun des deux caches de `Store`. Plein → on vide tout :
+// une reconstruction coûte un HGETALL par essaim vivant, une fois, alors qu'un
+// vrai LRU coûterait un verrou sur le chemin chaud de l'annonce.
+const maxSwarmCache = 50_000
+
+// storeBounded pose une entrée en tenant le plafond.
+func storeBounded(m *sync.Map, n *atomic.Int64, key string, value any) {
+	if n.Add(1) > maxSwarmCache {
+		m.Range(func(k, _ any) bool { m.Delete(k); return true })
+		n.Store(1)
+	}
+	m.Store(key, value)
 }
 
 // New returns a Store. `keyPrefix` typically comes from
@@ -312,8 +342,7 @@ func (s *Store) ListRemote(ctx context.Context, infoHashHex string) ([]*PeerData
 	// nil for absent / unparseable keys) so repeated announces for the
 	// same torrent inside `remoteCacheTTL` skip the Redis round-trip.
 	if v, ok := s.remoteCache.Load(infoHashHex); ok {
-		entry := v.(*remoteCacheEntry)
-		if time.Now().Before(entry.expiresAt) {
+		if entry, ok := v.(*remoteCacheEntry); ok && time.Now().Before(entry.expiresAt) {
 			return entry.peers, nil
 		}
 	}
@@ -341,7 +370,7 @@ func (s *Store) ListRemote(ctx context.Context, infoHashHex string) ([]*PeerData
 
 // cacheRemote stores a ListRemote result under a fresh `remoteCacheTTL`.
 func (s *Store) cacheRemote(infoHashHex string, p []*PeerData) {
-	s.remoteCache.Store(infoHashHex, &remoteCacheEntry{
+	storeBounded(&s.remoteCache, &s.remoteLen, infoHashHex, &remoteCacheEntry{
 		peers:     p,
 		expiresAt: time.Now().Add(remoteCacheTTL),
 	})
@@ -355,8 +384,10 @@ func (s *Store) remotePeerKey(h string) string { return s.prefix + "remote_peers
 // repopulate it (acceptable; the duplicate work is bounded).
 func (s *Store) Counts(ctx context.Context, infoHashHex string) (seeders, leechers int, err error) {
 	if v, ok := s.countsCache.Load(infoHashHex); ok {
-		entry := v.(*countsCacheEntry)
-		if time.Now().Before(entry.expiresAt) {
+		// `, ok` plutôt qu'une assertion nue : la map ne porte qu'un type
+		// aujourd'hui, et c'est exactement la garantie qu'un réemploi futur
+		// casse en silence — par un panic sur le chemin chaud.
+		if entry, ok := v.(*countsCacheEntry); ok && time.Now().Before(entry.expiresAt) {
 			return entry.seeders, entry.leechers, nil
 		}
 	}
@@ -371,7 +402,7 @@ func (s *Store) Counts(ctx context.Context, infoHashHex string) (seeders, leeche
 			leechers++
 		}
 	}
-	s.countsCache.Store(infoHashHex, &countsCacheEntry{
+	storeBounded(&s.countsCache, &s.countsLen, infoHashHex, &countsCacheEntry{
 		seeders:   seeders,
 		leechers:  leechers,
 		expiresAt: time.Now().Add(countsCacheTTL),
@@ -453,6 +484,72 @@ func (s *Store) CompletedCount(ctx context.Context, infoHashHex string) (int64, 
 		return 0, nil
 	}
 	return v, err
+}
+
+/*
+ * creditBudgetScript — un seau à jetons par COMPTE.
+ *
+ * Le plafond de crédit existant (`maxCreditBytesPerSec × elapsed`, dans
+ * `server/handler.go`) est dérivé de `peerHex` : il borne UN essaim vu par UN
+ * peer_id. Son commentaire affirme que l'intégrale est bornée « no matter how
+ * many rotated peer_ids » — vrai en rotation SÉQUENTIELLE, où un nouveau
+ * peer_id a `prev == nil` et ne touche rien ; faux en CONCURRENCE, où les
+ * fenêtres `[prev.UpdatedAt, now]` de deux peer_id différents se CHEVAUCHENT
+ * au lieu d'être adjacentes.
+ *
+ * Cent peer_id ouverts en parallèle sur un même torrent, une annonce toutes les
+ * deux secondes réclamant chacune +2 GiB : chaque peer_id passe son propre
+ * clamp, et l'agrégat atteint 100 GiB/s — environ 6 TiB en une minute de temps
+ * réel, pour cinquante requêtes par seconde. Le ratio et les rôles qui en
+ * dérivent tombent. L'anti-triche lève bien `velocity` et `no_leecher`, mais ne
+ * bloque rien.
+ *
+ * Ce seau borne donc l'axe sur lequel l'économie est réellement libellée : le
+ * compte. Un seau à jetons plutôt qu'une fenêtre, pour qu'un seedeur honnête
+ * qui vient de rester une heure inactif puisse dépenser sa réserve d'un coup
+ * plutôt que d'être bridé à la seconde.
+ *
+ * KEYS[1] la clé du seau · ARGV[1] maintenant (ms) · ARGV[2] débit/s
+ * ARGV[3] octets demandés · ARGV[4] réserve maximale
+ */
+var creditBudgetScript = redis.NewScript(`
+local last   = tonumber(redis.call('HGET', KEYS[1], 'ts') or '0')
+local now    = tonumber(ARGV[1])
+local rate   = tonumber(ARGV[2])
+local want   = tonumber(ARGV[3])
+local burst  = tonumber(ARGV[4])
+local tokens = tonumber(redis.call('HGET', KEYS[1], 'tok') or '0')
+if last == 0 then
+  -- Premier passage : le seau est plein. Un compte qui vient d'arriver ne doit
+  -- pas être bridé pendant une minute.
+  tokens = burst
+elseif now > last then
+  tokens = math.min(burst, tokens + rate * ((now - last) / 1000))
+end
+local grant = math.min(tokens, want)
+if grant < 0 then grant = 0 end
+redis.call('HSET', KEYS[1], 'tok', tokens - grant, 'ts', now)
+redis.call('EXPIRE', KEYS[1], 3600)
+return math.floor(grant)
+`)
+
+// TakeCreditBudget réserve jusqu'à `want` octets sur le budget de ce compte et
+// renvoie ce qui est accordé.
+//
+// Le débit est le même plafond par seconde que le clamp par pair, et la réserve
+// vaut soixante secondes de ce débit : un seedeur réel ne s'en approche jamais,
+// un client qui fabrique des deltas s'y heurte immédiatement.
+func (s *Store) TakeCreditBudget(
+	ctx context.Context, userID string, want, ratePerSec int64,
+) (int64, error) {
+	return creditBudgetScript.Run(ctx, s.client,
+		[]string{s.creditBudgetKey(userID)},
+		time.Now().UnixMilli(), ratePerSec, want, ratePerSec*60,
+	).Int64()
+}
+
+func (s *Store) creditBudgetKey(u string) string {
+	return s.prefix + "credit_budget:" + u
 }
 
 func (s *Store) peerKey(h string) string  { return s.prefix + "peers:" + h }

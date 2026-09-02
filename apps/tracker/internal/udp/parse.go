@@ -72,6 +72,7 @@ var (
 	errBadMagic            = errors.New("invalid protocol_id")
 	errInvalidConnectionID = errors.New("invalid connection_id")
 	errMissingPasskey      = errors.New("missing passkey")
+	errInvalidPort    = errors.New("invalid port")
 	errMalformedOptions    = errors.New("malformed options")
 )
 
@@ -239,6 +240,12 @@ func (r *AnnounceRequestUDP) ToAnnounceRequest() (*announce.Request, error) {
 	passkey := extractPasskey(r.URLData)
 	if passkey == "" {
 		return nil, errMissingPasskey
+	}
+	// La même règle que l'analyseur HTTP, qui l'appliquait seul : ce chemin
+	// recopiait `r.Port` tel quel, donc un port à 0 ou privilégié entrait dans
+	// l'essaim par UDP.
+	if !announce.ValidPeerPort(r.Port) {
+		return nil, errInvalidPort
 	}
 	out := &announce.Request{
 		InfoHash:   r.InfoHash,

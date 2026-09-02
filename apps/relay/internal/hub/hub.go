@@ -75,6 +75,18 @@ func New(rdb *redis.Client, live *config.Live) *Hub {
 		rdb:   rdb,
 		live:  live,
 		conns: make(map[string]map[*Conn]struct{}),
+		// Abonné ICI, pas dans `Run`.
+		//
+		// `h.sub` était écrit par `Run` sans verrou et lu par `Add` hors du
+		// verrou, alors que le champ est déclaré dans le bloc gardé par `h.mu`.
+		// `main` lance `Run` et `ListenAndServe` dans deux goroutines
+		// indépendantes : une requête `/events` arrivée avant que `Run` n'ait
+		// posé le champ déréférençait nil. Au-delà de cette fenêtre de
+		// démarrage, l'accès restait une course au sens du modèle mémoire Go —
+		// invisible au détecteur, parce qu'aucun test ne fait tourner `Run` et
+		// `Add` ensemble. Créer l'abonnement au constructeur supprime la
+		// fenêtre et la course d'un seul coup.
+		sub: rdb.Subscribe(context.Background()),
 	}
 }
 
@@ -89,7 +101,6 @@ func (h *Hub) Refused() int64 { return h.refused.Load() }
 // O(nodes) rather than O(readers) — the fan-out to readers happens here,
 // in this process, which is exactly why this process is not the API.
 func (h *Hub) Run(ctx context.Context) error {
-	h.sub = h.rdb.Subscribe(ctx)
 	defer h.sub.Close()
 
 	ch := h.sub.Channel(redis.WithChannelSize(1024))
@@ -134,7 +145,11 @@ func (h *Hub) dispatch(channel string, payload []byte) {
 // to any this node had no reader for yet. Returns false at the ceiling.
 func (h *Hub) Add(ctx context.Context, channels ...string) (*Conn, bool) {
 	cfg := h.live.Get()
-	if h.count.Load() >= int64(cfg.MaxConnections) {
+	// Réserver d'abord, rendre en cas de refus : le couple `Load` puis `Add`
+	// n'était pas atomique et pouvait dépasser le plafond du nombre de requêtes
+	// concurrentes.
+	if h.count.Add(1) > int64(cfg.MaxConnections) {
+		h.count.Add(-1)
 		h.refused.Add(1)
 		return nil, false
 	}
@@ -161,10 +176,10 @@ func (h *Hub) Add(ctx context.Context, channels ...string) (*Conn, bool) {
 	if len(fresh) > 0 {
 		if err := h.sub.Subscribe(ctx, fresh...); err != nil {
 			h.Remove(c)
+			// `Remove` décrémente déjà le compteur : rien à rendre ici.
 			return nil, false
 		}
 	}
-	h.count.Add(1)
 	return c, true
 }
 

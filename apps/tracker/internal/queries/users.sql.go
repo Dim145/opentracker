@@ -40,17 +40,23 @@ const incrementUserStats = `-- name: IncrementUserStats :exec
 UPDATE users
    SET uploaded   = uploaded   + $1,
        downloaded = downloaded + $2
- WHERE passkey = $3
+ WHERE id = $3
 `
 
 type IncrementUserStatsParams struct {
 	Uploaded   int64
 	Downloaded int64
-	Passkey    string
+	ID         string
 }
 
-// Adds upload/download deltas to the user identified by passkey.
+// Adds upload/download deltas to the user identified by ID.
+//
+// Par l'ID, et non par la passkey. L'appelant a `user.ID` en main — il vient
+// d'un cache de 60 s indexé par le hachis de la passkey — et si la passkey a
+// changé entre la résolution et cette écriture (rotation depuis l'interface
+// web), l'`UPDATE` touchait ZÉRO ligne et le crédit disparaissait en silence.
+// `BumpUserTorrentBytes`, juste en dessous, utilise déjà l'ID.
 func (q *Queries) IncrementUserStats(ctx context.Context, arg IncrementUserStatsParams) error {
-	_, err := q.db.Exec(ctx, incrementUserStats, arg.Uploaded, arg.Downloaded, arg.Passkey)
+	_, err := q.db.Exec(ctx, incrementUserStats, arg.Uploaded, arg.Downloaded, arg.ID)
 	return err
 }

@@ -48,7 +48,12 @@ CREATE TABLE IF NOT EXISTS torrents (
     download_multiplier integer NOT NULL DEFAULT 100,
     upload_multiplier   integer NOT NULL DEFAULT 100,
     multipliers_until   timestamp,
-    is_approved   boolean   NOT NULL DEFAULT false,
+    -- L'état de modération. Remplace le booléen `is_approved`, que la migration
+    -- 0026a a supprimé de la vraie base — ce fichier le portait encore, si bien
+    -- que le schéma contre lequel sqlc valide les requêtes du tracker avait
+    -- dérivé de la base réelle. Une requête référençant une colonne inexistante
+    -- passait donc la génération et n'échouait qu'à l'exécution.
+    moderation_status text NOT NULL DEFAULT 'pending',
     created_at    timestamp NOT NULL DEFAULT NOW()
 );
 

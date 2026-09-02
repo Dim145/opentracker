@@ -61,7 +61,13 @@ type Querier interface {
 	// Returns the raw string value for a settings key, or no rows if unset.
 	// The tracker layers a TTL cache on top of this — see internal/db/cache.go.
 	GetSetting(ctx context.Context, key string) (string, error)
-	// Adds upload/download deltas to the user identified by passkey.
+	// Adds upload/download deltas to the user identified by ID.
+	//
+	// Par l'ID, et non par la passkey. L'appelant a `user.ID` en main — il vient
+	// d'un cache de 60 s indexé par le hachis de la passkey — et si la passkey a
+	// changé entre la résolution et cette écriture (rotation depuis l'interface
+	// web), l'`UPDATE` touchait ZÉRO ligne et le crédit disparaissait en silence.
+	// `BumpUserTorrentBytes`, juste en dessous, utilise déjà l'ID.
 	IncrementUserStats(ctx context.Context, arg IncrementUserStatsParams) error
 	// Cold path used only when BumpUserTorrentBytes touched zero rows —
 	// typically the very first delta we receive for a user×torrent pair

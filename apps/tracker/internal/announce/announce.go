@@ -85,6 +85,24 @@ var (
 // BitTorrent clients URL-encode the raw 20-byte info_hash and peer_id as
 // query parameters; net/url already does the right thing with %xx, but we
 // then need to assert the byte length is exactly 20.
+// ValidPeerPort dit si un port peut être inscrit dans un essaim.
+//
+// Deux règles, et la même aux deux transports :
+//
+//   - Zéro est refusé. Un pair à `IP:0` n'est joignable par personne, et il est
+//     pourtant distribué à tous les clients de l'essaim, qui y brûlent leur
+//     budget de connexions. L'analyseur HTTP le refusait déjà ;
+//     `ToAnnounceRequest` recopiait le port UDP sans contrôle, si bien que la
+//     règle ne tenait que sur la moitié des annonces.
+//   - Les ports privilégiés sont refusés. Un pair pouvait s'inscrire sur
+//     `<son IP>:22` ou `:25`, et l'essaim entier allait y frapper en TCP. Comme
+//     l'adresse vient du socket, ce n'est pas un réflecteur vers un tiers
+//     arbitraire — mais derrière un CGNAT l'adresse est partagée, et c'est la
+//     raison pour laquelle les trackers de référence bloquent cette plage.
+func ValidPeerPort(port uint16) bool {
+	return port >= 1024
+}
+
 func Parse(q url.Values) (*Request, error) {
 	r := &Request{
 		Compact: true,
@@ -114,10 +132,11 @@ func Parse(q url.Values) (*Request, error) {
 		return nil, ErrMissingPort
 	}
 	port, err := strconv.ParseUint(portStr, 10, 16)
-	if err != nil || port == 0 {
+	if err != nil || !ValidPeerPort(uint16(port)) {
 		return nil, ErrInvalidPort
 	}
 	r.Port = uint16(port)
+
 
 	r.Uploaded, _ = parseInt64(q.Get("uploaded"))
 	r.Downloaded, _ = parseInt64(q.Get("downloaded"))

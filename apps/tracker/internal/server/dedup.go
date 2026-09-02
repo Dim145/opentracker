@@ -91,23 +91,38 @@ func newDedup(rdb *redis.Client, keyPrefix string) *dedup {
 // first because it is free and because a duplicate caught there needs no
 // round-trip at all.
 func (d *dedup) CheckAndMark(ctx context.Context, key string) bool {
-	if !d.checkLocal(key) {
+	return d.CheckAndMarkFor(ctx, key, dedupWindow)
+}
+
+// CheckAndMarkFor is CheckAndMark with an explicit window.
+//
+// The 2-second default is right for what it was written for: one announce
+// arriving on IPv4, IPv6 and localhost within milliseconds. It is wrong for
+// anything that books a QUANTITY per period — seed time, most of all. There,
+// the window has to be the period itself, or N concurrent peer_ids each claim
+// the same stretch of wall-clock time and the total is N times the truth.
+func (d *dedup) CheckAndMarkFor(ctx context.Context, key string, window time.Duration) bool {
+	if !d.checkLocalFor(key, window) {
 		return false
 	}
 	if d.rdb == nil {
 		return true
 	}
-	return d.checkRedis(ctx, key)
+	return d.checkRedisFor(ctx, key, window)
 }
 
 // checkLocal is the original in-process behaviour, unchanged. Drops the
 // oldest half of entries when the map exceeds `dedupMaxEntries` to keep
 // memory bounded under spam.
 func (d *dedup) checkLocal(key string) bool {
+	return d.checkLocalFor(key, dedupWindow)
+}
+
+func (d *dedup) checkLocalFor(key string, window time.Duration) bool {
 	now := time.Now()
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if last, ok := d.seen[key]; ok && now.Sub(last) < dedupWindow {
+	if last, ok := d.seen[key]; ok && now.Sub(last) < window {
 		return false
 	}
 	if len(d.seen) >= dedupMaxEntries {
@@ -130,10 +145,14 @@ func (d *dedup) checkLocal(key string) bool {
 // Redis, so a Redis outage means `prev` is nil and there is no delta to
 // double-credit in the first place.
 func (d *dedup) checkRedis(ctx context.Context, key string) bool {
+	return d.checkRedisFor(ctx, key, dedupWindow)
+}
+
+func (d *dedup) checkRedisFor(ctx context.Context, key string, window time.Duration) bool {
 	ctx, cancel := context.WithTimeout(ctx, dedupRedisTimeout)
 	defer cancel()
 
-	ok, err := d.rdb.SetNX(ctx, d.prefix+"dedup:"+key, 1, dedupWindow).Result()
+	ok, err := d.rdb.SetNX(ctx, d.prefix+"dedup:"+key, 1, window).Result()
 	if err != nil {
 		slog.Warn("dedup: redis unreachable, falling back to the local window",
 			"err", err)

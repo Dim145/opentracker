@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net"
+	"runtime/debug"
 	"runtime"
 	"strconv"
 	"sync"
@@ -68,6 +69,17 @@ type Server struct {
 	// liner every ~10 k drops so an operator notices a sustained
 	// flood even without metrics.
 	droppedFlood atomic.Uint64
+	// Les trois compteurs ci-dessous existent pour la même raison que
+	// `droppedFlood` : une ligne de journal par datagramme, sur une entrée non
+	// authentifiée ET à source usurpable, est un primitif d'épuisement de
+	// disque. Mesuré : 123 octets de journal pour 16 octets de paquet, soit une
+	// amplification de 7,7× vers le disque à débit ligne. `handlePacket`
+	// s'interdit déjà de journaliser une action inconnue pour cette raison
+	// exacte ; ces trois chemins-là l'avaient oublié. On compte, et on parle
+	// toutes les ~10 000.
+	droppedParse   atomic.Uint64
+	droppedConnID  atomic.Uint64
+	droppedPasskey atomic.Uint64
 }
 
 // New builds a UDP server bound to `addr` and ready to dispatch
@@ -155,6 +167,22 @@ func (s *Server) Serve(ctx context.Context) error {
 		case s.workerSem <- struct{}{}:
 			go func(bufp *[]byte, n int, raddr *net.UDPAddr) {
 				defer func() { <-s.workerSem }()
+				// La boucle de lecture EST le processus : un panic ici n'est pas
+				// un datagramme perdu, c'est le tracker qui s'arrête. `net/http`
+				// récupère par connexion et les trois goroutines d'arrière-plan
+				// de `server/handler.go` ont chacune leur `recover` — c'était le
+				// seul chemin de requête sans filet, et c'est la porte d'entrée
+				// la plus exposée du projet.
+				defer func() {
+					if r := recover(); r != nil {
+						s.logger.Error("udp handler panic",
+							"remote", raddr.String(),
+							"size", n,
+							"panic", r,
+							"stack", string(debug.Stack()),
+						)
+					}
+				}()
 				s.handlePacket(ctx, bufp, n, raddr)
 			}(bufp, n, raddr)
 		default:
@@ -241,18 +269,22 @@ func (s *Server) handleAnnounce(ctx context.Context, data []byte, raddr *net.UDP
 		// — drop silently rather than reflect a forged source. Still
 		// log so the operator can see if a probe / scanner is
 		// hammering the port.
-		s.logger.Warn("udp announce parse failed",
-			"remote", raddr.String(),
-			"size", len(data),
-			"err", err,
-		)
+		if n := s.droppedParse.Add(1); n%10_000 == 1 {
+			s.logger.Warn("udp announce parse failures",
+				"total", n,
+				"last_size", len(data),
+				"last_err", err,
+			)
+		}
 		return
 	}
 	if !s.connID.Validate(raddr.IP, req.ConnectionID) {
-		s.logger.Info("udp connection_id rejected",
-			"remote", raddr.String(),
-			"reason", "missing or expired (re-handshake needed)",
-		)
+		if n := s.droppedConnID.Add(1); n%10_000 == 1 {
+			s.logger.Info("udp connection_id rejections",
+				"total", n,
+				"reason", "missing or expired (re-handshake needed)",
+			)
+		}
 		_, _ = s.conn.WriteToUDP(
 			EncodeError(nil, req.TransactionID, "Connection ID expired"),
 			raddr,
@@ -270,11 +302,13 @@ func (s *Server) handleAnnounce(ctx context.Context, data []byte, raddr *net.UDP
 		if len(urlData) > 200 {
 			urlData = urlData[:200] + "…"
 		}
-		s.logger.Info("udp announce missing passkey",
-			"remote", raddr.String(),
-			"url_data", urlData,
-			"hint", "client must use udp://host:port/announce/PASSKEY or ?passkey=PASSKEY",
-		)
+		if n := s.droppedPasskey.Add(1); n%10_000 == 1 {
+			s.logger.Info("udp announces without a passkey",
+				"total", n,
+				"last_url_data", urlData,
+				"hint", "client must use udp://host:port/announce/PASSKEY or ?passkey=PASSKEY",
+			)
+		}
 		_, _ = s.conn.WriteToUDP(
 			EncodeError(nil, req.TransactionID, "Passkey required"),
 			raddr,
@@ -349,10 +383,18 @@ func (s *Server) handleScrape(ctx context.Context, data []byte, raddr *net.UDPAd
 	connID := binary.BigEndian.Uint64(data[0:8])
 	txID := binary.BigEndian.Uint32(data[12:16])
 	if !s.connID.Validate(raddr.IP, connID) {
-		_, _ = s.conn.WriteToUDP(
-			EncodeError(nil, txID, "Connection ID expired"),
-			raddr,
-		)
+		// Silence, pas d'erreur renvoyée.
+		//
+		// Seize octets entrants pour vingt-neuf sortants vers une source qui
+		// n'a PAS été vérifiée : c'est un réflecteur de facteur 1,81. Le même
+		// raisonnement est déjà écrit dans `handlePacket`, qui refuse de
+		// répondre à une action inconnue « pour ne pas transformer le tracker en
+		// petit réflecteur » — ce chemin-ci l'avait oublié. BEP 15 prévoit le
+		// silence : un client qui n'obtient pas de réponse refait son
+		// handshake `connect`, ce qui est exactement le comportement voulu.
+		if n := s.droppedConnID.Add(1); n%10_000 == 1 {
+			s.logger.Info("udp scrape connection_id rejections", "total", n)
+		}
 		return
 	}
 

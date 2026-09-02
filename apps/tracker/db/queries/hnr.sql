@@ -40,6 +40,8 @@ SELECT u.id AS user_id, t.id AS torrent_id
  WHERE u.passkey = $1
    AND t.info_hash = $2
    AND t.is_active = true
+   -- Idem : pas de dette de hit-and-run sur une release refusée.
+   AND t.moderation_status = 'accepted'
  LIMIT 1;
 
 -- name: BumpUserTorrentBytes :execrows

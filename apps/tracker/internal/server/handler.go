@@ -181,13 +181,25 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 			"xRealIP", r.Header.Get("X-Real-IP"),
 		)
 	}
-	if req.UnknownEventRaw != "" {
+	if req.UnknownEventRaw != "" && s.debug {
 		// Clients with custom or buggy event values used to silently
 		// reach the announce path as if they had sent nothing — useful
 		// to know about for operator support / debugging interop.
-		slog.Info("announce unknown event",
-			"event", req.UnknownEventRaw,
-			"clientIP", clientIP,
+		//
+		// Derrière `s.debug`, tronqué, et l'IP hachée. La ligne était en
+		// `Info`, s'exécutait AVANT la validation de la passkey, et journalisait
+		// la valeur brute du client : un seul `?event=<15 Ko>` produisait près
+		// de 10 Ko de journal, et `MaxHeaderBytes` (16 Ko) en était la seule
+		// borne. À 500 requêtes par seconde, c'est un remplissage de disque non
+		// authentifié. L'IP hachée suit la convention de `PeerData` et de
+		// l'anti-triche, qui ne persistent jamais une adresse en clair.
+		ev := req.UnknownEventRaw
+		if len(ev) > 32 {
+			ev = ev[:32] + "…"
+		}
+		slog.Debug("announce unknown event",
+			"event", ev,
+			"ip_hash", cryptohash.HashIP(clientIP, s.ipHashSecret),
 		)
 	}
 	out := s.ProcessAnnounce(r.Context(), req, clientIP, r.UserAgent())
@@ -556,6 +568,41 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		}
 	}
 
+	// 5a-ter. Le budget du COMPTE, après le clamp par pair.
+	//
+	// Le clamp ci-dessus borne un essaim vu par un peer_id ; son commentaire
+	// dit « no matter how many rotated peer_ids », ce qui est vrai en rotation
+	// séquentielle et faux en CONCURRENCE — les fenêtres de deux peer_id
+	// différents se chevauchent au lieu d'être adjacentes. Cent peer_id
+	// parallèles franchissaient donc chacun leur propre plafond, pour un
+	// agrégat de cent fois le débit autorisé.
+	//
+	// Ce seau borne l'axe sur lequel l'économie est libellée : le compte. Il
+	// échoue OUVERT sur une erreur Redis, comme tous les caches de ce chemin —
+	// refuser un crédit légitime parce que le cache a hoqueté est le mauvais
+	// sens de l'erreur, et sans Redis il n'y a de toute façon pas de `prev`
+	// donc pas de delta à créditer.
+	if deltaUp > 0 || deltaDown > 0 {
+		want := deltaUp + deltaDown
+		if granted, err := s.peers.TakeCreditBudget(
+			ctx, user.ID, want, maxCreditBytesPerSec,
+		); err == nil && granted < want {
+			// L'allocation va d'abord à l'upload : c'est l'axe qu'il vaut la
+			// peine de fabriquer, et rogner le download ne profite qu'au membre.
+			if granted < deltaUp {
+				deltaUp, deltaDown = granted, 0
+			} else {
+				deltaDown = granted - deltaUp
+			}
+			slog.Warn("clamping delta to the per-user budget",
+				"user_id", user.ID,
+				"info_hash", infoHashHex,
+				"claimed", want,
+				"granted", granted,
+			)
+		}
+	}
+
 	// 5b. Apply the bonus multipliers before persisting.
 	//
 	// Two sources now. The site-wide event (Freeleech / Silverleech / custom)
@@ -597,7 +644,10 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		if err := s.db.Q.IncrementUserStats(ctx, queries.IncrementUserStatsParams{
 			Uploaded:   deltaUp,
 			Downloaded: deltaDown,
-			Passkey:    req.Passkey,
+			// Par l'ID : une passkey rotée entre la résolution (cache de 60 s)
+			// et cette écriture faisait toucher zéro ligne, et le crédit
+			// disparaissait sans un mot.
+			ID: user.ID,
 		}); err != nil {
 			slog.Warn("failed to increment user stats",
 				"info_hash", infoHashHex,
@@ -717,8 +767,30 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// requirement they cannot meet.
 	if req.IsSeeder() && prev != nil {
 		elapsed := (time.Now().UnixMilli() - prev.UpdatedAt) / 1000
-		seedKey := infoHashHex + ":" + peerHex + ":seedtime"
-		if elapsed > 0 && elapsed < 3600 && s.dedup.CheckAndMark(ctx, seedKey) {
+		/*
+		 * La clé porte sur (torrent, UTILISATEUR), et la fenêtre est
+		 * l'intervalle d'annonce.
+		 *
+		 * `AddSeedTime` additionne dans UNE ligne `hnr_tracking` par
+		 * (user, torrent) — la clé contenait `peerHex`, donc cent peer_id
+		 * concurrents sur le même torrent versaient chacun le même intervalle
+		 * de temps réel dans la même ligne : cent secondes de seed par seconde
+		 * écoulée. Les 24 h exigées se soldaient en un quart d'heure, et le
+		 * hit-and-run cessait de mesurer quoi que ce soit.
+		 *
+		 * La fenêtre de deux secondes était l'autre moitié du défaut : elle est
+		 * faite pour dédupliquer UNE annonce arrivée sur trois interfaces, pas
+		 * pour borner une quantité par période. À `minAnnounceInterval`, on
+		 * crédite au plus un intervalle par intervalle — et le plafond sur
+		 * `elapsed` empêche une ligne de base ancienne d'en réclamer plus.
+		 */
+		seedKey := infoHashHex + ":" + user.ID + ":seedtime"
+		if elapsed > int64(minAnnounceInterval) {
+			elapsed = int64(minAnnounceInterval)
+		}
+		if elapsed > 0 && s.dedup.CheckAndMarkFor(
+			ctx, seedKey, time.Duration(minAnnounceInterval)*time.Second,
+		) {
 			s.bgTasks.Add(1)
 			go s.recordSeedTime(req.Passkey, infoHashHex, int32(elapsed))
 		}
@@ -983,6 +1055,37 @@ func (s *Server) ScrapeStats(
 func (s *Server) handleScrape(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
+	/*
+	 * La passkey, exigée. BEP 48 ne la demande pas ; un tracker privé, si.
+	 *
+	 * Sans elle, `curl 'https://tracker.example/scrape?info_hash=…'` avec le
+	 * hash d'un titre connu confirmait sa présence sur le site ET sa
+	 * popularité, sans compte. Répété sur une liste publique de hashes, cela
+	 * reconstitue une part du catalogue — y compris ce qui attend une
+	 * modération ou ce qui est classé adulte, puisque les compteurs viennent
+	 * de Redis. Sur un site dont l'invitation est la porte, c'est la même
+	 * surface que le catalogue lui-même.
+	 *
+	 * Le commentaire du chemin UDP (« safe to expose publicly, just like every
+	 * other public BT tracker does ») raisonne pour un tracker PUBLIC.
+	 *
+	 * Aucun client n'est cassé : l'URL de scrape se dérive de celle d'annonce
+	 * en remplaçant le dernier segment, la chaîne de requête comprise — c'est
+	 * la convention de BEP 48, et c'est déjà ainsi que la passkey arrive sur
+	 * `/announce` en HTTP.
+	 */
+	passkey := r.URL.Query().Get("passkey")
+	if passkey == "" {
+		writeFailure(w, "Passkey required")
+		return
+	}
+	if _, err := s.db.UserByPasskey(r.Context(), passkey); err != nil {
+		// Le même message dans les deux cas : une passkey absente et une
+		// passkey invalide ne se distinguent pas depuis l'extérieur.
+		writeFailure(w, "Invalid passkey")
+		return
+	}
+
 	hashes := r.URL.Query()["info_hash"]
 	if len(hashes) == 0 {
 		writeFailure(w, "Missing info_hash")
@@ -1029,10 +1132,13 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	dbOK := s.db.Pool.Ping(ctx) == nil
 	redisOK := s.redis.Ping(ctx).Err() == nil
 
+	// L'en-tête AVANT le statut : `WriteHeader` fige la carte d'en-têtes, donc
+	// le `Content-Type` posé après était purement et simplement ignoré sur le
+	// chemin dégradé.
+	w.Header().Set("Content-Type", "application/json")
 	if !dbOK || !redisOK {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
-	w.Header().Set("Content-Type", "application/json")
 	body := `{"status":"healthy","db":` + boolStr(dbOK) + `,"redis":` + boolStr(redisOK) + `}`
 	_, _ = w.Write([]byte(body))
 }
