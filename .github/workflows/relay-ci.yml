@@ -1,0 +1,128 @@
+# Go relay CI — vet, tests, and vulnerability scanning.
+#
+# The relay had NO workflow at all. It is a publicly reachable HTTP service
+# that verifies HMAC-signed bearer tokens and fans out SSE to every connected
+# member: nothing enforced that it still compiled, that its tests passed, or
+# that it was free of known vulnerabilities. `go build` inside
+# apps/relay/Dockerfile is not a gate — it runs after a release is already
+# published.
+#
+# That gap had a visible cost: `apps/relay/go.mod` sat on
+# `golang.org/x/sys v0.30.0` long after the tracker had moved to v0.47.0,
+# because no job ever ran `go mod tidy` or a vulnerability scan against it.
+#
+# Deliberately a copy of `tracker-ci.yml` rather than a shared reusable
+# workflow: the two modules pin different Go minors over time and have
+# different test shapes, and one file per module is what makes a red job point
+# straight at its module.
+name: Relay CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/relay/**'
+      - '.github/workflows/relay-ci.yml'
+  pull_request:
+    paths:
+      - 'apps/relay/**'
+      - '.github/workflows/relay-ci.yml'
+  # Advisories are published against code that hasn't changed, so the vuln
+  # scan can't only run on pushes. Monday morning, before anyone starts —
+  # staggered off the tracker's slot so the two don't queue against each other.
+  schedule:
+    - cron: '37 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: relay-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/relay
+
+jobs:
+  test:
+    name: vet + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Test-only checkout — nothing is pushed back.
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          # The minor, not `go-version-file`. The `go` directive in go.mod is a
+          # minimum language version (`go 1.26.0`) and setup-go treats a full
+          # x.y.z as an exact pin — which on the tracker built CI on go1.26.0
+          # and failed govulncheck on 19 stdlib vulnerabilities fixed in
+          # 1.26.1. Tracking the minor matches `golang:1.26-alpine` in the
+          # Dockerfile. Bump alongside the Dockerfile and the go.mod directive.
+          go-version: '1.26'
+          check-latest: true
+          cache-dependency-path: apps/relay/go.sum
+
+      # `gofmt -l` exits 0 even when it lists files, so the emptiness of its
+      # output is the assertion. `set -e` covers the other failure mode: on a
+      # file that does not parse, gofmt writes to stderr and exits non-zero
+      # while printing nothing on stdout.
+      - name: gofmt
+        run: |
+          set -euo pipefail
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::gofmt would rewrite these files — run 'gofmt -w .' in apps/relay"
+            echo "$unformatted"
+            gofmt -d .
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      # -race is the point for this module: the hub subscribes and
+      # unsubscribes Redis channels from concurrent connection handlers while
+      # dispatching to a shared map of subscribers.
+      - name: go test -race
+        run: go test -race ./...
+
+      # `go.mod` drifting behind what the build actually resolves is how the
+      # x/sys gap survived. `git diff --exit-code` fails the job if tidy moves
+      # anything.
+      - name: go mod tidy is up to date
+        run: |
+          set -euo pipefail
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Test-only checkout — nothing is pushed back.
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: '1.26'
+          check-latest: true
+          cache-dependency-path: apps/relay/go.sum
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      # The check Dependabot cannot do. Dependabot matches advisories against
+      # declared version ranges; govulncheck walks the call graph and only
+      # reports a vulnerability when a vulnerable symbol is actually reachable.
+      # It exits non-zero on a finding, which is what fails the job.
+      - name: govulncheck
+        run: govulncheck ./...
