@@ -43,8 +43,14 @@ services:
       dockerfile: apps/web/Dockerfile.static
     # The static container has zero environment-driven config — all the
     # NUXT_PUBLIC_* values are baked into the bundle as fallbacks but
-    # overridden at runtime via /api/runtime-config. Drop the SSR env
-    # block entirely.
+    # overridden at runtime via /api/runtime-config.
+    #
+    # Le bloc disait « Drop the SSR env block entirely » avec `environment: {}`.
+    # Compose FUSIONNE les mappings `environment` entre fichiers : un objet vide
+    # ne retire rien, le bloc SSR était conservé. Sans conséquence — ces
+    # variables sont inoffensives pour nginx — mais le commentaire décrivait un
+    # comportement qui n'avait pas lieu. Pour réellement en retirer une, il
+    # faudrait la nommer avec une valeur nulle (`VAR:`).
     environment: {}
     # Resource caps drop massively. Distroless nginx idles around
     # 8-10 MB; 64 MB is plenty for any realistic concurrency on a
@@ -55,5 +61,15 @@ services:
           memory: 64M
         reservations:
           memory: 16M
-    # The Dockerfile.static HEALTHCHECK uses `nginx -t` (config
-    # validation) — fast, no shell needed in distroless. Inherit it.
+    # Une VRAIE sonde, depuis l'extérieur du conteneur.
+    #
+    # Le Dockerfile portait `nginx -t`, qui valide le fichier de configuration :
+    # un worker bloqué ou un listener fermé passaient au vert. L'image
+    # Chainguard n'ayant ni shell ni client HTTP, rien ne peut interroger
+    # `/healthz` depuis l'intérieur — c'est donc au compose de le faire.
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/3000 && printf 'GET /healthz HTTP/1.0\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q 200"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
