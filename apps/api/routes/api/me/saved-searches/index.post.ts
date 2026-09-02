@@ -70,6 +70,24 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  /**
+   * `tags` part en JSON, pas en tableau JavaScript brut.
+   *
+   * La colonne est du `jsonb`. Interpolé tel quel dans le gabarit SQL, un
+   * tableau JS devient un TABLEAU Postgres, et le serveur refuse :
+   * « column "tags" is of type jsonb but expression is of type record ».
+   * Toute recherche enregistrée portant au moins une étiquette échouait donc
+   * en 500 — alors que la page propose explicitement ce cas (`canSaveSearch`
+   * accepte les étiquettes seules) et que `/alerts` affiche déjà une puce par
+   * étiquette. Les autres colonnes sont du texte et n'ont jamais eu le
+   * problème, ce qui a gardé la panne cantonnée au seul chemin `jsonb`.
+   *
+   * Écrit ici plutôt qu'en commentaire SQL dans le gabarit ci-dessous : un
+   * `--` survit mal à une requête aplatie, et un accent grave dans un modèle
+   * littéral le termine.
+   */
+  const tagsJson = tags.length ? JSON.stringify(tags) : null;
+
   const max = await getSavedSearchMaxPerUser();
   const id = randomUUID();
 
@@ -91,7 +109,7 @@ export default defineEventHandler(async (event) => {
       (id, user_id, label, query, tsquery, category_id, tags, imdb_id, tmdb_id, tvdb_id, notify)
     select
       ${id}, ${user.id}, ${body.label}, ${query}, ${tsquery}, ${categoryId},
-      ${tags.length ? tags : null}, ${imdbId}, ${tmdbId}, ${tvdbId}, ${body.notify ?? true}
+      ${tagsJson}::jsonb, ${imdbId}, ${tmdbId}, ${tvdbId}, ${body.notify ?? true}
     where (
       select count(*) from ${schema.savedSearches}
       where ${schema.savedSearches.userId} = ${user.id}
