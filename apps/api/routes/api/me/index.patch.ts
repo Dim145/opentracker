@@ -202,6 +202,18 @@ export default defineEventHandler(async (event) => {
   // read from the session, not from /api/me) reflect the new value on
   // the next /api/auth/status poll without waiting for a re-login.
   if ('displayName' in updates || 'theme' in updates || 'language' in updates) {
+    // `loggedInAt` est CONSERVÉ, pas réestampillé.
+    //
+    // Il valait `Date.now()` ici : éditer sa biographie remettait à zéro le
+    // moment de la connexion. C'est inerte aujourd'hui — la fenêtre de
+    // `requireFreshAuth` vit dans Redis, clefée sur l'identifiant h3, et rien
+    // ne lit ce champ comme signal de fraîcheur — mais c'est un piège posé
+    // pour le jour où quelqu'un s'y fiera : une requête anodine ferait alors
+    // passer une session ancienne pour fraîche.
+    //
+    // Rafraîchir la session sert à ce que la barre de navigation et le thème
+    // suivent le changement ; l'heure de connexion n'a rien à y voir.
+    const current = await getUserSession(event);
     await setUserSession(event, {
       user: {
         ...user,
@@ -209,7 +221,7 @@ export default defineEventHandler(async (event) => {
         theme: updated.theme,
         language: updated.language,
       },
-      loggedInAt: Date.now(),
+      loggedInAt: current.loggedInAt,
     });
   }
 
