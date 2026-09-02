@@ -23,9 +23,26 @@
  * DNS server can hand us a different answer. The race window is
  * sub-millisecond and shrinks the SSRF surface from "trivially
  * exploitable" to "needs a DNS server you control + cooperating
- * timing". Acceptable for an operator-curated webhook target; if
- * we ever expose this on user-supplied URLs without admin review
- * (we don't today), revisit.
+ * timing".
+ *
+ * ATTENTION — cette limitation avait été classée sans suite « acceptable for an
+ * operator-curated webhook target; if we ever expose this on user-supplied URLs
+ * without admin review (we don't today), revisit ». La prémisse est FAUSSE :
+ * `channels/webhook.ts` déclare `url` comme un `userField`, et
+ * `routes/api/me/notification-channels/[type].put.ts` laisse tout membre le
+ * persister — sa validation ne contrôle que les clés connues, une longueur et
+ * le fait que ce soit une primitive, sans revue d'administrateur. Le
+ * pré-requis reste qu'un administrateur ait activé et testé le canal
+ * `webhook` générique.
+ *
+ * Ce qui a été fait plutôt que l'épinglage d'adresse : le canal ne réfléchit
+ * plus le corps amont (c'était le primitif de lecture), la route de
+ * persistance porte une limite de débit, et `WEBHOOK_ALLOW_HOSTS` permet à
+ * l'opérateur de restreindre les hôtes. L'épinglage lui-même demanderait
+ * `undici` en dépendance DIRECTE de l'API — le `dispatcher` du `fetch` de Node
+ * n'accepte qu'une instance de son undici interne — donc un ajout de
+ * dépendance pour une course sous-milliseconde ; à faire, mais délibérément et
+ * pas au détour d'un correctif.
  */
 import { promises as dns } from 'node:dns';
 import { isIP } from 'node:net';

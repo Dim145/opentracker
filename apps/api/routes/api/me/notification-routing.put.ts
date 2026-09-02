@@ -15,6 +15,7 @@
  *     actually configured (avoids dangling pointers).
  */
 import { db, schema } from '@trackarr/db';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -31,6 +32,7 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
   const raw = await readBody(event);
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {

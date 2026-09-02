@@ -14,6 +14,7 @@
  * land. We re-check the gate here rather than trusting the UI.
  */
 import { db, schema } from '@trackarr/db';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
@@ -31,6 +32,7 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
   const type = getRouterParam(event, 'type') ?? '';
   const adapter = getAdapter(type);
   if (!adapter) {
