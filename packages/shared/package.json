@@ -11,8 +11,5 @@
     "./templateEngine": "./src/templateEngine.ts",
     "./theme": "./src/theme.ts",
     "./css": "./src/css.ts"
-  },
-  "dependencies": {
-    "zod": "^4.4.3"
   }
 }

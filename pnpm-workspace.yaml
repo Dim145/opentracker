@@ -5,6 +5,23 @@ packages:
 # Hoist dependencies that have peer-dep issues with auto-install-peers
 shamefullyHoist: false
 
+# DEUX versions de TypeScript, volontairement. Ne pas « harmoniser ».
+#
+#   racine     : ^7.0.2  — vérifie l'API (`tsc -p apps/api/.nitro/…`)
+#   apps/web   : ~5.9.3  — vérifie le front (`nuxt typecheck`, donc vue-tsc)
+#
+# TypeScript 7 est le portage natif en Go. Son export principal ne contient
+# plus le compilateur : `exports["."]` pointe sur `lib/version.cjs`, et
+# `require('typescript').createProgram` vaut `undefined` (mesuré sur 7.0.2).
+# Seules des entrées `./unstable/*` exposent une API, encore instable.
+#
+# vue-tsc 3.3.11 déclare pourtant `peerDependencies: { typescript: ">=5.0.0" }`.
+# Cette plage est fausse pour 7.x : rien n'empêche donc quelqu'un de retirer le
+# pin de `apps/web`, de laisser pnpm résoudre le TypeScript de la racine, et de
+# casser `nuxt typecheck` sans qu'aucun avertissement de pair ne le signale.
+# Le pin EST le garde-fou. Il tombera quand volar saura parler à l'API
+# `unstable` — pas avant.
+
 # pnpm 11 asks before removing node_modules when the lockfile has moved enough
 # to invalidate it, and refuses when there is no TTY:
 #   ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY
@@ -55,6 +72,8 @@ overrides:
   "@thaunknown/simple-peer": "npm:empty-npm-package@1.0.0"
   "esbuild": "^0.28.2"
   "shell-quote": "^1.9.0"
+  # `isomorphic-dompurify` 4.x tire `dompurify ^3.4.12` ; cette contrainte garde
+  # le plancher au-dessus des contournements corrigés en 3.4.13.
   "dompurify": "^3.4.13"
   "launch-editor": "^2.14.1"
   "devalue": "^5.8.1"
@@ -81,6 +100,17 @@ overrides:
   "@peculiar/asn1-schema": "^2.9.4"
   "@peculiar/asn1-x509": "^2.9.4"
   "@peculiar/asn1-x509-attr": "^2.9.4"
+  # Deux avis GHSA sur des dépendances de CONSTRUCTION, remontés le 2026-09-02.
+  # Ni l'un ni l'autre n'est atteignable à l'exécution — browserslist résout des
+  # cibles de navigateur au build, postcss-selector-parser analyse nos propres
+  # sélecteurs — mais le verrou portait les deux versions, la corrigée et la
+  # vulnérable, et une contrainte coûte moins qu'une ligne d'exception dans un
+  # rapport d'audit.
+  #   browserslist            GHSA-c83g-rgw3-j3cx, GHSA-73wf-gq98-2v4g (<=4.28.6)
+  #   postcss-selector-parser GHSA-w9m9-85wc-3x92 (<6.1.3 et 7.0-7.1.2)
+  "browserslist": "^4.28.8"
+  "postcss-selector-parser@6": "^6.1.3"
+  "postcss-selector-parser@7": "^7.1.5"
 
 # Was `onlyBuiltDependencies`. pnpm 11 merges onlyBuiltDependencies,
 # neverBuiltDependencies and ignoredBuiltDependencies into one map, so a
