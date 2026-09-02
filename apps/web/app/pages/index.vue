@@ -553,12 +553,28 @@ function hotBarWidth(seeders: number): number {
 
 // ── Live clock ──────────────────────────────────────────────────────
 //
-// HH:MM:SS UTC — ticks every second on the client, frozen on the
-// server (we ship the SSR snapshot and let the watcher catch up post
-// hydration). UTC is intentional: the operator runs the tracker in a
-// data-centre context, and "21:42 UTC" reads more "command room" than
-// the visitor's local time.
-const liveClock = ref(formatClock(new Date()));
+// HH:MM:SS UTC — ticks every second on the client. UTC is intentional :
+// l'exploitant fait tourner le tracker dans un contexte de centre de
+// données, et « 21:42 UTC » sonne davantage « salle de contrôle » que
+// l'heure locale du visiteur.
+//
+// La valeur initiale est un GABARIT, pas l'heure du serveur.
+//
+// Elle valait `formatClock(new Date())`, et le commentaire d'origine
+// annonçait « frozen on the server … let the watcher catch up post
+// hydration ». Ce rattrapage EST un défaut d'hydratation : Vue compare le
+// texte rendu par le serveur à celui du premier rendu client, et ils
+// diffèrent forcément — d'une seconde au mieux, et bien davantage sur une
+// page servie depuis un cache. Mesuré sur la pile compilée le 2026-09-02 :
+// « 17:20:24 UTC » dans le HTML servi, « 17:20:44 UTC » après hydratation,
+// et « Hydration completed but contains mismatches » dans la console.
+//
+// Le gabarit garde la largeur exacte de l'affichage final, pour qu'aucune
+// case ne bouge entre le premier rendu et la première seconde. `onMounted`
+// pose l'heure réelle avant la première frappe de l'intervalle, sans quoi
+// le gabarit resterait affiché une seconde entière.
+const CLOCK_PLACEHOLDER = '--:--:-- UTC';
+const liveClock = ref(CLOCK_PLACEHOLDER);
 function formatClock(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(

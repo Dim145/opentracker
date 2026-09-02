@@ -126,9 +126,24 @@ const trackerOnline = computed(() => stats.value?.status === 'running');
 
 // ── Live wall clock (ticks every 30s — fast enough to keep the
 // "refreshed Xm ago" label honest without being a CPU drain). ───
-const now = ref(Date.now());
+//
+// `null` jusqu'au montage, et non `Date.now()`.
+//
+// Cette page est rendue côté serveur. Avec une valeur initiale, le serveur
+// écrivait SON heure dans SON fuseau, puis l'hydratation la remplaçait par
+// celle du navigateur — « Hydration completed but contains mismatches »,
+// mesuré sur la pile de production le 2026-09-02 : `11:34` dans le HTML
+// servi, `13:34` affiché. Deux causes se cumulaient, le fuseau et l'instant :
+// même serveur et client dans le même fuseau, une page servie depuis un
+// cache aurait affiché l'heure de sa mise en cache.
+//
+// Le rendu serveur montre donc un tiret, remplacé dès le montage. C'est le
+// même signe que `refreshedAgo` utilise déjà quand il n'a pas de donnée, et
+// cela couvre les deux étiquettes d'un coup — elles dépendent du même `now`.
+const now = ref<number | null>(null);
 let tick: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
+  now.value = Date.now();
   tick = setInterval(() => {
     now.value = Date.now();
   }, 30_000);
@@ -138,6 +153,7 @@ onBeforeUnmount(() => {
 });
 
 const wallClock = computed(() => {
+  if (now.value === null) return '—';
   const d = new Date(now.value);
   return d.toLocaleTimeString(locale.value === 'fr' ? 'fr-FR' : 'en-US', {
     hour: '2-digit',
