@@ -143,8 +143,8 @@ type Store struct {
 	//
 	// Le voisinage avait déjà la réponse : `db.ipBanCache` est plafonné à
 	// 50 000 entrées et `dedup` à 100 000, tous deux avec éviction.
-	countsLen  atomic.Int64
-	remoteLen  atomic.Int64
+	countsLen atomic.Int64
+	remoteLen atomic.Int64
 }
 
 // maxSwarmCache borne chacun des deux caches de `Store`. Plein → on vide tout :
@@ -153,12 +153,41 @@ type Store struct {
 const maxSwarmCache = 50_000
 
 // storeBounded pose une entrée en tenant le plafond.
+//
+// Le compteur suit les ENTRÉES, pas les écritures.
+//
+// Il faisait `n.Add(1)` à chaque `Store`, y compris pour une clé déjà
+// présente, et `invalidateCounts` — appelé par `Set` et par `Remove`, donc à
+// chaque annonce — supprimait l'entrée SANS décrémenter. Le compteur dérivait
+// donc vers 50 000 en comptant du trafic, pas de la mémoire, puis déclenchait
+// un vidage TOTAL des deux caches. Sur un tracker à mille annonces par seconde
+// le vidage revenait toutes les quelques minutes, et chacun provoque une rafale
+// de `HGETALL` sur tous les essaims vivants. Le plafond ne bornait pas ce qu'il
+// prétendait borner : il transformait du débit en pics de charge.
+//
+// `LoadOrStore` dit si la clé était nouvelle — c'est la seule information qui
+// justifie d'incrémenter. Une clé déjà présente est écrasée sans toucher au
+// compteur.
 func storeBounded(m *sync.Map, n *atomic.Int64, key string, value any) {
+	if _, existed := m.Load(key); existed {
+		m.Store(key, value)
+		return
+	}
 	if n.Add(1) > maxSwarmCache {
 		m.Range(func(k, _ any) bool { m.Delete(k); return true })
 		n.Store(1)
 	}
 	m.Store(key, value)
+}
+
+// deleteCounted retire une entrée et rend sa place au compteur.
+//
+// Sans lui, toute suppression laissait le compteur en l'air : c'est l'autre
+// moitié de la dérive décrite au-dessus.
+func deleteCounted(m *sync.Map, n *atomic.Int64, key string) {
+	if _, existed := m.LoadAndDelete(key); existed {
+		n.Add(-1)
+	}
 }
 
 // New returns a Store. `keyPrefix` typically comes from
@@ -415,7 +444,10 @@ func (s *Store) Counts(ctx context.Context, infoHashHex string) (seeders, leeche
 // `Remove` so a write surfaces in the count without waiting out
 // the TTL. Cheap: a `sync.Map.Delete` is lock-free.
 func (s *Store) invalidateCounts(infoHashHex string) {
-	s.countsCache.Delete(infoHashHex)
+	// `deleteCounted`, pas `Delete` : voir `storeBounded`. Cette fonction est
+	// appelée à chaque annonce, donc c'est ELLE qui faisait dériver le
+	// compteur vers son plafond en comptant du trafic.
+	deleteCounted(&s.countsCache, &s.countsLen, infoHashHex)
 }
 
 // statsTTL keeps stats:* hashes alive long enough for live charts to
