@@ -632,7 +632,16 @@
         "success": "Signed in",
         "failed": "Refused"
       },
-      "loginHistoryHide": "Hide"
+      "loginHistoryHide": "Hide",
+      "revokeAll": "Sign out everywhere",
+      "revokeAllHint": "Closes the sessions on every device, including this one. You will have to sign in again. Use it when you do not know which device is compromised.",
+      "revokeAllButton": "Sign out everywhere",
+      "revokingAll": "Signing out…",
+      "revokeAllConfirmTitle": "Sign out of every device?",
+      "revokeAllConfirmBody": "Every session on this account will be closed, this one included: you will be signed out immediately and will have to enter your password again. So will your other devices.",
+      "revokeAllConfirmAction": "Sign out everywhere",
+      "revokeAllRateLimited": "Too many attempts. Try again in a few minutes.",
+      "revokeAllError": "Signing out everywhere did not go through."
     },
     "account": {
       "userId": "User ID",

@@ -21,6 +21,16 @@ export interface SessionUser {
    * visible in the type rather than arriving through the catch-all.
    */
   isOwner: boolean;
+  /**
+   * La génération de sessions qui avait cours à la connexion.
+   *
+   * `requireUserSession` la compare à `users.session_epoch`. Absente d'un
+   * cookie émis avant cette fonctionnalité : traitée comme `0`, donc les
+   * sessions déjà ouvertes restent valides jusqu'à la première révocation —
+   * un déploiement ne doit pas déconnecter tout le monde pour installer de
+   * quoi déconnecter quelqu'un.
+   */
+  sessionEpoch?: number;
   uploaded: number;
   downloaded: number;
   [key: string]: unknown;
@@ -160,6 +170,31 @@ export async function requireUserSession(
     if (!live) {
       throw createError({ statusCode: 403, message: 'Account no longer exists' });
     }
+
+    /*
+     * La révocation, au même endroit et pour le même prix que les rôles.
+     *
+     * Le cookie est scellé et sans état : sans cette comparaison, rien ne
+     * pouvait l'invalider avant sept jours. La lecture est celle qui avait
+     * déjà lieu — `readLiveRoles` rend l'époque avec les rôles, cache de 60 s
+     * compris — donc révoquer ne coûte pas une requête de plus par appel.
+     *
+     * Un cookie sans époque vaut `0` : les sessions ouvertes au moment du
+     * déploiement survivent, et la première révocation les emporte.
+     *
+     * La fenêtre est celle du cache : jusqu'à 60 s. `revokeAllSessions` vide
+     * le cache en incrémentant, donc en pratique l'effet est immédiat pour
+     * l'instance qui reçoit l'appel.
+     */
+    if ((session.user.sessionEpoch ?? 0) !== live.sessionEpoch) {
+      await clearUserSession(event);
+      throw createError({
+        statusCode: 401,
+        data: { reason: 'session-revoked' },
+        message: 'This session was revoked. Sign in again.',
+      });
+    }
+
     session.user.isAdmin = live.isAdmin;
     session.user.isModerator = live.isModerator;
     session.user.isOwner = live.isOwner;

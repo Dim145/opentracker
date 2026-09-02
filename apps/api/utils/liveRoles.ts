@@ -28,19 +28,37 @@ import { redis } from '../redis/client';
 const ROLE_CACHE_TTL_S = 60;
 const roleCacheKey = (userId: string) => `auth:role:${userId}`;
 
-export async function readLiveRoles(
-  userId: string
-): Promise<{ isAdmin: boolean; isModerator: boolean; isOwner: boolean } | null> {
+export async function readLiveRoles(userId: string): Promise<{
+  isAdmin: boolean;
+  isModerator: boolean;
+  isOwner: boolean;
+  /** Voir `users.session_epoch` : la génération courante des sessions. */
+  sessionEpoch: number;
+} | null> {
   try {
     const cached = await redis.get(roleCacheKey(userId));
     if (cached) {
-      const p = JSON.parse(cached) as { a: boolean; m: boolean; o?: boolean };
+      const p = JSON.parse(cached) as {
+        a: boolean;
+        m: boolean;
+        o?: boolean;
+        e?: number;
+      };
       // A payload written before `o` existed is treated as a MISS rather than
       // as `isOwner: false`. Otherwise the deploy that adds ownership answers
       // 403 to the owner for up to the cache TTL — and the one thing that
       // would fix it is the console they cannot reach.
-      if (p.o !== undefined) {
-        return { isAdmin: !!p.a, isModerator: !!p.m, isOwner: !!p.o };
+      // Même raisonnement pour `e` que pour `o` ci-dessus : une charge écrite
+      // avant que l'époque existe est un ÉCHEC de cache, pas une époque zéro.
+      // Sans cela, le déploiement qui ajoute la révocation lirait `0` pendant
+      // une minute et accepterait des sessions qu'un membre vient de révoquer.
+      if (p.o !== undefined && p.e !== undefined) {
+        return {
+          isAdmin: !!p.a,
+          isModerator: !!p.m,
+          isOwner: !!p.o,
+          sessionEpoch: p.e,
+        };
       }
     }
   } catch {
@@ -51,6 +69,7 @@ export async function readLiveRoles(
       isAdmin: users.isAdmin,
       isModerator: users.isModerator,
       isOwner: users.isOwner,
+      sessionEpoch: users.sessionEpoch,
     })
     .from(users)
     .where(eq(users.id, userId))
@@ -60,7 +79,12 @@ export async function readLiveRoles(
     await redis.setex(
       roleCacheKey(userId),
       ROLE_CACHE_TTL_S,
-      JSON.stringify({ a: row.isAdmin, m: row.isModerator, o: row.isOwner })
+      JSON.stringify({
+        a: row.isAdmin,
+        m: row.isModerator,
+        o: row.isOwner,
+        e: row.sessionEpoch,
+      })
     );
   } catch {
     /* no-op */
@@ -69,6 +93,7 @@ export async function readLiveRoles(
     isAdmin: row.isAdmin,
     isModerator: row.isModerator,
     isOwner: row.isOwner,
+    sessionEpoch: row.sessionEpoch,
   };
 }
 

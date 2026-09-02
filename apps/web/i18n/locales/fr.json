@@ -632,7 +632,16 @@
         "success": "Connexion",
         "failed": "Refusée"
       },
-      "loginHistoryHide": "Masquer"
+      "loginHistoryHide": "Masquer",
+      "revokeAll": "Déconnecter partout",
+      "revokeAllHint": "Ferme les sessions de tous vos appareils, y compris celui-ci. Vous devrez vous reconnecter. À faire si vous ne savez pas lequel de vos appareils est en cause.",
+      "revokeAllButton": "Déconnecter partout",
+      "revokingAll": "Déconnexion…",
+      "revokeAllConfirmTitle": "Déconnecter tous vos appareils ?",
+      "revokeAllConfirmBody": "Toutes les sessions ouvertes sur ce compte vont être fermées, celle-ci comprise : vous serez déconnecté immédiatement et devrez saisir à nouveau votre mot de passe. Les autres appareils devront faire de même.",
+      "revokeAllConfirmAction": "Tout déconnecter",
+      "revokeAllRateLimited": "Trop de tentatives. Réessayez dans quelques minutes.",
+      "revokeAllError": "La déconnexion générale n'a pas abouti."
     },
     "account": {
       "userId": "ID utilisateur",

@@ -88,6 +88,27 @@ export const users = pgTable(
      * with a paralysed owner is worse than one with a different owner.
      */
     isOwner: boolean('is_owner').default(false).notNull(),
+    /**
+     * Le numéro de génération des sessions de ce compte.
+     *
+     * Le cookie de session est scellé et SANS ÉTAT : sept jours, `isAdmin` et
+     * le passkey cuits dedans à la connexion. Rien ne pouvait l'invalider —
+     * `password.put.ts` documente d'ailleurs qu'un changement de mot de passe
+     * laisse les sessions ouvertes, et la déconnexion ne vide que le cookie
+     * courant. Un cookie exfiltré valait donc sept jours d'accès ordinaire, et
+     * le seul recours était de bannir le compte ou de faire tourner
+     * `NUXT_SESSION_SECRET`, ce qui déconnecte TOUT LE MONDE.
+     *
+     * La session porte l'époque qu'elle a reçue à la connexion ;
+     * `requireUserSession` la compare à celle-ci, lue avec les rôles vivants
+     * (donc sans requête supplémentaire, cache de 60 s compris). Incrémenter
+     * cette colonne périme d'un coup toutes les sessions du compte — et
+     * seulement celles-là.
+     *
+     * Un entier plutôt qu'un horodatage : deux révocations dans la même
+     * milliseconde restent deux révocations.
+     */
+    sessionEpoch: integer('session_epoch').default(0).notNull(),
     isBanned: boolean('is_banned').default(false).notNull(),
     // userId of the staffer who issued the most recent ban. Null when
     // the user has never been banned, or after an unban.

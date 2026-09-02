@@ -64,6 +64,7 @@ export default defineEventHandler(async (event) => {
       isAdmin: true,
       isModerator: true,
       isOwner: true,
+      sessionEpoch: true,
       uploaded: true,
       downloaded: true,
       bonusPoints: true,
@@ -160,6 +161,9 @@ export default defineEventHandler(async (event) => {
       isAdmin: user.isAdmin,
       isModerator: user.isModerator,
       isOwner: user.isOwner,
+      // L'époque de session en cours, comparée à chaque requête par
+      // `requireUserSession`. Voir `users.session_epoch`.
+      sessionEpoch: user.sessionEpoch ?? 0,
       uploaded: user.uploaded,
       downloaded: user.downloaded,
       bonusPoints: user.bonusPoints,

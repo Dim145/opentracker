@@ -312,6 +312,9 @@ export default defineEventHandler(async (event) => {
       isAdmin: finalIsFirstUser,
       isModerator: false,
       isOwner: finalIsFirstUser,
+      // L'époque de session en cours, comparée à chaque requête par
+      // `requireUserSession`. Voir `users.session_epoch`.
+      sessionEpoch: 0,
       uploaded: starterUpload,
       downloaded: 0,
       bonusPoints: 0,
