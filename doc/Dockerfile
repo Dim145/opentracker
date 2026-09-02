@@ -79,12 +79,22 @@ EXPOSE 8080
 # before SIGKILL — plenty for a static asset response.
 STOPSIGNAL SIGQUIT
 
-# Healthcheck — `nginx -t` validates the config without making a
-# network round-trip, so it works even when there's no client traffic.
-# The dedicated /healthz route in nginx.conf covers HTTP-level probes
-# (k8s readinessProbe / docker-compose's healthcheck httpGet, etc.).
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD ["/usr/sbin/nginx", "-t"]
+# Pas de HEALTHCHECK ici, et c'est délibéré.
+#
+# Il y en avait un : `CMD ["/usr/sbin/nginx", "-t"]`. Or `-t` valide le FICHIER
+# DE CONFIGURATION — un worker bloqué, un listener fermé, un disque plein
+# passent tous au vert. Un feu vert qui ne mesure rien est pire que pas de feu
+# du tout : il transforme une panne en « sain » sur le tableau de bord.
+#
+# Le commentaire affirmait par ailleurs « we override to hit /healthz » ; la
+# commande ne faisait pas cela. Les deux configurations exposent bien un vrai
+# `/healthz`, mais l'image Chainguard n'a ni shell, ni wget, ni curl (vérifié :
+# `/bin/sh` n'existe pas), donc rien ne peut l'interroger depuis l'intérieur du
+# conteneur.
+#
+# La sonde revient donc à l'orchestrateur, qui sait le faire depuis l'extérieur :
+# `readinessProbe: httpGet: { path: /healthz }` côté Kubernetes, ou un
+# `healthcheck:` dans le compose si l'on veut la garder ici.
 
 # The Chainguard image's default ENTRYPOINT runs `nginx -g 'daemon off;'`
 # from the right user. No overrides needed.

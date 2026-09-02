@@ -104,7 +104,11 @@ If you change them, rebuild the affected container (`api` or `tracker`) and rede
 Before going live, verify:
 
 1. Every secret is 32+ chars (`openssl rand -hex 32`).
-2. `IP_HASH_SECRET`, `NUXT_SESSION_SECRET`, `ADMIN_API_KEY` are all set — the app refuses to start without them.
+2. `IP_HASH_SECRET` and `NUXT_SESSION_SECRET` are set — the app refuses to
+   start without those two (`plugins/00.secrets.ts`). `ADMIN_API_KEY` is
+   **not** in that check and is not required to boot; set it anyway if you
+   intend to use the header-authenticated admin routes, and see the note in
+   `apps/api/utils/auth.ts` for what it currently gates.
 3. `DOMAIN` + `TRACKER_DOMAIN` resolve to the VPS, port 80/443 inbound is open.
 4. `TRUST_PROXY=true` (already on in `docker-compose.prod.yml`) so the rate limiter sees the real client IP through Caddy.
 5. Postgres and Redis ports are **not** exposed on the host (compose `expose:` not `ports:`).

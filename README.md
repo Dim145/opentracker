@@ -164,8 +164,8 @@ NUXT_SESSION_SECRET=$(openssl rand -hex 32)
 ADMIN_API_KEY=$(openssl rand -hex 32)
 IP_HASH_SECRET=$(openssl rand -hex 32)
 CHANNEL_ENCRYPTION_KEY=$(openssl rand -hex 32)
-DB_PASSWORD=$(openssl rand -base64 24)
-REDIS_PASSWORD=$(openssl rand -base64 24)
+DB_PASSWORD=$(openssl rand -hex 32)
+REDIS_PASSWORD=$(openssl rand -hex 32)
 
 NUXT_PUBLIC_TRACKER_HTTP_URL=https://tracker.your-domain.com/announce
 NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.your-domain.com:6969/announce

@@ -99,6 +99,29 @@ object store with it. See [Object storage](./object-storage).
 `Cluster`, kube-proxy rewrites it to a node address and every peer in the swarm
 is handed the wrong IP.
 
+**And so does HTTP — on the ingress controller's own Service.** The reasoning
+above was written for UDP only, but it applies just as much to `/announce` over
+HTTP. ingress-nginx does set `X-Forwarded-For` itself, from `$remote_addr` — and
+with the controller Service's default `externalTrafficPolicy: Cluster`,
+kube-proxy has already SNAT'd that address to a node's. So every peer registers
+under one of two or three node IPs: swarms fail to connect (each peer is handed
+the node's address for all the others), IP bans ban the whole cluster, and rate
+limiting shares one bucket across every member.
+
+That Service belongs to the ingress-nginx chart, not to this one, so it has to
+be set there:
+
+```yaml
+# ingress-nginx values
+controller:
+  service:
+    externalTrafficPolicy: Local
+```
+
+With an L4 load balancer in front, `use-proxy-protocol: "true"` on the
+controller is the alternative — it carries the real peer instead of relying on
+the source address surviving.
+
 ## Without the chart's ingress
 
 `ingress.enabled=false` omits the Ingress and changes nothing else, which covers
@@ -131,7 +154,7 @@ Secret back before generating anything and mints them only on a first install:
 | --- | --- |
 | `NUXT_SESSION_SECRET` | signs every member out |
 | `IP_HASH_SECRET` | breaks IP-hash continuity, so the anti-cheat and ban history stop matching rows already written |
-| `ADMIN_API_KEY` | breaks whatever calls the admin API |
+| `ADMIN_API_KEY` | breaks whatever calls the header-authenticated admin routes — which, today, is nothing in this codebase (see `apps/api/utils/auth.ts`). Kept stable so that stops being true without a rotation |
 
 Migrating from Compose: copy those three out of your `.env` and pass them as
 `secrets.sessionSecret` / `secrets.ipHashSecret` / `secrets.adminApiKey` on the

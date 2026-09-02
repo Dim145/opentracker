@@ -107,8 +107,8 @@ ACME_EMAIL=admin@your-domain.com
 NUXT_SESSION_SECRET=$(openssl rand -hex 32)
 ADMIN_API_KEY=$(openssl rand -hex 32)
 IP_HASH_SECRET=$(openssl rand -hex 32)
-DB_PASSWORD=$(openssl rand -base64 24)
-REDIS_PASSWORD=$(openssl rand -base64 24)
+DB_PASSWORD=$(openssl rand -hex 32)
+REDIS_PASSWORD=$(openssl rand -hex 32)
 
 NUXT_PUBLIC_TRACKER_HTTP_URL=https://tracker.your-domain.com/announce
 NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.your-domain.com:6969/announce
@@ -197,7 +197,7 @@ the minimum you must set for production:
 | Variable                        | Why                                                 |
 | ------------------------------- | --------------------------------------------------- |
 | `NUXT_SESSION_SECRET`           | Encrypts user sessions (32+ chars)                  |
-| `ADMIN_API_KEY`                 | Internal admin operations                           |
+| `ADMIN_API_KEY`                 | Header-auth admin routes (optional — see note below) |
 | `IP_HASH_SECRET`                | Daily-rotated salt for peer-IP hashing              |
 | `DB_PASSWORD`                   | PostgreSQL password                                 |
 | `REDIS_PASSWORD`                | Redis password                                      |
@@ -207,6 +207,13 @@ the minimum you must set for production:
 | `NUXT_PUBLIC_TRACKER_HTTP_URL`  | Announce URL embedded in `.torrent` files (runtime) |
 | `NUXT_PUBLIC_TRACKER_UDP_URL`   | UDP announce URL (informational, UDP is disabled)   |
 | `NUXT_PUBLIC_TRACKER_WS_URL`    | WS announce URL (informational, WS is disabled)     |
+
+`ADMIN_API_KEY` is the one line in that table you can leave empty. It is not
+part of the boot-time secret check, and no route calls the header gate today
+(`requireAdmin` in `apps/api/utils/auth.ts` has no callers) — the admin panel
+authenticates by session, not by this key. Generating one costs nothing and
+keeps a later admin-API route from needing a redeploy, but an empty value
+removes no protection from anything that exists now.
 
 The `docker-compose.prod.yml` file ships with `TRUST_PROXY=true` — needed so
 the rate limiter sees the real client IP through Caddy. Don't remove it.

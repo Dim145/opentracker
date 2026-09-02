@@ -7,7 +7,7 @@ Trackarr is built with security as a foundational principle, not an afterthought
 | Layer | Protection |
 |-------|------------|
 | **Authentication** | Zero-Knowledge proofs, PoW anti-abuse, session encryption, CSRF protection |
-| **Database** | SCRAM-SHA-256 auth, TLS, prepared statements, connection pool limits |
+| **Database** | SCRAM-SHA-256 auth, optional TLS (`DB_SSL` / `database.sslMode` — **off by default** on the internal network), parameter binding, connection pool limits |
 | **Redis** | Password auth, command restrictions, memory limits |
 | **Network** | Rate limiting, auto IP bans, attack pattern detection |
 | **Privacy** | SHA-256 hashed IPs, no raw IP persistence, minimal logging |

@@ -255,15 +255,29 @@ different: pgx *does* support multi-host DSNs with `target_session_attrs`, so
 the tracker could skip the proxy if you wanted it to. Keeping both on the same
 path is worth more than saving the tracker one hop.
 
-**4. Prepared statements through the pooler: measured, and fine.**
+**4. Prepared statements through the pooler: measured, and the reason matters.**
 `packages/db/src/index.ts` sets `prepare: true` and connects through PgBouncer in
-`transaction` mode — the combination usually said to need
-`max_prepared_statements > 0`, which the Compose file does not set. Tested
-directly against PgBouncer 1.25.2 in transaction mode with `postgres.js` 3.4.9
-and Postgres 18.6: 80 statements reused across separate transactions, no error,
-behaviour identical to connecting straight to Postgres. postgres.js accounts for
-the pooling mode itself. Nothing to do — recorded so the question is not
-reopened every time the pooling layer changes.
+`transaction` mode. Tested directly against PgBouncer 1.25.2 with
+`postgres.js` 3.4.9 and Postgres 18.6: 80 statements reused across separate
+transactions, no error, behaviour identical to connecting straight to Postgres.
+
+The measurement was right and its earlier explanation was wrong. This page used
+to say "postgres.js accounts for the pooling mode itself"; the actual reason is
+that **PgBouncer 1.25 changed the default of `max_prepared_statements` from 0 to
+200**. Nothing in postgres.js adapts — the pooler simply started supporting it.
+
+That distinction is load-bearing: mount `docker/pgbouncer/pgbouncer.ini` against
+a PgBouncer *older* than 1.25 — a distribution package, an existing corporate
+pooler, RDS Proxy, Supabase's pooler — and the second use of every named
+prepared statement fails. Intermittent, and invisible in testing. The file now
+sets `max_prepared_statements = 200` explicitly so the behaviour no longer
+depends on which binary is in front, and `docker-compose.prod.yml` passes
+`MAX_PREPARED_STATEMENTS` for the same reason.
+
+Note also that `prepare: true` is *not* what protects against SQL injection —
+parameter binding is, and it happens with `prepare: false` too. The comment in
+`packages/db/src/index.ts` that claimed otherwise discouraged exactly the change
+that would make this question moot.
 
 **5. Decide what `synchronous_commit` means with a standby.** The tracker sets
 `synchronous_commit=off` on its own connections
