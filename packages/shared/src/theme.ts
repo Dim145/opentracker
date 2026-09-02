@@ -170,6 +170,10 @@ export const THEME_TOKENS: readonly TokenDef[] = [
   // Lines
   { key: 'line-default', kind: 'rgb', group: 'line' },
   { key: 'line-strong', kind: 'rgb', group: 'line' },
+  // La bordure d'un champ, séparée des filets décoratifs : c'est elle qui
+  // identifie le contrôle, donc elle doit tenir 3:1 (WCAG 1.4.11) là où un
+  // filet de carte peut rester discret.
+  { key: 'line-field', kind: 'rgb', group: 'line' },
 
   // Accent
   //
@@ -194,11 +198,23 @@ export const THEME_TOKENS: readonly TokenDef[] = [
   // theme's darker gold — but it is a token rather than a literal because a
   // theme setting `accent-warm` to a dark colour needs to move this with it.
   { key: 'accent-warm-fg', kind: 'rgb', group: 'accent' },
+  // L'or quand il sert d'ENCRE et non de fond. Séparé parce que les deux
+  // usages n'ont pas le même seuil : un remplissage se mesure par ce qu'on
+  // pose dessus, une encre par la surface sous elle.
+  { key: 'accent-warm-text', kind: 'rgb', group: 'accent' },
 
   // Semantic — status badges and notifications, never chrome
   { key: 'online', kind: 'rgb', group: 'semantic' },
   { key: 'warning', kind: 'rgb', group: 'semantic' },
+  // Les encres posées SUR ces quatre teintes. Un thème qui déplace `online`,
+  // `warning`, `danger` ou `info` doit pouvoir déplacer son encre avec.
+  { key: 'online-fg', kind: 'rgb', group: 'semantic' },
+  { key: 'warning-fg', kind: 'rgb', group: 'semantic' },
+  { key: 'info-fg', kind: 'rgb', group: 'semantic' },
   { key: 'danger', kind: 'rgb', group: 'semantic' },
+  // L'encre posée sur un bouton de danger plein. Un thème qui éclaircit
+  // `danger` doit pouvoir déplacer celle-ci avec lui.
+  { key: 'danger-fg', kind: 'rgb', group: 'semantic' },
   { key: 'info', kind: 'rgb', group: 'semantic' },
 
   // Charts
@@ -537,12 +553,17 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'fg-faint': '130 130 130',
     'line-default': '42 42 42',
     'line-strong': '58 58 58',
+    'line-field': '102 102 102',
     accent: '255 255 255',
     'accent-hover': '229 229 229',
     'accent-fg': '10 10 10',
     online: '34 197 94',
     warning: '234 179 8',
+    'online-fg': '26 26 26',
+    'warning-fg': '26 26 26',
+    'info-fg': '26 26 26',
     danger: '239 68 68',
+    'danger-fg': '26 26 26',
     info: '56 189 248',
     'focus-ring': '212 167 52',
     'chart-1': '59 130 246',
@@ -561,6 +582,7 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'bg-pattern-step': '40px',
     'color-scheme': 'dark',
     'accent-warm': '212 167 52',
+    'accent-warm-text': '212 167 52',
     'accent-warm-fg': '26 26 26',
     'shadow-color': '0 0 0',
     'shadow-strength': '1',
@@ -586,12 +608,17 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'fg-faint': '111 111 111',
     'line-default': '229 229 229',
     'line-strong': '208 208 208',
+    'line-field': '146 146 146',
     accent: '10 10 10',
     'accent-hover': '31 31 31',
     'accent-fg': '255 255 255',
     online: '21 128 61',
     warning: '180 83 9',
+    'online-fg': '255 255 255',
+    'warning-fg': '255 255 255',
+    'info-fg': '255 255 255',
     danger: '185 28 28',
+    'danger-fg': '255 255 255',
     info: '3 105 161',
     'focus-ring': '176 133 24',
     'chart-1': '59 130 246',
@@ -610,6 +637,7 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'bg-pattern-step': '40px',
     'color-scheme': 'light',
     'accent-warm': '176 133 24',
+    'accent-warm-text': '143 104 8',
     'accent-warm-fg': '26 26 26',
     'shadow-color': '0 0 0',
     'shadow-strength': '1',
@@ -835,6 +863,27 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   // the site, was checked against neither surface it sits on.
   { fg: 'fg-default', bg: 'bg-elevated', what: 'text typed in a field' },
   { fg: 'fg-faint', bg: 'bg-elevated', what: 'field placeholder' },
+
+  /*
+   * Les paires ajoutées après la revue d'interface de septembre 2026.
+   *
+   * Toutes les trois disaient la même chose : la paire que personne n'a
+   * déclarée est celle qui part cassée. L'or était mesuré comme REMPLISSAGE
+   * (`accent-warm-fg` posé dessus) et jamais comme encre, alors que la console
+   * l'utilise en couleur de texte à plus de cent endroits ; l'encre du bouton
+   * de danger était un `#fff` en dur hors du système ; et la bordure d'un champ
+   * n'était mesurée nulle part, au motif écrit que le fond du champ suffisait à
+   * l'identifier — ce qui cesse d'être vrai dès que `bg-elevated` et
+   * `bg-surface` se rejoignent, comme en thème clair.
+   */
+  { fg: 'accent-warm-text', bg: 'bg-base', what: 'gold text' },
+  { fg: 'accent-warm-text', bg: 'bg-surface', what: 'gold text on cards' },
+  { fg: 'accent-warm-text', bg: 'bg-inset', what: 'gold text on inset panels' },
+  { fg: 'online-fg', bg: 'online', what: 'text on a success fill' },
+  { fg: 'warning-fg', bg: 'warning', what: 'text on a warning fill' },
+  { fg: 'info-fg', bg: 'info', what: 'text on an info fill' },
+  { fg: 'danger-fg', bg: 'danger', what: 'danger button' },
+  { fg: 'line-field', bg: 'bg-elevated', what: 'field border', nonText: true },
   // `bg-inset` is the recessed panel — 36 components use it. In the dark theme
   // it sits between base and surface, but in light it is the DARKEST surface
   // (245 against 250/255), so it is the worst case there rather than a middle
