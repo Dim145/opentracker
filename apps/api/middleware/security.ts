@@ -225,10 +225,32 @@ export default defineEventHandler(async (event) => {
   //    and only reaches Postgres once a minute per distinct address.
   const ipBanReason = await readIpBanCached(ip);
   if (ipBanReason) {
-    throw createError({
-      statusCode: 403,
-      message: `Access denied: ${ipBanReason}`,
-    });
+    /*
+     * Une issue de secours pour le personnel authentifié.
+     *
+     * Cette porte précède la lecture de session, et `admin/users/[id]/ban.post`
+     * insère INCONDITIONNELLEMENT le `lastIp` de la cible dans `banned_ips`. Un
+     * modérateur qui bannit un membre partageant une sortie CGNAT ou VPN avec
+     * l'administrateur verrouillait donc l'administrateur — hors de TOUTE route
+     * `/api/`, y compris `DELETE /api/admin/banned-ips/[ip]`, la seule qui
+     * lèverait le blocage. Le rétablissement demandait un accès direct à la
+     * base. La limitation de débit progressive pouvait produire le même
+     * verrouillage sans acteur hostile.
+     *
+     * Le rôle est relu dans la base (cache de 60 s), pas dans le cookie : un
+     * membre ordinaire ne s'échappe pas en se disant administrateur.
+     */
+    const banned = await getUserSession(event);
+    const live = banned.user ? await readLiveRoles(banned.user.id) : null;
+    if (!live?.isAdmin && !live?.isModerator) {
+      throw createError({
+        statusCode: 403,
+        message: `Access denied: ${ipBanReason}`,
+      });
+    }
+    console.warn(
+      `[Security] IP ban bypassed for staff ${banned.user?.id}: ${ipBanReason}`
+    );
   }
 
   // 4. Authenticated caller — ban status and mandatory-2FA policy.

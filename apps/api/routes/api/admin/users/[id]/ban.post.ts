@@ -95,7 +95,10 @@ export default defineEventHandler(async (event) => {
   // and partners purge their mirror. Enumerating them here would be a second
   // answer to "what is no longer federatable", and the two would drift.
 
-  if (target.lastIp) {
+  // Sur demande explicite seulement : voir la note sur `banIp` dans
+  // `adminBanSchema`. Une adresse partagée bannit des tiers, et la porte de
+  // bannissement précède l'authentification.
+  if (body.banIp && target.lastIp) {
     const banReason = `Banned user: ${target.username}. Reason: ${reason}`;
     await db
       .insert(bannedIps)

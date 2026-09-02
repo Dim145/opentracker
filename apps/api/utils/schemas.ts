@@ -140,6 +140,16 @@ export const adminUserRoleSchema = z.object({
 export const adminBanSchema = z.object({
   reason: z.string().min(1, 'Ban reason is required').max(500),
   duration: z.coerce.number().int().positive().optional(),
+  /**
+   * Bannir aussi la dernière adresse IP du compte.
+   *
+   * C'était un effet de bord inconditionnel. Sur une sortie CGNAT ou VPN
+   * partagée — l'usage quasi universel sur un tracker privé — bannir un membre
+   * bannissait ses voisins, et le blocage précède l'authentification : y compris
+   * le personnel, y compris la route qui lèverait le blocage. C'est désormais
+   * une décision, et son défaut est de ne pas le faire.
+   */
+  banIp: z.coerce.boolean().optional().default(false),
 });
 
 export const adminCategorySchema = z.object({
