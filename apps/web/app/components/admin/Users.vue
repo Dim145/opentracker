@@ -1600,13 +1600,13 @@ async function onDetachRole(roleId: string) {
   }
 }
 .kpi--green .kpi-value {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .kpi--aqua .kpi-value {
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .kpi--gold .kpi-value {
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .kpi--red .kpi-value {
   color: rgb(var(--danger));
@@ -1653,6 +1653,16 @@ async function onDetachRole(roleId: string) {
   border-color: rgb(var(--fg-default) / 0.3);
   background: rgb(var(--bg-base));
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.filter-search-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .filter-search-input::placeholder {
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -1711,6 +1721,16 @@ async function onDetachRole(roleId: string) {
   outline: none;
   border-color: rgb(var(--fg-default) / 0.3);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.filter-select-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .filter-reset {
   display: inline-flex;
   align-items: center;
@@ -1954,17 +1974,17 @@ async function onDetachRole(roleId: string) {
 .role-chip--admin {
   border-color: rgba(229, 62, 62, 0.4);
   background: rgba(229, 62, 62, 0.08);
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .role-chip--mod {
   border-color: rgba(52, 212, 216, 0.4);
   background: rgba(52, 212, 216, 0.08);
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .role-chip--custom {
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 /* Last seen */
@@ -1975,7 +1995,7 @@ async function onDetachRole(roleId: string) {
   white-space: nowrap;
 }
 .last-seen.online {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   font-weight: 700;
 }
 .last-seen.recent {
@@ -2013,7 +2033,7 @@ async function onDetachRole(roleId: string) {
 .ratio--great {
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.08);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .ratio--ok {
   color: rgb(var(--fg-strong));
@@ -2021,12 +2041,12 @@ async function onDetachRole(roleId: string) {
 .ratio--low {
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
-  color: #f5c518;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .ratio--zero {
   border-color: rgba(229, 62, 62, 0.4);
   background: rgba(229, 62, 62, 0.08);
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .ratio--neutral {
   color: rgb(var(--fg-muted));
@@ -2087,17 +2107,17 @@ async function onDetachRole(roleId: string) {
 .row-action--danger-on {
   background: rgba(229, 62, 62, 0.12);
   border-color: rgba(229, 62, 62, 0.4);
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-action--mod-on {
   background: rgba(52, 212, 216, 0.12);
   border-color: rgba(52, 212, 216, 0.4);
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-action--admin-on {
   background: rgba(245, 197, 24, 0.12);
   border-color: rgba(245, 197, 24, 0.4);
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 /* Bonus-points action — coin tone when the user has a non-zero balance.
    Wider than the other row actions because the count badge can hold
@@ -2105,7 +2125,7 @@ async function onDetachRole(roleId: string) {
 .row-action--bonus-active {
   background: rgb(var(--accent-warm) / 0.1);
   border-color: rgb(var(--accent-warm) / 0.35);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 /* ─── Bonus-points adjustment modal ─────────────────────────────── */
@@ -2151,7 +2171,7 @@ async function onDetachRole(roleId: string) {
   color: rgb(var(--fg-strong));
 }
 .bonus-balance-value > svg {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 1.1rem;
 }
 .bonus-balance-unit {
@@ -2376,6 +2396,16 @@ async function onDetachRole(roleId: string) {
   outline: none;
   border-color: rgb(var(--fg-default) / 0.3);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.row-role-select:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 
 /* Empty state */
 .empty {
@@ -2607,7 +2637,7 @@ async function onDetachRole(roleId: string) {
   font-size: 0.5938rem;
 }
 .rm-row__mode--auto {
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(52, 212, 216, 0.4);
   background: rgba(52, 212, 216, 0.08);
 }
@@ -2616,7 +2646,7 @@ async function onDetachRole(roleId: string) {
   font-weight: 700;
 }
 .rm-row--manual .rm-row__attached {
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .rm-row__actions {
   display: flex;
@@ -2644,7 +2674,7 @@ async function onDetachRole(roleId: string) {
 }
 .rm-action--attach:hover:not(:disabled) {
   border-color: rgba(108, 209, 97, 0.5);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(108, 209, 97, 0.08);
 }
 .rm-action--detach:hover:not(:disabled) {

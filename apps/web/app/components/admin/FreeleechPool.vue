@@ -181,7 +181,7 @@
             <!-- Reset action — bottom right, danger-outline style -->
             <button
               type="button"
-              class="btn btn--danger reservoir-reset"
+              class="cbtn cbtn--danger reservoir-reset"
               :disabled="resetting"
               @click="confirmReset"
             >
@@ -306,7 +306,7 @@
           <div class="actions">
             <button
               type="button"
-              class="btn btn--primary"
+              class="cbtn cbtn--primary"
               :disabled="savingConfig"
               @click="saveConfig"
             >
@@ -367,7 +367,7 @@
               </div>
               <button
                 type="button"
-                class="btn btn--primary btn--sm"
+                class="cbtn cbtn--primary cbtn--sm"
                 :disabled="!validOneoff"
                 @click="addOneoff"
               >
@@ -411,7 +411,7 @@
               <p class="form-hint">{{ $t('admin.freeleechPool.fields.utcHint') }}</p>
               <button
                 type="button"
-                class="btn btn--primary btn--sm"
+                class="cbtn cbtn--primary cbtn--sm"
                 :disabled="!validWeekly"
                 @click="addWeekly"
               >
@@ -455,7 +455,7 @@
               <p class="form-hint">{{ $t('admin.freeleechPool.fields.utcHint') }}</p>
               <button
                 type="button"
-                class="btn btn--primary btn--sm"
+                class="cbtn cbtn--primary cbtn--sm"
                 :disabled="!validMonthly"
                 @click="addMonthly"
               >
@@ -499,7 +499,7 @@
               <p class="form-hint">{{ $t('admin.freeleechPool.fields.yearlyHint') }}</p>
               <button
                 type="button"
-                class="btn btn--primary btn--sm"
+                class="cbtn cbtn--primary cbtn--sm"
                 :disabled="!validYearly"
                 @click="addYearly"
               >
@@ -1825,7 +1825,18 @@ select.input option {
 }
 
 /* Button system. */
-.btn {
+/*
+ * Le bouton du dialecte console, renommé depuis `.btn`.
+ *
+ * Il portait le nom de la classe du système de design, dans un `<style
+ * scoped>` — donc dans une couche sans couche, qui l'emporte sur
+ * `@layer components` quelle que soit la spécificité. Tant que ce composant
+ * n'utilise QUE le dialecte local, rien ne casse ; le jour où quelqu'un y
+ * écrit `class="btn btn-primary"`, il obtient silencieusement ce bouton-ci et
+ * cherche longtemps pourquoi. Quatre composants d'administration portaient la
+ * même copie de cette définition.
+ */
+.cbtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1841,40 +1852,40 @@ select.input option {
   cursor: pointer;
   transition: all var(--dur-3) ease;
 }
-.btn:hover:not(:disabled) {
+.cbtn:hover:not(:disabled) {
   border-color: rgb(var(--fg-faint));
   background: rgb(var(--bg-hover));
 }
-.btn:disabled {
+.cbtn:disabled {
   opacity: 0.42;
   cursor: not-allowed;
 }
-.btn--primary {
+.cbtn--primary {
   background: var(--gold);
   border-color: var(--gold);
   color: rgb(var(--bg-base));
   font-weight: 700;
 }
-.btn--primary:hover:not(:disabled) {
+.cbtn--primary:hover:not(:disabled) {
   background: var(--gold-bright);
   border-color: var(--gold-bright);
   box-shadow: 0 6px 22px -8px rgb(var(--accent-warm) / 0.55);
   transform: translateY(-1px);
 }
-.btn--primary:active:not(:disabled) {
+.cbtn--primary:active:not(:disabled) {
   transform: translateY(0);
 }
-.btn--danger {
+.cbtn--danger {
   background: transparent;
   border-color: rgba(239, 68, 68, 0.4);
   color: var(--alert);
 }
-.btn--danger:hover:not(:disabled) {
+.cbtn--danger:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.08);
   border-color: var(--alert);
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
 }
-.btn--sm {
+.cbtn--sm {
   padding: 0.55rem 0.95rem;
   font-size: 0.82rem;
 }

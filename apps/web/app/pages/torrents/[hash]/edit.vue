@@ -1,5 +1,18 @@
 <template>
-  <div v-if="torrent" class="upload-page">
+  <!-- Ce que la route répondra, dit avant la saisie plutôt qu'après. -->
+  <div v-if="torrent && !canEdit" class="upload-page upload-loading">
+    <div class="edit-denied">
+      <Icon name="ph:lock-simple-bold" class="edit-denied-icon" />
+      <h1 class="edit-denied-title">{{ $t('torrents.edit.denied.title') }}</h1>
+      <p class="edit-denied-text">{{ $t('torrents.edit.denied.text') }}</p>
+      <NuxtLink :to="`/torrents/${torrent.infoHash}`" class="btn btn-primary">
+        <Icon name="ph:arrow-left-bold" />
+        {{ $t('torrents.edit.backToRelease') }}
+      </NuxtLink>
+    </div>
+  </div>
+
+  <div v-else-if="torrent" class="upload-page">
     <!-- Header -->
     <div class="upload-header">
       <NuxtLink :to="`/torrents/${torrent.infoHash}`" class="back-link">
@@ -404,6 +417,27 @@ const {
   pending,
 } = await useFetch<TorrentDetail>(`/api/torrents/${hash}`);
 
+const { user } = useUserSession();
+
+/**
+ * Le droit d'éditer, calculé avant que le formulaire s'affiche.
+ *
+ * La route PATCH le vérifie et répond 403 « You do not have permission to edit
+ * this torrent ». La page, elle, ne vérifiait rien : n'importe quel membre
+ * ouvrant `/torrents/<hash>/edit` recevait le formulaire pré-rempli avec la
+ * release de quelqu'un d'autre, corrigeait le titre, ajoutait des tags,
+ * cliquait Enregistrer — et lisait une phrase anglaise dans un bandeau rouge.
+ * Le refus arrivait après le travail, et en anglais.
+ *
+ * Mêmes conditions que la route, à l'identique : propriétaire, ou équipe.
+ */
+const canEdit = computed(() => {
+  const u = user.value;
+  const t0 = torrent.value;
+  if (!u || !t0) return false;
+  return t0.uploaderId === u.id || !!u.isAdmin || !!u.isModerator;
+});
+
 const { data: categories } = await useFetch<CategoryNode[]>('/api/categories');
 const flatCategories = computed(() => getFlattenedCategories(categories.value));
 
@@ -624,9 +658,18 @@ async function loadExistingMetadata() {
   }
 }
 
-watch(torrent, () => {
-  loadExistingMetadata();
-});
+// `immediate` : `torrent` vient d'un `useFetch` attendu, donc il est déjà
+// rempli quand ce watcher s'enregistre et ne change plus ensuite. Sans ce
+// drapeau, `loadExistingMetadata()` ne tournait JAMAIS, `existingMetadata`
+// restait nul et l'aside retombait toujours sur le résumé nu. Le watcher frère
+// plus haut dans le fichier le passe correctement.
+watch(
+  torrent,
+  () => {
+    loadExistingMetadata();
+  },
+  { immediate: true }
+);
 
 function onMediaSelected(metadata: MediaMetadata) {
   lookupResult.value = metadata;
@@ -819,10 +862,36 @@ useHead({ title: t('torrents.edit.headTitle') });
   border-radius: var(--radius-pill);
   border: 1px solid rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
-  color: #f5c518;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.06em * var(--tracking-scale));
   text-transform: uppercase;
+}
+.edit-denied {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: center;
+  padding: 3rem 1rem;
+  max-width: 40ch;
+  margin: 0 auto;
+}
+.edit-denied-icon {
+  font-size: 2rem;
+  color: rgb(var(--fg-subtle));
+}
+.edit-denied-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: rgb(var(--fg-strong));
+}
+.edit-denied-text {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: rgb(var(--fg-muted));
+  margin-bottom: 0.4rem;
 }
 </style>

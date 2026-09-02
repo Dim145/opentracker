@@ -343,7 +343,7 @@ watch(tickets, (rows) => {
   padding: 0 0.25rem;
   border-radius: var(--radius-pill);
   background: rgb(var(--accent-warm));
-  color: rgb(var(--bg-base));
+  color: rgb(var(--accent-warm-fg));
   font-family: var(--font-mono);
   font-size: 0.6rem;
   font-weight: 800;
@@ -355,7 +355,7 @@ watch(tickets, (rows) => {
   align-items: center;
   gap: 0.35rem;
   margin: 0;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 0.75rem;
 }
 

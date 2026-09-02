@@ -1,2 +1,8 @@
-User-Agent: *
-Disallow:
+# Tracker privé : rien n'a à être indexé.
+#
+# C'était `Disallow:` (vide), c'est-à-dire tout autorisé — ce qui livrait aux
+# moteurs le nom du site, son domaine, sa page de connexion et toute surface
+# publique. Sur un site dont l'invitation est la porte, c'est exactement ce
+# qu'on évite.
+User-agent: *
+Disallow: /

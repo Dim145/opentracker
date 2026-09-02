@@ -71,7 +71,7 @@
         </label>
         <button
           type="submit"
-          class="btn-primary"
+          class="sbtn-primary"
           :disabled="!canSubmit || adding"
         >
           <Icon
@@ -788,11 +788,33 @@ async function onUnban(item: BannedIp) {
   outline: none;
   border-color: rgb(var(--fg-default) / 0.3);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.add-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .add-input--mono {
   font-family: var(--font-mono);
   letter-spacing: calc(0.04em * var(--tracking-scale));
 }
-.btn-primary {
+/*
+ * Les boutons de cette surface, renommés depuis `btn-ghost` / `btn-primary`.
+ *
+ * Ce ne sont pas des copies ratées du bouton du système : c'est un dialecte à
+ * part — mono, capitales, 0,656 rem, interlettrage large — que les écrans de
+ * sécurité et de réglages emploient sciemment. Le défaut était le NOM : défini
+ * dans un `<style scoped>`, donc hors couche, il l'emportait sur
+ * `@layer components` quelle que soit la spécificité. Sept fichiers donnaient
+ * ainsi deux boutons visuellement différents sous le même nom de classe, et
+ * `class="btn btn-primary"` écrit dans l'un d'eux n'aurait pas donné le bouton
+ * attendu.
+ */
+.sbtn-primary {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -803,15 +825,15 @@ async function onUnban(item: BannedIp) {
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   background: rgb(var(--danger));
-  color: #fff;
+  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border: 1px solid rgb(var(--danger));
   transition: filter var(--dur-2);
   white-space: nowrap;
 }
-.btn-primary:hover:not(:disabled) {
+.sbtn-primary:hover:not(:disabled) {
   filter: brightness(1.08);
 }
-.btn-primary:disabled {
+.sbtn-primary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -857,6 +879,16 @@ async function onUnban(item: BannedIp) {
   outline: none;
   border-color: rgb(var(--fg-default) / 0.3);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.filter-search-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .filter-search-clear {
   position: absolute;
   right: 0.6rem;
@@ -1009,12 +1041,12 @@ async function onUnban(item: BannedIp) {
 .source-chip--manual {
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .source-chip--auto {
   border-color: rgba(229, 62, 62, 0.4);
   background: rgba(229, 62, 62, 0.08);
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 .row-action {
@@ -1034,7 +1066,7 @@ async function onUnban(item: BannedIp) {
 }
 .row-action:hover:not(:disabled) {
   border-color: rgba(108, 209, 97, 0.45);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(108, 209, 97, 0.06);
 }
 .row-action:disabled {

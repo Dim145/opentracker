@@ -313,6 +313,7 @@ interface RoomMessage {
 
 
 const { t } = useI18n();
+const confirm = useConfirm();
 const { user } = useUserSession();
 
 /** Mine to edit. Computed rather than stored: the server never says so. */
@@ -721,6 +722,15 @@ function retry(msg: RoomMessage) {
 }
 
 async function remove(msg: RoomMessage) {
+  // Supprimer le message de quelqu'un d'autre, dans un salon public, sur un
+  // seul clic et sans retour possible.
+  const ok = await confirm({
+    title: t('room.confirmDelete.title'),
+    message: t('room.confirmDelete.message'),
+    confirmText: t('common.delete'),
+    destructive: true,
+  });
+  if (!ok) return;
   await $fetch(`/api/messaging/room/messages/${msg.id}`, { method: 'DELETE' });
   // The relay tells every other reader; this is just the local echo.
   msg.deleted = true;
@@ -819,7 +829,7 @@ onMounted(() => refresh());
   flex: none;
   border-radius: var(--radius-md);
   background: rgb(var(--accent-warm) / 0.16);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 1.1rem;
 }
 .room-head-text { display: flex; flex-direction: column; min-width: 0; }
@@ -1120,6 +1130,16 @@ onMounted(() => refresh());
   outline: none;
   border-color: rgb(var(--accent-warm) / 0.6);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.room-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .room-send {
   display: inline-flex;
   align-items: center;
@@ -1130,7 +1150,7 @@ onMounted(() => refresh());
   border: 0;
   border-radius: var(--radius-pill);
   background: rgb(var(--accent-warm));
-  color: rgb(var(--bg-base));
+  color: rgb(var(--accent-warm-fg));
   cursor: pointer;
   transition: opacity var(--dur-2) ease;
 }

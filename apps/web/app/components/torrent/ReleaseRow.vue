@@ -238,7 +238,7 @@ const age = computed(() =>
 }
 .chip--res {
   background: rgb(var(--accent-warm) / 0.16);
-  color: #e5bf58;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   font-weight: 600;
 }
 .chip--src {
@@ -359,7 +359,7 @@ const age = computed(() =>
 }
 .rr-dl:hover {
   background: rgb(var(--accent-warm) / 0.14);
-  color: #e5bf58;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 /* Not a button — a signpost. Dimmer, and it does not light up on hover,
    because the whole row is already the link that takes you there. */

@@ -60,15 +60,27 @@ interface TorznabData {
 const { data, pending, refresh } =
   await useFetch<TorznabData>('/api/admin/torznab');
 
+const { t } = useI18n();
+const notifications = useNotificationStore();
+
 async function handleConfigUpdate(updates: Partial<TorznabConfig>) {
+  // Un `console.error` n'est pas un retour d'interface. Les interrupteurs sont
+  // liés à la prop, donc rien ne bouge à l'écran pendant l'aller-retour ni
+  // après un échec : couper l'API Torznab produisait exactement la même absence
+  // de signal que de ne rien faire. Et `refresh()` n'était pas atteint en cas
+  // d'échec, donc l'état affiché restait celui d'avant sans que personne ne le
+  // dise.
   try {
     await $fetch('/api/admin/torznab', {
       method: 'PUT',
       body: updates,
     });
+    notifications.success(t('common.saved'));
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string } };
+    notifications.error(e?.data?.message || t('common.saveFailed'));
+  } finally {
     await refresh();
-  } catch (error) {
-    console.error('Failed to update Torznab config:', error);
   }
 }
 </script>

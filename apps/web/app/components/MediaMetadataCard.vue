@@ -266,13 +266,20 @@ function formatRuntime(minutes: number): string {
   border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--line-default));
 }
+  /* La teinte reste sur le fond et la bordure — donc l'identité média
+     (IMDb, TMDb) et la distinction de catégorie survivent — mais le LIBELLÉ
+     passe sur un jeton de premier plan. Une couleur de marque n'a pas de raison
+     d'être lisible sur les deux thèmes : `#f5c518` sur blanc mesure 1,50:1.
+     C'est exactement ce que `tagBadgeStyle()` fait déjà pour les tags, où la
+     couleur est choisie par un opérateur et où le texte reste donc toujours
+     lisible. */
 .media-card-type--movie {
-  color: #f5c518;
+  color: rgb(var(--fg-default));
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.1);
 }
 .media-card-type--tv {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.1);
 }

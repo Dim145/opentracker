@@ -1,5 +1,17 @@
 <template>
   <div class="ac">
+    <!--
+      Ce que la validation d'un dossier fait, et ne fait pas.
+
+      La route est explicite : « Never modifies the user. Bans/warnings are
+      still issued manually from the user admin surface — this endpoint is only
+      the audit stamp. » Rien ne le disait à l'écran, et le verdict s'appelait
+      « Banni », en rouge, avec un tampon. Un modérateur cliquait, validait,
+      recevait « Signalement traité » — et le tricheur continuait. La seule
+      phrase du produit qui l'explique existait déjà dans les deux locales et
+      n'était appelée nulle part.
+    -->
+    <p class="ac-tagline">{{ $t('mod.antiCheat.tagline') }}</p>
     <!-- ╔══════════════════════════════════════════════════════════╗
          ║  RADAR — KPI strip + live status indicator              ║
          ║  Tiles are clickable: each one filters the case feed    ║
@@ -188,11 +200,19 @@
               class="ac-case-verdict"
               :class="`ac-case-verdict--${row.reviewVerdict}`"
             >
-              {{ row.reviewVerdict }}
+              {{ $t(`mod.antiCheat.verdict.${row.reviewVerdict}`) }}
             </span>
             <span v-else class="ac-case-verdict ac-case-verdict--open">
               <span class="ac-case-verdict-dot" />
               {{ $t('mod.antiCheat.openLabel') }}
+            </span>
+            <!-- La force de l'indice, écrite. Elle n'existait que comme un ruban
+                 vertical `aria-hidden` de 3 à 5 px : deux pixels d'écart entre
+                 « faible » et « élevé », sur un écran où l'on décide de
+                 sanctionner un compte. Les trois libellés existaient dans les
+                 deux locales et n'étaient appelés nulle part. -->
+            <span class="ac-case-sev" :class="`ac-case-sev--${row.severity}`">
+              {{ $t(`mod.antiCheat.severity.${row.severity}`) }}
             </span>
           </div>
 
@@ -210,7 +230,7 @@
           :class="`ac-stamp--${row.reviewVerdict}`"
           aria-hidden="true"
         >
-          {{ row.reviewVerdict }}
+          {{ $t(`mod.antiCheat.verdict.${row.reviewVerdict}`) }}
         </span>
 
         <!-- Inline detail panel -->
@@ -257,7 +277,7 @@
             <Icon name="ph:seal-check-fill" class="ac-already-icon" />
             <div class="ac-already-body">
               <p class="ac-already-line">
-                <strong>{{ row.reviewVerdict }}</strong>
+                <strong>{{ $t(`mod.antiCheat.verdict.${row.reviewVerdict}`) }}</strong>
                 ·
                 {{
                   $t('mod.antiCheat.detail.reviewedBy', {
@@ -271,6 +291,7 @@
               </p>
             </div>
             <button
+              v-if="!reopenedIds.has(row.id)"
               type="button"
               class="ac-already-reopen"
               @click="reopenReview(row)"
@@ -279,9 +300,11 @@
             </button>
           </div>
 
-          <!-- Review form -->
+          <!-- Le formulaire de décision. `v-if` plutôt que `v-else` : sur un
+               dossier rouvert, il s'ajoute SOUS le verdict précédent au lieu de
+               le remplacer. -->
           <form
-            v-else
+            v-if="!row.reviewedAt || reopenedIds.has(row.id)"
             class="ac-review"
             @submit.prevent="submitReview(row)"
           >
@@ -451,6 +474,7 @@ definePageMeta({ title: 'Anti-cheat' });
 
 const { t } = useI18n();
 const notifications = useNotificationStore();
+const confirm = useConfirm();
 useHead({ title: () => t('mod.antiCheat.title') });
 
 type Kind = 'velocity' | 'no_leecher' | 'unknown_client';
@@ -629,6 +653,14 @@ function kindIcon(k: Kind): string {
       return 'ph:users-three-bold';
     case 'unknown_client':
       return 'ph:fingerprint-bold';
+    // `anticheat_flags.kind` est une colonne `text`, sans contrainte : le type
+    // `Kind` est une promesse du client, pas une garantie de la base. Sans ce
+    // repli, un `kind` inconnu — un quatrième détecteur, une ligne d'une
+    // version antérieure — renvoyait `undefined` à `<Icon :name>`, qui appelle
+    // `name.startsWith()` : une exception pendant le rendu, et c'est TOUTE la
+    // file de modération qui disparaît, pas seulement la ligne fautive.
+    default:
+      return 'ph:warning-bold';
   }
 }
 
@@ -679,6 +711,10 @@ const VERDICTS = [
   { value: 'monitoring', icon: 'ph:eye-bold' },
 ] as const;
 
+/** Les dossiers rouverts localement : le formulaire réapparaît, l'historique
+ *  reste visible. */
+const reopenedIds = ref<Set<string>>(new Set());
+
 const reviewForm = reactive<{ verdict: Verdict | ''; note: string }>({
   verdict: '',
   note: '',
@@ -707,6 +743,9 @@ async function submitReview(row: FlagRow) {
       },
     });
     notifications.success(t('mod.antiCheat.toastReviewed'));
+    const next = new Set(reopenedIds.value);
+    next.delete(row.id);
+    reopenedIds.value = next;
     expandedId.value = null;
     await refresh();
   } catch (err: any) {
@@ -719,9 +758,17 @@ async function submitReview(row: FlagRow) {
 }
 
 function reopenReview(row: FlagRow) {
+  // Le verdict précédent, son auteur et sa note restent à l'écran.
+  //
+  // Cette fonction mettait `row.reviewedAt` à `null`, ce qui les faisait
+  // disparaître du panneau : le modérateur re-décidait donc SANS le contexte de
+  // son prédécesseur — précisément ce que le champ note existe pour transmettre
+  // (« contexte pour le prochain modérateur ») — et le premier `refresh()` venu
+  // faisait réapparaître l'ancien verdict comme si de rien n'était, puisque rien
+  // n'avait été envoyé au serveur.
   reviewForm.verdict = '';
   reviewForm.note = '';
-  row.reviewedAt = null as unknown as string;
+  reopenedIds.value = new Set(reopenedIds.value).add(row.id);
 }
 
 // ── Bulk selection ──────────────────────────────────────────
@@ -772,6 +819,20 @@ function clearSelection() {
 async function submitBulk() {
   if (!bulkForm.verdict || selectedCount.value === 0 || bulkSubmitting.value)
     return;
+  // Une décision par lot, sans retour possible et sans étape intermédiaire :
+  // un clic sur « Confirmé » posait le verdict sur les quarante dossiers cochés.
+  // Le formulaire unitaire, lui, demande d'ouvrir le dossier, de lire les
+  // indices puis de choisir — le lot court-circuitait les trois.
+  const ok = await confirm({
+    title: t('mod.antiCheat.bulk.confirmTitle', { n: selectedCount.value }, selectedCount.value),
+    message: t('mod.antiCheat.bulk.confirmBody', {
+      n: selectedCount.value,
+      verdict: t(`mod.antiCheat.verdict.${bulkForm.verdict}`),
+    }, selectedCount.value),
+    confirmText: t('mod.antiCheat.bulk.apply'),
+    destructive: bulkForm.verdict === 'banned',
+  });
+  if (!ok) return;
   bulkSubmitting.value = true;
   try {
     const ids = Array.from(selected.value);
@@ -850,6 +911,29 @@ const emptySub = computed(() => {
 </script>
 
 <style scoped>
+.ac-tagline {
+  margin-bottom: 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: rgb(var(--fg-muted));
+  max-width: 78ch;
+}
+
+.ac-case-sev {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-pill);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
+  color: rgb(var(--fg-subtle));
+}
+.ac-case-sev--medium { color: rgb(var(--warning)); }
+.ac-case-sev--high { color: rgb(var(--danger)); }
+
 .ac {
   position: relative;
   isolation: isolate;
@@ -1629,7 +1713,7 @@ const emptySub = computed(() => {
 }
 .ac-btn--primary {
   background: rgb(var(--danger));
-  color: #fff;
+  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgb(var(--danger));
   filter: drop-shadow(0 6px 16px rgb(var(--danger) / 0.35));
 }
@@ -1772,6 +1856,21 @@ const emptySub = computed(() => {
   position: absolute;
   opacity: 0;
   pointer-events: none;
+}
+/* La cible réelle, pas la marque : 20 px de carré coché entouré de 2 px de
+   marge donnaient une cible de 20 px sur un écran où l'on coche quarante lignes
+   à la suite (2.5.8 en demande 24). Le rembourrage l'élargit sans déplacer la
+   marque, qui reste alignée sur le ruban. */
+.ac-case-select {
+  padding: 4px;
+  margin: -4px;
+  border-radius: var(--radius-sm);
+}
+/* L'input est en `opacity: 0` : sans cette règle, le parcours au clavier
+   traverse la colonne de cases sans que rien ne bouge à l'écran. */
+.ac-case-select:focus-within {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 1px;
 }
 .ac-case-select-mark {
   display: inline-flex;

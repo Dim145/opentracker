@@ -32,7 +32,7 @@ import {
   type FicheRelease,
   type FicheWork,
 } from './ficheBbcode';
-import { emptySheet, formatBitRate, formatSize, type TechnicalSheet } from './mediainfo';
+import { emptySheet, formatBitRate, formatSheetSize, type TechnicalSheet } from './mediainfo';
 import { renderTemplate, type TemplateContext } from '@trackarr/shared/templateEngine';
 
 /**
@@ -301,8 +301,8 @@ export function buildFicheContext(
 
   const sizeLines: string[] = [];
   const totalSize =
-    formatSize(release.totalSize, release.totalSizeUnit) ??
-    formatSize(sheet.fileSize, sheet.fileSizeUnit);
+    formatSheetSize(release.totalSize, release.totalSizeUnit) ??
+    formatSheetSize(sheet.fileSize, sheet.fileSizeUnit);
   if (totalSize) sizeLines.push(plain('Taille totale', totalSize));
   if (release.fileCount) sizeLines.push(plain('Nombre de fichier', String(release.fileCount)));
 

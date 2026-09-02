@@ -49,7 +49,11 @@
         :key="row.id"
         class="np-row"
         :class="{ 'np-row--unread': !row.readAt }"
+        :role="row.link ? 'link' : 'button'"
+        tabindex="0"
         @click="onRowClick(row)"
+        @keydown.enter.prevent="onRowClick(row)"
+        @keydown.space.prevent="onRowClick(row)"
       >
         <Icon
           :name="iconFor(row.type)"
@@ -383,6 +387,14 @@ function descFor(row: NotificationRow): string {
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
+/* Une ligne actionnable, donc atteignable.
+   Elle n'avait qu'un `@click` : la tabulation traversait toute la page de
+   notifications sans jamais s'y arrêter, et un lecteur d'écran l'annonçait
+   comme un simple élément de liste. */
+.np-row:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: -2px;
+}
 .np-row {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -418,7 +430,7 @@ function descFor(row: NotificationRow): string {
   background: rgb(var(--online) / 0.1);
 }
 .np-row-icon--spend {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--accent-warm) / 0.1);
 }
 .np-row-icon--info {

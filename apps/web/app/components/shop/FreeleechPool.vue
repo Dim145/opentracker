@@ -468,7 +468,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
   letter-spacing: calc(0.3em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   margin-bottom: 0.7rem;
 }
 .pool-eyebrow-rule {
@@ -494,7 +494,7 @@ onBeforeUnmount(() => {
   font-size: clamp(1.6rem, 3vw, 2.1rem);
   font-style: italic;
   font-weight: 400;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   margin-left: 0.3rem;
 }
 .pool-blurb {
@@ -568,7 +568,7 @@ onBeforeUnmount(() => {
 }
 .pool-meter-sep {
   font-size: 1.4rem;
-  color: rgb(var(--accent-warm) / 0.5);
+  color: rgb(var(--accent-warm-text) / 0.5);
 }
 .pool-meter-target {
   font-size: 1.4rem;
@@ -599,7 +599,7 @@ onBeforeUnmount(() => {
 }
 .pool-status-icon {
   font-size: 1rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .pool--active .pool-status-icon,
 .pool--full_queued .pool-status-icon {
@@ -647,7 +647,7 @@ onBeforeUnmount(() => {
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: calc(0.18em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .pool-patron-name {
   font-family: var(--font-display);
@@ -729,7 +729,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 .pool-form-presets {
@@ -753,7 +753,7 @@ onBeforeUnmount(() => {
 .pool-form-preset:hover:not(:disabled) {
   border-color: rgb(var(--accent-warm));
   background: rgb(var(--accent-warm) / 0.08);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .pool-form-preset:disabled {
   opacity: 0.35;
@@ -826,11 +826,11 @@ onBeforeUnmount(() => {
 }
 .pool-form-locked-icon {
   font-size: 2.4rem;
-  color: rgb(var(--accent-warm) / 0.55);
+  color: rgb(var(--accent-warm-text) / 0.55);
 }
 .pool--active .pool-form-locked-icon,
 .pool--full_queued .pool-form-locked-icon {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   animation: pool-locked-pulse calc(3s * var(--motion-scale)) ease-in-out infinite;
 }
 @keyframes pool-locked-pulse {

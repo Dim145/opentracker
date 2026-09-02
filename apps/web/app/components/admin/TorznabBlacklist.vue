@@ -61,7 +61,7 @@
               </div>
               <div class="text-right">
                 <span class="text-[10px] text-text-muted">{{ $t('admin.torznab.blacklist.expiresIn') }}</span>
-                <p class="text-xs font-mono text-yellow-400">
+                <p class="text-xs font-mono text-warning">
                   {{ formatTimeRemaining(entry.expiresAt) }}
                 </p>
               </div>
@@ -127,6 +127,7 @@
 
 <script setup lang="ts">
 const { t } = useI18n();
+const notifications = useNotificationStore();
 
 interface BlacklistEntry {
   ip: string;
@@ -158,14 +159,21 @@ const unblocking = ref<string | null>(null);
 async function unblockUser(blockId: string) {
   unblocking.value = blockId;
   try {
-    await fetch('/api/admin/torznab/unblock', {
+    // `$fetch`, pas le `fetch` natif : ce dernier ne rejette PAS sur un statut
+    // 4xx ou 5xx. Le `catch` ne se déclenchait donc jamais et `refresh()`
+    // s'exécutait quoi qu'il arrive — un 403 (privilège perdu), un 404 (blocage
+    // déjà expiré) ou un 500 ressemblaient tous à un succès : le témoin
+    // s'arrêtait, la liste se rafraîchissait, la ligne était toujours là, et
+    // aucune erreur n'apparaissait. Tous les autres appels de ce fichier
+    // passent par `useFetch` / `$fetch`, qui lèvent.
+    await $fetch('/api/admin/torznab/unblock', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ blockId }),
+      body: { blockId },
     });
     await refresh();
-  } catch (error) {
-    console.error('Failed to unblock user:', error);
+  } catch (error: unknown) {
+    const e = error as { data?: { message?: string }; message?: string };
+    notifications.error(e?.data?.message || e?.message || t('common.actionFailed'));
   } finally {
     unblocking.value = null;
   }

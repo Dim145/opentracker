@@ -41,9 +41,9 @@
       </p>
 
       <div class="totp-actions">
-        <button class="btn-ghost" @click="$emit('cancel')">{{ $t('common.cancel') }}</button>
+        <button class="sbtn-ghost" @click="$emit('cancel')">{{ $t('common.cancel') }}</button>
         <button
-          class="btn-primary"
+          class="sbtn-primary"
           :disabled="code.length !== 6 || submitting"
           @click="submit"
         >
@@ -68,7 +68,7 @@
       </p>
       <RecoveryCodesView :codes="recoveryCodes" />
       <div class="totp-actions">
-        <button class="btn-primary" @click="$emit('cancel')">
+        <button class="sbtn-primary" @click="$emit('cancel')">
           <Icon name="ph:check-bold" />
           {{ $t('security.totp.saved') }}
         </button>
@@ -244,6 +244,16 @@ async function copySecret() {
   outline: none;
   border-color: rgb(var(--fg-default));
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 
 .totp-error {
   display: inline-flex;
@@ -269,8 +279,20 @@ async function copySecret() {
   margin-top: 0.5rem;
 }
 
-.btn-primary,
-.btn-ghost {
+/*
+ * Les boutons de cette surface, renommés depuis `btn-ghost` / `btn-primary`.
+ *
+ * Ce ne sont pas des copies ratées du bouton du système : c'est un dialecte à
+ * part — mono, capitales, 0,656 rem, interlettrage large — que les écrans de
+ * sécurité et de réglages emploient sciemment. Le défaut était le NOM : défini
+ * dans un `<style scoped>`, donc hors couche, il l'emportait sur
+ * `@layer components` quelle que soit la spécificité. Sept fichiers donnaient
+ * ainsi deux boutons visuellement différents sous le même nom de classe, et
+ * `class="btn btn-primary"` écrit dans l'un d'eux n'aurait pas donné le bouton
+ * attendu.
+ */
+.sbtn-primary,
+.sbtn-ghost {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -285,23 +307,23 @@ async function copySecret() {
   border: 1px solid rgb(var(--line-default));
   transition: all var(--dur-2);
 }
-.btn-primary {
+.sbtn-primary {
   background: rgb(var(--fg-strong));
   color: rgb(var(--accent-fg));
   border-color: rgb(var(--fg-strong));
 }
-.btn-primary:hover:not(:disabled) {
+.sbtn-primary:hover:not(:disabled) {
   background: rgb(var(--fg-default));
 }
-.btn-primary:disabled {
+.sbtn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.btn-ghost {
+.sbtn-ghost {
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
 }
-.btn-ghost:hover {
+.sbtn-ghost:hover {
   color: rgb(var(--fg-strong));
 }
 </style>

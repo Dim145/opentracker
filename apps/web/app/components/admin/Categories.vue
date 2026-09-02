@@ -182,6 +182,18 @@
                 <Icon name="ph:tree-structure-bold" />
                 {{ $t('admin.categories.row.subCount', { n: category.subcategories.length }) }}
               </span>
+              <!-- Ce que la catégorie contient. La route DELETE refuse une
+                   catégorie qui a des torrents ; sans ce nombre, l'opérateur
+                   l'apprenait par une 400 après avoir confirmé une boîte de
+                   dialogue qui lui promettait le contraire. -->
+              <span
+                v-if="category.torrentCount !== undefined"
+                class="entry-flag entry-flag--stock"
+                :class="{ 'entry-flag--empty': !category.torrentCount }"
+              >
+                <Icon name="ph:file-zip-bold" />
+                {{ $t('admin.categories.row.stock', { n: category.torrentCount }, category.torrentCount) }}
+              </span>
             </div>
           </div>
 
@@ -264,6 +276,14 @@
                     <span v-if="sub.isAdult" class="entry-flag entry-flag--adult">
                       <Icon name="ph:eye-slash-fill" />
                       {{ $t('admin.categories.row.adultBadge') }}
+                    </span>
+                    <span
+                      v-if="sub.torrentCount !== undefined"
+                      class="entry-flag entry-flag--stock"
+                      :class="{ 'entry-flag--empty': !sub.torrentCount }"
+                    >
+                      <Icon name="ph:file-zip-bold" />
+                      {{ $t('admin.categories.row.stock', { n: sub.torrentCount }, sub.torrentCount) }}
                     </span>
                   </div>
                 </div>
@@ -489,6 +509,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('admin.categories.adult.title')"
                 :aria-checked="form.isAdult"
                 class="ed-toggle"
                 :class="{ 'ed-toggle--on': form.isAdult }"
@@ -560,6 +581,8 @@ interface Category {
   type?: 'movie' | 'tv' | 'game' | 'book' | null;
   icon?: string | null;
   createdAt: string;
+  /** Seulement avec `?withCounts=true`, donc seulement côté admin. */
+  torrentCount?: number;
   subcategories?: Category[];
 }
 
@@ -609,7 +632,7 @@ const TYPE_OPTIONS = computed<Array<{
 // callers (admin/mod) so we can keep the public path filtered.
 const { data: categories, refresh } = await useFetch<Category[]>(
   '/api/categories',
-  { query: { includeAdult: 'true' } }
+  { query: { includeAdult: 'true', withCounts: 'true' } }
 );
 const notifications = useNotificationStore();
 const confirm = useConfirm();
@@ -864,7 +887,7 @@ const deletingIds = ref(new Set<string>());
 
 async function deleteCategory(id: string) {
   if (deletingIds.value.has(id)) return;
-  let target: { name: string } | undefined;
+  let target: Category | undefined;
   for (const cat of categories.value || []) {
     if (cat.id === id) {
       target = cat;
@@ -875,6 +898,32 @@ async function deleteCategory(id: string) {
   }
   deletingIds.value.add(id);
   try {
+    // Les deux refus de la route, dits avant le clic plutôt qu'après.
+    //
+    // La boîte annonçait « les torrents qui s'y trouvent deviendront non
+    // classés » ; la route répond 400 « Cannot delete category with torrents »
+    // et ne déclasse rien. L'opérateur confirmait une suppression qui
+    // n'arrivait jamais, et lisait le refus en anglais dans un toast.
+    if (target?.subcategories?.length) {
+      notifications.error(
+        t(
+          'admin.categories.deleteConfirm.blockedSubs',
+          { n: target.subcategories.length },
+          target.subcategories.length,
+        ),
+      );
+      return;
+    }
+    if (target?.torrentCount) {
+      notifications.error(
+        t(
+          'admin.categories.deleteConfirm.blockedTorrents',
+          { n: target.torrentCount },
+          target.torrentCount,
+        ),
+      );
+      return;
+    }
     const ok = await confirm({
       title: t('admin.categories.deleteConfirm.title'),
       message: target
@@ -961,7 +1010,7 @@ async function seedCategories() {
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .atlas-eyebrow-rule {
   display: inline-block;
@@ -1120,7 +1169,7 @@ async function seedCategories() {
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 /* ── Empty + no-results states ──────────────────────────── */
@@ -1143,7 +1192,7 @@ async function seedCategories() {
   border-radius: 50%;
   background: rgb(var(--accent-warm) / 0.08);
   border: 1px solid rgb(var(--accent-warm) / 0.4);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 1.8rem;
 }
 .atlas-empty-title {
@@ -1340,7 +1389,7 @@ async function seedCategories() {
   font-weight: 800;
   letter-spacing: calc(-0.01em * var(--tracking-scale));
   font-variant-numeric: tabular-nums;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   line-height: 1;
 }
 .entry-code--sub .entry-code-num {
@@ -1405,12 +1454,12 @@ async function seedCategories() {
 }
 .entry-flag svg { font-size: 0.85rem; }
 .entry-flag--adult {
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(244, 63, 94, 0.4);
   background: rgba(244, 63, 94, 0.06);
 }
 .entry-flag--children {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.4);
   background: rgb(var(--accent-warm) / 0.06);
 }
@@ -1441,7 +1490,7 @@ async function seedCategories() {
   transform: rotate(180deg);
 }
 .entry-toggle:hover {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.4);
 }
 .entry-act {
@@ -1461,11 +1510,11 @@ async function seedCategories() {
   color: rgb(var(--fg-strong));
 }
 .entry-act--add:hover {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(108, 209, 97, 0.08);
 }
 .entry-act--delete:hover {
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(244, 63, 94, 0.08);
 }
 
@@ -1583,7 +1632,7 @@ async function seedCategories() {
   font-weight: 800;
   letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .ed-eyebrow-rule {
   display: inline-block;
@@ -1655,7 +1704,7 @@ async function seedCategories() {
   font-weight: 800;
   letter-spacing: calc(-0.01em * var(--tracking-scale));
   font-variant-numeric: tabular-nums;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   line-height: 1;
 }
 .ed-card-code-dash {
@@ -1707,7 +1756,7 @@ async function seedCategories() {
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .ed-card-flag svg { font-size: 0.85rem; }
 
@@ -1758,7 +1807,7 @@ async function seedCategories() {
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.22rem 0.45rem;
@@ -1790,6 +1839,16 @@ async function seedCategories() {
   border-color: rgb(var(--accent-warm) / 0.55);
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.ed-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .ed-input--mono {
   font-family: var(--font-mono);
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -1833,7 +1892,7 @@ async function seedCategories() {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   padding: 0.05rem 0.35rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   letter-spacing: calc(0.02em * var(--tracking-scale));
 }
 
@@ -2025,5 +2084,12 @@ async function seedCategories() {
 }
 @keyframes cat-spin {
   to { transform: rotate(360deg); }
+}
+.entry-flag--stock {
+  color: rgb(var(--fg-muted));
+  border-color: rgb(var(--line-default));
+}
+.entry-flag--stock.entry-flag--empty {
+  color: rgb(var(--fg-subtle));
 }
 </style>

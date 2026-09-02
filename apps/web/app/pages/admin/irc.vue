@@ -694,7 +694,7 @@ async function sendTest() {
   .irc-conn { grid-template-columns: minmax(0, 1fr) 7rem auto; }
 }
 .irc-req {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   margin-left: 0.15rem;
 }
 .irc-card {
@@ -808,7 +808,7 @@ async function sendTest() {
 .irc-tokens code {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .irc-tokens span { color: rgb(var(--fg-muted)); }
 .irc-tokens em {

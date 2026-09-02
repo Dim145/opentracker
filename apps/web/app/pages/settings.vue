@@ -123,6 +123,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.showLastSeen')"
                 :aria-checked="form.showLastSeen"
                 class="toggle"
                 :class="{ 'toggle--on': form.showLastSeen }"
@@ -151,6 +152,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.showAdultContent')"
                 :aria-checked="form.showAdultContent"
                 class="toggle"
                 :class="{ 'toggle--on': form.showAdultContent }"
@@ -179,6 +181,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.anonymousUploads')"
                 :aria-checked="form.anonymousUploads"
                 class="toggle"
                 :class="{ 'toggle--on': form.anonymousUploads }"
@@ -203,6 +206,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.hideDownloadHistory')"
                 :aria-checked="form.hideDownloadHistory"
                 class="toggle"
                 :class="{ 'toggle--on': form.hideDownloadHistory }"
@@ -227,6 +231,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.restrictComments')"
                 :aria-checked="form.restrictComments"
                 class="toggle"
                 :class="{ 'toggle--on': form.restrictComments }"
@@ -251,6 +256,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.shareReputationFederated')"
                 :aria-checked="form.shareReputationFederated"
                 class="toggle"
                 :class="{ 'toggle--on': form.shareReputationFederated }"
@@ -274,7 +280,7 @@
         <section id="appearance" class="form-section">
           <header class="section-head">
             <span class="section-number">03</span>
-            <h2 class="section-title">Appearance</h2>
+            <h2 class="section-title">{{ $t('settings.sections.appearance') }}</h2>
             <span class="section-rule" />
           </header>
 
@@ -282,13 +288,14 @@
             <!-- ── Theme picker ─────────────────────────────────── -->
             <div class="appearance-block">
               <div class="appearance-block-head">
-                <span class="appearance-block-eyebrow">Mode</span>
-                <h3 class="appearance-block-title">Theme</h3>
+                <span class="appearance-block-eyebrow">
+                  {{ $t('settings.appearance.themeEyebrow') }}
+                </span>
+                <h3 class="appearance-block-title">
+                  {{ $t('settings.appearance.themeTitle') }}
+                </h3>
               </div>
-              <p class="section-help">
-                Theme follows you across devices — stored on your account and
-                cached locally for a flicker-free first paint.
-              </p>
+              <p class="section-help">{{ $t('settings.appearance.themeHelp') }}</p>
               <div class="theme-row">
                 <button
                   v-for="t in themes"
@@ -327,14 +334,12 @@
                  doesn't drift back to the autodetected guess. -->
             <div class="appearance-block">
               <div class="appearance-block-head">
-                <span class="appearance-block-eyebrow">Locale</span>
+                <span class="appearance-block-eyebrow">
+                  {{ $t('settings.appearance.localeEyebrow') }}
+                </span>
                 <h3 class="appearance-block-title">{{ $t('common.language') }}</h3>
               </div>
-              <p class="section-help">
-                Saved on your account so the same UI language follows you
-                across devices. New strings always fall back to English when
-                a translation isn't ready yet.
-              </p>
+              <p class="section-help">{{ $t('settings.appearance.localeHelp') }}</p>
               <div class="lang-row">
                 <button
                   v-for="l in languages"
@@ -411,7 +416,7 @@
               </div>
               <button
                 type="button"
-                class="btn-ghost"
+                class="sbtn-ghost"
                 @click="passwordOpen = !passwordOpen"
               >
                 <Icon
@@ -465,7 +470,7 @@
                 <div class="password-actions">
                   <button
                     type="button"
-                    class="btn-ghost"
+                    class="sbtn-ghost"
                     :disabled="pwdSubmitting"
                     @click="closePassword"
                   >
@@ -473,7 +478,7 @@
                   </button>
                   <button
                     type="button"
-                    class="btn-primary"
+                    class="sbtn-primary"
                     :disabled="!canSubmitPassword || pwdSubmitting"
                     @click="submitPassword"
                   >
@@ -505,7 +510,7 @@
                   {{ $t('settings.security.trackerPasskeyHint') }}
                 </p>
               </div>
-              <NuxtLink to="/me#01" class="btn-ghost">
+              <NuxtLink to="/me#01" class="sbtn-ghost">
                 <Icon name="ph:arrow-up-right-bold" />
                 {{ $t('settings.security.openProfile') }}
               </NuxtLink>
@@ -521,7 +526,7 @@
                   {{ $t('settings.security.signOutDeviceHint') }}
                 </p>
               </div>
-              <button type="button" class="btn-ghost btn-ghost--danger" @click="signOut">
+              <button type="button" class="sbtn-ghost btn-ghost--danger" @click="signOut">
                 <Icon name="ph:sign-out-bold" />
                 {{ $t('settings.security.signOut') }}
               </button>
@@ -547,7 +552,7 @@
               </div>
               <button
                 type="button"
-                class="btn-ghost"
+                class="sbtn-ghost"
                 :disabled="loginsLoading"
                 :aria-expanded="loginsOpen"
                 aria-controls="me-logins"
@@ -630,7 +635,7 @@
             <span class="section-rule" />
           </header>
           <div class="section-body">
-            <SettingsNotificationsSection />
+            <SettingsNotificationsSection ref="notificationsRef" />
           </div>
         </section>
 
@@ -809,7 +814,7 @@
         </span>
         <button
           type="button"
-          class="btn-primary"
+          class="sbtn-primary"
           :disabled="dirtyCount === 0 || saving || hasOverflow"
           @click="save"
         >
@@ -883,6 +888,15 @@ const PRIVACY_TOGGLES = [
   'anonymousUploads',
   'hideDownloadHistory',
   'restrictComments',
+  // `shareReputationFederated` manquait ici, et cette liste pilote À LA FOIS le
+  // compteur de modifications et le corps du PATCH. L'interrupteur se
+  // basculait donc à l'écran, le badge annonçait « Tout est enregistré », le
+  // bouton Enregistrer restait désactivé, le garde de navigation ne se
+  // déclenchait pas — et la valeur disparaissait au rechargement. Le champ est
+  // accepté par `/api/me` et lu par `/api/federation/user-reputation` : un
+  // membre qui croyait avoir coupé le partage continuait d'être lu par les
+  // instances distantes.
+  'shareReputationFederated',
 ] as const;
 
 // ── Form state (Identity + Privacy) ─────────────────────────────
@@ -1098,9 +1112,14 @@ const themes = computed<ThemeOption[]>(() => {
     (t) => !['light', 'dark'].includes(t.slug),
   );
   const defaultName =
-    [...(branding.value?.themes ?? []), { slug: 'light', name: 'Light' }, { slug: 'dark', name: 'Dark' }]
-      .find((t) => t.slug === branding.value?.themeDefault)?.name ??
-    (branding.value?.themeDefault === 'system' ? 'System' : branding.value?.themeDefault);
+    [
+      ...(branding.value?.themes ?? []),
+      { slug: 'light', name: t('settings.appearance.light') },
+      { slug: 'dark', name: t('settings.appearance.dark') },
+    ].find((th) => th.slug === branding.value?.themeDefault)?.name ??
+    (branding.value?.themeDefault === 'system'
+      ? t('settings.appearance.system')
+      : branding.value?.themeDefault);
 
   return [
     {
@@ -1108,38 +1127,45 @@ const themes = computed<ThemeOption[]>(() => {
       // moving: a member on it follows the owner's default whenever it changes.
       // Everything below is a choice, and a change of default leaves it alone.
       value: null,
-      label: 'Site default',
-      sub: defaultName ? `Currently ${defaultName}` : 'Whatever the owner picks',
+      label: t('settings.appearance.siteDefault'),
+      sub: defaultName
+        ? t('settings.appearance.siteDefaultSub', { name: defaultName })
+        : t('settings.appearance.siteDefaultUnknown'),
       icon: 'ph:buildings-bold',
       dot: swatchFor(branding.value?.themeDefault ?? 'dark'),
     },
     {
       value: 'system',
-      label: 'System',
-      sub: 'Follows your operating system',
+      label: t('settings.appearance.system'),
+      sub: t('settings.appearance.systemSub'),
       icon: 'ph:circle-half-bold',
       dot: { accent: 'transparent', bg: 'transparent' },
     },
     {
       value: 'light',
-      label: 'Light',
-      sub: 'Day-friendly tones',
+      label: t('settings.appearance.light'),
+      sub: t('settings.appearance.lightSub'),
       icon: 'ph:sun-bold',
       dot: swatchFor('light'),
     },
     {
       value: 'dark',
-      label: 'Dark',
-      sub: 'Editorial midnight',
+      label: t('settings.appearance.dark'),
+      sub: t('settings.appearance.darkSub'),
       icon: 'ph:moon-stars-bold',
       dot: swatchFor('dark'),
     },
-    ...custom.map((t) => ({
-      value: t.slug,
-      label: t.name,
-      sub: t.base === 'light' ? 'Light-based' : 'Dark-based',
+    // `th`, pas `t` : le paramètre masquait la fonction de traduction du même
+    // nom, ce qui rendait `t('…')` inappelable dans ce bloc.
+    ...custom.map((th) => ({
+      value: th.slug,
+      label: th.name,
+      sub:
+        th.base === 'light'
+          ? t('settings.appearance.basedLight')
+          : t('settings.appearance.basedDark'),
       icon: 'ph:palette-bold',
-      dot: swatchFor(t.slug),
+      dot: swatchFor(th.slug),
     })),
   ];
 });
@@ -1207,7 +1233,7 @@ async function setLanguage(value: LanguageOption['value']) {
     languageError.value =
       err?.data?.message ||
       err?.message ||
-      'Could not save the language change. Please try again.';
+      t('settings.appearance.localeSaveFailed');
   } finally {
     languageSaving.value = false;
     pendingLanguage.value = null;
@@ -1439,8 +1465,35 @@ const roleName = computed(() => {
 });
 
 // ── Unsaved-change guard on navigation ──────────────────────────
+const notificationsRef = ref<{ routingDirty?: { value: boolean } } | null>(null);
+
+/**
+ * Ce que le garde doit compter.
+ *
+ * `dirtyCount` ne voit que les champs de CETTE page. La matrice de routage des
+ * notifications vit dans un composant enfant et pouvait porter quarante-quatre
+ * réglages non enregistrés que ce garde ignorait : quitter la page les perdait
+ * sans un mot, pendant que l'en-tête affichait « 0 ». L'enfant expose son propre
+ * état sale, on l'additionne.
+ */
+const unsavedElsewhere = computed(
+  () => notificationsRef.value?.routingDirty?.value === true
+);
+
+/* Fermer l'onglet ou recharger perdait tout aussi silencieusement : il n'y
+   avait `beforeunload` nulle part dans l'application. */
+onMounted(() => {
+  const warn = (e: BeforeUnloadEvent) => {
+    if (dirtyCount.value === 0 && !unsavedElsewhere.value) return;
+    e.preventDefault();
+    e.returnValue = '';
+  };
+  window.addEventListener('beforeunload', warn);
+  onBeforeUnmount(() => window.removeEventListener('beforeunload', warn));
+});
+
 onBeforeRouteLeave((_to, _from, next) => {
-  if (dirtyCount.value === 0) return next();
+  if (dirtyCount.value === 0 && !unsavedElsewhere.value) return next();
   if (
     typeof window !== 'undefined' &&
     !confirm(t('settings.unsavedChangesPrompt'))
@@ -1522,12 +1575,12 @@ onBeforeRouteLeave((_to, _from, next) => {
 .ready-state.idle {
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.08);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .ready-state.partial {
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
-  color: #f5c518;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 /* ─── Layout ─────────────────────────────────────────────────── */
@@ -2160,8 +2213,20 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 
 /* ─── Buttons ──────────────────────────────────────────────── */
-.btn-ghost,
-.btn-primary,
+/*
+ * Les boutons de cette surface, renommés depuis `btn-ghost` / `btn-primary`.
+ *
+ * Ce ne sont pas des copies ratées du bouton du système : c'est un dialecte à
+ * part — mono, capitales, 0,656 rem, interlettrage large — que les écrans de
+ * sécurité et de réglages emploient sciemment. Le défaut était le NOM : défini
+ * dans un `<style scoped>`, donc hors couche, il l'emportait sur
+ * `@layer components` quelle que soit la spécificité. Sept fichiers donnaient
+ * ainsi deux boutons visuellement différents sous le même nom de classe, et
+ * `class="btn btn-primary"` écrit dans l'un d'eux n'aurait pas donné le bouton
+ * attendu.
+ */
+.sbtn-ghost,
+.sbtn-primary,
 .btn-secondary {
   display: inline-flex;
   align-items: center;
@@ -2175,12 +2240,12 @@ onBeforeRouteLeave((_to, _from, next) => {
   border: 1px solid;
   transition: all var(--dur-2);
 }
-.btn-ghost {
+.sbtn-ghost {
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   border-color: rgb(var(--line-default));
 }
-.btn-ghost:hover:not(:disabled) {
+.sbtn-ghost:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.3);
   color: rgb(var(--fg-strong));
 }
@@ -2189,16 +2254,16 @@ onBeforeRouteLeave((_to, _from, next) => {
   color: rgb(var(--danger));
   background: rgb(var(--danger) / 0.08);
 }
-.btn-primary {
+.sbtn-primary {
   background: rgb(var(--fg-strong));
   color: rgb(var(--bg-base));
   border-color: rgb(var(--fg-strong));
 }
-.btn-primary:hover:not(:disabled) {
+.sbtn-primary:hover:not(:disabled) {
   filter: brightness(0.92);
 }
-.btn-primary:disabled,
-.btn-ghost:disabled,
+.sbtn-primary:disabled,
+.sbtn-ghost:disabled,
 .btn-secondary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -2305,7 +2370,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   color: rgb(var(--fg-muted));
 }
 .action-ready {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   font-weight: 600;
   display: inline-flex;
   align-items: center;
@@ -2388,6 +2453,16 @@ onBeforeRouteLeave((_to, _from, next) => {
   outline: none;
   border-color: rgb(var(--danger));
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.danger-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .danger-error {
   display: flex;
   align-items: center;

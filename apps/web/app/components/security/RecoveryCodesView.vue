@@ -9,15 +9,15 @@
       </li>
     </ul>
     <div class="rcv-actions">
-      <button class="btn-ghost" type="button" @click="copyAll">
+      <button class="sbtn-ghost" type="button" @click="copyAll">
         <Icon name="ph:copy-bold" />
         {{ copied ? $t('common.copied') : $t('security.recoveryCodes.copyAll') }}
       </button>
-      <button class="btn-ghost" type="button" @click="download">
+      <button class="sbtn-ghost" type="button" @click="download">
         <Icon name="ph:download-simple-bold" />
         {{ $t('security.recoveryCodes.downloadTxt') }}
       </button>
-      <button class="btn-ghost" type="button" @click="print">
+      <button class="sbtn-ghost" type="button" @click="print">
         <Icon name="ph:printer-bold" />
         {{ $t('security.recoveryCodes.print') }}
       </button>
@@ -143,7 +143,19 @@ function print() {
   flex-wrap: wrap;
   gap: 0.4rem;
 }
-.btn-ghost {
+/*
+ * Les boutons de cette surface, renommés depuis `btn-ghost` / `btn-primary`.
+ *
+ * Ce ne sont pas des copies ratées du bouton du système : c'est un dialecte à
+ * part — mono, capitales, 0,656 rem, interlettrage large — que les écrans de
+ * sécurité et de réglages emploient sciemment. Le défaut était le NOM : défini
+ * dans un `<style scoped>`, donc hors couche, il l'emportait sur
+ * `@layer components` quelle que soit la spécificité. Sept fichiers donnaient
+ * ainsi deux boutons visuellement différents sous le même nom de classe, et
+ * `class="btn btn-primary"` écrit dans l'un d'eux n'aurait pas donné le bouton
+ * attendu.
+ */
+.sbtn-ghost {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -158,7 +170,7 @@ function print() {
   color: rgb(var(--fg-muted));
   cursor: pointer;
 }
-.btn-ghost:hover {
+.sbtn-ghost:hover {
   color: rgb(var(--fg-strong));
   border-color: rgb(var(--line-strong));
 }

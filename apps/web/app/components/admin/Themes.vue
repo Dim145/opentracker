@@ -208,6 +208,7 @@ import {
 } from '~/composables/useThemeAdmin';
 
 const { t } = useI18n();
+const confirm = useConfirm();
 const router = useRouter();
 const { messageOf, reloadThemeStylesheet } = useThemeAdmin();
 
@@ -244,9 +245,31 @@ function roleNames(ids: string[] | null): string {
 }
 // ── Site settings ────────────────────────────────────────────────────
 const settings = ref({ themeDefault: 'dark', systemLight: 'light', systemDark: 'dark' });
+
+/** Vrai dès que les trois listes déroulantes s'écartent de ce que le serveur a
+ *  renvoyé — donc dès que l'opérateur a touché à l'une d'elles. */
+const settingsDirty = computed(() => {
+  const src = data.value.settings;
+  if (!src) return false;
+  return (
+    settings.value.themeDefault !== src.themeDefault ||
+    settings.value.systemLight !== src.systemLight ||
+    settings.value.systemDark !== src.systemDark
+  );
+});
+
 watch(
   () => data.value.settings,
-  (s) => { if (s) settings.value = { ...s }; },
+  (s) => {
+    // Toute action sur la liste des thèmes (activer, supprimer, importer)
+    // appelle `refresh()`, ce qui rejouait cette recopie et remettait les trois
+    // listes déroulantes à la valeur enregistrée. Un opérateur qui choisissait
+    // son thème par défaut PUIS coupait un thème avant d'enregistrer voyait son
+    // choix disparaître — et rien ne le disait, les listes se contentant de
+    // revenir en arrière.
+    if (!s || settingsDirty.value) return;
+    settings.value = { ...s };
+  },
   { immediate: true, deep: true },
 );
 const sameSystemHalves = computed(
@@ -273,6 +296,19 @@ async function saveSettings() {
 
 
 async function toggleEnabled(row: ThemeRow) {
+  // Couper un thème le retire de TOUS les membres qui l'avaient choisi : ils
+  // basculent sur le thème par défaut à leur prochaine page, sans rien avoir
+  // demandé. Un clic sur une icône œil de 28 px le faisait sans un mot, à
+  // côté d'une suppression qui, elle, demandait confirmation.
+  if (row.enabled) {
+    const ok = await confirm({
+      title: t('admin.themes.disable'),
+      message: t('admin.themes.confirmDisable', { name: row.name }),
+      confirmText: t('admin.themes.disable'),
+      destructive: true,
+    });
+    if (!ok) return;
+  }
   try {
     await $fetch(`/api/admin/themes/${row.id}`, {
       method: 'PUT',
@@ -305,7 +341,16 @@ function duplicate(slug: string, name: string) {
 }
 
 async function remove(row: ThemeRow) {
-  if (!confirm(t('admin.themes.confirmDelete', { name: row.name }))) return;
+  // Le `confirm()` du navigateur : hors thème, non traduit dans ses boutons,
+  // et bloquant. Le site a son propre dialogue depuis longtemps ; c'était le
+  // dernier appel natif de la console.
+  const ok = await confirm({
+    title: t('admin.themes.delete'),
+    message: t('admin.themes.confirmDelete', { name: row.name }),
+    confirmText: t('admin.themes.delete'),
+    destructive: true,
+  });
+  if (!ok) return;
   try {
     await $fetch(`/api/admin/themes/${row.id}`, { method: 'DELETE' });
     await refresh();

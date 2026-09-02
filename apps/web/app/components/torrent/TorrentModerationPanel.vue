@@ -873,6 +873,16 @@ function formatDate(iso: string): string {
   border-color: var(--c-line);
   box-shadow: 0 0 0 3px rgb(var(--c) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.mod-composer-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .mod-composer-input:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .mod-composer-actions {

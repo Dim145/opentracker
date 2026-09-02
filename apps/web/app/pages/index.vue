@@ -167,7 +167,17 @@
           @click="navigateTo(`/torrents/${t.infoHash}`)"
         >
           <span class="mc-ledger-rank">{{ String(i + 1).padStart(3, '0') }}</span>
-          <span class="mc-ledger-name" :title="t.name">{{ t.name }}</span>
+          <!-- Le nom porte le lien. La ligne n'avait qu'un `@click` : la
+               tabulation traversait tout le tableau de la page d'accueil sans
+               s'y arrêter, et rien n'annonçait qu'une ligne menait quelque
+               part. Le clic sur la ligne reste, comme raccourci. -->
+          <NuxtLink
+            :to="`/torrents/${t.infoHash}`"
+            class="mc-ledger-name"
+            :title="t.name"
+            @click.stop
+            >{{ t.name }}</NuxtLink
+          >
           <span class="mc-ledger-size">{{ formatSize(t.size) }}</span>
           <span class="mc-ledger-seed" :class="{ 'mc-ledger-seed--zero': !t.stats.seeders }">
             <Icon name="ph:arrow-up-bold" />
@@ -210,7 +220,13 @@
             >
               <span class="mc-hot-rank">0{{ i + 1 }}</span>
               <span class="mc-hot-meta">
-                <span class="mc-hot-name" :title="t.name">{{ t.name }}</span>
+                <NuxtLink
+                  :to="`/torrents/${t.infoHash}`"
+                  class="mc-hot-name"
+                  :title="t.name"
+                  @click.stop
+                  >{{ t.name }}</NuxtLink
+                >
                 <span class="mc-hot-detail">
                   <Icon name="ph:arrow-up-bold" />
                   <strong>{{ t.stats.seeders }}</strong>
@@ -582,10 +598,16 @@ function formatClock(d: Date): string {
   )} UTC`;
 }
 if (import.meta.client) {
-  const clockTick = setInterval(() => {
+  let clockTick: ReturnType<typeof setInterval> | null = null;
+  onMounted(() => {
     liveClock.value = formatClock(new Date());
-  }, 1000);
-  onBeforeUnmount(() => clearInterval(clockTick));
+    clockTick = setInterval(() => {
+      liveClock.value = formatClock(new Date());
+    }, 1000);
+  });
+  onBeforeUnmount(() => {
+    if (clockTick) clearInterval(clockTick);
+  });
 }
 
 // ── Manifesto features ──────────────────────────────────────────────
@@ -1121,6 +1143,8 @@ function useCounter(target: Ref<number>) {
   transition: color var(--dur-2) ease;
 }
 .mc-ledger-name {
+  display: block;
+  min-width: 0;
   color: rgb(var(--fg-strong));
   font-weight: 500;
   letter-spacing: calc(-0.005em * var(--tracking-scale));
@@ -1295,6 +1319,8 @@ function useCounter(target: Ref<number>) {
   min-width: 0;
 }
 .mc-hot-name {
+  display: block;
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: rgb(var(--fg-strong));

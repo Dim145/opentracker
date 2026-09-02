@@ -49,6 +49,9 @@ const MAX_IN_MEMORY = 50;
 // here — each user runs one tab → one connection. SSR never reaches
 // these because every code path that touches them is gated on
 // `typeof window !== 'undefined'`.
+/** Un seul cycle de vie par processus client : voir la note sur le `watch`. */
+let lifecycleBound = false;
+
 let eventSource: EventSource | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let pollFallback: ReturnType<typeof setInterval> | null = null;
@@ -224,6 +227,14 @@ export function useNotifications() {
    *  inside each helper short-circuit when already running. */
   function start() {
     if (!loggedIn.value) return;
+    // `import.meta.client` : `connectSSE` est gardé par `typeof window` et par
+    // `if (eventSource) return`, mais `fetchInitial` ne l'était par NI l'un NI
+    // l'autre. Côté serveur, cela lançait un `$fetch` flottant par consommateur
+    // et par rendu — aucun attendu, donc aucun n'atterrissait dans le HTML
+    // rendu : du travail payé et jeté. Le commentaire d'en-tête affirmait
+    // « SSR never reaches these because every code path is gated on
+    // `typeof window !== 'undefined'` » ; c'était faux pour celui-ci.
+    if (!import.meta.client) return;
     void fetchInitial();
     connectSSE();
     // Re-open the SSE when the tab becomes visible again — some
@@ -255,14 +266,24 @@ export function useNotifications() {
 
   // React to sign-in / sign-out automatically so consumers don't
   // have to thread the lifecycle themselves.
-  watch(
-    loggedIn,
-    (v) => {
-      if (v) start();
-      else stop();
-    },
-    { immediate: true },
-  );
+  //
+  // Une seule fois par processus client, pas une par consommateur. Le `watch`
+  // était enregistré DANS le corps du composable, donc chaque composant qui
+  // l'appelait — la cloche, la page des notifications, la mise en page — en
+  // posait un et déclenchait `start()` à son propre `setup` : N requêtes en
+  // double à chaque chargement. `useColorMode.ts` traite déjà le même problème
+  // avec un drapeau de module.
+  if (import.meta.client && !lifecycleBound) {
+    lifecycleBound = true;
+    watch(
+      loggedIn,
+      (v) => {
+        if (v) start();
+        else stop();
+      },
+      { immediate: true },
+    );
+  }
 
   return {
     state: readonly(state),

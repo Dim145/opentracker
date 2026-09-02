@@ -55,6 +55,12 @@ export default {
         border: {
           DEFAULT: 'rgb(var(--line-default) / <alpha-value>)',
           hover:   'rgb(var(--line-strong) / <alpha-value>)',
+          // La bordure d'un CHAMP. `border-border` est le filet décoratif des
+          // cartes et des tableaux : à 1,21:1 en sombre et 1,26:1 en clair, il
+          // ne peut pas porter la frontière d'un contrôle, que WCAG 1.4.11
+          // veut à 3:1. `.input` passe par `--line-field` dans `main.css` ; les
+          // champs habillés en utilitaires ont besoin du même jeton.
+          field:   'rgb(var(--line-field) / <alpha-value>)',
         },
         line: {
           DEFAULT: 'rgb(var(--line-default) / <alpha-value>)',

@@ -465,7 +465,7 @@ function actionVerb(status: string | null): string {
   font-weight: 700;
   letter-spacing: calc(0.26em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .wt-eyebrow-dot {
   width: 7px;
@@ -492,7 +492,7 @@ function actionVerb(status: string | null): string {
   line-height: 1.1;
 }
 .wt-greeting-name {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 1.4rem;
@@ -679,7 +679,7 @@ function actionVerb(status: string | null): string {
 }
 .feed-tag-icon {
   font-size: 1rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .feed-meta {
   font-family: var(--font-mono);
@@ -706,7 +706,7 @@ function actionVerb(status: string | null): string {
   transition: all var(--dur-2) ease;
 }
 .feed-cta:hover {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.5);
 }
 
@@ -745,7 +745,7 @@ function actionVerb(status: string | null): string {
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.04em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   padding-top: 0.15rem;
 }
 .queue-name {
@@ -828,17 +828,17 @@ function actionVerb(status: string | null): string {
 }
 .log-verb-icon { font-size: 0.85rem; }
 .log-row--accepted .log-verb {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.06);
 }
 .log-row--rejected .log-verb {
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(244, 63, 94, 0.4);
   background: rgba(244, 63, 94, 0.06);
 }
 .log-row--changes_requested .log-verb {
-  color: #fb923c;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(251, 146, 60, 0.4);
   background: rgba(251, 146, 60, 0.06);
 }

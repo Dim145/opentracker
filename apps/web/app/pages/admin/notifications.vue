@@ -460,7 +460,7 @@ async function testChannel(ch: AdminChannel) {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;

@@ -501,6 +501,7 @@ const props = defineProps<{
 }>();
 
 const { t, te } = useI18n();
+const confirm = useConfirm();
 const router = useRouter();
 const { messageOf, reloadThemeStylesheet } = useThemeAdmin();
 
@@ -566,6 +567,13 @@ async function uploadFont() {
 }
 
 async function removeFont(id: string) {
+  const ok = await confirm({
+    title: t('admin.themes.confirmRemoveFont.title'),
+    message: t('admin.themes.confirmRemoveFont.message'),
+    confirmText: t('common.delete'),
+    destructive: true,
+  });
+  if (!ok) return;
   fontError.value = '';
   try {
     await $fetch(`/api/admin/fonts/${id}`, { method: 'DELETE' });

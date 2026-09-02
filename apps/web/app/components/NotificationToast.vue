@@ -9,7 +9,7 @@
          of cutting the reader off mid-sentence, and `aria-atomic` so a toast is
          read as one message rather than as the fragments it is built from. -->
     <div
-      class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
+      class="fixed top-4 right-4 z-[60] flex flex-col gap-2 pointer-events-none"
       role="status"
       aria-live="polite"
       aria-atomic="true"
@@ -70,29 +70,39 @@ function iconName(type: string) {
   }
 }
 
+/*
+ * Les teintes du bandeau, prises au thème.
+ *
+ * C'étaient `text-green-400` / `text-red-400` / `text-yellow-400` /
+ * `text-blue-400` et les bordures assorties : des couleurs Tailwind fixes, sur
+ * une carte dont le fond suit le thème. En thème clair, `text-yellow-400`
+ * (#facc15) sur la surface d'une carte tombe autour de 1,5:1 — l'icône du
+ * bandeau d'avertissement était pratiquement invisible, et c'est le seul canal
+ * par lequel le site dit qu'une action a échoué.
+ */
 function iconClass(type: string) {
   switch (type) {
     case 'success':
-      return 'text-green-400';
+      return 'text-success';
     case 'error':
-      return 'text-red-400';
+      return 'text-error';
     case 'warning':
-      return 'text-yellow-400';
+      return 'text-warning';
     default:
-      return 'text-blue-400';
+      return 'text-info';
   }
 }
 
 function borderClass(type: string) {
   switch (type) {
     case 'success':
-      return 'border-green-500/30';
+      return 'border-success/30';
     case 'error':
-      return 'border-red-500/30';
+      return 'border-error/30';
     case 'warning':
-      return 'border-yellow-500/30';
+      return 'border-warning/30';
     default:
-      return 'border-blue-500/30';
+      return 'border-info/30';
   }
 }
 </script>

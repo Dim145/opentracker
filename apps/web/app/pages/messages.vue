@@ -1047,6 +1047,7 @@ interface ThreadMessage {
 }
 
 const { t } = useI18n();
+const confirm = useConfirm();
 const { user } = useUserSession();
 const route = useRoute();
 const router = useRouter();
@@ -2161,11 +2162,36 @@ if (import.meta.client) {
   });
 }
 
+/**
+ * Charge un fil, ou une page plus ancienne du fil courant.
+ *
+ * `target` est capturé À L'ENTRÉE et sert à TOUT — l'URL des messages, celle de
+ * la clé du pair, l'identifiant passé à `convCrypto.prepare` — puis il est
+ * comparé à `activeId` avant la seule écriture d'état.
+ *
+ * Sans cela : la fonction lisait `activeId.value` pour bâtir l'URL, puis
+ * attendait le fetch des messages, celui de la clé du pair, la préparation du
+ * chiffre (qui RELISAIT `activeId.value` après les `await`) et un `Promise.all`
+ * de déchiffrements par message — avant d'écrire `messages.value` sans vérifier
+ * quoi que ce soit. Deux clics rapides, A puis B, lançaient deux appels ; celui
+ * qui finissait en dernier gagnait. Conséquence au-delà de l'affichage : le
+ * texte EN CLAIR de A s'affichait sous l'en-tête de B, `send()` postait sur B
+ * une réponse écrite face à A, et `markRead` visait le mauvais fil.
+ *
+ * Le dépôt connaissait déjà cette classe de bug — le commentaire de `send()`
+ * dit « `activeId` can change during it » et la garde y a été posée. Elle
+ * manquait ici.
+ */
 async function loadThread(before?: string) {
+  const target = activeId.value;
+  if (!target) return;
+  const stale = () => activeId.value !== target;
+
   const data = await $fetch<{ messages: ThreadMessage[]; nextBefore: string | null }>(
-    `/api/messaging/conversations/${activeId.value}/messages`,
+    `/api/messaging/conversations/${target}/messages`,
     { query: before ? { before } : undefined }
   );
+  if (stale()) return;
   // The API answers newest-first for the cursor to work; the thread reads
   // oldest-first.
   let page = [...data.messages].reverse().map((m) => ({
@@ -2188,12 +2214,17 @@ async function loadThread(before?: string) {
             `/api/messaging/keys/${encodeURIComponent(active.value.with.username)}`
           ).catch(() => ({ available: false }) as const)
         : ({ available: false } as const);
+      if (stale()) return;
 
       await convCrypto.prepare({
         encrypted: true,
-        conversationId: activeId.value!,
+        // `target`, pas `activeId.value` : cette ligne était relue APRÈS deux
+        // `await`, donc elle préparait le chiffre de la conversation affichée à
+        // cet instant pour déchiffrer les messages d'une autre.
+        conversationId: target,
         peerPublicKey: 'publicKey' in peer ? peer.publicKey : null,
       });
+      if (stale()) return;
     }
 
     page = await Promise.all(
@@ -2208,6 +2239,9 @@ async function loadThread(before?: string) {
     );
   }
 
+  // La seule écriture d'état : gardée, parce que tout ce qui précède a pu
+  // laisser passer un changement de conversation.
+  if (stale()) return;
   messages.value = before ? [...page, ...messages.value] : page;
   nextBefore.value = data.nextBefore;
   if (!before) await nextTick(scrollToEnd);
@@ -2365,6 +2399,15 @@ const isStaff = computed(
  * coherent and a report still has something to point at.
  */
 async function removeMessage(msg: ThreadMessage) {
+  // Le retrait est définitif et visible d'en face : le message devient « retiré »
+  // chez le destinataire aussi. Il partait sur un clic dans un menu contextuel.
+  const ok = await confirm({
+    title: t('messaging.confirmWithdraw.title'),
+    message: t('messaging.confirmWithdraw.message'),
+    confirmText: t('messaging.withdraw'),
+    destructive: true,
+  });
+  if (!ok) return;
   const previousBody = msg.body;
   const previousCipher = msg.cipher;
   msg.deleted = true;
@@ -2580,6 +2623,52 @@ async function startConversation() {
   flex-shrink: 0;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  /*
+   * Un châssis, enfin.
+   *
+   * Ces trois boutons n'avaient ni fond, ni bordure, ni couleur, ni `:hover`,
+   * ni état désactivé : le preflight Tailwind retire fond et bordure de tout
+   * `<button>`, et aucune règle globale `button` n'existe. « Envoyer » — l'action
+   * principale de la page — était donc un glyphe nu, visuellement identique
+   * quand `:disabled="!draft.trim()"` le désactivait, tout comme « Accepter »
+   * une demande de premier contact. Et `.msg-back` est le seul chemin de retour
+   * sur téléphone.
+   *
+   * `/chat` fait la démonstration de l'intention : son `.room-send` est un
+   * disque or plein avec un `:disabled` visible.
+   */
+  border: 1px solid rgb(var(--line-default));
+  background: rgb(var(--bg-elevated));
+  color: rgb(var(--fg-default));
+  transition:
+    color var(--dur-2) ease,
+    background-color var(--dur-2) ease,
+    border-color var(--dur-2) ease;
+}
+.msg-new:hover:not(:disabled),
+.msg-back:hover:not(:disabled),
+.msg-send:hover:not(:disabled) {
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--fg-default) / 0.3);
+}
+.msg-new:disabled,
+.msg-back:disabled,
+.msg-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* Envoyer est l'action principale : elle prend l'or plein, comme dans le
+   salon, pour que le point le plus lumineux du composeur soit le geste et non
+   la pastille de non-lus. */
+.msg-send:not(:disabled) {
+  background: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-fg));
+}
+.msg-send:hover:not(:disabled) {
+  background: rgb(var(--accent-warm) / 0.85);
+  border-color: rgb(var(--accent-warm) / 0.85);
+  color: rgb(var(--accent-warm-fg));
 }
 
 .msg-section {
@@ -2620,7 +2709,7 @@ async function startConversation() {
   flex: none;
   border-radius: var(--radius-md);
   background: rgb(var(--accent-warm) / 0.16);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 1.05rem;
 }
 .msg-quick-text { display: flex; flex-direction: column; min-width: 0; }
@@ -2670,7 +2759,7 @@ async function startConversation() {
   padding: 0 0.25rem;
   border-radius: var(--radius-pill);
   background: rgb(var(--accent-warm));
-  color: rgb(var(--bg-base));
+  color: rgb(var(--accent-warm-fg));
   font-family: var(--font-mono);
   font-size: 0.6rem;
   font-weight: 800;
@@ -2774,7 +2863,7 @@ async function startConversation() {
      `bg-accent` utility in the template, which the rewrite dropped —
      leaving a badge with a foreground colour and no ground. */
   background: rgb(var(--accent-warm));
-  color: rgb(var(--bg-base));
+  color: rgb(var(--accent-warm-fg));
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: 0.65rem;
@@ -3008,7 +3097,20 @@ async function startConversation() {
   border-radius: var(--radius-sm);
   font-size: 0.8125rem;
   cursor: pointer;
+  /* Accepter une demande de premier contact est une décision : elle mérite une
+     boîte. Même défaut que les trois boutons ci-dessus. */
+  min-height: 2.25rem;
+  border: 1px solid rgb(var(--online) / 0.5);
+  background: rgb(var(--online) / 0.12);
+  color: rgb(var(--online));
+  font-weight: 600;
+  transition: background-color var(--dur-2) ease, border-color var(--dur-2) ease;
 }
+.msg-accept:hover:not(:disabled) {
+  background: rgb(var(--online) / 0.2);
+  border-color: rgb(var(--online) / 0.8);
+}
+.msg-accept:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .msg-input {
   flex: 1;
@@ -3203,7 +3305,7 @@ async function startConversation() {
 .msg-list-foot {
   margin-top: auto;
   padding-top: 0.5rem;
-  border-top: 1px solid rgb(var(--line));
+  border-top: 1px solid rgb(var(--line-default));
 }
 .msg-foot-link {
   display: inline-flex;
@@ -3339,6 +3441,16 @@ async function startConversation() {
   .msg-search-input { font-size: 0.8125rem; }
 }
 .msg-search-input:focus { outline: none; }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.msg-search-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .msg-search-input::placeholder { color: rgb(var(--fg-muted)); }
 /* WebKit draws its own cancel button and magnifier inside type="search";
    both fight the ones above. */
@@ -3424,7 +3536,7 @@ async function startConversation() {
   padding: 0 0.3rem;
   border-radius: var(--radius-pill);
   background: rgb(var(--accent-warm));
-  color: rgb(var(--bg-base));
+  color: rgb(var(--accent-warm-fg));
   font-family: var(--font-mono);
   font-size: 0.6rem;
   font-weight: 800;

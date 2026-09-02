@@ -198,7 +198,12 @@ watchDebounced(
       if (token !== searchToken) return; // une frappe plus récente a gagné
       results.value = Array.isArray(res) ? res : (res?.results ?? res?.data ?? []);
     } catch (err: any) {
-      if (token === searchToken) searchError.value = err?.data?.message ?? err?.message ?? '';
+      // Le repli était la chaîne vide : une recherche qui échouait sans message
+      // du serveur — une coupure réseau, un service de métadonnées éteint —
+      // ne produisait donc rien du tout à l'écran.
+      if (token === searchToken)
+        searchError.value =
+          err?.data?.message ?? err?.message ?? t('components.mediaSearch.errors.searchFailed');
     } finally {
       if (token === searchToken) searching.value = false;
     }
@@ -1207,6 +1212,17 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* `.section-help` vient de `upload-form.css`, importé par les deux pages ; le
+   modificateur `--auto`, lui, ne vivait que dans le `<style scoped>` de
+   `upload.vue`. La ligne « rempli pour vous » retombait donc sur le gris
+   ordinaire, perdant précisément l'emphase qui dit qu'elle a été déduite. */
+.section-help--auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: rgb(var(--fg-strong));
+}
+
 @import '~/assets/css/upload-form.css';
 
 .fiche-shell {

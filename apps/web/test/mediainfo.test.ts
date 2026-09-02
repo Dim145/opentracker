@@ -3,7 +3,7 @@ import {
   channelsToLayout,
   formatBitRate,
   formatDuration,
-  formatSize,
+  formatSheetSize,
   layoutToChannels,
   parseBitRate,
   parseMediaInfoText,
@@ -70,7 +70,7 @@ describe('formatBitRate', () => {
   });
 });
 
-describe('parseSize / formatSize', () => {
+describe('parseSize / formatSheetSize', () => {
   it('reads bare bytes and suffixed forms', () => {
     expect(parseSize('1473173712')).toBe(1_473_173_712);
     expect(parseSize('1.37 GiB')).toBe(Math.round(1.37 * 1024 ** 3));
@@ -78,8 +78,8 @@ describe('parseSize / formatSize', () => {
   });
 
   it('switches to GiB past the gibibyte', () => {
-    expect(formatSize(1_473_173_712)).toBe('1.37 GiB');
-    expect(formatSize(700 * 1024 ** 2)).toBe('700 MiB');
+    expect(formatSheetSize(1_473_173_712)).toBe('1.37 GiB');
+    expect(formatSheetSize(700 * 1024 ** 2)).toBe('700 MiB');
   });
 });
 

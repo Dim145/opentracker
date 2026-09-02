@@ -16,7 +16,7 @@
             :class="
               config?.enabled
                 ? 'bg-success/20 text-success'
-                : 'bg-red-500/20 text-red-400'
+                : 'bg-error/20 text-error'
             "
           >
             {{ config?.enabled ? $t('admin.torznab.config.enabled') : $t('admin.torznab.config.disabled') }}

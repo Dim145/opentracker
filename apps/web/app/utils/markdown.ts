@@ -25,7 +25,15 @@ import type { Config as DomPurifyConfig } from 'isomorphic-dompurify';
  *     opener and don't leak referrers.
  */
 const SAFE_PROFILE: DomPurifyConfig = {
-  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|#)/i,
+  // `|\/` : la branche pour un chemin relatif, qui manquait.
+  //
+  // Sans elle, `sanitizeHtml('<a href="/x">x</a>')` rend `<a>x</a>` — mesuré.
+  // Donc `[voir la fiche](/torrents/42)` dans une description, ou un
+  // `footerText` de marque pointant sur `/rules`, s'affichaient en texte non
+  // cliquable. Le regexp par défaut de DOMPurify autorise les références
+  // relatives pour cette raison exacte ; celui-ci a été resserré et a emporté
+  // le cas légitime avec les schémas dangereux.
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[#/])/i,
   FORBID_TAGS: ['style', 'iframe', 'form', 'input', 'base', 'meta', 'object'],
   FORBID_ATTR: ['style', 'srcdoc', 'autofocus'],
 };
@@ -44,7 +52,15 @@ const SAFE_PROFILE: DomPurifyConfig = {
  * so it never loosens the strict path used for branding/forum/markdown.
  */
 const RICH_PROFILE: DomPurifyConfig = {
-  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|#)/i,
+  // `|\/` : la branche pour un chemin relatif, qui manquait.
+  //
+  // Sans elle, `sanitizeHtml('<a href="/x">x</a>')` rend `<a>x</a>` — mesuré.
+  // Donc `[voir la fiche](/torrents/42)` dans une description, ou un
+  // `footerText` de marque pointant sur `/rules`, s'affichaient en texte non
+  // cliquable. Le regexp par défaut de DOMPurify autorise les références
+  // relatives pour cette raison exacte ; celui-ci a été resserré et a emporté
+  // le cas légitime avec les schémas dangereux.
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[#/])/i,
   FORBID_TAGS: ['style', 'iframe', 'form', 'input', 'base', 'meta', 'object'],
   FORBID_ATTR: ['srcdoc', 'autofocus'],
 };

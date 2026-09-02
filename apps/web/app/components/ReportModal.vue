@@ -377,11 +377,11 @@ onBeforeUnmount(() => {
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .slip-eyebrow-icon {
   font-size: 1rem;
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.35));
 }
 .slip-close {
@@ -477,7 +477,7 @@ onBeforeUnmount(() => {
   transition: color var(--dur-3) ease;
 }
 .slip-counter--warn {
-  color: #f59e0b;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 /* ── Chip picker ────────────────────────────────────────── */
@@ -508,7 +508,7 @@ onBeforeUnmount(() => {
   background: rgb(var(--bg-inset));
 }
 .chip--active {
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(244, 63, 94, 0.55);
   background: rgba(244, 63, 94, 0.08);
   box-shadow: inset 0 0 0 1px rgba(244, 63, 94, 0.25);
@@ -540,6 +540,16 @@ onBeforeUnmount(() => {
   border-color: rgba(244, 63, 94, 0.55);
   box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.slip-textarea:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .slip-textarea::placeholder {
   color: rgb(var(--fg-faint));
 }

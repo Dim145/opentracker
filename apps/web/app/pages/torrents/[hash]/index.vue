@@ -1418,10 +1418,10 @@ watch(
     buffForm.downloadMultiplier = t0.downloadMultiplier ?? 100;
     buffForm.uploadMultiplier = t0.uploadMultiplier ?? 100;
     buffForm.isSticky = t0.isSticky ?? false;
-    // Trim the seconds and the zone: the input accepts neither.
-    buffForm.until = t0.multipliersUntil
-      ? new Date(t0.multipliersUntil).toISOString().slice(0, 16)
-      : '';
+    // `isoToDatetimeLocal` plutôt que `toISOString().slice(0, 16)` : cette
+    // dernière écrivait l'heure UTC dans un champ qui la relit comme locale,
+    // donc l'échéance reculait d'un fuseau à chaque enregistrement.
+    buffForm.until = isoToDatetimeLocal(t0.multipliersUntil);
   },
   { immediate: true }
 );
@@ -1449,7 +1449,7 @@ function saveBuffs() {
   return putBuffs({
     downloadMultiplier: buffForm.downloadMultiplier,
     uploadMultiplier: buffForm.uploadMultiplier,
-    until: buffForm.until ? new Date(buffForm.until).toISOString() : null,
+    until: datetimeLocalToIso(buffForm.until),
     isSticky: buffForm.isSticky,
   });
 }
@@ -2002,13 +2002,13 @@ async function confirmDelete() {
     transform var(--dur-4) var(--ease-emphasis);
 }
 .hero-eyebrow-star:hover {
-  color: #f59e0b;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(245, 158, 11, 0.55);
   background: rgba(245, 158, 11, 0.08);
   transform: translateY(-1px);
 }
 .hero-eyebrow-star.is-on {
-  color: #f59e0b;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(245, 158, 11, 0.16);
   border-color: rgba(245, 158, 11, 0.65);
   box-shadow:
@@ -2120,7 +2120,7 @@ async function confirmDelete() {
     rgb(var(--online)),
     rgb(var(--online) / 0.78)
   );
-  color: #0a1610;
+  color: rgb(var(--online-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-radius: var(--radius-lg);
   text-decoration: none;
   font-family: var(--font-mono);
@@ -2198,7 +2198,9 @@ async function confirmDelete() {
     transform var(--dur-4);
 }
 .cta-ghost:hover {
-  color: #fff;
+  /* Encre foncée : blanc sur ce violet mesure 2,72:1 dans les DEUX thèmes,
+     la valeur étant un littéral local qui ne bascule pas. */
+  color: rgb(var(--bg-base));
   border-color: rgb(var(--release-purple));
   background: rgb(var(--release-purple));
   transform: translateY(-1px);
@@ -2213,7 +2215,7 @@ async function confirmDelete() {
   background: rgb(var(--danger) / 0.1);
 }
 .cta-ghost--danger:hover {
-  color: #fff;
+  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgb(var(--danger));
   background: rgb(var(--danger));
   transform: translateY(-1px);
@@ -2797,7 +2799,7 @@ async function confirmDelete() {
   white-space: nowrap;
 }
 .cross-badge--verified {
-  color: #4ade80;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(34, 197, 94, 0.08);
   border-color: rgba(34, 197, 94, 0.3);
 }
@@ -2815,7 +2817,7 @@ async function confirmDelete() {
   padding: 0.05rem 0.5rem;
   border-radius: var(--radius-pill);
   font-weight: 600;
-  color: #4ade80;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(34, 197, 94, 0.08);
   border: 1px solid rgba(34, 197, 94, 0.25);
 }
@@ -2928,22 +2930,29 @@ async function confirmDelete() {
   background: rgba(245, 197, 24, 0.12);
   border-color: rgba(245, 197, 24, 0.45);
 }
+  /* La teinte reste sur le fond et la bordure — donc l'identité média
+     (IMDb, TMDb) et la distinction de catégorie survivent — mais le LIBELLÉ
+     passe sur un jeton de premier plan. Une couleur de marque n'a pas de raison
+     d'être lisible sur les deux thèmes : `#f5c518` sur blanc mesure 1,50:1.
+     C'est exactement ce que `tagBadgeStyle()` fait déjà pour les tags, où la
+     couleur est choisie par un opérateur et où le texte reste donc toujours
+     lisible. */
 .media-id-badge--imdb .media-id-badge-tag {
-  color: #f5c518;
+  color: rgb(var(--fg-default));
 }
 .media-id-badge--tmdb {
   background: rgba(1, 180, 228, 0.12);
   border-color: rgba(1, 180, 228, 0.45);
 }
 .media-id-badge--tmdb .media-id-badge-tag {
-  color: #01b4e4;
+  color: rgb(var(--fg-default));
 }
 .media-id-badge--tvdb {
   background: rgba(108, 209, 97, 0.12);
   border-color: rgba(108, 209, 97, 0.45);
 }
 .media-id-badge--tvdb .media-id-badge-tag {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 /* Description typography lives in <DescriptionRender> now — the
@@ -3127,7 +3136,7 @@ async function confirmDelete() {
   display: inline-flex;
   padding: 0.2em 0.6em 0.25em;
   background: rgb(var(--danger));
-  color: #fff;
+  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   letter-spacing: calc(0.05em * var(--tracking-scale));
   /* A faint, off-axis tilt to feel like an actual rubber-stamp impression. */
   transform: rotate(-1.5deg);
@@ -3362,7 +3371,7 @@ async function confirmDelete() {
   padding: 0.7rem 1.05rem;
   border: 1px solid rgb(var(--danger));
   background: rgb(var(--danger));
-  color: #fff;
+  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 800;

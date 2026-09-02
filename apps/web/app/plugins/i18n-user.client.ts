@@ -43,6 +43,22 @@ export default defineNuxtPlugin({
     }
     const { locale, setLocale, locales } = i18n;
 
+    /*
+     * Les formateurs de `~/utils/format` suivent la même locale.
+     *
+     * `formatSize`, `formatDate`, `formatAge` et `formatDay` sont appelés depuis
+     * une cinquantaine d'endroits, dont la colonne ÂGE du catalogue et l'en-tête
+     * de chaque fiche. Leur passer une locale à chaque appel était le coût qui a
+     * maintenu l'anglais dans l'interface française pendant si longtemps : on
+     * pose donc la locale une fois ici, et un appelant qui a une raison de
+     * forcer autre chose garde son argument explicite.
+     */
+    watch(
+      locale,
+      (next) => setFormatLocale(String(next)),
+      { immediate: true },
+    );
+
     watch(
       () => user.value?.language,
       async (next) => {

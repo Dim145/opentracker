@@ -264,7 +264,9 @@ const canDelete = computed(
 );
 
 const bannerStyle = computed(() => ({
-  '--accent': category.value?.color || 'rgb(var(--fg-muted))',
+  // Voir la note de `forum/index.vue` : un HEX ne peut pas être consommé en
+  // `rgb(var(…))`, et masquer le jeton global sous un autre type est un piège.
+  '--cat-accent': category.value?.color || 'rgb(var(--fg-muted))',
 }));
 
 function formatIssueNumber(n: number): string {
@@ -321,7 +323,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   border: 1px solid var(--rule);
   border-radius: var(--radius-sm);
   background:
-    radial-gradient(800px 200px at 0% 0%, color-mix(in srgb, rgb(var(--accent)) 12%, transparent), transparent 60%),
+    radial-gradient(800px 200px at 0% 0%, color-mix(in srgb, var(--cat-accent) 12%, transparent), transparent 60%),
     rgb(var(--bg-surface));
   overflow: hidden;
 }
@@ -329,7 +331,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   position: absolute;
   inset: 0 auto 0 0;
   width: 6px;
-  background: rgb(var(--accent));
+  background: var(--cat-accent);
 }
 
 .cat-crumb {
@@ -372,9 +374,9 @@ async function handleDeleteTopic(topic: ForumTopic) {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, rgb(var(--accent)) 14%, transparent);
-  border: 1px solid color-mix(in srgb, rgb(var(--accent)) 35%, transparent);
-  color: rgb(var(--accent));
+  background: color-mix(in srgb, var(--cat-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cat-accent) 35%, transparent);
+  color: var(--cat-accent);
   font-size: 1.7rem;
   flex-shrink: 0;
 }
@@ -393,7 +395,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent));
+  color: var(--cat-accent);
   margin: 0;
 }
 .cat-banner-eyebrow .dot {

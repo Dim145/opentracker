@@ -221,6 +221,7 @@ interface Health {
 }
 
 const { t, locale } = useI18n();
+const notifications = useNotificationStore();
 const { data, pending, refresh } = await useFetch<Health>(
   '/api/admin/federation/health',
 );
@@ -234,10 +235,15 @@ async function recover(peerId: string): Promise<void> {
       method: 'POST',
       body: { mode: 'resync' },
     });
-    await refresh();
-  } catch {
-    /* the health card surfaces the peer's error on the next refresh */
+  } catch (err: unknown) {
+    // Le commentaire disait « la carte de santé remontera l'erreur au prochain
+    // rafraîchissement » — mais `refresh()` était DANS le `try`, après l'appel
+    // qui échoue : il n'était jamais atteint. L'opérateur cliquait, le spinner
+    // tournait, s'arrêtait, et rien n'avait changé ni n'avait été dit.
+    const e = err as { data?: { message?: string } };
+    notifications.error(e?.data?.message || t('common.actionFailed'));
   } finally {
+    await refresh();
     recovering.value = null;
   }
 }
@@ -348,6 +354,15 @@ function hostOf(url: string): string {
 </script>
 
 <style scoped>
+/* `.fed-hint` ne vivait que dans le `<style scoped>` de `admin/federation.vue`,
+   la page qui rend ce composant — un style scopé n'atteint que la RACINE d'un
+   enfant, pas ses descendants. La phrase d'aide rendait donc du texte courant. */
+.fed-hint {
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: rgb(var(--fg-subtle));
+}
+
 .fh-body {
   display: flex;
   flex-direction: column;
@@ -505,10 +520,10 @@ function hostOf(url: string): string {
    so an instance carrying ten times what it publishes looks like it — no
    figure to divide in your head. */
 .fh-store {
-  border: 1px solid rgb(var(--border) / 0.7);
+  border: 1px solid rgb(var(--line-default) / 0.7);
   border-radius: var(--radius-lg);
   padding: 0.7rem 0.8rem;
-  background: rgb(var(--bg-subtle) / 0.35);
+  background: rgb(var(--bg-inset) / 0.35);
 }
 .fh-store-bar {
   display: flex;
@@ -516,7 +531,7 @@ function hostOf(url: string): string {
   gap: 2px;
   border-radius: var(--radius-xs);
   overflow: hidden;
-  background: rgb(var(--border) / 0.4);
+  background: rgb(var(--line-default) / 0.4);
 }
 .fh-seg {
   min-width: 2px;
@@ -553,7 +568,7 @@ function hostOf(url: string): string {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   font-weight: 600;
-  color: rgb(var(--fg));
+  color: rgb(var(--fg-default));
 }
 .fh-store-l {
   font-size: 0.7rem;
@@ -567,7 +582,7 @@ function hostOf(url: string): string {
   gap: 0.3rem;
   margin-top: 0.55rem;
   padding-top: 0.55rem;
-  border-top: 1px dashed rgb(var(--border) / 0.6);
+  border-top: 1px dashed rgb(var(--line-default) / 0.6);
 }
 .fh-kind {
   display: inline-flex;
@@ -575,12 +590,12 @@ function hostOf(url: string): string {
   gap: 0.3rem;
   padding: 0.1rem 0.4rem;
   border-radius: var(--radius-sm);
-  background: rgb(var(--bg-subtle) / 0.8);
+  background: rgb(var(--bg-inset) / 0.8);
   font-family: var(--font-mono);
   font-size: 0.68rem;
 }
 .fh-kind-k { color: rgb(var(--fg-muted)); }
-.fh-kind-n { color: rgb(var(--fg)); font-weight: 600; }
+.fh-kind-n { color: rgb(var(--fg-default)); font-weight: 600; }
 
 .fh-peer-sep { color: rgb(var(--fg-subtle)); }
 .fh-recover {
@@ -588,14 +603,14 @@ function hostOf(url: string): string {
   align-items: center;
   gap: 0.3rem;
   padding: 0.2rem 0.5rem;
-  border: 1px solid rgb(var(--border) / 0.8);
+  border: 1px solid rgb(var(--line-default) / 0.8);
   border-radius: var(--radius-md);
-  background: rgb(var(--bg-subtle) / 0.5);
+  background: rgb(var(--bg-inset) / 0.5);
   color: rgb(var(--fg-muted));
   font-size: 0.72rem;
   cursor: pointer;
 }
-.fh-recover:hover:not(:disabled) { color: rgb(var(--fg)); border-color: rgb(var(--accent) / 0.6); }
+.fh-recover:hover:not(:disabled) { color: rgb(var(--fg-default)); border-color: rgb(var(--accent) / 0.6); }
 .fh-recover:disabled { opacity: 0.5; cursor: default; }
 .fh-peer-mirror {
   margin-left: auto;

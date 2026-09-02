@@ -526,7 +526,7 @@ const age = computed(() => formatAge(props.group.latest));
   transition: color var(--dur-1) ease, background-color var(--dur-1) ease;
 }
 .grp-more:hover {
-  color: #e5bf58;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgb(var(--accent-warm) / 0.06);
 }
 

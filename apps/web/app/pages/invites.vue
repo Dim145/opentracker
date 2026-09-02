@@ -674,11 +674,11 @@ async function confirmDelete() {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--gild) 18%, transparent);
 }
 .reg-pill-dot--success {
-  background: var(--success);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 18%, transparent);
+  background: var(--online);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--online) 18%, transparent);
 }
 .reg-pill--active { color: var(--gild); border-color: var(--gild-line); }
-.reg-pill--used { color: var(--success); border-color: color-mix(in srgb, var(--success) 30%, transparent); }
+.reg-pill--used { color: var(--online); border-color: color-mix(in srgb, var(--online) 30%, transparent); }
 .reg-pill--expired { color: var(--ink-muted); }
 
 /* ── Main column ──────────────────────────────────────── */
@@ -1023,7 +1023,7 @@ async function confirmDelete() {
   border-right: 1px solid rgb(var(--line-default));
 }
 .ledger-row--active .ledger-num { color: var(--gild); }
-.ledger-row--used .ledger-num { color: var(--success); }
+.ledger-row--used .ledger-num { color: var(--online); }
 .ledger-row--expired .ledger-num { color: var(--ink-muted); opacity: 0.7; }
 
 .ledger-stripe {
@@ -1033,7 +1033,7 @@ async function confirmDelete() {
   border-radius: var(--radius-xs);
 }
 .ledger-row--active .ledger-stripe { background: var(--gild); opacity: 0.6; }
-.ledger-row--used .ledger-stripe { background: var(--success); opacity: 0.5; }
+.ledger-row--used .ledger-stripe { background: var(--online); opacity: 0.5; }
 
 .ledger-row-body { min-width: 0; }
 .ledger-row-line {
@@ -1075,9 +1075,9 @@ async function confirmDelete() {
   border-color: var(--gild-line);
 }
 .ledger-row--used .ledger-status {
-  color: var(--success);
-  background: color-mix(in srgb, var(--success) 12%, transparent);
-  border-color: color-mix(in srgb, var(--success) 30%, transparent);
+  color: var(--online);
+  background: color-mix(in srgb, var(--online) 12%, transparent);
+  border-color: color-mix(in srgb, var(--online) 30%, transparent);
 }
 .ledger-row--expired .ledger-status {
   color: var(--ink-muted);

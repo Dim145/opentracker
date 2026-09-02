@@ -1537,14 +1537,21 @@ useHead({
 .media-id-chip-tag {
   font-weight: 800;
 }
+  /* La teinte reste sur le fond et la bordure — donc l'identité média
+     (IMDb, TMDb) et la distinction de catégorie survivent — mais le LIBELLÉ
+     passe sur un jeton de premier plan. Une couleur de marque n'a pas de raison
+     d'être lisible sur les deux thèmes : `#f5c518` sur blanc mesure 1,50:1.
+     C'est exactement ce que `tagBadgeStyle()` fait déjà pour les tags, où la
+     couleur est choisie par un opérateur et où le texte reste donc toujours
+     lisible. */
 .media-id-chip--imdb .media-id-chip-tag {
-  color: #f5c518;
+  color: rgb(var(--fg-default));
 }
 .media-id-chip--tmdb .media-id-chip-tag {
-  color: #01b4e4;
+  color: rgb(var(--fg-default));
 }
 .media-id-chip--tvdb .media-id-chip-tag {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .media-id-chip-id {
   font-family: var(--font-mono);

@@ -336,12 +336,14 @@
                   <button
                     type="button"
                     class="act act--accept"
-                    :disabled="busy === report.id"
+                    :disabled="busy === report.id || !banPanel.duration"
                     @click="confirmBanPanel(report)"
                   >
                     <Icon name="ph:check-bold" />
                     <span>{{
-                      banPanel.duration === 'none'
+                      !banPanel.duration
+                        ? $t('admin.reports.banPanel.submitPick')
+                        : banPanel.duration === 'none'
                         ? $t('admin.reports.banPanel.submitResolve')
                         : $t('admin.reports.banPanel.submitBan')
                     }}</span>
@@ -429,7 +431,9 @@ interface ReportsResponse {
   pagination: { page: number; limit: number; total: number; pages: number };
 }
 
-type BanDuration = 'none' | '1d' | '7d' | '1m' | '1y' | 'permanent';
+/** `''` = rien de choisi. Un état à part entière : c'est celui dans lequel le
+ *  panneau s'ouvre, et celui dans lequel la soumission reste bloquée. */
+type BanDuration = '' | 'none' | '1d' | '7d' | '1m' | '1y' | 'permanent';
 
 interface BanPanelState {
   reportId: string;
@@ -702,11 +706,19 @@ function onAcceptClick(report: Report) {
   if (report.targetType === 'user') {
     banPanel.value = {
       reportId: report.id,
-      // Default to "permanent" so a hurried moderator who hits
-      // Submit without thinking still issues the harshest
-      // sanction — accepting a user-targeted report without any
-      // ban would silently let an offender walk.
-      duration: 'permanent',
+      // Rien de présélectionné.
+      //
+      // C'était `'permanent'`, avec le raisonnement écrit : « un modérateur
+      // pressé qui valide sans réfléchir applique quand même la sanction la
+      // plus lourde ». Le raisonnement confond « il n'a pas choisi » avec
+      // « aucune sanction » ; la réponse correcte à « il n'a pas choisi » est
+      // « alors n'applique rien tant qu'il n'a pas choisi ». Deux clics au même
+      // endroit — Accepter, puis le bouton d'à côté — produisaient un
+      // bannissement définitif, sur une page qu'on parcourt en file.
+      //
+      // Le produit sait déjà faire ça : `mod/anti-cheat.vue` désactive sa
+      // soumission tant qu'aucun verdict n'est choisi.
+      duration: '',
       reason: report.reason,
     };
     return;
@@ -765,7 +777,7 @@ function confirmBanPanel(report: Report) {
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .archive-eyebrow-rule {
   display: inline-block;
@@ -793,7 +805,7 @@ function confirmBanPanel(report: Report) {
   width: 56px;
   height: 56px;
   font-size: 1.75rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--accent-warm) / 0.08);
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   border-radius: var(--radius-md);
@@ -843,17 +855,17 @@ function confirmBanPanel(report: Report) {
 .filter--active.filter--all {
   background: rgb(var(--accent-warm) / 0.1);
   border-color: rgb(var(--accent-warm) / 0.55);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .filter--active.filter--pending {
   background: rgba(244, 63, 94, 0.1);
   border-color: rgba(244, 63, 94, 0.55);
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .filter--active.filter--resolved {
   background: rgba(108, 209, 97, 0.1);
   border-color: rgba(108, 209, 97, 0.55);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .filter--active.filter--dismissed {
   background: rgb(var(--bg-base));
@@ -945,7 +957,7 @@ function confirmBanPanel(report: Report) {
 .dossier-case-num {
   font-size: 0.6875rem;
   font-weight: 700;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   letter-spacing: calc(0.05em * var(--tracking-scale));
   background: transparent;
 }
@@ -981,13 +993,13 @@ function confirmBanPanel(report: Report) {
   text-transform: uppercase;
 }
 .dossier-stamp--pending {
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(244, 63, 94, 0.1);
   border: 1px solid rgba(244, 63, 94, 0.55);
   box-shadow: inset 0 0 0 1px rgba(244, 63, 94, 0.18);
 }
 .dossier-stamp--resolved {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(108, 209, 97, 0.1);
   border: 1px solid rgba(108, 209, 97, 0.55);
 }
@@ -1125,7 +1137,7 @@ function confirmBanPanel(report: Report) {
 }
 .target-tag-icon {
   font-size: 0.85rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .target-link {
   display: inline-flex;
@@ -1137,7 +1149,7 @@ function confirmBanPanel(report: Report) {
   border-radius: var(--radius-sm);
   font-size: 0.84rem;
   font-weight: 600;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   text-decoration: none;
   transition: all var(--dur-2) ease;
   max-width: 100%;
@@ -1305,7 +1317,7 @@ function confirmBanPanel(report: Report) {
   font-weight: 800;
   letter-spacing: calc(0.22em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .ban-panel-icon { font-size: 0.95rem; }
 .ban-panel-title { line-height: 1; }
@@ -1342,7 +1354,7 @@ function confirmBanPanel(report: Report) {
 .ban-chip-icon { font-size: 0.85rem; flex-shrink: 0; }
 
 .ban-chip.is-selected {
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(244, 63, 94, 0.1);
   border-color: rgba(244, 63, 94, 0.55);
   box-shadow: inset 0 0 0 1px rgba(244, 63, 94, 0.25);
@@ -1376,6 +1388,16 @@ function confirmBanPanel(report: Report) {
   border-color: rgba(244, 63, 94, 0.55);
   box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.ban-panel-reason:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .ban-panel-reason::placeholder { color: rgb(var(--fg-faint)); }
 
 .ban-panel-hint {
@@ -1421,7 +1443,7 @@ function confirmBanPanel(report: Report) {
   border-radius: 50%;
   background: rgba(108, 209, 97, 0.08);
   border: 2px solid rgba(108, 209, 97, 0.5);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   font-size: 1.6rem;
   transform: rotate(-6deg);
 }
@@ -1469,7 +1491,7 @@ function confirmBanPanel(report: Report) {
 }
 .pager-btn:hover:not(:disabled) {
   border-color: rgb(var(--accent-warm) / 0.5);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .pager-btn:disabled {
   opacity: 0.4;

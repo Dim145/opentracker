@@ -207,14 +207,21 @@ onUnmounted(() => {
   box-shadow: 0 0 0 1px rgba(108, 209, 97, 0.18);
 }
 
+  /* La teinte reste sur le fond et la bordure — donc l'identité média
+     (IMDb, TMDb) et la distinction de catégorie survivent — mais le LIBELLÉ
+     passe sur un jeton de premier plan. Une couleur de marque n'a pas de raison
+     d'être lisible sur les deux thèmes : `#f5c518` sur blanc mesure 1,50:1.
+     C'est exactement ce que `tagBadgeStyle()` fait déjà pour les tags, où la
+     couleur est choisie par un opérateur et où le texte reste donc toujours
+     lisible. */
 .detected-icon--imdb {
-  color: #f5c518;
+  color: rgb(var(--fg-default));
 }
 .detected-icon--tmdb {
-  color: #01b4e4;
+  color: rgb(var(--fg-default));
 }
 .detected-icon--tvdb {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 /* Hint chip — discreet pill below the search input. */
@@ -249,13 +256,13 @@ onUnmounted(() => {
   font-weight: 800;
 }
 .detection-hint--imdb .detection-tag {
-  color: #f5c518;
+  color: rgb(var(--fg-default));
 }
 .detection-hint--tmdb .detection-tag {
-  color: #01b4e4;
+  color: rgb(var(--fg-default));
 }
 .detection-hint--tvdb .detection-tag {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .detection-id {
   font-family: var(--font-mono);

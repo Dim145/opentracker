@@ -232,7 +232,7 @@ const refreshedAgo = computed(() => {
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .cr-eyebrow-rule {
   display: inline-block;
@@ -372,7 +372,7 @@ const refreshedAgo = computed(() => {
 }
 .cr-section-tag-icon {
   font-size: 1rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .cr-section-meta {
   font-family: var(--font-mono);
@@ -415,7 +415,7 @@ const refreshedAgo = computed(() => {
   border-radius: 50%;
   background: rgb(var(--accent-warm) / 0.08);
   border: 1px solid rgb(var(--accent-warm) / 0.4);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 1.7rem;
 }
 .cr-empty-title {

@@ -9,7 +9,15 @@ import {
   bucketSums,
   shouldBucket,
 } from '../app/utils/statSeries';
-import { formatAge, formatAgo, formatUntil } from '../app/utils/format';
+import {
+  datetimeLocalToIso,
+  formatAge,
+  formatAgeCompact,
+  formatAgo,
+  formatSize,
+  formatUntil,
+  isoToDatetimeLocal,
+} from '../app/utils/format';
 
 // The traffic chart on /stats, and the three date formatters around it.
 //
@@ -117,9 +125,28 @@ describe('date formatters', () => {
     expect(formatAge(inThreeDays)).not.toBe('just now');
   });
 
-  it('still reads a past date as an age', () => {
-    expect(formatAge(threeDaysAgo)).toBe('3d ago');
+  it('still reads a past date as an age, in the reader\u2019s language', () => {
+    // `formatAge` déléguait à une échelle anglaise en dur (`3d ago`) sur une
+    // cinquantaine d'appels, dont la colonne ÂGE du catalogue. Elle passe
+    // désormais par `Intl`, donc la sortie suit la locale.
+    expect(formatAge(threeDaysAgo, 'en')).toMatch(/3 days ago/);
+    expect(formatAge(threeDaysAgo, 'fr')).toMatch(/il y a 3 jours/);
     expect(formatAge(null)).toBe('');
+  });
+
+  it('leaves the compact English ladder available for a fixed-width column', () => {
+    expect(formatAgeCompact(threeDaysAgo)).toBe('3d ago');
+    expect(formatAgeCompact(inThreeDays)).toBe('');
+  });
+
+  it('labels a binary division with binary units', () => {
+    // `KB` sur une division par 1024 est la mauvaise étiquette : 1024 octets
+    // font un kibioctet. Et `toFixed(1)` codait le point décimal en dur.
+    expect(formatSize(1024, 'en')).toBe('1.0 KiB');
+    expect(formatSize(1024 * 1024 * 4.5, 'en')).toBe('4.5 MiB');
+    expect(formatSize(1024 * 1024 * 4.5, 'fr')).toMatch(/4,5 MiB/);
+    expect(formatSize(0)).toBe('0 B');
+    expect(formatSize(-1)).toBe('0 B');
   });
 
   it('reads a deadline forwards, in the reader’s language', () => {
@@ -145,5 +172,45 @@ describe('date formatters', () => {
 
   it('does not put a past-tense phrase on a future date', () => {
     expect(formatAgo(inThreeDays, 'en')).toMatch(/now/);
+  });
+});
+
+describe('datetime-local round trip', () => {
+  // Le défaut expédié : la page d'un torrent alimentait son champ d'échéance
+  // avec `toISOString().slice(0, 16)`, c'est-à-dire l'heure UTC, dans une
+  // entrée qui affiche et relit de l'heure locale. Enregistrer sans rien
+  // toucher reculait donc l'échéance du décalage horaire — deux heures par
+  // sauvegarde à Paris l'été, jusqu'à ce qu'une promotion en cours se retrouve
+  // datée d'hier.
+  it('leaves an instant untouched when nothing is edited', () => {
+    const iso = new Date('2026-07-14T16:30:00.000Z').toISOString();
+    const back = datetimeLocalToIso(isoToDatetimeLocal(iso));
+    expect(back).toBe(iso);
+  });
+
+  it('writes the local wall clock, not the UTC one', () => {
+    const d = new Date('2026-07-14T16:30:00.000Z');
+    const shown = isoToDatetimeLocal(d.toISOString());
+    const pad = (n: number) => String(n).padStart(2, '0');
+    expect(shown).toBe(
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`,
+    );
+  });
+
+  it('survives a full year of instants, DST changeovers included', () => {
+    // L'arithmétique sur `getTimezoneOffset()` — l'autre correctif possible —
+    // se trompe deux fois par an. Les accesseurs locaux, non.
+    for (let day = 0; day < 365; day += 1) {
+      const iso = new Date(Date.UTC(2026, 0, 1, 3, 45) + day * 86400_000).toISOString();
+      expect(datetimeLocalToIso(isoToDatetimeLocal(iso))).toBe(iso);
+    }
+  });
+
+  it('says nothing about an absent or unreadable date', () => {
+    expect(isoToDatetimeLocal(null)).toBe('');
+    expect(isoToDatetimeLocal('')).toBe('');
+    expect(isoToDatetimeLocal('not a date')).toBe('');
+    expect(datetimeLocalToIso('')).toBeNull();
+    expect(datetimeLocalToIso('not a date')).toBeNull();
   });
 });

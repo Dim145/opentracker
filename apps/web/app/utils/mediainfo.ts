@@ -212,7 +212,20 @@ export function sizeFrom(value: number | undefined, unit: SizeUnit): number | un
   return Math.round(value * (unit === 'GiB' ? 1024 ** 3 : 1024 ** 2));
 }
 
-export function formatSize(bytes?: number, unit?: SizeUnit): string | undefined {
+/**
+ * La taille telle que la fiche technique l'écrit : deux décimales, unité
+ * imposée, `undefined` quand il n'y a rien à écrire.
+ *
+ * Elle s'appelait `formatSize`, comme celle de `format.ts`. Nuxt auto-importe
+ * les deux depuis `app/utils/`, ne peut pas garder les deux, et gardait
+ * celle-ci — donc les neuf fichiers qui appelaient `formatSize()` sans import
+ * explicite (la colonne TAILLE du catalogue, la ligne de release, le bandeau
+ * ratio de la mise en page) recevaient une fonction qui plafonne à GiB (« 4096
+ * GiB » pour 4 To), écrit toujours un point décimal quelle que soit la langue,
+ * et rend `undefined` pour zéro — d'où le blanc à la place de « 0 B » chez un
+ * membre qui n'a rien encore envoyé. Le nom lève la collision.
+ */
+export function formatSheetSize(bytes?: number, unit?: SizeUnit): string | undefined {
   if (!bytes) return undefined;
   const u = unit ?? pickSizeUnit(bytes);
   const value = sizeIn(bytes, u);
@@ -496,7 +509,7 @@ export function renderMediaInfo(sheet: TechnicalSheet): string {
   block('General', [
     ['Complete name', sheet.fileName],
     ['Format', sheet.container],
-    ['File size', formatSize(sheet.fileSize, sheet.fileSizeUnit)],
+    ['File size', formatSheetSize(sheet.fileSize, sheet.fileSizeUnit)],
     ['Duration', sheet.duration],
     ['Overall bit rate', mediaInfoBitRate(sheet.overallBitRate)],
   ]);

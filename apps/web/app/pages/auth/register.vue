@@ -50,10 +50,11 @@
         <p class="text-text-muted text-sm mb-6">
           {{ $t('auth.register.closedDescription') }}
         </p>
-        <NuxtLink
-          to="/auth/login"
-          class="inline-block bg-accent text-accent-fg font-medium px-6 py-2 rounded hover:bg-gray-200 transition-colors"
-        >
+        <!-- `btn btn-primary`, pas un empilement d'utilitaires : le survol
+             `hover:bg-gray-200` posait un gris Tailwind fixe sur un fond qui
+             suit l'accent du thème, donc du texte `accent-fg` sur gris clair —
+             illisible en thème sombre comme en thème clair. -->
+        <NuxtLink to="/auth/login" class="btn btn-primary">
           {{ $t('auth.login.submit') }}
         </NuxtLink>
       </div>
@@ -81,8 +82,8 @@
         </div>
 
         <!-- ZKE Warning -->
-        <div class="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded">
-          <p class="text-red-400 text-sm">
+        <div class="mb-6 p-3 bg-error/10 border border-error/20 rounded">
+          <p class="text-error text-sm">
             <Icon name="ph:shield-warning" class="inline mr-1" />
             <strong>{{ $t('auth.register.zkeTitle') }}</strong> {{ $t('auth.register.zkeDescription') }}
           </p>
@@ -108,7 +109,7 @@
               v-model="form.inviteCode"
               type="text"
               :required="!status?.registrationOpen"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors font-mono"
+              class="w-full bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm focus:border-text-strong transition-colors font-mono"
               :placeholder="$t('auth.register.inviteCodePlaceholder')"
             />
           </div>
@@ -126,7 +127,7 @@
               type="text"
               required
               autocomplete="username"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
+              class="w-full bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
               :placeholder="$t('auth.register.usernamePlaceholder')"
             />
           </div>
@@ -144,7 +145,7 @@
               type="password"
               required
               autocomplete="new-password"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
+              class="w-full bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
               :placeholder="$t('auth.register.passwordPlaceholder')"
             />
           </div>
@@ -162,7 +163,7 @@
               type="password"
               required
               autocomplete="new-password"
-              class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
+              class="w-full bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
               :placeholder="$t('auth.register.confirmPasswordPlaceholder')"
             />
           </div>
@@ -173,9 +174,9 @@
             class="pt-4 mt-4 border-t border-border"
           >
             <div
-              class="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded"
+              class="mb-4 p-3 bg-error/10 border border-error/20 rounded"
             >
-              <p class="text-red-400 text-sm">
+              <p class="text-error text-sm">
                 <Icon name="ph:shield-warning" class="inline mr-1" />
                 {{ $t('auth.register.panicPasswordWarning') }}
               </p>
@@ -193,7 +194,7 @@
                 v-model="form.panicPassword"
                 type="password"
                 required
-                class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
+                class="w-full bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
                 :placeholder="$t('auth.register.panicPasswordPlaceholder')"
               />
             </div>
@@ -210,13 +211,13 @@
                 v-model="form.confirmPanicPassword"
                 type="password"
                 required
-                class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
+                class="w-full bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
                 :placeholder="$t('auth.register.confirmPanicPasswordPlaceholder')"
               />
             </div>
           </div>
 
-          <div v-if="error" class="text-red-400 text-sm">
+          <div v-if="error" class="text-error text-sm">
             {{ error }}
           </div>
 
@@ -264,6 +265,24 @@
             </NuxtLink>
           </p>
         </div>
+
+      <!-- Le registre de rétention, joignable depuis l'écran où on décide de
+           s'inscrire. `/privacy` est une route ouverte, écrite explicitement
+           pour ce lecteur, et son seul lien vivait dans le pied du layout — que
+           ces deux pages n'ont pas (`layout: false`). Une notice que personne ne
+           peut trouver est une notice que personne n'a reçue.
+
+           HORS du bloc « créer un compte » : celui-ci disparaît quand les
+           inscriptions sont fermées, et le lecteur qui a le plus besoin de cette
+           page est justement celui qui arrive sur une instance fermée. -->
+      <p class="mt-6 text-center">
+        <NuxtLink
+          to="/privacy"
+          class="text-[11px] font-mono uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
+        >
+          {{ $t('privacy.eyebrow') }}
+        </NuxtLink>
+      </p>
       </div>
     </div>
   </div>

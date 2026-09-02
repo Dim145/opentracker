@@ -1781,17 +1781,17 @@ function formatDuration(seconds: number) {
 .hero-pill--admin {
   border-color: rgba(229, 62, 62, 0.4);
   background: rgba(229, 62, 62, 0.1);
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .hero-pill--mod {
   border-color: rgba(52, 212, 216, 0.4);
   background: rgba(52, 212, 216, 0.1);
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .hero-pill--custom {
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.1);
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .hero-pill--member {
   color: rgb(var(--fg-default));
@@ -1928,29 +1928,29 @@ function formatDuration(seconds: number) {
   font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.02em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .kpi-sub-icon {
   font-size: 0.85em;
   flex-shrink: 0;
 }
 .kpi--up .kpi-value {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .kpi--down .kpi-value {
   color: rgb(var(--fg-strong));
 }
 .kpi--ratio-great .kpi-value {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .kpi--ratio-ok .kpi-value {
   color: rgb(var(--fg-strong));
 }
 .kpi--ratio-low .kpi-value {
-  color: #f5c518;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .kpi--ratio-zero .kpi-value {
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 /* Bonus KPI — replaces the old "Released" tile. The value is
@@ -1964,7 +1964,7 @@ function formatDuration(seconds: number) {
   align-items: baseline;
   gap: 0.32rem;
   font-size: clamp(1.05rem, 2vw, 1.35rem);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-weight: 800;
   letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
@@ -1989,7 +1989,7 @@ function formatDuration(seconds: number) {
   transition: color var(--dur-2) ease, gap var(--dur-4) ease;
 }
 .kpi-sub--link:hover {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   gap: 0.4rem;
 }
 .kpi-sub--link :deep(svg),
@@ -2111,7 +2111,7 @@ function formatDuration(seconds: number) {
 .bv-trigger-icon {
   flex-shrink: 0;
   font-size: 1.05rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .bv-trigger-label {
   flex-shrink: 0;
@@ -2155,7 +2155,7 @@ function formatDuration(seconds: number) {
 }
 .bonus-chevron--open {
   transform: rotate(-180deg);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 /* ─── Bonus transaction ledger (expandable) ────────────────────
@@ -2381,7 +2381,7 @@ function formatDuration(seconds: number) {
   background: rgb(var(--online) / 0.08);
 }
 .bv-tag--spend {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.4);
   background: rgb(var(--accent-warm) / 0.08);
 }
@@ -2426,7 +2426,7 @@ function formatDuration(seconds: number) {
   color: rgb(var(--online));
 }
 .bv-amount--spend {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 /* Free-text note — when present it slips onto a second line of the
@@ -2851,17 +2851,17 @@ function formatDuration(seconds: number) {
   flex-shrink: 0;
 }
 .row--live .row-icon {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.08);
 }
 .row--hnr .row-icon {
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(229, 62, 62, 0.4);
   background: rgba(229, 62, 62, 0.08);
 }
 .row--exempt .row-icon {
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(52, 212, 216, 0.4);
   background: rgba(52, 212, 216, 0.08);
 }
@@ -2921,10 +2921,10 @@ function formatDuration(seconds: number) {
   gap: 0.2rem;
 }
 .row-stat--seed {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-stat--leech {
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-age {
   margin-left: auto;
@@ -3001,12 +3001,12 @@ function formatDuration(seconds: number) {
 .row-status.status-great {
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.08);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-status.status-ok {
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-status.status-pending {
   color: rgb(var(--fg-muted));
@@ -3014,12 +3014,12 @@ function formatDuration(seconds: number) {
 .row-status.status-info {
   border-color: rgba(52, 212, 216, 0.4);
   background: rgba(52, 212, 216, 0.08);
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-status.status-danger {
   border-color: rgba(229, 62, 62, 0.4);
   background: rgba(229, 62, 62, 0.08);
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 .row-action {

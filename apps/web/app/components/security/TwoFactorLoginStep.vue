@@ -75,12 +75,12 @@
     </p>
 
     <div class="step-actions">
-      <button class="btn-ghost" type="button" @click="$emit('cancel')">
+      <button class="sbtn-ghost" type="button" @click="$emit('cancel')">
         {{ $t('common.cancel') }}
       </button>
       <button
         v-if="active !== 'passkey'"
-        class="btn-primary"
+        class="sbtn-primary"
         type="button"
         :disabled="!canSubmit || submitting"
         @click="submitTotp"
@@ -94,7 +94,7 @@
       </button>
       <button
         v-else
-        class="btn-primary"
+        class="sbtn-primary"
         type="button"
         :disabled="submitting"
         @click="submitPasskey"
@@ -311,6 +311,16 @@ async function submitPasskey() {
   outline: none;
   border-color: rgb(var(--fg-default));
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.step-code-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .step-hint {
   margin: 0;
   font-size: 0.7188rem;
@@ -350,8 +360,20 @@ async function submitPasskey() {
   margin-top: 0.5rem;
 }
 
-.btn-primary,
-.btn-ghost {
+/*
+ * Les boutons de cette surface, renommés depuis `btn-ghost` / `btn-primary`.
+ *
+ * Ce ne sont pas des copies ratées du bouton du système : c'est un dialecte à
+ * part — mono, capitales, 0,656 rem, interlettrage large — que les écrans de
+ * sécurité et de réglages emploient sciemment. Le défaut était le NOM : défini
+ * dans un `<style scoped>`, donc hors couche, il l'emportait sur
+ * `@layer components` quelle que soit la spécificité. Sept fichiers donnaient
+ * ainsi deux boutons visuellement différents sous le même nom de classe, et
+ * `class="btn btn-primary"` écrit dans l'un d'eux n'aurait pas donné le bouton
+ * attendu.
+ */
+.sbtn-primary,
+.sbtn-ghost {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -366,23 +388,23 @@ async function submitPasskey() {
   cursor: pointer;
   transition: all var(--dur-2);
 }
-.btn-primary {
+.sbtn-primary {
   background: rgb(var(--accent));
   color: rgb(var(--accent-fg));
   border-color: rgb(var(--accent));
 }
-.btn-primary:hover:not(:disabled) {
+.sbtn-primary:hover:not(:disabled) {
   background: rgb(var(--accent-hover));
 }
-.btn-primary:disabled {
+.sbtn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.btn-ghost {
+.sbtn-ghost {
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
 }
-.btn-ghost:hover {
+.sbtn-ghost:hover {
   color: rgb(var(--fg-strong));
 }
 </style>

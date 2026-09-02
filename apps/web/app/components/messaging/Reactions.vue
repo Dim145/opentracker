@@ -54,7 +54,7 @@ const visible = computed(() =>
   padding: 0.15rem 0.4rem;
   border: 1px solid rgb(var(--line-strong));
   border-radius: var(--radius-pill);
-  background: rgb(var(--bg-tertiary));
+  background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-size: 0.75rem;
   line-height: 1;

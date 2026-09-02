@@ -370,6 +370,7 @@ interface Resp {
 }
 
 const { t } = useI18n();
+const confirm = useConfirm();
 const { data, refresh } = await useFetch<Resp>('/api/admin/federation');
 const cfg = computed(() => data.value?.config);
 const peers = computed(() => data.value?.peers ?? []);
@@ -457,8 +458,23 @@ async function run(fn: () => Promise<unknown>, okMsg?: string) {
 
 async function toggleMaster(e: Event) {
   const enabled = (e.target as HTMLInputElement).checked;
+  // `try/finally` : sans lui, `busy.master` restait vrai après le premier clic
+  // et les QUATRE interrupteurs de la page (maître, relais, découvrabilité,
+  // crédit) restaient morts jusqu'au rechargement, sans rien dire — chacun
+  // étant lié à `:disabled="busy.master"`.
   busy.master = true;
-  await run(() => $fetch<unknown>('/api/admin/federation', { method: 'PUT', body: { enabled } }), t('admin.federation.toast.saved'));
+  try {
+    await run(
+      () =>
+        $fetch<unknown>('/api/admin/federation', {
+          method: 'PUT',
+          body: { enabled },
+        }),
+      t('admin.federation.toast.saved')
+    );
+  } finally {
+    busy.master = false;
+  }
 }
 
 /** Publish an unauthenticated view of the catalogue. Nobody's default. */
@@ -530,6 +546,16 @@ async function resend(p: Peer) {
   busy.row = '';
 }
 async function revoke(p: Peer) {
+  // Révoquer coupe l'échange dans les deux sens et retire du catalogue tout ce
+  // que ce partenaire y avait mis. C'était un bouton, sans un mot, dans une
+  // liste où le bouton voisin ne fait que suspendre.
+  const ok = await confirm({
+    title: t('admin.federation.confirmRevoke.title'),
+    message: t('admin.federation.confirmRevoke.message', { name: p.displayName || p.baseUrl }),
+    confirmText: t('admin.federation.revoke'),
+    destructive: true,
+  });
+  if (!ok) return;
   busy.row = p.id;
   await run(() => $fetch<unknown>(`/api/admin/federation/peers/${p.id}`, { method: 'DELETE' }), t('admin.federation.toast.revoked'));
   busy.row = '';

@@ -189,7 +189,7 @@ const tierLabel = computed(() =>
 }
 
 .tier--lit {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.45);
   background: rgb(var(--accent-warm) / 0.08);
 }

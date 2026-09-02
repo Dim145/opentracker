@@ -119,6 +119,8 @@ interface Resp {
 }
 
 const { t } = useI18n();
+const confirm = useConfirm();
+const notifications = useNotificationStore();
 const branding = await useBranding();
 const federationEnabled = computed(() =>
   Boolean(branding.value?.federationEnabled),
@@ -157,20 +159,35 @@ async function add(slug: string, categoryId: string): Promise<void> {
     form.category = '';
     delete pick[remoteSlug];
     await refresh();
-  } catch {
-    /* validation error keeps the form as-is */
+  } catch (err: unknown) {
+    // « le formulaire reste en place » décrit une absence de retour, pas un
+    // retour : l'admin cliquait Mapper, le bouton se réactivait, et rien ne
+    // permettait de distinguer un refus d'un succès sans effet visible.
+    const e = err as { data?: { message?: string } };
+    notifications.error(e?.data?.message || t('common.saveFailed'));
   } finally {
     busy.value = false;
   }
 }
 
 async function remove(id: string): Promise<void> {
+  const ok = await confirm({
+    title: t('admin.taxonomy.confirmRemove.title'),
+    message: t('admin.taxonomy.confirmRemove.message'),
+    confirmText: t('common.delete'),
+    destructive: true,
+  });
+  if (!ok) return;
   removing.value = new Set(removing.value).add(id);
   try {
     await $fetch(`/api/admin/federation/taxonomy/${id}`, { method: 'DELETE' });
     await refresh();
-  } catch {
-    /* a refresh reconciles */
+  } catch (err: unknown) {
+    // Le rafraîchissement ne réconcilie rien s'il n'a pas lieu : il était dans
+    // le `try`, après l'appel qui échoue.
+    const e = err as { data?: { message?: string } };
+    notifications.error(e?.data?.message || t('common.deleteFailed'));
+    await refresh();
   } finally {
     const next = new Set(removing.value);
     next.delete(id);
@@ -214,7 +231,7 @@ async function remove(id: string): Promise<void> {
 }
 .tax-slug {
   font-family: var(--font-mono); font-size: 0.8rem;
-  color: #7dd3fc; background: rgba(56, 189, 248, 0.1);
+  color: rgb(var(--info)); background: rgba(56, 189, 248, 0.1);  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm);
   padding: 0.1rem 0.45rem; flex: none;
 }
@@ -234,7 +251,7 @@ async function remove(id: string): Promise<void> {
   display: inline-flex; align-items: center; gap: 0.35rem;
   padding: 0.45rem 0.8rem; border: 1px solid rgb(var(--accent-warm) / 0.5);
   border-radius: var(--radius-sm); background: rgb(var(--accent-warm) / 0.12);
-  color: var(--gold, rgb(var(--accent-warm))); cursor: pointer; font-weight: 600; font-size: 0.82rem; flex: none;
+  color: var(--gold, rgb(var(--accent-warm-text))); cursor: pointer; font-weight: 600; font-size: 0.82rem; flex: none;
 }
 .tax-btn:disabled { opacity: 0.45; cursor: default; }
 .tax-remove {

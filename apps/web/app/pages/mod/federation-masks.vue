@@ -1,16 +1,10 @@
 <template>
   <FederationOff v-if="!federationEnabled" />
   <div v-else class="masks">
-    <header class="masks-head">
-      <div>
-        <h1 class="masks-title">{{ $t('mod.masks.title') }}</h1>
-        <p class="masks-sub">{{ $t('mod.masks.sub') }}</p>
-      </div>
-      <NuxtLink to="/mod" class="masks-back">
-        <Icon name="ph:arrow-left-bold" /> {{ $t('common.back') }}
-      </NuxtLink>
-    </header>
-
+    <!-- Le titre vient de la bande de `mod.vue`, comme sur les huit autres
+         pages de la console. Cette page portait le sien, si bien que la bande
+         affichait « TABLEAU DE BORD » juste au-dessus de « Masques
+         fédération ». -->
     <!-- Add a mask by hand (a moderator who knows the id / hash / DID). Most
          masks will come from resolving a report, but this is the direct lever. -->
     <form class="masks-add" @submit.prevent="add">
@@ -45,7 +39,12 @@
 
     <ul v-else class="masks-list">
       <li v-for="m in masks" :key="m.id" class="masks-row">
-        <span class="masks-scope" :class="`masks-scope--${m.scope}`">{{ m.scope }}</span>
+        <!-- La portée, en toutes lettres. La pastille imprimait la valeur brute
+             de l'énumération (`infohash`, `issuer`) alors que les libellés
+             existaient déjà pour le formulaire juste au-dessus. -->
+        <span class="masks-scope" :class="`masks-scope--${m.scope}`">
+          {{ $t(`mod.masks.scopeShort.${m.scope}`) }}
+        </span>
         <span class="masks-val">
           <span class="masks-name">{{ m.sampleName || $t('mod.masks.noSample') }}</span>
           <code class="masks-code">{{ m.value }}</code>
@@ -65,6 +64,15 @@ definePageMeta({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   middleware: 'moderator' as any,
 });
+const { t } = useI18n();
+const notifications = useNotificationStore();
+
+/** Le message du serveur quand il en donne un, le nôtre sinon. */
+function reason(err: unknown): string {
+  const e = err as { data?: { message?: string }; message?: string };
+  return e?.data?.message || e?.message || t('common.errors.generic');
+}
+
 const branding = await useBranding();
 const federationEnabled = computed(() =>
   Boolean(branding.value?.federationEnabled),
@@ -102,8 +110,12 @@ async function add(): Promise<void> {
     form.value = '';
     form.reason = '';
     await refresh();
-  } catch {
-    /* validation error surfaces via the form staying put */
+  } catch (err) {
+    // Le `catch` vide comptait sur « le formulaire reste en place » pour dire
+    // l'échec. Un formulaire qui ne se vide pas ressemble exactement à un
+    // formulaire qu'on vient de remplir : le modérateur repartait en croyant
+    // avoir masqué la release.
+    notifications.error(t('mod.masks.addFailed', { reason: reason(err) }));
   } finally {
     busy.value = false;
   }
@@ -113,9 +125,12 @@ async function lift(id: string): Promise<void> {
   lifting.value = new Set(lifting.value).add(id);
   try {
     await $fetch(`/api/mod/federation/masks/${id}`, { method: 'DELETE' });
+    notifications.success(t('mod.masks.lifted'));
     await refresh();
-  } catch {
-    /* leave the row; a refresh reconciles */
+  } catch (err) {
+    // Idem : la ligne restait, ce qui est aussi ce qu'elle fait quand la levée
+    // réussit et que le rafraîchissement n'a pas encore répondu.
+    notifications.error(t('mod.masks.liftFailed', { reason: reason(err) }));
   } finally {
     const next = new Set(lifting.value);
     next.delete(id);
@@ -126,19 +141,15 @@ async function lift(id: string): Promise<void> {
 
 <style scoped>
 .masks { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
-.masks-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
-.masks-title { font-size: 1.5rem; font-weight: 700; }
-.masks-sub { color: rgb(var(--fg-muted)); font-size: 0.9rem; margin-top: 0.3rem; max-width: 60ch; }
-.masks-back { display: inline-flex; align-items: center; gap: 0.3rem; color: rgb(var(--fg-muted)); font-size: 0.85rem; }
 .masks-add { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
-.masks-input { padding: 0.5rem 0.7rem; border: 1px solid rgb(var(--border)); border-radius: var(--radius-lg); background: rgb(var(--bg-subtle) / 0.5); color: rgb(var(--fg)); font-size: 0.85rem; }
+.masks-input { padding: 0.5rem 0.7rem; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-lg); background: rgb(var(--bg-inset) / 0.5); color: rgb(var(--fg-default)); font-size: 0.85rem; }
 .masks-input--grow { flex: 1; min-width: 12ch; }
 .masks-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 0.9rem; border: 1px solid rgb(var(--accent) / 0.6); border-radius: var(--radius-lg); background: rgb(var(--accent) / 0.12); color: rgb(var(--accent)); cursor: pointer; font-weight: 600; font-size: 0.85rem; }
 .masks-btn:disabled { opacity: 0.5; cursor: default; }
 .masks-empty { color: rgb(var(--fg-muted)); text-align: center; padding: 2rem 0; }
 .masks-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-.masks-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.8rem; border: 1px solid rgb(var(--border) / 0.7); border-radius: var(--radius-lg); background: rgb(var(--bg-subtle) / 0.4); }
-.masks-scope { text-transform: uppercase; font-size: 0.65rem; letter-spacing: calc(0.05em * var(--tracking-scale)); padding: 0.15rem 0.45rem; border-radius: var(--radius-sm); background: rgb(var(--border) / 0.6); color: rgb(var(--fg-muted)); flex: none; }
+.masks-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.8rem; border: 1px solid rgb(var(--line-default) / 0.7); border-radius: var(--radius-lg); background: rgb(var(--bg-inset) / 0.4); }
+.masks-scope { text-transform: uppercase; font-size: 0.65rem; letter-spacing: calc(0.05em * var(--tracking-scale)); padding: 0.15rem 0.45rem; border-radius: var(--radius-sm); background: rgb(var(--line-default) / 0.6); color: rgb(var(--fg-muted)); flex: none; }
 .masks-scope--author { background: rgb(var(--warning) / 0.2); color: rgb(var(--warning)); }
 /* An issuer mask hides everything one instance signed, whoever serves it —
    the widest of the four, so it reads as the strongest. */
@@ -148,7 +159,7 @@ async function lift(id: string): Promise<void> {
 .masks-code { font-family: var(--font-mono); font-size: 0.7rem; color: rgb(var(--fg-subtle)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .masks-reason { color: rgb(var(--fg-muted)); font-size: 0.8rem; font-style: italic; }
 .masks-by { color: rgb(var(--fg-subtle)); font-size: 0.8rem; flex: none; }
-.masks-lift { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; border: 1px solid rgb(var(--border)); border-radius: var(--radius-md); background: transparent; color: rgb(var(--fg-muted)); cursor: pointer; font-size: 0.78rem; flex: none; }
-.masks-lift:hover:not(:disabled) { color: rgb(var(--fg)); border-color: rgb(var(--accent) / 0.5); }
+.masks-lift { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); background: transparent; color: rgb(var(--fg-muted)); cursor: pointer; font-size: 0.78rem; flex: none; }
+.masks-lift:hover:not(:disabled) { color: rgb(var(--fg-default)); border-color: rgb(var(--accent) / 0.5); }
 .masks-lift:disabled { opacity: 0.5; cursor: default; }
 </style>

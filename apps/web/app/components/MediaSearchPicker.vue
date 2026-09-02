@@ -38,15 +38,31 @@
         </span>
       </div>
 
+      <!--
+        L'échec, dit sous le champ plutôt que dans la liste déroulante.
+
+        `error` ne s'affichait qu'à l'intérieur du panneau, sous `v-if="open
+        && …"`. Or les deux chemins qui l'écrivent ferment le panneau ou ne
+        l'ouvrent jamais : choisir un résultat (`resolveHit` met `open` à faux
+        AVANT d'échouer) et coller un identifiant TMDb à la main
+        (`resolveById`, qui n'ouvre rien). Un membre qui collait un id
+        introuvable, ou qui cliquait un titre pendant que le service de
+        métadonnées était coupé, ne voyait donc strictement rien : ni fiche, ni
+        message.
+      -->
+      <p v-if="error" class="picker-error picker-error--standalone" role="alert">
+        <Icon name="ph:warning-circle-bold" />
+        {{ error }}
+      </p>
+
       <Transition name="picker-fade">
         <div
-          v-if="open && (results.length > 0 || error || (debouncedQuery && !loading))"
+          v-if="open && (results.length > 0 || (debouncedQuery && !loading))"
           class="picker-results"
           @mousedown.prevent
         >
-          <p v-if="error" class="picker-error">{{ error }}</p>
           <p
-            v-else-if="debouncedQuery && !loading && results.length === 0"
+            v-if="debouncedQuery && !loading && results.length === 0"
             class="picker-empty"
           >
             {{ t('components.mediaSearch.noMatchesPrefix') }} <em>{{ debouncedQuery }}</em>
@@ -699,26 +715,33 @@ async function resolveManual() {
   letter-spacing: calc(0.04em * var(--tracking-scale));
   text-transform: uppercase;
 }
+  /* La teinte reste sur le fond et la bordure — donc l'identité média
+     (IMDb, TMDb) et la distinction de catégorie survivent — mais le LIBELLÉ
+     passe sur un jeton de premier plan. Une couleur de marque n'a pas de raison
+     d'être lisible sur les deux thèmes : `#f5c518` sur blanc mesure 1,50:1.
+     C'est exactement ce que `tagBadgeStyle()` fait déjà pour les tags, où la
+     couleur est choisie par un opérateur et où le texte reste donc toujours
+     lisible. */
 .picker-kind--movie {
   border-color: rgba(245, 197, 24, 0.45);
-  color: #f5c518;
+  color: rgb(var(--fg-default));
   background: rgba(245, 197, 24, 0.08);
 }
 .picker-kind--tv {
   border-color: rgba(108, 209, 97, 0.45);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(108, 209, 97, 0.08);
 }
 .picker-kind--game {
   border-color: rgba(167, 139, 250, 0.45);
-  color: #a78bfa;
+  color: rgb(var(--fg-default));
   background: rgba(167, 139, 250, 0.08);
 }
 .picker-rating {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  color: #f5c518;
+  color: rgb(var(--fg-default));
   font-weight: 600;
 }
 .picker-overview {
@@ -905,5 +928,13 @@ async function resolveManual() {
 .picker-fade-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+.picker-error--standalone {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: rgb(var(--danger));
 }
 </style>

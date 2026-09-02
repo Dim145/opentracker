@@ -58,23 +58,30 @@ defineProps<{
 }
 /* Two distinct accents — gold for /movie, cyan for /tv — match the
    palette used in the admin KPI cards elsewhere in the app. */
+  /* La teinte reste sur le fond et la bordure — donc l'identité média
+     (IMDb, TMDb) et la distinction de catégorie survivent — mais le LIBELLÉ
+     passe sur un jeton de premier plan. Une couleur de marque n'a pas de raison
+     d'être lisible sur les deux thèmes : `#f5c518` sur blanc mesure 1,50:1.
+     C'est exactement ce que `tagBadgeStyle()` fait déjà pour les tags, où la
+     couleur est choisie par un opérateur et où le texte reste donc toujours
+     lisible. */
 .type-badge--movie {
-  color: #f5c518;
+  color: rgb(var(--fg-default));
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
 }
 .type-badge--tv {
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(52, 212, 216, 0.4);
   background: rgba(52, 212, 216, 0.08);
 }
 .type-badge--game {
-  color: #a78bfa;
+  color: rgb(var(--fg-default));
   border-color: rgba(167, 139, 250, 0.4);
   background: rgba(167, 139, 250, 0.08);
 }
 .type-badge--book {
-  color: #d97706;
+  color: rgb(var(--fg-default));
   border-color: rgba(217, 119, 6, 0.4);
   background: rgba(217, 119, 6, 0.08);
 }

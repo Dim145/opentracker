@@ -71,7 +71,7 @@
         <button
           v-if="ch.enabled"
           type="button"
-          class="btn btn--ghost"
+          class="cbtn cbtn--ghost"
           :disabled="!!busyState"
           @click="$emit('test')"
         >
@@ -84,7 +84,7 @@
         <button
           v-if="ch.hasServerConfig"
           type="button"
-          class="btn btn--primary"
+          class="cbtn cbtn--primary"
           :disabled="!!busyState"
           @click="$emit('toggle-expand')"
         >
@@ -211,14 +211,14 @@
         <div class="cc-drawer-foot">
           <button
             type="button"
-            class="btn btn--ghost"
+            class="cbtn cbtn--ghost"
             @click="$emit('toggle-expand')"
           >
             {{ $t('common.close') }}
           </button>
           <button
             type="button"
-            class="btn btn--ghost"
+            class="cbtn cbtn--ghost"
             v-if="ch.enabled"
             :disabled="!!busyState"
             @click="$emit('test')"
@@ -232,7 +232,7 @@
           <button
             v-if="ch.hasServerConfig"
             type="button"
-            class="btn btn--primary"
+            class="cbtn cbtn--primary"
             :disabled="!!busyState"
             @click="$emit('save')"
           >
@@ -632,7 +632,7 @@ const relativeTime = computed(() => {
   border-radius: var(--radius-sm);
 }
 .cc-note > svg {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   flex-shrink: 0;
   margin-top: 0.1rem;
 }
@@ -688,6 +688,16 @@ const relativeTime = computed(() => {
   border-color: rgb(var(--accent-warm) / 0.6);
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.field-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .field-input::placeholder {
   color: rgb(var(--fg-faint));
   font-style: italic;
@@ -776,7 +786,11 @@ const relativeTime = computed(() => {
 }
 
 /* ── Buttons ─────────────────────────────────────────────────── */
-.btn {
+/* Même renommage que dans les composants d'administration : `.btn` en `<style
+ * scoped>` masque la classe du système de design, qui vit dans
+ * `@layer components` et perd donc contre elle quelle que soit la
+ * spécificité. */
+.cbtn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -791,23 +805,23 @@ const relativeTime = computed(() => {
   transition: all var(--dur-2) ease;
   font-family: inherit;
 }
-.btn:hover:not(:disabled) {
+.cbtn:hover:not(:disabled) {
   border-color: rgb(var(--accent-warm) / 0.5);
   background: rgb(var(--accent-warm) / 0.05);
 }
-.btn:disabled {
+.cbtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.btn--ghost {
+.cbtn--ghost {
   background: transparent;
 }
-.btn--primary {
+.cbtn--primary {
   background: rgb(var(--accent-warm));
   border-color: rgb(var(--accent-warm));
   color: rgb(var(--accent-warm-fg));
 }
-.btn--primary:hover:not(:disabled) {
+.cbtn--primary:hover:not(:disabled) {
   background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
   border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }

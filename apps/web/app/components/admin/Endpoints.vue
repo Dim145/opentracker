@@ -203,12 +203,12 @@ onBeforeUnmount(() => {
   transition: all var(--dur-2) ease;
 }
 .endp-row-copy:hover {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.4);
   background: rgb(var(--accent-warm) / 0.06);
 }
 .endp-row-copy--copied {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(108, 209, 97, 0.5);
   background: rgba(108, 209, 97, 0.08);
 }

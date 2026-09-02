@@ -544,7 +544,7 @@ const explainer = computed(() => {
   font-weight: 800;
   letter-spacing: calc(0.3em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   flex: 1;
 }
 .bb-onair-now {
@@ -641,10 +641,10 @@ const explainer = computed(() => {
   border-radius: var(--radius-sm);
   border: 1px solid rgb(var(--accent-warm) / 0.45);
   background: rgb(var(--accent-warm) / 0.08);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .bb-title-strip--pool .bb-preset-tag {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.45);
   background: rgb(var(--accent-warm) / 0.08);
 }
@@ -664,7 +664,7 @@ const explainer = computed(() => {
 .bb-overlay-icon {
   flex-shrink: 0;
   margin-top: 0.1rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 /* Strike-through value in the DL meter — surfaces the original
@@ -694,17 +694,17 @@ const explainer = computed(() => {
   border: 1px solid;
 }
 .bb-title-strip--freeleech .bb-preset-tag {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(108, 209, 97, 0.45);
   background: rgba(108, 209, 97, 0.08);
 }
 .bb-title-strip--silverleech .bb-preset-tag {
-  color: #94a3b8;
+  color: rgb(var(--fg-muted));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(148, 163, 184, 0.45);
   background: rgba(148, 163, 184, 0.08);
 }
 .bb-title-strip--bonus .bb-preset-tag {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.45);
   background: rgb(var(--accent-warm) / 0.08);
 }
@@ -728,7 +728,7 @@ const explainer = computed(() => {
   font-size: 0.7813rem;
   font-weight: 700;
   letter-spacing: calc(0.05em * var(--tracking-scale));
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   text-shadow: 0 0 10px rgba(244, 63, 94, 0.25);
 }
 .bb-countdown-icon { font-size: 0.95rem; }
@@ -815,7 +815,7 @@ const explainer = computed(() => {
 .meter--good .meter-verdict-icon,
 .meter--good .meter-value,
 .meter--good .meter-verdict {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .meter--good .meter-bar-fill {
   background: linear-gradient(to right, #4ade80, #6cd161);
@@ -828,7 +828,7 @@ const explainer = computed(() => {
 .meter--bad .meter-verdict-icon,
 .meter--bad .meter-value,
 .meter--bad .meter-verdict {
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .meter--bad .meter-bar-fill {
   background: linear-gradient(to right, #f43f5e, #fb7185);
@@ -971,7 +971,7 @@ const explainer = computed(() => {
 }
 .bb-window-foot-leg--right {
   text-align: right;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 /* ── Explainer ──────────────────────────────────────────── */
@@ -996,7 +996,7 @@ const explainer = computed(() => {
   font-weight: 800;
   letter-spacing: calc(0.2em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .bb-explainer-icon { font-size: 0.95rem; }
 .bb-explainer-body {

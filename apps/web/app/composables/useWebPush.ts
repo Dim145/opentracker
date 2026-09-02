@@ -72,6 +72,9 @@ export function isWebPushSupported(): boolean {
 }
 
 export function useWebPush() {
+  // Deux replis anglais codés en dur — « Failed to enable web push. » —
+  // atterrissaient tels quels dans un bandeau français.
+  const { t } = useI18n();
   const status = useState<WebPushStatus>('webpush-status', () => 'disabled');
   const error = useState<string | null>('webpush-error', () => null);
 
@@ -172,7 +175,7 @@ export function useWebPush() {
     } catch (err: any) {
       status.value = 'error';
       error.value =
-        err?.data?.message ?? err?.message ?? 'Failed to enable web push.';
+        err?.data?.message ?? err?.message ?? t('settings.notifications.webPush.enableFailed');
       return false;
     }
   }
@@ -208,7 +211,7 @@ export function useWebPush() {
     } catch (err: any) {
       status.value = 'error';
       error.value =
-        err?.data?.message ?? err?.message ?? 'Failed to disable web push.';
+        err?.data?.message ?? err?.message ?? t('settings.notifications.webPush.disableFailed');
       return false;
     }
   }

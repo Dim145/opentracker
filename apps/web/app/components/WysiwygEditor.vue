@@ -495,7 +495,12 @@ const previewSource = computed(() => {
 // mode we also accept the legacy mix of MD with embedded HTML/BBCode.
 function inputToHtml(value: string): string {
   if (!value) return '';
-  if (props.format === 'html') return value;
+  // Assaini dans les DEUX branches. Celle-ci renvoyait la valeur stockée telle
+  // quelle : aucun appelant ne passe `format="html"` aujourd'hui, donc c'était
+  // un trou latent, mais la sûreté reposait alors sur le schéma ProseMirror de
+  // tiptap et non sur l'assainisseur du projet — et `htmlToOutput` renvoie
+  // ensuite ce HTML brut au serveur.
+  if (props.format === 'html') return sanitizeRichHtml(value);
   return toEditorHtml(value);
 }
 
@@ -811,7 +816,7 @@ onBeforeUnmount(() => {
 .we-tag-chip:hover {
   background: rgba(56, 189, 248, 0.12);
   border-color: rgba(56, 189, 248, 0.45);
-  color: #38bdf8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   transform: translateY(-1px);
 }
 

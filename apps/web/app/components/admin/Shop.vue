@@ -370,6 +370,7 @@
           <button
             type="button"
             role="switch"
+            :aria-label="$t('admin.shop.fields.enabled')"
             :aria-checked="form.enabled"
             class="relative w-9 h-5 rounded-full transition-colors flex-shrink-0"
             :class="form.enabled ? 'bg-accent' : 'bg-fg-default/15'"
@@ -510,18 +511,6 @@ function effectLabel(item: ShopItemRow): string {
     return t('shop.effects.invite', { n: c }, c);
   }
   return '';
-}
-
-function formatSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
-  let i = 0;
-  let v = bytes;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1).replace(/\.0$/, '')} ${units[i]}`;
 }
 
 function formatNumber(n: number): string {

@@ -321,12 +321,12 @@
       </div>
       <template #footer>
         <div class="confirm-footer">
-          <button type="button" class="btn btn--ghost" @click="confirmOpen = false">
+          <button type="button" class="cbtn cbtn--ghost" @click="confirmOpen = false">
             {{ $t('admin.invites.confirm.keep') }}
           </button>
           <button
             type="button"
-            class="btn btn--danger"
+            class="cbtn cbtn--danger"
             :disabled="pendingDelete !== null"
             @click="confirmDelete"
           >
@@ -655,7 +655,7 @@ async function confirmDelete() {
   max-width: 64ch;
 }
 .adm-intro-link {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   text-decoration: underline;
   text-decoration-color: rgb(var(--accent-warm) / 0.5);
   text-underline-offset: 3px;
@@ -791,7 +791,7 @@ async function confirmDelete() {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
@@ -888,7 +888,7 @@ async function confirmDelete() {
   padding: 0.2rem 0.5rem;
   background: rgb(var(--accent-warm) / 0.12);
   border: 1px solid rgb(var(--accent-warm) / 0.4);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-radius: var(--radius-pill);
   font-size: 0.6875rem;
   font-weight: 600;
@@ -900,7 +900,7 @@ async function confirmDelete() {
   border: 0;
   padding: 0;
   background: transparent;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   cursor: pointer;
   opacity: 0.75;
   transition: opacity var(--dur-2) ease;
@@ -976,6 +976,16 @@ async function confirmDelete() {
   border-color: rgb(var(--accent-warm) / 0.6);
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.grant-count-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 
 .grant-btn {
   display: inline-flex;
@@ -1085,7 +1095,7 @@ async function confirmDelete() {
 .ledger-segment:hover { color: rgb(var(--fg-strong)); }
 .ledger-segment--active {
   background: rgb(var(--bg-base));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   box-shadow: inset 0 0 0 1px rgb(var(--accent-warm) / 0.4);
 }
 .ledger-segment-count {
@@ -1098,7 +1108,7 @@ async function confirmDelete() {
   letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .ledger-segment--active .ledger-segment-count {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--accent-warm) / 0.1);
 }
 
@@ -1178,7 +1188,7 @@ async function confirmDelete() {
   white-space: nowrap;
 }
 .entry-status--active {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--accent-warm) / 0.08);
 }
 .entry-status--used {
@@ -1212,7 +1222,7 @@ async function confirmDelete() {
 .entry-flow-user {
   font-size: 0.82rem;
   font-weight: 600;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   text-decoration: none;
   border-bottom: 1px dashed rgb(var(--accent-warm) / 0.4);
   transition: border-color var(--dur-2) ease;
@@ -1365,7 +1375,7 @@ async function confirmDelete() {
 }
 .pager-btn:hover:not(:disabled) {
   border-color: rgb(var(--accent-warm) / 0.5);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .pager-pos {
@@ -1412,7 +1422,18 @@ async function confirmDelete() {
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
-.btn {
+/*
+ * Le bouton du dialecte console, renommé depuis `.btn`.
+ *
+ * Il portait le nom de la classe du système de design, dans un `<style
+ * scoped>` — donc dans une couche sans couche, qui l'emporte sur
+ * `@layer components` quelle que soit la spécificité. Tant que ce composant
+ * n'utilise QUE le dialecte local, rien ne casse ; le jour où quelqu'un y
+ * écrit `class="btn btn-primary"`, il obtient silencieusement ce bouton-ci et
+ * cherche longtemps pourquoi. Quatre composants d'administration portaient la
+ * même copie de cette définition.
+ */
+.cbtn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -1427,18 +1448,18 @@ async function confirmDelete() {
   transition: all var(--dur-2) ease;
   font-family: inherit;
 }
-.btn:hover:not(:disabled) {
+.cbtn:hover:not(:disabled) {
   border-color: rgb(var(--accent-warm) / 0.5);
   background: rgb(var(--accent-warm) / 0.05);
 }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn--ghost { background: transparent; }
-.btn--danger {
+.cbtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cbtn--ghost { background: transparent; }
+.cbtn--danger {
   background: rgba(239, 68, 68, 0.1);
   border-color: rgba(239, 68, 68, 0.5);
   color: rgb(var(--danger));
 }
-.btn--danger:hover:not(:disabled) {
+.cbtn--danger:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.18);
   border-color: rgb(var(--danger));
 }

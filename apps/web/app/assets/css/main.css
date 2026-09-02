@@ -50,6 +50,17 @@
 
   /* Lines */
   --line-default:   42 42 42;
+  /* La bordure d'un CHAMP, distincte des filets décoratifs.
+     `--line-default` sur `--bg-elevated` donne 1,21:1 en sombre et 1,26:1 en
+     clair : dans les deux thèmes, la frontière du contrôle est sous les 3:1
+     que WCAG 1.4.11 exige d'un élément non textuel nécessaire pour
+     l'identifier. Le portail écartait justement la paire
+     `line-default`/`bg-base` au motif que « `.input` s'identifie par son fond,
+     distinct de la page » — or en thème clair `--bg-elevated` et
+     `--bg-surface` valent tous deux 255 : la prémisse était fausse pour un des
+     deux thèmes livrés. 102 en sombre et 149 en clair donnent 3:1 sur le fond
+     du champ, sans alourdir les filets des cartes et des tableaux. */
+  --line-field:     102 102 102;
   --line-strong:    58 58 58;
 
   /* Accent — deliberately neutral; primary CTA inverts the surface */
@@ -60,7 +71,24 @@
   /* Semantic — used for status badges and notifications, NOT for chrome */
   --online:         34 197 94;
   --warning:        234 179 8;
+  /* Les encres de la famille sémantique.
+     `accent` et `accent-warm` avaient chacun la leur ; `online`, `warning`,
+     `danger` et `info` n'en avaient aucune, et les composants comblaient le
+     trou avec des `#fff` et des `#0a1610` en dur — hors du système, donc
+     insensibles au thème, et faux dans un des deux : blanc sur le vert du thème
+     clair passe, blanc sur le vert du thème sombre non, et réciproquement pour
+     une encre foncée. Une encre quasi noire sur les teintes vives du thème
+     sombre, blanche sur les teintes profondes du thème clair. */
+  --online-fg:      26 26 26;
+  --warning-fg:     26 26 26;
+  --info-fg:        26 26 26;
   --danger:         239 68 68;
+  /* L'encre du bouton plein de danger. `#fff` en dur sur `--danger` donne
+     3,76:1 en thème sombre : l'état AU REPOS échouait pendant que son survol
+     passait à 4,70:1 — exactement à l'envers. Une encre quasi noire sur ce
+     rouge donne 4,63:1, et en thème clair (185 28 28) le blanc donne 6,54:1 :
+     chaque thème prend l'encre qui marche sur SON rouge. */
+  --danger-fg:      26 26 26;
   --info:           56 189 248;
 
   /* Chrome. `--focus-ring` is new and its default IS the gold that used to be
@@ -124,6 +152,16 @@
      theme authored today stays valid when those 111 definitions are replaced,
      and a theme file can already set them by hand. */
   --accent-warm:    212 167 52;
+  /* L'or, mais lisible EN TEXTE.
+     `--accent-warm` est un jeton de remplissage : sa paire déclarée au portail
+     de contraste est `accent-warm-fg` POSÉ DESSUS. Utilisé comme couleur de
+     texte il n'a jamais été mesuré, et en thème clair (176 133 24) il donne
+     3,24:1 sur la page — sous les 4,5:1 requis, pour les dizaines de
+     micro-libellés dorés de 9 à 15 px qui parsèment la console. En sombre les
+     deux valeurs coïncident : c'est le thème clair qui avait besoin d'une
+     encre plus profonde. Les deux nouvelles paires sont déclarées au portail
+     pour que la question ne se repose pas. */
+  --accent-warm-text: 212 167 52;
   --accent-warm-fg: 26 26 26;
   --accent-cool:    52 212 216;
   --accent-paper:   20 20 20;
@@ -269,6 +307,7 @@
   --fg-faint:       111 111 111;
 
   --line-default:   229 229 229;
+  --line-field:     146 146 146;
   --line-strong:    208 208 208;
 
   --accent:         10 10 10;
@@ -277,7 +316,11 @@
 
   --online:         21 128 61;
   --warning:        180 83 9;
+  --online-fg:      255 255 255;
+  --warning-fg:     255 255 255;
+  --info-fg:        255 255 255;
   --danger:         185 28 28;
+  --danger-fg:      255 255 255;
   --info:           3 105 161;
 
   --focus-ring:     176 133 24;
@@ -289,6 +332,9 @@
   --bg-pattern-step: 40px;
 
   --accent-warm:    176 133 24;
+  /* 143 104 8 : 4,76:1 sur `bg-base`, 5,06:1 sur `bg-surface` / `bg-elevated`,
+     4,56:1 sur `bg-inset`. Le quatre surfaces passent AA. */
+  --accent-warm-text: 143 104 8;
   --accent-warm-fg: 26 26 26;
   --accent-cool:    14 145 148;
   --accent-paper:   252 250 245;
@@ -475,7 +521,7 @@
 
   .btn-danger {
     background-color: rgb(var(--danger));
-    color: #fff;
+    color: rgb(var(--danger-fg));
     border-color: rgb(var(--danger));
   }
   .btn-danger:hover {
@@ -483,8 +529,13 @@
     border-color: rgb(var(--danger) / 0.85);
   }
 
-  .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
-  .btn-xs { padding: 0.2rem 0.45rem; font-size: 0.6875rem; }
+  /* `min-height` et non plus du padding seul : à `line-height: 1`, `.btn-sm`
+     tombait à ~23,6 px et `.btn-xs` à ~22,4 px — tous deux sous le minimum de
+     24 px de WCAG 2.2 SC 2.5.8, que le commentaire de `.tool-btn` plus bas
+     cite pourtant pour justifier ses 36 px. `.btn-xs` est la croix de
+     fermeture de `Modal.vue`, donc la commande la plus pressée du système. */
+  .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; min-height: 1.5rem; }
+  .btn-xs { padding: 0.2rem 0.45rem; font-size: 0.6875rem; min-height: 1.5rem; }
 
   /* ---------------------------------------------------------------------------
    * Icon buttons — the square affordance next to a heading or in a table row
@@ -507,6 +558,34 @@
    * still wins over `@layer components` regardless of specificity, and those two
    * pages keep rendering exactly as they do today.
    * --------------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------------
+   * Aller au contenu
+   *
+   * Hors écran jusqu'au focus, puis posé au-dessus de tout — y compris de
+   * l'en-tête collant, d'où le z-index au-delà de l'échelle des modales : un
+   * lien d'évitement que la barre recouvre ne sert à rien.
+   * --------------------------------------------------------------------------- */
+  .skip-link {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 70;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid rgb(var(--line-field));
+    border-radius: var(--radius-sm);
+    background: rgb(var(--bg-elevated));
+    color: rgb(var(--fg-strong));
+    font-size: 0.8125rem;
+    font-weight: 600;
+    transform: translateY(-200%);
+    transition: transform var(--dur-2) ease;
+  }
+  .skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid rgb(var(--focus-ring));
+    outline-offset: 2px;
+  }
+
   .tool-btn {
     display: inline-flex;
     align-items: center;
@@ -590,7 +669,7 @@
     width: 100%;
     background-color: rgb(var(--bg-elevated));
     color: rgb(var(--fg-default));
-    border: 1px solid rgb(var(--line-default));
+    border: 1px solid rgb(var(--line-field));
     border-radius: var(--radius-sm);
     padding: 0.45rem 0.75rem;
     font-size: 0.875rem;
@@ -746,6 +825,11 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
+    /* 50, comme l'échelle juste au-dessus le dit. Le toast était lui aussi à
+       50 alors que sa place est 60 : à z-index égal c'est l'ordre DOM qui
+       tranche, et une modale téléportée dans `body` arrive APRÈS le toast monté
+       au layout. Son `backdrop-filter` floutait donc le message d'erreur
+       renvoyé par le formulaire de la modale — précisément quand il compte. */
     z-index: 50;
     display: flex;
     align-items: center;
@@ -825,6 +909,21 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Et les DÉLAIS, pas seulement les durées.
+   Le bloc ci-dessus ramène `animation-duration` à 0,01 ms, mais une entrée
+   échelonnée garde son `animation-delay` : avec `fill-mode: backwards` ou
+   `both`, les dernières lignes d'une liste restent à `opacity: 0` pendant
+   jusqu'à 700 ms puis apparaissent d'un coup. Un mouvement réduit n'est pas
+   un mouvement plus lent. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-delay: 0ms !important;
+    transition-delay: 0ms !important;
   }
 }
 

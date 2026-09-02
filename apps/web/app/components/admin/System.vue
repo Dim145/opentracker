@@ -114,11 +114,11 @@
         <!-- Update check failed (e.g. non-GitHub repo, 404, network) ─── -->
         <div
           v-else-if="versionInfo?.checkError"
-          class="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg space-y-2"
+          class="p-4 bg-warning/10 border border-warning/30 rounded-lg space-y-2"
         >
           <div class="flex items-center gap-2">
-            <Icon name="ph:warning" class="text-yellow-400" />
-            <p class="text-sm font-medium text-yellow-400">
+            <Icon name="ph:warning" class="text-warning" />
+            <p class="text-sm font-medium text-warning">
               {{ $t('admin.system.checkUnavailable') }}
             </p>
           </div>
@@ -215,10 +215,10 @@
                server payload so admins can edit the wording in one place. -->
           <div
             v-if="updateNotes.length > 0"
-            class="flex items-start gap-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg"
+            class="flex items-start gap-2 p-3 bg-warning/10 border border-warning/30 rounded-lg"
           >
-            <Icon name="ph:warning" class="text-yellow-400 mt-0.5" />
-            <ul class="text-xs text-yellow-400 space-y-1">
+            <Icon name="ph:warning" class="text-warning mt-0.5" />
+            <ul class="text-xs text-warning space-y-1">
               <li v-for="note in updateNotes" :key="note">{{ note }}</li>
             </ul>
           </div>

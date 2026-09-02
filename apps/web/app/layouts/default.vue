@@ -2,6 +2,11 @@
   <div
     class="min-h-screen flex flex-col bg-bg-primary text-text-primary selection:bg-accent selection:text-accent-fg"
   >
+    <!-- Aller au contenu (WCAG 2.4.1). Hors écran jusqu'au focus : au clavier,
+         chaque page faisait traverser le logo, quatre à six liens de nav, le
+         champ de recherche, deux cloches, le bouton de rafraîchissement et le
+         menu du compte avant d'atteindre quoi que ce soit de la page. -->
+    <a href="#main" class="skip-link">{{ $t('nav.skipToContent') }}</a>
     <!--
       Top-of-page progress bar that lights up while a route's
       setup blocks on its `await useFetch(...)` calls. Without
@@ -211,8 +216,25 @@
             </button>
           </div>
 
+          <!--
+            Un visiteur non connecté peut rendre ce layout : `/privacy` est une
+            route ouverte (`middleware/auth.global.ts`), et c'est même la page
+            écrite pour quelqu'un qui décide s'il s'inscrit. Sans ce garde, il
+            voyait un bouton d'avatar au LIBELLÉ VIDE ouvrant un menu Profil /
+            Favoris / Alertes / Réglages / Déconnexion — et aucun « Se
+            connecter » nulle part.
+          -->
+          <NuxtLink
+            v-if="!user"
+            to="/auth/login"
+            class="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium border border-border text-text-secondary hover:text-text-strong hover:border-border-hover transition-colors"
+          >
+            <Icon name="ph:sign-in" />
+            {{ $t('nav.signIn') }}
+          </NuxtLink>
+
           <!-- User Menu — desktop only -->
-          <div class="relative hidden md:block" ref="userMenuRef">
+          <div v-else class="relative hidden md:block" ref="userMenuRef">
             <button
               @click="toggleUserMenu"
               class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-fg-default/5 transition-colors"
@@ -404,7 +426,7 @@
                   </NuxtLink>
                   <button
                     @click="handleLogout"
-                    class="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-fg-default/5 transition-colors flex items-center gap-2"
+                    class="w-full px-4 py-2 text-left text-sm text-error hover:bg-fg-default/5 transition-colors flex items-center gap-2"
                   >
                     <Icon name="ph:sign-out" />
                     {{ $t('nav.signOut') }}
@@ -601,8 +623,22 @@
           </NuxtLink>
         </nav>
 
-        <!-- Footer actions -->
-        <div class="mt-auto border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex flex-col">
+        <!-- Footer actions — comptes connectés seulement, pour la même raison
+             que le menu desktop plus haut. -->
+        <div
+          v-if="!user"
+          class="mt-auto border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+        >
+          <NuxtLink
+            to="/auth/login"
+            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-primary hover:bg-fg-default/5 transition-colors"
+            @click="showMobileNav = false"
+          >
+            <Icon name="ph:sign-in" class="text-lg flex-shrink-0" />
+            <span>{{ $t('nav.signIn') }}</span>
+          </NuxtLink>
+        </div>
+        <div v-else class="mt-auto border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex flex-col">
           <NuxtLink
             to="/favorites"
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
@@ -692,7 +728,7 @@
           </NuxtLink>
           <button
             type="button"
-            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors text-left"
+            class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-error hover:bg-error/10 transition-colors text-left"
             @click="onMobileLogout"
           >
             <Icon name="ph:sign-out" class="text-lg flex-shrink-0" />
@@ -762,7 +798,11 @@
     </ClientOnly>
 
     <!-- Main Content -->
-    <main class="flex-grow max-w-[var(--container-max)] w-full mx-auto px-4 py-6">
+    <main
+      id="main"
+      tabindex="-1"
+      class="flex-grow max-w-[var(--container-max)] w-full mx-auto px-4 py-6"
+    >
       <slot />
     </main>
 
@@ -810,21 +850,27 @@
             href="https://n0w.me/"
             target="_blank"
             rel="noopener"
-            class="text-text-muted hover:text-text-strong transition-colors"
+            :aria-label="$t('nav.footerSite')"
+            :title="$t('nav.footerSite')"
+            class="inline-flex items-center justify-center min-w-[1.5rem] min-h-[1.5rem] text-text-muted hover:text-text-strong transition-colors"
             ><Icon name="ph:globe" class="text-xl"
           /></a>
           <a
             href="https://github.com/florianjs/trackarr"
             target="_blank"
             rel="noopener"
-            class="text-text-muted hover:text-text-strong transition-colors"
+            :aria-label="$t('nav.footerSource')"
+            :title="$t('nav.footerSource')"
+            class="inline-flex items-center justify-center min-w-[1.5rem] min-h-[1.5rem] text-text-muted hover:text-text-strong transition-colors"
             ><Icon name="ph:github-logo" class="text-xl"
           /></a>
           <a
             href="https://discord.gg/GRFu35djvz"
             target="_blank"
             rel="noopener"
-            class="text-text-muted hover:text-text-strong transition-colors"
+            :aria-label="$t('nav.footerChat')"
+            :title="$t('nav.footerChat')"
+            class="inline-flex items-center justify-center min-w-[1.5rem] min-h-[1.5rem] text-text-muted hover:text-text-strong transition-colors"
             ><Icon name="ph:discord-logo" class="text-xl"
           /></a>
         </div>
@@ -931,23 +977,33 @@ function hashString(str: string): string {
   return Math.abs(hash).toString(36);
 }
 
+/*
+ * Les trois teintes de la bannière, sur les jetons sémantiques.
+ *
+ * C'étaient `text-info` / `text-warning` / `text-error` sur des fonds
+ * `/10` — la palette Tailwind en dur, réglée pour un fond sombre. En thème
+ * clair : 2,18:1, 1,38:1 et 2,33:1. Le canal par lequel un opérateur annonce
+ * une maintenance ou une purge n'était pas « peu contrasté », il était absent.
+ * `--info` / `--warning` / `--danger` sont redéfinis par thème et donnent
+ * 5,28 / 4,51 / 5,66:1 en clair.
+ */
 const announcementStyles = {
   info: {
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/30',
-    text: 'text-blue-400',
+    bg: 'bg-info/10',
+    border: 'border-info/30',
+    text: 'text-info',
     icon: 'ph:info',
   },
   warning: {
-    bg: 'bg-yellow-500/10',
-    border: 'border-yellow-500/30',
-    text: 'text-yellow-400',
+    bg: 'bg-warning/10',
+    border: 'border-warning/30',
+    text: 'text-warning',
     icon: 'ph:warning',
   },
   error: {
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
-    text: 'text-red-400',
+    bg: 'bg-danger/10',
+    border: 'border-danger/30',
+    text: 'text-danger',
     icon: 'ph:warning-circle',
   },
 };

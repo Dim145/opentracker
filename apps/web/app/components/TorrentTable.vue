@@ -43,12 +43,15 @@
     >
       {{ $t('components.torrentTable.noTorrents') }}
     </p>
-    <button
+    <!-- `NuxtLink` plutôt qu'un `<button>` qui appelle `navigateTo` : une
+         destination est un lien. Le bouton était atteignable au clavier mais
+         ne se laissait ni ouvrir dans un onglet, ni copier, et s'annonçait
+         « bouton » là où le lecteur d'écran attend « lien ». -->
+    <NuxtLink
       v-for="torrent in torrents"
       :key="torrent.id"
-      type="button"
+      :to="`/torrents/${torrent.infoHash}`"
       class="w-full text-left px-3 py-3 active:bg-fg-default/5 transition-colors block"
-      @click="navigateTo(`/torrents/${torrent.infoHash}`)"
     >
       <div class="flex items-start gap-2">
         <Icon
@@ -147,7 +150,7 @@
           </div>
         </div>
       </div>
-    </button>
+    </NuxtLink>
   </div>
 
   <!-- ≥ md: original table preserved verbatim. -->
@@ -180,9 +183,18 @@
               :name="getCategoryIcon(torrent.category)"
               class="text-text-muted text-base shrink-0"
             />
-            <span
+            <!-- Un vrai lien, pas un `<span>` dans une ligne cliquable.
+                 La ligne n'avait ni `tabindex`, ni rôle, ni gestionnaire clavier :
+                 la tabulation sautait le catalogue entier, et le seul moyen
+                 d'ouvrir une release était la souris. Un lien rend aussi ce que
+                 le navigateur sait faire d'un lien — ouvrir dans un onglet,
+                 copier l'adresse, l'annoncer comme lien. Le clic sur la ligne
+                 reste, comme raccourci. -->
+            <NuxtLink
+              :to="`/torrents/${torrent.infoHash}`"
               class="text-text-primary hover:text-text-strong transition-colors font-medium truncate max-w-[300px] lg:max-w-[500px]"
-              >{{ torrent.name }}</span
+              @click.stop
+              >{{ torrent.name }}</NuxtLink
             >
             <span
               v-for="tag in torrent.tags ?? []"
