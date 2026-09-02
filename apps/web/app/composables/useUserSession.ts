@@ -34,6 +34,12 @@ export function useUserSession() {
 
   async function clear() {
     session.value = { user: null };
+    // La clé privée de l'identité portable et les brouillons partent avec la
+    // session. `identityKey.forget()` existait et n'était appelé de nulle part :
+    // sur un profil de navigateur partagé, la personne suivante héritait de la
+    // clé qui signe les documents fédérés du membre précédent. Voir
+    // `utils/localSecrets.ts` pour ce qui est purgé et pourquoi c'est ici.
+    purgeLocalSecrets();
   }
 
   return { user, loggedIn, fetch, clear };

@@ -242,6 +242,7 @@ const emit = defineEmits<{ (e: 'changed'): void }>();
 
 const { t, locale } = useI18n();
 const draft = ref('');
+const draftStore = useDraft(`ticket:${props.ticketId}`, draft);
 const note = ref('');
 const busy = ref(false);
 const error = ref('');
@@ -349,6 +350,8 @@ async function send() {
       body: { body },
     });
     draft.value = '';
+    // Publié : le brouillon n'a plus de raison d'exister.
+    draftStore.clear();
     await refresh();
     emit('changed');
   } catch (err) {
@@ -585,6 +588,16 @@ async function reopen() {
   resize: vertical;
 }
 .tk-input:focus { outline: none; border-color: rgb(var(--accent)); }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.tk-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 
 .tk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .tk-spacer { flex: 1; }

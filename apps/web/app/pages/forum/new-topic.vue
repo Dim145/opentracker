@@ -185,6 +185,32 @@ const form = ref({
 
 const submitting = ref(false);
 
+/**
+ * Le brouillon du sujet, titre et corps ensemble.
+ *
+ * `useDraft` travaille sur une chaîne ; ici l'état est un objet, donc on lui
+ * donne une vue JSON du couple (titre, contenu) — la catégorie reste hors du
+ * brouillon, puisqu'elle peut venir de l'URL et qu'une valeur d'hier y serait
+ * plus gênante qu'utile.
+ */
+const draftJson = computed({
+  get: () =>
+    form.value.title || form.value.content
+      ? JSON.stringify({ title: form.value.title, content: form.value.content })
+      : '',
+  set: (raw: string) => {
+    try {
+      const parsed = JSON.parse(raw) as { title?: string; content?: string };
+      form.value.title = parsed.title ?? '';
+      form.value.content = parsed.content ?? '';
+    } catch {
+      // Un brouillon illisible (format d'une version antérieure) est ignoré
+      // plutôt que de faire échouer l'ouverture de la page.
+    }
+  },
+});
+const topicDraft = useDraft('forum:new-topic', draftJson);
+
 const selectedCategory = computed(() =>
   (categories.value ?? []).find((c) => c.id === form.value.categoryId) ?? null
 );
@@ -198,7 +224,8 @@ const isValid = computed(
 
 function catTileStyle(cat: Category) {
   const accent = cat.color || 'rgb(var(--fg-muted))';
-  return { '--accent': accent } as Record<string, string>;
+  // Voir la note de `forum/index.vue`.
+  return { '--cat-accent': accent } as Record<string, string>;
 }
 
 async function handleSubmit() {
@@ -214,6 +241,8 @@ async function handleSubmit() {
       },
     });
     if (topic?.id) {
+      // Publié : le brouillon n'a plus de raison d'exister.
+      topicDraft.clear();
       router.push(`/forum/topic/${topic.id}`);
     }
   } catch (e: any) {
@@ -388,12 +417,12 @@ async function handleSubmit() {
   color: var(--ink);
 }
 .cat-tile--on {
-  background: color-mix(in srgb, rgb(var(--accent)) 14%, transparent);
-  border-color: rgb(var(--accent));
+  background: color-mix(in srgb, var(--cat-accent) 14%, transparent);
+  border-color: var(--cat-accent);
   color: var(--ink);
 }
 .cat-tile--on > svg {
-  color: rgb(var(--accent));
+  color: var(--cat-accent);
 }
 
 .compose-title-input {
@@ -413,6 +442,16 @@ async function handleSubmit() {
   outline: none;
   border-color: var(--ink);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.compose-title-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 
 .compose-input {
   width: 100%;
@@ -433,6 +472,16 @@ async function handleSubmit() {
   outline: none;
   border-color: var(--ink);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.compose-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .compose-counter {
   align-self: flex-end;
   font-family: var(--font-mono);

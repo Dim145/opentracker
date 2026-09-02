@@ -224,6 +224,15 @@
             <kbd>⌘</kbd> + <kbd>↵</kbd> {{ $t('forum.topic.toPost') }}
           </span>
         </header>
+        <!-- Le texte réapparaît tout seul à l'ouverture : le dire, sinon
+             c'est un texte qu'on ne se souvient pas d'avoir écrit. -->
+        <p v-if="replyDraft.restored.value" class="draft-note">
+          <Icon name="ph:floppy-disk-back-bold" />
+          {{ $t('common.draftRestored') }}
+          <button type="button" class="draft-note-clear" @click="replyContent = ''; replyDraft.clear()">
+            {{ $t('common.draftDiscard') }}
+          </button>
+        </p>
         <textarea
           v-model="replyContent"
           ref="replyTextareaRef"
@@ -317,6 +326,9 @@ useHead({
 });
 
 const replyContent = ref('');
+// Un brouillon par sujet : deux réponses en cours dans deux onglets ne se
+// marchent pas dessus.
+const replyDraft = useDraft(`forum:reply:${route.params.id}`, replyContent);
 const replyTextareaRef = ref<HTMLTextAreaElement | null>(null);
 const composerRef = ref<HTMLElement | null>(null);
 const posting = ref(false);
@@ -440,6 +452,8 @@ async function handlePostReply() {
       },
     });
     replyContent.value = '';
+    // Publié : le brouillon n'a plus de raison d'exister.
+    replyDraft.clear();
     await refresh();
     nextTick(() => {
       // Scroll to the new last post — that's the one we just added.
@@ -808,12 +822,12 @@ onMounted(() => {
   color: var(--ink-fade);
 }
 .role-pill--admin {
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
 }
 .role-pill--mod {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.08);
 }
@@ -894,6 +908,16 @@ onMounted(() => {
   outline: none;
   border-color: var(--ink);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.post-edit-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .post-edit-tools {
   display: flex;
   justify-content: flex-end;
@@ -964,6 +988,16 @@ onMounted(() => {
   outline: none;
   border-color: var(--ink);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.composer-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .composer-foot {
   display: flex;
   align-items: center;
@@ -1047,7 +1081,7 @@ onMounted(() => {
 }
 .ed-btn--danger:hover:not(:disabled) {
   background: rgb(var(--danger));
-  color: #fff;
+  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgb(var(--danger));
 }
 
@@ -1138,4 +1172,18 @@ onMounted(() => {
     font-size: 1.4rem;
   }
 }
+.draft-note {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.7rem;
+  color: rgb(var(--fg-subtle));
+}
+.draft-note-clear {
+  color: rgb(var(--fg-muted));
+  text-decoration: underline;
+  cursor: pointer;
+}
+.draft-note-clear:hover { color: rgb(var(--fg-default)); }
 </style>

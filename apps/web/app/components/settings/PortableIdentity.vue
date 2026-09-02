@@ -52,7 +52,7 @@
       <button
         v-if="!armed"
         type="button"
-        class="btn-ghost"
+        class="sbtn-ghost"
         :disabled="busy"
         @click="armed = true"
       >
@@ -62,12 +62,12 @@
 
       <template v-else>
         <span class="pid-confirm">{{ $t('settings.identityExport.confirm') }}</span>
-        <button type="button" class="btn-ghost" :disabled="busy" @click="armed = false">
+        <button type="button" class="sbtn-ghost" :disabled="busy" @click="armed = false">
           {{ $t('common.cancel') }}
         </button>
         <button
           type="button"
-          class="btn-ghost btn-ghost--danger"
+          class="sbtn-ghost btn-ghost--danger"
           :disabled="busy"
           @click="download"
         >
@@ -86,7 +86,7 @@
       <button
         v-if="!rotateArmed"
         type="button"
-        class="btn-ghost"
+        class="sbtn-ghost"
         :disabled="busy"
         @click="rotateArmed = true"
       >
@@ -95,12 +95,12 @@
       </button>
       <template v-else>
         <span class="pid-confirm">{{ $t('settings.identityExport.rotateWarning') }}</span>
-        <button type="button" class="btn-ghost" :disabled="busy" @click="rotateArmed = false">
+        <button type="button" class="sbtn-ghost" :disabled="busy" @click="rotateArmed = false">
           {{ $t('common.cancel') }}
         </button>
         <button
           type="button"
-          class="btn-ghost btn-ghost--danger"
+          class="sbtn-ghost btn-ghost--danger"
           :disabled="busy"
           @click="rotate"
         >
@@ -119,14 +119,14 @@
         {{ held ? $t('settings.identityExport.custodyOn') : $t('settings.identityExport.custodyOff') }}
       </p>
       <template v-if="!held && !custodyArmed">
-        <button type="button" class="btn-ghost" :disabled="busy" @click="custodyArmed = true">
+        <button type="button" class="sbtn-ghost" :disabled="busy" @click="custodyArmed = true">
           <Icon name="ph:key-bold" />
           {{ $t('settings.identityExport.takeCustody') }}
         </button>
         <!-- The other half of custody: a member arriving in a new browser has
              the file and needs to put it back. Without this, "hold your own
              key" means "hold it in exactly one browser, forever". -->
-        <label class="btn-ghost fid-file">
+        <label class="sbtn-ghost fid-file">
           <Icon name="ph:upload-simple-bold" />
           {{ $t('settings.identityExport.importKey') }}
           <input type="file" accept="application/json,.json" @change="importKey" />
@@ -134,10 +134,10 @@
       </template>
       <template v-else-if="!held">
         <span class="pid-confirm">{{ $t('settings.identityExport.custodyWarning') }}</span>
-        <button type="button" class="btn-ghost" :disabled="busy" @click="custodyArmed = false">
+        <button type="button" class="sbtn-ghost" :disabled="busy" @click="custodyArmed = false">
           {{ $t('common.cancel') }}
         </button>
-        <button type="button" class="btn-ghost btn-ghost--danger" :disabled="busy" @click="takeCustody">
+        <button type="button" class="sbtn-ghost btn-ghost--danger" :disabled="busy" @click="takeCustody">
           <Icon v-if="busy" name="ph:circle-notch" class="animate-spin" />
           <Icon v-else name="ph:key-bold" />
           {{ $t('settings.identityExport.custodyConfirm') }}
@@ -145,11 +145,28 @@
       </template>
       <template v-else>
         <code class="pid-held">{{ held.did }}</code>
-        <label class="btn-ghost fid-file">
+        <label class="sbtn-ghost fid-file">
           <Icon name="ph:upload-simple-bold" />
           {{ $t('settings.identityExport.importKey') }}
           <input type="file" accept="application/json,.json" @change="importKey" />
         </label>
+        <!-- Retirer la clé de CE navigateur.
+             `identityKey.forget()` existait sans aucun appelant : rien, dans
+             toute l'application, n'effaçait la clé privée du stockage local.
+             Elle part désormais à la déconnexion (voir `utils/localSecrets.ts`),
+             mais un membre sur un poste emprunté doit pouvoir la retirer
+             maintenant, sans se déconnecter. Le geste est destructif si le
+             fichier d'export n'a pas été gardé : il passe par une
+             confirmation. -->
+        <button
+          type="button"
+          class="sbtn-ghost btn-ghost--danger"
+          :disabled="busy"
+          @click="forgetKey"
+        >
+          <Icon name="ph:trash-bold" />
+          {{ $t('settings.identityExport.forget') }}
+        </button>
       </template>
     </div>
 
@@ -166,6 +183,7 @@
 import * as identityKey from '~/utils/identityKey';
 
 const { t } = useI18n();
+const confirm = useConfirm();
 
 const armed = ref(false);
 const rotateArmed = ref(false);
@@ -283,6 +301,25 @@ async function importKey(event: Event): Promise<void> {
   }
 }
 
+/**
+ * Retirer la clé de ce navigateur.
+ *
+ * Sans le fichier d'export, la clé est irrécupérable : l'instance n'en a jamais
+ * eu la moitié privée, c'est tout l'objet du dispositif. La confirmation le dit
+ * en ces termes plutôt qu'en « êtes-vous sûr ».
+ */
+async function forgetKey(): Promise<void> {
+  const ok = await confirm({
+    title: t('settings.identityExport.forgetConfirm.title'),
+    message: t('settings.identityExport.forgetConfirm.message'),
+    confirmText: t('settings.identityExport.forget'),
+    destructive: true,
+  });
+  if (!ok) return;
+  identityKey.forget();
+  held.value = null;
+}
+
 async function download(): Promise<void> {
   busy.value = true;
   error.value = null;
@@ -336,6 +373,104 @@ async function download(): Promise<void> {
 </script>
 
 <style scoped>
+/*
+ * Le châssis des boutons et des titres de cette carte.
+ *
+ * `.action-card-title`, `.action-card-text`, `.btn-ghost--danger` et `.fid-file`
+ * n'existaient que dans les `<style scoped>` de `settings.vue` et de
+ * `federated-identity.vue`. Un style scopé pose son attribut sur la RACINE d'un
+ * composant enfant, pas sur ses descendants : ces onze contrôles rendaient donc
+ * du texte gris sans boîte — le preflight Tailwind retirant fond, bordure et
+ * padding d'un `<button>` — et le bouton qui retire la clé privée de l'instance
+ * était visuellement identique à « Annuler ».
+ *
+ * `.sbtn-ghost` seul ne suffit pas non plus : dans `main.css`, le châssis vit
+ * sur `.btn` et `.sbtn-ghost` ne porte que les couleurs. Les valeurs ci-dessous
+ * sont celles de `settings.vue`, la page qui rend ce composant, pour que la
+ * carte reste dans le vocabulaire de son hôte.
+ */
+/*
+ * Les boutons de cette surface, renommés depuis `btn-ghost` / `btn-primary`.
+ *
+ * Ce ne sont pas des copies ratées du bouton du système : c'est un dialecte à
+ * part — mono, capitales, 0,656 rem, interlettrage large — que les écrans de
+ * sécurité et de réglages emploient sciemment. Le défaut était le NOM : défini
+ * dans un `<style scoped>`, donc hors couche, il l'emportait sur
+ * `@layer components` quelle que soit la spécificité. Sept fichiers donnaient
+ * ainsi deux boutons visuellement différents sous le même nom de classe, et
+ * `class="btn btn-primary"` écrit dans l'un d'eux n'aurait pas donné le bouton
+ * attendu.
+ */
+.action-card-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgb(var(--fg-strong));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.action-card-text {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: rgb(var(--fg-muted));
+}
+.sbtn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.95rem;
+  min-height: 2.25rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: calc(0.16em * var(--tracking-scale));
+  text-transform: uppercase;
+  border: 1px solid rgb(var(--line-default));
+  background: rgb(var(--bg-elevated));
+  color: rgb(var(--fg-default));
+  cursor: pointer;
+  transition: all var(--dur-2);
+}
+.sbtn-ghost:hover:not(:disabled) {
+  border-color: rgb(var(--fg-default) / 0.3);
+  color: rgb(var(--fg-strong));
+}
+.sbtn-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* Rouge au repos ET au focus, pas seulement au survol : au doigt il n'y a pas
+   de survol, et au clavier non plus. */
+.btn-ghost--danger {
+  color: rgb(var(--danger));
+  border-color: rgb(var(--danger) / 0.4);
+}
+.btn-ghost--danger:hover:not(:disabled),
+.btn-ghost--danger:focus-visible:not(:disabled) {
+  color: rgb(var(--danger));
+  border-color: rgb(var(--danger) / 0.7);
+  background: rgb(var(--danger) / 0.1);
+}
+/* Le sélecteur de fichier est un <label> qui masque son input : sans
+   `overflow: visible` l'anneau de focus global, posé avec un décalage de 2 px,
+   était rogné par le parent. */
+.fid-file {
+  position: relative;
+  overflow: visible;
+}
+.fid-file input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.fid-file:focus-within {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .pid {
   display: flex;
   flex-direction: column;
@@ -439,7 +574,7 @@ async function download(): Promise<void> {
 .pid-held {
   font-family: var(--font-mono);
   font-size: 0.625rem;
-  color: rgb(var(--success));
+  color: rgb(var(--online));
   word-break: break-all;
 }
 .pid-error {
@@ -451,7 +586,7 @@ async function download(): Promise<void> {
   align-items: center;
   gap: 0.35rem;
   font-size: 0.75rem;
-  color: rgb(var(--success));
+  color: rgb(var(--online));
 }
 .pid-done code {
   font-family: var(--font-mono);
