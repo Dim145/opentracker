@@ -52,7 +52,25 @@ export default defineEventHandler(async (event) => {
   // `http://api:4000/uploads/x`. La portée est bornée — l'API ne monte que
   // `/api` et `/uploads`, et `/uploads` est joignable directement — mais cela
   // permettait d'atteindre `/uploads` par l'origine web, et c'est une ligne.
-  if (event.path.includes('..')) {
+  //
+  // Sur le chemin DÉCODÉ, pas sur la chaîne brute. `includes('..')` ne voyait
+  // pas `%2e%2e` — mesuré : `/api/%2e%2e/uploads/x` passait la garde, et le
+  // parseur d'URL WHATWG repliait ensuite l'encodage en un vrai segment
+  // double-point, donnant `http://api:4000/uploads/x`. Une garde écrite exprès
+  // qui ne fait pas ce qu'elle annonce est pire qu'aucune garde : elle donne
+  // la certitude d'être couvert.
+  //
+  // On normalise avec le même analyseur que celui qui fera le repli plus bas,
+  // puis on exige que ce qui en sort reste dans `/api/`. Un chemin qui remonte
+  // ailleurs — quelle que soit la façon dont il l'écrit — n'est plus un chemin
+  // que ce catch-all a le droit de relayer.
+  let normalised: string;
+  try {
+    normalised = new URL(event.path, 'http://internal').pathname;
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
+  }
+  if (normalised !== event.path.split('?')[0] || !normalised.startsWith('/api/')) {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
   }
 
