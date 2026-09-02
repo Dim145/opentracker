@@ -83,7 +83,9 @@ export default defineEventHandler(async (event) => {
     category_id: string;
     topic_id: string;
     title: string;
-    updated_at: Date;
+    // Chaîne brute, pas `Date` : `db.execute` ne passe pas par
+    // l'analyseur d'OID 1114 et son générique n'est jamais vérifié.
+    updated_at: string;
     is_pinned: boolean;
     is_locked: boolean;
     author_username: string;
@@ -117,7 +119,8 @@ export default defineEventHandler(async (event) => {
     topic_id: string;
     topic_title: string;
     content: string;
-    created_at: Date;
+    // Idem : chaîne brute. Voir `utils/naiveTimestamp.ts`.
+    created_at: string;
     author_username: string;
   }>(sql`
     SELECT DISTINCT ON (t.category_id)
@@ -152,7 +155,7 @@ export default defineEventHandler(async (event) => {
         ? {
             id: lt.topic_id,
             title: lt.title,
-            updatedAt: lt.updated_at,
+            updatedAt: naiveTimestampToIso(lt.updated_at),
             isPinned: lt.is_pinned,
             isLocked: lt.is_locked,
             authorUsername: lt.author_username,
@@ -163,7 +166,7 @@ export default defineEventHandler(async (event) => {
             topicId: lp.topic_id,
             topicTitle: lp.topic_title,
             content: lp.content,
-            createdAt: lp.created_at,
+            createdAt: naiveTimestampToIso(lp.created_at),
             authorUsername: lp.author_username,
           }
         : null,
