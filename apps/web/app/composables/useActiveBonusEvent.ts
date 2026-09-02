@@ -122,17 +122,28 @@ export function bonusPresetLabel(
   return 'Bonus';
 }
 
-/** Human countdown like "10j 10h" / "2h 3m" / "45s". */
-export function bonusCountdown(endsAt: string, now: Date = new Date()): string {
+/**
+ * Le compte à rebours, dans la langue du lecteur.
+ *
+ * Il était en anglais en dur — `'ended'`, `'10d 10h'` — alors que son propre
+ * commentaire annonçait « 10j 10h ». Le traducteur est passé en argument
+ * plutôt que résolu ici : `useI18n()` n'est appelable que depuis un `setup`,
+ * et cette fonction est un utilitaire de module appelé depuis deux `computed`.
+ */
+export function bonusCountdown(
+  endsAt: string,
+  now: Date = new Date(),
+  t: (key: string, params: Record<string, unknown>) => string,
+): string {
   const ms = new Date(endsAt).getTime() - now.getTime();
-  if (ms <= 0) return 'ended';
+  if (ms <= 0) return t('bonus.countdown.ended', {});
   const totalS = Math.floor(ms / 1000);
   const days = Math.floor(totalS / 86_400);
   const hours = Math.floor((totalS % 86_400) / 3_600);
   const minutes = Math.floor((totalS % 3_600) / 60);
   const seconds = totalS % 60;
-  if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m ${seconds}s`;
-  return `${seconds}s`;
+  if (days > 0) return t('bonus.countdown.days', { d: days, h: hours });
+  if (hours > 0) return t('bonus.countdown.hours', { h: hours, m: minutes });
+  if (minutes > 0) return t('bonus.countdown.minutes', { m: minutes, s: seconds });
+  return t('bonus.countdown.seconds', { s: seconds });
 }

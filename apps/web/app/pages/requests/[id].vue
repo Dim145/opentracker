@@ -724,8 +724,13 @@ const timeline = computed<TimelineEvent[]>(() => {
   );
 });
 
+// `locale.value`, pas `'fr-FR'` en dur : un lecteur anglophone voyait ses
+// points groupés à la française (« 1 234 » et non « 1,234 ») sur la seule page
+// où le chiffre compte. Le remplacement des espaces reste : `toLocaleString`
+// sépare avec une espace insécable étroite, que la fonte mono de cette page ne
+// rend pas.
 function formatPoints(n: number): string {
-  return n.toLocaleString('fr-FR').replace(/\s/g, ' ');
+  return n.toLocaleString(locale.value).replace(/\s/g, ' ');
 }
 function formatStamp(iso: string): string {
   const d = new Date(iso);

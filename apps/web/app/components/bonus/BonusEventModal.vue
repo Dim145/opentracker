@@ -330,7 +330,7 @@ const overlayDownloadFrom = computed<number | null>(() => {
 
 // ── Countdown + window progress ────────────────────────────
 const countdown = computed(() =>
-  bonusCountdown(props.event.endsAt, new Date(now.value))
+  bonusCountdown(props.event.endsAt, new Date(now.value), t)
 );
 
 const windowProgress = computed(() => {
