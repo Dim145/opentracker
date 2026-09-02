@@ -56,6 +56,22 @@ export function useMessagingStream(handlers: StreamHandlers) {
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
   let attempt = 0;
   let stopped = false;
+  /**
+   * Le numéro de la tentative de connexion en cours.
+   *
+   * `connect()` ferme la source existante puis attend deux fois (le jeton,
+   * le rattrapage). Fermer ne suffisait donc pas : deux `connect()` EN VOL
+   * passaient tous les deux la garde, attendaient tous les deux, et le
+   * second écrasait `source` — laissant le premier `EventSource` ouvert,
+   * sans plus personne pour le fermer. Un orphelin ne s'arrête pas tout
+   * seul : il continue de livrer, donc chaque message arrivait deux fois
+   * chez `handlers` et faisait avancer `lastSeen` depuis deux flux.
+   *
+   * Le cas se produit avec `stop()` puis `start()` — l'usage que ce
+   * fichier documente lui-même — parce que `start()` remet `stopped` à
+   * faux avant que le `connect()` précédent ait fini d'attendre son jeton.
+   */
+  let generation = 0;
   /** The high-water mark the catch-up asks from. */
   let lastSeen = new Date().toISOString();
 
@@ -93,7 +109,9 @@ export function useMessagingStream(handlers: StreamHandlers) {
     if (stopped) return;
     // Never two. `start()` is public and `onMounted` calls it, so a caller
     // that also calls it by hand would otherwise leave the first stream
-    // open with nothing holding it.
+    // open with nothing holding it. Fermer la source ne couvre que celle
+    // qui est DÉJÀ ouverte : `generation` couvre celle qui est en vol.
+    const mine = ++generation;
     source?.close();
     source = null;
     let grant: TokenGrant;
@@ -118,12 +136,15 @@ export function useMessagingStream(handlers: StreamHandlers) {
        * restarts, did the same.
        */
       const status = (err as { statusCode?: number })?.statusCode;
-      if (status !== 404) scheduleReconnect();
+      // Une tentative dépassée ne reprogramme rien : celle qui l'a
+      // remplacée s'en charge, et deux reprogrammations pour un seul flux
+      // font repartir la temporisation à contretemps.
+      if (status !== 404 && mine === generation) scheduleReconnect();
       return;
     }
 
     await catchUp();
-    if (stopped) return;
+    if (stopped || mine !== generation) return;
 
     const url = `${grant.url.replace(/\/$/, '')}/events?token=${encodeURIComponent(grant.token)}`;
     source = new EventSource(url);
@@ -197,8 +218,11 @@ export function useMessagingStream(handlers: StreamHandlers) {
    * Only `/messages` called it, which is why only the room said "offline".
    *
    * `start` and `stop` stay exported for a caller that wants to suspend a
-   * stream and bring it back; `connect()` closes any open source first, so
-   * calling `start()` again is safe rather than a second connection.
+   * stream and bring it back. C'est sûr, mais pas pour la raison qui était
+   * écrite ici : « `connect()` ferme la source ouverte » ne couvrait que la
+   * source déjà ouverte, et `stop()` puis `start()` laisse justement un
+   * `connect()` en train d'attendre son jeton. Ce qui rend l'appel sûr,
+   * c'est `generation` (voir sa déclaration).
    */
   onMounted(start);
   onBeforeUnmount(stop);
