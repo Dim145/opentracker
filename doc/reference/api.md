@@ -34,7 +34,7 @@ The tracker does not currently implement a multi-hash scrape endpoint or the Web
 
 | Method | Path                          | Purpose                                                                |
 | ------ | ----------------------------- | ---------------------------------------------------------------------- |
-| GET    | `/api/health`                 | Liveness probe. Returns `200 { ok: true }`.                            |
+| GET    | `/api/health`                 | Readiness probe, **public and unauthenticated**. Returns `200 {status, uptime, checks:{postgres,redis}}` with per-component latency — it reports on dependencies, so treat it as a liveness signal you are choosing to publish. |
 | GET    | `/api/branding`               | Site title, tagline, logo URL, favicon URL, feature flags.             |
 | GET    | `/api/runtime-config`         | Public Nuxt runtime config (announce URLs, etc.) for the static SPA.   |
 | GET    | `/api/announcement`           | Operator-set homepage banner (text + level).                           |
