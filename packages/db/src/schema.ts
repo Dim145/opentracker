@@ -268,6 +268,21 @@ export const users = pgTable(
     uniqueIndex('users_owner_unique')
       .on(table.isOwner)
       .where(sql`${table.isOwner}`),
+    /**
+     * L'unicité du pseudonyme, insensible à la casse.
+     *
+     * `.unique()` sur la colonne porte sur la valeur exacte, donc `Admin`
+     * pouvait coexister avec `admin`. Le jeu de caractères autorisé étant
+     * `[a-zA-Z0-9_-]`, il n'y a pas d'homographes Unicode — mais la collision
+     * par casse suffit à usurper un pseudonyme de personnel dans les
+     * commentaires, le forum, les messages privés et le journal de modération,
+     * et `auth/challenge` étant également sensible à la casse, les deux
+     * comptes se connectent normalement.
+     *
+     * La connexion reste sensible à la casse : c'est l'unicité qui devait
+     * l'être, pas la comparaison d'identifiant.
+     */
+    uniqueIndex('users_username_lower_unique').on(sql`lower(${table.username})`),
   ],
 );
 
@@ -859,6 +874,8 @@ export const freeleechPoolContributions = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    /** export de compte et calcul de cycle. */
+    index('freeleech_pool_contributions_user_idx').on(table.userId),
     index('freeleech_pool_contributions_cycle_idx').on(
       table.cycleId,
       table.createdAt
@@ -1416,6 +1433,31 @@ export const catalogRecords = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    /*
+     * Les trois invariants de la fédération, déclarés en base et non seulement
+     * en TypeScript.
+     *
+     * Le commentaire d'`origin` dit lui-même l'enjeu — « Every sweep that
+     * decides what to WITHDRAW has to say `local`, or it will happily mint
+     * tombstones for other people's catalogues » — et celui de `hops` dit
+     * « Enforced here rather than by asking a partner ». Ce n'était pas
+     * appliqué *ici* mais dans `admit()`, avec un défaut `'local'` sur la
+     * colonne : une écriture qui met `'Local'` ou omet le champ sur une ligne
+     * ingérée rendait les enregistrements d'un partenaire éligibles à la
+     * moisson de tombstones locale — l'instance publiant « cette release a
+     * disparu » sur le catalogue de quelqu'un d'autre, signé de sa clé.
+     *
+     * Posées `NOT VALID` par la migration 0068 : les migrations tournent au
+     * démarrage de l'API, et une validation prendrait un ACCESS EXCLUSIVE plus
+     * un scan complet avant la première annonce servie. Elles contraignent
+     * donc les écritures nouvelles, ce qui est l'objet.
+     */
+    check('catalog_records_origin_ck', sql`${table.origin} IN ('local', 'ingested')`),
+    check(
+      'catalog_records_kind_ck',
+      sql`${table.kind} IN ('torrent', 'tombstone', 'identity', 'revocation')`,
+    ),
+    check('catalog_records_hops_ck', sql`${table.hops} BETWEEN 0 AND 2`),
     index('catalog_records_info_hash_idx').on(table.infoHash),
     /** Newest first, for the live-search answer. */
     index('catalog_records_created_idx').on(table.createdAt),
@@ -1524,7 +1566,20 @@ export const forumTopics = pgTable('forum_topics', {
   isLocked: boolean('is_locked').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+},
+(table) => [
+  /*
+   * Les clés étrangères de cette table portaient zéro index en tête.
+   *
+   * Deux coûts distincts. Un `DELETE`/`UPDATE` sur la table PARENTE force un
+   * balayage séquentiel de celle-ci pour valider la contrainte ; et les
+   * requêtes ci-dessous sont exactement des jointures sur ces colonnes.
+   */
+  /** la liste d'une section. */
+  index('forum_topics_category_idx').on(table.categoryId),
+  /** « ses sujets ». */
+  index('forum_topics_author_idx').on(table.authorId),
+]);
 
 export const forumPosts = pgTable('forum_posts', {
   id: text('id').primaryKey(),
@@ -1537,7 +1592,20 @@ export const forumPosts = pgTable('forum_posts', {
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+},
+(table) => [
+  /*
+   * Les clés étrangères de cette table portaient zéro index en tête.
+   *
+   * Deux coûts distincts. Un `DELETE`/`UPDATE` sur la table PARENTE force un
+   * balayage séquentiel de celle-ci pour valider la contrainte ; et les
+   * requêtes ci-dessous sont exactement des jointures sur ces colonnes.
+   */
+  /** LA requête du forum : les messages d'un sujet. */
+  index('forum_posts_topic_idx').on(table.topicId),
+  /** « ses messages » sur un profil. */
+  index('forum_posts_author_idx').on(table.authorId),
+]);
 
 // ============================================================================
 // Torrent Comments
@@ -1553,7 +1621,20 @@ export const torrentComments = pgTable('torrent_comments', {
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+},
+(table) => [
+  /*
+   * Les clés étrangères de cette table portaient zéro index en tête.
+   *
+   * Deux coûts distincts. Un `DELETE`/`UPDATE` sur la table PARENTE force un
+   * balayage séquentiel de celle-ci pour valider la contrainte ; et les
+   * requêtes ci-dessous sont exactement des jointures sur ces colonnes.
+   */
+  /** les commentaires d'une release — la requête de la page d'un torrent. */
+  index('torrent_comments_torrent_idx').on(table.torrentId),
+  /** « ses commentaires » sur un profil, et la validation de FK. */
+  index('torrent_comments_author_idx').on(table.authorId),
+]);
 
 // ============================================================================
 // Relations
@@ -1742,9 +1823,36 @@ export const panicState = pgTable('panic_state', {
   //                encrypt time + a random salt. A dump then yields only the
   //                scrypt verifier + salt + ciphertext, forcing an offline
   //                password brute-force instead of instant decryption.
-  // New panics always write 2; restore branches on this value.
+  //   3          = comme 2, mais avec un coût scrypt de N = 2^17 au lieu du
+  //                défaut de Node (2^14). C'est la seule clé qui protège une
+  //                base volée, et le mot de passe est choisi par un humain.
+  // New panics always write 3; restore branches on this value.
   kdfVersion: integer('kdf_version').default(1).notNull(),
-});
+  /**
+   * Le hachis du mot de passe de panique effectivement employé au chiffrement.
+   *
+   * Les deux routes résolvaient le détenteur par « le plus vieil administrateur,
+   * maintenant » et ne gardaient aucune trace de qui c'était. Une rétrogradation
+   * ou un effacement de compte entre le chiffrement et la restauration rendait
+   * donc la base définitivement illisible, avec le bon mot de passe en main.
+   */
+  panicPasswordHash: text('panic_password_hash'),
+  /**
+   * L'étape en cours : `idle`, `encrypting`, `encrypted`, `restoring`.
+   *
+   * Le sel est écrit AVANT les boucles de chiffrement. Sans cette phase, une
+   * base à moitié chiffrée portait `is_encrypted = false` et était donc
+   * indistinguable d'une base en clair : la restauration refusait de démarrer,
+   * et une relance du chiffrement générait un nouveau sel puis surchiffrait ce
+   * qui l'était déjà.
+   */
+  phase: text('phase').default('idle').notNull(),
+}, (table) => [
+  check(
+    'panic_state_phase_ck',
+    sql`${table.phase} IN ('idle', 'encrypting', 'encrypted', 'restoring')`,
+  ),
+]);
 
 // ============================================================================
 // Notifications (persistent in-app inbox)
@@ -2099,7 +2207,6 @@ export const invitations = pgTable(
     index('invitations_used_by_idx')
       .on(table.usedBy)
       .where(sql`${table.usedBy} IS NOT NULL`),
-    index('invitations_code_idx').on(table.code),
   ]
 );
 
@@ -2343,6 +2450,8 @@ export const uploadRequests = pgTable(
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => [
+    /** les demandes d'une catégorie. */
+    index('upload_requests_category_idx').on(table.categoryId),
     // Listing index: open requests, newest first.
     index('upload_requests_status_idx').on(table.status, table.createdAt),
     // Dedup: "is this federated release already requested here?"
@@ -2382,6 +2491,10 @@ export const uploadRequestFillAttempts = pgTable(
     rejectedAt: timestamp('rejected_at'),
   },
   (table) => [
+    /** validation de FK à la suppression d'un torrent. */
+    index('upload_request_fill_attempts_torrent_idx').on(table.torrentId),
+    /** export de compte. */
+    index('upload_request_fill_attempts_user_idx').on(table.userId),
     // Counter query: "how many rejected fills has user X already piled
     // up on request Y" runs on every fill attempt.
     index('upload_request_fill_attempts_request_user_idx').on(
@@ -2501,6 +2614,8 @@ export const torrentFavorites = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    /** qui a mis cette release en favori. */
+    index('torrent_favorites_torrent_idx').on(table.torrentId),
     primaryKey({ columns: [table.userId, table.torrentId] }),
     // Drives the /me/favorites listing (newest first). Composite
     // PK already covers "is X favorited by user Y" lookups.
@@ -2572,6 +2687,8 @@ export const anticheatFlags = pgTable(
     reviewNote: text('review_note'),
   },
   (table) => [
+    /** les signalements d'une release. */
+    index('anticheat_flags_torrent_idx').on(table.torrentId),
     index('anticheat_flags_user_idx').on(table.userId, table.createdAt),
     index('anticheat_flags_unreviewed_idx').on(table.reviewedAt),
     index('anticheat_flags_kind_idx').on(table.kind),
@@ -2767,6 +2884,8 @@ export const savedSearches = pgTable(
     matchCount: integer('match_count').default(0).notNull(),
   },
   (table) => [
+    /** les alertes d'une catégorie. */
+    index('saved_searches_category_idx').on(table.categoryId),
     index('saved_searches_user_idx').on(table.userId, table.createdAt.desc()),
     // The evaluation sweep reads every armed filter and nothing else, so the
     // index it wants is partial on exactly that.
@@ -4045,6 +4164,10 @@ export const messages = pgTable(
     }),
   },
   (table) => [
+    /** le fil de réponses. */
+    index('messages_reply_to_idx').on(table.replyToId),
+    /** les messages d'un membre. */
+    index('messages_author_idx').on(table.authorId),
     index('messages_conversation_idx').on(
       table.conversationId,
       table.createdAt
@@ -4198,9 +4321,10 @@ export const messageReactions = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    /** effacement de compte (RGPD) et « mes réactions ». */
+    index('message_reactions_user_idx').on(table.userId),
     primaryKey({ columns: [table.messageId, table.userId, table.key] }),
     // Rendering a page means fetching the reactions for the ids on it.
-    index('message_reactions_message_idx').on(table.messageId),
     check('message_reactions_key_ck', reactionKeyCheck(table.key)),
   ]
 );
@@ -4229,6 +4353,8 @@ export const roomMessageReactions = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    /** idem, côté salon. */
+    index('room_message_reactions_user_idx').on(table.userId),
     primaryKey({
       columns: [
         table.messageId,
@@ -4497,7 +4623,9 @@ export const ticketMessages = pgTable(
     body: text('body').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  (table) => [index('ticket_messages_ticket_idx').on(table.ticketId, table.createdAt)]
+  (table) => [
+    /** les messages d'un membre dans les tickets. */
+    index('ticket_messages_author_idx').on(table.authorId),index('ticket_messages_ticket_idx').on(table.ticketId, table.createdAt)]
 );
 
 export type TicketMessage = typeof ticketMessages.$inferSelect;
