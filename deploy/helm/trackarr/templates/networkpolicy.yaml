@@ -33,11 +33,20 @@ spec:
   ingress:
     # From the ingress controller, and from each other: the web SSR calls the
     # API, and the API calls the tracker over TRACKER_INTERNAL_URL.
+    #
+    # Le `namespaceSelector` visait `.Release.Namespace` — le MÊME espace de
+    # noms que le `podSelector: {}` juste au-dessus, donc deux fois la même
+    # chose et rien pour le contrôleur d'ingress, qui vit normalement dans
+    # `ingress-nginx`. La règle disait « From the ingress controller » et ne
+    # l'exprimait pas : activer cette politique rendait le site injoignable.
     - from:
         - podSelector: {}
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: {{ .Release.Namespace }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.ingressNamespace | default "ingress-nginx" }}
       ports:
         - port: {{ .Values.web.containerPort }}
           protocol: TCP
@@ -51,4 +60,44 @@ spec:
         - port: {{ .Values.tracker.udp.port }}
           protocol: UDP
     {{- end }}
+{{- if .Values.networkPolicy.datastores }}
+---
+{{/*
+Les datastores, que les deux objets ci-dessus ne couvraient PAS.
+
+`trackarr.selectorLabels` porte `app.kubernetes.io/name` et `instance` ; les
+pods des sous-charts CNPG et Valkey portent un autre `name`, donc le
+`podSelector` ne les sélectionnait pas. Postgres et Valkey restaient joignables
+depuis n'importe quel pod du cluster, politique activée ou non — c'est-à-dire
+que la partie de la politique qui compte le plus n'existait pas.
+
+Les sélecteurs des sous-charts ne sont pas les nôtres : ils sont donc
+paramétrables, et cet objet ne se rend que si l'opérateur les a fournis.
+*/}}
+{{- range $i, $store := .Values.networkPolicy.datastores }}
+{{- if $i }}
+---
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "trackarr.fullname" $ }}-{{ $store.name }}-allow
+  labels:
+    {{- include "trackarr.labels" $ | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- toYaml $store.podSelector | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "trackarr.selectorLabels" $ | nindent 14 }}
+      ports:
+        - port: {{ $store.port }}
+          protocol: TCP
+{{- end }}
+{{- end }}
 {{- end }}

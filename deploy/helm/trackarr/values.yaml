@@ -531,6 +531,37 @@ serviceAccount:
 networkPolicy:
   enabled: false
 
+  # L'espace de noms du contrôleur d'ingress, qu'il faut autoriser explicitement.
+  #
+  # Le seul bloc `from:` de la politique admettait `podSelector: {}` (le même
+  # espace de noms) et un `namespaceSelector` sur `.Release.Namespace` — deux
+  # fois la même chose, et rien pour le contrôleur, qui vit ailleurs. Activer la
+  # politique rendait donc le site injoignable, alors que son commentaire disait
+  # « From the ingress controller ».
+  ingressNamespace: ingress-nginx
+
+  # Les datastores, que le `podSelector` du chart ne sélectionne PAS.
+  #
+  # `trackarr.selectorLabels` porte `app.kubernetes.io/name` et `instance` ; les
+  # pods des sous-charts CNPG et Valkey portent un autre `name`. Postgres et
+  # Valkey restaient donc joignables depuis n'importe quel pod du cluster,
+  # politique activée ou non — c'est-à-dire que la partie qui compte le plus
+  # n'existait pas.
+  #
+  # Les étiquettes appartiennent aux sous-charts, pas à nous : elles sont donc
+  # déclarées ici plutôt que devinées dans le gabarit. Vides, aucun objet n'est
+  # rendu. Les valeurs ci-dessous sont celles que posent CNPG et Valkey par
+  # défaut — à vérifier contre `kubectl get pods --show-labels` avant d'activer.
+  datastores: []
+  #   - name: db
+  #     port: 5432
+  #     podSelector:
+  #       cnpg.io/cluster: <release>-db
+  #   - name: valkey
+  #     port: 6379
+  #     podSelector:
+  #       app.kubernetes.io/name: valkey
+
 # =============================================================================
 # Postgres — CloudNativePG (subchart: cnpg/cluster)
 #

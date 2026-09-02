@@ -116,7 +116,12 @@ spec:
               mountPath: /tmp
       volumes:
         - name: tmp
-          emptyDir: {}
+          # `sizeLimit`, sinon le stockage éphémère n'est ni demandé ni
+          # plafonné : un /tmp qui gonfle déclenche une pression disque sur le
+          # NŒUD et l'éviction de pods VOISINS. C'est le cas « un pod affame le
+          # nœud » que le reste du chart traite partout ailleurs.
+          emptyDir:
+            sizeLimit: 128Mi
 ---
 apiVersion: v1
 kind: Service

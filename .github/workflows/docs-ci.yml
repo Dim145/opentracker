@@ -45,7 +45,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 20
+          # Node 24, comme `doc/Dockerfile` et comme les autres workflows.
+          # Ce travail était resté sur 20, en fin de vie depuis avril 2026 :
+          # la même documentation était donc construite sur deux runtimes,
+          # et le déploiement — qui a `pages: write` — tournait sur celui
+          # qui ne reçoit plus de correctif. Vérifié : `npm ci` puis
+          # `npm run build` passent en 24 (vitepress 1.6.4 demande >= 20).
+          node-version: 24
           cache: 'npm'
           cache-dependency-path: './doc/package-lock.json'
 
