@@ -189,3 +189,63 @@ describe('safeInAppPath', () => {
     expect(safeInAppPath('/\\evil.example')).toBe('/');
   });
 });
+
+// ── Le filtre d'URI s'applique à TOUS les attributs ───────────────────
+//
+// `ALLOWED_URI_REGEXP` n'est pas réservé à `href` et `src` : DOMPurify le passe
+// sur tout attribut absent de sa liste `URI_SAFE_ATTRIBUTES`. La valeur `320`
+// de `width` ne commençant ni par `http`, ni par `mailto`, ni par `#`, ni par
+// `/`, elle était supprimée — ce qui rendait morte la fonctionnalité
+// `[img=320x180]` que `editorFormats.ts` documente. `ADD_URI_SAFE_ATTR` sort
+// ces attributs du filtre ; aucun d'eux ne peut porter de script.
+describe("le filtre d'URI ne mange plus les attributs de présentation", () => {
+  it('garde les dimensions d’une image', () => {
+    const out = sanitizeHtml('<img src="https://x/y.png" width="320" height="180">');
+    expect(out).toContain('width="320"');
+    expect(out).toContain('height="180"');
+  });
+
+  it('garde la structure d’un tableau et la langue d’un paragraphe', () => {
+    expect(sanitizeHtml('<table><tr><td colspan="2">a</td></tr></table>')).toContain(
+      'colspan="2"'
+    );
+    const p = sanitizeHtml('<p dir="rtl" lang="fr">a</p>');
+    expect(p).toContain('dir="rtl"');
+    expect(p).toContain('lang="fr"');
+  });
+
+  it('vaut pour le profil riche, qui dérive du strict', () => {
+    expect(sanitizeRichHtml('<img src="https://x/y.png" width="320">')).toContain(
+      'width="320"'
+    );
+  });
+});
+
+// ── Un lien protocole-relatif n'est pas un lien interne ───────────────
+//
+// `[#/]` acceptait `//evil.tld/login` : la branche des chemins relatifs voyait
+// la première barre. Le lien survivait intact, et comme le hook ne pose
+// `rel="noopener noreferrer"` et `target="_blank"` que sur `^https?://`, il
+// s'ouvrait dans le MÊME onglet, envoyait le `Referer` complet et laissait
+// `window.opener` accessible. Écrit par un membre dans une description, c'est
+// un hameçonnage qui a l'air d'un lien du site.
+describe('les liens protocole-relatifs', () => {
+  it('ne survivent pas au profil strict', () => {
+    const out = sanitizeHtml('<a href="//evil.tld/login">voir</a>');
+    expect(out).not.toContain('evil.tld');
+    expect(out).not.toContain('href');
+  });
+
+  it('ne survivent pas non plus au profil riche', () => {
+    expect(sanitizeRichHtml('<a href="//evil.tld/login">voir</a>')).not.toContain(
+      'evil.tld'
+    );
+  });
+
+  it('laissent passer le lien interne et le lien externe légitimes', () => {
+    expect(sanitizeHtml('<a href="/torrents/42">v</a>')).toContain('href="/torrents/42"');
+    const ext = sanitizeHtml('<a href="https://ok.tld/p">v</a>');
+    expect(ext).toContain('rel="noopener noreferrer"');
+    expect(ext).toContain('target="_blank"');
+  });
+});
