@@ -24,6 +24,7 @@ import { scryptSync } from 'crypto';
 import { encrypt, decrypt } from './panic';
 
 let cachedKey: Buffer | null = null;
+let cachedKeys: { current: Buffer; previous: Buffer | null } | null = null;
 
 /**
  * Resolve and cache the encryption key. Lazy on purpose — `notify.ts`
@@ -31,7 +32,33 @@ let cachedKey: Buffer | null = null;
  * want the import to fail just because the env var is read before the
  * Nitro runtime hands them through.
  */
-function getKey(): Buffer {
+/**
+ * La clé courante et, si elle est déclarée, la précédente.
+ *
+ * `credentialSecrets.ts` gère `CREDENTIAL_ENCRYPTION_KEY_PREVIOUS` et
+ * ré-chiffre à la connexion prouvée ; ce module-ci n'avait aucun équivalent, et
+ * la clé retombe par défaut sur `NUXT_SESSION_SECRET`. Or faire tourner
+ * `NUXT_SESSION_SECRET` est une opération périodique banale qui, avant cette
+ * fonctionnalité, n'invalidait que des cookies : tous les
+ * `notification_channels.server_config` et `user_notification_channels.user_config`
+ * devenaient d'un coup indéchiffrables, `decryptJson` LEVANT une exception de
+ * tag AES-GCM sans message actionnable, et les notifications tombaient.
+ *
+ * Avec la clé précédente déclarée, la lecture retente avec elle : l'opérateur
+ * garde une fenêtre pour tourner sans casser.
+ */
+function getKeys(): { current: Buffer; previous: Buffer | null } {
+  if (cachedKeys) return cachedKeys;
+  const salt = process.env.CHANNEL_ENCRYPTION_SALT || 'trackarr:channels:v1';
+  const prev = process.env.CHANNEL_ENCRYPTION_KEY_PREVIOUS;
+  cachedKeys = {
+    current: deriveCurrent(),
+    previous: prev && prev.length >= 32 ? (scryptSync(prev, salt, 32) as Buffer) : null,
+  };
+  return cachedKeys;
+}
+
+function deriveCurrent(): Buffer {
   if (cachedKey) return cachedKey;
   const raw =
     process.env.CHANNEL_ENCRYPTION_KEY || process.env.NUXT_SESSION_SECRET;
@@ -70,7 +97,7 @@ export function encryptJson(value: unknown): string {
   if (value == null) return '';
   const json = typeof value === 'string' ? value : JSON.stringify(value);
   if (json.length === 0) return '';
-  return encrypt(json, getKey());
+  return encrypt(json, getKeys().current);
 }
 
 /**
@@ -83,8 +110,28 @@ export function decryptJson<T = Record<string, unknown>>(
   blob: string | null | undefined
 ): T | null {
   if (!blob) return null;
-  const json = decrypt(blob, getKey());
-  return JSON.parse(json) as T;
+  const keys = getKeys();
+  try {
+    return JSON.parse(decrypt(blob, keys.current)) as T;
+  } catch (err) {
+    // La clé précédente, quand l'opérateur en a déclaré une. Sans ce chemin,
+    // faire tourner `NUXT_SESSION_SECRET` rendait indéchiffrable la
+    // configuration de TOUS les canaux, avec pour seul symptôme une exception
+    // de tag AES-GCM.
+    if (keys.previous) {
+      try {
+        return JSON.parse(decrypt(blob, keys.previous)) as T;
+      } catch {
+        /* ni l'une ni l'autre : on relaie l'erreur d'origine ci-dessous */
+      }
+    }
+    throw new Error(
+      '[channelSecrets] Could not decrypt a channel config. The key changed ' +
+        'without CHANNEL_ENCRYPTION_KEY_PREVIOUS being set, or ' +
+        'CHANNEL_ENCRYPTION_SALT was altered. ' +
+        `(${(err as Error).message})`
+    );
+  }
 }
 
 /**
@@ -93,5 +140,5 @@ export function decryptJson<T = Record<string, unknown>>(
  * the row so the UI shows the misconfig before garbage is written.
  */
 export function assertChannelEncryptionReady(): void {
-  getKey();
+  getKeys();
 }

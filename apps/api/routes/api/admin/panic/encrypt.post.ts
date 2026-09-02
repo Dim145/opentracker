@@ -1,4 +1,4 @@
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, isNull } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import {
   users,
@@ -10,9 +10,12 @@ import {
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { auditDetail } from '~~/utils/audit';
 import {
+  CURRENT_KDF_VERSION,
   deriveKey,
   generateSalt,
-  encryptField,
+  // `encryptFieldOnce` et non `encryptField` : une reprise doit reconnaître ce
+  // qui est déjà chiffré plutôt que le chiffrer une seconde fois.
+  encryptFieldOnce as encryptField,
   encrypt,
 } from '~~/utils/panic';
 
@@ -50,7 +53,6 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Check if already encrypted
   const currentState = await db.query.panicState.findFirst();
   if (currentState?.isEncrypted) {
     throw createError({
@@ -59,11 +61,32 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Get first admin with panic password hash
-  const admin = await db.query.users.findFirst({
-    where: and(eq(users.isAdmin, true)),
-    orderBy: asc(users.createdAt),
-  });
+  /*
+   * Une reprise, et non un second chiffrement.
+   *
+   * Les quatre boucles ci-dessous tournent ligne par ligne, hors transaction.
+   * Une interruption au milieu — délai HTTP, mémoire épuisée, conteneur
+   * redémarré — laissait la moitié des lignes chiffrées sous une clé dérivée
+   * d'un sel qui n'existait que dans la mémoire du processus, `is_encrypted`
+   * restant à `false` : la donnée était définitivement perdue, et relancer la
+   * route générait un NOUVEAU sel puis surchiffrait les lignes déjà faites.
+   *
+   * Désormais : le sel, le hachis et la version sont écrits AVANT la première
+   * boucle avec `phase = 'encrypting'`. Une interruption laisse donc une base
+   * restaurable, et une relance reprend avec le MÊME sel — les champs déjà
+   * chiffrés sont reconnus et laissés tels quels par `encryptFieldOnce`.
+   */
+  const resuming = currentState?.phase === 'encrypting' && !!currentState.encryptionSalt;
+
+  // Le détenteur du mot de passe. En reprise, c'est celui qu'on a enregistré :
+  // le re-sélectionner est précisément ce qui perdait la base quand
+  // l'administrateur d'origine était rétrogradé ou effaçait son compte.
+  const admin = resuming
+    ? { panicPasswordHash: currentState!.panicPasswordHash }
+    : await db.query.users.findFirst({
+        where: and(eq(users.isAdmin, true), isNull(users.deletedAt)),
+        orderBy: asc(users.createdAt),
+      });
 
   if (!admin?.panicPasswordHash) {
     throw createError({
@@ -87,13 +110,44 @@ export default defineEventHandler(async (event) => {
   // `encrypt()` and prefixed into each ciphertext. The legacy IV
   // column on `panic_state` is left null on fresh panics; restore
   // still reads it as a fallback when decrypting old data.
-  const salt = generateSalt();
+  const salt = resuming ? currentState!.encryptionSalt! : generateSalt();
+  const kdfVersion = resuming
+    ? (currentState!.kdfVersion ?? CURRENT_KDF_VERSION)
+    : CURRENT_KDF_VERSION;
 
   // Derive the key from the RAW panic password (kdf_version 2). The
   // stored hash is NOT a key input — a DB dump then only yields the
   // scrypt verifier + salt + ciphertext, forcing an offline
   // brute-force rather than instant decryption (finding C1).
-  const key = await deriveKey(body.panicPassword, Buffer.from(salt, 'base64'));
+  const key = await deriveKey(
+    body.panicPassword,
+    Buffer.from(salt, 'base64'),
+    kdfVersion
+  );
+
+  // Le sel, le hachis employé et la phase — AVANT de toucher la moindre ligne.
+  // C'est ce qui rend une interruption récupérable au lieu de fatale.
+  await db
+    .insert(panicState)
+    .values({
+      id: 'singleton',
+      isEncrypted: false,
+      encryptionSalt: salt,
+      encryptionIv: null,
+      kdfVersion,
+      panicPasswordHash: admin.panicPasswordHash,
+      phase: 'encrypting',
+    })
+    .onConflictDoUpdate({
+      target: panicState.id,
+      set: {
+        encryptionSalt: salt,
+        encryptionIv: null,
+        kdfVersion,
+        panicPasswordHash: admin.panicPasswordHash,
+        phase: 'encrypting',
+      },
+    });
 
   // ── Encrypt sensitive user data ──────────────────────────────
   const allUsers = await db.select().from(users);
@@ -119,6 +173,18 @@ export default defineEventHandler(async (event) => {
   // ── Encrypt torrent data ─────────────────────────────────────
   const allTorrents = await db.select().from(torrents);
   for (const torrent of allTorrents) {
+    /*
+     * Une ligne déjà traitée se reconnaît à un marqueur exact, pas à une forme.
+     *
+     * Ce tour-ci n'est pas idempotent comme celui des utilisateurs : il écrase
+     * `size` par 0 et enveloppe la description dans `[PANIC_META:…]`. Repasser
+     * dessus enregistrerait donc `size: 0` comme taille « originale » — perdue
+     * pour de bon — et produirait un second niveau d'enveloppe que la
+     * restauration ne défait pas. Le préfixe est écrit par nous, il est donc
+     * une preuve et non une supposition.
+     */
+    if (torrent.description?.startsWith('[PANIC_META:')) continue;
+
     const originalMeta = JSON.stringify({
       size: torrent.size,
       categoryId: torrent.categoryId,
@@ -174,29 +240,56 @@ export default defineEventHandler(async (event) => {
   // The column stays in the schema for backward-compatible restore
   // of databases encrypted before this fix.
   await db
-    .insert(panicState)
-    .values({
-      id: 'singleton',
+    .update(panicState)
+    .set({
       isEncrypted: true,
       encryptedAt: new Date(),
-      encryptionSalt: salt,
-      encryptionIv: null,
-      kdfVersion: 2,
+      phase: 'encrypted',
     })
-    .onConflictDoUpdate({
-      target: panicState.id,
-      set: {
-        isEncrypted: true,
-        encryptedAt: new Date(),
-        encryptionSalt: salt,
-        encryptionIv: null,
-        kdfVersion: 2,
-      },
-    });
+    .where(eq(panicState.id, 'singleton'));
 
   return {
     success: true,
     message: 'Database encrypted. Use panic password to restore.',
     encryptedAt: new Date().toISOString(),
+    /*
+     * Ce que « encrypted » couvre, et ce qu'il ne couvre pas.
+     *
+     * La réponse disait « Database encrypted » sans réserve. La couverture
+     * réelle est : `users` (sel et vérificateur d'authentification, passkey,
+     * clés RSS et API, dernière IP), `torrents` (nom, description, octets du
+     * .torrent, taille, catégorie), `forum_posts.content` et
+     * `torrent_comments.content`.
+     *
+     * Restent EN CLAIR : `messages.body` et `room_messages.body` — soit tout le
+     * texte des conversations privées et du salon public, le chiffrement de
+     * bout en bout étant optionnel et par conversation —, les tickets et leurs
+     * messages, les titres de sujets de forum, la bio et le nom affiché,
+     * `totp_secret`, la configuration serveur des canaux, le journal de
+     * connexions (adresses, agents), les signalements de l'anti-triche, le
+     * journal d'audit, le miroir des torrents distants et la clé privée de
+     * fédération.
+     *
+     * Étendre la couverture ferait de ces boucles quelque chose de bien plus
+     * long, ce qui rend la reprise (voir `phase`) d'autant plus nécessaire.
+     * D'ici là, l'énoncé est ici plutôt que dans une promesse tacite :
+     * `doc/guide/messaging.md` fait exactement ce travail de précision pour le
+     * cadenas de bout en bout.
+     */
+    covers: [
+      'users.auth_salt', 'users.auth_verifier', 'users.passkey',
+      'users.rss_key', 'users.api_key', 'users.last_ip',
+      'torrents.name', 'torrents.description', 'torrents.torrent_data',
+      'torrents.size', 'torrents.category_id',
+      'forum_posts.content', 'torrent_comments.content',
+    ],
+    leavesInCleartext: [
+      'messages.body', 'room_messages.body',
+      'tickets.*', 'ticket_messages.*',
+      'forum_topics.title', 'users.bio', 'users.display_name',
+      'users.totp_secret', 'notification_channels.server_config',
+      'login_events.*', 'anticheat_flags.ip', 'anticheat_flags.user_agent',
+      'audit_log.*', 'remote_torrents.*', 'federation_config.private_key',
+    ],
   };
 });

@@ -1,4 +1,4 @@
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, isNull } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import {
   users,
@@ -94,13 +94,32 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Get first admin to verify panic password
-  const admin = await db.query.users.findFirst({
-    where: and(eq(users.isAdmin, true)),
-    orderBy: asc(users.createdAt),
-  });
+  /*
+   * Le hachis contre lequel on vérifie : celui du chiffrement, pas celui de
+   * l'administrateur le plus ancien d'aujourd'hui.
+   *
+   * `encrypt` et cette route résolvaient toutes deux le détenteur par
+   * « `is_admin = true` trié par `created_at` », et rien n'enregistrait qui
+   * c'était. Trois façons de perdre la base avec le bon mot de passe en main :
+   * l'administrateur qui a chiffré est rétrogradé (on vérifiait alors contre le
+   * hachis d'un autre → 401), il efface son compte (`eraseAccount` vide
+   * `panic_password_hash` sans toucher `is_admin`, et `created_at` reste le plus
+   * ancien → 500), ou un administrateur plus récent était le seul à avoir
+   * configuré un mot de passe.
+   *
+   * `encrypt` persiste désormais le hachis employé. Le repli sur la
+   * re-sélection ne sert qu'aux bases chiffrées avant ce correctif.
+   */
+  let expectedHash = currentState.panicPasswordHash ?? null;
+  if (!expectedHash) {
+    const admin = await db.query.users.findFirst({
+      where: and(eq(users.isAdmin, true), isNull(users.deletedAt)),
+      orderBy: asc(users.createdAt),
+    });
+    expectedHash = admin?.panicPasswordHash ?? null;
+  }
 
-  if (!admin?.panicPasswordHash) {
+  if (!expectedHash) {
     throw createError({
       statusCode: 500,
       message: 'Admin panic password hash not found',
@@ -108,7 +127,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verify panic password matches stored hash
-  const isValid = await verifyPassword(admin.panicPasswordHash, body.panicPassword);
+  const isValid = await verifyPassword(expectedHash, body.panicPassword);
   if (!isValid) {
     throw createError({
       statusCode: 401,
@@ -123,16 +142,42 @@ export default defineEventHandler(async (event) => {
   // is embedded per-record (`iv:ct:tag`); `legacyIv` is forwarded for
   // databases encrypted before per-record IVs (single global IV).
   const kdfInput =
-    (currentState.kdfVersion ?? 1) >= 2
-      ? body.panicPassword
-      : admin.panicPasswordHash;
+    (currentState.kdfVersion ?? 1) >= 2 ? body.panicPassword : expectedHash;
   const key = await deriveKey(
     kdfInput,
-    Buffer.from(currentState.encryptionSalt, 'base64')
+    Buffer.from(currentState.encryptionSalt, 'base64'),
+    currentState.kdfVersion ?? 1
   );
   const legacyIv = currentState.encryptionIv
     ? Buffer.from(currentState.encryptionIv, 'base64')
     : undefined;
+
+  /*
+   * Les échecs sont comptés, et ils décident de la suite.
+   *
+   * Chaque ligne était dans un `try { … } catch { console.error(…) }` qui
+   * continuait, puis la route effaçait inconditionnellement `encryption_salt`
+   * et répondait « Database restored successfully ». Une seule ligne `users`
+   * dont `auth_salt` ne déchiffrait pas — rot de bit, surchiffrement, ligne
+   * insérée pendant le chiffrement — et ce membre restait chiffré POUR
+   * TOUJOURS : le `try` englobe tout l'`update`, donc rien n'était écrit pour
+   * lui, et le sel disparaissait ensuite. Son mot de passe et son passkey
+   * d'annonce étaient morts, sans qu'aucun compteur ne le dise.
+   *
+   * Tant qu'il reste un échec, le sel et la phase sont conservés : la
+   * restauration reste possible après correction, et elle est reprenable
+   * puisque les lignes déjà déchiffrées ne déchiffrent plus.
+   */
+  const failures: string[] = [];
+  const fail = (what: string, id: string, err: unknown) => {
+    failures.push(`${what}:${id}`);
+    console.error(`[panic] restore failed for ${what} ${id}:`, err);
+  };
+
+  await db
+    .update(panicState)
+    .set({ phase: 'restoring' })
+    .where(eq(panicState.id, 'singleton'));
 
   // ── Decrypt user data ────────────────────────────────────────
   const allUsers = await db.select().from(users);
@@ -150,7 +195,7 @@ export default defineEventHandler(async (event) => {
         })
         .where(eq(users.id, user.id));
     } catch (err) {
-      console.error(`Failed to decrypt user ${user.id}:`, err);
+      fail('user', user.id, err);
     }
   }
 
@@ -176,7 +221,10 @@ export default defineEventHandler(async (event) => {
           originalSize = meta.size ?? 0;
           originalCategoryId = meta.categoryId ?? null;
         } catch {
-          console.error(`Failed to decrypt metadata for torrent ${torrent.id}`);
+          // La taille et la catégorie sont dans ces métadonnées, et le
+          // chiffrement a mis `size` à 0 : les perdre en silence était pire
+          // que de refuser de terminer.
+          fail('torrent-meta', torrent.id, 'metadata');
         }
 
         decryptedDesc = encryptedDescPart
@@ -195,7 +243,7 @@ export default defineEventHandler(async (event) => {
           const decryptedBase64 = decrypt(encryptedStr, key, legacyIv);
           decryptedTorrentData = Buffer.from(decryptedBase64, 'base64');
         } catch {
-          console.error(`Failed to decrypt torrentData for torrent ${torrent.id}`);
+          fail('torrent-data', torrent.id, 'torrentData');
         }
       }
 
@@ -210,7 +258,7 @@ export default defineEventHandler(async (event) => {
         })
         .where(eq(torrents.id, torrent.id));
     } catch (err) {
-      console.error(`Failed to decrypt torrent ${torrent.id}:`, err);
+      fail('torrent', torrent.id, err);
     }
   }
 
@@ -225,7 +273,7 @@ export default defineEventHandler(async (event) => {
         })
         .where(eq(forumPosts.id, post.id));
     } catch (err) {
-      console.error(`Failed to decrypt post ${post.id}:`, err);
+      fail('post', post.id, err);
     }
   }
 
@@ -240,13 +288,32 @@ export default defineEventHandler(async (event) => {
         })
         .where(eq(torrentComments.id, comment.id));
     } catch (err) {
-      console.error(`Failed to decrypt comment ${comment.id}:`, err);
+      fail('comment', comment.id, err);
     }
   }
 
   // =====================================================================
   // Update panic state
   // =====================================================================
+  if (failures.length > 0) {
+    // On garde tout ce qui permet de recommencer. Lever le drapeau ici
+    // signifierait « c'est fini » à une base qui ne l'est pas, et effacer le
+    // sel rendrait le reste illisible pour de bon.
+    await db
+      .update(panicState)
+      .set({ phase: 'restoring' })
+      .where(eq(panicState.id, 'singleton'));
+
+    throw createError({
+      statusCode: 500,
+      message:
+        `Restore incomplete: ${failures.length} record(s) could not be decrypted. ` +
+        'The encryption salt has been KEPT so the restore can be retried once the ' +
+        'cause is fixed. Do not re-encrypt.',
+      data: { failed: failures.length, sample: failures.slice(0, 20) },
+    });
+  }
+
   await db
     .update(panicState)
     .set({
@@ -254,6 +321,8 @@ export default defineEventHandler(async (event) => {
       encryptedAt: null,
       encryptionSalt: null,
       encryptionIv: null,
+      panicPasswordHash: null,
+      phase: 'idle',
     })
     .where(eq(panicState.id, 'singleton'));
 
