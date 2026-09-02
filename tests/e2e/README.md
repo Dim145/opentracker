@@ -26,6 +26,17 @@ Useful flags:
 
 - `--keep` — leave the stack running afterwards, for poking at
   <http://localhost:53000> (web) and <http://localhost:54000> (api)
+
+Two scripts fill a kept stack with something worth looking at. Neither asserts
+anything, so neither is a scenario, and `run.sh` does not call them:
+
+```bash
+node tests/e2e/demo.mjs          # roles, both messaging surfaces, a room
+node tests/e2e/forumTickets.mjs  # three forum categories, six topics, five tickets
+```
+
+Both go through HTTP like the seeder, and both are re-runnable: a topic or a
+ticket whose subject is already there is skipped rather than duplicated.
 - `--no-build` — reuse the images from the last run
 - `--only themes` — run one scenario file
 
