@@ -129,18 +129,10 @@ const { data, refresh } = await useFetch<{ items: SavedSearch[]; max: number }>(
 const items = computed(() => data.value?.items ?? []);
 const busy = ref<string | null>(null);
 
-/** Rebuild the catalogue URL this filter came from, so "run it" is one click. */
-function searchLink(s: SavedSearch): string {
-  const q = new URLSearchParams();
-  if (s.query) q.set('search', s.query);
-  if (s.categoryId) q.set('categoryId', s.categoryId);
-  if (s.tags?.length) q.set('tag', s.tags.join(','));
-  if (s.imdbId) q.set('imdbid', s.imdbId);
-  if (s.tmdbId) q.set('tmdbid', s.tmdbId);
-  if (s.tvdbId) q.set('tvdbid', s.tvdbId);
-  const qs = q.toString();
-  return qs ? `/torrents?${qs}` : '/torrents';
-}
+/** Rebuild the catalogue URL this filter came from, so "run it" is one click.
+ *  La correspondance critère → paramètre vit dans `utils/savedSearchLink.ts`,
+ *  avec le pourquoi. */
+const searchLink = savedSearchLink;
 
 async function remove(s: SavedSearch) {
   // One click on an unlabelled glyph permanently deleted a standing
