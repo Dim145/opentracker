@@ -182,7 +182,11 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	log.Printf("[relay] draining")
+	// Prévenir les flux AVANT d'attendre : `Shutdown` n'annule pas le contexte
+	// des requêtes en cours, donc sans ce signal le drain n'était qu'une
+	// attente de dix secondes suivie d'une coupure sèche. Voir `Hub.Drain`.
+	drained := h.Drain()
+	log.Printf("[relay] draining %d stream(s)", drained)
 	// Give open streams a moment to end on their own. A relay that cuts
 	// twenty thousand connections at once during a rolling update creates
 	// exactly the reconnect storm the jittered client backoff exists to
