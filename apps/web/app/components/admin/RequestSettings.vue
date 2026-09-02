@@ -29,11 +29,13 @@
 
       <div class="space-y-5">
         <SettingsGroup
+          :control-id="fid('autoValidateHours')"
           :label="$t('admin.requests.autoValidateHours')"
           :description="$t('admin.requests.autoValidateHint')"
         >
           <div class="flex items-center gap-3">
             <input
+              :id="fid('autoValidateHours')"
               v-model.number="autoValidateHours"
               type="number"
               min="1"
@@ -47,11 +49,13 @@
         </SettingsGroup>
 
         <SettingsGroup
+          :control-id="fid('maxFills')"
           :label="$t('admin.requests.maxFills')"
           :description="$t('admin.requests.maxFillsHint')"
         >
           <div class="flex items-center gap-3">
             <input
+              :id="fid('maxFills')"
               v-model.number="maxFillsPerUser"
               type="number"
               min="1"
@@ -94,6 +98,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 const autoValidateHours = ref(168);
 const maxFillsPerUser = ref(3);
 const loading = ref(false);

@@ -42,10 +42,12 @@
         </SettingsGroup>
 
         <SettingsGroup
+          :control-id="fid('statusBadge')"
           :label="$t('admin.homepage.statusBadge')"
           :description="$t('admin.homepage.statusBadgeDescription')"
         >
           <input
+            :id="fid('statusBadge')"
             v-model="statusBadgeText"
             type="text"
             maxlength="100"
@@ -116,6 +118,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 const heroTitle = ref('Trackarr');
 const heroSubtitle = ref(
   'High-performance, minimalist P2P tracking engine. Search through our indexed database of verified torrents.'

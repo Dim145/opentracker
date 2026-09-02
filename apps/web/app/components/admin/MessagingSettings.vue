@@ -27,10 +27,12 @@
 
       <div class="space-y-5">
         <SettingsGroup
+          :control-id="fid('dmScope')"
           :label="$t('admin.messaging.dmScope')"
           :description="$t('admin.messaging.dmScopeHint')"
         >
           <select
+            :id="fid('dmScope')"
             v-model="dmScope"
             class="w-full md:w-64 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           >
@@ -41,10 +43,12 @@
         </SettingsGroup>
 
         <SettingsGroup
+          :control-id="fid('roomScope')"
           :label="$t('admin.messaging.roomScope')"
           :description="$t('admin.messaging.roomScopeHint')"
         >
           <select
+            :id="fid('roomScope')"
             v-model="roomScope"
             class="w-full md:w-64 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           >
@@ -60,10 +64,12 @@
              nothing new arrives. A plain on/off forces the choice between
              drowning and abandoning people mid-conversation. -->
         <SettingsGroup
+          :control-id="fid('ticketsMode')"
           :label="$t('admin.messaging.ticketsMode')"
           :description="$t('admin.messaging.ticketsModeHint')"
         >
           <select
+            :id="fid('ticketsMode')"
             v-model="ticketsMode"
             class="w-full md:w-64 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           >
@@ -74,11 +80,13 @@
         </SettingsGroup>
 
         <SettingsGroup
+          :control-id="fid('retentionDays')"
           :label="$t('admin.messaging.retentionDays')"
           :description="$t('admin.messaging.retentionHint')"
         >
           <div class="flex items-center gap-3">
             <input
+              :id="fid('retentionDays')"
               v-model.number="retentionDays"
               type="number"
               min="1"
@@ -90,11 +98,13 @@
         </SettingsGroup>
 
         <SettingsGroup
+          :control-id="fid('dmRetentionDays')"
           :label="$t('admin.messaging.dmRetentionDays')"
           :description="$t('admin.messaging.dmRetentionHint')"
         >
           <div class="flex items-center gap-3">
             <input
+              :id="fid('dmRetentionDays')"
               v-model.number="dmRetentionDays"
               type="number"
               min="0"
@@ -113,11 +123,13 @@
         </SettingsGroup>
 
         <SettingsGroup
+          :control-id="fid('slowMode')"
           :label="$t('admin.messaging.slowMode')"
           :description="$t('admin.messaging.slowModeHint')"
         >
           <div class="flex items-center gap-3">
             <input
+              :id="fid('slowMode')"
               v-model.number="slowModeSeconds"
               type="number"
               min="0"
@@ -163,6 +175,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 type Scope = 'off' | 'staff' | 'all';
 type TicketsMode = 'off' | 'suspended' | 'on';
 

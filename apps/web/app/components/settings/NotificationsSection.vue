@@ -360,8 +360,16 @@
                 </span>
               </div>
               <span class="cat-bulk-wrap" @click.stop>
+                <!-- `aria-label` et non `for`/`id` : ces listes sont rendues
+                     dans une boucle, et leur nom n'est pas un libellé fixe mais
+                     la ligne qui les porte. Sans lui, un lecteur d'écran
+                     parcourant ce panneau annonçait une trentaine de « listes »
+                     indiscernables. -->
                 <select
                   class="cat-bulk"
+                  :aria-label="$t('settings.notifications.bulkAria', {
+                    category: $t(`settings.notifications.categories.${cat.key}`),
+                  })"
                   :value="catBulkValue(cat)"
                   @change="catBulkApply(cat, ($event.target as HTMLSelectElement).value)"
                 >
@@ -396,6 +404,9 @@
                     <span>{{ routing[type] ? $t(channelLabelOf(routing[type])) : $t('settings.notifications.routeNone') }}</span>
                   </span>
                   <select
+                    :aria-label="$t('settings.notifications.routeAria', {
+                      event: $t(`notifications.types.${type}.title`),
+                    })"
                     :value="routing[type] ?? ''"
                     @change="setRoute(type, ($event.target as HTMLSelectElement).value || null)"
                   >

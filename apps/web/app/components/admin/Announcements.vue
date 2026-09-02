@@ -39,11 +39,13 @@
 
       <!-- Message -->
       <SettingsGroup
+          :control-id="fid('messageLabel')"
         :label="$t('admin.announcements.messageLabel')"
         :description="$t('admin.announcements.messageDescription')"
       >
         <div class="relative">
           <textarea
+            :id="fid('messageLabel')"
             v-model="message"
             rows="3"
             maxlength="500"
@@ -129,6 +131,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 const { t } = useI18n();
 
 const enabled = ref(false);

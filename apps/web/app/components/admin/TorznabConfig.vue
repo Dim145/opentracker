@@ -114,11 +114,13 @@
 
       <!-- API URL Info -->
       <SettingsGroup
+          :control-id="fid('endpointLabel')"
         :label="$t('admin.torznab.config.endpointLabel')"
         :description="$t('admin.torznab.config.endpointDescription')"
       >
         <div class="flex items-center gap-2">
           <input
+            :id="fid('endpointLabel')"
             :value="apiUrl"
             readonly
             class="flex-1 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm font-mono text-text-primary"
@@ -140,6 +142,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 const branding = await useBranding();
 const federationEnabled = computed(() =>
   Boolean(branding.value?.federationEnabled),

@@ -12,10 +12,11 @@
       </div>
       <div class="card-body">
         <SettingsGroup
+          :control-id="fid('defaultLabel')"
           :label="$t('admin.themes.defaultLabel')"
           :description="$t('admin.themes.defaultDescription')"
         >
-          <select v-model="settings.themeDefault" class="input">
+          <select :id="fid('defaultLabel')" v-model="settings.themeDefault" class="input">
             <option value="system">{{ $t('admin.themes.systemOption') }}</option>
             <option v-for="o in pickable" :key="o.slug" :value="o.slug">
               {{ o.name }}
@@ -186,6 +187,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 /**
  * The theme list, and the two settings that point at one.
  *

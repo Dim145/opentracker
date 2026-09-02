@@ -56,12 +56,14 @@
       <div class="space-y-0">
         <!-- Default Invites Per User -->
         <SettingsGroup
+          :control-id="fid('defaultInvitesLabel')"
           v-if="mode !== 'closed'"
           :label="$t('admin.registration.defaultInvitesLabel')"
           :description="$t('admin.registration.defaultInvitesDescription')"
         >
           <div class="flex items-center gap-3">
             <input
+              :id="fid('defaultInvitesLabel')"
               v-model.number="defaultInvites"
               type="number"
               min="0"
@@ -74,11 +76,13 @@
 
         <!-- Minimum Ratio -->
         <SettingsGroup
+          :control-id="fid('minRatioLabel')"
           :label="$t('admin.registration.minRatioLabel')"
           :description="$t('admin.registration.minRatioDescription')"
         >
           <div class="flex items-center gap-3">
             <input
+              :id="fid('minRatioLabel')"
               v-model.number="minRatio"
               type="number"
               step="0.1"
@@ -97,11 +101,13 @@
 
         <!-- Starter Credit -->
         <SettingsGroup
+          :control-id="fid('starterCreditLabel')"
           :label="$t('admin.registration.starterCreditLabel')"
           :description="$t('admin.registration.starterCreditDescription')"
         >
           <div class="flex items-center gap-3">
             <input
+              :id="fid('starterCreditLabel')"
               v-model.number="starterUploadGB"
               type="number"
               min="0"
@@ -138,6 +144,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 const { t } = useI18n();
 
 type RegistrationMode = 'closed' | 'invite-only' | 'open';

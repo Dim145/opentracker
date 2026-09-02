@@ -31,8 +31,13 @@
 
     <!-- TOTP panel ----------------------------------------------- -->
     <div v-if="active === 'totp'" class="step-panel">
-      <label class="step-label">{{ $t('security.twoFactorLogin.totpLabel') }}</label>
+      <!-- `for`/`id`, sinon le libellé n'est qu'un paragraphe stylé : rien ne
+           le relie au champ, le lecteur d'écran annonce « saisie de texte »
+           sans nom, et un clic dessus ne donne pas le focus. Sur le chemin de
+           connexion, avec un code à six chiffres qui expire. -->
+      <label class="step-label" :for="totpId">{{ $t('security.twoFactorLogin.totpLabel') }}</label>
       <input
+        :id="totpId"
         v-model="totpCode"
         inputmode="numeric"
         maxlength="6"
@@ -45,14 +50,16 @@
 
     <!-- Recovery panel ------------------------------------------- -->
     <div v-else-if="active === 'recovery'" class="step-panel">
-      <label class="step-label">{{ $t('security.twoFactorLogin.recoveryLabel') }}</label>
+      <label class="step-label" :for="recoveryId">{{ $t('security.twoFactorLogin.recoveryLabel') }}</label>
       <input
+        :id="recoveryId"
         v-model="recoveryCode"
         class="step-input"
         placeholder="XXXX-XXXXXX"
+        :aria-describedby="recoveryHintId"
         @keydown.enter="submitTotp"
       />
-      <p class="step-hint">
+      <p :id="recoveryHintId" class="step-hint">
         <Icon name="ph:info-bold" />
         {{ $t('security.twoFactorLogin.recoveryHint') }}
       </p>
@@ -128,6 +135,13 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+// `useId()` et non un compteur ou `Math.random()` : l'écran est rendu côté
+// serveur, et deux valeurs différentes casseraient l'hydratation du lien
+// `for` / `id` — le défaut corrigé dans `Modal.vue`.
+const totpId = useId();
+const recoveryId = useId();
+const recoveryHintId = useId();
 
 const active = ref<Method>(props.methods[0] ?? 'totp');
 const totpCode = ref('');

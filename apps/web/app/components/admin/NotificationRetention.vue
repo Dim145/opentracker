@@ -26,11 +26,13 @@
 
       <div class="space-y-5">
         <SettingsGroup
+          :control-id="fid('readDays')"
           :label="$t('admin.notifications.retention.readDays')"
           :description="$t('admin.notifications.retention.hint')"
         >
           <div class="flex items-center gap-3">
             <input
+              :id="fid('readDays')"
               v-model.number="readDays"
               type="number"
               min="1"
@@ -42,11 +44,13 @@
         </SettingsGroup>
 
         <SettingsGroup
+          :control-id="fid('unreadDays')"
           :label="$t('admin.notifications.retention.unreadDays')"
           :description="$t('admin.notifications.retention.hint')"
         >
           <div class="flex items-center gap-3">
             <input
+              :id="fid('unreadDays')"
               v-model.number="unreadDays"
               type="number"
               min="1"
@@ -87,6 +91,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 const readDays = ref(90);
 const unreadDays = ref(90);
 const loading = ref(false);

@@ -64,10 +64,12 @@
       </SettingsGroup>
 
       <SettingsGroup
+          :control-id="fid('message')"
         :label="$t('admin.broadcast.message')"
         :description="$t('admin.broadcast.messageHint')"
       >
         <textarea
+          :id="fid('message')"
           v-model="body"
           rows="5"
           maxlength="4000"
@@ -114,6 +116,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 interface Row {
   id: string;
   audience: string;
