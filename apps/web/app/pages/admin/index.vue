@@ -21,7 +21,13 @@
         <p class="cr-intro">{{ $t('admin.dashboard.intro') }}</p>
       </div>
 
-      <div class="cr-status" :class="`cr-status--${trackerOnline ? 'on' : 'off'}`">
+      <!-- `title` porte l'âge de la sonde. Sans lui, un badge rouge ne dit pas
+           s'il constate une panne à l'instant ou s'il répète un cache. -->
+      <div
+        class="cr-status"
+        :class="`cr-status--${trackerOnline ? 'on' : 'off'}`"
+        :title="probeAge"
+      >
         <span class="cr-status-light">
           <span class="cr-status-dot" aria-hidden="true" />
           <span class="cr-status-rings" aria-hidden="true" />
@@ -92,6 +98,8 @@
 <script setup lang="ts">
 interface TrackerStats {
   status: string;
+  /** Quand la sonde a réellement joint le tracker — voir `utils/trackerHealth.ts`. */
+  trackerCheckedAt?: number;
   cached: {
     torrents: number;
     peers: number;
@@ -138,9 +146,24 @@ const wallClock = computed(() => {
   });
 });
 
+/**
+ * « Tracker vérifié il y a Xs ».
+ *
+ * Adossé au même `now` que l'horloge, donc vide au rendu serveur : c'est
+ * volontaire, une durée relative calculée sur l'horloge du serveur puis
+ * recalculée sur celle du client est exactement ce qui produisait le défaut
+ * d'hydratation corrigé plus haut.
+ */
+const probeAge = computed(() => {
+  const at = stats.value?.trackerCheckedAt;
+  if (!at || now.value === null) return '';
+  const s = Math.max(0, Math.round((now.value - at) / 1000));
+  return t('admin.dashboard.probeAge', { n: s });
+});
+
 const refreshedAgo = computed(() => {
   const at = stats.value?.cached.updatedAt;
-  if (!at) return '—';
+  if (!at || now.value === null) return '—';
   const seconds = Math.max(0, Math.floor((now.value - at) / 1000));
   if (seconds < 60) return t('admin.dashboard.rel.seconds', { n: seconds });
   const minutes = Math.floor(seconds / 60);

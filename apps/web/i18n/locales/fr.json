@@ -2182,6 +2182,7 @@
       "intro": "Aperçu en direct des signes vitaux du tracker — torrents, pairs, protocoles et points d'annonce — d'un coup d'œil.",
       "statusOnline": "Tracker · en ligne",
       "statusOffline": "Tracker · hors ligne",
+      "probeAge": "Tracker vérifié il y a {n} s",
       "metricsTitle": "Métriques en direct",
       "chartsTitle": "Activité dans le temps",
       "refreshedAgo": "Rafraîchi il y a {rel}",

@@ -2182,6 +2182,7 @@
       "intro": "Live snapshot of the tracker's vital signs — torrents, peers, protocols, and announce endpoints — at a glance.",
       "statusOnline": "Tracker · online",
       "statusOffline": "Tracker · offline",
+      "probeAge": "Tracker checked {n}s ago",
       "metricsTitle": "Live metrics",
       "chartsTitle": "Activity over time",
       "refreshedAgo": "Refreshed {rel} ago",
