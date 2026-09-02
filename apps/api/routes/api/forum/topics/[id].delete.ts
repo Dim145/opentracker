@@ -1,10 +1,12 @@
 import { db } from '@trackarr/db';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { forumTopics } from '@trackarr/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuthSession } from '~~/utils/adminAuth';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
 
   const id = getRouterParam(event, 'id');
   if (!id) {

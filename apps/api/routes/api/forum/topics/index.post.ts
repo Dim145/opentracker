@@ -1,10 +1,12 @@
 import { db } from '@trackarr/db';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { forumTopics, forumPosts } from '@trackarr/db/schema';
 import { v4 as uuidv4 } from 'uuid';
 import { validateBody, forumTopicSchema } from '~~/utils/schemas';
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
 
   // Validate request body with Zod
   const body = await validateBody(event, forumTopicSchema);

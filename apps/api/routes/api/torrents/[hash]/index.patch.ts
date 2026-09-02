@@ -17,6 +17,8 @@
  *     they edit — they're trusted to publish without re-review.
  */
 import { eq } from 'drizzle-orm';
+import { validateBody } from '~~/utils/schemas';
+import { z } from 'zod';
 import { db } from '@trackarr/db';
 import { torrents, categories, torrentModerationMessages } from '@trackarr/db/schema';
 import { randomUUID } from 'node:crypto';
@@ -85,8 +87,34 @@ export default defineEventHandler(async (event) => {
   // bypass flag. The result drives the auto-revert on save below.
   const canBypass = isStaff || (await userCanBypassModeration(user));
 
-  // Read body
-  const body = await readBody(event);
+  /*
+   * Un schéma, pas `readBody()` nu.
+   *
+   * C'était l'une des cinq routes mutantes sans validation : `categoryId`
+   * partait tel quel dans `eq(categories.id, categoryId)`, donc un objet ou un
+   * nombre produisait une 500 de Postgres au lieu d'une 400 — pas d'injection
+   * (Drizzle paramètre), mais un plantage là où il fallait un refus. Même forme
+   * pour `description`, dont un objet atterrissait dans une colonne `text`.
+   *
+   * Les bornes reprennent celles que la route appliquait déjà à la main plus
+   * bas, et celles du point d'envoi : c'est le même contrat, exprimé une fois
+   * en entrée plutôt que dispersé dans le corps du handler.
+   */
+  const patchSchema = z
+    .object({
+      name: z.string().min(1).max(256).optional(),
+      description: z.string().max(10_000).nullish(),
+      categoryId: z.string().uuid().nullish().or(z.literal('')),
+      nfo: z.string().max(256 * 1024).nullish(),
+      imdbId: z.string().max(32).nullish(),
+      tmdbId: z.string().max(32).nullish(),
+      tvdbId: z.string().max(32).nullish(),
+      igdbId: z.string().max(32).nullish(),
+      openlibraryId: z.string().max(64).nullish(),
+    })
+    .strict();
+
+  const body = await validateBody(event, patchSchema);
   const {
     name,
     description,

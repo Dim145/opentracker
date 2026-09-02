@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { db } from '@trackarr/db';
 import { torrentComments } from '@trackarr/db/schema';
 import { requireAuthSession } from '~~/utils/adminAuth';
@@ -6,6 +7,7 @@ import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
   const commentId = getRouterParam(event, 'id');
 
   if (!commentId) {

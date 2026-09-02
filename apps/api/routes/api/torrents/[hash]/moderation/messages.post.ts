@@ -6,6 +6,7 @@
  * actions. Either side (uploader or staff) can post.
  */
 import { db, schema } from '@trackarr/db';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod/v4';
 import { canAccessModerationThread, postMessage } from '~~/utils/torrentModeration';
@@ -18,6 +19,7 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
   const hash = getRouterParam(event, 'hash');
   if (!hash) {
     throw createError({ statusCode: 400, message: 'Torrent hash is required' });

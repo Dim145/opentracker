@@ -203,6 +203,27 @@ export default defineEventHandler(async (event) => {
       throw new Error('missing info dict');
     }
     info.private = 1;
+    // Les champs HORS `info`, qui portent les secrets de l'uploadeur.
+    //
+    // Un `.torrent` de tracker privé porte la passkey de son propriétaire dans
+    // `announce` (et dans chaque niveau d'`announce-list`). Les stocker verbatim
+    // laissait cette passkey au repos dans `torrent_data` : la route de sortie
+    // les réécrit de toute façon (`[hash]/download.get.ts`), donc la conserver
+    // n'apportait rien et suffisait à ce qu'un autre membre la lise — le cas
+    // courant en cross-seed étant que le fichier vienne d'un AUTRE tracker
+    // privé, dont la passkey n'a rien à faire ici.
+    //
+    // `url-list` (web seeds) sort aussi : un hôte tiers y ferait sortir le
+    // client de chaque téléchargeur vers lui. `comment` et `created by` sont du
+    // texte libre venu d'un fichier étranger, sans usage chez nous.
+    //
+    // Aucun de ces champs n'est dans `info`, donc l'infohash ne change pas et
+    // les lignes déjà stockées restent valides.
+    delete decoded.announce;
+    delete decoded['announce-list'];
+    delete decoded['url-list'];
+    delete decoded.comment;
+    delete decoded['created by'];
     normalizedData = Buffer.from(bencode.encode(decoded));
   } catch (_err) {
     throw createError({ statusCode: 400, message: 'Invalid torrent file' });
@@ -311,8 +332,31 @@ export default defineEventHandler(async (event) => {
   // status so a previously-rejected upload can never be silently
   // re-introduced — that's the whole reason rejected rows are kept
   // in the table instead of being deleted.
+  //
+  // Une PROJECTION, pas la ligne entière.
+  //
+  // `findFirst` sans `columns` renvoyait les 33 colonnes de `torrents` — dont
+  // `torrentData`, c'est-à-dire les octets du `.torrent` stocké, plus
+  // `uploaderId`, `nfo`, `description` et l'état de modération — à tout membre
+  // authentifié capable de POSTer un fichier dont l'infohash correspond.
+  //
+  // Les trois gardes qui manquaient sont écrites, une par une, dans les deux
+  // routes qui font le même travail : `check.post.ts` (le PRÉFLIGHT de cette
+  // opération) porte déjà la projection, la porte de modération et le retrait
+  // de `uploaderId`, et `[hash]/download.get.ts` refuse une ligne non acceptée
+  // à qui n'est ni l'uploadeur ni du personnel. La garde avait été écrite pour
+  // l'annonce et oubliée sur l'opération annoncée.
   const existing = await db.query.torrents.findFirst({
     where: (t, { eq }) => eq(t.infoHash, infoHash),
+    columns: {
+      id: true,
+      infoHash: true,
+      name: true,
+      moderationStatus: true,
+      createdAt: true,
+      uploaderId: true,
+      size: true,
+    },
   });
 
   if (existing) {
@@ -324,14 +368,44 @@ export default defineEventHandler(async (event) => {
           'This torrent has previously been rejected by moderation. Re-uploading it is not allowed.',
       });
     }
+
+    // La même porte que `check.post.ts` et `download.get.ts` : une ligne qui
+    // n'est pas acceptée est invisible à qui n'est ni son uploadeur ni du
+    // personnel. Sans elle, connaître un infohash en attente suffisait à en
+    // récupérer les octets — précisément ce que `download.get.ts` interdit.
+    const isStaff = !!(user.isAdmin || user.isModerator);
+    if (
+      existing.moderationStatus !== 'accepted' &&
+      !isStaff &&
+      existing.uploaderId !== user.id
+    ) {
+      throw createError({ statusCode: 404, message: 'Torrent not found' });
+    }
+
     // Otherwise (pending / changes_requested / accepted) just hand
     // the existing row back. The uploader can find it on /me, and a
     // moderator can act on it via the queue.
     return {
       success: true,
+      // `outcome` porte le sens ; `message` reste pour les clients hors
+      // navigateur. La page d'envoi affichait `message` tel quel — donc une
+      // phrase anglaise en titre, sous une coche verte et au-dessus d'un
+      // sous-titre français qui annonçait le contraire : « la release est
+      // désormais indexée », alors que celle-ci existait déjà et appartient à
+      // quelqu'un d'autre.
+      outcome: 'exists' as const,
       message: 'Torrent already exists',
       data: {
-        ...existing,
+        // Pas de `...existing` : `uploaderId` sort en clair d'ici, ce qui
+        // défait `anonymousUploads` (`redactUploader` existe pour cela et
+        // n'était pas appelé), et `torrentData` sérialisé en JSON amplifie
+        // la réponse d'un facteur sept.
+        id: existing.id,
+        infoHash: existing.infoHash,
+        name: existing.name,
+        size: existing.size,
+        moderationStatus: existing.moderationStatus,
+        createdAt: existing.createdAt,
         magnetLink: generateMagnetLink(infoHash, name),
       },
     };
@@ -571,6 +645,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
+    outcome: canBypassModeration ? ('published' as const) : ('pending' as const),
     message: canBypassModeration
       ? 'Torrent created successfully'
       : 'Torrent uploaded and pending moderation approval',

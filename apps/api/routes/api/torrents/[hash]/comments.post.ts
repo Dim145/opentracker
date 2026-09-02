@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { db, schema } from '@trackarr/db';
 import { torrents, torrentComments } from '@trackarr/db/schema';
 import { canComment } from '~~/utils/commentPolicy';
@@ -13,6 +14,7 @@ import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
 
   // Validate hash parameter
   const hash = validateParam(event, 'hash', infoHashSchema);
