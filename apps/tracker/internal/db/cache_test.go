@@ -75,7 +75,14 @@ func TestUserByPasskey_NeverStoresTheRawPasskey(t *testing.T) {
 
 func TestUserByPasskey_KeyIsStableAndDistinct(t *testing.T) {
 	d, _ := newCacheDB(t)
-	if d.passkeyKey(testPasskey) != d.passkeyKey(testPasskey) {
+	// Liés à des variables, et non comparés en place : le test EST valide —
+	// appeler deux fois et comparer vérifie bien le déterminisme, y compris si
+	// `passkeyKey` se mettait un jour à saler — mais staticcheck y voit deux
+	// expressions identiques (SA4000) parce qu'il présume la pureté. Nommer les
+	// deux résultats dit l'intention au lecteur et à l'analyseur.
+	first := d.passkeyKey(testPasskey)
+	second := d.passkeyKey(testPasskey)
+	if first != second {
 		t.Fatal("the same passkey must map to the same key")
 	}
 	if d.passkeyKey(testPasskey) == d.passkeyKey(testPasskey+"x") {

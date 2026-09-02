@@ -111,13 +111,6 @@ func (d *dedup) CheckAndMarkFor(ctx context.Context, key string, window time.Dur
 	return d.checkRedisFor(ctx, key, window)
 }
 
-// checkLocal is the original in-process behaviour, unchanged. Drops the
-// oldest half of entries when the map exceeds `dedupMaxEntries` to keep
-// memory bounded under spam.
-func (d *dedup) checkLocal(key string) bool {
-	return d.checkLocalFor(key, dedupWindow)
-}
-
 func (d *dedup) checkLocalFor(key string, window time.Duration) bool {
 	now := time.Now()
 	d.mu.Lock()
@@ -130,22 +123,6 @@ func (d *dedup) checkLocalFor(key string, window time.Duration) bool {
 	}
 	d.seen[key] = now
 	return true
-}
-
-// checkRedis claims the key for `dedupWindow` across every instance.
-//
-// `SET key 1 NX PX <window>` is the whole mechanism: one atomic round-trip,
-// self-expiring, no cleanup path, and the winner is decided by Redis rather
-// than by which process happened to be asked first.
-//
-// On error we return TRUE — the local layer already said this key was fresh,
-// so we degrade to exactly the single-instance behaviour rather than dropping
-// a member's bytes because Redis hiccuped. That direction is also the only
-// coherent one: the byte delta is computed from a baseline that lives in
-// Redis, so a Redis outage means `prev` is nil and there is no delta to
-// double-credit in the first place.
-func (d *dedup) checkRedis(ctx context.Context, key string) bool {
-	return d.checkRedisFor(ctx, key, dedupWindow)
 }
 
 func (d *dedup) checkRedisFor(ctx context.Context, key string, window time.Duration) bool {

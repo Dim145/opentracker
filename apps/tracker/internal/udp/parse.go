@@ -68,12 +68,11 @@ const maxURLDataBytes = 512
 // errors are short ASCII strings and we keep them tracker-vague — but
 // the constants make the code testable.
 var (
-	errPacketTooShort      = errors.New("packet too short")
-	errBadMagic            = errors.New("invalid protocol_id")
-	errInvalidConnectionID = errors.New("invalid connection_id")
-	errMissingPasskey      = errors.New("missing passkey")
-	errInvalidPort    = errors.New("invalid port")
-	errMalformedOptions    = errors.New("malformed options")
+	errPacketTooShort   = errors.New("packet too short")
+	errBadMagic         = errors.New("invalid protocol_id")
+	errMissingPasskey   = errors.New("missing passkey")
+	errInvalidPort      = errors.New("invalid port")
+	errMalformedOptions = errors.New("malformed options")
 )
 
 // ConnectRequest is the parsed step-1 packet. The transaction_id has

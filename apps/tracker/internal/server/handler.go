@@ -582,7 +582,28 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// refuser un crédit légitime parce que le cache a hoqueté est le mauvais
 	// sens de l'erreur, et sans Redis il n'y a de toute façon pas de `prev`
 	// donc pas de delta à créditer.
-	if deltaUp > 0 || deltaDown > 0 {
+	/*
+	 * La déduplication décide AVANT que le seau ne soit vidé.
+	 *
+	 * `CheckAndMark` était consulté plus bas, une fois les jetons déjà retirés.
+	 * Un client à double pile — le cas même pour lequel la déduplication
+	 * existe — brûlait donc son budget deux fois pour un seul crédit, et les
+	 * jetons ne sont jamais rendus. Le sens de l'erreur était favorable (le
+	 * membre est sous-crédité, jamais sur-crédité) et la réserve d'une minute
+	 * l'absorbe pour un seedeur honnête, mais l'ordre était inversé.
+	 *
+	 * Le marquage reste au même instant qu'avant par rapport à l'écriture :
+	 * c'est la même requête qui marque et qui crédite. Ce qui change, c'est
+	 * qu'un delta qui ne sera PAS porté au compte ne coûte plus de jetons.
+	 *
+	 * L'écrêtage garde sa place d'origine — avant les multiplicateurs de bonus,
+	 * qui s'appliquent ensuite au delta déjà borné.
+	 */
+	creditKey := infoHashHex + ":" + peerHex + ":credit"
+	bookCredit := (deltaUp > 0 || deltaDown > 0) &&
+		s.dedup.CheckAndMark(ctx, creditKey)
+
+	if bookCredit {
 		want := deltaUp + deltaDown
 		if granted, err := s.peers.TakeCreditBudget(
 			ctx, user.ID, want, maxCreditBytesPerSec,
@@ -639,8 +660,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// two land on the same process or on two instances behind a load
 	// balancer. The per-event dedup above still lets distinct events run
 	// their own side effects (completed counter, stopped removal).
-	creditKey := infoHashHex + ":" + peerHex + ":credit"
-	if (deltaUp > 0 || deltaDown > 0) && s.dedup.CheckAndMark(ctx, creditKey) {
+	if bookCredit {
 		if err := s.db.Q.IncrementUserStats(ctx, queries.IncrementUserStatsParams{
 			Uploaded:   deltaUp,
 			Downloaded: deltaDown,
@@ -750,7 +770,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 			_ = s.peers.IncrementCompleted(ctx, infoHashHex)
 		}
 		s.bgTasks.Add(1)
-		go s.recordHnrCompletion(req.Passkey, infoHashHex)
+		go s.recordHnrCompletion(user.ID, torrentID, infoHashHex)
 	}
 
 	// 10. Seeders contribute to seed-time tracking. Gate on an
@@ -792,7 +812,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 			ctx, seedKey, time.Duration(minAnnounceInterval)*time.Second,
 		) {
 			s.bgTasks.Add(1)
-			go s.recordSeedTime(req.Passkey, infoHashHex, int32(elapsed))
+			go s.recordSeedTime(user.ID, torrentID, infoHashHex, int32(elapsed))
 		}
 	}
 
@@ -879,7 +899,16 @@ func (s *Server) hnrRelease() {
 	s.hnrSlots <- struct{}{}
 }
 
-func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
+// Les identifiants sont passés, pas la passkey.
+//
+// Les deux écritures relançaient `FindUserAndTorrentByPasskeyAndHash` — une
+// jointure croisée `users × torrents` — alors que l'appelant tenait déjà
+// `user.ID` et l'identifiant du torrent. C'est exactement le défaut que
+// `IncrementUserStats` documente avoir corrigé en passant par l'ID : une
+// passkey rotée entre la résolution (cache de 60 s) et cette écriture ne
+// touche AUCUNE ligne, et le crédit disparaît sans un mot. Coût annexe évité :
+// une requête Postgres par annonce complétée et par crédit de temps de seed.
+func (s *Server) recordHnrCompletion(userID, torrentID, infoHashHex string) {
 	defer s.bgTasks.Done()
 	// Panic guard: any panic inside this goroutine would skip the
 	// `defer hnrRelease()` below and permanently leak a semaphore
@@ -913,15 +942,6 @@ func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 		return
 	}
 
-	row, err := s.db.Q.FindUserAndTorrentByPasskeyAndHash(ctx,
-		queries.FindUserAndTorrentByPasskeyAndHashParams{
-			Passkey:  passkey,
-			InfoHash: infoHashHex,
-		})
-	if err != nil {
-		return
-	}
-
 	id, err := dbpkg.NewID()
 	if err != nil {
 		slog.Warn("hnr id generation", "info_hash", infoHashHex, "err", err)
@@ -929,8 +949,8 @@ func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 	}
 	err = s.db.Q.CreateHnrEntry(ctx, queries.CreateHnrEntryParams{
 		ID:               id,
-		UserID:           row.UserID,
-		TorrentID:        row.TorrentID,
+		UserID:           userID,
+		TorrentID:        torrentID,
 		RequiredSeedTime: required,
 	})
 	if err != nil {
@@ -938,7 +958,8 @@ func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 	}
 }
 
-func (s *Server) recordSeedTime(passkey, infoHashHex string, secondsToAdd int32) {
+// Mêmes raisons que `recordHnrCompletion` : par les identifiants.
+func (s *Server) recordSeedTime(userID, torrentID, infoHashHex string, secondsToAdd int32) {
 	defer s.bgTasks.Done()
 	// See `recordHnrCompletion` for the rationale — without this
 	// recover() a panic here would leak the semaphore slot it's
@@ -956,19 +977,10 @@ func (s *Server) recordSeedTime(passkey, infoHashHex string, secondsToAdd int32)
 	}
 	defer s.hnrRelease()
 
-	row, err := s.db.Q.FindUserAndTorrentByPasskeyAndHash(ctx,
-		queries.FindUserAndTorrentByPasskeyAndHashParams{
-			Passkey:  passkey,
-			InfoHash: infoHashHex,
-		})
-	if err != nil {
-		return
-	}
-
-	err = s.db.Q.AddSeedTime(ctx, queries.AddSeedTimeParams{
+	err := s.db.Q.AddSeedTime(ctx, queries.AddSeedTimeParams{
 		SeedTime:  secondsToAdd,
-		UserID:    row.UserID,
-		TorrentID: row.TorrentID,
+		UserID:    userID,
+		TorrentID: torrentID,
 	})
 	if err != nil {
 		slog.Warn("update seed time",
@@ -1238,10 +1250,4 @@ func (s *Server) clientIP(r *http.Request) string {
 func writeFailure(w http.ResponseWriter, reason string) {
 	w.WriteHeader(http.StatusOK) // BT trackers MUST return 200 with bencode failure
 	_, _ = w.Write(bencode.FailureResponse(reason))
-}
-
-func (s *Server) serverError(w http.ResponseWriter, where string, err error) {
-	slog.Error("internal error", "where", where, "err", err)
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(bencode.FailureResponse("Internal tracker error"))
 }

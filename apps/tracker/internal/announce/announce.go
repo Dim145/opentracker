@@ -137,7 +137,6 @@ func Parse(q url.Values) (*Request, error) {
 	}
 	r.Port = uint16(port)
 
-
 	r.Uploaded, _ = parseInt64(q.Get("uploaded"))
 	r.Downloaded, _ = parseInt64(q.Get("downloaded"))
 	// `left` defaults to 1 (unknown / leeching) when missing or invalid, to
