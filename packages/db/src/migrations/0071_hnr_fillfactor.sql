@@ -1,0 +1,61 @@
+-- `fillfactor` sur `hnr_tracking`, pour que ses mises à jour redeviennent HOT.
+--
+-- Écrit à la main : drizzle ne modélise pas les paramètres de stockage d'une
+-- table, donc `drizzle-kit generate` ne peut pas produire ce fichier. Il est
+-- inscrit au journal comme les autres pour que `check-schema-parity` le voie.
+--
+-- POURQUOI
+--
+-- Une mise à jour Postgres est HOT — Heap-Only Tuple — quand la nouvelle
+-- version de la ligne tient dans la MÊME page et qu'aucune colonne indexée ne
+-- change. Elle évite alors d'écrire dans les index. Sinon il faut une entrée
+-- neuve dans CHACUN d'eux, et `hnr_tracking` en porte sept.
+--
+-- `AddSeedTime` touche chaque ligne une fois par intervalle d'annonce : tous les
+-- seedeurs créditent leur temps, chacun sur sa ligne. Avec le `fillfactor` par
+-- défaut de 100, une page pleine n'a aucune place pour une version
+-- supplémentaire, donc AUCUNE mise à jour ne peut être HOT.
+--
+-- MESURÉ sur une réplique exacte de cette table — mêmes colonnes, mêmes sept
+-- index, 200 000 lignes, ~40 lignes par page, la requête d'`AddSeedTime`, quatre
+-- cycles avec un VACUUM entre chacun, Postgres 18.6 :
+--
+--   fillfactor   HOT      table    index    total
+--   100          0,1 %    29 Mo    36 Mo    65 Mo   <- réglage précédent
+--    85         60,7 %    32 Mo    32 Mo    64 Mo
+--    70         91,2 %    36 Mo    31 Mo    67 Mo   <- retenu
+--    50        100,0 %    39 Mo    19 Mo    58 Mo
+--
+-- La colonne des index est le résultat qui décide : le gonflement d'index causé
+-- par les mises à jour non-HOT dépasse ce que coûte un remplissage plus lâche.
+-- À 100, presque chaque crédit écrit une version de ligne ET sept entrées
+-- d'index. À l'échelle visée — environ 1 700 annonces de seedeurs par seconde —
+-- cela fait de l'ordre de 13 000 écritures par seconde là où 1 700 suffisent.
+--
+-- 70 plutôt que 50 : 91 % contre 100 % pour 3 Mo de table en plus sur 200 000
+-- lignes, et une marge si la ligne s'élargit un jour (une colonne
+-- `last_seed_credit_at`, par exemple). 100 % à `fillfactor` 50 est un optimum
+-- de banc, pas une cible à défendre.
+--
+-- CE QUE CETTE MIGRATION NE FAIT PAS
+--
+-- Elle ne réécrit rien. `SET (fillfactor)` ne touche que le catalogue : c'est
+-- instantané, et cela ne vaut que pour les pages remplies APRÈS. Les pages déjà
+-- pleines le restent jusqu'à ce que l'autovacuum y récupère des lignes mortes ;
+-- la table converge donc d'elle-même, en quelques cycles d'annonce.
+--
+-- Pour en profiter tout de suite sur une instance chargée, il faut une
+-- réécriture — `VACUUM FULL hnr_tracking` (verrou exclusif, à faire en fenêtre
+-- de maintenance) ou `pg_repack` (sans verrou long). Ni l'un ni l'autre n'a sa
+-- place dans une migration qui tourne au démarrage de l'API.
+--
+-- À VÉRIFIER APRÈS
+--
+--   SELECT n_tup_upd, n_tup_hot_upd,
+--          round(100.0*n_tup_hot_upd/nullif(n_tup_upd,0),1) AS hot_pct
+--     FROM pg_stat_user_tables WHERE relname = 'hnr_tracking';
+--
+-- Le compteur est cumulatif : le remettre à zéro
+-- (`pg_stat_reset_single_table_counters`) avant de mesurer, sinon on lit la
+-- moyenne depuis le dernier redémarrage.
+ALTER TABLE "hnr_tracking" SET (fillfactor = 70);
