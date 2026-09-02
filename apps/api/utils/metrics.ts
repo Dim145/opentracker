@@ -12,6 +12,24 @@
  *     typical scrape) so a Prometheus burst doesn't repeatedly walk the
  *     keyspace.
  */
+/*
+ * `prom-client` est marqué déprécié (« replaced by @prometheus-io/client »).
+ * On y reste, délibérément, et voici les chiffres qui portent ce choix — pris
+ * le 2026-09-02 :
+ *
+ *   - `prom-client@15.1.3` n'a AUCUNE alerte de sécurité (audit npm en masse
+ *     sur les 1101 paquets du verrou : 0). Déprécié n'est pas vulnérable.
+ *   - `@prometheus-io/client` en est à `0.16.1`, avec quatre versions publiées
+ *     en tout, la première non-alpha le 2026-08-24. Le dépôt s'impose
+ *     `minimumReleaseAge: 1440` justement pour ne pas dépendre du frais ; un
+ *     0.x de six jours est très en dessous de cette barre.
+ *   - Il ajoute une dépendance d'exécution, `@opentelemetry/api`.
+ *
+ * La surface à migrer est pourtant minuscule — ce fichier est le seul
+ * appelant, et il n'utilise que les quatre symboles ci-dessous. Le jour où le
+ * successeur atteint une majeure stable, la bascule tient en un import.
+ * D'ici là, changer de bibliothèque de métriques ne corrigerait rien.
+ */
 import {
   Registry,
   Gauge,

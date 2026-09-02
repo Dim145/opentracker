@@ -165,7 +165,29 @@ function normalizeIP(ip: string): string {
 // Blacklist Management
 // ============================================================================
 
-const BLACKLIST_KEY = 'ddos:blacklist';
+/**
+ * Une clé par adresse, et non un hachis unique.
+ *
+ * C'était `HSET ddos:blacklist <ip>` avec un `EXPIRE` sur le hachis ENTIER. Un
+ * champ ne disparaissait qu'au moment où cette même adresse était réinterrogée
+ * et trouvée expirée — donc jamais, pour un attaquant qui ne revient pas — et
+ * chaque nouvelle mise en liste noire repoussait le TTL du hachis complet à
+ * 24 h, si bien que tant qu'un abus durait le hachis ne s'auto-nettoyait pas.
+ * À ~200 octets par champ, un million d'adresses distinctes retenaient 200 Mo
+ * pendant au moins 24 h, dans le Redis qui porte aussi les sessions et les
+ * seaux de limitation.
+ *
+ * Le repli en mémoire, lui, était plafonné à 100 000 entrées avec éviction —
+ * « bounded to prevent unbounded growth when Redis is down under abuse ». Le
+ * chemin Redis, celui qui sert en production, n'avait rien. Avec une clé par
+ * adresse, Redis fait l'expiration lui-même : le jeu ne peut plus croître sans
+ * borne et une mise en liste noire ne prolonge plus les autres.
+ */
+const blacklistKey = (ip: string) => `ddos:bl:${ip}`;
+
+/** L'ancien hachis, conservé le temps qu'une instance en cours d'exécution le
+ *  laisse expirer de lui-même. Lu, plus jamais écrit. */
+const LEGACY_BLACKLIST_KEY = 'ddos:blacklist';
 const BLACKLIST_DURATION_BASE = 300; // 5 minutes base
 const MAX_BLACKLIST_DURATION = 86400; // 24 hours max
 
@@ -176,12 +198,14 @@ export async function isBlacklisted(ip: string): Promise<boolean> {
   const normalizedIP = normalizeIP(ip);
 
   try {
-    const data = await redis.hget(BLACKLIST_KEY, normalizedIP);
-    if (!data) return false;
-
-    const entry: BlacklistEntry = JSON.parse(data);
+    if ((await redis.exists(blacklistKey(normalizedIP))) === 1) return true;
+    // Le hachis d'avant, pendant sa fenêtre d'expiration. Retiré au passage
+    // dès qu'il est périmé, pour que la transition se termine d'elle-même.
+    const legacy = await redis.hget(LEGACY_BLACKLIST_KEY, normalizedIP);
+    if (!legacy) return false;
+    const entry: BlacklistEntry = JSON.parse(legacy);
     if (entry.expiresAt < Date.now()) {
-      await redis.hdel(BLACKLIST_KEY, normalizedIP);
+      await redis.hdel(LEGACY_BLACKLIST_KEY, normalizedIP);
       return false;
     }
     return true;
@@ -226,8 +250,12 @@ export async function blacklistIP(
   );
 
   try {
-    await redis.hset(BLACKLIST_KEY, normalizedIP, JSON.stringify(entry));
-    await redis.expire(BLACKLIST_KEY, MAX_BLACKLIST_DURATION);
+    await redis.set(
+      blacklistKey(normalizedIP),
+      JSON.stringify(entry),
+      'EX',
+      Math.ceil(duration / 1000)
+    );
   } catch {
     setBounded(memoryBlacklist, normalizedIP, entry);
   }
@@ -240,7 +268,9 @@ async function getViolationCount(ip: string): Promise<number> {
   const normalizedIP = normalizeIP(ip);
 
   try {
-    const data = await redis.hget(BLACKLIST_KEY, normalizedIP);
+    const data =
+      (await redis.get(blacklistKey(normalizedIP))) ??
+      (await redis.hget(LEGACY_BLACKLIST_KEY, normalizedIP));
     if (!data) return 0;
     const entry: BlacklistEntry = JSON.parse(data);
     return entry.violations;
@@ -390,15 +420,58 @@ export async function rateLimit(
     });
   }
 
-  const key = `${prefix}:${normalizedIP}`;
+  /*
+   * Le sujet compté : le compte quand il y en a un, l'adresse sinon.
+   *
+   * C'était l'adresse, toujours. Trois conséquences, dont la première est un
+   * déni de service que n'importe quel membre pouvait déclencher :
+   *
+   *  - **Dommage collatéral.** Sur un tracker privé, l'usage du VPN est
+   *    quasi universel et les adresses de sortie sont massivement partagées.
+   *    Tous les membres derrière une même sortie partageaient un seau de dix
+   *    écritures par minute.
+   *  - **Escalade en 403 pour tout le monde.** Les seaux `mutation`, `public`,
+   *    `auth` et `tracker` portent `progressive: true` : au dépassement, l'IP
+   *    ENTIÈRE part en liste noire pour 5 min, doublant jusqu'à 24 h — et
+   *    `middleware/security.ts` évalue cette liste AVANT toute
+   *    authentification, sans exemption. Onze étiquettes éditées en une minute
+   *    expulsaient donc du site, pendant cinq minutes, tout le monde sur la
+   *    même adresse, personnel compris. Déclenchable délibérément contre un
+   *    voisin identifié.
+   *  - **Évasion triviale.** Un /64 IPv6 résidentiel offre 2⁶⁴ adresses
+   *    sources ; chaque rotation remettait le seau à zéro et la liste noire
+   *    punissait l'adresse déjà abandonnée. La limite mordait le membre
+   *    honnête à adresse stable, pas l'attaquant.
+   *
+   * La primitive correcte était déjà dans ce fichier — `rateLimitIdentity`,
+   * écrite pour la fédération avec exactement ce raisonnement — et n'avait pas
+   * été portée à la surface des membres.
+   *
+   * `getUserSession` plutôt que `event.context.auditActor` : plusieurs routes
+   * appellent `rateLimit` AVANT leur garde d'authentification, et faire
+   * dépendre la correction d'un ordre que chaque route peut se tromper à écrire
+   * est ce qui a produit ce défaut. La lecture est celle du cookie scellé, donc
+   * sans I/O.
+   */
+  let actorId: string | undefined;
+  try {
+    actorId = (await getUserSession(event))?.user?.id;
+  } catch {
+    /* pas de session lisible : on compte l'adresse */
+  }
+  const key = `${prefix}:${actorId ? `u:${actorId}` : normalizedIP}`;
 
   const result = useRedis
     ? await rateLimitRedis(key, windowSec, maxRequests)
     : rateLimitMemory(key, windowSec, maxRequests);
 
   if (result.blocked) {
-    // Progressive penalty: blacklist after multiple rate limit violations
-    if (progressive) {
+    // Progressive penalty: blacklist after multiple rate limit violations.
+    //
+    // Jamais pour un compte : la sanction doit viser le sujet compté. Mettre
+    // une adresse en liste noire parce qu'un compte a dépassé son seau est
+    // précisément ce qui permettait d'expulser ses voisins.
+    if (progressive && !actorId) {
       const violations = await getViolationCount(normalizedIP);
       if (violations >= 3) {
         await blacklistIP(

@@ -359,17 +359,34 @@ export const forumCategoryUpdateSchema = forumCategorySchema.partial();
 // Tracker Schemas (for announce/scrape validation)
 // ============================================================================
 
+/**
+ * Le contrat d'annonce, publié dans l'OpenAPI et servi par personne.
+ *
+ * Ce schéma et `scrapeQuerySchema` n'ont aucun appelant : l'annonce et le
+ * scrape sont servis par le tracker Go, qui a sa propre validation
+ * (`apps/tracker/internal/announce`). Ils restent parce que
+ * `scripts/generate-openapi.mjs` les publie comme documentation du protocole.
+ *
+ * Deux bornes ajoutées pour que le contrat publié dise la vérité : les trois
+ * compteurs d'octets étaient `min(0)` sans MAXIMUM, et `ip` était une chaîne
+ * libre. Ce que le tracker applique réellement, lui, est plus strict — un
+ * `peer_id` de 20 octets, un port hors plage privilégiée, `left` borné — donc
+ * une documentation plus permissive que l'implémentation est une invitation à
+ * signaler un faux bug.
+ */
 export const announceQuerySchema = z.object({
   info_hash: infoHashSchema,
   peer_id: z.string().length(20, 'Peer ID must be 20 characters'),
   port: z.coerce.number().int().min(1).max(65535),
-  uploaded: z.coerce.number().int().min(0),
-  downloaded: z.coerce.number().int().min(0),
-  left: z.coerce.number().int().min(0),
+  uploaded: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  downloaded: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  left: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
   compact: z.coerce.number().int().optional(),
   no_peer_id: z.coerce.number().int().optional(),
   event: z.enum(['started', 'stopped', 'completed', '']).optional(),
-  ip: z.string().optional(),
+  // Fourni par le client et DÉLIBÉRÉMENT ignoré par le tracker : l'accepter
+  // ferait de lui un réflecteur (BEP 7 a fini par décourager ce champ).
+  ip: z.union([z.ipv4(), z.ipv6()]).optional(),
   numwant: z.coerce.number().int().min(0).max(200).optional(),
   key: z.string().optional(),
   trackerid: z.string().optional(),

@@ -60,6 +60,25 @@
  * part of the economy's audit trail, and none of them holds a raw identifier
  * once step 2 has run. Stated here because an unstated retention is
  * indistinguishable from an oversight.
+ *
+ * Cinq de plus, énoncées ici parce qu'elles sont exportées par
+ * `exportAccount` et donc déclarées comme données du membre — la liste
+ * s'arrêtait aux six ci-dessus et ces cinq-là étaient exactement des
+ * rétentions non énoncées :
+ *
+ *   `bonus_grants`, `shop_purchases`, `freeleech_pool_contributions`
+ *       Le grand livre de l'économie. Les retirer ne rend pas un compte
+ *       anonyme — la ligne `users` porte déjà des totaux — mais falsifie le
+ *       solde du site et l'historique d'un pot commun auquel d'autres
+ *       membres ont contribué.
+ *   `upload_requests`, `upload_request_fill_attempts`
+ *       Une demande est du contenu avec lequel d'autres ont interagi, comme
+ *       un message de forum : conservée sous un auteur anonymisé, au même
+ *       titre.
+ *
+ * Aucune ne porte d'identifiant brut après l'étape 2. Ce qui était PUREMENT
+ * personnel — suivis fédérés, réactions, modèles de fiche, crédits fédérés —
+ * est désormais supprimé ; voir l'étape 2.
  */
 import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -168,6 +187,48 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
       .where(eq(schema.savedSearches.userId, userId));
     await tx.delete(schema.loginEvents).where(eq(schema.loginEvents.userId, userId));
     await tx.delete(schema.torrentFavorites).where(eq(schema.torrentFavorites.userId, userId));
+
+    /*
+     * Cinq tables qui manquaient, trouvées en recoupant `exportAccount` avec
+     * ce fichier — le test décisif, puisque ce que l'article 15 déclare
+     * « vos données » ne peut pas survivre à l'article 17.
+     *
+     * Aucun `ON DELETE cascade` ne se déclenche jamais ici : la ligne `users`
+     * survit, c'est le choix acté, et toute clé étrangère vers elle se traite
+     * donc à la main. Ces cinq-là étaient restées attachées à la pierre
+     * tombale.
+     *
+     *   `federated_follows`    la liste des uploadeurs qu'un membre suit chez
+     *                          les partenaires, `remote_username` compris :
+     *                          un graphe social personnel. L'étape 1b efface
+     *                          `remote_identity_links` et l'étape 2
+     *                          `federated_identities` ; celle-là avait été
+     *                          oubliée entre les deux.
+     *   `message_reactions`    qui a réagi à quel message, avec quelle clé.
+     *   `room_message_reactions`  idem, côté salon.
+     *   `presentation_templates`  les textes de fiche que le membre a écrits
+     *                          pour lui-même. Même classe que
+     *                          `saved_searches`, effacé juste au-dessus.
+     *   `federation_credit_grants`  le DID que l'effacement vient précisément
+     *                          de révoquer et d'annoncer comme retiré, gardé
+     *                          en local et joint au compte anonymisé — ce qui
+     *                          défait la révocation qu'on vient de publier.
+     */
+    await tx
+      .delete(schema.federatedFollows)
+      .where(eq(schema.federatedFollows.localUserId, userId));
+    await tx
+      .delete(schema.messageReactions)
+      .where(eq(schema.messageReactions.userId, userId));
+    await tx
+      .delete(schema.roomMessageReactions)
+      .where(eq(schema.roomMessageReactions.userId, userId));
+    await tx
+      .delete(schema.presentationTemplates)
+      .where(eq(schema.presentationTemplates.ownerId, userId));
+    await tx
+      .delete(schema.federationCreditGrants)
+      .where(eq(schema.federationCreditGrants.localUserId, userId));
     await tx
       .delete(schema.userFollows)
       .where(

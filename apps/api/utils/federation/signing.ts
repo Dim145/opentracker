@@ -122,6 +122,20 @@ export interface VerifyResult {
   /** Sender instanceId from the header, present even on some failures
    *  so the caller can log who tried. */
   instanceId?: string;
+  /**
+   * La signature RÉELLEMENT vérifiée, sur laquelle la garde anti-rejeu doit
+   * s'indexer.
+   *
+   * L'appelant cléait son nonce sur `x-trackarr-signature` — la v1 — alors que
+   * dès qu'une v2 et une audience sont présentes, cette fonction ne vérifie QUE
+   * la v2 et retourne. La v1 n'était donc jamais contrôlée sur ce chemin : un
+   * attaquant qui capturait une requête signée la rejouait autant de fois qu'il
+   * voulait en remplaçant la v1 par des octets aléatoires. La v2 vérifiait
+   * toujours, la clé Redis différait à chaque essai, et le doublon n'était
+   * jamais vu. La protection annoncée était nulle pendant toute la fenêtre de
+   * ±5 minutes.
+   */
+  verifiedSignature?: string;
 }
 
 /**
@@ -172,7 +186,7 @@ export function verifySignedRequest(opts: {
     if (!valid) {
       return { ok: false, reason: 'bad signature (audience)', instanceId };
     }
-    return { ok: true, instanceId };
+    return { ok: true, instanceId, verifiedSignature: signatureV2 };
   }
 
   if (REQUIRE_AUDIENCE) {
@@ -189,7 +203,7 @@ export function verifySignedRequest(opts: {
     signature,
   );
   if (!valid) return { ok: false, reason: 'bad signature', instanceId };
-  return { ok: true, instanceId };
+  return { ok: true, instanceId, verifiedSignature: signature };
 }
 
 export interface SignedResponse {
