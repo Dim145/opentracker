@@ -68,10 +68,33 @@ function print() {
   // font, easy to drop in a paper safe.
   const w = window.open('', 'rc-print');
   if (!w) return;
-  const list = props.codes.map((c) => `<li><code>${c}</code></li>`).join('');
+  const doc = w.document;
   const title = t('security.recoveryCodes.printTitle');
   const intro = t('security.recoveryCodes.printIntro');
 
+  // `createElement` + `textContent`, pas `document.write`.
+  //
+  // C'était le seul endroit de l'application qui composait du HTML par
+  // concaténation, et il le faisait avec trois valeurs interpolées — le titre
+  // traduit, l'intro traduite, et les codes eux-mêmes. Rien n'est exploitable
+  // aujourd'hui (les traductions sont dans le dépôt, les codes sont
+  // alphanumériques), mais la garantie ne tient qu'à ces deux faits, sur
+  // l'écran où une injection coûterait le plus cher. Un nœud de texte ne se
+  // parse pas : la garantie devient structurelle.
+  //
+  // La fenêtre est nommée, donc réutilisée d'une impression à l'autre : on
+  // vide ce qu'une précédente y a laissé plutôt que d'empiler deux jeux de
+  // codes.
+  doc.head.replaceChildren();
+  doc.body.replaceChildren();
+
+  const meta = doc.createElement('meta');
+  meta.setAttribute('charset', 'utf-8');
+  doc.head.append(meta);
+  // Passe par le nœud `<title>`, jamais par du balisage.
+  doc.title = title;
+
+  const style = doc.createElement('style');
   // The nonce, because this document inherits the OPENER's CSP.
   //
   // `window.open('')` yields an `about:blank` that carries the policy of the
@@ -85,25 +108,33 @@ function print() {
   // content ATTRIBUTE, so `getAttribute('nonce')` returns nothing while the
   // `.nonce` property still holds the value.
   const nonce = document.querySelector<HTMLScriptElement>('script[nonce]')?.nonce ?? '';
-  const nonceAttr = nonce ? ` nonce="${nonce}"` : '';
+  if (nonce) style.setAttribute('nonce', nonce);
+  style.textContent =
+    'body{font-family:ui-monospace,monospace;padding:2rem;color:#111}' +
+    'h1{font-size:1.2rem}ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem 1.5rem}' +
+    // A literal, and it has to be: this stylesheet goes into a document
+    // opened by `window.open`, where none of the application's custom
+    // properties exist. `calc(.06em * var(--tracking-scale))` there is
+    // invalid at computed-value time, so the tracking silently became
+    // `normal`. The scale substitution reached this string because it looks
+    // like CSS; the print window is the one place it must not.
+    'code{font-size:1.05rem;letter-spacing:.06em}';
+  doc.head.append(style);
 
-  w.document.write(
-    `<!doctype html><meta charset="utf-8"><title>${title}</title>` +
-      `<style${nonceAttr}>body{font-family:ui-monospace,monospace;padding:2rem;color:#111}` +
-      `h1{font-size:1.2rem}ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem 1.5rem}` +
-      // A literal, and it has to be: this stylesheet goes into a document
-      // opened by `window.open`, where none of the application's custom
-      // properties exist. `calc(.06em * var(--tracking-scale))` there is
-      // invalid at computed-value time, so the tracking silently became
-      // `normal`. The scale substitution reached this string because it looks
-      // like CSS; the print window is the one place it must not.
-      `code{font-size:1.05rem;letter-spacing:.06em}` +
-      `</style>` +
-      `<h1>${title}</h1>` +
-      `<p>${intro}</p>` +
-      `<ul>${list}</ul>`
-  );
-  w.document.close();
+  const h1 = doc.createElement('h1');
+  h1.textContent = title;
+  const p = doc.createElement('p');
+  p.textContent = intro;
+  const ul = doc.createElement('ul');
+  for (const c of props.codes) {
+    const li = doc.createElement('li');
+    const code = doc.createElement('code');
+    code.textContent = c;
+    li.append(code);
+    ul.append(li);
+  }
+  doc.body.append(h1, p, ul);
+
   w.focus();
   w.print();
 }
