@@ -11,8 +11,8 @@ import { users, webauthnCredentials } from '@trackarr/db/schema';
 import {
   readBanStatusCached,
   readIpBanCached,
-  readLiveRoles,
 } from '~~/utils/adminAuth';
+import { readLiveRoles } from '~~/utils/liveRoles';
 import { isUserRequiredFor2FA } from '~~/utils/settings';
 
 // ============================================================================

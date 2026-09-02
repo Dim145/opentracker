@@ -16,9 +16,9 @@ import { db } from '@trackarr/db';
 import { users, bannedIps, torrents } from '@trackarr/db/schema';
 import {
   invalidateBanCache,
-  invalidateRoleCache,
   requireModeratorSession,
 } from '~~/utils/adminAuth';
+import { invalidateRoleCache } from '~~/utils/liveRoles';
 import { relinquishOwnership } from '~~/utils/owner';
 import {
   validateBody,

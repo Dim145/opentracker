@@ -34,7 +34,7 @@
  */
 import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
-import { invalidateRoleCache } from './adminAuth';
+import { invalidateRoleCache } from './liveRoles';
 
 /** A database handle, or the transaction standing in for one. */
 type Writer = Pick<typeof db, 'select' | 'update'>;

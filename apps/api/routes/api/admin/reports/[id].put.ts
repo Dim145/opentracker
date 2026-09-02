@@ -34,8 +34,8 @@ import { db, schema } from '@trackarr/db';
 import {
   requireModeratorSession,
   invalidateBanCache,
-  invalidateRoleCache,
 } from '~~/utils/adminAuth';
+import { invalidateRoleCache } from '~~/utils/liveRoles';
 import { validateBody } from '~~/utils/schemas';
 import { relinquishOwnership } from '~~/utils/owner';
 import { eq } from 'drizzle-orm';
