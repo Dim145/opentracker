@@ -113,17 +113,31 @@ function applySecurityHeaders(event: any): void {
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     'X-DNS-Prefetch-Control': 'off',
-    // Content Security Policy - Strict security rules
+    /*
+     * La CSP des réponses de l'API — et rien d'autre.
+     *
+     * Elle portait `script-src 'self' 'unsafe-inline'` et `style-src 'self'
+     * 'unsafe-inline'`, justifiés par « Nuxt requires unsafe-inline for HMR »
+     * et « Tailwind requires unsafe-inline ». Ces deux motifs appartiennent à
+     * l'application WEB, qui a sa propre politique à nonce dans
+     * `apps/web/server/plugins/csp.ts` ; ce processus-ci ne sert ni page, ni
+     * script, ni feuille de style — uniquement du JSON, du XML (Torznab, RSS),
+     * du CSS de thème et des objets stockés.
+     *
+     * `default-src 'none'` est donc la valeur juste : aucune réponse de l'API
+     * n'a de raison d'exécuter quoi que ce soit. Cela compte pour le cas où un
+     * navigateur arrive DIRECTEMENT sur une réponse — un SVG déposé dans
+     * `/uploads/`, par exemple, dont le script est déjà neutralisé par
+     * `servedObjectHeaders` et qui gagne ici une seconde barrière. Pour une
+     * ressource chargée depuis une page (une image, la feuille de thème), c'est
+     * la politique de la PAGE qui décide, pas celle-ci : la resserrer ne casse
+     * donc rien.
+     */
     'Content-Security-Policy': [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'", // Nuxt requires unsafe-inline for HMR
-      "style-src 'self' 'unsafe-inline'", // Tailwind requires unsafe-inline
-      "img-src 'self' data: https:",
-      "font-src 'self' data:",
-      "connect-src 'self'",
+      "default-src 'none'",
       "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
+      "base-uri 'none'",
+      "form-action 'none'",
       'upgrade-insecure-requests',
     ].join('; '),
   };
