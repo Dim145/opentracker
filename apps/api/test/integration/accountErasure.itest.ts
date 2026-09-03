@@ -16,6 +16,13 @@ import {
   type MintContext,
 } from '../../utils/federation/catalogRecord';
 import { ensureUserDid } from '../../utils/federation/userIdentity';
+import {
+  blockTorznabUser,
+  getTorznabLogsByUser,
+  getTorznabUserStats,
+  isTorznabUserBlocked,
+  logTorznabRequest,
+} from '../../utils/torznabStats';
 
 // GDPR erasure on a private tracker: the person goes, their contributions stay.
 // The two halves that matter — the account can no longer be used, and the
@@ -422,6 +429,58 @@ describe('account erasure', () => {
       expect(flag).toBeTruthy(); // the finding survives…
       expect(flag!.ip).toBeNull(); // …the identifiers do not
       expect(flag!.userAgent).toBeNull();
+    });
+
+    it('clears the Torznab residue the passkey left in Redis', async () => {
+      /*
+       * Le pendant Redis du test juste au-dessus, et il manquait.
+       *
+       * `eraseAccount` fait tourner la passkey en base, puis appelle
+       * `retireTorznabPasskey` pour l'ancienne valeur — parce que le résidu
+       * Torznab est indexé par un hachis de la passkey, donc rien dans la
+       * transaction ne l'atteint. Ce résidu contient, comme le dit le
+       * commentaire de `eraseAccount`, « an access block against an account
+       * that no longer exists, and up to seven days of request logs carrying
+       * an IP hash and a user agent. On the one route whose job is to leave
+       * nothing behind. »
+       *
+       * Rien ne le vérifiait. Et ce n'était pas théorique : dans la CI, la
+       * première commande Redis de chaque fichier levait
+       * « Stream isn't writeable » (client paresseux jamais connecté, voir
+       * `setup.ts`), `clearTorznabUserStats` et `unblockTorznabUser`
+       * attrapaient et journalisaient, et `owner.itest.ts` passait au vert en
+       * ayant effacé la moitié de ce qu'il prétendait. Si
+       * `retireTorznabPasskey` avait été cassé de bout en bout, aucun test ne
+       * l'aurait dit.
+       *
+       * Le contrôle positif avant l'effacement n'est pas décoratif : sans lui,
+       * « plus rien après » ne distingue pas « nettoyé » de « jamais écrit ».
+       */
+      const userId = await makeUser();
+      // `makeUser` dérive la passkey de l'identifiant, sans tiret.
+      const passkey = userId.replace(/-/g, '');
+
+      await logTorznabRequest({
+        timestamp: Date.now(),
+        passkey,
+        function: 'tvsearch',
+        ip: '203.0.113.9',
+        userAgent: 'Prowlarr/1.30.2',
+        responseTime: 12,
+        resultCount: 3,
+      });
+      await blockTorznabUser(passkey, 'abuse');
+
+      // Contrôle positif : le résidu est bien là AVANT.
+      expect(await getTorznabUserStats(passkey)).not.toBeNull();
+      expect((await getTorznabLogsByUser(passkey)).total).toBeGreaterThan(0);
+      expect((await isTorznabUserBlocked(passkey)).blocked).toBe(true);
+
+      await eraseAccount(userId);
+
+      expect(await getTorznabUserStats(passkey)).toBeNull();
+      expect((await getTorznabLogsByUser(passkey)).total).toBe(0);
+      expect((await isTorznabUserBlocked(passkey)).blocked).toBe(false);
     });
 
     it('gives the tombstone name a random suffix, not the account id', async () => {

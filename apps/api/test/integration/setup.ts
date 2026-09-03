@@ -1,7 +1,47 @@
-import { afterAll, beforeEach } from 'vitest';
+import { afterAll, beforeAll, beforeEach } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { db, closeDatabase } from '@trackarr/db';
-import { redis } from '../../redis/client';
+import { connectRedis, redis } from '../../redis/client';
+
+/**
+ * Attendre Redis AVANT le premier test, comme le fait la production.
+ *
+ * Le client partagé tourne en `lazyConnect: true` + `enableOfflineQueue: false`
+ * (`redis/client.ts`) : sans file d'attente, une commande émise avant que la
+ * socket soit prête LÈVE au lieu de patienter. La production a un garde pour
+ * exactement ça — `plugins/00.redis.ts` attend `connectRedis()` avant qu'aucune
+ * route ne tourne — mais la suite d'intégration n'exécute pas la chaîne de
+ * plugins de Nitro. Elle importait le client et le fermait au démontage, sans
+ * jamais le connecter.
+ *
+ * Ce qui en découlait était pire que du bruit. La première commande Redis de
+ * chaque fichier échouait, tous les appelants de ces chemins attrapent et
+ * journalisent — donc rien ne ratait — et la connexion s'établissait comme
+ * EFFET DE BORD de l'échec. Résultat : onze occurrences dans un même job de
+ * CI, et surtout des tests verts qui n'exerçaient pas ce qu'ils prétendaient.
+ * `owner.itest.ts > "erasure hands the instance on"` passait alors que le
+ * nettoyage Torznab de `eraseAccount` n'avait rien fait ; si
+ * `retireTorznabPasskey` avait été cassé de bout en bout, il serait passé
+ * quand même.
+ *
+ * Le commentaire de `freshAuth.itest.ts` disait que les autres suites « s'en
+ * sortent parce qu'elles atteignent Redis via `getSetting`, qui connecte au
+ * passage ». Elles ne s'en sortaient pas : leur erreur était seulement
+ * invisible.
+ *
+ * Le `status` est vérifié explicitement pour que le retour du défaut soit une
+ * panne bruyante au montage, et non onze lignes de stderr éparpillées que
+ * personne ne relie entre elles.
+ */
+beforeAll(async () => {
+  await connectRedis();
+  if (redis.status !== 'ready') {
+    throw new Error(
+      `Redis n'est pas prêt (status: ${redis.status}). Les commandes vont lever ` +
+        `« Stream isn't writeable » et les appelants les avaleront en silence.`,
+    );
+  }
+});
 
 // Each test starts from an empty slate. CASCADE handles the FK order
 // between users / categories / invitations / upload_requests. With

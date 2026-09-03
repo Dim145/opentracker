@@ -1,6 +1,6 @@
-import { beforeAll, describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { connectRedis, redis } from '../../redis/client';
+import { redis } from '../../redis/client';
 import {
   clearFreshAuth,
   isFreshAuth,
@@ -23,16 +23,15 @@ import {
 
 const KEY = (sid: string) => `auth:fresh:${sid}`;
 
-// The client is `lazyConnect` with `enableOfflineQueue: false` — a deliberate
-// choice so a Redis outage fails a hot request fast instead of queueing it. The
-// consequence for a test file is that the FIRST command has to wait for the
-// connection rather than being buffered: without this, the first assertion here
-// failed with "Stream isn't writeable", which reads like a broken test and is
-// really an unconnected client. Other suites get away with it because they
-// reach Redis through `getSetting`, which connects on the way past.
-beforeAll(async () => {
-  await connectRedis();
-});
+// Ce fichier attendait Redis lui-même, avec un commentaire qui se trompait sur
+// un point décisif : « Other suites get away with it because they reach Redis
+// through `getSetting`, which connects on the way past. » Elles ne s'en
+// sortaient pas — leur première commande levait aussi, un `catch` l'avalait, et
+// la connexion s'établissait comme effet de bord. La différence est qu'ICI
+// l'échec atteignait une assertion, donc se voyait ; ailleurs il ne se voyait
+// pas, et les tests passaient sans exercer leur volet Redis.
+//
+// Le raccordement vit désormais dans `setup.ts`, pour les 32 fichiers.
 
 describe('the fresh-auth window', () => {
   it('is closed for a session nobody stamped', async () => {
