@@ -1,0 +1,40 @@
+-- Correction de 0071 : `hnr_tracking` n'avait pas besoin d'un fillfactor de
+-- 70, et le payait.
+--
+-- 0071 a été décidée sur un banc faux. Il appliquait ses 100 000 mises à jour
+-- dans un SEUL bloc `DO`, donc dans une seule transaction : les anciennes
+-- versions de ligne restaient vivantes jusqu'au commit, l'élagage HOT ne
+-- pouvait rien recycler en page, et la table paraissait s'effondrer à 0,1 % de
+-- HOT au remplissage par défaut. Le vrai chemin d'annonce fait exactement
+-- l'inverse — une transaction courte par annonce — et élague en continu. Toute
+-- la courbe de 0071 mesurait l'artefact, pas la table.
+--
+-- Remesuré à l'échelle visée : 300 000 lignes, chaque ligne mise à jour une
+-- fois par cycle d'annonce dans un ordre aléatoire, UNE TRANSACTION PAR
+-- ANNONCE, `VACUUM` toutes les 10 000 écritures (la cadence de l'autovacuum
+-- rapportée à l'échelle). En régime permanent, second cycle :
+--
+--   fillfactor 100    92,3 % HOT   78,1 Mo de WAL   table 31 776 768 o
+--   fillfactor  95    99,9 % HOT   68,7 Mo de WAL   table 31 948 800 o
+--   fillfactor  90     100 % HOT                    table   32 Mo
+--   fillfactor  85     100 % HOT                    table   34 Mo
+--   fillfactor  70     100 % HOT                    table   41 Mo   ← 0071
+--
+-- 95 atteint le plein HOT pour +0,5 % de table. 70 atteint le même HOT pour
+-- +35 %. C'était de la place perdue sans contrepartie, et davantage de pages à
+-- parcourir pour le même nombre de lignes vivantes.
+--
+-- 0032 l'avait vu avant moi. Elle avait mesuré `hnr_tracking` à 99,5 % de HOT
+-- sur une instance RÉELLE, avait refusé d'y toucher, et avait écrit pourquoi :
+-- « régler un nombre déjà juste est la façon dont un schéma accumule du fret ».
+-- C'était la bonne décision. 0071 l'a défaite sur la foi d'une mesure viciée ;
+-- celle-ci la rétablit, en resserrant seulement les 0,5 % que la mesure
+-- corrigée justifie.
+--
+-- Comme 0032 et 0071, ceci ne réécrit RIEN : le nouveau remplissage ne
+-- s'applique qu'aux pages écrites à partir de maintenant. `pg_repack` (en
+-- ligne) ou `VACUUM FULL` (verrou ACCESS EXCLUSIVE, donc fenêtre de
+-- maintenance) pour le réaliser tout de suite. Une migration exécutée au
+-- démarrage ne doit pas prendre de verrou exclusif sur une table du chemin
+-- d'annonce.
+ALTER TABLE "hnr_tracking" SET (fillfactor = 95);
