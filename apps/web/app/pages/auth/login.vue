@@ -33,12 +33,16 @@
            formulaire de connexion nu et lit une panne là où il n'y a que la
            conséquence annoncée de son geste. -->
       <div
-        v-if="revoked"
+        v-if="revokedReason"
         class="mb-6 p-3 bg-info/10 border border-info/20 rounded flex items-start gap-3"
       >
         <Icon name="ph:devices-bold" class="text-info text-lg mt-0.5 shrink-0" />
         <p class="text-info text-xs leading-relaxed">
-          {{ $t('auth.login.sessionsRevoked') }}
+          {{
+            revokedReason === 'all'
+              ? $t('auth.login.sessionsRevoked')
+              : $t('auth.login.sessionRevokedRemote')
+          }}
         </p>
       </div>
 
@@ -202,8 +206,23 @@ const { fetch: fetchSession } = useUserSession();
 const router = useRouter();
 const route = useRoute();
 
-/** Posé par la révocation globale des sessions, dans les réglages. */
-const revoked = computed(() => route.query.revoked === 'all');
+/**
+ * Posé par la révocation globale des sessions. Deux provenances, deux
+ * messages, parce que ce que le membre vient de vivre n'est pas le même :
+ *
+ *   'all'    — c'est CET appareil qui a cliqué « déconnecter partout » dans
+ *              les réglages, et la page l'a renvoyé ici elle-même.
+ *   'remote' — la session a été révoquée AILLEURS. Le membre n'a rien
+ *              demandé sur cet appareil ; c'est l'intercepteur du plugin
+ *              `session-revoked` qui l'a sorti de la page où il était.
+ *
+ * Dire « tous vos appareils ont été déconnectés » à quelqu'un qui n'a rien
+ * fait, c'est lui décrire la cause du point de vue de quelqu'un d'autre.
+ */
+const revokedReason = computed(() => {
+  const q = route.query.revoked;
+  return q === 'all' || q === 'remote' ? q : null;
+});
 
 const { data: status } = await useFetch('/api/auth/status');
 
