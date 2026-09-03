@@ -100,6 +100,20 @@ jobs:
             type=raw,value=${{ env.VERSION }}
             type=raw,value=latest
 
+      # Un pilote buildx qui sait produire une attestation.
+      #
+      # Sans cette étape, `build-push-action` utilise le pilote `docker` par
+      # défaut, et le `sbom`/`provenance` demandé plus bas échoue net :
+      # « Attestation is not supported for the docker driver ». C'est ce qui a
+      # fait tomber les six constructions de la release 0.35.0 : les
+      # attestations sont arrivées seules, sans le pilote qu'elles exigent.
+      #
+      # Rien ne pouvait l'attraper avant la publication — ce workflow ne tourne
+      # que sur `release`, `workflow_call` et `workflow_dispatch`, jamais sur une
+      # pull request. `web-ci.yml` et `api-ci.yml` montent bien buildx de leur
+      # côté, ce qui rendait leurs propres builds verts et masquait le manque.
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
       - name: Build and push api image
         id: build-and-push
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -165,6 +179,20 @@ jobs:
           tags: |
             type=raw,value=${{ env.VERSION }}
             type=raw,value=latest
+
+      # Un pilote buildx qui sait produire une attestation.
+      #
+      # Sans cette étape, `build-push-action` utilise le pilote `docker` par
+      # défaut, et le `sbom`/`provenance` demandé plus bas échoue net :
+      # « Attestation is not supported for the docker driver ». C'est ce qui a
+      # fait tomber les six constructions de la release 0.35.0 : les
+      # attestations sont arrivées seules, sans le pilote qu'elles exigent.
+      #
+      # Rien ne pouvait l'attraper avant la publication — ce workflow ne tourne
+      # que sur `release`, `workflow_call` et `workflow_dispatch`, jamais sur une
+      # pull request. `web-ci.yml` et `api-ci.yml` montent bien buildx de leur
+      # côté, ce qui rendait leurs propres builds verts et masquait le manque.
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Build and push tracker image
         id: build-and-push
@@ -238,6 +266,20 @@ jobs:
             type=raw,value=${{ env.VERSION }}
             type=raw,value=latest
 
+      # Un pilote buildx qui sait produire une attestation.
+      #
+      # Sans cette étape, `build-push-action` utilise le pilote `docker` par
+      # défaut, et le `sbom`/`provenance` demandé plus bas échoue net :
+      # « Attestation is not supported for the docker driver ». C'est ce qui a
+      # fait tomber les six constructions de la release 0.35.0 : les
+      # attestations sont arrivées seules, sans le pilote qu'elles exigent.
+      #
+      # Rien ne pouvait l'attraper avant la publication — ce workflow ne tourne
+      # que sur `release`, `workflow_call` et `workflow_dispatch`, jamais sur une
+      # pull request. `web-ci.yml` et `api-ci.yml` montent bien buildx de leur
+      # côté, ce qui rendait leurs propres builds verts et masquait le manque.
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
       - name: Build and push relay image
         id: build-and-push
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -304,6 +346,20 @@ jobs:
             type=raw,value=${{ env.VERSION }}
             type=raw,value=latest
 
+      # Un pilote buildx qui sait produire une attestation.
+      #
+      # Sans cette étape, `build-push-action` utilise le pilote `docker` par
+      # défaut, et le `sbom`/`provenance` demandé plus bas échoue net :
+      # « Attestation is not supported for the docker driver ». C'est ce qui a
+      # fait tomber les six constructions de la release 0.35.0 : les
+      # attestations sont arrivées seules, sans le pilote qu'elles exigent.
+      #
+      # Rien ne pouvait l'attraper avant la publication — ce workflow ne tourne
+      # que sur `release`, `workflow_call` et `workflow_dispatch`, jamais sur une
+      # pull request. `web-ci.yml` et `api-ci.yml` montent bien buildx de leur
+      # côté, ce qui rendait leurs propres builds verts et masquait le manque.
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
       - name: Build and push front-ssr image
         id: build-and-push
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -368,6 +424,20 @@ jobs:
           tags: |
             type=raw,value=${{ env.VERSION }}
             type=raw,value=latest
+
+      # Un pilote buildx qui sait produire une attestation.
+      #
+      # Sans cette étape, `build-push-action` utilise le pilote `docker` par
+      # défaut, et le `sbom`/`provenance` demandé plus bas échoue net :
+      # « Attestation is not supported for the docker driver ». C'est ce qui a
+      # fait tomber les six constructions de la release 0.35.0 : les
+      # attestations sont arrivées seules, sans le pilote qu'elles exigent.
+      #
+      # Rien ne pouvait l'attraper avant la publication — ce workflow ne tourne
+      # que sur `release`, `workflow_call` et `workflow_dispatch`, jamais sur une
+      # pull request. `web-ci.yml` et `api-ci.yml` montent bien buildx de leur
+      # côté, ce qui rendait leurs propres builds verts et masquait le manque.
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Build and push front image
         id: build-and-push
@@ -437,6 +507,20 @@ jobs:
           tags: |
             type=raw,value=${{ env.VERSION }}
             type=raw,value=latest
+
+      # Un pilote buildx qui sait produire une attestation.
+      #
+      # Sans cette étape, `build-push-action` utilise le pilote `docker` par
+      # défaut, et le `sbom`/`provenance` demandé plus bas échoue net :
+      # « Attestation is not supported for the docker driver ». C'est ce qui a
+      # fait tomber les six constructions de la release 0.35.0 : les
+      # attestations sont arrivées seules, sans le pilote qu'elles exigent.
+      #
+      # Rien ne pouvait l'attraper avant la publication — ce workflow ne tourne
+      # que sur `release`, `workflow_call` et `workflow_dispatch`, jamais sur une
+      # pull request. `web-ci.yml` et `api-ci.yml` montent bien buildx de leur
+      # côté, ce qui rendait leurs propres builds verts et masquait le manque.
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Build and push docs image
         id: build-and-push
