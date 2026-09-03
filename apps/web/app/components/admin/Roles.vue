@@ -447,6 +447,7 @@
               <span class="cond-row__num">#{{ idx + 1 }}</span>
               <select
                 v-model="cond.field"
+                :aria-label="$t('admin.roles.condField', { n: idx + 1 })"
                 class="input cond-input cond-input--field"
                 :disabled="saving"
               >
@@ -460,6 +461,7 @@
               </select>
               <select
                 v-model="cond.comparator"
+                :aria-label="$t('admin.roles.condComparator', { n: idx + 1 })"
                 class="input cond-input cond-input--op"
                 :disabled="saving"
               >
@@ -473,6 +475,7 @@
               </select>
               <input
                 v-model.number="cond.value"
+                :aria-label="$t('admin.roles.condValue', { n: idx + 1 })"
                 type="number"
                 step="any"
                 class="input cond-input cond-input--val"

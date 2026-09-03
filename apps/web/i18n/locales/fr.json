@@ -205,7 +205,8 @@
         "invalidCode": "Le code ne correspond pas. Réessayez.",
         "rateLimited": "Trop de tentatives. Réessayez plus tard."
       },
-      "sessionsRevoked": "Tous vos appareils ont été déconnectés, celui-ci compris. Reconnectez-vous pour continuer."
+      "sessionsRevoked": "Tous vos appareils ont été déconnectés, celui-ci compris. Reconnectez-vous pour continuer.",
+      "sessionRevokedRemote": "Cette session a été déconnectée depuis un autre appareil. Reconnectez-vous pour continuer."
     },
     "register": {
       "title": "Créer un compte",
@@ -1284,6 +1285,9 @@
       "saved": "Demande mise à jour.",
       "failed": "Impossible de mettre à jour la demande.",
       "noChange": "Aucune modification."
+    },
+    "comments": {
+      "editLabel": "Modifier votre commentaire"
     }
   },
   "security": {
@@ -3203,7 +3207,10 @@
         "saveFailed": "Échec de l'enregistrement du rôle",
         "deleteFailed": "Échec de la suppression du rôle",
         "recomputeFailed": "Échec du recalcul"
-      }
+      },
+      "condField": "Condition {n} — champ",
+      "condComparator": "Condition {n} — comparateur",
+      "condValue": "Condition {n} — valeur"
     },
     "reports": {
       "title": "Signalements",
@@ -3348,7 +3355,8 @@
       "pending": "En attente",
       "empty": "Aucun HnR trouvé",
       "prev": "Préc.",
-      "next": "Suiv."
+      "next": "Suiv.",
+      "filterLabel": "Filtrer par statut"
     },
     "charts": {
       "view": "Vue :",
@@ -3613,7 +3621,9 @@
         "warning__bg-surface": "Texte d’avertissement",
         "online__bg-surface": "Texte de succès",
         "accent__bg-surface": "Texte en couleur d’accent"
-      }
+      },
+      "fontRoleLabel": "Rôle de la police téléversée",
+      "fontFileLabel": "Fichier de police à téléverser (.woff2)"
     },
     "homepage": {
       "title": "Contenu de la page d'accueil",
@@ -3996,7 +4006,9 @@
       "send": "Envoyer la diffusion",
       "recent": "Récentes",
       "running": "en cours…",
-      "failed": "La diffusion n'a pas pu démarrer."
+      "failed": "La diffusion n'a pas pu démarrer.",
+      "roleLabel": "Rôle",
+      "inactiveDaysLabel": "Inactifs depuis, en jours"
     },
     "iconPicker": {
       "searchPlaceholder": "Rechercher une icône…",
@@ -4331,7 +4343,8 @@
         "infohash": "Cet infohash",
         "author": "Cet uploadeur",
         "issuer": "Cette instance"
-      }
+      },
+      "scopeLabel": "Portée du masque"
     },
     "messageReads": {
       "note": "Une ligne par lecture d'un message privé signalé — la seule route par laquelle quelqu'un lit ici la correspondance d'un autre membre. Aucun contenu de message : elle dit qu'une chose a été ouverte, par qui, et s'arrête là. Tous ceux qui peuvent en ouvrir un voient chaque fois que quelqu'un l'a fait.",
@@ -4436,7 +4449,8 @@
         "title": "Supprimer le message",
         "message": "Retirer définitivement ce message du fil de discussion ?",
         "action": "Supprimer le message"
-      }
+      },
+      "editLabel": "Modifier votre message"
     },
     "index": {
       "pageTitle": "Le Forum",
@@ -5161,7 +5175,8 @@
       "analyzeFailed": "Impossible de lire ce fichier.",
       "unsupported": "Format non reconnu.",
       "manual": "Saisir manuellement",
-      "analysed": "Analysé : {v} vidéo, {a} audio, {s} sous-titres."
+      "analysed": "Analysé : {v} vidéo, {a} audio, {s} sous-titres.",
+      "pickLabel": "Choisir un fichier à analyser"
     },
     "work": {
       "help": "Modifiez le titre pour lancer la recherche, puis choisissez un résultat — ou saisissez tout à la main.",
@@ -5216,7 +5231,9 @@
         "forced": "Forcé",
         "sdh": "SDH"
       },
-      "bitrateTrack": "Débit"
+      "bitrateTrack": "Débit",
+      "a11yUnitFor": "{field} — unité",
+      "a11yCustomFor": "{field} — valeur libre"
     },
     "output": {
       "optPoster": "Inclure l'affiche",

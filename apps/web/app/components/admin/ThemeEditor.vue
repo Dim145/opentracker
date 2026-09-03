@@ -125,6 +125,7 @@
                    would inherit without storing it. -->
               <select
                 v-if="def.kind === 'enum'"
+                :aria-label="`--${def.key}`"
                 class="input input-xs"
                 :value="draft.tokens[def.key] ?? ''"
                 @change="setToken(def.key, ($event.target as HTMLSelectElement).value)"
@@ -160,6 +161,7 @@
                 <input
                   type="range"
                   class="token-range"
+                  :aria-label="`--${def.key}`"
                   :min="def.min ?? 0"
                   :max="def.max ?? 1"
                   step="0.05"
@@ -194,6 +196,7 @@
                 <input
                   type="color"
                   class="token-colour"
+                  :aria-label="`--${def.key}`"
                   :value="hexOf(draft.tokens[def.key] ?? baseValue(def.key))"
                   @input="setToken(def.key, tripletOf(($event.target as HTMLInputElement).value))"
                 />
@@ -344,7 +347,12 @@
               </li>
             </ul>
             <div class="flex flex-wrap items-center gap-2">
-              <select v-model="fontRole" class="input input-xs" style="width: 7rem">
+              <select
+              v-model="fontRole"
+              class="input input-xs"
+              style="width: 7rem"
+              :aria-label="$t('admin.themes.fontRoleLabel')"
+            >
                 <option value="sans">sans</option>
                 <option value="mono">mono</option>
                 <option value="display">display</option>
@@ -365,6 +373,7 @@
               </datalist>
               <input
                 ref="fontInput"
+                :aria-label="$t('admin.themes.fontFileLabel')"
                 type="file"
                 accept=".woff2,font/woff2"
                 class="text-2xs"

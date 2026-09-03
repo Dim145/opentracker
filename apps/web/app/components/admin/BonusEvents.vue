@@ -497,6 +497,7 @@
                 <input
                   v-model.number="form.downloadMultiplier"
                   type="range"
+                  :aria-label="$t('admin.bonusEvents.form.downloadLabelShort')"
                   min="0"
                   max="200"
                   step="5"
@@ -519,6 +520,7 @@
                 <input
                   v-model.number="form.uploadMultiplier"
                   type="range"
+                  :aria-label="$t('admin.bonusEvents.form.uploadLabelShort')"
                   min="0"
                   max="1000"
                   step="10"

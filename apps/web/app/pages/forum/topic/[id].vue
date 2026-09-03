@@ -173,6 +173,7 @@
             <div v-if="isEditing(post.id)" class="post-edit">
               <textarea
                 v-model="editDraftContent"
+                :aria-label="$t('forum.topic.editLabel')"
                 class="post-edit-input"
                 rows="6"
               />

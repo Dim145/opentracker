@@ -205,7 +205,8 @@
         "invalidCode": "That code didn't match. Try again.",
         "rateLimited": "Too many attempts. Try again later."
       },
-      "sessionsRevoked": "Every device has been signed out, this one included. Sign in again to continue."
+      "sessionsRevoked": "Every device has been signed out, this one included. Sign in again to continue.",
+      "sessionRevokedRemote": "This session was signed out from another device. Sign in again to continue."
     },
     "register": {
       "title": "Create an account",
@@ -1284,6 +1285,9 @@
       "saved": "Request updated.",
       "failed": "Could not update the request.",
       "noChange": "Nothing changed."
+    },
+    "comments": {
+      "editLabel": "Edit your comment"
     }
   },
   "security": {
@@ -3203,7 +3207,10 @@
         "saveFailed": "Failed to save role",
         "deleteFailed": "Failed to delete role",
         "recomputeFailed": "Recompute failed"
-      }
+      },
+      "condField": "Condition {n} — field",
+      "condComparator": "Condition {n} — comparator",
+      "condValue": "Condition {n} — value"
     },
     "reports": {
       "title": "Reports",
@@ -3348,7 +3355,8 @@
       "pending": "Pending",
       "empty": "No HnR entries found",
       "prev": "Prev",
-      "next": "Next"
+      "next": "Next",
+      "filterLabel": "Filter by status"
     },
     "charts": {
       "view": "View:",
@@ -3613,7 +3621,9 @@
         "warning__bg-surface": "Warning text",
         "online__bg-surface": "Success text",
         "accent__bg-surface": "Accent text"
-      }
+      },
+      "fontRoleLabel": "Role for the uploaded font",
+      "fontFileLabel": "Font file to upload (.woff2)"
     },
     "homepage": {
       "title": "Homepage Content",
@@ -3996,7 +4006,9 @@
       "send": "Send broadcast",
       "recent": "Recent",
       "running": "running…",
-      "failed": "The broadcast could not be started."
+      "failed": "The broadcast could not be started.",
+      "roleLabel": "Role",
+      "inactiveDaysLabel": "Inactive for, in days"
     },
     "iconPicker": {
       "searchPlaceholder": "Search an icon…",
@@ -4331,7 +4343,8 @@
         "infohash": "This infohash",
         "author": "This uploader",
         "issuer": "This instance"
-      }
+      },
+      "scopeLabel": "Mask scope"
     },
     "messageReads": {
       "note": "One line per read of a reported private message — the one route through which anybody here reads another member's correspondence. It carries no message bodies: it says a thing was opened, by whom, and stops. Everyone who can open one can see every time anyone did.",
@@ -4436,7 +4449,8 @@
         "title": "Delete post",
         "message": "Permanently remove this post from the thread?",
         "action": "Delete post"
-      }
+      },
+      "editLabel": "Edit your post"
     },
     "index": {
       "pageTitle": "The Forum",
@@ -5161,7 +5175,8 @@
       "analyzeFailed": "Could not read this file.",
       "unsupported": "Unrecognised format.",
       "manual": "Enter manually",
-      "analysed": "Analysed: {v} video, {a} audio, {s} subtitles."
+      "analysed": "Analysed: {v} video, {a} audio, {s} subtitles.",
+      "pickLabel": "Choose a file to analyse"
     },
     "work": {
       "help": "Edit the title to search, then pick a result — or fill everything in by hand.",
@@ -5216,7 +5231,9 @@
         "forced": "Forced",
         "sdh": "SDH"
       },
-      "bitrateTrack": "Bitrate"
+      "bitrateTrack": "Bitrate",
+      "a11yUnitFor": "{field} — unit",
+      "a11yCustomFor": "{field} — custom value"
     },
     "output": {
       "optPoster": "Include poster",

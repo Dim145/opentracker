@@ -28,11 +28,13 @@
       </p>
 
       <SettingsGroup
+        :control-id="fid('kind')"
         :label="$t('admin.broadcast.audience')"
         :description="$t('admin.broadcast.audienceHint')"
       >
         <div class="flex flex-wrap items-center gap-3">
           <select
+            :id="fid('kind')"
             v-model="kind"
             class="w-full md:w-56 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           >
@@ -45,6 +47,7 @@
           <select
             v-if="kind === 'role'"
             v-model="roleId"
+            :aria-label="$t('admin.broadcast.roleLabel')"
             class="w-full md:w-56 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           >
             <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</option>
@@ -54,6 +57,7 @@
             <input
               v-model.number="days"
               type="number"
+              :aria-label="$t('admin.broadcast.inactiveDaysLabel')"
               min="7"
               max="3650"
               class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"

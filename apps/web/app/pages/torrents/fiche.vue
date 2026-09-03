@@ -676,6 +676,7 @@ onMounted(() => {
             <input
               type="file"
               class="fiche-file-input"
+              :aria-label="$t('fiche.file.pickLabel')"
               accept=".mkv,.mp4,.avi,.mov,.ts,.m2ts,.iso,.nfo,.txt,.torrent,video/*"
               :disabled="analyzing"
               @change="onFilePicked"
@@ -814,6 +815,7 @@ onMounted(() => {
                 v-model="release.quality"
                 :options="QUALITIES"
                 :empty-label="$t('fiche.tech.none')"
+                :field-label="$t('fiche.tech.quality')"
               />
             </div>
             <div class="field-row">
@@ -822,6 +824,7 @@ onMounted(() => {
                 v-model="release.container"
                 :options="CONTAINERS"
                 :empty-label="$t('fiche.tech.none')"
+                :field-label="$t('fiche.tech.container')"
               />
             </div>
             <div class="field-row">
@@ -830,6 +833,7 @@ onMounted(() => {
                 v-model="release.videoCodec"
                 :options="VIDEO_CODECS"
                 :empty-label="$t('fiche.tech.none')"
+                :field-label="$t('fiche.tech.codec')"
               />
             </div>
             <div class="field-row">
@@ -838,6 +842,7 @@ onMounted(() => {
                 v-model="release.source"
                 :options="SOURCES"
                 :empty-label="$t('fiche.tech.none')"
+                :field-label="$t('fiche.tech.source')"
               />
             </div>
             <div class="field-row">
@@ -846,6 +851,7 @@ onMounted(() => {
                 v-model:base="release.videoBitRate"
                 v-model:unit="release.videoBitRateUnit"
                 kind="bitrate"
+                :field-label="$t('fiche.tech.bitrate')"
               />
             </div>
             <div class="field-row">
@@ -854,6 +860,7 @@ onMounted(() => {
                 v-model:base="release.totalSize"
                 v-model:unit="release.totalSizeUnit"
                 kind="size"
+                :field-label="$t('fiche.tech.size')"
               />
             </div>
           </div>
@@ -900,6 +907,7 @@ onMounted(() => {
                     :options="LANGUAGE_OPTIONS"
                     :label-for="langLabel"
                     :empty-label="$t('fiche.tech.none')"
+                    :field-label="$t('fiche.tech.language')"
                   />
                 </div>
                 <div class="field-row">
@@ -908,6 +916,7 @@ onMounted(() => {
                     v-model="track.format"
                     :options="AUDIO_CODECS"
                     :empty-label="$t('fiche.tech.none')"
+                    :field-label="$t('fiche.tech.codecAudio')"
                   />
                 </div>
                 <div class="field-row">
@@ -916,6 +925,7 @@ onMounted(() => {
                     v-model="track.channels"
                     :options="CHANNEL_LAYOUTS"
                     :empty-label="$t('fiche.tech.none')"
+                    :field-label="$t('fiche.tech.channels')"
                   />
                 </div>
                 <div class="field-row">
@@ -924,6 +934,7 @@ onMounted(() => {
                     v-model:base="track.bitRate"
                     v-model:unit="track.bitRateUnit"
                     kind="bitrate"
+                    :field-label="$t('fiche.tech.bitrateTrack')"
                   />
                 </div>
               </div>
@@ -976,6 +987,7 @@ onMounted(() => {
                     :options="LANGUAGE_OPTIONS"
                     :label-for="langLabel"
                     :empty-label="$t('fiche.tech.none')"
+                    :field-label="$t('fiche.tech.language')"
                   />
                 </div>
                 <div class="field-row">
@@ -984,6 +996,7 @@ onMounted(() => {
                     v-model="track.format"
                     :options="SUBTITLE_FORMATS"
                     :empty-label="$t('fiche.tech.none')"
+                    :field-label="$t('fiche.tech.subtitleFormat')"
                   />
                 </div>
               </div>
@@ -1028,6 +1041,7 @@ onMounted(() => {
             <div class="field-with-action">
               <input
                 v-model="release.releaseName"
+                :aria-label="$t('fiche.tech.releaseName')"
                 type="text"
                 class="input field-input fiche-mono fiche-name-input"
                 @input="releaseNameTouched = true"

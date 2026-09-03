@@ -16,7 +16,22 @@ import {
   type SizeUnit,
 } from '~/utils/mediainfo';
 
-const props = defineProps<{ kind: 'bitrate' | 'size' }>();
+const props = defineProps<{
+  kind: 'bitrate' | 'size';
+  /**
+   * Nom accessible du champ. Même raison que dans `FicheCombo` : l'appelant
+   * rend son libellé dans un `<span>`, et il y a deux contrôles — la quantité
+   * et son unité — donc rien ne peut être déduit.
+   */
+  /**
+   * OBLIGATOIRE, et c'est le point : rendue optionnelle, un appelant qui
+   * l'oublie laisse un contrôle anonyme et rien ne le signale — ni le
+   * compilateur, ni un détecteur statique, qui voit bien l'attribut posé sur
+   * le contrôle mais pas si sa valeur arrive. Requise, le typecheck énumère
+   * lui-même les oublis.
+   */
+  fieldLabel: string;
+}>();
 
 /** The value in base units: bit/s for a bitrate, bytes for a size. */
 const base = defineModel<number | undefined>('base');
@@ -52,8 +67,19 @@ const shown = computed<number | undefined>({
 
 <template>
   <div class="fiche-amount">
-    <input v-model.number="shown" type="number" min="0" step="any" class="input field-input" />
-    <select v-model="unit" class="input field-input field-input--select">
+    <input
+      v-model.number="shown"
+      type="number"
+      min="0"
+      step="any"
+      class="input field-input"
+      :aria-label="fieldLabel"
+    />
+    <select
+      v-model="unit"
+      class="input field-input field-input--select"
+      :aria-label="$t('fiche.tech.a11yUnitFor', { field: fieldLabel })"
+    >
       <option v-for="u in units" :key="u" :value="u">{{ u }}</option>
     </select>
   </div>

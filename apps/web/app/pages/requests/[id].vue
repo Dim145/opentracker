@@ -182,6 +182,7 @@
                 <div v-if="editing.id === c.id" class="thread-edit">
                   <textarea
                     v-model="editing.body"
+                    :aria-label="$t('requests.comments.editLabel')"
                     class="thread-edit-input"
                     rows="3"
                     maxlength="4000"

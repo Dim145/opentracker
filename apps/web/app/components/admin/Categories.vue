@@ -398,6 +398,7 @@
               <select
                 v-model="form.parentId"
                 class="ed-input ed-input--select"
+                :aria-label="$t('admin.categories.fields.parent')"
                 :disabled="!!editing.id || saving"
               >
                 <option :value="null">{{ $t('admin.categories.fields.rootCategory') }}</option>

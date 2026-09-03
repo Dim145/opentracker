@@ -107,9 +107,12 @@
         </div>
 
         <div class="grant-count">
-          <label class="grant-label">{{ $t('admin.invites.grant.addLabel') }}</label>
+          <label class="grant-label" :for="fid('grantCount')">
+          {{ $t('admin.invites.grant.addLabel') }}
+        </label>
           <input
             v-model.number="grantCount"
+            :id="fid('grantCount')"
             type="number"
             min="1"
             max="100"
@@ -346,6 +349,12 @@
 import { computed, ref } from 'vue';
 import Modal from '~/components/Modal.vue';
 import { useNotificationStore } from '~/stores/notifications';
+
+// Un `<label>` sans `for` n'est qu'un paragraphe stylé : il n'annonce rien et
+// le clic ne donne pas le focus. `useFieldIds` fournit des identifiants stables
+// entre le rendu serveur et l'hydratation.
+const fid = useFieldIds();
+
 
 const { t } = useI18n();
 

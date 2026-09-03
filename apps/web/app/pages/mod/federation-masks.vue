@@ -8,7 +8,11 @@
     <!-- Add a mask by hand (a moderator who knows the id / hash / DID). Most
          masks will come from resolving a report, but this is the direct lever. -->
     <form class="masks-add" @submit.prevent="add">
-      <select v-model="form.scope" class="masks-input">
+      <select
+          v-model="form.scope"
+          class="masks-input"
+          :aria-label="$t('mod.masks.scopeLabel')"
+        >
         <option value="record">{{ $t('mod.masks.scope.record') }}</option>
         <option value="infohash">{{ $t('mod.masks.scope.infohash') }}</option>
         <option value="author">{{ $t('mod.masks.scope.author') }}</option>

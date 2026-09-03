@@ -23,8 +23,8 @@
         </div>
         <form v-else class="fid-form" @submit.prevent="createLink">
           <div class="fid-field">
-            <label>{{ $t('federatedIdentity.link.peer') }}</label>
-            <select v-model="selPeer" class="input">
+            <label :for="fid('peer')">{{ $t('federatedIdentity.link.peer') }}</label>
+            <select :id="fid('peer')" v-model="selPeer" class="input">
               <option value="" disabled>—</option>
               <option v-for="p in partners" :key="p.id" :value="p.id">{{ p.name || host(p.baseUrl) }}</option>
             </select>
@@ -183,6 +183,11 @@
 </template>
 
 <script setup lang="ts">
+// Un `<label>` sans `for` n'est qu'un paragraphe stylé : il n'annonce rien et
+// le clic ne donne pas le focus. `useFieldIds` fournit des identifiants stables
+// entre le rendu serveur et l'hydratation.
+const fid = useFieldIds();
+
 interface Reputation {
   ratio: number | null;
   uploadsCount: number;

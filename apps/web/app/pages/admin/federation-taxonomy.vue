@@ -48,7 +48,11 @@
           :placeholder="$t('admin.taxonomy.slugPlaceholder')"
         />
         <Icon name="ph:arrow-right" class="tax-arrow" />
-        <select v-model="form.category" class="tax-input tax-input--grow">
+        <select
+            v-model="form.category"
+            class="tax-input tax-input--grow"
+            :aria-label="$t('admin.taxonomy.pickCategory')"
+          >
           <option value="">{{ $t('admin.taxonomy.pickCategory') }}</option>
           <option v-for="c in categories" :key="c.id" :value="c.id">
             {{ categoryLabel(c) }}
@@ -76,7 +80,11 @@
         <li v-for="u in unmapped" :key="u.slug!" class="tax-row">
           <code class="tax-slug">{{ u.slug }}</code>
           <span class="tax-n">{{ $t('admin.taxonomy.releases', { n: u.count }) }}</span>
-          <select v-model="pick[u.slug!]" class="tax-input tax-input--grow">
+          <select
+              v-model="pick[u.slug!]"
+              class="tax-input tax-input--grow"
+              :aria-label="$t('admin.taxonomy.pickCategory')"
+            >
             <option value="">{{ $t('admin.taxonomy.pickCategory') }}</option>
             <option v-for="c in categories" :key="c.id" :value="c.id">
               {{ categoryLabel(c) }}
