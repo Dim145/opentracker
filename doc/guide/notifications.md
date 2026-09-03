@@ -197,6 +197,31 @@ the drawer:
   `/admin/notifications`, add the Browser push channel, save it
   once so the VAPID keys are generated.
 
+**A channel worked, then started failing with 401 / 403 after an
+upgrade** — its target is almost certainly answering a redirect to a
+different origin. Every outbound call goes through the SSRF-hardened
+fetch, which follows redirects manually and re-validates each hop. As
+of this version it also **drops every header you supplied at the first
+hop that crosses an origin boundary** — scheme, host or port — so an
+`Authorization`, a custom token header, or the `X-Trackarr-Signature`
+HMAC never reaches a host that merely asked to receive them.
+
+That is deliberate: a public target that answers
+`302 Location: https://somewhere-else` would otherwise be handed the
+credentials configured for the original one, without crossing any
+private range and without a line in the log.
+
+What to do: point the channel at the URL the provider actually serves,
+not at one that redirects to it. `curl -sI <your-url>` shows a `3xx`
+plus a `location` when that is the problem. A redirect *within* the
+same origin (a path change) is unaffected and keeps its headers.
+
+Related: a `307`/`308` redirect to another origin on a call that has a
+body is **refused outright** rather than followed, because those two
+statuses preserve the body — dropping the headers would not stop the
+payload itself from being delivered elsewhere. The error names the
+origin it refused.
+
 **A user is missing notifications across the board** — check
 `users.isBanned` and the `userNotificationRouting` rows for that
 user (the row may have routed everything to a channel that's since
