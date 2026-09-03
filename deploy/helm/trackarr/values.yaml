@@ -337,6 +337,12 @@ tracker:
       externalTrafficPolicy: Local
       loadBalancerIP: ""
       annotations: {}
+    # Répondre aux requêtes de scrape BEP 15. `false` les laisse tomber en
+    # silence : BEP 15 ne prévoit aucun emplacement pour une donnée
+    # d'authentification dans une requête de scrape, donc un tracker privé qui
+    # ne veut pas publier la taille de ses essaims ferme la porte plutôt que de
+    # la garder. L'annonce n'est pas touchée.
+    scrapeEnabled: true
 
   # pgx pool size, PER REPLICA. 20 is the value that used to be compiled in.
   dbMaxConns: 20
