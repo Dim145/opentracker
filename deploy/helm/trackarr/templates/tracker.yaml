@@ -76,6 +76,8 @@ spec:
               value: {{ .Values.tracker.udp.enabled | quote }}
             - name: TRACKER_UDP_PORT
               value: {{ .Values.tracker.udp.port | quote }}
+            - name: TRACKER_UDP_SCRAPE_ENABLED
+              value: {{ .Values.tracker.udp.scrapeEnabled | quote }}
             - name: TRACKER_DB_MAX_CONNS
               value: {{ .Values.tracker.dbMaxConns | quote }}
             - name: TRACKER_SYNCHRONOUS_COMMIT
