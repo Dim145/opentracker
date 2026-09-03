@@ -88,7 +88,8 @@ func main() {
 
 	store := peers.New(rclient, cfg.RedisKeyPrefix, cfg.PeerTTL)
 	database := db.New(pool, rclient, cfg.RedisKeyPrefix)
-	srv := server.New(ctx, database, rclient, store, cfg.RedisKeyPrefix, cfg.IPHashSecret, cfg.Debug, cfg.FederationSwarm)
+	srv := server.New(ctx, database, rclient, store, cfg.RedisKeyPrefix, cfg.IPHashSecret, cfg.Debug, cfg.FederationSwarm,
+		cfg.StatsFlushInterval, cfg.StatsFlushChunk)
 	defer srv.Stop()
 
 	addr := ":" + strconv.Itoa(cfg.HTTPPort)

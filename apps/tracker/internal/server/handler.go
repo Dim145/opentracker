@@ -23,6 +23,7 @@ import (
 	dbpkg "github.com/florianjs/trackarr/apps/tracker/internal/db"
 	"github.com/florianjs/trackarr/apps/tracker/internal/peers"
 	"github.com/florianjs/trackarr/apps/tracker/internal/queries"
+	"github.com/florianjs/trackarr/apps/tracker/internal/stats"
 )
 
 // hnrMinWorkerSlots is the floor for the HnR background worker pool.
@@ -46,11 +47,14 @@ func hnrWorkerSlots() int {
 
 // Server holds shared state for the HTTP handlers.
 type Server struct {
-	db           *dbpkg.DB
-	redis        *redis.Client
-	peers        *peers.Store
-	bonus        *bonus.Resolver
-	dedup        *dedup
+	db    *dbpkg.DB
+	redis *redis.Client
+	peers *peers.Store
+	bonus *bonus.Resolver
+	dedup *dedup
+	// stats regroupe les crédits d'octets avant de les porter à `users`.
+	// Jamais nil : sans Redis il écrit directement, comme avant.
+	stats        *stats.Accumulator
 	ipHashSecret string
 	debug        bool
 	// federationSwarm: when true, ProcessAnnounce mixes peers cached from
@@ -89,7 +93,7 @@ type Server struct {
 // appCtx should be the process-lifecycle context (cancelled on shutdown).
 // `redisKeyPrefix` must match the API's REDIS_KEY_PREFIX so the bonus
 // resolver reads the same Redis snapshot the API writes.
-func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *peers.Store, redisKeyPrefix, ipHashSecret string, debug, federationSwarm bool) *Server {
+func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *peers.Store, redisKeyPrefix, ipHashSecret string, debug, federationSwarm bool, statsFlushInterval time.Duration, statsFlushChunk int) *Server {
 	if appCtx == nil {
 		appCtx = context.Background()
 	}
@@ -106,6 +110,7 @@ func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *pee
 		peers:           store,
 		bonus:           bonus.New(rclient, redisKeyPrefix),
 		dedup:           newDedup(rclient, redisKeyPrefix),
+		stats:           stats.New(rclient, db.Q, redisKeyPrefix, statsFlushInterval, statsFlushChunk),
 		ipHashSecret:    ipHashSecret,
 		debug:           debug,
 		federationSwarm: federationSwarm,
@@ -131,6 +136,10 @@ func (s *Server) Routes() http.Handler {
 // timeout, so this only protects against a stuck DB.
 func (s *Server) Stop() {
 	s.dedup.Stop()
+	// Avant le drain : ce dernier versement est ce qui empêche un
+	// redéploiement de perdre une fenêtre entière de crédits, pour tous les
+	// membres à la fois.
+	s.stats.Stop()
 
 	done := make(chan struct{})
 	go func() {
@@ -673,14 +682,20 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// balancer. The per-event dedup above still lets distinct events run
 	// their own side effects (completed counter, stopped removal).
 	if bookCredit {
-		if err := s.db.Q.IncrementUserStats(ctx, queries.IncrementUserStatsParams{
-			Uploaded:   deltaUp,
-			Downloaded: deltaDown,
-			// Par l'ID : une passkey rotée entre la résolution (cache de 60 s)
-			// et cette écriture faisait toucher zéro ligne, et le crédit
-			// disparaissait sans un mot.
-			ID: user.ID,
-		}); err != nil {
+		// Par l'ID : une passkey rotée entre la résolution (cache de 60 s) et
+		// cette écriture faisait toucher zéro ligne, et le crédit disparaissait
+		// sans un mot.
+		//
+		// Le delta passe désormais par l'accumulateur, qui le regroupe avec
+		// ceux des autres annonces du même membre avant de les verser en une
+		// écriture. Un membre qui seede 70 torrents mettait à jour sa propre
+		// ligne 70 fois par intervalle ; c'est ce gaspillage-là que le
+		// regroupement supprime. Voir internal/stats pour les mesures, et
+		// notamment pourquoi le versement se fait par petites tranches.
+		//
+		// Sans Redis — les tests — l'accumulateur écrit immédiatement, et ce
+		// chemin est exactement celui d'avant.
+		if err := s.stats.Add(ctx, user.ID, deltaUp, deltaDown); err != nil {
 			slog.Warn("failed to increment user stats",
 				"info_hash", infoHashHex,
 				"peer_id", peerHex,

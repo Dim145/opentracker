@@ -239,6 +239,11 @@ services:
       dockerfile: apps/tracker/Dockerfile
     container_name: trackarr-tracker
     restart: always
+    # L'arrêt du tracker n'est pas instantané : il verse une dernière fois les
+    # crédits d'octets accumulés (jusqu'à 10 s), PUIS draine les écritures HnR
+    # en vol (jusqu'à 8 s). Les 10 s par défaut de Docker coupaient déjà le
+    # second avant ce changement. Le chart Helm accorde 30 s de son côté.
+    stop_grace_period: 45s
     read_only: true
     cap_drop:
       - ALL
@@ -260,6 +265,17 @@ services:
       # passkey, celui-ci ne le peut pas (BEP 15 n'a pas d'emplacement pour
       # une donnée d'authentification dans une requête de scrape).
       TRACKER_UDP_SCRAPE_ENABLED: ${TRACKER_UDP_SCRAPE_ENABLED:-true}
+      # Fenêtre de regroupement des crédits d'octets avant leur versement dans
+      # `users`. Le défaut de 60 s divise le WAL de ce chemin par 2,7 et le
+      # nombre de requêtes par 26 ; `300s` les divise par 15 et par 118, au prix
+      # d'un retard de 5 minutes sur les compteurs que le membre voit. `0s`
+      # rétablit l'écriture par annonce. Voir doc/reference/env.md.
+      TRACKER_STATS_FLUSH_INTERVAL: ${TRACKER_STATS_FLUSH_INTERVAL:-60s}
+      # Nombre de membres écrits par transaction lors d'un versement. Ne pas
+      # augmenter sans mesurer : au-delà de quelques dizaines, l'élagage HOT ne
+      # recycle plus la place en page et le versement écrit PLUS de WAL que les
+      # écritures unitaires qu'il remplace.
+      TRACKER_STATS_FLUSH_CHUNK: ${TRACKER_STATS_FLUSH_CHUNK:-10}
       TRACKER_DEBUG: ${TRACKER_DEBUG:-false}
       # Caddy proxies BitTorrent announces on `/announce` and on the
       # `tracker.*` subdomain. Without trusting its X-Real-IP /

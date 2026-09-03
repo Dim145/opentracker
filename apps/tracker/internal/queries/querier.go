@@ -13,6 +13,23 @@ type Querier interface {
 	// crosses required_seed_time the row is also stamped completed_at = NOW()
 	// and is_hnr cleared, all in one atomic UPDATE.
 	AddSeedTime(ctx context.Context, arg AddSeedTimeParams) error
+	// Versement groupé : applique en une requête les deltas accumulés pour une
+	// TRANCHE de membres.
+	//
+	// Pourquoi par tranches, et pas la totalité d'un versement en une requête :
+	// une seule transaction qui met à jour des dizaines de milliers de lignes
+	// empêche l'élagage HOT de recycler la place en page — les anciennes versions
+	// restent vivantes jusqu'au commit, chaque ligne migre vers une nouvelle page
+	// et réécrit les SEPT index. Mesuré : 45 317 lignes en une transaction tombent
+	// à 19 % de HOT et écrivent PLUS de WAL que les 117 840 écritures unitaires
+	// qu'elles remplacent. Par tranches de dix, on remonte à 100 % de HOT et le
+	// WAL est divisé par quinze. La taille de tranche est réglable, le défaut
+	// vient de cette mesure.
+	//
+	// L'ordre des identifiants est celui que l'appelant fournit, et il les trie :
+	// deux versements concurrents prendraient leurs verrous de ligne dans le même
+	// ordre et ne peuvent donc pas s'interbloquer.
+	BatchIncrementUserStats(ctx context.Context, arg BatchIncrementUserStatsParams) error
 	// Fast path on every announce: increment the byte totals for an
 	// existing (user, torrent) pair. Returns the row count so the caller
 	// can fall through to InsertUserTorrentBytes when the row hasn't been

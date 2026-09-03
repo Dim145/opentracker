@@ -348,6 +348,31 @@ tracker:
   # remote_apply — anything else and the tracker refuses to start.
   synchronousCommit: "off"
 
+  # Regroupement des crédits d'octets avant leur versement dans `users`.
+  #
+  # Un membre qui seede N torrents met à jour SA PROPRE ligne N fois par
+  # intervalle d'annonce ; les additions sont commutatives, rien n'oblige à les
+  # porter une par une. Mesuré sur cinq minutes de trafic à 1 964 annonces
+  # créditées par seconde et 50 000 membres, en régime permanent :
+  #
+  #   désactivé   113–125 Mo de WAL   589 200 écritures de ligne
+  #   60 s          45,8 Mo            226 315
+  #   300 s          7,5 Mo             50 000
+  #
+  # Le prix est un retard : les compteurs accusent jusqu'à une fenêtre. Le seul
+  # garde qui les lit est la porte de ratio de l'annonce, qui voit déjà une
+  # valeur vieille de 60 s (cache de passkey) et ne se répète, par torrent, qu'à
+  # chaque intervalle d'annonce. Au-delà de 60 s, c'est le membre qui voit son
+  # propre ratio traîner. `0s` rétablit l'écriture par annonce.
+  statsFlushInterval: "60s"
+
+  # Membres écrits par transaction lors d'un versement. NE PAS augmenter sans
+  # mesurer : au-delà de quelques dizaines, l'élagage HOT ne recycle plus la
+  # place en page, chaque ligne migre et réécrit les sept index — un versement
+  # d'un seul bloc écrit PLUS de WAL que les écritures unitaires qu'il remplace
+  # (45 317 lignes d'un bloc : 19 % de HOT ; par tranches de dix : 99,8 %).
+  statsFlushChunk: 10
+
   # Empty means the built-in default. Format is a Go duration ("45m", "2h").
   peerTtl: ""
   debug: false

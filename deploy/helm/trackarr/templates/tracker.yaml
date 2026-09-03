@@ -77,6 +77,10 @@ spec:
               value: {{ .Values.tracker.dbMaxConns | quote }}
             - name: TRACKER_SYNCHRONOUS_COMMIT
               value: {{ .Values.tracker.synchronousCommit | quote }}
+            - name: TRACKER_STATS_FLUSH_INTERVAL
+              value: {{ .Values.tracker.statsFlushInterval | quote }}
+            - name: TRACKER_STATS_FLUSH_CHUNK
+              value: {{ .Values.tracker.statsFlushChunk | quote }}
             {{- with .Values.tracker.peerTtl }}
             - name: TRACKER_PEER_TTL
               value: {{ . | quote }}
